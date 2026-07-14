@@ -28,3 +28,49 @@ L'application est connectée à Supabase et prête à interagir avec la base de 
 
 Aucune table n'a encore été créée.
 Cette étape sera réalisée dans l'US3.
+---
+
+# US3 – Création du modèle de données initial
+
+## Objectif
+
+Concevoir puis implémenter le modèle de données initial de Cycling Manager dans PostgreSQL avec Supabase.
+
+Le modèle doit permettre de gérer les principaux domaines du jeu :
+
+- directeurs sportifs ;
+- sponsors et offres de sponsoring ;
+- équipes et divisions ;
+- saisons de 28 jours ;
+- coureurs, contrats et statistiques ;
+- courses, étapes et profils de parcours ;
+- inscriptions et sélections ;
+- objectifs des sponsors ;
+- résultats et points des équipes.
+
+## Conception métier
+
+Le modèle métier a été défini avant l’implémentation SQL.
+
+Les principaux choix de conception sont :
+
+- séparation entre le compte utilisateur et le directeur sportif ;
+- séparation entre un sponsor et l’équipe qu’il finance ;
+- prise en charge future des équipes multisponsors ;
+- historisation des managers, sponsors et contrats des coureurs ;
+- séparation entre les identités permanentes et les états saisonniers ;
+- séparation entre une course permanente et ses éditions saisonnières ;
+- découpage des étapes en tronçons ordonnés ;
+- historisation de l’âge et des statistiques des coureurs par saison ;
+- journalisation détaillée des points attribués aux équipes.
+
+## Mise en place des migrations
+
+Installation et initialisation du Supabase CLI dans le projet.
+
+Création du dossier :
+
+```text
+supabase/
+├── config.toml
+└── migrations/
