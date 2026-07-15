@@ -5,45 +5,53 @@ import { latestRelease } from "../../lib/releases";
 
 export const metadata: Metadata = {
   title: "Accueil",
+  description:
+    "Prenez la direction de votre propre équipe cycliste et construisez votre légende.",
 };
 
 const gamePillars = [
   {
-    number: "01",
-    title: "Construisez votre équipe",
+    icon: "team",
+    title: "Gérez votre équipe",
     description:
-      "Recrutez vos coureurs, composez un effectif équilibré et préparez l’avenir de votre formation.",
+      "Recrutez, entraînez et développez vos coureurs. Construisez un collectif capable de briller toute la saison.",
+    linkLabel: "Découvrir la gestion",
+    backgroundPosition: "42% center",
   },
   {
-    number: "02",
-    title: "Préparez chaque course",
+    icon: "strategy",
+    title: "Planifiez votre stratégie",
     description:
-      "Analysez les profils, sélectionnez les meilleurs coureurs et définissez votre stratégie.",
+      "Analysez les profils, adaptez vos tactiques et prenez les bonnes décisions au moment décisif.",
+    linkLabel: "Préparer les courses",
+    backgroundPosition: "66% center",
   },
   {
-    number: "03",
-    title: "Écrivez votre histoire",
+    icon: "trophy",
+    title: "Vivez la légende",
     description:
-      "Atteignez les objectifs de vos sponsors et faites progresser votre équipe saison après saison.",
+      "Remportez les plus grandes épreuves et inscrivez durablement votre équipe dans l’histoire du cyclisme.",
+    linkLabel: "Écrire votre histoire",
+    backgroundPosition: "82% center",
   },
-];
+] as const;
 
 export default function HomePage() {
   return (
     <>
       <HeroSection />
       <LatestReleaseSection />
-      <GamePillarsSection />
+      <CareerSection />
     </>
   );
 }
 
 function HeroSection() {
   return (
-    <section className="relative isolate overflow-hidden border-b border-[#86A6BC]/30 bg-[#18324D]">
+    <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-cover bg-[68%_center] bg-no-repeat opacity-80"
+        className="absolute inset-0 bg-cover bg-position-[68%_center] bg-no-repeat"
         style={{
           backgroundImage: "url('/images/peloton-header.png')",
         }}
@@ -54,7 +62,7 @@ function HeroSection() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(90deg, rgba(16,34,56,0.98) 0%, rgba(16,34,56,0.91) 42%, rgba(16,34,56,0.48) 76%, rgba(16,34,56,0.20) 100%)",
+            "linear-gradient(90deg, rgba(248,252,250,0.99) 0%, rgba(244,250,247,0.97) 31%, rgba(236,247,242,0.76) 52%, rgba(7,26,23,0.10) 78%, rgba(7,26,23,0.18) 100%)",
         }}
       />
 
@@ -63,51 +71,57 @@ function HeroSection() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(24,50,77,0.04) 0%, rgba(24,50,77,0.05) 56%, rgba(16,34,56,0.90) 100%)",
+            "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.04) 60%, rgba(244,248,243,0.94) 100%)",
         }}
       />
 
-      <MountainDecoration />
+      <HeroMountainLines />
 
-      <div className="relative mx-auto flex min-h-[570px] max-w-375 items-center px-5 py-16 sm:px-8 sm:py-20 lg:py-24">
-        <div className="max-w-3xl">
+      <div className="relative mx-auto flex min-h-150 max-w-375 items-center px-5 pb-28 pt-16 sm:px-8 sm:pb-32 sm:pt-20 lg:pb-36">
+        <div className="max-w-2xl">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-md border border-[#69D5AE]/50 bg-[#102238]/65 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-[#69D5AE] backdrop-blur-sm">
+            <span className="rounded-full border border-[#315B3E]/20 bg-white/75 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E] shadow-sm backdrop-blur">
               Le cockpit du directeur sportif
             </span>
 
-            <span className="text-sm text-[#C5D3DD]">
-              Saison de développement 2026
+            <span className="rounded-full bg-[#F2C94C] px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#071A17] shadow-sm">
+              Saison 2026
             </span>
           </div>
 
-          <h1 className="mt-7 text-5xl font-bold tracking-tight text-[#F6F8FA] drop-shadow-lg sm:text-6xl lg:text-7xl">
+          <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
             Prenez la tête
-            <span className="block text-[#69D5AE]">du peloton.</span>
+            <span className="mt-2 block text-[#42B99A]">du peloton.</span>
           </h1>
 
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[#D8E2E9] drop-shadow-md sm:text-xl">
-            Construisez votre équipe cycliste, recrutez les meilleurs coureurs
-            et prenez les décisions qui feront la différence sur la route.
+          <p className="mt-7 max-w-xl text-lg leading-8 text-[#25443F] sm:text-xl">
+            Construisez votre équipe, recrutez les meilleurs coureurs et prenez
+            les décisions qui feront la différence sur les plus grandes routes.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/inscription"
-              className="inline-flex min-h-12 items-center justify-center rounded-md bg-[#55BE86] px-6 py-3 text-base font-bold text-[#102238] shadow-lg shadow-[#07111F]/30 transition hover:-translate-y-0.5 hover:bg-[#69D5AE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F6F8FA]"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-[0_14px_35px_rgba(128,100,10,0.24)] transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
             >
-              Créer mon équipe
+              Nouvelle carrière
+              <ArrowIcon />
             </Link>
 
             <Link
               href="/connexion"
-              className="inline-flex min-h-12 items-center justify-center rounded-md border border-[#69D5AE] bg-[#102238]/55 px-6 py-3 text-base font-semibold text-[#F6F8FA] backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-[#69D5AE]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69D5AE]"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border-2 border-[#315B3E]/65 bg-[#F7FAF7] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#173C2E] shadow-[0_10px_25px_rgba(7,26,23,0.14)] transition hover:-translate-y-0.5 hover:border-[#173C2E] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
             >
-              Reprendre ma carrière
+              Charger une partie
+              <FolderIcon />
             </Link>
           </div>
 
-          <RoadSeparator />
+          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 text-sm text-[#315B3E]">
+            <HeroMetric value="1" label="univers persistant" />
+            <HeroMetric value="∞" label="décisions à prendre" />
+            <HeroMetric value="100 %" label="passion cycliste" />
+          </div>
         </div>
       </div>
     </section>
@@ -116,83 +130,101 @@ function HeroSection() {
 
 function LatestReleaseSection() {
   return (
-    <section className="relative bg-[#102238] px-5 py-14 sm:px-8 sm:py-18">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-7 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#69D5AE]">
-            Dernières nouveautés
-          </p>
+    <section className="relative z-10 bg-[#F7FAF7] px-5 pb-16 sm:px-8 sm:pb-20">
+      <div className="mx-auto -mt-24 max-w-6xl sm:-mt-28">
+        <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/30 bg-[#0B302B] text-[#FFFDF4] shadow-[0_28px_80px_rgba(7,26,23,0.28)]">
+          <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
 
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#F6F8FA] sm:text-4xl">
-            Cycling Manager prend forme
-          </h2>
+          <ReleaseWheel />
 
-          <p className="mx-auto mt-4 max-w-2xl leading-7 text-[#C5D3DD]">
-            Suivez directement depuis l’accueil les fonctionnalités que nous
-            développons au fil des versions.
-          </p>
-        </div>
+          <div className="relative flex flex-col gap-5 border-b border-white/10 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#42B99A] text-[#071A17] shadow-lg shadow-black/20">
+                <StarIcon />
+              </span>
 
-        <article className="relative overflow-hidden rounded-2xl border border-[#86A6BC]/45 bg-[#18324D] shadow-2xl shadow-[#07111F]/25">
-          <div className="absolute inset-x-0 top-0 h-1 bg-[#69D5AE]" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#7CCF9C]">
+                  Journal de développement
+                </p>
 
-          <div
-            aria-hidden="true"
-            className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#86A6BC]/15"
-            style={{
-              background:
-                "repeating-conic-gradient(transparent 0deg 14deg, rgba(134,166,188,0.12) 14deg 15deg)",
-            }}
-          />
+                <h2 className="mt-1 text-xl font-extrabold">
+                  Dernières nouveautés
+                </h2>
+              </div>
+            </div>
 
-          <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.65fr_1.35fr] lg:p-10">
-            <div className="border-b border-[#86A6BC]/25 pb-7 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-md bg-[#69D5AE] px-3 py-1 text-sm font-bold text-[#102238]">
+            <Link
+              href="/nouveautes"
+              className="inline-flex w-fit items-center gap-2 rounded-md text-sm font-bold text-[#7CCF9C] transition hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            >
+              Voir toutes les mises à jour
+              <ArrowIcon />
+            </Link>
+          </div>
+
+          <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[300px_1fr_270px]">
+            <div
+              className="relative min-h-48 overflow-hidden rounded-xl border border-white/15 bg-cover bg-center shadow-lg"
+              style={{
+                backgroundImage: "url('/images/peloton-header.png')",
+              }}
+            >
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-linear-to-t from-[#071A17]/80 via-transparent to-transparent"
+              />
+
+              <span className="absolute left-4 top-4 rounded-md bg-[#F2C94C] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.12em] text-[#071A17]">
+                Nouveau
+              </span>
+
+              <p className="absolute bottom-4 left-4 right-4 text-sm font-semibold text-white">
+                Le développement de Cycling Manager est officiellement lancé.
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-center">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className="rounded-md border border-[#42B99A]/45 bg-[#42B99A]/10 px-3 py-1 font-bold text-[#7CCF9C]">
                   Version {latestRelease.version}
                 </span>
 
-                <span className="text-sm text-[#C5D3DD]">
-                  {latestRelease.date}
-                </span>
+                <span className="text-[#BFD1C6]">{latestRelease.date}</span>
               </div>
 
-              <h3 className="mt-6 text-2xl font-bold text-[#F6F8FA]">
+              <h3 className="mt-5 text-2xl font-extrabold tracking-tight sm:text-3xl">
                 {latestRelease.title}
               </h3>
 
-              <p className="mt-4 leading-7 text-[#C5D3DD]">
+              <p className="mt-4 max-w-2xl leading-7 text-[#D6DFD2]">
                 {latestRelease.description}
               </p>
 
               <Link
                 href="/nouveautes"
-                className="mt-7 inline-flex items-center gap-2 rounded-md font-semibold text-[#69D5AE] transition hover:text-[#B9E4CE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69D5AE]"
+                className="mt-6 inline-flex w-fit items-center gap-2 rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
               >
-                Voir toutes les versions
-                <span aria-hidden="true">→</span>
+                Voir le détail
+                <ArrowIcon />
               </Link>
             </div>
 
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E5B84B]">
+            <div className="border-t border-white/10 pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F2C94C]">
                 Fonctionnalités livrées
               </p>
 
-              <ul className="mt-5 space-y-4">
+              <ul className="mt-5 space-y-3">
                 {latestRelease.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-4 rounded-lg border border-[#86A6BC]/20 bg-[#102238]/35 px-4 py-3.5"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#55BE86]/15 text-sm font-bold text-[#69D5AE]"
-                    >
+                  <li key={feature} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#42B99A]/45 bg-[#42B99A]/10 text-xs font-black text-[#7CCF9C]">
                       ✓
                     </span>
 
-                    <span className="leading-6 text-[#E2E9EE]">{feature}</span>
+                    <span className="text-sm leading-6 text-[#D6DFD2]">
+                      {feature}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -204,146 +236,276 @@ function LatestReleaseSection() {
   );
 }
 
-function GamePillarsSection() {
+function CareerSection() {
   return (
-    <section className="relative overflow-hidden border-t border-[#86A6BC]/20 bg-[#18324D] px-5 py-16 sm:px-8 sm:py-20">
-      <MountainLine />
-
-      <div className="relative mx-auto max-w-375">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#69D5AE]">
+    <section
+      id="carriere"
+      className="relative overflow-hidden bg-[#F7FAF7] px-5 pb-24 pt-5 text-[#082A2A] sm:px-8 sm:pb-28"
+    >
+      <div className="mx-auto max-w-375">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#42A884]">
             Votre carrière
           </p>
 
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            Plus qu’une équipe,
-            <span className="text-[#69D5AE]"> un projet sportif.</span>
+          <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
+            Une aventure sportive
+            <span className="block text-[#315B3E]">
+              qui se construit étape après étape.
+            </span>
           </h2>
+
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#536B64] sm:text-lg">
+            Du recrutement à la victoire finale, chaque décision façonne votre
+            équipe et l’histoire que vous écrirez.
+          </p>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {gamePillars.map((pillar) => (
-            <article
-              key={pillar.number}
-              className="group relative overflow-hidden rounded-xl border border-[#86A6BC]/35 bg-[#102238]/55 p-6 shadow-xl shadow-[#07111F]/15 transition hover:-translate-y-1 hover:border-[#69D5AE]/70"
-            >
-              <span className="text-4xl font-bold text-[#69D5AE]/25 transition group-hover:text-[#69D5AE]/45">
-                {pillar.number}
-              </span>
-
-              <h3 className="mt-5 text-xl font-bold text-[#F6F8FA]">
-                {pillar.title}
-              </h3>
-
-              <p className="mt-3 leading-7 text-[#C5D3DD]">
-                {pillar.description}
-              </p>
-
-              <div className="mt-6 h-0.5 w-14 bg-[#69D5AE]" />
-            </article>
+            <FeatureCard
+              key={pillar.title}
+              icon={pillar.icon}
+              title={pillar.title}
+              description={pillar.description}
+              linkLabel={pillar.linkLabel}
+              backgroundPosition={pillar.backgroundPosition}
+            />
           ))}
         </div>
       </div>
+
+      <RoadWave />
     </section>
   );
 }
 
-function MountainDecoration() {
+function FeatureCard({
+  icon,
+  title,
+  description,
+  linkLabel,
+  backgroundPosition,
+}: {
+  icon: "team" | "strategy" | "trophy";
+  title: string;
+  description: string;
+  linkLabel: string;
+  backgroundPosition: string;
+}) {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 1440 360"
-      preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-64 w-full opacity-25"
-    >
-      <path
-        d="M0 310 L170 175 L285 265 L465 90 L635 260 L790 135 L940 270 L1110 105 L1290 245 L1440 160 L1440 360 L0 360 Z"
-        fill="#2D5675"
+    <article className="group relative min-h-80 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white shadow-[0_18px_45px_rgba(19,60,46,0.12)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_26px_60px_rgba(19,60,46,0.18)]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-no-repeat opacity-20 transition duration-500 group-hover:scale-105 group-hover:opacity-30"
+        style={{
+          backgroundImage: "url('/images/peloton-header.png')",
+          backgroundPosition,
+        }}
       />
 
-      <path
-        d="M0 325 L210 235 L350 300 L520 175 L690 305 L870 220 L1030 315 L1210 195 L1440 285 L1440 360 L0 360 Z"
-        fill="#18324D"
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-linear-to-br from-white via-white/95 to-[#DBF0E7]/75"
       />
 
-      <path
-        d="M170 175 L210 207 L232 190 L285 265"
-        fill="none"
-        stroke="#C5D3DD"
-        strokeWidth="5"
-        opacity="0.45"
-      />
+      <div className="relative flex min-h-80 flex-col p-6 sm:p-7">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#42CDA8] text-[#07302A] shadow-[0_12px_30px_rgba(66,205,168,0.28)]">
+          <PillarIcon icon={icon} />
+        </span>
 
-      <path
-        d="M465 90 L520 155 L550 128 L635 260"
-        fill="none"
-        stroke="#C5D3DD"
-        strokeWidth="6"
-        opacity="0.5"
-      />
+        <h3 className="mt-7 text-2xl font-black tracking-tight">{title}</h3>
 
-      <path
-        d="M1110 105 L1165 165 L1198 143 L1290 245"
-        fill="none"
-        stroke="#C5D3DD"
-        strokeWidth="6"
-        opacity="0.45"
-      />
-    </svg>
+        <p className="mt-4 leading-7 text-[#536B64]">{description}</p>
+
+        <Link
+          href="/inscription"
+          className="mt-auto inline-flex w-fit items-center gap-2 pt-8 text-sm font-extrabold uppercase tracking-[0.08em] text-[#278B70] transition group-hover:text-[#173C2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
+        >
+          {linkLabel}
+          <ArrowIcon />
+        </Link>
+      </div>
+    </article>
   );
 }
 
-function MountainLine() {
+function HeroMetric({ value, label }: { value: string; label: string }) {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 1440 220"
-      preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-52 w-full opacity-[0.08]"
-    >
-      <path
-        d="M0 185 L160 90 L290 160 L440 35 L610 165 L760 75 L925 175 L1090 55 L1260 150 L1440 70"
-        fill="none"
-        stroke="#69D5AE"
-        strokeWidth="4"
-      />
+    <div className="flex items-baseline gap-2">
+      <span className="text-lg font-black text-[#173C2E]">{value}</span>
+      <span>{label}</span>
+    </div>
+  );
+}
 
-      <path
-        d="M0 200 L205 145 L345 195 L515 105 L685 200 L860 135 L1040 205 L1215 115 L1440 180"
+function PillarIcon({
+  icon,
+}: {
+  icon: "team" | "strategy" | "trophy";
+}) {
+  if (icon === "team") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-7 w-7"
         fill="none"
-        stroke="#F6F8FA"
-        strokeDasharray="16 14"
+        stroke="currentColor"
         strokeWidth="2"
+      >
+        <circle cx="9" cy="8" r="3" />
+        <circle cx="17" cy="9" r="2.5" />
+        <path d="M3.5 19c.5-4 2.5-6 5.5-6s5 2 5.5 6" />
+        <path d="M14 14c3.2-.3 5.2 1.4 5.8 4.5" />
+      </svg>
+    );
+  }
+
+  if (icon === "strategy") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-7 w-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M4 19V10" />
+        <path d="M10 19V5" />
+        <path d="M16 19v-7" />
+        <path d="M22 19H2" />
+        <path d="M3 7l5-3 5 4 7-5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-7 w-7"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
+      <path d="M8 6H4v1a5 5 0 0 0 5 5" />
+      <path d="M16 6h4v1a5 5 0 0 1-5 5" />
+      <path d="M12 13v5" />
+      <path d="M8 21h8" />
+      <path d="M9 18h6" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d="M3 10h13" />
+      <path d="m11 5 5 5-5 5" />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M2.5 5.5h5l1.5 2h8.5v8H2.5v-10Z" />
+      <path d="M2.5 7.5h15" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="currentColor"
+    >
+      <path d="m12 2.8 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 2.8Z" />
+    </svg>
+  );
+}
+
+function HeroMountainLines() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 1440 280"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-52 w-full opacity-30"
+    >
+      <path
+        d="M0 235 L165 135 L290 210 L450 70 L610 225 L770 120 L930 230 L1100 90 L1280 205 L1440 125 L1440 280 L0 280 Z"
+        fill="#78B9A3"
+        opacity="0.28"
+      />
+
+      <path
+        d="M0 255 L210 190 L355 245 L520 145 L690 255 L870 190 L1040 260 L1215 165 L1440 235"
+        fill="none"
+        stroke="#315B3E"
+        strokeDasharray="15 15"
+        strokeWidth="2"
+        opacity="0.4"
       />
     </svg>
   );
 }
 
-function RoadSeparator() {
+function ReleaseWheel() {
   return (
     <div
       aria-hidden="true"
-      className="mt-11 flex max-w-xl items-center gap-2 opacity-85"
+      className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full border border-white/10 opacity-60"
+      style={{
+        background:
+          "repeating-conic-gradient(transparent 0deg 14deg, rgba(124,207,156,0.10) 14deg 15deg)",
+      }}
+    />
+  );
+}
+
+function RoadWave() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 1440 150"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full"
     >
-      <div className="h-px flex-1 bg-[#86A6BC]/50" />
+      <path
+        d="M0 90 C260 145 430 45 700 100 C980 155 1160 55 1440 95 L1440 150 L0 150 Z"
+        fill="#C8F1E5"
+        opacity="0.9"
+      />
 
-      {Array.from({ length: 4 }).map((_, index) => (
-        <span
-          key={`left-${index}`}
-          className="h-px w-7 bg-[#C5D3DD]/60"
-        />
-      ))}
-
-      <span className="h-0.5 w-14 bg-[#69D5AE]" />
-
-      {Array.from({ length: 4 }).map((_, index) => (
-        <span
-          key={`right-${index}`}
-          className="h-px w-7 bg-[#C5D3DD]/60"
-        />
-      ))}
-
-      <div className="h-px flex-1 bg-[#86A6BC]/50" />
-    </div>
+      <path
+        d="M0 105 C280 155 455 62 720 112 C1000 165 1190 70 1440 110"
+        fill="none"
+        stroke="#278B70"
+        strokeDasharray="12 10"
+        strokeWidth="2"
+        opacity="0.75"
+      />
+    </svg>
   );
 }

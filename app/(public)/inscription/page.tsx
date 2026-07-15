@@ -38,15 +38,15 @@ const benefits = [
 export default function RegistrationPage() {
   return (
     <AuthPreview
-      eyebrow="Début de carrière"
+      eyebrow="Nouvelle carrière"
       title="Créez votre"
       highlightedTitle="propre équipe."
-      description="Préparez votre arrivée dans le peloton et construisez un projet sportif capable de s’imposer sur les plus grandes courses."
+      description="Préparez votre arrivée dans le peloton et imaginez un projet sportif capable de s’imposer sur les plus grandes routes."
       availabilityLabel="La création effective d’un compte sera développée dans l’US 5."
       fields={fields}
-      submitLabel="Créer mon équipe prochainement"
+      submitLabel="Création de compte prochainement disponible"
       alternateText="Vous possédez déjà un compte ?"
-      alternateLinkLabel="Accéder à la connexion"
+      alternateLinkLabel="Reprendre une carrière"
       alternateHref="/connexion"
       benefits={benefits}
     />

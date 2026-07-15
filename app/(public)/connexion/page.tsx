@@ -32,15 +32,15 @@ const benefits = [
 export default function LoginPage() {
   return (
     <AuthPreview
-      eyebrow="Accès directeur sportif"
+      eyebrow="Retour dans le peloton"
       title="Reprenez votre"
       highlightedTitle="carrière."
-      description="Votre équipe vous attend. La connexion sécurisée sera mise en place lors de la prochaine étape fonctionnelle consacrée aux sessions utilisateur."
-      availabilityLabel="La connexion et la déconnexion seront développées dans l’US 6."
+      description="Votre équipe vous attend. Retrouvez bientôt votre cockpit de directeur sportif et poursuivez la construction de votre projet."
+      availabilityLabel="La connexion sécurisée et la gestion des sessions seront développées dans l’US 6."
       fields={fields}
-      submitLabel="Se connecter prochainement"
+      submitLabel="Connexion prochainement disponible"
       alternateText="Vous ne possédez pas encore de compte ?"
-      alternateLinkLabel="Découvrir l’inscription"
+      alternateLinkLabel="Commencer une nouvelle carrière"
       alternateHref="/inscription"
       benefits={benefits}
     />

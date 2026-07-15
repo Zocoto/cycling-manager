@@ -1,48 +1,90 @@
 import Link from "next/link";
 
-import { appConfig } from "../../lib/app-config";
 import { WheelLogo } from "../ui/wheel-logo";
+
+const navigationItems = [
+  {
+    href: "/",
+    label: "Accueil",
+  },
+  {
+    href: "/nouveautes",
+    label: "Nouveautés",
+  },
+  {
+    href: "/#carriere",
+    label: "Fonctionnalités",
+  },
+] as const;
 
 export function PublicHeader() {
   return (
-    <header className="border-b border-[#86A6BC]/25 bg-[#102238]/95 backdrop-blur">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 sm:px-8 md:flex-row md:items-center md:justify-between">
+    <header className="sticky top-0 z-50 border-b border-[#78947D]/25 bg-[#071A17]/95 shadow-lg shadow-black/15 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-375 items-center justify-between gap-6 px-5 py-4 sm:px-8">
         <Link
           href="/"
-          className="flex w-fit items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69D5AE]"
+          className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
           aria-label="Retour à l’accueil de Cycling Manager"
         >
           <WheelLogo />
 
-          <span className="text-lg font-bold tracking-tight text-[#F6F8FA]">
-            {appConfig.name}
+          <span className="leading-none">
+            <span className="block text-lg font-extrabold uppercase tracking-[0.04em] text-[#FFFDF4]">
+              Cycling
+            </span>
+
+            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.36em] text-[#F2C94C]">
+              Manager
+            </span>
           </span>
         </Link>
 
         <nav
           aria-label="Navigation principale"
-          className="flex flex-wrap items-center gap-2 sm:gap-3"
+          className="hidden items-center gap-2 lg:flex"
         >
-          <Link
-            href="/nouveautes"
-            className="rounded-md px-3 py-2 text-sm font-semibold text-[#C5D3DD] transition hover:bg-[#2D5675]/35 hover:text-[#F6F8FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69D5AE]"
-          >
-            Nouveautés
-          </Link>
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-md px-4 py-2 text-sm font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/connexion"
-            className="rounded-md border border-[#69D5AE] bg-[#102238]/20 px-4 py-2 text-sm font-semibold text-[#F6F8FA] transition hover:bg-[#69D5AE]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69D5AE]"
+            className="hidden min-h-10 items-center justify-center rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-4 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:inline-flex"
           >
             Se connecter
           </Link>
 
           <Link
             href="/inscription"
-            className="rounded-md bg-[#55BE86] px-4 py-2 text-sm font-semibold text-[#102238] shadow-md shadow-[#07111F]/20 transition hover:bg-[#69D5AE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69D5AE]"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-4 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
           >
-            Créer un compte
+            Jouer maintenant
           </Link>
+        </div>
+      </div>
+
+      <div className="border-t border-[#78947D]/15 px-5 py-2 lg:hidden">
+        <nav
+          aria-label="Navigation mobile"
+          className="mx-auto flex max-w-375 items-center justify-center gap-1"
+        >
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C]"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>
