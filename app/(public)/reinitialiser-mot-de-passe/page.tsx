@@ -1,33 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { LoginForm } from "../../../components/auth/login-form";
+import { PasswordUpdateForm } from "../../../components/auth/password-update-form";
+import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Connexion",
+  title: "Nouveau mot de passe",
   description:
-    "Connectez-vous à votre compte Cyclostratège pour reprendre votre carrière.",
+    "Choisissez un nouveau mot de passe pour votre compte Cyclostratège.",
 };
 
-const benefits = [
-  "Retrouvez votre équipe et la progression de votre carrière.",
-  "Préparez vos prochaines courses et vos objectifs sportifs.",
-  "Reprenez votre partie depuis votre espace personnel sécurisé.",
-] as const;
-
-type LoginPageProps = {
+type PasswordResetPageProps = {
   searchParams: Promise<{
     status?: string;
   }>;
 };
 
-export default async function LoginPage({
+export default async function PasswordResetPage({
   searchParams,
-}: LoginPageProps) {
+}: PasswordResetPageProps) {
   const { status } = await searchParams;
 
-  const passwordWasUpdated =
-    status === "password-updated";
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase.auth.getClaims();
+
+  const hasRecoverySession =
+    !error && Boolean(data?.claims?.sub);
+
+  const resetIsReady =
+    status === "ready" && hasRecoverySession;
 
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
@@ -62,40 +64,34 @@ export default async function LoginPage({
       <div className="relative mx-auto grid min-h-175 max-w-375 gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1fr_470px] lg:items-center lg:gap-20">
         <div className="max-w-2xl text-[#082A2A]">
           <span className="inline-flex rounded-full bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#071A17] shadow-md">
-            Retour dans le peloton
+            Nouveau départ
           </span>
 
           <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] sm:text-6xl">
-            Reprenez votre
+            Sécurisez à nouveau
             <span className="mt-2 block text-[#42B99A]">
-              carrière.
+              votre carrière.
             </span>
           </h1>
 
           <p className="mt-7 max-w-xl text-lg leading-8 text-[#36554E]">
-            Votre équipe vous attend. Retrouvez votre espace de
-            directeur sportif et poursuivez la construction de votre
-            projet dans Cyclostratège.
+            Choisissez un nouveau mot de passe difficile à deviner.
+            Après son enregistrement, vous pourrez reprendre votre
+            carrière depuis la page de connexion.
           </p>
 
           <ul className="mt-9 space-y-4">
-            {benefits.map((benefit) => (
-              <li
-                key={benefit}
-                className="flex items-start gap-4 text-[#25443F]"
-              >
-                <span
-                  aria-hidden="true"
-                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#42CDA8] text-sm font-black text-[#07302A] shadow-sm"
-                >
-                  ✓
-                </span>
+            <Benefit>
+              Utilisez au moins 12 caractères.
+            </Benefit>
 
-                <span className="leading-7">
-                  {benefit}
-                </span>
-              </li>
-            ))}
+            <Benefit>
+              Évitez les informations personnelles faciles à deviner.
+            </Benefit>
+
+            <Benefit>
+              Utilisez un mot de passe différent de vos autres comptes.
+            </Benefit>
           </ul>
 
           <RoadSeparator />
@@ -107,78 +103,102 @@ export default async function LoginPage({
           <WheelDecoration />
 
           <div className="relative p-6 sm:p-8">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
-                Espace directeur sportif
-              </p>
+            {resetIsReady ? (
+              <>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
+                    Espace directeur sportif
+                  </p>
 
-              <h2 className="mt-3 text-2xl font-black">
-                Se connecter
-              </h2>
+                  <h2 className="mt-3 text-2xl font-black">
+                    Choisir un nouveau mot de passe
+                  </h2>
 
-              <p className="mt-3 text-sm leading-6 text-[#BFD1C6]">
-                Utilisez l’adresse e-mail et le mot de passe associés à
-                votre compte.
-              </p>
-            </div>
-
-            {passwordWasUpdated ? (
-              <div
-                role="status"
-                aria-live="polite"
-                className="mt-7 rounded-xl border border-[#42CDA8]/45 bg-[#42CDA8]/12 px-4 py-4"
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#42CDA8] font-black text-[#07302A]"
-                  >
-                    ✓
-                  </span>
-
-                  <div>
-                    <p className="text-sm font-bold text-[#7FE0C0]">
-                      Mot de passe modifié
-                    </p>
-
-                    <p className="mt-1 text-sm leading-6 text-[#D6DFD2]">
-                      Vous pouvez maintenant vous connecter avec votre
-                      nouveau mot de passe.
-                    </p>
-                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#BFD1C6]">
+                    Saisissez puis confirmez le nouveau mot de passe de
+                    votre compte.
+                  </p>
                 </div>
-              </div>
-            ) : null}
 
-            <div className="mt-7">
-              <LoginForm />
-            </div>
-
-            <div className="mt-4 text-right">
-              <Link
-                href="/mot-de-passe-oublie"
-                className="inline-flex rounded-md text-sm font-bold text-[#7FE0C0] transition hover:text-[#A8EBD4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42CDA8]"
-              >
-                Mot de passe oublié ?
-              </Link>
-            </div>
+                <div className="mt-7">
+                  <PasswordUpdateForm />
+                </div>
+              </>
+            ) : (
+              <InvalidRecoveryLink />
+            )}
 
             <div className="mt-7 border-t border-white/10 pt-6 text-center">
-              <p className="text-sm text-[#BFD1C6]">
-                Vous ne possédez pas encore de compte ?
-              </p>
-
               <Link
-                href="/inscription"
-                className="mt-2 inline-flex rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+                href="/connexion"
+                className="inline-flex rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
               >
-                Commencer une nouvelle carrière
+                Revenir à la connexion
               </Link>
             </div>
           </div>
         </article>
       </div>
     </section>
+  );
+}
+
+function InvalidRecoveryLink() {
+  return (
+    <div>
+      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F2C94C]">
+        Lien indisponible
+      </p>
+
+      <h2 className="mt-3 text-2xl font-black">
+        Ce lien ne peut pas être utilisé
+      </h2>
+
+      <div
+        role="alert"
+        className="mt-6 rounded-xl border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-4"
+      >
+        <div className="flex items-start gap-3">
+          <span
+            aria-hidden="true"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F2C94C] font-black text-[#071A17]"
+          >
+            !
+          </span>
+
+          <p className="text-sm leading-6 text-[#D6DFD2]">
+            Le lien de récupération est invalide, incomplet ou expiré.
+            Demandez un nouveau message pour poursuivre.
+          </p>
+        </div>
+      </div>
+
+      <Link
+        href="/mot-de-passe-oublie"
+        className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#F2C94C] px-5 py-3 text-center text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
+      >
+        Demander un nouveau lien
+      </Link>
+    </div>
+  );
+}
+
+function Benefit({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-start gap-4 text-[#25443F]">
+      <span
+        aria-hidden="true"
+        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#42CDA8] text-sm font-black text-[#07302A] shadow-sm"
+      >
+        ✓
+      </span>
+
+      <span className="leading-7">{children}</span>
+    </li>
   );
 }
 
