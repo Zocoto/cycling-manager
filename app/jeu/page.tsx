@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { WheelLogo } from "../../components/ui/wheel-logo";
+import { logoutAccount } from "./actions";
 
 export const metadata: Metadata = {
   title: "Espace de jeu",
   description:
-    "Découvrez le futur cockpit de votre équipe Cycling Manager.",
+    "Découvrez le futur cockpit de votre équipe Cyclostratège.",
 };
 
 const previewCards = [
@@ -14,19 +15,22 @@ const previewCards = [
     icon: "team",
     title: "Effectif",
     value: "28",
-    description: "Gérez vos coureurs, leurs rôles et leurs contrats.",
+    description:
+      "Gérez vos coureurs, leurs rôles et leurs contrats.",
   },
   {
     icon: "calendar",
     title: "Prochaine course",
     value: "J-6",
-    description: "Préparez votre sélection et votre stratégie.",
+    description:
+      "Préparez votre sélection et votre stratégie.",
   },
   {
     icon: "objective",
     title: "Confiance sponsor",
     value: "85 %",
-    description: "Suivez les attentes et objectifs de votre partenaire.",
+    description:
+      "Suivez les attentes et objectifs de votre partenaire.",
   },
 ] as const;
 
@@ -78,8 +82,9 @@ export default function GamePage() {
             </h1>
 
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[#36554E]">
-              Retrouvez ici une première représentation de l’espace dans lequel
-              vous piloterez votre équipe et prendrez vos décisions.
+              Retrouvez ici une première représentation de l’espace
+              dans lequel vous piloterez votre équipe et prendrez vos
+              décisions.
             </p>
           </div>
 
@@ -111,8 +116,9 @@ export default function GamePage() {
                 </h2>
 
                 <p className="mt-5 max-w-2xl leading-7 text-[#D6DFD2]">
-                  La route est temporairement accessible publiquement. Elle sera
-                  protégée par le système d’authentification lors de l’US 6.
+                  La connexion et la déconnexion sont désormais
+                  disponibles. La protection complète de cet espace
+                  sera ajoutée lors de la prochaine étape.
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -139,9 +145,22 @@ export default function GamePage() {
                 </p>
 
                 <ul className="mt-5 space-y-4">
-                  <RoadmapItem label="Création de compte" status="US 5" />
-                  <RoadmapItem label="Connexion sécurisée" status="US 6" />
-                  <RoadmapItem label="Protection de la route" status="US 6" />
+                  <RoadmapItem
+                    label="Création de compte"
+                    status="Terminée"
+                  />
+                  <RoadmapItem
+                    label="Connexion sécurisée"
+                    status="Terminée"
+                  />
+                  <RoadmapItem
+                    label="Déconnexion"
+                    status="Terminée"
+                  />
+                  <RoadmapItem
+                    label="Protection de la route"
+                    status="À venir"
+                  />
                 </ul>
               </div>
             </div>
@@ -164,18 +183,29 @@ function GameHeader() {
 
           <span>
             <span className="block text-lg font-extrabold uppercase leading-none">
-              Cycling
+              Cyclo
             </span>
 
-            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.34em] text-[#F2C94C]">
-              Manager
+            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.26em] text-[#F2C94C]">
+              Stratège
             </span>
           </span>
         </Link>
 
-        <span className="rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-[#F2C94C]">
-          Prototype
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden rounded-full border border-[#42CDA8]/35 bg-[#42CDA8]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-[#7FE0C0] sm:inline-flex">
+            Session active
+          </span>
+
+          <form action={logoutAccount}>
+            <button
+              type="submit"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            >
+              Se déconnecter
+            </button>
+          </form>
+        </div>
       </div>
     </header>
   );
@@ -199,12 +229,16 @@ function DashboardPreviewCard({
           <CardIcon icon={icon} />
         </span>
 
-        <span className="text-3xl font-black text-[#278B70]">{value}</span>
+        <span className="text-3xl font-black text-[#278B70]">
+          {value}
+        </span>
       </div>
 
       <h2 className="mt-7 text-xl font-black">{title}</h2>
 
-      <p className="mt-3 leading-7 text-[#60756E]">{description}</p>
+      <p className="mt-3 leading-7 text-[#60756E]">
+        {description}
+      </p>
     </article>
   );
 }

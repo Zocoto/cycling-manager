@@ -1,34 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { LoginForm } from "../../../components/auth/login-form";
+import { PasswordResetRequestForm } from "../../../components/auth/password-reset-request-form";
 
 export const metadata: Metadata = {
-  title: "Connexion",
+  title: "Mot de passe oublié",
   description:
-    "Connectez-vous à votre compte Cyclostratège pour reprendre votre carrière.",
+    "Demandez un lien pour réinitialiser le mot de passe de votre compte Cyclostratège.",
 };
 
 const benefits = [
-  "Retrouvez votre équipe et la progression de votre carrière.",
-  "Préparez vos prochaines courses et vos objectifs sportifs.",
-  "Reprenez votre partie depuis votre espace personnel sécurisé.",
+  "Recevez un lien sécurisé sur votre adresse e-mail.",
+  "Choisissez ensuite un nouveau mot de passe.",
+  "Reprenez votre carrière sans perdre votre progression.",
 ] as const;
 
-type LoginPageProps = {
-  searchParams: Promise<{
-    status?: string;
-  }>;
-};
-
-export default async function LoginPage({
-  searchParams,
-}: LoginPageProps) {
-  const { status } = await searchParams;
-
-  const passwordWasUpdated =
-    status === "password-updated";
-
+export default function ForgotPasswordPage() {
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
       <div
@@ -62,20 +49,20 @@ export default async function LoginPage({
       <div className="relative mx-auto grid min-h-175 max-w-375 gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1fr_470px] lg:items-center lg:gap-20">
         <div className="max-w-2xl text-[#082A2A]">
           <span className="inline-flex rounded-full bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#071A17] shadow-md">
-            Retour dans le peloton
+            Assistance de course
           </span>
 
           <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] sm:text-6xl">
-            Reprenez votre
+            Retrouvez l’accès à
             <span className="mt-2 block text-[#42B99A]">
-              carrière.
+              votre carrière.
             </span>
           </h1>
 
           <p className="mt-7 max-w-xl text-lg leading-8 text-[#36554E]">
-            Votre équipe vous attend. Retrouvez votre espace de
-            directeur sportif et poursuivez la construction de votre
-            projet dans Cyclostratège.
+            Indiquez l’adresse e-mail associée à votre compte
+            Cyclostratège. Un lien vous permettra de choisir un nouveau
+            mot de passe.
           </p>
 
           <ul className="mt-9 space-y-4">
@@ -91,9 +78,7 @@ export default async function LoginPage({
                   ✓
                 </span>
 
-                <span className="leading-7">
-                  {benefit}
-                </span>
+                <span className="leading-7">{benefit}</span>
               </li>
             ))}
           </ul>
@@ -113,66 +98,29 @@ export default async function LoginPage({
               </p>
 
               <h2 className="mt-3 text-2xl font-black">
-                Se connecter
+                Réinitialiser le mot de passe
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-[#BFD1C6]">
-                Utilisez l’adresse e-mail et le mot de passe associés à
-                votre compte.
+                Saisissez votre adresse e-mail pour recevoir les
+                instructions de récupération.
               </p>
             </div>
 
-            {passwordWasUpdated ? (
-              <div
-                role="status"
-                aria-live="polite"
-                className="mt-7 rounded-xl border border-[#42CDA8]/45 bg-[#42CDA8]/12 px-4 py-4"
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#42CDA8] font-black text-[#07302A]"
-                  >
-                    ✓
-                  </span>
-
-                  <div>
-                    <p className="text-sm font-bold text-[#7FE0C0]">
-                      Mot de passe modifié
-                    </p>
-
-                    <p className="mt-1 text-sm leading-6 text-[#D6DFD2]">
-                      Vous pouvez maintenant vous connecter avec votre
-                      nouveau mot de passe.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
             <div className="mt-7">
-              <LoginForm />
-            </div>
-
-            <div className="mt-4 text-right">
-              <Link
-                href="/mot-de-passe-oublie"
-                className="inline-flex rounded-md text-sm font-bold text-[#7FE0C0] transition hover:text-[#A8EBD4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42CDA8]"
-              >
-                Mot de passe oublié ?
-              </Link>
+              <PasswordResetRequestForm />
             </div>
 
             <div className="mt-7 border-t border-white/10 pt-6 text-center">
               <p className="text-sm text-[#BFD1C6]">
-                Vous ne possédez pas encore de compte ?
+                Vous avez retrouvé votre mot de passe ?
               </p>
 
               <Link
-                href="/inscription"
+                href="/connexion"
                 className="mt-2 inline-flex rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
               >
-                Commencer une nouvelle carrière
+                Revenir à la connexion
               </Link>
             </div>
           </div>
