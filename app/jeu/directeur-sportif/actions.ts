@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { SportingDirectorProfileState } from "./profile-state";
 
@@ -50,6 +51,23 @@ const sportingDirectorProfileSchema = z.object({
 
   hideEmail: z.boolean(),
 });
+
+type CurrentSportingDirectorProfile = {
+  country_id: string | null;
+};
+
+type RiderGenerationProfile = {
+  name_profile_code: string;
+  avatar_profile_key: string;
+};
+
+type CareerGenerationResult = {
+  status?: "created" | "already_created";
+  team_id?: string;
+  season_id?: string;
+  rider_count?: number;
+  generation_version?: number;
+};
 
 export async function updateSportingDirectorProfile(
   _previousState: SportingDirectorProfileState,
@@ -112,7 +130,7 @@ export async function updateSportingDirectorProfile(
     .from("sporting_directors")
     .select("country_id")
     .eq("auth_user_id", user.id)
-    .maybeSingle<{ country_id: string | null }>();
+    .maybeSingle<CurrentSportingDirectorProfile>();
 
   if (currentProfileError || !currentProfile) {
     console.error(
@@ -193,8 +211,95 @@ export async function updateSportingDirectorProfile(
     };
   }
 
-  revalidatePath("/jeu");
-  revalidatePath("/jeu/directeur-sportif");
+  const {
+    data: generationProfile,
+    error: generationProfileError,
+  } = await supabase
+    .rpc("get_current_rider_generation_profile")
+    .maybeSingle<RiderGenerationProfile>();
+
+  if (generationProfileError || !generationProfile) {
+    console.error(
+      "Impossible de récupérer le profil de génération des coureurs :",
+      generationProfileError
+    );
+
+    revalidateSportingDirectorPages();
+
+    return {
+      status: "error",
+      message:
+        "Votre profil a été enregistré, mais la préparation de votre équipe a échoué. Enregistrez de nouveau votre profil pour réessayer.",
+      fieldErrors: {},
+    };
+  }
+
+  let riderIdentities;
+
+  try {
+    riderIdentities = generateInitialRiderIdentities(
+      generationProfile.name_profile_code
+    );
+  } catch (error) {
+    console.error(
+      "Impossible de générer les identités des coureurs :",
+      error
+    );
+
+    revalidateSportingDirectorPages();
+
+    return {
+      status: "error",
+      message:
+        "Votre profil a été enregistré, mais les identités de vos coureurs n’ont pas pu être générées. Enregistrez de nouveau votre profil pour réessayer.",
+      fieldErrors: {},
+    };
+  }
+
+  const {
+    data: careerGenerationData,
+    error: careerGenerationError,
+  } = await supabase.rpc(
+    "initialize_sporting_director_career",
+    {
+      p_rider_identities: riderIdentities,
+    }
+  );
+
+  if (careerGenerationError) {
+    console.error(
+      "Échec de la génération de la carrière initiale :",
+      {
+        code: careerGenerationError.code,
+        message: careerGenerationError.message,
+        details: careerGenerationError.details,
+        hint: careerGenerationError.hint,
+      }
+    );
+
+    revalidateSportingDirectorPages();
+
+    return {
+      status: "error",
+      message:
+        "Votre profil a été enregistré, mais votre équipe n’a pas pu être créée. Enregistrez de nouveau votre profil pour réessayer.",
+      fieldErrors: {},
+    };
+  }
+
+  const careerGenerationResult =
+    careerGenerationData as CareerGenerationResult | null;
+
+  revalidateSportingDirectorPages();
+
+  if (careerGenerationResult?.status === "created") {
+    return {
+      status: "success",
+      message:
+        "Votre profil, votre équipe amateur et vos 7 coureurs ont bien été créés.",
+      fieldErrors: {},
+    };
+  }
 
   return {
     status: "success",
@@ -215,4 +320,9 @@ function getFormValue(
 
 function normalizeDisplayName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function revalidateSportingDirectorPages(): void {
+  revalidatePath("/jeu");
+  revalidatePath("/jeu/directeur-sportif");
 }

@@ -1,0 +1,154 @@
+{
+  "minimumFirstNames": 100,
+  "minimumLastNames": 100,
+  "profiles": [
+    {
+      "code": "france",
+      "label": "France"
+    },
+    {
+      "code": "belgium",
+      "label": "Belgique"
+    },
+    {
+      "code": "netherlands",
+      "label": "Pays-Bas"
+    },
+    {
+      "code": "italy",
+      "label": "Italie"
+    },
+    {
+      "code": "spain",
+      "label": "Espagne"
+    },
+    {
+      "code": "portugal",
+      "label": "Portugal"
+    },
+    {
+      "code": "germany",
+      "label": "Allemagne et espace germanophone"
+    },
+    {
+      "code": "british_isles",
+      "label": "Îles britanniques"
+    },
+    {
+      "code": "nordic",
+      "label": "Europe nordique"
+    },
+    {
+      "code": "central_europe",
+      "label": "Europe centrale"
+    },
+    {
+      "code": "balkans",
+      "label": "Balkans"
+    },
+    {
+      "code": "eastern_europe",
+      "label": "Europe orientale"
+    },
+    {
+      "code": "greece",
+      "label": "Grèce et Chypre"
+    },
+    {
+      "code": "caucasus",
+      "label": "Caucase"
+    },
+    {
+      "code": "turkey",
+      "label": "Turquie"
+    },
+    {
+      "code": "north_america",
+      "label": "Amérique du Nord anglophone"
+    },
+    {
+      "code": "mexico_central_america",
+      "label": "Mexique et Amérique centrale"
+    },
+    {
+      "code": "andean",
+      "label": "Région andine"
+    },
+    {
+      "code": "southern_cone",
+      "label": "Cône Sud de l’Amérique"
+    },
+    {
+      "code": "brazil",
+      "label": "Brésil"
+    },
+    {
+      "code": "caribbean",
+      "label": "Caraïbes"
+    },
+    {
+      "code": "japan",
+      "label": "Japon"
+    },
+    {
+      "code": "korea",
+      "label": "Corée"
+    },
+    {
+      "code": "china",
+      "label": "Chine"
+    },
+    {
+      "code": "southeast_asia",
+      "label": "Asie du Sud-Est"
+    },
+    {
+      "code": "south_asia",
+      "label": "Asie du Sud"
+    },
+    {
+      "code": "central_asia",
+      "label": "Asie centrale"
+    },
+    {
+      "code": "north_africa",
+      "label": "Afrique du Nord"
+    },
+    {
+      "code": "middle_east_arabic",
+      "label": "Moyen-Orient arabe"
+    },
+    {
+      "code": "israel",
+      "label": "Israël"
+    },
+    {
+      "code": "iran",
+      "label": "Iran"
+    },
+    {
+      "code": "west_africa_francophone",
+      "label": "Afrique de l’Ouest francophone"
+    },
+    {
+      "code": "west_africa_anglophone",
+      "label": "Afrique de l’Ouest anglophone"
+    },
+    {
+      "code": "central_africa",
+      "label": "Afrique centrale"
+    },
+    {
+      "code": "east_africa",
+      "label": "Afrique de l’Est"
+    },
+    {
+      "code": "southern_africa",
+      "label": "Afrique australe"
+    },
+    {
+      "code": "oceania",
+      "label": "Océanie"
+    }
+  ]
+}

@@ -31,6 +31,15 @@ type CountryRow = {
   iso_alpha2: string;
 };
 
+type CurrentTeamDashboardSummary = {
+  team_id: string;
+  team_name: string;
+  rider_count: number;
+  season_id: string;
+  season_name: string;
+  season_day_number: number;
+};
+
 type ManagementModuleIcon =
   | "riders"
   | "sponsor"
@@ -53,41 +62,52 @@ export default async function GamePage() {
     redirect("/connexion");
   }
 
-  const [profileResult, countriesResult] =
-    await Promise.all([
-      supabase
-        .from("sporting_directors")
-        .select(
-          `
-            id,
-            username,
-            display_name,
-            country_id,
-            avatar_key,
-            reputation_points,
-            is_email_visible,
-            created_at
-          `
-        )
-        .eq("auth_user_id", user.id)
-        .maybeSingle<SportingDirector>(),
+  const [
+    profileResult,
+    countriesResult,
+    teamSummaryResult,
+  ] = await Promise.all([
+    supabase
+      .from("sporting_directors")
+      .select(
+        `
+          id,
+          username,
+          display_name,
+          country_id,
+          avatar_key,
+          reputation_points,
+          is_email_visible,
+          created_at
+        `
+      )
+      .eq("auth_user_id", user.id)
+      .maybeSingle<SportingDirector>(),
 
-      supabase
-        .from("countries")
-        .select(
-          `
-            id,
-            name,
-            iso_alpha2
-          `
-        )
-        .eq("is_active", true)
-        .order("name", {
-          ascending: true,
-        }),
-    ]);
+    supabase
+      .from("countries")
+      .select(
+        `
+          id,
+          name,
+          iso_alpha2
+        `
+      )
+      .eq("is_active", true)
+      .order("name", {
+        ascending: true,
+      }),
+
+    supabase
+      .rpc("get_current_team_dashboard_summary")
+      .maybeSingle<CurrentTeamDashboardSummary>(),
+  ]);
 
   const sportingDirector = profileResult.data;
+
+  const teamSummary =
+    (teamSummaryResult.data ??
+      null) as CurrentTeamDashboardSummary | null;
 
   if (profileResult.error) {
     console.error(
@@ -105,6 +125,16 @@ export default async function GamePage() {
       {
         code: countriesResult.error.code,
         message: countriesResult.error.message,
+      }
+    );
+  }
+
+  if (teamSummaryResult.error) {
+    console.error(
+      "Impossible de récupérer le résumé de l’équipe :",
+      {
+        code: teamSummaryResult.error.code,
+        message: teamSummaryResult.error.message,
       }
     );
   }
@@ -127,6 +157,8 @@ export default async function GamePage() {
     sportingDirector?.country_id &&
       sportingDirector?.avatar_key
   );
+
+  const riderCount = teamSummary?.rider_count ?? 0;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -166,26 +198,35 @@ export default async function GamePage() {
               email={user.email ?? null}
               selectedCountry={selectedCountry}
               isProfileComplete={isProfileComplete}
+              teamSummary={teamSummary}
             />
 
             <ObjectivesCard
               isProfileComplete={isProfileComplete}
+              teamSummary={teamSummary}
             />
           </section>
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             <ManagementModuleCard
+              href="/jeu/effectif"
               icon="riders"
               title="Effectif"
               status={
-                isProfileComplete
-                  ? "7 coureurs à générer"
-                  : "En attente"
+                teamSummary
+                  ? formatRiderCount(riderCount)
+                  : isProfileComplete
+                    ? "Création en attente"
+                    : "En attente"
               }
               description={
-                isProfileComplete
-                  ? "Votre profil est prêt. La génération de vos 7 premiers coureurs amateurs sera ajoutée dans une prochaine étape."
-                  : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
+                teamSummary
+                  ? `${teamSummary.team_name} compte ${formatRiderCount(
+                      riderCount
+                    )} sous contrat pour ${teamSummary.season_name}.`
+                  : isProfileComplete
+                    ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
+                    : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
               }
             />
 
@@ -293,11 +334,13 @@ function DirectorProfileCard({
   email,
   selectedCountry,
   isProfileComplete,
+  teamSummary,
 }: {
   sportingDirector: SportingDirector | null;
   email: string | null;
   selectedCountry: CountryRow | null;
   isProfileComplete: boolean;
+  teamSummary: CurrentTeamDashboardSummary | null;
 }) {
   const profileName =
     sportingDirector?.display_name ??
@@ -322,7 +365,7 @@ function DirectorProfileCard({
 
         <Link
           href="/jeu/directeur-sportif"
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
         >
           <EditIcon />
           Modifier mon profil
@@ -341,7 +384,9 @@ function DirectorProfileCard({
           <CyclingJerseyIcon />
 
           <div className="min-w-44 pt-4">
-            <TeamSponsorInformation />
+            <TeamSponsorInformation
+              teamSummary={teamSummary}
+            />
           </div>
         </div>
       </div>
@@ -451,24 +496,38 @@ function DirectorIdentity({
   );
 }
 
-function TeamSponsorInformation() {
+function TeamSponsorInformation({
+  teamSummary,
+}: {
+  teamSummary: CurrentTeamDashboardSummary | null;
+}) {
   return (
     <div>
-      <p className="text-xl font-black text-[#FFFDF4]">
-        Aucun sponsor actif
+      <p className="max-w-56 text-xl font-black text-[#FFFDF4]">
+        {teamSummary?.team_name ??
+          "Équipe amateur à constituer"}
       </p>
 
       <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
-        Équipe amateur
+        Aucun sponsor actif
       </p>
+
+      {teamSummary ? (
+        <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#7CCF9C]">
+          {teamSummary.season_name} · Jour{" "}
+          {teamSummary.season_day_number} / 28
+        </p>
+      ) : null}
     </div>
   );
 }
 
 function ObjectivesCard({
   isProfileComplete,
+  teamSummary,
 }: {
   isProfileComplete: boolean;
+  teamSummary: CurrentTeamDashboardSummary | null;
 }) {
   return (
     <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-7">
@@ -527,13 +586,16 @@ function ObjectivesCard({
           <div className="mt-5">
             {isProfileComplete ? (
               <p className="text-sm font-bold text-[#9BE0BC]">
-                Objectif rempli. La création de votre équipe
-                amateur sera la prochaine étape.
+                {teamSummary
+                  ? `Objectif rempli. Votre équipe amateur a été créée avec ${formatRiderCount(
+                      teamSummary.rider_count
+                    )}.`
+                  : "Objectif rempli. Votre profil de Directeur Sportif est enregistré."}
               </p>
             ) : (
               <Link
                 href="/jeu/directeur-sportif"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
               >
                 Compléter mon profil
               </Link>
@@ -546,18 +608,23 @@ function ObjectivesCard({
 }
 
 function ManagementModuleCard({
+  href,
   icon,
   title,
   status,
   description,
 }: {
+  href?: string;
   icon: ManagementModuleIcon;
   title: string;
   status: string;
   description: string;
 }) {
-  return (
-    <article className="group rounded-2xl border border-[#315B3E]/20 bg-white/90 p-6 shadow-[0_16px_38px_rgba(19,60,46,0.09)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(19,60,46,0.13)]">
+  const className =
+    "group block rounded-2xl border border-[#315B3E]/20 bg-white/90 p-6 shadow-[0_16px_38px_rgba(19,60,46,0.09)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(19,60,46,0.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
+
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D7EEE8] text-[#176951] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
           <ManagementModuleIcon icon={icon} />
@@ -575,7 +642,46 @@ function ManagementModuleCard({
       <p className="mt-3 leading-7 text-[#60756E]">
         {description}
       </p>
+
+      {href ? (
+        <span className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951]">
+          Ouvrir
+          <ArrowRightIcon />
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <article className={className}>
+      {content}
     </article>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 10h12" />
+      <path d="m11 5 5 5-5 5" />
+    </svg>
   );
 }
 
@@ -916,6 +1022,10 @@ function ManagementModuleIcon({
       {paths[icon]}
     </svg>
   );
+}
+
+function formatRiderCount(value: number): string {
+  return `${value} coureur${value === 1 ? "" : "s"}`;
 }
 
 function getInitials(value: string): string {
