@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
+import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
 import { WheelLogo } from "../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { logoutAccount } from "./actions";
@@ -17,8 +19,16 @@ type SportingDirector = {
   username: string;
   display_name: string;
   country_id: string | null;
-  onboarding_completed: boolean;
+  avatar_key: string | null;
+  reputation_points: number;
+  is_email_visible: boolean;
   created_at: string;
+};
+
+type CountryRow = {
+  id: string;
+  name: string;
+  iso_alpha2: string;
 };
 
 type ManagementModuleIcon =
@@ -43,33 +53,70 @@ export default async function GamePage() {
     redirect("/connexion");
   }
 
-  const {
-    data: sportingDirector,
-    error: profileError,
-  } = await supabase
-    .from("sporting_directors")
-    .select(
-      `
-        id,
-        username,
-        display_name,
-        country_id,
-        onboarding_completed,
-        created_at
-      `
-    )
-    .eq("auth_user_id", user.id)
-    .maybeSingle<SportingDirector>();
+  const [profileResult, countriesResult] =
+    await Promise.all([
+      supabase
+        .from("sporting_directors")
+        .select(
+          `
+            id,
+            username,
+            display_name,
+            country_id,
+            avatar_key,
+            reputation_points,
+            is_email_visible,
+            created_at
+          `
+        )
+        .eq("auth_user_id", user.id)
+        .maybeSingle<SportingDirector>(),
 
-  if (profileError) {
+      supabase
+        .from("countries")
+        .select(
+          `
+            id,
+            name,
+            iso_alpha2
+          `
+        )
+        .eq("is_active", true)
+        .order("name", {
+          ascending: true,
+        }),
+    ]);
+
+  const sportingDirector = profileResult.data;
+
+  if (profileResult.error) {
     console.error(
       "Impossible de récupérer le profil du Directeur Sportif :",
       {
-        code: profileError.code,
-        message: profileError.message,
+        code: profileResult.error.code,
+        message: profileResult.error.message,
       }
     );
   }
+
+  if (countriesResult.error) {
+    console.error(
+      "Impossible de récupérer le référentiel des pays :",
+      {
+        code: countriesResult.error.code,
+        message: countriesResult.error.message,
+      }
+    );
+  }
+
+  const countries =
+    (countriesResult.data ?? []) as CountryRow[];
+
+  const selectedCountry =
+    countries.find(
+      (country) =>
+        country.id === sportingDirector?.country_id
+    ) ?? null;
 
   const displayName =
     sportingDirector?.display_name ??
@@ -77,7 +124,8 @@ export default async function GamePage() {
     "Directeur Sportif";
 
   const isProfileComplete = Boolean(
-    sportingDirector?.country_id
+    sportingDirector?.country_id &&
+      sportingDirector?.avatar_key
   );
 
   return (
@@ -93,9 +141,7 @@ export default async function GamePage() {
         <MountainDecoration />
 
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <TeamIdentity />
-
-          <header className="mt-8 max-w-3xl">
+          <header className="max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
               Bureau du Directeur Sportif
             </p>
@@ -105,17 +151,20 @@ export default async function GamePage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-              Suivez l’état de votre équipe, vos objectifs et les
-              principaux domaines de votre carrière.
+              Suivez l’état de votre équipe, vos objectifs et
+              les principaux domaines de votre carrière.
             </p>
           </header>
 
-          {!sportingDirector && <ProfileErrorMessage />}
+          {!sportingDirector ? (
+            <ProfileErrorMessage />
+          ) : null}
 
-          <section className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
             <DirectorProfileCard
               sportingDirector={sportingDirector}
               email={user.email ?? null}
+              selectedCountry={selectedCountry}
               isProfileComplete={isProfileComplete}
             />
 
@@ -228,7 +277,7 @@ function GameHeader({
           <form action={logoutAccount}>
             <button
               type="submit"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
             >
               Se déconnecter
             </button>
@@ -239,41 +288,15 @@ function GameHeader({
   );
 }
 
-function TeamIdentity() {
-  return (
-    <section className="flex flex-col gap-5 rounded-2xl border border-[#315B3E]/20 bg-white/80 p-5 shadow-[0_16px_40px_rgba(19,60,46,0.08)] backdrop-blur sm:flex-row sm:items-center sm:p-6">
-      <TeamJerseyPlaceholder />
-
-      <div>
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#789087]">
-          Identité sportive actuelle
-        </p>
-
-        <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
-          Équipe amateur
-        </h2>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full bg-[#EAF5F3] px-3 py-1.5 text-xs font-bold text-[#176951]">
-            Aucun sponsor actif
-          </span>
-
-          <span className="rounded-full bg-[#EDF2EF] px-3 py-1.5 text-xs font-bold text-[#60756E]">
-            Bannière neutre
-          </span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function DirectorProfileCard({
   sportingDirector,
   email,
+  selectedCountry,
   isProfileComplete,
 }: {
   sportingDirector: SportingDirector | null;
   email: string | null;
+  selectedCountry: CountryRow | null;
   isProfileComplete: boolean;
 }) {
   const profileName =
@@ -281,66 +304,61 @@ function DirectorProfileCard({
     sportingDirector?.username ??
     "Directeur Sportif";
 
-  return (
-    <article className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-7">
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#D7EEE8] text-xl font-black text-[#278B70]">
-          {getInitials(profileName)}
-        </div>
+  const reputationPoints =
+    sportingDirector?.reputation_points ?? 0;
 
+  return (
+    <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#7CCF9C]">
             Directeur Sportif
           </p>
 
-          <h2 className="mt-1 text-2xl font-black">
-            {profileName}
+          <h2 className="mt-2 text-2xl font-black">
+            Aperçu du profil
           </h2>
+        </div>
+
+        <Link
+          href="/jeu/directeur-sportif"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+        >
+          <EditIcon />
+          Modifier mon profil
+        </Link>
+      </div>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+        <DirectorIdentity
+          sportingDirector={sportingDirector}
+          profileName={profileName}
+          email={email}
+          selectedCountry={selectedCountry}
+        />
+
+        <div className="flex items-start gap-5 md:justify-self-end">
+          <CyclingJerseyIcon />
+
+          <div className="min-w-44 pt-4">
+            <TeamSponsorInformation />
+          </div>
         </div>
       </div>
 
-      <dl className="mt-7 grid gap-4 sm:grid-cols-2">
-        <ProfileInformation
-          label="Identifiant public"
-          value={
-            sportingDirector?.username
-              ? `@${sportingDirector.username}`
-              : "Non disponible"
-          }
+      <div className="mt-6 border-t border-white/10 pt-5">
+        <SportingDirectorReputation
+          reputationPoints={reputationPoints}
+          compact
         />
+      </div>
 
-        <ProfileInformation
-          label="Nationalité"
-          value={
-            sportingDirector?.country_id
-              ? "Renseignée"
-              : "À compléter"
-          }
-        />
-
-        <ProfileInformation
-          label="Adresse e-mail"
-          value={email ?? "Non disponible"}
-        />
-
-        <ProfileInformation
-          label="Début de carrière"
-          value={
-            sportingDirector?.created_at
-              ? formatCareerStart(
-                  sportingDirector.created_at
-                )
-              : "Non disponible"
-          }
-        />
-      </dl>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#315B3E]/10 pt-5">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5">
         <span
           className={
             isProfileComplete
-              ? "rounded-full bg-[#DDF3E8] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.1em] text-[#176951]"
-              : "rounded-full bg-[#FFF2BF] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.1em] text-[#80640C]"
+              ? "rounded-full bg-[#7CCF9C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#9BE0BC]"
+              : "rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C]"
           }
         >
           {isProfileComplete
@@ -348,11 +366,102 @@ function DirectorProfileCard({
             : "Profil incomplet"}
         </span>
 
-        <span className="text-sm font-bold text-[#789087]">
-          Modification disponible dans l’US suivante
+        <span className="text-xs font-semibold text-[#9FB5A8]">
+          Début de carrière :{" "}
+          {sportingDirector?.created_at
+            ? formatCareerStart(
+                sportingDirector.created_at
+              )
+            : "Non disponible"}
         </span>
       </div>
     </article>
+  );
+}
+
+function DirectorIdentity({
+  sportingDirector,
+  profileName,
+  email,
+  selectedCountry,
+}: {
+  sportingDirector: SportingDirector | null;
+  profileName: string;
+  email: string | null;
+  selectedCountry: CountryRow | null;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-5">
+      {sportingDirector?.avatar_key ? (
+        <SportingDirectorAvatar
+          avatarKey={sportingDirector.avatar_key}
+          size="large"
+          label={`Avatar de ${profileName}`}
+        />
+      ) : (
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-2xl font-black text-[#07302A]">
+          {getInitials(profileName)}
+        </div>
+      )}
+
+      <div className="min-w-0">
+        <h3 className="truncate text-2xl font-black">
+          {profileName}
+        </h3>
+
+        <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
+          {sportingDirector?.username
+            ? `@${sportingDirector.username}`
+            : "Identifiant indisponible"}
+        </p>
+
+        <div className="mt-3 flex items-center gap-3">
+          {selectedCountry ? (
+            <>
+              <CountryFlag
+                isoAlpha2={selectedCountry.iso_alpha2}
+                countryName={selectedCountry.name}
+              />
+
+              <span className="font-semibold text-[#FFFDF4]">
+                {selectedCountry.name}
+              </span>
+            </>
+          ) : (
+            <span className="text-sm font-semibold text-[#BFD1C6]">
+              Nationalité à compléter
+            </span>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
+          {sportingDirector?.is_email_visible ? (
+            <span className="break-all">
+              {email ?? "Adresse e-mail non disponible"}
+            </span>
+          ) : (
+            <>
+              <PrivacyIcon />
+              <span>Adresse e-mail masquée</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamSponsorInformation() {
+  return (
+    <div>
+      <p className="text-xl font-black text-[#FFFDF4]">
+        Aucun sponsor actif
+      </p>
+
+      <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
+        Équipe amateur
+      </p>
+    </div>
   );
 }
 
@@ -386,7 +495,7 @@ function ObjectivesCard({
 
         <div className="mt-7 rounded-xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.1em] text-[#071A17]">
+            <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#071A17]">
               Objectif bloquant
             </span>
 
@@ -400,16 +509,17 @@ function ObjectivesCard({
           </h3>
 
           <p className="mt-3 leading-7 text-[#D6DFD2]">
-            Renseignez votre nationalité pour déterminer
-            l’identité de votre équipe amateur et préparer la
-            génération de vos 7 premiers coureurs.
+            Choisissez votre avatar et votre nationalité afin
+            de préparer votre première équipe amateur.
           </p>
 
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-[#F2C94C] transition-all"
               style={{
-                width: isProfileComplete ? "100%" : "35%",
+                width: isProfileComplete
+                  ? "100%"
+                  : "35%",
               }}
             />
           </div>
@@ -421,10 +531,12 @@ function ObjectivesCard({
                 amateur sera la prochaine étape.
               </p>
             ) : (
-              <p className="text-sm font-bold text-[#F2C94C]">
-                La rubrique de modification du profil sera créée
-                dans la prochaine User Story.
-              </p>
+              <Link
+                href="/jeu/directeur-sportif"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
+              >
+                Compléter mon profil
+              </Link>
             )}
           </div>
         </div>
@@ -467,23 +579,235 @@ function ManagementModuleCard({
   );
 }
 
-function ProfileInformation({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function CyclingJerseyIcon() {
   return (
-    <div className="rounded-xl bg-[#F5F9F7] p-4">
-      <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#789087]">
-        {label}
-      </dt>
+    <div className="flex h-32 w-28 shrink-0 items-center justify-center">
+      <svg
+        aria-label="Maillot cycliste gris de l’équipe amateur"
+        role="img"
+        viewBox="0 0 140 160"
+        className="h-full w-full drop-shadow-xl"
+      >
+        <path
+          d="M46 11
+             L59 18
+             L70 23
+             L81 18
+             L94 11
+             L124 29
+             L114 60
+             L99 53
+             L96 144
+             Q70 153 44 144
+             L41 53
+             L26 60
+             L16 29
+             Z"
+          fill="#AEB8B5"
+          stroke="#E7ECE9"
+          strokeLinejoin="round"
+          strokeWidth="3"
+        />
 
-      <dd className="mt-1 break-words font-semibold text-[#183F37]">
-        {value}
-      </dd>
+        <path
+          d="M46 11
+             Q49 32 70 37
+             Q91 32 94 11
+             L81 18
+             L70 23
+             L59 18
+             Z"
+          fill="#65716D"
+        />
+
+        <path
+          d="M46 11
+             Q50 26 59 31
+             L46 49
+             L41 53
+             L26 60
+             L16 29
+             Z"
+          fill="#8F9A96"
+        />
+
+        <path
+          d="M94 11
+             Q90 26 81 31
+             L94 49
+             L99 53
+             L114 60
+             L124 29
+             Z"
+          fill="#8F9A96"
+        />
+
+        <path
+          d="M42 54
+             Q52 61 70 61
+             Q88 61 98 54
+             L97 83
+             Q84 89 70 89
+             Q56 89 43 83
+             Z"
+          fill="#C5CDCA"
+        />
+
+        <path
+          d="M43 84
+             Q56 91 70 91
+             Q84 91 97 84
+             L96 111
+             Q84 116 70 116
+             Q56 116 44 111
+             Z"
+          fill="#8A9591"
+        />
+
+        <path
+          d="M44 112
+             Q56 118 70 118
+             Q84 118 96 112
+             L96 144
+             Q70 153 44 144
+             Z"
+          fill="#B9C2BF"
+        />
+
+        <path
+          d="M70 37V146"
+          fill="none"
+          stroke="#F0F3F1"
+          strokeWidth="2.5"
+        />
+
+        <path
+          d="M66 43H74"
+          stroke="#65716D"
+          strokeLinecap="round"
+          strokeWidth="3"
+        />
+
+        <path
+          d="M66 51H74"
+          stroke="#65716D"
+          strokeLinecap="round"
+          strokeWidth="3"
+        />
+
+        <path
+          d="M42 54L47 141"
+          fill="none"
+          stroke="#737F7B"
+          strokeWidth="2"
+          opacity="0.7"
+        />
+
+        <path
+          d="M98 54L93 141"
+          fill="none"
+          stroke="#737F7B"
+          strokeWidth="2"
+          opacity="0.7"
+        />
+
+        <path
+          d="M48 137Q70 144 92 137"
+          fill="none"
+          stroke="#66726E"
+          strokeWidth="4"
+        />
+
+        <circle
+          cx="70"
+          cy="72"
+          r="8"
+          fill="#727E7A"
+          opacity="0.5"
+        />
+
+        <path
+          d="M65 72H75M70 67V77"
+          stroke="#DCE2DF"
+          strokeLinecap="round"
+          strokeWidth="2"
+        />
+      </svg>
     </div>
+  );
+}
+
+function CountryFlag({
+  isoAlpha2,
+  countryName,
+}: {
+  isoAlpha2: string;
+  countryName: string;
+}) {
+  const normalizedCode = isoAlpha2
+    .trim()
+    .toLowerCase();
+
+  if (!/^[a-z]{2}$/.test(normalizedCode)) {
+    return (
+      <span
+        role="img"
+        aria-label={`Drapeau : ${countryName}`}
+      >
+        🏳️
+      </span>
+    );
+  }
+
+  return (
+    <span
+      role="img"
+      aria-label={`Drapeau : ${countryName}`}
+      className={[
+        "fi",
+        `fi-${normalizedCode}`,
+        "shrink-0 overflow-hidden rounded-sm text-2xl shadow-sm",
+      ].join(" ")}
+    />
+  );
+}
+
+function PrivacyIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4 shrink-0"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <rect
+        x="4"
+        y="8"
+        width="12"
+        height="9"
+        rx="2"
+      />
+
+      <path d="M7 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m13.5 3.5 3 3" />
+      <path d="m4 13 9.5-9.5 3 3L7 16H4v-3Z" />
+    </svg>
   );
 }
 
@@ -492,29 +816,6 @@ function ProfileErrorMessage() {
     <div className="mt-8 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
       Votre compte est bien connecté, mais votre profil de
       Directeur Sportif n’a pas pu être récupéré.
-    </div>
-  );
-}
-
-function TeamJerseyPlaceholder() {
-  return (
-    <div
-      aria-label="Emplacement du futur maillot de l’équipe"
-      className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-[#315B3E]/15 bg-[#D7EEE8]"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 64 64"
-        className="h-16 w-16 text-[#176951]"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      >
-        <path d="M23 10 15 14 7 27l9 6 5-7v28h22V26l5 7 9-6-8-13-8-4c-2 5-5 7-9 7s-7-2-9-7Z" />
-        <path d="M23 10c1 4 4 7 9 7s8-3 9-7" />
-        <path d="M21 36h22" />
-      </svg>
     </div>
   );
 }
@@ -536,6 +837,7 @@ function ManagementModuleIcon({
         <path d="M14 14c3.5-.3 5.5 1.7 6 5" />
       </>
     ),
+
     sponsor: (
       <>
         <path d="M4 7h16v12H4z" />
@@ -543,6 +845,7 @@ function ManagementModuleIcon({
         <path d="M4 12h16" />
       </>
     ),
+
     training: (
       <>
         <path d="M5 7v10M19 7v10" />
@@ -550,13 +853,21 @@ function ManagementModuleIcon({
         <path d="M5 12h14" />
       </>
     ),
+
     calendar: (
       <>
-        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <rect
+          x="3"
+          y="5"
+          width="18"
+          height="16"
+          rx="2"
+        />
         <path d="M7 3v4M17 3v4M3 10h18" />
         <path d="M8 14h3M13 14h3M8 17h3" />
       </>
     ),
+
     result: (
       <>
         <path d="M5 20V10h4v10" />
@@ -564,6 +875,7 @@ function ManagementModuleIcon({
         <path d="M15 20v-7h4v7" />
       </>
     ),
+
     academy: (
       <>
         <path d="m3 10 9-5 9 5-9 5-9-5Z" />
@@ -571,6 +883,7 @@ function ManagementModuleIcon({
         <path d="M21 10v6" />
       </>
     ),
+
     camp: (
       <>
         <path d="m4 20 8-16 8 16" />
@@ -578,6 +891,7 @@ function ManagementModuleIcon({
         <path d="m9 20 3-6 3 6" />
       </>
     ),
+
     transfer: (
       <>
         <path d="M4 7h13" />
