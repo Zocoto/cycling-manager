@@ -2,55 +2,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SportingDirectorAvatar } from "../../../components/game/sporting-director-avatar";
-import { SportingDirectorReputation } from "../../../components/game/sporting-director-reputation";
 import { WheelLogo } from "../../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import {
+  getOrCreateSponsorOffersForAuthUser,
+  type PersistedSponsorOffer,
+} from "../../../services/persisted-sponsor-offers";
+import type {
+  PersistedSponsorObjective,
+  SponsorObjectivePriority,
+} from "../../../types/sponsor-objective";
 import { logoutAccount } from "../actions";
 
 export const metadata: Metadata = {
-  title: "Bureau du Directeur Sportif",
+  title: "Sponsoring",
   description:
-    "Pilotez votre carriÃ¨re et votre Ã©quipe dans CyclostratÃ¨ge.",
+    "Étudiez les propositions de sponsoring disponibles pour votre équipe dans Cyclostratège.",
 };
 
-type SportingDirector = {
-  id: string;
-  username: string;
-  display_name: string;
-  country_id: string | null;
-  avatar_key: string | null;
-  reputation_points: number;
-  is_email_visible: boolean;
-  created_at: string;
-};
-
-type CountryRow = {
-  id: string;
-  name: string;
-  iso_alpha2: string;
-};
-
-type CurrentTeamDashboardSummary = {
-  team_id: string;
-  team_name: string;
-  rider_count: number;
-  season_id: string;
-  season_name: string;
-  season_day_number: number;
-};
-
-type ManagementModuleIcon =
-  | "riders"
-  | "sponsor"
-  | "training"
-  | "calendar"
-  | "result"
-  | "academy"
-  | "camp"
-  | "transfer";
-
-export default async function GamePage() {
+export default async function SponsoringPage() {
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -62,107 +32,26 @@ export default async function GamePage() {
     redirect("/connexion");
   }
 
-  const [
-    profileResult,
-    countriesResult,
-    teamSummaryResult,
-  ] = await Promise.all([
-    supabase
-      .from("sporting_directors")
-      .select(
-        `
-          id,
-          username,
-          display_name,
-          country_id,
-          avatar_key,
-          reputation_points,
-          is_email_visible,
-          created_at
-        `
-      )
-      .eq("auth_user_id", user.id)
-      .maybeSingle<SportingDirector>(),
+  let offers: PersistedSponsorOffer[] = [];
+  let offersError: string | null = null;
 
-    supabase
-      .from("countries")
-      .select(
-        `
-          id,
-          name,
-          iso_alpha2
-        `
-      )
-      .eq("is_active", true)
-      .order("name", {
-        ascending: true,
-      }),
-
-    supabase
-      .rpc("get_current_team_dashboard_summary")
-      .maybeSingle<CurrentTeamDashboardSummary>(),
-  ]);
-
-  const sportingDirector = profileResult.data;
-
-  const teamSummary =
-    (teamSummaryResult.data ??
-      null) as CurrentTeamDashboardSummary | null;
-
-  if (profileResult.error) {
+  try {
+    offers =
+      await getOrCreateSponsorOffersForAuthUser(
+        user.id
+      );
+  } catch (error) {
     console.error(
-      "Impossible de rÃ©cupÃ©rer le profil du Directeur Sportif :",
-      {
-        code: profileResult.error.code,
-        message: profileResult.error.message,
-      }
+      "Impossible de récupérer les offres de sponsoring :",
+      error
     );
+
+    offersError = getErrorMessage(error);
   }
-
-  if (countriesResult.error) {
-    console.error(
-      "Impossible de rÃ©cupÃ©rer le rÃ©fÃ©rentiel des pays :",
-      {
-        code: countriesResult.error.code,
-        message: countriesResult.error.message,
-      }
-    );
-  }
-
-  if (teamSummaryResult.error) {
-    console.error(
-      "Impossible de rÃ©cupÃ©rer le rÃ©sumÃ© de lâ€™Ã©quipe :",
-      {
-        code: teamSummaryResult.error.code,
-        message: teamSummaryResult.error.message,
-      }
-    );
-  }
-
-  const countries =
-    (countriesResult.data ?? []) as CountryRow[];
-
-  const selectedCountry =
-    countries.find(
-      (country) =>
-        country.id === sportingDirector?.country_id
-    ) ?? null;
-
-  const displayName =
-    sportingDirector?.display_name ??
-    sportingDirector?.username ??
-    "Directeur Sportif";
-
-  const isProfileComplete = Boolean(
-    sportingDirector?.country_id &&
-      sportingDirector?.avatar_key
-  );
-
-  const riderCount = teamSummary?.rider_count ?? 0;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
-      <GameHeader displayName={displayName} />
+      <GameHeader />
 
       <section className="relative overflow-hidden">
         <div
@@ -172,128 +61,89 @@ export default async function GamePage() {
 
         <MountainDecoration />
 
-        <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <header className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
-              Bureau du Directeur Sportif
-            </p>
+        <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
+          <Link
+            href="/jeu"
+            className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B4A3B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
+          >
+            <BackIcon />
+            Retour au bureau
+          </Link>
 
-            <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
-              Bonjour, {displayName}.
-            </h1>
+          <header className="mt-7 flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
+                Développement de l’équipe
+              </p>
 
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-              Suivez lâ€™Ã©tat de votre Ã©quipe, vos objectifs et
-              les principaux domaines de votre carriÃ¨re.
-            </p>
+              <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+                Sponsoring
+              </h1>
+
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
+                Comparez les budgets, les durées de
+                contrat et les objectifs proposés avant de
+                choisir le partenaire principal de votre
+                équipe.
+              </p>
+            </div>
+
+            {!offersError ? (
+              <div className="rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 text-right shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
+                <p className="text-2xl font-black">
+                  {offers.length}
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-[#60756E]">
+                  {formatOfferCount(offers.length)}
+                </p>
+              </div>
+            ) : null}
           </header>
 
-          {!sportingDirector ? (
-            <ProfileErrorMessage />
+          <OfferPersistenceNotice />
+
+          {offersError ? (
+            <OffersErrorMessage
+              message={offersError}
+            />
           ) : null}
 
-          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
-            <DirectorProfileCard
-              sportingDirector={sportingDirector}
-              email={user.email ?? null}
-              selectedCountry={selectedCountry}
-              isProfileComplete={isProfileComplete}
-              teamSummary={teamSummary}
-            />
+          {!offersError && offers.length === 0 ? (
+            <EmptyOffers />
+          ) : null}
 
-            <ObjectivesCard
-              isProfileComplete={isProfileComplete}
-              teamSummary={teamSummary}
-            />
-          </section>
+          {!offersError && offers.length > 0 ? (
+            <section className="mt-8 grid items-start gap-6 xl:grid-cols-3">
+              {offers.map((offer) => (
+                <SponsorOfferCard
+                  key={offer.id}
+                  offer={offer}
+                />
+              ))}
+            </section>
+          ) : null}
 
-          <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            <ManagementModuleCard
-              href="/jeu/effectif"
-              icon="riders"
-              title="Effectif"
-              status={
-                teamSummary
-                  ? formatRiderCount(riderCount)
-                  : isProfileComplete
-                    ? "CrÃ©ation en attente"
-                    : "En attente"
-              }
-              description={
-                teamSummary
-                  ? `${teamSummary.team_name} compte ${formatRiderCount(
-                      riderCount
-                    )} sous contrat pour ${teamSummary.season_name}.`
-                  : isProfileComplete
-                    ? "Votre profil est complet, mais votre Ã©quipe amateur nâ€™a pas encore pu Ãªtre rÃ©cupÃ©rÃ©e."
-                    : "ComplÃ©tez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
-              }
-            />
-
-            <ManagementModuleCard
-              href="/jeu/sponsoring"
-              icon="sponsor"
-              title="Sponsoring"
-              status="Aucun sponsor"
-              description="Comparez les offres disponibles, leurs budgets, leurs durÃ©es de contrat et leurs objectifs saisonniers."
-            />
-
-            <ManagementModuleCard
-              icon="training"
-              title="EntraÃ®nements"
-              status="Aucun compte rendu"
-              description="Les programmes, la progression et les derniers comptes rendus de vos coureurs apparaÃ®tront ici."
-            />
-
-            <ManagementModuleCard
-              icon="calendar"
-              title="Courses"
-              status="Aucune course"
-              description="Consultez prochainement le calendrier, les inscriptions et les courses accessibles Ã  votre Ã©quipe."
-            />
-
-            <ManagementModuleCard
-              icon="result"
-              title="RÃ©sultats"
-              status="Aucun rÃ©sultat"
-              description="Les derniÃ¨res performances, les classements et les points obtenus par votre Ã©quipe seront affichÃ©s ici."
-            />
-
-            <ManagementModuleCard
-              icon="academy"
-              title="Centre de formation"
-              status="Ã€ dÃ©velopper"
-              description="DÃ©tectez, recrutez et accompagnez les jeunes coureurs destinÃ©s Ã  rejoindre votre effectif."
-            />
-
-            <ManagementModuleCard
-              icon="camp"
-              title="Stages"
-              status="Ã€ dÃ©velopper"
-              description="Planifiez des stages pour prÃ©parer vos coureurs et dÃ©velopper leurs qualitÃ©s sportives."
-            />
-
-            <ManagementModuleCard
-              icon="transfer"
-              title="Bureau des transferts"
-              status="Ã€ dÃ©velopper"
-              description="Suivez les coureurs disponibles, vos nÃ©gociations et les futurs mouvements de votre effectif."
-            />
-          </section>
+          {!offersError && offers.length > 0 ? (
+            <p className="mt-6 text-sm leading-7 text-[#60756E]">
+              Les objectifs de cette première version
+              utilisent des courses et classements
+              provisoires. Ils sont enregistrés avec
+              l’offre et ne changent pas au rechargement
+              de la page. Ils seront reliés au calendrier
+              sportif réel dans une future évolution.
+            </p>
+          ) : null}
         </div>
       </section>
     </main>
   );
 }
 
-function GameHeader({
-  displayName,
-}: {
-  displayName: string;
-}) {
+function GameHeader() {
   return (
     <header className="relative z-20 border-b border-[#78947D]/25 bg-[#071A17] text-[#FFFDF4] shadow-lg shadow-black/15">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 sm:px-8">
+      <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-5 py-4 sm:px-8">
         <Link
           href="/jeu"
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
@@ -306,540 +156,403 @@ function GameHeader({
             </span>
 
             <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.26em] text-[#F2C94C]">
-              StratÃ¨ge
+              Stratège
             </span>
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm font-semibold text-[#D6DFD2] md:inline">
-            {displayName}
-          </span>
-
-          <form action={logoutAccount}>
-            <button
-              type="submit"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-            >
-              Se dÃ©connecter
-            </button>
-          </form>
-        </div>
+        <form action={logoutAccount}>
+          <button
+            type="submit"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+          >
+            Se déconnecter
+          </button>
+        </form>
       </div>
     </header>
   );
 }
 
-function DirectorProfileCard({
-  sportingDirector,
-  email,
-  selectedCountry,
-  isProfileComplete,
-  teamSummary,
-}: {
-  sportingDirector: SportingDirector | null;
-  email: string | null;
-  selectedCountry: CountryRow | null;
-  isProfileComplete: boolean;
-  teamSummary: CurrentTeamDashboardSummary | null;
-}) {
-  const profileName =
-    sportingDirector?.display_name ??
-    sportingDirector?.username ??
-    "Directeur Sportif";
+function OfferPersistenceNotice() {
+  return (
+    <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-[#278B70]/20 bg-[#D7EEE8]/85 px-5 py-4 shadow-[0_12px_30px_rgba(19,60,46,0.06)]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-[#07302A]">
+        <LockIcon />
+      </span>
 
-  const reputationPoints =
-    sportingDirector?.reputation_points ?? 0;
+      <div>
+        <p className="font-black text-[#0B4A3B]">
+          Vos propositions sont réservées
+        </p>
+
+        <p className="mt-1 text-sm leading-6 text-[#48665F]">
+          Ces offres ont été générées pour votre
+          Directeur Sportif et enregistrées pour la
+          saison actuelle. Leurs budgets, durées et
+          objectifs resteront identiques lors de vos
+          prochaines visites.
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function SponsorOfferCard({
+  offer,
+}: {
+  offer: PersistedSponsorOffer;
+}) {
+  const sponsor = offer.sponsor;
+
+  const maximumRenewalBonus =
+    offer.objectives.reduce(
+      (total, objective) =>
+        total + objective.renewalBonusPercent,
+      0
+    );
 
   return (
-    <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#7CCF9C]">
-            Directeur Sportif
-          </p>
+    <article
+      className="relative overflow-hidden rounded-2xl border bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
+      style={{
+        borderColor: sponsor.colors.primary,
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className="h-2 w-full"
+        style={{
+          background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.secondary}, ${sponsor.colors.accent})`,
+        }}
+      />
 
-          <h2 className="mt-2 text-2xl font-black">
-            AperÃ§u du profil
-          </h2>
+      <div className="p-6 sm:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <SponsorIdentity offer={offer} />
+
+          <CountryFlag
+            isoAlpha2={sponsor.countryCode}
+            countryName={getCountryName(
+              sponsor.countryCode
+            )}
+          />
         </div>
 
-        <Link
-          href="/jeu/directeur-sportif"
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-        >
-          <EditIcon />
-          Modifier mon profil
-        </Link>
-      </div>
+        <div className="mt-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider"
+              style={{
+                backgroundColor:
+                  sponsor.colors.background,
+                color: sponsor.colors.text,
+              }}
+            >
+              {sponsor.sector}
+            </span>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-        <DirectorIdentity
-          sportingDirector={sportingDirector}
-          profileName={profileName}
-          email={email}
-          selectedCountry={selectedCountry}
-        />
-
-        <div className="flex items-start gap-5 md:justify-self-end">
-          <CyclingJerseyIcon />
-
-          <div className="min-w-44 pt-4">
-            <TeamSponsorInformation
-              teamSummary={teamSummary}
-            />
+            <span className="rounded-full bg-[#EDF2EF] px-3 py-1 text-xs font-bold text-[#60756E]">
+              Prestige {sponsor.prestige} / 5
+            </span>
           </div>
+
+          <h2 className="mt-4 text-2xl font-black">
+            {sponsor.name}
+          </h2>
+
+          <p className="mt-3 leading-7 text-[#60756E]">
+            {sponsor.description}
+          </p>
         </div>
-      </div>
 
-      <div className="mt-6 border-t border-white/10 pt-5">
-        <SportingDirectorReputation
-          reputationPoints={reputationPoints}
-          compact
-        />
-      </div>
+        <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <OfferMetric
+            label="Budget annuel"
+            value={formatMoney(
+              offer.proposedBudget
+            )}
+            detail="Versé par saison"
+          />
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5">
-        <span
-          className={
-            isProfileComplete
-              ? "rounded-full bg-[#7CCF9C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#9BE0BC]"
-              : "rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C]"
-          }
+          <OfferMetric
+            label="Durée proposée"
+            value={formatDuration(
+              offer.contractDurationSeasons
+            )}
+            detail="Contrat principal"
+          />
+
+          <OfferMetric
+            label="Réputation requise"
+            value={String(
+              sponsor.minimumReputation
+            )}
+            detail="Points minimum"
+          />
+
+          <OfferMetric
+            label="Bonus potentiel"
+            value={`+${formatPercentage(
+              maximumRenewalBonus
+            )}`}
+            detail="Si tous les objectifs sont remplis"
+          />
+        </section>
+
+        <section className="mt-7 overflow-hidden rounded-xl border border-[#315B3E]/15">
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 px-4 py-4"
+            style={{
+              backgroundColor:
+                sponsor.colors.background,
+              color: sponsor.colors.text,
+            }}
+          >
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] opacity-75">
+                Engagements sportifs
+              </p>
+
+              <h3 className="mt-1 text-lg font-black">
+                {offer.objectives.length} objectifs
+                saisonniers
+              </h3>
+            </div>
+
+            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-extrabold">
+              +1 % chacun
+            </span>
+          </div>
+
+          <ol className="divide-y divide-[#315B3E]/10">
+            {offer.objectives.map((objective) => (
+              <SponsorObjectiveItem
+                key={objective.id}
+                objective={objective}
+                accentColor={
+                  sponsor.colors.accent
+                }
+              />
+            ))}
+          </ol>
+        </section>
+
+        <button
+          type="button"
+          disabled
+          className="mt-7 inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl border border-[#315B3E]/15 bg-[#EDF2EF] px-5 py-3 text-sm font-extrabold uppercase tracking-widest text-[#7A8C86]"
         >
-          {isProfileComplete
-            ? "Profil initial complÃ©tÃ©"
-            : "Profil incomplet"}
-        </span>
+          Signature bientôt disponible
+        </button>
 
-        <span className="text-xs font-semibold text-[#9FB5A8]">
-          DÃ©but de carriÃ¨re :{" "}
-          {sportingDirector?.created_at
-            ? formatCareerStart(
-                sportingDirector.created_at
-              )
-            : "Non disponible"}
-        </span>
+        <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#7A8C86]">
+          La sélection du maillot et la validation
+          définitive du contrat seront ajoutées lors de
+          la prochaine étape.
+        </p>
       </div>
     </article>
   );
 }
 
-function DirectorIdentity({
-  sportingDirector,
-  profileName,
-  email,
-  selectedCountry,
+function SponsorIdentity({
+  offer,
 }: {
-  sportingDirector: SportingDirector | null;
-  profileName: string;
-  email: string | null;
-  selectedCountry: CountryRow | null;
+  offer: PersistedSponsorOffer;
 }) {
+  const sponsor = offer.sponsor;
+
   return (
-    <div className="flex min-w-0 items-center gap-5">
-      {sportingDirector?.avatar_key ? (
-        <SportingDirectorAvatar
-          avatarKey={sportingDirector.avatar_key}
-          size="large"
-          label={`Avatar de ${profileName}`}
-        />
-      ) : (
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-2xl font-black text-[#07302A]">
-          {getInitials(profileName)}
-        </div>
-      )}
+    <div className="flex min-w-0 items-center gap-4">
+      <div
+        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border text-lg font-black shadow-sm"
+        style={{
+          backgroundColor:
+            sponsor.colors.background,
+          borderColor:
+            sponsor.colors.secondary,
+          color: sponsor.colors.text,
+        }}
+      >
+        {getSponsorInitials(
+          sponsor.shortName || sponsor.name
+        )}
+      </div>
 
       <div className="min-w-0">
-        <h3 className="truncate text-2xl font-black">
-          {profileName}
-        </h3>
-
-        <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
-          {sportingDirector?.username
-            ? `@${sportingDirector.username}`
-            : "Identifiant indisponible"}
+        <p className="truncate text-sm font-black">
+          {sponsor.shortName}
         </p>
 
-        <div className="mt-3 flex items-center gap-3">
-          {selectedCountry ? (
-            <>
-              <CountryFlag
-                isoAlpha2={selectedCountry.iso_alpha2}
-                countryName={selectedCountry.name}
-              />
-
-              <span className="font-semibold text-[#FFFDF4]">
-                {selectedCountry.name}
-              </span>
-            </>
-          ) : (
-            <span className="text-sm font-semibold text-[#BFD1C6]">
-              NationalitÃ© Ã  complÃ©ter
-            </span>
-          )}
-        </div>
-
-        <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
-          {sportingDirector?.is_email_visible ? (
-            <span className="break-all">
-              {email ?? "Adresse e-mail non disponible"}
-            </span>
-          ) : (
-            <>
-              <PrivacyIcon />
-              <span>Adresse e-mail masquÃ©e</span>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TeamSponsorInformation({
-  teamSummary,
-}: {
-  teamSummary: CurrentTeamDashboardSummary | null;
-}) {
-  return (
-    <div>
-      <p className="max-w-56 text-xl font-black text-[#FFFDF4]">
-        {teamSummary?.team_name ??
-          "Ã‰quipe amateur Ã  constituer"}
-      </p>
-
-      <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
-        Aucun sponsor actif
-      </p>
-
-      {teamSummary ? (
-        <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#7CCF9C]">
-          {teamSummary.season_name} Â· Jour{" "}
-          {teamSummary.season_day_number} / 28
+        <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#7A8C86]">
+          Offre ouverte
         </p>
-      ) : null}
-    </div>
-  );
-}
 
-function ObjectivesCard({
-  isProfileComplete,
-  teamSummary,
-}: {
-  isProfileComplete: boolean;
-  teamSummary: CurrentTeamDashboardSummary | null;
-}) {
-  return (
-    <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-7">
-      <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
-
-      <WheelDecoration />
-
-      <div className="relative">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
-              Objectifs
-            </p>
-
-            <h2 className="mt-2 text-2xl font-black">
-              Vos prioritÃ©s
-            </h2>
-          </div>
-
-          <span className="rounded-full bg-white/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2]">
-            1 objectif affichÃ©
-          </span>
-        </div>
-
-        <div className="mt-7 rounded-xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#071A17]">
-              Objectif bloquant
-            </span>
-
-            <span className="text-sm font-bold text-[#F2C94C]">
-              {isProfileComplete ? "1 / 1" : "0 / 1"}
-            </span>
-          </div>
-
-          <h3 className="mt-5 text-xl font-black">
-            ComplÃ©ter le profil de votre Directeur Sportif
-          </h3>
-
-          <p className="mt-3 leading-7 text-[#D6DFD2]">
-            Choisissez votre avatar et votre nationalitÃ© afin
-            de prÃ©parer votre premiÃ¨re Ã©quipe amateur.
-          </p>
-
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-[#F2C94C] transition-all"
+        <div className="mt-2 flex items-center gap-1.5">
+          {[
+            sponsor.colors.primary,
+            sponsor.colors.secondary,
+            sponsor.colors.accent,
+          ].map((color) => (
+            <span
+              key={color}
+              className="h-3 w-3 rounded-full border border-black/10"
               style={{
-                width: isProfileComplete
-                  ? "100%"
-                  : "35%",
+                backgroundColor: color,
               }}
             />
-          </div>
-
-          <div className="mt-5">
-            {isProfileComplete ? (
-              <p className="text-sm font-bold text-[#9BE0BC]">
-                {teamSummary
-                  ? `Objectif rempli. Votre Ã©quipe amateur a Ã©tÃ© crÃ©Ã©e avec ${formatRiderCount(
-                      teamSummary.rider_count
-                    )}.`
-                  : "Objectif rempli. Votre profil de Directeur Sportif est enregistrÃ©."}
-              </p>
-            ) : (
-              <Link
-                href="/jeu/directeur-sportif"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
-              >
-                ComplÃ©ter mon profil
-              </Link>
-            )}
-          </div>
+          ))}
         </div>
       </div>
-    </article>
+    </div>
   );
 }
 
-function ManagementModuleCard({
-  href,
-  icon,
-  title,
-  status,
-  description,
+function OfferMetric({
+  label,
+  value,
+  detail,
 }: {
-  href?: string;
-  icon: ManagementModuleIcon;
-  title: string;
-  status: string;
-  description: string;
+  label: string;
+  value: string;
+  detail: string;
 }) {
-  const className =
-    "group block rounded-2xl border border-[#315B3E]/20 bg-white/90 p-6 shadow-[0_16px_38px_rgba(19,60,46,0.09)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(19,60,46,0.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
-
-  const content = (
-    <>
-      <div className="flex items-start justify-between gap-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D7EEE8] text-[#176951] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
-          <ManagementModuleIcon icon={icon} />
-        </span>
-
-        <span className="rounded-full bg-[#EDF2EF] px-3 py-1 text-xs font-bold text-[#60756E]">
-          {status}
-        </span>
-      </div>
-
-      <h2 className="mt-6 text-xl font-black">
-        {title}
-      </h2>
-
-      <p className="mt-3 leading-7 text-[#60756E]">
-        {description}
+  return (
+    <div className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF8] p-4">
+      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#278B70]">
+        {label}
       </p>
 
-      {href ? (
-        <span className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951]">
-          Ouvrir
-          <ArrowRightIcon />
-        </span>
-      ) : null}
-    </>
-  );
+      <p className="mt-2 text-xl font-black">
+        {value}
+      </p>
 
-  if (href) {
-    return (
-      <Link href={href} className={className}>
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <article className={className}>
-      {content}
-    </article>
+      <p className="mt-1 text-xs font-semibold text-[#7A8C86]">
+        {detail}
+      </p>
+    </div>
   );
 }
 
-function ArrowRightIcon() {
+function SponsorObjectiveItem({
+  objective,
+  accentColor,
+}: {
+  objective: PersistedSponsorObjective;
+  accentColor: string;
+}) {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      fill="none"
-      className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 10h12" />
-      <path d="m11 5 5 5-5 5" />
-    </svg>
-  );
-}
-
-function CyclingJerseyIcon() {
-  return (
-    <div className="flex h-32 w-28 shrink-0 items-center justify-center">
-      <svg
-        aria-label="Maillot cycliste gris de lâ€™Ã©quipe amateur"
-        role="img"
-        viewBox="0 0 140 160"
-        className="h-full w-full drop-shadow-xl"
+    <li className="flex gap-3 bg-white px-4 py-4">
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black"
+        style={{
+          backgroundColor: accentColor,
+          color: "#082A2A",
+        }}
       >
-        <path
-          d="M46 11
-             L59 18
-             L70 23
-             L81 18
-             L94 11
-             L124 29
-             L114 60
-             L99 53
-             L96 144
-             Q70 153 44 144
-             L41 53
-             L26 60
-             L16 29
-             Z"
-          fill="#AEB8B5"
-          stroke="#E7ECE9"
-          strokeLinejoin="round"
-          strokeWidth="3"
-        />
+        {objective.displayOrder}
+      </span>
 
-        <path
-          d="M46 11
-             Q49 32 70 37
-             Q91 32 94 11
-             L81 18
-             L70 23
-             L59 18
-             Z"
-          fill="#65716D"
-        />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <p className="font-black leading-6">
+            {objective.name}
+          </p>
 
-        <path
-          d="M46 11
-             Q50 26 59 31
-             L46 49
-             L41 53
-             L26 60
-             L16 29
-             Z"
-          fill="#8F9A96"
-        />
+          <ObjectivePriorityBadge
+            priority={objective.priority}
+          />
+        </div>
 
-        <path
-          d="M94 11
-             Q90 26 81 31
-             L94 49
-             L99 53
-             L114 60
-             L124 29
-             Z"
-          fill="#8F9A96"
-        />
+        <p className="mt-1 text-sm leading-6 text-[#60756E]">
+          {objective.description}
+        </p>
+      </div>
+    </li>
+  );
+}
 
-        <path
-          d="M42 54
-             Q52 61 70 61
-             Q88 61 98 54
-             L97 83
-             Q84 89 70 89
-             Q56 89 43 83
-             Z"
-          fill="#C5CDCA"
-        />
+function ObjectivePriorityBadge({
+  priority,
+}: {
+  priority: SponsorObjectivePriority;
+}) {
+  const presentation: Record<
+    SponsorObjectivePriority,
+    {
+      label: string;
+      className: string;
+    }
+  > = {
+    optional: {
+      label: "Optionnel",
+      className:
+        "bg-[#EDF2EF] text-[#60756E]",
+    },
+    standard: {
+      label: "Standard",
+      className:
+        "bg-[#D7EEE8] text-[#176951]",
+    },
+    important: {
+      label: "Important",
+      className:
+        "bg-[#F2C94C]/25 text-[#7A5900]",
+    },
+    mandatory: {
+      label: "Prioritaire",
+      className:
+        "bg-[#F3D7D7] text-[#9B3131]",
+    },
+  };
 
-        <path
-          d="M43 84
-             Q56 91 70 91
-             Q84 91 97 84
-             L96 111
-             Q84 116 70 116
-             Q56 116 44 111
-             Z"
-          fill="#8A9591"
-        />
+  return (
+    <span
+      className={[
+        "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider",
+        presentation[priority].className,
+      ].join(" ")}
+    >
+      {presentation[priority].label}
+    </span>
+  );
+}
 
-        <path
-          d="M44 112
-             Q56 118 70 118
-             Q84 118 96 112
-             L96 144
-             Q70 153 44 144
-             Z"
-          fill="#B9C2BF"
-        />
+function OffersErrorMessage({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <div className="mt-8 rounded-2xl border border-red-300 bg-red-50 px-5 py-5 text-red-900">
+      <p className="font-black">
+        Les offres de sponsoring n’ont pas pu être
+        préparées.
+      </p>
 
-        <path
-          d="M70 37V146"
-          fill="none"
-          stroke="#F0F3F1"
-          strokeWidth="2.5"
-        />
+      <p className="mt-2 text-sm leading-6">
+        {message}
+      </p>
+    </div>
+  );
+}
 
-        <path
-          d="M66 43H74"
-          stroke="#65716D"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
+function EmptyOffers() {
+  return (
+    <div className="mt-8 rounded-2xl border border-[#315B3E]/20 bg-white/90 px-6 py-16 text-center shadow-[0_18px_44px_rgba(19,60,46,0.09)]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#D7EEE8] text-[#176951]">
+        <BriefcaseIcon />
+      </div>
 
-        <path
-          d="M66 51H74"
-          stroke="#65716D"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
+      <h2 className="mt-5 text-2xl font-black">
+        Aucune offre disponible
+      </h2>
 
-        <path
-          d="M42 54L47 141"
-          fill="none"
-          stroke="#737F7B"
-          strokeWidth="2"
-          opacity="0.7"
-        />
-
-        <path
-          d="M98 54L93 141"
-          fill="none"
-          stroke="#737F7B"
-          strokeWidth="2"
-          opacity="0.7"
-        />
-
-        <path
-          d="M48 137Q70 144 92 137"
-          fill="none"
-          stroke="#66726E"
-          strokeWidth="4"
-        />
-
-        <circle
-          cx="70"
-          cy="72"
-          r="8"
-          fill="#727E7A"
-          opacity="0.5"
-        />
-
-        <path
-          d="M65 72H75M70 67V77"
-          stroke="#DCE2DF"
-          strokeLinecap="round"
-          strokeWidth="2"
-        />
-      </svg>
+      <p className="mx-auto mt-3 max-w-xl leading-7 text-[#60756E]">
+        Aucun sponsor compatible avec votre réputation
+        et votre situation actuelle n’a pu être proposé.
+      </p>
     </div>
   );
 }
@@ -860,8 +573,9 @@ function CountryFlag({
       <span
         role="img"
         aria-label={`Drapeau : ${countryName}`}
+        className="text-2xl"
       >
-        ðŸ³ï¸
+        🏳️
       </span>
     );
   }
@@ -879,30 +593,7 @@ function CountryFlag({
   );
 }
 
-function PrivacyIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      fill="none"
-      className="h-4 w-4 shrink-0"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <rect
-        x="4"
-        y="8"
-        width="12"
-        height="9"
-        rx="2"
-      />
-
-      <path d="M7 8V6a3 3 0 0 1 6 0v2" />
-    </svg>
-  );
-}
-
-function EditIcon() {
+function BackIcon() {
   return (
     <svg
       aria-hidden="true"
@@ -910,142 +601,115 @@ function EditIcon() {
       fill="none"
       className="h-4 w-4"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
-      <path d="m13.5 3.5 3 3" />
-      <path d="m4 13 9.5-9.5 3 3L7 16H4v-3Z" />
+      <path d="m12.5 4.5-5.5 5.5 5.5 5.5" />
     </svg>
   );
 }
 
-function ProfileErrorMessage() {
-  return (
-    <div className="mt-8 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
-      Votre compte est bien connectÃ©, mais votre profil de
-      Directeur Sportif nâ€™a pas pu Ãªtre rÃ©cupÃ©rÃ©.
-    </div>
-  );
-}
-
-function ManagementModuleIcon({
-  icon,
-}: {
-  icon: ManagementModuleIcon;
-}) {
-  const paths: Record<
-    ManagementModuleIcon,
-    React.ReactNode
-  > = {
-    riders: (
-      <>
-        <circle cx="8" cy="8" r="3" />
-        <circle cx="17" cy="9" r="2.5" />
-        <path d="M2.5 20c.5-4.5 2.5-7 5.5-7s5 2.5 5.5 7" />
-        <path d="M14 14c3.5-.3 5.5 1.7 6 5" />
-      </>
-    ),
-
-    sponsor: (
-      <>
-        <path d="M4 7h16v12H4z" />
-        <path d="M8 7V4h8v3" />
-        <path d="M4 12h16" />
-      </>
-    ),
-
-    training: (
-      <>
-        <path d="M5 7v10M19 7v10" />
-        <path d="M2 9v6M22 9v6" />
-        <path d="M5 12h14" />
-      </>
-    ),
-
-    calendar: (
-      <>
-        <rect
-          x="3"
-          y="5"
-          width="18"
-          height="16"
-          rx="2"
-        />
-        <path d="M7 3v4M17 3v4M3 10h18" />
-        <path d="M8 14h3M13 14h3M8 17h3" />
-      </>
-    ),
-
-    result: (
-      <>
-        <path d="M5 20V10h4v10" />
-        <path d="M10 20V4h4v16" />
-        <path d="M15 20v-7h4v7" />
-      </>
-    ),
-
-    academy: (
-      <>
-        <path d="m3 10 9-5 9 5-9 5-9-5Z" />
-        <path d="M7 13v4c3 2 7 2 10 0v-4" />
-        <path d="M21 10v6" />
-      </>
-    ),
-
-    camp: (
-      <>
-        <path d="m4 20 8-16 8 16" />
-        <path d="M7 20h10" />
-        <path d="m9 20 3-6 3 6" />
-      </>
-    ),
-
-    transfer: (
-      <>
-        <path d="M4 7h13" />
-        <path d="m14 4 3 3-3 3" />
-        <path d="M20 17H7" />
-        <path d="m10 14-3 3 3 3" />
-      </>
-    ),
-  };
-
+function LockIcon() {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-6 w-6"
       fill="none"
+      className="h-5 w-5"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {paths[icon]}
+      <rect
+        x="5"
+        y="10"
+        width="14"
+        height="10"
+        rx="2"
+      />
+
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }
 
-function formatRiderCount(value: number): string {
-  return `${value} coureur${value === 1 ? "" : "s"}`;
+function BriefcaseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-8 w-8"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 7h16v12H4z" />
+      <path d="M8 7V4h8v3" />
+      <path d="M4 12h16" />
+    </svg>
+  );
 }
 
-function getInitials(value: string): string {
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Une erreur inattendue est survenue.";
+}
+
+function getSponsorInitials(value: string): string {
   const initials = value
     .trim()
-    .split(/\s+/)
+    .split(/[\s-]+/)
     .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
+    .map((part) =>
+      part.charAt(0).toUpperCase()
+    )
     .join("");
 
-  return initials || "DS";
+  return initials || "SP";
 }
 
-function formatCareerStart(value: string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value));
+function getCountryName(
+  countryCode: string
+): string {
+  const countryNames: Record<string, string> = {
+    BE: "Belgique",
+    ES: "Espagne",
+    FR: "France",
+  };
+
+  return (
+    countryNames[countryCode.toUpperCase()] ??
+    countryCode.toUpperCase()
+  );
+}
+
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDuration(value: number): string {
+  return `${value} saison${value === 1 ? "" : "s"}`;
+}
+
+function formatPercentage(value: number): string {
+  return `${new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 2,
+  }).format(value)} %`;
+}
+
+function formatOfferCount(value: number): string {
+  return `${value} offre${value === 1 ? "" : "s"} disponible${value === 1 ? "" : "s"}`;
 }
 
 function MountainDecoration() {
@@ -1071,18 +735,5 @@ function MountainDecoration() {
         opacity="0.38"
       />
     </svg>
-  );
-}
-
-function WheelDecoration() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10 opacity-55"
-      style={{
-        background:
-          "repeating-conic-gradient(transparent 0deg 13deg, rgba(124,207,156,0.10) 13deg 14deg)",
-      }}
-    />
   );
 }
