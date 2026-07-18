@@ -2,16 +2,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { WheelLogo } from "../../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import {
   getOrCreateSponsorOffersForAuthUser,
   type PersistedSponsorOffer,
 } from "../../../services/persisted-sponsor-offers";
-import type {
-  PersistedSponsorObjective,
-  SponsorObjectivePriority,
-} from "../../../types/sponsor-objective";
+import type { PersistedSponsorObjective } from "../../../types/sponsor-objective";
 import { logoutAccount } from "../actions";
 
 export const metadata: Metadata = {
@@ -114,7 +112,7 @@ export default async function SponsoringPage() {
           ) : null}
 
           {!offersError && offers.length > 0 ? (
-            <section className="mt-8 grid items-start gap-6 xl:grid-cols-3">
+            <section className="mt-8 grid items-stretch gap-6 xl:grid-cols-3">
               {offers.map((offer) => (
                 <SponsorOfferCard
                   key={offer.id}
@@ -205,31 +203,42 @@ function SponsorOfferCard({
 }) {
   const sponsor = offer.sponsor;
 
-  const maximumRenewalBonus =
-    offer.objectives.reduce(
-      (total, objective) =>
-        total + objective.renewalBonusPercent,
-      0
-    );
-
   return (
     <article
-      className="relative overflow-hidden rounded-2xl border bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
+      className="relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
       style={{
-        borderColor: sponsor.colors.primary,
+        borderColor: `${sponsor.colors.primary}55`,
+        background: `linear-gradient(145deg, ${sponsor.colors.background} 0%, #FFFFFF 24%, #FFFFFF 76%, ${sponsor.colors.secondary}88 100%)`,
+        boxShadow: `0 22px 55px ${sponsor.colors.primary}1C`,
       }}
     >
+      <SponsorColorDecoration
+        primaryColor={sponsor.colors.primary}
+        secondaryColor={sponsor.colors.secondary}
+        accentColor={sponsor.colors.accent}
+      />
+
       <div
         aria-hidden="true"
-        className="h-2 w-full"
+        className="relative h-2 w-full"
         style={{
-          background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.secondary}, ${sponsor.colors.accent})`,
+          background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
         }}
       />
 
-      <div className="p-6 sm:p-7">
-        <div className="flex items-start justify-between gap-4">
-          <SponsorIdentity offer={offer} />
+      <div className="relative flex flex-1 flex-col p-6 sm:p-7">
+        <div className="flex items-center justify-between gap-4">
+          <span
+            className="rounded-full border px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider"
+            style={{
+              borderColor: `${sponsor.colors.primary}44`,
+              backgroundColor:
+                sponsor.colors.background,
+              color: sponsor.colors.text,
+            }}
+          >
+            Offre ouverte
+          </span>
 
           <CountryFlag
             isoAlpha2={sponsor.countryCode}
@@ -239,7 +248,48 @@ function SponsorOfferCard({
           />
         </div>
 
-        <div className="mt-6">
+        <div
+          className="relative mt-5 flex min-h-36 items-center justify-center overflow-hidden rounded-2xl border bg-white/90 px-6 py-5"
+          style={{
+            borderColor: `${sponsor.colors.primary}30`,
+            boxShadow: `inset 0 0 40px ${sponsor.colors.primary}0D`,
+          }}
+        >
+          <span
+            aria-hidden="true"
+            className="absolute -left-10 -top-12 h-28 w-28 rounded-full opacity-10"
+            style={{
+              backgroundColor:
+                sponsor.colors.primary,
+            }}
+          />
+
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-14 -right-8 h-32 w-32 rounded-full opacity-10"
+            style={{
+              backgroundColor:
+                sponsor.colors.accent,
+            }}
+          />
+
+          <div className="relative flex w-full justify-center">
+            <SponsorLogo
+              src={sponsor.logoPath}
+              alt={`Logo de ${sponsor.name}`}
+              sponsorName={sponsor.name}
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+              textColor={sponsor.colors.text}
+            />
+          </div>
+        </div>
+
+        <div className="mt-5">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider"
@@ -252,12 +302,23 @@ function SponsorOfferCard({
               {sponsor.sector}
             </span>
 
-            <span className="rounded-full bg-[#EDF2EF] px-3 py-1 text-xs font-bold text-[#60756E]">
+            <span
+              className="rounded-full border bg-white/75 px-3 py-1 text-xs font-bold"
+              style={{
+                borderColor: `${sponsor.colors.primary}30`,
+                color: sponsor.colors.primary,
+              }}
+            >
               Prestige {sponsor.prestige} / 5
             </span>
           </div>
 
-          <h2 className="mt-4 text-2xl font-black">
+          <h2
+            className="mt-4 text-2xl font-black tracking-[-0.025em]"
+            style={{
+              color: sponsor.colors.text,
+            }}
+          >
             {sponsor.name}
           </h2>
 
@@ -266,13 +327,19 @@ function SponsorOfferCard({
           </p>
         </div>
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+        <section className="mt-6 grid grid-cols-2 gap-3">
           <OfferMetric
             label="Budget annuel"
             value={formatMoney(
               offer.proposedBudget
             )}
             detail="Versé par saison"
+            primaryColor={
+              sponsor.colors.primary
+            }
+            backgroundColor={
+              sponsor.colors.background
+            }
           />
 
           <OfferMetric
@@ -281,51 +348,62 @@ function SponsorOfferCard({
               offer.contractDurationSeasons
             )}
             detail="Contrat principal"
-          />
-
-          <OfferMetric
-            label="Réputation requise"
-            value={String(
-              sponsor.minimumReputation
-            )}
-            detail="Points minimum"
-          />
-
-          <OfferMetric
-            label="Bonus potentiel"
-            value={`+${formatPercentage(
-              maximumRenewalBonus
-            )}`}
-            detail="Si tous les objectifs sont remplis"
+            primaryColor={
+              sponsor.colors.primary
+            }
+            backgroundColor={
+              sponsor.colors.background
+            }
           />
         </section>
 
-        <section className="mt-7 overflow-hidden rounded-xl border border-[#315B3E]/15">
+        <section
+          className="mt-6 overflow-hidden rounded-xl border bg-white/85"
+          style={{
+            borderColor: `${sponsor.colors.primary}30`,
+          }}
+        >
           <div
-            className="flex flex-wrap items-center justify-between gap-3 px-4 py-4"
+            className="flex items-center justify-between gap-3 border-b px-4 py-3"
             style={{
-              backgroundColor:
-                sponsor.colors.background,
-              color: sponsor.colors.text,
+              borderColor: `${sponsor.colors.primary}24`,
+              background: `linear-gradient(90deg, ${sponsor.colors.background}, rgba(255,255,255,0.92))`,
             }}
           >
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] opacity-75">
+              <p
+                className="text-xs font-extrabold uppercase tracking-[0.15em]"
+                style={{
+                  color: sponsor.colors.primary,
+                }}
+              >
                 Engagements sportifs
               </p>
 
-              <h3 className="mt-1 text-lg font-black">
+              <h3
+                className="mt-1 font-black"
+                style={{
+                  color: sponsor.colors.text,
+                }}
+              >
                 {offer.objectives.length} objectifs
                 saisonniers
               </h3>
             </div>
 
-            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-extrabold">
-              +1 % chacun
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-black"
+              style={{
+                backgroundColor:
+                  sponsor.colors.primary,
+                color: "#FFFFFF",
+              }}
+            >
+              {offer.objectives.length}
             </span>
           </div>
 
-          <ol className="divide-y divide-[#315B3E]/10">
+          <ol className="grid gap-x-5 gap-y-2.5 px-4 py-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
             {offer.objectives.map((objective) => (
               <SponsorObjectiveItem
                 key={objective.id}
@@ -333,78 +411,66 @@ function SponsorOfferCard({
                 accentColor={
                   sponsor.colors.accent
                 }
+                textColor={sponsor.colors.text}
               />
             ))}
           </ol>
         </section>
 
-        <button
-          type="button"
-          disabled
-          className="mt-7 inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl border border-[#315B3E]/15 bg-[#EDF2EF] px-5 py-3 text-sm font-extrabold uppercase tracking-widest text-[#7A8C86]"
-        >
-          Signature bientôt disponible
-        </button>
+        <div className="mt-auto pt-7">
+          <button
+            type="button"
+            disabled
+            className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl border border-[#315B3E]/15 bg-[#EDF2EF] px-5 py-3 text-sm font-extrabold uppercase tracking-widest text-[#7A8C86]"
+          >
+            Signature bientôt disponible
+          </button>
 
-        <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#7A8C86]">
-          La sélection du maillot et la validation
-          définitive du contrat seront ajoutées lors de
-          la prochaine étape.
-        </p>
+          <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#7A8C86]">
+            La sélection du maillot et la validation
+            définitive du contrat seront ajoutées lors de
+            la prochaine étape.
+          </p>
+        </div>
       </div>
     </article>
   );
 }
 
-function SponsorIdentity({
-  offer,
+function SponsorColorDecoration({
+  primaryColor,
+  secondaryColor,
+  accentColor,
 }: {
-  offer: PersistedSponsorOffer;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
 }) {
-  const sponsor = offer.sponsor;
-
   return (
-    <div className="flex min-w-0 items-center gap-4">
-      <div
-        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border text-lg font-black shadow-sm"
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
+      <span
+        className="absolute -right-20 top-16 h-56 w-56 rounded-full opacity-[0.06]"
         style={{
-          backgroundColor:
-            sponsor.colors.background,
-          borderColor:
-            sponsor.colors.secondary,
-          color: sponsor.colors.text,
+          backgroundColor: primaryColor,
         }}
-      >
-        {getSponsorInitials(
-          sponsor.shortName || sponsor.name
-        )}
-      </div>
+      />
 
-      <div className="min-w-0">
-        <p className="truncate text-sm font-black">
-          {sponsor.shortName}
-        </p>
+      <span
+        className="absolute -left-24 bottom-24 h-48 w-48 rounded-full opacity-[0.08]"
+        style={{
+          backgroundColor: accentColor,
+        }}
+      />
 
-        <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#7A8C86]">
-          Offre ouverte
-        </p>
-
-        <div className="mt-2 flex items-center gap-1.5">
-          {[
-            sponsor.colors.primary,
-            sponsor.colors.secondary,
-            sponsor.colors.accent,
-          ].map((color) => (
-            <span
-              key={color}
-              className="h-3 w-3 rounded-full border border-black/10"
-              style={{
-                backgroundColor: color,
-              }}
-            />
-          ))}
-        </div>
-      </div>
+      <span
+        className="absolute -right-8 bottom-52 h-px w-48 -rotate-12 opacity-70"
+        style={{
+          backgroundColor: secondaryColor,
+        }}
+      />
     </div>
   );
 }
@@ -413,18 +479,33 @@ function OfferMetric({
   label,
   value,
   detail,
+  primaryColor,
+  backgroundColor,
 }: {
   label: string;
   value: string;
   detail: string;
+  primaryColor: string;
+  backgroundColor: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF8] p-4">
-      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#278B70]">
+    <div
+      className="rounded-xl border p-4"
+      style={{
+        borderColor: `${primaryColor}28`,
+        backgroundColor,
+      }}
+    >
+      <p
+        className="text-xs font-extrabold uppercase tracking-[0.12em]"
+        style={{
+          color: primaryColor,
+        }}
+      >
         {label}
       </p>
 
-      <p className="mt-2 text-xl font-black">
+      <p className="mt-2 text-lg font-black sm:text-xl">
         {value}
       </p>
 
@@ -438,84 +519,31 @@ function OfferMetric({
 function SponsorObjectiveItem({
   objective,
   accentColor,
+  textColor,
 }: {
   objective: PersistedSponsorObjective;
   accentColor: string;
+  textColor: string;
 }) {
   return (
-    <li className="flex gap-3 bg-white px-4 py-4">
+    <li className="flex items-start gap-2.5">
       <span
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black"
+        aria-hidden="true"
+        className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
         style={{
           backgroundColor: accentColor,
-          color: "#082A2A",
+        }}
+      />
+
+      <p
+        className="text-sm font-bold leading-5"
+        style={{
+          color: textColor,
         }}
       >
-        {objective.displayOrder}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <p className="font-black leading-6">
-            {objective.name}
-          </p>
-
-          <ObjectivePriorityBadge
-            priority={objective.priority}
-          />
-        </div>
-
-        <p className="mt-1 text-sm leading-6 text-[#60756E]">
-          {objective.description}
-        </p>
-      </div>
+        {objective.name}
+      </p>
     </li>
-  );
-}
-
-function ObjectivePriorityBadge({
-  priority,
-}: {
-  priority: SponsorObjectivePriority;
-}) {
-  const presentation: Record<
-    SponsorObjectivePriority,
-    {
-      label: string;
-      className: string;
-    }
-  > = {
-    optional: {
-      label: "Optionnel",
-      className:
-        "bg-[#EDF2EF] text-[#60756E]",
-    },
-    standard: {
-      label: "Standard",
-      className:
-        "bg-[#D7EEE8] text-[#176951]",
-    },
-    important: {
-      label: "Important",
-      className:
-        "bg-[#F2C94C]/25 text-[#7A5900]",
-    },
-    mandatory: {
-      label: "Prioritaire",
-      className:
-        "bg-[#F3D7D7] text-[#9B3131]",
-    },
-  };
-
-  return (
-    <span
-      className={[
-        "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider",
-        presentation[priority].className,
-      ].join(" ")}
-    >
-      {presentation[priority].label}
-    </span>
   );
 }
 
@@ -662,19 +690,6 @@ function getErrorMessage(error: unknown): string {
   return "Une erreur inattendue est survenue.";
 }
 
-function getSponsorInitials(value: string): string {
-  const initials = value
-    .trim()
-    .split(/[\s-]+/)
-    .slice(0, 2)
-    .map((part) =>
-      part.charAt(0).toUpperCase()
-    )
-    .join("");
-
-  return initials || "SP";
-}
-
 function getCountryName(
   countryCode: string
 ): string {
@@ -700,12 +715,6 @@ function formatMoney(value: number): string {
 
 function formatDuration(value: number): string {
   return `${value} saison${value === 1 ? "" : "s"}`;
-}
-
-function formatPercentage(value: number): string {
-  return `${new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 2,
-  }).format(value)} %`;
 }
 
 function formatOfferCount(value: number): string {
