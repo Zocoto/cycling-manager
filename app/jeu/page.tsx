@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
+import { SportingDirectorProgression } from "../../components/game/sporting-director-progression";
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
 import { WheelLogo } from "../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
@@ -21,6 +22,7 @@ type SportingDirector = {
   country_id: string | null;
   avatar_key: string | null;
   reputation_points: number;
+  experience_points: number;
   is_email_visible: boolean;
   created_at: string;
 };
@@ -77,6 +79,7 @@ export default async function GamePage() {
           country_id,
           avatar_key,
           reputation_points,
+          experience_points,
           is_email_visible,
           created_at
         `
@@ -183,8 +186,8 @@ export default async function GamePage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-              Suivez l’état de votre équipe, vos objectifs et
-              les principaux domaines de votre carrière.
+              Suivez l’état de votre équipe, votre progression
+              et les principaux domaines de votre carrière.
             </p>
           </header>
 
@@ -231,10 +234,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/sponsoring"
               icon="sponsor"
               title="Sponsoring"
               status="Aucun sponsor"
-              description="Consultez prochainement les offres disponibles, les contrats et les objectifs de vos sponsors."
+              description="Comparez les offres disponibles, leurs budgets, leurs durées de contrat et leurs objectifs saisonniers."
             />
 
             <ManagementModuleCard
@@ -347,6 +351,9 @@ function DirectorProfileCard({
     sportingDirector?.username ??
     "Directeur Sportif";
 
+  const experiencePoints =
+    sportingDirector?.experience_points ?? 0;
+
   const reputationPoints =
     sportingDirector?.reputation_points ?? 0;
 
@@ -392,6 +399,13 @@ function DirectorProfileCard({
       </div>
 
       <div className="mt-6 border-t border-white/10 pt-5">
+        <SportingDirectorProgression
+          experiencePoints={experiencePoints}
+          compact
+        />
+      </div>
+
+      <div className="mt-5 border-t border-white/10 pt-5">
         <SportingDirectorReputation
           reputationPoints={reputationPoints}
           compact
