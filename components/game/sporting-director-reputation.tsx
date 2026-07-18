@@ -3,13 +3,6 @@ type SportingDirectorReputationProps = {
   compact?: boolean;
 };
 
-type ReputationProgress = {
-  level: number;
-  pointsIntoLevel: number;
-  pointsRequiredForLevel: number;
-  progressPercentage: number;
-};
-
 export function SportingDirectorReputation({
   reputationPoints,
   compact = false,
@@ -19,139 +12,67 @@ export function SportingDirectorReputation({
     Math.floor(reputationPoints)
   );
 
-  const reputation = calculateReputationProgress(
-    safeReputationPoints
-  );
-
-  return (
-    <div>
-      <div className="flex items-end justify-between gap-4">
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p
-            className={
-              compact
-                ? "text-xs font-bold uppercase tracking-[0.12em] text-[#9FB5A8]"
-                : "text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]"
-            }
-          >
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9FB5A8]">
             Réputation
           </p>
 
-          <p
-            className={
-              compact
-                ? "mt-1 text-lg font-black text-[#FFFDF4]"
-                : "mt-2 text-xl font-black text-[#183F37]"
-            }
-          >
-            Niveau {reputation.level}
+          <p className="mt-1 text-lg font-black text-[#FFFDF4]">
+            {safeReputationPoints} points
           </p>
         </div>
 
-        <p
-          className={
-            compact
-              ? "text-sm font-bold text-[#BFD1C6]"
-              : "text-sm font-bold text-[#48665F]"
-          }
-        >
-          {safeReputationPoints} points
-        </p>
-      </div>
-
-      <div
-        className={
-          compact
-            ? "mt-3 h-2.5 overflow-hidden rounded-full bg-white/15"
-            : "mt-4 h-3 overflow-hidden rounded-full bg-[#D7E5DF]"
-        }
-      >
-        <div
-          className={
-            compact
-              ? "h-full rounded-full bg-[#F2C94C] transition-[width]"
-              : "h-full rounded-full bg-[#42B99A] transition-[width]"
-          }
-          style={{
-            width: `${reputation.progressPercentage}%`,
-          }}
-          role="progressbar"
-          aria-label={`Progression de réputation vers le niveau ${
-            reputation.level + 1
-          }`}
-          aria-valuemin={0}
-          aria-valuemax={
-            reputation.pointsRequiredForLevel
-          }
-          aria-valuenow={reputation.pointsIntoLevel}
-        />
-      </div>
-
-      <div
-        className={
-          compact
-            ? "mt-2 flex justify-between gap-4 text-xs font-semibold text-[#9FB5A8]"
-            : "mt-2 flex justify-between gap-4 text-xs font-semibold text-[#60756E]"
-        }
-      >
-        <span>
-          {reputation.pointsIntoLevel} /{" "}
-          {reputation.pointsRequiredForLevel}
+        <span className="rounded-full border border-[#7CCF9C]/25 bg-[#7CCF9C]/10 px-3 py-1.5 text-xs font-bold text-[#9BE0BC]">
+          Crédibilité sponsor
         </span>
+      </div>
+    );
+  }
 
-        <span>Niveau {reputation.level + 1}</span>
+  return (
+    <div className="rounded-2xl border border-[#315B3E]/20 bg-white/90 p-5 shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+            Réputation
+          </p>
+
+          <p className="mt-2 text-2xl font-black text-[#183F37]">
+            {safeReputationPoints} points
+          </p>
+        </div>
+
+        <ReputationIcon />
       </div>
 
-      {!compact ? (
-        <p className="mt-4 text-sm leading-6 text-[#60756E]">
-          Votre réputation progressera grâce aux objectifs, aux
-          résultats en course et aux réussites de votre
-          carrière.
-        </p>
-      ) : null}
+      <p className="mt-4 text-sm leading-6 text-[#60756E]">
+        La réputation mesure votre crédibilité auprès
+        des sponsors et du monde du cyclisme. Certains
+        partenaires prestigieux imposent un minimum de
+        réputation.
+      </p>
     </div>
   );
 }
 
-function calculateReputationProgress(
-  reputationPoints: number
-): ReputationProgress {
-  let level = 0;
-  let currentLevelThreshold = 0;
-  let pointsRequiredForLevel =
-    getPointsRequiredForNextLevel(level);
-
-  while (
-    reputationPoints >=
-    currentLevelThreshold + pointsRequiredForLevel
-  ) {
-    currentLevelThreshold += pointsRequiredForLevel;
-    level += 1;
-    pointsRequiredForLevel =
-      getPointsRequiredForNextLevel(level);
-  }
-
-  const pointsIntoLevel =
-    reputationPoints - currentLevelThreshold;
-
-  const progressPercentage = Math.min(
-    100,
-    Math.max(
-      0,
-      (pointsIntoLevel / pointsRequiredForLevel) * 100
-    )
+function ReputationIcon() {
+  return (
+    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#D7EEE8] text-[#176951]">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="h-6 w-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+      </svg>
+    </span>
   );
-
-  return {
-    level,
-    pointsIntoLevel,
-    pointsRequiredForLevel,
-    progressPercentage,
-  };
-}
-
-function getPointsRequiredForNextLevel(
-  currentLevel: number
-): number {
-  return 100 + currentLevel * 50;
 }
