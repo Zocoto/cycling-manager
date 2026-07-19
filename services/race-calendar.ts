@@ -50,6 +50,7 @@ type RaceEditionRow = {
   display_name: string;
   status: string;
   registration_closes_at: string | null;
+  withdrawal_closes_at: string | null;
   minimum_reputation: number | null;
   registration_policy: RegistrationPolicy;
 };
@@ -68,6 +69,8 @@ type RaceCategoryRow = {
   code: string;
   name: string;
   prestige_rank: number;
+  minimum_roster_size: number | null;
+  maximum_roster_size: number | null;
 };
 
 type StageRow = {
@@ -99,12 +102,22 @@ type RaceRegistrationRow = {
     | "rejected"
     | "withdrawn";
   registration_registered_at: string | null;
+  roster_count: number;
+  withdrawal_closes_at: string | null;
+};
+
+type CalendarRegistrationRow = {
+  race_edition_id: string;
+  registration_status: CurrentRaceRegistration["status"];
+  roster_count: number;
 };
 
 export type CurrentRaceRegistration = {
   id: string;
   status: RaceRegistrationRow["registration_status"];
   registeredAt: string | null;
+  rosterCount: number;
+  withdrawalClosesAt: string | null;
 };
 
 export type CurrentRaceUserContext = {
@@ -115,6 +128,7 @@ export type CurrentRaceUserContext = {
 export type RacePastWinner = {
   gameYear: number;
   seasonName: string;
+  finalRank: number;
   riderId: string;
   riderName: string;
   teamName: string;
@@ -123,10 +137,74 @@ export type RacePastWinner = {
 type RacePastWinnerRow = {
   game_year: number;
   season_name: string;
+  final_rank: number;
   rider_id: string;
   rider_first_name: string;
   rider_last_name: string;
   team_name: string;
+};
+
+export type RaceRosterOption = {
+  riderId: string;
+  firstName: string;
+  lastName: string;
+  countryName: string;
+  countryCode: string;
+  age: number;
+  mountain: number;
+  hills: number;
+  flat: number;
+  timeTrial: number;
+  cobbles: number;
+  sprint: number;
+  isSelected: boolean;
+  isAvailable: boolean;
+  conflict: {
+    raceSlug: string;
+    raceName: string;
+    startDay: number;
+    endDay: number;
+  } | null;
+};
+
+type RaceRosterOptionRow = {
+  rider_id: string;
+  first_name: string;
+  last_name: string;
+  country_name: string;
+  country_iso_alpha2: string;
+  age: number;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  is_selected: boolean;
+  is_available: boolean;
+  conflicting_race_slug: string | null;
+  conflicting_race_name: string | null;
+  conflicting_start_day: number | null;
+  conflicting_end_day: number | null;
+};
+
+export type RaceEngagedRider = {
+  teamId: string;
+  teamName: string;
+  teamShortName: string | null;
+  riderId: string;
+  riderName: string;
+  countryCode: string;
+};
+
+type RaceEngagedRiderRow = {
+  team_id: string;
+  team_name: string;
+  team_short_name: string | null;
+  rider_id: string;
+  rider_first_name: string;
+  rider_last_name: string;
+  country_iso_alpha2: string;
 };
 
 export async function getActiveSeasonRaceCalendar(
@@ -161,7 +239,7 @@ export async function getActiveSeasonRaceCalendar(
     return null;
   }
 
-  const [daysResult, editionsResult] =
+  const [daysResult, editionsResult, registrationsResult] =
     await Promise.all([
       supabase
         .from("season_days")
@@ -184,6 +262,7 @@ export async function getActiveSeasonRaceCalendar(
             display_name,
             status,
             registration_closes_at,
+            withdrawal_closes_at,
             minimum_reputation,
             registration_policy
           `
@@ -191,6 +270,10 @@ export async function getActiveSeasonRaceCalendar(
         .eq("season_id", season.id)
         .neq("status", "cancelled")
         .returns<RaceEditionRow[]>(),
+
+      supabase.rpc(
+        "get_current_team_calendar_registrations"
+      ),
     ]);
 
   if (daysResult.error) {
@@ -202,6 +285,12 @@ export async function getActiveSeasonRaceCalendar(
   if (editionsResult.error) {
     throw new Error(
       `Impossible de charger les éditions de course : ${editionsResult.error.message}`
+    );
+  }
+
+  if (registrationsResult.error) {
+    throw new Error(
+      `Impossible de charger les inscriptions du calendrier : ${registrationsResult.error.message}`
     );
   }
 
@@ -261,7 +350,7 @@ export async function getActiveSeasonRaceCalendar(
         ? supabase
             .from("race_categories")
             .select(
-              "id, code, name, prestige_rank"
+              "id, code, name, prestige_rank, minimum_roster_size, maximum_roster_size"
             )
             .in("id", categoryIds)
             .returns<RaceCategoryRow[]>()
@@ -347,6 +436,14 @@ export async function getActiveSeasonRaceCalendar(
     stagesResult.data ?? [],
     dayById
   );
+  const registrationByEditionId = new Map(
+    ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
+      (registration) => [
+        registration.race_edition_id,
+        registration,
+      ]
+    )
+  );
 
   const editions = editionRows
     .map((edition) => {
@@ -383,10 +480,28 @@ export async function getActiveSeasonRaceCalendar(
         raceFormat: race.race_format,
         registrationClosesAt:
           edition.registration_closes_at,
+        withdrawalClosesAt:
+          edition.withdrawal_closes_at,
         registrationPolicy:
           edition.registration_policy,
         minimumReputation:
           edition.minimum_reputation,
+        minimumRosterSize:
+          category.minimum_roster_size ?? 1,
+        maximumRosterSize:
+          category.maximum_roster_size ?? 1,
+        currentTeamRegistration: registrationByEditionId.has(
+          edition.id
+        )
+          ? {
+              status: registrationByEditionId.get(
+                edition.id
+              )!.registration_status,
+              rosterCount: registrationByEditionId.get(
+                edition.id
+              )!.roster_count,
+            }
+          : null,
         stages:
           stagesByEditionId.get(edition.id) ?? [],
       } satisfies RaceCalendarEdition;
@@ -502,6 +617,9 @@ export async function getCurrentRaceUserContext(
             registrationRow.registration_status,
           registeredAt:
             registrationRow.registration_registered_at,
+          rosterCount: registrationRow.roster_count,
+          withdrawalClosesAt:
+            registrationRow.withdrawal_closes_at,
         }
       : null,
   };
@@ -529,11 +647,86 @@ export async function getRacePastWinners(
   ).map((winner) => ({
     gameYear: winner.game_year,
     seasonName: winner.season_name,
+    finalRank: winner.final_rank,
     riderId: winner.rider_id,
     riderName:
       `${winner.rider_first_name} ${winner.rider_last_name}`,
     teamName: winner.team_name,
   }));
+}
+
+export async function getCurrentTeamRaceRosterOptions(
+  supabase: SupabaseServerClient,
+  raceEditionId: string
+): Promise<RaceRosterOption[]> {
+  const { data, error } = await supabase.rpc(
+    "get_current_team_race_roster_options",
+    { p_race_edition_id: raceEditionId }
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger votre effectif pour cette course : ${error.message}`
+    );
+  }
+
+  return ((data as RaceRosterOptionRow[] | null) ?? []).map(
+    (rider) => ({
+      riderId: rider.rider_id,
+      firstName: rider.first_name,
+      lastName: rider.last_name,
+      countryName: rider.country_name,
+      countryCode: rider.country_iso_alpha2,
+      age: rider.age,
+      mountain: rider.mountain,
+      hills: rider.hills,
+      flat: rider.flat,
+      timeTrial: rider.time_trial,
+      cobbles: rider.cobbles,
+      sprint: rider.sprint,
+      isSelected: rider.is_selected,
+      isAvailable: rider.is_available,
+      conflict:
+        rider.conflicting_race_slug &&
+        rider.conflicting_race_name &&
+        rider.conflicting_start_day !== null &&
+        rider.conflicting_end_day !== null
+          ? {
+              raceSlug: rider.conflicting_race_slug,
+              raceName: rider.conflicting_race_name,
+              startDay: rider.conflicting_start_day,
+              endDay: rider.conflicting_end_day,
+            }
+          : null,
+    })
+  );
+}
+
+export async function getRaceEngagedRiders(
+  supabase: SupabaseServerClient,
+  raceEditionId: string
+): Promise<RaceEngagedRider[]> {
+  const { data, error } = await supabase.rpc(
+    "get_race_engaged_riders",
+    { p_race_edition_id: raceEditionId }
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger les coureurs engagés : ${error.message}`
+    );
+  }
+
+  return ((data as RaceEngagedRiderRow[] | null) ?? []).map(
+    (rider) => ({
+      teamId: rider.team_id,
+      teamName: rider.team_name,
+      teamShortName: rider.team_short_name,
+      riderId: rider.rider_id,
+      riderName: `${rider.rider_first_name} ${rider.rider_last_name}`,
+      countryCode: rider.country_iso_alpha2,
+    })
+  );
 }
 
 function groupStages(

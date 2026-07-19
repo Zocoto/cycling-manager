@@ -418,6 +418,13 @@ function DesktopCalendarWeek({
                   ? " →"
                   : ""}
               </span>
+
+              {segment.edition.currentTeamRegistration
+                ?.status === "accepted" ? (
+                <span className="ml-auto shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-black">
+                  ✓ {segment.edition.currentTeamRegistration.rosterCount}
+                </span>
+              ) : null}
             </Link>
           );
         })}
@@ -542,6 +549,13 @@ function MobileCalendarDay({
                   )} km
                 </span>
               </span>
+
+              {edition.currentTeamRegistration
+                ?.status === "accepted" ? (
+                <span className="shrink-0 rounded-full bg-white/20 px-2 py-1 text-[10px] font-black">
+                  ✓ {edition.currentTeamRegistration.rosterCount}
+                </span>
+              ) : null}
             </Link>
           );
         })}

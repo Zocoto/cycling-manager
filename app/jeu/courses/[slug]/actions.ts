@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function registerForRaceAction(
+export async function registerRaceRosterAction(
   formData: FormData
 ) {
   const editionId = readFormValue(
@@ -13,12 +13,17 @@ export async function registerForRaceAction(
     "editionId"
   );
   const slug = readFormValue(formData, "slug");
+  const riderIds = formData
+    .getAll("riderIds")
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && isUuid(value)
+    );
 
   if (!isUuid(editionId) || !isSlug(slug)) {
-    redirect(
-      `/jeu/calendrier?erreur=${encodeURIComponent(
-        "La course sélectionnée est invalide."
-      )}`
+    redirectWithError(
+      "/jeu/calendrier",
+      "La course sélectionnée est invalide."
     );
   }
 
@@ -34,26 +39,81 @@ export async function registerForRaceAction(
   }
 
   const { error } = await supabase.rpc(
-    "register_current_team_for_race",
+    "save_current_team_race_roster",
     {
       p_race_edition_id: editionId,
+      p_rider_ids: riderIds,
     }
   );
 
   if (error) {
-    redirect(
-      `/jeu/courses/${slug}?erreur=${encodeURIComponent(
-        error.message
-      )}`
+    redirectWithError(`/jeu/courses/${slug}`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  redirect(
+    `/jeu/calendrier?inscription=confirmee&course=${encodeURIComponent(
+      slug
+    )}`
+  );
+}
+
+export async function withdrawRaceRosterAction(
+  formData: FormData
+) {
+  const editionId = readFormValue(
+    formData,
+    "editionId"
+  );
+  const slug = readFormValue(formData, "slug");
+
+  if (!isUuid(editionId) || !isSlug(slug)) {
+    redirectWithError(
+      "/jeu/calendrier",
+      "La course sélectionnée est invalide."
     );
   }
 
+  const supabase =
+    await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc(
+    "withdraw_current_team_from_race",
+    { p_race_edition_id: editionId }
+  );
+
+  if (error) {
+    redirectWithError(`/jeu/courses/${slug}`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  redirect(
+    `/jeu/calendrier?desinscription=confirmee&course=${encodeURIComponent(
+      slug
+    )}`
+  );
+}
+
+function revalidateRacePaths(slug: string) {
   revalidatePath("/jeu/calendrier");
   revalidatePath(`/jeu/courses/${slug}`);
   revalidatePath("/jeu");
+}
 
+function redirectWithError(path: string, message: string): never {
+  const separator = path.includes("?") ? "&" : "?";
   redirect(
-    `/jeu/courses/${slug}?inscription=confirmee`
+    `${path}${separator}erreur=${encodeURIComponent(
+      message.slice(0, 300)
+    )}`
   );
 }
 

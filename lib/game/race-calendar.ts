@@ -49,8 +49,15 @@ export type RaceCalendarEdition = {
   prestigeRank: number;
   raceFormat: RaceFormat;
   registrationClosesAt: string | null;
+  withdrawalClosesAt: string | null;
   registrationPolicy: RegistrationPolicy;
   minimumReputation: number | null;
+  minimumRosterSize: number;
+  maximumRosterSize: number;
+  currentTeamRegistration: {
+    status: "pending" | "accepted" | "rejected" | "withdrawn";
+    rosterCount: number;
+  } | null;
   stages: RaceCalendarStage[];
 };
 
@@ -318,6 +325,31 @@ export function getRegistrationAvailability({
   }
 
   return "open";
+}
+
+export function isRosterSelectionValid({
+  selectedCount,
+  minimum,
+  maximum,
+}: {
+  selectedCount: number;
+  minimum: number;
+  maximum: number;
+}) {
+  return (
+    selectedCount >= minimum &&
+    selectedCount <= maximum
+  );
+}
+
+export function isBeforeRegistrationDeadline(
+  closesAt: string | null,
+  now = new Date()
+) {
+  return (
+    closesAt !== null &&
+    Date.parse(closesAt) > now.getTime()
+  );
 }
 
 function getEditionWeekSegment(

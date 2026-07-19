@@ -4,6 +4,8 @@ import {
   buildCalendarWeeks,
   getEffectiveSeasonDay,
   getRegistrationAvailability,
+  isBeforeRegistrationDeadline,
+  isRosterSelectionValid,
   type RaceCalendarEdition,
 } from "./race-calendar";
 
@@ -113,6 +115,43 @@ describe("getRegistrationAvailability", () => {
   });
 });
 
+describe("règles de composition et de retrait", () => {
+  it.each([
+    ["Elite minimum", 8, 8, 9, true],
+    ["Elite sous le minimum", 7, 8, 9, false],
+    ["Elite au-dessus du maximum", 10, 8, 9, false],
+    ["National maximum", 6, 5, 6, true],
+  ])(
+    "%s",
+    (_label, selectedCount, minimum, maximum, expected) => {
+      expect(
+        isRosterSelectionValid({
+          selectedCount,
+          minimum,
+          maximum,
+        })
+      ).toBe(expected);
+    }
+  );
+
+  it("autorise le retrait strictement avant H-12", () => {
+    const cutoff = "2026-07-20T08:00:00Z";
+
+    expect(
+      isBeforeRegistrationDeadline(
+        cutoff,
+        new Date("2026-07-20T07:59:59Z")
+      )
+    ).toBe(true);
+    expect(
+      isBeforeRegistrationDeadline(
+        cutoff,
+        new Date("2026-07-20T08:00:00Z")
+      )
+    ).toBe(false);
+  });
+});
+
 function createEdition(
   slug: string,
   dayNumbers: number[]
@@ -130,8 +169,12 @@ function createEdition(
     prestigeRank: 1,
     raceFormat: "stage_race",
     registrationClosesAt: null,
+    withdrawalClosesAt: null,
     registrationPolicy: "criteria_pending",
     minimumReputation: null,
+    minimumRosterSize: 8,
+    maximumRosterSize: 9,
+    currentTeamRegistration: null,
     stages: dayNumbers.map(
       (dayNumber, index) => ({
         id: `${slug}-${dayNumber}`,

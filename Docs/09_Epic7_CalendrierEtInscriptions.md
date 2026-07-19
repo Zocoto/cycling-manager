@@ -2,9 +2,9 @@
 
 ## Objectif
 
-Installer la première boucle sportive du MVP : consulter la saison, ouvrir une fiche de course et inscrire son équipe lorsque les règles d’éligibilité le permettent.
+Installer la première boucle sportive du MVP : consulter la saison, ouvrir une fiche de course, composer son groupe de coureurs et inscrire son équipe lorsque les règles d’éligibilité le permettent.
 
-La sélection des coureurs et la simulation feront l’objet des US suivantes.
+La simulation et les résultats feront l’objet d’une livraison séparée.
 
 ## Calendrier de saison
 
@@ -77,7 +77,10 @@ Courses d’un jour :
 - son bandeau est découpé proprement lorsqu’il change de semaine ;
 - les semaines trop chargées peuvent être développées ;
 - le jour courant, les jours passés et les jours futurs sont différenciés ;
-- un clic sur une course ouvre `/jeu/courses/[slug]`.
+- un clic sur une course ouvre sa fiche dans une fenêtre au-dessus du calendrier ;
+- la fermeture retrouve le calendrier et ses filtres sans rechargement ;
+- l’URL directe `/jeu/courses/[slug]` reste disponible sous la forme d’une page complète ;
+- les courses auxquelles l’équipe participe portent un repère et le nombre de coureurs engagés.
 
 ## Fiche de course
 
@@ -90,8 +93,9 @@ La première version affiche :
 - la date limite d’inscription ;
 - la réputation minimale ;
 - les futurs classements de la montagne et du sprint ;
-- le palmarès des éditions terminées ;
+- le TOP 3 des éditions terminées, dans une zone compacte et déroulante ;
 - l’état d’inscription de l’équipe du joueur.
+- tous les coureurs engagés, regroupés par équipe avec un lien vers la fiche publique de l’équipe.
 
 Les profils détaillés par segments seront enrichis avec le moteur de simulation.
 
@@ -102,11 +106,11 @@ Les profils détaillés par segments seront enrichis avec le moteur de simulatio
 - les inscriptions ferment à 12 h, soit huit heures avant le premier départ ;
 - l’interface ne fait jamais reculer un jour de saison déjà persisté.
 
-## Inscription
+## Inscription et composition
 
-L’inscription est séparée de la sélection des coureurs.
+L’inscription et la composition sont validées ensemble. Le Directeur Sportif voit tout son effectif, coche les coureurs souhaités puis confirme. Les coureurs déjà engagés sur une course couvrant au moins un même jour restent visibles mais sont grisés, avec un lien vers la course en conflit.
 
-Pour le MVP, une demande valide est automatiquement acceptée. La fonction serveur vérifie :
+Une demande valide est automatiquement acceptée et immédiatement visible sur la fiche publique. La transaction serveur vérifie :
 
 - l’identité du joueur connecté ;
 - le Directeur Sportif et l’équipe qu’il dirige réellement ;
@@ -115,9 +119,30 @@ Pour le MVP, une demande valide est automatiquement acceptée. La fonction serve
 - la date limite ;
 - la réputation minimale ;
 - la capacité maximale du peloton ;
-- l’absence d’une inscription existante.
+- la taille de la composition selon la catégorie ;
+- l’appartenance de chaque coureur à l’effectif actif ;
+- l’absence de chevauchement de jours pour chaque coureur ;
+- l’absence d’une composition déjà verrouillée.
 
-La fonction est idempotente : une seconde demande pour une équipe déjà inscrite retourne l’inscription existante.
+| Catégorie | Coureurs minimum | Coureurs maximum |
+|---|---:|---:|
+| Elite | 8 | 9 |
+| Mondial | 6 | 7 |
+| Continental | 6 | 7 |
+| National | 5 | 6 |
+
+Les courses ordinaires sont limitées à 24 équipes. Les futurs championnats nationaux seront limités à 200 coureurs et ne reprendront pas cette limite par équipe.
+
+### Retrait et réinscription
+
+- la composition validée n’est pas modifiable directement ;
+- le Directeur Sportif peut retirer toute son équipe strictement avant H-12 ;
+- ce retrait libère immédiatement les coureurs et la place de l’équipe ;
+- une nouvelle inscription avec une autre composition est possible dans la foulée, toujours avant H-12 ;
+- à partir de H-12, une composition acceptée est définitive ;
+- une première inscription reste possible jusqu’à H-8 si l’équipe n’était pas encore engagée.
+
+Les contrôles de capacité, de délais et de chevauchement sont atomiques afin que deux requêtes simultanées ne puissent pas contourner les règles.
 
 ### Règles de nationalité
 
@@ -125,12 +150,11 @@ La fonction est idempotente : une seconde demande pour une équipe déjà inscri
 - la nationalité de l’équipe, du Directeur Sportif ou du sponsor n’est jamais contrôlée ;
 - la nationalité d’un coureur pourra produire un bonus de performance « local de l’étape » dans le futur moteur ;
 - les championnats nationaux constituent l’exception : seuls les coureurs du pays du championnat peuvent concourir.
+- les championnats continentaux et mondiaux ne proposent pas d’inscription manuelle : leurs participants seront choisis par une future mécanique de sélection des meilleurs coureurs.
 
 ## Éléments différés
 
 - valeurs des seuils Continental, Mondial et Elite ;
-- sélection et remplacement des coureurs ;
-- disponibilité d’un coureur sur les courses qui se chevauchent ;
 - fatigue et récupération ;
 - génération détaillée des deux championnats de chaque pays ;
 - sélections nationales pour les championnats continentaux et mondiaux ;

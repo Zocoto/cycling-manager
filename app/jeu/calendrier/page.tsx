@@ -15,7 +15,18 @@ export const metadata: Metadata = {
     "Consultez les 28 jours de la saison et les courses accessibles dans Cyclostratège.",
 };
 
-export default async function RaceCalendarPage() {
+type RaceCalendarPageProps = {
+  searchParams: Promise<{
+    inscription?: string | string[];
+    desinscription?: string | string[];
+    erreur?: string | string[];
+  }>;
+};
+
+export default async function RaceCalendarPage({
+  searchParams,
+}: RaceCalendarPageProps) {
+  const resolvedSearchParams = await searchParams;
   const supabase =
     await createSupabaseServerClient();
   const {
@@ -146,6 +157,32 @@ export default async function RaceCalendarPage() {
           </div>
 
           <div className="p-5 sm:p-8 lg:p-10">
+            {readSingleSearchParam(
+              resolvedSearchParams.inscription
+            ) === "confirmee" ? (
+              <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
+                L’équipe et sa composition sont inscrites. Les coureurs apparaissent immédiatement sur la fiche de course.
+              </div>
+            ) : null}
+
+            {readSingleSearchParam(
+              resolvedSearchParams.desinscription
+            ) === "confirmee" ? (
+              <div className="mb-6 rounded-xl border border-sky-300 bg-sky-50 px-5 py-4 text-sm font-bold text-sky-900">
+                Toute l’équipe a été désinscrite. La place et les coureurs sont de nouveau disponibles.
+              </div>
+            ) : null}
+
+            {readSingleSearchParam(
+              resolvedSearchParams.erreur
+            ) ? (
+              <div className="mb-6 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-bold text-red-900">
+                {readSingleSearchParam(
+                  resolvedSearchParams.erreur
+                )?.slice(0, 300)}
+              </div>
+            ) : null}
+
             {calendar ? (
               <SeasonCalendar
                 calendar={calendar}
@@ -158,6 +195,12 @@ export default async function RaceCalendarPage() {
       </section>
     </main>
   );
+}
+
+function readSingleSearchParam(
+  value: string | string[] | undefined
+) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function CalendarUnavailable() {

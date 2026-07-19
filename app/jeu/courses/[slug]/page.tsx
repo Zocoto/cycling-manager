@@ -2,15 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { registerForRaceAction } from "./actions";
+import {
+  registerRaceRosterAction,
+  withdrawRaceRosterAction,
+} from "./actions";
 
 import { GameHeader } from "@/components/game/game-header";
-import { RaceRegistrationButton } from "@/components/game/race-registration-button";
+import { RaceRosterSelector } from "@/components/game/race-roster-selector";
+import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
 import {
   RACE_CATEGORY_STYLE,
   RACE_PROFILE_LABELS,
   getEditionDayRange,
   getRegistrationAvailability,
+  isBeforeRegistrationDeadline,
   type RaceCalendarEdition,
   type RaceProfileType,
 } from "@/lib/game/race-calendar";
@@ -19,9 +24,13 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getActiveSeasonRaceCalendar,
   getCurrentRaceUserContext,
+  getCurrentTeamRaceRosterOptions,
+  getRaceEngagedRiders,
   getRacePastWinners,
   type CurrentRaceUserContext,
+  type RaceEngagedRider,
   type RacePastWinner,
+  type RaceRosterOption,
 } from "@/services/race-calendar";
 
 type RaceProfilePageProps = {
@@ -93,9 +102,18 @@ export default async function RaceProfilePage({
   };
   let contextError: string | null = null;
   let pastWinners: RacePastWinner[] = [];
+  let rosterOptions: RaceRosterOption[] = [];
+  let engagedRiders: RaceEngagedRider[] = [];
   let winnersError = false;
+  let rosterError: string | null = null;
+  let engagedRidersError = false;
 
-  const [contextResult, winnersResult] =
+  const [
+    contextResult,
+    winnersResult,
+    rosterResult,
+    engagedRidersResult,
+  ] =
     await Promise.all([
       getCurrentRaceUserContext(
         supabase,
@@ -122,6 +140,21 @@ export default async function RaceProfilePage({
           winners: [] as RacePastWinner[],
           error,
         })),
+      getCurrentTeamRaceRosterOptions(
+        supabase,
+        edition.id
+      )
+        .then((riders) => ({ riders, error: null }))
+        .catch((error: unknown) => ({
+          riders: [] as RaceRosterOption[],
+          error,
+        })),
+      getRaceEngagedRiders(supabase, edition.id)
+        .then((riders) => ({ riders, error: null }))
+        .catch((error: unknown) => ({
+          riders: [] as RaceEngagedRider[],
+          error,
+        })),
     ]);
 
   if (contextResult.context) {
@@ -145,6 +178,25 @@ export default async function RaceProfilePage({
       winnersResult.error
     );
     winnersError = true;
+  }
+
+  rosterOptions = rosterResult.riders;
+  if (rosterResult.error) {
+    console.error(
+      "Impossible de charger l'effectif pour l'inscription :",
+      rosterResult.error
+    );
+    rosterError =
+      "Votre effectif n’a pas pu être chargé pour le moment.";
+  }
+
+  engagedRiders = engagedRidersResult.riders;
+  if (engagedRidersResult.error) {
+    console.error(
+      "Impossible de charger les coureurs engagés :",
+      engagedRidersResult.error
+    );
+    engagedRidersError = true;
   }
 
   const successMessage = readSingleSearchParam(
@@ -292,27 +344,37 @@ export default async function RaceProfilePage({
                   </div>
                 </section>
 
+                <EngagedRidersSection
+                  riders={engagedRiders}
+                  hasError={engagedRidersError}
+                />
+
                 <section className="mt-8 rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-6">
                   <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
                     Palmarès
                   </p>
                   <h2 className="mt-2 text-xl font-black text-[#0B302B]">
-                    Anciens vainqueurs
+                    Podiums des éditions passées
                   </h2>
                   {pastWinners.length > 0 ? (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-[#315B3E]/15 bg-white">
+                    <div className="mt-4 max-h-80 overflow-y-auto rounded-xl border border-[#315B3E]/15 bg-white">
                       {pastWinners.map((winner) => (
                         <div
-                          key={`${winner.gameYear}-${winner.riderId}`}
+                          key={`${winner.gameYear}-${winner.finalRank}-${winner.riderId}`}
                           className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/10 px-5 py-4 last:border-none"
                         >
-                          <div>
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#0B302B] text-xs font-black text-white">
+                              {winner.finalRank}
+                            </span>
+                            <div>
                             <p className="font-black text-[#0B302B]">
                               {winner.riderName}
                             </p>
                             <p className="mt-1 text-xs font-semibold text-[#688176]">
                               {winner.teamName}
                             </p>
+                            </div>
                           </div>
                           <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
                             Saison {winner.gameYear}
@@ -324,7 +386,7 @@ export default async function RaceProfilePage({
                     <p className="mt-4 rounded-xl border border-dashed border-[#315B3E]/25 bg-white px-5 py-5 text-sm font-semibold leading-6 text-[#688176]">
                       {winnersError
                         ? "Le palmarès est momentanément indisponible."
-                        : "Aucun vainqueur précédent : cette édition inaugure l’histoire de la course. Les saisons terminées alimenteront automatiquement ce palmarès."}
+                        : "Aucun podium précédent : cette édition inaugure l’histoire de la course. Les saisons terminées alimenteront automatiquement ce palmarès."}
                     </p>
                   )}
                 </section>
@@ -335,6 +397,8 @@ export default async function RaceProfilePage({
                   edition={edition}
                   context={raceUserContext}
                   contextError={contextError}
+                  riders={rosterOptions}
+                  rosterError={rosterError}
                 />
 
                 <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
@@ -360,6 +424,12 @@ export default async function RaceProfilePage({
                       label="Clôture"
                       value={formatDeparture(
                         edition.registrationClosesAt
+                      )}
+                    />
+                    <DefinitionRow
+                      label="Retrait possible jusqu’au"
+                      value={formatDeparture(
+                        edition.withdrawalClosesAt
                       )}
                     />
                     <DefinitionRow
@@ -393,12 +463,32 @@ function RegistrationPanel({
   edition,
   context,
   contextError,
+  riders,
+  rosterError,
 }: {
   edition: RaceCalendarEdition;
   context: CurrentRaceUserContext;
   contextError: string | null;
+  riders: RaceRosterOption[];
+  rosterError: string | null;
 }) {
   const registration = context.registration;
+  const hasConfirmedRoster =
+    registration?.status === "accepted" &&
+    registration.rosterCount > 0;
+  const withdrawalClosesAt =
+    registration?.withdrawalClosesAt ??
+    edition.withdrawalClosesAt;
+  const canWithdraw =
+    hasConfirmedRoster &&
+    isBeforeRegistrationDeadline(
+      withdrawalClosesAt
+    );
+  const canReactivate =
+    registration?.status !== "withdrawn" ||
+    isBeforeRegistrationDeadline(
+      withdrawalClosesAt
+    );
   const availability =
     getRegistrationAvailability({
       policy: edition.registrationPolicy,
@@ -409,7 +499,11 @@ function RegistrationPanel({
         context.reputationPoints,
     });
 
-  if (registration) {
+  if (hasConfirmedRoster) {
+    const selectedRiders = riders.filter(
+      (rider) => rider.isSelected
+    );
+
     return (
       <section className="rounded-2xl border border-emerald-400/35 bg-[#0B302B] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)]">
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
@@ -419,13 +513,41 @@ function RegistrationPanel({
           Équipe inscrite
         </h2>
         <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
-          Votre participation est acceptée. La sélection des coureurs sera disponible dans la prochaine étape du MVP.
+          Votre participation est acceptée avec {registration.rosterCount} coureur{registration.rosterCount > 1 ? "s" : ""}. La composition est désormais verrouillée.
         </p>
         <span className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#9BE0BC]">
-          {registration.status === "accepted"
-            ? "Acceptée"
-            : registration.status}
+          Acceptée · {registration.rosterCount} engagé{registration.rosterCount > 1 ? "s" : ""}
         </span>
+
+        {selectedRiders.length > 0 ? (
+          <ul className="mt-4 space-y-1.5 rounded-xl border border-white/10 bg-white/5 p-4 text-xs font-bold text-[#D6DFD2]">
+            {selectedRiders.map((rider) => (
+              <li key={rider.riderId}>
+                {rider.firstName} {rider.lastName}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {canWithdraw ? (
+          <form action={withdrawRaceRosterAction}>
+            <input
+              type="hidden"
+              name="editionId"
+              value={edition.id}
+            />
+            <input
+              type="hidden"
+              name="slug"
+              value={edition.slug}
+            />
+            <RaceWithdrawButton />
+          </form>
+        ) : (
+          <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
+            Le délai H-12 est dépassé : cette inscription ne peut plus être retirée.
+          </p>
+        )}
       </section>
     );
   }
@@ -436,7 +558,11 @@ function RegistrationPanel({
         Inscription
       </p>
       <h2 className="mt-3 text-xl font-black">
-        Engager votre équipe
+        {registration?.status === "withdrawn"
+          ? "Réinscrire votre équipe"
+          : registration?.status === "accepted"
+            ? "Finaliser la composition"
+            : "Engager votre équipe"}
       </h2>
 
       <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
@@ -456,9 +582,17 @@ function RegistrationPanel({
         <RegistrationNotice tone="error">
           {contextError}
         </RegistrationNotice>
+      ) : rosterError ? (
+        <RegistrationNotice tone="error">
+          {rosterError}
+        </RegistrationNotice>
+      ) : !canReactivate ? (
+        <RegistrationNotice tone="warning">
+          Votre retrait est définitif pour cette course : la limite H-12 de réinscription est dépassée.
+        </RegistrationNotice>
       ) : availability === "open" ? (
         <form
-          action={registerForRaceAction}
+          action={registerRaceRosterAction}
           className="mt-5"
         >
           <input
@@ -471,10 +605,17 @@ function RegistrationPanel({
             name="slug"
             value={edition.slug}
           />
-          <RaceRegistrationButton />
-          <p className="mt-3 text-center text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-            Acceptation automatique. La liste des coureurs sera choisie séparément.
-          </p>
+          {riders.length > 0 ? (
+            <RaceRosterSelector
+              riders={riders}
+              minimum={edition.minimumRosterSize}
+              maximum={edition.maximumRosterSize}
+            />
+          ) : (
+            <RegistrationNotice tone="warning">
+              Aucun coureur actif n’est disponible dans votre effectif.
+            </RegistrationNotice>
+          )}
         </form>
       ) : availability === "closed" ? (
         <RegistrationNotice tone="warning">
@@ -489,6 +630,93 @@ function RegistrationPanel({
         <RegistrationNotice tone="neutral">
           Les paliers de réputation de cette catégorie seront bientôt annoncés. L’inscription reste verrouillée jusque-là.
         </RegistrationNotice>
+      )}
+    </section>
+  );
+}
+
+function EngagedRidersSection({
+  riders,
+  hasError,
+}: {
+  riders: RaceEngagedRider[];
+  hasError: boolean;
+}) {
+  const teams = new Map<
+    string,
+    {
+      teamName: string;
+      teamShortName: string | null;
+      riders: RaceEngagedRider[];
+    }
+  >();
+
+  for (const rider of riders) {
+    const team = teams.get(rider.teamId) ?? {
+      teamName: rider.teamName,
+      teamShortName: rider.teamShortName,
+      riders: [],
+    };
+    team.riders.push(rider);
+    teams.set(rider.teamId, team);
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border border-[#315B3E]/15 bg-white p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
+            Peloton
+          </p>
+          <h2 className="mt-2 text-xl font-black text-[#0B302B]">
+            Coureurs engagés
+          </h2>
+        </div>
+        <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
+          {teams.size} / 24 équipes · {riders.length} coureurs
+        </span>
+      </div>
+
+      {riders.length > 0 ? (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {[...teams.entries()].map(
+            ([teamId, team]) => (
+              <article
+                key={teamId}
+                className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4"
+              >
+                <Link
+                  href={`/jeu/equipes/${teamId}`}
+                  className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
+                >
+                  {team.teamName}
+                </Link>
+                <ul className="mt-3 space-y-2">
+                  {team.riders.map((rider) => (
+                    <li
+                      key={rider.riderId}
+                      className="flex items-center gap-2 text-sm font-semibold text-[#557064]"
+                      title="La fiche publique du coureur sera ajoutée ultérieurement"
+                    >
+                      <span
+                        className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
+                        role="img"
+                        aria-label={`Drapeau ${rider.countryCode}`}
+                      />
+                      {rider.riderName}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            )
+          )}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-xl border border-dashed border-[#315B3E]/25 bg-[#F6FAF7] px-5 py-5 text-sm font-semibold leading-6 text-[#688176]">
+          {hasError
+            ? "La liste des engagés est momentanément indisponible."
+            : "Aucun coureur n’est encore engagé. La liste sera mise à jour immédiatement après chaque inscription."}
+        </p>
       )}
     </section>
   );
