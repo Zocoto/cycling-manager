@@ -2,15 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { GameHeader } from "../../../components/game/game-header";
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
-import { WheelLogo } from "../../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
 } from "../../../services/team-sponsor-identity";
-import { logoutAccount } from "../actions";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -256,7 +255,10 @@ export default async function TeamRosterPage() {
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
-      <GameHeader />
+      <GameHeader
+        sponsor={teamSponsorIdentity?.sponsor ?? null}
+        maxWidth="wide"
+      />
 
       <section className="relative overflow-hidden">
         <div
@@ -484,40 +486,6 @@ export default async function TeamRosterPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-function GameHeader() {
-  return (
-    <header className="relative z-20 border-b border-[#78947D]/25 bg-[#071A17] text-[#FFFDF4] shadow-lg shadow-black/15">
-      <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-5 py-4 sm:px-8">
-        <Link
-          href="/jeu"
-          className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-        >
-          <WheelLogo />
-
-          <span>
-            <span className="block text-lg font-extrabold uppercase leading-none">
-              Cyclo
-            </span>
-
-            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.26em] text-[#F2C94C]">
-              Stratège
-            </span>
-          </span>
-        </Link>
-
-        <form action={logoutAccount}>
-          <button
-            type="submit"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-          >
-            Se déconnecter
-          </button>
-        </form>
-      </div>
-    </header>
   );
 }
 

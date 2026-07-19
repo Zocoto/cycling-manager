@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "sponsors:validate": "tsx scripts/validate-sponsors.ts",
+    "sponsors:validate:strict": "tsx scripts/validate-sponsors.ts --strict-assets",
     "sponsors:sync": "tsx scripts/sync-sponsors.ts"
   },
   "dependencies": {
