@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SponsorJerseyPreview } from "../../components/game/sponsor-jersey-preview";
 import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
 import { SportingDirectorProgression } from "../../components/game/sporting-director-progression";
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
 import { WheelLogo } from "../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
+import {
+  getActiveTeamSponsorIdentityForAuthUser,
+  type TeamSponsorIdentity,
+} from "../../services/team-sponsor-identity";
 import { logoutAccount } from "./actions";
 
 export const metadata: Metadata = {
@@ -53,7 +58,8 @@ type ManagementModuleIcon =
   | "transfer";
 
 export default async function GamePage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase =
+    await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -106,7 +112,29 @@ export default async function GamePage() {
       .maybeSingle<CurrentTeamDashboardSummary>(),
   ]);
 
-  const sportingDirector = profileResult.data;
+  let teamSponsorIdentity:
+    TeamSponsorIdentity | null = null;
+
+  let teamSponsorIdentityError:
+    string | null = null;
+
+  try {
+    teamSponsorIdentity =
+      await getActiveTeamSponsorIdentityForAuthUser(
+        user.id
+      );
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer l’identité commerciale de l’équipe :",
+      error
+    );
+
+    teamSponsorIdentityError =
+      getErrorMessage(error);
+  }
+
+  const sportingDirector =
+    profileResult.data;
 
   const teamSummary =
     (teamSummaryResult.data ??
@@ -137,18 +165,21 @@ export default async function GamePage() {
       "Impossible de récupérer le résumé de l’équipe :",
       {
         code: teamSummaryResult.error.code,
-        message: teamSummaryResult.error.message,
+        message:
+          teamSummaryResult.error.message,
       }
     );
   }
 
   const countries =
-    (countriesResult.data ?? []) as CountryRow[];
+    (countriesResult.data ??
+      []) as CountryRow[];
 
   const selectedCountry =
     countries.find(
       (country) =>
-        country.id === sportingDirector?.country_id
+        country.id ===
+        sportingDirector?.country_id
     ) ?? null;
 
   const displayName =
@@ -161,7 +192,13 @@ export default async function GamePage() {
       sportingDirector?.avatar_key
   );
 
-  const riderCount = teamSummary?.rider_count ?? 0;
+  const riderCount =
+    teamSummary?.rider_count ?? 0;
+
+  const commercialTeamName =
+    teamSponsorIdentity?.teamName ??
+    teamSummary?.team_name ??
+    "Votre équipe";
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -186,8 +223,9 @@ export default async function GamePage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-              Suivez l’état de votre équipe, votre progression
-              et les principaux domaines de votre carrière.
+              Suivez l’état de votre équipe,
+              votre progression et les principaux
+              domaines de votre carrière.
             </p>
           </header>
 
@@ -195,17 +233,36 @@ export default async function GamePage() {
             <ProfileErrorMessage />
           ) : null}
 
+          {teamSponsorIdentityError ? (
+            <TeamSponsorIdentityWarning
+              message={
+                teamSponsorIdentityError
+              }
+            />
+          ) : null}
+
           <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
             <DirectorProfileCard
-              sportingDirector={sportingDirector}
+              sportingDirector={
+                sportingDirector
+              }
               email={user.email ?? null}
-              selectedCountry={selectedCountry}
-              isProfileComplete={isProfileComplete}
+              selectedCountry={
+                selectedCountry
+              }
+              isProfileComplete={
+                isProfileComplete
+              }
               teamSummary={teamSummary}
+              teamSponsorIdentity={
+                teamSponsorIdentity
+              }
             />
 
             <ObjectivesCard
-              isProfileComplete={isProfileComplete}
+              isProfileComplete={
+                isProfileComplete
+              }
               teamSummary={teamSummary}
             />
           </section>
@@ -217,14 +274,16 @@ export default async function GamePage() {
               title="Effectif"
               status={
                 teamSummary
-                  ? formatRiderCount(riderCount)
+                  ? formatRiderCount(
+                      riderCount
+                    )
                   : isProfileComplete
                     ? "Création en attente"
                     : "En attente"
               }
               description={
                 teamSummary
-                  ? `${teamSummary.team_name} compte ${formatRiderCount(
+                  ? `${commercialTeamName} compte ${formatRiderCount(
                       riderCount
                     )} sous contrat pour ${teamSummary.season_name}.`
                   : isProfileComplete
@@ -237,8 +296,17 @@ export default async function GamePage() {
               href="/jeu/sponsoring"
               icon="sponsor"
               title="Sponsoring"
-              status="Aucun sponsor"
-              description="Comparez les offres disponibles, leurs budgets, leurs durées de contrat et leurs objectifs saisonniers."
+              status={
+                teamSponsorIdentity
+                  ? teamSponsorIdentity.sponsor
+                      .shortName
+                  : "Aucun sponsor"
+              }
+              description={
+                teamSponsorIdentity
+                  ? `${teamSponsorIdentity.sponsor.name} est le sponsor principal de ${commercialTeamName}. Le maillot ${teamSponsorIdentity.selectedJersey.name} est actuellement utilisé.`
+                  : "Comparez les offres disponibles, leurs budgets, leurs durées de contrat et leurs objectifs saisonniers."
+              }
             />
 
             <ManagementModuleCard
@@ -339,12 +407,17 @@ function DirectorProfileCard({
   selectedCountry,
   isProfileComplete,
   teamSummary,
+  teamSponsorIdentity,
 }: {
-  sportingDirector: SportingDirector | null;
+  sportingDirector:
+    SportingDirector | null;
   email: string | null;
   selectedCountry: CountryRow | null;
   isProfileComplete: boolean;
-  teamSummary: CurrentTeamDashboardSummary | null;
+  teamSummary:
+    CurrentTeamDashboardSummary | null;
+  teamSponsorIdentity:
+    TeamSponsorIdentity | null;
 }) {
   const profileName =
     sportingDirector?.display_name ??
@@ -352,10 +425,12 @@ function DirectorProfileCard({
     "Directeur Sportif";
 
   const experiencePoints =
-    sportingDirector?.experience_points ?? 0;
+    sportingDirector?.experience_points ??
+    0;
 
   const reputationPoints =
-    sportingDirector?.reputation_points ?? 0;
+    sportingDirector?.reputation_points ??
+    0;
 
   return (
     <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8">
@@ -381,18 +456,37 @@ function DirectorProfileCard({
 
       <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <DirectorIdentity
-          sportingDirector={sportingDirector}
+          sportingDirector={
+            sportingDirector
+          }
           profileName={profileName}
           email={email}
-          selectedCountry={selectedCountry}
+          selectedCountry={
+            selectedCountry
+          }
         />
 
         <div className="flex items-start gap-5 md:justify-self-end">
-          <CyclingJerseyIcon />
+          {teamSponsorIdentity ? (
+            <SponsorJerseyPreview
+              sponsor={
+                teamSponsorIdentity.sponsor
+              }
+              jersey={
+                teamSponsorIdentity.selectedJersey
+              }
+              className="h-32 w-28 shrink-0 drop-shadow-xl"
+            />
+          ) : (
+            <CyclingJerseyIcon />
+          )}
 
           <div className="min-w-44 pt-4">
             <TeamSponsorInformation
               teamSummary={teamSummary}
+              teamSponsorIdentity={
+                teamSponsorIdentity
+              }
             />
           </div>
         </div>
@@ -400,14 +494,18 @@ function DirectorProfileCard({
 
       <div className="mt-6 border-t border-white/10 pt-5">
         <SportingDirectorProgression
-          experiencePoints={experiencePoints}
+          experiencePoints={
+            experiencePoints
+          }
           compact
         />
       </div>
 
       <div className="mt-5 border-t border-white/10 pt-5">
         <SportingDirectorReputation
-          reputationPoints={reputationPoints}
+          reputationPoints={
+            reputationPoints
+          }
           compact
         />
       </div>
@@ -444,7 +542,8 @@ function DirectorIdentity({
   email,
   selectedCountry,
 }: {
-  sportingDirector: SportingDirector | null;
+  sportingDirector:
+    SportingDirector | null;
   profileName: string;
   email: string | null;
   selectedCountry: CountryRow | null;
@@ -453,7 +552,9 @@ function DirectorIdentity({
     <div className="flex min-w-0 items-center gap-5">
       {sportingDirector?.avatar_key ? (
         <SportingDirectorAvatar
-          avatarKey={sportingDirector.avatar_key}
+          avatarKey={
+            sportingDirector.avatar_key
+          }
           size="large"
           label={`Avatar de ${profileName}`}
         />
@@ -478,8 +579,12 @@ function DirectorIdentity({
           {selectedCountry ? (
             <>
               <CountryFlag
-                isoAlpha2={selectedCountry.iso_alpha2}
-                countryName={selectedCountry.name}
+                isoAlpha2={
+                  selectedCountry.iso_alpha2
+                }
+                countryName={
+                  selectedCountry.name
+                }
               />
 
               <span className="font-semibold text-[#FFFDF4]">
@@ -496,12 +601,15 @@ function DirectorIdentity({
         <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
           {sportingDirector?.is_email_visible ? (
             <span className="break-all">
-              {email ?? "Adresse e-mail non disponible"}
+              {email ??
+                "Adresse e-mail non disponible"}
             </span>
           ) : (
             <>
               <PrivacyIcon />
-              <span>Adresse e-mail masquée</span>
+              <span>
+                Adresse e-mail masquée
+              </span>
             </>
           )}
         </div>
@@ -512,19 +620,39 @@ function DirectorIdentity({
 
 function TeamSponsorInformation({
   teamSummary,
+  teamSponsorIdentity,
 }: {
-  teamSummary: CurrentTeamDashboardSummary | null;
+  teamSummary:
+    CurrentTeamDashboardSummary | null;
+  teamSponsorIdentity:
+    TeamSponsorIdentity | null;
 }) {
+  const teamName =
+    teamSponsorIdentity?.teamName ??
+    teamSummary?.team_name ??
+    "Équipe amateur à constituer";
+
   return (
     <div>
       <p className="max-w-56 text-xl font-black text-[#FFFDF4]">
-        {teamSummary?.team_name ??
-          "Équipe amateur à constituer"}
+        {teamName}
       </p>
 
       <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
-        Aucun sponsor actif
+        {teamSponsorIdentity
+          ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}`
+          : "Aucun sponsor actif"}
       </p>
+
+      {teamSponsorIdentity ? (
+        <p className="mt-2 text-xs font-semibold text-[#BFD1C6]">
+          Maillot :{" "}
+          {
+            teamSponsorIdentity
+              .selectedJersey.name
+          }
+        </p>
+      ) : null}
 
       {teamSummary ? (
         <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#7CCF9C]">
@@ -541,7 +669,8 @@ function ObjectivesCard({
   teamSummary,
 }: {
   isProfileComplete: boolean;
-  teamSummary: CurrentTeamDashboardSummary | null;
+  teamSummary:
+    CurrentTeamDashboardSummary | null;
 }) {
   return (
     <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-7">
@@ -573,17 +702,21 @@ function ObjectivesCard({
             </span>
 
             <span className="text-sm font-bold text-[#F2C94C]">
-              {isProfileComplete ? "1 / 1" : "0 / 1"}
+              {isProfileComplete
+                ? "1 / 1"
+                : "0 / 1"}
             </span>
           </div>
 
           <h3 className="mt-5 text-xl font-black">
-            Compléter le profil de votre Directeur Sportif
+            Compléter le profil de votre
+            Directeur Sportif
           </h3>
 
           <p className="mt-3 leading-7 text-[#D6DFD2]">
-            Choisissez votre avatar et votre nationalité afin
-            de préparer votre première équipe amateur.
+            Choisissez votre avatar et votre
+            nationalité afin de préparer votre
+            première équipe amateur.
           </p>
 
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
@@ -641,7 +774,9 @@ function ManagementModuleCard({
     <>
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D7EEE8] text-[#176951] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
-          <ManagementModuleIcon icon={icon} />
+          <ManagementModuleIcon
+            icon={icon}
+          />
         </span>
 
         <span className="rounded-full bg-[#EDF2EF] px-3 py-1 text-xs font-bold text-[#60756E]">
@@ -668,7 +803,10 @@ function ManagementModuleCard({
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link
+        href={href}
+        className={className}
+      >
         {content}
       </Link>
     );
@@ -934,8 +1072,27 @@ function EditIcon() {
 function ProfileErrorMessage() {
   return (
     <div className="mt-8 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
-      Votre compte est bien connecté, mais votre profil de
-      Directeur Sportif n’a pas pu être récupéré.
+      Votre compte est bien connecté, mais
+      votre profil de Directeur Sportif n’a pas
+      pu être récupéré.
+    </div>
+  );
+}
+
+function TeamSponsorIdentityWarning({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
+      Le bureau reste disponible, mais
+      l’identité commerciale de l’équipe n’a pas
+      pu être chargée.
+
+      <span className="mt-1 block text-xs font-medium">
+        {message}
+      </span>
     </div>
   );
 }
@@ -951,9 +1108,20 @@ function ManagementModuleIcon({
   > = {
     riders: (
       <>
-        <circle cx="8" cy="8" r="3" />
-        <circle cx="17" cy="9" r="2.5" />
+        <circle
+          cx="8"
+          cy="8"
+          r="3"
+        />
+
+        <circle
+          cx="17"
+          cy="9"
+          r="2.5"
+        />
+
         <path d="M2.5 20c.5-4.5 2.5-7 5.5-7s5 2.5 5.5 7" />
+
         <path d="M14 14c3.5-.3 5.5 1.7 6 5" />
       </>
     ),
@@ -983,7 +1151,9 @@ function ManagementModuleIcon({
           height="16"
           rx="2"
         />
+
         <path d="M7 3v4M17 3v4M3 10h18" />
+
         <path d="M8 14h3M13 14h3M8 17h3" />
       </>
     ),
@@ -999,7 +1169,9 @@ function ManagementModuleIcon({
     academy: (
       <>
         <path d="m3 10 9-5 9 5-9 5-9-5Z" />
+
         <path d="M7 13v4c3 2 7 2 10 0v-4" />
+
         <path d="M21 10v6" />
       </>
     ),
@@ -1038,27 +1210,48 @@ function ManagementModuleIcon({
   );
 }
 
-function formatRiderCount(value: number): string {
+function formatRiderCount(
+  value: number
+): string {
   return `${value} coureur${value === 1 ? "" : "s"}`;
 }
 
-function getInitials(value: string): string {
+function getInitials(
+  value: string
+): string {
   const initials = value
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
+    .map((part) =>
+      part.charAt(0).toUpperCase()
+    )
     .join("");
 
   return initials || "DS";
 }
 
-function formatCareerStart(value: string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value));
+function getErrorMessage(
+  error: unknown
+): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Une erreur inattendue est survenue.";
+}
+
+function formatCareerStart(
+  value: string
+): string {
+  return new Intl.DateTimeFormat(
+    "fr-FR",
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }
+  ).format(new Date(value));
 }
 
 function MountainDecoration() {
