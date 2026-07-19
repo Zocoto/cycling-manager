@@ -319,10 +319,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/calendrier"
               icon="calendar"
               title="Courses"
-              status="Aucune course"
-              description="Consultez prochainement le calendrier, les inscriptions et les courses accessibles à votre équipe."
+              status="Calendrier disponible"
+              description="Consultez les 28 jours de la saison, filtrez les catégories et préparez les courses accessibles à votre équipe."
             />
 
             <ManagementModuleCard
