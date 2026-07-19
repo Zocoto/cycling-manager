@@ -12,6 +12,13 @@ const JERSEY_STYLES: readonly SponsorJerseyStyle[] = [
   "bold",
 ];
 
+const SPONSORING_REVALIDATION_PATHS = [
+  "/jeu",
+  "/jeu/sponsoring",
+  "/jeu/directeur-sportif",
+  "/jeu/effectif",
+] as const;
+
 export async function signSponsorOfferAction(
   formData: FormData
 ) {
@@ -49,8 +56,7 @@ export async function signSponsorOfferAction(
     redirectWithError(error.message);
   }
 
-  revalidatePath("/jeu");
-  revalidatePath("/jeu/sponsoring");
+  revalidateSponsoringPaths();
 
   redirect("/jeu/sponsoring");
 }
@@ -118,10 +124,60 @@ export async function validateSponsorJerseyAction(
     redirectWithError(error.message);
   }
 
-  revalidatePath("/jeu");
-  revalidatePath("/jeu/sponsoring");
+  revalidateSponsoringPaths();
 
   redirect("/jeu/sponsoring");
+}
+
+export async function terminateSponsorContractAction(
+  formData: FormData
+) {
+  const contractId = readRequiredValue(
+    formData,
+    "contractId"
+  );
+
+  if (!isUuid(contractId)) {
+    redirectWithError(
+      "Le contrat sélectionné est invalide."
+    );
+  }
+
+  const supabase =
+    await createSupabaseServerClient();
+
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc(
+    "terminate_active_sponsor_contract",
+    {
+      p_contract_id: contractId,
+    }
+  );
+
+  if (error) {
+    redirectWithError(error.message);
+  }
+
+  revalidateSponsoringPaths();
+
+  redirect(
+    "/jeu/sponsoring?succes=rupture"
+  );
+}
+
+function revalidateSponsoringPaths() {
+  for (const path of
+    SPONSORING_REVALIDATION_PATHS) {
+    revalidatePath(path);
+  }
 }
 
 function readRequiredValue(

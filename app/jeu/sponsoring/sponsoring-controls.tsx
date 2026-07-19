@@ -244,6 +244,50 @@ export function SponsorJerseySelector({
   );
 }
 
+
+type TerminateSponsorContractButtonProps = {
+  sponsorName: string;
+  reputationPenalty: number;
+};
+
+export function TerminateSponsorContractButton({
+  sponsorName,
+  reputationPenalty,
+}: TerminateSponsorContractButtonProps) {
+  function confirmTermination(
+    event: React.MouseEvent<HTMLButtonElement>
+  ) {
+    const confirmed = window.confirm(
+      [
+        `Rompre le contrat avec ${sponsorName} ?`,
+        "",
+        `Pénalité : -${reputationPenalty} points de réputation`,
+        "",
+        "Le sponsor et son maillot seront immédiatement retirés de votre équipe.",
+        "Les objectifs encore en cours seront considérés comme échoués.",
+        "Le budget déjà versé ne sera pas retiré.",
+        "Aucune nouvelle offre ne sera proposée avant la saison suivante.",
+        "",
+        "Cette décision est définitive.",
+      ].join("\n")
+    );
+
+    if (!confirmed) {
+      event.preventDefault();
+    }
+  }
+
+  return (
+    <button
+      type="submit"
+      onClick={confirmTermination}
+      className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-red-300 bg-red-700 px-5 py-3 text-sm font-extrabold uppercase tracking-widest text-white transition hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+    >
+      Rompre le contrat
+    </button>
+  );
+}
+
 function formatJerseyStyle(
   style: SponsorJersey["style"]
 ): string {

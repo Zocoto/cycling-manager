@@ -13,10 +13,14 @@ import {
   type SponsoringState,
 } from "../../../services/sponsoring-workflow";
 import type { PersistedSponsorObjective } from "../../../types/sponsor-objective";
-import { signSponsorOfferAction } from "./actions";
+import {
+  signSponsorOfferAction,
+  terminateSponsorContractAction,
+} from "./actions";
 import {
   ConfirmSponsorButton,
   SponsorJerseySelector,
+  TerminateSponsorContractButton,
 } from "./sponsoring-controls";
 
 export const metadata: Metadata = {
@@ -28,6 +32,7 @@ export const metadata: Metadata = {
 type SponsoringPageProps = {
   searchParams?: Promise<{
     erreur?: string | string[];
+    succes?: string | string[];
   }>;
 };
 
@@ -42,6 +47,11 @@ export default async function SponsoringPage({
   const actionError = readSearchParameter(
     resolvedSearchParams.erreur
   );
+
+  const actionSuccess =
+    readSearchParameter(
+      resolvedSearchParams.succes
+    );
 
   const supabase =
     await createSupabaseServerClient();
@@ -149,6 +159,10 @@ export default async function SponsoringPage({
             />
           ) : null}
 
+          {actionSuccess === "rupture" ? (
+            <ActionSuccessMessage />
+          ) : null}
+
           {actionError ? (
             <ActionErrorMessage
               message={actionError}
@@ -194,6 +208,16 @@ export default async function SponsoringPage({
               }
             />
           ) : null}
+
+          {!sponsoringError &&
+          sponsoringState?.kind ===
+            "terminated" ? (
+            <TerminatedSponsorSection
+              contract={
+                sponsoringState.contract
+              }
+            />
+          ) : null}
         </div>
       </section>
     </main>
@@ -226,6 +250,33 @@ function SponsoringStatusNotice({
             l’un des trois maillots proposés pour
             activer définitivement le partenariat et
             recevoir le budget sponsor.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  if (state.kind === "terminated") {
+    return (
+      <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-red-300 bg-red-50/95 px-5 py-4 shadow-[0_12px_30px_rgba(127,29,29,0.07)]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-700 text-white">
+          <BrokenContractIcon />
+        </span>
+
+        <div>
+          <p className="font-black text-red-900">
+            Votre contrat a été rompu
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-red-800">
+            Le partenariat avec{" "}
+            <strong>
+              {state.contract.sponsor.name}
+            </strong>{" "}
+            est terminé. Votre équipe a retrouvé son
+            identité amateur et aucune nouvelle offre
+            ne sera proposée avant la prochaine
+            saison.
           </p>
         </div>
       </aside>
@@ -877,6 +928,220 @@ function ActiveSponsorSection({
         lors de la future US de complétude des
         objectifs sponsors.
       </aside>
+
+      <EarlyTerminationSection
+        contract={contract}
+      />
+    </section>
+  );
+}
+
+function EarlyTerminationSection({
+  contract,
+}: {
+  contract: PersistedSponsorContract;
+}) {
+  return (
+    <section className="mt-8 overflow-hidden rounded-2xl border border-red-300 bg-red-50/90 shadow-[0_18px_44px_rgba(127,29,29,0.08)]">
+      <div className="border-b border-red-200 bg-red-100/80 px-5 py-4 sm:px-6">
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-red-700">
+          Décision exceptionnelle
+        </p>
+
+        <h2 className="mt-1 text-xl font-black text-red-950">
+          Rupture anticipée du contrat
+        </h2>
+      </div>
+
+      <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_360px] lg:items-center">
+        <div>
+          <p className="leading-7 text-red-900">
+            Vous pouvez mettre immédiatement fin au
+            partenariat avec{" "}
+            <strong>
+              {contract.sponsor.name}
+            </strong>
+            . Cette décision retire le sponsor et son
+            maillot de votre équipe.
+          </p>
+
+          <ul className="mt-4 grid gap-2 text-sm font-semibold leading-6 text-red-800">
+            <li>
+              • Pénalité immédiate de 10 points de
+              réputation, avec un minimum final de 0.
+            </li>
+
+            <li>
+              • Les objectifs non atteints seront
+              considérés comme échoués.
+            </li>
+
+            <li>
+              • Le budget déjà versé reste acquis à
+              l’équipe.
+            </li>
+
+            <li>
+              • Aucune nouvelle offre avant la saison
+              suivante.
+            </li>
+          </ul>
+        </div>
+
+        <form
+          action={
+            terminateSponsorContractAction
+          }
+          className="rounded-xl border border-red-200 bg-white p-4"
+        >
+          <input
+            type="hidden"
+            name="contractId"
+            value={contract.id}
+          />
+
+          <TerminateSponsorContractButton
+            sponsorName={
+              contract.sponsor.name
+            }
+            reputationPenalty={10}
+          />
+
+          <p className="mt-3 text-center text-xs font-semibold leading-5 text-red-700">
+            Cette opération est irréversible.
+          </p>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+function TerminatedSponsorSection({
+  contract,
+}: {
+  contract: PersistedSponsorContract;
+}) {
+  const sponsor = contract.sponsor;
+
+  const selectedJersey =
+    sponsor.jerseys.find(
+      (jersey) =>
+        jersey.id ===
+        contract.selectedJerseyId
+    ) ?? null;
+
+  return (
+    <section className="mt-8">
+      <article
+        className="overflow-hidden rounded-2xl border border-red-300 bg-white shadow-[0_22px_55px_rgba(127,29,29,0.1)]"
+      >
+        <div className="h-2 w-full bg-red-700" />
+
+        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[320px_1fr]">
+          <div className="flex min-h-56 items-center justify-center rounded-2xl border border-red-200 bg-red-50/60 p-6 opacity-80 grayscale-[0.25]">
+            <SponsorLogo
+              src={sponsor.logoPath}
+              alt={`Ancien logo de ${sponsor.name}`}
+              sponsorName={sponsor.name}
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+              textColor={sponsor.colors.text}
+            />
+          </div>
+
+          <div>
+            <span className="inline-flex rounded-full bg-red-100 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider text-red-800">
+              Contrat rompu
+            </span>
+
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] text-red-950">
+              {sponsor.name}
+            </h2>
+
+            <p className="mt-3 leading-7 text-[#60756E]">
+              Ce sponsor n’est plus associé à votre
+              équipe. Le contrat reste conservé dans
+              votre historique avec son budget, son
+              maillot et ses objectifs.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <ContractMetric
+                label="Budget annuel"
+                value={formatMoney(
+                  contract.budgetPerSeason,
+                  contract.currencyCode
+                )}
+                detail="Budget déjà versé et conservé"
+                primaryColor="#B91C1C"
+                backgroundColor="#FEF2F2"
+              />
+
+              <ContractMetric
+                label="Ancien maillot"
+                value={
+                  selectedJersey?.name ??
+                  "Maillot enregistré"
+                }
+                detail={
+                  selectedJersey
+                    ? formatJerseyStyle(
+                        selectedJersey.style
+                      )
+                    : "Modèle archivé"
+                }
+                primaryColor="#B91C1C"
+                backgroundColor="#FEF2F2"
+              />
+
+              <ContractMetric
+                label="Pénalité"
+                value={`-${contract.reputationPenalty} points`}
+                detail="Réputation du Directeur Sportif"
+                primaryColor="#B91C1C"
+                backgroundColor="#FEF2F2"
+              />
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
+              {contract.terminatedAt ? (
+                <p>
+                  Rupture :{" "}
+                  <strong className="text-red-900">
+                    {formatDate(
+                      contract.terminatedAt
+                    )}
+                  </strong>
+                </p>
+              ) : null}
+
+              <p>
+                Motif :{" "}
+                <strong className="text-red-900">
+                  {formatTerminationReason(
+                    contract.terminationReason
+                  )}
+                </strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <ContractObjectivesSection
+        contract={contract}
+      />
+
+      <aside className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-950">
+        Votre équipe évolue désormais sous son identité
+        amateur. Les nouvelles propositions de
+        sponsoring seront débloquées au début de la
+        prochaine saison.
+      </aside>
     </section>
   );
 }
@@ -986,7 +1251,9 @@ function ContractObjectiveItem({
         </p>
 
         <p className="mt-1 text-xs font-semibold text-[#7A8C86]">
-          Suivi disponible prochainement
+          {formatObjectiveStatus(
+            objective.status
+          )}
         </p>
       </div>
     </li>
@@ -1141,6 +1408,25 @@ function SponsorObjectiveItem({
         {objective.name}
       </p>
     </li>
+  );
+}
+
+function ActionSuccessMessage() {
+  return (
+    <div
+      role="status"
+      className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950"
+    >
+      <p className="font-black">
+        Le contrat sponsor a été rompu.
+      </p>
+
+      <p className="mt-2 text-sm leading-6">
+        L’identité amateur de votre équipe a été
+        restaurée et la pénalité de réputation a été
+        appliquée.
+      </p>
+    </div>
   );
 }
 
@@ -1318,6 +1604,27 @@ function JerseyIcon() {
   );
 }
 
+function BrokenContractIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-5 w-5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m8 4-4 2-2 5 4 2v7h5" />
+      <path d="m16 4 4 2 2 5-4 2v2" />
+      <path d="m10 7 2 3 2-3" />
+      <path d="m14 15-5 5" />
+      <path d="m9 15 5 5" />
+    </svg>
+  );
+}
+
 function BriefcaseIcon() {
   return (
     <svg
@@ -1360,6 +1667,10 @@ function getPageIntroduction(
 
   if (state?.kind === "active") {
     return "Consultez votre sponsor principal, votre budget contractuel, le maillot retenu et les objectifs de la saison.";
+  }
+
+  if (state?.kind === "terminated") {
+    return "Consultez l’historique du contrat rompu et les conséquences appliquées pour la saison en cours.";
   }
 
   return "Comparez les budgets, les durées de contrat et les objectifs proposés avant de choisir le partenaire principal de votre équipe.";
@@ -1419,6 +1730,37 @@ function formatJerseyStyle(
   };
 
   return labels[style];
+}
+
+function formatObjectiveStatus(
+  status: string
+): string {
+  const labels: Record<string, string> = {
+    draft: "Objectif en préparation",
+    active: "Suivi disponible prochainement",
+    completed: "Objectif terminé",
+    cancelled: "Annulé après la rupture",
+  };
+
+  return (
+    labels[status] ??
+    "Statut de l’objectif indisponible"
+  );
+}
+
+function formatTerminationReason(
+  reason: string | null
+): string {
+  if (
+    reason ===
+    "director_early_termination"
+  ) {
+    return "Rupture anticipée par le Directeur Sportif";
+  }
+
+  return reason
+    ? reason
+    : "Motif non renseigné";
 }
 
 function formatDate(value: string): string {

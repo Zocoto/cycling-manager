@@ -47,6 +47,14 @@ type CountryRow = {
   iso_alpha2: string;
 };
 
+type TeamAssignmentRow = {
+  team_id: string;
+};
+
+type TerminatedContractRow = {
+  id: string;
+};
+
 type SeasonRow = {
   id: string;
   game_year: number;
@@ -147,6 +155,18 @@ export async function getOrCreateSponsorOffersForAuthUser(
 
   const activeSeason = activeSeasonResult.data;
   const directorCountry = directorCountryResult.data;
+
+  const hasTerminatedContract =
+    await hasTerminatedPrincipalContractForSeason({
+      supabase,
+      sportingDirectorId:
+        sportingDirector.id,
+      seasonId: activeSeason.id,
+    });
+
+  if (hasTerminatedContract) {
+    return [];
+  }
 
   const {
     data: existingOfferRows,
@@ -319,6 +339,73 @@ export async function getOrCreateSponsorOffersForAuthUser(
     seasonId: activeSeason.id,
     offerRows: insertedOfferRows ?? [],
   });
+}
+
+async function hasTerminatedPrincipalContractForSeason({
+  supabase,
+  sportingDirectorId,
+  seasonId,
+}: {
+  supabase: SupabaseAdminClient;
+  sportingDirectorId: string;
+  seasonId: string;
+}): Promise<boolean> {
+  const {
+    data: assignmentRows,
+    error: assignmentError,
+  } = await supabase
+    .from("team_manager_assignments")
+    .select("team_id")
+    .eq(
+      "sporting_director_id",
+      sportingDirectorId
+    )
+    .eq("role", "general_manager")
+    .eq("status", "active")
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(1)
+    .returns<TeamAssignmentRow[]>();
+
+  if (assignmentError) {
+    throw new Error(
+      `Impossible de charger l’équipe du Directeur Sportif : ${assignmentError.message}`
+    );
+  }
+
+  const teamId =
+    assignmentRows?.[0]?.team_id;
+
+  if (!teamId) {
+    return false;
+  }
+
+  const {
+    data: terminatedContracts,
+    error: terminatedContractError,
+  } = await supabase
+    .from("team_sponsor_contracts")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("role", "principal")
+    .eq("status", "terminated")
+    .eq(
+      "termination_season_id",
+      seasonId
+    )
+    .limit(1)
+    .returns<TerminatedContractRow[]>();
+
+  if (terminatedContractError) {
+    throw new Error(
+      `Impossible de vérifier l’historique du sponsoring : ${terminatedContractError.message}`
+    );
+  }
+
+  return Boolean(
+    terminatedContracts?.[0]
+  );
 }
 
 async function hydrateSponsorOffersWithObjectives({
