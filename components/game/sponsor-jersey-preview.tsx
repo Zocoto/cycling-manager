@@ -1,3 +1,8 @@
+"use client";
+
+import Image from "next/image";
+import { useState } from "react";
+
 import type { Sponsor } from "@/types/sponsor";
 
 type SponsorJersey =
@@ -14,12 +19,59 @@ export function SponsorJerseyPreview({
   jersey,
   className = "h-64 w-56 drop-shadow-xl",
 }: SponsorJerseyPreviewProps) {
+  const [
+    failedImagePath,
+    setFailedImagePath,
+  ] = useState<string | null>(null);
+
+  const imageFailed =
+    failedImagePath === jersey.imagePath;
+
+  if (!jersey.imagePath || imageFailed) {
+    return (
+      <FallbackJerseyPreview
+        sponsor={sponsor}
+        jersey={jersey}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={[
+        "relative shrink-0 overflow-hidden",
+        className,
+      ].join(" ")}
+    >
+      <Image
+        src={jersey.imagePath}
+        alt={`Maillot ${jersey.name} de ${sponsor.name}`}
+        fill
+        sizes="(max-width: 640px) 14rem, 16rem"
+        className="select-none object-contain"
+        draggable={false}
+        onError={() => {
+          setFailedImagePath(
+            jersey.imagePath
+          );
+        }}
+      />
+    </div>
+  );
+}
+
+function FallbackJerseyPreview({
+  sponsor,
+  jersey,
+  className,
+}: SponsorJerseyPreviewProps) {
   const clipPathId =
     `jersey-body-${jersey.id}`;
 
   return (
     <svg
-      aria-label={`Maillot ${jersey.name} de ${sponsor.name}`}
+      aria-label={`Aperçu provisoire du maillot ${jersey.name} de ${sponsor.name}`}
       role="img"
       viewBox="0 0 260 300"
       className={className}
