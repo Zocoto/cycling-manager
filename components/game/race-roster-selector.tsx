@@ -4,19 +4,23 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { RiderAvatar } from "@/components/game/rider-avatar";
 import { isRosterSelectionValid } from "@/lib/game/race-calendar";
+import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { RaceRosterOption } from "@/services/race-calendar";
 
 type RaceRosterSelectorProps = {
   riders: RaceRosterOption[];
   minimum: number;
   maximum: number;
+  jersey: RiderJerseyAppearance;
 };
 
 export function RaceRosterSelector({
   riders,
   minimum,
   maximum,
+  jersey,
 }: RaceRosterSelectorProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(
     riders
@@ -93,15 +97,26 @@ export function RaceRosterSelector({
                   className="mt-1 h-4 w-4 accent-emerald-400"
                 />
 
-                <span
-                  className={`fi fi-${rider.countryCode.toLowerCase()} mt-0.5 shrink-0 rounded`}
-                  role="img"
-                  aria-label={`Drapeau ${rider.countryName}`}
+                <RiderAvatar
+                  profileKey={rider.avatarProfileKey}
+                  seed={rider.avatarSeed}
+                  riderId={rider.riderId}
+                  age={rider.age}
+                  jersey={jersey}
+                  label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
+                  className="h-11 w-11"
                 />
 
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-black text-white">
-                    {rider.firstName} {rider.lastName}
+                  <span className="flex items-center gap-2 text-sm font-black text-white">
+                    <span
+                      className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
+                      role="img"
+                      aria-label={`Drapeau ${rider.countryName}`}
+                    />
+                    <span>
+                      {rider.firstName} {rider.lastName}
+                    </span>
                   </span>
                   <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
                     {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint}

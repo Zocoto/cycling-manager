@@ -10,6 +10,7 @@ import {
 import { GameHeader } from "@/components/game/game-header";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
+import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   RACE_CATEGORY_STYLE,
   RACE_PROFILE_LABELS,
@@ -19,6 +20,12 @@ import {
   type RaceCalendarEdition,
   type RaceProfileType,
 } from "@/lib/game/race-calendar";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+  FREE_AGENT_RIDER_JERSEY,
+  type RiderJerseyAppearance,
+} from "@/lib/rider-jersey";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -32,6 +39,8 @@ import {
   type RacePastWinner,
   type RaceRosterOption,
 } from "@/services/race-calendar";
+import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
+import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
 
 type RaceProfilePageProps = {
   params: Promise<{
@@ -95,6 +104,37 @@ export default async function RaceProfilePage({
   if (!calendar || !edition) {
     notFound();
   }
+
+  const [teamSponsorIdentity, teamAmateurIdentity] =
+    await Promise.all([
+      getActiveTeamSponsorIdentityForAuthUser(user.id).catch(
+        (error: unknown) => {
+          console.error(
+            "Impossible de charger le maillot sponsor pour les portraits :",
+            error
+          );
+          return null;
+        }
+      ),
+      getTeamAmateurIdentityForAuthUser(user.id).catch(
+        (error: unknown) => {
+          console.error(
+            "Impossible de charger le maillot amateur pour les portraits :",
+            error
+          );
+          return null;
+        }
+      ),
+    ]);
+
+  const riderJersey = teamSponsorIdentity
+    ? createSponsoredRiderJersey({
+        colors: teamSponsorIdentity.sponsor.colors,
+        style: teamSponsorIdentity.selectedJersey.style,
+      })
+    : teamAmateurIdentity
+      ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
+      : FREE_AGENT_RIDER_JERSEY;
 
   let raceUserContext: CurrentRaceUserContext = {
     reputationPoints: 0,
@@ -399,6 +439,7 @@ export default async function RaceProfilePage({
                   contextError={contextError}
                   riders={rosterOptions}
                   rosterError={rosterError}
+                  riderJersey={riderJersey}
                 />
 
                 <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
@@ -465,12 +506,14 @@ function RegistrationPanel({
   contextError,
   riders,
   rosterError,
+  riderJersey,
 }: {
   edition: RaceCalendarEdition;
   context: CurrentRaceUserContext;
   contextError: string | null;
   riders: RaceRosterOption[];
   rosterError: string | null;
+  riderJersey: RiderJerseyAppearance;
 }) {
   const registration = context.registration;
   const hasConfirmedRoster =
@@ -520,10 +563,24 @@ function RegistrationPanel({
         </span>
 
         {selectedRiders.length > 0 ? (
-          <ul className="mt-4 space-y-1.5 rounded-xl border border-white/10 bg-white/5 p-4 text-xs font-bold text-[#D6DFD2]">
+          <ul className="mt-4 space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 text-xs font-bold text-[#D6DFD2]">
             {selectedRiders.map((rider) => (
-              <li key={rider.riderId}>
-                {rider.firstName} {rider.lastName}
+              <li
+                key={rider.riderId}
+                className="flex items-center gap-3"
+              >
+                <RiderAvatar
+                  profileKey={rider.avatarProfileKey}
+                  seed={rider.avatarSeed}
+                  riderId={rider.riderId}
+                  age={rider.age}
+                  jersey={riderJersey}
+                  label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
+                  className="h-9 w-9"
+                />
+                <span>
+                  {rider.firstName} {rider.lastName}
+                </span>
               </li>
             ))}
           </ul>
@@ -610,6 +667,7 @@ function RegistrationPanel({
               riders={riders}
               minimum={edition.minimumRosterSize}
               maximum={edition.maximumRosterSize}
+              jersey={riderJersey}
             />
           ) : (
             <RegistrationNotice tone="warning">

@@ -150,6 +150,8 @@ export type RaceRosterOption = {
   lastName: string;
   countryName: string;
   countryCode: string;
+  avatarProfileKey: string;
+  avatarSeed: number | string;
   age: number;
   mountain: number;
   hills: number;
@@ -173,6 +175,8 @@ type RaceRosterOptionRow = {
   last_name: string;
   country_name: string;
   country_iso_alpha2: string;
+  avatar_profile_key: string;
+  avatar_seed: number | string;
   age: number;
   mountain: number;
   hills: number;
@@ -677,6 +681,8 @@ export async function getCurrentTeamRaceRosterOptions(
       lastName: rider.last_name,
       countryName: rider.country_name,
       countryCode: rider.country_iso_alpha2,
+      avatarProfileKey: rider.avatar_profile_key,
+      avatarSeed: rider.avatar_seed,
       age: rider.age,
       mountain: rider.mountain,
       hills: rider.hills,

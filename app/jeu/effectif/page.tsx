@@ -6,6 +6,13 @@ import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey";
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
+import { RiderAvatar } from "../../../components/game/rider-avatar";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+  FREE_AGENT_RIDER_JERSEY,
+  type RiderJerseyAppearance,
+} from "../../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import {
   getTeamAmateurIdentityForAuthUser,
@@ -240,6 +247,15 @@ export default async function TeamRosterPage() {
     teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
+
+  const riderJersey = teamSponsorIdentity
+    ? createSponsoredRiderJersey({
+        colors: teamSponsorIdentity.sponsor.colors,
+        style: teamSponsorIdentity.selectedJersey.style,
+      })
+    : teamAmateurIdentity
+      ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
+      : FREE_AGENT_RIDER_JERSEY;
 
   const minimumAge =
     riders.length > 0
@@ -488,6 +504,7 @@ export default async function TeamRosterPage() {
                       <RiderTableRow
                         key={rider.rider_id}
                         rider={rider}
+                        jersey={riderJersey}
                       />
                     ))}
                   </tbody>
@@ -790,8 +807,10 @@ function SummaryCard({
 
 function RiderTableRow({
   rider,
+  jersey,
 }: {
   rider: RiderRow;
+  jersey: RiderJerseyAppearance;
 }) {
   const riderName =
     `${rider.first_name} ${rider.last_name}`.trim();
@@ -809,7 +828,14 @@ function RiderTableRow({
         className="sticky left-0 z-10 bg-white px-5 py-4 text-left"
       >
         <div className="flex items-center gap-4">
-          <RiderSilhouette />
+          <RiderAvatar
+            profileKey={rider.avatar_profile_key}
+            seed={rider.avatar_seed}
+            riderId={rider.rider_id}
+            age={rider.age}
+            jersey={jersey}
+            label={`Portrait généré de ${riderName}`}
+          />
 
           <div className="min-w-0">
             <p className="truncate text-base font-black text-[#082A2A]">
@@ -938,43 +964,6 @@ function RatingLegend() {
       <span className="rounded-md bg-[#D84B4B] px-2 py-1 text-white">
         90+
       </span>
-    </div>
-  );
-}
-
-function RiderSilhouette() {
-  return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#315B3E]/20 bg-[#D7EEE8]">
-      <svg
-        aria-label="Portrait générique du coureur"
-        role="img"
-        viewBox="0 0 64 64"
-        className="h-full w-full"
-      >
-        <circle
-          cx="32"
-          cy="24"
-          r="11"
-          fill="#4F7468"
-        />
-
-        <path
-          d="M13 59c1-15 8-23 19-23s18 8 19 23"
-          fill="#315B3E"
-        />
-
-        <path
-          d="M22 39 32 49 42 39"
-          fill="none"
-          stroke="#F2C94C"
-          strokeWidth="3"
-        />
-
-        <path
-          d="M19 19c4-10 22-13 29 0-8-3-20-3-29 0Z"
-          fill="#071A17"
-        />
-      </svg>
     </div>
   );
 }
