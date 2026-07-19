@@ -5,12 +5,20 @@ import { redirect } from "next/navigation";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { WheelLogo } from "../../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
-  getOrCreateSponsorOffersForAuthUser,
-  type PersistedSponsorOffer,
-} from "../../../services/persisted-sponsor-offers";
+  getSponsoringStateForAuthUser,
+  type PersistedSponsorContract,
+  type SponsorContractObjective,
+  type SponsoringState,
+} from "../../../services/sponsoring-workflow";
 import type { PersistedSponsorObjective } from "../../../types/sponsor-objective";
 import { logoutAccount } from "../actions";
+import { signSponsorOfferAction } from "./actions";
+import {
+  ConfirmSponsorButton,
+  SponsorJerseySelector,
+} from "./sponsoring-controls";
 
 export const metadata: Metadata = {
   title: "Sponsoring",
@@ -18,8 +26,26 @@ export const metadata: Metadata = {
     "Étudiez les propositions de sponsoring disponibles pour votre équipe dans Cyclostratège.",
 };
 
-export default async function SponsoringPage() {
-  const supabase = await createSupabaseServerClient();
+type SponsoringPageProps = {
+  searchParams?: Promise<{
+    erreur?: string | string[];
+  }>;
+};
+
+export default async function SponsoringPage({
+  searchParams,
+}: SponsoringPageProps) {
+  const resolvedSearchParams =
+    searchParams
+      ? await searchParams
+      : {};
+
+  const actionError = readSearchParameter(
+    resolvedSearchParams.erreur
+  );
+
+  const supabase =
+    await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -30,22 +56,29 @@ export default async function SponsoringPage() {
     redirect("/connexion");
   }
 
-  let offers: PersistedSponsorOffer[] = [];
-  let offersError: string | null = null;
+  let sponsoringState: SponsoringState | null =
+    null;
+
+  let sponsoringError: string | null = null;
 
   try {
-    offers =
-      await getOrCreateSponsorOffersForAuthUser(
+    sponsoringState =
+      await getSponsoringStateForAuthUser(
         user.id
       );
   } catch (error) {
     console.error(
-      "Impossible de récupérer les offres de sponsoring :",
+      "Impossible de récupérer l’état du sponsoring :",
       error
     );
 
-    offersError = getErrorMessage(error);
+    sponsoringError = getErrorMessage(error);
   }
+
+  const availableOfferCount =
+    sponsoringState?.kind === "offers"
+      ? sponsoringState.offers.length
+      : null;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -79,58 +112,78 @@ export default async function SponsoringPage() {
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
-                Comparez les budgets, les durées de
-                contrat et les objectifs proposés avant de
-                choisir le partenaire principal de votre
-                équipe.
+                {getPageIntroduction(
+                  sponsoringState
+                )}
               </p>
             </div>
 
-            {!offersError ? (
+            {availableOfferCount !== null &&
+            !sponsoringError ? (
               <div className="rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 text-right shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
                 <p className="text-2xl font-black">
-                  {offers.length}
+                  {availableOfferCount}
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-[#60756E]">
-                  {formatOfferCount(offers.length)}
+                  {formatOfferCount(
+                    availableOfferCount
+                  )}
                 </p>
               </div>
             ) : null}
           </header>
 
-          <OfferPersistenceNotice />
-
-          {offersError ? (
-            <OffersErrorMessage
-              message={offersError}
+          {sponsoringState ? (
+            <SponsoringStatusNotice
+              state={sponsoringState}
             />
           ) : null}
 
-          {!offersError && offers.length === 0 ? (
+          {actionError ? (
+            <ActionErrorMessage
+              message={actionError}
+            />
+          ) : null}
+
+          {sponsoringError ? (
+            <SponsoringErrorMessage
+              message={sponsoringError}
+            />
+          ) : null}
+
+          {!sponsoringError &&
+          sponsoringState?.kind === "offers" &&
+          sponsoringState.offers.length ===
+            0 ? (
             <EmptyOffers />
           ) : null}
 
-          {!offersError && offers.length > 0 ? (
-            <section className="mt-8 grid items-stretch gap-6 xl:grid-cols-3">
-              {offers.map((offer) => (
-                <SponsorOfferCard
-                  key={offer.id}
-                  offer={offer}
-                />
-              ))}
-            </section>
+          {!sponsoringError &&
+          sponsoringState?.kind === "offers" &&
+          sponsoringState.offers.length > 0 ? (
+            <OffersSection
+              offers={sponsoringState.offers}
+            />
           ) : null}
 
-          {!offersError && offers.length > 0 ? (
-            <p className="mt-6 text-sm leading-7 text-[#60756E]">
-              Les objectifs de cette première version
-              utilisent des courses et classements
-              provisoires. Ils sont enregistrés avec
-              l’offre et ne changent pas au rechargement
-              de la page. Ils seront reliés au calendrier
-              sportif réel dans une future évolution.
-            </p>
+          {!sponsoringError &&
+          sponsoringState?.kind ===
+            "jersey-selection" ? (
+            <JerseySelectionSection
+              contract={
+                sponsoringState.contract
+              }
+            />
+          ) : null}
+
+          {!sponsoringError &&
+          sponsoringState?.kind === "active" ? (
+            <ActiveSponsorSection
+              contract={
+                sponsoringState.contract
+              }
+            />
           ) : null}
         </div>
       </section>
@@ -172,7 +225,60 @@ function GameHeader() {
   );
 }
 
-function OfferPersistenceNotice() {
+function SponsoringStatusNotice({
+  state,
+}: {
+  state: SponsoringState;
+}) {
+  if (state.kind === "jersey-selection") {
+    return (
+      <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-[#D99A32]/30 bg-[#FFF4D6]/90 px-5 py-4 shadow-[0_12px_30px_rgba(102,72,18,0.07)]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F2C94C] text-[#40320A]">
+          <JerseyIcon />
+        </span>
+
+        <div>
+          <p className="font-black text-[#604B0F]">
+            Votre sponsor est signé
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-[#715F2A]">
+            Le contrat avec{" "}
+            <strong>
+              {state.contract.sponsor.name}
+            </strong>{" "}
+            est enregistré. Sélectionnez maintenant
+            l’un des trois maillots proposés pour
+            activer définitivement le partenariat et
+            recevoir le budget sponsor.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  if (state.kind === "active") {
+    return (
+      <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-[#278B70]/25 bg-[#D7EEE8]/90 px-5 py-4 shadow-[0_12px_30px_rgba(19,60,46,0.06)]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-[#07302A]">
+          <CheckIcon />
+        </span>
+
+        <div>
+          <p className="font-black text-[#0B4A3B]">
+            Votre partenariat est actif
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-[#48665F]">
+            Le sponsor principal, le maillot et le
+            budget de votre équipe sont désormais
+            enregistrés pour la saison en cours.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-[#278B70]/20 bg-[#D7EEE8]/85 px-5 py-4 shadow-[0_12px_30px_rgba(19,60,46,0.06)]">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-[#07302A]">
@@ -196,6 +302,34 @@ function OfferPersistenceNotice() {
   );
 }
 
+function OffersSection({
+  offers,
+}: {
+  offers: PersistedSponsorOffer[];
+}) {
+  return (
+    <>
+      <section className="mt-8 grid items-stretch gap-6 xl:grid-cols-3">
+        {offers.map((offer) => (
+          <SponsorOfferCard
+            key={offer.id}
+            offer={offer}
+          />
+        ))}
+      </section>
+
+      <p className="mt-6 text-sm leading-7 text-[#60756E]">
+        Les objectifs de cette première version
+        utilisent des courses et classements
+        provisoires. Ils sont enregistrés avec
+        l’offre et ne changent pas au rechargement
+        de la page. Ils seront reliés au calendrier
+        sportif réel dans une future évolution.
+      </p>
+    </>
+  );
+}
+
 function SponsorOfferCard({
   offer,
 }: {
@@ -214,7 +348,9 @@ function SponsorOfferCard({
     >
       <SponsorColorDecoration
         primaryColor={sponsor.colors.primary}
-        secondaryColor={sponsor.colors.secondary}
+        secondaryColor={
+          sponsor.colors.secondary
+        }
         accentColor={sponsor.colors.accent}
       />
 
@@ -404,36 +540,481 @@ function SponsorOfferCard({
           </div>
 
           <ol className="grid gap-x-5 gap-y-2.5 px-4 py-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            {offer.objectives.map((objective) => (
-              <SponsorObjectiveItem
-                key={objective.id}
-                objective={objective}
-                accentColor={
-                  sponsor.colors.accent
-                }
-                textColor={sponsor.colors.text}
-              />
-            ))}
+            {offer.objectives.map(
+              (objective) => (
+                <SponsorObjectiveItem
+                  key={objective.id}
+                  objective={objective}
+                  accentColor={
+                    sponsor.colors.accent
+                  }
+                  textColor={
+                    sponsor.colors.text
+                  }
+                />
+              )
+            )}
           </ol>
         </section>
 
         <div className="mt-auto pt-7">
-          <button
-            type="button"
-            disabled
-            className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-xl border border-[#315B3E]/15 bg-[#EDF2EF] px-5 py-3 text-sm font-extrabold uppercase tracking-widest text-[#7A8C86]"
+          <form
+            action={signSponsorOfferAction}
           >
-            Signature bientôt disponible
-          </button>
+            <input
+              type="hidden"
+              name="offerId"
+              value={offer.id}
+            />
+
+            <ConfirmSponsorButton
+              sponsorName={sponsor.name}
+              budgetLabel={formatMoney(
+                offer.proposedBudget
+              )}
+              durationLabel={formatDuration(
+                offer.contractDurationSeasons
+              )}
+              objectives={offer.objectives.map(
+                (objective) => objective.name
+              )}
+            />
+          </form>
 
           <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#7A8C86]">
-            La sélection du maillot et la validation
-            définitive du contrat seront ajoutées lors de
-            la prochaine étape.
+            La signature est définitive. Les deux
+            autres propositions seront retirées et le
+            choix du maillot sera demandé
+            immédiatement après.
           </p>
         </div>
       </div>
     </article>
+  );
+}
+
+function JerseySelectionSection({
+  contract,
+}: {
+  contract: PersistedSponsorContract;
+}) {
+  const sponsor = contract.sponsor;
+
+  return (
+    <section className="mt-8">
+      <div
+        className="overflow-hidden rounded-2xl border bg-white shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
+        style={{
+          borderColor: `${sponsor.colors.primary}45`,
+          background: `linear-gradient(145deg, ${sponsor.colors.background}, #FFFFFF 38%, #FFFFFF)`,
+        }}
+      >
+        <div
+          aria-hidden="true"
+          className="h-2 w-full"
+          style={{
+            background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
+          }}
+        />
+
+        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[320px_1fr]">
+          <div
+            className="flex min-h-52 items-center justify-center rounded-2xl border bg-white/90 p-6"
+            style={{
+              borderColor: `${sponsor.colors.primary}28`,
+            }}
+          >
+            <SponsorLogo
+              src={sponsor.logoPath}
+              alt={`Logo de ${sponsor.name}`}
+              sponsorName={sponsor.name}
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+              textColor={sponsor.colors.text}
+            />
+          </div>
+
+          <div>
+            <p
+              className="text-xs font-extrabold uppercase tracking-[0.18em]"
+              style={{
+                color: sponsor.colors.primary,
+              }}
+            >
+              Contrat signé
+            </p>
+
+            <h2
+              className="mt-3 text-3xl font-black tracking-[-0.03em]"
+              style={{
+                color: sponsor.colors.text,
+              }}
+            >
+              Choisissez le maillot de{" "}
+              {sponsor.name}
+            </h2>
+
+            <p className="mt-4 max-w-3xl leading-7 text-[#60756E]">
+              Votre accord avec ce sponsor est
+              enregistré. Vous disposez de trois
+              propositions visuelles : une version
+              classique, une version moderne et une
+              version plus audacieuse.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <ContractMetric
+                label="Budget annuel"
+                value={formatMoney(
+                  contract.budgetPerSeason,
+                  contract.currencyCode
+                )}
+                detail="Versé après validation du maillot"
+                primaryColor={
+                  sponsor.colors.primary
+                }
+                backgroundColor={
+                  sponsor.colors.background
+                }
+              />
+
+              <ContractMetric
+                label="Durée du contrat"
+                value={formatDuration(
+                  contract.contractDurationSeasons
+                )}
+                detail="Sponsor principal"
+                primaryColor={
+                  sponsor.colors.primary
+                }
+                backgroundColor={
+                  sponsor.colors.background
+                }
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SponsorJerseySelector
+        contractId={contract.id}
+        sponsor={sponsor}
+      />
+
+      <ContractObjectivesSection
+        contract={contract}
+      />
+    </section>
+  );
+}
+
+function ActiveSponsorSection({
+  contract,
+}: {
+  contract: PersistedSponsorContract;
+}) {
+  const sponsor = contract.sponsor;
+
+  const selectedJersey =
+    sponsor.jerseys.find(
+      (jersey) =>
+        jersey.id ===
+        contract.selectedJerseyId
+    ) ?? null;
+
+  return (
+    <section className="mt-8">
+      <article
+        className="relative overflow-hidden rounded-2xl border bg-white shadow-[0_24px_60px_rgba(19,60,46,0.13)]"
+        style={{
+          borderColor: `${sponsor.colors.primary}50`,
+          background: `linear-gradient(145deg, ${sponsor.colors.background}, #FFFFFF 32%, #FFFFFF 70%, ${sponsor.colors.secondary}66)`,
+        }}
+      >
+        <SponsorColorDecoration
+          primaryColor={
+            sponsor.colors.primary
+          }
+          secondaryColor={
+            sponsor.colors.secondary
+          }
+          accentColor={sponsor.colors.accent}
+        />
+
+        <div
+          aria-hidden="true"
+          className="relative h-2 w-full"
+          style={{
+            background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
+          }}
+        />
+
+        <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[340px_1fr]">
+          <div
+            className="flex min-h-64 items-center justify-center rounded-2xl border bg-white/90 p-7"
+            style={{
+              borderColor: `${sponsor.colors.primary}30`,
+            }}
+          >
+            <SponsorLogo
+              src={sponsor.logoPath}
+              alt={`Logo de ${sponsor.name}`}
+              sponsorName={sponsor.name}
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+              textColor={sponsor.colors.text}
+            />
+          </div>
+
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className="rounded-full px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider"
+                style={{
+                  backgroundColor:
+                    sponsor.colors.primary,
+                  color: "#FFFFFF",
+                }}
+              >
+                Sponsor actif
+              </span>
+
+              <CountryFlag
+                isoAlpha2={sponsor.countryCode}
+                countryName={getCountryName(
+                  sponsor.countryCode
+                )}
+              />
+            </div>
+
+            <h2
+              className="mt-5 text-4xl font-black tracking-[-0.04em]"
+              style={{
+                color: sponsor.colors.text,
+              }}
+            >
+              {sponsor.name}
+            </h2>
+
+            <p className="mt-3 text-sm font-extrabold uppercase tracking-[0.15em] text-[#60756E]">
+              {sponsor.sector} · Prestige{" "}
+              {sponsor.prestige} / 5
+            </p>
+
+            <p className="mt-5 max-w-3xl leading-7 text-[#60756E]">
+              {sponsor.description}
+            </p>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <ContractMetric
+                label="Budget annuel"
+                value={formatMoney(
+                  contract.budgetPerSeason,
+                  contract.currencyCode
+                )}
+                detail="Budget sponsor actif"
+                primaryColor={
+                  sponsor.colors.primary
+                }
+                backgroundColor={
+                  sponsor.colors.background
+                }
+              />
+
+              <ContractMetric
+                label="Durée"
+                value={formatDuration(
+                  contract.contractDurationSeasons
+                )}
+                detail="Contrat principal"
+                primaryColor={
+                  sponsor.colors.primary
+                }
+                backgroundColor={
+                  sponsor.colors.background
+                }
+              />
+
+              <ContractMetric
+                label="Maillot retenu"
+                value={
+                  selectedJersey?.name ??
+                  "Maillot validé"
+                }
+                detail={
+                  selectedJersey
+                    ? formatJerseyStyle(
+                        selectedJersey.style
+                      )
+                    : "Modèle enregistré"
+                }
+                primaryColor={
+                  sponsor.colors.primary
+                }
+                backgroundColor={
+                  sponsor.colors.background
+                }
+              />
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
+              {contract.signedAt ? (
+                <p>
+                  Signature :{" "}
+                  <strong className="text-[#294B42]">
+                    {formatDate(
+                      contract.signedAt
+                    )}
+                  </strong>
+                </p>
+              ) : null}
+
+              {contract.activatedAt ? (
+                <p>
+                  Activation :{" "}
+                  <strong className="text-[#294B42]">
+                    {formatDate(
+                      contract.activatedAt
+                    )}
+                  </strong>
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <ContractObjectivesSection
+        contract={contract}
+      />
+
+      <aside className="mt-6 rounded-2xl border border-[#315B3E]/15 bg-white/80 px-5 py-4 text-sm leading-7 text-[#60756E]">
+        Le suivi sportif détaillé des objectifs sera
+        connecté aux courses, résultats et classements
+        lors de la future US de complétude des
+        objectifs sponsors.
+      </aside>
+    </section>
+  );
+}
+
+function ContractObjectivesSection({
+  contract,
+}: {
+  contract: PersistedSponsorContract;
+}) {
+  const sponsor = contract.sponsor;
+
+  return (
+    <section
+      className="mt-8 overflow-hidden rounded-2xl border bg-white/90 shadow-[0_18px_44px_rgba(19,60,46,0.08)]"
+      style={{
+        borderColor: `${sponsor.colors.primary}30`,
+      }}
+    >
+      <div
+        className="flex flex-wrap items-center justify-between gap-4 border-b px-5 py-4 sm:px-6"
+        style={{
+          borderColor: `${sponsor.colors.primary}24`,
+          background: `linear-gradient(90deg, ${sponsor.colors.background}, rgba(255,255,255,0.94))`,
+        }}
+      >
+        <div>
+          <p
+            className="text-xs font-extrabold uppercase tracking-[0.16em]"
+            style={{
+              color: sponsor.colors.primary,
+            }}
+          >
+            Engagements contractuels
+          </p>
+
+          <h2
+            className="mt-1 text-xl font-black"
+            style={{
+              color: sponsor.colors.text,
+            }}
+          >
+            {contract.objectives.length} objectifs
+            saisonniers
+          </h2>
+        </div>
+
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black"
+          style={{
+            backgroundColor:
+              sponsor.colors.primary,
+            color: "#FFFFFF",
+          }}
+        >
+          {contract.objectives.length}
+        </span>
+      </div>
+
+      <ol className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
+        {contract.objectives.map(
+          (objective) => (
+            <ContractObjectiveItem
+              key={objective.id}
+              objective={objective}
+              accentColor={
+                sponsor.colors.accent
+              }
+              textColor={sponsor.colors.text}
+            />
+          )
+        )}
+      </ol>
+    </section>
+  );
+}
+
+function ContractObjectiveItem({
+  objective,
+  accentColor,
+  textColor,
+}: {
+  objective: SponsorContractObjective;
+  accentColor: string;
+  textColor: string;
+}) {
+  return (
+    <li className="flex items-start gap-3 rounded-xl border border-[#315B3E]/10 bg-white/75 px-4 py-3">
+      <span
+        aria-hidden="true"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black"
+        style={{
+          backgroundColor: `${accentColor}25`,
+          color: textColor,
+        }}
+      >
+        {objective.displayOrder}
+      </span>
+
+      <div>
+        <p
+          className="text-sm font-black leading-5"
+          style={{
+            color: textColor,
+          }}
+        >
+          {objective.name}
+        </p>
+
+        <p className="mt-1 text-xs font-semibold text-[#7A8C86]">
+          Suivi disponible prochainement
+        </p>
+      </div>
+    </li>
   );
 }
 
@@ -516,6 +1097,47 @@ function OfferMetric({
   );
 }
 
+function ContractMetric({
+  label,
+  value,
+  detail,
+  primaryColor,
+  backgroundColor,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  primaryColor: string;
+  backgroundColor: string;
+}) {
+  return (
+    <div
+      className="rounded-xl border p-4"
+      style={{
+        borderColor: `${primaryColor}28`,
+        backgroundColor,
+      }}
+    >
+      <p
+        className="text-xs font-extrabold uppercase tracking-[0.12em]"
+        style={{
+          color: primaryColor,
+        }}
+      >
+        {label}
+      </p>
+
+      <p className="mt-2 text-lg font-black">
+        {value}
+      </p>
+
+      <p className="mt-1 text-xs font-semibold leading-5 text-[#7A8C86]">
+        {detail}
+      </p>
+    </div>
+  );
+}
+
 function SponsorObjectiveItem({
   objective,
   accentColor,
@@ -547,16 +1169,39 @@ function SponsorObjectiveItem({
   );
 }
 
-function OffersErrorMessage({
+function ActionErrorMessage({
   message,
 }: {
   message: string;
 }) {
   return (
-    <div className="mt-8 rounded-2xl border border-red-300 bg-red-50 px-5 py-5 text-red-900">
+    <div
+      role="alert"
+      className="mt-8 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-5 text-amber-950"
+    >
       <p className="font-black">
-        Les offres de sponsoring n’ont pas pu être
-        préparées.
+        L’opération n’a pas pu être réalisée.
+      </p>
+
+      <p className="mt-2 text-sm leading-6">
+        {message}
+      </p>
+    </div>
+  );
+}
+
+function SponsoringErrorMessage({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <div
+      role="alert"
+      className="mt-8 rounded-2xl border border-red-300 bg-red-50 px-5 py-5 text-red-900"
+    >
+      <p className="font-black">
+        L’espace sponsoring n’a pas pu être préparé.
       </p>
 
       <p className="mt-2 text-sm leading-6">
@@ -578,8 +1223,9 @@ function EmptyOffers() {
       </h2>
 
       <p className="mx-auto mt-3 max-w-xl leading-7 text-[#60756E]">
-        Aucun sponsor compatible avec votre réputation
-        et votre situation actuelle n’a pu être proposé.
+        Aucun sponsor compatible avec votre
+        réputation et votre situation actuelle n’a pu
+        être proposé.
       </p>
     </div>
   );
@@ -663,6 +1309,40 @@ function LockIcon() {
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-5 w-5"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  );
+}
+
+function JerseyIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-5 w-5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m8 4-4 2-2 5 4 2v7h12v-7l4-2-2-5-4-2-2 3h-4Z" />
+    </svg>
+  );
+}
+
 function BriefcaseIcon() {
   return (
     <svg
@@ -682,7 +1362,37 @@ function BriefcaseIcon() {
   );
 }
 
-function getErrorMessage(error: unknown): string {
+function readSearchParameter(
+  value: string | string[] | undefined
+): string | null {
+  if (typeof value === "string") {
+    return value.trim() || null;
+  }
+
+  if (Array.isArray(value)) {
+    return value[0]?.trim() || null;
+  }
+
+  return null;
+}
+
+function getPageIntroduction(
+  state: SponsoringState | null
+): string {
+  if (state?.kind === "jersey-selection") {
+    return "Votre contrat est signé. Choisissez maintenant l’identité visuelle que votre équipe portera pendant toute la durée du partenariat.";
+  }
+
+  if (state?.kind === "active") {
+    return "Consultez votre sponsor principal, votre budget contractuel, le maillot retenu et les objectifs de la saison.";
+  }
+
+  return "Comparez les budgets, les durées de contrat et les objectifs proposés avant de choisir le partenaire principal de votre équipe.";
+}
+
+function getErrorMessage(
+  error: unknown
+): string {
   if (error instanceof Error) {
     return error.message;
   }
@@ -705,10 +1415,13 @@ function getCountryName(
   );
 }
 
-function formatMoney(value: number): string {
+function formatMoney(
+  value: number,
+  currencyCode = "EUR"
+): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
-    currency: "EUR",
+    currency: currencyCode,
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -719,6 +1432,32 @@ function formatDuration(value: number): string {
 
 function formatOfferCount(value: number): string {
   return `${value} offre${value === 1 ? "" : "s"} disponible${value === 1 ? "" : "s"}`;
+}
+
+function formatJerseyStyle(
+  style: "classic" | "modern" | "bold"
+): string {
+  const labels = {
+    classic: "Style classique",
+    modern: "Style moderne",
+    bold: "Style audacieux",
+  };
+
+  return labels[style];
+}
+
+function formatDate(value: string): string {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Date inconnue";
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(parsedDate);
 }
 
 function MountainDecoration() {
