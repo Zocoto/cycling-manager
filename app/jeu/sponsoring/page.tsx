@@ -17,6 +17,7 @@ import {
   signSponsorOfferAction,
   terminateSponsorContractAction,
 } from "./actions";
+import { FutureSponsoringSection } from "./future-sponsoring-section";
 import {
   ConfirmSponsorButton,
   SponsorJerseySelector,
@@ -87,7 +88,12 @@ export default async function SponsoringPage({
   const availableOfferCount =
     sponsoringState?.kind === "offers"
       ? sponsoringState.offers.length
-      : null;
+      : sponsoringState?.kind === "active" ||
+          sponsoringState?.kind === "terminated"
+        ? sponsoringState.future.kind === "offers"
+          ? sponsoringState.future.offers.length
+          : null
+        : null;
 
   const headerSponsor =
     sponsoringState?.kind === "active" ||
@@ -202,21 +208,33 @@ export default async function SponsoringPage({
 
           {!sponsoringError &&
           sponsoringState?.kind === "active" ? (
-            <ActiveSponsorSection
-              contract={
-                sponsoringState.contract
-              }
-            />
+            <>
+              <ActiveSponsorSection
+                contract={
+                  sponsoringState.contract
+                }
+              />
+
+              <FutureSponsoringSection
+                state={sponsoringState.future}
+              />
+            </>
           ) : null}
 
           {!sponsoringError &&
           sponsoringState?.kind ===
             "terminated" ? (
-            <TerminatedSponsorSection
-              contract={
-                sponsoringState.contract
-              }
-            />
+            <>
+              <TerminatedSponsorSection
+                contract={
+                  sponsoringState.contract
+                }
+              />
+
+              <FutureSponsoringSection
+                state={sponsoringState.future}
+              />
+            </>
           ) : null}
         </div>
       </section>
@@ -274,9 +292,10 @@ function SponsoringStatusNotice({
               {state.contract.sponsor.name}
             </strong>{" "}
             est terminé. Votre équipe a retrouvé son
-            identité amateur et aucune nouvelle offre
-            ne sera proposée avant la prochaine
-            saison.
+            identité amateur. Aucune nouvelle signature
+            ne peut activer un sponsor pendant la saison
+            en cours ; les offres pour la saison suivante
+            ouvrent à partir du jour 21.
           </p>
         </div>
       </aside>
@@ -1138,9 +1157,10 @@ function TerminatedSponsorSection({
 
       <aside className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-950">
         Votre équipe évolue désormais sous son identité
-        amateur. Les nouvelles propositions de
-        sponsoring seront débloquées au début de la
-        prochaine saison.
+        amateur. À partir du jour 21, de nouvelles
+        propositions pourront être signées uniquement
+        pour la saison suivante. Leur activation restera
+        différée jusqu’au jour 1.
       </aside>
     </section>
   );
@@ -1666,11 +1686,11 @@ function getPageIntroduction(
   }
 
   if (state?.kind === "active") {
-    return "Consultez votre sponsor principal, votre budget contractuel, le maillot retenu et les objectifs de la saison.";
+    return "Consultez votre sponsor principal et préparez, lorsque la fenêtre J21–J28 est ouverte, le partenariat de la saison suivante.";
   }
 
   if (state?.kind === "terminated") {
-    return "Consultez l’historique du contrat rompu et les conséquences appliquées pour la saison en cours.";
+    return "Consultez l’historique du contrat rompu et préparez un nouveau partenaire pour la saison suivante à partir du jour 21.";
   }
 
   return "Comparez les budgets, les durées de contrat et les objectifs proposés avant de choisir le partenaire principal de votre équipe.";

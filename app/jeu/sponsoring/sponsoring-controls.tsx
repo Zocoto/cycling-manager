@@ -7,14 +7,15 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { validateSponsorJerseyAction } from "./actions";
 
-type SponsorJersey =
-  Sponsor["jerseys"][number];
+type SponsorJersey = Sponsor["jerseys"][number];
 
 type ConfirmSponsorButtonProps = {
   sponsorName: string;
   budgetLabel: string;
   durationLabel: string;
   objectives: readonly string[];
+  signatureMode?: "current" | "next-season";
+  targetSeasonName?: string;
 };
 
 export function ConfirmSponsorButton({
@@ -22,6 +23,8 @@ export function ConfirmSponsorButton({
   budgetLabel,
   durationLabel,
   objectives,
+  signatureMode = "current",
+  targetSeasonName,
 }: ConfirmSponsorButtonProps) {
   function confirmSignature(
     event: React.MouseEvent<HTMLButtonElement>
@@ -33,20 +36,42 @@ export function ConfirmSponsorButton({
       )
       .join("\n");
 
+    const futureSeasonLabel =
+      targetSeasonName ?? "la saison suivante";
+
+    const confirmationLines =
+      signatureMode === "next-season"
+        ? [
+            `Préparer le contrat avec ${sponsorName} pour ${futureSeasonLabel} ?`,
+            "",
+            `Budget annuel : ${budgetLabel}`,
+            `Durée : ${durationLabel}`,
+            "",
+            "Objectifs de la future saison :",
+            objectivesSummary,
+            "",
+            "Cette décision est définitive.",
+            "Les deux autres offres seront retirées.",
+            "Vous choisirez ensuite le futur maillot de l’équipe.",
+            "Le contrat restera en attente jusqu’au jour 1 de la saison suivante.",
+            "Aucun budget ne sera versé et l’identité actuelle ne changera pas immédiatement.",
+          ]
+        : [
+            `Signer le contrat avec ${sponsorName} ?`,
+            "",
+            `Budget annuel : ${budgetLabel}`,
+            `Durée : ${durationLabel}`,
+            "",
+            "Objectifs saisonniers :",
+            objectivesSummary,
+            "",
+            "Cette décision est définitive.",
+            "Les deux autres offres seront retirées.",
+            "Vous choisirez ensuite votre maillot parmi les trois modèles proposés.",
+          ];
+
     const confirmed = window.confirm(
-      [
-        `Signer le contrat avec ${sponsorName} ?`,
-        "",
-        `Budget annuel : ${budgetLabel}`,
-        `Durée : ${durationLabel}`,
-        "",
-        "Objectifs saisonniers :",
-        objectivesSummary,
-        "",
-        "Cette décision est définitive.",
-        "Les deux autres offres seront retirées.",
-        "Vous choisirez ensuite votre maillot parmi les trois modèles proposés.",
-      ].join("\n")
+      confirmationLines.join("\n")
     );
 
     if (!confirmed) {
@@ -60,7 +85,9 @@ export function ConfirmSponsorButton({
       onClick={confirmSignature}
       className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B4A3B] px-5 py-3 text-sm font-extrabold uppercase tracking-widest text-white transition hover:bg-[#07382E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2"
     >
-      Choisir ce sponsor
+      {signatureMode === "next-season"
+        ? "Préparer ce sponsor"
+        : "Choisir ce sponsor"}
     </button>
   );
 }
@@ -68,19 +95,22 @@ export function ConfirmSponsorButton({
 type SponsorJerseySelectorProps = {
   contractId: string;
   sponsor: Sponsor;
+  activationMode?: "immediate" | "next-season";
+  targetSeasonName?: string;
 };
 
 export function SponsorJerseySelector({
   contractId,
   sponsor,
+  activationMode = "immediate",
+  targetSeasonName,
 }: SponsorJerseySelectorProps) {
   const [selectedJerseyId, setSelectedJerseyId] =
     useState<string>("");
 
   const selectedJersey =
     sponsor.jerseys.find(
-      (jersey) =>
-        jersey.id === selectedJerseyId
+      (jersey) => jersey.id === selectedJerseyId
     ) ?? null;
 
   function confirmJerseySelection(
@@ -91,16 +121,34 @@ export function SponsorJerseySelector({
       return;
     }
 
+    const futureSeasonLabel =
+      targetSeasonName ?? "la saison suivante";
+
+    const confirmationLines =
+      activationMode === "next-season"
+        ? [
+            `Valider le maillot « ${selectedJersey.name} » pour ${futureSeasonLabel} ?`,
+            "",
+            `Sponsor : ${sponsor.name}`,
+            `Style : ${formatJerseyStyle(selectedJersey.style)}`,
+            "",
+            "Le maillot sera enregistré pour la saison suivante.",
+            "Le contrat restera en attente jusqu’au jour 1.",
+            "Aucun budget ne sera versé et l’identité actuelle ne changera pas immédiatement.",
+            "Le maillot ne pourra plus être modifié pendant ce contrat.",
+          ]
+        : [
+            `Valider le maillot « ${selectedJersey.name} » ?`,
+            "",
+            `Sponsor : ${sponsor.name}`,
+            `Style : ${formatJerseyStyle(selectedJersey.style)}`,
+            "",
+            "Le contrat sera activé et le budget sponsor sera versé à votre équipe.",
+            "Le maillot ne pourra plus être modifié pendant ce contrat.",
+          ];
+
     const confirmed = window.confirm(
-      [
-        `Valider le maillot « ${selectedJersey.name} » ?`,
-        "",
-        `Sponsor : ${sponsor.name}`,
-        `Style : ${formatJerseyStyle(selectedJersey.style)}`,
-        "",
-        "Le contrat sera activé et le budget sponsor sera versé à votre équipe.",
-        "Le maillot ne pourra plus être modifié pendant ce contrat.",
-      ].join("\n")
+      confirmationLines.join("\n")
     );
 
     if (!confirmed) {
@@ -202,13 +250,10 @@ export function SponsorJerseySelector({
                 <p
                   className="text-xs font-extrabold uppercase tracking-[0.18em]"
                   style={{
-                    color:
-                      sponsor.colors.primary,
+                    color: sponsor.colors.primary,
                   }}
                 >
-                  {formatJerseyStyle(
-                    jersey.style
-                  )}
+                  {formatJerseyStyle(jersey.style)}
                 </p>
 
                 <h3
@@ -236,14 +281,15 @@ export function SponsorJerseySelector({
           className="inline-flex min-h-13 w-full max-w-xl items-center justify-center rounded-xl bg-[#0B4A3B] px-6 py-4 text-sm font-extrabold uppercase tracking-widest text-white transition hover:bg-[#07382E] disabled:cursor-not-allowed disabled:bg-[#B6C5C0] disabled:text-[#657972] sm:text-base"
         >
           {selectedJersey
-            ? `Valider le maillot ${selectedJersey.name}`
+            ? activationMode === "next-season"
+              ? `Préparer le maillot ${selectedJersey.name}`
+              : `Valider le maillot ${selectedJersey.name}`
             : "Sélectionnez un maillot"}
         </button>
       </div>
     </form>
   );
 }
-
 
 type TerminateSponsorContractButtonProps = {
   sponsorName: string;
@@ -266,7 +312,8 @@ export function TerminateSponsorContractButton({
         "Le sponsor et son maillot seront immédiatement retirés de votre équipe.",
         "Les objectifs encore en cours seront considérés comme échoués.",
         "Le budget déjà versé ne sera pas retiré.",
-        "Aucune nouvelle offre ne sera proposée avant la saison suivante.",
+        "Aucun nouveau sponsor ne pourra être activé pendant la saison en cours.",
+        "À partir du jour 21, vous pourrez préparer un contrat pour la saison suivante.",
         "",
         "Cette décision est définitive.",
       ].join("\n")

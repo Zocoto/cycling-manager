@@ -25,6 +25,7 @@ export type PersistedSponsorOffer = {
   proposedBudget: number;
   contractDurationSeasons: number;
   status: SponsorOfferStatus;
+  isRenewal?: boolean;
   objectives: PersistedSponsorObjective[];
 };
 
@@ -76,7 +77,7 @@ type SponsorOfferRow = {
 type SponsorContractRow = {
   sponsor_id: string;
   start_season_id: string;
-  end_season_id: string;
+  contract_duration_seasons: number;
 };
 
 type ContractSeasonRow = {
@@ -467,7 +468,7 @@ async function getUnavailableSponsorCatalogKeys(
       `
         sponsor_id,
         start_season_id,
-        end_season_id
+        contract_duration_seasons
       `
     )
     .eq("role", "principal")
@@ -486,10 +487,9 @@ async function getUnavailableSponsorCatalogKeys(
 
   const contractSeasonIds = [
     ...new Set(
-      contractRows.flatMap((contract) => [
-        contract.start_season_id,
-        contract.end_season_id,
-      ])
+      contractRows.map(
+        (contract) => contract.start_season_id
+      )
     ),
   ];
 
@@ -523,17 +523,14 @@ async function getUnavailableSponsorCatalogKeys(
             contract.start_season_id
           );
 
-        const endGameYear =
-          gameYearBySeasonId.get(
-            contract.end_season_id
-          );
-
-        if (
-          startGameYear === undefined ||
-          endGameYear === undefined
-        ) {
+        if (startGameYear === undefined) {
           return false;
         }
+
+        const endGameYear =
+          startGameYear +
+          contract.contract_duration_seasons -
+          1;
 
         return (
           startGameYear <= activeSeason.game_year &&
@@ -654,6 +651,7 @@ async function hydrateSponsorOffers(
       contractDurationSeasons:
         offerRow.contract_duration_seasons,
       status: offerRow.status,
+      isRenewal: false,
     };
   });
 }
