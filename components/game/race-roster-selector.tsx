@@ -23,14 +23,9 @@ export function RaceRosterSelector({
   jersey,
 }: RaceRosterSelectorProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(
-    riders
-      .filter((rider) => rider.isSelected)
-      .map((rider) => rider.riderId)
+    riders.filter((rider) => rider.isSelected).map((rider) => rider.riderId)
   );
-  const selectedSet = useMemo(
-    () => new Set(selectedIds),
-    [selectedIds]
-  );
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectionIsValid = isRosterSelectionValid({
     selectedCount: selectedIds.length,
     minimum,
@@ -66,81 +61,97 @@ export function RaceRosterSelector({
 
       <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
         {riders.map((rider) => {
-          const isSelected = selectedSet.has(
-            rider.riderId
-          );
+          const isSelected = selectedSet.has(rider.riderId);
           const isDisabled =
             !rider.isAvailable ||
             (!isSelected && selectedIds.length >= maximum);
+          const inputId = `rider-${rider.riderId}`;
 
           return (
-            <label
+            <div
               key={rider.riderId}
-              className={`block rounded-xl border px-3 py-3 transition ${
+              className={`rounded-xl border px-3 py-3 transition ${
                 rider.isAvailable
                   ? isSelected
                     ? "border-emerald-300/55 bg-emerald-300/10"
                     : "border-white/10 bg-white/5 hover:border-white/25"
-                  : "cursor-not-allowed border-white/5 bg-black/15 opacity-60"
+                  : "border-white/5 bg-black/15 opacity-60"
               }`}
             >
               <div className="flex items-start gap-3">
                 <input
+                  id={inputId}
                   type="checkbox"
                   name="riderIds"
                   value={rider.riderId}
                   checked={isSelected}
                   disabled={isDisabled}
-                  onChange={() =>
-                    toggleRider(rider.riderId)
-                  }
+                  onChange={() => toggleRider(rider.riderId)}
                   className="mt-1 h-4 w-4 accent-emerald-400"
                 />
 
-                <RiderAvatar
-                  profileKey={rider.avatarProfileKey}
-                  seed={rider.avatarSeed}
-                  riderId={rider.riderId}
-                  age={rider.age}
-                  jersey={jersey}
-                  label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
-                  className="h-11 w-11"
-                />
+                <label
+                  htmlFor={inputId}
+                  className={`flex min-w-0 flex-1 items-start gap-3 ${
+                    isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                  }`}
+                >
+                  <RiderAvatar
+                    profileKey={rider.avatarProfileKey}
+                    seed={rider.avatarSeed}
+                    riderId={rider.riderId}
+                    age={rider.age}
+                    jersey={jersey}
+                    label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
+                    className="h-11 w-11"
+                  />
 
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-black text-white">
-                    <span
-                      className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
-                      role="img"
-                      aria-label={`Drapeau ${rider.countryName}`}
-                    />
-                    <span>
-                      {rider.firstName} {rider.lastName}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2 text-sm font-black text-white">
+                      <span
+                        className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
+                        role="img"
+                        aria-label={`Drapeau ${rider.countryName}`}
+                      />
+                      <span>
+                        {rider.firstName} {rider.lastName}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
+                      {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint}
                     </span>
                   </span>
-                  <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
-                    {rider.age} ans · MON {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint}
-                  </span>
+                </label>
 
-                  {rider.conflict ? (
-                    <span className="mt-2 block text-[11px] font-bold leading-4 text-amber-200">
-                      Indisponible J{rider.conflict.startDay}
-                      {rider.conflict.endDay >
-                      rider.conflict.startDay
-                        ? `–J${rider.conflict.endDay}`
-                        : ""}{" "}
-                      ·{" "}
-                      <Link
-                        href={`/jeu/courses/${rider.conflict.raceSlug}`}
-                        className="underline underline-offset-2"
-                      >
-                        {rider.conflict.raceName}
-                      </Link>
-                    </span>
-                  ) : null}
-                </span>
+                <Link
+                  href={`/jeu/coureurs/${rider.riderId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Ouvrir la fiche de ${rider.firstName} ${rider.lastName} dans un nouvel onglet`}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-sm font-black text-[#9BE0BC] transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9BE0BC]"
+                >
+                  ↗
+                </Link>
               </div>
-            </label>
+
+              {rider.conflict ? (
+                <div className="ml-7 mt-2 flex flex-wrap items-center gap-1 text-[11px] font-bold leading-4 text-amber-200">
+                  <span>
+                    Indisponible J{rider.conflict.startDay}
+                    {rider.conflict.endDay > rider.conflict.startDay
+                      ? `–J${rider.conflict.endDay}`
+                      : ""}{" "}
+                    ·
+                  </span>
+                  <Link
+                    href={`/jeu/courses/${rider.conflict.raceSlug}`}
+                    className="underline underline-offset-2"
+                  >
+                    {rider.conflict.raceName}
+                  </Link>
+                </div>
+              ) : null}
+            </div>
           );
         })}
       </div>
@@ -171,9 +182,7 @@ function SubmitRosterButton({
       disabled={disabled || pending}
       className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#F2C94C] px-5 py-3 text-sm font-black text-[#17261E] transition hover:-translate-y-0.5 hover:bg-[#F7D96C] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
     >
-      {pending
-        ? "Validation en cours…"
-        : `Valider l’inscription (${count})`}
+      {pending ? "Validation en cours…" : `Valider l’inscription (${count})`}
     </button>
   );
 }

@@ -516,9 +516,7 @@ export default async function TeamRosterPage() {
           </section>
 
           <p className="mt-5 text-sm leading-6 text-[#60756E]">
-            Les portraits définitifs et la fiche
-            détaillée de chaque coureur seront
-            ajoutés dans une prochaine évolution.
+            Cliquez sur un coureur pour ouvrir sa fiche détaillée dans un nouvel onglet.
           </p>
         </div>
       </section>
@@ -827,7 +825,13 @@ function RiderTableRow({
         scope="row"
         className="sticky left-0 z-10 bg-white px-5 py-4 text-left"
       >
-        <div className="flex items-center gap-4">
+        <Link
+          href={`/jeu/coureurs/${rider.rider_id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
+          aria-label={`Ouvrir la fiche de ${riderName} dans un nouvel onglet`}
+        >
           <RiderAvatar
             profileKey={rider.avatar_profile_key}
             seed={rider.avatar_seed}
@@ -855,9 +859,12 @@ function RiderTableRow({
               <span className="truncate text-xs font-semibold text-[#60756E]">
                 {rider.country_name}
               </span>
+              <span className="text-xs font-black text-[#278B70]" aria-hidden="true">
+                ↗
+              </span>
             </div>
           </div>
-        </div>
+        </Link>
       </th>
 
       <td className="px-3 py-4 text-center font-black text-[#082A2A]">

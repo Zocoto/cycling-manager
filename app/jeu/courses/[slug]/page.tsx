@@ -408,9 +408,14 @@ export default async function RaceProfilePage({
                               {winner.finalRank}
                             </span>
                             <div>
-                            <p className="font-black text-[#0B302B]">
-                              {winner.riderName}
-                            </p>
+                            <Link
+                              href={`/jeu/coureurs/${winner.riderId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-black text-[#0B302B] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#176951]"
+                            >
+                              {winner.riderName} <span aria-hidden="true">↗</span>
+                            </Link>
                             <p className="mt-1 text-xs font-semibold text-[#688176]">
                               {winner.teamName}
                             </p>
@@ -567,20 +572,27 @@ function RegistrationPanel({
             {selectedRiders.map((rider) => (
               <li
                 key={rider.riderId}
-                className="flex items-center gap-3"
+                className="flex items-center"
               >
-                <RiderAvatar
-                  profileKey={rider.avatarProfileKey}
-                  seed={rider.avatarSeed}
-                  riderId={rider.riderId}
-                  age={rider.age}
-                  jersey={riderJersey}
-                  label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
-                  className="h-9 w-9"
-                />
-                <span>
-                  {rider.firstName} {rider.lastName}
-                </span>
+                <Link
+                  href={`/jeu/coureurs/${rider.riderId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 rounded-lg transition hover:text-[#9BE0BC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9BE0BC]"
+                >
+                  <RiderAvatar
+                    profileKey={rider.avatarProfileKey}
+                    seed={rider.avatarSeed}
+                    riderId={rider.riderId}
+                    age={rider.age}
+                    jersey={riderJersey}
+                    label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
+                    className="h-9 w-9"
+                  />
+                  <span>
+                    {rider.firstName} {rider.lastName} <span aria-hidden="true">↗</span>
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -753,15 +765,22 @@ function EngagedRidersSection({
                   {team.riders.map((rider) => (
                     <li
                       key={rider.riderId}
-                      className="flex items-center gap-2 text-sm font-semibold text-[#557064]"
-                      title="La fiche publique du coureur sera ajoutée ultérieurement"
+                      className="text-sm font-semibold text-[#557064]"
                     >
-                      <span
-                        className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
-                        role="img"
-                        aria-label={`Drapeau ${rider.countryCode}`}
-                      />
-                      {rider.riderName}
+                      <Link
+                        href={`/jeu/coureurs/${rider.riderId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 rounded transition hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+                      >
+                        <span
+                          className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
+                          role="img"
+                          aria-label={`Drapeau ${rider.countryCode}`}
+                        />
+                        {rider.riderName}
+                        <span aria-hidden="true">↗</span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

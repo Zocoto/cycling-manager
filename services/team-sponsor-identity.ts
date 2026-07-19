@@ -104,6 +104,20 @@ export async function getActiveTeamSponsorIdentityForAuthUser(
     return null;
   }
 
+  return getActiveTeamSponsorIdentity(teamId);
+}
+
+export async function getActiveTeamSponsorIdentity(
+  teamId: string
+): Promise<TeamSponsorIdentity | null> {
+  const normalizedTeamId = teamId.trim();
+
+  if (!normalizedTeamId) {
+    return null;
+  }
+
+  const supabase = createSupabaseAdminClient();
+
   const {
     data: contractRows,
     error: contractError,
@@ -119,7 +133,7 @@ export async function getActiveTeamSponsorIdentityForAuthUser(
         start_season_id
       `
     )
-    .eq("team_id", teamId)
+    .eq("team_id", normalizedTeamId)
     .eq("role", "principal")
     .eq("status", "active")
     .order("created_at", {
@@ -222,7 +236,7 @@ export async function getActiveTeamSponsorIdentityForAuthUser(
         short_name
       `
     )
-    .eq("team_id", teamId)
+    .eq("team_id", normalizedTeamId)
     .eq("season_id", seasonId)
     .maybeSingle<TeamSeasonRow>();
 
@@ -243,7 +257,7 @@ export async function getActiveTeamSponsorIdentityForAuthUser(
   }
 
   return {
-    teamId,
+    teamId: normalizedTeamId,
 
     teamName:
       teamSeason?.display_name ??
