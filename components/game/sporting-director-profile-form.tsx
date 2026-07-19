@@ -658,9 +658,10 @@ export function SportingDirectorProfileForm({
             id="countryId-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Cette nationalité déterminera celle de votre équipe
-            amateur et de vos 7 premiers coureurs. Après
-            validation, elle ne pourra plus être modifiée.
+            Cette nationalité représente uniquement votre
+            Directeur Sportif. Le pays de l’équipe et de vos 7
+            premiers coureurs sera choisi à l’étape suivante.
+            Après validation, elle ne pourra plus être modifiée.
           </p>
 
           {countryErrors?.length ? (
@@ -685,8 +686,8 @@ export function SportingDirectorProfileForm({
 
             <p className="mt-1 text-sm leading-6 text-[#705E23]">
               Vérifiez bien votre nationalité avant de
-              l’enregistrer. Elle servira de base à la création
-              de votre carrière.
+              l’enregistrer. Elle restera l’identité personnelle
+              définitive de votre Directeur Sportif.
             </p>
           </div>
         ) : null}

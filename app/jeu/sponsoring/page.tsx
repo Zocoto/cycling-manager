@@ -247,6 +247,64 @@ function SponsoringStatusNotice({
 }: {
   state: SponsoringState;
 }) {
+  if (state.kind === "onboarding") {
+    return (
+      <aside className="mt-8 rounded-2xl border border-[#D99A32]/30 bg-[#FFF4D6]/90 px-6 py-6 shadow-[0_12px_30px_rgba(102,72,18,0.07)]">
+        <p className="font-black text-[#604B0F]">
+          Fondez d’abord votre équipe amateur
+        </p>
+        <p className="mt-2 max-w-3xl text-sm leading-7 text-[#715F2A]">
+          Le marché du sponsoring devient pertinent une fois l’identité,
+          le pays et le maillot fondateur de votre équipe enregistrés.
+        </p>
+        <Link
+          href="/jeu/directeur-sportif#equipe-amateur"
+          className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#F2C94C] px-5 py-2 text-sm font-extrabold text-[#071A17]"
+        >
+          Fonder mon équipe amateur
+        </Link>
+      </aside>
+    );
+  }
+
+  if (state.kind === "locked") {
+    const progress = Math.min(
+      100,
+      Math.round(
+        (state.currentReputation / state.requiredReputation) * 100
+      )
+    );
+
+    return (
+      <aside className="mt-8 rounded-2xl border border-[#278B70]/20 bg-white/90 px-6 py-6 shadow-[0_12px_30px_rgba(19,60,46,0.06)]">
+        <div className="flex items-start gap-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D7EEE8] text-[#176951]">
+            <LockIcon />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-black text-[#0B4A3B]">
+              Le marché du sponsoring est encore verrouillé
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[#48665F]">
+              Développez votre réputation pour attirer vos premiers
+              partenaires. Les offres se débloquent à {state.requiredReputation}{" "}
+              points.
+            </p>
+            <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#D7EEE8]">
+              <div
+                className="h-full rounded-full bg-[#42B99A]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-sm font-black text-[#176951]">
+              {state.currentReputation} / {state.requiredReputation} points
+            </p>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   if (state.kind === "jersey-selection") {
     return (
       <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-[#D99A32]/30 bg-[#FFF4D6]/90 px-5 py-4 shadow-[0_12px_30px_rgba(102,72,18,0.07)]">
@@ -1681,6 +1739,14 @@ function readSearchParameter(
 function getPageIntroduction(
   state: SponsoringState | null
 ): string {
+  if (state?.kind === "onboarding") {
+    return "Fondez votre équipe amateur avant de construire son avenir commercial.";
+  }
+
+  if (state?.kind === "locked") {
+    return "Faites progresser votre réputation pour débloquer vos premières propositions de sponsoring.";
+  }
+
   if (state?.kind === "jersey-selection") {
     return "Votre contrat est signé. Choisissez maintenant l’identité visuelle que votre équipe portera pendant toute la durée du partenariat.";
   }

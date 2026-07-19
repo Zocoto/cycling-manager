@@ -62,7 +62,7 @@ Le joueur dispose d’un outil simple, sans import d’image, fondé sur des par
 
 Le dessin est enregistré comme une configuration de formes et de couleurs, puis rendu par un composant unique partout où le maillot apparaît. Le même composant choisit automatiquement entre le maillot amateur et le maillot du sponsor actif.
 
-Les motifs exacts, les contraintes de contraste et les règles de modification après création restent à définir avant le développement.
+Le premier lot propose quatre motifs : bande centrale, diagonale, bandes horizontales et bicolore. Le joueur choisit trois couleurs et doit en utiliser au moins deux différentes. Le nom et le maillot sont validés une fois pendant la fondation ; une éventuelle modification ultérieure fera l’objet d’une règle de gameplay dédiée.
 
 ## Déblocage du sponsoring
 
@@ -75,11 +75,13 @@ Le sponsoring possède deux niveaux de contrôle :
 
 Le seuil global doit être défini dans un objet de règles centralisé et ne doit pas être dispersé dans les pages ou les actions serveur.
 
-Objet de roadmap à préciser :
+Règle MVP centralisée :
 
 ```text
-sponsoringUnlockReputation: nombre à définir
+sponsoringUnlockReputation: 30
 ```
+
+Cette valeur est provisoire et pourra être rééquilibrée lorsque les sources de gains et de pertes de réputation seront définies.
 
 Avant le déblocage :
 
@@ -143,9 +145,7 @@ Pour les carrières déjà créées :
 
 ## Éléments à définir ultérieurement
 
-- valeur du seuil global de sponsoring ;
 - sources de gains et de pertes de réputation ;
-- motifs et palette autorisés pour le maillot amateur ;
-- possibilité ou non de modifier le nom et le maillot après la création ;
+- conditions permettant éventuellement de modifier le nom et le maillot après leur validation initiale ;
 - budget initial et modèle économique exact d’une équipe sans sponsor ;
 - effets éventuels du pays de l’équipe au-delà de l’identité et des propositions commerciales.

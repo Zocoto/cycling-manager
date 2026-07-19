@@ -3,11 +3,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../components/game/game-header";
-import { SponsorJerseyPreview } from "../../components/game/sponsor-jersey-preview";
 import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
 import { SportingDirectorProgression } from "../../components/game/sporting-director-progression";
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
+import { TeamJerseyPreview } from "../../components/game/team-jersey-preview";
+import { DEFAULT_AMATEUR_JERSEY } from "../../lib/amateur-team";
+import {
+  GAMEPLAY_RULES,
+  getSponsoringUnlockProgress,
+  isSponsoringUnlocked,
+} from "../../lib/gameplay-rules";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
+import {
+  getTeamAmateurIdentityForAuthUser,
+  type TeamAmateurIdentity,
+} from "../../services/team-amateur-identity";
 import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
@@ -132,6 +142,18 @@ export default async function GamePage() {
       getErrorMessage(error);
   }
 
+  let teamAmateurIdentity: TeamAmateurIdentity | null = null;
+
+  try {
+    teamAmateurIdentity =
+      await getTeamAmateurIdentityForAuthUser(user.id);
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer l’identité amateur de l’équipe :",
+      error
+    );
+  }
+
   const sportingDirector =
     profileResult.data;
 
@@ -196,8 +218,12 @@ export default async function GamePage() {
 
   const commercialTeamName =
     teamSponsorIdentity?.teamName ??
+    teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
+
+  const reputationPoints = sportingDirector?.reputation_points ?? 0;
+  const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -259,6 +285,7 @@ export default async function GamePage() {
               teamSponsorIdentity={
                 teamSponsorIdentity
               }
+              teamAmateurIdentity={teamAmateurIdentity}
             />
 
             <ObjectivesCard
@@ -266,6 +293,7 @@ export default async function GamePage() {
                 isProfileComplete
               }
               teamSummary={teamSummary}
+              teamAmateurIdentity={teamAmateurIdentity}
             />
           </section>
 
@@ -302,12 +330,16 @@ export default async function GamePage() {
                 teamSponsorIdentity
                   ? teamSponsorIdentity.sponsor
                       .shortName
-                  : "Aucun sponsor"
+                  : sponsoringUnlocked
+                    ? "Marché débloqué"
+                    : `${reputationPoints} / ${GAMEPLAY_RULES.sponsoringUnlockReputation} réputation`
               }
               description={
                 teamSponsorIdentity
                   ? `${teamSponsorIdentity.sponsor.name} est le sponsor principal de ${commercialTeamName}. Le maillot ${teamSponsorIdentity.selectedJersey.name} est actuellement utilisé.`
-                  : "Comparez les offres disponibles, leurs budgets, leurs durées de contrat et leurs objectifs saisonniers."
+                  : sponsoringUnlocked
+                    ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
+                    : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
               }
             />
 
@@ -367,6 +399,7 @@ function DirectorProfileCard({
   isProfileComplete,
   teamSummary,
   teamSponsorIdentity,
+  teamAmateurIdentity,
 }: {
   sportingDirector:
     SportingDirector | null;
@@ -377,6 +410,8 @@ function DirectorProfileCard({
     CurrentTeamDashboardSummary | null;
   teamSponsorIdentity:
     TeamSponsorIdentity | null;
+  teamAmateurIdentity:
+    TeamAmateurIdentity | null;
 }) {
   const profileName =
     sportingDirector?.display_name ??
@@ -426,19 +461,15 @@ function DirectorProfileCard({
         />
 
         <div className="flex items-start gap-5 md:justify-self-end">
-          {teamSponsorIdentity ? (
-            <SponsorJerseyPreview
-              sponsor={
-                teamSponsorIdentity.sponsor
-              }
-              jersey={
-                teamSponsorIdentity.selectedJersey
-              }
-              className="h-32 w-28 shrink-0 drop-shadow-xl"
-            />
-          ) : (
-            <CyclingJerseyIcon />
-          )}
+          <TeamJerseyPreview
+            amateurJersey={
+              teamAmateurIdentity?.jersey ?? DEFAULT_AMATEUR_JERSEY
+            }
+            amateurTeamName={teamAmateurIdentity?.amateurName}
+            sponsor={teamSponsorIdentity?.sponsor}
+            sponsorJersey={teamSponsorIdentity?.selectedJersey}
+            className="h-32 w-28 shrink-0 drop-shadow-xl"
+          />
 
           <div className="min-w-44 pt-4">
             <TeamSponsorInformation
@@ -446,6 +477,7 @@ function DirectorProfileCard({
               teamSponsorIdentity={
                 teamSponsorIdentity
               }
+              teamAmateurIdentity={teamAmateurIdentity}
             />
           </div>
         </div>
@@ -580,14 +612,18 @@ function DirectorIdentity({
 function TeamSponsorInformation({
   teamSummary,
   teamSponsorIdentity,
+  teamAmateurIdentity,
 }: {
   teamSummary:
     CurrentTeamDashboardSummary | null;
   teamSponsorIdentity:
     TeamSponsorIdentity | null;
+  teamAmateurIdentity:
+    TeamAmateurIdentity | null;
 }) {
   const teamName =
     teamSponsorIdentity?.teamName ??
+    teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Équipe amateur à constituer";
 
@@ -626,11 +662,20 @@ function TeamSponsorInformation({
 function ObjectivesCard({
   isProfileComplete,
   teamSummary,
+  teamAmateurIdentity,
 }: {
   isProfileComplete: boolean;
   teamSummary:
     CurrentTeamDashboardSummary | null;
+  teamAmateurIdentity:
+    TeamAmateurIdentity | null;
 }) {
+  const isTeamComplete = Boolean(
+    teamAmateurIdentity?.isConfigured && teamSummary
+  );
+  const completedSteps =
+    (isProfileComplete ? 1 : 0) + (isTeamComplete ? 1 : 0);
+
   return (
     <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-7">
       <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
@@ -650,7 +695,7 @@ function ObjectivesCard({
           </div>
 
           <span className="rounded-full bg-white/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2]">
-            1 objectif affiché
+            2 étapes d’onboarding
           </span>
         </div>
 
@@ -661,49 +706,54 @@ function ObjectivesCard({
             </span>
 
             <span className="text-sm font-bold text-[#F2C94C]">
-              {isProfileComplete
-                ? "1 / 1"
-                : "0 / 1"}
+              {completedSteps} / 2
             </span>
           </div>
 
           <h3 className="mt-5 text-xl font-black">
-            Compléter le profil de votre
-            Directeur Sportif
+            {!isProfileComplete
+              ? "Compléter le profil du Directeur Sportif"
+              : !isTeamComplete
+                ? "Fonder votre équipe amateur"
+                : "Votre carrière amateur est prête"}
           </h3>
 
           <p className="mt-3 leading-7 text-[#D6DFD2]">
-            Choisissez votre avatar et votre
-            nationalité afin de préparer votre
-            première équipe amateur.
+            {!isProfileComplete
+              ? "Choisissez votre avatar et votre nationalité personnelle."
+              : !isTeamComplete
+                ? "Définissez le nom, le pays et le maillot fondateur de votre équipe."
+                : "Votre identité est complète et vos sept premiers coureurs sont prêts."}
           </p>
 
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-[#F2C94C] transition-all"
               style={{
-                width: isProfileComplete
-                  ? "100%"
-                  : "35%",
+                width: `${completedSteps * 50}%`,
               }}
             />
           </div>
 
           <div className="mt-5">
-            {isProfileComplete ? (
+            {isTeamComplete ? (
               <p className="text-sm font-bold text-[#9BE0BC]">
-                {teamSummary
-                  ? `Objectif rempli. Votre équipe amateur a été créée avec ${formatRiderCount(
-                      teamSummary.rider_count
-                    )}.`
-                  : "Objectif rempli. Votre profil de Directeur Sportif est enregistré."}
+                Objectif rempli. Votre équipe compte {formatRiderCount(
+                  teamSummary?.rider_count ?? 0
+                )}.
               </p>
             ) : (
               <Link
-                href="/jeu/directeur-sportif"
+                href={
+                  isProfileComplete
+                    ? "/jeu/directeur-sportif#equipe-amateur"
+                    : "/jeu/directeur-sportif"
+                }
                 className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
               >
-                Compléter mon profil
+                {isProfileComplete
+                  ? "Fonder mon équipe"
+                  : "Compléter mon profil"}
               </Link>
             )}
           </div>
@@ -793,164 +843,6 @@ function ArrowRightIcon() {
       <path d="M4 10h12" />
       <path d="m11 5 5 5-5 5" />
     </svg>
-  );
-}
-
-function CyclingJerseyIcon() {
-  return (
-    <div className="flex h-32 w-28 shrink-0 items-center justify-center">
-      <svg
-        aria-label="Maillot cycliste gris de l’équipe amateur"
-        role="img"
-        viewBox="0 0 140 160"
-        className="h-full w-full drop-shadow-xl"
-      >
-        <path
-          d="M46 11
-             L59 18
-             L70 23
-             L81 18
-             L94 11
-             L124 29
-             L114 60
-             L99 53
-             L96 144
-             Q70 153 44 144
-             L41 53
-             L26 60
-             L16 29
-             Z"
-          fill="#AEB8B5"
-          stroke="#E7ECE9"
-          strokeLinejoin="round"
-          strokeWidth="3"
-        />
-
-        <path
-          d="M46 11
-             Q49 32 70 37
-             Q91 32 94 11
-             L81 18
-             L70 23
-             L59 18
-             Z"
-          fill="#65716D"
-        />
-
-        <path
-          d="M46 11
-             Q50 26 59 31
-             L46 49
-             L41 53
-             L26 60
-             L16 29
-             Z"
-          fill="#8F9A96"
-        />
-
-        <path
-          d="M94 11
-             Q90 26 81 31
-             L94 49
-             L99 53
-             L114 60
-             L124 29
-             Z"
-          fill="#8F9A96"
-        />
-
-        <path
-          d="M42 54
-             Q52 61 70 61
-             Q88 61 98 54
-             L97 83
-             Q84 89 70 89
-             Q56 89 43 83
-             Z"
-          fill="#C5CDCA"
-        />
-
-        <path
-          d="M43 84
-             Q56 91 70 91
-             Q84 91 97 84
-             L96 111
-             Q84 116 70 116
-             Q56 116 44 111
-             Z"
-          fill="#8A9591"
-        />
-
-        <path
-          d="M44 112
-             Q56 118 70 118
-             Q84 118 96 112
-             L96 144
-             Q70 153 44 144
-             Z"
-          fill="#B9C2BF"
-        />
-
-        <path
-          d="M70 37V146"
-          fill="none"
-          stroke="#F0F3F1"
-          strokeWidth="2.5"
-        />
-
-        <path
-          d="M66 43H74"
-          stroke="#65716D"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
-
-        <path
-          d="M66 51H74"
-          stroke="#65716D"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
-
-        <path
-          d="M42 54L47 141"
-          fill="none"
-          stroke="#737F7B"
-          strokeWidth="2"
-          opacity="0.7"
-        />
-
-        <path
-          d="M98 54L93 141"
-          fill="none"
-          stroke="#737F7B"
-          strokeWidth="2"
-          opacity="0.7"
-        />
-
-        <path
-          d="M48 137Q70 144 92 137"
-          fill="none"
-          stroke="#66726E"
-          strokeWidth="4"
-        />
-
-        <circle
-          cx="70"
-          cy="72"
-          r="8"
-          fill="#727E7A"
-          opacity="0.5"
-        />
-
-        <path
-          d="M65 72H75M70 67V77"
-          stroke="#DCE2DF"
-          strokeLinecap="round"
-          strokeWidth="2"
-        />
-      </svg>
-    </div>
   );
 }
 

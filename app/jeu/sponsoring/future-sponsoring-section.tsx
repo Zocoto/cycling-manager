@@ -43,6 +43,10 @@ export function FutureSponsoringSection({
         <FutureLockedNotice state={state} />
       ) : null}
 
+      {state.kind === "reputation-locked" ? (
+        <FutureReputationLockedNotice state={state} />
+      ) : null}
+
       {state.kind === "continuing" ? (
         <ContinuingContractNotice state={state} />
       ) : null}
@@ -59,6 +63,44 @@ export function FutureSponsoringSection({
         <FuturePlannedContract state={state} />
       ) : null}
     </section>
+  );
+}
+
+function FutureReputationLockedNotice({
+  state,
+}: {
+  state: Extract<
+    FutureSponsoringState,
+    { kind: "reputation-locked" }
+  >;
+}) {
+  const progress = Math.min(
+    100,
+    Math.round(
+      (state.currentReputation / state.requiredReputation) * 100
+    )
+  );
+
+  return (
+    <aside className="mt-7 rounded-2xl border border-amber-300 bg-amber-50 px-6 py-5 text-amber-950 shadow-[0_14px_34px_rgba(120,83,20,0.06)]">
+      <p className="font-black">
+        Votre contrat actuel reste valable, mais les nouvelles offres sont
+        verrouillées.
+      </p>
+      <p className="mt-2 leading-7">
+        Atteignez {state.requiredReputation} points de réputation pour
+        négocier le sponsor de {state.targetSeasonName}.
+      </p>
+      <div className="mt-4 h-3 overflow-hidden rounded-full bg-amber-200">
+        <div
+          className="h-full rounded-full bg-amber-600"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <p className="mt-2 text-sm font-black">
+        {state.currentReputation} / {state.requiredReputation} points
+      </p>
+    </aside>
   );
 }
 
@@ -553,6 +595,10 @@ function getFutureSectionTitle(
     return "La prochaine fenêtre n’est pas encore ouverte";
   }
 
+  if (state.kind === "reputation-locked") {
+    return "Développez votre réputation";
+  }
+
   if (state.kind === "continuing") {
     return "Votre sponsor poursuit l’aventure";
   }
@@ -575,6 +621,10 @@ function getFutureSectionIntroduction(
 ): string {
   if (state.kind === "locked") {
     return "Les renouvellements et signatures destinés à la saison suivante sont regroupés entre les jours 21 et 28.";
+  }
+
+  if (state.kind === "reputation-locked") {
+    return "Votre partenariat actuel continue normalement. Le seuil global contrôle uniquement l’accès à de nouvelles offres.";
   }
 
   if (state.kind === "continuing") {

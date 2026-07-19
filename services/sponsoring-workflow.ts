@@ -3,6 +3,10 @@ import "server-only";
 import { SPONSORS } from "@/data/sponsors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
+  GAMEPLAY_RULES,
+  isSponsoringUnlocked,
+} from "@/lib/gameplay-rules";
+import {
   getOrCreateFutureSponsorOffersForAuthUser,
   type FutureSponsorOfferMode,
   type FutureSponsorSeason,
@@ -66,6 +70,13 @@ export type FutureSponsoringState =
       targetSeasonName: string;
     }
   | {
+      kind: "reputation-locked";
+      currentReputation: number;
+      requiredReputation: number;
+      targetGameYear: number;
+      targetSeasonName: string;
+    }
+  | {
       kind: "continuing";
       targetGameYear: number;
       targetSeasonName: string;
@@ -92,6 +103,14 @@ export type FutureSponsoringState =
 
 export type SponsoringState =
   | {
+      kind: "onboarding";
+    }
+  | {
+      kind: "locked";
+      currentReputation: number;
+      requiredReputation: number;
+    }
+  | {
       kind: "offers";
       offers: PersistedSponsorOffer[];
     }
@@ -116,6 +135,7 @@ type SupabaseAdminClient = ReturnType<
 
 type SportingDirectorRow = {
   id: string;
+  reputation_points: number;
 };
 
 type TeamAssignmentRow = {
@@ -190,7 +210,7 @@ export async function getSponsoringStateForAuthUser(
     error: sportingDirectorError,
   } = await supabase
     .from("sporting_directors")
-    .select("id")
+    .select("id, reputation_points")
     .eq("auth_user_id", normalizedAuthUserId)
     .eq("status", "active")
     .maybeSingle<SportingDirectorRow>();
@@ -211,6 +231,10 @@ export async function getSponsoringStateForAuthUser(
     supabase,
     sportingDirectorId: sportingDirector.id,
   });
+
+  if (!teamId) {
+    return { kind: "onboarding" };
+  }
 
   const activeSeason = await resolveActiveSeason(supabase);
   const nextGameYear = activeSeason.game_year + 1;
@@ -258,6 +282,7 @@ export async function getSponsoringStateForAuthUser(
         terminatedContract: null,
         nextGameYear,
         targetSeasonName,
+        currentReputation: sportingDirector.reputation_points,
       }),
     };
   }
@@ -288,7 +313,17 @@ export async function getSponsoringStateForAuthUser(
         terminatedContract,
         nextGameYear,
         targetSeasonName,
+        currentReputation: sportingDirector.reputation_points,
       }),
+    };
+  }
+
+  if (!isSponsoringUnlocked(sportingDirector.reputation_points)) {
+    return {
+      kind: "locked",
+      currentReputation: sportingDirector.reputation_points,
+      requiredReputation:
+        GAMEPLAY_RULES.sponsoringUnlockReputation,
     };
   }
 
@@ -311,6 +346,7 @@ async function resolveFutureSponsoringState({
   terminatedContract,
   nextGameYear,
   targetSeasonName,
+  currentReputation,
 }: {
   supabase: SupabaseAdminClient;
   authUserId: string;
@@ -322,6 +358,7 @@ async function resolveFutureSponsoringState({
   terminatedContract: PersistedSponsorContract | null;
   nextGameYear: number;
   targetSeasonName: string;
+  currentReputation: number;
 }): Promise<FutureSponsoringState> {
   const targetSeason = await loadSeasonByGameYear({
     supabase,
@@ -387,6 +424,17 @@ async function resolveFutureSponsoringState({
       kind: "locked",
       currentDayNumber: activeSeason.current_day_number,
       opensOnDay: FUTURE_SPONSORING_OPENING_DAY,
+      targetGameYear: nextGameYear,
+      targetSeasonName,
+    };
+  }
+
+  if (!isSponsoringUnlocked(currentReputation)) {
+    return {
+      kind: "reputation-locked",
+      currentReputation,
+      requiredReputation:
+        GAMEPLAY_RULES.sponsoringUnlockReputation,
       targetGameYear: nextGameYear,
       targetSeasonName,
     };
@@ -745,7 +793,7 @@ async function resolveCurrentTeamId({
 }: {
   supabase: SupabaseAdminClient;
   sportingDirectorId: string;
-}): Promise<string> {
+}): Promise<string | null> {
   const { data: assignmentRows, error: assignmentError } =
     await supabase
       .from("team_manager_assignments")
@@ -786,7 +834,5 @@ async function resolveCurrentTeamId({
     return careerGeneration.team_id;
   }
 
-  throw new Error(
-    "Aucune équipe n’est rattachée à ce Directeur Sportif. Terminez d’abord la création de votre carrière."
-  );
+  return null;
 }

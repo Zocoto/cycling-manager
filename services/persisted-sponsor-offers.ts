@@ -1,6 +1,7 @@
 import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
+import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -40,7 +41,6 @@ type HydratedSponsorOfferWithoutObjectives = Omit<
 
 type SportingDirectorRow = {
   id: string;
-  country_id: string | null;
   reputation_points: number;
 };
 
@@ -50,6 +50,10 @@ type CountryRow = {
 
 type TeamAssignmentRow = {
   team_id: string;
+};
+
+type TeamRow = {
+  home_country_id: string;
 };
 
 type TerminatedContractRow = {
@@ -103,7 +107,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
     error: sportingDirectorError,
   } = await supabase
     .from("sporting_directors")
-    .select("id, country_id, reputation_points")
+    .select("id, reputation_points")
     .eq("auth_user_id", normalizedAuthUserId)
     .maybeSingle<SportingDirectorRow>();
 
@@ -113,28 +117,16 @@ export async function getOrCreateSponsorOffersForAuthUser(
     );
   }
 
-  if (!sportingDirector.country_id) {
-    throw new Error(
-      "Le Directeur Sportif doit choisir sa nationalité avant de recevoir des offres."
-    );
+  if (!isSponsoringUnlocked(sportingDirector.reputation_points)) {
+    return [];
   }
 
-  const [
-    activeSeasonResult,
-    directorCountryResult,
-  ] = await Promise.all([
+  const activeSeasonResult = await
     supabase
       .from("seasons")
       .select("id, game_year")
       .eq("status", "active")
-      .maybeSingle<SeasonRow>(),
-
-    supabase
-      .from("countries")
-      .select("iso_alpha2")
-      .eq("id", sportingDirector.country_id)
-      .maybeSingle<CountryRow>(),
-  ]);
+      .maybeSingle<SeasonRow>();
 
   if (
     activeSeasonResult.error ||
@@ -145,17 +137,11 @@ export async function getOrCreateSponsorOffersForAuthUser(
     );
   }
 
-  if (
-    directorCountryResult.error ||
-    !directorCountryResult.data
-  ) {
-    throw new Error(
-      "Impossible de retrouver la nationalité du Directeur Sportif."
-    );
-  }
-
   const activeSeason = activeSeasonResult.data;
-  const directorCountry = directorCountryResult.data;
+  const teamCountry = await resolveCurrentTeamCountry({
+    supabase,
+    sportingDirectorId: sportingDirector.id,
+  });
 
   const hasTerminatedContract =
     await hasTerminatedPrincipalContractForSeason({
@@ -220,7 +206,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
   const generatedProposals =
     generateSponsorProposals({
       directorCountryCode:
-        directorCountry.iso_alpha2,
+        teamCountry.iso_alpha2,
       directorReputation:
         sportingDirector.reputation_points,
       unavailableSponsorIds,
@@ -340,6 +326,64 @@ export async function getOrCreateSponsorOffersForAuthUser(
     seasonId: activeSeason.id,
     offerRows: insertedOfferRows ?? [],
   });
+}
+
+async function resolveCurrentTeamCountry({
+  supabase,
+  sportingDirectorId,
+}: {
+  supabase: SupabaseAdminClient;
+  sportingDirectorId: string;
+}): Promise<CountryRow> {
+  const { data: assignments, error: assignmentError } = await supabase
+    .from("team_manager_assignments")
+    .select("team_id")
+    .eq("sporting_director_id", sportingDirectorId)
+    .eq("role", "general_manager")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .returns<TeamAssignmentRow[]>();
+
+  if (assignmentError) {
+    throw new Error(
+      `Impossible de charger l’équipe du Directeur Sportif : ${assignmentError.message}`
+    );
+  }
+
+  const teamId = assignments?.[0]?.team_id;
+
+  if (!teamId) {
+    throw new Error(
+      "Fondez votre équipe amateur avant de recevoir des offres de sponsoring."
+    );
+  }
+
+  const { data: team, error: teamError } = await supabase
+    .from("teams")
+    .select("home_country_id")
+    .eq("id", teamId)
+    .maybeSingle<TeamRow>();
+
+  if (teamError || !team) {
+    throw new Error(
+      "Impossible de retrouver le pays d’affiliation de l’équipe."
+    );
+  }
+
+  const { data: country, error: countryError } = await supabase
+    .from("countries")
+    .select("iso_alpha2")
+    .eq("id", team.home_country_id)
+    .maybeSingle<CountryRow>();
+
+  if (countryError || !country) {
+    throw new Error(
+      "Impossible de retrouver le pays d’affiliation de l’équipe."
+    );
+  }
+
+  return country;
 }
 
 async function hasTerminatedPrincipalContractForSeason({

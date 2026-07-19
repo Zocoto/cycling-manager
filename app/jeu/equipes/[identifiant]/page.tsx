@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicTeam } from "@/services/public-directory";
+import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 
 export const metadata: Metadata = {
   title: "Fiche équipe",
@@ -41,6 +43,10 @@ export default async function PublicTeamPage({
   if (!team) {
     notFound();
   }
+
+  const amateurIdentity = await getTeamAmateurIdentity(
+    team.public_identifier
+  );
 
   const countryHref = `/jeu/nations/${team.country_code.toLowerCase()}`;
   const directorHref = team.sporting_director_username
@@ -145,6 +151,29 @@ export default async function PublicTeamPage({
                 description="Aucun Directeur Sportif principal n’est actuellement affecté."
               />
             )}
+
+            {amateurIdentity?.isConfigured ? (
+              <div className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5 lg:col-span-2">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                  <AmateurTeamJersey
+                    jersey={amateurIdentity.jersey}
+                    teamName={amateurIdentity.amateurName}
+                    className="h-28 w-24 shrink-0 drop-shadow-lg"
+                  />
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+                      Origine de l’équipe
+                    </p>
+                    <p className="mt-2 font-black text-[#183F37]">
+                      Équipe fondée sous le nom {amateurIdentity.amateurName}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[#60756E]">
+                      Identité amateur permanente · {amateurIdentity.homeCountryName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 

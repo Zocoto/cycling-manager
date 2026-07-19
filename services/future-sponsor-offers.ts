@@ -1,6 +1,7 @@
 import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
+import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -55,12 +56,15 @@ type SupabaseAdminClient = ReturnType<
 
 type SportingDirectorRow = {
   id: string;
-  country_id: string | null;
   reputation_points: number;
 };
 
 type CountryRow = {
   iso_alpha2: string;
+};
+
+type TeamRow = {
+  home_country_id: string;
 };
 
 type SeasonRow = {
@@ -151,7 +155,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     error: sportingDirectorError,
   } = await supabase
     .from("sporting_directors")
-    .select("id, country_id, reputation_points")
+    .select("id, reputation_points")
     .eq("auth_user_id", normalizedAuthUserId)
     .eq("status", "active")
     .maybeSingle<SportingDirectorRow>();
@@ -162,22 +166,34 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     );
   }
 
-  if (!sportingDirector.country_id) {
+  if (!isSponsoringUnlocked(sportingDirector.reputation_points)) {
     throw new Error(
-      "Le Directeur Sportif doit choisir sa nationalité avant de recevoir des offres."
+      "Votre réputation ne permet pas encore d’accéder à de nouvelles offres de sponsoring."
     );
   }
 
-  const { data: directorCountry, error: countryError } =
+  const { data: team, error: teamError } = await supabase
+    .from("teams")
+    .select("home_country_id")
+    .eq("id", normalizedTeamId)
+    .maybeSingle<TeamRow>();
+
+  if (teamError || !team) {
+    throw new Error(
+      "Impossible de retrouver le pays d’affiliation de l’équipe."
+    );
+  }
+
+  const { data: teamCountry, error: countryError } =
     await supabase
       .from("countries")
       .select("iso_alpha2")
-      .eq("id", sportingDirector.country_id)
+      .eq("id", team.home_country_id)
       .maybeSingle<CountryRow>();
 
-  if (countryError || !directorCountry) {
+  if (countryError || !teamCountry) {
     throw new Error(
-      "Impossible de retrouver la nationalité du Directeur Sportif."
+      "Impossible de retrouver le pays d’affiliation de l’équipe."
     );
   }
 
@@ -241,7 +257,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
 
   const generatedProposals = createFutureProposals({
     mode,
-    directorCountryCode: directorCountry.iso_alpha2,
+    directorCountryCode: teamCountry.iso_alpha2,
     directorReputation: sportingDirector.reputation_points,
     unavailableSponsorCatalogKeys,
     currentSponsorCatalogKey,

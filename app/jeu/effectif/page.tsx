@@ -3,9 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../../components/game/game-header";
+import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey";
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import {
+  getTeamAmateurIdentityForAuthUser,
+  type TeamAmateurIdentity,
+} from "../../../services/team-amateur-identity";
 import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
@@ -185,6 +190,18 @@ export default async function TeamRosterPage() {
       getErrorMessage(error);
   }
 
+  let teamAmateurIdentity: TeamAmateurIdentity | null = null;
+
+  try {
+    teamAmateurIdentity =
+      await getTeamAmateurIdentityForAuthUser(user.id);
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer l’identité amateur de l’équipe :",
+      error
+    );
+  }
+
   if (teamSummaryResult.error) {
     console.error(
       "Impossible de récupérer le résumé de l’équipe :",
@@ -220,6 +237,7 @@ export default async function TeamRosterPage() {
 
   const commercialTeamName =
     teamSponsorIdentity?.teamName ??
+    teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
 
@@ -324,6 +342,8 @@ export default async function TeamRosterPage() {
                 teamSponsorIdentity
               }
             />
+          ) : teamAmateurIdentity?.isConfigured ? (
+            <TeamAmateurIdentityBanner identity={teamAmateurIdentity} />
           ) : null}
 
           {rosterResult.error ? (
@@ -548,6 +568,38 @@ function TeamSeasonSummary({
         </p>
       </div>
     </div>
+  );
+}
+
+function TeamAmateurIdentityBanner({
+  identity,
+}: {
+  identity: TeamAmateurIdentity;
+}) {
+  return (
+    <article className="mt-8 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white shadow-[0_20px_50px_rgba(19,60,46,0.1)]">
+      <div className="grid items-center gap-6 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_180px]">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+            Identité fondatrice
+          </p>
+          <h2 className="mt-3 text-3xl font-black text-[#183F37]">
+            {identity.amateurName}
+          </h2>
+          <p className="mt-3 leading-7 text-[#60756E]">
+            Équipe amateur affiliée à {identity.homeCountryName}. Ce maillot
+            est utilisé tant qu’aucun sponsor principal n’est actif.
+          </p>
+        </div>
+        <div className="flex justify-center">
+          <AmateurTeamJersey
+            jersey={identity.jersey}
+            teamName={identity.amateurName}
+            className="h-44 w-40 drop-shadow-xl"
+          />
+        </div>
+      </div>
+    </article>
   );
 }
 

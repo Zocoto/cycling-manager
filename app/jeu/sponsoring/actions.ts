@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  GAMEPLAY_RULES,
+  isSponsoringUnlocked,
+} from "@/lib/gameplay-rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SponsorJerseyStyle } from "@/services/sponsoring-workflow";
 
@@ -43,6 +47,25 @@ export async function signSponsorOfferAction(
 
   if (authenticationError || !user) {
     redirect("/connexion");
+  }
+
+  const { data: director, error: directorError } = await supabase
+    .from("sporting_directors")
+    .select("reputation_points")
+    .eq("auth_user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle<{ reputation_points: number }>();
+
+  if (directorError || !director) {
+    redirectWithError(
+      "Le profil du Directeur Sportif est indisponible."
+    );
+  }
+
+  if (!isSponsoringUnlocked(director.reputation_points)) {
+    redirectWithError(
+      `Le marché du sponsoring se débloque à ${GAMEPLAY_RULES.sponsoringUnlockReputation} points de réputation.`
+    );
   }
 
   const { error } = await supabase.rpc(

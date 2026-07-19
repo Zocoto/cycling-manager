@@ -5,9 +5,16 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { isAccountDeletionConfirmed } from "../../../lib/account-deletion";
+import {
+  AMATEUR_JERSEY_PATTERNS,
+  hasDistinctJerseyColors,
+  normalizeHexColor,
+  type AmateurJerseyConfig,
+} from "../../../lib/amateur-team";
 import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import type { AmateurTeamCreationState } from "./amateur-team-state";
 import type { SportingDirectorProfileState } from "./profile-state";
 
 const sportingDirectorAvatarKeys = [
@@ -59,18 +66,52 @@ type CurrentSportingDirectorProfile = {
   country_id: string | null;
 };
 
+type AmateurTeamDirectorProfile = {
+  country_id: string | null;
+  avatar_key: string | null;
+};
+
 type RiderGenerationProfile = {
   name_profile_code: string;
   avatar_profile_key: string;
 };
 
 type CareerGenerationResult = {
-  status?: "created" | "already_created";
+  status?:
+    | "created"
+    | "configured_existing"
+    | "already_created";
   team_id?: string;
   season_id?: string;
   rider_count?: number;
   generation_version?: number;
 };
+
+const amateurTeamSchema = z
+  .object({
+    teamName: z
+      .string()
+      .min(3, "Le nom doit contenir au moins 3 caractères.")
+      .max(40, "Le nom ne peut pas dépasser 40 caractères.")
+      .regex(
+        /^[\p{L}\p{M}\p{N} .&'’-]+$/u,
+        "Utilise uniquement des lettres, chiffres, espaces et signes simples."
+      ),
+    countryId: z.string().uuid("Sélectionne un pays valide."),
+    jerseyPattern: z.enum(AMATEUR_JERSEY_PATTERNS),
+    primaryColor: z.string().regex(/^#[0-9A-F]{6}$/),
+    secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/),
+    accentColor: z.string().regex(/^#[0-9A-F]{6}$/),
+  })
+  .superRefine((value, context) => {
+    if (!hasDistinctJerseyColors(toJerseyConfig(value))) {
+      context.addIssue({
+        code: "custom",
+        path: ["secondaryColor"],
+        message: "Choisis au moins deux couleurs différentes.",
+      });
+    }
+  });
 
 export type AccountDeletionState = {
   status: "idle" | "error";
@@ -219,26 +260,131 @@ export async function updateSportingDirectorProfile(
     };
   }
 
+  revalidateSportingDirectorPages();
+
+  return {
+    status: "success",
+    message:
+      currentProfile.country_id
+        ? "Votre profil de Directeur Sportif a bien été enregistré."
+        : "Votre profil est enregistré. Vous pouvez maintenant fonder votre équipe amateur.",
+    fieldErrors: {},
+  };
+}
+
+export async function createAmateurTeam(
+  _previousState: AmateurTeamCreationState,
+  formData: FormData
+): Promise<AmateurTeamCreationState> {
+  const teamName = normalizeDisplayName(
+    getFormValue(formData, "teamName")
+  );
+  const countryId = getFormValue(formData, "countryId").trim();
+  const jerseyPattern = getFormValue(
+    formData,
+    "jerseyPattern"
+  ).trim();
+  const primaryColor = normalizeHexColor(
+    getFormValue(formData, "primaryColor")
+  );
+  const secondaryColor = normalizeHexColor(
+    getFormValue(formData, "secondaryColor")
+  );
+  const accentColor = normalizeHexColor(
+    getFormValue(formData, "accentColor")
+  );
+
+  const validationResult = amateurTeamSchema.safeParse({
+    teamName,
+    countryId,
+    jerseyPattern,
+    primaryColor: primaryColor ?? "",
+    secondaryColor: secondaryColor ?? "",
+    accentColor: accentColor ?? "",
+  });
+
+  if (!validationResult.success) {
+    return {
+      status: "error",
+      message: "Certains éléments de l’équipe doivent être corrigés.",
+      fieldErrors: validationResult.error.flatten().fieldErrors,
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
   const {
-    data: generationProfile,
-    error: generationProfileError,
-  } = await supabase
-    .rpc("get_current_rider_generation_profile")
-    .maybeSingle<RiderGenerationProfile>();
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    return {
+      status: "error",
+      message:
+        "Votre session a expiré. Reconnectez-vous avant de fonder votre équipe.",
+      fieldErrors: {},
+    };
+  }
+
+  const { data: director, error: directorError } = await supabase
+    .from("sporting_directors")
+    .select("country_id, avatar_key")
+    .eq("auth_user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle<AmateurTeamDirectorProfile>();
+
+  if (directorError || !director) {
+    return {
+      status: "error",
+      message: "Votre profil de Directeur Sportif est indisponible.",
+      fieldErrors: {},
+    };
+  }
+
+  if (!director.country_id || !director.avatar_key) {
+    return {
+      status: "error",
+      message:
+        "Validez d’abord la nationalité et l’avatar de votre Directeur Sportif.",
+      fieldErrors: {},
+    };
+  }
+
+  const { data: selectedCountry, error: countryError } = await supabase
+    .from("countries")
+    .select("id")
+    .eq("id", validationResult.data.countryId)
+    .eq("is_active", true)
+    .maybeSingle<{ id: string }>();
+
+  if (countryError || !selectedCountry) {
+    return {
+      status: "error",
+      message: "Le pays d’affiliation sélectionné est invalide.",
+      fieldErrors: {
+        countryId: ["Sélectionne un pays disponible dans la liste."],
+      },
+    };
+  }
+
+  const { data: generationProfile, error: generationProfileError } =
+    await supabase
+      .rpc("get_rider_generation_profile_for_country", {
+        p_country_id: validationResult.data.countryId,
+      })
+      .maybeSingle<RiderGenerationProfile>();
 
   if (generationProfileError || !generationProfile) {
     console.error(
-      "Impossible de récupérer le profil de génération des coureurs :",
+      "Impossible de récupérer le profil de génération du pays de l’équipe :",
       generationProfileError
     );
-
-    revalidateSportingDirectorPages();
 
     return {
       status: "error",
       message:
-        "Votre profil a été enregistré, mais la préparation de votre équipe a échoué. Enregistrez de nouveau votre profil pour réessayer.",
-      fieldErrors: {},
+        "Ce pays ne dispose pas encore d’un profil de génération de coureurs.",
+      fieldErrors: { countryId: ["Choisis un autre pays pour le moment."] },
     };
   }
 
@@ -254,65 +400,56 @@ export async function updateSportingDirectorProfile(
       error
     );
 
-    revalidateSportingDirectorPages();
-
     return {
       status: "error",
       message:
-        "Votre profil a été enregistré, mais les identités de vos coureurs n’ont pas pu être générées. Enregistrez de nouveau votre profil pour réessayer.",
+        "Les identités des coureurs n’ont pas pu être préparées. Réessayez dans quelques instants.",
       fieldErrors: {},
     };
   }
 
-  const {
-    data: careerGenerationData,
-    error: careerGenerationError,
-  } = await supabase.rpc(
-    "initialize_sporting_director_career",
-    {
+  const { data: careerGenerationData, error: careerGenerationError } =
+    await supabase.rpc("initialize_sporting_director_career", {
       p_rider_identities: riderIdentities,
-    }
-  );
+      p_team_name: validationResult.data.teamName,
+      p_team_country_id: validationResult.data.countryId,
+      p_jersey_pattern: validationResult.data.jerseyPattern,
+      p_jersey_primary_color: validationResult.data.primaryColor,
+      p_jersey_secondary_color: validationResult.data.secondaryColor,
+      p_jersey_accent_color: validationResult.data.accentColor,
+    });
 
   if (careerGenerationError) {
-    console.error(
-      "Échec de la génération de la carrière initiale :",
-      {
-        code: careerGenerationError.code,
-        message: careerGenerationError.message,
-        details: careerGenerationError.details,
-        hint: careerGenerationError.hint,
-      }
-    );
-
-    revalidateSportingDirectorPages();
+    console.error("Échec de la fondation de l’équipe amateur :", {
+      code: careerGenerationError.code,
+      message: careerGenerationError.message,
+      details: careerGenerationError.details,
+      hint: careerGenerationError.hint,
+    });
 
     return {
       status: "error",
       message:
-        "Votre profil a été enregistré, mais votre équipe n’a pas pu être créée. Enregistrez de nouveau votre profil pour réessayer.",
+        careerGenerationError.message ||
+        "Votre équipe n’a pas pu être créée. Réessayez dans quelques instants.",
       fieldErrors: {},
     };
   }
 
-  const careerGenerationResult =
-    careerGenerationData as CareerGenerationResult | null;
+  const result = careerGenerationData as CareerGenerationResult | null;
 
   revalidateSportingDirectorPages();
-
-  if (careerGenerationResult?.status === "created") {
-    return {
-      status: "success",
-      message:
-        "Votre profil, votre équipe amateur et vos 7 coureurs ont bien été créés.",
-      fieldErrors: {},
-    };
-  }
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/sponsoring");
 
   return {
     status: "success",
     message:
-      "Votre profil de Directeur Sportif a bien été enregistré.",
+      result?.status === "configured_existing"
+        ? "L’identité fondatrice de votre équipe a bien été enregistrée."
+        : result?.status === "already_created"
+          ? "L’identité amateur de votre équipe était déjà configurée."
+          : "Votre équipe amateur et ses 7 premiers coureurs ont bien été créés.",
     fieldErrors: {},
   };
 }
@@ -328,6 +465,20 @@ function getFormValue(
 
 function normalizeDisplayName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function toJerseyConfig(value: {
+  jerseyPattern: (typeof AMATEUR_JERSEY_PATTERNS)[number];
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+}): AmateurJerseyConfig {
+  return {
+    pattern: value.jerseyPattern,
+    primaryColor: value.primaryColor,
+    secondaryColor: value.secondaryColor,
+    accentColor: value.accentColor,
+  };
 }
 
 function revalidateSportingDirectorPages(): void {
