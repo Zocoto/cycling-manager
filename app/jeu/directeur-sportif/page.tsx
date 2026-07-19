@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../../components/game/game-header";
+import { DeleteSportingDirectorAccount } from "../../../components/game/delete-sporting-director-account";
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../../components/game/sporting-director-avatar";
@@ -292,6 +293,14 @@ export default async function SportingDirectorProfilePage() {
                 }
                 teamSponsorIdentity={
                   teamSponsorIdentity
+                }
+                />
+
+              <DeleteSportingDirectorAccount
+                displayName={displayName}
+                teamName={
+                  teamSponsorIdentity?.teamName ??
+                  "Votre équipe amateur"
                 }
               />
             </div>

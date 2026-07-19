@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { isAccountDeletionConfirmed } from "../../../lib/account-deletion";
 import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
+import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { SportingDirectorProfileState } from "./profile-state";
 
@@ -67,6 +70,11 @@ type CareerGenerationResult = {
   season_id?: string;
   rider_count?: number;
   generation_version?: number;
+};
+
+export type AccountDeletionState = {
+  status: "idle" | "error";
+  message: string | null;
 };
 
 export async function updateSportingDirectorProfile(
@@ -325,4 +333,93 @@ function normalizeDisplayName(value: string): string {
 function revalidateSportingDirectorPages(): void {
   revalidatePath("/jeu");
   revalidatePath("/jeu/directeur-sportif");
+}
+
+export async function deleteSportingDirectorAccount(
+  _previousState: AccountDeletionState,
+  formData: FormData
+): Promise<AccountDeletionState> {
+  const confirmation = getFormValue(
+    formData,
+    "confirmation"
+  );
+
+  if (!isAccountDeletionConfirmed(confirmation)) {
+    return {
+      status: "error",
+      message:
+        "Saisissez exactement SUPPRIMER pour confirmer cette action définitive.",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    return {
+      status: "error",
+      message:
+        "Votre session a expiré. Reconnectez-vous avant de supprimer votre compte.",
+    };
+  }
+
+  const { error: careerDeletionError } =
+    await supabase.rpc(
+      "delete_current_sporting_director_account"
+    );
+
+  if (careerDeletionError) {
+    console.error(
+      "Échec de la suppression de la carrière du Directeur Sportif :",
+      {
+        code: careerDeletionError.code,
+        message: careerDeletionError.message,
+      }
+    );
+
+    return {
+      status: "error",
+      message:
+        careerDeletionError.message.includes(
+          "résultats officiels"
+        )
+          ? careerDeletionError.message
+          : "La carrière n’a pas pu être supprimée. Aucune suppression partielle n’a été effectuée.",
+    };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { error: authDeletionError } =
+    await adminSupabase.auth.admin.deleteUser(user.id);
+
+  if (authDeletionError) {
+    console.error(
+      "La carrière a été supprimée mais le compte Auth doit être supprimé de nouveau :",
+      {
+        code: authDeletionError.code,
+        message: authDeletionError.message,
+      }
+    );
+
+    return {
+      status: "error",
+      message:
+        "La carrière a été supprimée, mais la fermeture du compte de connexion doit être relancée. Cliquez de nouveau sur Supprimer mon compte.",
+    };
+  }
+
+  const { error: signOutError } =
+    await supabase.auth.signOut({ scope: "local" });
+
+  if (signOutError) {
+    console.warn(
+      "Le compte a été supprimé mais la session locale n’a pas pu être révoquée explicitement :",
+      signOutError.message
+    );
+  }
+
+  redirect("/connexion?status=account-deleted");
 }

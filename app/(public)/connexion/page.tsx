@@ -28,6 +28,8 @@ export default async function LoginPage({
 
   const passwordWasUpdated =
     status === "password-updated";
+  const accountWasDeleted =
+    status === "account-deleted";
 
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
@@ -122,7 +124,7 @@ export default async function LoginPage({
               </p>
             </div>
 
-            {passwordWasUpdated ? (
+            {passwordWasUpdated || accountWasDeleted ? (
               <div
                 role="status"
                 aria-live="polite"
@@ -138,12 +140,15 @@ export default async function LoginPage({
 
                   <div>
                     <p className="text-sm font-bold text-[#7FE0C0]">
-                      Mot de passe modifié
+                      {accountWasDeleted
+                        ? "Compte supprimé"
+                        : "Mot de passe modifié"}
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-[#D6DFD2]">
-                      Vous pouvez maintenant vous connecter avec votre
-                      nouveau mot de passe.
+                      {accountWasDeleted
+                        ? "Votre carrière, votre équipe et votre compte de connexion ont été supprimés. Vos anciens coureurs sont désormais agents libres."
+                        : "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe."}
                     </p>
                   </div>
                 </div>
