@@ -37,7 +37,7 @@ export default async function PublicSportingDirectorPage({
   }
 
   const [profile, headerData] = await Promise.all([
-    getPublicSportingDirector(supabase, identifiantPublic),
+    getPublicSportingDirector(identifiantPublic),
     getGameHeaderData(supabase, user.id),
   ]);
 
