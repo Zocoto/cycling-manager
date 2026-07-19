@@ -50,11 +50,19 @@ export type SponsoringState =
       contract: PersistedSponsorContract;
     };
 
+type SupabaseAdminClient = ReturnType<
+  typeof createSupabaseAdminClient
+>;
+
 type SportingDirectorRow = {
   id: string;
 };
 
 type TeamAssignmentRow = {
+  team_id: string;
+};
+
+type InitialCareerGenerationRow = {
   team_id: string;
 };
 
@@ -89,7 +97,8 @@ type SponsorObjectiveRow = {
 export async function getSponsoringStateForAuthUser(
   authUserId: string
 ): Promise<SponsoringState> {
-  const normalizedAuthUserId = authUserId.trim();
+  const normalizedAuthUserId =
+    authUserId.trim();
 
   if (!normalizedAuthUserId) {
     throw new Error(
@@ -97,7 +106,8 @@ export async function getSponsoringStateForAuthUser(
     );
   }
 
-  const supabase = createSupabaseAdminClient();
+  const supabase =
+    createSupabaseAdminClient();
 
   const {
     data: sportingDirector,
@@ -105,48 +115,34 @@ export async function getSponsoringStateForAuthUser(
   } = await supabase
     .from("sporting_directors")
     .select("id")
-    .eq("auth_user_id", normalizedAuthUserId)
+    .eq(
+      "auth_user_id",
+      normalizedAuthUserId
+    )
     .eq("status", "active")
     .maybeSingle<SportingDirectorRow>();
 
-  if (
-    sportingDirectorError ||
-    !sportingDirector
-  ) {
+  if (sportingDirectorError) {
+    throw new Error(
+      `Impossible de retrouver le profil du Directeur Sportif : ${sportingDirectorError.message}`
+    );
+  }
+
+  if (!sportingDirector) {
     throw new Error(
       "Impossible de retrouver le profil du Directeur Sportif."
     );
   }
 
-  const {
-    data: teamAssignment,
-    error: teamAssignmentError,
-  } = await supabase
-    .from("team_manager_assignments")
-    .select("team_id")
-    .eq(
-      "sporting_director_id",
-      sportingDirector.id
-    )
-    .eq("role", "general_manager")
-    .eq("status", "active")
-    .order("created_at", {
-      ascending: false,
-    })
-    .limit(1)
-    .maybeSingle<TeamAssignmentRow>();
-
-  if (
-    teamAssignmentError ||
-    !teamAssignment
-  ) {
-    throw new Error(
-      "Aucune équipe active n’est rattachée à ce Directeur Sportif."
-    );
-  }
+  const teamId =
+    await resolveCurrentTeamId({
+      supabase,
+      sportingDirectorId:
+        sportingDirector.id,
+    });
 
   const {
-    data: contractRow,
+    data: contractRows,
     error: contractError,
   } = await supabase
     .from("team_sponsor_contracts")
@@ -165,20 +161,23 @@ export async function getSponsoringStateForAuthUser(
         activated_at
       `
     )
-    .eq("team_id", teamAssignment.team_id)
+    .eq("team_id", teamId)
     .eq("role", "principal")
     .in("status", ["planned", "active"])
     .order("created_at", {
       ascending: false,
     })
     .limit(1)
-    .maybeSingle<SponsorContractRow>();
+    .returns<SponsorContractRow[]>();
 
   if (contractError) {
     throw new Error(
       `Impossible de charger le contrat sponsor : ${contractError.message}`
     );
   }
+
+  const contractRow =
+    contractRows?.[0] ?? null;
 
   if (!contractRow) {
     const offers =
@@ -229,10 +228,13 @@ export async function getSponsoringStateForAuthUser(
       .returns<SponsorObjectiveRow[]>(),
   ]);
 
-  if (
-    sponsorRegistryResult.error ||
-    !sponsorRegistryResult.data
-  ) {
+  if (sponsorRegistryResult.error) {
+    throw new Error(
+      `Impossible de retrouver le sponsor associé au contrat : ${sponsorRegistryResult.error.message}`
+    );
+  }
+
+  if (!sponsorRegistryResult.data) {
     throw new Error(
       "Impossible de retrouver le sponsor associé au contrat."
     );
@@ -244,19 +246,20 @@ export async function getSponsoringStateForAuthUser(
     );
   }
 
- const sponsorCatalogKey =
-  sponsorRegistryResult.data.catalog_key;
+  const sponsorCatalogKey =
+    sponsorRegistryResult.data.catalog_key;
 
-const sponsor = SPONSORS.find(
-  (catalogSponsor) =>
-    catalogSponsor.id === sponsorCatalogKey
-);
-
-if (!sponsor) {
-  throw new Error(
-    `Le sponsor "${sponsorCatalogKey}" existe dans Supabase mais pas dans le catalogue TypeScript.`
+  const sponsor = SPONSORS.find(
+    (catalogSponsor) =>
+      catalogSponsor.id ===
+      sponsorCatalogKey
   );
-}
+
+  if (!sponsor) {
+    throw new Error(
+      `Le sponsor "${sponsorCatalogKey}" existe dans Supabase mais pas dans le catalogue TypeScript.`
+    );
+  }
 
   const budgetPerSeason = Number(
     contractRow.budget_per_season
@@ -268,32 +271,37 @@ if (!sponsor) {
     );
   }
 
-  const contract: PersistedSponsorContract = {
-    id: contractRow.id,
-    sponsor,
-    sponsorOfferId:
-      contractRow.sponsor_offer_id,
-    budgetPerSeason,
-    currencyCode: contractRow.currency_code,
-    contractDurationSeasons:
-      contractRow.contract_duration_seasons,
-    status: contractRow.status,
-    selectedJerseyId:
-      contractRow.selected_jersey_id,
-    selectedJerseyStyle:
-      contractRow.selected_jersey_style,
-    signedAt: contractRow.signed_at,
-    activatedAt: contractRow.activated_at,
-    objectives: (
-      objectivesResult.data ?? []
-    ).map((objective) => ({
-      id: objective.id,
-      name: objective.name,
-      description: objective.description,
-      displayOrder: objective.display_order,
-      status: objective.status,
-    })),
-  };
+  const contract: PersistedSponsorContract =
+    {
+      id: contractRow.id,
+      sponsor,
+      sponsorOfferId:
+        contractRow.sponsor_offer_id,
+      budgetPerSeason,
+      currencyCode:
+        contractRow.currency_code,
+      contractDurationSeasons:
+        contractRow.contract_duration_seasons,
+      status: contractRow.status,
+      selectedJerseyId:
+        contractRow.selected_jersey_id,
+      selectedJerseyStyle:
+        contractRow.selected_jersey_style,
+      signedAt: contractRow.signed_at,
+      activatedAt:
+        contractRow.activated_at,
+      objectives: (
+        objectivesResult.data ?? []
+      ).map((objective) => ({
+        id: objective.id,
+        name: objective.name,
+        description:
+          objective.description,
+        displayOrder:
+          objective.display_order,
+        status: objective.status,
+      })),
+    };
 
   if (
     contract.status === "planned" ||
@@ -310,4 +318,69 @@ if (!sponsor) {
     kind: "active",
     contract,
   };
+}
+
+async function resolveCurrentTeamId({
+  supabase,
+  sportingDirectorId,
+}: {
+  supabase: SupabaseAdminClient;
+  sportingDirectorId: string;
+}): Promise<string> {
+  const {
+    data: assignmentRows,
+    error: assignmentError,
+  } = await supabase
+    .from("team_manager_assignments")
+    .select("team_id")
+    .eq(
+      "sporting_director_id",
+      sportingDirectorId
+    )
+    .eq("role", "general_manager")
+    .eq("status", "active")
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(1)
+    .returns<TeamAssignmentRow[]>();
+
+  if (assignmentError) {
+    throw new Error(
+      `Impossible de charger l’affectation de l’équipe : ${assignmentError.message}`
+    );
+  }
+
+  const assignedTeamId =
+    assignmentRows?.[0]?.team_id;
+
+  if (assignedTeamId) {
+    return assignedTeamId;
+  }
+
+  const {
+    data: careerGeneration,
+    error: careerGenerationError,
+  } = await supabase
+    .from("initial_career_generations")
+    .select("team_id")
+    .eq(
+      "sporting_director_id",
+      sportingDirectorId
+    )
+    .maybeSingle<InitialCareerGenerationRow>();
+
+  if (careerGenerationError) {
+    throw new Error(
+      `Impossible de retrouver l’équipe générée pour ce Directeur Sportif : ${careerGenerationError.message}`
+    );
+  }
+
+  if (careerGeneration?.team_id) {
+    return careerGeneration.team_id;
+  }
+
+  throw new Error(
+    "Aucune équipe n’est rattachée à ce Directeur Sportif. Terminez d’abord la création de votre carrière."
+  );
 }
