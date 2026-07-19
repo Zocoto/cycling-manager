@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
+import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { WheelLogo } from "../../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import {
+  getActiveTeamSponsorIdentityForAuthUser,
+  type TeamSponsorIdentity,
+} from "../../../services/team-sponsor-identity";
 import { logoutAccount } from "../actions";
 
 export const metadata: Metadata = {
@@ -138,7 +144,8 @@ const ratingColumns: Array<{
 ];
 
 export default async function TeamRosterPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase =
+    await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -158,13 +165,36 @@ export default async function TeamRosterPage() {
       supabase.rpc("get_current_team_roster"),
     ]);
 
+  let teamSponsorIdentity:
+    TeamSponsorIdentity | null = null;
+
+  let teamSponsorIdentityError:
+    string | null = null;
+
+  try {
+    teamSponsorIdentity =
+      await getActiveTeamSponsorIdentityForAuthUser(
+        user.id
+      );
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer l’identité commerciale de l’équipe :",
+      error
+    );
+
+    teamSponsorIdentityError =
+      getErrorMessage(error);
+  }
+
   if (teamSummaryResult.error) {
     console.error(
       "Impossible de récupérer le résumé de l’équipe :",
       {
         code: teamSummaryResult.error.code,
-        message: teamSummaryResult.error.message,
-        details: teamSummaryResult.error.details,
+        message:
+          teamSummaryResult.error.message,
+        details:
+          teamSummaryResult.error.details,
         hint: teamSummaryResult.error.hint,
       }
     );
@@ -186,16 +216,30 @@ export default async function TeamRosterPage() {
     (teamSummaryResult.data ??
       null) as CurrentTeamDashboardSummary | null;
 
-  const riders = (rosterResult.data ?? []) as RiderRow[];
+  const riders =
+    (rosterResult.data ?? []) as RiderRow[];
+
+  const commercialTeamName =
+    teamSponsorIdentity?.teamName ??
+    teamSummary?.team_name ??
+    "Votre équipe";
 
   const minimumAge =
     riders.length > 0
-      ? Math.min(...riders.map((rider) => rider.age))
+      ? Math.min(
+          ...riders.map(
+            (rider) => rider.age
+          )
+        )
       : 0;
 
   const maximumAge =
     riders.length > 0
-      ? Math.max(...riders.map((rider) => rider.age))
+      ? Math.max(
+          ...riders.map(
+            (rider) => rider.age
+          )
+        )
       : 0;
 
   const teamAverage =
@@ -203,7 +247,8 @@ export default async function TeamRosterPage() {
       ? Math.round(
           riders.reduce(
             (total, rider) =>
-              total + getRiderAverage(rider),
+              total +
+              getRiderAverage(rider),
             0
           ) / riders.length
         )
@@ -241,25 +286,43 @@ export default async function TeamRosterPage() {
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
-                Consultez les qualités, les contrats et les
-                spécialités de vos coureurs pour la saison
-                actuelle.
+                Consultez les qualités, les
+                contrats et les spécialités de vos
+                coureurs pour la saison actuelle.
               </p>
             </div>
 
             {teamSummary ? (
-              <div className="rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 text-right shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
-                <p className="font-black text-[#082A2A]">
-                  {teamSummary.team_name}
-                </p>
-
-                <p className="mt-1 text-sm font-semibold text-[#60756E]">
-                  {teamSummary.season_name} · Jour{" "}
-                  {teamSummary.season_day_number} / 28
-                </p>
-              </div>
+              <TeamSeasonSummary
+                teamName={commercialTeamName}
+                seasonName={
+                  teamSummary.season_name
+                }
+                seasonDayNumber={
+                  teamSummary.season_day_number
+                }
+                sponsorIdentity={
+                  teamSponsorIdentity
+                }
+              />
             ) : null}
           </header>
+
+          {teamSponsorIdentityError ? (
+            <TeamSponsorIdentityWarning
+              message={
+                teamSponsorIdentityError
+              }
+            />
+          ) : null}
+
+          {teamSponsorIdentity ? (
+            <TeamCommercialIdentityBanner
+              identity={
+                teamSponsorIdentity
+              }
+            />
+          ) : null}
 
           {rosterResult.error ? (
             <RosterErrorMessage />
@@ -295,7 +358,8 @@ export default async function TeamRosterPage() {
             <SummaryCard
               label="Échéance"
               value={
-                riders[0]?.contract_end_season_name ??
+                riders[0]
+                  ?.contract_end_season_name ??
                 "Non disponible"
               }
               detail="Contrats initiaux"
@@ -303,6 +367,16 @@ export default async function TeamRosterPage() {
           </section>
 
           <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]">
+            {teamSponsorIdentity ? (
+              <div
+                aria-hidden="true"
+                className="h-1.5 w-full"
+                style={{
+                  background: `linear-gradient(90deg, ${teamSponsorIdentity.sponsor.colors.primary}, ${teamSponsorIdentity.sponsor.colors.accent}, ${teamSponsorIdentity.sponsor.colors.secondary})`,
+                }}
+              />
+            ) : null}
+
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#315B3E]/15 bg-[#0B302B] px-5 py-5 text-[#FFFDF4] sm:px-7">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
@@ -310,8 +384,14 @@ export default async function TeamRosterPage() {
                 </p>
 
                 <h2 className="mt-2 text-2xl font-black">
-                  {formatRiderCount(riders.length)}
+                  {commercialTeamName}
                 </h2>
+
+                <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
+                  {formatRiderCount(
+                    riders.length
+                  )}
+                </p>
               </div>
 
               <RatingLegend />
@@ -343,16 +423,20 @@ export default async function TeamRosterPage() {
                         Profil
                       </th>
 
-                      {ratingColumns.map((column) => (
-                        <th
-                          key={column.key}
-                          scope="col"
-                          title={column.fullLabel}
-                          className="px-2 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                        >
-                          {column.label}
-                        </th>
-                      ))}
+                      {ratingColumns.map(
+                        (column) => (
+                          <th
+                            key={column.key}
+                            scope="col"
+                            title={
+                              column.fullLabel
+                            }
+                            className="px-2 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
+                          >
+                            {column.label}
+                          </th>
+                        )
+                      )}
 
                       <th
                         scope="col"
@@ -393,9 +477,9 @@ export default async function TeamRosterPage() {
           </section>
 
           <p className="mt-5 text-sm leading-6 text-[#60756E]">
-            Les portraits définitifs et la fiche détaillée de
-            chaque coureur seront ajoutés dans une prochaine
-            évolution.
+            Les portraits définitifs et la fiche
+            détaillée de chaque coureur seront
+            ajoutés dans une prochaine évolution.
           </p>
         </div>
       </section>
@@ -437,6 +521,227 @@ function GameHeader() {
   );
 }
 
+function TeamSeasonSummary({
+  teamName,
+  seasonName,
+  seasonDayNumber,
+  sponsorIdentity,
+}: {
+  teamName: string;
+  seasonName: string;
+  seasonDayNumber: number;
+  sponsorIdentity:
+    TeamSponsorIdentity | null;
+}) {
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
+      {sponsorIdentity ? (
+        <div
+          className="hidden h-14 w-24 items-center justify-center overflow-hidden rounded-lg border bg-white px-2 py-1 sm:flex"
+          style={{
+            borderColor: `${sponsorIdentity.sponsor.colors.primary}35`,
+            backgroundColor:
+              sponsorIdentity.sponsor.colors
+                .background,
+          }}
+        >
+          <SponsorLogo
+            src={
+              sponsorIdentity.sponsor.logoPath
+            }
+            alt={`Logo de ${sponsorIdentity.sponsor.name}`}
+            sponsorName={
+              sponsorIdentity.sponsor.name
+            }
+            primaryColor={
+              sponsorIdentity.sponsor.colors
+                .primary
+            }
+            backgroundColor={
+              sponsorIdentity.sponsor.colors
+                .background
+            }
+            textColor={
+              sponsorIdentity.sponsor.colors
+                .text
+            }
+          />
+        </div>
+      ) : null}
+
+      <div className="text-right">
+        <p className="font-black text-[#082A2A]">
+          {teamName}
+        </p>
+
+        <p className="mt-1 text-sm font-semibold text-[#60756E]">
+          {seasonName} · Jour{" "}
+          {seasonDayNumber} / 28
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TeamCommercialIdentityBanner({
+  identity,
+}: {
+  identity: TeamSponsorIdentity;
+}) {
+  const sponsor = identity.sponsor;
+
+  return (
+    <article
+      className="relative mt-8 overflow-hidden rounded-2xl border bg-white shadow-[0_20px_50px_rgba(19,60,46,0.1)]"
+      style={{
+        borderColor: `${sponsor.colors.primary}45`,
+        background: `linear-gradient(145deg, ${sponsor.colors.background}, #FFFFFF 36%, #FFFFFF 78%, ${sponsor.colors.secondary}70)`,
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className="h-2 w-full"
+        style={{
+          background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
+        }}
+      />
+
+      <div className="grid items-center gap-7 p-6 sm:p-7 lg:grid-cols-[220px_minmax(0,1fr)_180px]">
+        <div
+          className="flex min-h-28 items-center justify-center overflow-hidden rounded-xl border bg-white/90 px-5 py-4"
+          style={{
+            borderColor: `${sponsor.colors.primary}30`,
+          }}
+        >
+          <SponsorLogo
+            src={sponsor.logoPath}
+            alt={`Logo de ${sponsor.name}`}
+            sponsorName={sponsor.name}
+            primaryColor={
+              sponsor.colors.primary
+            }
+            backgroundColor={
+              sponsor.colors.background
+            }
+            textColor={sponsor.colors.text}
+          />
+        </div>
+
+        <div>
+          <p
+            className="text-xs font-extrabold uppercase tracking-[0.17em]"
+            style={{
+              color: sponsor.colors.primary,
+            }}
+          >
+            Identité de l’équipe
+          </p>
+
+          <h2
+            className="mt-3 text-3xl font-black tracking-[-0.035em]"
+            style={{
+              color: sponsor.colors.text,
+            }}
+          >
+            {identity.teamName}
+          </h2>
+
+          <p className="mt-2 text-sm font-bold text-[#60756E]">
+            Sponsor principal : {sponsor.name}
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <CommercialMetric
+              label="Budget annuel"
+              value={formatMoney(
+                identity.budgetPerSeason,
+                identity.currencyCode
+              )}
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+            />
+
+            <CommercialMetric
+              label="Durée"
+              value={formatDuration(
+                identity.contractDurationSeasons
+              )}
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+            />
+
+            <CommercialMetric
+              label="Maillot"
+              value={
+                identity.selectedJersey.name
+              }
+              primaryColor={
+                sponsor.colors.primary
+              }
+              backgroundColor={
+                sponsor.colors.background
+              }
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <SponsorJerseyPreview
+            sponsor={sponsor}
+            jersey={
+              identity.selectedJersey
+            }
+            className="h-44 w-40 drop-shadow-xl"
+          />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CommercialMetric({
+  label,
+  value,
+  primaryColor,
+  backgroundColor,
+}: {
+  label: string;
+  value: string;
+  primaryColor: string;
+  backgroundColor: string;
+}) {
+  return (
+    <div
+      className="min-w-36 rounded-xl border px-4 py-3"
+      style={{
+        borderColor: `${primaryColor}25`,
+        backgroundColor,
+      }}
+    >
+      <p
+        className="text-[0.65rem] font-extrabold uppercase tracking-[0.13em]"
+        style={{
+          color: primaryColor,
+        }}
+      >
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm font-black text-[#082A2A]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function SummaryCard({
   label,
   value,
@@ -471,14 +776,17 @@ function RiderTableRow({
   const riderName =
     `${rider.first_name} ${rider.last_name}`.trim();
 
-  const riderProfile = getRiderProfile(rider);
-  const riderAverage = getRiderAverage(rider);
+  const riderProfile =
+    getRiderProfile(rider);
+
+  const riderAverage =
+    getRiderAverage(rider);
 
   return (
     <tr className="border-b border-[#315B3E]/10 transition last:border-b-0 hover:bg-[#F6FAF8]">
       <th
         scope="row"
-        className="sticky left-0 z-10 bg-white px-5 py-4 text-left group-hover:bg-[#F6FAF8]"
+        className="sticky left-0 z-10 bg-white px-5 py-4 text-left"
       >
         <div className="flex items-center gap-4">
           <RiderSilhouette />
@@ -490,8 +798,12 @@ function RiderTableRow({
 
             <div className="mt-1 flex items-center gap-2">
               <CountryFlag
-                isoAlpha2={rider.country_iso_alpha2}
-                countryName={rider.country_name}
+                isoAlpha2={
+                  rider.country_iso_alpha2
+                }
+                countryName={
+                  rider.country_name
+                }
               />
 
               <span className="truncate text-xs font-semibold text-[#60756E]">
@@ -543,7 +855,9 @@ function RiderTableRow({
 
       <td className="px-5 py-4">
         <p className="font-bold text-[#082A2A]">
-          {rider.contract_end_season_name}
+          {
+            rider.contract_end_season_name
+          }
         </p>
 
         <p className="mt-1 text-xs font-semibold text-[#60756E]">
@@ -692,8 +1006,8 @@ function EmptyRoster() {
       </h2>
 
       <p className="mx-auto mt-3 max-w-xl leading-7 text-[#60756E]">
-        L’équipe existe, mais aucun contrat actif n’a été trouvé
-        pour la saison actuelle.
+        L’équipe existe, mais aucun contrat actif
+        n’a été trouvé pour la saison actuelle.
       </p>
     </div>
   );
@@ -702,8 +1016,27 @@ function EmptyRoster() {
 function RosterErrorMessage() {
   return (
     <div className="mt-8 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
-      L’effectif n’a pas pu être récupéré. Consultez le terminal
-      de développement pour connaître le détail de l’erreur.
+      L’effectif n’a pas pu être récupéré.
+      Consultez les journaux techniques pour
+      connaître le détail de l’erreur.
+    </div>
+  );
+}
+
+function TeamSponsorIdentityWarning({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
+      L’effectif reste disponible, mais
+      l’identité commerciale de l’équipe n’a pas
+      pu être chargée.
+
+      <span className="mt-1 block text-xs font-medium">
+        {message}
+      </span>
     </div>
   );
 }
@@ -737,15 +1070,28 @@ function RosterIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle cx="8" cy="8" r="3" />
-      <circle cx="17" cy="9" r="2.5" />
+      <circle
+        cx="8"
+        cy="8"
+        r="3"
+      />
+
+      <circle
+        cx="17"
+        cy="9"
+        r="2.5"
+      />
+
       <path d="M2.5 20c.5-4.5 2.5-7 5.5-7s5 2.5 5.5 7" />
+
       <path d="M14 14c3.5-.3 5.5 1.7 6 5" />
     </svg>
   );
 }
 
-function getRiderProfile(rider: RiderRow): string {
+function getRiderProfile(
+  rider: RiderRow
+): string {
   if (
     rider.mountain >= 62 &&
     rider.mountain > rider.hills
@@ -791,16 +1137,23 @@ function getRiderProfile(rider: RiderRow): string {
   return "Équipier polyvalent";
 }
 
-function getRiderAverage(rider: RiderRow): number {
+function getRiderAverage(
+  rider: RiderRow
+): number {
   const total = ratingColumns.reduce(
-    (sum, column) => sum + rider[column.key],
+    (sum, column) =>
+      sum + rider[column.key],
     0
   );
 
-  return Math.round(total / ratingColumns.length);
+  return Math.round(
+    total / ratingColumns.length
+  );
 }
 
-function getRatingClasses(value: number): string {
+function getRatingClasses(
+  value: number
+): string {
   if (value > 90) {
     return "border-[#B52D2D]/25 bg-[#D84B4B] text-white";
   }
@@ -822,6 +1175,16 @@ function getRatingClasses(value: number): string {
   }
 
   return "border-[#D9E3DE] bg-white text-[#60756E]";
+}
+
+function getErrorMessage(
+  error: unknown
+): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Une erreur inattendue est survenue.";
 }
 
 function formatMoney(
@@ -847,7 +1210,15 @@ function formatMoney(
   }
 }
 
-function formatRiderCount(value: number): string {
+function formatDuration(
+  value: number
+): string {
+  return `${value} saison${value === 1 ? "" : "s"}`;
+}
+
+function formatRiderCount(
+  value: number
+): string {
   return `${value} coureur${value === 1 ? "" : "s"}`;
 }
 

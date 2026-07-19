@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
+import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../../components/game/sporting-director-avatar";
 import {
   SportingDirectorProfileForm,
@@ -11,6 +13,10 @@ import {
 import { SportingDirectorReputation } from "../../../components/game/sporting-director-reputation";
 import { WheelLogo } from "../../../components/ui/wheel-logo";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import {
+  getActiveTeamSponsorIdentityForAuthUser,
+  type TeamSponsorIdentity,
+} from "../../../services/team-sponsor-identity";
 import { logoutAccount } from "../actions";
 
 export const metadata: Metadata = {
@@ -37,15 +43,20 @@ type CountryRow = {
 };
 
 export default async function SportingDirectorProfilePage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase =
+    await createSupabaseServerClient();
 
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   const supabasePublishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    process.env
+      .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabasePublishableKey) {
+  if (
+    !supabaseUrl ||
+    !supabasePublishableKey
+  ) {
     throw new Error(
       "Les variables Supabase nécessaires sont manquantes."
     );
@@ -106,9 +117,34 @@ export default async function SportingDirectorProfilePage() {
         }),
     ]);
 
-  const sportingDirector = profileResult.data;
+  let teamSponsorIdentity:
+    TeamSponsorIdentity | null = null;
 
-  if (profileResult.error || !sportingDirector) {
+  let teamSponsorIdentityError:
+    string | null = null;
+
+  try {
+    teamSponsorIdentity =
+      await getActiveTeamSponsorIdentityForAuthUser(
+        user.id
+      );
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer l’identité commerciale de l’équipe :",
+      error
+    );
+
+    teamSponsorIdentityError =
+      getErrorMessage(error);
+  }
+
+  const sportingDirector =
+    profileResult.data;
+
+  if (
+    profileResult.error ||
+    !sportingDirector
+  ) {
     console.error(
       "Impossible de récupérer le profil du Directeur Sportif :",
       profileResult.error
@@ -133,7 +169,8 @@ export default async function SportingDirectorProfilePage() {
   const selectedCountry =
     countries.find(
       (country) =>
-        country.id === sportingDirector?.country_id
+        country.id ===
+        sportingDirector?.country_id
     ) ?? null;
 
   const displayName =
@@ -172,11 +209,17 @@ export default async function SportingDirectorProfilePage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-              Définissez votre identité de Directeur Sportif
-              et consultez votre progression dans l’univers de
-              Cyclostratège.
+              Définissez votre identité de Directeur
+              Sportif et consultez votre progression
+              dans l’univers de Cyclostratège.
             </p>
           </header>
+
+          {teamSponsorIdentityError ? (
+            <TeamSponsorIdentityWarning
+              message={teamSponsorIdentityError}
+            />
+          ) : null}
 
           {!sportingDirector ? (
             <ProfileUnavailableMessage />
@@ -193,9 +236,10 @@ export default async function SportingDirectorProfilePage() {
                   </h2>
 
                   <p className="mt-3 max-w-3xl leading-7 text-[#60756E]">
-                    Ces informations vous représenteront dans
-                    votre bureau et dans les différentes
-                    rubriques de votre carrière.
+                    Ces informations vous
+                    représenteront dans votre bureau
+                    et dans les différentes rubriques
+                    de votre carrière.
                   </p>
                 </div>
 
@@ -228,15 +272,24 @@ export default async function SportingDirectorProfilePage() {
 
               <ProfileSummaryCard
                 displayName={displayName}
-                username={sportingDirector.username}
+                username={
+                  sportingDirector.username
+                }
                 email={user.email ?? null}
                 isEmailVisible={
                   sportingDirector.is_email_visible
                 }
-                selectedCountry={selectedCountry}
-                avatarKey={sportingDirector.avatar_key}
+                selectedCountry={
+                  selectedCountry
+                }
+                avatarKey={
+                  sportingDirector.avatar_key
+                }
                 reputationPoints={
                   sportingDirector.reputation_points
+                }
+                teamSponsorIdentity={
+                  teamSponsorIdentity
                 }
               />
             </div>
@@ -299,6 +352,7 @@ function ProfileSummaryCard({
   selectedCountry,
   avatarKey,
   reputationPoints,
+  teamSponsorIdentity,
 }: {
   displayName: string;
   username: string;
@@ -307,6 +361,8 @@ function ProfileSummaryCard({
   selectedCountry: CountryOption | null;
   avatarKey: string | null;
   reputationPoints: number;
+  teamSponsorIdentity:
+    TeamSponsorIdentity | null;
 }) {
   return (
     <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_50px_rgba(7,26,23,0.18)] sm:p-8">
@@ -314,159 +370,66 @@ function ProfileSummaryCard({
         Aperçu du profil
       </p>
 
-      <div className="mt-5 hidden md:grid md:grid-cols-[minmax(0,1fr)_140px_260px] md:items-center md:gap-6">
-        <div className="flex min-w-0 items-center gap-5">
-          {avatarKey ? (
-            <SportingDirectorAvatar
-              avatarKey={avatarKey}
-              size="large"
-              label={`Avatar de ${displayName}`}
-            />
-          ) : (
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-2xl font-black text-[#07302A]">
-              {getInitials(displayName)}
-            </div>
-          )}
-
-          <div className="min-w-0">
-            <h2 className="truncate text-2xl font-black">
-              {displayName}
-            </h2>
-
-            <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
-              @{username}
-            </p>
-
-            <div className="mt-3 flex items-center gap-3">
-              {selectedCountry ? (
-                <>
-                  <CountryFlag
-                    isoAlpha2={
-                      selectedCountry.isoAlpha2
-                    }
-                    countryName={
-                      selectedCountry.name
-                    }
-                  />
-
-                  <span className="font-semibold text-[#FFFDF4]">
-                    {selectedCountry.name}
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm font-semibold text-[#BFD1C6]">
-                  Nationalité à compléter
-                </span>
-              )}
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
-              {!isEmailVisible ? (
-                <>
-                  <PrivacyIcon />
-                  <span>Adresse e-mail masquée</span>
-                </>
-              ) : (
-                <span className="break-all">
-                  {email ??
-                    "Adresse e-mail non disponible"}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+      <div className="mt-5 hidden md:grid md:grid-cols-[minmax(0,1fr)_150px_330px] md:items-center md:gap-7">
+        <SportingDirectorIdentity
+          displayName={displayName}
+          username={username}
+          email={email}
+          isEmailVisible={isEmailVisible}
+          selectedCountry={selectedCountry}
+          avatarKey={avatarKey}
+        />
 
         <div className="flex justify-center">
-          <CyclingJerseyIcon />
+          {teamSponsorIdentity ? (
+            <SponsorJerseyPreview
+              sponsor={
+                teamSponsorIdentity.sponsor
+              }
+              jersey={
+                teamSponsorIdentity.selectedJersey
+              }
+              className="h-36 w-32 drop-shadow-xl"
+            />
+          ) : (
+            <CyclingJerseyIcon />
+          )}
         </div>
 
-        <div className="flex items-center justify-start">
-          <div>
-            <p className="text-xl font-black text-[#FFFDF4]">
-              Aucun sponsor actif
-            </p>
-
-            <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
-              Équipe amateur
-            </p>
-          </div>
-        </div>
+        <TeamCommercialIdentity
+          identity={teamSponsorIdentity}
+        />
       </div>
 
       <div className="mt-5 space-y-6 md:hidden">
-        <div className="flex items-center gap-5">
-          {avatarKey ? (
-            <SportingDirectorAvatar
-              avatarKey={avatarKey}
-              size="large"
-              label={`Avatar de ${displayName}`}
+        <SportingDirectorIdentity
+          displayName={displayName}
+          username={username}
+          email={email}
+          isEmailVisible={isEmailVisible}
+          selectedCountry={selectedCountry}
+          avatarKey={avatarKey}
+        />
+
+        <div className="flex items-center justify-center gap-5 rounded-xl border border-white/10 bg-white/5 p-4">
+          {teamSponsorIdentity ? (
+            <SponsorJerseyPreview
+              sponsor={
+                teamSponsorIdentity.sponsor
+              }
+              jersey={
+                teamSponsorIdentity.selectedJersey
+              }
+              className="h-32 w-28 shrink-0 drop-shadow-xl"
             />
           ) : (
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-2xl font-black text-[#07302A]">
-              {getInitials(displayName)}
-            </div>
+            <CyclingJerseyIcon />
           )}
 
-          <div className="min-w-0">
-            <h2 className="truncate text-2xl font-black">
-              {displayName}
-            </h2>
-
-            <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
-              @{username}
-            </p>
-
-            <div className="mt-3 flex items-center gap-3">
-              {selectedCountry ? (
-                <>
-                  <CountryFlag
-                    isoAlpha2={
-                      selectedCountry.isoAlpha2
-                    }
-                    countryName={
-                      selectedCountry.name
-                    }
-                  />
-
-                  <span className="font-semibold text-[#FFFDF4]">
-                    {selectedCountry.name}
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm font-semibold text-[#BFD1C6]">
-                  Nationalité à compléter
-                </span>
-              )}
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
-              {!isEmailVisible ? (
-                <>
-                  <PrivacyIcon />
-                  <span>Adresse e-mail masquée</span>
-                </>
-              ) : (
-                <span className="break-all">
-                  {email ??
-                    "Adresse e-mail non disponible"}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-5">
-          <CyclingJerseyIcon />
-
-          <div>
-            <p className="text-lg font-black text-[#FFFDF4]">
-              Aucun sponsor actif
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-[#9FB5A8]">
-              Équipe amateur
-            </p>
-          </div>
+          <TeamCommercialIdentity
+            identity={teamSponsorIdentity}
+            compact
+          />
         </div>
       </div>
 
@@ -477,6 +440,170 @@ function ProfileSummaryCard({
         />
       </div>
     </article>
+  );
+}
+
+function SportingDirectorIdentity({
+  displayName,
+  username,
+  email,
+  isEmailVisible,
+  selectedCountry,
+  avatarKey,
+}: {
+  displayName: string;
+  username: string;
+  email: string | null;
+  isEmailVisible: boolean;
+  selectedCountry: CountryOption | null;
+  avatarKey: string | null;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-5">
+      {avatarKey ? (
+        <SportingDirectorAvatar
+          avatarKey={avatarKey}
+          size="large"
+          label={`Avatar de ${displayName}`}
+        />
+      ) : (
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-2xl font-black text-[#07302A]">
+          {getInitials(displayName)}
+        </div>
+      )}
+
+      <div className="min-w-0">
+        <h2 className="truncate text-2xl font-black">
+          {displayName}
+        </h2>
+
+        <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
+          @{username}
+        </p>
+
+        <div className="mt-3 flex items-center gap-3">
+          {selectedCountry ? (
+            <>
+              <CountryFlag
+                isoAlpha2={
+                  selectedCountry.isoAlpha2
+                }
+                countryName={
+                  selectedCountry.name
+                }
+              />
+
+              <span className="font-semibold text-[#FFFDF4]">
+                {selectedCountry.name}
+              </span>
+            </>
+          ) : (
+            <span className="text-sm font-semibold text-[#BFD1C6]">
+              Nationalité à compléter
+            </span>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
+          {!isEmailVisible ? (
+            <>
+              <PrivacyIcon />
+              <span>
+                Adresse e-mail masquée
+              </span>
+            </>
+          ) : (
+            <span className="break-all">
+              {email ??
+                "Adresse e-mail non disponible"}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamCommercialIdentity({
+  identity,
+  compact = false,
+}: {
+  identity: TeamSponsorIdentity | null;
+  compact?: boolean;
+}) {
+  if (!identity) {
+    return (
+      <div>
+        <p
+          className={[
+            "font-black text-[#FFFDF4]",
+            compact
+              ? "text-lg"
+              : "text-xl",
+          ].join(" ")}
+        >
+          Aucun sponsor actif
+        </p>
+
+        <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
+          Équipe amateur
+        </p>
+      </div>
+    );
+  }
+
+  const sponsor = identity.sponsor;
+
+  return (
+    <div className="min-w-0">
+      <div
+        className="flex h-16 w-full max-w-48 items-center justify-center overflow-hidden rounded-xl border bg-white px-4 py-2"
+        style={{
+          borderColor: `${sponsor.colors.accent}66`,
+          backgroundColor:
+            sponsor.colors.background,
+        }}
+      >
+        <SponsorLogo
+          src={sponsor.logoPath}
+          alt={`Logo de ${sponsor.name}`}
+          sponsorName={sponsor.name}
+          primaryColor={
+            sponsor.colors.primary
+          }
+          backgroundColor={
+            sponsor.colors.background
+          }
+          textColor={sponsor.colors.text}
+        />
+      </div>
+
+      <p
+        className={[
+          "mt-4 font-black text-[#FFFDF4]",
+          compact
+            ? "text-lg"
+            : "text-xl",
+        ].join(" ")}
+      >
+        {identity.teamName}
+      </p>
+
+      <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
+        Sponsor principal : {sponsor.name}
+      </p>
+
+      <p className="mt-2 text-xs font-semibold text-[#9FB5A8]">
+        {formatMoney(
+          identity.budgetPerSeason,
+          identity.currencyCode
+        )}{" "}
+        par saison ·{" "}
+        {formatDuration(
+          identity.contractDurationSeasons
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -699,8 +826,25 @@ function CountryFlag({
 function ProfileUnavailableMessage() {
   return (
     <div className="mt-10 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
-      Votre compte est connecté, mais votre profil de Directeur
-      Sportif n’a pas pu être récupéré.
+      Votre compte est connecté, mais votre profil de
+      Directeur Sportif n’a pas pu être récupéré.
+    </div>
+  );
+}
+
+function TeamSponsorIdentityWarning({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
+      L’identité commerciale de l’équipe n’a pas pu
+      être chargée. Le reste du profil reste
+      disponible.
+      <span className="mt-1 block text-xs font-medium">
+        {message}
+      </span>
     </div>
   );
 }
@@ -726,10 +870,45 @@ function getInitials(value: string): string {
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
+    .map((part) =>
+      part.charAt(0).toUpperCase()
+    )
     .join("");
 
   return initials || "DS";
+}
+
+function getErrorMessage(
+  error: unknown
+): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Une erreur inattendue est survenue.";
+}
+
+function formatMoney(
+  value: number,
+  currencyCode: string
+): string {
+  try {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${value.toLocaleString(
+      "fr-FR"
+    )} ${currencyCode}`;
+  }
+}
+
+function formatDuration(
+  value: number
+): string {
+  return `${value} saison${value === 1 ? "" : "s"}`;
 }
 
 function MountainDecoration() {
