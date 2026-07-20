@@ -680,6 +680,7 @@ function RegistrationPanel({
               minimum={edition.minimumRosterSize}
               maximum={edition.maximumRosterSize}
               jersey={riderJersey}
+              isStageRace={edition.raceFormat === "stage_race"}
             />
           ) : (
             <RegistrationNotice tone="warning">

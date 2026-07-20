@@ -360,10 +360,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/resultats"
               icon="result"
-              title="Résultats"
-              status="Aucun résultat"
-              description="Les dernières performances, les classements et les points obtenus par votre équipe seront affichés ici."
+              title="Résultats / Live"
+              status="Prototype jouable"
+              description="Suivez une course tronçon par tronçon, inspectez les écarts et testez les premiers classements produits par le moteur."
             />
 
             <ManagementModuleCard
