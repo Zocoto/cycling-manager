@@ -4,6 +4,7 @@ import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
+  getFinalBattleRiderIds,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -51,6 +52,18 @@ describe("simulateRaceStage", () => {
     expect(result.timeline[1].commentary.join(" ")).toContain(
       "attaque"
     );
+  });
+
+  it("détermine le format du final avec la taille du groupe qui joue la victoire", () => {
+    const massFinish = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 1)
+    );
+    const selectiveFinish = simulateRaceStage(
+      createDemoSimulationInput("haute-montagne", 1)
+    );
+
+    expect(getFinalBattleRiderIds(massFinish).length).toBeGreaterThan(10);
+    expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(10);
   });
 
   it("fait payer davantage d’énergie à une petite échappée", () => {

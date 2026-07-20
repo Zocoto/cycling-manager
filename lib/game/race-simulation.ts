@@ -181,6 +181,45 @@ export type StageRaceStandings = {
   }>;
 };
 
+export function getFinalBattleRiderIds(
+  simulation: StageSimulationResult
+) {
+  const finalSnapshot = simulation.timeline.at(-1);
+  if (!finalSnapshot) return [];
+
+  const finishers = new Set(
+    simulation.results
+      .filter((result) => result.status === "finished")
+      .map((result) => result.riderId)
+  );
+  const eligibleGroups = finalSnapshot.groups.filter(
+    (group) =>
+      group.type !== "dropped" &&
+      group.type !== "time_trial" &&
+      group.riderIds.some((riderId) => finishers.has(riderId))
+  );
+
+  if (eligibleGroups.length === 0) {
+    return simulation.results
+      .filter((result) => result.status === "finished")
+      .slice(0, 8)
+      .map((result) => result.riderId);
+  }
+
+  const leadingGap = Math.min(
+    ...eligibleGroups.map((group) => group.gapToLeaderSeconds)
+  );
+
+  return [
+    ...new Set(
+      eligibleGroups
+        .filter((group) => group.gapToLeaderSeconds === leadingGap)
+        .flatMap((group) => group.riderIds)
+        .filter((riderId) => finishers.has(riderId))
+    ),
+  ];
+}
+
 type RiderState = {
   rider: RiderSimulationInput;
   energy: number;
