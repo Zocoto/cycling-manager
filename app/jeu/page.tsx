@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../components/game/game-header";
+import { RiderAvatar } from "../../components/game/rider-avatar";
 import { SponsorLogoMark } from "../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
 import { SportingDirectorProgression } from "../../components/game/sporting-director-progression";
@@ -14,6 +15,12 @@ import {
   getSponsoringUnlockProgress,
   isSponsoringUnlocked,
 } from "../../lib/gameplay-rules";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+  FREE_AGENT_RIDER_JERSEY,
+  type RiderJerseyAppearance,
+} from "../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import {
   getTeamAmateurIdentityForAuthUser,
@@ -57,6 +64,44 @@ type CurrentTeamDashboardSummary = {
   season_day_number: number;
 };
 
+type DashboardRider = {
+  rider_id: string;
+  first_name: string;
+  last_name: string;
+  avatar_profile_key: string | null;
+  avatar_seed: number | string | null;
+  age: number;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
+};
+
+const dashboardRatingKeys = [
+  "mountain",
+  "hills",
+  "flat",
+  "time_trial",
+  "cobbles",
+  "sprint",
+  "acceleration",
+  "downhill",
+  "endurance",
+  "resistance",
+  "recovery",
+  "breakaway",
+  "prologue",
+] as const satisfies ReadonlyArray<keyof DashboardRider>;
+
 type ManagementModuleIcon =
   | "riders"
   | "sponsor"
@@ -84,6 +129,7 @@ export default async function GamePage() {
     profileResult,
     countriesResult,
     teamSummaryResult,
+    rosterResult,
   ] = await Promise.all([
     supabase
       .from("sporting_directors")
@@ -120,6 +166,8 @@ export default async function GamePage() {
     supabase
       .rpc("get_current_team_dashboard_summary")
       .maybeSingle<CurrentTeamDashboardSummary>(),
+
+    supabase.rpc("get_current_team_roster"),
   ]);
 
   let teamSponsorIdentity:
@@ -193,6 +241,16 @@ export default async function GamePage() {
     );
   }
 
+  if (rosterResult.error) {
+    console.error(
+      "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
+      {
+        code: rosterResult.error.code,
+        message: rosterResult.error.message,
+      }
+    );
+  }
+
   const countries =
     (countriesResult.data ??
       []) as CountryRow[];
@@ -222,6 +280,25 @@ export default async function GamePage() {
     teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
+
+  const featuredRiders = [
+    ...((rosterResult.data ?? []) as DashboardRider[]),
+  ]
+    .sort(
+      (left, right) =>
+        getDashboardRiderAverage(right) -
+        getDashboardRiderAverage(left)
+    )
+    .slice(0, 6);
+
+  const riderJersey = teamSponsorIdentity
+    ? createSponsoredRiderJersey({
+        colors: teamSponsorIdentity.sponsor.colors,
+        style: teamSponsorIdentity.selectedJersey.style,
+      })
+    : teamAmateurIdentity
+      ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
+      : FREE_AGENT_RIDER_JERSEY;
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
@@ -270,28 +347,7 @@ export default async function GamePage() {
             />
           ) : null}
 
-          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(300px,0.62fr)_minmax(0,1.38fr)]">
-            <ManagementModuleCard
-              href="/jeu/effectif"
-              icon="riders"
-              title="Effectif"
-              featured
-              status={
-                teamSummary
-                  ? formatRiderCount(riderCount)
-                  : isProfileComplete
-                    ? "Création en attente"
-                    : "En attente"
-              }
-              description={
-                teamSummary
-                  ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
-                  : isProfileComplete
-                    ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
-                    : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
-              }
-            />
-
+          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.38fr)_minmax(300px,0.62fr)]">
             <DirectorProfileCard
               sportingDirector={
                 sportingDirector
@@ -309,26 +365,28 @@ export default async function GamePage() {
               }
               teamAmateurIdentity={teamAmateurIdentity}
             />
+
+            <TeamRosterCard
+              status={
+                teamSummary
+                  ? formatRiderCount(riderCount)
+                  : isProfileComplete
+                    ? "Création en attente"
+                    : "En attente"
+              }
+              description={
+                teamSummary
+                  ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
+                  : isProfileComplete
+                    ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
+                    : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
+              }
+              riders={featuredRiders}
+              jersey={riderJersey}
+            />
           </section>
 
           <RaceOperationsCard />
-
-          <section className="mt-10 border-t border-[#315B3E]/20 pt-7" aria-labelledby="dashboard-objectives-title">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="h-px flex-1 bg-[#315B3E]/15" />
-              <p id="dashboard-objectives-title" className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#315B3E]">
-                Priorités de carrière
-              </p>
-              <span className="h-px flex-1 bg-[#315B3E]/15" />
-            </div>
-            <ObjectivesCard
-              isProfileComplete={
-                isProfileComplete
-              }
-              teamSummary={teamSummary}
-              teamAmateurIdentity={teamAmateurIdentity}
-            />
-          </section>
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             <ManagementModuleCard
@@ -378,6 +436,23 @@ export default async function GamePage() {
               title="Bureau des transferts"
               status="À développer"
               description="Suivez les coureurs disponibles, vos négociations et les futurs mouvements de votre effectif."
+            />
+          </section>
+
+          <section className="mt-10 border-t border-[#315B3E]/20 pt-7" aria-labelledby="dashboard-objectives-title">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="h-px flex-1 bg-[#315B3E]/15" />
+              <p id="dashboard-objectives-title" className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#315B3E]">
+                Priorités de carrière
+              </p>
+              <span className="h-px flex-1 bg-[#315B3E]/15" />
+            </div>
+            <ObjectivesCard
+              isProfileComplete={
+                isProfileComplete
+              }
+              teamSummary={teamSummary}
+              teamAmateurIdentity={teamAmateurIdentity}
             />
           </section>
         </div>
@@ -768,6 +843,158 @@ function ObjectivesCard({
   );
 }
 
+function TeamRosterCard({
+  status,
+  description,
+  riders,
+  jersey,
+}: {
+  status: string;
+  description: string;
+  riders: DashboardRider[];
+  jersey: RiderJerseyAppearance;
+}) {
+  const leadingRider = riders[0] ?? null;
+
+  return (
+    <Link
+      href="/jeu/effectif"
+      className="group flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+          <ManagementModuleIcon icon="riders" />
+        </span>
+
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#BFD1C6]">
+          {status}
+        </span>
+      </div>
+
+      <h2 className="mt-5 text-xl font-black">
+        Effectif
+      </h2>
+
+      <div
+        className="relative mt-4 h-52 overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_100%,rgba(66,185,154,0.2),transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.01))]"
+        aria-label={
+          riders.length > 0
+            ? `Photo d’équipe des ${riders.length} coureurs les mieux notés`
+            : "Emplacement de la future photo d’équipe"
+        }
+      >
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-6 bottom-4 h-10 rounded-[50%] bg-[#071A17]/45 blur-md"
+        />
+
+        {riders.length > 0 ? (
+          <>
+            <RiderPortraitRow
+              riders={riders.slice(3, 6)}
+              jersey={jersey}
+              className="top-4 z-10"
+              avatarClassName="h-14 w-14 border-2 border-[#9BE0BC]/35 shadow-lg"
+            />
+            <RiderPortraitRow
+              riders={riders.slice(1, 3)}
+              jersey={jersey}
+              className="top-[4.4rem] z-20"
+              avatarClassName="h-16 w-16 border-2 border-[#9BE0BC]/45 shadow-xl"
+            />
+            <RiderPortraitRow
+              riders={riders.slice(0, 1)}
+              jersey={jersey}
+              className="bottom-7 z-30"
+              avatarClassName="h-20 w-20 border-2 border-[#F2C94C]/70 shadow-2xl"
+            />
+
+            {leadingRider ? (
+              <span className="absolute inset-x-3 bottom-1 z-40 truncate text-center text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F2C94C]">
+                {leadingRider.first_name} {leadingRider.last_name} · MOY {getDashboardRiderAverage(leadingRider)}
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-[#9BE0BC]/40 bg-white/5 text-[#9BE0BC]">
+              <ManagementModuleIcon icon="riders" />
+            </span>
+            <span className="mt-3 text-xs font-bold uppercase tracking-wider text-[#9FB5A8]">
+              Équipe à constituer
+            </span>
+          </div>
+        )}
+      </div>
+
+      <p className="mt-4 leading-7 text-[#BFD1C6]">
+        {description}
+      </p>
+
+      <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-extrabold text-[#9BE0BC]">
+        Ouvrir
+        <ArrowRightIcon />
+      </span>
+    </Link>
+  );
+}
+
+function RiderPortraitRow({
+  riders,
+  jersey,
+  className,
+  avatarClassName,
+}: {
+  riders: DashboardRider[];
+  jersey: RiderJerseyAppearance;
+  className: string;
+  avatarClassName: string;
+}) {
+  if (riders.length === 0) {
+    return null;
+  }
+
+  return (
+    <span
+      className={`absolute inset-x-0 flex items-center justify-center gap-2 ${className}`}
+    >
+      {riders.map((rider) => {
+        const riderName = `${rider.first_name} ${rider.last_name}`;
+
+        return (
+          <span
+            key={rider.rider_id}
+            title={`${riderName} · Moyenne ${getDashboardRiderAverage(rider)}`}
+          >
+            <RiderAvatar
+              profileKey={rider.avatar_profile_key}
+              seed={rider.avatar_seed}
+              riderId={rider.rider_id}
+              age={rider.age}
+              jersey={jersey}
+              label={`Portrait de ${riderName}`}
+              className={avatarClassName}
+            />
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function getDashboardRiderAverage(
+  rider: DashboardRider
+): number {
+  const ratingsTotal = dashboardRatingKeys.reduce(
+    (total, ratingKey) => total + rider[ratingKey],
+    0
+  );
+
+  return Math.round(
+    ratingsTotal / dashboardRatingKeys.length
+  );
+}
+
 function RaceOperationsCard() {
   const entries = [
     {
@@ -789,13 +1016,13 @@ function RaceOperationsCard() {
   ];
 
   return (
-    <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_18px_46px_rgba(19,60,46,0.11)]" aria-labelledby="race-hub-title">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/12 bg-[#F2F8F5] px-5 py-4 sm:px-7">
+    <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)]" aria-labelledby="race-hub-title">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-5 py-4 sm:px-7">
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#278B70]">Centre de course</p>
-          <h2 id="race-hub-title" className="mt-1 text-xl font-black text-[#0B302B]">Planifier puis vibrer</h2>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">Centre de course</p>
+          <h2 id="race-hub-title" className="mt-1 text-xl font-black text-[#FFFDF4]">Planifier puis vibrer</h2>
         </div>
-        <span className="rounded-full bg-[#0B302B] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#9BE0CA]">
+        <span className="rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">
           Accès prioritaire
         </span>
       </header>
@@ -805,24 +1032,24 @@ function RaceOperationsCard() {
           <Link
             key={entry.href}
             href={entry.href}
-            className={`group relative grid min-h-48 grid-cols-[auto_minmax(0,1fr)] gap-4 p-6 transition hover:bg-[#F5FAF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] sm:p-7 ${
-              index === 1 ? "border-t border-[#315B3E]/15 md:border-l md:border-t-0" : ""
+            className={`group relative grid min-h-48 grid-cols-[auto_minmax(0,1fr)] gap-4 p-6 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:p-7 ${
+              index === 1 ? "border-t border-white/10 md:border-l md:border-t-0" : ""
             }`}
           >
             {index === 1 ? (
               <span aria-hidden="true" className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b" />
             ) : null}
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D7EEE8] text-[#176951] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
               <ManagementModuleIcon icon={entry.icon} />
             </span>
             <span className="min-w-0">
               <span className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#278B70]">{entry.eyebrow}</span>
-                <span className="rounded-full bg-[#EDF2EF] px-2.5 py-1 text-[10px] font-bold text-[#60756E]">{entry.status}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">{entry.eyebrow}</span>
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#BFD1C6]">{entry.status}</span>
               </span>
-              <span className="mt-3 block text-xl font-black text-[#0B302B]">{entry.title}</span>
-              <span className="mt-2 block text-sm font-medium leading-6 text-[#60756E]">{entry.description}</span>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951]">
+              <span className="mt-3 block text-xl font-black text-[#FFFDF4]">{entry.title}</span>
+              <span className="mt-2 block text-sm font-medium leading-6 text-[#BFD1C6]">{entry.description}</span>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[#9BE0BC]">
                 Ouvrir <ArrowRightIcon />
               </span>
             </span>
@@ -839,32 +1066,26 @@ function ManagementModuleCard({
   title,
   status,
   description,
-  featured = false,
 }: {
   href?: string;
   icon: ManagementModuleIcon;
   title: string;
   status: string;
   description: string;
-  featured?: boolean;
 }) {
   const className =
-    `group block rounded-2xl border border-[#315B3E]/20 p-6 shadow-[0_16px_38px_rgba(19,60,46,0.09)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(19,60,46,0.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
-      featured
-        ? "min-h-full overflow-hidden bg-[linear-gradient(145deg,#FFFFFF,#DFF2EB)] xl:flex xl:flex-col xl:justify-center"
-        : "bg-white/90"
-    }`;
+    "group block rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
 
   const content = (
     <>
       <div className="flex items-start justify-between gap-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D7EEE8] text-[#176951] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
           <ManagementModuleIcon
             icon={icon}
           />
         </span>
 
-        <span className="rounded-full bg-[#EDF2EF] px-3 py-1 text-xs font-bold text-[#60756E]">
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#BFD1C6]">
           {status}
         </span>
       </div>
@@ -873,12 +1094,12 @@ function ManagementModuleCard({
         {title}
       </h2>
 
-      <p className="mt-3 leading-7 text-[#60756E]">
+      <p className="mt-3 leading-7 text-[#BFD1C6]">
         {description}
       </p>
 
       {href ? (
-        <span className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951]">
+        <span className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#9BE0BC]">
           Ouvrir
           <ArrowRightIcon />
         </span>
