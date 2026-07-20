@@ -24,7 +24,7 @@ types/        → Types TypeScript
 
 ## Objectif
 
-Cycling Manager est une application web de gestion cycliste construite autour d’une architecture progressive, documentée et versionnée.
+Cyclo Stratège est une application web de gestion cycliste construite autour d’une architecture progressive, documentée et versionnée.
 
 L’application sépare clairement :
 

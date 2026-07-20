@@ -1,10 +1,10 @@
-# Peloton UI — Design System de Cycling Manager
+# Peloton UI — Design System de Cyclo Stratège
 
 ## Version actuelle
 
 **Peloton UI v0.3**
 
-Cette version a été introduite pendant l’US 4 afin de rendre l’identité visuelle de Cycling Manager plus lumineuse, sportive et attractive.
+Cette version a été introduite pendant l’US 4 afin de rendre l’identité visuelle de Cyclo Stratège plus lumineuse, sportive et attractive.
 
 Elle remplace l’orientation initiale plus sombre et plus austère de Peloton UI v0.2.
 
@@ -145,7 +145,7 @@ Ces éléments doivent rester décoratifs et ne jamais diminuer la lisibilité d
 
 | Composant | Rôle |
 |---|---|
-| `WheelLogo` | Symbole temporaire de Cycling Manager |
+| `WheelLogo` | Symbole temporaire de Cyclo Stratège |
 | `PublicHeader` | Navigation publique |
 | `PublicFooter` | Pied de page public |
 | `AuthPreview` | Structure commune des pages d’authentification |

@@ -10,7 +10,7 @@ export const releases = [
   {
     version: "0.1.0",
     date: "Juillet 2026",
-    title: "Les fondations de Cycling Manager",
+    title: "Les fondations de Cyclo Stratège",
     description:
       "Le projet prend forme avec ses premières fondations techniques, fonctionnelles et graphiques.",
     features: [

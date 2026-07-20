@@ -24,17 +24,24 @@ export function PublicHeader() {
         <Link
           href="/"
           className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-          aria-label="Retour à l’accueil de Cycling Manager"
+          aria-label="Retour à l’accueil de Cyclo Stratège"
         >
-          <WheelLogo />
+          <WheelLogo className="h-11 w-11" />
 
-          <span className="leading-none">
-            <span className="block text-lg font-extrabold uppercase tracking-[0.04em] text-[#FFFDF4]">
-              Cycling
+          <span className="inline-flex flex-col leading-none">
+            <span
+              aria-hidden="true"
+              className="flex justify-between text-lg font-extrabold uppercase text-[#FFFDF4]"
+            >
+              <span>C</span>
+              <span>Y</span>
+              <span>C</span>
+              <span>L</span>
+              <span>O</span>
             </span>
 
-            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.36em] text-[#F2C94C]">
-              Manager
+            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.36em] text-[#F2C94C] -me-[0.36em]">
+              Stratège
             </span>
           </span>
         </Link>

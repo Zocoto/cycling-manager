@@ -12,7 +12,7 @@ Connecter l'application Next.js à une base PostgreSQL hébergée sur Supabase.
 ## Réalisations
 
 - Création de l'organisation Supabase.
-- Création du projet "Cycling Manager".
+- Création du projet "Cyclo Stratège".
 - Activation de la Data API.
 - Activation du Row Level Security.
 - Installation du SDK `@supabase/supabase-js`.
@@ -34,7 +34,7 @@ Cette étape sera réalisée dans l'US3.
 
 ## Objectif
 
-Concevoir puis implémenter le modèle de données initial de Cycling Manager dans PostgreSQL avec Supabase.
+Concevoir puis implémenter le modèle de données initial de Cyclo Stratège dans PostgreSQL avec Supabase.
 
 Le modèle doit permettre de gérer les principaux domaines du jeu :
 

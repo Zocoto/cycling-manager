@@ -76,7 +76,7 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-9 flex flex-col gap-3 border-t border-[#78947D]/20 pt-6 text-xs text-[#AFC0B1] sm:flex-row sm:items-center sm:justify-between">
-          <p>© {currentYear} Cycling Manager</p>
+          <p>© {currentYear} Cyclo Stratège</p>
 
           <p className="uppercase tracking-[0.26em] text-[#D9C978]">
             Votre voyage · Votre équipe · Votre histoire

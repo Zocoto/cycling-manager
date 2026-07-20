@@ -185,8 +185,8 @@ export function RegistrationForm() {
 
       <p className="mt-4 text-center text-xs leading-5 text-[#9FB5A8]">
         En créant votre compte, vous acceptez que votre nom de directeur
-        sportif soit utilisé comme identité publique dans Cycling
-        Manager.
+        sportif soit utilisé comme identité publique dans Cyclo
+        Stratège.
       </p>
     </div>
   );

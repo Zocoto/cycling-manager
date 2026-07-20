@@ -1,6 +1,6 @@
 # Diagrammes
 
-Ce document présente les relations principales du modèle de données de Cycling Manager.
+Ce document présente les relations principales du modèle de données de Cyclo Stratège.
 
 Le schéma est volontairement séparé en plusieurs diagrammes afin de rester lisible.
 
