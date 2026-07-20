@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { RaceStageProfile } from "@/components/game/race-stage-profile";
+
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
@@ -47,6 +49,20 @@ export function SeasonCalendar({
   );
   const weeks = useMemo(
     () => buildCalendarWeeks(visibleEditions),
+    [visibleEditions]
+  );
+  const profileEntries = useMemo(
+    () =>
+      visibleEditions
+        .flatMap((edition) =>
+          edition.stages.map((stage) => ({ edition, stage }))
+        )
+        .sort(
+          (first, second) =>
+            first.stage.dayNumber - second.stage.dayNumber ||
+            first.edition.prestigeRank - second.edition.prestigeRank ||
+            first.edition.name.localeCompare(second.edition.name, "fr")
+        ),
     [visibleEditions]
   );
   const dayByNumber = useMemo(
@@ -241,6 +257,69 @@ export function SeasonCalendar({
           );
         })}
       </div>
+
+      {profileEntries.length > 0 ? (
+        <section className="mt-10 border-t border-[#315B3E]/15 pt-8" aria-labelledby="calendar-profiles-title">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E]">
+                Lecture du terrain
+              </p>
+              <h2 id="calendar-profiles-title" className="mt-2 text-2xl font-black text-[#0B302B]">
+                Profils tronçonnés de la saison
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-[#557064]">
+                Chaque trait vertical correspond à un tronçon de 10 km. Les drapeaux indiquent la position exacte des GPM et des sprints intermédiaires.
+              </p>
+            </div>
+            <span className="rounded-full border border-[#315B3E]/20 bg-white px-3 py-1.5 text-xs font-extrabold text-[#315B3E]">
+              {profileEntries.length} profil{profileEntries.length > 1 ? "s" : ""}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {profileEntries.map(({ edition, stage }) => {
+              const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+              const mountainCount = stage.segments.filter((segment) => segment.prime?.type === "mountain").length;
+              const sprintCount = stage.segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length;
+
+              return (
+                <Link
+                  key={stage.id}
+                  href={`/jeu/courses/${edition.slug}`}
+                  className="group grid gap-3 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#315B3E]/30 hover:shadow-md sm:grid-cols-[minmax(180px,0.75fr)_minmax(260px,1.25fr)] sm:items-center"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
+                        style={{ backgroundColor: style.background, color: style.foreground }}
+                      >
+                        {style.shortLabel}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
+                        J{stage.dayNumber}{edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 truncate text-sm font-black text-[#0B302B] group-hover:text-[#176951]">
+                      {edition.name}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-[#688176]">
+                      {RACE_PROFILE_LABELS[stage.profileType]} · {stage.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km
+                    </p>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#789087]">
+                      {mountainCount || sprintCount
+                        ? `${mountainCount} GPM · ${sprintCount} SI`
+                        : "Sans classement annexe"}
+                    </p>
+                  </div>
+                  <RaceStageProfile segments={stage.segments} compact />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {visibleEditions.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-[#315B3E]/30 bg-[#F6FAF7] px-6 py-10 text-center">

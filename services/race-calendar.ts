@@ -8,6 +8,8 @@ import {
   type RaceCalendarStage,
   type RaceFormat,
   type RaceProfileType,
+  type RaceStageStatus,
+  type RaceStageType,
   type RegistrationPolicy,
   type SeasonCalendarDay,
   type SeasonCalendarEvent,
@@ -79,9 +81,28 @@ type StageRow = {
   season_day_id: string;
   stage_number: number;
   name: string;
+  stage_type: RaceStageType;
+  status: RaceStageStatus;
   profile_type: RaceProfileType;
   distance_km: number | string;
   departure_at: string | null;
+};
+
+type StageSegmentRow = {
+  id: string;
+  stage_id: string;
+  segment_number: number;
+  distance_km: number | string;
+  terrain_type: "flat" | "climb" | "descent";
+  surface_type: "asphalt" | "cobbles";
+  average_gradient_pct: number | string;
+  stage_segment_primes: StageSegmentPrimeRow[];
+};
+
+type StageSegmentPrimeRow = {
+  prime_type: "mountain" | "intermediate_sprint";
+  mountain_category: "HC" | "1" | "2" | "3" | "4" | null;
+  points_scale: number[];
 };
 
 type CountryRow = {
@@ -372,6 +393,8 @@ export async function getActiveSeasonRaceCalendar(
                 season_day_id,
                 stage_number,
                 name,
+                stage_type,
+                status,
                 profile_type,
                 distance_km,
                 departure_at
@@ -401,6 +424,40 @@ export async function getActiveSeasonRaceCalendar(
     stagesResult.error,
     "les étapes"
   );
+
+  const stageRows = stagesResult.data ?? [];
+  const stageIds = stageRows.map((stage) => stage.id);
+  const segmentsResult =
+    stageIds.length > 0
+      ? await supabase
+          .from("stage_segments")
+          .select(
+            `
+              id,
+              stage_id,
+              segment_number,
+              distance_km,
+              terrain_type,
+              surface_type,
+              average_gradient_pct,
+              stage_segment_primes (
+                prime_type,
+                mountain_category,
+                points_scale
+              )
+            `
+          )
+          .in("stage_id", stageIds)
+          .order("segment_number", { ascending: true })
+          .returns<StageSegmentRow[]>()
+      : emptyResult<StageSegmentRow>();
+
+  assertQuerySucceeded(
+    segmentsResult.error,
+    "les profils tronçonnés"
+  );
+
+  const segmentRows = segmentsResult.data ?? [];
 
   const raceRows = racesResult.data ?? [];
   const countryIds = unique(
@@ -437,8 +494,9 @@ export async function getActiveSeasonRaceCalendar(
     )
   );
   const stagesByEditionId = groupStages(
-    stagesResult.data ?? [],
-    dayById
+    stageRows,
+    dayById,
+    segmentRows
   );
   const registrationByEditionId = new Map(
     ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
@@ -737,12 +795,20 @@ export async function getRaceEngagedRiders(
 
 function groupStages(
   rows: StageRow[],
-  dayById: Map<string, SeasonDayRow>
+  dayById: Map<string, SeasonDayRow>,
+  segmentRows: StageSegmentRow[]
 ) {
   const stagesByEditionId = new Map<
     string,
     RaceCalendarStage[]
   >();
+  const segmentsByStageId = new Map<string, StageSegmentRow[]>();
+
+  for (const segment of segmentRows) {
+    const stageSegments = segmentsByStageId.get(segment.stage_id) ?? [];
+    stageSegments.push(segment);
+    segmentsByStageId.set(segment.stage_id, stageSegments);
+  }
 
   for (const row of rows) {
     const day = dayById.get(
@@ -758,9 +824,29 @@ function groupStages(
       dayNumber: day.day_number,
       stageNumber: row.stage_number,
       name: row.name,
+      stageType: row.stage_type,
+      status: row.status,
       profileType: row.profile_type,
       distanceKm: Number(row.distance_km),
       departureAt: row.departure_at,
+      segments: (segmentsByStageId.get(row.id) ?? []).map((segment) => {
+        const prime = segment.stage_segment_primes[0];
+
+        return {
+          segmentNumber: segment.segment_number,
+          distanceKm: Number(segment.distance_km),
+          terrain: segment.terrain_type,
+          averageGradientPct: Number(segment.average_gradient_pct),
+          surface: segment.surface_type,
+          prime: prime
+            ? {
+                type: prime.prime_type,
+                category: prime.mountain_category,
+                pointsScale: prime.points_scale,
+              }
+            : null,
+        };
+      }),
     };
     const editionStages =
       stagesByEditionId.get(

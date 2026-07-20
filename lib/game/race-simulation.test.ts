@@ -64,6 +64,32 @@ describe("simulateRaceStage", () => {
     expect(winner.ratings.timeTrial).toBeGreaterThanOrEqual(78);
     expect(result.timeline.at(-1)?.groups[0].riderIds).toContain(winner.id);
   });
+
+  it("attribue le même temps aux coureurs d'un sprint massif restés dans le peloton", () => {
+    const result = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 12)
+    );
+    const finalPelotonIds = new Set(
+      result.timeline.at(-1)?.groups.find((group) => group.type === "peloton")?.riderIds ?? []
+    );
+    const pelotonResults = result.results.filter((resultRow) =>
+      finalPelotonIds.has(resultRow.riderId)
+    );
+
+    expect(pelotonResults.length).toBeGreaterThan(1);
+    expect(new Set(pelotonResults.map((resultRow) => resultRow.elapsedTimeSeconds)).size).toBe(1);
+  });
+
+  it("laisse certaines échappées aller au bout sans rendre ce résultat systématique", () => {
+    const outcomes = Array.from({ length: 30 }, (_, index) =>
+      simulateRaceStage(createDemoSimulationInput("collines-ardennes", index + 1))
+    ).map((result) =>
+      result.timeline.at(-1)?.groups.some((group) => group.type === "breakaway") ?? false
+    );
+
+    expect(outcomes).toContain(true);
+    expect(outcomes).toContain(false);
+  });
 });
 
 describe("assignAutomaticRaceRoles", () => {

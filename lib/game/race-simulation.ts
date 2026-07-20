@@ -236,9 +236,43 @@ function simulateRoadStage(
   const primes: RacePrimeResult[] = [];
   const mountainPoints: Record<string, number> = {};
   const sprintPoints: Record<string, number> = {};
+  const breakawayRiders = [...breakawayIds]
+    .map((riderId) => input.riders.find((rider) => rider.id === riderId))
+    .filter((rider): rider is RiderSimulationInput => Boolean(rider));
+  const selectiveTerrainShare =
+    input.segments.filter(
+      (segment) => segment.terrain !== "flat" || segment.surface === "cobbles"
+    ).length / input.segments.length;
+  const likelyMassSprint = isLikelyMassSprint(input.segments);
+  const breakawayQuality = average(
+    breakawayRiders.map(
+      (rider) =>
+        rider.ratings.breakaway * 0.46 +
+        rider.ratings.endurance * 0.34 +
+        rider.form * 0.2
+    )
+  );
+  const breakawayChaseResistance = clamp(
+    breakawayQuality * 0.003 +
+      selectiveTerrainShare * 0.45 +
+      random() * 0.35 -
+      (likelyMassSprint ? 0.32 : 0.08),
+    0,
+    0.72
+  );
+  const breakawaySuccessChance = clamp(
+    0.025 +
+      selectiveTerrainShare * 0.3 +
+      Math.max(0, breakawayQuality - 72) * 0.007 -
+      (likelyMassSprint ? 0.035 : 0),
+    0.02,
+    0.42
+  );
+  const breakawayHasWinningDay = random() < breakawaySuccessChance;
   let breakawayGapSeconds = 0;
   let completedDistanceKm = 0;
   let breakawayWasCaught = false;
+  const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
 
   for (const riderId of breakawayIds) {
     const state = states.get(riderId);
@@ -250,7 +284,10 @@ function simulateRoadStage(
     const peloton = getStatesInGroup(states, "peloton");
     const breakaway = getStatesInGroup(states, "breakaway");
     const dropped = getStatesInGroup(states, "dropped");
-    const chasePressure = getPelotonChasePressure(peloton, segment, segmentIndex, input.segments);
+    const raceProgress = segmentIndex / Math.max(1, input.segments.length - 1);
+    const chasePressure =
+      getPelotonChasePressure(peloton, segment, segmentIndex, input.segments) *
+      (breakawayHasWinningDay && raceProgress > 0.52 ? 0.5 : 1);
     const pelotonSeconds = getGroupSegmentTime(
       peloton,
       segment,
@@ -258,20 +295,59 @@ function simulateRoadStage(
       chasePressure,
       random
     );
-    const breakawaySeconds = breakaway.length
+    let breakawaySeconds = breakaway.length
       ? getGroupSegmentTime(breakaway, segment, "breakaway", 0.58, random)
       : pelotonSeconds;
 
+    if (breakaway.length > 0 && breakawayHasWinningDay && raceProgress > 0.45) {
+      breakawaySeconds *= 0.955 + (1 - breakawayChaseResistance) * 0.012;
+    }
+
     if (segmentIndex === 0 && breakaway.length > 0) {
-      breakawayGapSeconds = Math.round(75 + random() * 105);
+      breakawayGapSeconds = Math.round(70 + random() * 55);
       commentary.push(
         `${formatRiderList(breakaway)} prennent le large : le peloton leur accorde ${formatGap(breakawayGapSeconds)}.`
       );
     } else if (breakaway.length > 0) {
-      breakawayGapSeconds = clamp(
-        breakawayGapSeconds + pelotonSeconds - breakawaySeconds,
-        -30,
-        540
+      const naturalGap = breakawayGapSeconds + pelotonSeconds - breakawaySeconds;
+
+      if (raceProgress < 0.3) {
+        const allowedGap = Math.min(
+          breakawayTargetGapSeconds,
+          95 + segmentIndex * 58
+        );
+        breakawayGapSeconds = clamp(
+          Math.max(
+            naturalGap,
+            breakawayGapSeconds + Math.max(8, (allowedGap - breakawayGapSeconds) * 0.48)
+          ),
+          0,
+          540
+        );
+      } else if (raceProgress < 0.62) {
+        const controlledFloor = breakawayTargetGapSeconds * 0.72;
+        breakawayGapSeconds = clamp(
+          Math.max(controlledFloor, naturalGap),
+          0,
+          540
+        );
+      } else {
+        const chaseClosingSeconds =
+          (raceProgress - 0.58) *
+          (likelyMassSprint ? 115 : 72) *
+          (1 - breakawayChaseResistance) *
+          (breakawayHasWinningDay ? 0.18 : 1);
+        breakawayGapSeconds = clamp(
+          naturalGap - chaseClosingSeconds,
+          -30,
+          540
+        );
+      }
+    }
+
+    if (breakaway.length > 0 && raceProgress > 0.12 && raceProgress < 0.58 && commentary.length < 3) {
+      commentary.push(
+        `Le peloton contrôle l’écart autour de ${formatGap(breakawayGapSeconds)} sans lancer la poursuite.`
       );
     }
 
@@ -427,6 +503,12 @@ function simulateRoadStage(
       breakawayWasCaught
         ? "Le regroupement conduit le peloton vers l’explication finale."
         : "Les meilleurs coureurs se départagent dans le dernier kilomètre."
+    );
+  }
+
+  if (getStatesInGroup(states, "breakaway").length > 0 && breakawayGapSeconds > 0) {
+    finalCommentary.push(
+      `L’échappée résiste jusqu’à la ligne avec ${formatGap(breakawayGapSeconds)} d’avance : le peloton a trop attendu.`
     );
   }
 
@@ -1001,8 +1083,14 @@ function getRoadFinishTime(
   const sprintFinish = isLikelyMassSprint(segments) && state.group === "peloton";
 
   if (sprintFinish) {
-    const scoreGap = bestScore - ownScore;
-    return state.elapsedTimeSeconds + (scoreGap < 18 ? 0 : Math.min(25, scoreGap * 0.65));
+    // La photo-finish ordonne les coureurs, mais un peloton qui franchit la
+    // ligne groupé reçoit un seul temps officiel. Les écarts ne viennent que
+    // des cassures entre groupes, jamais de la longueur d'un vélo.
+    return average(
+      [...states.values()]
+        .filter((peer) => peer.group === "peloton")
+        .map((peer) => peer.elapsedTimeSeconds)
+    );
   }
 
   const finishGap = Math.max(0, bestScore - ownScore) * 0.72;
@@ -1110,17 +1198,25 @@ function getPelotonChasePressure(
   segmentIndex: number,
   segments: RaceStageSegment[]
 ) {
-  const remainingShare = 1 - segmentIndex / Math.max(1, segments.length - 1);
+  const progress = segmentIndex / Math.max(1, segments.length - 1);
   const sprintTeams = new Set(
     peloton
       .filter((state) => state.rider.role === "sprinter")
       .map((state) => state.rider.teamId)
   ).size;
   const terrainFactor =
-    segment.terrain === "flat" ? 0.18 : segment.terrain === "climb" ? -0.12 : 0;
-  const finalUrgency = remainingShare < 0.38 ? (0.38 - remainingShare) * 1.8 : 0;
+    segment.terrain === "flat" ? 0.06 : segment.terrain === "climb" ? -0.07 : 0;
 
-  return clamp(0.35 + sprintTeams * 0.08 + terrainFactor + finalUrgency, 0.2, 1);
+  if (progress < 0.3) {
+    return clamp(0.16 + sprintTeams * 0.018 + terrainFactor, 0.12, 0.32);
+  }
+
+  if (progress < 0.62) {
+    return clamp(0.3 + sprintTeams * 0.035 + terrainFactor, 0.28, 0.56);
+  }
+
+  const finalUrgency = (progress - 0.62) * 1.2;
+  return clamp(0.52 + sprintTeams * 0.075 + terrainFactor + finalUrgency, 0.48, 1);
 }
 
 function getTerrainRating(rider: RiderSimulationInput, segment: RaceStageSegment) {

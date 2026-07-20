@@ -181,9 +181,12 @@ function createEdition(
         dayNumber,
         stageNumber: index + 1,
         name: `Étape ${index + 1}`,
+        stageType: "road",
+        status: "planned",
         profileType: "mixed",
         distanceKm: 170,
         departureAt: null,
+        segments: [],
       })
     ),
   };

@@ -270,7 +270,28 @@ export default async function GamePage() {
             />
           ) : null}
 
-          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
+          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(300px,0.62fr)_minmax(0,1.38fr)]">
+            <ManagementModuleCard
+              href="/jeu/effectif"
+              icon="riders"
+              title="Effectif"
+              featured
+              status={
+                teamSummary
+                  ? formatRiderCount(riderCount)
+                  : isProfileComplete
+                    ? "Création en attente"
+                    : "En attente"
+              }
+              description={
+                teamSummary
+                  ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
+                  : isProfileComplete
+                    ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
+                    : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
+              }
+            />
+
             <DirectorProfileCard
               sportingDirector={
                 sportingDirector
@@ -288,7 +309,18 @@ export default async function GamePage() {
               }
               teamAmateurIdentity={teamAmateurIdentity}
             />
+          </section>
 
+          <RaceOperationsCard />
+
+          <section className="mt-10 border-t border-[#315B3E]/20 pt-7" aria-labelledby="dashboard-objectives-title">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="h-px flex-1 bg-[#315B3E]/15" />
+              <p id="dashboard-objectives-title" className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#315B3E]">
+                Priorités de carrière
+              </p>
+              <span className="h-px flex-1 bg-[#315B3E]/15" />
+            </div>
             <ObjectivesCard
               isProfileComplete={
                 isProfileComplete
@@ -299,30 +331,6 @@ export default async function GamePage() {
           </section>
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            <ManagementModuleCard
-              href="/jeu/effectif"
-              icon="riders"
-              title="Effectif"
-              status={
-                teamSummary
-                  ? formatRiderCount(
-                      riderCount
-                    )
-                  : isProfileComplete
-                    ? "Création en attente"
-                    : "En attente"
-              }
-              description={
-                teamSummary
-                  ? `${commercialTeamName} compte ${formatRiderCount(
-                      riderCount
-                    )} sous contrat pour ${teamSummary.season_name}.`
-                  : isProfileComplete
-                    ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
-                    : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
-              }
-            />
-
             <ManagementModuleCard
               href="/jeu/sponsoring"
               icon="sponsor"
@@ -349,22 +357,6 @@ export default async function GamePage() {
               title="Entraînements"
               status="Aucun compte rendu"
               description="Les programmes, la progression et les derniers comptes rendus de vos coureurs apparaîtront ici."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/calendrier"
-              icon="calendar"
-              title="Courses"
-              status="Calendrier disponible"
-              description="Consultez les 28 jours de la saison, filtrez les catégories et préparez les courses accessibles à votre équipe."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/resultats"
-              icon="result"
-              title="Résultats / Live"
-              status="Prototype jouable"
-              description="Suivez une course tronçon par tronçon, inspectez les écarts et testez les premiers classements produits par le moteur."
             />
 
             <ManagementModuleCard
@@ -776,21 +768,92 @@ function ObjectivesCard({
   );
 }
 
+function RaceOperationsCard() {
+  const entries = [
+    {
+      href: "/jeu/calendrier",
+      icon: "calendar" as const,
+      eyebrow: "Préparer",
+      title: "Inscriptions & calendrier",
+      description: "Choisissez vos courses, filtrez les catégories et composez les équipes engagées.",
+      status: "Saison ouverte",
+    },
+    {
+      href: "/jeu/resultats",
+      icon: "result" as const,
+      eyebrow: "Vivre",
+      title: "Résultats & Live",
+      description: "Rejoignez les directs de 20 h, suivez les écarts et consultez les replays.",
+      status: "Direct à 20 h",
+    },
+  ];
+
+  return (
+    <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_18px_46px_rgba(19,60,46,0.11)]" aria-labelledby="race-hub-title">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/12 bg-[#F2F8F5] px-5 py-4 sm:px-7">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#278B70]">Centre de course</p>
+          <h2 id="race-hub-title" className="mt-1 text-xl font-black text-[#0B302B]">Planifier puis vibrer</h2>
+        </div>
+        <span className="rounded-full bg-[#0B302B] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#9BE0CA]">
+          Accès prioritaire
+        </span>
+      </header>
+
+      <div className="grid md:grid-cols-2">
+        {entries.map((entry, index) => (
+          <Link
+            key={entry.href}
+            href={entry.href}
+            className={`group relative grid min-h-48 grid-cols-[auto_minmax(0,1fr)] gap-4 p-6 transition hover:bg-[#F5FAF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] sm:p-7 ${
+              index === 1 ? "border-t border-[#315B3E]/15 md:border-l md:border-t-0" : ""
+            }`}
+          >
+            {index === 1 ? (
+              <span aria-hidden="true" className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b" />
+            ) : null}
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D7EEE8] text-[#176951] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+              <ManagementModuleIcon icon={entry.icon} />
+            </span>
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#278B70]">{entry.eyebrow}</span>
+                <span className="rounded-full bg-[#EDF2EF] px-2.5 py-1 text-[10px] font-bold text-[#60756E]">{entry.status}</span>
+              </span>
+              <span className="mt-3 block text-xl font-black text-[#0B302B]">{entry.title}</span>
+              <span className="mt-2 block text-sm font-medium leading-6 text-[#60756E]">{entry.description}</span>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951]">
+                Ouvrir <ArrowRightIcon />
+              </span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ManagementModuleCard({
   href,
   icon,
   title,
   status,
   description,
+  featured = false,
 }: {
   href?: string;
   icon: ManagementModuleIcon;
   title: string;
   status: string;
   description: string;
+  featured?: boolean;
 }) {
   const className =
-    "group block rounded-2xl border border-[#315B3E]/20 bg-white/90 p-6 shadow-[0_16px_38px_rgba(19,60,46,0.09)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(19,60,46,0.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
+    `group block rounded-2xl border border-[#315B3E]/20 p-6 shadow-[0_16px_38px_rgba(19,60,46,0.09)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(19,60,46,0.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
+      featured
+        ? "min-h-full overflow-hidden bg-[linear-gradient(145deg,#FFFFFF,#DFF2EB)] xl:flex xl:flex-col xl:justify-center"
+        : "bg-white/90"
+    }`;
 
   const content = (
     <>

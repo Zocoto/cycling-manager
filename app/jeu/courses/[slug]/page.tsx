@@ -9,6 +9,7 @@ import {
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
+import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
@@ -18,7 +19,6 @@ import {
   getRegistrationAvailability,
   isBeforeRegistrationDeadline,
   type RaceCalendarEdition,
-  type RaceProfileType,
 } from "@/lib/game/race-calendar";
 import {
   createAmateurRiderJersey,
@@ -831,7 +831,7 @@ function StageCard({
   showStageNumber: boolean;
 }) {
   return (
-    <article className="grid gap-4 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm sm:grid-cols-[90px_minmax(0,1fr)_180px] sm:items-center sm:p-5">
+    <article className="grid gap-4 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm sm:grid-cols-[90px_minmax(0,0.85fr)_minmax(240px,1.15fr)] sm:items-center sm:p-5">
       <div>
         <p className="text-xs font-extrabold uppercase tracking-wider text-[#688176]">
           J{stage.dayNumber}
@@ -853,59 +853,15 @@ function StageCard({
         </p>
       </div>
 
-      <ProfilePreview
-        profileType={stage.profileType}
-      />
+      <div>
+        <RaceStageProfile segments={stage.segments} compact />
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#789087]">
+          {stage.segments.some((segment) => segment.prime)
+            ? `${stage.segments.filter((segment) => segment.prime?.type === "mountain").length} GPM · ${stage.segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length} SI`
+            : "Aucun GPM/SI programmé"}
+        </p>
+      </div>
     </article>
-  );
-}
-
-function ProfilePreview({
-  profileType,
-}: {
-  profileType: RaceProfileType;
-}) {
-  const pathByProfile: Record<
-    RaceProfileType,
-    string
-  > = {
-    flat: "M0 30 L40 28 L80 29 L120 27 L160 29",
-    sprint:
-      "M0 29 L45 27 L90 28 L120 25 L145 28 L160 19",
-    hilly:
-      "M0 30 L25 18 L45 28 L70 14 L95 27 L125 11 L160 29",
-    mountain:
-      "M0 31 L25 27 L48 16 L65 22 L93 4 L112 18 L135 8 L160 29",
-    cobbles:
-      "M0 29 L18 24 L36 28 L54 20 L72 27 L90 19 L108 26 L126 18 L144 26 L160 22",
-    time_trial:
-      "M0 29 L32 27 L64 23 L96 25 L128 18 L160 20",
-    mixed:
-      "M0 30 L30 26 L55 15 L82 27 L105 8 L130 24 L160 18",
-  };
-
-  return (
-    <svg
-      viewBox="0 0 160 36"
-      role="img"
-      aria-label={`Profil ${RACE_PROFILE_LABELS[profileType]}`}
-      className="h-12 w-full text-[#176951]"
-      preserveAspectRatio="none"
-    >
-      <path
-        d={`${pathByProfile[profileType]} L160 36 L0 36 Z`}
-        fill="currentColor"
-        opacity="0.15"
-      />
-      <path
-        d={pathByProfile[profileType]}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
@@ -914,15 +870,11 @@ function SecondaryClassifications({
 }: {
   edition: RaceCalendarEdition;
 }) {
-  const hasMountain = edition.stages.some(
-    (stage) =>
-      stage.profileType === "mountain" ||
-      stage.profileType === "hilly"
+  const hasMountain = edition.raceFormat === "stage_race" && edition.stages.some(
+    (stage) => stage.segments.some((segment) => segment.prime?.type === "mountain")
   );
-  const hasSprint = edition.stages.some(
-    (stage) =>
-      stage.profileType === "sprint" ||
-      stage.profileType === "flat"
+  const hasSprint = edition.raceFormat === "stage_race" && edition.stages.some(
+    (stage) => stage.segments.some((segment) => segment.prime?.type === "intermediate_sprint")
   );
 
   return (

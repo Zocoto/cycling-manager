@@ -1,3 +1,5 @@
+import type { RaceStageSegment } from "./race-profiles";
+
 export const RACE_CATEGORY_CODES = [
   "elite",
   "world",
@@ -26,14 +28,29 @@ export type RegistrationPolicy =
   | "criteria_pending"
   | "closed";
 
+export type RaceStageType =
+  | "road"
+  | "individual_time_trial"
+  | "team_time_trial"
+  | "prologue";
+
+export type RaceStageStatus =
+  | "planned"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+
 export type RaceCalendarStage = {
   id: string;
   dayNumber: number;
   stageNumber: number;
   name: string;
+  stageType: RaceStageType;
+  status: RaceStageStatus;
   profileType: RaceProfileType;
   distanceKm: number;
   departureAt: string | null;
+  segments: RaceStageSegment[];
 };
 
 export type RaceCalendarEdition = {

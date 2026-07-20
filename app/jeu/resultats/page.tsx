@@ -3,9 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
-import { RaceLiveLab } from "@/components/game/race-live-lab";
+import { RaceResultsDirectory } from "@/components/game/race-results-directory";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
@@ -24,7 +25,16 @@ export default async function RaceResultsPage() {
     redirect("/connexion");
   }
 
-  const headerData = await getGameHeaderData(supabase, user.id);
+  const [headerData, calendarResult] = await Promise.all([
+    getGameHeaderData(supabase, user.id),
+    getActiveSeasonRaceCalendar(supabase)
+      .then((calendar) => ({ calendar, error: null }))
+      .catch((error: unknown) => ({ calendar: null, error })),
+  ]);
+
+  if (calendarResult.error) {
+    console.error("Impossible de charger le calendrier pour Résultats / Live :", calendarResult.error);
+  }
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -41,12 +51,10 @@ export default async function RaceResultsPage() {
               Résultats / Live
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
-              La course devient visible.
+              Vivez chaque course de la saison.
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-[#48665F]">
-              Cette première version permet de rejouer une simulation complète,
-              tronçon par tronçon, puis d’inspecter les groupes, écarts, événements
-              et classements produits par le moteur.
+              Filtrez le calendrier, rejoignez un direct à 20 h ou revivez une course terminée. Le profil, les groupes, les écarts et le classement partagent désormais les mêmes données.
             </p>
           </header>
 
@@ -58,16 +66,17 @@ export default async function RaceResultsPage() {
           </Link>
         </div>
 
-        <div className="mt-7 rounded-2xl border border-amber-300/55 bg-amber-50 px-5 py-4 text-sm font-semibold leading-6 text-amber-950">
-          <strong>Prototype testable :</strong> le moteur utilise déjà les règles
-          prévues pour la production, mais les scénarios de cette page sont des
-          pelotons de démonstration. Le déclenchement serveur à 20 h, la persistance
-          des résultats et le chat multijoueur seront branchés dans une livraison
-          distincte après validation de l’équilibrage.
-        </div>
-
         <div className="mt-8">
-          <RaceLiveLab />
+          {calendarResult.calendar ? (
+            <RaceResultsDirectory
+              calendar={calendarResult.calendar}
+              nowIso={new Date().toISOString()}
+            />
+          ) : (
+            <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-8 text-center font-bold text-red-900">
+              Le calendrier des courses ne peut pas être chargé pour le moment.
+            </div>
+          )}
         </div>
       </div>
     </main>

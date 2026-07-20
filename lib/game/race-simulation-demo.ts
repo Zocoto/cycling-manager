@@ -1,4 +1,8 @@
-import type { RaceProfileType } from "./race-calendar";
+import type {
+  RaceCalendarEdition,
+  RaceCalendarStage,
+  RaceProfileType,
+} from "./race-calendar";
 import { buildRaceSegments } from "./race-profiles";
 import {
   type RiderSimulationInput,
@@ -86,6 +90,39 @@ export function createDemoSimulationInput(
       seed: `${scenario.id}:profile`,
       includeTourPrimes: scenario.isStageRace,
     }),
+    riders: DEMO_RIDERS,
+  };
+}
+
+export function createCalendarSimulationInput({
+  edition,
+  stage,
+  seed,
+}: {
+  edition: RaceCalendarEdition;
+  stage: RaceCalendarStage;
+  seed: string | number;
+}): StageSimulationInput {
+  return {
+    id: stage.id,
+    name:
+      edition.raceFormat === "stage_race"
+        ? `${edition.name} — étape ${stage.stageNumber}`
+        : edition.name,
+    stageType: stage.stageType,
+    isStageRace: edition.raceFormat === "stage_race",
+    seed,
+    segments:
+      stage.segments.length > 0
+        ? stage.segments
+        : buildRaceSegments({
+            distanceKm: stage.distanceKm,
+            profileType: stage.profileType,
+            seed: `${stage.id}:fallback-profile`,
+            includeTourPrimes: edition.raceFormat === "stage_race",
+          }),
+    // Le calendrier et le terrain sont désormais réels. Le peloton reste un
+    // jeu de données déterministe jusqu'au câblage serveur de tous les engagés.
     riders: DEMO_RIDERS,
   };
 }

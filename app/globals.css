@@ -117,3 +117,91 @@ a {
 .cm-heading-shadow {
   text-shadow: 0 5px 22px rgb(0 0 0 / 34%);
 }
+
+@keyframes cm-race-road-flow {
+  from { transform: translateX(0); }
+  to { transform: translateX(-8%); }
+}
+
+@keyframes cm-race-scenery {
+  from { transform: translateX(0); }
+  to { transform: translateX(-12rem); }
+}
+
+@keyframes cm-bike-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-1.5px) rotate(-0.6deg); }
+}
+
+@keyframes cm-bike-wheel {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes cm-sprint-surge {
+  0% { transform: translateX(-52vw) scale(0.88); }
+  62% { transform: translateX(-7vw) scale(1); }
+  82% { transform: translateX(1.4vw) scale(1.03); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes cm-sprint-wind {
+  from { transform: translateX(-12rem); opacity: 0; }
+  35% { opacity: 1; }
+  to { transform: translateX(68vw); opacity: 0; }
+}
+
+@keyframes cm-climb-surge {
+  0% { transform: translate(-16vw, 2.5rem); }
+  68% { transform: translate(-1.2rem, 0.3rem); }
+  86% { transform: translate(0.5rem, -0.2rem); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes cm-finish-road-line {
+  to { stroke-dashoffset: -104; }
+}
+
+.cm-race-road-flow {
+  animation: cm-race-road-flow 0.42s linear infinite;
+}
+
+.cm-race-scenery {
+  animation: cm-race-scenery 2.8s linear infinite;
+}
+
+.cm-bike-bob {
+  animation: cm-bike-bob 0.34s ease-in-out infinite;
+}
+
+.cm-bike-wheel {
+  animation: cm-bike-wheel 0.4s linear infinite;
+}
+
+.cm-sprint-surge {
+  animation: cm-sprint-surge 1.65s cubic-bezier(0.2, 0.72, 0.24, 1) both;
+}
+
+.cm-sprint-wind {
+  animation: cm-sprint-wind 1.2s ease-out 0.2s both;
+}
+
+.cm-climb-surge {
+  animation: cm-climb-surge 1.8s cubic-bezier(0.18, 0.78, 0.28, 1) both;
+}
+
+.cm-finish-road-line {
+  animation: cm-finish-road-line 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-race-road-flow,
+  .cm-race-scenery,
+  .cm-bike-bob,
+  .cm-bike-wheel,
+  .cm-sprint-surge,
+  .cm-sprint-wind,
+  .cm-climb-surge,
+  .cm-finish-road-line {
+    animation: none;
+  }
+}
