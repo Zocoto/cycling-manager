@@ -68,18 +68,26 @@ export function GameHeader({
       >
         <Link
           href="/jeu"
+          aria-label="Retour à l’accueil de Cyclo Stratège"
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
             <WheelLogo />
           </span>
 
-          <span>
-            <span className="block text-lg font-extrabold uppercase leading-none">
-              Cyclo
+          <span className="inline-flex flex-col leading-none">
+            <span
+              aria-hidden="true"
+              className="flex justify-between text-lg font-extrabold uppercase"
+            >
+              <span>C</span>
+              <span>Y</span>
+              <span>C</span>
+              <span>L</span>
+              <span>O</span>
             </span>
 
-            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.26em] text-[var(--game-header-accent)]">
+            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.26em] text-[var(--game-header-accent)] -me-[0.26em]">
               Stratège
             </span>
           </span>
