@@ -6,7 +6,7 @@ import { releases } from "../../../lib/releases";
 export const metadata: Metadata = {
   title: "Nouveautés",
   description:
-    "Découvrez les dernières fonctionnalités et évolutions de Cycling Manager.",
+    "Découvrez les dernières fonctionnalités et évolutions de Cyclo Stratège.",
 };
 
 export default function ReleasesPage() {
@@ -58,7 +58,7 @@ function ReleasesHero() {
           <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl">
             Les nouveautés de
             <span className="mt-2 block text-[#42B99A]">
-              Cycling Manager.
+              Cyclo Stratège.
             </span>
           </h1>
 
@@ -196,7 +196,7 @@ function ReleaseCard({
             </p>
 
             <p className="mt-2 text-sm leading-6 text-[#D6DFD2]">
-              Une nouvelle étape dans la construction de Cycling Manager.
+              Une nouvelle étape dans la construction de Cyclo Stratège.
             </p>
           </div>
         </div>

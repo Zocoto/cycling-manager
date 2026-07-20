@@ -6,7 +6,7 @@ import { RegistrationForm } from "../../../components/auth/registration-form";
 export const metadata: Metadata = {
   title: "Inscription",
   description:
-    "Créez votre compte Cycling Manager et votre identité de directeur sportif.",
+    "Créez votre compte Cyclo Stratège et votre identité de directeur sportif.",
 };
 
 const benefits = [
@@ -60,7 +60,7 @@ export default function RegistrationPage() {
           </h1>
 
           <p className="mt-7 max-w-xl text-lg leading-8 text-[#36554E]">
-            Créez votre identité dans Cycling Manager et préparez-vous
+            Créez votre identité dans Cyclo Stratège et préparez-vous
             à bâtir un projet sportif capable de s’imposer sur les plus
             grandes routes.
           </p>
@@ -103,7 +103,7 @@ export default function RegistrationPage() {
 
               <p className="mt-3 text-sm leading-6 text-[#BFD1C6]">
                 Choisissez le nom sous lequel vous serez connu dans
-                l’univers de Cycling Manager.
+                l’univers de Cyclo Stratège.
               </p>
             </div>
 

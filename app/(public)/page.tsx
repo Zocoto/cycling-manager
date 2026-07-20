@@ -180,7 +180,7 @@ function LatestReleaseSection() {
               </span>
 
               <p className="absolute bottom-4 left-4 right-4 text-sm font-semibold text-white">
-                Le développement de Cycling Manager est officiellement lancé.
+                Le développement de Cyclo Stratège est officiellement lancé.
               </p>
             </div>
 
