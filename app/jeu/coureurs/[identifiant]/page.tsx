@@ -21,6 +21,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicRiderProfile } from "@/services/public-rider-profile";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
+import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 
@@ -34,6 +35,10 @@ type RiderProfilePageProps = {
   params: Promise<{
     identifiant: string;
   }>;
+  searchParams: Promise<{
+    equipement?: string;
+    erreur?: string;
+  }>;
 };
 
 const FREE_AGENT_JERSEY: AmateurJerseyConfig = {
@@ -43,8 +48,9 @@ const FREE_AGENT_JERSEY: AmateurJerseyConfig = {
   accentColor: FREE_AGENT_RIDER_JERSEY.accentColor,
 };
 
-export default async function RiderProfilePage({ params }: RiderProfilePageProps) {
+export default async function RiderProfilePage({ params, searchParams }: RiderProfilePageProps) {
   const { identifiant } = await params;
+  const query = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -67,6 +73,10 @@ export default async function RiderProfilePage({ params }: RiderProfilePageProps
   if (!profile) {
     notFound();
   }
+
+  const equipmentManagement = profile.canManage
+    ? await getRiderEquipmentManagement(user.id, profile.id)
+    : null;
 
   const [amateurIdentity, sponsorIdentity] = profile.currentTeam
     ? await Promise.all([
@@ -94,6 +104,18 @@ export default async function RiderProfilePage({ params }: RiderProfilePageProps
       />
 
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+        {query.equipement ? (
+          <p className="mb-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
+            {query.equipement === "programme"
+              ? "Le changement est programmé : il prendra effet demain à 12 h."
+              : "L’équipement du coureur a été mis à jour."}
+          </p>
+        ) : null}
+        {query.erreur ? (
+          <p className="mb-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
+            {query.erreur}
+          </p>
+        ) : null}
         <p className="mb-4 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#60756E]">
           <span aria-hidden="true">↗</span>
           Fiche ouverte indépendamment de votre espace de jeu
@@ -201,8 +223,10 @@ export default async function RiderProfilePage({ params }: RiderProfilePageProps
 
         <div className="mt-7">
           <RiderEquipmentLoadout
+            riderId={profile.id}
             equipment={profile.equipment}
             canManage={profile.canManage}
+            management={equipmentManagement}
           />
         </div>
       </section>

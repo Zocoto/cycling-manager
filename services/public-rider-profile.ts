@@ -1,15 +1,14 @@
 import "server-only";
 
+import {
+  normalizeEquipmentEffects,
+  type EquipmentEffects,
+  type EquipmentSlot,
+} from "@/lib/game/equipment";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-export type RiderEquipmentSlot =
-  | "helmet"
-  | "gloves"
-  | "bib_shorts"
-  | "shoes"
-  | "frame"
-  | "wheels";
+export type RiderEquipmentSlot = EquipmentSlot;
 
 export type PublicRiderProfile = {
   id: string;
@@ -54,6 +53,9 @@ export type PublicRiderProfile = {
     id: string;
     name: string;
     catalogKey: string;
+    imagePath: string;
+    effectSummary: string;
+    effects: EquipmentEffects;
   }>>;
   privateContract: {
     salaryPerSeason: number;
@@ -157,6 +159,9 @@ type EquipmentItemRow = {
   catalog_key: string;
   name: string;
   slot_type: RiderEquipmentSlot;
+  image_path: string;
+  effect_summary: string;
+  effect_payload: unknown;
 };
 
 type SportingDirectorRow = {
@@ -309,7 +314,9 @@ export async function getPublicRiderProfile({
       equipmentItemIds.length > 0
         ? supabase
             .from("equipment_catalog_items")
-            .select("id, catalog_key, name, slot_type")
+            .select(
+              "id, catalog_key, name, slot_type, image_path, effect_summary, effect_payload"
+            )
             .in("id", equipmentItemIds)
             .eq("status", "active")
             .returns<EquipmentItemRow[]>()
@@ -415,6 +422,9 @@ export async function getPublicRiderProfile({
         id: item.id,
         name: item.name,
         catalogKey: item.catalog_key,
+        imagePath: item.image_path,
+        effectSummary: item.effect_summary,
+        effects: normalizeEquipmentEffects(item.effect_payload),
       };
     }
   }

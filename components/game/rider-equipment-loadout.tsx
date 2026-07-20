@@ -1,32 +1,64 @@
-import type { RiderEquipmentSlot } from "@/services/public-rider-profile";
+import Link from "next/link";
+
+import { equipRiderAction } from "@/app/jeu/materiel/actions";
+import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button";
+import {
+  combineEquipmentEffects,
+  getEquipmentCategory,
+  type EquipmentEffects,
+  type EquipmentSlot,
+} from "@/lib/game/equipment";
+import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
+import type { PublicRiderProfile } from "@/services/public-rider-profile";
+import type {
+  RiderEquipmentManagement,
+  TeamEquipmentCatalogItem,
+} from "@/services/team-equipment";
 
 type EquipmentItem = {
   id: string;
   name: string;
   catalogKey: string;
+  effectSummary: string;
+  effects: EquipmentEffects;
 };
 
 type RiderEquipmentLoadoutProps = {
-  equipment: Partial<Record<RiderEquipmentSlot, EquipmentItem>>;
+  riderId: string;
+  equipment: PublicRiderProfile["equipment"];
   canManage: boolean;
+  management: RiderEquipmentManagement | null;
 };
 
-const LEFT_SLOTS: Array<{ slot: RiderEquipmentSlot; label: string; icon: string }> = [
-  { slot: "helmet", label: "Casque", icon: "⌒" },
-  { slot: "gloves", label: "Gants", icon: "◇" },
-  { slot: "bib_shorts", label: "Cuissard", icon: "▾" },
+const LEFT_SLOTS: Array<{ slot: EquipmentSlot; label: string; icon: string }> = [
+  { slot: "helmet", label: "Casque", icon: "CS" },
+  { slot: "glasses", label: "Lunettes", icon: "LU" },
+  { slot: "gloves", label: "Gants", icon: "GA" },
+  { slot: "bib_shorts", label: "Cuissard", icon: "CU" },
 ];
 
-const RIGHT_SLOTS: Array<{ slot: RiderEquipmentSlot; label: string; icon: string }> = [
-  { slot: "frame", label: "Cadre", icon: "△" },
-  { slot: "wheels", label: "Roues", icon: "◎" },
-  { slot: "shoes", label: "Chaussures", icon: "◒" },
+const RIGHT_SLOTS: Array<{ slot: EquipmentSlot; label: string; icon: string }> = [
+  { slot: "frame", label: "Cadre", icon: "CA" },
+  { slot: "front_wheel", label: "Roue avant", icon: "AV" },
+  { slot: "rear_wheel", label: "Roue arrière", icon: "AR" },
+  { slot: "shoes", label: "Chaussures", icon: "CH" },
 ];
 
 export function RiderEquipmentLoadout({
+  riderId,
   equipment,
   canManage,
+  management,
 }: RiderEquipmentLoadoutProps) {
+  const activeEquipment = (management?.current ?? equipment) as Partial<
+    Record<EquipmentSlot, EquipmentItem>
+  >;
+  const combinedEffects = combineEquipmentEffects(
+    Object.values(activeEquipment)
+      .filter((item): item is EquipmentItem => Boolean(item))
+      .map((item) => item.effects)
+  );
+
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-[#102D28] text-white shadow-[0_22px_55px_rgba(7,26,23,0.18)]">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-5 sm:px-8">
@@ -37,64 +69,136 @@ export function RiderEquipmentLoadout({
           <h2 className="mt-2 text-xl font-black">Configuration du coureur</h2>
         </div>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#BFD1C6]">
-          {canManage ? "Gestion par votre équipe" : "Consultation publique"}
+          {canManage ? "Modifiable par votre équipe" : "Consultation publique"}
         </span>
       </div>
 
-      <div className="grid gap-5 p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(260px,1.3fr)_minmax(0,1fr)] md:items-center">
+      {canManage && management ? (
+        <div className={management.frozenForToday
+          ? "border-b border-[#F2C94C]/20 bg-[#F2C94C]/10 px-6 py-4 text-xs font-bold leading-5 text-[#FFE596] sm:px-8"
+          : "border-b border-[#42B99A]/20 bg-[#42B99A]/10 px-6 py-4 text-xs font-bold leading-5 text-[#9BE0BC] sm:px-8"}
+        >
+          {management.frozenForToday
+            ? "Gel de l’étape du jour actif depuis 12 h : vos changements sont enregistrés maintenant et prendront effet demain à 12 h."
+            : "Les changements réalisés avant 12 h seront actifs pour la course ou l’étape de 20 h."}
+        </div>
+      ) : null}
+
+      <div className="grid gap-5 p-5 sm:p-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,1.15fr)_minmax(0,1fr)] xl:items-center">
         <div className="space-y-4">
           {LEFT_SLOTS.map((slot) => (
-            <EquipmentSlot key={slot.slot} {...slot} item={equipment[slot.slot]} />
+            <EquipmentSlotCard key={slot.slot} {...slot} riderId={riderId} item={activeEquipment[slot.slot]} pending={management?.pending[slot.slot]} options={management?.availableBySlot[slot.slot] ?? []} canManage={canManage && Boolean(management)} />
           ))}
         </div>
 
         <div className="order-first rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_42%,rgba(89,173,137,0.2),transparent_58%)] p-4 md:order-none">
           <CyclistSilhouette />
-          <p className="mt-2 text-center text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-            Silhouette de placement · bonus d’équipement à définir
-          </p>
+          <EquipmentBonusSummary effects={combinedEffects} />
         </div>
 
         <div className="space-y-4">
           {RIGHT_SLOTS.map((slot) => (
-            <EquipmentSlot key={slot.slot} {...slot} item={equipment[slot.slot]} />
+            <EquipmentSlotCard key={slot.slot} {...slot} riderId={riderId} item={activeEquipment[slot.slot]} pending={management?.pending[slot.slot]} options={management?.availableBySlot[slot.slot] ?? []} canManage={canManage && Boolean(management)} />
           ))}
         </div>
       </div>
 
       <p className="border-t border-white/10 bg-black/10 px-6 py-4 text-xs font-semibold leading-5 text-[#9FB5A8] sm:px-8">
-        Le catalogue, l’acquisition, la rareté et les effets sportifs seront activés lors d’une livraison dédiée.
+        Les bonus bleus sont ajoutés aux caractéristiques de base pendant les courses compatibles. Les effets de protection et de réputation sont calculés séparément.
       </p>
     </section>
   );
 }
 
-function EquipmentSlot({
+function EquipmentSlotCard({
+  riderId,
+  slot,
   label,
   icon,
   item,
+  pending,
+  options,
+  canManage,
 }: {
-  slot: RiderEquipmentSlot;
+  riderId: string;
+  slot: EquipmentSlot;
   label: string;
   icon: string;
   item?: EquipmentItem;
+  pending?: { item: TeamEquipmentCatalogItem; effectiveAt: string };
+  options: TeamEquipmentCatalogItem[];
+  canManage: boolean;
 }) {
   return (
-    <div className="flex min-h-20 items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.055] p-3 shadow-inner">
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-[#8FD5B6]/25 bg-[#8FD5B6]/10 text-xl font-black text-[#A9E0C7]">
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#8FD5B6]">
-          {label}
+    <div className="rounded-2xl border border-white/12 bg-white/[0.055] p-3 shadow-inner">
+      <div className="flex min-h-16 items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-[#8FD5B6]/25 bg-[#8FD5B6]/10 text-xs font-black text-[#A9E0C7]">{icon}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#8FD5B6]">{label}</span>
+          <span className="mt-1 block truncate text-sm font-black text-white">{item?.name ?? "Emplacement vide"}</span>
+          {item ? <span className="mt-1 line-clamp-2 block text-[10px] font-semibold leading-4 text-[#9FB5A8]">{item.effectSummary}</span> : null}
         </span>
-        <span className="mt-1 block truncate text-sm font-black text-white">
-          {item?.name ?? "Emplacement vide"}
-        </span>
-      </span>
+      </div>
+
+      {pending ? <p className="mt-2 rounded-lg border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-bold leading-4 text-[#FFE596]">Programmé : {pending.item.name} · actif {formatEffectiveDate(pending.effectiveAt)}</p> : null}
+
+      {canManage ? (
+        <details className="group/slot mt-2 border-t border-white/10 pt-2">
+          <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-wider text-[#9BE0BC] marker:hidden">{item ? "Changer cette pièce" : "Équiper ce slot"}</summary>
+          <div className="mt-3 space-y-2">
+            {options.length > 0 ? options.map((option) => (
+              <form key={option.id} action={equipRiderAction} className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <input type="hidden" name="riderId" value={riderId} />
+                <input type="hidden" name="slot" value={slot} />
+                <input type="hidden" name="equipmentItemId" value={option.id} />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0"><span className="block truncate text-xs font-black text-white">{option.name}</span><span className="mt-1 block text-[9px] font-semibold leading-4 text-[#9FB5A8]">{option.effectSummary}</span></span>
+                  <EquipmentSubmitButton mode="equip" disabled={option.id === item?.id || option.id === pending?.item.id} />
+                </div>
+              </form>
+            )) : (
+              <Link href={`/jeu/materiel?categorie=${slot}`} className="block rounded-lg border border-dashed border-[#8FD5B6]/30 px-3 py-3 text-center text-[10px] font-black uppercase tracking-wider text-[#9BE0BC] hover:bg-white/5">Acheter des {getEquipmentCategory(slot).label.toLowerCase()}</Link>
+            )}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }
+
+function EquipmentBonusSummary({ effects }: { effects: EquipmentEffects }) {
+  const ratingBonuses = getPositiveRatingBonuses(effects.ratingBonuses)
+    .sort(([left], [right]) => ratingOrder(left) - ratingOrder(right));
+  const timeTrialRatingBonuses = getPositiveRatingBonuses(
+    effects.timeTrialRatingBonuses
+  ).sort(([left], [right]) => ratingOrder(left) - ratingOrder(right));
+  const hasEffects = ratingBonuses.length > 0 || timeTrialRatingBonuses.length > 0 || effects.injuryRiskReductionPct > 0 || effects.breakawayReputationBonus > 0 || effects.victoryReputationBonus > 0;
+
+  return (
+    <div className="mt-3 rounded-2xl border border-white/10 bg-black/10 p-4 text-center">
+      <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#8FD5B6]">Cumul des bonus actifs</p>
+      {hasEffects ? (
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          {ratingBonuses.map(([key, value]) => <span key={key} className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]">{ratingLabel(key)} +{formatBonus(value)}</span>)}
+          {timeTrialRatingBonuses.map(([key, value]) => <span key={`tt-${key}`} className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]">{ratingLabel(key)} +{formatBonus(value)} · CLM</span>)}
+          {effects.injuryRiskReductionPct > 0 ? <span className="rounded-full border border-[#9BE0BC]/30 bg-[#42B99A]/15 px-2.5 py-1 text-[10px] font-black text-[#9BE0BC]">Blessure −{formatBonus(effects.injuryRiskReductionPct)} %</span> : null}
+          {effects.breakawayReputationBonus > 0 ? <span className="rounded-full border border-[#F2C94C]/30 bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#FFE596]">Rép. échappée +{formatBonus(effects.breakawayReputationBonus)}</span> : null}
+          {effects.victoryReputationBonus > 0 ? <span className="rounded-full border border-[#F2C94C]/30 bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#FFE596]">Rép. victoire +{formatBonus(effects.victoryReputationBonus)}</span> : null}
+        </div>
+      ) : <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9FB5A8]">Aucun bonus tant que les emplacements restent vides.</p>}
+    </div>
+  );
+}
+
+function ratingLabel(key: RiderRatingKey) { return RIDER_RATING_AXES.find((axis) => axis.key === key)?.shortLabel ?? key; }
+function ratingOrder(key: RiderRatingKey) { return RIDER_RATING_AXES.findIndex((axis) => axis.key === key); }
+function getPositiveRatingBonuses(bonuses: Partial<Record<RiderRatingKey, number>>) {
+  return Object.entries(bonuses).flatMap(([key, value]) =>
+    Number(value) > 0 ? [[key as RiderRatingKey, Number(value)] as const] : []
+  );
+}
+function formatBonus(value: number) { return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value); }
+function formatEffectiveDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
 
 function CyclistSilhouette() {
   return (

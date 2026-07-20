@@ -2,6 +2,10 @@ import type {
   RaceSegmentPrime,
   RaceStageSegment,
 } from "./race-profiles";
+import {
+  applyEquipmentRatingBonuses,
+  type EquipmentEffects,
+} from "./equipment";
 
 export const RACE_ROLES = [
   "auto",
@@ -71,6 +75,7 @@ export type RiderSimulationInput = {
   role: RaceRole;
   specialAbility?: RiderSpecialAbility | null;
   ratings: RiderSimulationRatings;
+  equipmentEffects?: EquipmentEffects;
 };
 
 export type StageSimulationInput = {
@@ -248,9 +253,19 @@ export function simulateRaceStage(
   const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
   const eligibleInput = {
     ...input,
-    riders: input.riders.filter(
-      (rider) => !unavailableRiderIds.has(rider.id)
-    ),
+    riders: input.riders
+      .filter((rider) => !unavailableRiderIds.has(rider.id))
+      .map((rider) => ({
+        ...rider,
+        ratings: rider.equipmentEffects
+          ? applyEquipmentRatingBonuses(rider.ratings, rider.equipmentEffects, {
+              isTimeTrial:
+                input.stageType === "individual_time_trial" ||
+                input.stageType === "team_time_trial" ||
+                input.stageType === "prologue",
+            })
+          : rider.ratings,
+      })),
   };
   validateSimulationInput(eligibleInput);
   const resolvedRiders = assignAutomaticRaceRoles(
@@ -1515,9 +1530,18 @@ function maybeCreateCrashAbandonment(
   const vulnerability =
     Math.max(0, 72 - state.rider.ratings.resistance) * 0.004 +
     Math.max(0, 45 - state.energy) * 0.004;
+  const protectionFactor =
+    1 -
+    clamp(
+      state.rider.equipmentEffects?.injuryRiskReductionPct ?? 0,
+      0,
+      45
+    ) /
+      100;
   const abandonmentChance = clamp(
-    (crashType === "crash_individual" ? 0.2 : 0.11) + vulnerability,
-    0.08,
+    ((crashType === "crash_individual" ? 0.2 : 0.11) + vulnerability) *
+      protectionFactor,
+    0.04,
     0.42
   );
 

@@ -117,7 +117,8 @@ type ManagementModuleIcon =
   | "camp"
   | "transfer"
   | "finance"
-  | "ranking";
+  | "ranking"
+  | "equipment";
 
 export default async function GamePage() {
   const supabase =
@@ -409,6 +410,14 @@ export default async function GamePage() {
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             <ManagementModuleCard
+              href="/jeu/materiel"
+              icon="equipment"
+              title="Matériel"
+              status="Catalogue ouvert"
+              description="Achetez casques, textiles, lunettes, chaussures, roues et cadres, puis attribuez-les à vos coureurs."
+            />
+
+            <ManagementModuleCard
               href="/jeu/finances"
               icon="finance"
               title="Finances"
@@ -552,7 +561,7 @@ function DirectorProfileCard({
             Directeur Sportif
           </p>
 
-          <h2 className="mt-2 text-2xl font-black">
+          <h2 className="mt-2 text-2xl font-black text-white">
             Aperçu du profil
           </h2>
         </div>
@@ -848,7 +857,7 @@ function ObjectivesCard({
               Objectifs
             </p>
 
-            <h2 className="mt-2 text-2xl font-black">
+            <h2 className="mt-2 text-2xl font-black text-white">
               Vos priorités
             </h2>
           </div>
@@ -950,7 +959,7 @@ function TeamRosterCard({
         </span>
       </div>
 
-      <h2 className="mt-5 text-xl font-black">
+      <h2 className="mt-5 text-xl font-black text-white">
         Effectif
       </h2>
 
@@ -1169,7 +1178,7 @@ function ManagementModuleCard({
         </span>
       </div>
 
-      <h2 className="mt-6 text-xl font-black">
+      <h2 className="mt-6 text-xl font-black text-white">
         {title}
       </h2>
 
@@ -1433,6 +1442,14 @@ function ManagementModuleIcon({
         <path d="M10 20V4h4v16" />
         <path d="M15 20v-7h4v7" />
         <path d="M3 20h18" />
+      </>
+    ),
+
+    equipment: (
+      <>
+        <circle cx="7" cy="17" r="3" />
+        <circle cx="17" cy="17" r="3" />
+        <path d="M7 17 11 8h4l2 9M9 13h7M11 8 9 5h4" />
       </>
     ),
   };
