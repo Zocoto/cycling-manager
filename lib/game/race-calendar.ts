@@ -1,4 +1,5 @@
 import type { RaceStageSegment } from "./race-profiles";
+import type { RiderSimulationInput } from "./race-simulation";
 
 export const RACE_CATEGORY_CODES = [
   "elite",
@@ -72,6 +73,7 @@ export type RaceCalendarEdition = {
   minimumRosterSize: number;
   maximumRosterSize: number;
   engagedRiderCount: number;
+  engagedRiders: RiderSimulationInput[];
   currentTeamRegistration: {
     status: "pending" | "accepted" | "rejected" | "withdrawn";
     rosterCount: number;

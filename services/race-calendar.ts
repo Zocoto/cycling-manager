@@ -133,9 +133,31 @@ type CalendarRegistrationRow = {
   roster_count: number;
 };
 
-type EngagedRiderCountRow = {
+type CalendarEngagedRiderRow = {
   race_edition_id: string;
-  engaged_rider_count: number;
+  rider_id: string;
+  rider_first_name: string;
+  rider_last_name: string;
+  team_id: string;
+  team_name: string;
+  team_primary_color: string;
+  team_secondary_color: string;
+  age: number;
+  form: number;
+  race_role: RaceCalendarEdition["engagedRiders"][number]["role"];
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
 };
 
 export type CurrentRaceRegistration = {
@@ -273,7 +295,7 @@ export async function getActiveSeasonRaceCalendar(
     daysResult,
     editionsResult,
     registrationsResult,
-    engagedRiderCountsResult,
+    engagedRidersResult,
   ] =
     await Promise.all([
       supabase
@@ -310,9 +332,7 @@ export async function getActiveSeasonRaceCalendar(
         "get_current_team_calendar_registrations"
       ),
 
-      supabase.rpc(
-        "get_active_calendar_engaged_rider_counts"
-      ),
+      supabase.rpc("get_active_calendar_engaged_riders"),
     ]);
 
   if (daysResult.error) {
@@ -333,9 +353,9 @@ export async function getActiveSeasonRaceCalendar(
     );
   }
 
-  if (engagedRiderCountsResult.error) {
+  if (engagedRidersResult.error) {
     throw new Error(
-      `Impossible de charger le nombre de coureurs engagés : ${engagedRiderCountsResult.error.message}`
+      `Impossible de charger les coureurs engagés : ${engagedRidersResult.error.message}`
     );
   }
 
@@ -526,13 +546,8 @@ export async function getActiveSeasonRaceCalendar(
       ]
     )
   );
-  const engagedRiderCountByEditionId = new Map(
-    ((engagedRiderCountsResult.data as
-      | EngagedRiderCountRow[]
-      | null) ?? []).map((entry) => [
-      entry.race_edition_id,
-      entry.engaged_rider_count,
-    ])
+  const engagedRidersByEditionId = groupCalendarEngagedRiders(
+    (engagedRidersResult.data as CalendarEngagedRiderRow[] | null) ?? []
   );
 
   const editions = editionRows
@@ -581,9 +596,9 @@ export async function getActiveSeasonRaceCalendar(
         maximumRosterSize:
           category.maximum_roster_size ?? 1,
         engagedRiderCount:
-          engagedRiderCountByEditionId.get(
-            edition.id
-          ) ?? 0,
+          engagedRidersByEditionId.get(edition.id)?.length ?? 0,
+        engagedRiders:
+          engagedRidersByEditionId.get(edition.id) ?? [],
         currentTeamRegistration: registrationByEditionId.has(
           edition.id
         )
@@ -823,6 +838,49 @@ export async function getRaceEngagedRiders(
       countryCode: rider.country_iso_alpha2,
     })
   );
+}
+
+function groupCalendarEngagedRiders(
+  rows: CalendarEngagedRiderRow[]
+) {
+  const ridersByEditionId = new Map<
+    string,
+    RaceCalendarEdition["engagedRiders"]
+  >();
+
+  for (const row of rows) {
+    const riders = ridersByEditionId.get(row.race_edition_id) ?? [];
+    riders.push({
+      id: row.rider_id,
+      name: `${row.rider_first_name} ${row.rider_last_name}`,
+      teamId: row.team_id,
+      teamName: row.team_name,
+      teamPrimaryColor: row.team_primary_color,
+      teamSecondaryColor: row.team_secondary_color,
+      age: Number(row.age),
+      form: Number(row.form),
+      role: row.race_role,
+      specialAbility: null,
+      ratings: {
+        mountain: Number(row.mountain),
+        hills: Number(row.hills),
+        flat: Number(row.flat),
+        timeTrial: Number(row.time_trial),
+        cobbles: Number(row.cobbles),
+        sprint: Number(row.sprint),
+        acceleration: Number(row.acceleration),
+        downhill: Number(row.downhill),
+        endurance: Number(row.endurance),
+        resistance: Number(row.resistance),
+        recovery: Number(row.recovery),
+        breakaway: Number(row.breakaway),
+        prologue: Number(row.prologue),
+      },
+    });
+    ridersByEditionId.set(row.race_edition_id, riders);
+  }
+
+  return ridersByEditionId;
 }
 
 function groupStages(

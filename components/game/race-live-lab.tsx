@@ -207,7 +207,7 @@ export function RaceLiveLab({
               Profil officiel du calendrier
             </span>
             <span className="rounded-full border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[#E9D98B]">
-              Peloton de calibration
+              Startlist officielle · {input.riders.length} engagés · {new Set(input.riders.map((rider) => rider.teamId)).size} équipe{new Set(input.riders.map((rider) => rider.teamId)).size > 1 ? "s" : ""}
             </span>
             {mode === "replay" ? (
             <button

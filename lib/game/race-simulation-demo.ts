@@ -103,6 +103,19 @@ export function createCalendarSimulationInput({
   stage: RaceCalendarStage;
   seed: string | number;
 }): StageSimulationInput {
+  const riders =
+    edition.engagedRiders.length > 0
+      ? edition.engagedRiders
+      : edition.slug === "criterium-de-namur"
+        ? DEMO_RIDERS
+        : [];
+
+  if (riders.length === 0) {
+    throw new Error(
+      `La course ${edition.name} ne peut pas être simulée sans startlist enregistrée.`
+    );
+  }
+
   return {
     id: stage.id,
     name:
@@ -121,9 +134,7 @@ export function createCalendarSimulationInput({
             seed: `${stage.id}:fallback-profile`,
             includeTourPrimes: edition.raceFormat === "stage_race",
           }),
-    // Le calendrier et le terrain sont désormais réels. Le peloton reste un
-    // jeu de données déterministe jusqu'au câblage serveur de tous les engagés.
-    riders: DEMO_RIDERS,
+    riders,
   };
 }
 
