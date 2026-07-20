@@ -73,32 +73,28 @@ export async function getUciRankings(): Promise<UciRankings | null> {
     return null;
   }
 
-  const [teamSeasonsResult, ratingsResult, summariesResult] = await Promise.all([
+  const [teamSeasonsResult, summariesResult] = await Promise.all([
     supabase
       .from("team_seasons")
       .select("team_id, display_name, points, final_rank")
       .eq("season_id", season.id)
       .neq("status", "withdrawn")
+      .gt("points", 0)
       .returns<TeamSeasonRow[]>(),
-    supabase
-      .from("rider_season_ratings")
-      .select("rider_id")
-      .eq("season_id", season.id)
-      .returns<Array<{ rider_id: string }>>(),
     supabase
       .from("rider_season_summaries")
       .select("rider_id, points")
       .eq("season_id", season.id)
+      .gt("points", 0)
       .returns<RiderSummaryRow[]>(),
   ]);
 
   assertQuery(teamSeasonsResult.error, "les équipes classées");
-  assertQuery(ratingsResult.error, "les coureurs de la saison");
   assertQuery(summariesResult.error, "les points des coureurs");
 
   const teamSeasons = teamSeasonsResult.data ?? [];
   const teamIds = teamSeasons.map((team) => team.team_id);
-  const riderIds = (ratingsResult.data ?? []).map((rating) => rating.rider_id);
+  const riderIds = (summariesResult.data ?? []).map((summary) => summary.rider_id);
 
   const [assignmentsResult, ridersResult, contractsResult] = await Promise.all([
     teamIds.length
@@ -166,7 +162,8 @@ export async function getUciRankings(): Promise<UciRankings | null> {
     (summariesResult.data ?? []).map((row) => [row.rider_id, row.points ?? 0])
   );
 
-  const teams = [...teamSeasons]
+  const teams = teamSeasons
+    .filter((team) => team.points > 0)
     .sort(
       (left, right) =>
         right.points - left.points || left.display_name.localeCompare(right.display_name, "fr")
@@ -208,7 +205,9 @@ export async function getUciRankings(): Promise<UciRankings | null> {
         points: pointsByRiderId.get(rider.id) ?? 0,
       } satisfies RiderRankingEntry;
     })
-    .filter((rider): rider is RiderRankingEntry => rider !== null)
+    .filter(
+      (rider): rider is RiderRankingEntry => rider !== null && rider.points > 0
+    )
     .sort(
       (left, right) =>
         right.points - left.points || left.riderName.localeCompare(right.riderName, "fr")
@@ -229,6 +228,7 @@ export async function getUciRankings(): Promise<UciRankings | null> {
   }
 
   const nations = [...nationAccumulator.values()]
+    .filter((nation) => nation.points > 0)
     .sort(
       (left, right) =>
         right.points - left.points || left.countryName.localeCompare(right.countryName, "fr")
