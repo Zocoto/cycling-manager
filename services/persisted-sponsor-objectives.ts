@@ -1,7 +1,11 @@
 import "server-only";
 
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { generateProvisionalSponsorObjectives } from "@/services/sponsor-objectives";
+import {
+  generateProvisionalSponsorObjectives,
+  selectSponsorObjectiveRaces,
+  type SponsorObjectiveRaceCandidate,
+} from "@/services/sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
 import type {
   PersistedSponsorObjective,
@@ -54,13 +58,41 @@ type SponsorObjectiveInsertRow = {
   target_details: SponsorObjectiveTargetDetails;
 };
 
+type RaceEditionRow = {
+  id: string;
+  race_id: string;
+  season_id: string;
+  display_name: string;
+  status: string;
+  registration_policy: "open" | "criteria_pending" | "closed";
+  minimum_reputation: number | null;
+};
+
+type RaceRow = {
+  id: string;
+  country_id: string;
+  slug: string;
+  status: string;
+};
+
+type CountryRow = {
+  id: string;
+  iso_alpha2: string;
+};
+
+type SeasonReferenceRow = {
+  id: string;
+};
+
 export async function ensureAndLoadSponsorObjectives({
   supabase,
   seasonId,
+  teamReputationPoints,
   offers,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
+  teamReputationPoints: number;
   offers: readonly SponsorOfferObjectiveContext[];
 }): Promise<Map<string, PersistedSponsorObjective[]>> {
   if (offers.length === 0) {
@@ -68,6 +100,10 @@ export async function ensureAndLoadSponsorObjectives({
   }
 
   const offerIds = offers.map((offer) => offer.offerId);
+  const raceCandidates = await loadSponsorObjectiveRaceCandidates({
+    supabase,
+    seasonId,
+  });
 
   const existingObjectiveRows =
     await loadSponsorObjectiveRows(
@@ -97,10 +133,23 @@ export async function ensureAndLoadSponsorObjectives({
           offer.sponsor.countryCode,
         sponsorPrestige:
           offer.sponsor.prestige,
+        teamReputationPoints,
+        raceCandidates,
         random: createSeededRandom(
           `${offer.offerId}:${offer.sponsor.id}`
         ),
       });
+
+    await repairLegacyRaceObjectives({
+      supabase,
+      objectiveRows: existingRows,
+      sponsorCountryCode: offer.sponsor.countryCode,
+      teamReputationPoints,
+      raceCandidates,
+      random: createSeededRandom(
+        `${offer.offerId}:${offer.sponsor.id}:race-repair`
+      ),
+    });
 
     for (const objective of generatedObjectives) {
       if (
@@ -153,6 +202,11 @@ export async function ensureAndLoadSponsorObjectives({
       supabase,
       offerIds
     );
+
+  await syncRaceResultObjectiveLinks(
+    supabase,
+    completeObjectiveRows
+  );
 
   const completeRowsByOfferId = groupRowsByOfferId(
     completeObjectiveRows
@@ -350,4 +404,310 @@ function createSeededRandom(
       4_294_967_296
     );
   };
+}
+
+async function loadSponsorObjectiveRaceCandidates({
+  supabase,
+  seasonId,
+}: {
+  supabase: SupabaseAdminClient;
+  seasonId: string;
+}): Promise<SponsorObjectiveRaceCandidate[]> {
+  const targetSeasonRows = await loadRaceEditionRows(
+    supabase,
+    seasonId
+  );
+  let sourceRows = targetSeasonRows;
+
+  if (targetSeasonRows.length < 3) {
+    const { data: activeSeasonRows, error: activeSeasonError } =
+      await supabase
+        .from("seasons")
+        .select("id")
+        .eq("status", "active")
+        .neq("id", seasonId)
+        .limit(1)
+        .returns<SeasonReferenceRow[]>();
+
+    if (activeSeasonError) {
+      throw new Error(
+        `Impossible de rechercher le calendrier de référence des objectifs sponsor : ${activeSeasonError.message}`
+      );
+    }
+
+    const fallbackSeasonId = activeSeasonRows?.[0]?.id;
+
+    if (fallbackSeasonId) {
+      sourceRows = [
+        ...targetSeasonRows,
+        ...(await loadRaceEditionRows(supabase, fallbackSeasonId)),
+      ];
+    }
+  }
+
+  const raceIds = [...new Set(sourceRows.map((row) => row.race_id))];
+
+  if (raceIds.length === 0) {
+    throw new Error(
+      "Aucune course existante n’est disponible pour générer les objectifs sponsor."
+    );
+  }
+
+  const { data: raceRows, error: raceError } = await supabase
+    .from("races")
+    .select("id, country_id, slug, status")
+    .in("id", raceIds)
+    .eq("status", "active")
+    .returns<RaceRow[]>();
+
+  if (raceError) {
+    throw new Error(
+      `Impossible de charger les courses des objectifs sponsor : ${raceError.message}`
+    );
+  }
+
+  const countryIds = [
+    ...new Set((raceRows ?? []).map((race) => race.country_id)),
+  ];
+  const { data: countryRows, error: countryError } = await supabase
+    .from("countries")
+    .select("id, iso_alpha2")
+    .in("id", countryIds)
+    .returns<CountryRow[]>();
+
+  if (countryError) {
+    throw new Error(
+      `Impossible de charger les pays des courses sponsor : ${countryError.message}`
+    );
+  }
+
+  const raceById = new Map((raceRows ?? []).map((race) => [race.id, race]));
+  const countryCodeById = new Map(
+    (countryRows ?? []).map((country) => [country.id, country.iso_alpha2])
+  );
+  const candidatesByRaceId = new Map<
+    string,
+    SponsorObjectiveRaceCandidate
+  >();
+
+  for (const edition of sourceRows) {
+    if (edition.status === "cancelled") {
+      continue;
+    }
+
+    const race = raceById.get(edition.race_id);
+    const countryCode = race
+      ? countryCodeById.get(race.country_id)
+      : undefined;
+
+    if (!race || !countryCode) {
+      continue;
+    }
+
+    const candidate: SponsorObjectiveRaceCandidate = {
+      raceId: race.id,
+      raceEditionId: edition.season_id === seasonId ? edition.id : null,
+      raceSlug: race.slug,
+      raceLabel: edition.display_name,
+      countryCode,
+      registrationPolicy: edition.registration_policy,
+      minimumReputation: edition.minimum_reputation,
+    };
+    const existingCandidate = candidatesByRaceId.get(race.id);
+
+    if (!existingCandidate || candidate.raceEditionId !== null) {
+      candidatesByRaceId.set(race.id, candidate);
+    }
+  }
+
+  return [...candidatesByRaceId.values()];
+}
+
+async function loadRaceEditionRows(
+  supabase: SupabaseAdminClient,
+  seasonId: string
+): Promise<RaceEditionRow[]> {
+  const { data, error } = await supabase
+    .from("race_editions")
+    .select(
+      "id, race_id, season_id, display_name, status, registration_policy, minimum_reputation"
+    )
+    .eq("season_id", seasonId)
+    .neq("status", "cancelled")
+    .returns<RaceEditionRow[]>();
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger le calendrier des objectifs sponsor : ${error.message}`
+    );
+  }
+
+  return data ?? [];
+}
+
+async function repairLegacyRaceObjectives({
+  supabase,
+  objectiveRows,
+  sponsorCountryCode,
+  teamReputationPoints,
+  raceCandidates,
+  random,
+}: {
+  supabase: SupabaseAdminClient;
+  objectiveRows: readonly SponsorObjectiveRow[];
+  sponsorCountryCode: string;
+  teamReputationPoints: number;
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+  random: () => number;
+}): Promise<void> {
+  const raceObjectiveRows = objectiveRows.filter(
+    (objective) => objective.objective_type === "race_result"
+  );
+
+  if (raceObjectiveRows.length === 0) {
+    return;
+  }
+
+  const selectedRaces = selectSponsorObjectiveRaces({
+    sponsorCountryCode,
+    teamReputationPoints,
+    raceCandidates,
+    count: raceObjectiveRows.length,
+    random,
+  });
+  const eligibleCandidateByRaceId = new Map(
+    raceCandidates
+      .filter(
+        (candidate) =>
+          candidate.registrationPolicy === "open" &&
+          candidate.minimumReputation !== null &&
+          teamReputationPoints >= candidate.minimumReputation
+      )
+      .map((candidate) => [candidate.raceId, candidate])
+  );
+  const retainedRaceIds = new Set(
+    raceObjectiveRows.flatMap((objective) => {
+      const details = objective.target_details;
+
+      return details.kind === "race_result" &&
+        eligibleCandidateByRaceId.has(details.raceId)
+        ? [details.raceId]
+        : [];
+    })
+  );
+  const replacementRaces = selectedRaces.filter(
+    (race) => !retainedRaceIds.has(race.raceId)
+  );
+  let replacementIndex = 0;
+
+  for (const objective of raceObjectiveRows) {
+    const details = objective.target_details;
+    const isAlreadyLinked =
+      details.kind === "race_result" &&
+      eligibleCandidateByRaceId.has(details.raceId);
+
+    if (isAlreadyLinked) {
+      continue;
+    }
+
+    const replacement = replacementRaces[replacementIndex];
+    replacementIndex += 1;
+
+    if (!replacement) {
+      throw new Error(
+        `Aucune course de remplacement n’est disponible pour l’objectif ${objective.id}.`
+      );
+    }
+
+    const achievementType =
+      details.kind === "race_result" && details.achievementType === "win"
+        ? "win"
+        : "top_n";
+    const targetRank =
+      achievementType === "top_n" &&
+      details.kind === "race_result" &&
+      typeof details.targetRank === "number" &&
+      details.targetRank > 0
+        ? details.targetRank
+        : achievementType === "top_n"
+          ? 10
+          : null;
+    const requiredCount =
+      details.kind === "race_result" && details.requiredCount > 0
+        ? details.requiredCount
+        : 1;
+    const name =
+      achievementType === "win"
+        ? `Remporter ${replacement.raceLabel}`
+        : `Top ${targetRank} sur ${replacement.raceLabel}`;
+    const description =
+      achievementType === "win"
+        ? `Obtenir la victoire sur ${replacement.raceLabel} pendant la saison.`
+        : `Placer au moins un coureur parmi les ${targetRank} premiers de ${replacement.raceLabel}.`;
+    const { error } = await supabase
+      .from("sponsor_objectives")
+      .update({
+        name,
+        description,
+        target_details: {
+          kind: "race_result",
+          raceId: replacement.raceId,
+          raceEditionId: replacement.raceEditionId,
+          raceSlug: replacement.raceSlug,
+          raceLabel: replacement.raceLabel,
+          countryCode: replacement.countryCode,
+          achievementType,
+          targetRank,
+          requiredCount,
+        },
+      })
+      .eq("id", objective.id);
+
+    if (error) {
+      throw new Error(
+        `Impossible de relier l’objectif ${objective.id} à une course existante : ${error.message}`
+      );
+    }
+  }
+}
+
+async function syncRaceResultObjectiveLinks(
+  supabase: SupabaseAdminClient,
+  objectiveRows: readonly SponsorObjectiveRow[]
+): Promise<void> {
+  for (const objective of objectiveRows) {
+    if (
+      objective.objective_type !== "race_result" ||
+      objective.target_details.kind !== "race_result"
+    ) {
+      continue;
+    }
+
+    const details = objective.target_details;
+
+    if (!details.raceEditionId) {
+      continue;
+    }
+
+    const { error } = await supabase
+      .from("race_result_objectives")
+      .upsert(
+        {
+          objective_id: objective.id,
+          race_edition_id: details.raceEditionId,
+          stage_id: null,
+          target_scope: "race_final",
+          achievement_type: details.achievementType,
+          target_rank: details.targetRank,
+          required_count: details.requiredCount,
+        },
+        { onConflict: "objective_id" }
+      );
+
+    if (error) {
+      throw new Error(
+        `Impossible de synchroniser la course de l’objectif ${objective.id} : ${error.message}`
+      );
+    }
+  }
 }

@@ -193,6 +193,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
     return hydrateSponsorOffersWithObjectives({
       supabase,
       seasonId: activeSeason.id,
+      teamReputationPoints: sportingDirector.reputation_points,
       offerRows: existingOfferRows,
     });
   }
@@ -324,6 +325,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
   return hydrateSponsorOffersWithObjectives({
     supabase,
     seasonId: activeSeason.id,
+    teamReputationPoints: sportingDirector.reputation_points,
     offerRows: insertedOfferRows ?? [],
   });
 }
@@ -456,10 +458,12 @@ async function hasTerminatedPrincipalContractForSeason({
 async function hydrateSponsorOffersWithObjectives({
   supabase,
   seasonId,
+  teamReputationPoints,
   offerRows,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
+  teamReputationPoints: number;
   offerRows: readonly SponsorOfferRow[];
 }): Promise<PersistedSponsorOffer[]> {
   const hydratedOffers =
@@ -479,6 +483,7 @@ async function hydrateSponsorOffersWithObjectives({
     await ensureAndLoadSponsorObjectives({
       supabase,
       seasonId,
+      teamReputationPoints,
       offers: objectiveContexts,
     });
 

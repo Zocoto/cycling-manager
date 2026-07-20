@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   createDirectorListingAction,
   placeTransferBidAction,
-  renewRiderContractAction,
   signFreeAgentAction,
 } from "@/app/jeu/transferts/actions";
 import { GameHeader } from "@/components/game/game-header";
@@ -170,7 +169,6 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
   returnPath: string;
 }) {
   const sellable = roster.filter((candidate) => candidate.canList);
-  const renewable = roster.filter((candidate) => candidate.canRenew);
   return (
     <section className="mt-7 space-y-7">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
@@ -197,22 +195,6 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
           <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">Un coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.</p>
         </article>
       </div>
-
-      {renewable.length > 0 ? (
-        <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
-          <SectionHeading eyebrow="Anticiper" title="Renouvellements disponibles" detail="Sous 60 de moyenne, le coureur amateur reste bénévole. À partir de 60, il demande un salaire." compact />
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {renewable.map((candidate) => (
-              <form key={candidate.rider.id} action={renewRiderContractAction} className="flex items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-4">
-                <input type="hidden" name="riderId" value={candidate.rider.id} /><input type="hidden" name="returnPath" value={returnPath} />
-                <RiderAvatar profileKey={candidate.rider.avatarProfileKey} seed={candidate.rider.avatarSeed} riderId={candidate.rider.id} age={candidate.rider.age} jersey={jerseys.get(overview.teamId) ?? FREE_AGENT_RIDER_JERSEY} label={`Portrait de ${candidate.rider.firstName} ${candidate.rider.lastName}`} className="h-14 w-14" />
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{candidate.rider.firstName} {candidate.rider.lastName}</span><span className="mt-1 block text-xs font-bold text-[#60756E]">{candidate.renewalSalary === 0 ? "Sans salaire" : `${formatMoney(candidate.renewalSalary, candidate.currency)} / saison`}</span></span>
-                <TransferSubmitButton pendingLabel="…" tone="green">Renouveler</TransferSubmitButton>
-              </form>
-            ))}
-          </div>
-        </article>
-      ) : null}
 
       <div>
         <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture ; le transfert et les écritures financières sont ensuite automatiques." />

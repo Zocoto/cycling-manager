@@ -240,6 +240,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       offers: await hydrateFutureSponsorOffersWithObjectives({
         supabase,
         seasonId: targetSeason.id,
+        teamReputationPoints: sportingDirector.reputation_points,
         offerRows: existingOfferRows,
         renewalSponsorCatalogKey:
           mode === "renewal"
@@ -369,6 +370,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     offers: await hydrateFutureSponsorOffersWithObjectives({
       supabase,
       seasonId: targetSeason.id,
+      teamReputationPoints: sportingDirector.reputation_points,
       offerRows: insertedOfferRows ?? [],
       renewalSponsorCatalogKey:
         mode === "renewal"
@@ -781,11 +783,13 @@ async function getUnavailableSponsorCatalogKeysForGameYear({
 async function hydrateFutureSponsorOffersWithObjectives({
   supabase,
   seasonId,
+  teamReputationPoints,
   offerRows,
   renewalSponsorCatalogKey,
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
+  teamReputationPoints: number;
   offerRows: readonly SponsorOfferRow[];
   renewalSponsorCatalogKey: string | null;
 }): Promise<PersistedSponsorOffer[]> {
@@ -805,6 +809,7 @@ async function hydrateFutureSponsorOffersWithObjectives({
     await ensureAndLoadSponsorObjectives({
       supabase,
       seasonId,
+      teamReputationPoints,
       offers: objectiveContexts,
     });
 

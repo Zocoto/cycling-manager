@@ -18,7 +18,11 @@ export type SponsorObjectiveStatus =
 
 export type RaceResultObjectiveDetails = {
   kind: "race_result";
+  raceId: string;
+  raceEditionId: string | null;
+  raceSlug: string;
   raceLabel: string;
+  countryCode: string;
   achievementType: "win" | "top_n";
   targetRank: number | null;
   requiredCount: number;

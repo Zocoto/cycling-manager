@@ -9,22 +9,21 @@ import type {
 const OBJECTIVE_COUNT = 7;
 const RENEWAL_BONUS_PERCENT = 1;
 
-const PROVISIONAL_RACE_LABELS = [
-  "Course X",
-  "Course Y",
-  "Course Z",
-  "Classique A",
-  "Classique B",
-  "Grand Prix A",
-  "Grand Prix B",
-  "Tour X",
-  "Tour Y",
-  "Tour Z",
-] as const;
+export type SponsorObjectiveRaceCandidate = {
+  raceId: string;
+  raceEditionId: string | null;
+  raceSlug: string;
+  raceLabel: string;
+  countryCode: string;
+  registrationPolicy: "open" | "criteria_pending" | "closed";
+  minimumReputation: number | null;
+};
 
 type GenerateSponsorObjectivesOptions = {
   sponsorCountryCode: string;
   sponsorPrestige: SponsorPrestige;
+  teamReputationPoints: number;
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   random?: () => number;
 };
 
@@ -36,6 +35,8 @@ type ObjectiveWithoutDisplayOrder = Omit<
 export function generateProvisionalSponsorObjectives({
   sponsorCountryCode,
   sponsorPrestige,
+  teamReputationPoints,
+  raceCandidates,
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
   const normalizedCountryCode = sponsorCountryCode
@@ -48,11 +49,13 @@ export function generateProvisionalSponsorObjectives({
     );
   }
 
-  const raceLabels = selectUniqueValues(
-    PROVISIONAL_RACE_LABELS,
-    3,
-    random
-  );
+  const selectedRaces = selectSponsorObjectiveRaces({
+    sponsorCountryCode: normalizedCountryCode,
+    teamReputationPoints,
+    raceCandidates,
+    count: 3,
+    random,
+  });
 
   const firstTopRank = getTopRankForPrestige(
     sponsorPrestige,
@@ -89,18 +92,18 @@ export function generateProvisionalSponsorObjectives({
 
   const objectives: ObjectiveWithoutDisplayOrder[] = [
     createRaceWinObjective(
-      raceLabels[0],
+      selectedRaces[0],
       getPriorityForRaceWin(sponsorPrestige)
     ),
 
     createRaceTopObjective(
-      raceLabels[1],
+      selectedRaces[1],
       firstTopRank,
       getPriorityForTopRank(firstTopRank)
     ),
 
     createRaceTopObjective(
-      raceLabels[2],
+      selectedRaces[2],
       secondTopRank,
       getPriorityForTopRank(secondTopRank)
     ),
@@ -145,13 +148,13 @@ export function generateProvisionalSponsorObjectives({
 }
 
 function createRaceWinObjective(
-  raceLabel: string,
+  race: SponsorObjectiveRaceCandidate,
   priority: SponsorObjectivePriority
 ): ObjectiveWithoutDisplayOrder {
   return {
-    name: `Remporter ${raceLabel}`,
+    name: `Remporter ${race.raceLabel}`,
     description:
-      `Obtenir la victoire sur ${raceLabel} pendant la saison.`,
+      `Obtenir la victoire sur ${race.raceLabel} pendant la saison.`,
     objectiveType: "race_result",
     priority,
     evaluationTiming: "season_end",
@@ -160,7 +163,11 @@ function createRaceWinObjective(
     isProvisional: true,
     targetDetails: {
       kind: "race_result",
-      raceLabel,
+      raceId: race.raceId,
+      raceEditionId: race.raceEditionId,
+      raceSlug: race.raceSlug,
+      raceLabel: race.raceLabel,
+      countryCode: race.countryCode,
       achievementType: "win",
       targetRank: null,
       requiredCount: 1,
@@ -169,14 +176,14 @@ function createRaceWinObjective(
 }
 
 function createRaceTopObjective(
-  raceLabel: string,
+  race: SponsorObjectiveRaceCandidate,
   targetRank: number,
   priority: SponsorObjectivePriority
 ): ObjectiveWithoutDisplayOrder {
   return {
-    name: `Top ${targetRank} sur ${raceLabel}`,
+    name: `Top ${targetRank} sur ${race.raceLabel}`,
     description:
-      `Placer au moins un coureur parmi les ${targetRank} premiers de ${raceLabel}.`,
+      `Placer au moins un coureur parmi les ${targetRank} premiers de ${race.raceLabel}.`,
     objectiveType: "race_result",
     priority,
     evaluationTiming: "season_end",
@@ -185,12 +192,76 @@ function createRaceTopObjective(
     isProvisional: true,
     targetDetails: {
       kind: "race_result",
-      raceLabel,
+      raceId: race.raceId,
+      raceEditionId: race.raceEditionId,
+      raceSlug: race.raceSlug,
+      raceLabel: race.raceLabel,
+      countryCode: race.countryCode,
       achievementType: "top_n",
       targetRank,
       requiredCount: 1,
     },
   };
+}
+
+export function selectSponsorObjectiveRaces({
+  sponsorCountryCode,
+  teamReputationPoints,
+  raceCandidates,
+  count,
+  random = Math.random,
+}: {
+  sponsorCountryCode: string;
+  teamReputationPoints: number;
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+  count: number;
+  random?: () => number;
+}): SponsorObjectiveRaceCandidate[] {
+  const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
+  const normalizedReputation = Math.max(0, Math.floor(teamReputationPoints));
+  const uniqueCandidates = new Map<string, SponsorObjectiveRaceCandidate>();
+
+  for (const candidate of raceCandidates) {
+    if (
+      candidate.registrationPolicy !== "open" ||
+      candidate.minimumReputation === null ||
+      normalizedReputation < candidate.minimumReputation
+    ) {
+      continue;
+    }
+
+    if (!uniqueCandidates.has(candidate.raceId)) {
+      uniqueCandidates.set(candidate.raceId, candidate);
+    }
+  }
+
+  const eligibleCandidates = [...uniqueCandidates.values()];
+  const domesticCandidates = shuffleValues(
+    eligibleCandidates.filter(
+      (candidate) =>
+        candidate.countryCode.trim().toUpperCase() === normalizedCountryCode
+    ),
+    random
+  );
+  const otherCandidates = shuffleValues(
+    eligibleCandidates.filter(
+      (candidate) =>
+        candidate.countryCode.trim().toUpperCase() !== normalizedCountryCode
+    ),
+    random
+  );
+  const selectedCandidates = [
+    ...domesticCandidates,
+    ...otherCandidates,
+  ].slice(0, count);
+
+  if (selectedCandidates.length < count) {
+    throw new Error(
+      `Seulement ${selectedCandidates.length} course(s) existante(s) sont accessibles à cette équipe, alors que ${count} sont nécessaires pour les objectifs sponsor.`
+    );
+  }
+
+  return selectedCandidates;
 }
 
 function createNationalityObjective(
@@ -385,23 +456,6 @@ function getPriorityForTopRank(
   }
 
   return "standard";
-}
-
-function selectUniqueValues<T>(
-  values: readonly T[],
-  count: number,
-  random: () => number
-): T[] {
-  if (count > values.length) {
-    throw new Error(
-      "Le nombre de valeurs demandé dépasse la taille du catalogue."
-    );
-  }
-
-  return shuffleValues(values, random).slice(
-    0,
-    count
-  );
 }
 
 function selectRandomValue<T>(
