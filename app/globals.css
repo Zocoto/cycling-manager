@@ -144,6 +144,13 @@ a {
   100% { transform: translateX(0) scale(1); }
 }
 
+@keyframes cm-sprint-finish-cross {
+  0% { transform: translateX(-66vw) scale(0.9); }
+  70% { transform: translateX(-6vw) scale(1); }
+  88% { transform: translateX(0.8vw) scale(1.025); }
+  100% { transform: translateX(0) scale(1); }
+}
+
 @keyframes cm-sprint-wind {
   from { transform: translateX(-12rem); opacity: 0; }
   35% { opacity: 1; }
@@ -155,6 +162,34 @@ a {
   68% { transform: translate(-1.2rem, 0.3rem); }
   86% { transform: translate(0.5rem, -0.2rem); }
   100% { transform: translate(0, 0); }
+}
+
+@keyframes cm-climb-finish-cross {
+  0% { transform: translate(-24vw, 3rem); }
+  72% { transform: translate(-2.5rem, 0.45rem); }
+  88% { transform: translate(0.45rem, -0.12rem); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes cm-race-incident {
+  0% { opacity: 0; transform: translate(-50%, 0.8rem) scale(0.86); }
+  18% { opacity: 1; transform: translate(-50%, -0.2rem) scale(1.04); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes cm-incident-wheel {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cm-incident-wind {
+  0%, 100% { transform: translateX(-0.25rem); }
+  50% { transform: translateX(0.35rem); }
+}
+
+@keyframes cm-incident-crash {
+  0% { transform: rotate(0deg) scale(0.72); }
+  55% { transform: rotate(-18deg) scale(1.16); }
+  100% { transform: rotate(0deg) scale(1); }
 }
 
 @keyframes cm-finish-road-line {
@@ -181,12 +216,36 @@ a {
   animation: cm-sprint-surge 1.65s cubic-bezier(0.2, 0.72, 0.24, 1) both;
 }
 
+.cm-sprint-finish-cross {
+  animation: cm-sprint-finish-cross 4.8s cubic-bezier(0.18, 0.74, 0.22, 1) both;
+}
+
 .cm-sprint-wind {
   animation: cm-sprint-wind 1.2s ease-out 0.2s both;
 }
 
 .cm-climb-surge {
   animation: cm-climb-surge 1.8s cubic-bezier(0.18, 0.78, 0.28, 1) both;
+}
+
+.cm-climb-finish-cross {
+  animation: cm-climb-finish-cross 2.45s cubic-bezier(0.18, 0.76, 0.25, 1) both;
+}
+
+.cm-race-incident {
+  animation: cm-race-incident 0.55s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+}
+
+.cm-incident-wheel {
+  animation: cm-incident-wheel 0.9s linear 2;
+}
+
+.cm-incident-wind {
+  animation: cm-incident-wind 0.72s ease-in-out 3;
+}
+
+.cm-incident-crash {
+  animation: cm-incident-crash 0.62s ease-out both;
 }
 
 .cm-finish-road-line {
@@ -199,8 +258,14 @@ a {
   .cm-bike-bob,
   .cm-bike-wheel,
   .cm-sprint-surge,
+  .cm-sprint-finish-cross,
   .cm-sprint-wind,
   .cm-climb-surge,
+  .cm-climb-finish-cross,
+  .cm-race-incident,
+  .cm-incident-wheel,
+  .cm-incident-wind,
+  .cm-incident-crash,
   .cm-finish-road-line {
     animation: none;
   }

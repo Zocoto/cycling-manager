@@ -133,6 +133,11 @@ type CalendarRegistrationRow = {
   roster_count: number;
 };
 
+type EngagedRiderCountRow = {
+  race_edition_id: string;
+  engaged_rider_count: number;
+};
+
 export type CurrentRaceRegistration = {
   id: string;
   status: RaceRegistrationRow["registration_status"];
@@ -264,7 +269,12 @@ export async function getActiveSeasonRaceCalendar(
     return null;
   }
 
-  const [daysResult, editionsResult, registrationsResult] =
+  const [
+    daysResult,
+    editionsResult,
+    registrationsResult,
+    engagedRiderCountsResult,
+  ] =
     await Promise.all([
       supabase
         .from("season_days")
@@ -299,6 +309,10 @@ export async function getActiveSeasonRaceCalendar(
       supabase.rpc(
         "get_current_team_calendar_registrations"
       ),
+
+      supabase.rpc(
+        "get_active_calendar_engaged_rider_counts"
+      ),
     ]);
 
   if (daysResult.error) {
@@ -316,6 +330,12 @@ export async function getActiveSeasonRaceCalendar(
   if (registrationsResult.error) {
     throw new Error(
       `Impossible de charger les inscriptions du calendrier : ${registrationsResult.error.message}`
+    );
+  }
+
+  if (engagedRiderCountsResult.error) {
+    throw new Error(
+      `Impossible de charger le nombre de coureurs engagés : ${engagedRiderCountsResult.error.message}`
     );
   }
 
@@ -506,6 +526,14 @@ export async function getActiveSeasonRaceCalendar(
       ]
     )
   );
+  const engagedRiderCountByEditionId = new Map(
+    ((engagedRiderCountsResult.data as
+      | EngagedRiderCountRow[]
+      | null) ?? []).map((entry) => [
+      entry.race_edition_id,
+      entry.engaged_rider_count,
+    ])
+  );
 
   const editions = editionRows
     .map((edition) => {
@@ -552,6 +580,10 @@ export async function getActiveSeasonRaceCalendar(
           category.minimum_roster_size ?? 1,
         maximumRosterSize:
           category.maximum_roster_size ?? 1,
+        engagedRiderCount:
+          engagedRiderCountByEditionId.get(
+            edition.id
+          ) ?? 0,
         currentTeamRegistration: registrationByEditionId.has(
           edition.id
         )

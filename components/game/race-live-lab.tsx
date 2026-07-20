@@ -7,13 +7,18 @@ import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-cal
 import { getStageLiveState } from "@/lib/game/race-live";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
+  buildStageRaceStandings,
   RACE_ROLE_LABELS,
   simulateRaceStage,
   type RaceGroupSnapshot,
+  type RaceIncident,
   type RiderSimulationInput,
 } from "@/lib/game/race-simulation";
 
 type LabTab = "live" | "classification" | "rules";
+type PlaybackSpeed = 1 | 2 | 4;
+
+const REPLAY_STEP_DURATION_MS = 6_000;
 
 export function RaceLiveLab({
   edition,
@@ -26,14 +31,64 @@ export function RaceLiveLab({
   mode: "live" | "replay";
   nowIso: string;
 }) {
-  const seed = `${edition.id}:${stage.id}:official`;
-  const input = useMemo(
-    () => createCalendarSimulationInput({ edition, stage, seed }),
-    [edition, seed, stage]
-  );
-  const simulation = useMemo(() => simulateRaceStage(input), [input]);
+  const { input, simulation, tourStandings } = useMemo(() => {
+    const currentInput = createCalendarSimulationInput({
+      edition,
+      stage,
+      seed: `${edition.id}:${stage.id}:official`,
+    });
+
+    if (edition.raceFormat !== "stage_race") {
+      return {
+        input: currentInput,
+        simulation: simulateRaceStage(currentInput),
+        tourStandings: null,
+      };
+    }
+
+    const unavailableRiderIds = new Set<string>();
+    const stageResults = [];
+    let selectedInput = currentInput;
+    let selectedSimulation = simulateRaceStage(currentInput);
+
+    for (const candidateStage of edition.stages) {
+      const candidateInput = createCalendarSimulationInput({
+        edition,
+        stage: candidateStage,
+        seed: `${edition.id}:${candidateStage.id}:official`,
+      });
+      const candidateSimulation = simulateRaceStage({
+        ...candidateInput,
+        unavailableRiderIds: [...unavailableRiderIds],
+      });
+      stageResults.push(candidateSimulation);
+
+      for (const result of candidateSimulation.results) {
+        if (result.status === "did_not_finish") {
+          unavailableRiderIds.add(result.riderId);
+        }
+      }
+
+      if (candidateStage.id === stage.id) {
+        selectedInput = candidateInput;
+        selectedSimulation = candidateSimulation;
+        break;
+      }
+    }
+
+    return {
+      input: selectedInput,
+      simulation: selectedSimulation,
+      tourStandings: buildStageRaceStandings(stageResults),
+    };
+  }, [edition, stage]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(mode === "live");
+  const [playbackSpeed, setPlaybackSpeed] =
+    useState<PlaybackSpeed>(1);
+  const [finalMetersRemaining, setFinalMetersRemaining] = useState(
+    () => Math.round((stage.segments.at(-1)?.distanceKm ?? 0) * 1_000)
+  );
   const [tab, setTab] = useState<LabTab>("live");
   const [clock, setClock] = useState(() => new Date(nowIso));
   const riderById = useMemo(
@@ -65,15 +120,21 @@ export function RaceLiveLab({
     const timer = window.setInterval(() => {
       setActiveIndex((current) => {
         if (current >= simulation.timeline.length - 1) {
+          setFinalMetersRemaining(0);
           setIsPlaying(false);
           return current;
         }
         return current + 1;
       });
-    }, 1_050);
+    }, REPLAY_STEP_DURATION_MS / playbackSpeed);
 
     return () => window.clearInterval(timer);
-  }, [isPlaying, mode, simulation.timeline.length]);
+  }, [
+    isPlaying,
+    mode,
+    playbackSpeed,
+    simulation.timeline.length,
+  ]);
 
   const distance = input.segments.reduce(
     (total, segment) => total + segment.distanceKm,
@@ -88,6 +149,34 @@ export function RaceLiveLab({
     finalSegment.terrain === "flat" &&
     input.segments.slice(-3).filter((segment) => segment.terrain === "flat").length >= 2 &&
     !breakawayStillAhead;
+  const finalSegmentMeters = Math.round(finalSegment.distanceKm * 1_000);
+  const liveFinalProgress = Math.max(
+    0,
+    Math.min(
+      1,
+      liveState.progress * simulation.timeline.length -
+        (simulation.timeline.length - 1)
+    )
+  );
+  const displayedFinalMeters =
+    mode === "live"
+      ? Math.round(finalSegmentMeters * (1 - liveFinalProgress))
+      : finalMetersRemaining;
+
+  useEffect(() => {
+    if (mode !== "replay" || !isFinal || !isPlaying) return;
+
+    const startedAt = Date.now();
+    const durationMs = REPLAY_STEP_DURATION_MS / playbackSpeed;
+    const timer = window.setInterval(() => {
+      const progress = Math.min(1, (Date.now() - startedAt) / durationMs);
+      setFinalMetersRemaining(
+        Math.max(0, Math.round(finalSegmentMeters * (1 - progress)))
+      );
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [finalSegmentMeters, isFinal, isPlaying, mode, playbackSpeed]);
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-[#FFFDF4] shadow-[0_30px_80px_rgba(7,26,23,0.22)]">
@@ -117,6 +206,7 @@ export function RaceLiveLab({
               type="button"
               onClick={() => {
                 setActiveIndex(0);
+                setFinalMetersRemaining(finalSegmentMeters);
                 setIsPlaying(true);
                 setTab("live");
               }}
@@ -157,12 +247,13 @@ export function RaceLiveLab({
           />
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {mode === "replay" ? <button
                 type="button"
                 onClick={() => {
                   if (isFinal && !isPlaying) {
                     setActiveIndex(0);
+                    setFinalMetersRemaining(finalSegmentMeters);
                     setIsPlaying(true);
                     return;
                   }
@@ -177,6 +268,12 @@ export function RaceLiveLab({
                   <span className="animate-pulse">●</span> En direct
                 </span>
               )}
+              {mode === "replay" ? (
+                <PlaybackSpeedControl
+                  value={playbackSpeed}
+                  onChange={setPlaybackSpeed}
+                />
+              ) : null}
               <span className="text-xs font-bold text-[#AFC6BB]">
                 Tronçon {snapshot.segmentNumber}/{input.segments.length} · {formatDistance(snapshot.completedDistanceKm)} km
               </span>
@@ -190,6 +287,7 @@ export function RaceLiveLab({
             <SprintLaneView
               simulation={simulation}
               riderById={riderById}
+              metersRemaining={displayedFinalMeters}
             />
           ) : isFinal && isRoad ? (
             <FinishBattleView
@@ -197,9 +295,15 @@ export function RaceLiveLab({
               riderById={riderById}
               segment={finalSegment}
               breakawayStillAhead={breakawayStillAhead}
+              metersRemaining={displayedFinalMeters}
             />
           ) : (
-            <RoadScene snapshot={snapshot} riderById={riderById} segment={activeSegment} isMoving={isPlaying} />
+            <RoadScene
+              snapshot={snapshot}
+              riderById={riderById}
+              segment={activeSegment}
+              isMoving={mode === "live" || isPlaying}
+            />
           )}
 
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.75fr)]">
@@ -211,12 +315,47 @@ export function RaceLiveLab({
         mode === "live" ? (
           <LiveClassification snapshot={snapshot} riderById={riderById} />
         ) : (
-          <Classification simulation={simulation} riderById={riderById} />
+          <Classification
+            simulation={simulation}
+            riderById={riderById}
+            tourStandings={tourStandings}
+          />
         )
       ) : (
         <ActiveRules stageType={input.stageType} />
       )}
     </section>
+  );
+}
+
+function PlaybackSpeedControl({
+  value,
+  onChange,
+}: {
+  value: PlaybackSpeed;
+  onChange: (speed: PlaybackSpeed) => void;
+}) {
+  return (
+    <div
+      className="inline-flex rounded-xl border border-white/15 bg-white/[0.055] p-1"
+      aria-label="Vitesse du replay"
+    >
+      {([1, 2, 4] as const).map((speed) => (
+        <button
+          key={speed}
+          type="button"
+          onClick={() => onChange(speed)}
+          aria-pressed={value === speed}
+          className={`min-h-8 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider transition ${
+            value === speed
+              ? "bg-[#F2C94C] text-[#17261E]"
+              : "text-[#AFC6BB] hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          ×{speed}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -256,12 +395,18 @@ function RoadScene({
   isMoving: boolean;
 }) {
   const groups = snapshot.groups.slice(0, 6);
+  const visualGradient = Math.max(
+    -9,
+    Math.min(9, segment.averageGradientPct)
+  );
+  const roadLeftPct = 64 + visualGradient * 1.25;
+  const roadRightPct = 64 - visualGradient * 1.25;
   const sky =
     segment.terrain === "climb"
-      ? "bg-[linear-gradient(#83C0D0_0_40%,#7FAE72_40%_57%,#35453F_57%_100%)]"
+      ? "bg-[linear-gradient(#83C0D0_0_40%,#7FAE72_40%_100%)]"
       : segment.terrain === "descent"
-        ? "bg-[linear-gradient(#9ACFDA_0_47%,#A7C585_47%_63%,#35453F_63%_100%)]"
-        : "bg-[linear-gradient(#8FD1DC_0_46%,#A7C585_46%_64%,#35453F_64%_100%)]";
+        ? "bg-[linear-gradient(#9ACFDA_0_47%,#A7C585_47%_100%)]"
+        : "bg-[linear-gradient(#8FD1DC_0_46%,#A7C585_46%_100%)]";
 
   return (
     <div className={`relative mt-6 h-72 overflow-hidden rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
@@ -271,31 +416,95 @@ function RoadScene({
           <span key={index} className="block h-12 w-4 shrink-0 rounded-t-full bg-[#244C38] shadow-[0_18px_0_8px_#244C38]" />
         ))}
       </div>
-      <div aria-hidden="true" className="absolute inset-x-0 bottom-[22%] h-[2px] bg-white/35" />
-      <div aria-hidden="true" className={`absolute inset-x-[-12%] bottom-[11%] border-t-2 border-dashed border-white/25 ${isMoving ? "cm-race-road-flow" : ""}`} />
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+      >
+        <path
+          d={`M 0 ${roadLeftPct} L 100 ${roadRightPct} L 100 100 L 0 100 Z`}
+          fill="#35453F"
+        />
+        <path
+          d={`M -5 ${roadLeftPct + 12} L 105 ${roadRightPct + 12}`}
+          fill="none"
+          stroke="rgba(255,255,255,0.32)"
+          strokeWidth="0.7"
+          strokeDasharray="3 2"
+          vectorEffect="non-scaling-stroke"
+          className={isMoving ? "cm-race-road-flow" : ""}
+        />
+        <path
+          d={`M 0 ${roadLeftPct} L 100 ${roadRightPct}`}
+          fill="none"
+          stroke="rgba(255,255,255,0.38)"
+          strokeWidth="0.55"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
         {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {formatDistance(snapshot.completedDistanceKm)} km
       </p>
 
+      <RaceIncidentOverlay
+        incidents={snapshot.incidents}
+        riderById={riderById}
+      />
+
       {groups.map((group, groupIndex) => {
         const left = getGroupScreenPosition(group, groupIndex, groups.length);
+        const roadTopPct =
+          roadLeftPct + (roadRightPct - roadLeftPct) * (left / 100);
+        const visibleRiderIds = getVisibleRiderIds({
+          group,
+          incidents: snapshot.incidents,
+          riderById,
+        });
         return (
           <div
             key={group.id}
-            className="absolute bottom-[23%] -translate-x-1/2 transition-[left] duration-700 ease-out"
-            style={{ left: `${left}%`, zIndex: 20 - groupIndex }}
+            className="absolute -translate-x-1/2 -translate-y-full transition-[left,top] duration-700 ease-out"
+            style={{
+              left: `${left}%`,
+              top: `${roadTopPct + 2}%`,
+              zIndex: 20 - groupIndex,
+            }}
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
           >
             <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
               {group.label} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
             </div>
             <div className="flex -space-x-3">
-              {group.riderIds.slice(0, 5).map((riderId) => {
+              {visibleRiderIds.map((riderId, riderIndex) => {
                 const rider = riderById.get(riderId)!;
-                return <SideCyclist key={riderId} rider={rider} isMoving={isMoving} />;
+                const incidentRider = snapshot.incidents.some(
+                  (incident) => incident.riderIds.includes(riderId)
+                );
+                const showName =
+                  incidentRider ||
+                  group.riderIds.length <= 3 ||
+                  riderIndex < 2;
+
+                return (
+                  <span key={riderId} className="relative">
+                    <SideCyclist rider={rider} isMoving={isMoving} />
+                    {showName ? (
+                      <span
+                        className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-black shadow ${
+                          incidentRider
+                            ? "bg-[#EF5B65] text-white"
+                            : "bg-[#071A17]/88 text-white"
+                        }`}
+                      >
+                        {getRiderShortName(rider.name)}
+                      </span>
+                    ) : null}
+                  </span>
+                );
               })}
               {group.riderIds.length > 5 ? (
-                <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full border border-white/30 bg-[#071A17] text-[9px] font-black">
+                <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full border border-white/30 bg-[#071A17] text-[9px] font-black shadow-[-6px_0_0_rgba(7,26,23,0.72),-12px_0_0_rgba(7,26,23,0.45)]">
                   +{group.riderIds.length - 5}
                 </span>
               ) : null}
@@ -305,6 +514,103 @@ function RoadScene({
       })}
     </div>
   );
+}
+
+function RaceIncidentOverlay({
+  incidents,
+  riderById,
+}: {
+  incidents: RaceIncident[];
+  riderById: Map<string, RiderSimulationInput>;
+}) {
+  const incident = incidents[0];
+  if (!incident) return null;
+
+  const affectedNames = incident.riderIds
+    .slice(0, 3)
+    .map((riderId) => riderById.get(riderId)?.name)
+    .filter(Boolean)
+    .join(", ");
+  const icon = {
+    puncture: "◉",
+    crosswind: "≋",
+    crash_individual: "⚠",
+    crash_mass: "⚠",
+  }[incident.type];
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`absolute left-1/2 top-[28%] z-50 -translate-x-1/2 rounded-2xl border px-4 py-3 text-center text-white shadow-2xl backdrop-blur cm-race-incident ${
+        incident.type === "crosswind"
+          ? "border-[#72D4B7]/45 bg-[#0B4A3B]/90"
+          : "border-[#FF9EA6]/50 bg-[#531F27]/90"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`mx-auto block text-2xl leading-none ${
+          incident.type === "puncture"
+            ? "cm-incident-wheel"
+            : incident.type === "crosswind"
+              ? "cm-incident-wind"
+              : "cm-incident-crash"
+        }`}
+      >
+        {icon}
+      </span>
+      <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#FFF4C4]">
+        {incident.label}
+      </p>
+      {affectedNames ? (
+        <p className="mt-1 max-w-64 truncate text-[9px] font-bold text-white/75">
+          {affectedNames}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function getVisibleRiderIds({
+  group,
+  incidents,
+  riderById,
+}: {
+  group: RaceGroupSnapshot;
+  incidents: RaceIncident[];
+  riderById: Map<string, RiderSimulationInput>;
+}) {
+  const incidentRiderIds = new Set(
+    incidents.flatMap((incident) => incident.riderIds)
+  );
+  const rolePriority: Record<RiderSimulationInput["role"], number> = {
+    leader: 5,
+    sprinter: 4,
+    free_agent: 3,
+    mountain_classification: 3,
+    leadout: 2,
+    domestique: 1,
+    auto: 0,
+  };
+
+  return [...group.riderIds]
+    .sort((firstId, secondId) => {
+      const first = riderById.get(firstId);
+      const second = riderById.get(secondId);
+      const firstScore =
+        (incidentRiderIds.has(firstId) ? 100 : 0) +
+        (first ? rolePriority[first.role] : 0);
+      const secondScore =
+        (incidentRiderIds.has(secondId) ? 100 : 0) +
+        (second ? rolePriority[second.role] : 0);
+      return secondScore - firstScore;
+    })
+    .slice(0, 5);
+}
+
+function getRiderShortName(name: string) {
+  return name.split(" ").at(-1) ?? name;
 }
 
 function SideCyclist({
@@ -348,15 +654,29 @@ function getGroupScreenPosition(
 function SprintLaneView({
   simulation,
   riderById,
+  metersRemaining,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
+  metersRemaining: number;
 }) {
-  const finalists = simulation.results.slice(0, 12);
+  const finalists = simulation.results
+    .filter((result) => result.status === "finished")
+    .slice(0, 12);
+  const isPhotoFinish =
+    finalists[1]?.elapsedTimeSeconds ===
+    finalists[0]?.elapsedTimeSeconds;
 
   return (
     <div className="relative mt-6 h-80 overflow-hidden rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
-      <div aria-hidden="true" className="absolute inset-y-0 left-[91%] w-3 bg-[repeating-linear-gradient(0deg,#fff_0_8px,#17261E_8px_16px)] shadow-2xl" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-[78%] z-10 w-3 bg-[repeating-linear-gradient(0deg,#fff_0_8px,#17261E_8px_16px)] shadow-[0_0_24px_rgba(255,255,255,0.45)]"
+      />
+      <div className="absolute left-[78%] top-0 z-30 -translate-x-[42%] rounded-b-lg bg-[#FFFDF4] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#17261E] shadow-lg">
+        Arrivée
+      </div>
+      <FinishDistanceCounter metersRemaining={metersRemaining} />
       {Array.from({ length: 5 }, (_, index) => (
         <div
           key={index}
@@ -369,18 +689,29 @@ function SprintLaneView({
         <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
           Sprint final · 200 mètres
         </p>
+        {isPhotoFinish ? (
+          <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
+            Coude à coude · photo-finish
+          </p>
+        ) : null}
       </div>
       <div aria-hidden="true" className="absolute inset-y-0 left-[16%] w-40 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)] cm-sprint-wind" />
 
       {finalists.map((result, index) => {
         const rider = riderById.get(result.riderId)!;
         const lane = (index * 3 + Math.floor(index / 5)) % 6;
-        const wave = index >= 6 ? 7 : 0;
-        const left = 88 - result.rank * 2.35 - wave;
+        const photoFinishOffset =
+          index === 0
+            ? 0
+            : index === 1
+              ? 0.38
+              : 1.2 + (index - 2) * 0.78;
+        const secondWaveOffset = index >= 7 ? 4.5 : 0;
+        const left = 84 - photoFinishOffset - secondWaveOffset;
         return (
           <div
             key={result.riderId}
-            className="absolute z-10 cm-sprint-surge"
+            className="absolute z-20 cm-sprint-finish-cross"
             style={{
               left: `${left}%`,
               top: `${10 + lane * 13.2}%`,
@@ -389,7 +720,7 @@ function SprintLaneView({
             title={`${result.rank}. ${rider.name} · ${rider.teamName}`}
           >
             <TopCyclist rider={rider} />
-            {result.rank <= 3 ? (
+            {result.rank !== null && result.rank <= 3 ? (
               <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[9px] font-black text-white shadow-lg">
                 {result.rank}. {rider.name.split(" ").at(-1)}
               </span>
@@ -419,13 +750,17 @@ function FinishBattleView({
   riderById,
   segment,
   breakawayStillAhead,
+  metersRemaining,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
   segment: RaceCalendarStage["segments"][number];
   breakawayStillAhead: boolean;
+  metersRemaining: number;
 }) {
-  const finalists = simulation.results.slice(0, 8);
+  const finalists = simulation.results
+    .filter((result) => result.status === "finished")
+    .slice(0, 8);
   const isClimb = segment.terrain === "climb";
 
   return (
@@ -445,6 +780,14 @@ function FinishBattleView({
           className="cm-finish-road-line"
         />
       </svg>
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-[83%] z-10 w-2 bg-[repeating-linear-gradient(0deg,#FFFDF4_0_7px,#17261E_7px_14px)] shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+      />
+      <div className="absolute left-[83%] top-0 z-30 -translate-x-[42%] rounded-b-lg bg-[#FFFDF4] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#17261E] shadow-lg">
+        Arrivée
+      </div>
+      <FinishDistanceCounter metersRemaining={metersRemaining} />
       <div className="absolute left-4 top-4 z-20 rounded-xl bg-[#071A17]/82 px-3 py-2 text-white backdrop-blur">
         <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
           {isClimb ? `Final en côte · ${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : "Bataille pour la victoire"}
@@ -454,12 +797,17 @@ function FinishBattleView({
 
       {finalists.map((result, index) => {
         const rider = riderById.get(result.riderId)!;
-        const left = 76 - index * 5.8;
+        const left =
+          index === 0
+            ? 87
+            : index === 1
+              ? 85.7
+              : 82.8 - (index - 2) * 5.4;
         const bottom = isClimb ? 25 + left * 0.18 : 23 + left * 0.025;
         return (
           <div
             key={result.riderId}
-            className="absolute z-10 cm-climb-surge"
+            className="absolute z-20 cm-climb-finish-cross"
             style={{ left: `${left}%`, bottom: `${bottom}%`, animationDelay: `${index * 0.09}s` }}
             title={`${result.rank}. ${rider.name} · ${rider.teamName}`}
           >
@@ -476,6 +824,28 @@ function FinishBattleView({
   );
 }
 
+function FinishDistanceCounter({
+  metersRemaining,
+}: {
+  metersRemaining: number;
+}) {
+  const display =
+    metersRemaining >= 1_000
+      ? `${(metersRemaining / 1_000).toFixed(1)} km`
+      : `${metersRemaining} m`;
+
+  return (
+    <div className="absolute right-4 top-4 z-30 rounded-xl border border-white/20 bg-[#071A17]/90 px-4 py-2 text-right text-white shadow-xl backdrop-blur">
+      <p className="text-[9px] font-black uppercase tracking-widest text-[#9BE0CA]">
+        Jusqu’à la ligne
+      </p>
+      <p className="mt-0.5 text-lg font-black tabular-nums text-[#FFF4C4]">
+        {display}
+      </p>
+    </div>
+  );
+}
+
 function GroupDetails({
   groups,
   riderById,
@@ -483,41 +853,97 @@ function GroupDetails({
   groups: RaceGroupSnapshot[];
   riderById: Map<string, RiderSimulationInput>;
 }) {
+  const leftGroups = groups
+    .filter((group) =>
+      ["peloton", "dropped", "time_trial"].includes(
+        group.type
+      )
+    )
+    .sort(
+      (first, second) =>
+        first.gapToLeaderSeconds -
+        second.gapToLeaderSeconds
+    );
+  const rightGroups = groups
+    .filter((group) =>
+      ["breakaway", "chase"].includes(group.type)
+    )
+    .sort(
+      (first, second) =>
+        first.gapToLeaderSeconds -
+        second.gapToLeaderSeconds
+    );
+
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {groups.slice(0, 6).map((group) => (
-        <article key={group.id} className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-black text-white">{group.label}</p>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#759286]">
-                {group.riderIds.length} coureur{group.riderIds.length > 1 ? "s" : ""} · énergie {Math.round(group.averageEnergy)} %
-              </p>
-            </div>
-            <span className="rounded-full bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#F2C94C]">
-              {group.gapToLeaderSeconds ? `+${formatGap(group.gapToLeaderSeconds)}` : "Tête"}
-            </span>
-          </div>
-          <ul className="mt-3 space-y-1.5 text-xs font-semibold text-[#B7CAC1]">
-            {group.riderIds.slice(0, 5).map((id) => {
-              const rider = riderById.get(id)!;
-              return (
-                <li key={id} className="flex items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full border"
-                    style={{ backgroundColor: rider.teamPrimaryColor, borderColor: rider.teamSecondaryColor }}
-                  />
-                  <span className="truncate">{rider.name}</span>
-                  <span className="ml-auto text-[9px] font-black uppercase text-[#6F8C80]">
-                    {RACE_ROLE_LABELS[rider.role]}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </article>
-      ))}
+      <div className="space-y-3">
+        {leftGroups.slice(0, 3).map((group) => (
+          <RaceGroupCard
+            key={group.id}
+            group={group}
+            riderById={riderById}
+          />
+        ))}
+      </div>
+      <div className="space-y-3">
+        {rightGroups.slice(0, 3).map((group) => (
+          <RaceGroupCard
+            key={group.id}
+            group={group}
+            riderById={riderById}
+          />
+        ))}
+      </div>
     </div>
+  );
+}
+
+function RaceGroupCard({
+  group,
+  riderById,
+}: {
+  group: RaceGroupSnapshot;
+  riderById: Map<string, RiderSimulationInput>;
+}) {
+  return (
+    <article className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-white">
+            {group.label}
+          </p>
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#759286]">
+            {group.riderIds.length} coureur
+            {group.riderIds.length > 1 ? "s" : ""} · énergie {Math.round(group.averageEnergy)} %
+          </p>
+        </div>
+        <span className="rounded-full bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#F2C94C]">
+          {group.gapToLeaderSeconds
+            ? `+${formatGap(group.gapToLeaderSeconds)}`
+            : "Tête"}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-1.5 text-xs font-semibold text-[#B7CAC1]">
+        {group.riderIds.slice(0, 5).map((id) => {
+          const rider = riderById.get(id)!;
+          return (
+            <li key={id} className="flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 rounded-full border"
+                style={{
+                  backgroundColor: rider.teamPrimaryColor,
+                  borderColor: rider.teamSecondaryColor,
+                }}
+              />
+              <span className="truncate">{rider.name}</span>
+              <span className="ml-auto text-[9px] font-black uppercase text-[#6F8C80]">
+                {RACE_ROLE_LABELS[rider.role]}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </article>
   );
 }
 
@@ -576,6 +1002,19 @@ function LiveClassification({
                 </tr>
               );
             })}
+            {snapshot.abandonments.map((abandonment) => {
+              const rider = riderById.get(abandonment.riderId)!;
+              return (
+                <tr key={abandonment.riderId} className="bg-[#EF5B65]/[0.07] text-sm font-semibold">
+                  <td className="px-4 py-3 font-black text-[#FF9EA6]">—</td>
+                  <td className="px-4 py-3">{rider.name}</td>
+                  <td className="px-4 py-3 text-[#FF9EA6]">
+                    Abandon · {abandonment.injury.label}
+                  </td>
+                  <td className="px-4 py-3 text-right font-black text-[#FF9EA6]">DNF</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -586,9 +1025,11 @@ function LiveClassification({
 function Classification({
   simulation,
   riderById,
+  tourStandings,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
+  tourStandings: ReturnType<typeof buildStageRaceStandings> | null;
 }) {
   const winnerTime = simulation.results[0].elapsedTimeSeconds;
 
@@ -606,11 +1047,14 @@ function Classification({
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {simulation.results.slice(0, 15).map((result) => {
+            {simulation.results.map((result) => {
               const rider = riderById.get(result.riderId)!;
+              const abandoned = result.status === "did_not_finish";
               return (
-                <tr key={result.riderId} className="bg-white/[0.025] text-sm font-semibold">
-                  <td className="px-4 py-3 font-black text-[#F2C94C]">{result.rank}</td>
+                <tr key={result.riderId} className={`${abandoned ? "bg-[#EF5B65]/[0.07]" : "bg-white/[0.025]"} text-sm font-semibold`}>
+                  <td className={`px-4 py-3 font-black ${abandoned ? "text-[#FF9EA6]" : "text-[#F2C94C]"}`}>
+                    {result.rank ?? "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-2">
                       <span
@@ -622,14 +1066,18 @@ function Classification({
                   </td>
                   <td className="hidden px-4 py-3 text-[#94ADA2] md:table-cell">{rider.teamName}</td>
                   <td className="px-4 py-3 text-right font-black">
-                    {result.rank === 1
+                    {abandoned
+                      ? "Abandon"
+                      : result.rank === 1
                       ? formatTime(winnerTime)
                       : result.gapToWinnerSeconds === 0
                         ? "m.t."
                         : `+${formatGap(result.gapToWinnerSeconds)}`}
                   </td>
                   <td className="hidden px-4 py-3 text-right text-[#94ADA2] sm:table-cell">
-                    {Math.round(result.energyAfter)} %
+                    {abandoned && result.abandonment
+                      ? `${result.abandonment.injury.label} · ${result.abandonment.injury.recoveryDays} j`
+                      : `${Math.round(result.energyAfter)} %`}
                   </td>
                 </tr>
               );
@@ -637,6 +1085,90 @@ function Classification({
           </tbody>
         </table>
       </div>
+      {tourStandings ? (
+        <TourSecondaryStandings
+          standings={tourStandings}
+          riderById={riderById}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function TourSecondaryStandings({
+  standings,
+  riderById,
+}: {
+  standings: ReturnType<typeof buildStageRaceStandings>;
+  riderById: Map<string, RiderSimulationInput>;
+}) {
+  const youthLeaderTime = standings.youth[0]?.elapsedTimeSeconds ?? 0;
+  const teamLeaderTime = standings.teams[0]?.elapsedTimeSeconds ?? 0;
+  const cards = [
+    {
+      title: "Meilleur grimpeur",
+      accent: "text-[#EF5B65]",
+      rows: standings.mountain.slice(0, 5).map((row) => ({
+        id: row.riderId,
+        label: riderById.get(row.riderId)?.name ?? row.riderId,
+        value: `${row.points} pts`,
+      })),
+    },
+    {
+      title: "Meilleur sprinteur",
+      accent: "text-[#72D4B7]",
+      rows: standings.sprint.slice(0, 5).map((row) => ({
+        id: row.riderId,
+        label: riderById.get(row.riderId)?.name ?? row.riderId,
+        value: `${row.points} pts`,
+      })),
+    },
+    {
+      title: "Meilleur jeune · -25 ans",
+      accent: "text-white",
+      rows: standings.youth.slice(0, 5).map((row, index) => ({
+        id: row.riderId,
+        label: riderById.get(row.riderId)?.name ?? row.riderId,
+        value:
+          index === 0
+            ? formatTime(row.elapsedTimeSeconds)
+            : `+${formatGap(row.elapsedTimeSeconds - youthLeaderTime)}`,
+      })),
+    },
+    {
+      title: "Meilleure équipe",
+      accent: "text-[#F2C94C]",
+      rows: standings.teams.slice(0, 5).map((row, index) => ({
+        id: row.teamId,
+        label: row.teamName,
+        value:
+          index === 0
+            ? formatTime(row.elapsedTimeSeconds)
+            : `+${formatGap(row.elapsedTimeSeconds - teamLeaderTime)}`,
+      })),
+    },
+  ];
+
+  return (
+    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {cards.map((card) => (
+        <article key={card.title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <h3 className={`text-xs font-black uppercase tracking-widest ${card.accent}`}>
+            {card.title}
+          </h3>
+          <ol className="mt-4 space-y-2">
+            {card.rows.length ? card.rows.map((row, index) => (
+              <li key={row.id} className="flex items-center gap-2 text-xs font-semibold">
+                <span className="w-4 font-black text-[#809D90]">{index + 1}</span>
+                <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                <span className="font-black text-[#C1D3CA]">{row.value}</span>
+              </li>
+            )) : (
+              <li className="text-xs font-semibold text-[#809D90]">Aucun point attribué.</li>
+            )}
+          </ol>
+        </article>
+      ))}
     </div>
   );
 }
@@ -644,10 +1176,12 @@ function Classification({
 function ActiveRules({ stageType }: { stageType: string }) {
   const rules = [
     ["Résolution", "Un calcul par tronçon de 10 km, avec un dernier tronçon ajusté à la distance exacte."],
+    ["Départ", "Le peloton démarre groupé ; les premières attaques et la formation de l’échappée deviennent visibles en course."],
     ["Aspiration", "Le coût énergétique diminue avec la taille du groupe ; une petite échappée paie davantage qu’un peloton."],
     ["Terrain", "PLA, MON, VAL, PAV et DES sont pondérées par le profil, la pente et le revêtement."],
     ["Énergie", "La forme constitue le capital initial ; END et RES déterminent la capacité à tenir le rythme et les efforts."],
     ["Tactique", "Les rôles orientent les attaques, la poursuite, les trains de sprint et les classements annexes."],
+    ["Aléas", "Crevaisons, bordures et chutes individuelles ou massives peuvent isoler des coureurs et créer de nouveaux groupes."],
     ["Rejouabilité", "Une graine fixe tous les aléas : un résultat peut être reproduit, expliqué et testé."],
   ];
 

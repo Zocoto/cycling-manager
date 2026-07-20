@@ -71,6 +71,7 @@ export type RaceCalendarEdition = {
   minimumReputation: number | null;
   minimumRosterSize: number;
   maximumRosterSize: number;
+  engagedRiderCount: number;
   currentTeamRegistration: {
     status: "pending" | "accepted" | "rejected" | "withdrawn";
     rosterCount: number;

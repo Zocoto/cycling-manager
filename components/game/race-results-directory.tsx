@@ -13,7 +13,11 @@ import {
   type RaceCategoryCode,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
-import { getStageLiveState } from "@/lib/game/race-live";
+import {
+  RACE_SIMULATION_DEMO_SLUG,
+  canSimulateRaceEdition,
+  getStageLiveState,
+} from "@/lib/game/race-live";
 
 type RaceResultsDirectoryProps = {
   calendar: SeasonRaceCalendar;
@@ -208,6 +212,11 @@ function RaceDirectoryCard({
         </span>
         <span className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`} aria-label={edition.countryName} />
         <h3 className="min-w-0 flex-1 truncate text-sm font-black text-[#0B302B]">{edition.name}</h3>
+        <span className="rounded-full bg-[#176951]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#176951]">
+          {edition.slug === RACE_SIMULATION_DEMO_SLUG && edition.engagedRiderCount === 0
+            ? "Démo"
+            : `${edition.engagedRiderCount} engagé${edition.engagedRiderCount > 1 ? "s" : ""}`}
+        </span>
       </header>
       <div className="divide-y divide-[#315B3E]/10">
         {stages.map((stage) => {
@@ -231,7 +240,10 @@ function RaceDirectoryCard({
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
                     J{stage.dayNumber}{edition.raceFormat === "stage_race" ? ` · E${stage.stageNumber}` : ""}
                   </span>
-                  <LiveStateBadge status={state.status} />
+                  <LiveStateBadge
+                    status={state.status}
+                    simulationAvailable={canSimulateRaceEdition(edition)}
+                  />
                 </span>
                 <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
                   {edition.raceFormat === "stage_race" ? stage.name : RACE_PROFILE_LABELS[stage.profileType]}
@@ -259,6 +271,44 @@ function SelectedRaceExperience({
   nowIso: string;
 }) {
   const state = getStageLiveState(entry.stage, now);
+  const simulationAvailable = canSimulateRaceEdition(
+    entry.edition
+  );
+
+  if (!simulationAvailable) {
+    return (
+      <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-[#071A17] text-white shadow-[0_30px_80px_rgba(7,26,23,0.2)]">
+        <div className="grid gap-7 p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-center">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#72D4B7]">
+              Course sans peloton
+            </p>
+            <h2 className="mt-3 text-3xl font-black">
+              {entry.edition.name}
+            </h2>
+            <div className="mt-6">
+              <RaceStageProfile
+                segments={entry.stage.segments}
+                tone="dark"
+                showLegend
+              />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/15 bg-white/[0.055] p-6">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+              Aucune simulation produite
+            </p>
+            <p className="mt-3 text-xl font-black">
+              Aucun coureur n’est engagé sur cette course.
+            </p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#C8D7D0]">
+              Le moteur ne génère ni live, ni replay, ni classement tant que la liste des engagés est vide.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (state.status === "scheduled") {
     return (
@@ -306,7 +356,21 @@ function SelectedRaceExperience({
   );
 }
 
-function LiveStateBadge({ status }: { status: ReturnType<typeof getStageLiveState>["status"] }) {
+function LiveStateBadge({
+  status,
+  simulationAvailable,
+}: {
+  status: ReturnType<typeof getStageLiveState>["status"];
+  simulationAvailable: boolean;
+}) {
+  if (!simulationAvailable) {
+    return (
+      <span className="rounded-full bg-[#60756E]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#60756E]">
+        Sans engagés
+      </span>
+    );
+  }
+
   const style = {
     live: "bg-[#EF5B65] text-white shadow-[0_0_14px_rgba(239,91,101,0.32)]",
     finished: "bg-[#176951]/10 text-[#176951]",

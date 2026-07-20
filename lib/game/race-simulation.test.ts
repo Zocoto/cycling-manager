@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
   assignAutomaticRaceRoles,
+  buildStageRaceStandings,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -19,11 +20,37 @@ describe("simulateRaceStage", () => {
     const result = simulateRaceStage(input);
 
     expect(result.results).toHaveLength(input.riders.length);
-    expect(result.results.map((item) => item.rank)).toEqual(
-      Array.from({ length: input.riders.length }, (_, index) => index + 1)
+    const finishers = result.results.filter(
+      (item) => item.status === "finished"
     );
+    expect(finishers.map((item) => item.rank)).toEqual(
+      Array.from({ length: finishers.length }, (_, index) => index + 1)
+    );
+    expect(
+      result.results
+        .filter((item) => item.status === "did_not_finish")
+        .every((item) => item.rank === null)
+    ).toBe(true);
     expect(result.results[0].gapToWinnerSeconds).toBe(0);
     expect(result.timeline).toHaveLength(input.segments.length);
+  });
+
+  it("commence avec un peloton groupé avant de laisser partir l’échappée", () => {
+    const result = simulateRaceStage(
+      createDemoSimulationInput("collines-ardennes", 7)
+    );
+
+    expect(
+      result.timeline[0].groups.map((group) => group.type)
+    ).toEqual(["peloton"]);
+    expect(
+      result.timeline[1].groups.some(
+        (group) => group.type === "breakaway"
+      )
+    ).toBe(true);
+    expect(result.timeline[1].commentary.join(" ")).toContain(
+      "attaque"
+    );
   });
 
   it("fait payer davantage d’énergie à une petite échappée", () => {
@@ -89,6 +116,95 @@ describe("simulateRaceStage", () => {
 
     expect(outcomes).toContain(true);
     expect(outcomes).toContain(false);
+  });
+
+  it("génère de manière déterministe crevaisons, bordures et chutes", () => {
+    const incidentTypes = new Set(
+      Array.from({ length: 60 }, (_, index) =>
+        simulateRaceStage(
+          createDemoSimulationInput(
+            "collines-ardennes",
+            index + 1
+          )
+        ).timeline.flatMap((snapshot) =>
+          snapshot.incidents.map((incident) => incident.type)
+        )
+      ).flat()
+    );
+
+    expect(incidentTypes).toEqual(
+      new Set([
+        "puncture",
+        "crosswind",
+        "crash_individual",
+        "crash_mass",
+      ])
+    );
+  });
+
+  it("peut scinder une échappée en plusieurs groupes", () => {
+    const result = simulateRaceStage(
+      createDemoSimulationInput("haute-montagne", 1)
+    );
+
+    expect(
+      result.timeline.some(
+        (snapshot) =>
+          snapshot.groups.filter(
+            (group) => group.type === "breakaway"
+          ).length > 1
+      )
+    ).toBe(true);
+  });
+  it("place un abandon sur chute en fin de classement et exclut le coureur de l'étape suivante", () => {
+    const firstStage = Array.from({ length: 80 }, (_, index) =>
+      simulateRaceStage(
+        createDemoSimulationInput("collines-ardennes", index + 1)
+      )
+    ).find((result) =>
+      result.results.some(
+        (row) => row.status === "did_not_finish"
+      )
+    );
+
+    expect(firstStage).toBeDefined();
+    const abandoned = firstStage!.results.find(
+      (row) => row.status === "did_not_finish"
+    )!;
+    expect(firstStage!.results.at(-1)).toEqual(abandoned);
+    expect(abandoned.rank).toBeNull();
+    expect(abandoned.abandonment?.injury.recoveryDays).toBeGreaterThan(0);
+
+    const nextInput = createDemoSimulationInput("collines-ardennes", 999);
+    const nextStage = simulateRaceStage({
+      ...nextInput,
+      unavailableRiderIds: [abandoned.riderId],
+    });
+    expect(
+      nextStage.resolvedRiders.some(
+        (rider) => rider.id === abandoned.riderId
+      )
+    ).toBe(false);
+  });
+
+  it("cumule les classements montagne, points, jeunes et équipes d'un tour", () => {
+    const stages = [
+      simulateRaceStage(createDemoSimulationInput("sprint-littoral", 12)),
+      simulateRaceStage(createDemoSimulationInput("haute-montagne", 2)),
+    ];
+    const standings = buildStageRaceStandings(stages);
+
+    expect(standings.mountain[0]?.points).toBeGreaterThan(0);
+    expect(standings.sprint[0]?.points).toBeGreaterThan(0);
+    expect(
+      stages
+        .flatMap((stage) => stage.resolvedRiders)
+        .find((rider) => rider.id === standings.youth[0]?.riderId)?.age
+    ).toBeLessThan(25);
+    expect(standings.teams.length).toBeGreaterThan(1);
+    expect(standings.teams[0].elapsedTimeSeconds).toBeLessThanOrEqual(
+      standings.teams[1].elapsedTimeSeconds
+    );
   });
 });
 

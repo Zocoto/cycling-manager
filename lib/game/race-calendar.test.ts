@@ -174,6 +174,7 @@ function createEdition(
     minimumReputation: null,
     minimumRosterSize: 8,
     maximumRosterSize: 9,
+    engagedRiderCount: 0,
     currentTeamRegistration: null,
     stages: dayNumbers.map(
       (dayNumber, index) => ({

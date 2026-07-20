@@ -1,6 +1,8 @@
 import type { RaceCalendarStage } from "./race-calendar";
 
 export const LIVE_START_HOUR_PARIS = 20;
+export const RACE_SIMULATION_DEMO_SLUG =
+  "criterium-de-namur";
 
 export type StageLiveState =
   | {
@@ -34,6 +36,19 @@ export type StageLiveState =
 
 export function getEstimatedLiveDurationMinutes(distanceKm: number) {
   return Math.max(8, Math.min(48, Math.round(distanceKm / 6)));
+}
+
+export function canSimulateRaceEdition({
+  slug,
+  engagedRiderCount,
+}: {
+  slug: string;
+  engagedRiderCount: number;
+}) {
+  return (
+    engagedRiderCount > 0 ||
+    slug === RACE_SIMULATION_DEMO_SLUG
+  );
 }
 
 export function getStageLiveState(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canSimulateRaceEdition,
   getEstimatedLiveDurationMinutes,
   getStageLiveState,
 } from "./race-live";
@@ -33,5 +34,25 @@ describe("getStageLiveState", () => {
     expect(
       getStageLiveState(STAGE, new Date("2026-07-20T18:25:00.000Z"))
     ).toMatchObject({ status: "finished", progress: 1 });
+  });
+});
+
+describe("canSimulateRaceEdition", () => {
+  it("refuse une course sans engagé", () => {
+    expect(
+      canSimulateRaceEdition({
+        slug: "course-vide",
+        engagedRiderCount: 0,
+      })
+    ).toBe(false);
+  });
+
+  it("conserve le Critérium de Namur comme démonstration", () => {
+    expect(
+      canSimulateRaceEdition({
+        slug: "criterium-de-namur",
+        engagedRiderCount: 0,
+      })
+    ).toBe(true);
   });
 });

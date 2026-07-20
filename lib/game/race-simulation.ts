@@ -81,21 +81,63 @@ export type StageSimulationInput = {
   seed: string | number;
   segments: RaceStageSegment[];
   riders: RiderSimulationInput[];
+  unavailableRiderIds?: string[];
 };
 
 export type RaceGroupSnapshot = {
   id: string;
   label: string;
-  type: "breakaway" | "peloton" | "dropped" | "time_trial";
+  type: "breakaway" | "chase" | "peloton" | "dropped" | "time_trial";
   riderIds: string[];
   gapToLeaderSeconds: number;
   averageEnergy: number;
+};
+
+export const RACE_INCIDENT_TYPES = [
+  "puncture",
+  "crosswind",
+  "crash_individual",
+  "crash_mass",
+] as const;
+
+export type RaceIncidentType =
+  (typeof RACE_INCIDENT_TYPES)[number];
+
+export type RaceIncident = {
+  id: string;
+  type: RaceIncidentType;
+  riderIds: string[];
+  abandonedRiderIds: string[];
+  label: string;
+};
+
+export const RACE_INJURY_SEVERITIES = [
+  "minor",
+  "moderate",
+  "serious",
+] as const;
+
+export type RaceInjurySeverity =
+  (typeof RACE_INJURY_SEVERITIES)[number];
+
+export type RaceAbandonment = {
+  riderId: string;
+  segmentNumber: number;
+  reason: "crash";
+  injury: {
+    type: "abrasions" | "contusion" | "concussion" | "fracture";
+    label: string;
+    severity: RaceInjurySeverity;
+    recoveryDays: number;
+  };
 };
 
 export type RaceTimelineSnapshot = {
   segmentNumber: number;
   completedDistanceKm: number;
   groups: RaceGroupSnapshot[];
+  incidents: RaceIncident[];
+  abandonments: RaceAbandonment[];
   commentary: string[];
 };
 
@@ -116,21 +158,41 @@ export type StageSimulationResult = {
   timeline: RaceTimelineSnapshot[];
   results: Array<{
     riderId: string;
-    rank: number;
+    rank: number | null;
+    status: "finished" | "did_not_finish";
     elapsedTimeSeconds: number;
     gapToWinnerSeconds: number;
     energyAfter: number;
+    abandonment: RaceAbandonment | null;
   }>;
   primes: RacePrimeResult[];
   mountainPoints: Record<string, number>;
   sprintPoints: Record<string, number>;
 };
 
+export type StageRaceStandings = {
+  mountain: Array<{ riderId: string; points: number }>;
+  sprint: Array<{ riderId: string; points: number }>;
+  youth: Array<{ riderId: string; elapsedTimeSeconds: number }>;
+  teams: Array<{
+    teamId: string;
+    teamName: string;
+    elapsedTimeSeconds: number;
+  }>;
+};
+
 type RiderState = {
   rider: RiderSimulationInput;
   energy: number;
   elapsedTimeSeconds: number;
-  group: "breakaway" | "peloton" | "dropped";
+  group:
+    | "breakaway"
+    | "breakaway_2"
+    | "chase"
+    | "peloton"
+    | "dropped"
+    | "abandoned";
+  groupSinceSegment: number;
   lostTimeSeconds: number;
 };
 
@@ -144,9 +206,19 @@ const SCORE_NOISE = 3.2;
 export function simulateRaceStage(
   input: StageSimulationInput
 ): StageSimulationResult {
-  validateSimulationInput(input);
-  const resolvedRiders = assignAutomaticRaceRoles(input.riders, input.segments);
-  const normalizedInput = { ...input, riders: resolvedRiders };
+  const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
+  const eligibleInput = {
+    ...input,
+    riders: input.riders.filter(
+      (rider) => !unavailableRiderIds.has(rider.id)
+    ),
+  };
+  validateSimulationInput(eligibleInput);
+  const resolvedRiders = assignAutomaticRaceRoles(
+    eligibleInput.riders,
+    eligibleInput.segments
+  );
+  const normalizedInput = { ...eligibleInput, riders: resolvedRiders };
 
   if (
     input.stageType === "individual_time_trial" ||
@@ -227,16 +299,22 @@ function simulateRoadStage(
         energy: clamp(rider.form, 5, 100),
         elapsedTimeSeconds: 0,
         group: "peloton",
+        groupSinceSegment: 0,
         lostTimeSeconds: 0,
       },
     ])
   );
-  const breakawayIds = selectInitialBreakaway(input.riders, input.segments, random);
+  const plannedBreakawayIds = selectInitialBreakaway(
+    input.riders,
+    input.segments,
+    random
+  );
   const timeline: RaceTimelineSnapshot[] = [];
+  const abandonments: RaceAbandonment[] = [];
   const primes: RacePrimeResult[] = [];
   const mountainPoints: Record<string, number> = {};
   const sprintPoints: Record<string, number> = {};
-  const breakawayRiders = [...breakawayIds]
+  const breakawayRiders = [...plannedBreakawayIds]
     .map((riderId) => input.riders.find((rider) => rider.id === riderId))
     .filter((rider): rider is RiderSimulationInput => Boolean(rider));
   const selectiveTerrainShare =
@@ -274,15 +352,13 @@ function simulateRoadStage(
   let breakawayWasCaught = false;
   const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
 
-  for (const riderId of breakawayIds) {
-    const state = states.get(riderId);
-    if (state) state.group = "breakaway";
-  }
-
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
+    const incidents: RaceIncident[] = [];
     const peloton = getStatesInGroup(states, "peloton");
     const breakaway = getStatesInGroup(states, "breakaway");
+    const secondaryBreakaway = getStatesInGroup(states, "breakaway_2");
+    const chase = getStatesInGroup(states, "chase");
     const dropped = getStatesInGroup(states, "dropped");
     const raceProgress = segmentIndex / Math.max(1, input.segments.length - 1);
     const chasePressure =
@@ -298,15 +374,27 @@ function simulateRoadStage(
     let breakawaySeconds = breakaway.length
       ? getGroupSegmentTime(breakaway, segment, "breakaway", 0.58, random)
       : pelotonSeconds;
+    const secondaryBreakawaySeconds = secondaryBreakaway.length
+      ? breakawaySeconds + 3 + random() * 5
+      : breakawaySeconds;
+    const chaseSeconds = chase.length
+      ? breakaway.length > 0
+        ? breakawaySeconds + (pelotonSeconds - breakawaySeconds) * 0.58
+        : pelotonSeconds + 3 + random() * 5
+      : pelotonSeconds;
 
     if (breakaway.length > 0 && breakawayHasWinningDay && raceProgress > 0.45) {
       breakawaySeconds *= 0.955 + (1 - breakawayChaseResistance) * 0.012;
     }
 
-    if (segmentIndex === 0 && breakaway.length > 0) {
-      breakawayGapSeconds = Math.round(70 + random() * 55);
+    if (segmentIndex === 0) {
       commentary.push(
-        `${formatRiderList(breakaway)} prennent le large : le peloton leur accorde ${formatGap(breakawayGapSeconds)}.`
+        "Le départ est donné : le peloton reste groupé tandis que les premières offensives se préparent."
+      );
+    } else if (segmentIndex === 1 && breakaway.length > 0) {
+      breakawayGapSeconds = Math.round(24 + random() * 24);
+      commentary.push(
+        `${formatRiderList(breakaway)} passent à l’attaque et ouvrent un premier écart de ${formatGap(breakawayGapSeconds)}.`
       );
     } else if (breakaway.length > 0) {
       const naturalGap = breakawayGapSeconds + pelotonSeconds - breakawaySeconds;
@@ -352,8 +440,18 @@ function simulateRoadStage(
     }
 
     for (const state of states.values()) {
+      if (state.group === "abandoned") continue;
+
       if (state.group === "breakaway") {
         state.elapsedTimeSeconds += breakawaySeconds;
+      } else if (state.group === "breakaway_2") {
+        state.elapsedTimeSeconds += secondaryBreakawaySeconds;
+        state.lostTimeSeconds += Math.max(
+          0,
+          secondaryBreakawaySeconds - breakawaySeconds
+        );
+      } else if (state.group === "chase") {
+        state.elapsedTimeSeconds += chaseSeconds;
       } else if (state.group === "peloton") {
         state.elapsedTimeSeconds += pelotonSeconds;
       } else {
@@ -370,6 +468,10 @@ function simulateRoadStage(
         groupSize:
           state.group === "breakaway"
             ? Math.max(1, breakaway.length)
+            : state.group === "breakaway_2"
+              ? Math.max(1, secondaryBreakaway.length)
+              : state.group === "chase"
+                ? Math.max(1, chase.length)
             : state.group === "peloton"
               ? Math.max(1, peloton.length)
               : Math.max(1, dropped.length),
@@ -386,6 +488,14 @@ function simulateRoadStage(
       commentary,
     });
 
+    resolveExistingChasers({
+      states,
+      segmentIndex,
+      breakawayGapSeconds,
+      random,
+      commentary,
+    });
+
     dropStrugglingRiders({
       states,
       segment,
@@ -394,27 +504,59 @@ function simulateRoadStage(
       commentary,
     });
 
+    maybeSplitBreakaway({
+      states,
+      segment,
+      segmentIndex,
+      random,
+      commentary,
+    });
+
+    const incident = maybeCreateRaceIncident({
+      states,
+      segment,
+      segmentIndex,
+      segmentCount: input.segments.length,
+      random,
+    });
+    if (incident) {
+      incidents.push(incident.incident);
+      abandonments.push(...incident.abandonments);
+      commentary.unshift(incident.commentary);
+    }
+
     const exhaustedBreakaway = getStatesInGroup(states, "breakaway").filter(
       (state) => state.energy < 9
     );
     for (const state of exhaustedBreakaway) {
-      state.group = "peloton";
-      state.elapsedTimeSeconds = Math.max(
-        state.elapsedTimeSeconds,
-        average(getStatesInGroup(states, "peloton").map((item) => item.elapsedTimeSeconds))
+      state.group = "breakaway_2";
+      state.groupSinceSegment = segmentIndex;
+      state.lostTimeSeconds += 12;
+      commentary.push(
+        `${state.rider.name} lâche l’échappée principale et tente de résister dans un deuxième groupe.`
       );
-      commentary.push(`${state.rider.name} ne peut plus collaborer et est repris.`);
     }
+
+    promoteSecondaryBreakawayWhenNeeded(states, segmentIndex);
 
     if (
       getStatesInGroup(states, "breakaway").length > 0 &&
       breakawayGapSeconds <= 0
     ) {
-      for (const state of getStatesInGroup(states, "breakaway")) {
+      const pelotonTime = average(
+        getStatesInGroup(states, "peloton").map(
+          (item) => item.elapsedTimeSeconds
+        )
+      );
+      for (const state of [...states.values()].filter(
+        (candidate) =>
+          candidate.group === "breakaway" ||
+          candidate.group === "breakaway_2" ||
+          candidate.group === "chase"
+      )) {
         state.group = "peloton";
-        state.elapsedTimeSeconds = average(
-          getStatesInGroup(states, "peloton").map((item) => item.elapsedTimeSeconds)
-        );
+        state.groupSinceSegment = segmentIndex;
+        state.elapsedTimeSeconds = pelotonTime;
       }
       breakawayGapSeconds = 0;
       breakawayWasCaught = true;
@@ -462,9 +604,21 @@ function simulateRoadStage(
         segmentNumber: segment.segmentNumber,
         completedDistanceKm,
         breakawayGapSeconds,
+        incidents,
+        abandonments,
         commentary,
       })
     );
+
+    if (segmentIndex === 0) {
+      for (const riderId of plannedBreakawayIds) {
+        const state = states.get(riderId);
+        if (state && state.group === "peloton") {
+          state.group = "breakaway";
+          state.groupSinceSegment = 1;
+        }
+      }
+    }
   });
 
   const finalCommentary = timeline.at(-1)?.commentary ?? [];
@@ -474,7 +628,9 @@ function simulateRoadStage(
     random,
     finalCommentary
   );
-  const rawResults = [...states.values()].map((state) => ({
+  const rawResults = [...states.values()]
+    .filter((state) => state.group !== "abandoned")
+    .map((state) => ({
     riderId: state.rider.id,
     score: finishScores.get(state.rider.id) ?? 0,
     elapsedTimeSeconds: getRoadFinishTime(
@@ -490,13 +646,35 @@ function simulateRoadStage(
       first.elapsedTimeSeconds - second.elapsedTimeSeconds || second.score - first.score
   );
   const winnerTime = rawResults[0].elapsedTimeSeconds;
-  const results = rawResults.map((result, index) => ({
+  const results: StageSimulationResult["results"] = rawResults.map((result, index) => ({
     riderId: result.riderId,
     rank: index + 1,
+    status: "finished" as const,
     elapsedTimeSeconds: Math.round(result.elapsedTimeSeconds),
     gapToWinnerSeconds: Math.max(0, Math.round(result.elapsedTimeSeconds - winnerTime)),
     energyAfter: result.energyAfter,
+    abandonment: null,
   }));
+
+  for (const abandonment of abandonments) {
+    const state = states.get(abandonment.riderId)!;
+    results.push({
+      riderId: abandonment.riderId,
+      rank: null,
+      status: "did_not_finish",
+      elapsedTimeSeconds: Math.round(state.elapsedTimeSeconds),
+      gapToWinnerSeconds: 0,
+      energyAfter: round(state.energy, 1),
+      abandonment,
+    });
+  }
+
+  awardFinishClassificationPoints({
+    results,
+    segments: input.segments,
+    mountainPoints,
+    sprintPoints,
+  });
 
   if (finalCommentary.length === 0) {
     finalCommentary.push(
@@ -506,7 +684,10 @@ function simulateRoadStage(
     );
   }
 
-  if (getStatesInGroup(states, "breakaway").length > 0 && breakawayGapSeconds > 0) {
+  if (
+    getStatesInGroup(states, "breakaway").length > 0 &&
+    breakawayGapSeconds > 0
+  ) {
     finalCommentary.push(
       `L’échappée résiste jusqu’à la ligne avec ${formatGap(breakawayGapSeconds)} d’avance : le peloton a trop attendu.`
     );
@@ -536,6 +717,7 @@ function simulateIndividualTimeTrial(
         energy: clamp(rider.form, 5, 100),
         elapsedTimeSeconds: 0,
         group: "peloton",
+        groupSinceSegment: 0,
         lostTimeSeconds: 0,
       },
     ])
@@ -589,6 +771,8 @@ function simulateIndividualTimeTrial(
         ),
         averageEnergy: round(state.energy, 1),
       })),
+      incidents: [],
+      abandonments: [],
       commentary: [
         `${ordered[0].rider.name} possède le meilleur temps au pointage des ${formatDistance(completedDistanceKm)} km.`,
       ],
@@ -612,6 +796,7 @@ function simulateTeamTimeTrial(
         energy: clamp(rider.form, 5, 100),
         elapsedTimeSeconds: 0,
         group: "peloton",
+        groupSinceSegment: 0,
         lostTimeSeconds: 0,
       },
     ])
@@ -673,6 +858,8 @@ function simulateTeamTimeTrial(
           1
         ),
       })),
+      incidents: [],
+      abandonments: [],
       commentary: [
         `${teams.get(orderedTeams[0][0])![0].teamName} signe le meilleur temps intermédiaire.`,
       ],
@@ -700,12 +887,14 @@ function buildTimedResult(
     results: ordered.map((state, index) => ({
       riderId: state.rider.id,
       rank: index + 1,
+      status: "finished" as const,
       elapsedTimeSeconds: Math.round(state.elapsedTimeSeconds),
       gapToWinnerSeconds: Math.max(
         0,
         Math.round(state.elapsedTimeSeconds - winnerTime)
       ),
       energyAfter: round(state.energy, 1),
+      abandonment: null,
     })),
     primes: [],
     mountainPoints: {},
@@ -821,6 +1010,8 @@ function updateRiderEnergy({
   const isWorking =
     timeTrial ||
     state.group === "breakaway" ||
+    state.group === "breakaway_2" ||
+    state.group === "chase" ||
     ((rider.role === "domestique" || rider.role === "leadout") &&
       segmentIndex < segmentCount - 2 &&
       chasePressure > 0.45);
@@ -828,10 +1019,19 @@ function updateRiderEnergy({
     ? 1
     : state.group === "peloton"
       ? Math.max(0.55, 0.77 - Math.log2(groupSize + 1) * 0.035)
-      : state.group === "breakaway"
+      : state.group === "breakaway" ||
+          state.group === "breakaway_2" ||
+          state.group === "chase"
         ? Math.max(0.74, 0.93 - Math.log2(groupSize + 1) * 0.035)
         : 0.88;
-  const workFactor = isWorking ? 1.2 : 0.86;
+  const workFactor =
+    state.group === "breakaway" ||
+    state.group === "breakaway_2" ||
+    state.group === "chase"
+      ? 1.48
+      : isWorking
+        ? 1.2
+        : 0.86;
   const enduranceFactor = 1.2 - rider.ratings.endurance / 300;
   const longEffortFactor = 1 + (segmentIndex / Math.max(1, segmentCount - 1)) * 0.22;
   let abilityFactor = 1;
@@ -906,6 +1106,7 @@ function dropStrugglingRiders({
 
     if (state.energy < 4 || holdingScore + 12 < pace + difficulty) {
       state.group = "dropped";
+      state.groupSinceSegment = segmentIndex;
       state.lostTimeSeconds += 12 + difficulty * 2;
       if (commentary.length < 4) {
         commentary.push(`${state.rider.name} ne tient plus le rythme et bascule parmi les attardés.`);
@@ -941,10 +1142,507 @@ function maybeLaunchCounterAttack({
     )[0];
 
   if (candidate && random() > 0.46) {
-    candidate.group = "breakaway";
+    candidate.group = "chase";
+    candidate.groupSinceSegment = segmentIndex;
     candidate.elapsedTimeSeconds -= Math.min(18, breakawayGapSeconds * 0.18);
-    commentary.push(`${candidate.rider.name} attaque en contre et rejoint l’avant de la course.`);
+    commentary.push(
+      `${candidate.rider.name} sort seul du peloton : le voilà en chasse-patate entre les deux groupes.`
+    );
   }
+}
+
+function resolveExistingChasers({
+  states,
+  segmentIndex,
+  breakawayGapSeconds,
+  random,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segmentIndex: number;
+  breakawayGapSeconds: number;
+  random: () => number;
+  commentary: string[];
+}) {
+  const peloton = getStatesInGroup(states, "peloton");
+  const pelotonTime = average(
+    peloton.map((state) => state.elapsedTimeSeconds)
+  );
+
+  for (const state of getStatesInGroup(states, "chase")) {
+    if (state.groupSinceSegment >= segmentIndex) continue;
+
+    const bridgeScore =
+      state.rider.ratings.breakaway * 0.42 +
+      state.rider.ratings.acceleration * 0.34 +
+      state.energy * 0.24 +
+      random() * 12;
+
+    if (
+      breakawayGapSeconds > 0 &&
+      breakawayGapSeconds < 150 &&
+      bridgeScore > 77
+    ) {
+      state.group = "breakaway_2";
+      state.groupSinceSegment = segmentIndex;
+      state.lostTimeSeconds += 8;
+      commentary.push(
+        `${state.rider.name} se rapproche de l’échappée, mais reste dans un groupe intercalé.`
+      );
+    } else if (random() < 0.66) {
+      state.group = "peloton";
+      state.groupSinceSegment = segmentIndex;
+      state.elapsedTimeSeconds = Math.max(
+        state.elapsedTimeSeconds,
+        pelotonTime
+      );
+    } else {
+      state.group = "dropped";
+      state.groupSinceSegment = segmentIndex;
+      state.lostTimeSeconds += 10 + random() * 12;
+    }
+  }
+}
+
+function maybeSplitBreakaway({
+  states,
+  segment,
+  segmentIndex,
+  random,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  random: () => number;
+  commentary: string[];
+}) {
+  const breakaway = getStatesInGroup(states, "breakaway");
+  if (
+    segmentIndex < 3 ||
+    breakaway.length < 3 ||
+    getStatesInGroup(states, "breakaway_2").length > 0
+  ) {
+    return;
+  }
+
+  const selectiveTerrain =
+    segment.terrain === "climb" ||
+    segment.surface === "cobbles";
+  const tiredRiders = breakaway.filter(
+    (state) => state.energy < 24
+  );
+
+  if (
+    tiredRiders.length === 0 &&
+    (!selectiveTerrain || random() > 0.42)
+  ) {
+    return;
+  }
+
+  const splitCount = Math.min(
+    2,
+    Math.max(1, Math.floor(breakaway.length / 3))
+  );
+  const detached = [...breakaway]
+    .sort(
+      (first, second) =>
+        first.energy +
+        getTerrainRating(first.rider, segment) * 0.45 -
+        (second.energy +
+          getTerrainRating(second.rider, segment) * 0.45)
+    )
+    .slice(0, splitCount);
+
+  for (const state of detached) {
+    state.group = "breakaway_2";
+    state.groupSinceSegment = segmentIndex;
+    state.lostTimeSeconds += 10 + random() * 14;
+  }
+
+  commentary.push(
+    `${formatRiderList(detached)} lâchent prise : l’échappée se scinde en deux groupes.`
+  );
+}
+
+function promoteSecondaryBreakawayWhenNeeded(
+  states: Map<string, RiderState>,
+  segmentIndex: number
+) {
+  if (getStatesInGroup(states, "breakaway").length > 0) {
+    return;
+  }
+
+  const secondary = getStatesInGroup(
+    states,
+    "breakaway_2"
+  ).sort((first, second) => second.energy - first.energy);
+  const newLeader = secondary[0];
+
+  if (newLeader) {
+    newLeader.group = "breakaway";
+    newLeader.groupSinceSegment = segmentIndex;
+  }
+}
+
+function maybeCreateRaceIncident({
+  states,
+  segment,
+  segmentIndex,
+  segmentCount,
+  random,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  segmentCount: number;
+  random: () => number;
+}): {
+  incident: RaceIncident;
+  abandonments: RaceAbandonment[];
+  commentary: string;
+} | null {
+  if (
+    segmentIndex < 2 ||
+    segmentIndex >= segmentCount - 1
+  ) {
+    return null;
+  }
+
+  const activeStates = [...states.values()].filter(
+    (state) =>
+      state.group !== "dropped" &&
+      state.group !== "abandoned"
+  );
+  if (activeStates.length === 0) return null;
+
+  const incidentRoll = random();
+  const punctureThreshold =
+    segment.surface === "cobbles" ? 0.105 : 0.065;
+  const individualCrashThreshold =
+    punctureThreshold + 0.045;
+  const massCrashThreshold =
+    individualCrashThreshold + 0.028;
+  const crosswindThreshold =
+    massCrashThreshold +
+    (segment.terrain === "flat" ? 0.065 : 0.018);
+
+  let type: RaceIncidentType;
+  if (incidentRoll < punctureThreshold) {
+    type = "puncture";
+  } else if (incidentRoll < individualCrashThreshold) {
+    type = "crash_individual";
+  } else if (incidentRoll < massCrashThreshold) {
+    type = "crash_mass";
+  } else if (incidentRoll < crosswindThreshold) {
+    type = "crosswind";
+  } else {
+    return null;
+  }
+
+  const peloton = getStatesInGroup(states, "peloton");
+  let affected: RiderState[];
+
+  if (type === "crash_mass" || type === "crosswind") {
+    const candidates =
+      peloton.length >= 4 ? peloton : activeStates;
+    const affectedCount = Math.min(
+      candidates.length,
+      type === "crash_mass"
+        ? 3 + Math.floor(random() * 4)
+        : 2 + Math.floor(random() * 4)
+    );
+
+    affected = [...candidates]
+      .sort((first, second) => {
+        const firstHolding =
+          first.rider.ratings.flat * 0.55 +
+          first.rider.ratings.resistance * 0.45 +
+          random() * 10;
+        const secondHolding =
+          second.rider.ratings.flat * 0.55 +
+          second.rider.ratings.resistance * 0.45 +
+          random() * 10;
+        return firstHolding - secondHolding;
+      })
+      .slice(0, affectedCount);
+  } else {
+    affected = [
+      activeStates[
+        Math.floor(random() * activeStates.length)
+      ],
+    ];
+  }
+
+  const abandonments: RaceAbandonment[] = [];
+
+  for (const state of affected) {
+    if (type === "puncture") {
+      state.energy = clamp(state.energy - 1.5, 0, 100);
+      state.lostTimeSeconds += 12 + random() * 12;
+    } else if (type === "crosswind") {
+      state.energy = clamp(state.energy - 2.5, 0, 100);
+      state.lostTimeSeconds += 9 + random() * 10;
+    } else {
+      state.energy = clamp(
+        state.energy -
+          (type === "crash_mass" ? 6 : 4),
+        0,
+        100
+      );
+      state.lostTimeSeconds +=
+        (type === "crash_mass" ? 18 : 14) +
+        random() * 16;
+    }
+
+    const crashAbandonment =
+      type === "crash_individual" || type === "crash_mass"
+        ? maybeCreateCrashAbandonment(
+            state,
+            segmentIndex,
+            type,
+            random
+          )
+        : null;
+
+    if (crashAbandonment) {
+      abandonments.push(crashAbandonment);
+      state.group = "abandoned";
+      state.energy = 0;
+    } else if (state.group === "breakaway") {
+      state.group = "breakaway_2";
+    } else if (state.group !== "breakaway_2") {
+      state.group = "chase";
+    }
+    state.groupSinceSegment = segmentIndex;
+  }
+
+  const affectedNames = formatRiderList(affected);
+  const details = {
+    puncture: {
+      label: `Crevaison · ${affected[0].rider.name}`,
+      commentary: `Crevaison pour ${affected[0].rider.name}, contraint de chasser pour retrouver son groupe.`,
+    },
+    crosswind: {
+      label: `Bordure · ${affected.length} piégés`,
+      commentary: `Le vent provoque une bordure : ${affectedNames} sont piégés derrière une cassure.`,
+    },
+    crash_individual: {
+      label: `Chute · ${affected[0].rider.name}`,
+      commentary: `${affected[0].rider.name} chute seul et repart avec du retard.`,
+    },
+    crash_mass: {
+      label: `Chute massive · ${affected.length} coureurs`,
+      commentary: `Chute massive dans le peloton : ${affectedNames} sont retardés.`,
+    },
+  } satisfies Record<
+    RaceIncidentType,
+    { label: string; commentary: string }
+  >;
+
+  return {
+    incident: {
+      id: `${segmentIndex + 1}-${type}-${affected
+        .map((state) => state.rider.id)
+        .join("-")}`,
+      type,
+      riderIds: affected.map((state) => state.rider.id),
+      abandonedRiderIds: abandonments.map(
+        (abandonment) => abandonment.riderId
+      ),
+      label: abandonments.length
+        ? `${details[type].label} · ${abandonments.length} abandon${
+            abandonments.length > 1 ? "s" : ""
+          }`
+        : details[type].label,
+    },
+    abandonments,
+    commentary: abandonments.length
+      ? `${details[type].commentary} ${formatRiderList(
+          abandonments.map(
+            (abandonment) => states.get(abandonment.riderId)!
+          )
+        )} ${abandonments.length > 1 ? "abandonnent" : "abandonne"}, sur blessure.`
+      : details[type].commentary,
+  };
+}
+
+function maybeCreateCrashAbandonment(
+  state: RiderState,
+  segmentIndex: number,
+  crashType: "crash_individual" | "crash_mass",
+  random: () => number
+): RaceAbandonment | null {
+  const vulnerability =
+    Math.max(0, 72 - state.rider.ratings.resistance) * 0.004 +
+    Math.max(0, 45 - state.energy) * 0.004;
+  const abandonmentChance = clamp(
+    (crashType === "crash_individual" ? 0.2 : 0.11) + vulnerability,
+    0.08,
+    0.42
+  );
+
+  if (random() >= abandonmentChance) return null;
+
+  const severityRoll = random();
+  const injury =
+    severityRoll < 0.58
+      ? {
+          type: "abrasions" as const,
+          label: "Plaies et contusions",
+          severity: "minor" as const,
+          recoveryDays: 2 + Math.floor(random() * 5),
+        }
+      : severityRoll < 0.88
+        ? {
+            type: "concussion" as const,
+            label: "Commotion",
+            severity: "moderate" as const,
+            recoveryDays: 8 + Math.floor(random() * 13),
+          }
+        : {
+            type: "fracture" as const,
+            label: "Fracture",
+            severity: "serious" as const,
+            recoveryDays: 28 + Math.floor(random() * 29),
+          };
+
+  return {
+    riderId: state.rider.id,
+    segmentNumber: segmentIndex + 1,
+    reason: "crash",
+    injury,
+  };
+}
+
+function awardFinishClassificationPoints({
+  results,
+  segments,
+  mountainPoints,
+  sprintPoints,
+}: {
+  results: StageSimulationResult["results"];
+  segments: RaceStageSegment[];
+  mountainPoints: Record<string, number>;
+  sprintPoints: Record<string, number>;
+}) {
+  const finishers = results.filter(
+    (result) => result.status === "finished"
+  );
+  const finalSegment = segments.at(-1);
+  if (!finalSegment) return;
+
+  let climbingLoad = 0;
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    const segment = segments[index];
+    if (segment.terrain !== "climb") break;
+    climbingLoad +=
+      segment.distanceKm * Math.max(1, segment.averageGradientPct);
+  }
+
+  if (finalSegment.terrain === "climb") {
+    const scale =
+      climbingLoad >= 180
+        ? [30, 24, 20, 16, 12, 10, 8, 6, 4, 2]
+        : climbingLoad >= 100
+          ? [20, 15, 12, 10, 8, 6, 4, 2]
+          : [10, 8, 6, 4, 2, 1];
+    scale.forEach((points, index) => {
+      const riderId = finishers[index]?.riderId;
+      if (riderId) mountainPoints[riderId] = (mountainPoints[riderId] ?? 0) + points;
+    });
+  }
+
+  const flatFinish =
+    finalSegment.terrain === "flat" &&
+    segments.slice(-3).filter((segment) => segment.terrain === "flat")
+      .length >= 2;
+  if (flatFinish) {
+    [50, 35, 25, 20, 16, 14, 12, 10, 8, 7, 6, 5, 4, 3, 2].forEach(
+      (points, index) => {
+        const riderId = finishers[index]?.riderId;
+        if (riderId) sprintPoints[riderId] = (sprintPoints[riderId] ?? 0) + points;
+      }
+    );
+  }
+}
+
+export function buildStageRaceStandings(
+  stageResults: StageSimulationResult[]
+): StageRaceStandings {
+  const riderById = new Map(
+    stageResults.flatMap((stage) => stage.resolvedRiders).map((rider) => [rider.id, rider])
+  );
+  const abandonedRiderIds = new Set(
+    stageResults.flatMap((stage) =>
+      stage.results
+        .filter((result) => result.status === "did_not_finish")
+        .map((result) => result.riderId)
+    )
+  );
+  const riderTimes = new Map<string, number>();
+  const teamTimes = new Map<string, number>();
+  const mountainPoints = new Map<string, number>();
+  const sprintPoints = new Map<string, number>();
+
+  for (const stage of stageResults) {
+    for (const result of stage.results) {
+      if (result.status !== "finished") continue;
+      const rider = riderById.get(result.riderId);
+      if (!rider) continue;
+      riderTimes.set(
+        rider.id,
+        (riderTimes.get(rider.id) ?? 0) + result.elapsedTimeSeconds
+      );
+      teamTimes.set(
+        rider.teamId,
+        (teamTimes.get(rider.teamId) ?? 0) + result.elapsedTimeSeconds
+      );
+    }
+
+    for (const [riderId, points] of Object.entries(stage.mountainPoints)) {
+      mountainPoints.set(riderId, (mountainPoints.get(riderId) ?? 0) + points);
+    }
+    for (const [riderId, points] of Object.entries(stage.sprintPoints)) {
+      sprintPoints.set(riderId, (sprintPoints.get(riderId) ?? 0) + points);
+    }
+  }
+
+  const activeRider = ([riderId]: [string, number]) =>
+    !abandonedRiderIds.has(riderId);
+  const byPoints = (first: [string, number], second: [string, number]) =>
+    second[1] - first[1];
+
+  return {
+    mountain: [...mountainPoints.entries()]
+      .filter(activeRider)
+      .sort(byPoints)
+      .map(([riderId, points]) => ({ riderId, points })),
+    sprint: [...sprintPoints.entries()]
+      .filter(activeRider)
+      .sort(byPoints)
+      .map(([riderId, points]) => ({ riderId, points })),
+    youth: [...riderTimes.entries()]
+      .filter(
+        ([riderId]) =>
+          !abandonedRiderIds.has(riderId) &&
+          (riderById.get(riderId)?.age ?? 99) < 25
+      )
+      .sort((first, second) => first[1] - second[1])
+      .map(([riderId, elapsedTimeSeconds]) => ({
+        riderId,
+        elapsedTimeSeconds,
+      })),
+    teams: [...teamTimes.entries()]
+      .sort((first, second) => first[1] - second[1])
+      .map(([teamId, elapsedTimeSeconds]) => ({
+        teamId,
+        teamName:
+          [...riderById.values()].find((rider) => rider.teamId === teamId)
+            ?.teamName ?? teamId,
+        elapsedTimeSeconds,
+      })),
+  };
 }
 
 function resolvePrime({
@@ -1127,34 +1825,125 @@ function buildRoadSnapshot({
   segmentNumber,
   completedDistanceKm,
   breakawayGapSeconds,
+  incidents,
+  abandonments,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segmentNumber: number;
   completedDistanceKm: number;
   breakawayGapSeconds: number;
+  incidents: RaceIncident[];
+  abandonments: RaceAbandonment[];
   commentary: string[];
 }): RaceTimelineSnapshot {
   const breakaway = getStatesInGroup(states, "breakaway");
+  const secondaryBreakaway = getStatesInGroup(
+    states,
+    "breakaway_2"
+  );
+  const chase = getStatesInGroup(states, "chase");
   const peloton = getStatesInGroup(states, "peloton");
   const dropped = getStatesInGroup(states, "dropped");
   const groups: RaceGroupSnapshot[] = [];
+  const hasBreakaway =
+    breakaway.length > 0 && breakawayGapSeconds > 0;
 
-  if (breakaway.length > 0 && breakawayGapSeconds > 0) {
+  if (hasBreakaway) {
     groups.push(toGroupSnapshot("breakaway", "Échappée", breakaway, 0));
   }
+
+  if (secondaryBreakaway.length > 0 && hasBreakaway) {
+    groups.push(
+      toGroupSnapshot(
+        "breakaway",
+        "Échappée 2 · lâchés",
+        secondaryBreakaway,
+        Math.round(
+          clamp(
+            average(
+              secondaryBreakaway.map(
+                (state) => state.lostTimeSeconds
+              )
+            ),
+            8,
+            Math.max(10, breakawayGapSeconds - 5)
+          )
+        )
+      )
+    );
+  }
+
+  if (chase.length > 0 && hasBreakaway) {
+    groups.push(
+      toGroupSnapshot(
+        "chase",
+        "Chasse-patate",
+        chase,
+        Math.round(
+          Math.max(6, breakawayGapSeconds * 0.58)
+        )
+      )
+    );
+  }
+
   if (peloton.length > 0) {
     groups.push(
       toGroupSnapshot(
         "peloton",
         "Peloton",
         peloton,
-        breakaway.length > 0 ? Math.max(0, Math.round(breakawayGapSeconds)) : 0
+        hasBreakaway
+          ? Math.max(0, Math.round(breakawayGapSeconds))
+          : 0
       )
     );
   }
+
+  if (chase.length > 0 && !hasBreakaway) {
+    groups.push(
+      toGroupSnapshot(
+        "chase",
+        "Groupe de chasse",
+        chase,
+        Math.round(
+          Math.max(
+            5,
+            average(
+              chase.map(
+                (state) => state.lostTimeSeconds
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
+  if (secondaryBreakaway.length > 0 && !hasBreakaway) {
+    groups.push(
+      toGroupSnapshot(
+        "chase",
+        "Intercalés",
+        secondaryBreakaway,
+        Math.round(
+          Math.max(
+            8,
+            average(
+              secondaryBreakaway.map(
+                (state) => state.lostTimeSeconds
+              )
+            )
+          )
+        )
+      )
+    );
+  }
+
   if (dropped.length > 0) {
-    const baseGap = breakaway.length > 0 ? Math.max(0, breakawayGapSeconds) : 0;
+    const baseGap = hasBreakaway
+      ? Math.max(0, breakawayGapSeconds)
+      : 0;
     groups.push(
       toGroupSnapshot(
         "dropped",
@@ -1169,6 +1958,8 @@ function buildRoadSnapshot({
     segmentNumber,
     completedDistanceKm: round(completedDistanceKm, 1),
     groups,
+    incidents,
+    abandonments: [...abandonments],
     commentary:
       commentary.length > 0
         ? commentary.slice(0, 4)
@@ -1177,7 +1968,7 @@ function buildRoadSnapshot({
 }
 
 function toGroupSnapshot(
-  type: "breakaway" | "peloton" | "dropped",
+  type: "breakaway" | "chase" | "peloton" | "dropped",
   label: string,
   states: RiderState[],
   gapToLeaderSeconds: number
