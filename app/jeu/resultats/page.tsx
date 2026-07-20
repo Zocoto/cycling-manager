@@ -10,6 +10,10 @@ import {
   getActiveSeasonRaceCalendar,
   settleFinishedRaceConditions,
 } from "@/services/race-calendar";
+import {
+  getOfficialRaceResults,
+  settleFinishedRaceResults,
+} from "@/services/race-results";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
@@ -28,14 +32,26 @@ export default async function RaceResultsPage() {
     redirect("/connexion");
   }
 
+  const now = new Date();
   await settleFinishedRaceConditions(supabase);
 
   const [headerData, calendarResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase)
+    getActiveSeasonRaceCalendar(supabase, now)
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),
   ]);
+
+  let officialResults = {};
+  if (calendarResult.calendar) {
+    try {
+      await settleFinishedRaceResults(calendarResult.calendar, now);
+      await settleFinishedRaceConditions(supabase);
+      officialResults = await getOfficialRaceResults(calendarResult.calendar);
+    } catch (error) {
+      console.error("Impossible de consolider les résultats officiels :", error);
+    }
+  }
 
   if (calendarResult.error) {
     console.error("Impossible de charger le calendrier pour Résultats / Live :", calendarResult.error);
@@ -75,7 +91,8 @@ export default async function RaceResultsPage() {
           {calendarResult.calendar ? (
             <RaceResultsDirectory
               calendar={calendarResult.calendar}
-              nowIso={new Date().toISOString()}
+              nowIso={now.toISOString()}
+              officialResults={officialResults}
             />
           ) : (
             <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-8 text-center font-bold text-red-900">

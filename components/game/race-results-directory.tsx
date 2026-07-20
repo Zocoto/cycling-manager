@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
+import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
 import { RaceLiveLab } from "@/components/game/race-live-lab";
+import { RaceOfficialResults } from "@/components/game/race-official-results";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
@@ -18,10 +21,15 @@ import {
   canSimulateRaceEdition,
   getStageLiveState,
 } from "@/lib/game/race-live";
+import type {
+  OfficialRaceEditionResults,
+  OfficialRaceResultsDirectory,
+} from "@/lib/game/race-results";
 
 type RaceResultsDirectoryProps = {
   calendar: SeasonRaceCalendar;
   nowIso: string;
+  officialResults: OfficialRaceResultsDirectory;
 };
 
 type StageEntry = {
@@ -32,6 +40,7 @@ type StageEntry = {
 export function RaceResultsDirectory({
   calendar,
   nowIso,
+  officialResults,
 }: RaceResultsDirectoryProps) {
   const [selectedCategories, setSelectedCategories] = useState<RaceCategoryCode[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
@@ -171,7 +180,13 @@ export function RaceResultsDirectory({
 
       <div className="mt-8" id="course-live">
         {selectedEntry ? (
-          <SelectedRaceExperience entry={selectedEntry} now={now} nowIso={nowIso} />
+          <SelectedRaceExperience
+            key={`${selectedEntry.stage.id}-${Boolean(officialResults[selectedEntry.edition.id]?.stages.some((stage) => stage.stageId === selectedEntry.stage.id))}`}
+            entry={selectedEntry}
+            now={now}
+            nowIso={nowIso}
+            officialResults={officialResults[selectedEntry.edition.id] ?? null}
+          />
         ) : (
           <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white/55 px-6 py-12 text-center">
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#176951]/10 text-2xl text-[#176951]">▶</span>
@@ -265,15 +280,48 @@ function SelectedRaceExperience({
   entry,
   now,
   nowIso,
+  officialResults,
 }: {
   entry: StageEntry;
   now: Date;
   nowIso: string;
+  officialResults: OfficialRaceEditionResults | null;
 }) {
   const state = getStageLiveState(entry.stage, now);
   const simulationAvailable = canSimulateRaceEdition(
     entry.edition
   );
+  const router = useRouter();
+  const settlementStartedRef = useRef(false);
+  const [isSettlementPending, startSettlementTransition] = useTransition();
+  const resultAvailable = Boolean(
+    officialResults?.stages.some((stage) => stage.stageId === entry.stage.id)
+  );
+  const [view, setView] = useState<"live" | "results">(
+    state.status === "finished" && resultAvailable ? "results" : "live"
+  );
+
+  useEffect(() => {
+    if (
+      state.status !== "finished" ||
+      resultAvailable ||
+      !simulationAvailable ||
+      settlementStartedRef.current
+    ) {
+      return;
+    }
+
+    settlementStartedRef.current = true;
+    startSettlementTransition(async () => {
+      try {
+        await settleOfficialRaceResultsAction();
+        router.refresh();
+      } catch (error) {
+        console.error("Impossible d’actualiser les résultats officiels :", error);
+        settlementStartedRef.current = false;
+      }
+    });
+  }, [resultAvailable, router, simulationAvailable, state.status]);
 
   if (!simulationAvailable) {
     return (
@@ -346,13 +394,47 @@ function SelectedRaceExperience({
   }
 
   return (
-    <RaceLiveLab
-      key={`${entry.stage.id}-${state.status}`}
-      edition={entry.edition}
-      stage={entry.stage}
-      mode={state.status === "live" ? "live" : "replay"}
-      nowIso={state.status === "live" ? now.toISOString() : nowIso}
-    />
+    <div>
+      <nav className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm" aria-label="Live et résultats officiels">
+        <button
+          type="button"
+          onClick={() => setView("live")}
+          aria-pressed={view === "live"}
+          className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${view === "live" ? "bg-[#0B302B] text-white" : "text-[#315B3E] hover:bg-[#EAF5F0]"}`}
+        >
+          {state.status === "live" ? "● Course en direct" : "▶ Replay du live"}
+        </button>
+        <button
+          type="button"
+          onClick={() => resultAvailable && setView("results")}
+          disabled={!resultAvailable}
+          aria-pressed={view === "results"}
+          className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${view === "results" ? "bg-[#176951] text-white" : resultAvailable ? "text-[#176951] hover:bg-[#EAF5F0]" : "cursor-wait text-[#7E938A] opacity-70"}`}
+        >
+          {resultAvailable
+            ? "▤ Résultats officiels"
+            : isSettlementPending
+              ? "Consolidation du classement…"
+              : "Résultats après l’arrivée"}
+        </button>
+      </nav>
+
+      {view === "results" && officialResults ? (
+        <RaceOfficialResults
+          edition={entry.edition}
+          selectedStageId={entry.stage.id}
+          officialResults={officialResults}
+        />
+      ) : (
+        <RaceLiveLab
+          key={`${entry.stage.id}-${state.status}`}
+          edition={entry.edition}
+          stage={entry.stage}
+          mode={state.status === "live" ? "live" : "replay"}
+          nowIso={state.status === "live" ? now.toISOString() : nowIso}
+        />
+      )}
+    </div>
   );
 }
 
