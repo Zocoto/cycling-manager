@@ -145,6 +145,7 @@ type SeasonDayRow = {
 };
 
 type ConditionRow = {
+  season_day_id: string;
   form: number;
   fatigue: number;
 };
@@ -199,6 +200,16 @@ export async function getPublicRiderProfile({
   }
 
   const supabase = createSupabaseAdminClient();
+  const { error: settlementError } = await supabase.rpc(
+    "settle_finished_race_conditions"
+  );
+
+  if (settlementError) {
+    throw new Error(
+      `Impossible de mettre à jour la forme après les courses : ${settlementError.message}`
+    );
+  }
+
   const { data: rider, error: riderError } = await supabase
     .from("riders")
     .select(
@@ -611,32 +622,39 @@ async function getCurrentCondition({
   }
 
   const dayNumber = activeSeason.current_day_number ?? 1;
-  const { data: seasonDay, error: seasonDayError } = await supabase
+  const { data: seasonDays, error: seasonDayError } = await supabase
     .from("season_days")
     .select("id, day_number")
     .eq("season_id", activeSeason.id)
-    .eq("day_number", dayNumber)
-    .maybeSingle<SeasonDayRow>();
+    .lte("day_number", dayNumber)
+    .order("day_number", { ascending: false })
+    .returns<SeasonDayRow[]>();
 
   assertQuery(seasonDayError, "la journée courante");
 
-  if (!seasonDay) {
+  if (!seasonDays || seasonDays.length === 0) {
     return { form: 75, fatigue: 0, dayNumber };
   }
 
-  const { data: condition, error: conditionError } = await supabase
+  const { data: conditions, error: conditionError } = await supabase
     .from("rider_condition_states")
-    .select("form, fatigue")
+    .select("season_day_id, form, fatigue")
     .eq("rider_id", riderId)
-    .eq("season_day_id", seasonDay.id)
-    .maybeSingle<ConditionRow>();
+    .in("season_day_id", seasonDays.map((day) => day.id))
+    .returns<ConditionRow[]>();
 
   assertQuery(conditionError, "la forme et la fatigue du coureur");
+  const conditionByDayId = new Map(
+    (conditions ?? []).map((condition) => [condition.season_day_id, condition])
+  );
+  const condition = seasonDays
+    .map((day) => conditionByDayId.get(day.id))
+    .find((candidate) => candidate !== undefined);
 
   return {
     form: condition?.form ?? 75,
     fatigue: condition?.fatigue ?? 0,
-    dayNumber: seasonDay.day_number,
+    dayNumber,
   };
 }
 

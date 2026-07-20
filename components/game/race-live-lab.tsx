@@ -8,7 +8,7 @@ import { getStageLiveState } from "@/lib/game/race-live";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
   buildStageRaceStandings,
-  getFinalBattleRiderIds,
+  getFinalBattleScenario,
   RACE_ROLE_LABELS,
   simulateRaceStage,
   type RaceGroupSnapshot,
@@ -152,7 +152,8 @@ export function RaceLiveLab({
   const activeSegment = input.segments[displayedIndex];
   const finalSegment = input.segments.at(-1)!;
   const breakawayStillAhead = simulation.timeline.at(-1)?.groups.some((group) => group.type === "breakaway") ?? false;
-  const finalBattleRiderIds = getFinalBattleRiderIds(simulation);
+  const finalBattleScenario = getFinalBattleScenario(simulation);
+  const finalBattleRiderIds = finalBattleScenario.contenderIds;
   const isMassSprint = finalBattleRiderIds.length > 10;
   const finalSegmentMeters = Math.round(finalSegment.distanceKm * 1_000);
   const liveFinalProgress = Math.max(
@@ -298,7 +299,7 @@ export function RaceLiveLab({
               riderById={riderById}
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
-              battleRiderIds={finalBattleRiderIds}
+              scenario={finalBattleScenario}
             />
           ) : isFinal && isRoad ? (
             <FinishBattleView
@@ -308,7 +309,7 @@ export function RaceLiveLab({
               breakawayStillAhead={breakawayStillAhead}
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
-              battleRiderIds={finalBattleRiderIds}
+              scenario={finalBattleScenario}
             />
           ) : (
             <RoadScene
@@ -748,14 +749,15 @@ function SprintLaneView({
   riderById,
   metersRemaining,
   finalSegmentMeters,
-  battleRiderIds,
+  scenario,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
   metersRemaining: number;
   finalSegmentMeters: number;
-  battleRiderIds: string[];
+  scenario: ReturnType<typeof getFinalBattleScenario>;
 }) {
+  const battleRiderIds = scenario.contenderIds;
   const battleRiderSet = new Set(battleRiderIds);
   const finalists = simulation.results
     .filter(
@@ -904,7 +906,7 @@ function FinishBattleView({
   breakawayStillAhead,
   metersRemaining,
   finalSegmentMeters,
-  battleRiderIds,
+  scenario,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
@@ -912,8 +914,9 @@ function FinishBattleView({
   breakawayStillAhead: boolean;
   metersRemaining: number;
   finalSegmentMeters: number;
-  battleRiderIds: string[];
+  scenario: ReturnType<typeof getFinalBattleScenario>;
 }) {
+  const battleRiderIds = scenario.contenderIds;
   const battleRiderSet = new Set(battleRiderIds);
   const finalists = simulation.results
     .filter(
@@ -939,9 +942,25 @@ function FinishBattleView({
   );
   const showFinishLine = metersRemaining <= FINISH_LINE_REVEAL_METERS;
   const hasFinished = metersRemaining <= 0;
+  const lateJoinerById = new Map(
+    scenario.lateJoiners.map((lateJoiner) => [lateJoiner.riderId, lateJoiner])
+  );
+  const entryLeaderNames = scenario.entryLeaderIds
+    .map((riderId) => riderById.get(riderId)?.name)
+    .filter((name): name is string => Boolean(name));
+  const lateJoinerNames = scenario.lateJoiners
+    .map((lateJoiner) => riderById.get(lateJoiner.riderId)?.name)
+    .filter((name): name is string => Boolean(name));
+  const winner = finalists[0]
+    ? riderById.get(finalists[0].riderId)
+    : null;
+  const runnerUp = finalists[1]
+    ? riderById.get(finalists[1].riderId)
+    : null;
 
   return (
-    <div className="relative mt-6 h-80 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(#8BCAD7_0_45%,#91B879_45%_100%)] shadow-inner shadow-black/30">
+    <div className="mt-6">
+    <div className="relative h-80 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(#8BCAD7_0_45%,#91B879_45%_100%)] shadow-inner shadow-black/30">
       <div aria-hidden="true" className="absolute left-8 top-7 h-14 w-14 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
       <svg aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
         <path
@@ -981,12 +1000,17 @@ function FinishBattleView({
 
       {finalists.map((result, index) => {
         const rider = riderById.get(result.riderId)!;
+        const lateJoiner = lateJoinerById.get(result.riderId);
         const earlyOrder =
           finalists.length > 1
             ? (index * 3 + 2) % finalists.length
             : 0;
-        const earlyPosition =
-          34 + (finalists.length - earlyOrder) * 4.2;
+        const earlyPosition = lateJoiner
+          ? Math.max(
+              15,
+              31 - Math.min(14, lateJoiner.gapToLeaderSeconds * 0.45)
+            )
+          : 38 + (finalists.length - earlyOrder) * 4.2;
         const finishPosition =
           88 - index * 1.65 - (index >= 4 ? (index - 3) * 1.4 : 0);
         const attackMovement =
@@ -1015,7 +1039,11 @@ function FinishBattleView({
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
             <SideCyclist rider={rider} isMoving className="h-12 w-[4.5rem]" />
-            {index < 3 ? (
+            {lateJoiner && battleProgress < 0.58 ? (
+              <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#B85A32]/90 px-2 py-1 text-[8px] font-black text-white shadow-lg">
+                {rider.name.split(" ").at(-1)} revient · +{formatGap(lateJoiner.gapToLeaderSeconds)}
+              </span>
+            ) : index < 3 ? (
               <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[9px] font-black text-white shadow-lg">
                 {hasFinished ? `${result.rank}. ` : ""}{rider.name.split(" ").at(-1)}
               </span>
@@ -1024,7 +1052,57 @@ function FinishBattleView({
         );
       })}
     </div>
+    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+      <FinishScenarioStep
+        label="Entrée du tronçon"
+        text={`${scenario.entryGroupLabel} : ${formatRiderNames(entryLeaderNames)} ouvre${entryLeaderNames.length > 1 ? "nt" : ""} la route.`}
+        active={battleProgress === 0}
+      />
+      <FinishScenarioStep
+        label="Mouvement décisif"
+        text={lateJoinerNames.length > 0
+          ? `${formatRiderNames(lateJoinerNames)} revien${lateJoinerNames.length > 1 ? "nent" : "t"} depuis la chasse, visible${lateJoinerNames.length > 1 ? "s" : ""} à l’arrière au début du final.`
+          : `Les attaques se font uniquement entre les ${battleRiderIds.length} coureurs déjà présents en tête.`}
+        active={battleProgress > 0 && !hasFinished}
+      />
+      <FinishScenarioStep
+        label="Verdict sur la ligne"
+        text={hasFinished && winner
+          ? `${winner.name} s’impose${runnerUp ? ` devant ${runnerUp.name}` : ""}.`
+          : "Le classement reste masqué jusqu’au franchissement de la ligne."}
+        active={hasFinished}
+      />
+    </div>
+    </div>
   );
+}
+
+function FinishScenarioStep({
+  label,
+  text,
+  active,
+}: {
+  label: string;
+  text: string;
+  active: boolean;
+}) {
+  return (
+    <article className={`rounded-xl border px-3 py-2.5 transition ${active ? "border-[#F2C94C]/55 bg-[#F2C94C]/12" : "border-white/10 bg-white/[0.045]"}`}>
+      <p className={`text-[9px] font-black uppercase tracking-widest ${active ? "text-[#F2C94C]" : "text-[#7E9B8F]"}`}>
+        {label}
+      </p>
+      <p className="mt-1 text-[10px] font-bold leading-4 text-[#C8D7D0]">
+        {text}
+      </p>
+    </article>
+  );
+}
+
+function formatRiderNames(names: string[]) {
+  if (names.length === 0) return "Le groupe de tête";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} et ${names[1]}`;
+  return `${names.slice(0, 2).join(", ")} et ${names.length - 2} autre${names.length > 3 ? "s" : ""}`;
 }
 
 function FinishDistanceCounter({

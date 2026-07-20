@@ -6,7 +6,10 @@ import { GameHeader } from "@/components/game/game-header";
 import { RaceResultsDirectory } from "@/components/game/race-results-directory";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import {
+  getActiveSeasonRaceCalendar,
+  settleFinishedRaceConditions,
+} from "@/services/race-calendar";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
@@ -24,6 +27,8 @@ export default async function RaceResultsPage() {
   if (authenticationError || !user) {
     redirect("/connexion");
   }
+
+  await settleFinishedRaceConditions(supabase);
 
   const [headerData, calendarResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),

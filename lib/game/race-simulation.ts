@@ -186,6 +186,17 @@ export type StageRaceStandings = {
   }>;
 };
 
+export type FinalBattleScenario = {
+  contenderIds: string[];
+  entryLeaderIds: string[];
+  entryGroupLabel: string;
+  lateJoiners: Array<{
+    riderId: string;
+    fromGroupLabel: string;
+    gapToLeaderSeconds: number;
+  }>;
+};
+
 export function getFinalBattleRiderIds(
   simulation: StageSimulationResult
 ) {
@@ -223,6 +234,62 @@ export function getFinalBattleRiderIds(
         .filter((riderId) => finishers.has(riderId))
     ),
   ];
+}
+
+export function getFinalBattleScenario(
+  simulation: StageSimulationResult
+): FinalBattleScenario {
+  const contenderIds = getFinalBattleRiderIds(simulation);
+  const finalSnapshot = simulation.timeline.at(-1);
+  const entrySnapshot = simulation.timeline.at(-2) ?? finalSnapshot;
+
+  if (!entrySnapshot || contenderIds.length === 0) {
+    return {
+      contenderIds,
+      entryLeaderIds: contenderIds,
+      entryGroupLabel: "Groupe de tête",
+      lateJoiners: [],
+    };
+  }
+
+  const eligibleEntryGroups = entrySnapshot.groups.filter(
+    (group) => group.type !== "dropped" && group.type !== "time_trial"
+  );
+  const leadingGap =
+    eligibleEntryGroups.length > 0
+      ? Math.min(
+          ...eligibleEntryGroups.map((group) => group.gapToLeaderSeconds)
+        )
+      : 0;
+  const leadingGroups = eligibleEntryGroups.filter(
+    (group) => group.gapToLeaderSeconds === leadingGap
+  );
+  const entryLeaderSet = new Set(
+    leadingGroups.flatMap((group) => group.riderIds)
+  );
+  const entryLeaderIds = contenderIds.filter((riderId) =>
+    entryLeaderSet.has(riderId)
+  );
+  const lateJoiners = contenderIds
+    .filter((riderId) => !entryLeaderSet.has(riderId))
+    .map((riderId) => {
+      const origin = eligibleEntryGroups.find((group) =>
+        group.riderIds.includes(riderId)
+      );
+
+      return {
+        riderId,
+        fromGroupLabel: origin?.label ?? "Groupe intercalé",
+        gapToLeaderSeconds: origin?.gapToLeaderSeconds ?? 0,
+      };
+    });
+
+  return {
+    contenderIds,
+    entryLeaderIds,
+    entryGroupLabel: leadingGroups[0]?.label ?? "Groupe de tête",
+    lateJoiners,
+  };
 }
 
 type RiderState = {

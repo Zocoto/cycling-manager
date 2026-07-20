@@ -5,6 +5,7 @@ import {
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
   getFinalBattleRiderIds,
+  getFinalBattleScenario,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -64,6 +65,24 @@ describe("simulateRaceStage", () => {
 
     expect(getFinalBattleRiderIds(massFinish).length).toBeGreaterThan(10);
     expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(10);
+  });
+
+  it("explique l’origine de chaque coureur présent dans un final sélectif", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("haute-montagne", 1)
+    );
+    const scenario = getFinalBattleScenario(simulation);
+    const explainedRiderIds = new Set([
+      ...scenario.entryLeaderIds,
+      ...scenario.lateJoiners.map((lateJoiner) => lateJoiner.riderId),
+    ]);
+
+    expect(explainedRiderIds).toEqual(new Set(scenario.contenderIds));
+    expect(
+      scenario.lateJoiners.every(
+        (lateJoiner) => lateJoiner.fromGroupLabel.length > 0
+      )
+    ).toBe(true);
   });
 
   it("fait payer davantage d’énergie à une petite échappée", () => {

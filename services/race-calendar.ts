@@ -249,6 +249,12 @@ export type RaceEngagedRider = {
   countryCode: string;
 };
 
+export type RaceConditionSettlement = {
+  processedStages: number;
+  processedRiders: number;
+  currentDayNumber: number | null;
+};
+
 type RaceEngagedRiderRow = {
   team_id: string;
   team_name: string;
@@ -258,6 +264,36 @@ type RaceEngagedRiderRow = {
   rider_last_name: string;
   country_iso_alpha2: string;
 };
+
+type RaceConditionSettlementRow = {
+  processed_stages: number;
+  processed_riders: number;
+  current_day_number: number | null;
+};
+
+export async function settleFinishedRaceConditions(
+  supabase: SupabaseServerClient
+): Promise<RaceConditionSettlement> {
+  const { data, error } = await supabase.rpc(
+    "settle_finished_race_conditions"
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de mettre à jour la forme après les courses : ${error.message}`
+    );
+  }
+
+  const row = (
+    (data as RaceConditionSettlementRow[] | null) ?? []
+  )[0];
+
+  return {
+    processedStages: row?.processed_stages ?? 0,
+    processedRiders: row?.processed_riders ?? 0,
+    currentDayNumber: row?.current_day_number ?? null,
+  };
+}
 
 export async function getActiveSeasonRaceCalendar(
   supabase: SupabaseServerClient,
