@@ -24,7 +24,7 @@ export function PublicHeader() {
         <Link
           href="/"
           className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-          aria-label="Retour à l’accueil de Cycling Manager"
+          aria-label="Retour à l’accueil de Cyclo Stratège"
         >
           <WheelLogo />
 

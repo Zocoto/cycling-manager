@@ -2,7 +2,7 @@
 
 ## Objectif
 
-La base de données de Cycling Manager est hébergée sur Supabase et repose sur PostgreSQL.
+La base de données de Cyclo Stratège est hébergée sur Supabase et repose sur PostgreSQL.
 
 Le modèle est conçu pour conserver l’historique du jeu au fil des saisons :
 

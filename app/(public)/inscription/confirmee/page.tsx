@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Confirmation de l’inscription",
   description:
-    "Confirmation de l’adresse e-mail de votre compte Cycling Manager.",
+    "Confirmation de l’adresse e-mail de votre compte Cyclo Stratège.",
 };
 
 type ConfirmationPageProps = {
@@ -74,7 +74,7 @@ export default async function ConfirmationPage({
 
             <p className="mx-auto mt-5 max-w-md text-base leading-7 text-[#BFD1C6]">
               {confirmationSucceeded
-                ? "Votre compte Cycling Manager est désormais validé. La connexion sera activée lors de la prochaine étape du développement."
+                ? "Votre compte Cyclo Stratège est désormais validé. La connexion sera activée lors de la prochaine étape du développement."
                 : "Le lien de confirmation est invalide ou a expiré. Une nouvelle demande de confirmation pourra être effectuée depuis l’espace de connexion."}
             </p>
 

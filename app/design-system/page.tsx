@@ -7,7 +7,7 @@ import { WheelLogo } from "../../components/ui/wheel-logo";
 export const metadata: Metadata = {
   title: "Design System",
   description:
-    "Référence graphique Peloton UI pour l’interface de Cycling Manager.",
+    "Référence graphique Peloton UI pour l’interface de Cyclo Stratège.",
 };
 
 const palette = [
@@ -113,7 +113,7 @@ function DesignHeader() {
         <h1 className="mt-8 max-w-4xl text-5xl font-black leading-[0.95] tracking-[-0.045em] sm:text-6xl">
           Le design system de
           <span className="mt-2 block text-[#42B99A]">
-            Cycling Manager.
+            Cyclo Stratège.
           </span>
         </h1>
 
