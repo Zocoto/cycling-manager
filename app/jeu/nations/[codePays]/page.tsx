@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
@@ -10,6 +11,7 @@ import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicCountryDirectory } from "@/services/public-directory";
+import { getNationRankingEntry } from "@/services/uci-rankings";
 
 export const metadata: Metadata = {
   title: "Fiche nation",
@@ -39,9 +41,10 @@ export default async function PublicCountryPage({
     redirect("/connexion");
   }
 
-  const [directory, headerData] = await Promise.all([
+  const [directory, headerData, nationRanking] = await Promise.all([
     getPublicCountryDirectory(supabase, codePays),
     getGameHeaderData(supabase, user.id),
+    getNationRankingEntry(codePays),
   ]);
 
   if (!directory) {
@@ -90,15 +93,24 @@ export default async function PublicCountryPage({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Statistic
-                  label="Directeurs Sportifs"
-                  value={country.sporting_director_count ?? 0}
+              <div className="space-y-3">
+                <RankingBadge
+                  rank={nationRanking?.rank ?? null}
+                  points={nationRanking?.points ?? 0}
+                  label="Classement des nations"
+                  href="/jeu/classements?vue=nations"
+                  dark
                 />
-                <Statistic
-                  label="Équipes"
-                  value={country.team_count ?? 0}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Statistic
+                    label="Directeurs Sportifs"
+                    value={country.sporting_director_count ?? 0}
+                  />
+                  <Statistic
+                    label="Équipes"
+                    value={country.team_count ?? 0}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -135,17 +147,17 @@ export default async function PublicCountryPage({
 
         <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white/75 p-6 sm:p-8">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-            Prochainement
+            Rayonnement international
           </p>
           <h2 className="mt-2 text-xl font-black text-[#183F37]">
-            Données internationales préparées
+            Bilan de la nation
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              "Classement mondial",
-              "Points saisonniers",
-              "Meilleurs coureurs",
-              "Résultats aux championnats",
+              nationRanking ? `Rang mondial #${nationRanking.rank}` : "Rang mondial à établir",
+              `${numberFormatter.format(nationRanking?.points ?? 0)} points UCI`,
+              `${numberFormatter.format(nationRanking?.riderCount ?? 0)} coureurs classés`,
+              "Résultats aux championnats · prochainement",
             ].map((item) => (
               <div
                 key={item}

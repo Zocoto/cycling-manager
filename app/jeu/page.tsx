@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../components/game/game-header";
+import { RankingBadge } from "../../components/game/ranking-badge";
 import { RiderAvatar } from "../../components/game/rider-avatar";
 import { SponsorLogoMark } from "../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
@@ -30,6 +31,10 @@ import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
 } from "../../services/team-sponsor-identity";
+import {
+  getCurrentTeamFinanceOverview,
+  type TeamFinanceOverview,
+} from "../../services/team-finances";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -110,7 +115,9 @@ type ManagementModuleIcon =
   | "result"
   | "academy"
   | "camp"
-  | "transfer";
+  | "transfer"
+  | "finance"
+  | "ranking";
 
 export default async function GamePage() {
   const supabase =
@@ -199,6 +206,17 @@ export default async function GamePage() {
   } catch (error) {
     console.error(
       "Impossible de récupérer l’identité amateur de l’équipe :",
+      error
+    );
+  }
+
+  let financeOverview: TeamFinanceOverview | null = null;
+
+  try {
+    financeOverview = await getCurrentTeamFinanceOverview(supabase, user.id);
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer la situation financière de l’équipe :",
       error
     );
   }
@@ -364,6 +382,7 @@ export default async function GamePage() {
                 teamSponsorIdentity
               }
               teamAmateurIdentity={teamAmateurIdentity}
+              financeOverview={financeOverview}
             />
 
             <TeamRosterCard
@@ -389,6 +408,33 @@ export default async function GamePage() {
           <RaceOperationsCard />
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <ManagementModuleCard
+              href="/jeu/finances"
+              icon="finance"
+              title="Finances"
+              status={
+                financeOverview
+                  ? formatDashboardCurrency(
+                      financeOverview.balance,
+                      financeOverview.currency
+                    )
+                  : "À initialiser"
+              }
+              description="Suivez le solde réel, les quatre échéances sponsor et la projection de trésorerie jusqu’à la fin de saison."
+            />
+
+            <ManagementModuleCard
+              href="/jeu/classements"
+              icon="ranking"
+              title="Classements UCI"
+              status={
+                financeOverview?.teamRank
+                  ? `#${financeOverview.teamRank}`
+                  : "Non classée"
+              }
+              description="Comparez toutes les équipes, les coureurs et les nations, avec les frontières de divisions clairement identifiées."
+            />
+
             <ManagementModuleCard
               href="/jeu/sponsoring"
               icon="sponsor"
@@ -469,6 +515,7 @@ function DirectorProfileCard({
   teamSummary,
   teamSponsorIdentity,
   teamAmateurIdentity,
+  financeOverview,
 }: {
   sportingDirector:
     SportingDirector | null;
@@ -481,6 +528,8 @@ function DirectorProfileCard({
     TeamSponsorIdentity | null;
   teamAmateurIdentity:
     TeamAmateurIdentity | null;
+  financeOverview:
+    TeamFinanceOverview | null;
 }) {
   const profileName =
     sportingDirector?.display_name ??
@@ -569,6 +618,36 @@ function DirectorProfileCard({
           compact
         />
       </div>
+
+      {financeOverview ? (
+        <div className="mt-5 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">
+          <Link
+            href="/jeu/finances"
+            className="rounded-xl border border-white/12 bg-white/7 px-4 py-3 transition hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+          >
+            <span className="block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">
+              Budget disponible
+            </span>
+            <span
+              className={`mt-1 block text-xl font-black ${
+                financeOverview.balance < 0 ? "text-[#FF9D8F]" : "text-[#F2C94C]"
+              }`}
+            >
+              {formatDashboardCurrency(
+                financeOverview.balance,
+                financeOverview.currency
+              )}
+            </span>
+          </Link>
+
+          <RankingBadge
+            rank={financeOverview.teamRank}
+            points={financeOverview.teamPoints}
+            label={financeOverview.divisionName ?? "Classement général"}
+            dark
+          />
+        </div>
+      ) : null}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5">
         <span
@@ -1340,6 +1419,22 @@ function ManagementModuleIcon({
         <path d="m10 14-3 3 3 3" />
       </>
     ),
+
+    finance: (
+      <>
+        <path d="M4 7h16M4 12h16M4 17h16" />
+        <path d="M8 4v16M16 4v16" />
+      </>
+    ),
+
+    ranking: (
+      <>
+        <path d="M5 20V10h4v10" />
+        <path d="M10 20V4h4v16" />
+        <path d="M15 20v-7h4v7" />
+        <path d="M3 20h18" />
+      </>
+    ),
   };
 
   return (
@@ -1400,6 +1495,14 @@ function formatCareerStart(
       year: "numeric",
     }
   ).format(new Date(value));
+}
+
+function formatDashboardCurrency(value: number, currency: string): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function MountainDecoration() {

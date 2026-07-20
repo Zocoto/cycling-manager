@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { DEFAULT_AMATEUR_JERSEY } from "@/lib/amateur-team";
@@ -20,6 +21,7 @@ import { getPublicTeamRiders } from "@/services/public-rider-profile";
 import { getPublicTeamSeasonHistory } from "@/services/public-team-history";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
+import { getTeamRankingEntry } from "@/services/uci-rankings";
 
 export const metadata: Metadata = {
   title: "Fiche équipe",
@@ -56,11 +58,12 @@ export default async function PublicTeamPage({
     notFound();
   }
 
-  const [amateurIdentity, sponsorIdentity, riders, seasonHistory] = await Promise.all([
+  const [amateurIdentity, sponsorIdentity, riders, seasonHistory, teamRanking] = await Promise.all([
     getTeamAmateurIdentity(team.public_identifier),
     getActiveTeamSponsorIdentity(team.public_identifier),
     getPublicTeamRiders(team.public_identifier),
     getPublicTeamSeasonHistory(team.public_identifier),
+    getTeamRankingEntry(team.public_identifier),
   ]);
   const riderJersey = sponsorIdentity
     ? createSponsoredRiderJersey({
@@ -126,23 +129,32 @@ export default async function PublicTeamPage({
                 </p>
               </div>
 
-              <Link
-                href={countryHref}
-                className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-              >
-                <CountryFlag
-                  countryCode={team.country_code}
-                  countryName={team.country_name}
+              <div className="flex flex-col gap-3">
+                <RankingBadge
+                  rank={teamRanking?.rank ?? null}
+                  points={teamRanking?.points ?? 0}
+                  label={teamRanking ? `Division ${teamRanking.division}` : "Classement général"}
+                  href="/jeu/classements?vue=equipes"
+                  dark
                 />
-                <span>
-                  <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#A8DEC6]">
-                    Pays
+                <Link
+                  href={countryHref}
+                  className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+                >
+                  <CountryFlag
+                    countryCode={team.country_code}
+                    countryName={team.country_name}
+                  />
+                  <span>
+                    <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[#A8DEC6]">
+                      Pays
+                    </span>
+                    <span className="mt-1 block font-black">
+                      {team.country_name}
+                    </span>
                   </span>
-                  <span className="mt-1 block font-black">
-                    {team.country_name}
-                  </span>
-                </span>
-              </Link>
+                </Link>
+              </div>
             </div>
           </div>
 

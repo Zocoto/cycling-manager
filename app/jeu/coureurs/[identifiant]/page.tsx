@@ -7,6 +7,7 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
+import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
@@ -21,6 +22,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicRiderProfile } from "@/services/public-rider-profile";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
+import { getRiderRankingEntry } from "@/services/uci-rankings";
 
 export const metadata: Metadata = {
   title: "Fiche coureur",
@@ -53,12 +55,13 @@ export default async function RiderProfilePage({ params }: RiderProfilePageProps
     redirect("/connexion");
   }
 
-  const [profile, headerData] = await Promise.all([
+  const [profile, headerData, riderRanking] = await Promise.all([
     getPublicRiderProfile({
       riderIdentifier: identifiant,
       viewerAuthUserId: user.id,
     }),
     getGameHeaderData(supabase, user.id),
+    getRiderRankingEntry(identifiant),
   ]);
 
   if (!profile) {
@@ -138,12 +141,21 @@ export default async function RiderProfilePage({ params }: RiderProfilePageProps
               </p>
             </div>
 
-            <CurrentTeamCard
-              team={profile.currentTeam}
-              amateurJersey={amateurIdentity?.jersey ?? FREE_AGENT_JERSEY}
-              amateurTeamName={amateurIdentity?.amateurName ?? null}
-              sponsorIdentity={sponsorIdentity}
-            />
+            <div className="space-y-3">
+              <RankingBadge
+                rank={riderRanking?.rank ?? null}
+                points={riderRanking?.points ?? 0}
+                label="Classement individuel"
+                href="/jeu/classements?vue=individuel"
+                dark
+              />
+              <CurrentTeamCard
+                team={profile.currentTeam}
+                amateurJersey={amateurIdentity?.jersey ?? FREE_AGENT_JERSEY}
+                amateurTeamName={amateurIdentity?.amateurName ?? null}
+                sponsorIdentity={sponsorIdentity}
+              />
+            </div>
           </div>
         </header>
 
