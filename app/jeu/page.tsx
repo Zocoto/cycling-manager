@@ -487,10 +487,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/transferts"
               icon="transfer"
               title="Bureau des transferts"
-              status="À développer"
-              description="Suivez les coureurs disponibles, vos négociations et les futurs mouvements de votre effectif."
+              status="Marché ouvert"
+              description="Enchérissez sur les talents du jour, négociez avec les autres DS et signez les agents libres."
             />
           </section>
 

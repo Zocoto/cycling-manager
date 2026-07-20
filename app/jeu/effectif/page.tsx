@@ -900,10 +900,13 @@ function RiderTableRow({
       </td>
 
       <td className="px-4 py-4 text-right font-bold text-[#48665F]">
-        {formatMoney(
-          rider.salary_per_season,
+        <p>{formatMoney(
+          Number(rider.salary_per_season) / 4,
           rider.contract_currency
-        )}
+        )} / sem.</p>
+        <p className="mt-1 text-[10px] font-semibold text-[#82958F]">
+          {formatMoney(rider.salary_per_season, rider.contract_currency)} / saison
+        </p>
       </td>
 
       <td className="px-5 py-4">

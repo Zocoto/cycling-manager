@@ -22,7 +22,10 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicRiderProfile } from "@/services/public-rider-profile";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
+import { getRiderTransferManagement } from "@/services/transfer-market";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
+import { renewRiderContractAction, signFreeAgentAction } from "@/app/jeu/transferts/actions";
+import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 
 export const metadata: Metadata = {
@@ -37,6 +40,7 @@ type RiderProfilePageProps = {
   }>;
   searchParams: Promise<{
     equipement?: string;
+    succes?: string;
     erreur?: string;
   }>;
 };
@@ -74,9 +78,12 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
     notFound();
   }
 
-  const equipmentManagement = profile.canManage
-    ? await getRiderEquipmentManagement(user.id, profile.id)
-    : null;
+  const [equipmentManagement, transferManagement] = await Promise.all([
+    profile.canManage
+      ? getRiderEquipmentManagement(user.id, profile.id)
+      : Promise.resolve(null),
+    getRiderTransferManagement(user.id, profile.id),
+  ]);
 
   const [amateurIdentity, sponsorIdentity] = profile.currentTeam
     ? await Promise.all([
@@ -109,6 +116,11 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
             {query.equipement === "programme"
               ? "Le changement est programmé : il prendra effet demain à 12 h."
               : "L’équipement du coureur a été mis à jour."}
+          </p>
+        ) : null}
+        {query.succes ? (
+          <p className="mb-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
+            {query.succes}
           </p>
         ) : null}
         {query.erreur ? (
@@ -212,7 +224,20 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
         <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
           <CareerHistory history={profile.history} />
           {profile.privateContract ? (
-            <PrivateContractCard contract={profile.privateContract} />
+            <div className="space-y-5">
+              <PrivateContractCard contract={profile.privateContract} />
+              {transferManagement ? (
+                <ContractRenewalCard
+                  riderId={profile.id}
+                  management={transferManagement}
+                />
+              ) : null}
+            </div>
+          ) : transferManagement?.isFreeAgent ? (
+            <FreeAgentSigningCard
+              riderId={profile.id}
+              management={transferManagement}
+            />
           ) : (
             <CareerSummaryCard
               teamName={profile.currentTeam?.displayName ?? "Agent libre"}
@@ -231,6 +256,76 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
         </div>
       </section>
     </main>
+  );
+}
+
+function FreeAgentSigningCard({
+  riderId,
+  management,
+}: {
+  riderId: string;
+  management: NonNullable<Awaited<ReturnType<typeof getRiderTransferManagement>>>;
+}) {
+  return (
+    <article className="rounded-[2rem] border border-[#42B99A]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.16)] sm:p-7">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
+        Agent libre
+      </p>
+      <h2 className="mt-2 text-2xl font-black text-white">Signer un contrat</h2>
+      <p className="mt-3 text-sm font-semibold leading-6 text-[#BFD1C6]">
+        Aucune indemnité de transfert. Le contrat couvre la saison actuelle et la suivante.
+      </p>
+      {management.freeAgentSalary !== null ? (
+        <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">Demande salariale</p>
+          <p className="mt-1 text-xl font-black text-[#F2C94C]">{formatMoney(management.freeAgentWeeklySalary ?? 0, "EUR")} / semaine</p>
+          <p className="mt-1 text-xs font-bold text-[#BFD1C6]">{formatMoney(management.freeAgentSalary, "EUR")} par saison</p>
+        </div>
+      ) : null}
+      {management.canSignFreeAgent ? (
+        <form action={signFreeAgentAction} className="mt-5">
+          <input type="hidden" name="riderId" value={riderId} />
+          <input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} />
+          <TransferSubmitButton pendingLabel="Signature…">Signer pour 2 saisons</TransferSubmitButton>
+        </form>
+      ) : (
+        <p className="mt-5 rounded-xl bg-[#F2C94C]/10 px-4 py-3 text-xs font-bold text-[#FFE596]">
+          {management.freeAgentBlockedReason ?? "Ce coureur n’est pas disponible à la signature."}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function ContractRenewalCard({
+  riderId,
+  management,
+}: {
+  riderId: string;
+  management: NonNullable<Awaited<ReturnType<typeof getRiderTransferManagement>>>;
+}) {
+  if (!management.canRenew && !management.hasPlannedRenewal) return null;
+  return (
+    <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">Avenir contractuel</p>
+      <h2 className="mt-2 text-xl font-black text-[#183F37]">Renouvellement</h2>
+      {management.hasPlannedRenewal ? (
+        <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">Le contrat de la saison suivante est déjà signé.</p>
+      ) : (
+        <>
+          <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
+            {management.renewalSalary === 0
+              ? "Sa moyenne est inférieure à 60 : il accepte de rester amateur sans salaire."
+              : `Sa demande sera de ${formatMoney(management.renewalSalary ?? 0, "EUR")} pour la prochaine saison.`}
+          </p>
+          <form action={renewRiderContractAction} className="mt-4">
+            <input type="hidden" name="riderId" value={riderId} />
+            <input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} />
+            <TransferSubmitButton pendingLabel="Renouvellement…" tone="green">Renouveler</TransferSubmitButton>
+          </form>
+        </>
+      )}
+    </article>
   );
 }
 

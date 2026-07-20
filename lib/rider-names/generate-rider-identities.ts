@@ -95,28 +95,43 @@ const riderNameLibraries = {
 export function generateInitialRiderIdentities(
   profileCode: string
 ): GeneratedRiderIdentity[] {
+  return generateRiderIdentities(profileCode, INITIAL_RIDER_COUNT);
+}
+
+export function generateRiderIdentities(
+  profileCode: string,
+  count: number
+): GeneratedRiderIdentity[] {
   const library = getRiderNameLibrary(profileCode);
+
+  if (!Number.isInteger(count) || count < 1) {
+    throw new Error("Le nombre d’identités à générer doit être positif.");
+  }
 
   const selectedFirstNames = selectUniqueValues(
     library.firstNames,
-    INITIAL_RIDER_COUNT
+    count
   );
 
   const selectedLastNames = selectUniqueValues(
     library.lastNames,
-    INITIAL_RIDER_COUNT
+    count
   );
 
   const usedAvatarSeeds = new Set<string>();
 
   return Array.from(
-    { length: INITIAL_RIDER_COUNT },
+    { length: count },
     (_, index) => ({
       first_name: selectedFirstNames[index].trim(),
       last_name: selectedLastNames[index].trim(),
       avatar_seed: createUniqueAvatarSeed(usedAvatarSeeds),
     })
   );
+}
+
+export function hasRiderNameLibrary(profileCode: string) {
+  return profileCode in riderNameLibraries;
 }
 
 function getRiderNameLibrary(

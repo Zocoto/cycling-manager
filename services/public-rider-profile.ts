@@ -368,6 +368,7 @@ export async function getPublicRiderProfile({
   );
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const history = contracts
+    .filter((contract) => contract.status !== "planned")
     .flatMap((contract) => {
       const startYear = getSeasonYear(seasons, contract.start_season_id);
       const endYear = getSeasonYear(seasons, contract.end_season_id);
