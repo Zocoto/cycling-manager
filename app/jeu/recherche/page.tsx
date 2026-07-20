@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import {
   GLOBAL_SEARCH_MIN_LENGTH,
@@ -12,6 +13,7 @@ import {
   type GlobalSearchResult,
 } from "@/lib/game/global-search";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { searchGameDirectory } from "@/services/global-search";
 import {
   getActiveTeamSponsorIdentityForAuthUser,
@@ -375,11 +377,25 @@ function TeamResult({
 }: {
   result: GlobalSearchResult;
 }) {
+  const sponsor = findSponsorByName(result.sponsor_name);
+
   return (
     <ResultLink result={result}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176951] text-sm font-black text-white shadow-sm">
-        {getInitials(result.display_name)}
-      </span>
+      {sponsor ? (
+        <SponsorLogoMark
+          src={sponsor.logoPath}
+          alt={`Logo de ${sponsor.name}`}
+          sponsorName={sponsor.name}
+          primaryColor={sponsor.colors.primary}
+          backgroundColor={sponsor.colors.background}
+          textColor={sponsor.colors.text}
+          className="h-11 w-16 rounded-xl p-1.5"
+        />
+      ) : (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176951] text-sm font-black text-white shadow-sm">
+          {getInitials(result.display_name)}
+        </span>
+      )}
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-extrabold text-[#183F37]">

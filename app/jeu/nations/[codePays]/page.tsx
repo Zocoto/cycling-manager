@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
+import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicCountryDirectory } from "@/services/public-directory";
@@ -258,14 +260,28 @@ function CountryTeamLink({
 }: {
   team: GlobalSearchResult;
 }) {
+  const sponsor = findSponsorByName(team.sponsor_name);
+
   return (
     <Link
       href={`/jeu/equipes/${team.public_identifier}`}
       className="flex items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4 transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:shadow-[0_12px_26px_rgba(19,60,46,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176951] text-sm font-black text-white">
-        {getInitials(team.display_name)}
-      </span>
+      {sponsor ? (
+        <SponsorLogoMark
+          src={sponsor.logoPath}
+          alt={`Logo de ${sponsor.name}`}
+          sponsorName={sponsor.name}
+          primaryColor={sponsor.colors.primary}
+          backgroundColor={sponsor.colors.background}
+          textColor={sponsor.colors.text}
+          className="h-11 w-16 rounded-xl p-1.5"
+        />
+      ) : (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#176951] text-sm font-black text-white">
+          {getInitials(team.display_name)}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-black text-[#183F37]">
           {team.display_name}

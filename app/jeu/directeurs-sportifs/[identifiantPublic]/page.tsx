@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicSportingDirector } from "@/services/public-directory";
+import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 
 export const metadata: Metadata = {
   title: "Fiche Directeur Sportif",
@@ -44,6 +46,10 @@ export default async function PublicSportingDirectorPage({
   if (!profile) {
     notFound();
   }
+
+  const teamSponsorIdentity = profile.team_id
+    ? await getActiveTeamSponsorIdentity(profile.team_id)
+    : null;
 
   const countryHref = `/jeu/nations/${profile.country_code.toLowerCase()}`;
   const teamHref = profile.team_id
@@ -121,9 +127,21 @@ export default async function PublicSportingDirectorPage({
                 title={profile.team_name ?? "Équipe actuelle"}
                 description="Ouvrir la fiche de l’équipe"
                 leading={
-                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#176951] text-lg font-black text-white">
-                    {getInitials(profile.team_name ?? "Équipe")}
-                  </span>
+                  teamSponsorIdentity ? (
+                    <SponsorLogoMark
+                      src={teamSponsorIdentity.sponsor.logoPath}
+                      alt={`Logo de ${teamSponsorIdentity.sponsor.name}`}
+                      sponsorName={teamSponsorIdentity.sponsor.name}
+                      primaryColor={teamSponsorIdentity.sponsor.colors.primary}
+                      backgroundColor={teamSponsorIdentity.sponsor.colors.background}
+                      textColor={teamSponsorIdentity.sponsor.colors.text}
+                      className="h-12 w-20 rounded-xl p-1.5"
+                    />
+                  ) : (
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#176951] text-lg font-black text-white">
+                      {getInitials(profile.team_name ?? "Équipe")}
+                    </span>
+                  )
                 }
               />
             ) : (

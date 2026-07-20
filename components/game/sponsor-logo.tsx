@@ -12,6 +12,10 @@ type SponsorLogoProps = {
   textColor: string;
 };
 
+type SponsorLogoMarkProps = SponsorLogoProps & {
+  className?: string;
+};
+
 export function SponsorLogo(
   props: SponsorLogoProps
 ) {
@@ -134,4 +138,70 @@ function getSponsorInitials(
     .join("");
 
   return initials || "SP";
+}
+
+export function SponsorLogoMark(
+  props: SponsorLogoMarkProps
+) {
+  return (
+    <SponsorLogoMarkImage
+      key={props.src}
+      {...props}
+    />
+  );
+}
+
+function SponsorLogoMarkImage({
+  src,
+  alt,
+  sponsorName,
+  primaryColor,
+  backgroundColor,
+  textColor,
+  className = "h-14 w-20 rounded-xl p-2",
+}: SponsorLogoMarkProps) {
+  const [hasImageError, setHasImageError] =
+    useState(false);
+
+  return (
+    <span
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden border shadow-sm ${className}`}
+      style={{
+        borderColor: `${primaryColor}55`,
+        backgroundColor,
+        color: textColor,
+      }}
+    >
+      {hasImageError ? (
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-8 -right-8 h-20 w-20 rotate-45 rounded-xl opacity-20"
+            style={{
+              backgroundColor: primaryColor,
+            }}
+          />
+          <span
+            role="img"
+            aria-label={alt}
+            className="relative text-base font-black"
+          >
+            {getSponsorInitials(sponsorName)}
+          </span>
+        </>
+      ) : (
+        <Image
+          src={src}
+          alt={alt}
+          width={240}
+          height={120}
+          unoptimized
+          className="h-full w-full object-contain"
+          onError={() => {
+            setHasImageError(true);
+          }}
+        />
+      )}
+    </span>
+  );
 }

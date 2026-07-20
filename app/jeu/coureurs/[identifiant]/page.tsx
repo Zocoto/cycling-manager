@@ -8,6 +8,7 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
@@ -224,9 +225,26 @@ function CurrentTeamCard({
         <span className="mt-2 block text-lg font-black text-white">
           {team?.displayName ?? "Agent libre"}
         </span>
-        <span className="mt-1 block text-xs font-semibold text-[#BFD1C6]">
-          {sponsorIdentity?.sponsor.name ?? (team ? "Structure amateur" : "Maillot neutre")}
-        </span>
+        {sponsorIdentity ? (
+          <span className="mt-2 flex items-center gap-2">
+            <SponsorLogoMark
+              src={sponsorIdentity.sponsor.logoPath}
+              alt={`Logo de ${sponsorIdentity.sponsor.name}`}
+              sponsorName={sponsorIdentity.sponsor.name}
+              primaryColor={sponsorIdentity.sponsor.colors.primary}
+              backgroundColor={sponsorIdentity.sponsor.colors.background}
+              textColor={sponsorIdentity.sponsor.colors.text}
+              className="h-8 w-12 rounded-lg p-1"
+            />
+            <span className="text-xs font-semibold text-[#BFD1C6]">
+              {sponsorIdentity.sponsor.name}
+            </span>
+          </span>
+        ) : (
+          <span className="mt-1 block text-xs font-semibold text-[#BFD1C6]">
+            {team ? "Structure amateur" : "Maillot neutre"}
+          </span>
+        )}
       </span>
     </>
   );

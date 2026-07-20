@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { WheelLogo } from "@/components/ui/wheel-logo";
 import {
   GLOBAL_SEARCH_MAX_LENGTH,
@@ -150,12 +151,14 @@ export function GameHeader({
                 backgroundColor: `${colors.primary}20`,
               }}
             >
-              <span
-                aria-hidden="true"
-                className="h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: colors.accent,
-                }}
+              <SponsorLogoMark
+                src={sponsor.logoPath}
+                alt={`Logo de ${sponsor.name}`}
+                sponsorName={sponsor.name}
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
+                textColor={sponsor.colors.text}
+                className="h-7 w-10 rounded-lg p-0.5"
               />
 
               {sponsor.shortName}

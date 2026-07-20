@@ -7,7 +7,7 @@
 - Champ de recherche présent dans le header du jeu.
 - Recherche insensible à la casse à partir de 2 caractères.
 - Recherche des Directeurs Sportifs par nom affiché, identifiant public, pays ou équipe actuelle.
-- Recherche des équipes par nom, pays, sponsor ou Directeur Sportif.
+- Recherche des équipes par nom actuel ou historique, pays, sponsor ou Directeur Sportif.
 - Recherche des nations par nom, nationalité ou code ISO.
 - Résultats regroupés par catégorie.
 - États dédiés pour une recherche vide, trop courte, sans résultat ou indisponible.
@@ -29,6 +29,14 @@ La navigation est croisée :
 - la fiche d’une nation présente ses Directeurs Sportifs et ses équipes, avec un lien vers chaque fiche.
 
 Les fiches n’affichent que les informations déjà disponibles. Des emplacements identifient les futurs blocs sportifs : effectifs, résultats, palmarès, classements, points saisonniers et historique des sponsors.
+
+### Identité permanente des équipes
+
+- Une équipe possède un identifiant permanent, indépendant de son nom et de son sponsor saisonniers.
+- Une recherche effectuée avec un ancien nom retrouve l’équipe concernée.
+- Le résultat ouvre toujours la fiche de la saison en cours, avec le nom, le sponsor, le logo et le maillot actuels.
+- Aucune fiche historique distincte n’est créée.
+- La fiche actuelle expose l’historique des noms, points et classements saison par saison.
 
 ## Périmètre différé
 

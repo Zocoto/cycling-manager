@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../components/game/game-header";
+import { SponsorLogoMark } from "../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../components/game/sporting-director-avatar";
 import { SportingDirectorProgression } from "../../components/game/sporting-director-progression";
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
@@ -629,6 +630,17 @@ function TeamSponsorInformation({
 
   return (
     <div>
+      {teamSponsorIdentity ? (
+        <SponsorLogoMark
+          src={teamSponsorIdentity.sponsor.logoPath}
+          alt={`Logo de ${teamSponsorIdentity.sponsor.name}`}
+          sponsorName={teamSponsorIdentity.sponsor.name}
+          primaryColor={teamSponsorIdentity.sponsor.colors.primary}
+          backgroundColor={teamSponsorIdentity.sponsor.colors.background}
+          textColor={teamSponsorIdentity.sponsor.colors.text}
+          className="mb-4 h-14 w-24 rounded-xl p-1.5"
+        />
+      ) : null}
       <p className="max-w-56 text-xl font-black text-[#FFFDF4]">
         {teamName}
       </p>
