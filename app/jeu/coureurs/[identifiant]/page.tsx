@@ -213,7 +213,6 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
           <aside className="space-y-5">
             <RiderConditionGauges
               form={profile.condition.form}
-              fatigue={profile.condition.fatigue}
               dayNumber={profile.condition.dayNumber}
             />
             <LockedTrainingCard />

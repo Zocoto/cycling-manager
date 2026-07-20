@@ -1,12 +1,10 @@
 type RiderConditionGaugesProps = {
   form: number;
-  fatigue: number;
   dayNumber: number | null;
 };
 
 export function RiderConditionGauges({
   form,
-  fatigue,
   dayNumber,
 }: RiderConditionGaugesProps) {
   return (
@@ -17,7 +15,7 @@ export function RiderConditionGauges({
             État du coureur
           </p>
           <h2 className="mt-2 text-lg font-black text-[#183F37]">
-            Forme et fatigue
+            Forme du coureur
           </h2>
         </div>
         {dayNumber ? (
@@ -27,18 +25,12 @@ export function RiderConditionGauges({
         ) : null}
       </div>
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-5">
         <Gauge
           label="Forme"
           value={form}
           colorClass="bg-[#2FA982]"
           trackClass="bg-[#D7EEE8]"
-        />
-        <Gauge
-          label="Fatigue"
-          value={fatigue}
-          colorClass="bg-[#D8835A]"
-          trackClass="bg-[#F5E3DA]"
         />
       </div>
     </section>
