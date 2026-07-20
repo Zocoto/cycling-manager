@@ -177,7 +177,6 @@ export const DIVISION_RULES = [
     minimumRank: 1,
     maximumRank: 20,
     seasonReputationBonus: 15,
-    guaranteedWildcards: 4,
   },
   {
     code: "world",
@@ -185,7 +184,6 @@ export const DIVISION_RULES = [
     minimumRank: 21,
     maximumRank: 50,
     seasonReputationBonus: 8,
-    guaranteedWildcards: 0,
   },
   {
     code: "continental",
@@ -193,7 +191,6 @@ export const DIVISION_RULES = [
     minimumRank: 51,
     maximumRank: 100,
     seasonReputationBonus: 4,
-    guaranteedWildcards: 0,
   },
   {
     code: "national",
@@ -201,9 +198,10 @@ export const DIVISION_RULES = [
     minimumRank: 101,
     maximumRank: 200,
     seasonReputationBonus: 1,
-    guaranteedWildcards: 0,
   },
 ] as const;
+
+export const ELITE_RACE_BASE_WILDCARD_PLACES = 4;
 
 export type TeamDivisionCode = (typeof DIVISION_RULES)[number]["code"] | "amateur";
 
@@ -332,25 +330,38 @@ export function buildFinanceProjection({
 
 export function selectWildcardTeams(
   candidates: WildcardCandidate[],
-  availablePlaces: number
+  availablePlaces = ELITE_RACE_BASE_WILDCARD_PLACES
 ): WildcardCandidate[] {
   const places = Math.max(0, Math.floor(availablePlaces));
 
   return candidates
-    .filter(
-      (candidate) =>
-        candidate.requested
+    .filter((candidate) => {
+      const division = getDivisionForRank(candidate.rankingPosition);
+
+      return candidate.requested
         && !candidate.alreadyInvited
-        && getDivisionForRank(candidate.rankingPosition) !== "elite"
-    )
+        && division !== "elite"
+        && division !== "amateur";
+    })
     .sort(
       (left, right) =>
-        right.leaderProfileFit - left.leaderProfileFit
+        getWildcardDivisionPriority(left.rankingPosition)
+        - getWildcardDivisionPriority(right.rankingPosition)
+        || right.leaderProfileFit - left.leaderProfileFit
         || right.uciPoints - left.uciPoints
         || left.rankingPosition - right.rankingPosition
         || left.teamId.localeCompare(right.teamId)
     )
     .slice(0, places);
+}
+
+function getWildcardDivisionPriority(rankingPosition: number): number {
+  const division = getDivisionForRank(rankingPosition);
+
+  if (division === "world") return 0;
+  if (division === "continental") return 1;
+  if (division === "national") return 2;
+  return 3;
 }
 
 function createScale({

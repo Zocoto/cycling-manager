@@ -171,7 +171,7 @@ function DivisionAdvantages() {
   return <section className="mt-7 rounded-[2rem] bg-[#0B302B] p-6 text-white sm:p-8">
     <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Enjeu de fin de saison</p>
     <h2 className="mt-2 text-2xl font-black">Divisions et avantages</h2>
-    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{DIVISION_RULES.map((division) => <article key={division.code} className="border-l-2 border-[#F2C94C]/60 pl-4"><h3 className="font-black text-[#F2C94C]">{division.name}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#BFD1C6]">Rangs {division.minimumRank}–{division.maximumRank} · +{division.seasonReputationBonus} réputation.</p>{division.code === "elite" ? <p className="mt-2 text-xs font-bold leading-5 text-[#9BE0BC]">Invitations Élite par défaut et 4 wildcards garanties.</p> : null}</article>)}</div>
+    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{DIVISION_RULES.map((division) => <article key={division.code} className="border-l-2 border-[#F2C94C]/60 pl-4"><h3 className="font-black text-[#F2C94C]">{division.name}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#BFD1C6]">Rangs {division.minimumRank}–{division.maximumRank} · +{division.seasonReputationBonus} réputation sur la saison.</p></article>)}</div>
   </section>;
 }
 
