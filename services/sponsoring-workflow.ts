@@ -15,6 +15,7 @@ import {
   getOrCreateSponsorOffersForAuthUser,
   type PersistedSponsorOffer,
 } from "@/services/persisted-sponsor-offers";
+import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
 
 const FUTURE_SPONSORING_OPENING_DAY = 21;
@@ -184,14 +185,6 @@ type SponsorRegistryRow = {
   catalog_key: string;
 };
 
-type SponsorObjectiveRow = {
-  id: string;
-  name: string;
-  description: string | null;
-  display_order: number;
-  status: string;
-};
-
 export async function getSponsoringStateForAuthUser(
   authUserId: string
 ): Promise<SponsoringState> {
@@ -254,6 +247,7 @@ export async function getSponsoringStateForAuthUser(
       contract: await hydrateSponsorContract({
         supabase,
         contractRow: currentPlannedContract,
+        teamReputationPoints: sportingDirector.reputation_points,
       }),
     };
   }
@@ -268,6 +262,7 @@ export async function getSponsoringStateForAuthUser(
     const activeContract = await hydrateSponsorContract({
       supabase,
       contractRow: activeContractRow,
+      teamReputationPoints: sportingDirector.reputation_points,
     });
 
     return {
@@ -299,6 +294,7 @@ export async function getSponsoringStateForAuthUser(
       await hydrateSponsorContract({
         supabase,
         contractRow: terminatedContractRow,
+        teamReputationPoints: sportingDirector.reputation_points,
       });
 
     return {
@@ -377,6 +373,7 @@ async function resolveFutureSponsoringState({
       const futureContract = await hydrateSponsorContract({
         supabase,
         contractRow: futureContractRow,
+        teamReputationPoints: currentReputation,
       });
 
       const mode: FutureSponsorOfferMode = currentContract
@@ -563,9 +560,11 @@ function contractSelection(): string {
 async function hydrateSponsorContract({
   supabase,
   contractRow,
+  teamReputationPoints,
 }: {
   supabase: SupabaseAdminClient;
   contractRow: SponsorContractRow;
+  teamReputationPoints: number;
 }): Promise<PersistedSponsorContract> {
   const [sponsorRegistryResult, startSeasonResult] =
     await Promise.all([
@@ -613,10 +612,29 @@ async function hydrateSponsorContract({
     );
   }
 
-  const objectives = await loadContractObjectives({
-    supabase,
-    sponsorOfferId: contractRow.sponsor_offer_id,
-  });
+  const objectives = contractRow.sponsor_offer_id
+    ? (
+        await ensureAndLoadSponsorObjectives({
+          supabase,
+          seasonId: startSeasonResult.data.id,
+          teamReputationPoints,
+          offers: [
+            {
+              offerId: contractRow.sponsor_offer_id,
+              sponsor,
+            },
+          ],
+        })
+      )
+        .get(contractRow.sponsor_offer_id)
+        ?.map((objective) => ({
+          id: objective.id,
+          name: objective.name,
+          description: objective.description,
+          displayOrder: objective.displayOrder,
+          status: objective.status,
+        })) ?? []
+    : [];
 
   const budgetPerSeason = Number(
     contractRow.budget_per_season
@@ -671,48 +689,6 @@ async function hydrateSponsorContract({
     reputationPenalty,
     objectives,
   };
-}
-
-async function loadContractObjectives({
-  supabase,
-  sponsorOfferId,
-}: {
-  supabase: SupabaseAdminClient;
-  sponsorOfferId: string | null;
-}): Promise<SponsorContractObjective[]> {
-  if (!sponsorOfferId) {
-    return [];
-  }
-
-  const { data: objectiveRows, error: objectiveError } =
-    await supabase
-      .from("sponsor_objectives")
-      .select(
-        `
-          id,
-          name,
-          description,
-          display_order,
-          status
-        `
-      )
-      .eq("sponsor_offer_id", sponsorOfferId)
-      .order("display_order", { ascending: true })
-      .returns<SponsorObjectiveRow[]>();
-
-  if (objectiveError) {
-    throw new Error(
-      `Impossible de charger les objectifs du contrat : ${objectiveError.message}`
-    );
-  }
-
-  return (objectiveRows ?? []).map((objective) => ({
-    id: objective.id,
-    name: objective.name,
-    description: objective.description,
-    displayOrder: objective.display_order,
-    status: objective.status,
-  }));
 }
 
 async function resolveActiveSeason(

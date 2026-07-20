@@ -575,22 +575,15 @@ async function repairLegacyRaceObjectives({
     count: raceObjectiveRows.length,
     random,
   });
-  const eligibleCandidateByRaceId = new Map(
-    raceCandidates
-      .filter(
-        (candidate) =>
-          candidate.registrationPolicy === "open" &&
-          candidate.minimumReputation !== null &&
-          teamReputationPoints >= candidate.minimumReputation
-      )
-      .map((candidate) => [candidate.raceId, candidate])
+  const existingCandidateByRaceId = new Map(
+    raceCandidates.map((candidate) => [candidate.raceId, candidate])
   );
   const retainedRaceIds = new Set(
     raceObjectiveRows.flatMap((objective) => {
       const details = objective.target_details;
 
       return details.kind === "race_result" &&
-        eligibleCandidateByRaceId.has(details.raceId)
+        existingCandidateByRaceId.has(details.raceId)
         ? [details.raceId]
         : [];
     })
@@ -604,7 +597,7 @@ async function repairLegacyRaceObjectives({
     const details = objective.target_details;
     const isAlreadyLinked =
       details.kind === "race_result" &&
-      eligibleCandidateByRaceId.has(details.raceId);
+      existingCandidateByRaceId.has(details.raceId);
 
     if (isAlreadyLinked) {
       continue;
