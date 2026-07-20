@@ -99,29 +99,117 @@ function EquipmentSlot({
 function CyclistSilhouette() {
   return (
     <svg
-      viewBox="0 0 360 260"
+      viewBox="0 0 400 270"
       role="img"
-      aria-label="Silhouette d’un cycliste et de son vélo"
+      aria-label="Silhouette réaliste d’un cycliste sur un vélo de route"
       className="mx-auto w-full max-w-sm"
     >
-      <g fill="none" stroke="#88B9A7" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.62">
-        <circle cx="82" cy="194" r="54" />
-        <circle cx="280" cy="194" r="54" />
-        <path d="M82 194 L145 105 L190 194 L82 194 Z" />
-        <path d="M145 105 L225 119 L190 194" />
-        <path d="M225 119 L280 194" />
-        <path d="M211 99 L238 99" />
-        <path d="M136 102 L126 88" />
+      <g
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <g stroke="#88B9A7" strokeWidth="6" opacity="0.64">
+          <circle cx="78" cy="201" r="53" />
+          <circle cx="310" cy="201" r="53" />
+        </g>
+
+        <g stroke="#78A594" strokeWidth="7" opacity="0.78">
+          <path d="M78 201 L151 119 L190 201 L78 201 Z" />
+          <path d="M151 119 L256 123 L190 201" />
+          <path d="M256 123 L263 148 L310 201" />
+          <path d="M263 148 L190 201" />
+          <path d="M263 148 L305 198" opacity="0.7" />
+        </g>
+
+        <g stroke="#A4CDBE" opacity="0.88">
+          <path d="M141 111 L163 111" strokeWidth="7" />
+          <path d="M151 119 L146 109" strokeWidth="5" />
+          <path d="M256 123 L270 109" strokeWidth="5" />
+          <path
+            d="M269 109 L286 109 C292 109 294 114 289 118 L282 124 C278 128 281 134 287 134"
+            strokeWidth="6"
+          />
+        </g>
+
+        <g stroke="#B9D9CE" opacity="0.9">
+          <circle cx="190" cy="201" r="12" strokeWidth="4" />
+          <path d="M190 201 L205 190 L221 190" strokeWidth="4" />
+          <path d="M190 201 L175 212 L159 212" strokeWidth="4" />
+        </g>
       </g>
-      <g fill="none" stroke="#D7EEE8" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="174" cy="46" r="21" fill="#D7EEE8" stroke="none" />
-        <path d="M163 72 L137 112 L183 128 L221 115" />
-        <path d="M146 91 L205 79 L228 111" />
-        <path d="M183 128 L151 170 L190 194" />
-        <path d="M183 128 L225 156 L250 194" />
+
+      <g strokeLinecap="round" strokeLinejoin="round">
+        <path
+          d="M151 117 C159 96 175 82 195 76 C204 74 212 79 215 88 L217 94 L169 128 Z"
+          fill="#D7EEE8"
+          stroke="#D7EEE8"
+          strokeWidth="4"
+        />
+        <path
+          d="M151 112 C145 116 143 124 148 130 C155 136 166 134 172 126 L181 115 L160 104 Z"
+          fill="#8FD5B6"
+          stroke="#8FD5B6"
+          strokeWidth="3"
+        />
+
+        <path
+          d="M200 84 C219 87 231 97 244 109 C251 115 259 117 272 114"
+          fill="none"
+          stroke="#D7EEE8"
+          strokeWidth="10"
+        />
+        <path
+          d="M194 91 C208 99 221 108 234 118 C243 125 253 125 264 120"
+          fill="none"
+          stroke="#B9D9CE"
+          strokeWidth="8"
+        />
+        <circle cx="273" cy="114" r="5" fill="#8FD5B6" />
+        <circle cx="264" cy="120" r="4.5" fill="#8FD5B6" />
+
+        <path
+          d="M161 126 C183 132 203 143 212 157 C216 165 211 178 204 190"
+          fill="none"
+          stroke="#D7EEE8"
+          strokeWidth="13"
+        />
+        <path
+          d="M154 127 C143 143 138 158 143 169 C149 183 163 197 175 208"
+          fill="none"
+          stroke="#B9D9CE"
+          strokeWidth="11"
+        />
+        <path d="M201 190 L218 190" stroke="#F2C94C" strokeWidth="7" />
+        <path d="M172 209 L158 212" stroke="#E5C65C" strokeWidth="7" />
+
+        <path
+          d="M196 77 L204 65"
+          fill="none"
+          stroke="#D7EEE8"
+          strokeWidth="9"
+        />
+        <circle cx="214" cy="49" r="19" fill="#D7EEE8" />
+        <path
+          d="M197 48 C201 29 219 20 236 30 C242 34 245 39 246 44 C231 39 214 40 197 48 Z"
+          fill="#8FD5B6"
+        />
+        <path
+          d="M241 43 L250 47"
+          fill="none"
+          stroke="#8FD5B6"
+          strokeWidth="5"
+        />
+        <path
+          d="M231 51 C232 56 229 60 225 62"
+          fill="none"
+          stroke="#8AB6A7"
+          strokeWidth="2.5"
+          opacity="0.75"
+        />
       </g>
-      <path d="M151 32 Q174 14 198 35" fill="none" stroke="#8FD5B6" strokeWidth="8" strokeLinecap="round" />
-      <circle cx="190" cy="194" r="7" fill="#F2C94C" />
+
+      <circle cx="190" cy="201" r="5" fill="#F2C94C" />
     </svg>
   );
 }
