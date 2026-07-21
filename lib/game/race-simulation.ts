@@ -362,6 +362,15 @@ type RiderState = {
 };
 
 const SCORE_NOISE = 3.2;
+const SAME_TIME_MAX_GAP_SECONDS = 3;
+
+export function areFinishersInSameTimeGroup(
+  previousElapsedTimeSeconds: number,
+  elapsedTimeSeconds: number
+) {
+  const gapSeconds = elapsedTimeSeconds - previousElapsedTimeSeconds;
+  return gapSeconds >= 0 && gapSeconds <= SAME_TIME_MAX_GAP_SECONDS;
+}
 
 /**
  * Moteur V1 : déterministe, sans dépendance à React ou Supabase. Cette
@@ -879,7 +888,6 @@ function simulateRoadStage(
   const finishGroups = normalizeRoadFinishGroupTimes({
     timeline,
     results,
-    segments: input.segments,
   });
 
   awardFinishClassificationPoints({
@@ -2303,11 +2311,9 @@ type ClassifiedStageResult = StageSimulationResult["results"][number] & {
 function normalizeRoadFinishGroupTimes({
   timeline,
   results,
-  segments,
 }: {
   timeline: RaceTimelineSnapshot[];
   results: StageSimulationResult["results"];
-  segments: RaceStageSegment[];
 }): ClassifiedStageResult[][] {
   const finishers = results
     .filter(
@@ -2317,8 +2323,7 @@ function normalizeRoadFinishGroupTimes({
     .sort((first, second) => first.rank - second.rank);
   const finishGroups = groupRoadFinishersFromSnapshot(
     finishers,
-    timeline.at(-1),
-    isLikelyMassSprint(segments) ? 3 : 1
+    timeline.at(-1)
   );
   const winnerTime = finishGroups[0]?.[0]?.elapsedTimeSeconds ?? 0;
   let previousGroupTime: number | null = null;
@@ -2342,8 +2347,7 @@ function normalizeRoadFinishGroupTimes({
 
 function groupRoadFinishersFromSnapshot(
   finishers: ClassifiedStageResult[],
-  finalSnapshot: RaceTimelineSnapshot | undefined,
-  timeGapThresholdSeconds: number
+  finalSnapshot: RaceTimelineSnapshot | undefined
 ) {
   const finisherById = new Map(
     finishers.map((finisher) => [finisher.riderId, finisher])
@@ -2361,7 +2365,7 @@ function groupRoadFinishersFromSnapshot(
       assignedRiderIds.add(finisher.riderId);
     }
 
-    return splitFinishGroupByTime(group, timeGapThresholdSeconds);
+    return splitFinishGroupByTime(group);
   });
 
   for (const finisher of finishers) {
@@ -2376,8 +2380,7 @@ function groupRoadFinishersFromSnapshot(
 }
 
 function splitFinishGroupByTime(
-  finishers: ClassifiedStageResult[],
-  timeGapThresholdSeconds: number
+  finishers: ClassifiedStageResult[]
 ) {
   const groups: ClassifiedStageResult[][] = [];
 
@@ -2387,8 +2390,10 @@ function splitFinishGroupByTime(
     if (
       !current ||
       !previous ||
-      finisher.elapsedTimeSeconds - previous.elapsedTimeSeconds >=
-        timeGapThresholdSeconds
+      !areFinishersInSameTimeGroup(
+        previous.elapsedTimeSeconds,
+        finisher.elapsedTimeSeconds
+      )
     ) {
       groups.push([finisher]);
     } else {

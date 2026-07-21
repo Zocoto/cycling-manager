@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
+  areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
   getStageAttackParticipants,
@@ -10,6 +11,15 @@ import {
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
+
+describe("areFinishersInSameTimeGroup", () => {
+  it("conserve les écarts de 1, 2 ou 3 secondes en MT et casse à 4 secondes", () => {
+    expect(areFinishersInSameTimeGroup(100, 101)).toBe(true);
+    expect(areFinishersInSameTimeGroup(100, 102)).toBe(true);
+    expect(areFinishersInSameTimeGroup(100, 103)).toBe(true);
+    expect(areFinishersInSameTimeGroup(100, 104)).toBe(false);
+  });
+});
 
 describe("simulateRaceStage", () => {
   it("rejoue exactement la même course avec la même graine", () => {
