@@ -23,6 +23,10 @@ type RaceCalendarPageProps = {
   }>;
 };
 
+type SportingDirectorReputation = {
+  reputation_points: number | null;
+};
+
 export default async function RaceCalendarPage({
   searchParams,
 }: RaceCalendarPageProps) {
@@ -38,7 +42,7 @@ export default async function RaceCalendarPage({
     redirect("/connexion");
   }
 
-  const [headerData, calendarResult] =
+  const [headerData, calendarResult, reputationResult] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
       getActiveSeasonRaceCalendar(supabase)
@@ -50,12 +54,24 @@ export default async function RaceCalendarPage({
           calendar: null,
           error,
         })),
+      supabase
+        .from("sporting_directors")
+        .select("reputation_points")
+        .eq("auth_user_id", user.id)
+        .maybeSingle<SportingDirectorReputation>(),
     ]);
 
   if (calendarResult.error) {
     console.error(
       "Impossible de charger le calendrier des courses :",
       calendarResult.error
+    );
+  }
+
+  if (reputationResult.error) {
+    console.error(
+      "Impossible de charger la réputation pour filtrer les courses :",
+      reputationResult.error
     );
   }
 
@@ -186,6 +202,11 @@ export default async function RaceCalendarPage({
             {calendar ? (
               <SeasonCalendar
                 calendar={calendar}
+                reputationPoints={
+                  reputationResult.data
+                    ?.reputation_points ?? 0
+                }
+                nowIso={new Date().toISOString()}
               />
             ) : (
               <CalendarUnavailable />

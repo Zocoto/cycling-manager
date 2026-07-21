@@ -10,6 +10,7 @@ import {
   RACE_CATEGORY_STYLE,
   RACE_PROFILE_LABELS,
   buildCalendarWeeks,
+  isRaceEditionAvailableToCurrentTeam,
   type CalendarWeek,
   type RaceCalendarEdition,
   type RaceCategoryCode,
@@ -27,25 +28,46 @@ const shortDateFormatter =
 
 type SeasonCalendarProps = {
   calendar: SeasonRaceCalendar;
+  reputationPoints: number;
+  nowIso: string;
 };
+
+type CalendarScope = "team" | "all";
 
 export function SeasonCalendar({
   calendar,
+  reputationPoints,
+  nowIso,
 }: SeasonCalendarProps) {
+  const [scope, setScope] =
+    useState<CalendarScope>("team");
   const [selectedCategories, setSelectedCategories] =
     useState<RaceCategoryCode[]>([]);
   const [expandedWeeks, setExpandedWeeks] =
     useState<number[]>([]);
+  const scopeEditions = useMemo(
+    () =>
+      scope === "all"
+        ? calendar.editions
+        : calendar.editions.filter((edition) =>
+            isRaceEditionAvailableToCurrentTeam({
+              edition,
+              reputationPoints,
+              now: new Date(nowIso),
+            })
+          ),
+    [calendar.editions, nowIso, reputationPoints, scope]
+  );
   const visibleEditions = useMemo(
     () =>
       selectedCategories.length === 0
-        ? calendar.editions
-        : calendar.editions.filter((edition) =>
+        ? scopeEditions
+        : scopeEditions.filter((edition) =>
             selectedCategories.includes(
               edition.categoryCode
             )
           ),
-    [calendar.editions, selectedCategories]
+    [scopeEditions, selectedCategories]
   );
   const weeks = useMemo(
     () => buildCalendarWeeks(visibleEditions),
@@ -119,6 +141,53 @@ export function SeasonCalendar({
 
   return (
     <div>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#176951]/15 bg-[#EAF5F0] p-4 sm:px-5">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
+            Courses proposées
+          </p>
+          <p className="mt-1 text-sm font-medium text-[#557064]">
+            Les épreuves accessibles selon votre réputation et les délais sont affichées en priorité.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2" aria-label="Portée du calendrier">
+          <button
+            type="button"
+            onClick={() => {
+              setScope("team");
+              setExpandedWeeks([]);
+            }}
+            aria-pressed={scope === "team"}
+            className={`min-h-10 rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
+              scope === "team"
+                ? "border-[#176951] bg-[#176951] text-white"
+                : "border-[#176951]/25 bg-white text-[#176951] hover:border-[#176951]/55"
+            }`}
+          >
+            Accessibles à mon équipe
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setScope("all");
+              setExpandedWeeks([]);
+            }}
+            aria-pressed={scope === "all"}
+            className={`min-h-10 rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
+              scope === "all"
+                ? "border-[#0B302B] bg-[#0B302B] text-white"
+                : "border-[#315B3E]/25 bg-white text-[#315B3E] hover:border-[#315B3E]/55"
+            }`}
+          >
+            Toutes les courses
+          </button>
+          <span className="inline-flex min-h-10 items-center rounded-full border border-[#315B3E]/15 bg-white px-3 text-xs font-black text-[#315B3E]">
+            {scopeEditions.length} / {calendar.editions.length}
+          </span>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E]">
@@ -126,7 +195,7 @@ export function SeasonCalendar({
           </p>
 
           <p className="mt-1 text-sm font-medium text-[#557064]">
-            Plusieurs catégories peuvent être combinées.
+            Plusieurs catégories peuvent être combinées dans la sélection ci-dessus.
           </p>
         </div>
 
@@ -146,7 +215,7 @@ export function SeasonCalendar({
                 : "border-[#315B3E]/25 bg-white text-[#315B3E] hover:border-[#315B3E]/55"
             }`}
           >
-            Toutes
+            Toutes catégories
           </button>
 
           {RACE_CATEGORY_CODES.map(
@@ -329,12 +398,17 @@ export function SeasonCalendar({
 
           <button
             type="button"
-            onClick={() =>
-              setSelectedCategories([])
-            }
+            onClick={() => {
+              setSelectedCategories([]);
+              if (scope === "team") {
+                setScope("all");
+              }
+            }}
             className="mt-4 rounded-full bg-[#0B302B] px-5 py-2 text-xs font-extrabold uppercase tracking-wider text-white"
           >
-            Afficher tout le calendrier
+            {scope === "team"
+              ? "Afficher toutes les courses"
+              : "Réinitialiser les catégories"}
           </button>
         </div>
       ) : null}

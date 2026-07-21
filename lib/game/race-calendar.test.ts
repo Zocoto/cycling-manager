@@ -5,6 +5,8 @@ import {
   getEffectiveSeasonDay,
   getRegistrationAvailability,
   isBeforeRegistrationDeadline,
+  isCurrentTeamRegisteredForRace,
+  isRaceEditionAvailableToCurrentTeam,
   isRosterSelectionValid,
   type RaceCalendarEdition,
 } from "./race-calendar";
@@ -112,6 +114,85 @@ describe("getRegistrationAvailability", () => {
         reputationPoints: 100,
       })
     ).toBe("criteria_pending");
+  });
+});
+
+describe("filtres centrés sur l’équipe", () => {
+  const now = new Date("2026-07-19T10:00:00Z");
+
+  it("propose par défaut une course ouverte au niveau de réputation de l’équipe", () => {
+    const edition = createEdition("course-ouverte", [4]);
+    edition.registrationPolicy = "open";
+    edition.registrationClosesAt = "2026-07-20T18:00:00Z";
+    edition.minimumReputation = 20;
+
+    expect(
+      isRaceEditionAvailableToCurrentTeam({
+        edition,
+        reputationPoints: 20,
+        now,
+      })
+    ).toBe(true);
+    expect(
+      isRaceEditionAvailableToCurrentTeam({
+        edition,
+        reputationPoints: 19,
+        now,
+      })
+    ).toBe(false);
+  });
+
+  it("conserve une course déjà acceptée même si ses inscriptions sont fermées", () => {
+    const edition = createEdition("course-inscrite", [4]);
+    edition.registrationPolicy = "closed";
+    edition.currentTeamRegistration = {
+      status: "accepted",
+      rosterCount: 7,
+    };
+
+    expect(
+      isRaceEditionAvailableToCurrentTeam({
+        edition,
+        reputationPoints: 0,
+        now,
+      })
+    ).toBe(true);
+  });
+
+  it("écarte une réinscription dont la limite de retrait est dépassée", () => {
+    const edition = createEdition("course-retiree", [4]);
+    edition.registrationPolicy = "open";
+    edition.registrationClosesAt = "2026-07-20T18:00:00Z";
+    edition.withdrawalClosesAt = "2026-07-19T10:00:00Z";
+    edition.minimumReputation = 0;
+    edition.currentTeamRegistration = {
+      status: "withdrawn",
+      rosterCount: 0,
+    };
+
+    expect(
+      isRaceEditionAvailableToCurrentTeam({
+        edition,
+        reputationPoints: 0,
+        now,
+      })
+    ).toBe(false);
+  });
+
+  it("réserve Résultats / Live aux équipes réellement engagées", () => {
+    const edition = createEdition("course-live", [4]);
+    edition.currentTeamRegistration = {
+      status: "accepted",
+      rosterCount: 7,
+    };
+    expect(
+      isCurrentTeamRegisteredForRace(edition)
+    ).toBe(true);
+
+    edition.currentTeamRegistration.rosterCount = 0;
+    expect(
+      isCurrentTeamRegisteredForRace(edition)
+    ).toBe(false);
   });
 });
 

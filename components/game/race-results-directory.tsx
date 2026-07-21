@@ -11,6 +11,7 @@ import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
   RACE_PROFILE_LABELS,
+  isCurrentTeamRegisteredForRace,
   type RaceCalendarEdition,
   type RaceCalendarStage,
   type RaceCategoryCode,
@@ -37,11 +38,14 @@ type StageEntry = {
   stage: RaceCalendarStage;
 };
 
+type ResultsScope = "team" | "all";
+
 export function RaceResultsDirectory({
   calendar,
   nowIso,
   officialResults,
 }: RaceResultsDirectoryProps) {
+  const [scope, setScope] = useState<ResultsScope>("team");
   const [selectedCategories, setSelectedCategories] = useState<RaceCategoryCode[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date(nowIso));
@@ -63,12 +67,21 @@ export function RaceResultsDirectory({
         ),
     [calendar.editions]
   );
+  const scopeEntries = useMemo(
+    () =>
+      scope === "all"
+        ? entries
+        : entries.filter(({ edition }) =>
+            isCurrentTeamRegisteredForRace(edition)
+          ),
+    [entries, scope]
+  );
   const visibleEntries = useMemo(
     () =>
       selectedCategories.length === 0
-        ? entries
-        : entries.filter(({ edition }) => selectedCategories.includes(edition.categoryCode)),
-    [entries, selectedCategories]
+        ? scopeEntries
+        : scopeEntries.filter(({ edition }) => selectedCategories.includes(edition.categoryCode)),
+    [scopeEntries, selectedCategories]
   );
   const visibleEditions = useMemo(() => {
     const grouped = new Map<string, { edition: RaceCalendarEdition; stages: RaceCalendarStage[] }>();
@@ -79,11 +92,12 @@ export function RaceResultsDirectory({
     }
     return [...grouped.values()];
   }, [visibleEntries]);
-  const selectedEntry = entries.find(({ stage }) => stage.id === selectedStageId) ?? null;
-  const liveCount = entries.filter(({ stage }) => getStageLiveState(stage, now).status === "live").length;
-  const finishedCount = entries.filter(({ stage }) => getStageLiveState(stage, now).status === "finished").length;
+  const selectedEntry = visibleEntries.find(({ stage }) => stage.id === selectedStageId) ?? null;
+  const liveCount = scopeEntries.filter(({ stage }) => getStageLiveState(stage, now).status === "live").length;
+  const finishedCount = scopeEntries.filter(({ stage }) => getStageLiveState(stage, now).status === "finished").length;
 
   function toggleCategory(category: RaceCategoryCode) {
+    setSelectedStageId(null);
     setSelectedCategories((current) =>
       current.includes(category)
         ? current.filter((value) => value !== category)
@@ -121,15 +135,57 @@ export function RaceResultsDirectory({
         </div>
 
         <div className="border-b border-[#315B3E]/15 bg-[#F6FAF7] px-5 py-5 sm:px-8">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#176951]/15 bg-[#EAF5F0] p-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#176951]">Courses suivies</p>
+              <p className="mt-1 text-xs font-semibold text-[#688176]">Vos engagements sont affichés en priorité pour retrouver immédiatement le direct et les résultats.</p>
+            </div>
+            <div className="flex flex-wrap gap-2" aria-label="Portée des résultats et directs">
+              <button
+                type="button"
+                onClick={() => {
+                  setScope("team");
+                  setSelectedStageId(null);
+                }}
+                aria-pressed={scope === "team"}
+                className={`min-h-10 rounded-full border px-4 text-xs font-extrabold uppercase tracking-wider transition ${
+                  scope === "team"
+                    ? "border-[#176951] bg-[#176951] text-white"
+                    : "border-[#176951]/25 bg-white text-[#176951]"
+                }`}
+              >
+                Mon équipe
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setScope("all");
+                  setSelectedStageId(null);
+                }}
+                aria-pressed={scope === "all"}
+                className={`min-h-10 rounded-full border px-4 text-xs font-extrabold uppercase tracking-wider transition ${
+                  scope === "all"
+                    ? "border-[#0B302B] bg-[#0B302B] text-white"
+                    : "border-[#315B3E]/25 bg-white text-[#315B3E]"
+                }`}
+              >
+                Toutes les courses
+              </button>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#315B3E]">Filtrer le circuit</p>
-              <p className="mt-1 text-xs font-semibold text-[#688176]">Les filtres sont identiques à ceux du calendrier.</p>
+              <p className="mt-1 text-xs font-semibold text-[#688176]">Affinez la sélection courante par catégorie.</p>
             </div>
             <div className="flex flex-wrap gap-2" aria-label="Filtres des résultats et directs">
               <button
                 type="button"
-                onClick={() => setSelectedCategories([])}
+                onClick={() => {
+                  setSelectedCategories([]);
+                  setSelectedStageId(null);
+                }}
                 aria-pressed={selectedCategories.length === 0}
                 className={`min-h-10 rounded-full border px-4 text-xs font-extrabold uppercase tracking-wider transition ${
                   selectedCategories.length === 0
@@ -137,7 +193,7 @@ export function RaceResultsDirectory({
                     : "border-[#315B3E]/25 bg-white text-[#315B3E]"
                 }`}
               >
-                Toutes
+                Toutes catégories
               </button>
               {RACE_CATEGORY_CODES.map((category) => {
                 const style = RACE_CATEGORY_STYLE[category];
@@ -175,6 +231,30 @@ export function RaceResultsDirectory({
               onSelect={setSelectedStageId}
             />
           ))}
+          {visibleEditions.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#315B3E]/25 bg-[#F8FBF9] px-6 py-10 text-center lg:col-span-2">
+              <p className="font-black text-[#0B302B]">
+                {scope === "team"
+                  ? "Votre équipe n’est engagée sur aucune course de cette sélection."
+                  : "Aucune course ne correspond à ces catégories."}
+              </p>
+              <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-[#688176]">
+                {scope === "team"
+                  ? "Élargissez le répertoire pour consulter les autres directs, replays et classements de la saison."
+                  : "Réinitialisez les catégories pour retrouver tout le répertoire."}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategories([]);
+                  if (scope === "team") setScope("all");
+                }}
+                className="mt-4 min-h-10 rounded-full bg-[#0B302B] px-5 text-xs font-extrabold uppercase tracking-wider text-white"
+              >
+                {scope === "team" ? "Voir toutes les courses" : "Réinitialiser les catégories"}
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
 

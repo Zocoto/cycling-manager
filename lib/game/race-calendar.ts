@@ -347,6 +347,60 @@ export function getRegistrationAvailability({
   return "open";
 }
 
+export function isRaceEditionAvailableToCurrentTeam({
+  edition,
+  reputationPoints,
+  now = new Date(),
+}: {
+  edition: RaceCalendarEdition;
+  reputationPoints: number;
+  now?: Date;
+}) {
+  const registrationStatus =
+    edition.currentTeamRegistration?.status;
+
+  if (
+    registrationStatus === "accepted" ||
+    registrationStatus === "pending"
+  ) {
+    return true;
+  }
+
+  if (registrationStatus === "rejected") {
+    return false;
+  }
+
+  if (
+    registrationStatus === "withdrawn" &&
+    !isBeforeRegistrationDeadline(
+      edition.withdrawalClosesAt,
+      now
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    getRegistrationAvailability({
+      policy: edition.registrationPolicy,
+      closesAt: edition.registrationClosesAt,
+      minimumReputation: edition.minimumReputation,
+      reputationPoints,
+      now,
+    }) === "open"
+  );
+}
+
+export function isCurrentTeamRegisteredForRace(
+  edition: RaceCalendarEdition
+) {
+  return (
+    edition.currentTeamRegistration?.status ===
+      "accepted" &&
+    edition.currentTeamRegistration.rosterCount > 0
+  );
+}
+
 export function isRosterSelectionValid({
   selectedCount,
   minimum,
