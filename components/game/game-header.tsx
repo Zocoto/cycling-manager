@@ -72,13 +72,13 @@ export function GameHeader({
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
-            <WheelLogo colors={colors} />
+            <WheelLogo colors={colors} className="h-11 w-11" />
           </span>
 
-          <span className="inline-flex h-9 flex-col justify-between leading-none">
+          <span className="inline-flex h-11 flex-col justify-between leading-none">
             <span
               aria-hidden="true"
-              className="flex justify-between text-lg font-extrabold uppercase"
+              className="-mt-[2px] flex justify-between text-2xl font-extrabold uppercase"
             >
               <span>C</span>
               <span>Y</span>
@@ -87,7 +87,7 @@ export function GameHeader({
               <span>O</span>
             </span>
 
-            <span className="block text-xs font-semibold uppercase tracking-[0.26em] text-[var(--game-header-accent)] -me-[0.26em]">
+            <span className="-mb-[2px] block text-sm font-semibold uppercase tracking-[0.3em] text-[var(--game-header-accent)] -me-[0.3em]">
               Stratège
             </span>
           </span>
