@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import type {
+  OfficialAttackParticipant,
   OfficialRaceEditionResults,
   OfficialRiderResult,
   OfficialSecondaryClassification,
@@ -138,6 +139,85 @@ export function RaceOfficialResults({
           results={riderResults}
           classification={resolvedTab}
         />
+      )}
+      <RaceAnimators
+        participants={officialResults.attackParticipants}
+        isStageRace={edition.raceFormat === "stage_race"}
+      />
+    </section>
+  );
+}
+
+function RaceAnimators({
+  participants,
+  isStageRace,
+}: {
+  participants: OfficialAttackParticipant[];
+  isStageRace: boolean;
+}) {
+  return (
+    <section className="border-t border-[#315B3E]/12 bg-[#F3F8F5] px-5 py-6 sm:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
+            Attaquants enregistrés
+          </p>
+          <h3 className="mt-1 text-lg font-black text-[#0B302B]">
+            Les animateurs de la course
+          </h3>
+        </div>
+        <p className="max-w-xl text-xs font-semibold leading-5 text-[#688176]">
+          Coureurs passés par une échappée ou un groupe de chasse pendant le live officiel.
+        </p>
+      </div>
+
+      {participants.length > 0 ? (
+        <ul className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {participants.map((participant) => (
+            <li
+              key={participant.riderId}
+              className="rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Link
+                    href={`/jeu/coureurs/${participant.riderId}`}
+                    className="block truncate text-sm font-black text-[#0B302B] hover:text-[#176951] hover:underline"
+                  >
+                    {participant.riderName}
+                  </Link>
+                  <Link
+                    href={`/jeu/equipes/${participant.teamId}`}
+                    className="mt-0.5 block truncate text-xs font-bold text-[#688176] hover:text-[#176951] hover:underline"
+                  >
+                    {participant.teamName}
+                  </Link>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${
+                    participant.participationType === "breakaway"
+                      ? "bg-[#F2C94C]/20 text-[#7B5A00]"
+                      : "bg-[#7D5BB1]/12 text-[#684397]"
+                  }`}
+                >
+                  {participant.participationType === "breakaway"
+                    ? "Échappée"
+                    : "Chasse"}
+                </span>
+              </div>
+              {isStageRace ? (
+                <p className="mt-2 text-[10px] font-extrabold uppercase tracking-wide text-[#8A9D96]">
+                  {participant.stageNumbers.length > 1 ? "Étapes" : "Étape"}{" "}
+                  {participant.stageNumbers.join(", ")}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 rounded-xl border border-dashed border-[#315B3E]/20 bg-white px-4 py-4 text-sm font-semibold text-[#688176]">
+          Aucun attaquant n’a été enregistré sur cette course.
+        </p>
       )}
     </section>
   );

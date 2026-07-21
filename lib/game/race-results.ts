@@ -40,6 +40,15 @@ export type OfficialStageClassification = {
   results: OfficialRiderResult[];
 };
 
+export type OfficialAttackParticipant = {
+  riderId: string;
+  riderName: string;
+  teamId: string;
+  teamName: string;
+  participationType: "breakaway" | "chase";
+  stageNumbers: number[];
+};
+
 export type OfficialRaceEditionResults = {
   editionId: string;
   isComplete: boolean;
@@ -47,6 +56,7 @@ export type OfficialRaceEditionResults = {
   general: OfficialRiderResult[];
   generalIsProvisional: boolean;
   secondary: OfficialSecondaryClassification[];
+  attackParticipants: OfficialAttackParticipant[];
 };
 
 export type OfficialRaceResultsDirectory = Record<

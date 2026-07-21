@@ -6,6 +6,15 @@ import {
   applyEquipmentRatingBonuses,
   type EquipmentEffects,
 } from "./equipment";
+import {
+  hasSpecialAbility,
+  type RiderSpecialAbility,
+} from "./special-abilities";
+
+export {
+  RIDER_SPECIAL_ABILITIES,
+  type RiderSpecialAbility,
+} from "./special-abilities";
 
 export const RACE_ROLES = [
   "auto",
@@ -28,18 +37,6 @@ export const RACE_ROLE_LABELS: Record<RaceRole, string> = {
   domestique: "Équipier",
   mountain_classification: "Classement montagne",
 };
-
-export const RIDER_SPECIAL_ABILITIES = [
-  "flahute",
-  "panache",
-  "bottle_carrier",
-  "locomotive",
-  "giclette",
-  "chase_potato",
-] as const;
-
-export type RiderSpecialAbility =
-  (typeof RIDER_SPECIAL_ABILITIES)[number];
 
 export type SimulationStageType =
   | "road"
@@ -74,6 +71,7 @@ export type RiderSimulationInput = {
   form: number;
   role: RaceRole;
   specialAbility?: RiderSpecialAbility | null;
+  specialAbilities?: RiderSpecialAbility[];
   ratings: RiderSimulationRatings;
   equipmentEffects?: EquipmentEffects;
 };
@@ -174,6 +172,46 @@ export type StageSimulationResult = {
   mountainPoints: Record<string, number>;
   sprintPoints: Record<string, number>;
 };
+
+export type StageAttackParticipant = {
+  riderId: string;
+  participationType: "breakaway" | "chase";
+  firstSegmentNumber: number;
+};
+
+export function getStageAttackParticipants(
+  simulation: StageSimulationResult
+): StageAttackParticipant[] {
+  const participantByRiderId = new Map<string, StageAttackParticipant>();
+
+  for (const snapshot of simulation.timeline) {
+    for (const group of snapshot.groups) {
+      if (group.type !== "breakaway" && group.type !== "chase") continue;
+
+      for (const riderId of group.riderIds) {
+        const existing = participantByRiderId.get(riderId);
+        const participationType =
+          existing?.participationType === "breakaway" || group.type === "breakaway"
+            ? "breakaway"
+            : "chase";
+        participantByRiderId.set(riderId, {
+          riderId,
+          participationType,
+          firstSegmentNumber: Math.min(
+            existing?.firstSegmentNumber ?? snapshot.segmentNumber,
+            snapshot.segmentNumber
+          ),
+        });
+      }
+    }
+  }
+
+  return [...participantByRiderId.values()].sort(
+    (left, right) =>
+      left.firstSegmentNumber - right.firstSegmentNumber ||
+      left.riderId.localeCompare(right.riderId)
+  );
+}
 
 export type StageRaceStandings = {
   mountain: Array<{ riderId: string; points: number }>;
@@ -953,7 +991,7 @@ function simulateTeamTimeTrial(
           hasBottleCarrierSupport: riders.some(
             (teammate) =>
               teammate.id !== rider.id &&
-              teammate.specialAbility === "bottle_carrier"
+              hasSpecialAbility(teammate, "bottle_carrier")
           ),
           timeTrial: true,
         });
@@ -1040,7 +1078,7 @@ function selectInitialBreakaway(
           : rider.role === "mountain_classification"
             ? 9
             : 0;
-      const abilityBonus = rider.specialAbility === "panache" ? 12 : 0;
+      const abilityBonus = hasSpecialAbility(rider, "panache") ? 12 : 0;
       const score =
         rider.ratings.breakaway * 0.55 +
         rider.ratings.acceleration * 0.2 +
@@ -1158,12 +1196,12 @@ function updateRiderEnergy({
   let abilityFactor = 1;
 
   if (
-    rider.specialAbility === "flahute" &&
+    hasSpecialAbility(rider, "flahute") &&
     (segmentIndex > segmentCount * 0.45 || terrainLoad > 1.25)
   ) {
     abilityFactor *= 0.88;
   }
-  if (rider.specialAbility === "locomotive" && isWorking) {
+  if (hasSpecialAbility(rider, "locomotive") && isWorking) {
     abilityFactor *= 0.84;
   }
 
@@ -1190,7 +1228,7 @@ function hasTeammateBottleCarrier(
       teammate.rider.id !== state.rider.id &&
       teammate.rider.teamId === state.rider.teamId &&
       teammate.group === state.group &&
-      teammate.rider.specialAbility === "bottle_carrier"
+      hasSpecialAbility(teammate.rider, "bottle_carrier")
   );
 }
 
@@ -1253,8 +1291,8 @@ function maybeLaunchCounterAttack({
   const candidate = getStatesInGroup(states, "peloton")
     .filter(
       (state) =>
-        state.rider.specialAbility === "chase_potato" ||
-        (state.rider.specialAbility === "panache" && state.rider.role === "free_agent")
+        hasSpecialAbility(state.rider, "chase_potato") ||
+        (hasSpecialAbility(state.rider, "panache") && state.rider.role === "free_agent")
     )
     .sort(
       (first, second) =>
@@ -1880,7 +1918,7 @@ function getRoadFinishScores(
         roleFactor -
         lostWheelPenalty;
     } else {
-      const attackBonus = rider.specialAbility === "giclette" ? 6 : 0;
+      const attackBonus = hasSpecialAbility(rider, "giclette") ? 6 : 0;
       const roleBonus = rider.role === "leader" ? 8 : rider.role === "free_agent" ? 3 : 0;
       score =
         getTerrainRating(rider, lastSegment) * 0.5 +

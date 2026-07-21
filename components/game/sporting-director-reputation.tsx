@@ -7,10 +7,9 @@ export function SportingDirectorReputation({
   reputationPoints,
   compact = false,
 }: SportingDirectorReputationProps) {
-  const safeReputationPoints = Math.max(
-    0,
-    Math.floor(reputationPoints)
-  );
+  const safeReputationPoints = new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 2,
+  }).format(Math.max(0, reputationPoints));
 
   if (compact) {
     return (

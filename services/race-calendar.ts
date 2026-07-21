@@ -15,6 +15,10 @@ import {
   type SeasonCalendarEvent,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import {
+  isRiderSpecialAbility,
+  type RiderSpecialAbility,
+} from "@/lib/game/special-abilities";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -158,6 +162,11 @@ type CalendarEngagedRiderRow = {
   recovery: number;
   breakaway: number;
   prologue: number;
+};
+
+type RiderSpecialAbilityRow = {
+  rider_id: string;
+  ability_code: string;
 };
 
 export type CurrentRaceRegistration = {
@@ -395,6 +404,29 @@ export async function getActiveSeasonRaceCalendar(
     );
   }
 
+  const engagedRiderRows =
+    (engagedRidersResult.data as CalendarEngagedRiderRow[] | null) ?? [];
+  const engagedRiderIds = unique(
+    engagedRiderRows.map((rider) => rider.rider_id)
+  );
+  const specialAbilitiesResult =
+    engagedRiderIds.length > 0
+      ? await supabase
+          .from("rider_special_abilities")
+          .select("rider_id, ability_code")
+          .in("rider_id", engagedRiderIds)
+          .returns<RiderSpecialAbilityRow[]>()
+      : emptyResult<RiderSpecialAbilityRow>();
+
+  assertQuerySucceeded(
+    specialAbilitiesResult.error,
+    "les capacités spéciales des coureurs engagés"
+  );
+
+  const specialAbilitiesByRiderId = groupSpecialAbilities(
+    specialAbilitiesResult.data ?? []
+  );
+
   const dayRows = daysResult.data ?? [];
   const editionRows =
     editionsResult.data ?? [];
@@ -583,7 +615,8 @@ export async function getActiveSeasonRaceCalendar(
     )
   );
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
-    (engagedRidersResult.data as CalendarEngagedRiderRow[] | null) ?? []
+    engagedRiderRows,
+    specialAbilitiesByRiderId
   );
 
   const editions = editionRows
@@ -877,7 +910,8 @@ export async function getRaceEngagedRiders(
 }
 
 function groupCalendarEngagedRiders(
-  rows: CalendarEngagedRiderRow[]
+  rows: CalendarEngagedRiderRow[],
+  specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -886,6 +920,7 @@ function groupCalendarEngagedRiders(
 
   for (const row of rows) {
     const riders = ridersByEditionId.get(row.race_edition_id) ?? [];
+    const specialAbilities = specialAbilitiesByRiderId.get(row.rider_id) ?? [];
     riders.push({
       id: row.rider_id,
       name: `${row.rider_first_name} ${row.rider_last_name}`,
@@ -896,7 +931,8 @@ function groupCalendarEngagedRiders(
       age: Number(row.age),
       form: Number(row.form),
       role: row.race_role,
-      specialAbility: null,
+      specialAbility: specialAbilities[0] ?? null,
+      specialAbilities,
       ratings: {
         mountain: Number(row.mountain),
         hills: Number(row.hills),
@@ -917,6 +953,19 @@ function groupCalendarEngagedRiders(
   }
 
   return ridersByEditionId;
+}
+
+function groupSpecialAbilities(rows: RiderSpecialAbilityRow[]) {
+  const abilitiesByRiderId = new Map<string, RiderSpecialAbility[]>();
+
+  for (const row of rows) {
+    if (!isRiderSpecialAbility(row.ability_code)) continue;
+    const abilities = abilitiesByRiderId.get(row.rider_id) ?? [];
+    if (!abilities.includes(row.ability_code)) abilities.push(row.ability_code);
+    abilitiesByRiderId.set(row.rider_id, abilities);
+  }
+
+  return abilitiesByRiderId;
 }
 
 function groupStages(

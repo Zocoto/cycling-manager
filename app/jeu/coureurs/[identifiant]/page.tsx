@@ -12,7 +12,12 @@ import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
+import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
+import {
+  SPECIAL_ABILITY_CATALOG,
+  type RiderSpecialAbility,
+} from "@/lib/game/special-abilities";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -217,7 +222,7 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
               dayNumber={profile.condition.dayNumber}
             />
             <LockedTrainingCard />
-            <SpecialAbilitiesCard />
+            <SpecialAbilitiesCard abilities={profile.specialAbilities} />
           </aside>
         </div>
 
@@ -594,25 +599,31 @@ function LockedTrainingCard() {
   );
 }
 
-function SpecialAbilitiesCard() {
+function SpecialAbilitiesCard({
+  abilities,
+}: {
+  abilities: RiderSpecialAbility[];
+}) {
+  const unlockedAbilities = new Set(abilities);
+
   return (
     <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
       <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
         Capacités spéciales
       </p>
-      <div className="mt-4 flex gap-2">
-        {[0, 1, 2, 3].map((slot) => (
-          <span
-            key={slot}
-            aria-label="Emplacement de capacité vide"
-            className="grid h-11 w-11 place-items-center rounded-xl border border-dashed border-[#315B3E]/25 bg-[#F3F8F5] text-lg font-black text-[#9BAEA7]"
-          >
-            ·
-          </span>
+      <div className="mt-4 flex flex-wrap gap-3">
+        {SPECIAL_ABILITY_CATALOG.map((ability) => (
+          <SpecialAbilityMedallion
+            key={ability.code}
+            ability={ability}
+            unlocked={unlockedAbilities.has(ability.code)}
+          />
         ))}
       </div>
       <p className="mt-3 text-xs font-semibold text-[#60756E]">
-        Aucune capacité débloquée.
+        {abilities.length > 0
+          ? `${abilities.length} capacité${abilities.length > 1 ? "s" : ""} débloquée${abilities.length > 1 ? "s" : ""}. Survolez ou sélectionnez un médaillon pour voir son effet.`
+          : "Les capacités connues restent grisées tant que le coureur ne les a pas débloquées. Survolez ou sélectionnez un médaillon pour voir son effet."}
       </p>
     </section>
   );

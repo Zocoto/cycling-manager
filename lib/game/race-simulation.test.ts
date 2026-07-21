@@ -4,6 +4,7 @@ import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
+  getStageAttackParticipants,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   simulateRaceStage,
@@ -53,6 +54,27 @@ describe("simulateRaceStage", () => {
     expect(result.timeline[1].commentary.join(" ")).toContain(
       "attaque"
     );
+  });
+
+  it("restitue une seule fois chaque attaquant avec son premier tronçon", () => {
+    const result = simulateRaceStage(
+      createDemoSimulationInput("collines-ardennes", 7)
+    );
+    const participants = getStageAttackParticipants(result);
+    const participantIds = participants.map((participant) => participant.riderId);
+
+    expect(participants.length).toBeGreaterThan(0);
+    expect(new Set(participantIds).size).toBe(participantIds.length);
+    for (const participant of participants) {
+      const firstSnapshot = result.timeline.find((snapshot) =>
+        snapshot.groups.some(
+          (group) =>
+            (group.type === "breakaway" || group.type === "chase") &&
+            group.riderIds.includes(participant.riderId)
+        )
+      );
+      expect(participant.firstSegmentNumber).toBe(firstSnapshot?.segmentNumber);
+    }
   });
 
   it("détermine le format du final avec la taille du groupe qui joue la victoire", () => {

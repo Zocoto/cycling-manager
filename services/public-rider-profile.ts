@@ -7,6 +7,10 @@ import {
 } from "@/lib/game/equipment";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import {
+  isRiderSpecialAbility,
+  type RiderSpecialAbility,
+} from "@/lib/game/special-abilities";
+import {
   getTeamDivisionLabel,
   normalizeTeamDivisionCode,
 } from "@/lib/game/team-divisions";
@@ -55,6 +59,7 @@ export type PublicRiderProfile = {
     points: number | null;
     uciRank: number | null;
   }>;
+  specialAbilities: RiderSpecialAbility[];
   equipment: Partial<Record<RiderEquipmentSlot, {
     id: string;
     name: string;
@@ -162,6 +167,10 @@ type EquipmentAssignmentRow = {
   equipment_item_id: string;
 };
 
+type RiderSpecialAbilityRow = {
+  ability_code: string;
+};
+
 type EquipmentItemRow = {
   id: string;
   catalog_key: string;
@@ -240,6 +249,7 @@ export async function getPublicRiderProfile({
     contractsResult,
     summariesResult,
     equipmentAssignmentsResult,
+    specialAbilitiesResult,
   ] = await Promise.all([
     supabase
       .from("countries")
@@ -276,6 +286,11 @@ export async function getPublicRiderProfile({
       .select("slot_type, equipment_item_id")
       .eq("rider_id", rider.id)
       .returns<EquipmentAssignmentRow[]>(),
+    supabase
+      .from("rider_special_abilities")
+      .select("ability_code")
+      .eq("rider_id", rider.id)
+      .returns<RiderSpecialAbilityRow[]>(),
   ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -284,6 +299,7 @@ export async function getPublicRiderProfile({
   assertQuery(contractsResult.error, "l’historique contractuel du coureur");
   assertQuery(summariesResult.error, "les bilans saisonniers du coureur");
   assertQuery(equipmentAssignmentsResult.error, "les équipements du coureur");
+  assertQuery(specialAbilitiesResult.error, "les capacités spéciales du coureur");
 
   if (!countryResult.data) {
     throw new Error("Le pays du coureur est introuvable.");
@@ -294,6 +310,9 @@ export async function getPublicRiderProfile({
   const contracts = contractsResult.data ?? [];
   const summaries = summariesResult.data ?? [];
   const equipmentAssignments = equipmentAssignmentsResult.data ?? [];
+  const specialAbilities = (specialAbilitiesResult.data ?? [])
+    .map((row) => row.ability_code)
+    .filter(isRiderSpecialAbility);
   const activeSeason = seasons.find((season) => season.status === "active") ?? null;
   const currentContract =
     contracts.find((contract) => contract.status === "active") ?? null;
@@ -506,6 +525,7 @@ export async function getPublicRiderProfile({
     condition,
     currentTeam,
     history,
+    specialAbilities,
     equipment,
     privateContract:
       currentContract && canManage
