@@ -1,5 +1,12 @@
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
 import type { StaffRole } from "@/lib/game/staff";
+import type { AmateurJerseyConfig } from "@/lib/amateur-team";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+  type RiderJerseyAppearance,
+} from "@/lib/rider-jersey";
+import type { JerseyStyle, SponsorColors } from "@/types/sponsor";
 
 export type PublicGameNewsKind =
   | "victory"
@@ -11,6 +18,7 @@ export type PublicGameNewsTeamVisual = {
   name: string;
   logoPath: string | null;
   sponsorName: string | null;
+  jersey: RiderJerseyAppearance;
   colors: {
     primary: string;
     secondary: string;
@@ -19,6 +27,24 @@ export type PublicGameNewsTeamVisual = {
     text: string;
   };
 };
+
+export function resolvePublicGameNewsTeamJersey({
+  amateurJersey,
+  sponsor,
+}: {
+  amateurJersey: AmateurJerseyConfig;
+  sponsor?: {
+    colors: SponsorColors;
+    jerseyStyle: JerseyStyle;
+  } | null;
+}): RiderJerseyAppearance {
+  return sponsor
+    ? createSponsoredRiderJersey({
+        colors: sponsor.colors,
+        style: sponsor.jerseyStyle,
+      })
+    : createAmateurRiderJersey(amateurJersey);
+}
 
 export type PublicGameNewsPersonVisual =
   | {

@@ -2,8 +2,15 @@ import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
 import {
+  DEFAULT_AMATEUR_JERSEY,
+  isAmateurJerseyPattern,
+  normalizeHexColor,
+  type AmateurJerseyConfig,
+} from "@/lib/amateur-team";
+import {
   createEmptyPublicGameNewsSnapshot,
   createPublicGameNewsSnapshot,
+  resolvePublicGameNewsTeamJersey,
   type PublicGameNewsItem,
   type PublicGameNewsSnapshot,
   type PublicGameNewsTeamVisual,
@@ -77,6 +84,14 @@ type TeamSeasonRow = {
   created_at: string;
 };
 
+type TeamRow = {
+  id: string;
+  amateur_jersey_pattern: string;
+  amateur_jersey_primary_color: string;
+  amateur_jersey_secondary_color: string;
+  amateur_jersey_accent_color: string;
+};
+
 type SportingDirectorRow = {
   id: string;
   display_name: string;
@@ -120,6 +135,7 @@ type CountryAvatarProfileRow = {
 type TeamSponsorContractRow = {
   team_id: string;
   sponsor_id: string;
+  selected_jersey_id: string | null;
   created_at: string;
 };
 
@@ -138,14 +154,6 @@ const movementTypes = [
   "director_auction",
   "free_agent",
 ] as const;
-
-const fallbackTeamColors = {
-  primary: "#315B3E",
-  secondary: "#DDE9E2",
-  accent: "#F2C94C",
-  background: "#F5F8F4",
-  text: "#173C2E",
-};
 
 export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   let admin: AdminClient;
@@ -602,23 +610,51 @@ async function loadTeamVisuals(
   teamSeasons: TeamSeasonRow[]
 ): Promise<Map<string, PublicGameNewsTeamVisual>> {
   const latestTeamSeasons = latestTeamSeasonByTeamId(teamSeasons);
+  const teamIds = [...latestTeamSeasons.keys()];
+  if (teamIds.length === 0) return new Map();
+
+  const [teamsQuery, contractsQuery] = await Promise.all([
+    admin
+      .from("teams")
+      .select(
+        `
+          id,
+          amateur_jersey_pattern,
+          amateur_jersey_primary_color,
+          amateur_jersey_secondary_color,
+          amateur_jersey_accent_color
+        `
+      )
+      .in("id", teamIds)
+      .returns<TeamRow[]>(),
+    admin
+      .from("team_sponsor_contracts")
+      .select("team_id, sponsor_id, selected_jersey_id, created_at")
+      .in("team_id", teamIds)
+      .eq("role", "principal")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .returns<TeamSponsorContractRow[]>(),
+  ]);
+
+  const teamById = teamsQuery.error
+    ? new Map<string, TeamRow>()
+    : toMap(teamsQuery.data ?? []);
+  const amateurJerseyByTeamId = new Map(
+    teamIds.map((teamId) => [
+      teamId,
+      getTeamAmateurJersey(teamById.get(teamId)),
+    ])
+  );
   const visuals = new Map(
     [...latestTeamSeasons.entries()].map(([teamId, teamSeason]) => [
       teamId,
-      createFallbackTeamVisual(teamSeason.display_name),
+      createFallbackTeamVisual(
+        teamSeason.display_name,
+        amateurJerseyByTeamId.get(teamId)
+      ),
     ])
   );
-  const teamIds = [...latestTeamSeasons.keys()];
-  if (teamIds.length === 0) return visuals;
-
-  const contractsQuery = await admin
-    .from("team_sponsor_contracts")
-    .select("team_id, sponsor_id, created_at")
-    .in("team_id", teamIds)
-    .eq("role", "principal")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .returns<TeamSponsorContractRow[]>();
 
   if (contractsQuery.error) return visuals;
 
@@ -649,25 +685,65 @@ async function loadTeamVisuals(
       ? SPONSORS.find((sponsor) => sponsor.id === registrySponsor.catalog_key)
       : null;
     const teamSeason = latestTeamSeasons.get(teamId);
-    if (!catalogSponsor || !teamSeason) continue;
+    const selectedJersey = catalogSponsor?.jerseys.find(
+      (jersey) => jersey.id === contract.selected_jersey_id
+    );
+    if (!catalogSponsor || !selectedJersey || !teamSeason) continue;
 
     visuals.set(teamId, {
       name: teamSeason.display_name,
       logoPath: catalogSponsor.logoPath,
       sponsorName: catalogSponsor.name,
       colors: catalogSponsor.colors,
+      jersey: resolvePublicGameNewsTeamJersey({
+        amateurJersey:
+          amateurJerseyByTeamId.get(teamId) ?? DEFAULT_AMATEUR_JERSEY,
+        sponsor: {
+          colors: catalogSponsor.colors,
+          jerseyStyle: selectedJersey.style,
+        },
+      }),
     });
   }
 
   return visuals;
 }
 
-function createFallbackTeamVisual(name: string): PublicGameNewsTeamVisual {
+function createFallbackTeamVisual(
+  name: string,
+  amateurJersey: AmateurJerseyConfig = DEFAULT_AMATEUR_JERSEY
+): PublicGameNewsTeamVisual {
   return {
     name,
     logoPath: null,
     sponsorName: null,
-    colors: fallbackTeamColors,
+    colors: {
+      primary: amateurJersey.primaryColor,
+      secondary: amateurJersey.secondaryColor,
+      accent: amateurJersey.accentColor,
+      background: amateurJersey.secondaryColor,
+      text: amateurJersey.primaryColor,
+    },
+    jersey: resolvePublicGameNewsTeamJersey({ amateurJersey }),
+  };
+}
+
+function getTeamAmateurJersey(team: TeamRow | undefined): AmateurJerseyConfig {
+  if (!team) return DEFAULT_AMATEUR_JERSEY;
+
+  return {
+    pattern: isAmateurJerseyPattern(team.amateur_jersey_pattern)
+      ? team.amateur_jersey_pattern
+      : DEFAULT_AMATEUR_JERSEY.pattern,
+    primaryColor:
+      normalizeHexColor(team.amateur_jersey_primary_color) ??
+      DEFAULT_AMATEUR_JERSEY.primaryColor,
+    secondaryColor:
+      normalizeHexColor(team.amateur_jersey_secondary_color) ??
+      DEFAULT_AMATEUR_JERSEY.secondaryColor,
+    accentColor:
+      normalizeHexColor(team.amateur_jersey_accent_color) ??
+      DEFAULT_AMATEUR_JERSEY.accentColor,
   };
 }
 

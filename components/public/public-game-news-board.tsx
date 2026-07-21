@@ -469,13 +469,7 @@ function getPortraitJersey(
   }
 
   if (team) {
-    return {
-      primaryColor: team.colors.primary,
-      secondaryColor: team.colors.secondary,
-      accentColor: team.colors.accent,
-      pattern: "diagonal",
-      status: team.logoPath ? "sponsored" : "amateur",
-    };
+    return team.jersey;
   }
 
   return {

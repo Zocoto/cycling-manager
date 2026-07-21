@@ -4,6 +4,7 @@ import {
   createPublicGameNewsSnapshot,
   formatPublicGameNewsDate,
   formatPublicGameNewsTotal,
+  resolvePublicGameNewsTeamJersey,
   type PublicGameNewsItem,
 } from "./public-game-news";
 
@@ -131,5 +132,46 @@ describe("public game news", () => {
     expect(formatPublicGameNewsTotal(null)).toBe("—");
     expect(formatPublicGameNewsTotal(0)).toBe("0");
     expect(formatPublicGameNewsTotal(1_250)).toMatch(/1.250|1\s250/);
+  });
+
+  it("conserve le vrai maillot amateur ou sponsorisé de l’équipe", () => {
+    const amateurJersey = {
+      pattern: "checkerboard" as const,
+      primaryColor: "#7A1E48",
+      secondaryColor: "#F7E7C6",
+      accentColor: "#2C6E8F",
+    };
+
+    expect(
+      resolvePublicGameNewsTeamJersey({ amateurJersey })
+    ).toEqual({
+      pattern: "checkerboard",
+      primaryColor: "#7A1E48",
+      secondaryColor: "#F7E7C6",
+      accentColor: "#2C6E8F",
+      status: "amateur",
+    });
+
+    expect(
+      resolvePublicGameNewsTeamJersey({
+        amateurJersey,
+        sponsor: {
+          colors: {
+            primary: "#111111",
+            secondary: "#EEEEEE",
+            accent: "#FF5500",
+            background: "#FFFFFF",
+            text: "#111111",
+          },
+          jerseyStyle: "bold",
+        },
+      })
+    ).toEqual({
+      pattern: "split",
+      primaryColor: "#111111",
+      secondaryColor: "#EEEEEE",
+      accentColor: "#FF5500",
+      status: "sponsored",
+    });
   });
 });
