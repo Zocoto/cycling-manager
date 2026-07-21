@@ -1,12 +1,20 @@
 import Link from "next/link";
 
+import { RaceStageProfile } from "@/components/game/race-stage-profile";
+import { RiderAvatar } from "@/components/game/rider-avatar";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
+import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import {
   formatPublicGameNewsDate,
   formatPublicGameNewsTotal,
   type PublicGameNewsItem,
   type PublicGameNewsKind,
+  type PublicGameNewsPersonVisual,
   type PublicGameNewsSnapshot,
+  type PublicGameNewsTeamVisual,
 } from "@/lib/game/public-game-news";
+import { STAFF_ROLE_DEFINITIONS } from "@/lib/game/staff";
+import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 
 const emptyNews = [
   {
@@ -23,6 +31,11 @@ const emptyNews = [
     kind: "movement" as const,
     title: "Le marché est encore calme",
     detail: "Transferts et recrutements seront relayés en direct.",
+  },
+  {
+    kind: "staff" as const,
+    title: "Les cellules sportives se préparent",
+    detail: "Les prochaines signatures de staff apparaîtront ici.",
   },
 ];
 
@@ -65,8 +78,8 @@ export function PublicGameNewsBoard({
             </h2>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#536B64] sm:text-lg">
-              Victoires, nouveaux directeurs et mouvements d’équipes : suivez
-              les derniers échos du peloton en un coup d’œil.
+              Victoires, nouveaux directeurs, transferts et recrutements de
+              staff : suivez les derniers échos du peloton en un coup d’œil.
             </p>
           </div>
 
@@ -146,7 +159,7 @@ export function PublicGameNewsBoard({
             <NewsStat
               value={formatPublicGameNewsTotal(snapshot.totals.movements)}
               label="Mouvements signés"
-              detail="transferts et recrutements"
+              detail="coureurs et membres du staff"
               isLast
             />
           </div>
@@ -197,6 +210,7 @@ function FeaturedNews({ item }: { item: PublicGameNewsItem | null }) {
             "repeating-conic-gradient(transparent 0deg 14deg, rgba(124,207,156,0.13) 14deg 15deg)",
         }}
       />
+      <FeaturedVisual item={item} />
 
       <div className="relative">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2C94C] text-[#082A2A] shadow-[0_16px_40px_rgba(242,201,76,0.22)]">
@@ -227,9 +241,7 @@ function FeaturedNews({ item }: { item: PublicGameNewsItem | null }) {
 function NewsRow({ item }: { item: PublicGameNewsItem }) {
   return (
     <li className="group grid grid-cols-[auto_1fr] gap-4 px-6 py-5 transition hover:bg-white/[0.035] sm:grid-cols-[auto_1fr_auto] sm:items-center sm:px-8">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#8DCFB8] transition group-hover:border-[#42CDA8]/35 group-hover:bg-[#42CDA8]/10 group-hover:text-[#F2C94C]">
-        <NewsIcon kind={item.kind} />
-      </span>
+      <NewsVisual item={item} />
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
@@ -256,6 +268,233 @@ function NewsRow({ item }: { item: PublicGameNewsItem }) {
         {formatPublicGameNewsDate(item.happenedAt)}
       </time>
     </li>
+  );
+}
+
+function FeaturedVisual({ item }: { item: PublicGameNewsItem }) {
+  const visual = item.visual;
+  if (!visual) return null;
+
+  const hasMovementFlow =
+    (item.kind === "movement" || item.kind === "staff") && visual.team;
+
+  return (
+    <>
+      {visual.raceProfile && visual.raceProfile.length > 0 ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-16 scale-110 opacity-25 sm:top-20"
+        >
+          <RaceStageProfile
+            segments={visual.raceProfile}
+            compact
+            tone="dark"
+          />
+        </div>
+      ) : null}
+
+      <div className="pointer-events-none absolute right-5 top-5 flex items-center gap-2 sm:right-8 sm:top-7 sm:gap-3">
+        <PersonPortrait
+          person={visual.person}
+          team={visual.team}
+          size="featured"
+        />
+
+        {hasMovementFlow ? <MovementArrow /> : null}
+
+        {visual.team ? (
+          <TeamMark
+            team={visual.team}
+            size={hasMovementFlow ? "featured" : "badge"}
+          />
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function NewsVisual({ item }: { item: PublicGameNewsItem }) {
+  const visual = item.visual;
+
+  if (!visual) {
+    return (
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#8DCFB8] transition group-hover:border-[#42CDA8]/35 group-hover:bg-[#42CDA8]/10 group-hover:text-[#F2C94C]">
+        <NewsIcon kind={item.kind} />
+      </span>
+    );
+  }
+
+  const receivingTeam =
+    item.kind === "movement" || item.kind === "staff" ? visual.team : null;
+
+  return (
+    <div className="flex min-w-12 items-center gap-1.5">
+      <PersonPortrait person={visual.person} team={visual.team} size="row" />
+      {receivingTeam ? (
+        <>
+          <MovementArrow compact />
+          <TeamMark team={receivingTeam} size="row" />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function PersonPortrait({
+  person,
+  team,
+  size,
+}: {
+  person: PublicGameNewsPersonVisual;
+  team?: PublicGameNewsTeamVisual | null;
+  size: "featured" | "row";
+}) {
+  if (person.kind === "director") {
+    return (
+      <SportingDirectorAvatar
+        avatarKey={person.avatarKey}
+        size={size === "featured" ? "large" : "small"}
+        label={person.label}
+        className={
+          size === "featured"
+            ? "ring-4 ring-[#F2C94C]/35 shadow-2xl"
+            : "ring-2 ring-white/10"
+        }
+      />
+    );
+  }
+
+  return (
+    <RiderAvatar
+      profileKey={person.profileKey}
+      seed={person.seed}
+      riderId={person.seed}
+      jersey={getPortraitJersey(person, team)}
+      label={person.label}
+      className={
+        size === "featured"
+          ? "h-28 w-28 border-4 border-white/80 shadow-2xl sm:h-32 sm:w-32"
+          : "h-12 w-12 border-2 border-white/70 shadow-md"
+      }
+    />
+  );
+}
+
+function TeamMark({
+  team,
+  size,
+}: {
+  team: PublicGameNewsTeamVisual;
+  size: "featured" | "badge" | "row";
+}) {
+  const className =
+    size === "featured"
+      ? "h-16 w-20 rounded-2xl p-2 sm:h-18 sm:w-24"
+      : size === "badge"
+        ? "h-11 w-14 rounded-xl p-1.5 sm:h-12 sm:w-16"
+        : "h-10 w-12 rounded-xl p-1.5";
+
+  if (team.logoPath && team.sponsorName) {
+    return (
+      <SponsorLogoMark
+        src={team.logoPath}
+        alt={`Logo de ${team.name}`}
+        sponsorName={team.sponsorName}
+        primaryColor={team.colors.primary}
+        backgroundColor={team.colors.background}
+        textColor={team.colors.text}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <span
+      role="img"
+      aria-label={`Emblème de ${team.name}`}
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden border font-black shadow-sm ${className}`}
+      style={{
+        borderColor: `${team.colors.primary}66`,
+        backgroundColor: team.colors.background,
+        color: team.colors.text,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className="absolute -bottom-5 -right-5 h-12 w-12 rotate-45 opacity-20"
+        style={{ backgroundColor: team.colors.primary }}
+      />
+      <span className="relative text-xs">{getTeamInitials(team.name)}</span>
+    </span>
+  );
+}
+
+function MovementArrow({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex items-center text-[#F2C94C] ${compact ? "px-0" : "px-0.5"}`}
+    >
+      <svg
+        viewBox="0 0 30 20"
+        className={compact ? "h-5 w-5" : "h-7 w-8"}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 6h19l-4-4" />
+        <path d="m21 6-4 4" />
+        <path d="M28 14H9l4 4" />
+        <path d="m9 14 4-4" />
+      </svg>
+    </span>
+  );
+}
+
+function getPortraitJersey(
+  person: Exclude<PublicGameNewsPersonVisual, { kind: "director" }>,
+  team?: PublicGameNewsTeamVisual | null
+): RiderJerseyAppearance {
+  if (person.kind === "staff") {
+    const accent = STAFF_ROLE_DEFINITIONS[person.role].accent;
+    return {
+      primaryColor: "#173C36",
+      secondaryColor: accent,
+      accentColor: "#F2C94C",
+      pattern: "solid",
+      status: "free-agent",
+    };
+  }
+
+  if (team) {
+    return {
+      primaryColor: team.colors.primary,
+      secondaryColor: team.colors.secondary,
+      accentColor: team.colors.accent,
+      pattern: "diagonal",
+      status: team.logoPath ? "sponsored" : "amateur",
+    };
+  }
+
+  return {
+    primaryColor: "#315B3E",
+    secondaryColor: "#8DCFB8",
+    accentColor: "#F2C94C",
+    pattern: "solid",
+    status: "free-agent",
+  };
+}
+
+function getTeamInitials(teamName: string): string {
+  return (
+    teamName
+      .trim()
+      .split(/[\s-]+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "EQ"
   );
 }
 
@@ -293,7 +532,9 @@ function NewsBadge({
       ? "Victoire"
       : kind === "arrival"
         ? "Nouveau DS"
-        : "Mouvement";
+        : kind === "staff"
+          ? "Recrutement staff"
+          : "Transfert";
 
   return (
     <span
@@ -304,7 +545,9 @@ function NewsBadge({
           ? "bg-[#F2C94C] text-[#082A2A]"
           : kind === "arrival"
             ? "bg-[#42CDA8]/15 text-[#8DE3C9]"
-            : "bg-[#8AB8F8]/15 text-[#B9D4FA]"
+            : kind === "staff"
+              ? "bg-[#D49BFF]/15 text-[#E1C2FA]"
+              : "bg-[#8AB8F8]/15 text-[#B9D4FA]"
       }`}
     >
       {label}
@@ -379,6 +622,23 @@ function NewsIcon({
         <circle cx="9" cy="8" r="3" />
         <path d="M3.5 19c.5-4 2.5-6 5.5-6 1.4 0 2.6.4 3.5 1.2" />
         <path d="M18 12v7M14.5 15.5h7" />
+      </svg>
+    );
+  }
+
+  if (kind === "staff") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+        <rect x="3" y="7" width="18" height="13" rx="2" />
+        <path d="M3 12h18M10 12v2h4v-2" />
       </svg>
     );
   }

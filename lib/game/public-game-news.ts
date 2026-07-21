@@ -1,4 +1,50 @@
-export type PublicGameNewsKind = "victory" | "arrival" | "movement";
+import type { RaceStageSegment } from "@/lib/game/race-profiles";
+import type { StaffRole } from "@/lib/game/staff";
+
+export type PublicGameNewsKind =
+  | "victory"
+  | "arrival"
+  | "movement"
+  | "staff";
+
+export type PublicGameNewsTeamVisual = {
+  name: string;
+  logoPath: string | null;
+  sponsorName: string | null;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
+};
+
+export type PublicGameNewsPersonVisual =
+  | {
+      kind: "rider";
+      profileKey: string | null;
+      seed: string;
+      label: string;
+    }
+  | {
+      kind: "director";
+      avatarKey: string | null;
+      label: string;
+    }
+  | {
+      kind: "staff";
+      profileKey: string | null;
+      seed: string;
+      role: StaffRole;
+      label: string;
+    };
+
+export type PublicGameNewsVisual = {
+  person: PublicGameNewsPersonVisual;
+  team?: PublicGameNewsTeamVisual | null;
+  raceProfile?: RaceStageSegment[];
+};
 
 export type PublicGameNewsItem = {
   id: string;
@@ -6,6 +52,7 @@ export type PublicGameNewsItem = {
   title: string;
   detail: string;
   happenedAt: string;
+  visual?: PublicGameNewsVisual;
 };
 
 export type PublicGameNewsTotals = {
@@ -23,7 +70,8 @@ export type PublicGameNewsSnapshot = {
 const kindPriority: Record<PublicGameNewsKind, number> = {
   victory: 0,
   movement: 1,
-  arrival: 2,
+  staff: 2,
+  arrival: 3,
 };
 
 export function createPublicGameNewsSnapshot({
