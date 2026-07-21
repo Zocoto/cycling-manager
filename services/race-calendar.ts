@@ -164,6 +164,11 @@ type CalendarEngagedRiderRow = {
   prologue: number;
 };
 
+type RiderCountryRow = {
+  id: string;
+  country_id: string;
+};
+
 type RiderSpecialAbilityRow = {
   rider_id: string;
   ability_code: string;
@@ -435,18 +440,29 @@ export async function getActiveSeasonRaceCalendar(
   const engagedRiderIds = unique(
     engagedRiderRows.map((rider) => rider.rider_id)
   );
-  const specialAbilitiesResult =
+  const [specialAbilitiesResult, riderCountriesResult] =
     engagedRiderIds.length > 0
-      ? await supabase
-          .from("rider_special_abilities")
-          .select("rider_id, ability_code")
-          .in("rider_id", engagedRiderIds)
-          .returns<RiderSpecialAbilityRow[]>()
-      : emptyResult<RiderSpecialAbilityRow>();
+      ? await Promise.all([
+          supabase
+            .from("rider_special_abilities")
+            .select("rider_id, ability_code")
+            .in("rider_id", engagedRiderIds)
+            .returns<RiderSpecialAbilityRow[]>(),
+          supabase
+            .from("riders")
+            .select("id, country_id")
+            .in("id", engagedRiderIds)
+            .returns<RiderCountryRow[]>(),
+        ])
+      : [emptyResult<RiderSpecialAbilityRow>(), emptyResult<RiderCountryRow>()];
 
   assertQuerySucceeded(
     specialAbilitiesResult.error,
     "les capacités spéciales des coureurs engagés"
+  );
+  assertQuerySucceeded(
+    riderCountriesResult.error,
+    "les nationalités des coureurs engagés"
   );
 
   const specialAbilitiesByRiderId = groupSpecialAbilities(
@@ -594,9 +610,11 @@ export async function getActiveSeasonRaceCalendar(
   const segmentRows = segmentsResult.data ?? [];
 
   const raceRows = racesResult.data ?? [];
-  const countryIds = unique(
-    raceRows.map((race) => race.country_id)
-  );
+  const riderCountryRows = riderCountriesResult.data ?? [];
+  const countryIds = unique([
+    ...raceRows.map((race) => race.country_id),
+    ...riderCountryRows.map((rider) => rider.country_id),
+  ]);
   const countriesResult =
     countryIds.length > 0
       ? await supabase
@@ -642,7 +660,9 @@ export async function getActiveSeasonRaceCalendar(
   );
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
-    specialAbilitiesByRiderId
+    specialAbilitiesByRiderId,
+    new Map(riderCountryRows.map((rider) => [rider.id, rider.country_id])),
+    countryById
   );
 
   const editions = editionRows
@@ -945,7 +965,9 @@ export async function getRaceEngagedRiders(
 
 function groupCalendarEngagedRiders(
   rows: CalendarEngagedRiderRow[],
-  specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>
+  specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>,
+  countryIdByRiderId: Map<string, string>,
+  countryById: Map<string, CountryRow>
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -955,6 +977,10 @@ function groupCalendarEngagedRiders(
   for (const row of rows) {
     const riders = ridersByEditionId.get(row.race_edition_id) ?? [];
     const specialAbilities = specialAbilitiesByRiderId.get(row.rider_id) ?? [];
+    const riderCountryId = countryIdByRiderId.get(row.rider_id);
+    const riderCountry = riderCountryId
+      ? countryById.get(riderCountryId)
+      : null;
     riders.push({
       id: row.rider_id,
       name: `${row.rider_first_name} ${row.rider_last_name}`,
@@ -964,6 +990,7 @@ function groupCalendarEngagedRiders(
       teamSecondaryColor: row.team_secondary_color,
       age: Number(row.age),
       form: Number(row.form),
+      countryCode: riderCountry?.iso_alpha2 ?? null,
       role: row.race_role,
       specialAbility: specialAbilities[0] ?? null,
       specialAbilities,

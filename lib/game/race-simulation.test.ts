@@ -112,7 +112,7 @@ describe("simulateRaceStage", () => {
       createDemoSimulationInput("collines-ardennes", 7)
     );
     const comparableSnapshot = result.timeline
-      .slice(1)
+      .slice(2)
       .find(
         (snapshot) =>
           snapshot.groups.some((group) => group.type === "breakaway") &&
@@ -162,7 +162,7 @@ describe("simulateRaceStage", () => {
   });
 
   it("laisse certaines échappées aller au bout sans rendre ce résultat systématique", () => {
-    const outcomes = Array.from({ length: 30 }, (_, index) =>
+    const outcomes = Array.from({ length: 100 }, (_, index) =>
       simulateRaceStage(createDemoSimulationInput("collines-ardennes", index + 1))
     ).map((result) =>
       result.timeline.at(-1)?.groups.some((group) => group.type === "breakaway") ?? false
@@ -194,6 +194,118 @@ describe("simulateRaceStage", () => {
     ).length;
 
     expect(puncherWins).toBeGreaterThanOrEqual(84);
+  });
+
+  it("écarte durablement les coureurs très inférieurs dans la statistique clé", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const strongRiders = Array.from({ length: 2 }, (_, index) =>
+      createSelectionTestRider(`fort-${index}`, {
+        hills: 70,
+        mountain: 62,
+        acceleration: 68,
+      })
+    );
+    const weakRiders = Array.from({ length: 4 }, (_, index) =>
+      createSelectionTestRider(`faible-${index}`, {
+        hills: 45,
+        mountain: 47,
+        acceleration: 52,
+      })
+    );
+    const result = simulateRaceStage({
+      ...baseInput,
+      riders: [...strongRiders, ...weakRiders],
+    });
+    const weakIds = new Set(weakRiders.map((rider) => rider.id));
+    const firstDropIndex = result.timeline.findIndex((snapshot) =>
+      snapshot.groups.some(
+        (group) =>
+          group.type === "dropped" &&
+          group.riderIds.some((riderId) => weakIds.has(riderId))
+      )
+    );
+
+    expect(firstDropIndex).toBeGreaterThan(0);
+    expect(
+      result.timeline.slice(firstDropIndex).every((snapshot) =>
+        snapshot.groups
+          .filter((group) => group.type !== "dropped")
+          .every((group) =>
+            group.riderIds.every((riderId) => !weakIds.has(riderId))
+          )
+      )
+    ).toBe(true);
+    expect(
+      Math.min(
+        ...result.results
+          .filter((row) => weakIds.has(row.riderId))
+          .map((row) => row.gapToWinnerSeconds)
+      )
+    ).toBeGreaterThan(120);
+  });
+
+  it("fait de la note sprint le facteur décisif d'un final plat", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const pureSprinter = createSelectionTestRider("pur-sprinteur", {
+      sprint: 84,
+      acceleration: 74,
+      flat: 70,
+    });
+    const explosiveRider = createSelectionTestRider("explosif", {
+      sprint: 66,
+      acceleration: 94,
+      flat: 80,
+    });
+    const simulations = Array.from({ length: 80 }, (_, index) =>
+      simulateRaceStage({
+        ...baseInput,
+        seed: index + 1,
+        riders: [pureSprinter, explosiveRider],
+      })
+    );
+    const groupedFinishes = simulations.filter((result) => {
+      const pureResult = result.results.find((row) => row.riderId === pureSprinter.id);
+      const explosiveResult = result.results.find((row) => row.riderId === explosiveRider.id);
+
+      return (
+        pureResult?.status === "finished" &&
+        explosiveResult?.status === "finished" &&
+        pureResult.gapToWinnerSeconds === 0 &&
+        explosiveResult.gapToWinnerSeconds === 0
+      );
+    });
+
+    expect(groupedFinishes.length).toBeGreaterThanOrEqual(20);
+    expect(
+      groupedFinishes.every((result) => result.results[0].riderId === pureSprinter.id)
+    ).toBe(true);
+  });
+
+  it("applique le bonus local de +2 sans modifier les notes permanentes", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const local = {
+      ...createSelectionTestRider("local", { hills: 64 }),
+      countryCode: "BE",
+    };
+    const visitor = {
+      ...createSelectionTestRider("visiteur", { hills: 64 }),
+      countryCode: "FR",
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      raceCountryCode: "BE",
+      riders: [local, visitor],
+    });
+    const resolvedLocal = result.resolvedRiders.find(
+      (rider) => rider.id === local.id
+    )!;
+    const resolvedVisitor = result.resolvedRiders.find(
+      (rider) => rider.id === visitor.id
+    )!;
+
+    expect(resolvedLocal.localRaceBonus).toBe(2);
+    expect(resolvedVisitor.localRaceBonus).toBe(0);
+    expect(resolvedLocal.ratings).toEqual(local.ratings);
   });
 
   it("génère de manière déterministe crevaisons, bordures et chutes", () => {
@@ -312,27 +424,60 @@ function createHillyTestRider(
   return {
     id: `${archetype}-${index}`,
     name: `${archetype} ${index}`,
-    teamId: `${archetype}-team-${index}`,
-    teamName: `${archetype} team ${index}`,
+    teamId: `hilly-team-${index}`,
+    teamName: `hilly team ${index}`,
     teamPrimaryColor: "#176951",
     teamSecondaryColor: "#FFFDF4",
     age: 26,
-    form: 82,
-    role: isPuncher ? "leader" : "free_agent",
+    form: 75,
+    role: "auto",
     ratings: {
-      flat: isPuncher ? 70 : 82,
-      mountain: isPuncher ? 74 : 70,
-      hills: isPuncher ? 90 - index : 76,
-      cobbles: 70,
-      downhill: isPuncher ? 67 : 86,
-      sprint: isPuncher ? 72 : 70,
-      acceleration: isPuncher ? 90 - index : 80,
-      timeTrial: 70,
-      prologue: 70,
-      endurance: isPuncher ? 78 : 88,
-      resistance: isPuncher ? 80 : 86,
-      recovery: 75,
-      breakaway: isPuncher ? 60 : 94,
+      flat: isPuncher ? 49 : 55,
+      mountain: isPuncher ? 56 : 52,
+      hills: isPuncher ? 64 : 57,
+      cobbles: isPuncher ? 43 : 50,
+      downhill: isPuncher ? 54 : 56,
+      sprint: isPuncher ? 54 : 50,
+      acceleration: isPuncher ? 62 : 54,
+      timeTrial: isPuncher ? 46 : 52,
+      prologue: isPuncher ? 48 : 50,
+      endurance: isPuncher ? 56 : 61,
+      resistance: isPuncher ? 55 : 59,
+      recovery: isPuncher ? 55 : 56,
+      breakaway: isPuncher ? 60 : 65,
+    },
+  };
+}
+
+function createSelectionTestRider(
+  id: string,
+  overrides: Partial<RiderSimulationInput["ratings"]>
+): RiderSimulationInput {
+  return {
+    id,
+    name: id,
+    teamId: `team-${id}`,
+    teamName: `team ${id}`,
+    teamPrimaryColor: "#176951",
+    teamSecondaryColor: "#FFFDF4",
+    age: 26,
+    form: 75,
+    role: "leader",
+    ratings: {
+      flat: 60,
+      mountain: 60,
+      hills: 60,
+      cobbles: 60,
+      downhill: 60,
+      sprint: 60,
+      acceleration: 60,
+      timeTrial: 60,
+      prologue: 60,
+      endurance: 60,
+      resistance: 60,
+      recovery: 60,
+      breakaway: 55,
+      ...overrides,
     },
   };
 }

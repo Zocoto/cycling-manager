@@ -116,10 +116,12 @@ export function getRaceSimulationProfileNote({
   rider,
   segments,
   stageType,
+  profileType,
 }: {
   rider: RiderSimulationInput;
   segments: RaceStageSegment[];
   stageType: SimulationStageType;
+  profileType: RaceProfileType;
 }) {
   const distance = Math.max(
     1,
@@ -140,7 +142,13 @@ export function getRaceSimulationProfileNote({
         terrainRating * 0.27 +
         rider.ratings.endurance * 0.1 +
         rider.form * 0.05
-      : terrainRating * 0.75 +
+      : profileType === "hilly"
+        ? rider.ratings.hills * 0.5 +
+          rider.ratings.acceleration * 0.22 +
+          rider.ratings.resistance * 0.1 +
+          rider.ratings.endurance * 0.1 +
+          rider.form * 0.08
+        : terrainRating * 0.75 +
         rider.ratings.endurance * 0.15 +
         rider.form * 0.1;
 

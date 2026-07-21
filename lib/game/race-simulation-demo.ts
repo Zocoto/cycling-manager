@@ -82,6 +82,7 @@ export function createDemoSimulationInput(
     id: scenario.id,
     name: scenario.name,
     stageType: scenario.stageType,
+    profileType: scenario.profileType,
     isStageRace: scenario.isStageRace,
     seed,
     segments: buildRaceSegments({
@@ -123,6 +124,8 @@ export function createCalendarSimulationInput({
         ? `${edition.name} — étape ${stage.stageNumber}`
         : edition.name,
     stageType: stage.stageType,
+    profileType: stage.profileType,
+    raceCountryCode: edition.countryCode,
     isStageRace: edition.raceFormat === "stage_race",
     seed,
     segments:

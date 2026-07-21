@@ -31,11 +31,13 @@ describe("race simulator diagnostics", () => {
       rider,
       segments: input.segments,
       stageType: input.stageType,
+      profileType: input.profileType,
     });
     const second = getRaceSimulationProfileNote({
       rider,
       segments: input.segments,
       stageType: input.stageType,
+      profileType: input.profileType,
     });
 
     expect(first).toBe(second);
