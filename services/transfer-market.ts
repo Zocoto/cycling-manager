@@ -12,7 +12,10 @@ import {
   calculateMinimumNextBid,
   calculateWeeklySalary,
 } from "@/lib/game/transfer-market";
-import type { RiderRatings } from "@/lib/game/rider-profile";
+import {
+  getRiderSportingProfile,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -599,7 +602,7 @@ async function loadMarketRiders(
       age: rating.age,
       overall: calculateOverall(ratings),
       ratings,
-      profileLabel: getProfileLabel(ratings),
+      profileLabel: getRiderSportingProfile(ratings),
     } satisfies TransferMarketRider];
   });
 }
@@ -675,18 +678,6 @@ function calculateOverall(ratings: RiderRatings) {
 function calculateSalaryApproximation(overall: number) {
   const talentFactor = Math.max(0, (overall - 45) / 55);
   return Math.round(Math.min(150_000, 2_500 + talentFactor ** 2 * 100_000) / 100) * 100;
-}
-
-function getProfileLabel(ratings: RiderRatings) {
-  const profiles = [
-    ["Grimpeur", ratings.mountain],
-    ["Puncheur", ratings.hills],
-    ["Sprinteur", ratings.sprint],
-    ["Rouleur", Math.max(ratings.flat, ratings.timeTrial)],
-    ["Flandrien", ratings.cobbles],
-    ["Baroudeur", ratings.breakaway],
-  ] as const;
-  return [...profiles].sort((left, right) => right[1] - left[1])[0]![0];
 }
 
 function formatParisDate(date: Date) {

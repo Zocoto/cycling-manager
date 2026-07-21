@@ -38,7 +38,7 @@ describe("rider profile radar", () => {
     ).toBe("10.12,20.13 30,40");
   });
 
-  it("updates the sporting profile when the current ratings evolve", () => {
+  it("keeps every qualifying specialty when the current ratings evolve", () => {
     const breakawayRider = createRatings({
       breakaway: 66,
       endurance: 62,
@@ -53,7 +53,41 @@ describe("rider profile radar", () => {
         cobbles: 68,
         resistance: 64,
       })
-    ).toBe("Spécialiste des pavés");
+    ).toBe("Spécialiste des pavés / Baroudeur");
+  });
+
+  it("shows two or three hybrid specialties ordered by their main rating", () => {
+    const hybridRider = createRatings({
+      mountain: 69,
+      hills: 67,
+      acceleration: 65,
+      sprint: 66,
+    });
+
+    expect(getRiderSportingProfile(hybridRider)).toBe(
+      "Grimpeur / Puncheur / Sprinteur"
+    );
+    expect(
+      getRiderSportingProfile({
+        ...hybridRider,
+        mountain: 60,
+      })
+    ).toBe("Puncheur / Sprinteur");
+  });
+
+  it("uses the complete-rider label beyond three qualifying specialties", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 69,
+          hills: 67,
+          acceleration: 65,
+          sprint: 66,
+          cobbles: 68,
+          resistance: 62,
+        })
+      )
+    ).toBe("Coureur complet");
   });
 });
 
