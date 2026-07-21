@@ -72,10 +72,10 @@ export function GameHeader({
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
-            <WheelLogo colors={colors} className="h-11 w-11" />
+            <WheelLogo colors={colors} className="h-12 w-12" />
           </span>
 
-          <span className="inline-flex h-11 flex-col justify-between leading-none">
+          <span className="inline-flex h-11 -translate-y-[3px] flex-col justify-between leading-none">
             <span
               aria-hidden="true"
               className="-mt-[2px] flex justify-between text-2xl font-extrabold uppercase"
