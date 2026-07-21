@@ -671,6 +671,13 @@ function TeamAmateurIdentityBanner({
             Équipe amateur affiliée à {identity.homeCountryName}. Ce maillot
             est utilisé tant qu’aucun sponsor principal n’est actif.
           </p>
+          <Link
+            href="/jeu/maillot"
+            className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0F5944] hover:shadow-md"
+          >
+            Modifier le maillot
+            <span className="ml-2" aria-hidden="true">→</span>
+          </Link>
         </div>
         <div className="flex justify-center">
           <AmateurTeamJersey

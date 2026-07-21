@@ -24,6 +24,26 @@ describe("maillot contextuel du portrait", () => {
     });
   });
 
+  it("propage les nouveaux motifs jusque sur les avatars", () => {
+    expect(
+      createAmateurRiderJersey({
+        pattern: "chevron",
+        primaryColor: "#123456",
+        secondaryColor: "#ABCDEF",
+        accentColor: "#FEDCBA",
+      }).pattern
+    ).toBe("chevron");
+
+    expect(
+      createAmateurRiderJersey({
+        pattern: "checkerboard",
+        primaryColor: "#123456",
+        secondaryColor: "#ABCDEF",
+        accentColor: "#FEDCBA",
+      }).pattern
+    ).toBe("checkerboard");
+  });
+
   it("convertit le style du sponsor pour le buste du portrait", () => {
     expect(
       createSponsoredRiderJersey({

@@ -124,6 +124,7 @@ type ManagementModuleIcon =
   | "finance"
   | "ranking"
   | "equipment"
+  | "jersey"
   | "staff"
   | "infrastructure";
 
@@ -440,6 +441,14 @@ export default async function GamePage() {
               title="Matériel"
               status="Catalogue ouvert"
               description="Achetez casques, textiles, lunettes, chaussures, roues et cadres, puis attribuez-les à vos coureurs."
+            />
+
+            <ManagementModuleCard
+              href="/jeu/maillot"
+              icon="jersey"
+              title="Atelier du maillot"
+              status="12 motifs disponibles"
+              description="Modifiez librement le motif et les trois couleurs de votre identité amateur, avec aperçu immédiat sur les avatars."
             />
 
             <ManagementModuleCard
@@ -1550,6 +1559,13 @@ function ManagementModuleIcon({
         <circle cx="7" cy="17" r="3" />
         <circle cx="17" cy="17" r="3" />
         <path d="M7 17 11 8h4l2 9M9 13h7M11 8 9 5h4" />
+      </>
+    ),
+
+    jersey: (
+      <>
+        <path d="m8 4-5 3 2 5 3-2v10h8V10l3 2 2-5-5-3-2 3h-4L8 4Z" />
+        <path d="M10 7v13M14 7v13M8 13h8" />
       </>
     ),
 

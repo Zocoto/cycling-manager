@@ -127,7 +127,7 @@ export function AmateurTeamCreationForm({
 
         <fieldset>
           <legend className="text-sm font-bold text-[#183F37]">Motif du maillot</legend>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {AMATEUR_JERSEY_PATTERNS.map((availablePattern) => (
               <button
                 key={availablePattern}
@@ -137,11 +137,18 @@ export function AmateurTeamCreationForm({
                 onClick={() => setPattern(availablePattern)}
                 className={
                   pattern === availablePattern
-                    ? "rounded-xl border-2 border-[#278B70] bg-[#DFF4EC] px-4 py-3 text-left text-sm font-black text-[#176951]"
-                    : "rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-left text-sm font-bold text-[#48665F] transition hover:border-[#278B70]/50"
+                    ? "flex min-h-24 items-center gap-3 rounded-xl border-2 border-[#278B70] bg-[#DFF4EC] px-3 py-2 text-left text-sm font-black text-[#176951]"
+                    : "flex min-h-24 items-center gap-3 rounded-xl border border-[#315B3E]/20 bg-white px-3 py-2 text-left text-sm font-bold text-[#48665F] transition hover:border-[#278B70]/50"
                 }
               >
-                {AMATEUR_JERSEY_PATTERN_LABELS[availablePattern]}
+                <AmateurTeamJersey
+                  jersey={{
+                    ...jersey,
+                    pattern: availablePattern,
+                  }}
+                  className="h-20 w-16 shrink-0 drop-shadow-md"
+                />
+                <span>{AMATEUR_JERSEY_PATTERN_LABELS[availablePattern]}</span>
               </button>
             ))}
           </div>
@@ -166,7 +173,7 @@ export function AmateurTeamCreationForm({
         </fieldset>
 
         <div className="rounded-xl border border-[#D5B13E]/35 bg-[#FFF9DE] px-4 py-4 text-sm leading-6 text-[#705E23]">
-          Le pays est définitif. Le nom et le maillot sont validés comme identité fondatrice de l’équipe ; leur modification ultérieure sera cadrée dans une évolution dédiée.
+          Le pays reste définitif et le nom constitue l’identité fondatrice de l’équipe. Le maillot pourra ensuite évoluer librement depuis l’atelier dédié.
         </div>
 
         <button

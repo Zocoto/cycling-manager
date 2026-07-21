@@ -409,7 +409,7 @@ export async function createAmateurTeam(
   }
 
   const { data: careerGenerationData, error: careerGenerationError } =
-    await supabase.rpc("initialize_sporting_director_career", {
+    await supabase.rpc("initialize_sporting_director_career_v2", {
       p_rider_identities: riderIdentities,
       p_team_name: validationResult.data.teamName,
       p_team_country_id: validationResult.data.countryId,

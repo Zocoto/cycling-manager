@@ -6,7 +6,15 @@ export type RiderJerseyPattern =
   | "diagonal"
   | "hoops"
   | "solid"
-  | "split";
+  | "split"
+  | "vertical"
+  | "chevron"
+  | "quarters"
+  | "cross"
+  | "shoulders"
+  | "checkerboard"
+  | "wave"
+  | "pinstripes";
 
 export type RiderJerseyAppearance = {
   primaryColor: string;

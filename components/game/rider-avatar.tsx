@@ -242,6 +242,86 @@ function JerseyPattern({
         </>
       ) : null}
 
+      {jersey.pattern === "vertical" ? (
+        <>
+          <rect x="34" y="66" width="9" height="32" fill={jersey.secondaryColor} />
+          <rect x="53" y="66" width="9" height="32" fill={jersey.secondaryColor} />
+          <rect x="46" y="66" width="4" height="32" fill={jersey.accentColor} />
+        </>
+      ) : null}
+
+      {jersey.pattern === "chevron" ? (
+        <>
+          <path d="M8 76 48 96 88 76v8L48 104 8 84Z" fill={jersey.secondaryColor} />
+          <path d="M8 80 48 100 88 80" fill="none" stroke={jersey.accentColor} strokeWidth="3" />
+        </>
+      ) : null}
+
+      {jersey.pattern === "quarters" ? (
+        <>
+          <rect x="0" y="64" width="48" height="17" fill={jersey.secondaryColor} />
+          <rect x="48" y="81" width="48" height="17" fill={jersey.secondaryColor} />
+          <path d="M48 64v34M0 81h96" stroke={jersey.accentColor} strokeWidth="3" />
+        </>
+      ) : null}
+
+      {jersey.pattern === "cross" ? (
+        <>
+          <rect x="38" y="64" width="13" height="34" fill={jersey.secondaryColor} />
+          <rect x="0" y="78" width="96" height="12" fill={jersey.secondaryColor} />
+          <path d="M44.5 64v34M0 84h96" stroke={jersey.accentColor} strokeWidth="4" />
+        </>
+      ) : null}
+
+      {jersey.pattern === "shoulders" ? (
+        <>
+          <path d="M0 64h96v17c-20 7-32 8-48 8s-28-1-48-8Z" fill={jersey.secondaryColor} />
+          <path d="M0 80c20 7 32 8 48 8s28-1 48-8" fill="none" stroke={jersey.accentColor} strokeWidth="3" />
+        </>
+      ) : null}
+
+      {jersey.pattern === "checkerboard" ? (
+        <>
+          {[0, 1, 2].flatMap((row) =>
+            [0, 1, 2, 3].map((column) =>
+              (row + column) % 2 === 0 ? (
+                <rect
+                  key={`${row}-${column}`}
+                  x={24 + column * 12}
+                  y={67 + row * 10}
+                  width="12"
+                  height="10"
+                  fill={jersey.secondaryColor}
+                />
+              ) : null
+            )
+          )}
+          <path d="M24 67h48v30H24Z" fill="none" stroke={jersey.accentColor} strokeWidth="2" />
+        </>
+      ) : null}
+
+      {jersey.pattern === "wave" ? (
+        <>
+          <path d="M0 76c20-13 32 13 49 0s30 13 47 0v17c-17 13-30-13-47 0S20 80 0 93Z" fill={jersey.secondaryColor} />
+          <path d="M0 84c20-13 32 13 49 0s30 13 47 0" fill="none" stroke={jersey.accentColor} strokeWidth="3" />
+        </>
+      ) : null}
+
+      {jersey.pattern === "pinstripes" ? (
+        <>
+          {[24, 34, 44, 54, 64].map((x, index) => (
+            <rect
+              key={x}
+              x={x}
+              y="65"
+              width="2.5"
+              height="33"
+              fill={index === 2 ? jersey.accentColor : jersey.secondaryColor}
+            />
+          ))}
+        </>
+      ) : null}
+
       {jersey.pattern === "solid" ? (
         <path
           d="M 7 91 Q 20 78 36 75 M 89 91 Q 76 78 60 75"

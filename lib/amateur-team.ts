@@ -3,6 +3,14 @@ export const AMATEUR_JERSEY_PATTERNS = [
   "diagonal",
   "hoops",
   "split",
+  "vertical",
+  "chevron",
+  "quarters",
+  "cross",
+  "shoulders",
+  "checkerboard",
+  "wave",
+  "pinstripes",
 ] as const;
 
 export type AmateurJerseyPattern =
@@ -30,6 +38,14 @@ export const AMATEUR_JERSEY_PATTERN_LABELS: Record<
   diagonal: "Diagonale",
   hoops: "Bandes horizontales",
   split: "Bicolore",
+  vertical: "Bandes verticales",
+  chevron: "Chevron",
+  quarters: "Quartiers",
+  cross: "Croix",
+  shoulders: "Épaules contrastées",
+  checkerboard: "Damier",
+  wave: "Vague",
+  pinstripes: "Fines rayures",
 };
 
 export function isAmateurJerseyPattern(

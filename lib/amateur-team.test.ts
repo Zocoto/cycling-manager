@@ -11,6 +11,9 @@ describe("amateur team jersey rules", () => {
   it("recognizes the supported patterns", () => {
     expect(isAmateurJerseyPattern("classic")).toBe(true);
     expect(isAmateurJerseyPattern("diagonal")).toBe(true);
+    expect(isAmateurJerseyPattern("chevron")).toBe(true);
+    expect(isAmateurJerseyPattern("checkerboard")).toBe(true);
+    expect(isAmateurJerseyPattern("pinstripes")).toBe(true);
     expect(isAmateurJerseyPattern("custom-upload")).toBe(false);
   });
 
