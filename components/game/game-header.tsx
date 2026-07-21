@@ -10,6 +10,8 @@ import {
   GLOBAL_SEARCH_MAX_LENGTH,
   GLOBAL_SEARCH_MIN_LENGTH,
 } from "@/lib/game/global-search";
+import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type GameHeaderProps = {
   displayName?: string;
@@ -179,6 +181,8 @@ export function GameHeader({
             </span>
           ) : null}
 
+          <RaceSimulatorShortcut />
+
           <form action={logoutAccount}>
             <button
               type="submit"
@@ -190,5 +194,46 @@ export function GameHeader({
         </div>
       </div>
     </header>
+  );
+}
+
+async function RaceSimulatorShortcut() {
+  let email: string | null | undefined;
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    email = user?.email;
+  } catch (error) {
+    console.error("Impossible de vérifier l’accès au simulateur :", error);
+  }
+
+  if (!canAccessRaceSimulator(email)) {
+    return null;
+  }
+
+  return (
+    <Link
+      href="/jeu/simulateur-course"
+      className="group inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#72D4B7]/40 bg-[#72D4B7]/10 px-3 py-2 text-xs font-extrabold uppercase tracking-widest text-[#9BE0CA] transition hover:border-[#72D4B7] hover:bg-[#72D4B7] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7]"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+        fill="none"
+        className="h-4 w-4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M4 16h12M6 16l1-9h6l1 9" />
+        <path d="M8 7V4h4v3M8 11h4" />
+      </svg>
+      <span className="hidden xl:inline">Simulateur</span>
+      <span className="xl:hidden">Lab</span>
+    </Link>
   );
 }
