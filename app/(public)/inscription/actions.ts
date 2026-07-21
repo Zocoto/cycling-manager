@@ -123,6 +123,15 @@ export async function registerAccount(
       };
     }
 
+    if (error.code === "email_address_not_authorized") {
+      return {
+        status: "error",
+        message:
+          "L’e-mail de confirmation n’a pas pu être envoyé à cette adresse. Réessaie dans quelques instants ou contacte l’assistance.",
+        fieldErrors: {},
+      };
+    }
+
     if (error.code === "over_email_send_rate_limit") {
       return {
         status: "error",

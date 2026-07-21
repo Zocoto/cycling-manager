@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Réinitialisez votre mot de passe</title>
+  </head>
+  <body style="margin:0;padding:32px 16px;background:#eaf5f3;color:#082a2a;font-family:Arial,Helvetica,sans-serif">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;overflow:hidden;border-radius:16px;background:#0b302b;color:#fffdf4;box-shadow:0 20px 50px rgba(7,26,23,.22)">
+            <tr>
+              <td style="height:5px;background:#f2c94c;font-size:0;line-height:0">&nbsp;</td>
+            </tr>
+            <tr>
+              <td style="padding:40px 32px">
+                <p style="margin:0;color:#7ccf9c;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Cyclo Stratège</p>
+                <h1 style="margin:14px 0 0;color:#fffdf4;font-size:30px;line-height:1.2">Choisissez un nouveau mot de passe</h1>
+                <p style="margin:24px 0 0;color:#bfd1c6;font-size:16px;line-height:1.7">
+                  Une demande de réinitialisation a été effectuée pour votre compte. Utilisez le bouton ci-dessous pour choisir un nouveau mot de passe.
+                </p>
+                <p style="margin:30px 0">
+                  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;border-radius:8px;background:#f2c94c;color:#071a17;font-size:14px;font-weight:800;letter-spacing:1px;padding:15px 22px;text-decoration:none;text-transform:uppercase">
+                    Réinitialiser mon mot de passe
+                  </a>
+                </p>
+                <p style="margin:0;color:#9fb5a8;font-size:13px;line-height:1.6">
+                  Si vous n’êtes pas à l’origine de cette demande, ignorez ce message. Ce lien est personnel et ne doit être transmis à personne.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

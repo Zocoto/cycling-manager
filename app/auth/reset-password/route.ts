@@ -1,17 +1,13 @@
-import type { EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { getEmailCallbackCredentials } from "../../../lib/auth/email-callback";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
-
-  const tokenHash =
-    request.nextUrl.searchParams.get("token_hash");
-
-  const type = request.nextUrl.searchParams.get(
-    "type"
-  ) as EmailOtpType | null;
+  const credentials = getEmailCallbackCredentials(
+    request.nextUrl.searchParams,
+    "recovery"
+  );
 
   const redirectUrl = request.nextUrl.clone();
 
@@ -22,15 +18,15 @@ export async function GET(request: NextRequest) {
 
   let recoveryError: Error | null = null;
 
-  if (code) {
+  if (credentials?.strategy === "code") {
     const { error } =
-      await supabase.auth.exchangeCodeForSession(code);
+      await supabase.auth.exchangeCodeForSession(credentials.code);
 
     recoveryError = error;
-  } else if (tokenHash && type === "recovery") {
+  } else if (credentials?.strategy === "token-hash") {
     const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type,
+      token_hash: credentials.tokenHash,
+      type: credentials.type,
     });
 
     recoveryError = error;

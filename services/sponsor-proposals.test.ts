@@ -18,6 +18,51 @@ describe("generateSponsorProposals", () => {
     ).toBe(true);
   });
 
+  it("priorise les sponsors néerlandais pour un directeur néerlandais", () => {
+    const proposals = generateSponsorProposals({
+      directorCountryCode: "NL",
+      directorReputation: 100,
+    });
+
+    expect(proposals).toHaveLength(3);
+
+    expect(
+      proposals.every(
+        (proposal) => proposal.sponsor.countryCode === "NL"
+      )
+    ).toBe(true);
+  });
+
+  it("priorise les sponsors italiens pour un directeur italien", () => {
+    const proposals = generateSponsorProposals({
+      directorCountryCode: "IT",
+      directorReputation: 100,
+    });
+
+    expect(proposals).toHaveLength(3);
+
+    expect(
+      proposals.every(
+        (proposal) => proposal.sponsor.countryCode === "IT"
+      )
+    ).toBe(true);
+  });
+
+  it.each(["MA", "SN", "CI", "NG", "CM", "KE", "ET", "RW", "ZA", "MG", "GR"])(
+    "propose d’abord un sponsor national pour un directeur %s",
+    (directorCountryCode) => {
+      const proposals = generateSponsorProposals({
+        directorCountryCode,
+        directorReputation: 100,
+      });
+
+      expect(proposals).toHaveLength(3);
+      expect(proposals[0]?.sponsor.countryCode).toBe(
+        directorCountryCode
+      );
+    }
+  );
+
   it("propose des sponsors de pays voisins sans sponsor national", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "LU",
