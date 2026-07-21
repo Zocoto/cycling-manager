@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
 
-import { latestRelease } from "../../lib/releases";
+import { PublicGameNewsBoard } from "@/components/public/public-game-news-board";
+import { getPublicGameNews } from "@/services/public-game-news";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Accueil",
@@ -37,11 +40,13 @@ const gamePillars = [
   },
 ] as const;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const gameNews = await getPublicGameNews();
+
   return (
     <>
       <HeroSection />
-      <LatestReleaseSection />
+      <PublicGameNewsBoard snapshot={gameNews} />
       <CareerSection />
     </>
   );
@@ -118,112 +123,6 @@ function HeroSection() {
             </Link>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function LatestReleaseSection() {
-  return (
-    <section className="relative z-10 bg-[#F7FAF7] px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16">
-      <div className="mx-auto max-w-6xl">
-        <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/30 bg-[#0B302B] text-[#FFFDF4] shadow-[0_28px_80px_rgba(7,26,23,0.28)]">
-          <ReleaseWheel />
-
-          <div className="relative flex flex-col gap-5 border-b border-white/10 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#42B99A] text-[#071A17] shadow-lg shadow-black/20">
-                <StarIcon />
-              </span>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#7CCF9C]">
-                  Journal de développement
-                </p>
-
-                <h2 className="mt-1 text-xl font-extrabold">
-                  Dernières nouveautés
-                </h2>
-              </div>
-            </div>
-
-            <Link
-              href="/nouveautes"
-              className="inline-flex w-fit items-center gap-2 rounded-md text-sm font-bold text-[#7CCF9C] transition hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-            >
-              Voir toutes les mises à jour
-              <ArrowIcon />
-            </Link>
-          </div>
-
-          <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[300px_1fr_270px]">
-            <div
-              className="relative min-h-48 overflow-hidden rounded-xl border border-white/15 bg-cover bg-center shadow-lg"
-              style={{
-                backgroundImage: "url('/images/peloton-header.png')",
-              }}
-            >
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-linear-to-t from-[#071A17]/80 via-transparent to-transparent"
-              />
-
-              <span className="absolute left-4 top-4 rounded-md bg-[#F2C94C] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.12em] text-[#071A17]">
-                Nouveau
-              </span>
-
-              <p className="absolute bottom-4 left-4 right-4 text-sm font-semibold text-white">
-                Le développement de Cyclo Stratège est officiellement lancé.
-              </p>
-            </div>
-
-            <div className="flex flex-col justify-center">
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="rounded-md border border-[#42B99A]/45 bg-[#42B99A]/10 px-3 py-1 font-bold text-[#7CCF9C]">
-                  Version {latestRelease.version}
-                </span>
-
-                <span className="text-[#BFD1C6]">{latestRelease.date}</span>
-              </div>
-
-              <h3 className="mt-5 text-2xl font-extrabold tracking-tight sm:text-3xl">
-                {latestRelease.title}
-              </h3>
-
-              <p className="mt-4 max-w-2xl leading-7 text-[#D6DFD2]">
-                {latestRelease.description}
-              </p>
-
-              <Link
-                href="/nouveautes"
-                className="mt-6 inline-flex w-fit items-center gap-2 rounded-md font-bold text-[#F2C94C] transition hover:text-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-              >
-                Voir le détail
-                <ArrowIcon />
-              </Link>
-            </div>
-
-            <div className="border-t border-white/10 pt-6 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F2C94C]">
-                Fonctionnalités livrées
-              </p>
-
-              <ul className="mt-5 space-y-3">
-                {latestRelease.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#42B99A]/45 bg-[#42B99A]/10 text-xs font-black text-[#7CCF9C]">
-                      ✓
-                    </span>
-
-                    <span className="text-sm leading-6 text-[#D6DFD2]">
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </article>
       </div>
     </section>
   );
@@ -424,19 +323,6 @@ function FolderIcon() {
   );
 }
 
-function StarIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="currentColor"
-    >
-      <path d="m12 2.8 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 2.8Z" />
-    </svg>
-  );
-}
-
 function HeroMountainLines() {
   return (
     <svg
@@ -460,19 +346,6 @@ function HeroMountainLines() {
         opacity="0.4"
       />
     </svg>
-  );
-}
-
-function ReleaseWheel() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full border border-white/10 opacity-60"
-      style={{
-        background:
-          "repeating-conic-gradient(transparent 0deg 14deg, rgba(124,207,156,0.10) 14deg 15deg)",
-      }}
-    />
   );
 }
 
