@@ -36,6 +36,10 @@ import {
   getCurrentTeamFinanceOverview,
   type TeamFinanceOverview,
 } from "../../services/team-finances";
+import {
+  getCurrentTeamInventoryOverview,
+  type TeamInventoryOverview,
+} from "../../services/team-inventory";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -225,6 +229,17 @@ export default async function GamePage() {
     );
   }
 
+  let inventoryOverview: TeamInventoryOverview | null = null;
+
+  try {
+    inventoryOverview = await getCurrentTeamInventoryOverview(user.id);
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer l’inventaire de l’équipe :",
+      error
+    );
+  }
+
   const sportingDirector =
     profileResult.data;
 
@@ -341,20 +356,27 @@ export default async function GamePage() {
         <MountainDecoration />
 
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <header className="max-w-3xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
-              Bureau du Directeur Sportif
-            </p>
+          <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
+                Bureau du Directeur Sportif
+              </p>
 
-            <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
-              Bonjour, {displayName}.
-            </h1>
+              <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+                Bonjour, {displayName}.
+              </h1>
 
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-              Suivez l’état de votre équipe,
-              votre progression et les principaux
-              domaines de votre carrière.
-            </p>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
+                Suivez l’état de votre équipe,
+                votre progression et les principaux
+                domaines de votre carrière.
+              </p>
+            </div>
+
+            <InventoryShortcut
+              totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
+              availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
+            />
           </header>
 
           {!sportingDirector ? (
@@ -1178,6 +1200,49 @@ function RaceOperationsCard() {
   );
 }
 
+function InventoryShortcut({
+  totalUnits,
+  availableUnits,
+}: {
+  totalUnits: number;
+  availableUnits: number;
+}) {
+  return (
+    <Link
+      href="/jeu/inventaire"
+      className="group w-full rounded-2xl border border-[#315B3E]/15 bg-white/75 p-3.5 shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] sm:w-auto sm:min-w-64"
+    >
+      <span className="flex items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0B302B] text-[#9BE0BC]">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-6 w-6"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 8 12 4l8 4-8 4-8-4Z" />
+            <path d="m4 8 1 9 7 3 7-3 1-9M12 12v8" />
+          </svg>
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center justify-between gap-4">
+            <span className="text-sm font-black text-[#183F37]">Inventaire</span>
+            <span className="text-[#176951] transition-transform group-hover:translate-x-0.5">→</span>
+          </span>
+          <span className="mt-1 block text-xs font-bold text-[#60756E]">
+            {formatInventoryUnits(totalUnits)} · {availableUnits} disponible{availableUnits > 1 ? "s" : ""}
+          </span>
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 function ManagementModuleCard({
   href,
   icon,
@@ -1241,6 +1306,10 @@ function ManagementModuleCard({
       {content}
     </article>
   );
+}
+
+function formatInventoryUnits(value: number) {
+  return `${value} objet${value > 1 ? "s" : ""}`;
 }
 
 function ArrowRightIcon() {
