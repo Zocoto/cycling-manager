@@ -9,6 +9,7 @@ import {
   getRatingProgressFactor,
   getSeasonDeclinePoints,
   getSeasonRatingGainCap,
+  getSkippedTrainingFormDelta,
   getTrainerMultiplier,
   getTrainingDomainWeight,
   getTrainingFormDelta,
@@ -32,6 +33,12 @@ describe("training form", () => {
     expect([0, 25, 50, 60, 70, 80, 90, 100].map(getTrainingFormDelta)).toEqual([
       2, 1, 0, -5, -10, -15, -20, -25,
     ]);
+  });
+
+  it("restores two form points only when the DS threshold cancels training", () => {
+    expect(getSkippedTrainingFormDelta("skipped_low_form")).toBe(2);
+    expect(getSkippedTrainingFormDelta("skipped_injury")).toBe(0);
+    expect(getSkippedTrainingFormDelta("skipped_form_camp")).toBe(0);
   });
 });
 

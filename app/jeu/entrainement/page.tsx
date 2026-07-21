@@ -16,6 +16,7 @@ import {
 } from "@/lib/game/rider-profile";
 import {
   formatTrainingProgressMilli,
+  LOW_FORM_REST_GAIN,
   TRAINING_DOMAIN_LABELS,
 } from "@/lib/game/training";
 import {
@@ -116,12 +117,22 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-11">
-        {query.erreur ? <Alert tone="error">{query.erreur}</Alert> : null}
-        {query.seuil || query.programme ? (
-          <Alert tone="success">
-            Le réglage est enregistré et prendra effet {query.effet ?? "à la prochaine séance"}.
-          </Alert>
-        ) : null}
+        <Link
+          href="/jeu"
+          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+        >
+          <span aria-hidden="true">←</span>
+          Retour au bureau du DS
+        </Link>
+
+        <div className="mt-6">
+          {query.erreur ? <Alert tone="error">{query.erreur}</Alert> : null}
+          {query.seuil || query.programme ? (
+            <Alert tone="success">
+              Le réglage est enregistré et prendra effet {query.effet ?? "à la prochaine séance"}.
+            </Alert>
+          ) : null}
+        </div>
 
         <header className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9">
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.75fr)] xl:items-end">
@@ -136,6 +147,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                 Chaque séance est réglée à 8 h, heure de Paris. Une modification faite après
                 8 h s’applique au lendemain. Un coureur engagé en course peut s’entraîner le
                 matin ; une blessure ou un stage de forme le rend indisponible.
+                Si sa forme est sous le seuil fixé par le DS, il se repose et récupère
+                automatiquement {LOW_FORM_REST_GAIN} points de forme.
               </p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
                 <span className="rounded-full bg-white/10 px-3 py-2 text-[#FFF4C5]">
@@ -337,6 +350,8 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
   }
 
   const isCompleted = report.status === "completed";
+  const isLowFormRest = report.status === "skipped_low_form";
+  const displaysFormChange = isCompleted || isLowFormRest;
   const ratingChanges = sortStatEntries(report.ratingChanges).filter(
     ([, value]) => value !== 0,
   );
@@ -370,7 +385,7 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                 : "bg-[#278B70]/25 text-[#9BE0BC]"
             }`}
           >
-            {isCompleted ? (
+            {displaysFormChange ? (
               <>
                 Forme {report.formDelta > 0 ? "+" : ""}
                 {report.formDelta}
@@ -428,9 +443,13 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
           </div>
         ) : (
           <div className="mt-4 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-4 py-3">
-            <p className="text-xs font-black text-[#FFF4C5]">Pas d’entraînement</p>
+            <p className="text-xs font-black text-[#FFF4C5]">
+              {isLowFormRest ? "Repos automatique" : "Pas d’entraînement"}
+            </p>
             <p className="mt-1 text-xs font-bold leading-5 text-[#D6DFD2]">
-              Aucun gain d’entraînement n’a été crédité pendant la séance de 8 h.
+              {isLowFormRest
+                ? `Aucun gain de statistique, mais ${LOW_FORM_REST_GAIN} points de forme récupérés.`
+                : "Aucun gain d’entraînement n’a été crédité pendant la séance de 8 h."}
             </p>
           </div>
         )}

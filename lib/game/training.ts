@@ -30,6 +30,12 @@ export const TRAINING_DOMAIN_LABELS: Record<TrainingDomain, string> = {
 
 export const POTENTIAL_MIN_STEPS = 1;
 export const POTENTIAL_MAX_STEPS = 8;
+export const LOW_FORM_REST_GAIN = 2;
+
+export type SkippedTrainingStatus =
+  | "skipped_low_form"
+  | "skipped_injury"
+  | "skipped_form_camp";
 
 export type TrainerSpecialty =
   | "mountain"
@@ -92,6 +98,12 @@ export function getTrainingFormDelta(intensity: number): number {
     return Math.round(2 * (1 - normalized / 50));
   }
   return -Math.round((normalized - 50) / 2);
+}
+
+export function getSkippedTrainingFormDelta(
+  status: SkippedTrainingStatus,
+): number {
+  return status === "skipped_low_form" ? LOW_FORM_REST_GAIN : 0;
 }
 
 export function getTrainingDomainWeight(
