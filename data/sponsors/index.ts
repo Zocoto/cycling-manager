@@ -6,6 +6,7 @@ import { BELGIAN_SPONSORS } from "./belgium";
 import { FRENCH_SPONSORS } from "./france";
 import { GREEK_SPONSORS } from "./greece";
 import { ITALIAN_SPONSORS } from "./italy";
+import { JAPANESE_SPONSORS } from "./japan";
 import { DUTCH_SPONSORS } from "./netherlands";
 import { SPANISH_SPONSORS } from "./spain";
 import { AMERICAN_SPONSORS } from "./united-states";
@@ -20,4 +21,5 @@ export const SPONSORS = [
   ...BALTIC_SPONSORS,
   ...SPANISH_SPONSORS,
   ...AMERICAN_SPONSORS,
+  ...JAPANESE_SPONSORS,
 ] satisfies readonly Sponsor[];
