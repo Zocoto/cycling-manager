@@ -1,6 +1,10 @@
 import "server-only";
 
-import { calculateRaceReward, type RaceRewardScope } from "@/lib/game/economy";
+import {
+  calculateRaceReward,
+  calculateStagePrize,
+  type RaceRewardScope,
+} from "@/lib/game/economy";
 import type {
   RaceCalendarEdition,
   RaceCalendarStage,
@@ -689,6 +693,16 @@ async function persistRaceClassification({
     .upsert(rows, { onConflict: "race_edition_id,race_roster_id" });
   assertQuery(error, `le classement final de ${edition.name}`);
 
+  if (edition.raceFormat === "stage_race") {
+    await persistStagePrizeRewards({
+      admin,
+      edition,
+      finalStage,
+      simulations,
+      rosterByRiderId,
+    });
+  }
+
   const secondaryWinners = standings
     ? new Map<string, Array<"mountain" | "sprint" | "youth" | "team">>(
         general.map((result) => [result.riderId, []])
@@ -803,6 +817,68 @@ async function persistRaceClassification({
       sandwichRewardError,
       `le bonus Homme Sandwich de ${rider.name}`
     );
+  }
+}
+
+async function persistStagePrizeRewards({
+  admin,
+  edition,
+  finalStage,
+  simulations,
+  rosterByRiderId,
+}: {
+  admin: AdminClient;
+  edition: RaceCalendarEdition;
+  finalStage: RaceCalendarStage;
+  simulations: StageSimulationResult[];
+  rosterByRiderId: Map<string, RosterContext>;
+}) {
+  const stageById = new Map(
+    edition.stages.map((stage) => [stage.id, stage] as const)
+  );
+
+  for (const simulation of simulations) {
+    const stage = stageById.get(simulation.stageId);
+    if (!stage) {
+      throw new Error(
+        `L'étape ${simulation.stageId} est absente de ${edition.name}.`
+      );
+    }
+
+    for (const result of simulation.results) {
+      if (result.status !== "finished") continue;
+
+      const cashPrize = calculateStagePrize({
+        tier: edition.categoryCode,
+        finalRank: result.rank,
+      });
+      if (cashPrize === 0) continue;
+
+      const roster = requireRoster(rosterByRiderId, result.riderId);
+      const placement = result.rank === 1
+        ? "Victoire d'étape"
+        : `${result.rank}e place`;
+      const { error: rewardError } = await admin.rpc(
+        "apply_race_roster_competition_reward",
+        {
+          p_source_reference: `official-stage-prize:${edition.id}:stage:${stage.id}:rider:${result.riderId}:v1`,
+          p_source_type: "stage_result",
+          p_race_roster_id: roster.rosterId,
+          // Toutes les primes sont comptabilisées au jour de la dernière étape.
+          p_stage_id: finalStage.id,
+          p_reputation_points: 0,
+          p_experience_points: 0,
+          p_cash_prize: cashPrize,
+          p_uci_points: 0,
+          p_is_victory: false,
+          p_description: `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${placement} (versée en fin de tour)`,
+        }
+      );
+      assertQuery(
+        rewardError,
+        `la prime d'étape de ${stage.name} pour ${result.riderId}`
+      );
+    }
   }
 }
 

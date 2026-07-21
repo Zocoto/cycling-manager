@@ -24,6 +24,11 @@ export type RaceReward = {
   uciPoints: number;
 };
 
+export type StagePrizeInput = {
+  tier: RaceTier;
+  finalRank: number | null;
+};
+
 type PlacementRule = {
   maxRank: number;
   reputation: number;
@@ -41,6 +46,40 @@ type RewardScale = {
   primeExperience: number;
   primeCashPrize: number;
   primeUciPoints: number;
+};
+
+type StagePrizeRule = {
+  maxRank: number;
+  cashPrize: number;
+};
+
+const STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
+  national: [
+    { maxRank: 1, cashPrize: 600 },
+    { maxRank: 2, cashPrize: 350 },
+    { maxRank: 3, cashPrize: 200 },
+    { maxRank: 5, cashPrize: 100 },
+  ],
+  continental: [
+    { maxRank: 1, cashPrize: 1_800 },
+    { maxRank: 2, cashPrize: 1_000 },
+    { maxRank: 3, cashPrize: 600 },
+    { maxRank: 5, cashPrize: 250 },
+  ],
+  world: [
+    { maxRank: 1, cashPrize: 5_000 },
+    { maxRank: 2, cashPrize: 3_000 },
+    { maxRank: 3, cashPrize: 1_800 },
+    { maxRank: 5, cashPrize: 750 },
+    { maxRank: 10, cashPrize: 250 },
+  ],
+  elite: [
+    { maxRank: 1, cashPrize: 12_000 },
+    { maxRank: 2, cashPrize: 7_000 },
+    { maxRank: 3, cashPrize: 4_000 },
+    { maxRank: 5, cashPrize: 1_800 },
+    { maxRank: 10, cashPrize: 500 },
+  ],
 };
 
 const REWARD_SCALES: Record<RaceTier, Record<RaceRewardScope, RewardScale>> = {
@@ -250,6 +289,24 @@ export function calculateRaceReward(input: RaceRewardInput): RaceReward {
       + secondaryCount * scale.secondaryUciPoints
       + primeCount * scale.primeUciPoints,
   };
+}
+
+/**
+ * Prime purement financière d'un classement d'étape. Elle est volontairement
+ * inférieure à la récompense du classement général et ne donne ni réputation,
+ * ni expérience, ni points UCI supplémentaires.
+ */
+export function calculateStagePrize({
+  tier,
+  finalRank,
+}: StagePrizeInput): number {
+  if (finalRank === null || !Number.isFinite(finalRank) || finalRank < 1) {
+    return 0;
+  }
+
+  return STAGE_PRIZE_SCALES[tier].find(
+    (placement) => finalRank <= placement.maxRank
+  )?.cashPrize ?? 0;
 }
 
 export function calculateRiderSeasonSalary({

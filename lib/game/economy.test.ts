@@ -5,6 +5,7 @@ import {
   calculateDebtReputationPenalty,
   calculateRaceReward,
   calculateRiderSeasonSalary,
+  calculateStagePrize,
   getDivisionForRank,
   selectWildcardTeams,
 } from "./economy";
@@ -51,6 +52,21 @@ describe("calculateRaceReward", () => {
     expect(reward.reputation).toBe(0);
     expect(reward.experience).toBe(6);
     expect(reward.uciPoints).toBe(2);
+  });
+});
+
+describe("calculateStagePrize", () => {
+  it("récompense les meilleures places d'une étape selon la catégorie", () => {
+    expect(calculateStagePrize({ tier: "national", finalRank: 1 })).toBe(600);
+    expect(calculateStagePrize({ tier: "continental", finalRank: 4 })).toBe(250);
+    expect(calculateStagePrize({ tier: "world", finalRank: 8 })).toBe(250);
+    expect(calculateStagePrize({ tier: "elite", finalRank: 2 })).toBe(7_000);
+  });
+
+  it("ne verse rien hors du top rémunéré ou en cas d'abandon", () => {
+    expect(calculateStagePrize({ tier: "national", finalRank: 6 })).toBe(0);
+    expect(calculateStagePrize({ tier: "elite", finalRank: 11 })).toBe(0);
+    expect(calculateStagePrize({ tier: "world", finalRank: null })).toBe(0);
   });
 });
 
