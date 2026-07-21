@@ -73,6 +73,43 @@ describe("public game news", () => {
     expect(snapshot.items.some((item) => item.id === "invalid")).toBe(false);
   });
 
+  it("place les recrutements de staff entre les transferts et les arrivées de DS", () => {
+    const happenedAt = "2026-07-21T09:00:00.000Z";
+    const snapshot = createPublicGameNewsSnapshot({
+      items: [
+        {
+          id: "arrival:1",
+          kind: "arrival",
+          title: "Arrivée",
+          detail: "Détail",
+          happenedAt,
+        },
+        {
+          id: "staff:1",
+          kind: "staff",
+          title: "Staff",
+          detail: "Détail",
+          happenedAt,
+        },
+        {
+          id: "movement:1",
+          kind: "movement",
+          title: "Transfert",
+          detail: "Détail",
+          happenedAt,
+        },
+      ],
+      totals: { directors: 1, victories: 0, movements: 2 },
+      isLive: true,
+    });
+
+    expect(snapshot.items.map((item) => item.id)).toEqual([
+      "movement:1",
+      "staff:1",
+      "arrival:1",
+    ]);
+  });
+
   it("présente les dates récentes sous une forme lisible", () => {
     const now = new Date("2026-07-21T12:00:00.000Z");
 
