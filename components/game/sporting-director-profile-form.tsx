@@ -13,10 +13,8 @@ import {
   initialSportingDirectorProfileState,
   type SportingDirectorProfileField,
 } from "../../app/jeu/directeur-sportif/profile-state";
-import {
-  SPORTING_DIRECTOR_AVATARS,
-  SportingDirectorAvatar,
-} from "./sporting-director-avatar";
+import { SportingDirectorAvatar } from "./sporting-director-avatar";
+import { SportingDirectorAvatarEditor } from "./sporting-director-avatar-editor";
 
 export type CountryOption = {
   id: string;
@@ -96,13 +94,7 @@ export function SportingDirectorProfileForm({
     [countries, selectedCountryId]
   );
 
-  const selectedAvatar = useMemo(
-    () =>
-      SPORTING_DIRECTOR_AVATARS.find(
-        (avatar) => avatar.key === selectedAvatarKey
-      ) ?? null,
-    [selectedAvatarKey]
-  );
+  const hasSelectedAvatar = Boolean(selectedAvatarKey);
 
   const filteredCountries = useMemo(() => {
     const normalizedSearch =
@@ -384,9 +376,10 @@ export function SportingDirectorProfileForm({
             id="avatarKey-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Choisissez le portrait qui vous représentera dans
-            votre bureau et dans l’univers de Cyclostratège.
-            Vous pourrez le modifier ultérieurement.
+            Composez le portrait qui vous représentera dans
+            votre bureau : carnation, traits du visage, regard,
+            coiffure et accessoires. Vous pourrez le modifier à
+            tout moment.
           </p>
 
           <div
@@ -398,9 +391,9 @@ export function SportingDirectorProfileForm({
             ].join(" ")}
           >
             <div className="flex items-center gap-4">
-              {selectedAvatar ? (
+              {hasSelectedAvatar ? (
                 <SportingDirectorAvatar
-                  avatarKey={selectedAvatar.key}
+                  avatarKey={selectedAvatarKey}
                   size="large"
                   label="Avatar actuellement sélectionné"
                 />
@@ -412,14 +405,14 @@ export function SportingDirectorProfileForm({
 
               <div>
                 <p className="font-extrabold text-[#183F37]">
-                  {selectedAvatar
+                  {hasSelectedAvatar
                     ? "Avatar sélectionné"
                     : "Aucun avatar sélectionné"}
                 </p>
 
                 <p className="mt-1 max-w-md text-xs leading-5 text-[#60756E]">
-                  Ce portrait apparaîtra dans votre bureau et
-                  sur votre carte de Directeur Sportif.
+                  Ce portrait apparaîtra dans votre bureau, sur
+                  votre carte et dans les classements publics.
                 </p>
               </div>
             </div>
@@ -442,9 +435,9 @@ export function SportingDirectorProfileForm({
             >
               <AvatarChangeIcon />
 
-              {selectedAvatar
-                ? "Changer l’avatar"
-                : "Choisir un avatar"}
+              {hasSelectedAvatar
+                ? "Modifier l’avatar"
+                : "Créer mon avatar"}
             </button>
           </div>
 
@@ -775,7 +768,7 @@ export function SportingDirectorProfileForm({
             aria-modal="true"
             aria-labelledby="avatar-modal-title"
             aria-describedby="avatar-modal-description"
-            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/15 bg-[#F8FBF9] shadow-[0_30px_100px_rgba(7,26,23,0.45)]"
+            className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-white/15 bg-[#F8FBF9] shadow-[0_30px_100px_rgba(7,26,23,0.45)]"
           >
             <div className="sticky top-0 z-10 flex items-start justify-between gap-5 border-b border-[#315B3E]/10 bg-[#F8FBF9] px-5 py-5 sm:px-7">
               <div>
@@ -787,22 +780,22 @@ export function SportingDirectorProfileForm({
                   id="avatar-modal-title"
                   className="mt-2 text-2xl font-black text-[#082A2A]"
                 >
-                  Choisir votre avatar
+                  Créer votre avatar
                 </h2>
 
                 <p
                   id="avatar-modal-description"
                   className="mt-2 text-sm leading-6 text-[#60756E]"
                 >
-                  Sélectionnez le portrait qui vous
-                  représentera dans Cyclostratège.
+                  Composez un portrait unique en ajustant
+                  chaque détail de votre Directeur Sportif.
                 </p>
               </div>
 
               <button
                 ref={avatarModalCloseButtonRef}
                 type="button"
-                aria-label="Fermer la sélection des avatars"
+                aria-label="Fermer l’éditeur d’avatar"
                 onClick={() =>
                   setIsAvatarModalOpen(false)
                 }
@@ -812,61 +805,11 @@ export function SportingDirectorProfileForm({
               </button>
             </div>
 
-            <div
-              role="radiogroup"
-              aria-label="Avatars disponibles"
-              className="grid grid-cols-2 gap-4 p-5 sm:grid-cols-4 sm:p-7"
-            >
-              {SPORTING_DIRECTOR_AVATARS.map((avatar) => {
-                const isSelected =
-                  selectedAvatarKey === avatar.key;
-
-                return (
-                  <button
-                    key={avatar.key}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    aria-label={avatar.label}
-                    onClick={() =>
-                      selectAvatar(avatar.key)
-                    }
-                    className={[
-                      "relative flex aspect-square items-center justify-center rounded-2xl border p-4 outline-none transition",
-                      "focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2",
-                      isSelected
-                        ? "border-[#278B70] bg-[#DFF4EC] shadow-[0_10px_30px_rgba(39,139,112,0.2)]"
-                        : "border-[#315B3E]/15 bg-white hover:-translate-y-0.5 hover:border-[#42B99A] hover:bg-[#EFF8F4] hover:shadow-lg",
-                    ].join(" ")}
-                  >
-                    {isSelected ? (
-                      <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#278B70] text-sm font-black text-white shadow-md">
-                        ✓
-                      </span>
-                    ) : null}
-
-                    <SportingDirectorAvatar
-                      avatarKey={avatar.key}
-                      size="large"
-                      label={avatar.label}
-                      className="h-28 w-28 max-w-full"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-end border-t border-[#315B3E]/10 bg-white/70 px-5 py-4 sm:px-7">
-              <button
-                type="button"
-                onClick={() =>
-                  setIsAvatarModalOpen(false)
-                }
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#315B3E]/20 bg-white px-4 py-2 text-sm font-bold text-[#48665F] transition hover:border-[#278B70] hover:bg-[#DFF4EC] hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
-              >
-                Annuler
-              </button>
-            </div>
+            <SportingDirectorAvatarEditor
+              avatarKey={selectedAvatarKey || null}
+              onCancel={() => setIsAvatarModalOpen(false)}
+              onConfirm={selectAvatar}
+            />
           </div>
         </div>
       ) : null}

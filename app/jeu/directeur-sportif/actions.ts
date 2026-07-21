@@ -12,25 +12,11 @@ import {
   type AmateurJerseyConfig,
 } from "../../../lib/amateur-team";
 import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
+import { isSportingDirectorAvatarKey } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { AmateurTeamCreationState } from "./amateur-team-state";
 import type { SportingDirectorProfileState } from "./profile-state";
-
-const sportingDirectorAvatarKeys = [
-  "director_m_01",
-  "director_m_02",
-  "director_m_03",
-  "director_m_04",
-  "director_m_05",
-  "director_m_06",
-  "director_f_01",
-  "director_f_02",
-  "director_f_03",
-  "director_f_04",
-  "director_f_05",
-  "director_f_06",
-] as const;
 
 const sportingDirectorProfileSchema = z.object({
   displayName: z
@@ -48,16 +34,11 @@ const sportingDirectorProfileSchema = z.object({
 
   avatarKey: z
     .string()
-    .refine(
-      (value) =>
-        sportingDirectorAvatarKeys.some(
-          (avatarKey) => avatarKey === value
-        ),
-      {
-        message:
-          "Sélectionne un avatar dans la galerie proposée.",
-      }
-    ),
+    .max(512, "La configuration de l’avatar est trop longue.")
+    .refine(isSportingDirectorAvatarKey, {
+      message:
+        "La configuration de l’avatar est invalide. Ouvre l’éditeur pour la recréer.",
+    }),
 
   hideEmail: z.boolean(),
 });
