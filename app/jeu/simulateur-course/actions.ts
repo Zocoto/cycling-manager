@@ -2,8 +2,10 @@
 
 import { z } from "zod";
 
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
-import { getRaceSimulatorTeams } from "@/services/race-simulator";
+import {
+  getRaceSimulatorCalendar,
+  getRaceSimulatorTeams,
+} from "@/services/race-simulator";
 import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
 import {
   buildRaceSimulatorLogs,
@@ -68,7 +70,7 @@ export async function runRaceSimulatorAction(
 
   try {
     const [calendar, teams] = await Promise.all([
-      getActiveSeasonRaceCalendar(supabase, new Date()),
+      getRaceSimulatorCalendar(new Date()),
       getRaceSimulatorTeams(),
     ]);
     if (!calendar) {
