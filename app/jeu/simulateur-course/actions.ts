@@ -115,7 +115,7 @@ export async function runRaceSimulatorAction(
       return {
         status: "error",
         message:
-          "La start-list contient un coureur qui n’est plus sous contrat actif. Rechargez la page.",
+          "La start-list contient un coureur qui n’est plus disponible dans les équipes ou parmi les agents libres. Rechargez la page.",
         run: null,
       };
     }

@@ -99,8 +99,9 @@ export default async function RaceSimulatorPage() {
             </h1>
             <p className="mt-5 max-w-3xl text-lg font-medium leading-8 text-[#48665F]">
               Choisissez un profil existant, composez librement la start-list
-              avec les équipes de la saison, puis inspectez le classement, les
-              notes et chaque décision visible du moteur.
+              avec les équipes de la saison ou le bassin des agents libres,
+              puis inspectez le classement, les notes et chaque décision
+              visible du moteur.
             </p>
           </header>
 
@@ -126,7 +127,7 @@ export default async function RaceSimulatorPage() {
             </p>
             <p className="mt-2 text-sm font-semibold text-amber-800">
               Vérifiez qu’une saison active contient au moins un profil de
-              course et deux coureurs sous contrat.
+              course et deux coureurs disponibles.
             </p>
           </div>
         )}

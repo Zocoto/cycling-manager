@@ -57,8 +57,18 @@ export function RaceSimulatorWorkbench({
     () => teams.flatMap((team) => team.riders.map((rider) => rider.id)),
     [teams]
   );
+  const contractedRiderIds = useMemo(
+    () =>
+      teams
+        .filter((team) => team.kind === "team")
+        .flatMap((team) => team.riders.map((rider) => rider.id)),
+    [teams]
+  );
   const [selectedRiderIds, setSelectedRiderIds] = useState<string[]>(() =>
-    allRiderIds.slice(0, MAXIMUM_RIDER_COUNT)
+    (contractedRiderIds.length >= 2 ? contractedRiderIds : allRiderIds).slice(
+      0,
+      MAXIMUM_RIDER_COUNT
+    )
   );
   const [selectedStageId, setSelectedStageId] = useState(stages[0]?.id ?? "");
   const [seed, setSeed] = useState("laboratoire-1");
@@ -243,7 +253,7 @@ export function RaceSimulatorWorkbench({
                   Étape 2 · start-list libre
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-                  Inscrire les équipes et leurs coureurs
+                  Inscrire les équipes et choisir les agents libres
                 </h2>
                 <p className="mt-2 text-sm font-semibold text-[#60756E]">
                   {selectedRiderIds.length} coureurs · {selectedTeamCount} équipes sélectionnées
@@ -382,6 +392,7 @@ function TeamSelectionCard({
               {team.name}
             </span>
             <span className="mt-0.5 block text-[11px] font-bold text-[#60756E]">
+              {team.kind === "free_agent_pool" ? "Bassin de test · " : ""}
               {selectedRiders.length} / {team.riders.length} sélectionnés
             </span>
           </span>
@@ -395,7 +406,7 @@ function TeamSelectionCard({
               : "border border-[#176951]/20 bg-white text-[#176951] hover:bg-[#DDF3E7]"
           }`}
         >
-          {allSelected ? "Inscrite" : "Inscrire"}
+          {allSelected ? "Sélectionnés" : "Sélectionner"}
         </button>
       </div>
 
@@ -430,14 +441,24 @@ function TeamSelectionCard({
                   {rider.age} ans · forme {rider.form} · MOY {getOverall(rider.ratings)}
                 </span>
               </span>
-              <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[#176951] shadow-sm">
-                MON {rider.ratings.mountain}
+              <span className="hidden items-center gap-1.5 sm:flex">
+                <RatingChip label="MON" value={rider.ratings.mountain} />
+                <RatingChip label="VAL" value={rider.ratings.hills} />
+                <RatingChip label="BAR" value={rider.ratings.breakaway} />
               </span>
             </label>
           );
         })}
       </div>
     </fieldset>
+  );
+}
+
+function RatingChip({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[#176951] shadow-sm">
+      {label} {value}
+    </span>
   );
 }
 

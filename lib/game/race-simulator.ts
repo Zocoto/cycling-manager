@@ -37,6 +37,7 @@ export type RaceSimulatorRider = {
 export type RaceSimulatorTeam = {
   id: string;
   name: string;
+  kind: "team" | "free_agent_pool";
   primaryColor: string;
   secondaryColor: string;
   riders: RaceSimulatorRider[];
@@ -292,7 +293,7 @@ function getTerrainRating(
     const longSteepClimb = Math.abs(segment.averageGradientPct) >= 6;
     rating = longSteepClimb
       ? rider.ratings.mountain * 0.72 + rider.ratings.hills * 0.28
-      : rider.ratings.hills * 0.62 + rider.ratings.mountain * 0.38;
+      : rider.ratings.hills * 0.82 + rider.ratings.mountain * 0.18;
   } else if (segment.terrain === "descent") {
     rating = rider.ratings.downhill * 0.72 + rider.ratings.resistance * 0.28;
   } else {

@@ -172,6 +172,30 @@ describe("simulateRaceStage", () => {
     expect(outcomes).toContain(false);
   });
 
+  it("favorise nettement les puncheurs face aux baroudeurs sur une étape vallonnée", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const riders = [
+      ...Array.from({ length: 4 }, (_, index) =>
+        createHillyTestRider("puncheur", index)
+      ),
+      ...Array.from({ length: 4 }, (_, index) =>
+        createHillyTestRider("baroudeur", index)
+      ),
+    ];
+    const winners = Array.from({ length: 120 }, (_, index) =>
+      simulateRaceStage({
+        ...baseInput,
+        seed: index + 1,
+        riders,
+      }).results[0].riderId
+    );
+    const puncherWins = winners.filter((riderId) =>
+      riderId.startsWith("puncheur-")
+    ).length;
+
+    expect(puncherWins).toBeGreaterThanOrEqual(84);
+  });
+
   it("génère de manière déterministe crevaisons, bordures et chutes", () => {
     const incidentTypes = new Set(
       Array.from({ length: 60 }, (_, index) =>
@@ -279,6 +303,39 @@ describe("simulateRaceStage", () => {
     );
   });
 });
+
+function createHillyTestRider(
+  archetype: "puncheur" | "baroudeur",
+  index: number
+): RiderSimulationInput {
+  const isPuncher = archetype === "puncheur";
+  return {
+    id: `${archetype}-${index}`,
+    name: `${archetype} ${index}`,
+    teamId: `${archetype}-team-${index}`,
+    teamName: `${archetype} team ${index}`,
+    teamPrimaryColor: "#176951",
+    teamSecondaryColor: "#FFFDF4",
+    age: 26,
+    form: 82,
+    role: isPuncher ? "leader" : "free_agent",
+    ratings: {
+      flat: isPuncher ? 70 : 82,
+      mountain: isPuncher ? 74 : 70,
+      hills: isPuncher ? 90 - index : 76,
+      cobbles: 70,
+      downhill: isPuncher ? 67 : 86,
+      sprint: isPuncher ? 72 : 70,
+      acceleration: isPuncher ? 90 - index : 80,
+      timeTrial: 70,
+      prologue: 70,
+      endurance: isPuncher ? 78 : 88,
+      resistance: isPuncher ? 80 : 86,
+      recovery: 75,
+      breakaway: isPuncher ? 60 : 94,
+    },
+  };
+}
 
 describe("assignAutomaticRaceRoles", () => {
   it("désigne automatiquement un leader et un sprinteur sur un profil plat", () => {

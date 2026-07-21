@@ -40,6 +40,10 @@ type RiderRow = {
   last_name: string;
 };
 
+type RiderIdRow = {
+  id: string;
+};
+
 type RatingRow = {
   rider_id: string;
   age: number;
@@ -101,22 +105,25 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
 
   const teamSeasons = teamSeasonsResult.data ?? [];
   const teamIds = unique(teamSeasons.map((team) => team.team_id));
-  if (teamIds.length === 0) return [];
 
-  const [teamsResult, contractsResult, daysResult] = await Promise.all([
-    admin
-      .from("teams")
-      .select(
-        "id, amateur_jersey_primary_color, amateur_jersey_secondary_color"
-      )
-      .in("id", teamIds)
-      .returns<TeamRow[]>(),
-    admin
-      .from("rider_contracts")
-      .select("rider_id, team_id")
-      .eq("status", "active")
-      .in("team_id", teamIds)
-      .returns<ContractRow[]>(),
+  const [teamsResult, contractsResult, daysResult, freeAgentsResult] = await Promise.all([
+    teamIds.length > 0
+      ? admin
+          .from("teams")
+          .select(
+            "id, amateur_jersey_primary_color, amateur_jersey_secondary_color"
+          )
+          .in("id", teamIds)
+          .returns<TeamRow[]>()
+      : Promise.resolve({ data: [] as TeamRow[], error: null }),
+    teamIds.length > 0
+      ? admin
+          .from("rider_contracts")
+          .select("rider_id, team_id")
+          .eq("status", "active")
+          .in("team_id", teamIds)
+          .returns<ContractRow[]>()
+      : Promise.resolve({ data: [] as ContractRow[], error: null }),
     admin
       .from("season_days")
       .select("id, day_number")
@@ -124,14 +131,30 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
       .lte("day_number", season.current_day_number ?? 28)
       .order("day_number", { ascending: true })
       .returns<SeasonDayRow[]>(),
+    admin
+      .from("riders")
+      .select("id")
+      .eq("status", "free_agent")
+      .limit(500)
+      .returns<RiderIdRow[]>(),
   ]);
 
   assertQuery(teamsResult.error, "les couleurs des équipes");
   assertQuery(contractsResult.error, "les contrats actifs des coureurs");
   assertQuery(daysResult.error, "les journées de forme des coureurs");
+  assertQuery(freeAgentsResult.error, "les agents libres du simulateur");
 
   const contracts = contractsResult.data ?? [];
-  const riderIds = unique(contracts.map((contract) => contract.rider_id));
+  const freeAgentIds = new Set(
+    (freeAgentsResult.data ?? []).map((rider) => rider.id)
+  );
+  for (const contract of contracts) {
+    freeAgentIds.delete(contract.rider_id);
+  }
+  const riderIds = unique([
+    ...contracts.map((contract) => contract.rider_id),
+    ...freeAgentIds,
+  ]);
   if (riderIds.length === 0) {
     return buildEmptyTeams(teamSeasons, teamsResult.data ?? []);
   }
@@ -202,7 +225,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
   const abilitiesByRiderId = indexAbilities(abilitiesResult.data ?? []);
   const contractsByTeamId = groupBy(contracts, (contract) => contract.team_id);
 
-  return teamSeasons
+  const activeTeams = teamSeasons
     .map((teamSeason) => {
       const team = teamById.get(teamSeason.team_id);
       const teamContracts = contractsByTeamId.get(teamSeason.team_id) ?? [];
@@ -213,23 +236,20 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
         if (!rider || !rating || !country) return [];
 
         return [
-          {
-            id: rider.id,
-            firstName: rider.first_name,
-            lastName: rider.last_name,
-            countryName: country.name,
-            countryCode: country.iso_alpha2,
-            age: rating.age,
+          toSimulatorRider({
+            rider,
+            rating,
+            country,
             form: formByRiderId.get(rider.id) ?? 75,
-            ratings: toSimulationRatings(rating),
             specialAbilities: abilitiesByRiderId.get(rider.id) ?? [],
-          },
+          }),
         ];
       });
 
       return {
         id: teamSeason.team_id,
         name: teamSeason.display_name,
+        kind: "team",
         primaryColor: normalizeColor(
           team?.amateur_jersey_primary_color,
           "#176951"
@@ -248,6 +268,42 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
     })
     .filter((team) => team.riders.length > 0)
     .sort((left, right) => left.name.localeCompare(right.name, "fr"));
+
+  const freeAgentRiders = [...freeAgentIds].flatMap((riderId) => {
+    const rider = riderById.get(riderId);
+    const rating = ratingByRiderId.get(riderId);
+    const country = rider ? countryById.get(rider.country_id) : null;
+    if (!rider || !rating || !country) return [];
+
+    return [
+      toSimulatorRider({
+        rider,
+        rating,
+        country,
+        form: formByRiderId.get(rider.id) ?? 75,
+        specialAbilities: abilitiesByRiderId.get(rider.id) ?? [],
+      }),
+    ];
+  }).sort(
+    (left, right) =>
+      right.ratings.hills - left.ratings.hills ||
+      right.form - left.form ||
+      left.lastName.localeCompare(right.lastName, "fr")
+  );
+
+  if (freeAgentRiders.length === 0) return activeTeams;
+
+  return [
+    {
+      id: "00000000-0000-4000-8000-000000000001",
+      name: "Agents libres",
+      kind: "free_agent_pool",
+      primaryColor: "#64748B",
+      secondaryColor: "#E2E8F0",
+      riders: freeAgentRiders,
+    },
+    ...activeTeams,
+  ];
 }
 
 function buildEmptyTeams(
@@ -260,6 +316,7 @@ function buildEmptyTeams(
     return {
       id: teamSeason.team_id,
       name: teamSeason.display_name,
+      kind: "team",
       primaryColor: normalizeColor(
         team?.amateur_jersey_primary_color,
         "#176951"
@@ -271,6 +328,32 @@ function buildEmptyTeams(
       riders: [],
     };
   });
+}
+
+function toSimulatorRider({
+  rider,
+  rating,
+  country,
+  form,
+  specialAbilities,
+}: {
+  rider: RiderRow;
+  rating: RatingRow;
+  country: CountryRow;
+  form: number;
+  specialAbilities: RiderSpecialAbility[];
+}) {
+  return {
+    id: rider.id,
+    firstName: rider.first_name,
+    lastName: rider.last_name,
+    countryName: country.name,
+    countryCode: country.iso_alpha2,
+    age: rating.age,
+    form,
+    ratings: toSimulationRatings(rating),
+    specialAbilities,
+  };
 }
 
 function toSimulationRatings(rating: RatingRow): RiderSimulationRatings {

@@ -490,7 +490,7 @@ function simulateRoadStage(
     .filter((rider): rider is RiderSimulationInput => Boolean(rider));
   const selectiveTerrainShare =
     input.segments.filter(
-      (segment) => segment.terrain !== "flat" || segment.surface === "cobbles"
+      (segment) => segment.terrain === "climb" || segment.surface === "cobbles"
     ).length / input.segments.length;
   const likelyMassSprint = isLikelyMassSprint(input.segments);
   const breakawayQuality = average(
@@ -1921,7 +1921,6 @@ function getRoadFinishScores(
 
   for (const state of states.values()) {
     const rider = state.rider;
-    const lastSegment = segments.at(-1)!;
     let score: number;
 
     if (sprintFinish && state.group === "peloton") {
@@ -1943,10 +1942,10 @@ function getRoadFinishScores(
       const attackBonus = hasSpecialAbility(rider, "giclette") ? 6 : 0;
       const roleBonus = rider.role === "leader" ? 8 : rider.role === "free_agent" ? 3 : 0;
       score =
-        getTerrainRating(rider, lastSegment) * 0.5 +
+        getDecisiveRoadFinishRating(rider, segments) * 0.58 +
         rider.ratings.acceleration * 0.24 +
-        rider.ratings.resistance * 0.14 +
-        state.energy * 0.12 +
+        rider.ratings.resistance * 0.1 +
+        state.energy * 0.08 +
         attackBonus +
         roleBonus;
     }
@@ -2207,7 +2206,7 @@ function getTerrainRating(rider: RiderSimulationInput, segment: RaceStageSegment
     const longSteepClimb = Math.abs(segment.averageGradientPct) >= 6;
     rating = longSteepClimb
       ? rider.ratings.mountain * 0.72 + rider.ratings.hills * 0.28
-      : rider.ratings.hills * 0.62 + rider.ratings.mountain * 0.38;
+      : rider.ratings.hills * 0.82 + rider.ratings.mountain * 0.18;
   } else if (segment.terrain === "descent") {
     rating = rider.ratings.downhill * 0.72 + rider.ratings.resistance * 0.28;
   } else {
@@ -2219,6 +2218,34 @@ function getTerrainRating(rider: RiderSimulationInput, segment: RaceStageSegment
   }
 
   return rating;
+}
+
+function getDecisiveRoadFinishRating(
+  rider: RiderSimulationInput,
+  segments: RaceStageSegment[]
+) {
+  const decisiveSegments = segments.slice(-4);
+  let weightedRating = 0;
+  let totalWeight = 0;
+
+  decisiveSegments.forEach((segment, index) => {
+    const recency = 0.85 + (index / Math.max(1, decisiveSegments.length - 1)) * 0.3;
+    const selectivity =
+      segment.terrain === "climb"
+        ? 1.45
+        : segment.surface === "cobbles"
+          ? 1.3
+          : segment.terrain === "descent"
+            ? 0.45
+            : 1;
+    const weight = Math.max(1, segment.distanceKm) * recency * selectivity;
+    weightedRating += getTerrainRating(rider, segment) * weight;
+    totalWeight += weight;
+  });
+
+  return totalWeight > 0
+    ? weightedRating / totalWeight
+    : getTerrainRating(rider, segments.at(-1)!);
 }
 
 function getTimeTrialSegmentRating(
