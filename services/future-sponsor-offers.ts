@@ -2,6 +2,11 @@ import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
 import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
+import {
+  buildRiderCountrySponsorAffinities,
+  calculateOverallRating,
+  type RiderCountrySponsorAffinity,
+} from "@/lib/game/sponsor-nationality-affinity";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -106,6 +111,37 @@ type SponsorContractRow = {
 type ContractStartSeasonRow = {
   id: string;
   game_year: number;
+};
+
+type ActiveRiderContractRow = {
+  rider_id: string;
+};
+
+type RiderCountryRow = {
+  id: string;
+  country_id: string;
+};
+
+type RiderSeasonRatingRow = {
+  rider_id: string;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
+};
+
+type RiderCountryCodeRow = {
+  id: string;
+  iso_alpha2: string;
 };
 
 type GeneratedFutureProposal = {
@@ -254,6 +290,11 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
       supabase,
       targetGameYear: targetSeason.gameYear,
     });
+  const riderCountryAffinities = await loadTeamRiderCountryAffinities({
+    supabase,
+    teamId: normalizedTeamId,
+    seasonId: activeSeason.id,
+  });
 
   const generatedProposals = createFutureProposals({
     mode,
@@ -262,6 +303,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     unavailableSponsorCatalogKeys,
     currentSponsorCatalogKey,
     excludedSponsorCatalogKey,
+    riderCountryAffinities,
   });
 
   if (generatedProposals.length < DEFAULT_PROPOSAL_COUNT) {
@@ -386,6 +428,7 @@ function createFutureProposals({
   unavailableSponsorCatalogKeys,
   currentSponsorCatalogKey,
   excludedSponsorCatalogKey,
+  riderCountryAffinities,
 }: {
   mode: FutureSponsorOfferMode;
   directorCountryCode: string;
@@ -393,6 +436,7 @@ function createFutureProposals({
   unavailableSponsorCatalogKeys: readonly string[];
   currentSponsorCatalogKey: string | null;
   excludedSponsorCatalogKey: string | null;
+  riderCountryAffinities: readonly RiderCountrySponsorAffinity[];
 }): GeneratedFutureProposal[] {
   const unavailableSponsorIds = new Set(
     unavailableSponsorCatalogKeys
@@ -426,6 +470,7 @@ function createFutureProposals({
       directorReputation,
       unavailableSponsorIds: [...unavailableSponsorIds],
       proposalCount: RENEWAL_ALTERNATIVE_COUNT,
+      riderCountryAffinities,
     });
 
     return [
@@ -445,6 +490,7 @@ function createFutureProposals({
     directorReputation,
     unavailableSponsorIds: [...unavailableSponsorIds],
     proposalCount: DEFAULT_PROPOSAL_COUNT,
+    riderCountryAffinities,
   });
 
   return replacementProposals.map((proposal) => ({
@@ -473,6 +519,110 @@ function createRenewalProposal(
     ),
     isRenewal: true,
   };
+}
+
+async function loadTeamRiderCountryAffinities({
+  supabase,
+  teamId,
+  seasonId,
+}: {
+  supabase: SupabaseAdminClient;
+  teamId: string;
+  seasonId: string;
+}): Promise<RiderCountrySponsorAffinity[]> {
+  const { data: contractRows, error: contractError } = await supabase
+    .from("rider_contracts")
+    .select("rider_id")
+    .eq("team_id", teamId)
+    .eq("status", "active")
+    .returns<ActiveRiderContractRow[]>();
+
+  if (contractError) {
+    throw new Error(
+      `Impossible de charger l’effectif pour les affinités sponsors : ${contractError.message}`
+    );
+  }
+
+  const riderIds = [
+    ...new Set((contractRows ?? []).map((contract) => contract.rider_id)),
+  ];
+  if (riderIds.length === 0) return [];
+
+  const [ridersResult, ratingsResult] = await Promise.all([
+    supabase
+      .from("riders")
+      .select("id, country_id")
+      .in("id", riderIds)
+      .returns<RiderCountryRow[]>(),
+    supabase
+      .from("rider_season_ratings")
+      .select(
+        "rider_id, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue"
+      )
+      .eq("season_id", seasonId)
+      .in("rider_id", riderIds)
+      .returns<RiderSeasonRatingRow[]>(),
+  ]);
+
+  if (ridersResult.error) {
+    throw new Error(
+      `Impossible de charger les nationalités de l’effectif : ${ridersResult.error.message}`
+    );
+  }
+  if (ratingsResult.error) {
+    throw new Error(
+      `Impossible de charger le niveau de l’effectif : ${ratingsResult.error.message}`
+    );
+  }
+
+  const riders = ridersResult.data ?? [];
+  const countryIds = [...new Set(riders.map((rider) => rider.country_id))];
+  const { data: countryRows, error: countryError } = await supabase
+    .from("countries")
+    .select("id, iso_alpha2")
+    .in("id", countryIds)
+    .returns<RiderCountryCodeRow[]>();
+
+  if (countryError) {
+    throw new Error(
+      `Impossible de charger les pays de l’effectif : ${countryError.message}`
+    );
+  }
+
+  const countryCodeById = new Map(
+    (countryRows ?? []).map((country) => [country.id, country.iso_alpha2])
+  );
+  const ratingByRiderId = new Map(
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating])
+  );
+
+  return buildRiderCountrySponsorAffinities(
+    riders.flatMap((rider) => {
+      const rating = ratingByRiderId.get(rider.id);
+      const countryCode = countryCodeById.get(rider.country_id);
+      if (!rating || !countryCode) return [];
+      return [
+        {
+          countryCode,
+          overall: calculateOverallRating([
+            rating.mountain,
+            rating.hills,
+            rating.flat,
+            rating.time_trial,
+            rating.cobbles,
+            rating.sprint,
+            rating.acceleration,
+            rating.downhill,
+            rating.endurance,
+            rating.resistance,
+            rating.recovery,
+            rating.breakaway,
+            rating.prologue,
+          ]),
+        },
+      ];
+    })
+  );
 }
 
 async function ensureNextSeason({
