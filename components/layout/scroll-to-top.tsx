@@ -12,6 +12,17 @@ export function ScrollToTop() {
   const pathname = usePathname();
 
   useEffect(() => {
+    const anchorId = window.location.hash.slice(1);
+    const anchor = anchorId ? document.getElementById(anchorId) : null;
+
+    if (anchor) {
+      anchor.scrollIntoView({
+        behavior: "instant" as ScrollBehavior,
+        block: "start",
+      });
+      return;
+    }
+
     window.scrollTo({
       top: 0,
       left: 0,

@@ -1,3 +1,5 @@
+"use client";
+
 import NextLink, { type LinkProps } from "next/link";
 import {
   forwardRef,
@@ -13,15 +15,27 @@ type AppLinkProps = LinkProps &
 /**
  * Drop-in replacement for `next/link`.
  *
- * Defaults `scroll` to `false` so navigating between pages keeps the current
- * scroll position instead of jumping back to the top. Pass `scroll` explicitly
- * to override on a per-link basis.
+ * Route-to-route navigation is handled by the global `ScrollToTop` component.
+ * Hash links keep Next.js' native scroll behavior so anchors still work.
+ * Pass `scroll` explicitly to override either default on a per-link basis.
  */
 const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
-  { scroll = false, ...props },
+  { href, scroll, ...props },
   ref,
 ) {
-  return <NextLink ref={ref} scroll={scroll} {...props} />;
+  const usesAnchor =
+    typeof href === "string"
+      ? href.includes("#")
+      : typeof href.hash === "string" && href.hash.length > 0;
+
+  return (
+    <NextLink
+      ref={ref}
+      href={href}
+      scroll={scroll ?? usesAnchor}
+      {...props}
+    />
+  );
 });
 
 export default Link;
