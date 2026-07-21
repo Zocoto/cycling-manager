@@ -178,6 +178,14 @@ export async function getCurrentTeamHealthOverview(
   authUserId: string
 ): Promise<TeamHealthOverview | null> {
   const admin = createSupabaseAdminClient();
+  const { error: trainingSettlementError } = await admin.rpc(
+    "settle_due_training_sessions"
+  );
+  assertQuery(
+    trainingSettlementError,
+    "la mise à jour quotidienne des entraînements",
+  );
+
   const { error: settlementError } = await admin.rpc(
     "settle_current_health_and_form"
   );

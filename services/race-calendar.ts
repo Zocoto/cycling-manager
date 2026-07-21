@@ -291,6 +291,15 @@ type RaceConditionSettlementRow = {
 export async function settleFinishedRaceConditions(
   supabase: SupabaseServerClient
 ): Promise<RaceConditionSettlement> {
+  const { error: trainingError } = await supabase.rpc(
+    "settle_due_training_sessions"
+  );
+  if (trainingError) {
+    throw new Error(
+      `Impossible de régler les entraînements du matin : ${trainingError.message}`
+    );
+  }
+
   const { data, error } = await supabase.rpc(
     "settle_finished_race_conditions"
   );

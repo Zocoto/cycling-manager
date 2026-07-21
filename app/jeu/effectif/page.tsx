@@ -7,6 +7,7 @@ import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey"
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { RiderAvatar } from "../../../components/game/rider-avatar";
+import { PotentialStars } from "../../../components/game/potential-stars";
 import { TeamDivisionBadge } from "../../../components/game/team-division-badge";
 import {
   createAmateurRiderJersey,
@@ -15,6 +16,7 @@ import {
   type RiderJerseyAppearance,
 } from "../../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import {
   getTeamAmateurIdentityForAuthUser,
   type TeamAmateurIdentity,
@@ -54,6 +56,7 @@ type RiderRow = {
   country_iso_alpha2: string;
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
+  potential_steps: number;
   age: number;
   mountain: number;
   hills: number;
@@ -265,8 +268,31 @@ export default async function TeamRosterPage() {
     (teamSummaryResult.data ??
       null) as CurrentTeamDashboardSummary | null;
 
-  const riders =
-    (rosterResult.data ?? []) as RiderRow[];
+  const rawRiders = (rosterResult.data ?? []) as Omit<
+    RiderRow,
+    "potential_steps"
+  >[];
+  const potentialResult = rawRiders.length
+    ? await createSupabaseAdminClient()
+        .from("riders")
+        .select("id, potential_steps")
+        .in(
+          "id",
+          rawRiders.map((rider) => rider.rider_id),
+        )
+        .returns<Array<{ id: string; potential_steps: number }>>()
+    : { data: [] as Array<{ id: string; potential_steps: number }>, error: null };
+
+  if (potentialResult.error) {
+    console.error("Impossible de récupérer le potentiel des coureurs :", potentialResult.error);
+  }
+  const potentialByRiderId = new Map(
+    (potentialResult.data ?? []).map((rider) => [rider.id, rider.potential_steps]),
+  );
+  const riders: RiderRow[] = rawRiders.map((rider) => ({
+    ...rider,
+    potential_steps: potentialByRiderId.get(rider.rider_id) ?? 1,
+  }));
 
   const commercialTeamName =
     teamSponsorIdentity?.teamName ??
@@ -486,6 +512,13 @@ export default async function TeamRosterPage() {
                         className="min-w-40 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
                       >
                         Profil
+                      </th>
+
+                      <th
+                        scope="col"
+                        className="min-w-36 px-3 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
+                      >
+                        Potentiel
                       </th>
 
                       {ratingColumns.map(
@@ -934,6 +967,14 @@ function RiderTableRow({
         <span className="inline-flex rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-extrabold text-[#176951]">
           {riderProfile}
         </span>
+      </td>
+
+      <td className="px-3 py-4 text-center">
+        <PotentialStars
+          potentialSteps={rider.potential_steps}
+          compact
+          showLabel={false}
+        />
       </td>
 
       {ratingColumns.map((column) => {

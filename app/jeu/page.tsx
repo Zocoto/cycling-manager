@@ -491,10 +491,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/entrainement"
               icon="training"
               title="Entraînements"
-              status="Aucun compte rendu"
-              description="Les programmes, la progression et les derniers comptes rendus de vos coureurs apparaîtront ici."
+              status="Séance quotidienne · 8 h"
+              description="Réglez l’intensité, le domaine et l’entraîneur de chaque coureur, puis consultez les gains de caractéristiques."
             />
 
             <ManagementModuleCard
