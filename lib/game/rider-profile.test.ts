@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   createRadarPoints,
+  getRiderSportingProfile,
   RIDER_RATING_AXES,
+  type RiderRatings,
   serializeRadarPoints,
 } from "./rider-profile";
 
@@ -35,4 +37,41 @@ describe("rider profile radar", () => {
       ])
     ).toBe("10.12,20.13 30,40");
   });
+
+  it("updates the sporting profile when the current ratings evolve", () => {
+    const breakawayRider = createRatings({
+      breakaway: 66,
+      endurance: 62,
+      cobbles: 54,
+      resistance: 59,
+    });
+
+    expect(getRiderSportingProfile(breakawayRider)).toBe("Baroudeur");
+    expect(
+      getRiderSportingProfile({
+        ...breakawayRider,
+        cobbles: 68,
+        resistance: 64,
+      })
+    ).toBe("Spécialiste des pavés");
+  });
 });
+
+function createRatings(overrides: Partial<RiderRatings>): RiderRatings {
+  return {
+    mountain: 50,
+    hills: 50,
+    recovery: 55,
+    endurance: 55,
+    resistance: 55,
+    breakaway: 50,
+    downhill: 55,
+    acceleration: 55,
+    sprint: 50,
+    flat: 55,
+    cobbles: 50,
+    prologue: 50,
+    timeTrial: 50,
+    ...overrides,
+  };
+}

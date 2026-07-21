@@ -15,6 +15,15 @@ export type RiderRatingKey =
 
 export type RiderRatings = Record<RiderRatingKey, number>;
 
+export type RiderSportingProfile =
+  | "Grimpeur"
+  | "Puncheur"
+  | "Rouleur / CLM"
+  | "Sprinteur"
+  | "Spécialiste des pavés"
+  | "Baroudeur"
+  | "Équipier polyvalent";
+
 export const RIDER_RATING_AXES: ReadonlyArray<{
   key: RiderRatingKey;
   shortLabel: string;
@@ -68,6 +77,36 @@ export function serializeRadarPoints(points: readonly RadarPoint[]): string {
   return points
     .map((point) => `${round(point.x)},${round(point.y)}`)
     .join(" ");
+}
+
+export function getRiderSportingProfile(
+  ratings: RiderRatings
+): RiderSportingProfile {
+  if (ratings.mountain >= 62 && ratings.mountain > ratings.hills) {
+    return "Grimpeur";
+  }
+
+  if (ratings.hills >= 62 && ratings.acceleration >= 60) {
+    return "Puncheur";
+  }
+
+  if (ratings.timeTrial >= 62 && ratings.flat >= 60) {
+    return "Rouleur / CLM";
+  }
+
+  if (ratings.sprint >= 62 && ratings.acceleration >= 60) {
+    return "Sprinteur";
+  }
+
+  if (ratings.cobbles >= 62 && ratings.resistance >= 58) {
+    return "Spécialiste des pavés";
+  }
+
+  if (ratings.breakaway >= 62 && ratings.endurance >= 58) {
+    return "Baroudeur";
+  }
+
+  return "Équipier polyvalent";
 }
 
 function round(value: number): number {

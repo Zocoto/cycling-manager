@@ -27,6 +27,10 @@ import {
 } from "../../../services/team-sponsor-identity";
 import { getCurrentTeamDivisionForAuthUser } from "../../../services/team-divisions";
 import {
+  getRiderSportingProfile,
+  type RiderRatings,
+} from "../../../lib/game/rider-profile";
+import {
   getCurrentTeamHealthOverview,
   type RiderFormCamp,
   type RiderMedicalInjury,
@@ -891,8 +895,7 @@ function RiderTableRow({
   const riderName =
     `${rider.first_name} ${rider.last_name}`.trim();
 
-  const riderProfile =
-    getRiderProfile(rider);
+  const riderProfile = getRiderSportingProfile(toRiderRatings(rider));
 
   const riderAverage =
     getRiderAverage(rider);
@@ -1233,52 +1236,22 @@ function RosterIcon() {
   );
 }
 
-function getRiderProfile(
-  rider: RiderRow
-): string {
-  if (
-    rider.mountain >= 62 &&
-    rider.mountain > rider.hills
-  ) {
-    return "Grimpeur";
-  }
-
-  if (
-    rider.hills >= 62 &&
-    rider.acceleration >= 60
-  ) {
-    return "Puncheur";
-  }
-
-  if (
-    rider.time_trial >= 62 &&
-    rider.flat >= 60
-  ) {
-    return "Rouleur / CLM";
-  }
-
-  if (
-    rider.sprint >= 62 &&
-    rider.acceleration >= 60
-  ) {
-    return "Sprinteur";
-  }
-
-  if (
-    rider.cobbles >= 62 &&
-    rider.resistance >= 58
-  ) {
-    return "Spécialiste des pavés";
-  }
-
-  if (
-    rider.breakaway >= 62 &&
-    rider.endurance >= 58
-  ) {
-    return "Baroudeur";
-  }
-
-  return "Équipier polyvalent";
+function toRiderRatings(rider: RiderRow): RiderRatings {
+  return {
+    mountain: rider.mountain,
+    hills: rider.hills,
+    flat: rider.flat,
+    timeTrial: rider.time_trial,
+    cobbles: rider.cobbles,
+    sprint: rider.sprint,
+    acceleration: rider.acceleration,
+    downhill: rider.downhill,
+    endurance: rider.endurance,
+    resistance: rider.resistance,
+    recovery: rider.recovery,
+    breakaway: rider.breakaway,
+    prologue: rider.prologue,
+  };
 }
 
 function getRiderAverage(

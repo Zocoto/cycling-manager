@@ -11,6 +11,10 @@ import {
 } from "@/components/game/training-controls";
 import { TRAINER_SPECIALTY_LABELS } from "@/lib/game/staff";
 import {
+  getRiderSportingProfile,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
+import {
   formatTrainingProgressMilli,
   TRAINING_DOMAIN_LABELS,
 } from "@/lib/game/training";
@@ -25,6 +29,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamTrainingOverview,
   type RiderTrainingReport,
+  type TeamTrainingRider,
   type TrainingSessionStatus,
 } from "@/services/team-training";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
@@ -265,7 +270,13 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                         />
                         {rider.countryName} · {rider.age} ans · Forme {rider.form}%
                       </p>
-                      <div className="mt-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span
+                          title="Profil recalculé depuis les notes actuelles de la saison"
+                          className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
+                        >
+                          Profil · {getRiderSportingProfile(toTrainingRatings(rider.ratings))}
+                        </span>
                         <PotentialStars potentialSteps={rider.potentialSteps} compact />
                       </div>
                       {rider.plan.isPending ? (
@@ -294,6 +305,26 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
       </section>
     </main>
   );
+}
+
+function toTrainingRatings(
+  ratings: TeamTrainingRider["ratings"]
+): RiderRatings {
+  return {
+    mountain: ratings.mountain,
+    hills: ratings.hills,
+    flat: ratings.flat,
+    timeTrial: ratings.time_trial,
+    cobbles: ratings.cobbles,
+    sprint: ratings.sprint,
+    acceleration: ratings.acceleration,
+    downhill: ratings.downhill,
+    endurance: ratings.endurance,
+    resistance: ratings.resistance,
+    recovery: ratings.recovery,
+    breakaway: ratings.breakaway,
+    prologue: ratings.prologue,
+  };
 }
 
 function TrainingReportPopover({ report }: { report: RiderTrainingReport | null }) {
