@@ -177,6 +177,12 @@ a {
   100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
+@keyframes cm-prime-classification {
+  0% { opacity: 0; transform: translateY(1rem) scale(0.94); }
+  22% { opacity: 1; transform: translateY(-0.15rem) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @keyframes cm-incident-wheel {
   to { transform: rotate(360deg); }
 }
@@ -236,6 +242,10 @@ a {
   animation: cm-race-incident 0.55s cubic-bezier(0.2, 0.82, 0.24, 1) both;
 }
 
+.cm-prime-classification {
+  animation: cm-prime-classification 0.5s cubic-bezier(0.2, 0.82, 0.24, 1) both;
+}
+
 .cm-incident-wheel {
   animation: cm-incident-wheel 0.9s linear 2;
 }
@@ -263,6 +273,7 @@ a {
   .cm-climb-surge,
   .cm-climb-finish-cross,
   .cm-race-incident,
+  .cm-prime-classification,
   .cm-incident-wheel,
   .cm-incident-wind,
   .cm-incident-crash,

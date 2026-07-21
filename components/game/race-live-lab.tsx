@@ -13,6 +13,7 @@ import {
   simulateRaceStage,
   type RaceGroupSnapshot,
   type RaceIncident,
+  type RacePrimeResult,
   type RiderSimulationInput,
 } from "@/lib/game/race-simulation";
 
@@ -85,6 +86,8 @@ export function RaceLiveLab({
     };
   }, [edition, stage]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [replaySegmentProgress, setReplaySegmentProgress] = useState(0);
+  const replaySegmentProgressRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(mode === "live");
   const [playbackSpeed, setPlaybackSpeed] =
     useState<PlaybackSpeed>(1);
@@ -121,22 +124,37 @@ export function RaceLiveLab({
   }, [finalMetersRemaining]);
 
   useEffect(() => {
-    if (mode === "live") return;
-    if (!isPlaying) return;
+    replaySegmentProgressRef.current = replaySegmentProgress;
+  }, [replaySegmentProgress]);
 
+  useEffect(() => {
+    if (mode !== "replay" || !isPlaying) return;
+    if (activeIndex >= simulation.timeline.length - 1) return;
+
+    const startedAt = Date.now();
+    const startedProgress = replaySegmentProgressRef.current;
+    const fullDurationMs = REPLAY_STEP_DURATION_MS / playbackSpeed;
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => {
-        if (current >= simulation.timeline.length - 1) {
-          setFinalMetersRemaining(0);
-          setIsPlaying(false);
-          return current;
-        }
-        return current + 1;
-      });
-    }, REPLAY_STEP_DURATION_MS / playbackSpeed);
+      const progress = Math.min(
+        1,
+        startedProgress + (Date.now() - startedAt) / fullDurationMs
+      );
+      replaySegmentProgressRef.current = progress;
+      setReplaySegmentProgress(progress);
+
+      if (progress >= 1) {
+        window.clearInterval(timer);
+        replaySegmentProgressRef.current = 0;
+        setReplaySegmentProgress(0);
+        setActiveIndex((current) =>
+          Math.min(current + 1, simulation.timeline.length - 1)
+        );
+      }
+    }, 100);
 
     return () => window.clearInterval(timer);
   }, [
+    activeIndex,
     isPlaying,
     mode,
     playbackSpeed,
@@ -168,6 +186,27 @@ export function RaceLiveLab({
     mode === "live"
       ? Math.round(finalSegmentMeters * (1 - liveFinalProgress))
       : finalMetersRemaining;
+  const liveSegmentProgress = Math.max(
+    0,
+    Math.min(
+      1,
+      liveState.progress * simulation.timeline.length - displayedIndex
+    )
+  );
+  const displayedSegmentProgress =
+    mode === "live" ? liveSegmentProgress : replaySegmentProgress;
+  const activePrimeResult =
+    edition.raceFormat === "stage_race" && !isFinal
+      ? simulation.primes.find(
+          (prime) => prime.segmentNumber === activeSegment.segmentNumber
+        ) ?? null
+      : null;
+  const previousPrimeResult =
+    edition.raceFormat === "stage_race" && !isFinal
+      ? simulation.primes.find(
+          (prime) => prime.segmentNumber === activeSegment.segmentNumber - 1
+        ) ?? null
+      : null;
 
   useEffect(() => {
     if (mode !== "replay" || !isFinal || !isPlaying) return;
@@ -182,6 +221,7 @@ export function RaceLiveLab({
       setFinalMetersRemaining(
         Math.max(0, Math.round(startedWithMeters * (1 - progress)))
       );
+      if (progress >= 1) setIsPlaying(false);
     }, 100);
 
     return () => window.clearInterval(timer);
@@ -215,6 +255,7 @@ export function RaceLiveLab({
               type="button"
               onClick={() => {
                 setActiveIndex(0);
+                setReplaySegmentProgress(0);
                 setFinalMetersRemaining(finalSegmentMeters);
                 setIsPlaying(true);
                 setTab("live");
@@ -249,6 +290,7 @@ export function RaceLiveLab({
               mode === "replay"
                 ? (segmentNumber) => {
                     setActiveIndex(segmentNumber - 1);
+                    setReplaySegmentProgress(0);
                     setFinalMetersRemaining(finalSegmentMeters);
                     setIsPlaying(false);
                   }
@@ -261,8 +303,9 @@ export function RaceLiveLab({
               {mode === "replay" ? <button
                 type="button"
                 onClick={() => {
-                  if (isFinal && !isPlaying) {
+                  if (isFinal && !isPlaying && finalMetersRemaining <= 0) {
                     setActiveIndex(0);
+                    setReplaySegmentProgress(0);
                     setFinalMetersRemaining(finalSegmentMeters);
                     setIsPlaying(true);
                     return;
@@ -272,7 +315,11 @@ export function RaceLiveLab({
                 className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#72D4B7]/45 bg-[#72D4B7]/10 px-4 text-xs font-black uppercase tracking-wide text-[#9BE0CA] transition hover:bg-[#72D4B7]/20"
               >
                 <span aria-hidden="true">{isPlaying ? "Ⅱ" : "▶"}</span>
-                {isPlaying ? "Pause" : isFinal ? "Revoir" : "Lire la course"}
+                {isPlaying
+                  ? "Pause"
+                  : isFinal && finalMetersRemaining <= 0
+                    ? "Revoir"
+                    : "Lire la course"}
               </button> : (
                 <span className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#EF5B65]/45 bg-[#EF5B65]/10 px-4 text-xs font-black uppercase tracking-wide text-[#FF9EA6]">
                   <span className="animate-pulse">●</span> En direct
@@ -317,6 +364,9 @@ export function RaceLiveLab({
               riderById={riderById}
               segment={activeSegment}
               isMoving={mode === "live" || isPlaying}
+              segmentProgress={displayedSegmentProgress}
+              primeResult={activePrimeResult}
+              previousPrimeResult={previousPrimeResult}
             />
           )}
 
@@ -402,11 +452,17 @@ function RoadScene({
   riderById,
   segment,
   isMoving,
+  segmentProgress,
+  primeResult,
+  previousPrimeResult,
 }: {
   snapshot: ReturnType<typeof simulateRaceStage>["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
   segment: RaceCalendarStage["segments"][number];
   isMoving: boolean;
+  segmentProgress: number;
+  primeResult: RacePrimeResult | null;
+  previousPrimeResult: RacePrimeResult | null;
 }) {
   const groups = snapshot.groups.slice(0, 6);
   const visualGradient = Math.max(
@@ -460,6 +516,15 @@ function RoadScene({
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
         {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {formatDistance(snapshot.completedDistanceKm)} km
       </p>
+
+      <PrimePassageOverlay
+        primeResult={primeResult}
+        previousPrimeResult={previousPrimeResult}
+        segmentProgress={segmentProgress}
+        riderById={riderById}
+        roadLeftPct={roadLeftPct}
+        roadRightPct={roadRightPct}
+      />
 
       <RaceIncidentOverlay
         incidents={snapshot.incidents}
@@ -528,6 +593,161 @@ function RoadScene({
       })}
     </div>
   );
+}
+
+function PrimePassageOverlay({
+  primeResult,
+  previousPrimeResult,
+  segmentProgress,
+  riderById,
+  roadLeftPct,
+  roadRightPct,
+}: {
+  primeResult: RacePrimeResult | null;
+  previousPrimeResult: RacePrimeResult | null;
+  segmentProgress: number;
+  riderById: Map<string, RiderSimulationInput>;
+  roadLeftPct: number;
+  roadRightPct: number;
+}) {
+  const normalizedProgress = Math.max(0, Math.min(1, segmentProgress));
+  const classificationPrime =
+    primeResult && normalizedProgress >= 0.64
+      ? primeResult
+      : previousPrimeResult && normalizedProgress <= 0.46
+        ? previousPrimeResult
+        : null;
+  const isMountain = primeResult?.prime.type === "mountain";
+  const gateLeftPct = 108 - normalizedProgress * 38;
+  const gateRoadTopPct =
+    roadLeftPct +
+    (roadRightPct - roadLeftPct) *
+      (Math.max(0, Math.min(100, gateLeftPct)) / 100);
+
+  return (
+    <>
+      {primeResult ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 z-[15] w-3 -translate-x-1/2 transition-[left,top] duration-100 ease-linear"
+          style={{
+            left: `${gateLeftPct}%`,
+            top: `${Math.max(30, gateRoadTopPct - 3)}%`,
+          }}
+        >
+          <div
+            className={`absolute left-1/2 top-0 min-w-max -translate-x-1/2 -translate-y-full rounded-t-lg border-2 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white shadow-xl ${
+              isMountain
+                ? "border-[#FF9EA6] bg-[#A92E3B]"
+                : "border-[#9BE0CA] bg-[#176951]"
+            }`}
+          >
+            {formatPrimeLabel(primeResult)}
+          </div>
+          <div
+            className={`h-full min-h-28 w-3 border-x border-white/70 shadow-[0_0_18px_rgba(255,255,255,0.35)] ${
+              isMountain
+                ? "bg-[repeating-linear-gradient(0deg,#FFFDF4_0_7px,#EF5B65_7px_14px)]"
+                : "bg-[repeating-linear-gradient(0deg,#FFFDF4_0_7px,#43C892_7px_14px)]"
+            }`}
+          />
+          <div
+            className={`absolute -left-8 bottom-0 h-2 w-16 -skew-y-6 border-y border-white/65 ${
+              isMountain
+                ? "bg-[repeating-linear-gradient(90deg,#FFFDF4_0_8px,#EF5B65_8px_16px)]"
+                : "bg-[repeating-linear-gradient(90deg,#FFFDF4_0_8px,#43C892_8px_16px)]"
+            }`}
+          />
+        </div>
+      ) : null}
+
+      {classificationPrime ? (
+        <PrimeClassificationPopup
+          key={`${classificationPrime.segmentNumber}-${classificationPrime.prime.type}`}
+          primeResult={classificationPrime}
+          riderById={riderById}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function PrimeClassificationPopup({
+  primeResult,
+  riderById,
+}: {
+  primeResult: RacePrimeResult;
+  riderById: Map<string, RiderSimulationInput>;
+}) {
+  const isMountain = primeResult.prime.type === "mountain";
+
+  return (
+    <aside
+      role="status"
+      aria-live="polite"
+      className={`absolute bottom-4 left-4 right-4 z-[60] rounded-2xl border bg-[#071A17]/95 p-4 text-white shadow-2xl backdrop-blur cm-prime-classification sm:right-auto sm:w-80 ${
+        isMountain ? "border-[#EF5B65]/55" : "border-[#43C892]/55"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p
+            className={`text-[9px] font-black uppercase tracking-[0.2em] ${
+              isMountain ? "text-[#FF9EA6]" : "text-[#9BE0CA]"
+            }`}
+          >
+            Ligne franchie · la course continue
+          </p>
+          <h3 className="mt-1 text-sm font-black text-[#FFFDF4]">
+            {formatPrimeLabel(primeResult)} · classement
+          </h3>
+        </div>
+        <span
+          className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${
+            isMountain
+              ? "bg-[#EF5B65]/15 text-[#FF9EA6]"
+              : "bg-[#43C892]/15 text-[#9BE0CA]"
+          }`}
+        >
+          Points
+        </span>
+      </div>
+      <ol className="mt-3 space-y-1.5">
+        {primeResult.classification.slice(0, 5).map((classified) => {
+          const rider = riderById.get(classified.riderId);
+          if (!rider) return null;
+          return (
+            <li
+              key={classified.riderId}
+              className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-white/[0.055] px-2.5 py-2 text-[10px]"
+            >
+              <span className="font-black text-[#F2C94C]">
+                {classified.rank}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-black text-white">
+                  {rider.name}
+                </span>
+                <span className="block truncate font-semibold text-[#8FA99D]">
+                  {rider.teamName}
+                </span>
+              </span>
+              <span className="font-black text-[#FFF4C4]">
+                +{classified.points} pts
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </aside>
+  );
+}
+
+function formatPrimeLabel(primeResult: RacePrimeResult) {
+  if (primeResult.prime.type === "intermediate_sprint") {
+    return "Sprint intermédiaire";
+  }
+  return `GPM${primeResult.prime.category ? ` · Cat. ${primeResult.prime.category}` : ""}`;
 }
 
 function RaceIncidentOverlay({
