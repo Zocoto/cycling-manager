@@ -31,6 +31,15 @@ import {
   type RiderRatings,
 } from "../../../lib/game/rider-profile";
 import {
+  getNextRosterSortDirection,
+  parseRosterSortDirection,
+  parseRosterSortKey,
+  sortRosterItems,
+  type RosterSortDirection,
+  type RosterSortKey,
+  type RosterSortValue,
+} from "../../../lib/game/roster-sort";
+import {
   getCurrentTeamHealthOverview,
   type RiderFormCamp,
   type RiderMedicalInjury,
@@ -168,7 +177,25 @@ const ratingColumns: Array<{
   },
 ];
 
-export default async function TeamRosterPage() {
+export default async function TeamRosterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    sort?: string | string[];
+    direction?: string | string[];
+  }>;
+}) {
+  const rosterQuery = await searchParams;
+  const currentSortKey = parseRosterSortKey(
+    getFirstSearchParam(rosterQuery.sort)
+  );
+  const currentSortDirection = currentSortKey
+    ? parseRosterSortDirection(
+        getFirstSearchParam(rosterQuery.direction),
+        currentSortKey
+      )
+    : "asc";
+
   const supabase =
     await createSupabaseServerClient();
 
@@ -297,6 +324,18 @@ export default async function TeamRosterPage() {
     ...rider,
     potential_steps: potentialByRiderId.get(rider.rider_id) ?? 1,
   }));
+  const sortedRiders = currentSortKey
+    ? sortRosterItems({
+        items: riders,
+        direction: currentSortDirection,
+        getValue: (rider) =>
+          getRosterSortValue(
+            rider,
+            currentSortKey
+          ),
+        getTieBreaker: getRiderSortName,
+      })
+    : riders;
 
   const commercialTeamName =
     teamSponsorIdentity?.teamName ??
@@ -497,74 +536,93 @@ export default async function TeamRosterPage() {
                 <table className="min-w-[1450px] w-full border-collapse">
                   <thead>
                     <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
-                      <th
-                        scope="col"
-                        className="sticky left-0 z-10 min-w-80 bg-[#F3F8F6] px-5 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Coureur
-                      </th>
+                      <SortableTableHeader
+                        sortKey="rider"
+                        label="Coureur"
+                        fullLabel="nom du coureur"
+                        align="left"
+                        className="sticky left-0 z-10 min-w-80"
+                        linkClassName="px-5"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
 
-                      <th
-                        scope="col"
-                        className="px-3 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Âge
-                      </th>
+                      <SortableTableHeader
+                        sortKey="age"
+                        label="Âge"
+                        fullLabel="âge"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
 
-                      <th
-                        scope="col"
-                        className="min-w-40 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Profil
-                      </th>
+                      <SortableTableHeader
+                        sortKey="profile"
+                        label="Profil"
+                        fullLabel="profil"
+                        align="left"
+                        className="min-w-40"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
 
-                      <th
-                        scope="col"
-                        className="min-w-36 px-3 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Potentiel
-                      </th>
+                      <SortableTableHeader
+                        sortKey="potential"
+                        label="Potentiel"
+                        fullLabel="potentiel"
+                        className="min-w-36"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
 
                       {ratingColumns.map(
                         (column) => (
-                          <th
+                          <SortableTableHeader
                             key={column.key}
-                            scope="col"
-                            title={
-                              column.fullLabel
-                            }
-                            className="px-2 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                          >
-                            {column.label}
-                          </th>
+                            sortKey={column.key}
+                            label={column.label}
+                            fullLabel={column.fullLabel}
+                            linkClassName="px-2"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
                         )
                       )}
 
-                      <th
-                        scope="col"
-                        className="min-w-28 px-3 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Moy.
-                      </th>
+                      <SortableTableHeader
+                        sortKey="average"
+                        label="Moy."
+                        fullLabel="moyenne"
+                        className="min-w-28"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
 
-                      <th
-                        scope="col"
-                        className="min-w-36 px-4 py-4 text-right text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Salaire
-                      </th>
+                      <SortableTableHeader
+                        sortKey="salary"
+                        label="Salaire"
+                        fullLabel="salaire"
+                        align="right"
+                        className="min-w-36"
+                        linkClassName="px-4"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
 
-                      <th
-                        scope="col"
-                        className="min-w-36 px-5 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-[#48665F]"
-                      >
-                        Contrat
-                      </th>
+                      <SortableTableHeader
+                        sortKey="contract"
+                        label="Contrat"
+                        fullLabel="échéance du contrat"
+                        align="left"
+                        className="min-w-36"
+                        linkClassName="px-5"
+                        currentSortKey={currentSortKey}
+                        currentDirection={currentSortDirection}
+                      />
                     </tr>
                   </thead>
 
                   <tbody>
-                    {riders.map((rider) => (
+                    {sortedRiders.map((rider) => (
                       <RiderTableRow
                         key={rider.rider_id}
                         rider={rider}
@@ -877,6 +935,104 @@ function SummaryCard({
         {detail}
       </p>
     </article>
+  );
+}
+
+function SortableTableHeader({
+  sortKey,
+  label,
+  fullLabel,
+  currentSortKey,
+  currentDirection,
+  align = "center",
+  className,
+  linkClassName,
+}: {
+  sortKey: RosterSortKey;
+  label: string;
+  fullLabel: string;
+  currentSortKey: RosterSortKey | null;
+  currentDirection: RosterSortDirection;
+  align?: "left" | "center" | "right";
+  className?: string;
+  linkClassName?: string;
+}) {
+  const isActive =
+    currentSortKey === sortKey;
+  const nextDirection =
+    getNextRosterSortDirection({
+      sortKey,
+      currentSortKey,
+      currentDirection,
+    });
+  const nextDirectionLabel =
+    nextDirection === "asc"
+      ? "croissant"
+      : "décroissant";
+  const alignmentClass =
+    align === "left"
+      ? "justify-start text-left"
+      : align === "right"
+        ? "justify-end text-right"
+        : "justify-center text-center";
+
+  return (
+    <th
+      scope="col"
+      aria-sort={
+        isActive
+          ? currentDirection === "asc"
+            ? "ascending"
+            : "descending"
+          : undefined
+      }
+      className={[
+        "p-0 text-xs font-extrabold uppercase tracking-wider",
+        isActive
+          ? "bg-[#E1F0EA] text-[#176951]"
+          : "bg-[#F3F8F6] text-[#48665F]",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <Link
+        href={{
+          pathname: "/jeu/effectif",
+          query: {
+            sort: sortKey,
+            direction: nextDirection,
+          },
+        }}
+        scroll={false}
+        title={`Trier par ${fullLabel} (${nextDirectionLabel})`}
+        aria-label={`Trier par ${fullLabel}, ordre ${nextDirectionLabel}`}
+        className={[
+          "flex w-full items-center gap-1.5 px-3 py-4 transition hover:bg-[#DCEBE5] hover:text-[#0F5944] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]",
+          alignmentClass,
+          linkClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <span>{label}</span>
+        <span
+          aria-hidden="true"
+          className={[
+            "text-[0.7rem] leading-none",
+            isActive
+              ? "text-[#176951]"
+              : "text-[#91A69F]",
+          ].join(" ")}
+        >
+          {isActive
+            ? currentDirection === "asc"
+              ? "↑"
+              : "↓"
+            : "↕"}
+        </span>
+      </Link>
+    </th>
   );
 }
 
@@ -1252,6 +1408,63 @@ function toRiderRatings(rider: RiderRow): RiderRatings {
     breakaway: rider.breakaway,
     prologue: rider.prologue,
   };
+}
+
+function getFirstSearchParam(
+  value: string | string[] | undefined
+): string | undefined {
+  return Array.isArray(value)
+    ? value[0]
+    : value;
+}
+
+function isRatingKey(
+  sortKey: RosterSortKey
+): sortKey is RatingKey {
+  return ratingColumns.some(
+    (column) => column.key === sortKey
+  );
+}
+
+function getRiderSortName(
+  rider: RiderRow
+): string {
+  return `${rider.last_name} ${rider.first_name} ${rider.rider_id}`;
+}
+
+function getRosterSortValue(
+  rider: RiderRow,
+  sortKey: RosterSortKey
+): RosterSortValue {
+  if (isRatingKey(sortKey)) {
+    return rider[sortKey];
+  }
+
+  switch (sortKey) {
+    case "rider":
+      return getRiderSortName(rider);
+    case "age":
+      return rider.age;
+    case "profile":
+      return getRiderSportingProfile(
+        toRiderRatings(rider)
+      );
+    case "potential":
+      return rider.potential_steps;
+    case "average":
+      return getRiderAverage(rider);
+    case "salary": {
+      const salary = Number(
+        rider.salary_per_season
+      );
+
+      return Number.isFinite(salary)
+        ? salary
+        : null;
+    }
+    case "contract":
+      return rider.contract_end_season_name;
+  }
 }
 
 function getRiderAverage(
