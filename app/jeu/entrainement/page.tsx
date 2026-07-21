@@ -10,7 +10,10 @@ import {
   TrainingThresholdForm,
 } from "@/components/game/training-controls";
 import { TRAINER_SPECIALTY_LABELS } from "@/lib/game/staff";
-import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
+import {
+  formatTrainingProgressMilli,
+  TRAINING_DOMAIN_LABELS,
+} from "@/lib/game/training";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -60,9 +63,15 @@ const STAT_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<TrainingSessionStatus, string> = {
   completed: "Séance réalisée",
-  skipped_low_form: "Repos · forme sous le seuil",
-  skipped_injury: "Repos · blessure",
-  skipped_form_camp: "Repos · stage de forme",
+  skipped_low_form: "Pas d’entraînement",
+  skipped_injury: "Pas d’entraînement",
+  skipped_form_camp: "Pas d’entraînement",
+};
+
+const SKIPPED_REASON_LABELS: Partial<Record<TrainingSessionStatus, string>> = {
+  skipped_low_form: "Forme inférieure au seuil fixé par l’équipe",
+  skipped_injury: "Coureur indisponible en raison d’une blessure",
+  skipped_form_camp: "Coureur indisponible pendant son stage de forme",
 };
 
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
@@ -296,11 +305,15 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
     );
   }
 
-  const ratingChanges = Object.entries(report.ratingChanges).filter(([, value]) => value !== 0);
-  const leadingProgress = Object.entries(report.progressMilli)
+  const isCompleted = report.status === "completed";
+  const ratingChanges = sortStatEntries(report.ratingChanges).filter(
+    ([, value]) => value !== 0,
+  );
+  const trainingProgress = sortStatEntries(report.progressMilli)
     .filter(([, value]) => value > 0)
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, 5);
+  const declineProgress = sortStatEntries(report.declineMilli).filter(
+    ([, value]) => value > 0,
+  );
 
   return (
     <details className="group relative">
@@ -314,7 +327,9 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
               {STATUS_LABELS[report.status]}
             </p>
             <p className="mt-1 font-black">
-              {TRAINING_DOMAIN_LABELS[report.domain]} · {report.intensity}%
+              {isCompleted
+                ? `${TRAINING_DOMAIN_LABELS[report.domain]} · ${report.intensity}%`
+                : SKIPPED_REASON_LABELS[report.status]}
             </p>
           </div>
           <span
@@ -324,8 +339,14 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                 : "bg-[#278B70]/25 text-[#9BE0BC]"
             }`}
           >
-            Forme {report.formDelta > 0 ? "+" : ""}
-            {report.formDelta}
+            {isCompleted ? (
+              <>
+                Forme {report.formDelta > 0 ? "+" : ""}
+                {report.formDelta}
+              </>
+            ) : (
+              "Aucun gain"
+            )}
           </span>
         </div>
 
@@ -349,33 +370,85 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                   ) : null}
                 </dl>
 
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
-            Notes mises à jour
-          </p>
-          <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">
-            {ratingChanges.length > 0
-              ? ratingChanges
-                  .map(([stat, value]) => `${STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`)
-                  .join(" · ")
-              : "Aucun point entier aujourd’hui : les fractions sont conservées pour les prochaines séances."}
-          </p>
-        </div>
-
-        {leadingProgress.length > 0 ? (
+        {isCompleted ? (
           <div className="mt-4 border-t border-white/10 pt-4">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
-              Progression créditée
+              Gains de la dernière séance
+            </p>
+            {trainingProgress.length > 0 ? (
+              <ul className="mt-3 grid grid-cols-2 gap-2 text-xs font-black">
+                {trainingProgress.map(([stat, value]) => (
+                  <li
+                    key={stat}
+                    className="flex items-center justify-between rounded-lg bg-white/7 px-3 py-2"
+                  >
+                    <span className="text-[#D6DFD2]">{STAT_LABELS[stat] ?? stat}</span>
+                    <span className="text-[#9BE0BC]">
+                      +{formatTrainingProgressMilli(value)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">
+                Aucun gain de statistique pour cette séance.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-4 py-3">
+            <p className="text-xs font-black text-[#FFF4C5]">Pas d’entraînement</p>
+            <p className="mt-1 text-xs font-bold leading-5 text-[#D6DFD2]">
+              Aucun gain d’entraînement n’a été crédité pendant la séance de 8 h.
+            </p>
+          </div>
+        )}
+
+        {declineProgress.length > 0 ? (
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#EAB0A0]">
+              Déclin naturel appliqué
             </p>
             <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">
-              {leadingProgress
-                .map(([stat, value]) => `${STAT_LABELS[stat] ?? stat} +${(value / 1000).toFixed(2)}`)
+              {declineProgress
+                .map(
+                  ([stat, value]) =>
+                    `${STAT_LABELS[stat] ?? stat} −${formatTrainingProgressMilli(value)}`,
+                )
                 .join(" · ")}
             </p>
           </div>
         ) : null}
+
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
+            Notes entières mises à jour
+          </p>
+          <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">
+            {ratingChanges.length > 0
+              ? ratingChanges
+                  .map(
+                    ([stat, value]) =>
+                      `${STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
+                  )
+                  .join(" · ")
+              : "Aucune note entière n’a changé : les décimales sont conservées en base pour les prochaines séances."}
+          </p>
+        </div>
       </div>
     </details>
+  );
+}
+
+function sortStatEntries(values: Record<string, number>) {
+  const statOrder = new Map(
+    Object.keys(STAT_LABELS).map((stat, index) => [stat, index]),
+  );
+
+  return Object.entries(values).sort(
+    ([left], [right]) =>
+      (statOrder.get(left) ?? Number.MAX_SAFE_INTEGER) -
+      (statOrder.get(right) ?? Number.MAX_SAFE_INTEGER),
   );
 }
 

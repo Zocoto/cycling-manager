@@ -7,6 +7,7 @@ import {
   type TrainerSpecialty,
 } from "@/lib/game/staff";
 import {
+  indexLatestTrainingSessionsByRider,
   isTrainingDomain,
   type TrainingDomain,
 } from "@/lib/game/training";
@@ -306,9 +307,9 @@ export async function getCurrentTeamTrainingOverview(
   const countryById = new Map((countriesResult.data ?? []).map((country) => [country.id, country]));
   const ratingByRiderId = new Map((ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]));
   const plansByRiderId = firstByKey(plansResult.data ?? [], (plan) => plan.rider_id);
-  const latestSessionByRiderId = firstByKey(
+  const latestSessionByRiderId = indexLatestTrainingSessionsByRider(
     sessionsResult.data ?? [],
-    (session) => session.rider_id,
+    new Map(days.map((day) => [day.id, day.day_number])),
   );
   const conditionByRiderId = latestConditions(
     conditionsResult.data ?? [],
