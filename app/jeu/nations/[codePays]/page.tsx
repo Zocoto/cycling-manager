@@ -4,14 +4,27 @@ import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { RankingBadge } from "@/components/game/ranking-badge";
+import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+  FREE_AGENT_RIDER_JERSEY,
+  type RiderJerseyAppearance,
+} from "@/lib/rider-jersey";
 import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import {
+  getTopNationRiders,
+  type NationRiderSummary,
+} from "@/services/nation-riders";
 import { getPublicCountryDirectory } from "@/services/public-directory";
+import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
+import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import { getNationRankingEntry } from "@/services/uci-rankings";
 
 export const metadata: Metadata = {
@@ -53,6 +66,8 @@ export default async function PublicCountryPage({
   }
 
   const { country, members } = directory;
+  const topRiders = await getTopNationRiders(country.entity_id);
+  const riderJerseysByTeamId = await getNationRiderJerseys(topRiders);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -144,6 +159,11 @@ export default async function PublicCountryPage({
               ))}
             </DirectorySection>
           </div>
+
+          <NationTopRidersSection
+            riders={topRiders}
+            riderJerseysByTeamId={riderJerseysByTeamId}
+          />
         </div>
 
         <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white/75 p-6 sm:p-8">
@@ -172,6 +192,112 @@ export default async function PublicCountryPage({
       </section>
     </main>
   );
+}
+
+function NationTopRidersSection({
+  riders,
+  riderJerseysByTeamId,
+}: {
+  riders: NationRiderSummary[];
+  riderJerseysByTeamId: Map<string, RiderJerseyAppearance>;
+}) {
+  return (
+    <section className="border-t border-[#315B3E]/12 px-6 py-8 sm:px-10 sm:py-10">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+        Coureurs
+      </p>
+      <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <h2 className="text-2xl font-black text-[#183F37]">
+          Les 5 meilleurs coureurs
+        </h2>
+        <p className="text-xs font-bold text-[#60756E]">
+          Moyenne générale de la saison active · avec ou sans équipe
+        </p>
+      </div>
+
+      {riders.length > 0 ? (
+        <ol className="mt-5 grid gap-3 lg:grid-cols-2">
+          {riders.map((rider, index) => {
+            const riderName = `${rider.firstName} ${rider.lastName}`.trim();
+            const jersey = rider.teamId
+              ? (riderJerseysByTeamId.get(rider.teamId) ??
+                FREE_AGENT_RIDER_JERSEY)
+              : FREE_AGENT_RIDER_JERSEY;
+
+            return (
+              <li key={rider.id}>
+                <Link
+                  href={`/jeu/coureurs/${rider.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4 transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:shadow-[0_12px_26px_rgba(19,60,46,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
+                  aria-label={`Consulter la fiche de ${riderName}`}
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#176951] text-xs font-black text-white">
+                    {index + 1}
+                  </span>
+                  <RiderAvatar
+                    profileKey={rider.avatarProfileKey}
+                    seed={rider.avatarSeed}
+                    riderId={rider.id}
+                    age={rider.age}
+                    jersey={jersey}
+                    label={`Portrait de ${riderName}`}
+                    className="h-14 w-14"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-black text-[#183F37]">
+                      {riderName}
+                    </span>
+                    <span className="mt-1 block truncate text-xs font-semibold text-[#60756E]">
+                      {rider.age} ans · {rider.teamName ?? "Sans équipe"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-xl bg-[#DDF3E7] px-3 py-2 text-xs font-black text-[#176951]">
+                    MOY {Math.round(rider.overall)}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p className="mt-5 rounded-xl border border-dashed border-[#315B3E]/20 px-4 py-8 text-center text-sm text-[#60756E]">
+          Aucun coureur actif enregistré pour cette nation.
+        </p>
+      )}
+    </section>
+  );
+}
+
+async function getNationRiderJerseys(
+  riders: NationRiderSummary[],
+): Promise<Map<string, RiderJerseyAppearance>> {
+  const teamIds = [
+    ...new Set(
+      riders
+        .map((rider) => rider.teamId)
+        .filter((teamId): teamId is string => Boolean(teamId)),
+    ),
+  ];
+  const entries = await Promise.all(
+    teamIds.map(async (teamId) => {
+      const [sponsorIdentity, amateurIdentity] = await Promise.all([
+        getActiveTeamSponsorIdentity(teamId).catch(() => null),
+        getTeamAmateurIdentity(teamId).catch(() => null),
+      ]);
+      const jersey = sponsorIdentity
+        ? createSponsoredRiderJersey({
+            colors: sponsorIdentity.sponsor.colors,
+            style: sponsorIdentity.selectedJersey.style,
+          })
+        : amateurIdentity
+          ? createAmateurRiderJersey(amateurIdentity.jersey)
+          : FREE_AGENT_RIDER_JERSEY;
+
+      return [teamId, jersey] as const;
+    }),
+  );
+
+  return new Map(entries);
 }
 
 function Statistic({
