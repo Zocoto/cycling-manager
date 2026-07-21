@@ -355,6 +355,7 @@ type RiderState = {
     | "breakaway_2"
     | "chase"
     | "peloton"
+    | "delayed"
     | "dropped"
     | "abandoned";
   groupSinceSegment: number;
@@ -552,6 +553,7 @@ function simulateRoadStage(
     const breakaway = getStatesInGroup(states, "breakaway");
     const secondaryBreakaway = getStatesInGroup(states, "breakaway_2");
     const chase = getStatesInGroup(states, "chase");
+    const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
     const frontTerrainRating = getFrontTerrainRating(peloton, segment);
     const raceProgress = segmentIndex / Math.max(1, input.segments.length - 1);
@@ -648,6 +650,8 @@ function simulateRoadStage(
         state.elapsedTimeSeconds += chaseSeconds;
       } else if (state.group === "peloton") {
         state.elapsedTimeSeconds += pelotonSeconds;
+      } else if (state.group === "delayed") {
+        state.elapsedTimeSeconds += pelotonSeconds;
       } else {
         const extraLoss = getDroppedRiderLoss(
           state,
@@ -672,6 +676,8 @@ function simulateRoadStage(
               ? Math.max(1, secondaryBreakaway.length)
               : state.group === "chase"
                 ? Math.max(1, chase.length)
+                : state.group === "delayed"
+                  ? Math.max(1, delayed.length)
             : state.group === "peloton"
               ? Math.max(1, peloton.length)
               : Math.max(1, dropped.length),
@@ -686,6 +692,8 @@ function simulateRoadStage(
                 ? getFrontTerrainRating(secondaryBreakaway, segment)
                 : state.group === "chase"
                   ? getFrontTerrainRating(chase, segment)
+                  : state.group === "delayed"
+                    ? getFrontTerrainRating(delayed, segment)
                   : getTerrainRating(state.rider, segment),
       });
     }
@@ -702,6 +710,14 @@ function simulateRoadStage(
       states,
       segmentIndex,
       breakawayGapSeconds,
+      random,
+      commentary,
+    });
+
+    resolveDelayedRiders({
+      states,
+      segment,
+      segmentIndex,
       random,
       commentary,
     });
@@ -1242,6 +1258,7 @@ function updateRiderEnergy({
     state.group === "breakaway" ||
     state.group === "breakaway_2" ||
     state.group === "chase" ||
+    state.group === "delayed" ||
     ((rider.role === "domestique" || rider.role === "leadout") &&
       segmentIndex < segmentCount - 2 &&
       chasePressure > 0.45);
@@ -1251,7 +1268,8 @@ function updateRiderEnergy({
       ? Math.max(0.55, 0.77 - Math.log2(groupSize + 1) * 0.035)
       : state.group === "breakaway" ||
           state.group === "breakaway_2" ||
-          state.group === "chase"
+          state.group === "chase" ||
+          state.group === "delayed"
         ? Math.max(0.74, 0.93 - Math.log2(groupSize + 1) * 0.035)
         : 0.88;
   const draftingRelevance =
@@ -1266,7 +1284,8 @@ function updateRiderEnergy({
   const workFactor =
     state.group === "breakaway" ||
     state.group === "breakaway_2" ||
-    state.group === "chase"
+    state.group === "chase" ||
+    state.group === "delayed"
       ? 1.48
       : isWorking
         ? 1.2
@@ -1500,6 +1519,75 @@ function resolveExistingChasers({
   }
 }
 
+function resolveDelayedRiders({
+  states,
+  segment,
+  segmentIndex,
+  random,
+  commentary,
+}: {
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  random: () => number;
+  commentary: string[];
+}) {
+  const peloton = getStatesInGroup(states, "peloton");
+  if (peloton.length === 0) return;
+
+  const pelotonTime = average(
+    peloton.map((state) => state.elapsedTimeSeconds)
+  );
+  const rejoined: RiderState[] = [];
+
+  for (const state of getStatesInGroup(states, "delayed")) {
+    if (state.groupSinceSegment >= segmentIndex) continue;
+
+    const gapSeconds = Math.max(
+      0,
+      state.elapsedTimeSeconds - pelotonTime
+    );
+    const catchUpScore =
+      getTerrainRating(state.rider, segment) * 0.45 +
+      state.rider.ratings.flat * 0.15 +
+      state.rider.ratings.acceleration * 0.15 +
+      state.rider.ratings.resistance * 0.15 +
+      state.energy * 0.1;
+    const recoveredSeconds = Math.min(
+      gapSeconds,
+      clamp(
+        2 + (catchUpScore - 50) * 0.15 + random() * 4,
+        1,
+        12
+      )
+    );
+    const remainingGapSeconds = Math.max(
+      0,
+      gapSeconds - recoveredSeconds
+    );
+
+    state.elapsedTimeSeconds = pelotonTime + remainingGapSeconds;
+    state.lostTimeSeconds = Math.max(
+      0,
+      state.lostTimeSeconds - recoveredSeconds
+    );
+
+    if (remainingGapSeconds <= 3) {
+      state.group = "peloton";
+      state.groupSinceSegment = segmentIndex;
+      state.elapsedTimeSeconds = pelotonTime;
+      state.lostTimeSeconds = 0;
+      rejoined.push(state);
+    }
+  }
+
+  if (rejoined.length > 0 && commentary.length < 4) {
+    commentary.push(
+      `${formatRiderList(rejoined)} recollent au peloton apr\u00e8s leur poursuite.`
+    );
+  }
+}
+
 function maybeSplitBreakaway({
   states,
   segment,
@@ -1638,13 +1726,20 @@ function maybeCreateRaceIncident({
   }
 
   const peloton = getStatesInGroup(states, "peloton");
+  if (type === "crosswind" && peloton.length < 4) {
+    return null;
+  }
   let affected: RiderState[];
 
   if (type === "crash_mass" || type === "crosswind") {
     const candidates =
       peloton.length >= 4 ? peloton : activeStates;
+    const maximumAffectedCount =
+      candidates === peloton
+        ? Math.max(1, candidates.length - 1)
+        : candidates.length;
     const affectedCount = Math.min(
-      candidates.length,
+      maximumAffectedCount,
       type === "crash_mass"
         ? 3 + Math.floor(random() * 4)
         : 2 + Math.floor(random() * 4)
@@ -1675,12 +1770,14 @@ function maybeCreateRaceIncident({
   const injuries: RaceInjury[] = [];
 
   for (const state of affected) {
+    let timeLossSeconds: number;
+
     if (type === "puncture") {
       state.energy = clamp(state.energy - 1.5, 0, 100);
-      state.lostTimeSeconds += 12 + random() * 12;
+      timeLossSeconds = 12 + random() * 12;
     } else if (type === "crosswind") {
       state.energy = clamp(state.energy - 2.5, 0, 100);
-      state.lostTimeSeconds += 9 + random() * 10;
+      timeLossSeconds = 9 + random() * 10;
     } else {
       state.energy = clamp(
         state.energy -
@@ -1688,10 +1785,13 @@ function maybeCreateRaceIncident({
         0,
         100
       );
-      state.lostTimeSeconds +=
+      timeLossSeconds =
         (type === "crash_mass" ? 18 : 14) +
         random() * 16;
     }
+
+    state.lostTimeSeconds += timeLossSeconds;
+    state.elapsedTimeSeconds += timeLossSeconds;
 
     const crashMedicalResult =
       type === "crash_individual" || type === "crash_mass"
@@ -1712,7 +1812,15 @@ function maybeCreateRaceIncident({
       state.energy = 0;
     } else if (state.group === "breakaway") {
       state.group = "breakaway_2";
-    } else if (state.group !== "breakaway_2") {
+    } else if (
+      state.group === "peloton" ||
+      state.group === "delayed"
+    ) {
+      state.group = "delayed";
+    } else if (
+      state.group !== "breakaway_2" &&
+      state.group !== "chase"
+    ) {
       state.group = "chase";
     }
     state.groupSinceSegment = segmentIndex;
@@ -2453,6 +2561,7 @@ function buildRoadSnapshot({
   );
   const chase = getStatesInGroup(states, "chase");
   const peloton = getStatesInGroup(states, "peloton");
+  const delayed = getStatesInGroup(states, "delayed");
   const dropped = getStatesInGroup(states, "dropped");
   const groups: RaceGroupSnapshot[] = [];
   const hasBreakaway =
@@ -2505,6 +2614,43 @@ function buildRoadSnapshot({
         hasBreakaway
           ? Math.max(0, Math.round(breakawayGapSeconds))
           : 0
+      )
+    );
+  }
+
+  if (delayed.length > 0) {
+    const pelotonTime = average(
+      peloton.map((state) => state.elapsedTimeSeconds)
+    );
+    const delayedGapBehindPeloton =
+      peloton.length > 0
+        ? average(
+            delayed.map((state) => state.elapsedTimeSeconds)
+          ) - pelotonTime
+        : average(
+            delayed.map((state) => state.lostTimeSeconds)
+          );
+    const crosswindRiderIds = new Set(
+      incidents
+        .filter((incident) => incident.type === "crosswind")
+        .flatMap((incident) => incident.riderIds)
+    );
+    const isCurrentCrosswindGroup = delayed.some((state) =>
+      crosswindRiderIds.has(state.rider.id)
+    );
+
+    groups.push(
+      toGroupSnapshot(
+        "dropped",
+        isCurrentCrosswindGroup
+          ? "Groupe pi\u00e9g\u00e9 par la bordure"
+          : "Groupe retard\u00e9",
+        delayed,
+        Math.round(
+          (hasBreakaway
+            ? Math.max(0, breakawayGapSeconds)
+            : 0) + Math.max(1, delayedGapBehindPeloton)
+        )
       )
     );
   }

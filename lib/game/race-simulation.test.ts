@@ -498,6 +498,54 @@ describe("simulateRaceStage", () => {
     );
   });
 
+  it("place les coureurs piégés par une bordure derrière le peloton", () => {
+    const crosswindCase = Array.from({ length: 80 }, (_, index) =>
+      simulateRaceStage(
+        createDemoSimulationInput("collines-ardennes", index + 1)
+      )
+    )
+      .flatMap((result) => result.timeline)
+      .map((snapshot) => ({
+        snapshot,
+        incident: snapshot.incidents.find(
+          (incident) => incident.type === "crosswind"
+        ),
+      }))
+      .find(({ snapshot, incident }) => {
+        const peloton = snapshot.groups.find(
+          (group) => group.type === "peloton"
+        );
+        const affectedGroup = incident
+          ? snapshot.groups.find((group) =>
+              incident.riderIds.every((riderId) =>
+                group.riderIds.includes(riderId)
+              )
+            )
+          : null;
+        return Boolean(incident && peloton && affectedGroup);
+      });
+
+    expect(crosswindCase).toBeDefined();
+    const { snapshot, incident } = crosswindCase!;
+    const pelotonIndex = snapshot.groups.findIndex(
+      (group) => group.type === "peloton"
+    );
+    const affectedGroupIndex = snapshot.groups.findIndex((group) =>
+      incident!.riderIds.every((riderId) =>
+        group.riderIds.includes(riderId)
+      )
+    );
+    const peloton = snapshot.groups[pelotonIndex];
+    const affectedGroup = snapshot.groups[affectedGroupIndex];
+
+    expect(affectedGroupIndex).toBeGreaterThan(pelotonIndex);
+    expect(affectedGroup.type).toBe("dropped");
+    expect(affectedGroup.gapToLeaderSeconds).toBeGreaterThan(
+      peloton.gapToLeaderSeconds
+    );
+    expect(affectedGroup.label).toContain("bordure");
+  });
+
   it("peut scinder une échappée en plusieurs groupes", () => {
     const result = simulateRaceStage(
       createDemoSimulationInput("haute-montagne", 1)
