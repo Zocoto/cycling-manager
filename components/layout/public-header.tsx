@@ -8,18 +8,23 @@ const navigationItems = [
     label: "Accueil",
   },
   {
-    href: "/nouveautes",
-    label: "Nouveautés",
+    href: "/guide",
+    label: "Guide",
   },
   {
-    href: "/#carriere",
-    label: "Fonctionnalités",
+    href: "/a-propos",
+    label: "À propos",
   },
 ] as const;
 
 export function PublicHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#78947D]/25 bg-[#071A17]/95 shadow-lg shadow-black/15 backdrop-blur-xl">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]"
+      />
+
       <div className="mx-auto flex max-w-375 items-center justify-between gap-6 px-5 py-4 sm:px-8">
         <Link
           href="/"
@@ -31,7 +36,7 @@ export function PublicHeader() {
           <span className="inline-flex h-11 flex-col justify-between leading-none">
             <span
               aria-hidden="true"
-              className="flex justify-between text-lg font-extrabold uppercase text-[#FFFDF4]"
+              className="-mt-[2px] flex justify-between text-2xl font-extrabold uppercase text-[#FFFDF4]"
             >
               <span>C</span>
               <span>Y</span>
@@ -40,7 +45,7 @@ export function PublicHeader() {
               <span>O</span>
             </span>
 
-            <span className="block text-xs font-semibold uppercase tracking-[0.36em] text-[#F2C94C] -me-[0.36em]">
+            <span className="-mb-[2px] block text-sm font-semibold uppercase tracking-[0.3em] text-[#F2C94C] -me-[0.3em]">
               Stratège
             </span>
           </span>
