@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { RACE_ROLES, type RaceRole } from "@/lib/game/race-simulation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function registerRaceRosterAction(
@@ -19,9 +20,10 @@ export async function registerRaceRosterAction(
       (value): value is string =>
         typeof value === "string" && isUuid(value)
     );
+  const submittedRoles = readSubmittedRoles(formData);
   const roster = riderIds.map((riderId) => ({
     riderId,
-    role: "auto",
+    role: submittedRoles.get(riderId) ?? "auto",
   }));
 
   if (!isUuid(editionId) || !isSlug(slug)) {
@@ -141,4 +143,22 @@ function isSlug(value: string) {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
     value
   );
+}
+
+function readSubmittedRoles(formData: FormData) {
+  const roles = new Map<string, RaceRole>();
+
+  for (const value of formData.getAll("riderRoles")) {
+    if (typeof value !== "string") continue;
+    const separatorIndex = value.indexOf(":");
+    if (separatorIndex === -1) continue;
+    const riderId = value.slice(0, separatorIndex);
+    const role = value.slice(separatorIndex + 1);
+
+    if (isUuid(riderId) && RACE_ROLES.includes(role as RaceRole)) {
+      roles.set(riderId, role as RaceRole);
+    }
+  }
+
+  return roles;
 }
