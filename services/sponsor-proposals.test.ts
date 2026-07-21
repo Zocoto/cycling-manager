@@ -48,7 +48,7 @@ describe("generateSponsorProposals", () => {
     ).toBe(true);
   });
 
-  it.each(["MA", "SN", "CI", "NG", "CM", "KE", "ET", "RW", "ZA", "MG", "GR"])(
+  it.each(["MA", "SN", "CI", "NG", "CM", "KE", "ET", "RW", "ZA", "MG", "GR", "US"])(
     "propose d’abord un sponsor national pour un directeur %s",
     (directorCountryCode) => {
       const proposals = generateSponsorProposals({
