@@ -12,6 +12,12 @@ export const TRAINING_DOMAINS = [
 
 export type TrainingDomain = (typeof TRAINING_DOMAINS)[number];
 
+export type TrainingSessionTimelineRow = {
+  rider_id: string;
+  season_day_id: string;
+  processed_at: string;
+};
+
 export const TRAINING_DOMAIN_LABELS: Record<TrainingDomain, string> = {
   climber: "Grimpeur",
   puncheur: "Puncheur",
@@ -204,6 +210,44 @@ export function formatPotential(potentialSteps: number): string {
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(
     getPotentialStars(potentialSteps),
   )} étoile${getPotentialStars(potentialSteps) > 1 ? "s" : ""}`;
+}
+
+export function indexLatestTrainingSessionsByRider<
+  T extends TrainingSessionTimelineRow,
+>(
+  sessions: readonly T[],
+  dayNumberById: ReadonlyMap<string, number>,
+): Map<string, T> {
+  const latestByRiderId = new Map<string, T>();
+
+  for (const session of sessions) {
+    const current = latestByRiderId.get(session.rider_id);
+
+    if (!current || isTrainingSessionMoreRecent(session, current, dayNumberById)) {
+      latestByRiderId.set(session.rider_id, session);
+    }
+  }
+
+  return latestByRiderId;
+}
+
+export function formatTrainingProgressMilli(value: number): string {
+  return (Math.round(value) / 1_000).toFixed(3).replace(".", ",");
+}
+
+function isTrainingSessionMoreRecent(
+  candidate: TrainingSessionTimelineRow,
+  current: TrainingSessionTimelineRow,
+  dayNumberById: ReadonlyMap<string, number>,
+): boolean {
+  const candidateDayNumber = dayNumberById.get(candidate.season_day_id) ?? -1;
+  const currentDayNumber = dayNumberById.get(current.season_day_id) ?? -1;
+
+  if (candidateDayNumber !== currentDayNumber) {
+    return candidateDayNumber > currentDayNumber;
+  }
+
+  return candidate.processed_at > current.processed_at;
 }
 
 export function isTrainingDomain(value: string): value is TrainingDomain {

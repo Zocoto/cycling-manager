@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateDailyTrainingProgressMilli,
+  formatTrainingProgressMilli,
   getPotentialEfficiency,
   getPotentialOverallCap,
   getPotentialStars,
@@ -11,6 +12,7 @@ import {
   getTrainerMultiplier,
   getTrainingDomainWeight,
   getTrainingFormDelta,
+  indexLatestTrainingSessionsByRider,
 } from "@/lib/game/training";
 
 describe("rider potential", () => {
@@ -90,5 +92,36 @@ describe("training progression", () => {
     expect(getSeasonDeclinePoints(31)).toBe(0);
     expect(getSeasonDeclinePoints(32)).toBe(1);
     expect(getSeasonDeclinePoints(36)).toBe(3);
+  });
+});
+
+describe("training reports", () => {
+  it("selects the highest season day even when backfilled sessions share a timestamp", () => {
+    const processedAt = "2026-07-21T10:00:15.000Z";
+    const latest = indexLatestTrainingSessionsByRider(
+      [
+        {
+          rider_id: "rider-1",
+          season_day_id: "day-1",
+          processed_at: processedAt,
+        },
+        {
+          rider_id: "rider-1",
+          season_day_id: "day-5",
+          processed_at: processedAt,
+        },
+      ],
+      new Map([
+        ["day-1", 1],
+        ["day-5", 5],
+      ]),
+    );
+
+    expect(latest.get("rider-1")?.season_day_id).toBe("day-5");
+  });
+
+  it("keeps the exact millipoint precision in the displayed gain", () => {
+    expect(formatTrainingProgressMilli(357)).toBe("0,357");
+    expect(formatTrainingProgressMilli(1_000)).toBe("1,000");
   });
 });

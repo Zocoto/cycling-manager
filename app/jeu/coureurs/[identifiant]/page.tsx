@@ -20,6 +20,7 @@ import {
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
 import {
+  formatTrainingProgressMilli,
   TRAINING_DOMAIN_LABELS,
   isTrainingDomain,
 } from "@/lib/game/training";
@@ -665,6 +666,10 @@ function PrivateTrainingReportCard({
   const changes = Object.entries(report.ratingChanges).filter(
     ([, value]) => value !== 0,
   );
+  const gains = Object.entries(report.progressMilli).filter(
+    ([, value]) => value > 0,
+  );
+  const isCompleted = report.status === "completed";
 
   return (
     <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
@@ -674,7 +679,7 @@ function PrivateTrainingReportCard({
             Compte rendu privé
           </p>
           <h2 className="mt-1 font-black text-[#183F37]">
-            Entraînement J{report.dayNumber}
+            Rapport d’entraînement J{report.dayNumber}
           </h2>
         </div>
         <span className="rounded-full bg-[#FFF2C7] px-3 py-1 text-xs font-black text-[#7A5B09]">
@@ -682,19 +687,38 @@ function PrivateTrainingReportCard({
         </span>
       </div>
       <p className="mt-4 text-sm font-bold text-[#48665F]">
-        {domain} · Forme {report.formDelta > 0 ? "+" : ""}
-        {report.formDelta}
+        {isCompleted ? (
+          <>
+            {domain} · Forme {report.formDelta > 0 ? "+" : ""}
+            {report.formDelta}
+          </>
+        ) : (
+          "Pas d’entraînement pendant la séance de 8 h"
+        )}
       </p>
       <p className="mt-3 rounded-xl bg-[#F3F8F5] px-4 py-3 text-xs font-bold leading-5 text-[#60756E]">
-        {changes.length > 0
-          ? changes
-              .map(
-                ([stat, value]) =>
-                  `${TRAINING_STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
-              )
-              .join(" · ")
-          : "Les fractions de progression sont conservées ; aucune note entière n’a changé aujourd’hui."}
+        {isCompleted
+          ? gains.length > 0
+            ? gains
+                .map(
+                  ([stat, value]) =>
+                    `${TRAINING_STAT_LABELS[stat] ?? stat} +${formatTrainingProgressMilli(value)}`,
+                )
+                .join(" · ")
+            : "Aucun gain de statistique pendant cette séance."
+          : "Aucun gain d’entraînement n’a été crédité."}
       </p>
+      {changes.length > 0 ? (
+        <p className="mt-2 text-xs font-bold leading-5 text-[#60756E]">
+          Notes entières :{" "}
+          {changes
+            .map(
+              ([stat, value]) =>
+                `${TRAINING_STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
+            )
+            .join(" · ")}
+        </p>
+      ) : null}
       <Link
         href="/jeu/entrainement"
         className="mt-4 inline-flex text-xs font-black uppercase tracking-wider text-[#176951]"

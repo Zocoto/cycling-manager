@@ -18,6 +18,7 @@ import {
   RIDER_INJURY_DIAGNOSES,
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
+import { indexLatestTrainingSessionsByRider } from "@/lib/game/training";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type RiderEquipmentSlot = EquipmentSlot;
@@ -60,6 +61,7 @@ export type PublicRiderProfile = {
     domain: string;
     formDelta: number;
     progressMilli: Record<string, number>;
+    declineMilli: Record<string, number>;
     ratingChanges: Record<string, number>;
   } | null;
   currentTeam: {
@@ -189,13 +191,16 @@ type InjuryRow = {
 };
 
 type TrainingSessionRow = {
+  rider_id: string;
   season_day_id: string;
   status: string;
   intensity: number;
   domain: string;
   form_delta: number;
   progress_milli: Record<string, number>;
+  decline_milli: Record<string, number>;
   rating_changes: Record<string, number>;
+  processed_at: string;
 };
 
 type EquipmentAssignmentRow = {
@@ -642,33 +647,43 @@ async function getLatestPrivateTrainingReport({
   riderId: string;
   seasonId: string;
 }): Promise<PublicRiderProfile["trainingReport"]> {
-  const { data: session, error: sessionError } = await supabase
-    .from("rider_training_sessions")
-    .select(
-      "season_day_id, status, intensity, domain, form_delta, progress_milli, rating_changes",
-    )
-    .eq("rider_id", riderId)
-    .eq("season_id", seasonId)
-    .order("processed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<TrainingSessionRow>();
+  const [sessionsResult, daysResult] = await Promise.all([
+    supabase
+      .from("rider_training_sessions")
+      .select(
+        "rider_id, season_day_id, status, intensity, domain, form_delta, progress_milli, decline_milli, rating_changes, processed_at",
+      )
+      .eq("rider_id", riderId)
+      .eq("season_id", seasonId)
+      .returns<TrainingSessionRow[]>(),
+    supabase
+      .from("season_days")
+      .select("id, day_number")
+      .eq("season_id", seasonId)
+      .returns<SeasonDayRow[]>(),
+  ]);
+  const { data: sessions, error: sessionError } = sessionsResult;
   assertQuery(sessionError, "le dernier rapport d’entraînement");
-  if (!session) return null;
-
-  const { data: day, error: dayError } = await supabase
-    .from("season_days")
-    .select("day_number")
-    .eq("id", session.season_day_id)
-    .maybeSingle<{ day_number: number }>();
+  const { data: days, error: dayError } = daysResult;
   assertQuery(dayError, "la journée du rapport d’entraînement");
 
+  const dayNumberById = new Map(
+    (days ?? []).map((day) => [day.id, day.day_number]),
+  );
+  const session = indexLatestTrainingSessionsByRider(
+    sessions ?? [],
+    dayNumberById,
+  ).get(riderId);
+  if (!session) return null;
+
   return {
-    dayNumber: day?.day_number ?? 1,
+    dayNumber: dayNumberById.get(session.season_day_id) ?? 1,
     status: session.status,
     intensity: session.intensity,
     domain: session.domain,
     formDelta: session.form_delta,
     progressMilli: session.progress_milli ?? {},
+    declineMilli: session.decline_milli ?? {},
     ratingChanges: session.rating_changes ?? {},
   };
 }
