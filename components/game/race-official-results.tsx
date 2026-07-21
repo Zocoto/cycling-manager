@@ -308,7 +308,7 @@ function TeamResultsTable({
           <tr className="border-b border-[#315B3E]/12 text-[10px] font-black uppercase tracking-[0.16em] text-[#688176]">
             <th className="w-20 px-5 py-4 sm:px-7">Pos.</th>
             <th className="px-4 py-4">Équipe</th>
-            <th className="px-4 py-4">Somme des temps</th>
+            <th className="px-4 py-4">Temps moyen pondéré</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#315B3E]/10">

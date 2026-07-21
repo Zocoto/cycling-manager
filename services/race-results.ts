@@ -13,6 +13,7 @@ import type {
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
   buildPersistedGeneralClassification,
+  normalizeOfficialResultGapsToLeader,
   type OfficialAttackParticipant,
   type OfficialRaceEditionResults,
   type OfficialRaceResultsDirectory,
@@ -287,20 +288,22 @@ export async function getOfficialRaceResults(
     const stageClassifications = [...edition.stages]
       .sort((first, second) => first.stageNumber - second.stageNumber)
       .map((stage) => {
-        const results = (stageResultQuery.data ?? [])
-          .filter((row) => row.stage_id === stage.id)
-          .map((row) =>
-            toOfficialStageRiderResult({
-              row,
-              editionId: edition.id,
-              rosterById,
-              registrationById,
-              teamSeasonById,
-              riderById,
-            })
-          )
-          .filter((row): row is OfficialRiderResult => row !== null)
-          .sort(compareOfficialResults);
+        const results = normalizeOfficialResultGapsToLeader(
+          (stageResultQuery.data ?? [])
+            .filter((row) => row.stage_id === stage.id)
+            .map((row) =>
+              toOfficialStageRiderResult({
+                row,
+                editionId: edition.id,
+                rosterById,
+                registrationById,
+                teamSeasonById,
+                riderById,
+              })
+            )
+            .filter((row): row is OfficialRiderResult => row !== null)
+            .sort(compareOfficialResults)
+        );
 
         return {
           stageId: stage.id,
@@ -313,20 +316,22 @@ export async function getOfficialRaceResults(
 
     if (stageClassifications.length === 0) continue;
 
-    const persistedGeneral = (raceResultQuery.data ?? [])
-      .filter((row) => row.race_edition_id === edition.id)
-      .map((row) =>
-        toOfficialRaceRiderResult({
-          row,
-          editionId: edition.id,
-          rosterById,
-          registrationById,
-          teamSeasonById,
-          riderById,
-        })
-      )
-      .filter((row): row is OfficialRiderResult => row !== null)
-      .sort(compareOfficialResults);
+    const persistedGeneral = normalizeOfficialResultGapsToLeader(
+      (raceResultQuery.data ?? [])
+        .filter((row) => row.race_edition_id === edition.id)
+        .map((row) =>
+          toOfficialRaceRiderResult({
+            row,
+            editionId: edition.id,
+            rosterById,
+            registrationById,
+            teamSeasonById,
+            riderById,
+          })
+        )
+        .filter((row): row is OfficialRiderResult => row !== null)
+        .sort(compareOfficialResults)
+    );
     const general =
       persistedGeneral.length > 0
         ? persistedGeneral
@@ -423,6 +428,11 @@ async function persistStageResult({
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const injuryIdByRiderId = new Map<string, string>();
+  const winnerElapsedTimeSeconds = Math.min(
+    ...simulation.results
+      .filter((result) => result.status === "finished")
+      .map((result) => result.elapsedTimeSeconds)
+  );
 
   for (const result of simulation.results) {
     if (!result.injury) continue;
@@ -490,7 +500,13 @@ async function persistStageResult({
       status: result.status,
       rank: finished ? result.rank : null,
       elapsed_time_ms: finished ? result.elapsedTimeSeconds * 1_000 : null,
-      gap_to_winner_ms: finished ? result.gapToWinnerSeconds * 1_000 : null,
+      gap_to_winner_ms:
+        finished && Number.isFinite(winnerElapsedTimeSeconds)
+          ? Math.max(
+              0,
+              result.elapsedTimeSeconds - winnerElapsedTimeSeconds
+            ) * 1_000
+          : null,
       mountain_points: simulation.mountainPoints[result.riderId] ?? 0,
       sprint_points: simulation.sprintPoints[result.riderId] ?? 0,
       abandonment_reason: result.abandonment ? "crash" : null,

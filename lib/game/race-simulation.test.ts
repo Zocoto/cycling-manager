@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
+  accumulateRaceGroupGapsFromLeader,
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
@@ -18,6 +19,25 @@ describe("areFinishersInSameTimeGroup", () => {
     expect(areFinishersInSameTimeGroup(100, 102)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 103)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 104)).toBe(false);
+  });
+});
+
+describe("accumulateRaceGroupGapsFromLeader", () => {
+  it("exprime chaque écart successif depuis le groupe de tête", () => {
+    const groups = [0, 8, 10, 8].map((gapToLeaderSeconds, index) => ({
+      id: `group-${index}`,
+      label: `Groupe ${index}`,
+      type: index === 0 ? ("peloton" as const) : ("dropped" as const),
+      riderIds: [`rider-${index}`],
+      gapToLeaderSeconds,
+      averageEnergy: 50,
+    }));
+
+    expect(
+      accumulateRaceGroupGapsFromLeader(groups).map(
+        (group) => group.gapToLeaderSeconds
+      )
+    ).toEqual([0, 8, 18, 26]);
   });
 });
 
@@ -627,6 +647,60 @@ describe("simulateRaceStage", () => {
     expect(standings.teams[0].elapsedTimeSeconds).toBeLessThanOrEqual(
       standings.teams[1].elapsedTimeSeconds
     );
+  });
+
+  it("pondère le classement par équipes selon le nombre de coureurs engagés", () => {
+    const stage = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 12)
+    );
+    const ridersByTeam = Map.groupBy(
+      stage.resolvedRiders,
+      (rider) => rider.teamId
+    );
+    const [smallTeam, largeTeam] = [...ridersByTeam.entries()].filter(
+      ([, riders]) => riders.length >= 4
+    );
+
+    expect(smallTeam).toBeDefined();
+    expect(largeTeam).toBeDefined();
+
+    const smallTeamRiders = smallTeam[1].slice(0, 2);
+    const largeTeamRiders = largeTeam[1].slice(0, 4);
+    const selectedRiders = [...smallTeamRiders, ...largeTeamRiders];
+    const resultByRiderId = new Map(
+      stage.results.map((result) => [result.riderId, result])
+    );
+    const selectedResults = selectedRiders.map((rider, index) => {
+      const original = resultByRiderId.get(rider.id)!;
+      const isSmallTeam = rider.teamId === smallTeam[0];
+      const teamIndex = isSmallTeam ? index : index - smallTeamRiders.length;
+      const elapsedTimeSeconds =
+        (isSmallTeam ? 2_000 : 1_000) + teamIndex * 10;
+      return {
+        ...original,
+        status: "finished" as const,
+        rank: index + 1,
+        elapsedTimeSeconds,
+        gapToWinnerSeconds: Math.max(0, elapsedTimeSeconds - 1_000),
+        abandonment: null,
+      };
+    });
+    const standings = buildStageRaceStandings([
+      {
+        ...stage,
+        resolvedRiders: selectedRiders,
+        results: selectedResults,
+      },
+    ]);
+
+    expect(standings.teams[0]).toMatchObject({
+      teamId: largeTeam[0],
+      elapsedTimeSeconds: 1_015,
+    });
+    expect(standings.teams[1]).toMatchObject({
+      teamId: smallTeam[0],
+      elapsedTimeSeconds: 2_005,
+    });
   });
 });
 

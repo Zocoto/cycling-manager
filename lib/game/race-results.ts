@@ -74,6 +74,29 @@ export type PersistedStageResultForGeneral = {
   abandonmentReason: string | null;
 };
 
+export function normalizeOfficialResultGapsToLeader(
+  results: OfficialRiderResult[]
+): OfficialRiderResult[] {
+  const leader = results.find(
+    (result) =>
+      result.status === "finished" &&
+      result.rank === 1 &&
+      result.elapsedTimeMs !== null
+  );
+
+  if (!leader || leader.elapsedTimeMs === null) return results;
+  const leaderTime = leader.elapsedTimeMs;
+
+  return results.map((result) =>
+    result.status === "finished" && result.elapsedTimeMs !== null
+      ? {
+          ...result,
+          gapToWinnerMs: Math.max(0, result.elapsedTimeMs - leaderTime),
+        }
+      : result
+  );
+}
+
 export function buildPersistedGeneralClassification(
   stageResults: PersistedStageResultForGeneral[][]
 ): OfficialRiderResult[] {

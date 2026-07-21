@@ -1631,7 +1631,7 @@ function TourSecondaryStandings({
       })),
     },
     {
-      title: "Meilleure équipe",
+      title: "Meilleure équipe · temps moyen",
       accent: "text-[#F2C94C]",
       rows: standings.teams.slice(0, 5).map((row, index) => ({
         id: row.teamId,

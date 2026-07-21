@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPersistedGeneralClassification } from "./race-results";
+import {
+  buildPersistedGeneralClassification,
+  normalizeOfficialResultGapsToLeader,
+} from "./race-results";
 
 const coquinous = {
   riderId: "rider-coquinous",
@@ -77,5 +80,53 @@ describe("buildPersistedGeneralClassification", () => {
       status: "did_not_finish",
       abandonmentReason: "crash",
     });
+  });
+});
+
+describe("normalizeOfficialResultGapsToLeader", () => {
+  it("recalcule chaque écart depuis le temps du leader", () => {
+    const results = normalizeOfficialResultGapsToLeader([
+      {
+        ...coquinous,
+        rank: 1,
+        elapsedTimeMs: 3_600_000,
+        gapToWinnerMs: 0,
+        mountainPoints: 0,
+        sprintPoints: 0,
+      },
+      {
+        ...challengers,
+        rank: 2,
+        elapsedTimeMs: 3_608_000,
+        gapToWinnerMs: 8_000,
+        mountainPoints: 0,
+        sprintPoints: 0,
+      },
+      {
+        ...challengers,
+        riderId: "rider-third",
+        rank: 3,
+        elapsedTimeMs: 3_618_000,
+        gapToWinnerMs: 10_000,
+        mountainPoints: 0,
+        sprintPoints: 0,
+      },
+      {
+        ...challengers,
+        riderId: "rider-fourth",
+        rank: 4,
+        elapsedTimeMs: 3_626_000,
+        gapToWinnerMs: 8_000,
+        mountainPoints: 0,
+        sprintPoints: 0,
+      },
+    ]);
+
+    expect(results.map((result) => result.gapToWinnerMs)).toEqual([
+      0,
+      8_000,
+      18_000,
+      26_000,
+    ]);
   });
 });

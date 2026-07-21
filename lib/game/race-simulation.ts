@@ -916,7 +916,6 @@ function simulateRoadStage(
   updateFinalRoadGroups({
     timeline,
     finishGroups,
-    profileType: input.profileType,
   });
 
   if (finalCommentary.length === 0) {
@@ -1999,8 +1998,18 @@ export function buildStageRaceStandings(
   );
   const riderTimes = new Map<string, number>();
   const teamTimes = new Map<string, number>();
+  const registeredRiderIdsByTeam = new Map<string, Set<string>>();
+  const teamNameById = new Map<string, string>();
   const mountainPoints = new Map<string, number>();
   const sprintPoints = new Map<string, number>();
+
+  for (const rider of riderById.values()) {
+    const registeredRiderIds =
+      registeredRiderIdsByTeam.get(rider.teamId) ?? new Set<string>();
+    registeredRiderIds.add(rider.id);
+    registeredRiderIdsByTeam.set(rider.teamId, registeredRiderIds);
+    teamNameById.set(rider.teamId, rider.teamName);
+  }
 
   for (const stage of stageResults) {
     for (const result of stage.results) {
@@ -2011,9 +2020,33 @@ export function buildStageRaceStandings(
         rider.id,
         (riderTimes.get(rider.id) ?? 0) + result.elapsedTimeSeconds
       );
+    }
+
+    const finishedTimeByRiderId = new Map(
+      stage.results.flatMap((result) =>
+        result.status === "finished"
+          ? [[result.riderId, result.elapsedTimeSeconds] as const]
+          : []
+      )
+    );
+    const slowestFinisherTime = Math.max(
+      0,
+      ...finishedTimeByRiderId.values()
+    );
+    const nonFinisherTime = slowestFinisherTime + 5 * 60;
+
+    for (const [teamId, registeredRiderIds] of registeredRiderIdsByTeam) {
+      if (registeredRiderIds.size === 0) continue;
+      const weightedStageTime =
+        [...registeredRiderIds].reduce(
+          (total, riderId) =>
+            total +
+            (finishedTimeByRiderId.get(riderId) ?? nonFinisherTime),
+          0
+        ) / registeredRiderIds.size;
       teamTimes.set(
-        rider.teamId,
-        (teamTimes.get(rider.teamId) ?? 0) + result.elapsedTimeSeconds
+        teamId,
+        (teamTimes.get(teamId) ?? 0) + weightedStageTime
       );
     }
 
@@ -2056,10 +2089,8 @@ export function buildStageRaceStandings(
       .sort((first, second) => first[1] - second[1])
       .map(([teamId, elapsedTimeSeconds]) => ({
         teamId,
-        teamName:
-          [...riderById.values()].find((rider) => rider.teamId === teamId)
-            ?.teamName ?? teamId,
-        elapsedTimeSeconds,
+        teamName: teamNameById.get(teamId) ?? teamId,
+        elapsedTimeSeconds: Math.round(elapsedTimeSeconds),
       })),
   };
 }
@@ -2365,13 +2396,10 @@ function getLowEnergyPerformancePenalty(state: RiderState) {
 function updateFinalRoadGroups({
   timeline,
   finishGroups,
-  profileType,
 }: {
   timeline: RaceTimelineSnapshot[];
   finishGroups: ClassifiedStageResult[][];
-  profileType: RaceProfileType;
 }) {
-  if (profileType !== "hilly" && profileType !== "mountain") return;
   const finalSnapshot = timeline.at(-1);
   if (!finalSnapshot) return;
   const escapedRiderIds = new Set(
@@ -2717,7 +2745,7 @@ function buildRoadSnapshot({
   return {
     segmentNumber,
     completedDistanceKm: round(completedDistanceKm, 1),
-    groups,
+    groups: accumulateRaceGroupGapsFromLeader(groups),
     incidents,
     abandonments: [...abandonments],
     commentary:
@@ -2725,6 +2753,23 @@ function buildRoadSnapshot({
         ? commentary.slice(0, 4)
         : [`Le rythme se stabilise après ${formatDistance(completedDistanceKm)} km.`],
   };
+}
+
+export function accumulateRaceGroupGapsFromLeader(
+  groups: RaceGroupSnapshot[]
+): RaceGroupSnapshot[] {
+  let cumulativeGapSeconds = 0;
+
+  return groups.map((group, index) => {
+    if (index > 0) {
+      cumulativeGapSeconds += Math.max(0, group.gapToLeaderSeconds);
+    }
+
+    return {
+      ...group,
+      gapToLeaderSeconds: index === 0 ? 0 : cumulativeGapSeconds,
+    };
+  });
 }
 
 function toGroupSnapshot(
