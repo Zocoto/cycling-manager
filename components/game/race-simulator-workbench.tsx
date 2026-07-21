@@ -538,8 +538,15 @@ function SimulationClassification({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#315B3E]/10">
-            {results.map((result) => (
-              <tr key={result.riderId} className="align-top hover:bg-[#F8FBF9]">
+            {results.map((result, index) => {
+              const previousResult = results[index - 1];
+              const hasSameTimeAsPrevious =
+                result.status === "finished" &&
+                previousResult?.status === "finished" &&
+                result.elapsedTimeSeconds === previousResult.elapsedTimeSeconds;
+
+              return (
+                <tr key={result.riderId} className="align-top hover:bg-[#F8FBF9]">
                 <td className="px-4 py-4 sm:px-6">
                   <span className={`grid h-9 w-9 place-items-center rounded-full text-sm font-black ${getRankClassName(result.rank)}`}>
                     {result.rank ?? "AB"}
@@ -564,6 +571,8 @@ function SimulationClassification({
                     <span className="text-red-700">Abandon</span>
                   ) : result.rank === 1 ? (
                     formatDuration(winnerTime)
+                  ) : hasSameTimeAsPrevious ? (
+                    "MT"
                   ) : (
                     `+${formatGap(result.gapToWinnerSeconds)}`
                   )}
@@ -586,8 +595,9 @@ function SimulationClassification({
                     </div>
                   </details>
                 </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

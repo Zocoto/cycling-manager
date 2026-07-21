@@ -1548,9 +1548,14 @@ function Classification({
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {simulation.results.map((result) => {
+            {simulation.results.map((result, index) => {
               const rider = riderById.get(result.riderId)!;
               const abandoned = result.status === "did_not_finish";
+              const previousResult = simulation.results[index - 1];
+              const hasSameTimeAsPrevious =
+                result.status === "finished" &&
+                previousResult?.status === "finished" &&
+                result.elapsedTimeSeconds === previousResult.elapsedTimeSeconds;
               return (
                 <tr key={result.riderId} className={`${abandoned ? "bg-[#EF5B65]/[0.07]" : "bg-white/[0.025]"} text-sm font-semibold`}>
                   <td className={`px-4 py-3 font-black ${abandoned ? "text-[#FF9EA6]" : "text-[#F2C94C]"}`}>
@@ -1571,8 +1576,8 @@ function Classification({
                       ? "Abandon"
                       : result.rank === 1
                       ? formatTime(winnerTime)
-                      : result.gapToWinnerSeconds === 0
-                        ? "m.t."
+                      : hasSameTimeAsPrevious
+                        ? "MT"
                         : `+${formatGap(result.gapToWinnerSeconds)}`}
                   </td>
                   <td className="hidden px-4 py-3 text-right text-[#94ADA2] sm:table-cell">

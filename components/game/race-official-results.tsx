@@ -245,7 +245,7 @@ function RiderResultsTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-[#315B3E]/10">
-          {results.map((result) => (
+          {results.map((result, index) => (
             <tr
               key={result.riderId}
               className={`${result.rank !== null && result.rank <= 3 ? "bg-[#F7FAF0]" : "bg-white"} transition hover:bg-[#EEF7F2]`}
@@ -275,7 +275,7 @@ function RiderResultsTable({
                 </Link>
               </td>
               <td className="px-4 py-4 font-mono text-sm font-black text-[#173E35]">
-                {formatResultTime(result)}
+                {formatResultTime(result, results[index - 1])}
               </td>
               {(classification === "stage" || classification === "mountain" || classification === "sprint") ? (
                 <td className="px-4 py-4 text-right text-xs font-black text-[#176951]">
@@ -344,12 +344,20 @@ function Rank({ rank }: { rank: number | null }) {
 
 type OfficialResultStatusLike = OfficialRiderResult["status"];
 
-function formatResultTime(result: OfficialRiderResult) {
+function formatResultTime(
+  result: OfficialRiderResult,
+  previousResult: OfficialRiderResult | undefined
+) {
   if (result.status !== "finished" || result.elapsedTimeMs === null) {
     return statusLabel(result.status);
   }
   if (result.rank === 1) return formatDuration(result.elapsedTimeMs);
-  if ((result.gapToWinnerMs ?? 0) === 0) return "MT";
+  if (
+    previousResult?.status === "finished" &&
+    previousResult.elapsedTimeMs === result.elapsedTimeMs
+  ) {
+    return "MT";
+  }
   return formatGap(result.gapToWinnerMs ?? 0);
 }
 

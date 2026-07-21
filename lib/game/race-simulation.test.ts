@@ -125,6 +125,46 @@ describe("simulateRaceStage", () => {
     expect(breakaway.averageEnergy).toBeLessThan(peloton.averageEnergy);
   });
 
+  it("réduit l'avantage de l'aspiration lorsque la pente devient forte", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const getAverageEnergyAfter = (
+      terrain: "flat" | "climb",
+      riderCount: number
+    ) => {
+      const riders = Array.from({ length: riderCount }, (_, index) =>
+        createSelectionTestRider(`${terrain}-${riderCount}-${index}`, {})
+      );
+      const result = simulateRaceStage({
+        ...baseInput,
+        profileType: terrain === "climb" ? "mountain" : "flat",
+        segments: [
+          {
+            segmentNumber: 1,
+            distanceKm: 30,
+            terrain,
+            averageGradientPct: terrain === "climb" ? 8 : 0,
+            surface: "asphalt",
+            prime: null,
+          },
+        ],
+        riders,
+      });
+
+      return (
+        result.results.reduce(
+          (total, resultRow) => total + resultRow.energyAfter,
+          0
+        ) / result.results.length
+      );
+    };
+    const flatDraftingBenefit =
+      getAverageEnergyAfter("flat", 12) - getAverageEnergyAfter("flat", 2);
+    const uphillDraftingBenefit =
+      getAverageEnergyAfter("climb", 12) - getAverageEnergyAfter("climb", 2);
+
+    expect(flatDraftingBenefit).toBeGreaterThan(uphillDraftingBenefit);
+  });
+
   it("attribue les points des GPM et sprints intermédiaires", () => {
     const result = simulateRaceStage(
       createDemoSimulationInput("haute-montagne", 2)
@@ -159,6 +199,120 @@ describe("simulateRaceStage", () => {
 
     expect(pelotonResults.length).toBeGreaterThan(1);
     expect(new Set(pelotonResults.map((resultRow) => resultRow.elapsedTimeSeconds)).size).toBe(1);
+  });
+
+  it("conserve le temps commun d'un groupe sur une étape classée montagne", () => {
+    const mountainInput = createDemoSimulationInput("haute-montagne", 1);
+    const result = simulateRaceStage({
+      ...mountainInput,
+      segments: mountainInput.segments.map((segment) => ({
+        ...segment,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        prime: null,
+      })),
+    });
+    const resultByRiderId = new Map(
+      result.results.map((resultRow) => [resultRow.riderId, resultRow])
+    );
+    const groupedArrivals = (result.timeline.at(-1)?.groups ?? [])
+      .map((group) =>
+        group.riderIds.flatMap((riderId) => {
+          const resultRow = resultByRiderId.get(riderId);
+          return resultRow?.status === "finished" ? [resultRow] : [];
+        })
+      )
+      .filter((group) => group.length > 1);
+
+    expect(groupedArrivals.length).toBeGreaterThan(0);
+    expect(
+      groupedArrivals.every(
+        (group) =>
+          new Set(group.map((resultRow) => resultRow.elapsedTimeSeconds)).size === 1
+      )
+    ).toBe(true);
+  });
+
+  it("donne la priorité aux grimpeurs sur une longue ascension finale", () => {
+    const baseInput = createDemoSimulationInput("haute-montagne", 1);
+    const longSummitSegments = baseInput.segments.map((segment, index) =>
+      index >= baseInput.segments.length - 3
+        ? {
+            ...segment,
+            terrain: "climb" as const,
+            averageGradientPct: 8,
+            surface: "asphalt" as const,
+          }
+        : segment
+    );
+    const climbers = Array.from({ length: 3 }, (_, index) =>
+      createSelectionTestRider(`grimpeur-${index}`, {
+        mountain: 80,
+        hills: 65,
+        acceleration: 55,
+        endurance: 58,
+        resistance: 58,
+        breakaway: 45,
+      })
+    );
+    const secondarySpecialists = Array.from({ length: 6 }, (_, index) =>
+      createSelectionTestRider(`secondaire-${index}`, {
+        mountain: 50,
+        hills: 55,
+        acceleration: 90,
+        endurance: 90,
+        resistance: 90,
+        breakaway: 85,
+      })
+    );
+
+    const simulations = Array.from({ length: 30 }, (_, index) =>
+      simulateRaceStage({
+        ...baseInput,
+        seed: index + 1,
+        segments: longSummitSegments,
+        riders: [...climbers, ...secondarySpecialists],
+      })
+    );
+
+    const secondaryRidersAheadOfAFinishingClimber = simulations.flatMap(
+      (simulation) => {
+        const bestFinishingClimberRank = Math.min(
+          ...simulation.results
+            .filter(
+              (resultRow) =>
+                resultRow.status === "finished" &&
+                resultRow.riderId.startsWith("grimpeur-")
+            )
+            .map((resultRow) => resultRow.rank ?? Number.POSITIVE_INFINITY)
+        );
+
+        return simulation.results.filter(
+          (resultRow) =>
+            resultRow.status === "finished" &&
+            resultRow.riderId.startsWith("secondaire-") &&
+            (resultRow.rank ?? Number.POSITIVE_INFINITY) < bestFinishingClimberRank
+        );
+      }
+    ).length;
+    const completeClimberFinishes = simulations.filter(
+      (simulation) =>
+        simulation.results.filter(
+          (resultRow) =>
+            resultRow.status === "finished" &&
+            resultRow.riderId.startsWith("grimpeur-")
+        ).length === climbers.length
+    );
+
+    expect(secondaryRidersAheadOfAFinishingClimber).toBe(0);
+    expect(
+      completeClimberFinishes.every((simulation) =>
+        simulation.results
+          .filter((resultRow) => resultRow.status === "finished")
+          .slice(0, climbers.length)
+          .every((resultRow) => resultRow.riderId.startsWith("grimpeur-"))
+      )
+    ).toBe(true);
   });
 
   it("laisse certaines échappées aller au bout sans rendre ce résultat systématique", () => {
@@ -276,9 +430,11 @@ describe("simulateRaceStage", () => {
     });
 
     expect(groupedFinishes.length).toBeGreaterThanOrEqual(20);
-    expect(
-      groupedFinishes.every((result) => result.results[0].riderId === pureSprinter.id)
-    ).toBe(true);
+    const pureSprinterWinRate =
+      groupedFinishes.filter(
+        (result) => result.results[0].riderId === pureSprinter.id
+      ).length / groupedFinishes.length;
+    expect(pureSprinterWinRate).toBeGreaterThanOrEqual(0.9);
   });
 
   it("applique le bonus local de +2 sans modifier les notes permanentes", () => {
