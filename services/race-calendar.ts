@@ -218,6 +218,11 @@ export type RaceRosterOption = {
   sprint: number;
   isSelected: boolean;
   isAvailable: boolean;
+  unavailability: {
+    type: "injury" | "form_camp" | "race";
+    label: string;
+    until: string | null;
+  } | null;
   conflict: {
     raceSlug: string;
     raceName: string;
@@ -243,6 +248,9 @@ type RaceRosterOptionRow = {
   sprint: number;
   is_selected: boolean;
   is_available: boolean;
+  unavailability_type: "injury" | "form_camp" | "race" | null;
+  unavailability_label: string | null;
+  unavailable_until: string | null;
   conflicting_race_slug: string | null;
   conflicting_race_name: string | null;
   conflicting_start_day: number | null;
@@ -290,6 +298,15 @@ export async function settleFinishedRaceConditions(
   if (error) {
     throw new Error(
       `Impossible de mettre à jour la forme après les courses : ${error.message}`
+    );
+  }
+
+  const { error: healthError } = await supabase.rpc(
+    "settle_current_health_and_form"
+  );
+  if (healthError) {
+    throw new Error(
+      `Impossible de mettre à jour la santé et le repos des coureurs : ${healthError.message}`
     );
   }
 
@@ -866,6 +883,14 @@ export async function getCurrentTeamRaceRosterOptions(
       sprint: rider.sprint,
       isSelected: rider.is_selected,
       isAvailable: rider.is_available,
+      unavailability:
+        rider.unavailability_type && rider.unavailability_label
+          ? {
+              type: rider.unavailability_type,
+              label: rider.unavailability_label,
+              until: rider.unavailable_until,
+            }
+          : null,
       conflict:
         rider.conflicting_race_slug &&
         rider.conflicting_race_name &&

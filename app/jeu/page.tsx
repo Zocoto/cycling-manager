@@ -481,10 +481,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/centre-de-soin"
               icon="camp"
-              title="Stages"
-              status="À développer"
-              description="Planifiez des stages pour préparer vos coureurs et développer leurs qualités sportives."
+              title="Centre de soin"
+              status="Infirmerie & forme"
+              description="Suivez les blessures, appliquez des protocoles médicaux et programmez les stages de remise en forme."
             />
 
             <ManagementModuleCard

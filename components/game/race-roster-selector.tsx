@@ -166,6 +166,26 @@ export function RaceRosterSelector({
                 </div>
               ) : null}
 
+              {!rider.conflict && rider.unavailability ? (
+                <div
+                  className={`ml-7 mt-2 flex items-center gap-2 text-[11px] font-bold leading-4 ${
+                    rider.unavailability.type === "injury"
+                      ? "text-[#FF9EA6]"
+                      : "text-amber-200"
+                  }`}
+                >
+                  <MedicalCrossIcon />
+                  <span>
+                    {rider.unavailability.label}
+                    {rider.unavailability.until
+                      ? ` · jusqu’au ${formatAvailabilityDate(
+                          rider.unavailability.until
+                        )}`
+                      : ""}
+                  </span>
+                </div>
+              ) : null}
+
               {isSelected ? (
                 <div className="ml-7 mt-3 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
                   <label
@@ -225,6 +245,29 @@ export function RaceRosterSelector({
       </p>
     </div>
   );
+}
+
+function MedicalCrossIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-4 w-4 shrink-0"
+      fill="currentColor"
+    >
+      <path d="M7.5 2.5h5v5h5v5h-5v5h-5v-5h-5v-5h5v-5Z" />
+    </svg>
+  );
+}
+
+function formatAvailabilityDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }
 
 function SubmitRosterButton({

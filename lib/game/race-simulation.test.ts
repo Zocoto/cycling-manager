@@ -222,10 +222,8 @@ describe("simulateRaceStage", () => {
     );
 
     expect(firstStage).toBeDefined();
-    const abandoned = firstStage!.results.find(
-      (row) => row.status === "did_not_finish"
-    )!;
-    expect(firstStage!.results.at(-1)).toEqual(abandoned);
+    const abandoned = firstStage!.results.at(-1)!;
+    expect(abandoned.status).toBe("did_not_finish");
     expect(abandoned.rank).toBeNull();
     expect(abandoned.abandonment?.injury.recoveryDays).toBeGreaterThan(0);
 
@@ -239,6 +237,26 @@ describe("simulateRaceStage", () => {
         (rider) => rider.id === abandoned.riderId
       )
     ).toBe(false);
+  });
+
+  it("peut diagnostiquer une blessure sans retirer le coureur du classement de l’étape", () => {
+    const stage = Array.from({ length: 160 }, (_, index) =>
+      simulateRaceStage(
+        createDemoSimulationInput("collines-ardennes", index + 1)
+      )
+    ).find((result) =>
+      result.results.some(
+        (row) => row.status === "finished" && row.injury !== null
+      )
+    );
+
+    expect(stage).toBeDefined();
+    const injuredFinisher = stage!.results.find(
+      (row) => row.status === "finished" && row.injury !== null
+    )!;
+    expect(injuredFinisher.rank).not.toBeNull();
+    expect(injuredFinisher.abandonment).toBeNull();
+    expect(injuredFinisher.injury?.recoveryHours).toBeGreaterThanOrEqual(72);
   });
 
   it("cumule les classements montagne, points, jeunes et équipes d'un tour", () => {

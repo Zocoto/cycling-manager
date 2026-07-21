@@ -10,6 +10,10 @@ import {
   hasSpecialAbility,
   type RiderSpecialAbility,
 } from "./special-abilities";
+import {
+  resolveCrashMedicalOutcome,
+  type RiderInjuryDiagnosisCode,
+} from "./health-center";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -123,16 +127,22 @@ export const RACE_INJURY_SEVERITIES = [
 export type RaceInjurySeverity =
   (typeof RACE_INJURY_SEVERITIES)[number];
 
+export type RaceInjury = {
+  riderId: string;
+  segmentNumber: number;
+  type: "fracture";
+  diagnosisCode: RiderInjuryDiagnosisCode;
+  label: string;
+  severity: RaceInjurySeverity;
+  recoveryHours: number;
+  recoveryDays: number;
+};
+
 export type RaceAbandonment = {
   riderId: string;
   segmentNumber: number;
   reason: "crash";
-  injury: {
-    type: "abrasions" | "contusion" | "concussion" | "fracture";
-    label: string;
-    severity: RaceInjurySeverity;
-    recoveryDays: number;
-  };
+  injury: Omit<RaceInjury, "riderId" | "segmentNumber">;
 };
 
 export type RaceTimelineSnapshot = {
@@ -166,6 +176,7 @@ export type StageSimulationResult = {
     elapsedTimeSeconds: number;
     gapToWinnerSeconds: number;
     energyAfter: number;
+    injury: RaceInjury | null;
     abandonment: RaceAbandonment | null;
   }>;
   primes: RacePrimeResult[];
@@ -470,6 +481,7 @@ function simulateRoadStage(
   );
   const timeline: RaceTimelineSnapshot[] = [];
   const abandonments: RaceAbandonment[] = [];
+  const injuries: RaceInjury[] = [];
   const primes: RacePrimeResult[] = [];
   const mountainPoints: Record<string, number> = {};
   const sprintPoints: Record<string, number> = {};
@@ -681,6 +693,7 @@ function simulateRoadStage(
     if (incident) {
       incidents.push(incident.incident);
       abandonments.push(...incident.abandonments);
+      injuries.push(...incident.injuries);
       commentary.unshift(incident.commentary);
     }
 
@@ -812,6 +825,7 @@ function simulateRoadStage(
     elapsedTimeSeconds: Math.round(result.elapsedTimeSeconds),
     gapToWinnerSeconds: Math.max(0, Math.round(result.elapsedTimeSeconds - winnerTime)),
     energyAfter: result.energyAfter,
+    injury: injuries.find((injury) => injury.riderId === result.riderId) ?? null,
     abandonment: null,
   }));
 
@@ -824,6 +838,7 @@ function simulateRoadStage(
       elapsedTimeSeconds: Math.round(state.elapsedTimeSeconds),
       gapToWinnerSeconds: 0,
       energyAfter: round(state.energy, 1),
+      injury: injuries.find((injury) => injury.riderId === abandonment.riderId) ?? null,
       abandonment,
     });
   }
@@ -1053,6 +1068,7 @@ function buildTimedResult(
         Math.round(state.elapsedTimeSeconds - winnerTime)
       ),
       energyAfter: round(state.energy, 1),
+      injury: null,
       abandonment: null,
     })),
     primes: [],
@@ -1459,6 +1475,7 @@ function maybeCreateRaceIncident({
 }): {
   incident: RaceIncident;
   abandonments: RaceAbandonment[];
+  injuries: RaceInjury[];
   commentary: string;
 } | null {
   if (
@@ -1534,6 +1551,7 @@ function maybeCreateRaceIncident({
   }
 
   const abandonments: RaceAbandonment[] = [];
+  const injuries: RaceInjury[] = [];
 
   for (const state of affected) {
     if (type === "puncture") {
@@ -1554,18 +1572,21 @@ function maybeCreateRaceIncident({
         random() * 16;
     }
 
-    const crashAbandonment =
+    const crashMedicalResult =
       type === "crash_individual" || type === "crash_mass"
-        ? maybeCreateCrashAbandonment(
+        ? maybeCreateCrashMedicalResult(
             state,
             segmentIndex,
-            type,
             random
           )
         : null;
 
-    if (crashAbandonment) {
-      abandonments.push(crashAbandonment);
+    if (crashMedicalResult?.injury) {
+      injuries.push(crashMedicalResult.injury);
+    }
+
+    if (crashMedicalResult?.abandonment) {
+      abandonments.push(crashMedicalResult.abandonment);
       state.group = "abandoned";
       state.energy = 0;
     } else if (state.group === "breakaway") {
@@ -1616,70 +1637,62 @@ function maybeCreateRaceIncident({
         : details[type].label,
     },
     abandonments,
+    injuries,
     commentary: abandonments.length
       ? `${details[type].commentary} ${formatRiderList(
           abandonments.map(
             (abandonment) => states.get(abandonment.riderId)!
           )
         )} ${abandonments.length > 1 ? "abandonnent" : "abandonne"}, sur blessure.`
-      : details[type].commentary,
+      : injuries.length
+        ? `${details[type].commentary} ${formatRiderList(
+            injuries.map((injury) => states.get(injury.riderId)!)
+          )} ${injuries.length > 1 ? "terminent" : "termine"} malgré une blessure diagnostiquée.`
+        : details[type].commentary,
   };
 }
 
-function maybeCreateCrashAbandonment(
+function maybeCreateCrashMedicalResult(
   state: RiderState,
   segmentIndex: number,
-  crashType: "crash_individual" | "crash_mass",
   random: () => number
-): RaceAbandonment | null {
-  const vulnerability =
-    Math.max(0, 72 - state.rider.ratings.resistance) * 0.004 +
-    Math.max(0, 45 - state.energy) * 0.004;
-  const protectionFactor =
-    1 -
-    clamp(
+): { injury: RaceInjury; abandonment: RaceAbandonment | null } | null {
+  const outcome = resolveCrashMedicalOutcome({
+    random,
+    injuryRiskReductionPct:
       state.rider.equipmentEffects?.injuryRiskReductionPct ?? 0,
-      0,
-      45
-    ) /
-      100;
-  const abandonmentChance = clamp(
-    ((crashType === "crash_individual" ? 0.2 : 0.11) + vulnerability) *
-      protectionFactor,
-    0.04,
-    0.42
-  );
+  });
 
-  if (random() >= abandonmentChance) return null;
+  if (!outcome) return null;
 
-  const severityRoll = random();
-  const injury =
-    severityRoll < 0.58
-      ? {
-          type: "abrasions" as const,
-          label: "Plaies et contusions",
-          severity: "minor" as const,
-          recoveryDays: 2 + Math.floor(random() * 5),
-        }
-      : severityRoll < 0.88
-        ? {
-            type: "concussion" as const,
-            label: "Commotion",
-            severity: "moderate" as const,
-            recoveryDays: 8 + Math.floor(random() * 13),
-          }
-        : {
-            type: "fracture" as const,
-            label: "Fracture",
-            severity: "serious" as const,
-            recoveryDays: 28 + Math.floor(random() * 29),
-          };
-
-  return {
+  const injury: RaceInjury = {
     riderId: state.rider.id,
     segmentNumber: segmentIndex + 1,
-    reason: "crash",
+    type: "fracture",
+    diagnosisCode: outcome.diagnosisCode,
+    label: outcome.label,
+    severity: outcome.severity,
+    recoveryHours: outcome.recoveryHours,
+    recoveryDays: outcome.recoveryDays,
+  };
+
+  return {
     injury,
+    abandonment: outcome.causesAbandonment
+      ? {
+          riderId: injury.riderId,
+          segmentNumber: injury.segmentNumber,
+          reason: "crash",
+          injury: {
+            type: injury.type,
+            diagnosisCode: injury.diagnosisCode,
+            label: injury.label,
+            severity: injury.severity,
+            recoveryHours: injury.recoveryHours,
+            recoveryDays: injury.recoveryDays,
+          },
+        }
+      : null,
   };
 }
 
@@ -1748,6 +1761,13 @@ export function buildStageRaceStandings(
         .map((result) => result.riderId)
     )
   );
+  const medicallyWithdrawnRiderIds = new Set(
+    stageResults.slice(0, -1).flatMap((stage) =>
+      stage.results
+        .filter((result) => result.injury !== null)
+        .map((result) => result.riderId)
+    )
+  );
   const riderTimes = new Map<string, number>();
   const teamTimes = new Map<string, number>();
   const mountainPoints = new Map<string, number>();
@@ -1777,7 +1797,8 @@ export function buildStageRaceStandings(
   }
 
   const activeRider = ([riderId]: [string, number]) =>
-    !abandonedRiderIds.has(riderId);
+    !abandonedRiderIds.has(riderId) &&
+    !medicallyWithdrawnRiderIds.has(riderId);
   const byPoints = (first: [string, number], second: [string, number]) =>
     second[1] - first[1];
 
@@ -1794,6 +1815,7 @@ export function buildStageRaceStandings(
       .filter(
         ([riderId]) =>
           !abandonedRiderIds.has(riderId) &&
+          !medicallyWithdrawnRiderIds.has(riderId) &&
           (riderById.get(riderId)?.age ?? 99) < 25
       )
       .sort((first, second) => first[1] - second[1])

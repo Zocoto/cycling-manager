@@ -14,6 +14,10 @@ import {
   getTeamDivisionLabel,
   normalizeTeamDivisionCode,
 } from "@/lib/game/team-divisions";
+import {
+  RIDER_INJURY_DIAGNOSES,
+  type RiderInjuryDiagnosisCode,
+} from "@/lib/game/health-center";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type RiderEquipmentSlot = EquipmentSlot;
@@ -42,6 +46,13 @@ export type PublicRiderProfile = {
     fatigue: number;
     dayNumber: number | null;
   };
+  medical: {
+    diagnosisCode: string;
+    label: string;
+    startedAt: string;
+    expectedRecoveryAt: string;
+    remainingHours: number;
+  } | null;
   currentTeam: {
     id: string;
     displayName: string;
@@ -162,6 +173,12 @@ type ConditionRow = {
   fatigue: number;
 };
 
+type InjuryRow = {
+  diagnosis_code: string;
+  started_at: string;
+  expected_recovery_at: string;
+};
+
 type EquipmentAssignmentRow = {
   slot_type: RiderEquipmentSlot;
   equipment_item_id: string;
@@ -226,6 +243,15 @@ export async function getPublicRiderProfile({
     );
   }
 
+  const { error: healthSettlementError } = await supabase.rpc(
+    "settle_current_health_and_form"
+  );
+  if (healthSettlementError) {
+    throw new Error(
+      `Impossible de mettre à jour la santé du coureur : ${healthSettlementError.message}`
+    );
+  }
+
   const { data: rider, error: riderError } = await supabase
     .from("riders")
     .select(
@@ -250,6 +276,7 @@ export async function getPublicRiderProfile({
     summariesResult,
     equipmentAssignmentsResult,
     specialAbilitiesResult,
+    injuryResult,
   ] = await Promise.all([
     supabase
       .from("countries")
@@ -291,6 +318,15 @@ export async function getPublicRiderProfile({
       .select("ability_code")
       .eq("rider_id", rider.id)
       .returns<RiderSpecialAbilityRow[]>(),
+    supabase
+      .from("rider_injuries")
+      .select("diagnosis_code, started_at, expected_recovery_at")
+      .eq("rider_id", rider.id)
+      .eq("status", "active")
+      .gt("expected_recovery_at", new Date().toISOString())
+      .order("expected_recovery_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<InjuryRow>(),
   ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -300,6 +336,7 @@ export async function getPublicRiderProfile({
   assertQuery(summariesResult.error, "les bilans saisonniers du coureur");
   assertQuery(equipmentAssignmentsResult.error, "les équipements du coureur");
   assertQuery(specialAbilitiesResult.error, "les capacités spéciales du coureur");
+  assertQuery(injuryResult.error, "la situation médicale du coureur");
 
   if (!countryResult.data) {
     throw new Error("Le pays du coureur est introuvable.");
@@ -523,6 +560,22 @@ export async function getPublicRiderProfile({
     age: currentRating?.age ?? null,
     ratings: currentRating ? toRatings(currentRating) : null,
     condition,
+    medical: injuryResult.data
+      ? {
+          diagnosisCode: injuryResult.data.diagnosis_code,
+          label: getInjuryLabel(injuryResult.data.diagnosis_code),
+          startedAt: injuryResult.data.started_at,
+          expectedRecoveryAt: injuryResult.data.expected_recovery_at,
+          remainingHours: Math.max(
+            0,
+            Math.ceil(
+              (new Date(injuryResult.data.expected_recovery_at).getTime() -
+                Date.now()) /
+                3_600_000
+            )
+          ),
+        }
+      : null,
     currentTeam,
     history,
     specialAbilities,
@@ -660,6 +713,16 @@ function toRatings(row: RatingRow): RiderRatings {
     prologue: row.prologue,
     timeTrial: row.time_trial,
   };
+}
+
+function getInjuryLabel(diagnosisCode: string) {
+  if (diagnosisCode in RIDER_INJURY_DIAGNOSES) {
+    return RIDER_INJURY_DIAGNOSES[
+      diagnosisCode as RiderInjuryDiagnosisCode
+    ].label;
+  }
+
+  return "Blessure en cours";
 }
 
 async function getCurrentCondition({

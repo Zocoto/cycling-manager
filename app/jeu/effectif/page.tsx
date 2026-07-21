@@ -24,6 +24,11 @@ import {
   type TeamSponsorIdentity,
 } from "../../../services/team-sponsor-identity";
 import { getCurrentTeamDivisionForAuthUser } from "../../../services/team-divisions";
+import {
+  getCurrentTeamHealthOverview,
+  type RiderFormCamp,
+  type RiderMedicalInjury,
+} from "../../../services/team-health";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -216,6 +221,18 @@ export default async function TeamRosterPage() {
       console.error("Impossible de récupérer la division de l’équipe :", error);
       return null;
     }
+  );
+  const healthOverview = await getCurrentTeamHealthOverview(user.id).catch(
+    (error: unknown) => {
+      console.error("Impossible de récupérer les indisponibilités médicales :", error);
+      return null;
+    }
+  );
+  const healthByRiderId = new Map(
+    (healthOverview?.riders ?? []).map((rider) => [
+      rider.id,
+      { injury: rider.injury, formCamp: rider.formCamp },
+    ])
   );
 
   if (teamSummaryResult.error) {
@@ -515,6 +532,7 @@ export default async function TeamRosterPage() {
                         key={rider.rider_id}
                         rider={rider}
                         jersey={riderJersey}
+                        health={healthByRiderId.get(rider.rider_id) ?? null}
                       />
                     ))}
                   </tbody>
@@ -821,9 +839,14 @@ function SummaryCard({
 function RiderTableRow({
   rider,
   jersey,
+  health,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
+  health: {
+    injury: RiderMedicalInjury | null;
+    formCamp: RiderFormCamp | null;
+  } | null;
 }) {
   const riderName =
     `${rider.first_name} ${rider.last_name}`.trim();
@@ -847,14 +870,26 @@ function RiderTableRow({
           className="flex items-center gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
           aria-label={`Ouvrir la fiche de ${riderName} dans un nouvel onglet`}
         >
-          <RiderAvatar
-            profileKey={rider.avatar_profile_key}
-            seed={rider.avatar_seed}
-            riderId={rider.rider_id}
-            age={rider.age}
-            jersey={jersey}
-            label={`Portrait généré de ${riderName}`}
-          />
+          <span className="relative shrink-0">
+            <RiderAvatar
+              profileKey={rider.avatar_profile_key}
+              seed={rider.avatar_seed}
+              riderId={rider.rider_id}
+              age={rider.age}
+              jersey={jersey}
+              label={`Portrait généré de ${riderName}`}
+            />
+            {health?.injury ? (
+              <span
+                title={`${health.injury.label} · retour le ${formatMedicalDate(
+                  health.injury.expectedRecoveryAt
+                )}`}
+                className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#D94F4F] text-white shadow-md"
+              >
+                <MedicalCrossIcon />
+              </span>
+            ) : null}
+          </span>
 
           <div className="min-w-0">
             <p className="truncate text-base font-black text-[#082A2A]">
@@ -878,6 +913,15 @@ function RiderTableRow({
                 ↗
               </span>
             </div>
+            {health?.injury ? (
+              <p className="mt-1 truncate text-[10px] font-black text-[#B54242]">
+                {health.injury.label} · reprise {formatMedicalDate(health.injury.expectedRecoveryAt)}
+              </p>
+            ) : health?.formCamp ? (
+              <p className="mt-1 truncate text-[10px] font-black text-[#8A6B16]">
+                {health.formCamp.label} · J{health.formCamp.startDay}–J{health.formCamp.endDay}
+              </p>
+            ) : null}
           </div>
         </Link>
       </th>
@@ -957,6 +1001,24 @@ function RatingBadge({
       {value}
     </span>
   );
+}
+
+function MedicalCrossIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor">
+      <path d="M7.5 2.5h5v5h5v5h-5v5h-5v-5h-5v-5h5v-5Z" />
+    </svg>
+  );
+}
+
+function formatMedicalDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }
 
 function RatingLegend() {

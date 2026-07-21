@@ -131,7 +131,7 @@ export async function settleFinishedRaceResults(
       });
 
       for (const result of simulation.results) {
-        if (result.status === "did_not_finish") {
+        if (result.status === "did_not_finish" || result.injury) {
           unavailableRiderIds.add(result.riderId);
         }
       }
@@ -421,7 +421,7 @@ async function persistStageResult({
   const injuryIdByRiderId = new Map<string, string>();
 
   for (const result of simulation.results) {
-    if (!result.abandonment) continue;
+    if (!result.injury) continue;
     const existing = await admin
       .from("rider_injuries")
       .select("id")
@@ -435,19 +435,32 @@ async function persistStageResult({
       continue;
     }
 
-    const startedAt = new Date();
+    const departureTimestamp = stage.departureAt
+      ? new Date(stage.departureAt).getTime()
+      : Number.NaN;
+    const recordedAtTimestamp = Number.isFinite(departureTimestamp)
+      ? Math.min(
+          Date.now(),
+          departureTimestamp +
+            Math.max(0, result.elapsedTimeSeconds) * 1_000
+        )
+      : Date.now();
+    const startedAt = new Date(recordedAtTimestamp);
     const expectedRecoveryAt = new Date(
-      startedAt.getTime() + result.abandonment.injury.recoveryDays * 86_400_000
+      startedAt.getTime() + result.injury.recoveryHours * 3_600_000
     );
     let inserted = await admin
       .from("rider_injuries")
       .insert({
         rider_id: result.riderId,
         source_stage_id: stage.id,
-        injury_type: result.abandonment.injury.type,
-        severity: result.abandonment.injury.severity,
-        recovery_days: result.abandonment.injury.recoveryDays,
+        injury_type: result.injury.type,
+        diagnosis_code: result.injury.diagnosisCode,
+        severity: result.injury.severity,
+        recovery_days: result.injury.recoveryDays,
+        recovery_hours: result.injury.recoveryHours,
         started_at: startedAt.toISOString(),
+        base_expected_recovery_at: expectedRecoveryAt.toISOString(),
         expected_recovery_at: expectedRecoveryAt.toISOString(),
       })
       .select("id")
@@ -797,7 +810,7 @@ function buildSimulationGeneralClassification(
   simulations: StageSimulationResult[]
 ) {
   return buildPersistedGeneralClassification(
-    simulations.map((simulation) => {
+    simulations.map((simulation, stageIndex) => {
       const riderById = new Map(
         simulation.resolvedRiders.map((rider) => [rider.id, rider])
       );
@@ -808,12 +821,19 @@ function buildSimulationGeneralClassification(
           riderName: rider.name,
           teamId: rider.teamId,
           teamName: rider.teamName,
-          status: result.status,
+          status:
+            result.injury && stageIndex < simulations.length - 1
+              ? "withdrawn"
+              : result.status,
           elapsedTimeMs:
             result.status === "finished"
               ? result.elapsedTimeSeconds * 1_000
               : null,
-          abandonmentReason: result.abandonment?.reason ?? null,
+          abandonmentReason:
+            result.abandonment?.reason ??
+            (result.injury && stageIndex < simulations.length - 1
+              ? "injury"
+              : null),
         } satisfies PersistedStageResultForGeneral;
       });
     })

@@ -217,6 +217,9 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
           </section>
 
           <aside className="space-y-5">
+            {profile.medical ? (
+              <RiderMedicalCard medical={profile.medical} />
+            ) : null}
             <RiderConditionGauges
               form={profile.condition.form}
               dayNumber={profile.condition.dayNumber}
@@ -261,6 +264,60 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
         </div>
       </section>
     </main>
+  );
+}
+
+function RiderMedicalCard({
+  medical,
+}: {
+  medical: NonNullable<
+    NonNullable<Awaited<ReturnType<typeof getPublicRiderProfile>>>["medical"]
+  >;
+}) {
+  const remainingHours = medical.remainingHours;
+  const days = Math.floor(remainingHours / 24);
+  const hours = remainingHours % 24;
+
+  return (
+    <section className="rounded-2xl border border-[#D75D5D]/25 bg-[#FFF0EE] p-5 shadow-[0_12px_34px_rgba(111,38,38,0.08)]">
+      <div className="flex items-start gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#D94F4F] text-white">
+          <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor">
+            <path d="M7.5 2.5h5v5h5v5h-5v5h-5v-5h-5v-5h5v-5Z" />
+          </svg>
+        </span>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#B54242]">
+            Indisponibilité médicale
+          </p>
+          <h2 className="mt-1 text-lg font-black text-[#702E2E]">
+            {medical.label}
+          </h2>
+        </div>
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[#D75D5D]/15 pt-4 text-sm">
+        <div>
+          <dt className="text-[10px] font-black uppercase tracking-wider text-[#9D6767]">
+            Temps restant
+          </dt>
+          <dd className="mt-1 font-black text-[#702E2E]">
+            {days > 0 ? `${days} j ${hours} h` : `${hours} h`}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-black uppercase tracking-wider text-[#9D6767]">
+            Reprise prévue
+          </dt>
+          <dd className="mt-1 font-black text-[#702E2E]">
+            {new Intl.DateTimeFormat("fr-FR", {
+              dateStyle: "medium",
+              timeStyle: "short",
+              timeZone: "Europe/Paris",
+            }).format(new Date(medical.expectedRecoveryAt))}
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 

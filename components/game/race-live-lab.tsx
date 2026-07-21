@@ -1576,8 +1576,8 @@ function Classification({
                         : `+${formatGap(result.gapToWinnerSeconds)}`}
                   </td>
                   <td className="hidden px-4 py-3 text-right text-[#94ADA2] sm:table-cell">
-                    {abandoned && result.abandonment
-                      ? `${result.abandonment.injury.label} · ${result.abandonment.injury.recoveryDays} j`
+                    {result.injury
+                      ? `${result.injury.label} · ${result.injury.recoveryDays} j`
                       : `${Math.round(result.energyAfter)} %`}
                   </td>
                 </tr>
