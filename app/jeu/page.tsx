@@ -412,24 +412,46 @@ export default async function GamePage() {
               financeOverview={financeOverview}
             />
 
-            <TeamRosterCard
-              status={
-                teamSummary
-                  ? formatRiderCount(riderCount)
-                  : isProfileComplete
-                    ? "Création en attente"
-                    : "En attente"
-              }
-              description={
-                teamSummary
-                  ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
-                  : isProfileComplete
-                    ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
-                    : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
-              }
-              riders={featuredRiders}
-              jersey={riderJersey}
-            />
+            <div className="grid content-start gap-6">
+              <ManagementModuleCard
+                href="/jeu/sponsoring"
+                icon="sponsor"
+                title="Sponsoring"
+                status={
+                  teamSponsorIdentity
+                    ? teamSponsorIdentity.sponsor.shortName
+                    : sponsoringUnlocked
+                      ? "Marché débloqué"
+                      : `${reputationPoints} / ${GAMEPLAY_RULES.sponsoringUnlockReputation} réputation`
+                }
+                description={
+                  teamSponsorIdentity
+                    ? `${teamSponsorIdentity.sponsor.name} est le sponsor principal de ${commercialTeamName}. Le maillot ${teamSponsorIdentity.selectedJersey.name} est actuellement utilisé.`
+                    : sponsoringUnlocked
+                      ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
+                      : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
+                }
+              />
+
+              <TeamRosterCard
+                status={
+                  teamSummary
+                    ? formatRiderCount(riderCount)
+                    : isProfileComplete
+                      ? "Création en attente"
+                      : "En attente"
+                }
+                description={
+                  teamSummary
+                    ? `${commercialTeamName} compte ${formatRiderCount(riderCount)} sous contrat pour ${teamSummary.season_name}.`
+                    : isProfileComplete
+                      ? "Votre profil est complet, mais votre équipe amateur n’a pas encore pu être récupérée."
+                      : "Complétez le profil de votre Directeur Sportif pour constituer votre premier effectif amateur."
+                }
+                riders={featuredRiders}
+                jersey={riderJersey}
+              />
+            </div>
           </section>
 
           <RaceOperationsCard />
@@ -476,27 +498,6 @@ export default async function GamePage() {
                   : "Non classée"
               }
               description="Comparez toutes les équipes, les coureurs et les nations, avec les frontières de divisions clairement identifiées."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/sponsoring"
-              icon="sponsor"
-              title="Sponsoring"
-              status={
-                teamSponsorIdentity
-                  ? teamSponsorIdentity.sponsor
-                      .shortName
-                  : sponsoringUnlocked
-                    ? "Marché débloqué"
-                    : `${reputationPoints} / ${GAMEPLAY_RULES.sponsoringUnlockReputation} réputation`
-              }
-              description={
-                teamSponsorIdentity
-                  ? `${teamSponsorIdentity.sponsor.name} est le sponsor principal de ${commercialTeamName}. Le maillot ${teamSponsorIdentity.selectedJersey.name} est actuellement utilisé.`
-                  : sponsoringUnlocked
-                    ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
-                    : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
-              }
             />
 
             <ManagementModuleCard
@@ -1009,7 +1010,7 @@ function TeamRosterCard({
   return (
     <Link
       href="/jeu/effectif"
-      className="group flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
