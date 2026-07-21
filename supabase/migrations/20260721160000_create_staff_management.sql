@@ -107,10 +107,37 @@ create unique index staff_contracts_one_active_contract_idx
 create index staff_contracts_team_status_idx
   on public.staff_contracts (team_id, status, signed_at);
 
+create table public.staff_rider_assignments (
+  id uuid primary key default gen_random_uuid(),
+  staff_contract_id uuid not null
+    references public.staff_contracts(id) on delete cascade,
+  rider_id uuid not null references public.riders(id) on delete cascade,
+  status text not null default 'active',
+  assigned_at timestamptz not null default now(),
+  ended_at timestamptz,
+
+  constraint staff_rider_assignments_status_allowed check (
+    status in ('active', 'ended')
+  ),
+  constraint staff_rider_assignments_end_shape check (
+    (status = 'ended' and ended_at is not null)
+    or (status = 'active' and ended_at is null)
+  )
+);
+
+create unique index staff_rider_assignments_one_active_staff_idx
+  on public.staff_rider_assignments (staff_contract_id, rider_id)
+  where status = 'active';
+
+create unique index staff_rider_assignments_one_active_physio_idx
+  on public.staff_rider_assignments (rider_id)
+  where status = 'active';
+
 alter table public.staff_members enable row level security;
 alter table public.staff_market_batches enable row level security;
 alter table public.staff_market_listings enable row level security;
 alter table public.staff_contracts enable row level security;
+alter table public.staff_rider_assignments enable row level security;
 
 create policy staff_members_read_authenticated
 on public.staff_members
@@ -141,6 +168,25 @@ using (
     join public.sporting_directors as director
       on director.id = assignment.sporting_director_id
     where assignment.team_id = staff_contracts.team_id
+      and assignment.role = 'general_manager'
+      and assignment.status = 'active'
+      and director.auth_user_id = auth.uid()
+  )
+);
+
+create policy staff_rider_assignments_read_managed_team
+on public.staff_rider_assignments
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.staff_contracts as contract
+    join public.team_manager_assignments as assignment
+      on assignment.team_id = contract.team_id
+    join public.sporting_directors as director
+      on director.id = assignment.sporting_director_id
+    where contract.id = staff_rider_assignments.staff_contract_id
       and assignment.role = 'general_manager'
       and assignment.status = 'active'
       and director.auth_user_id = auth.uid()
@@ -268,6 +314,41 @@ as $$
       p_trainer_specialty is null
       or member.trainer_specialty = p_trainer_specialty
     );
+$$;
+
+create or replace function public.get_physiotherapist_rider_capacity(
+  p_level integer
+)
+returns integer
+language sql
+immutable
+set search_path = public
+as $$
+  select (array[2, 4, 6, 9, 12]::integer[])[
+    least(5, greatest(1, coalesce(p_level, 1)))
+  ];
+$$;
+
+create or replace function public.get_active_rider_physiotherapist_level(
+  p_team_id uuid,
+  p_rider_id uuid
+)
+returns integer
+language sql
+stable
+set search_path = public
+as $$
+  select coalesce(max(member.level), 0)::integer
+  from public.staff_rider_assignments as staff_assignment
+  join public.staff_contracts as contract
+    on contract.id = staff_assignment.staff_contract_id
+   and contract.status = 'active'
+  join public.staff_members as member
+    on member.id = contract.staff_member_id
+   and member.role = 'physiotherapist'
+  where contract.team_id = p_team_id
+    and staff_assignment.rider_id = p_rider_id
+    and staff_assignment.status = 'active';
 $$;
 
 create or replace function public.create_daily_staff_market(
@@ -708,6 +789,110 @@ begin
 end;
 $$;
 
+create or replace function public.assign_current_team_physiotherapist(
+  p_staff_contract_id uuid,
+  p_rider_ids uuid[]
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_context record;
+  v_rider_ids uuid[] := coalesce(p_rider_ids, array[]::uuid[]);
+  v_unique_count integer;
+  v_capacity integer;
+begin
+  select
+    contract.id as contract_id,
+    contract.team_id,
+    member.level
+  into v_context
+  from public.staff_contracts as contract
+  join public.staff_members as member
+    on member.id = contract.staff_member_id
+   and member.role = 'physiotherapist'
+  join public.team_manager_assignments as team_assignment
+    on team_assignment.team_id = contract.team_id
+   and team_assignment.role = 'general_manager'
+   and team_assignment.status = 'active'
+  join public.sporting_directors as director
+    on director.id = team_assignment.sporting_director_id
+   and director.auth_user_id = auth.uid()
+   and director.status = 'active'
+  where contract.id = p_staff_contract_id
+    and contract.status = 'active'
+  for update of contract;
+
+  if v_context is null then
+    raise exception 'Ce kiné ne fait pas partie du staff actif de votre équipe.';
+  end if;
+
+  select count(distinct rider_id)::integer
+  into v_unique_count
+  from unnest(v_rider_ids) as rider_id;
+
+  if v_unique_count <> cardinality(v_rider_ids) then
+    raise exception 'Un coureur ne peut apparaître qu’une fois dans cette affectation.';
+  end if;
+
+  v_capacity := public.get_physiotherapist_rider_capacity(v_context.level);
+  if v_unique_count > v_capacity then
+    raise exception 'Ce kiné de niveau % peut suivre au maximum % coureur(s).',
+      v_context.level, v_capacity;
+  end if;
+
+  if exists (
+    select 1
+    from unnest(v_rider_ids) as requested_rider_id
+    where not exists (
+      select 1
+      from public.rider_contracts as rider_contract
+      where rider_contract.rider_id = requested_rider_id
+        and rider_contract.team_id = v_context.team_id
+        and rider_contract.status = 'active'
+    )
+  ) then
+    raise exception 'Un des coureurs sélectionnés ne fait pas partie de votre effectif actif.';
+  end if;
+
+  update public.staff_rider_assignments
+  set status = 'ended', ended_at = now()
+  where staff_contract_id = v_context.contract_id
+    and status = 'active'
+    and not (rider_id = any(v_rider_ids));
+
+  update public.staff_rider_assignments as staff_assignment
+  set status = 'ended', ended_at = now()
+  where staff_assignment.rider_id = any(v_rider_ids)
+    and staff_assignment.status = 'active'
+    and staff_assignment.staff_contract_id <> v_context.contract_id;
+
+  insert into public.staff_rider_assignments (
+    staff_contract_id,
+    rider_id,
+    status,
+    assigned_at
+  )
+  select
+    v_context.contract_id,
+    rider_id,
+    'active',
+    now()
+  from unnest(v_rider_ids) as rider_id
+  where not exists (
+    select 1
+    from public.staff_rider_assignments as existing
+    where existing.staff_contract_id = v_context.contract_id
+      and existing.rider_id = rider_id
+      and existing.status = 'active'
+  );
+
+  return v_unique_count;
+end;
+$$;
+
 create or replace function public.apply_community_manager_reputation_bonus()
 returns trigger
 language plpgsql
@@ -760,6 +945,136 @@ after insert
 on public.reward_events
 for each row execute function public.apply_community_manager_reputation_bonus();
 
+alter table public.rider_injuries
+  add column doctor_recovery_hours_reduced smallint not null default 0,
+  add constraint rider_injuries_doctor_reduction_non_negative check (
+    doctor_recovery_hours_reduced >= 0
+  );
+
+create or replace function public.apply_team_doctor_to_new_injury()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_team_id uuid;
+  v_doctor_level integer;
+  v_reduction_hours integer;
+begin
+  select contract.team_id
+  into v_team_id
+  from public.rider_contracts as contract
+  where contract.rider_id = new.rider_id
+    and contract.status = 'active'
+  order by contract.signed_at desc
+  limit 1;
+
+  if v_team_id is null then
+    return new;
+  end if;
+
+  v_doctor_level := public.get_active_team_staff_level(v_team_id, 'doctor');
+  if v_doctor_level <= 0 then
+    return new;
+  end if;
+
+  v_reduction_hours := ceil(
+    new.recovery_hours * (v_doctor_level * 6) / 100.0
+  )::integer;
+  new.doctor_recovery_hours_reduced := v_reduction_hours;
+  new.expected_recovery_at := new.expected_recovery_at
+    - make_interval(hours => v_reduction_hours);
+
+  return new;
+end;
+$$;
+
+create trigger rider_injury_team_doctor_reduction
+before insert
+on public.rider_injuries
+for each row execute function public.apply_team_doctor_to_new_injury();
+
+create or replace function public.apply_assigned_physio_to_race_condition()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_team_id uuid;
+  v_physio_level integer;
+begin
+  select team_season.team_id
+  into v_team_id
+  from public.stages as stage
+  join public.race_registrations as registration
+    on registration.race_edition_id = stage.race_edition_id
+   and registration.status = 'accepted'
+  join public.race_rosters as roster
+    on roster.race_registration_id = registration.id
+   and roster.rider_id = new.rider_id
+  join public.team_seasons as team_season
+    on team_season.id = registration.team_season_id
+  where stage.id = new.stage_id
+  limit 1;
+
+  if v_team_id is null then
+    return new;
+  end if;
+
+  v_physio_level := public.get_active_rider_physiotherapist_level(
+    v_team_id,
+    new.rider_id
+  );
+  if v_physio_level <= 0 then
+    return new;
+  end if;
+
+  new.form_delta := least(-1, new.form_delta + v_physio_level);
+  new.form_after := greatest(0, new.form_before + new.form_delta);
+  return new;
+end;
+$$;
+
+create trigger stage_condition_assigned_physio_reduction
+before insert
+on public.stage_rider_condition_effects
+for each row execute function public.apply_assigned_physio_to_race_condition();
+
+create or replace function public.sync_race_finish_form_with_physio_effect()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_adjusted_form integer;
+begin
+  if new.source <> 'race_finish' then
+    return new;
+  end if;
+
+  select effect.form_after
+  into v_adjusted_form
+  from public.stage_rider_condition_effects as effect
+  where effect.rider_id = new.rider_id
+    and effect.season_day_id = new.season_day_id
+  order by effect.applied_at desc
+  limit 1;
+
+  if v_adjusted_form is not null then
+    new.form := v_adjusted_form;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger rider_condition_sync_physio_race_finish
+before insert or update of form, source
+on public.rider_condition_states
+for each row execute function public.sync_race_finish_form_with_physio_effect();
+
 -- L'ancien forfait fictif de 60 000 € est remplacé par les contrats réels.
 update public.team_finance_transactions
 set status = 'cancelled'
@@ -777,16 +1092,21 @@ grant select on table public.staff_members to authenticated, service_role;
 grant select on table public.staff_market_batches to authenticated, service_role;
 grant select on table public.staff_market_listings to authenticated, service_role;
 grant select on table public.staff_contracts to authenticated;
+grant select on table public.staff_rider_assignments to authenticated;
 grant all privileges on table public.staff_members to service_role;
 grant all privileges on table public.staff_market_batches to service_role;
 grant all privileges on table public.staff_market_listings to service_role;
 grant all privileges on table public.staff_contracts to service_role;
+grant all privileges on table public.staff_rider_assignments to service_role;
 
 revoke all on function public.create_daily_staff_market(date, jsonb) from public;
 grant execute on function public.create_daily_staff_market(date, jsonb) to service_role;
 
 revoke all on function public.hire_current_team_staff(uuid) from public;
 grant execute on function public.hire_current_team_staff(uuid) to authenticated;
+
+revoke all on function public.assign_current_team_physiotherapist(uuid, uuid[]) from public;
+grant execute on function public.assign_current_team_physiotherapist(uuid, uuid[]) to authenticated;
 
 revoke all on function public.sync_staff_salary_installments(uuid) from public;
 grant execute on function public.sync_staff_salary_installments(uuid) to service_role;
@@ -797,6 +1117,8 @@ comment on table public.staff_market_listings is
   'Pool mondial quotidien de 25 membres du staff, commun à tous les joueurs.';
 comment on table public.staff_contracts is
   'Contrats actifs du staff et source de vérité de la masse salariale.';
+comment on table public.staff_rider_assignments is
+  'Coureurs suivis individuellement par les kinés actifs de leur équipe.';
 comment on function public.hire_current_team_staff(uuid) is
   'Recrute atomiquement un membre disponible après contrôles de capacité et de solvabilité.';
 

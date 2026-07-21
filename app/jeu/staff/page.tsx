@@ -513,12 +513,12 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
             detail="Le community manager augmente automatiquement chaque gain de réputation de 2 à 10 %."
           />
           <ConnectionCard
-            title="Entraînement & récupération"
-            detail="Entraîneur, nutritionniste et kiné exposent déjà leurs niveaux pour les futurs programmes individuels."
+            title="Soins actifs"
+            detail="Le médecin raccourcit les blessures et chaque kiné protège les coureurs qui lui sont affectés dans le centre de soin."
           />
           <ConnectionCard
-            title="Soins & infrastructures"
-            detail="Médecin, mécanicien et architecte disposent d’effets normalisés, prêts à être consommés par leurs rubriques."
+            title="Prochaines connexions"
+            detail="Entraîneur, scout, nutritionniste, mécanicien et architecte sont prêts pour leurs moteurs fonctionnels respectifs."
           />
         </div>
       </article>

@@ -8,6 +8,7 @@ import {
   calculateStaffSalary,
   calculateStaffSigningFee,
   describeStaffEffect,
+  getPhysiotherapistRiderCapacity,
   getStaffCapacityForDirectorLevel,
 } from "@/lib/game/staff";
 
@@ -48,6 +49,14 @@ describe("staff economy", () => {
     expect(calculateDueStaffSalary(40_000, 7)).toBe(10_000);
     expect(calculateDueStaffSalary(40_000, 21)).toBe(30_000);
     expect(calculateDueStaffSalary(40_000, 28)).toBe(40_000);
+  });
+
+  it("expands physiotherapist capacity by useful non-linear steps", () => {
+    expect(
+      Array.from({ length: 5 }, (_, index) =>
+        getPhysiotherapistRiderCapacity(index + 1),
+      ),
+    ).toEqual([2, 4, 6, 9, 12]);
   });
 });
 

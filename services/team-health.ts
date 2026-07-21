@@ -50,6 +50,7 @@ type InjuryRow = {
   started_at: string;
   base_expected_recovery_at: string;
   expected_recovery_at: string;
+  doctor_recovery_hours_reduced: number;
   form_loss_per_day: number;
   protocol_code: string | null;
   status: string;
@@ -80,6 +81,21 @@ type ProtocolRow = {
   duration_reduction_pct: number;
   form_loss_per_day: number;
 };
+type MedicalStaffContractRow = {
+  id: string;
+  staff_member_id: string;
+};
+type MedicalStaffMemberRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  role: "doctor" | "physiotherapist";
+  level: number;
+};
+type StaffRiderAssignmentRow = {
+  staff_contract_id: string;
+  rider_id: string;
+};
 
 export type RiderMedicalInjury = {
   id: string;
@@ -89,6 +105,7 @@ export type RiderMedicalInjury = {
   startedAt: string;
   baseExpectedRecoveryAt: string;
   expectedRecoveryAt: string;
+  doctorRecoveryHoursReduced: number;
   formLossPerDay: number;
   protocolCode: string | null;
   treatment: {
@@ -135,6 +152,15 @@ export type TeamMedicalProtocol = {
   formLossPerDay: number;
 };
 
+export type TeamMedicalStaffMember = {
+  contractId: string;
+  firstName: string;
+  lastName: string;
+  role: "doctor" | "physiotherapist";
+  level: number;
+  assignedRiderIds: string[];
+};
+
 export type TeamHealthOverview = {
   teamId: string;
   teamSeasonId: string;
@@ -145,6 +171,7 @@ export type TeamHealthOverview = {
   currency: string;
   riders: TeamHealthRider[];
   protocols: TeamMedicalProtocol[];
+  medicalStaff: TeamMedicalStaffMember[];
 };
 
 export async function getCurrentTeamHealthOverview(
@@ -213,6 +240,7 @@ export async function getCurrentTeamHealthOverview(
   assertQuery(protocolsResult.error, "les protocoles médicaux");
   const teamSeason = teamSeasonResult.data;
   if (!teamSeason) return null;
+  const medicalStaff = await loadMedicalStaff(teamSeason.team_id);
 
   const riderIds = (contractsResult.data ?? []).map((row) => row.rider_id);
   if (riderIds.length === 0) {
@@ -226,6 +254,7 @@ export async function getCurrentTeamHealthOverview(
       currency: teamSeason.currency,
       riders: [],
       protocols: mapProtocols(protocolsResult.data ?? []),
+      medicalStaff,
     };
   }
 
@@ -259,7 +288,7 @@ export async function getCurrentTeamHealthOverview(
     admin
       .from("rider_injuries")
       .select(
-        "id, rider_id, diagnosis_code, recovery_hours, started_at, base_expected_recovery_at, expected_recovery_at, form_loss_per_day, protocol_code, status"
+        "id, rider_id, diagnosis_code, recovery_hours, started_at, base_expected_recovery_at, expected_recovery_at, doctor_recovery_hours_reduced, form_loss_per_day, protocol_code, status"
       )
       .in("rider_id", riderIds)
       .eq("status", "active")
@@ -358,6 +387,7 @@ export async function getCurrentTeamHealthOverview(
     balance: toNumber(teamSeason.cash_balance),
     currency: teamSeason.currency,
     protocols: mapProtocols(protocolsResult.data ?? []),
+    medicalStaff,
     riders: riders
       .map((rider) => {
         const country = countryById.get(rider.country_id);
@@ -388,6 +418,8 @@ export async function getCurrentTeamHealthOverview(
                 startedAt: injury.started_at,
                 baseExpectedRecoveryAt: injury.base_expected_recovery_at,
                 expectedRecoveryAt: injury.expected_recovery_at,
+                doctorRecoveryHoursReduced:
+                  injury.doctor_recovery_hours_reduced,
                 formLossPerDay: injury.form_loss_per_day,
                 protocolCode: injury.protocol_code,
                 treatment: treatment
@@ -423,6 +455,67 @@ export async function getCurrentTeamHealthOverview(
           left.firstName.localeCompare(right.firstName, "fr")
       ),
   };
+}
+
+async function loadMedicalStaff(
+  teamId: string,
+): Promise<TeamMedicalStaffMember[]> {
+  const admin = createSupabaseAdminClient();
+  const { data: contracts, error: contractsError } = await admin
+    .from("staff_contracts")
+    .select("id, staff_member_id")
+    .eq("team_id", teamId)
+    .eq("status", "active")
+    .returns<MedicalStaffContractRow[]>();
+  assertQuery(contractsError, "le staff médical");
+
+  const contractRows = contracts ?? [];
+  if (contractRows.length === 0) return [];
+
+  const memberIds = contractRows.map((contract) => contract.staff_member_id);
+  const contractIds = contractRows.map((contract) => contract.id);
+  const [membersResult, assignmentsResult] = await Promise.all([
+    admin
+      .from("staff_members")
+      .select("id, first_name, last_name, role, level")
+      .in("id", memberIds)
+      .in("role", ["doctor", "physiotherapist"])
+      .returns<MedicalStaffMemberRow[]>(),
+    admin
+      .from("staff_rider_assignments")
+      .select("staff_contract_id, rider_id")
+      .in("staff_contract_id", contractIds)
+      .eq("status", "active")
+      .returns<StaffRiderAssignmentRow[]>(),
+  ]);
+  assertQuery(membersResult.error, "les profils du staff médical");
+  assertQuery(assignmentsResult.error, "les affectations des kinés");
+
+  const memberById = new Map(
+    (membersResult.data ?? []).map((member) => [member.id, member]),
+  );
+  const riderIdsByContract = new Map<string, string[]>();
+  for (const assignment of assignmentsResult.data ?? []) {
+    const riderIds = riderIdsByContract.get(assignment.staff_contract_id) ?? [];
+    riderIds.push(assignment.rider_id);
+    riderIdsByContract.set(assignment.staff_contract_id, riderIds);
+  }
+
+  return contractRows.flatMap((contract) => {
+    const member = memberById.get(contract.staff_member_id);
+    return member
+      ? [
+          {
+            contractId: contract.id,
+            firstName: member.first_name,
+            lastName: member.last_name,
+            role: member.role,
+            level: member.level,
+            assignedRiderIds: riderIdsByContract.get(contract.id) ?? [],
+          } satisfies TeamMedicalStaffMember,
+        ]
+      : [];
+  });
 }
 
 export function getInjuryLabel(diagnosisCode: string) {

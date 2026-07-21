@@ -62,6 +62,37 @@ export async function bookFormCampAction(formData: FormData) {
   redirect("/jeu/centre-de-soin?onglet=forme&stage=confirme");
 }
 
+export async function assignPhysiotherapistAction(formData: FormData) {
+  const staffContractId = readValue(formData, "staffContractId");
+  const riderIds = formData
+    .getAll("riderIds")
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim());
+
+  if (
+    !isUuid(staffContractId) ||
+    riderIds.length > 50 ||
+    riderIds.some((riderId) => !isUuid(riderId))
+  ) {
+    redirectWithError("staff", "L’affectation du kiné est invalide.");
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "assign_current_team_physiotherapist",
+    {
+      p_staff_contract_id: staffContractId,
+      p_rider_ids: riderIds,
+    },
+  );
+
+  if (error) redirectWithError("staff", error.message);
+
+  revalidateHealthPaths();
+  revalidatePath("/jeu/staff");
+  redirect("/jeu/centre-de-soin?onglet=staff&affectation=confirmee");
+}
+
 async function requireAuthenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const {

@@ -191,6 +191,10 @@ export function getStaffCapacityForDirectorLevel(level: number): number {
   return Math.min(45, thresholds.at(-1)! + (safeLevel - 10) * 4);
 }
 
+export function getPhysiotherapistRiderCapacity(level: number): number {
+  return [2, 4, 6, 9, 12][normalizeStaffLevel(level) - 1];
+}
+
 export function getStaffEffectPercentage(role: StaffRole, level: number): number {
   const safeLevel = normalizeStaffLevel(level);
 
