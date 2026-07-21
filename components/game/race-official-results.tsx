@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";

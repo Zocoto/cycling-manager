@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 
 import { PasswordUpdateForm } from "../../../components/auth/password-update-form";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";

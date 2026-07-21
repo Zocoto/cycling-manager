@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 
 import { equipRiderAction } from "@/app/jeu/materiel/actions";
 import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button";
