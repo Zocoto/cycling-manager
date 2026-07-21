@@ -374,10 +374,13 @@ export default async function GamePage() {
               </p>
             </div>
 
-            <InventoryShortcut
-              totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
-              availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
-            />
+            <div className="flex w-full items-stretch gap-3 sm:w-auto">
+              <InventoryShortcut
+                totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
+                availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
+              />
+              <JerseyShortcut />
+            </div>
           </header>
 
           {!sportingDirector ? (
@@ -463,14 +466,6 @@ export default async function GamePage() {
               title="Matériel"
               status="Catalogue ouvert"
               description="Achetez casques, textiles, lunettes, chaussures, roues et cadres, puis attribuez-les à vos coureurs."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/maillot"
-              icon="jersey"
-              title="Atelier du maillot"
-              status="12 motifs disponibles"
-              description="Modifiez librement le motif et les trois couleurs de votre identité amateur, avec aperçu immédiat sur les avatars."
             />
 
             <ManagementModuleCard
@@ -1221,7 +1216,7 @@ function InventoryShortcut({
   return (
     <Link
       href="/jeu/inventaire"
-      className="group w-full rounded-2xl border border-[#315B3E]/15 bg-white/75 p-3.5 shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] sm:w-auto sm:min-w-64"
+      className="group min-w-0 flex-1 rounded-2xl border border-[#315B3E]/15 bg-white/75 p-3.5 shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] sm:min-w-64 sm:flex-none"
     >
       <span className="flex items-center gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0B302B] text-[#9BE0BC]">
@@ -1250,6 +1245,21 @@ function InventoryShortcut({
           </span>
         </span>
       </span>
+    </Link>
+  );
+}
+
+function JerseyShortcut() {
+  return (
+    <Link
+      href="/jeu/maillot"
+      title="Modifier le maillot amateur"
+      className="group flex min-w-20 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border border-[#315B3E]/15 bg-white/75 px-3 py-2.5 text-[#176951] shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] sm:min-w-24"
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#DDF3E7] transition group-hover:bg-[#176951] group-hover:text-white">
+        <ManagementModuleIcon icon="jersey" />
+      </span>
+      <span className="text-xs font-black text-[#183F37]">Maillot</span>
     </Link>
   );
 }
