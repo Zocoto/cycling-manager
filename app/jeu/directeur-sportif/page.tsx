@@ -407,7 +407,7 @@ function ProfileSummaryCard({
           avatarKey={avatarKey}
         />
 
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center justify-center gap-3">
           <TeamJerseyPreview
             amateurJersey={
               teamAmateurIdentity?.jersey ?? DEFAULT_AMATEUR_JERSEY
@@ -417,6 +417,10 @@ function ProfileSummaryCard({
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
             className="h-36 w-32 drop-shadow-xl"
           />
+
+          {teamAmateurIdentity?.isConfigured ? (
+            <JerseyEditorLink />
+          ) : null}
         </div>
 
         <TeamCommercialIdentity
@@ -435,22 +439,30 @@ function ProfileSummaryCard({
           avatarKey={avatarKey}
         />
 
-        <div className="flex items-center justify-center gap-5 rounded-xl border border-white/10 bg-white/5 p-4">
-          <TeamJerseyPreview
-            amateurJersey={
-              teamAmateurIdentity?.jersey ?? DEFAULT_AMATEUR_JERSEY
-            }
-            amateurTeamName={teamAmateurIdentity?.amateurName}
-            sponsor={teamSponsorIdentity?.sponsor}
-            sponsorJersey={teamSponsorIdentity?.selectedJersey}
-            className="h-32 w-28 shrink-0 drop-shadow-xl"
-          />
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-center gap-5">
+            <TeamJerseyPreview
+              amateurJersey={
+                teamAmateurIdentity?.jersey ?? DEFAULT_AMATEUR_JERSEY
+              }
+              amateurTeamName={teamAmateurIdentity?.amateurName}
+              sponsor={teamSponsorIdentity?.sponsor}
+              sponsorJersey={teamSponsorIdentity?.selectedJersey}
+              className="h-32 w-28 shrink-0 drop-shadow-xl"
+            />
 
-          <TeamCommercialIdentity
-            identity={teamSponsorIdentity}
-            amateurIdentity={teamAmateurIdentity}
-            compact
-          />
+            <TeamCommercialIdentity
+              identity={teamSponsorIdentity}
+              amateurIdentity={teamAmateurIdentity}
+              compact
+            />
+          </div>
+
+          {teamAmateurIdentity?.isConfigured ? (
+            <div className="mt-4 flex justify-center border-t border-white/10 pt-4">
+              <JerseyEditorLink />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -461,6 +473,20 @@ function ProfileSummaryCard({
         />
       </div>
     </article>
+  );
+}
+
+function JerseyEditorLink() {
+  return (
+    <Link
+      href="/jeu/maillot"
+      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#7CCF9C]/35 bg-[#7CCF9C]/10 px-4 text-xs font-black text-[#A7E4BE] transition hover:-translate-y-0.5 hover:border-[#7CCF9C]/60 hover:bg-[#7CCF9C]/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C]"
+    >
+      Modifier le maillot amateur
+      <span className="ml-2" aria-hidden="true">
+        →
+      </span>
+    </Link>
   );
 }
 
