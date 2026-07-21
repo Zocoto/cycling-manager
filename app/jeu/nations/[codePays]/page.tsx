@@ -6,6 +6,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
+import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
 import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -259,6 +260,11 @@ function CountryDirectorLink({
         <span className="mt-1 block truncate text-xs text-[#60756E]">
           {director.team_name ?? "Sans équipe actuelle"}
         </span>
+        {director.team_id ? (
+          <span className="mt-2 block">
+            <TeamDivisionBadge division={director.division_code} compact />
+          </span>
+        ) : null}
       </span>
       <span className="text-sm font-black text-[#60756E]">
         {numberFormatter.format(director.reputation_points ?? 0)} pts
@@ -305,6 +311,9 @@ function CountryTeamLink({
         </span>
         <span className="mt-1 block truncate text-xs font-semibold text-[#278B70]">
           {team.sporting_director_name ?? "DS non attribué"}
+        </span>
+        <span className="mt-2 block">
+          <TeamDivisionBadge division={team.division_code} compact />
         </span>
       </span>
       <span className="text-xl font-black text-[#278B70]" aria-hidden="true">

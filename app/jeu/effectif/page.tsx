@@ -7,6 +7,7 @@ import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey"
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { RiderAvatar } from "../../../components/game/rider-avatar";
+import { TeamDivisionBadge } from "../../../components/game/team-division-badge";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -22,6 +23,7 @@ import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
 } from "../../../services/team-sponsor-identity";
+import { getCurrentTeamDivisionForAuthUser } from "../../../services/team-divisions";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -209,6 +211,13 @@ export default async function TeamRosterPage() {
     );
   }
 
+  const teamDivision = await getCurrentTeamDivisionForAuthUser(user.id).catch(
+    (error: unknown) => {
+      console.error("Impossible de récupérer la division de l’équipe :", error);
+      return null;
+    }
+  );
+
   if (teamSummaryResult.error) {
     console.error(
       "Impossible de récupérer le résumé de l’équipe :",
@@ -340,6 +349,7 @@ export default async function TeamRosterPage() {
                 sponsorIdentity={
                   teamSponsorIdentity
                 }
+                divisionCode={teamDivision?.code ?? null}
               />
             ) : null}
           </header>
@@ -529,12 +539,14 @@ function TeamSeasonSummary({
   seasonName,
   seasonDayNumber,
   sponsorIdentity,
+  divisionCode,
 }: {
   teamName: string;
   seasonName: string;
   seasonDayNumber: number;
   sponsorIdentity:
     TeamSponsorIdentity | null;
+  divisionCode: string | null;
 }) {
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
@@ -581,6 +593,9 @@ function TeamSeasonSummary({
           {seasonName} · Jour{" "}
           {seasonDayNumber} / 28
         </p>
+        <span className="mt-2 flex justify-end">
+          <TeamDivisionBadge division={divisionCode} compact />
+        </span>
       </div>
     </div>
   );

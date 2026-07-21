@@ -3,7 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
-import { DIVISION_RULES, type TeamDivisionCode } from "@/lib/game/economy";
+import { TeamDivisionBadge } from "@/components/game/team-division-badge";
+import { DIVISION_RULES } from "@/lib/game/economy";
+import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -19,14 +21,6 @@ export const metadata: Metadata = {
 };
 
 type RankingView = "equipes" | "individuel" | "nations";
-
-const DIVISION_LABELS: Record<TeamDivisionCode, string> = {
-  elite: "Élite",
-  world: "World",
-  continental: "Continentale",
-  national: "Nationale",
-  amateur: "Amateur / non classée",
-};
 
 export default async function UciRankingsPage({
   searchParams,
@@ -67,7 +61,7 @@ export default async function UciRankingsPage({
           </p>
           <h1 className="mt-3 text-3xl font-black sm:text-4xl">Classements UCI</h1>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-            Les points d’un coureur alimentent simultanément son total, celui de son équipe et celui de sa nation.
+            Les points évoluent pendant la saison. La division affichée reste celle attribuée en début de saison ; le classement final déterminera la division de la saison suivante.
           </p>
         </header>
 
@@ -120,10 +114,10 @@ function TeamsTable({ entries }: { entries: TeamRankingEntry[] }) {
 function TeamRows({ entry }: { entry: TeamRankingEntry }) {
   const boundary = [1, 21, 51, 101, 201].includes(entry.rank);
   return <>
-    {boundary ? <tr><td colSpan={4} className="border-y border-[#278B70]/15 bg-[#DDF3E7] px-6 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#176951]">{DIVISION_LABELS[entry.division]} · position {entry.rank}</td></tr> : null}
+    {boundary ? <tr><td colSpan={4} className="border-y border-[#278B70]/15 bg-[#DDF3E7] px-6 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#176951]">Projection saison suivante · {TEAM_DIVISION_LABELS[entry.projectedDivision]} à partir de la position {entry.rank}</td></tr> : null}
     <tr className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">
       <RankCell rank={entry.rank} />
-      <td className="px-5 py-4"><Link href={`/jeu/equipes/${entry.teamId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.teamName}</Link><p className="mt-1 text-xs font-semibold text-[#60756E]">Division {DIVISION_LABELS[entry.division]}</p></td>
+      <td className="px-5 py-4"><Link href={`/jeu/equipes/${entry.teamId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.teamName}</Link><span className="mt-2 block"><TeamDivisionBadge division={entry.division} compact /></span></td>
       <td className="px-5 py-4">{entry.directorUsername ? <Link href={`/jeu/directeurs-sportifs/${encodeURIComponent(entry.directorUsername)}`} className="font-bold text-[#48665F] hover:text-[#278B70]">{entry.directorName}</Link> : <span className="text-[#83938D]">Poste vacant</span>}</td>
       <PointsCell points={entry.points} />
     </tr>
@@ -169,9 +163,10 @@ function PointsCell({ points }: { points: number }) { return <td className="px-6
 
 function DivisionAdvantages() {
   return <section className="mt-7 rounded-[2rem] bg-[#0B302B] p-6 text-white sm:p-8">
-    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Enjeu de fin de saison</p>
-    <h2 className="mt-2 text-2xl font-black">Divisions et avantages</h2>
-    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{DIVISION_RULES.map((division) => <article key={division.code} className="border-l-2 border-[#F2C94C]/60 pl-4"><h3 className="font-black text-[#F2C94C]">{division.name}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#BFD1C6]">Rangs {division.minimumRank}–{division.maximumRank} · +{division.seasonReputationBonus} réputation sur la saison.</p></article>)}</div>
+    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Affectation à la clôture</p>
+    <h2 className="mt-2 text-2xl font-black">Divisions de la saison suivante</h2>
+    <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#BFD1C6]">Aucun changement de division n’intervient en cours de saison. Les positions ci-dessous sont figées lors de la clôture puis appliquées à la saison suivante.</p>
+    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{DIVISION_RULES.map((division) => <article key={division.code} className="border-l-2 border-[#F2C94C]/60 pl-4"><h3 className="font-black text-[#F2C94C]">{division.name}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#BFD1C6]">Rangs {division.minimumRank}–{division.maximumRank} à la clôture · +{division.seasonReputationBonus} réputation sur la saison.</p></article>)}</div>
   </section>;
 }
 

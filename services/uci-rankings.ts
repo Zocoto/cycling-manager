@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
+import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
 
 type SeasonRow = { id: string; name: string };
 type TeamSeasonRow = {
@@ -9,7 +10,9 @@ type TeamSeasonRow = {
   display_name: string;
   points: number;
   final_rank: number | null;
+  division_id: string | null;
 };
+type DivisionRow = { id: string; code: string };
 type AssignmentRow = { team_id: string; sporting_director_id: string };
 type DirectorRow = { id: string; username: string; display_name: string };
 type RiderRow = {
@@ -30,6 +33,7 @@ export type TeamRankingEntry = {
   directorUsername: string | null;
   points: number;
   division: TeamDivisionCode;
+  projectedDivision: TeamDivisionCode;
 };
 
 export type RiderRankingEntry = {
@@ -76,7 +80,7 @@ export async function getUciRankings(): Promise<UciRankings | null> {
   const [teamSeasonsResult, summariesResult] = await Promise.all([
     supabase
       .from("team_seasons")
-      .select("team_id, display_name, points, final_rank")
+      .select("team_id, display_name, points, final_rank, division_id")
       .eq("season_id", season.id)
       .neq("status", "withdrawn")
       .gt("points", 0)
@@ -94,9 +98,16 @@ export async function getUciRankings(): Promise<UciRankings | null> {
 
   const teamSeasons = teamSeasonsResult.data ?? [];
   const teamIds = teamSeasons.map((team) => team.team_id);
+  const divisionIds = [
+    ...new Set(
+      teamSeasons
+        .map((team) => team.division_id)
+        .filter((divisionId): divisionId is string => Boolean(divisionId))
+    ),
+  ];
   const riderIds = (summariesResult.data ?? []).map((summary) => summary.rider_id);
 
-  const [assignmentsResult, ridersResult, contractsResult] = await Promise.all([
+  const [assignmentsResult, ridersResult, contractsResult, divisionsResult] = await Promise.all([
     teamIds.length
       ? supabase
           .from("team_manager_assignments")
@@ -121,11 +132,19 @@ export async function getUciRankings(): Promise<UciRankings | null> {
           .eq("status", "active")
           .returns<ContractRow[]>()
       : Promise.resolve({ data: [] as ContractRow[], error: null }),
+    divisionIds.length
+      ? supabase
+          .from("divisions")
+          .select("id, code")
+          .in("id", divisionIds)
+          .returns<DivisionRow[]>()
+      : Promise.resolve({ data: [] as DivisionRow[], error: null }),
   ]);
 
   assertQuery(assignmentsResult.error, "les Directeurs Sportifs classés");
   assertQuery(ridersResult.error, "l’identité des coureurs");
   assertQuery(contractsResult.error, "les équipes des coureurs");
+  assertQuery(divisionsResult.error, "les divisions de la saison");
 
   const assignments = assignmentsResult.data ?? [];
   const directorIds = assignments.map((assignment) => assignment.sporting_director_id);
@@ -161,6 +180,9 @@ export async function getUciRankings(): Promise<UciRankings | null> {
   const pointsByRiderId = new Map(
     (summariesResult.data ?? []).map((row) => [row.rider_id, row.points ?? 0])
   );
+  const divisionCodeById = new Map(
+    (divisionsResult.data ?? []).map((division) => [division.id, division.code])
+  );
 
   const teams = teamSeasons
     .filter((team) => team.points > 0)
@@ -180,7 +202,10 @@ export async function getUciRankings(): Promise<UciRankings | null> {
         directorName: director?.display_name ?? null,
         directorUsername: director?.username ?? null,
         points: team.points,
-        division: getDivisionForRank(rank),
+        division: normalizeTeamDivisionCode(
+          team.division_id ? divisionCodeById.get(team.division_id) : null
+        ),
+        projectedDivision: getDivisionForRank(rank),
       } satisfies TeamRankingEntry;
     });
 

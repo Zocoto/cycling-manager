@@ -10,6 +10,7 @@ import { SportingDirectorAvatar } from "../../components/game/sporting-director-
 import { SportingDirectorProgression } from "../../components/game/sporting-director-progression";
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
 import { TeamJerseyPreview } from "../../components/game/team-jersey-preview";
+import { TeamDivisionBadge } from "../../components/game/team-division-badge";
 import { DEFAULT_AMATEUR_JERSEY } from "../../lib/amateur-team";
 import {
   GAMEPLAY_RULES,
@@ -607,6 +608,15 @@ function DirectorProfileCard({
               }
               teamAmateurIdentity={teamAmateurIdentity}
             />
+            {financeOverview ? (
+              <span className="mt-3 block">
+                <TeamDivisionBadge
+                  division={financeOverview.divisionCode}
+                  dark
+                  compact
+                />
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -653,7 +663,7 @@ function DirectorProfileCard({
           <RankingBadge
             rank={financeOverview.teamRank}
             points={financeOverview.teamPoints}
-            label={financeOverview.divisionName ?? "Classement général"}
+            label="Classement en cours"
             dark
           />
         </div>

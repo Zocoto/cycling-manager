@@ -8,6 +8,7 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
+import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { DEFAULT_AMATEUR_JERSEY } from "@/lib/amateur-team";
 import {
   createAmateurRiderJersey,
@@ -130,10 +131,11 @@ export default async function PublicTeamPage({
               </div>
 
               <div className="flex flex-col gap-3">
+                <TeamDivisionBadge division={team.division_code} dark />
                 <RankingBadge
                   rank={teamRanking?.rank ?? null}
                   points={teamRanking?.points ?? 0}
-                  label={teamRanking ? `Division ${teamRanking.division}` : "Classement général"}
+                  label="Classement en cours"
                   href="/jeu/classements?vue=equipes"
                   dark
                 />
@@ -370,13 +372,14 @@ function TeamSeasonHistory({
 
       {history.length > 0 ? (
         <div className="overflow-x-auto border-t border-[#315B3E]/10">
-          <table className="w-full min-w-[620px] border-collapse text-left">
+          <table className="w-full min-w-[760px] border-collapse text-left">
             <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
               <tr>
                 <th className="px-6 py-4">Saison</th>
                 <th className="px-5 py-4">Nom de l’équipe</th>
                 <th className="px-4 py-4 text-center">Points</th>
                 <th className="px-6 py-4 text-center">Classement</th>
+                <th className="px-6 py-4 text-center">Division</th>
               </tr>
             </thead>
             <tbody>
@@ -401,6 +404,9 @@ function TeamSeasonHistory({
                   </td>
                   <td className="px-6 py-4 text-center font-black text-[#48665F]">
                     {entry.finalRank ? `#${entry.finalRank}` : "—"}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <TeamDivisionBadge division={entry.divisionCode} compact />
                   </td>
                 </tr>
               ))}

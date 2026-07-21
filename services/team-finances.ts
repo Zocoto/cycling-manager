@@ -4,10 +4,13 @@ import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   buildFinanceProjection,
-  DIVISION_RULES,
-  getDivisionForRank,
   type FinanceChartPoint,
+  type TeamDivisionCode,
 } from "@/lib/game/economy";
+import {
+  getTeamDivisionLabel,
+  normalizeTeamDivisionCode,
+} from "@/lib/game/team-divisions";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -32,6 +35,7 @@ type TeamSeasonRow = {
   division_id: string | null;
 };
 type RankingTeamRow = { id: string; display_name: string; points: number };
+type DivisionRow = { code: string };
 type TransactionRow = {
   id: string;
   day_number: number;
@@ -93,8 +97,8 @@ export type TeamFinanceOverview = {
   canSpend: boolean;
   teamPoints: number;
   teamRank: number | null;
-  divisionCode: string | null;
-  divisionName: string | null;
+  divisionCode: TeamDivisionCode;
+  divisionName: string;
   chart: FinanceChartPoint[];
   transactions: TeamFinanceTransaction[];
   alerts: TeamFinanceAlert[];
@@ -164,7 +168,7 @@ export async function getCurrentTeamFinanceOverview(
     return null;
   }
 
-  const [transactionsResult, alertsResult, rankingTeamsResult] = await Promise.all([
+  const [transactionsResult, alertsResult, rankingTeamsResult, divisionResult] = await Promise.all([
     admin
       .from("team_finance_transactions")
       .select("id, day_number, amount, category, status, description, posted_at")
@@ -186,11 +190,19 @@ export async function getCurrentTeamFinanceOverview(
       .eq("season_id", season.id)
       .neq("status", "withdrawn")
       .returns<RankingTeamRow[]>(),
+    teamSeason.division_id
+      ? admin
+          .from("divisions")
+          .select("code")
+          .eq("id", teamSeason.division_id)
+          .maybeSingle<DivisionRow>()
+      : Promise.resolve({ data: null as DivisionRow | null, error: null }),
   ]);
 
   assertQuery(transactionsResult.error, "le registre financier");
   assertQuery(alertsResult.error, "les alertes financières");
   assertQuery(rankingTeamsResult.error, "le classement de l’équipe");
+  assertQuery(divisionResult.error, "la division de l’équipe");
 
   const transactions = (transactionsResult.data ?? []).map(toTransaction);
   const activeTransactions = transactions.filter(
@@ -218,10 +230,8 @@ export async function getCurrentTeamFinanceOverview(
   );
   const teamRankIndex = rankedTeams.findIndex((team) => team.id === teamSeason.id);
   const teamRank = teamRankIndex >= 0 ? teamRankIndex + 1 : null;
-  const divisionCode = teamRank ? getDivisionForRank(teamRank) : null;
-  const divisionName = DIVISION_RULES.find(
-    (division) => division.code === divisionCode
-  )?.name ?? (divisionCode === "amateur" ? "Amateur" : null);
+  const divisionCode = normalizeTeamDivisionCode(divisionResult.data?.code);
+  const divisionName = getTeamDivisionLabel(divisionCode);
 
   return {
     teamId: teamSeason.team_id,

@@ -8,6 +8,10 @@ import {
 } from "@/lib/game/global-search";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { searchGameDirectory } from "@/services/global-search";
+import {
+  getTeamDivisionLabel,
+  normalizeTeamDivisionCode,
+} from "@/lib/game/team-divisions";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -42,6 +46,7 @@ type ActiveSeasonRow = {
 
 type TeamSeasonRow = {
   display_name: string;
+  division_id: string | null;
 };
 
 export async function getPublicSportingDirector(
@@ -106,17 +111,35 @@ export async function getPublicSportingDirector(
 
   const teamId = assignmentResult.data?.team_id ?? null;
   let teamName: string | null = null;
+  let divisionCode: string | null = null;
+  let divisionName: string | null = null;
 
   if (teamId && activeSeasonResult.data) {
     const { data: teamSeason, error: teamSeasonError } = await supabase
       .from("team_seasons")
-      .select("display_name")
+      .select("display_name, division_id")
       .eq("team_id", teamId)
       .eq("season_id", activeSeasonResult.data.id)
       .maybeSingle<TeamSeasonRow>();
 
     assertDirectoryQuery(teamSeasonError, "le nom actuel de l’équipe");
     teamName = teamSeason?.display_name ?? null;
+
+    if (teamSeason) {
+      let persistedCode: string | null = null;
+      if (teamSeason.division_id) {
+        const { data: division, error: divisionError } = await supabase
+          .from("divisions")
+          .select("code")
+          .eq("id", teamSeason.division_id)
+          .maybeSingle<{ code: string }>();
+        assertDirectoryQuery(divisionError, "la division actuelle de l’équipe");
+        persistedCode = division?.code ?? null;
+      }
+
+      divisionCode = normalizeTeamDivisionCode(persistedCode);
+      divisionName = getTeamDivisionLabel(divisionCode);
+    }
   }
 
   return {
@@ -130,6 +153,8 @@ export async function getPublicSportingDirector(
     country_name: countryResult.data.name,
     team_name: teamName,
     team_id: teamId,
+    division_code: divisionCode,
+    division_name: divisionName,
     sponsor_name: null,
     sporting_director_username: null,
     sporting_director_name: null,

@@ -6,6 +6,10 @@ import {
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import type { RiderRatings } from "@/lib/game/rider-profile";
+import {
+  getTeamDivisionLabel,
+  normalizeTeamDivisionCode,
+} from "@/lib/game/team-divisions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type RiderEquipmentSlot = EquipmentSlot;
@@ -38,6 +42,8 @@ export type PublicRiderProfile = {
     id: string;
     displayName: string;
     shortName: string | null;
+    divisionCode: string;
+    divisionName: string;
   } | null;
   history: Array<{
     seasonId: string;
@@ -137,6 +143,7 @@ type TeamSeasonRow = {
   season_id: string;
   display_name: string;
   short_name: string | null;
+  division_id: string | null;
 };
 
 type SeasonDayRow = {
@@ -318,7 +325,7 @@ export async function getPublicRiderProfile({
       teamIds.length > 0
         ? supabase
             .from("team_seasons")
-            .select("team_id, season_id, display_name, short_name")
+            .select("team_id, season_id, display_name, short_name, division_id")
             .in("team_id", teamIds)
             .returns<TeamSeasonRow[]>()
         : Promise.resolve({ data: [] as TeamSeasonRow[], error: null }),
@@ -340,6 +347,24 @@ export async function getPublicRiderProfile({
 
   const teams = teamsResult.data ?? [];
   const teamSeasons = teamSeasonsResult.data ?? [];
+  const divisionIds = [
+    ...new Set(
+      teamSeasons
+        .map((teamSeason) => teamSeason.division_id)
+        .filter((divisionId): divisionId is string => Boolean(divisionId))
+    ),
+  ];
+  const { data: divisions, error: divisionsError } = divisionIds.length
+    ? await supabase
+        .from("divisions")
+        .select("id, code")
+        .in("id", divisionIds)
+        .returns<Array<{ id: string; code: string }>>()
+    : { data: [] as Array<{ id: string; code: string }>, error: null };
+  assertQuery(divisionsError, "les divisions des équipes");
+  const divisionCodeById = new Map(
+    (divisions ?? []).map((division) => [division.id, division.code])
+  );
   const currentTeamSeason = currentContract
     ? findTeamSeason({
         teamSeasons,
@@ -348,14 +373,23 @@ export async function getPublicRiderProfile({
       })
     : null;
   const currentTeam = currentContract
-    ? {
-        id: currentContract.team_id,
-        displayName:
-          currentTeamSeason?.display_name ??
-          teams.find((team) => team.id === currentContract.team_id)?.internal_name ??
-          "Équipe inconnue",
-        shortName: currentTeamSeason?.short_name ?? null,
-      }
+    ? (() => {
+        const divisionCode = normalizeTeamDivisionCode(
+          currentTeamSeason?.division_id
+            ? divisionCodeById.get(currentTeamSeason.division_id)
+            : null
+        );
+        return {
+          id: currentContract.team_id,
+          displayName:
+            currentTeamSeason?.display_name ??
+            teams.find((team) => team.id === currentContract.team_id)?.internal_name ??
+            "Équipe inconnue",
+          shortName: currentTeamSeason?.short_name ?? null,
+          divisionCode,
+          divisionName: getTeamDivisionLabel(divisionCode),
+        };
+      })()
     : null;
 
   const [condition, canManage] = await Promise.all([

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
+import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import {
   GLOBAL_SEARCH_MIN_LENGTH,
   getGlobalSearchResultHref,
@@ -357,6 +358,11 @@ function SportingDirectorResult({
         <p className="mt-1 truncate text-xs text-[#60756E]">
           {result.team_name ?? "Sans équipe actuelle"}
         </p>
+        {result.team_id ? (
+          <span className="mt-2 block">
+            <TeamDivisionBadge division={result.division_code} compact />
+          </span>
+        ) : null}
       </div>
 
       <div className="shrink-0 text-right">
@@ -410,6 +416,9 @@ function TeamResult({
           {result.sporting_director_name ??
             "Directeur Sportif non attribué"}
         </p>
+        <span className="mt-2 block">
+          <TeamDivisionBadge division={result.division_code} compact />
+        </span>
       </div>
 
       <CountryFlag

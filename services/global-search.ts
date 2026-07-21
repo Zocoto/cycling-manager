@@ -6,6 +6,10 @@ import {
   type GlobalSearchResult,
 } from "@/lib/game/global-search";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  getTeamDivisionLabel,
+  normalizeTeamDivisionCode,
+} from "@/lib/game/team-divisions";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -31,10 +35,12 @@ export async function searchGameDirectory(
     MAX_RESULTS_PER_CATEGORY,
     Math.max(1, Math.floor(limitPerCategory))
   );
-  const currentResults = await searchCurrentDirectory(
-    supabase,
-    query,
-    normalizedLimit
+  const currentResults = await enrichCurrentTeamDivisions(
+    await searchCurrentDirectory(
+      supabase,
+      query,
+      normalizedLimit
+    )
   );
   const historicalTeamIds = await findTeamsByHistoricalName(
     query,
@@ -62,9 +68,11 @@ export async function searchGameDirectory(
     .flat()
     .filter((result) => result.result_type === "team");
 
-  return limitResultsPerCategory(
-    [...currentResults, ...historicalTeams],
-    normalizedLimit
+  return enrichCurrentTeamDivisions(
+    limitResultsPerCategory(
+      [...currentResults, ...historicalTeams],
+      normalizedLimit
+    )
   );
 }
 
@@ -119,6 +127,100 @@ async function findTeamsByHistoricalName(
     0,
     limit
   );
+}
+
+async function enrichCurrentTeamDivisions(
+  results: GlobalSearchResult[]
+): Promise<GlobalSearchResult[]> {
+  const teamIds = [
+    ...new Set(
+      results
+        .map((result) => result.team_id)
+        .filter((teamId): teamId is string => Boolean(teamId))
+    ),
+  ];
+
+  if (teamIds.length === 0) {
+    return results.map((result) => ({
+      ...result,
+      division_code: null,
+      division_name: null,
+    }));
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data: activeSeason, error: seasonError } = await supabase
+    .from("seasons")
+    .select("id")
+    .eq("status", "active")
+    .maybeSingle<{ id: string }>();
+
+  if (seasonError || !activeSeason) {
+    throw new Error(
+      `Impossible de charger la saison des divisions : ${seasonError?.message ?? "saison active introuvable"}`
+    );
+  }
+
+  const { data: teamSeasons, error: teamSeasonsError } = await supabase
+    .from("team_seasons")
+    .select("team_id, division_id")
+    .eq("season_id", activeSeason.id)
+    .in("team_id", teamIds)
+    .returns<Array<{ team_id: string; division_id: string | null }>>();
+
+  if (teamSeasonsError) {
+    throw new Error(
+      `Impossible de charger les divisions des équipes : ${teamSeasonsError.message}`
+    );
+  }
+
+  const divisionIds = [
+    ...new Set(
+      (teamSeasons ?? [])
+        .map((teamSeason) => teamSeason.division_id)
+        .filter((divisionId): divisionId is string => Boolean(divisionId))
+    ),
+  ];
+  const { data: divisions, error: divisionsError } = divisionIds.length
+    ? await supabase
+        .from("divisions")
+        .select("id, code")
+        .in("id", divisionIds)
+        .returns<Array<{ id: string; code: string }>>()
+    : { data: [] as Array<{ id: string; code: string }>, error: null };
+
+  if (divisionsError) {
+    throw new Error(
+      `Impossible de charger le référentiel des divisions : ${divisionsError.message}`
+    );
+  }
+
+  const divisionCodeById = new Map(
+    (divisions ?? []).map((division) => [division.id, division.code])
+  );
+  const divisionCodeByTeamId = new Map(
+    (teamSeasons ?? []).map((teamSeason) => [
+      teamSeason.team_id,
+      normalizeTeamDivisionCode(
+        teamSeason.division_id
+          ? divisionCodeById.get(teamSeason.division_id)
+          : null
+      ),
+    ])
+  );
+
+  return results.map((result) => {
+    if (!result.team_id) {
+      return { ...result, division_code: null, division_name: null };
+    }
+
+    const divisionCode = divisionCodeByTeamId.get(result.team_id) ?? "amateur";
+    return {
+      ...result,
+      division_code: divisionCode,
+      division_name: getTeamDivisionLabel(divisionCode),
+    };
+  });
 }
 
 function limitResultsPerCategory(

@@ -18,6 +18,8 @@ const baseResult: GlobalSearchResult = {
   country_name: "France",
   team_name: null,
   team_id: null,
+  division_code: null,
+  division_name: null,
   sponsor_name: null,
   sporting_director_username: null,
   sporting_director_name: null,

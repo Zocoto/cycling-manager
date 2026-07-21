@@ -78,7 +78,6 @@ type SeasonRow = {
 };
 
 type TeamSeasonRow = {
-  division_id: string | null;
   registration_country_id: string;
   display_name: string;
   short_name: string | null;
@@ -636,7 +635,6 @@ async function ensureTeamSeason({
       .from("team_seasons")
       .select(
         `
-          division_id,
           registration_country_id,
           display_name,
           short_name,
@@ -658,7 +656,7 @@ async function ensureTeamSeason({
     .insert({
       team_id: teamId,
       season_id: targetSeasonId,
-      division_id: currentTeamSeason.division_id,
+      division_id: null,
       registration_country_id:
         currentTeamSeason.registration_country_id,
       display_name: currentTeamSeason.display_name,

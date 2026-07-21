@@ -11,6 +11,7 @@ import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
+import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
   createAmateurRiderJersey,
@@ -334,7 +335,13 @@ function CurrentTeamCard({
   amateurTeamName,
   sponsorIdentity,
 }: {
-  team: { id: string; displayName: string; shortName: string | null } | null;
+  team: {
+    id: string;
+    displayName: string;
+    shortName: string | null;
+    divisionCode: string;
+    divisionName: string;
+  } | null;
   amateurJersey: AmateurJerseyConfig;
   amateurTeamName: string | null;
   sponsorIdentity: Awaited<ReturnType<typeof getActiveTeamSponsorIdentity>>;
@@ -355,6 +362,11 @@ function CurrentTeamCard({
         <span className="mt-2 block text-lg font-black text-white">
           {team?.displayName ?? "Agent libre"}
         </span>
+        {team ? (
+          <span className="mt-2 block">
+            <TeamDivisionBadge division={team.divisionCode} dark compact />
+          </span>
+        ) : null}
         {sponsorIdentity ? (
           <span className="mt-2 flex items-center gap-2">
             <SponsorLogoMark
