@@ -119,7 +119,9 @@ type ManagementModuleIcon =
   | "transfer"
   | "finance"
   | "ranking"
-  | "equipment";
+  | "equipment"
+  | "staff"
+  | "infrastructure";
 
 export default async function GamePage() {
   const supabase =
@@ -471,6 +473,21 @@ export default async function GamePage() {
               title="Entraînements"
               status="Aucun compte rendu"
               description="Les programmes, la progression et les derniers comptes rendus de vos coureurs apparaîtront ici."
+            />
+
+            <ManagementModuleCard
+              href="/jeu/staff"
+              icon="staff"
+              title="Staff"
+              status="Marché ouvert"
+              description="Recrutez entraîneurs, scouts, personnel médical et spécialistes, puis maîtrisez leur masse salariale."
+            />
+
+            <ManagementModuleCard
+              icon="infrastructure"
+              title="Infrastructures"
+              status="À développer"
+              description="Développez les bâtiments qui soutiendront les entraînements, les soins et la performance de l’équipe."
             />
 
             <ManagementModuleCard
@@ -1462,6 +1479,23 @@ function ManagementModuleIcon({
         <circle cx="7" cy="17" r="3" />
         <circle cx="17" cy="17" r="3" />
         <path d="M7 17 11 8h4l2 9M9 13h7M11 8 9 5h4" />
+      </>
+    ),
+
+    staff: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <circle cx="17" cy="9" r="2.5" />
+        <path d="M3 20c.5-4.5 2.5-7 6-7s5.5 2.5 6 7" />
+        <path d="M14 14c4-.3 6.5 1.7 7 5" />
+        <path d="M19 3v4M17 5h4" />
+      </>
+    ),
+
+    infrastructure: (
+      <>
+        <path d="M3 21h18M5 21V9l7-5 7 5v12" />
+        <path d="M9 21v-6h6v6M8 11h2M14 11h2" />
       </>
     ),
   };
