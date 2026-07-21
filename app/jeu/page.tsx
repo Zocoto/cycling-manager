@@ -484,10 +484,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/infrastructures"
               icon="infrastructure"
               title="Infrastructures"
-              status="À développer"
-              description="Développez les bâtiments qui soutiendront les entraînements, les soins et la performance de l’équipe."
+              status="Débloquées au niveau 10"
+              description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
             />
 
             <ManagementModuleCard
