@@ -11,6 +11,7 @@ import {
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
 type SeasonRow = {
   id: string;
@@ -83,6 +84,12 @@ type SpecialAbilityRow = {
   rider_id: string;
   ability_code: string;
 };
+
+export async function getRaceSimulatorCalendar(now = new Date()) {
+  const admin = createSupabaseAdminClient();
+
+  return getActiveSeasonRaceCalendar(admin, now);
+}
 
 export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
   const admin = createSupabaseAdminClient();

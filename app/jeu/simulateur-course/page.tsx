@@ -8,8 +8,10 @@ import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
 import type { RaceSimulatorStageOption } from "@/lib/game/race-simulator";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
-import { getRaceSimulatorTeams } from "@/services/race-simulator";
+import {
+  getRaceSimulatorCalendar,
+  getRaceSimulatorTeams,
+} from "@/services/race-simulator";
 
 export const metadata: Metadata = {
   title: "Laboratoire de course",
@@ -34,7 +36,7 @@ export default async function RaceSimulatorPage() {
 
   const [headerData, calendarResult, teamsResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase, new Date())
+    getRaceSimulatorCalendar(new Date())
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),
     getRaceSimulatorTeams()
@@ -74,6 +76,13 @@ export default async function RaceSimulatorPage() {
         segments: stage.segments,
       }))
     ) ?? [];
+  const initializationMessage = calendarResult.error
+    ? "Les profils de course n’ont pas pu être chargés. Réessayez dans quelques instants."
+    : teamsResult.error
+      ? "La start-list n’a pas pu être chargée. Réessayez dans quelques instants."
+      : stages.length === 0
+        ? "Aucun profil de course n’est disponible dans la saison active."
+        : "Aucun groupe d’au moins deux coureurs n’est disponible pour la simulation.";
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -126,9 +135,14 @@ export default async function RaceSimulatorPage() {
               Le laboratoire ne peut pas être initialisé.
             </p>
             <p className="mt-2 text-sm font-semibold text-amber-800">
-              Vérifiez qu’une saison active contient au moins un profil de
-              course et deux coureurs disponibles.
+              {initializationMessage}
             </p>
+            <Link
+              href="/jeu/simulateur-course"
+              className="mt-5 inline-flex min-h-10 items-center rounded-xl bg-amber-950 px-4 text-sm font-black text-white transition hover:bg-amber-900"
+            >
+              Réessayer
+            </Link>
           </div>
         )}
       </section>
