@@ -60,11 +60,17 @@ export function buildRaceSegments({
 
   const segmentCount = Math.ceil(distanceKm / STANDARD_RACE_SEGMENT_KM);
   const random = createSeededRandom(seed);
+  const mountainTerrainPlan =
+    profileType === "mountain"
+      ? buildMountainTerrainPlan(segmentCount, random)
+      : null;
   const segments = Array.from({ length: segmentCount }, (_, index) => {
     const segmentNumber = index + 1;
     const remainingDistance = distanceKm - index * STANDARD_RACE_SEGMENT_KM;
     const distance = Math.min(STANDARD_RACE_SEGMENT_KM, remainingDistance);
-    const terrain = getTerrain(profileType, index, segmentCount, random);
+    const terrain =
+      mountainTerrainPlan?.[index] ??
+      getTerrain(profileType, index, segmentCount, random);
     const surface = getSurface(profileType, index, segmentCount, random);
 
     return {
@@ -76,6 +82,10 @@ export function buildRaceSegments({
       prime: null,
     } satisfies RaceStageSegment;
   });
+
+  if (profileType === "mountain") {
+    ensureMountainSummitFinish(segments);
+  }
 
   if (includeTourPrimes) {
     placeTourPrimes(segments);
@@ -91,14 +101,215 @@ export function getStageDistance(segments: RaceStageSegment[]) {
   );
 }
 
+/**
+ * Corrige l'étiquette d'une étape lorsque son tracé raconte une autre course.
+ * Un grand col suffit à définir une étape de montagne, tandis qu'une côte
+ * d'arrivée marquée transforme une journée jusque-là plate en étape vallonnée.
+ */
+export function resolveRaceProfileType(
+  declaredProfileType: RaceProfileType,
+  segments: RaceStageSegment[]
+): RaceProfileType {
+  if (
+    segments.length === 0 ||
+    declaredProfileType === "time_trial" ||
+    declaredProfileType === "cobbles" ||
+    declaredProfileType === "mountain"
+  ) {
+    return declaredProfileType;
+  }
+
+  const climbBlocks = getClimbBlocks(segments);
+  const hasMajorMountainAscent = climbBlocks.some(
+    (climb) => climb.distanceKm >= 30 && climb.averageGradientPct >= 5.5
+  );
+
+  if (hasMajorMountainAscent) {
+    return "mountain";
+  }
+
+  const finishClimb = climbBlocks.find(
+    (climb) => climb.finishIndex === segments.length - 1
+  );
+
+  if (!finishClimb) {
+    return declaredProfileType;
+  }
+
+  if (
+    finishClimb.distanceKm >= 15 &&
+    finishClimb.averageGradientPct >= 5.5
+  ) {
+    return "mountain";
+  }
+
+  if (
+    finishClimb.distanceKm >= 3 &&
+    finishClimb.averageGradientPct >= 4.5
+  ) {
+    return "hilly";
+  }
+
+  return declaredProfileType;
+}
+
+type ClimbBlock = {
+  finishIndex: number;
+  distanceKm: number;
+  averageGradientPct: number;
+};
+
+function getClimbBlocks(segments: RaceStageSegment[]): ClimbBlock[] {
+  const climbs: ClimbBlock[] = [];
+  let distanceKm = 0;
+  let weightedGradient = 0;
+
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+
+    if (segment.terrain === "climb") {
+      distanceKm += segment.distanceKm;
+      weightedGradient += segment.distanceKm * segment.averageGradientPct;
+    }
+
+    const nextSegment = segments[index + 1];
+    if (
+      segment.terrain === "climb" &&
+      (!nextSegment || nextSegment.terrain !== "climb")
+    ) {
+      climbs.push({
+        finishIndex: index,
+        distanceKm: round(distanceKm, 2),
+        averageGradientPct: round(weightedGradient / distanceKm, 2),
+      });
+      distanceKm = 0;
+      weightedGradient = 0;
+    }
+  }
+
+  return climbs;
+}
+
+function buildMountainTerrainPlan(
+  segmentCount: number,
+  random: () => number
+): SegmentTerrain[] {
+  const terrain: SegmentTerrain[] = Array.from(
+    { length: segmentCount },
+    () => "flat"
+  );
+
+  if (segmentCount <= 1) {
+    return terrain;
+  }
+
+  const approachLength = Math.min(
+    2,
+    Math.max(1, Math.floor(segmentCount * 0.1))
+  );
+  const availableForFinish = segmentCount - approachLength;
+  const finalClimbLength = Math.min(
+    availableForFinish,
+    3 + Math.floor(random() * 4)
+  );
+  const finalClimbStart = segmentCount - finalClimbLength;
+
+  for (let index = finalClimbStart; index < segmentCount; index += 1) {
+    terrain[index] = "climb";
+  }
+
+  const finalDescentStart = Math.max(
+    approachLength,
+    finalClimbStart - 2
+  );
+  for (
+    let index = finalDescentStart;
+    index < finalClimbStart;
+    index += 1
+  ) {
+    terrain[index] = "descent";
+  }
+
+  let cursor = approachLength;
+  while (finalDescentStart - cursor >= 3) {
+    const remaining = finalDescentStart - cursor;
+    const climbLength = Math.min(
+      remaining,
+      3 + Math.floor(random() * 4)
+    );
+
+    for (let offset = 0; offset < climbLength; offset += 1) {
+      terrain[cursor + offset] = "climb";
+    }
+    cursor += climbLength;
+
+    const descentLength = Math.min(2, finalDescentStart - cursor);
+    for (let offset = 0; offset < descentLength; offset += 1) {
+      terrain[cursor + offset] = "descent";
+    }
+    cursor += descentLength;
+
+    if (cursor < finalDescentStart) {
+      terrain[cursor] = "flat";
+      cursor += 1;
+    }
+  }
+
+  return terrain;
+}
+
+function ensureMountainSummitFinish(segments: RaceStageSegment[]) {
+  let finalClimbStart = segments.length - 1;
+
+  while (
+    finalClimbStart > 0 &&
+    segments[finalClimbStart - 1].terrain === "climb"
+  ) {
+    finalClimbStart -= 1;
+  }
+
+  let elevation = 0;
+  let highestElevationBeforeFinalClimb = 0;
+
+  for (let index = 0; index < segments.length; index += 1) {
+    if (index < finalClimbStart) {
+      highestElevationBeforeFinalClimb = Math.max(
+        highestElevationBeforeFinalClimb,
+        elevation
+      );
+    }
+    const segment = segments[index];
+    elevation +=
+      segment.distanceKm * segment.averageGradientPct * 10;
+  }
+
+  const summitMarginMeters = 100;
+  const missingElevation =
+    highestElevationBeforeFinalClimb + summitMarginMeters - elevation;
+
+  if (missingElevation <= 0) {
+    return;
+  }
+
+  const finalClimbDistance = segments
+    .slice(finalClimbStart)
+    .reduce((total, segment) => total + segment.distanceKm, 0);
+  const gradientAdjustment = missingElevation / (finalClimbDistance * 10);
+
+  for (let index = finalClimbStart; index < segments.length; index += 1) {
+    segments[index].averageGradientPct = round(
+      segments[index].averageGradientPct + gradientAdjustment,
+      1
+    );
+  }
+}
+
 function getTerrain(
   profileType: RaceProfileType,
   index: number,
   segmentCount: number,
   random: () => number
 ): SegmentTerrain {
-  const progress = (index + 0.5) / segmentCount;
-
   if (
     profileType === "flat" ||
     profileType === "sprint" ||
@@ -122,28 +333,6 @@ function getTerrain(
       "descent",
     ];
     return pattern[index % pattern.length];
-  }
-
-  if (profileType === "mountain") {
-    if (progress < 0.12) {
-      return "flat";
-    }
-
-    const pattern: SegmentTerrain[] = [
-      "climb",
-      "climb",
-      "climb",
-      "descent",
-      "descent",
-      "flat",
-    ];
-    const terrain = pattern[(index - 1 + pattern.length) % pattern.length];
-
-    if (progress > 0.82) {
-      return index === segmentCount - 1 ? "climb" : terrain;
-    }
-
-    return terrain;
   }
 
   if (profileType === "cobbles") {
@@ -196,8 +385,8 @@ function getGradient(
 
   const isMountain = profileType === "mountain";
   const isHilly = profileType === "hilly" || profileType === "mixed";
-  const minimum = isMountain ? 5.2 : isHilly ? 2.8 : 1.5;
-  const spread = isMountain ? 4.6 : isHilly ? 3.5 : 2.5;
+  const minimum = isMountain ? 5.8 : isHilly ? 2.8 : 1.5;
+  const spread = isMountain ? 3.6 : isHilly ? 3.5 : 2.5;
   const unsignedGradient = round(minimum + random() * spread, 1);
 
   return terrain === "climb" ? unsignedGradient : -unsignedGradient;

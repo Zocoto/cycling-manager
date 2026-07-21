@@ -4,6 +4,7 @@ import {
   STANDARD_RACE_SEGMENT_KM,
   buildRaceSegments,
   getStageDistance,
+  resolveRaceProfileType,
 } from "./race-profiles";
 
 describe("buildRaceSegments", () => {
@@ -65,6 +66,83 @@ describe("buildRaceSegments", () => {
 
     expect(segments.some((segment) => segment.prime?.type === "mountain")).toBe(true);
     expect(segments.some((segment) => segment.prime?.type === "intermediate_sprint")).toBe(true);
+  });
+
+  it.each(["alpes", "andes", "tyrol", "atlas"])(
+    "dessine de grands cols de trois à six tronçons (%s)",
+    (seed) => {
+      const segments = buildRaceSegments({
+        distanceKm: 190,
+        profileType: "mountain",
+        seed,
+      });
+      const climbLengths: number[] = [];
+      let currentLength = 0;
+
+      for (const segment of segments) {
+        if (segment.terrain === "climb") {
+          currentLength += 1;
+          expect(segment.averageGradientPct).toBeGreaterThanOrEqual(5.8);
+        } else if (currentLength > 0) {
+          climbLengths.push(currentLength);
+          currentLength = 0;
+        }
+      }
+      if (currentLength > 0) climbLengths.push(currentLength);
+
+      expect(Math.max(...climbLengths)).toBeGreaterThanOrEqual(3);
+      expect(Math.max(...climbLengths)).toBeLessThanOrEqual(6);
+    }
+  );
+
+  it.each([181, 194, 207])(
+    "termine une étape de montagne à son point culminant (%s km)",
+    (distanceKm) => {
+      const segments = buildRaceSegments({
+        distanceKm,
+        profileType: "mountain",
+        seed: `sommet-${distanceKm}`,
+      });
+      let elevation = 0;
+      const elevations = segments.map((segment) => {
+        elevation +=
+          segment.distanceKm * segment.averageGradientPct * 10;
+        return elevation;
+      });
+
+      expect(segments.at(-1)?.terrain).toBe("climb");
+      expect(elevations.at(-1)).toBe(Math.max(...elevations));
+    }
+  );
+
+  it("reclasse une étape plate terminée par une côte intense", () => {
+    const segments = buildRaceSegments({
+      distanceKm: 154,
+      profileType: "sprint",
+      seed: "littoral",
+    });
+    const finish = segments.at(-1);
+
+    if (!finish) throw new Error("Le dernier tronçon est manquant.");
+    finish.terrain = "climb";
+    finish.averageGradientPct = 5.8;
+
+    expect(resolveRaceProfileType("sprint", segments)).toBe("hilly");
+  });
+
+  it("reclasse en montagne une longue ascension, même avant l'arrivée", () => {
+    const segments = buildRaceSegments({
+      distanceKm: 170,
+      profileType: "flat",
+      seed: "grand-col",
+    });
+
+    for (const index of [6, 7, 8, 9]) {
+      segments[index].terrain = "climb";
+      segments[index].averageGradientPct = 6.5;
+    }
+
+    expect(resolveRaceProfileType("flat", segments)).toBe("mountain");
   });
 
   it("reproduit exactement un profil à graine identique", () => {

@@ -19,6 +19,7 @@ import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
+import { resolveRaceProfileType } from "@/lib/game/race-profiles";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -1055,6 +1056,24 @@ function groupStages(
       continue;
     }
 
+    const segments = (segmentsByStageId.get(row.id) ?? []).map((segment) => {
+      const prime = segment.stage_segment_primes[0];
+
+      return {
+        segmentNumber: segment.segment_number,
+        distanceKm: Number(segment.distance_km),
+        terrain: segment.terrain_type,
+        averageGradientPct: Number(segment.average_gradient_pct),
+        surface: segment.surface_type,
+        prime: prime
+          ? {
+              type: prime.prime_type,
+              category: prime.mountain_category,
+              pointsScale: prime.points_scale,
+            }
+          : null,
+      };
+    });
     const stage: RaceCalendarStage = {
       id: row.id,
       dayNumber: day.day_number,
@@ -1062,27 +1081,10 @@ function groupStages(
       name: row.name,
       stageType: row.stage_type,
       status: row.status,
-      profileType: row.profile_type,
+      profileType: resolveRaceProfileType(row.profile_type, segments),
       distanceKm: Number(row.distance_km),
       departureAt: row.departure_at,
-      segments: (segmentsByStageId.get(row.id) ?? []).map((segment) => {
-        const prime = segment.stage_segment_primes[0];
-
-        return {
-          segmentNumber: segment.segment_number,
-          distanceKm: Number(segment.distance_km),
-          terrain: segment.terrain_type,
-          averageGradientPct: Number(segment.average_gradient_pct),
-          surface: segment.surface_type,
-          prime: prime
-            ? {
-                type: prime.prime_type,
-                category: prime.mountain_category,
-                pointsScale: prime.points_scale,
-              }
-            : null,
-        };
-      }),
+      segments,
     };
     const editionStages =
       stagesByEditionId.get(
