@@ -901,7 +901,6 @@ function simulateRoadStage(
   }
 
   const finishGroups = normalizeRoadFinishGroupTimes({
-    timeline,
     results,
   });
 
@@ -2444,10 +2443,8 @@ type ClassifiedStageResult = StageSimulationResult["results"][number] & {
 };
 
 function normalizeRoadFinishGroupTimes({
-  timeline,
   results,
 }: {
-  timeline: RaceTimelineSnapshot[];
   results: StageSimulationResult["results"];
 }): ClassifiedStageResult[][] {
   const finishers = results
@@ -2456,62 +2453,19 @@ function normalizeRoadFinishGroupTimes({
         result.status === "finished" && result.rank !== null
     )
     .sort((first, second) => first.rank - second.rank);
-  const finishGroups = groupRoadFinishersFromSnapshot(
-    finishers,
-    timeline.at(-1)
-  );
+  const finishGroups = splitFinishGroupByTime(finishers);
   const winnerTime = finishGroups[0]?.[0]?.elapsedTimeSeconds ?? 0;
-  let previousGroupTime: number | null = null;
 
   for (const group of finishGroups) {
-    const groupTime = Math.max(
-      group[0].elapsedTimeSeconds,
-      previousGroupTime === null ? 0 : previousGroupTime + 1
-    );
+    const groupTime = group[0].elapsedTimeSeconds;
 
     for (const result of group) {
       result.elapsedTimeSeconds = groupTime;
       result.gapToWinnerSeconds = Math.max(0, groupTime - winnerTime);
     }
-
-    previousGroupTime = groupTime;
   }
 
   return finishGroups;
-}
-
-function groupRoadFinishersFromSnapshot(
-  finishers: ClassifiedStageResult[],
-  finalSnapshot: RaceTimelineSnapshot | undefined
-) {
-  const finisherById = new Map(
-    finishers.map((finisher) => [finisher.riderId, finisher])
-  );
-  const assignedRiderIds = new Set<string>();
-  const groups = (finalSnapshot?.groups ?? []).flatMap((snapshotGroup) => {
-    const group = snapshotGroup.riderIds
-      .flatMap((riderId) => {
-        const finisher = finisherById.get(riderId);
-        return finisher ? [finisher] : [];
-      })
-      .sort((first, second) => first.rank - second.rank);
-
-    for (const finisher of group) {
-      assignedRiderIds.add(finisher.riderId);
-    }
-
-    return splitFinishGroupByTime(group);
-  });
-
-  for (const finisher of finishers) {
-    if (!assignedRiderIds.has(finisher.riderId)) {
-      groups.push([finisher]);
-    }
-  }
-
-  return groups.sort(
-    (first, second) => first[0].rank - second[0].rank
-  );
 }
 
 function splitFinishGroupByTime(

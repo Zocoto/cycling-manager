@@ -68,6 +68,38 @@ describe("simulateRaceStage", () => {
     expect(result.timeline).toHaveLength(input.segments.length);
   });
 
+  it("conserve des écarts monotones, calculés depuis la tête, sans cassure de 1 à 3 secondes", () => {
+    for (const profile of [
+      "sprint-littoral",
+      "collines-ardennes",
+      "haute-montagne",
+    ] as const) {
+      for (let seed = 1; seed <= 20; seed += 1) {
+        const simulation = simulateRaceStage(
+          createDemoSimulationInput(profile, seed)
+        );
+        const finishers = simulation.results.filter(
+          (result) => result.status === "finished"
+        );
+        const winnerTime = finishers[0].elapsedTimeSeconds;
+
+        finishers.forEach((result, index) => {
+          const previous = finishers[index - 1];
+          expect(result.gapToWinnerSeconds).toBe(
+            result.elapsedTimeSeconds - winnerTime
+          );
+          expect(result.gapToWinnerSeconds).toBeGreaterThanOrEqual(
+            previous?.gapToWinnerSeconds ?? 0
+          );
+          expect(
+            result.gapToWinnerSeconds === 0 ||
+              result.gapToWinnerSeconds > 3
+          ).toBe(true);
+        });
+      }
+    }
+  });
+
   it("commence avec un peloton groupé avant de laisser partir l’échappée", () => {
     const result = simulateRaceStage(
       createDemoSimulationInput("collines-ardennes", 7)
