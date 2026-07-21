@@ -7,6 +7,7 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
+import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
@@ -18,6 +19,10 @@ import {
   SPECIAL_ABILITY_CATALOG,
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
+import {
+  TRAINING_DOMAIN_LABELS,
+  isTrainingDomain,
+} from "@/lib/game/training";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -175,6 +180,13 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                 <IdentityBadge>
                   {profile.activeSeason?.name ?? "Hors saison"}
                 </IdentityBadge>
+                <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
+                  <PotentialStars
+                    potentialSteps={profile.potentialSteps}
+                    dark
+                    compact
+                  />
+                </span>
               </div>
               <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-[#D6DFD2]">
                 Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur.
@@ -224,7 +236,11 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
               form={profile.condition.form}
               dayNumber={profile.condition.dayNumber}
             />
-            <LockedTrainingCard />
+            {profile.trainingReport ? (
+              <PrivateTrainingReportCard report={profile.trainingReport} />
+            ) : (
+              <LockedTrainingCard canManage={profile.canManage} />
+            )}
             <SpecialAbilitiesCard abilities={profile.specialAbilities} />
           </aside>
         </div>
@@ -635,7 +651,77 @@ function CareerSummaryCard({
   );
 }
 
-function LockedTrainingCard() {
+function PrivateTrainingReportCard({
+  report,
+}: {
+  report: NonNullable<
+    Awaited<ReturnType<typeof getPublicRiderProfile>>
+  >["trainingReport"] & {};
+}) {
+  if (!report) return null;
+  const domain = isTrainingDomain(report.domain)
+    ? TRAINING_DOMAIN_LABELS[report.domain]
+    : "Programme général";
+  const changes = Object.entries(report.ratingChanges).filter(
+    ([, value]) => value !== 0,
+  );
+
+  return (
+    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+            Compte rendu privé
+          </p>
+          <h2 className="mt-1 font-black text-[#183F37]">
+            Entraînement J{report.dayNumber}
+          </h2>
+        </div>
+        <span className="rounded-full bg-[#FFF2C7] px-3 py-1 text-xs font-black text-[#7A5B09]">
+          {report.intensity}%
+        </span>
+      </div>
+      <p className="mt-4 text-sm font-bold text-[#48665F]">
+        {domain} · Forme {report.formDelta > 0 ? "+" : ""}
+        {report.formDelta}
+      </p>
+      <p className="mt-3 rounded-xl bg-[#F3F8F5] px-4 py-3 text-xs font-bold leading-5 text-[#60756E]">
+        {changes.length > 0
+          ? changes
+              .map(
+                ([stat, value]) =>
+                  `${TRAINING_STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
+              )
+              .join(" · ")
+          : "Les fractions de progression sont conservées ; aucune note entière n’a changé aujourd’hui."}
+      </p>
+      <Link
+        href="/jeu/entrainement"
+        className="mt-4 inline-flex text-xs font-black uppercase tracking-wider text-[#176951]"
+      >
+        Ouvrir les entraînements →
+      </Link>
+    </section>
+  );
+}
+
+const TRAINING_STAT_LABELS: Record<string, string> = {
+  mountain: "MON",
+  hills: "VAL",
+  flat: "PLA",
+  time_trial: "CLM",
+  cobbles: "PAV",
+  sprint: "SPR",
+  acceleration: "ACC",
+  downhill: "DES",
+  endurance: "END",
+  resistance: "RES",
+  recovery: "REC",
+  breakaway: "BAR",
+  prologue: "PRO",
+};
+
+function LockedTrainingCard({ canManage }: { canManage: boolean }) {
   return (
     <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
       <div className="flex items-center gap-3">
@@ -650,8 +736,18 @@ function LockedTrainingCard() {
         </div>
       </div>
       <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-        Cet espace sera réservé à l’entraîneur lorsque ce rôle et ses séances seront disponibles.
+        {canManage
+          ? "Aucun rapport n’est encore disponible pour ce coureur. La première séance sera réglée à 8 h."
+          : "Le compte rendu d’entraînement est réservé au Directeur Sportif de l’équipe du coureur."}
       </p>
+      {canManage ? (
+        <Link
+          href="/jeu/entrainement"
+          className="mt-4 inline-flex text-xs font-black uppercase tracking-wider text-[#176951]"
+        >
+          Configurer son programme →
+        </Link>
+      ) : null}
     </section>
   );
 }

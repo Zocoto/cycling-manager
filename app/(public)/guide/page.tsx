@@ -53,7 +53,7 @@ const tips = [
       "Une équipe qui gagne mêle des profils variés : un sprinteur pour les arrivées groupées, un grimpeur pour la montagne, des équipiers solides pour protéger votre leader.",
   },
   {
-    title: "Surveillez la fatigue",
+    title: "Surveillez la forme",
     description:
       "Un coureur ne peut pas tout gagner. Alternez les objectifs et laissez du repos pour garder vos leaders performants sur les grands rendez-vous.",
   },

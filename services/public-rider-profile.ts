@@ -40,10 +40,10 @@ export type PublicRiderProfile = {
     gameYear: number;
   } | null;
   age: number | null;
+  potentialSteps: number;
   ratings: RiderRatings | null;
   condition: {
     form: number;
-    fatigue: number;
     dayNumber: number | null;
   };
   medical: {
@@ -52,6 +52,15 @@ export type PublicRiderProfile = {
     startedAt: string;
     expectedRecoveryAt: string;
     remainingHours: number;
+  } | null;
+  trainingReport: {
+    dayNumber: number;
+    status: string;
+    intensity: number;
+    domain: string;
+    formDelta: number;
+    progressMilli: Record<string, number>;
+    ratingChanges: Record<string, number>;
   } | null;
   currentTeam: {
     id: string;
@@ -98,6 +107,7 @@ type RiderRow = {
   status: string;
   avatar_profile_key: string;
   avatar_seed: number | string;
+  potential_steps: number;
 };
 
 type CountryRow = {
@@ -170,13 +180,22 @@ type SeasonDayRow = {
 type ConditionRow = {
   season_day_id: string;
   form: number;
-  fatigue: number;
 };
 
 type InjuryRow = {
   diagnosis_code: string;
   started_at: string;
   expected_recovery_at: string;
+};
+
+type TrainingSessionRow = {
+  season_day_id: string;
+  status: string;
+  intensity: number;
+  domain: string;
+  form_delta: number;
+  progress_milli: Record<string, number>;
+  rating_changes: Record<string, number>;
 };
 
 type EquipmentAssignmentRow = {
@@ -233,6 +252,15 @@ export async function getPublicRiderProfile({
   }
 
   const supabase = createSupabaseAdminClient();
+  const { error: trainingSettlementError } = await supabase.rpc(
+    "settle_due_training_sessions"
+  );
+  if (trainingSettlementError) {
+    throw new Error(
+      `Impossible de mettre à jour l’entraînement du coureur : ${trainingSettlementError.message}`
+    );
+  }
+
   const { error: settlementError } = await supabase.rpc(
     "settle_finished_race_conditions"
   );
@@ -255,7 +283,7 @@ export async function getPublicRiderProfile({
   const { data: rider, error: riderError } = await supabase
     .from("riders")
     .select(
-      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed"
+      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps"
     )
     .eq("id", riderId)
     .maybeSingle<RiderRow>();
@@ -464,6 +492,14 @@ export async function getPublicRiderProfile({
   ]);
 
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const trainingReport =
+    canManage && activeSeason
+      ? await getLatestPrivateTrainingReport({
+          supabase,
+          riderId: rider.id,
+          seasonId: activeSeason.id,
+        })
+      : null;
   const summaryBySeasonId = new Map(
     summaries.map((summary) => [summary.season_id, summary])
   );
@@ -558,6 +594,7 @@ export async function getPublicRiderProfile({
         }
       : null,
     age: currentRating?.age ?? null,
+    potentialSteps: rider.potential_steps,
     ratings: currentRating ? toRatings(currentRating) : null,
     condition,
     medical: injuryResult.data
@@ -576,6 +613,7 @@ export async function getPublicRiderProfile({
           ),
         }
       : null,
+    trainingReport,
     currentTeam,
     history,
     specialAbilities,
@@ -592,6 +630,46 @@ export async function getPublicRiderProfile({
           }
         : null,
     canManage,
+  };
+}
+
+async function getLatestPrivateTrainingReport({
+  supabase,
+  riderId,
+  seasonId,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  riderId: string;
+  seasonId: string;
+}): Promise<PublicRiderProfile["trainingReport"]> {
+  const { data: session, error: sessionError } = await supabase
+    .from("rider_training_sessions")
+    .select(
+      "season_day_id, status, intensity, domain, form_delta, progress_milli, rating_changes",
+    )
+    .eq("rider_id", riderId)
+    .eq("season_id", seasonId)
+    .order("processed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<TrainingSessionRow>();
+  assertQuery(sessionError, "le dernier rapport d’entraînement");
+  if (!session) return null;
+
+  const { data: day, error: dayError } = await supabase
+    .from("season_days")
+    .select("day_number")
+    .eq("id", session.season_day_id)
+    .maybeSingle<{ day_number: number }>();
+  assertQuery(dayError, "la journée du rapport d’entraînement");
+
+  return {
+    dayNumber: day?.day_number ?? 1,
+    status: session.status,
+    intensity: session.intensity,
+    domain: session.domain,
+    formDelta: session.form_delta,
+    progressMilli: session.progress_milli ?? {},
+    ratingChanges: session.rating_changes ?? {},
   };
 }
 
@@ -735,7 +813,7 @@ async function getCurrentCondition({
   activeSeason: SeasonRow | null;
 }): Promise<PublicRiderProfile["condition"]> {
   if (!activeSeason) {
-    return { form: 75, fatigue: 0, dayNumber: null };
+    return { form: 75, dayNumber: null };
   }
 
   const dayNumber = activeSeason.current_day_number ?? 1;
@@ -750,17 +828,17 @@ async function getCurrentCondition({
   assertQuery(seasonDayError, "la journée courante");
 
   if (!seasonDays || seasonDays.length === 0) {
-    return { form: 75, fatigue: 0, dayNumber };
+    return { form: 75, dayNumber };
   }
 
   const { data: conditions, error: conditionError } = await supabase
     .from("rider_condition_states")
-    .select("season_day_id, form, fatigue")
+    .select("season_day_id, form")
     .eq("rider_id", riderId)
     .in("season_day_id", seasonDays.map((day) => day.id))
     .returns<ConditionRow[]>();
 
-  assertQuery(conditionError, "la forme et la fatigue du coureur");
+  assertQuery(conditionError, "la forme du coureur");
   const conditionByDayId = new Map(
     (conditions ?? []).map((condition) => [condition.season_day_id, condition])
   );
@@ -770,7 +848,6 @@ async function getCurrentCondition({
 
   return {
     form: condition?.form ?? 75,
-    fatigue: condition?.fatigue ?? 0,
     dayNumber,
   };
 }
