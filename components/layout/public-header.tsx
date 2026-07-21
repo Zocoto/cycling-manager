@@ -28,7 +28,7 @@ export function PublicHeader() {
         >
           <WheelLogo className="h-11 w-11" />
 
-          <span className="inline-flex flex-col leading-none">
+          <span className="inline-flex h-11 flex-col justify-between leading-none">
             <span
               aria-hidden="true"
               className="flex justify-between text-lg font-extrabold uppercase text-[#FFFDF4]"
@@ -40,7 +40,7 @@ export function PublicHeader() {
               <span>O</span>
             </span>
 
-            <span className="mt-1 block text-xs font-semibold uppercase tracking-[0.36em] text-[#F2C94C] -me-[0.36em]">
+            <span className="block text-xs font-semibold uppercase tracking-[0.36em] text-[#F2C94C] -me-[0.36em]">
               Stratège
             </span>
           </span>
