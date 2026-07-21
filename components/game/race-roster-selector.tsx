@@ -6,11 +6,6 @@ import { useFormStatus } from "react-dom";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { isRosterSelectionValid } from "@/lib/game/race-calendar";
-import {
-  RACE_ROLES,
-  RACE_ROLE_LABELS,
-  type RaceRole,
-} from "@/lib/game/race-simulation";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { RaceRosterOption } from "@/services/race-calendar";
 
@@ -19,7 +14,6 @@ type RaceRosterSelectorProps = {
   minimum: number;
   maximum: number;
   jersey: RiderJerseyAppearance;
-  isStageRace: boolean;
 };
 
 export function RaceRosterSelector({
@@ -27,24 +21,17 @@ export function RaceRosterSelector({
   minimum,
   maximum,
   jersey,
-  isStageRace,
 }: RaceRosterSelectorProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(
     riders.filter((rider) => rider.isSelected).map((rider) => rider.riderId)
   );
-  const [roles, setRoles] = useState<Record<string, RaceRole>>({});
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const rosterSizeIsValid = isRosterSelectionValid({
     selectedCount: selectedIds.length,
     minimum,
     maximum,
   });
-  const uniqueRolesAreValid = ["leader", "sprinter"].every(
-    (role) =>
-      selectedIds.filter((riderId) => (roles[riderId] ?? "auto") === role)
-        .length <= 1
-  );
-  const selectionIsValid = rosterSizeIsValid && uniqueRolesAreValid;
+  const selectionIsValid = rosterSizeIsValid;
 
   function toggleRider(riderId: string) {
     setSelectedIds((current) =>
@@ -185,55 +172,14 @@ export function RaceRosterSelector({
                   </span>
                 </div>
               ) : null}
-
-              {isSelected ? (
-                <div className="ml-7 mt-3 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
-                  <label
-                    htmlFor={`role-${rider.riderId}`}
-                    className="text-[10px] font-black uppercase tracking-widest text-[#9FB5A8]"
-                  >
-                    Rôle en course
-                  </label>
-                  <select
-                    id={`role-${rider.riderId}`}
-                    name="riderRoles"
-                    value={`${rider.riderId}:${roles[rider.riderId] ?? "auto"}`}
-                    onChange={(event) => {
-                      const nextRole = event.target.value.split(":").at(-1) as RaceRole;
-                      setRoles((current) => ({ ...current, [rider.riderId]: nextRole }));
-                    }}
-                    className="min-h-9 flex-1 rounded-lg border border-white/15 bg-[#102A25] px-3 text-xs font-bold text-white outline-none focus:border-emerald-300"
-                  >
-                    {RACE_ROLES.filter(
-                      (role) => isStageRace || role !== "mountain_classification"
-                    ).map((role) => {
-                      const isUniqueRole = role === "leader" || role === "sprinter";
-                      const isTakenByAnother =
-                        isUniqueRole &&
-                        selectedIds.some(
-                          (selectedId) =>
-                            selectedId !== rider.riderId &&
-                            (roles[selectedId] ?? "auto") === role
-                        );
-
-                      return (
-                        <option key={role} value={`${rider.riderId}:${role}`} disabled={isTakenByAnother}>
-                          {RACE_ROLE_LABELS[role]}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              ) : null}
             </div>
           );
         })}
       </div>
 
       <p className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold leading-5 text-[#BFD1C6]">
-        Un seul leader et un seul sprinteur peuvent être désignés. Les rôles laissés
-        sur « Automatique » seront attribués selon les statistiques et le profil de
-        la course.
+        Les rôles en course sont attribués automatiquement par le moteur selon les
+        statistiques actuelles des coureurs et le profil de l’épreuve.
       </p>
 
       <SubmitRosterButton
