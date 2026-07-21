@@ -19,6 +19,11 @@ export type NationRiderSummary = {
   teamName: string | null;
 };
 
+export type NationRiderOverview = {
+  totalCount: number;
+  topRiders: NationRiderSummary[];
+};
+
 type RiderRow = {
   id: string;
   first_name: string;
@@ -56,35 +61,38 @@ type TeamSeasonRow = {
   display_name: string;
 };
 
-export async function getTopNationRiders(
+export async function getNationRiderOverview(
   countryId: string,
   limit = 5,
-): Promise<NationRiderSummary[]> {
+): Promise<NationRiderOverview> {
   const normalizedCountryId = countryId.trim();
-  if (!normalizedCountryId || limit <= 0) return [];
+  if (!normalizedCountryId) return { totalCount: 0, topRiders: [] };
 
   const supabase = createSupabaseAdminClient();
-  const { data: activeSeason, error: activeSeasonError } = await supabase
-    .from("seasons")
-    .select("id")
-    .eq("status", "active")
-    .maybeSingle<{ id: string }>();
+  const [activeSeasonResult, ridersResult] = await Promise.all([
+    supabase
+      .from("seasons")
+      .select("id")
+      .eq("status", "active")
+      .maybeSingle<{ id: string }>(),
+    supabase
+      .from("riders")
+      .select(
+        "id, first_name, last_name, status, avatar_profile_key, avatar_seed",
+      )
+      .eq("country_id", normalizedCountryId)
+      .in("status", ["active", "free_agent", "suspended"])
+      .returns<RiderRow[]>(),
+  ]);
 
-  assertNationRiderQuery(activeSeasonError, "la saison active");
-  if (!activeSeason) return [];
-
-  const { data: riders, error: ridersError } = await supabase
-    .from("riders")
-    .select(
-      "id, first_name, last_name, status, avatar_profile_key, avatar_seed",
-    )
-    .eq("country_id", normalizedCountryId)
-    .in("status", ["active", "free_agent", "suspended"])
-    .returns<RiderRow[]>();
-
-  assertNationRiderQuery(ridersError, "les coureurs de la nation");
-  const riderRows = riders ?? [];
-  if (riderRows.length === 0) return [];
+  assertNationRiderQuery(activeSeasonResult.error, "la saison active");
+  assertNationRiderQuery(ridersResult.error, "les coureurs de la nation");
+  const riderRows = ridersResult.data ?? [];
+  const totalCount = riderRows.length;
+  const activeSeason = activeSeasonResult.data;
+  if (!activeSeason || riderRows.length === 0 || limit <= 0) {
+    return { totalCount, topRiders: [] };
+  }
 
   const { data: ratings, error: ratingsError } = await supabase
     .from("rider_season_ratings")
@@ -124,7 +132,7 @@ export async function getTopNationRiders(
     limit,
   );
 
-  if (rankedRiders.length === 0) return [];
+  if (rankedRiders.length === 0) return { totalCount, topRiders: [] };
 
   const topRiderIds = rankedRiders.map((rider) => rider.id);
   const { data: contracts, error: contractsError } = await supabase
@@ -155,21 +163,24 @@ export async function getTopNationRiders(
     );
   }
 
-  return rankedRiders.map((rider) => {
-    const teamId = teamIdByRiderId.get(rider.id) ?? null;
-    return {
-      id: rider.id,
-      firstName: rider.firstName,
-      lastName: rider.lastName,
-      status: rider.status,
-      avatarProfileKey: rider.avatarProfileKey,
-      avatarSeed: rider.avatarSeed,
-      age: rider.age,
-      overall: rider.overall,
-      teamId,
-      teamName: teamId ? (teamNameById.get(teamId) ?? null) : null,
-    };
-  });
+  return {
+    totalCount,
+    topRiders: rankedRiders.map((rider) => {
+      const teamId = teamIdByRiderId.get(rider.id) ?? null;
+      return {
+        id: rider.id,
+        firstName: rider.firstName,
+        lastName: rider.lastName,
+        status: rider.status,
+        avatarProfileKey: rider.avatarProfileKey,
+        avatarSeed: rider.avatarSeed,
+        age: rider.age,
+        overall: rider.overall,
+        teamId,
+        teamName: teamId ? (teamNameById.get(teamId) ?? null) : null,
+      };
+    }),
+  };
 }
 
 function toNationRiderRatings(rating: RatingRow): NationRiderRatings {

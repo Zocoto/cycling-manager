@@ -19,7 +19,7 @@ import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
-  getTopNationRiders,
+  getNationRiderOverview,
   type NationRiderSummary,
 } from "@/services/nation-riders";
 import { getPublicCountryDirectory } from "@/services/public-directory";
@@ -66,7 +66,8 @@ export default async function PublicCountryPage({
   }
 
   const { country, members } = directory;
-  const topRiders = await getTopNationRiders(country.entity_id);
+  const { topRiders, totalCount: riderCount } =
+    await getNationRiderOverview(country.entity_id);
   const riderJerseysByTeamId = await getNationRiderJerseys(topRiders);
 
   return (
@@ -117,7 +118,7 @@ export default async function PublicCountryPage({
                   href="/jeu/classements?vue=nations"
                   dark
                 />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <Statistic
                     label="Directeurs Sportifs"
                     value={country.sporting_director_count ?? 0}
@@ -126,6 +127,7 @@ export default async function PublicCountryPage({
                     label="Équipes"
                     value={country.team_count ?? 0}
                   />
+                  <Statistic label="Coureurs" value={riderCount} />
                 </div>
               </div>
             </div>
@@ -308,7 +310,7 @@ function Statistic({
   value: number;
 }) {
   return (
-    <div className="min-w-32 rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-center">
+    <div className="min-w-0 rounded-2xl border border-white/15 bg-white/10 px-2 py-4 text-center sm:min-w-28 sm:px-4">
       <p className="text-2xl font-black">{numberFormatter.format(value)}</p>
       <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.13em] text-[#A8DEC6]">
         {label}
