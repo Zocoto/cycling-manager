@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 
 import { appConfig } from "../../lib/app-config";
 import { WheelLogo } from "../ui/wheel-logo";
@@ -22,7 +22,7 @@ export function PublicFooter() {
                 </p>
 
                 <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#F2C94C]">
-                  Le cockpit du directeur sportif
+                  Devenez directeur sportif
                 </p>
               </div>
             </div>

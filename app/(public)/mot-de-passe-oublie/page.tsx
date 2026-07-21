@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 
 import { PasswordResetRequestForm } from "../../../components/auth/password-reset-request-form";
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Image from "next/image";
+import Link from "@/components/ui/app-link";
 
 import { latestRelease } from "../../lib/releases";
 
@@ -251,6 +252,14 @@ function CareerSection() {
             Du recrutement à la victoire finale, chaque décision façonne votre
             équipe et l’histoire que vous écrirez.
           </p>
+
+          <Image
+            src="/logo-cyclo-stratege.png"
+            alt="Cyclo Stratège"
+            width={420}
+            height={420}
+            className="mx-auto mt-10 h-auto w-[clamp(220px,32vw,360px)] drop-shadow-[0_28px_60px_rgba(7,26,23,0.28)]"
+          />
         </div>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">

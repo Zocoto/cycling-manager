@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 
 import type { Sponsor } from "@/types/sponsor";
 

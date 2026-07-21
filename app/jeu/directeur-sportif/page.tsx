@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "../../../components/game/game-header";
