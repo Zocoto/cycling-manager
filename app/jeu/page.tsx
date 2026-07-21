@@ -461,11 +461,27 @@ export default async function GamePage() {
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             <ManagementModuleCard
-              href="/jeu/materiel"
-              icon="equipment"
-              title="Matériel"
-              status="Catalogue ouvert"
-              description="Achetez casques, textiles, lunettes, chaussures, roues et cadres, puis attribuez-les à vos coureurs."
+              href="/jeu/entrainement"
+              icon="training"
+              title="Entraînements"
+              status="Séance quotidienne · 8 h"
+              description="Réglez l’intensité, le domaine et l’entraîneur de chaque coureur, puis consultez les gains de caractéristiques."
+            />
+
+            <ManagementModuleCard
+              href="/jeu/staff"
+              icon="staff"
+              title="Staff"
+              status="Marché ouvert"
+              description="Recrutez entraîneurs, scouts, personnel médical et spécialistes, puis maîtrisez leur masse salariale."
+            />
+
+            <ManagementModuleCard
+              href="/jeu/transferts"
+              icon="transfer"
+              title="Bureau des transferts"
+              status="Marché ouvert"
+              description="Enchérissez sur les talents du jour, négociez avec les autres DS et signez les agents libres."
             />
 
             <ManagementModuleCard
@@ -496,34 +512,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
-              href="/jeu/entrainement"
-              icon="training"
-              title="Entraînements"
-              status="Séance quotidienne · 8 h"
-              description="Réglez l’intensité, le domaine et l’entraîneur de chaque coureur, puis consultez les gains de caractéristiques."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/staff"
-              icon="staff"
-              title="Staff"
-              status="Marché ouvert"
-              description="Recrutez entraîneurs, scouts, personnel médical et spécialistes, puis maîtrisez leur masse salariale."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/infrastructures"
-              icon="infrastructure"
-              title="Infrastructures"
-              status="Débloquées au niveau 10"
-              description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
-            />
-
-            <ManagementModuleCard
-              icon="academy"
-              title="Centre de formation"
-              status="À développer"
-              description="Détectez, recrutez et accompagnez les jeunes coureurs destinés à rejoindre votre effectif."
+              href="/jeu/materiel"
+              icon="equipment"
+              title="Matériel"
+              status="Catalogue ouvert"
+              description="Achetez casques, textiles, lunettes, chaussures, roues et cadres, puis attribuez-les à vos coureurs."
             />
 
             <ManagementModuleCard
@@ -535,11 +528,18 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
-              href="/jeu/transferts"
-              icon="transfer"
-              title="Bureau des transferts"
-              status="Marché ouvert"
-              description="Enchérissez sur les talents du jour, négociez avec les autres DS et signez les agents libres."
+              icon="academy"
+              title="Centre de formation"
+              status="À développer"
+              description="Détectez, recrutez et accompagnez les jeunes coureurs destinés à rejoindre votre effectif."
+            />
+
+            <ManagementModuleCard
+              href="/jeu/infrastructures"
+              icon="infrastructure"
+              title="Infrastructures"
+              status="Débloquées au niveau 10"
+              description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
             />
           </section>
 
