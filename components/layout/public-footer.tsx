@@ -47,10 +47,17 @@ export function PublicFooter() {
               </Link>
 
               <Link
-                href="/nouveautes"
+                href="/guide"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
-                Nouveautés
+                Guide
+              </Link>
+
+              <Link
+                href="/a-propos"
+                className="w-fit transition hover:text-[#F2C94C]"
+              >
+                À propos
               </Link>
 
               <Link

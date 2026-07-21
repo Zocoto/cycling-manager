@@ -66,22 +66,22 @@ function HeroSection() {
         }}
       />
 
+      <HeroMountainLines />
+
       <div
         aria-hidden="true"
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.04) 60%, rgba(244,248,243,0.94) 100%)",
+            "linear-gradient(180deg, rgba(247,250,247,0) 25%, rgba(247,250,247,0.25) 55%, rgba(247,250,247,0.6) 75%, rgba(247,250,247,0.85) 88%, rgba(247,250,247,1) 100%)",
         }}
       />
 
-      <HeroMountainLines />
-
-      <div className="relative mx-auto flex min-h-150 max-w-375 items-center px-5 pb-28 pt-16 sm:px-8 sm:pb-32 sm:pt-20 lg:pb-36">
+      <div className="relative mx-auto flex min-h-150 max-w-375 items-center px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
         <div className="max-w-2xl">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full border border-[#315B3E]/20 bg-white/75 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E] shadow-sm backdrop-blur">
-              Le cockpit du directeur sportif
+              Devenez directeur sportif
             </span>
 
             <span className="rounded-full bg-[#F2C94C] px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#071A17] shadow-sm">
@@ -110,17 +110,11 @@ function HeroSection() {
 
             <Link
               href="/connexion"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border-2 border-[#315B3E]/65 bg-[#F7FAF7] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#173C2E] shadow-[0_10px_25px_rgba(7,26,23,0.14)] transition hover:-translate-y-0.5 hover:border-[#173C2E] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border-2 border-[#0B302B] bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#FFFDF4] shadow-[0_10px_25px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:bg-[#123f37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B302B]"
             >
               Charger une partie
               <FolderIcon />
             </Link>
-          </div>
-
-          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 text-sm text-[#315B3E]">
-            <HeroMetric value="1" label="univers persistant" />
-            <HeroMetric value="∞" label="décisions à prendre" />
-            <HeroMetric value="100 %" label="passion cycliste" />
           </div>
         </div>
       </div>
@@ -130,11 +124,9 @@ function HeroSection() {
 
 function LatestReleaseSection() {
   return (
-    <section className="relative z-10 bg-[#F7FAF7] px-5 pb-16 sm:px-8 sm:pb-20">
-      <div className="mx-auto -mt-24 max-w-6xl sm:-mt-28">
+    <section className="relative z-10 bg-[#F7FAF7] px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16">
+      <div className="mx-auto max-w-6xl">
         <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/30 bg-[#0B302B] text-[#FFFDF4] shadow-[0_28px_80px_rgba(7,26,23,0.28)]">
-          <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
-
           <ReleaseWheel />
 
           <div className="relative flex flex-col gap-5 border-b border-white/10 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
@@ -327,15 +319,6 @@ function FeatureCard({
         </Link>
       </div>
     </article>
-  );
-}
-
-function HeroMetric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className="text-lg font-black text-[#173C2E]">{value}</span>
-      <span>{label}</span>
-    </div>
   );
 }
 
