@@ -20,6 +20,7 @@ import {
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
 import { resolveRaceProfileType } from "@/lib/game/race-profiles";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -449,7 +450,7 @@ export async function getActiveSeasonRaceCalendar(
             .select("rider_id, ability_code")
             .in("rider_id", engagedRiderIds)
             .returns<RiderSpecialAbilityRow[]>(),
-          supabase
+          createSupabaseAdminClient()
             .from("riders")
             .select("id, country_id")
             .in("id", engagedRiderIds)
