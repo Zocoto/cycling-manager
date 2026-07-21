@@ -1,6 +1,8 @@
 import { randomInt } from "node:crypto";
 
+import afghanistan from "../../data/rider-names/afghanistan.json";
 import andean from "../../data/rider-names/andean.json";
+import arabianPeninsula from "../../data/rider-names/arabian_peninsula.json";
 import balkans from "../../data/rider-names/balkans.json";
 import belgium from "../../data/rider-names/belgium.json";
 import brazil from "../../data/rider-names/brazil.json";
@@ -79,9 +81,11 @@ const riderNameLibraries = {
   china,
   southeast_asia: southeastAsia,
   south_asia: southAsia,
+  afghanistan,
   central_asia: centralAsia,
   north_africa: northAfrica,
   middle_east_arabic: middleEastArabic,
+  arabian_peninsula: arabianPeninsula,
   israel,
   iran,
   west_africa_francophone: westAfricaFrancophone,

@@ -107,6 +107,10 @@
       "label": "Asie du Sud"
     },
     {
+      "code": "afghanistan",
+      "label": "Afghanistan (dari et pachto)"
+    },
+    {
       "code": "central_asia",
       "label": "Asie centrale"
     },
@@ -116,7 +120,11 @@
     },
     {
       "code": "middle_east_arabic",
-      "label": "Moyen-Orient arabe"
+      "label": "Levant et Mésopotamie arabes"
+    },
+    {
+      "code": "arabian_peninsula",
+      "label": "Péninsule Arabique"
     },
     {
       "code": "israel",

@@ -123,10 +123,14 @@ Les noms sont générés côté serveur à partir de bibliothèques régionales.
 
 Le projet contient :
 
-- 37 profils régionaux ;
-- 3 700 prénoms ;
-- 3 700 noms de famille ;
+- 39 profils régionaux ;
+- 3 963 prénoms ;
+- 3 957 noms de famille ;
 - un validateur garantissant la cohérence et l’absence de doublons dans les bibliothèques.
+
+L’Afghanistan dispose d’un profil dari/pachto distinct de l’Asie centrale turcique. La péninsule Arabique est également séparée du profil Levant–Mésopotamie afin de préserver des patronymes régionaux plus crédibles.
+
+Le rattrapage conserve les identifiants, contrats et historiques des coureurs afghans déjà créés, mais remplace leurs anciennes identités centrasiatiques par des identités issues du nouveau profil.
 
 ### Contrats initiaux
 
@@ -338,8 +342,8 @@ Contrôles validés :
 
 - `npm run lint`
 - `npm run build`
-- génération des 37 bibliothèques de noms ;
-- validation de 3 700 prénoms et 3 700 noms ;
+- génération des 39 bibliothèques de noms ;
+- validation de 3 963 prénoms et 3 957 noms ;
 - création unique de l’équipe ;
 - création des 7 coureurs ;
 - création des contrats ;
