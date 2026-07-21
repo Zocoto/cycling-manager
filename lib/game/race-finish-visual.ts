@@ -117,6 +117,84 @@ export function getFinishTargetPosition({
     : finishLinePosition - 0.3 - (rank - 2) * 1.05;
 }
 
+type SmallGroupFinishPositionInput = {
+  riderIndex: number;
+  riderCount: number;
+  decisiveIndex: number;
+  decisiveCount: number;
+  droppedIndex: number;
+  droppedCount: number;
+  lateJoinerGapSeconds: number | null;
+  finalProgress: number;
+  battleProgress: number;
+  visualSeed: number;
+  hasFinished: boolean;
+  finishLinePosition: number;
+};
+
+/**
+ * Place les coureurs d'un petit groupe sur une ligne de course lisible.
+ * Chaque emplacement d'entrée est unique, puis les coureurs sont rangés dans
+ * l'ordre officiel : ceux qui jouent encore la gagne devant, les lâchés derrière.
+ */
+export function getSmallGroupFinishPosition({
+  riderIndex,
+  riderCount,
+  decisiveIndex,
+  decisiveCount,
+  droppedIndex,
+  droppedCount,
+  lateJoinerGapSeconds,
+  finalProgress,
+  battleProgress,
+  visualSeed,
+  hasFinished,
+  finishLinePosition,
+}: SmallGroupFinishPositionInput) {
+  const safeRiderCount = Math.max(1, riderCount);
+  const entrySlot =
+    (riderIndex + Math.abs(visualSeed) % safeRiderCount) % safeRiderCount;
+  const entryPosition = safeRiderCount === 1
+    ? 62
+    : 14 + entrySlot * (68 / (safeRiderCount - 1));
+  const lateJoinerPenalty = lateJoinerGapSeconds === null
+    ? 0
+    : Math.min(14, 5 + lateJoinerGapSeconds * 0.28);
+  const readableEntryPosition = Math.max(9, entryPosition - lateJoinerPenalty);
+
+  const leaderTarget = getFinishTargetPosition({
+    rank: 1,
+    hasFinished,
+    finishLinePosition,
+  });
+  const decisiveSpan = decisiveCount <= 1
+    ? 0
+    : Math.min(65, (decisiveCount - 1) * 8.1);
+  const decisiveSpacing = decisiveCount <= 1
+    ? 0
+    : decisiveSpan / (decisiveCount - 1);
+  const decisiveTail = leaderTarget - decisiveSpan;
+  const droppedStart = Math.max(13, decisiveTail - 9);
+  const droppedSpacing = droppedCount <= 1
+    ? 0
+    : Math.min(6.5, (droppedStart - 9) / (droppedCount - 1));
+  const finishPosition = decisiveIndex >= 0
+    ? leaderTarget - decisiveIndex * decisiveSpacing
+    : droppedStart - Math.max(0, droppedIndex) * droppedSpacing;
+  const movement =
+    Math.sin(finalProgress * 20 + riderIndex * 1.9 + visualSeed) *
+    1.6 *
+    (1 - battleProgress);
+
+  return clamp(
+    readableEntryPosition * (1 - battleProgress) +
+      finishPosition * battleProgress +
+      movement,
+    8,
+    92
+  );
+}
+
 function getLateJoinerRevealProgress(
   gapToLeaderSeconds: number,
   index: number,

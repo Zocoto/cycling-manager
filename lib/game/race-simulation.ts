@@ -242,6 +242,8 @@ export type StageRaceStandings = {
 
 export type FinalBattleScenario = {
   contenderIds: string[];
+  decisiveContenderIds: string[];
+  droppedRiderIds: string[];
   entryLeaderIds: string[];
   entryGroupLabel: string;
   lateJoiners: Array<{
@@ -254,52 +256,35 @@ export type FinalBattleScenario = {
 export function getFinalBattleRiderIds(
   simulation: StageSimulationResult
 ) {
-  const finalSnapshot = simulation.timeline.at(-1);
-  if (!finalSnapshot) return [];
-
-  const finishers = new Set(
-    simulation.results
-      .filter((result) => result.status === "finished")
-      .map((result) => result.riderId)
-  );
-  const eligibleGroups = finalSnapshot.groups.filter(
-    (group) =>
-      group.type !== "dropped" &&
-      group.type !== "time_trial" &&
-      group.riderIds.some((riderId) => finishers.has(riderId))
-  );
-
-  if (eligibleGroups.length === 0) {
-    return simulation.results
-      .filter((result) => result.status === "finished")
-      .slice(0, 8)
-      .map((result) => result.riderId);
-  }
-
-  const leadingGap = Math.min(
-    ...eligibleGroups.map((group) => group.gapToLeaderSeconds)
-  );
-
-  return [
-    ...new Set(
-      eligibleGroups
-        .filter((group) => group.gapToLeaderSeconds === leadingGap)
-        .flatMap((group) => group.riderIds)
-        .filter((riderId) => finishers.has(riderId))
-    ),
-  ];
+  return getFinalBattleScenario(simulation).contenderIds;
 }
 
 export function getFinalBattleScenario(
   simulation: StageSimulationResult
 ): FinalBattleScenario {
-  const contenderIds = getFinalBattleRiderIds(simulation);
   const finalSnapshot = simulation.timeline.at(-1);
   const entrySnapshot = simulation.timeline.at(-2) ?? finalSnapshot;
+  const orderedFinishers = simulation.results
+    .filter(
+      (result): result is typeof result & { rank: number } =>
+        result.status === "finished" && result.rank !== null
+    )
+    .sort((first, second) => first.rank - second.rank);
+  const finisherIds = new Set(
+    orderedFinishers.map((result) => result.riderId)
+  );
+  const decisiveContenderIds = orderedFinishers
+    .filter((result) => result.gapToWinnerSeconds === 0)
+    .map((result) => result.riderId);
 
-  if (!entrySnapshot || contenderIds.length === 0) {
+  if (!entrySnapshot || orderedFinishers.length === 0) {
+    const contenderIds = decisiveContenderIds.length > 0
+      ? decisiveContenderIds
+      : orderedFinishers.slice(0, 8).map((result) => result.riderId);
     return {
       contenderIds,
+      decisiveContenderIds: contenderIds,
+      droppedRiderIds: [],
       entryLeaderIds: contenderIds,
       entryGroupLabel: "Groupe de tête",
       lateJoiners: [],
@@ -319,12 +304,22 @@ export function getFinalBattleScenario(
     (group) => group.gapToLeaderSeconds === leadingGap
   );
   const entryLeaderSet = new Set(
-    leadingGroups.flatMap((group) => group.riderIds)
+    leadingGroups
+      .flatMap((group) => group.riderIds)
+      .filter((riderId) => finisherIds.has(riderId))
   );
+  const contenderSet = new Set([
+    ...entryLeaderSet,
+    ...decisiveContenderIds,
+  ]);
+  const contenderIds = orderedFinishers
+    .filter((result) => contenderSet.has(result.riderId))
+    .map((result) => result.riderId);
   const entryLeaderIds = contenderIds.filter((riderId) =>
     entryLeaderSet.has(riderId)
   );
-  const lateJoiners = contenderIds
+  const decisiveContenderSet = new Set(decisiveContenderIds);
+  const lateJoiners = decisiveContenderIds
     .filter((riderId) => !entryLeaderSet.has(riderId))
     .map((riderId) => {
       const origin = eligibleEntryGroups.find((group) =>
@@ -340,6 +335,10 @@ export function getFinalBattleScenario(
 
   return {
     contenderIds,
+    decisiveContenderIds,
+    droppedRiderIds: entryLeaderIds.filter(
+      (riderId) => !decisiveContenderSet.has(riderId)
+    ),
     entryLeaderIds,
     entryGroupLabel: leadingGroups[0]?.label ?? "Groupe de tête",
     lateJoiners,

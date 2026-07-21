@@ -7,6 +7,7 @@ import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-cal
 import {
   getFinalReplayMeters,
   getFinishTargetPosition,
+  getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
 } from "@/lib/game/race-finish-visual";
 import { getStageLiveState } from "@/lib/game/race-live";
@@ -174,7 +175,16 @@ export function RaceLiveLab({
   const isRoad = input.stageType === "road";
   const activeSegment = input.segments[displayedIndex];
   const finalSegment = input.segments.at(-1)!;
-  const breakawayStillAhead = simulation.timeline.at(-1)?.groups.some((group) => group.type === "breakaway") ?? false;
+  const winnerResult = simulation.results.find(
+    (result) => result.status === "finished" && result.rank === 1
+  );
+  const breakawayStillAhead = winnerResult
+    ? simulation.timeline.at(-1)?.groups.some(
+        (group) =>
+          group.type === "breakaway" &&
+          group.riderIds.includes(winnerResult.riderId)
+      ) ?? false
+    : false;
   const finalBattleScenario = getFinalBattleScenario(simulation);
   const finalBattleRiderIds = finalBattleScenario.contenderIds;
   const isMassSprint = finalBattleRiderIds.length > 10;
@@ -853,6 +863,12 @@ function getRiderShortName(name: string) {
   return name.split(" ").at(-1) ?? name;
 }
 
+function getFinishRiderName(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  return `${parts[0].charAt(0)}. ${parts.at(-1)}`;
+}
+
 function SideCyclist({
   rider,
   isMoving = true,
@@ -965,8 +981,11 @@ function SprintLaneView({
   const hasFinished = metersRemaining <= 0;
   const phaseLabel = getMassSprintPhase(metersRemaining);
   const isPhotoFinish = getVisualSeedNumber(simulation.seed) % 3 === 0;
-  const winner = finalists[0]
-    ? riderById.get(finalists[0].riderId)
+  const winnerResult = simulation.results.find(
+    (result) => result.status === "finished" && result.rank === 1
+  );
+  const winner = winnerResult
+    ? riderById.get(winnerResult.riderId)
     : null;
 
   return (
@@ -1039,6 +1058,8 @@ function SprintLaneView({
         return (
           <div
             key={result.riderId}
+            data-finish-rider-id={result.riderId}
+            data-finish-rank={result.rank}
             className="absolute z-20 transition-[left,top] duration-300 ease-out"
             style={{
               left: `${left}%`,
@@ -1112,6 +1133,10 @@ function FinishBattleView({
   );
   const decisiveProgress =
     battleProgress * battleProgress * (3 - 2 * battleProgress);
+  const finalProgress = Math.max(
+    0,
+    Math.min(1, 1 - metersRemaining / Math.max(1, finalSegmentMeters))
+  );
   const visibleBattleRiderIds = new Set(
     getVisibleFinalBattleRiderIds(scenario, battleProgress)
   );
@@ -1133,17 +1158,45 @@ function FinishBattleView({
   const lateJoinerById = new Map(
     scenario.lateJoiners.map((lateJoiner) => [lateJoiner.riderId, lateJoiner])
   );
+  const decisiveRiderSet = new Set(scenario.decisiveContenderIds);
+  const droppedRiderSet = new Set(scenario.droppedRiderIds);
+  const decisiveRiderIds = allFinalists
+    .filter((result) => decisiveRiderSet.has(result.riderId))
+    .map((result) => result.riderId);
+  const droppedRiderIds = allFinalists
+    .filter((result) => droppedRiderSet.has(result.riderId))
+    .map((result) => result.riderId);
+  const finishVisualSeed = getVisualSeedNumber(simulation.seed);
   const entryLeaderNames = scenario.entryLeaderIds
     .map((riderId) => riderById.get(riderId)?.name)
     .filter((name): name is string => Boolean(name));
   const lateJoinerNames = scenario.lateJoiners
     .map((lateJoiner) => riderById.get(lateJoiner.riderId)?.name)
     .filter((name): name is string => Boolean(name));
-  const winner = allFinalists[0]
-    ? riderById.get(allFinalists[0].riderId)
+  const droppedRiderNames = scenario.droppedRiderIds
+    .map((riderId) => riderById.get(riderId)?.name)
+    .filter((name): name is string => Boolean(name));
+  const decisiveMovementText = [
+    lateJoinerNames.length > 0
+      ? `${formatRiderNames(lateJoinerNames)} revien${lateJoinerNames.length > 1 ? "nent" : "t"} depuis la chasse.`
+      : null,
+    droppedRiderNames.length > 0
+      ? `${formatRiderNames(droppedRiderNames)} décroche${droppedRiderNames.length > 1 ? "nt" : ""} derrière les coureurs encore en lutte.`
+      : null,
+  ]
+    .filter((detail): detail is string => Boolean(detail))
+    .join(" ");
+  const winnerResult = simulation.results.find(
+    (result) => result.status === "finished" && result.rank === 1
+  );
+  const runnerUpResult = simulation.results.find(
+    (result) => result.status === "finished" && result.rank === 2
+  );
+  const winner = winnerResult
+    ? riderById.get(winnerResult.riderId)
     : null;
-  const runnerUp = allFinalists[1]
-    ? riderById.get(allFinalists[1].riderId)
+  const runnerUp = runnerUpResult
+    ? riderById.get(runnerUpResult.riderId)
     : null;
 
   return (
@@ -1177,7 +1230,7 @@ function FinishBattleView({
           {getSmallGroupFinishPhase(metersRemaining)}
         </p>
         <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
-          {finalists.length} coureur{finalists.length > 1 ? "s" : ""} actuellement dans le groupe de tête · {terrainLabel(segment.terrain)} {segment.averageGradientPct > 0 ? "+" : ""}{segment.averageGradientPct} %
+          {scenario.entryLeaderIds.length} à l’entrée · {decisiveRiderIds.length} encore en lutte · {terrainLabel(segment.terrain)} {segment.averageGradientPct > 0 ? "+" : ""}{segment.averageGradientPct} %
         </p>
         {breakawayStillAhead ? (
           <p className="mt-1 text-[9px] font-bold text-[#FFF4C4]">
@@ -1192,34 +1245,43 @@ function FinishBattleView({
         const finalIndex = allFinalists.findIndex(
           (candidate) => candidate.riderId === result.riderId
         );
-        const earlyOrder =
-          allFinalists.length > 1
-            ? (finalIndex * 3 + 2) % allFinalists.length
-            : 0;
-        const earlyPosition = lateJoiner
-          ? Math.max(
-              15,
-              31 - Math.min(14, lateJoiner.gapToLeaderSeconds * 0.45)
-            )
-          : 38 + (allFinalists.length - earlyOrder) * 4.2;
-        const finishPosition = getFinishTargetPosition({
-          rank: finalIndex + 1,
+        const decisiveIndex = decisiveRiderIds.indexOf(result.riderId);
+        const droppedIndex = droppedRiderIds.indexOf(result.riderId);
+        const left = getSmallGroupFinishPosition({
+          riderIndex: finalIndex,
+          riderCount: allFinalists.length,
+          decisiveIndex,
+          decisiveCount: decisiveRiderIds.length,
+          droppedIndex,
+          droppedCount: droppedRiderIds.length,
+          lateJoinerGapSeconds: lateJoiner?.gapToLeaderSeconds ?? null,
+          finalProgress,
+          battleProgress: decisiveProgress,
+          visualSeed: finishVisualSeed,
           hasFinished,
           finishLinePosition: 86,
         });
-        const left = Math.max(
-          18,
-          Math.min(
-            90,
-            earlyPosition * (1 - decisiveProgress) +
-              finishPosition * decisiveProgress
-          )
-        );
         const roadY =
           roadLeftY + (roadRightY - roadLeftY) * (left / 100);
+        const riderStatus = hasFinished
+          ? result.rank === 1
+            ? "Vainqueur"
+            : result.gapToWinnerSeconds === 0
+              ? `${result.rank}. · MT`
+              : `${result.rank}. · +${formatGap(result.gapToWinnerSeconds)}`
+          : lateJoiner && battleProgress < 0.58
+            ? `Revient · +${formatGap(lateJoiner.gapToLeaderSeconds)}`
+            : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42
+              ? "Décroché"
+              : decisiveRiderSet.has(result.riderId) && battleProgress >= 0.35
+                ? "Joue la victoire"
+                : "Groupe de tête";
         return (
           <div
             key={result.riderId}
+            data-finish-rider-id={result.riderId}
+            data-finish-rank={result.rank}
+            data-finish-status={result.rank === 1 ? "winner" : droppedRiderSet.has(result.riderId) ? "dropped" : "contender"}
             className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-out"
             style={{
               left: `${left}%`,
@@ -1227,16 +1289,22 @@ function FinishBattleView({
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
-            <SideCyclist rider={rider} isMoving className="h-12 w-[4.5rem]" />
-            {lateJoiner && battleProgress < 0.58 ? (
-              <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#B85A32]/90 px-2 py-1 text-[8px] font-black text-white shadow-lg">
-                {rider.name.split(" ").at(-1)} revient · +{formatGap(lateJoiner.gapToLeaderSeconds)}
+            <SideCyclist rider={rider} isMoving className="h-10 w-[3.75rem]" />
+            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${finalIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && hasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42 ? "border-[#B85A32]/65 bg-[#301A15]/92" : "border-white/20 bg-[#071A17]/90"}`}>
+              <span className="flex items-center gap-1 text-[9px] font-black text-white">
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full border border-white/50"
+                  style={{
+                    background: `linear-gradient(135deg, ${rider.teamPrimaryColor} 0 55%, ${rider.teamSecondaryColor} 55% 100%)`,
+                  }}
+                />
+                {getFinishRiderName(rider.name)}
               </span>
-            ) : finalIndex < 3 ? (
-              <span className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[9px] font-black text-white shadow-lg">
-                {hasFinished ? `${result.rank}. ` : ""}{rider.name.split(" ").at(-1)}
+              <span className="mt-0.5 block text-[7px] font-black uppercase tracking-wide text-[#C1D3CA]">
+                {riderStatus}
               </span>
-            ) : null}
+            </div>
           </div>
         );
       })}
@@ -1252,9 +1320,7 @@ function FinishBattleView({
       />
       <FinishScenarioStep
         label="Mouvement décisif"
-        text={lateJoinerNames.length > 0
-          ? `${formatRiderNames(lateJoinerNames)} revien${lateJoinerNames.length > 1 ? "nent" : "t"} depuis la chasse, visible${lateJoinerNames.length > 1 ? "s" : ""} à l’arrière au début du final.`
-          : `Les attaques se font uniquement entre les ${battleRiderIds.length} coureurs déjà présents en tête.`}
+        text={decisiveMovementText || `Les attaques se font uniquement entre les ${battleRiderIds.length} coureurs déjà présents en tête.`}
         active={battleProgress > 0 && !hasFinished}
       />
       <FinishScenarioStep
@@ -1275,12 +1341,19 @@ function FinishVictoryBanner({
   winner: RiderSimulationInput;
 }) {
   return (
-    <div className="absolute bottom-4 left-1/2 z-40 w-[min(92%,34rem)] -translate-x-1/2 rounded-2xl border border-[#F2C94C]/70 bg-[#071A17]/95 px-5 py-3 text-center text-white shadow-2xl backdrop-blur">
+    <div data-finish-winner-id={winner.id} className="absolute bottom-4 left-1/2 z-40 w-[min(92%,34rem)] -translate-x-1/2 rounded-2xl border border-[#F2C94C]/70 bg-[#071A17]/95 px-5 py-3 text-center text-white shadow-2xl backdrop-blur">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#F2C94C]">
         Résultat officiel
       </p>
-      <p className="mt-1 text-base font-black sm:text-lg">
-        Victoire de {winner.name} pour {winner.teamName}
+      <p className="mt-1 flex items-center justify-center gap-2 text-base font-black sm:text-lg">
+        <span
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 rounded-full border border-white/60"
+          style={{
+            background: `linear-gradient(135deg, ${winner.teamPrimaryColor} 0 55%, ${winner.teamSecondaryColor} 55% 100%)`,
+          }}
+        />
+        <span>Victoire de {winner.name} pour {winner.teamName}</span>
       </p>
     </div>
   );

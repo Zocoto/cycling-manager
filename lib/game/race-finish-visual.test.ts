@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   getFinalReplayMeters,
   getFinishTargetPosition,
+  getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
 } from "./race-finish-visual";
 import type { FinalBattleScenario } from "./race-simulation";
 
 const scenario: FinalBattleScenario = {
   contenderIds: ["leader-1", "leader-2", "joiner-1", "joiner-2"],
+  decisiveContenderIds: ["leader-1", "joiner-1", "joiner-2"],
+  droppedRiderIds: ["leader-2"],
   entryLeaderIds: ["leader-1", "leader-2"],
   entryGroupLabel: "Échappée",
   lateJoiners: [
@@ -78,5 +81,88 @@ describe("final race visualization", () => {
         finishLinePosition,
       })
     ).toBeLessThan(finishLinePosition);
+  });
+
+  it("donne neuf positions d'entrée distinctes à un groupe de neuf", () => {
+    const positions = Array.from({ length: 9 }, (_, riderIndex) =>
+      getSmallGroupFinishPosition({
+        riderIndex,
+        riderCount: 9,
+        decisiveIndex: riderIndex,
+        decisiveCount: 9,
+        droppedIndex: -1,
+        droppedCount: 0,
+        lateJoinerGapSeconds: null,
+        finalProgress: 0,
+        battleProgress: 0,
+        visualSeed: 17,
+        hasFinished: false,
+        finishLinePosition: 86,
+      })
+    );
+
+    expect(new Set(positions).size).toBe(9);
+  });
+
+  it("place le vainqueur devant tous les autres sur la ligne", () => {
+    const positions = Array.from({ length: 9 }, (_, riderIndex) =>
+      getSmallGroupFinishPosition({
+        riderIndex,
+        riderCount: 9,
+        decisiveIndex: riderIndex,
+        decisiveCount: 9,
+        droppedIndex: -1,
+        droppedCount: 0,
+        lateJoinerGapSeconds: null,
+        finalProgress: 1,
+        battleProgress: 1,
+        visualSeed: 17,
+        hasFinished: true,
+        finishLinePosition: 86,
+      })
+    );
+
+    expect(positions[0]).toBeGreaterThan(86);
+    expect(positions[0]).toBe(Math.max(...positions));
+    expect(positions.every((position, index) =>
+      index === 0 || position < positions[index - 1]
+    )).toBe(true);
+  });
+
+  it("maintient les coureurs lâchés derrière ceux qui jouent la victoire", () => {
+    const leaders = [0, 1, 2].map((decisiveIndex) =>
+      getSmallGroupFinishPosition({
+        riderIndex: decisiveIndex,
+        riderCount: 9,
+        decisiveIndex,
+        decisiveCount: 3,
+        droppedIndex: -1,
+        droppedCount: 6,
+        lateJoinerGapSeconds: null,
+        finalProgress: 1,
+        battleProgress: 1,
+        visualSeed: 5,
+        hasFinished: true,
+        finishLinePosition: 86,
+      })
+    );
+    const dropped = Array.from({ length: 6 }, (_, droppedIndex) =>
+      getSmallGroupFinishPosition({
+        riderIndex: droppedIndex + 3,
+        riderCount: 9,
+        decisiveIndex: -1,
+        decisiveCount: 3,
+        droppedIndex,
+        droppedCount: 6,
+        lateJoinerGapSeconds: null,
+        finalProgress: 1,
+        battleProgress: 1,
+        visualSeed: 5,
+        hasFinished: true,
+        finishLinePosition: 86,
+      })
+    );
+
+    expect(Math.max(...dropped)).toBeLessThan(Math.min(...leaders));
   });
 });

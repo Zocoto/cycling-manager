@@ -137,6 +137,50 @@ describe("simulateRaceStage", () => {
     ).toBe(true);
   });
 
+  it("conserve le groupe de neuf et révèle le futur vainqueur s'il revient de la chasse", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("haute-montagne", 1)
+    );
+    const rankedFinisherIds = simulation.results
+      .filter(
+        (result) => result.status === "finished" && result.rank !== null
+      )
+      .sort((first, second) => first.rank! - second.rank!)
+      .map((result) => result.riderId);
+    const officialWinnerId = rankedFinisherIds[0];
+    const entryLeaderIds = rankedFinisherIds.slice(1, 10);
+    const entrySnapshot = simulation.timeline.at(-2)!;
+    entrySnapshot.groups = [
+      {
+        id: "final-group-of-nine",
+        label: "Groupe de 9",
+        type: "breakaway",
+        riderIds: entryLeaderIds,
+        gapToLeaderSeconds: 0,
+        averageEnergy: 54,
+      },
+      {
+        id: "winner-chasing",
+        label: "Chasse",
+        type: "chase",
+        riderIds: [officialWinnerId],
+        gapToLeaderSeconds: 8,
+        averageEnergy: 58,
+      },
+    ];
+
+    const scenario = getFinalBattleScenario(simulation);
+
+    expect(scenario.entryLeaderIds).toEqual(entryLeaderIds);
+    expect(scenario.contenderIds).toContain(officialWinnerId);
+    expect(scenario.decisiveContenderIds).toContain(officialWinnerId);
+    expect(scenario.lateJoiners).toContainEqual({
+      riderId: officialWinnerId,
+      fromGroupLabel: "Chasse",
+      gapToLeaderSeconds: 8,
+    });
+  });
+
   it("fait payer davantage d’énergie à une petite échappée", () => {
     const result = simulateRaceStage(
       createDemoSimulationInput("collines-ardennes", 7)
