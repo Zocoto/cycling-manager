@@ -14,11 +14,22 @@ export type PublicGameNewsKind =
   | "movement"
   | "staff";
 
+export type PublicGameNewsTeamJerseyArtwork =
+  | {
+      kind: "sponsor";
+      imagePath: string;
+    }
+  | {
+      kind: "amateur";
+      jersey: AmateurJerseyConfig;
+    };
+
 export type PublicGameNewsTeamVisual = {
   name: string;
   logoPath: string | null;
   sponsorName: string | null;
   jersey: RiderJerseyAppearance;
+  jerseyArtwork: PublicGameNewsTeamJerseyArtwork;
   colors: {
     primary: string;
     secondary: string;
@@ -44,6 +55,18 @@ export function resolvePublicGameNewsTeamJersey({
         style: sponsor.jerseyStyle,
       })
     : createAmateurRiderJersey(amateurJersey);
+}
+
+export function resolvePublicGameNewsTeamJerseyArtwork({
+  amateurJersey,
+  sponsorJerseyImagePath,
+}: {
+  amateurJersey: AmateurJerseyConfig;
+  sponsorJerseyImagePath?: string | null;
+}): PublicGameNewsTeamJerseyArtwork {
+  return sponsorJerseyImagePath
+    ? { kind: "sponsor", imagePath: sponsorJerseyImagePath }
+    : { kind: "amateur", jersey: amateurJersey };
 }
 
 export type PublicGameNewsPersonVisual =

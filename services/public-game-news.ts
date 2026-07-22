@@ -11,6 +11,7 @@ import {
   createEmptyPublicGameNewsSnapshot,
   createPublicGameNewsSnapshot,
   resolvePublicGameNewsTeamJersey,
+  resolvePublicGameNewsTeamJerseyArtwork,
   type PublicGameNewsItem,
   type PublicGameNewsSnapshot,
   type PublicGameNewsTeamVisual,
@@ -97,6 +98,11 @@ type SportingDirectorRow = {
   display_name: string;
   avatar_key: string | null;
   created_at: string;
+};
+
+type TeamManagerAssignmentRow = {
+  sporting_director_id: string;
+  team_id: string;
 };
 
 type RiderContractRow = {
@@ -333,20 +339,79 @@ async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {
   assertQuery(recentQuery.error, "les nouveaux directeurs sportifs");
   assertQuery(totalQuery.error, "le total des directeurs sportifs");
 
-  const items = (recentQuery.data ?? []).map((director) => ({
-    id: `arrival:${director.id}`,
-    kind: "arrival" as const,
-    title: `${director.display_name} a rejoint le peloton`,
-    detail: "Un nouveau directeur sportif prend place sur la ligne de départ.",
-    happenedAt: director.created_at,
-    visual: {
-      person: {
-        kind: "director" as const,
-        avatarKey: director.avatar_key,
-        label: `Portrait de ${director.display_name}`,
+  const directors = recentQuery.data ?? [];
+  if (directors.length === 0) {
+    return { items: [], total: totalQuery.count ?? 0 };
+  }
+
+  const assignmentsQuery = await admin
+    .from("team_manager_assignments")
+    .select("sporting_director_id, team_id")
+    .in("sporting_director_id", directors.map((director) => director.id))
+    .eq("role", "general_manager")
+    .eq("status", "active")
+    .returns<TeamManagerAssignmentRow[]>();
+  assertQuery(
+    assignmentsQuery.error,
+    "les équipes des nouveaux directeurs sportifs"
+  );
+
+  const assignments = assignmentsQuery.data ?? [];
+  const assignmentByDirectorId = new Map(
+    assignments.map((assignment) => [
+      assignment.sporting_director_id,
+      assignment,
+    ])
+  );
+  let teamSeasonByTeamId = new Map<string, TeamSeasonRow>();
+  let teamVisualByTeamId = new Map<string, PublicGameNewsTeamVisual>();
+
+  if (assignments.length > 0) {
+    const teamSeasonsQuery = await admin
+      .from("team_seasons")
+      .select("id, team_id, display_name, created_at")
+      .in(
+        "team_id",
+        unique(assignments.map((assignment) => assignment.team_id))
+      )
+      .order("created_at", { ascending: false })
+      .returns<TeamSeasonRow[]>();
+    assertQuery(
+      teamSeasonsQuery.error,
+      "les identités des équipes nouvellement dirigées"
+    );
+
+    const teamSeasons = teamSeasonsQuery.data ?? [];
+    teamSeasonByTeamId = latestTeamSeasonByTeamId(teamSeasons);
+    teamVisualByTeamId = await loadTeamVisuals(admin, teamSeasons);
+  }
+
+  const items = directors.map((director) => {
+    const assignment = assignmentByDirectorId.get(director.id);
+    const teamSeason = assignment
+      ? teamSeasonByTeamId.get(assignment.team_id)
+      : null;
+    const team = teamSeason
+      ? (teamVisualByTeamId.get(teamSeason.team_id) ??
+        createFallbackTeamVisual(teamSeason.display_name))
+      : null;
+
+    return {
+      id: `arrival:${director.id}`,
+      kind: "arrival" as const,
+      title: `${director.display_name} a rejoint le peloton`,
+      detail: "Un nouveau directeur sportif prend place sur la ligne de départ.",
+      happenedAt: director.created_at,
+      visual: {
+        person: {
+          kind: "director" as const,
+          avatarKey: director.avatar_key,
+          label: `Portrait de ${director.display_name}`,
+        },
+        ...(team ? { team } : {}),
       },
-    },
-  }));
+    };
+  });
 
   return { items, total: totalQuery.count ?? items.length };
 }
@@ -695,6 +760,11 @@ async function loadTeamVisuals(
       logoPath: catalogSponsor.logoPath,
       sponsorName: catalogSponsor.name,
       colors: catalogSponsor.colors,
+      jerseyArtwork: resolvePublicGameNewsTeamJerseyArtwork({
+        amateurJersey:
+          amateurJerseyByTeamId.get(teamId) ?? DEFAULT_AMATEUR_JERSEY,
+        sponsorJerseyImagePath: selectedJersey.imagePath,
+      }),
       jersey: resolvePublicGameNewsTeamJersey({
         amateurJersey:
           amateurJerseyByTeamId.get(teamId) ?? DEFAULT_AMATEUR_JERSEY,
@@ -724,6 +794,7 @@ function createFallbackTeamVisual(
       background: amateurJersey.secondaryColor,
       text: amateurJersey.primaryColor,
     },
+    jerseyArtwork: resolvePublicGameNewsTeamJerseyArtwork({ amateurJersey }),
     jersey: resolvePublicGameNewsTeamJersey({ amateurJersey }),
   };
 }
