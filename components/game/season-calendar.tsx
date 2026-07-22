@@ -20,7 +20,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-const DEFAULT_VISIBLE_LANES_PER_SLOT = 3;
+const DEFAULT_VISIBLE_LANES = 5;
 
 const shortDateFormatter =
   new Intl.DateTimeFormat("fr-FR", {
@@ -268,6 +268,19 @@ export function SeasonCalendar({
         </div>
       </div>
 
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#315B3E]/15 bg-[#F3F8F5] px-4 py-3 text-[11px] font-bold text-[#557064]">
+        <span className="font-black uppercase tracking-[0.14em] text-[#0B302B]">
+          Deux créneaux par jour
+        </span>
+        <span>
+          <strong className="text-[#176951]">AM</strong> · départ 14 h · gel 8 h
+        </span>
+        <span>
+          <strong className="text-[#176951]">PM</strong> · départ 18 h · gel 12 h
+        </span>
+        <span>Les tours enchaînent une étape à chaque demi-journée.</span>
+      </div>
+
       <div className="mt-7 hidden space-y-4 md:block">
         {weeks.map((week) => (
           <DesktopCalendarWeek
@@ -291,21 +304,12 @@ export function SeasonCalendar({
       <div className="mt-7 space-y-4 md:hidden">
         {calendar.days.map((day) => {
           const dayEditions = visibleEditions
-            .map((edition) => ({
-              edition,
-              stage: edition.stages.find(
-                (stage) =>
-                  stage.dayNumber ===
-                  day.dayNumber
-              ),
-            }))
-            .filter(
-              (
-                entry
-              ): entry is {
-                edition: RaceCalendarEdition;
-                stage: RaceCalendarEdition["stages"][number];
-              } => Boolean(entry.stage)
+            .flatMap((edition) =>
+              edition.stages
+                .filter(
+                  (stage) => stage.dayNumber === day.dayNumber
+                )
+                .map((stage) => ({ edition, stage }))
             )
             .sort(
               (first, second) =>
@@ -376,7 +380,7 @@ export function SeasonCalendar({
                         {style.shortLabel}
                       </span>
                       <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                        J{stage.dayNumber}{edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
+                        J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].calendarLabel}{edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
                       </span>
                     </div>
                     <h3 className="mt-2 truncate text-sm font-black text-[#0B302B] group-hover:text-[#176951]">
@@ -446,192 +450,229 @@ function DesktopCalendarWeek({
   isExpanded: boolean;
   onToggleExpanded: () => void;
 }) {
-  const visibleLaneCountBySlot = Object.fromEntries(
-    RACE_DAY_SLOTS.map((slot) => [
-      slot,
-      isExpanded
-        ? week.laneCountBySlot[slot]
-        : Math.min(DEFAULT_VISIBLE_LANES_PER_SLOT, week.laneCountBySlot[slot]),
-    ])
-  ) as Record<(typeof RACE_DAY_SLOTS)[number], number>;
-  const hasHiddenLanes = RACE_DAY_SLOTS.some(
-    (slot) => week.laneCountBySlot[slot] > DEFAULT_VISIBLE_LANES_PER_SLOT
-  );
-  const earlyLaneCount = visibleLaneCountBySlot.early;
-  const lateLaneCount = visibleLaneCountBySlot.late;
-  const rowCount = earlyLaneCount + lateLaneCount + 2 + (hasHiddenLanes ? 1 : 0);
+  const visibleLaneCount = isExpanded
+    ? week.laneCount
+    : Math.min(DEFAULT_VISIBLE_LANES, week.laneCount);
+  const hasHiddenLanes = week.laneCount > DEFAULT_VISIBLE_LANES;
+  const raceRowCount = Math.max(1, visibleLaneCount);
+  const totalRowCount = 2 + raceRowCount + (hasHiddenLanes ? 1 : 0);
 
   return (
     <section
       aria-label={`Semaine ${week.weekNumber}, J${week.startDay} à J${week.endDay}`}
-      className="grid grid-cols-7 gap-x-2 overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] p-2 shadow-sm"
-      style={{
-        gridTemplateRows: `minmax(9.5rem, auto) repeat(${rowCount}, minmax(2.1rem, auto))`,
-      }}
+      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] shadow-sm"
     >
-      {Array.from({ length: 7 }, (_, index) => {
-        const dayNumber =
-          week.startDay + index;
-        const day = dayByNumber.get(dayNumber);
-        const isCurrent =
-          dayNumber === currentDayNumber;
-        const isPast =
-          dayNumber < currentDayNumber;
-
-        return (
-          <div
-            key={dayNumber}
-            className={`min-w-0 rounded-xl border px-3 py-3 ${
-              isCurrent
-                ? "border-[#F2C94C] bg-[#FFF8D9] shadow-[inset_0_0_0_2px_rgba(242,201,76,0.28)]"
-                : isPast
-                  ? "border-[#315B3E]/10 bg-[#F3F6F3]/80"
-                  : "border-[#315B3E]/10 bg-white"
-            }`}
-            style={{
-              gridColumn: index + 1,
-              gridRow: `1 / span ${rowCount + 1}`,
-            }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-lg font-black text-[#0B302B]">
-                  J{dayNumber}
-                </p>
-                {day ? (
-                  <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[#688176]">
-                    {formatShortDate(
-                      day.calendarDate
-                    )}
-                  </p>
-                ) : null}
-              </div>
-
-              {isCurrent ? (
-                <span className="rounded-full bg-[#F2C94C] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#17261E]">
-                  Aujourd’hui
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-3 space-y-1.5">
-              {(eventsByDay.get(dayNumber) ?? []).map(
-                (event) => (
-                  <SeasonEventBadge
-                    key={event.id}
-                    event={event}
-                    compact
-                  />
-                )
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {RACE_DAY_SLOTS.map((slot) => {
-        const config = RACE_DAY_SLOT_CONFIG[slot];
-        const row = slot === "early" ? 2 : earlyLaneCount + 3;
-
-        return (
-          <div
-            key={slot}
-            className="relative z-20 mx-1 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0B302B] px-3 py-1.5 text-white shadow-sm"
-            style={{ gridColumn: "1 / 8", gridRow: row }}
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.18em]">
-              {config.label} · {config.departureLabel}
-            </span>
-            <span className="text-[9px] font-bold text-[#A9C6BB]">
-              {config.registrationCutoffLabel}
-            </span>
-          </div>
-        );
-      })}
-
-      {week.segments
-        .filter(
-          (segment) =>
-            segment.lane < visibleLaneCountBySlot[segment.daySlot]
-        )
-        .map((segment) => {
-          const style =
-            RACE_CATEGORY_STYLE[
-              segment.edition.categoryCode
-            ];
-          const columnStart =
-            segment.startDay -
-            week.startDay +
-            1;
-          const columnEnd =
-            segment.endDay -
-            week.startDay +
-            2;
-
-          return (
-            <Link
-              key={`${segment.edition.id}-${week.weekNumber}`}
-              href={`/jeu/courses/${segment.edition.slug}`}
-              title={`${segment.edition.name} — ${segment.edition.countryName}`}
-              className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2.5 py-1.5 text-[11px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
-                segment.startsBeforeWeek
-                  ? "rounded-l-sm"
-                  : "rounded-l-lg"
-              } ${
-                segment.continuesAfterWeek
-                  ? "rounded-r-sm"
-                  : "rounded-r-lg"
-              }`}
-              style={{
-                gridColumn: `${columnStart} / ${columnEnd}`,
-                gridRow:
-                  segment.daySlot === "early"
-                    ? segment.lane + 3
-                    : earlyLaneCount + segment.lane + 4,
-                backgroundColor: style.background,
-                borderColor: style.border,
-                color: style.foreground,
-              }}
-            >
-              <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[9px] tracking-wider">
-                {style.shortLabel}
-              </span>
-
-              <span className="truncate">
-                {segment.startsBeforeWeek
-                  ? "← "
-                  : ""}
-                {segment.edition.name}
-                {segment.continuesAfterWeek
-                  ? " →"
-                  : ""}
-              </span>
-
-              {segment.edition.currentTeamRegistration
-                ?.status === "accepted" ? (
-                <span className="ml-auto shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-black">
-                  ✓ {segment.edition.currentTeamRegistration.rosterCount}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
-
-      {hasHiddenLanes ? (
-        <button
-          type="button"
-          onClick={onToggleExpanded}
-          className="relative z-20 mx-1 self-center rounded-lg border border-[#315B3E]/20 bg-white/90 px-3 py-1.5 text-xs font-extrabold text-[#315B3E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+      <div className="overflow-x-auto p-2">
+        <div
+          className="grid min-w-[70rem] grid-cols-14 gap-x-1.5"
           style={{
-            gridColumn: "1 / 8",
-            gridRow: earlyLaneCount + lateLaneCount + 4,
+            gridTemplateRows: `minmax(8.5rem, auto) minmax(2.35rem, auto) repeat(${raceRowCount}, minmax(3.25rem, auto))${hasHiddenLanes ? " minmax(2.6rem, auto)" : ""}`,
           }}
         >
-          {isExpanded
-            ? "Réduire cette semaine"
-            : "Afficher toutes les courses de la semaine"}
-        </button>
-      ) : null}
+          {Array.from({ length: 7 }, (_, index) => {
+            const dayNumber = week.startDay + index;
+            const isCurrent = dayNumber === currentDayNumber;
+            const isPast = dayNumber < currentDayNumber;
+
+            return (
+              <div
+                key={`fond-${dayNumber}`}
+                aria-hidden="true"
+                className={`relative z-0 rounded-xl border ${
+                  isCurrent
+                    ? "border-[#F2C94C] bg-[#FFF8D9] shadow-[inset_0_0_0_2px_rgba(242,201,76,0.28)]"
+                    : isPast
+                      ? "border-[#315B3E]/10 bg-[#F3F6F3]/80"
+                      : "border-[#315B3E]/10 bg-white"
+                }`}
+                style={{
+                  gridColumn: `${index * 2 + 1} / span 2`,
+                  gridRow: `1 / span ${totalRowCount}`,
+                }}
+              />
+            );
+          })}
+
+          {Array.from({ length: 7 }, (_, index) => {
+            const dayNumber = week.startDay + index;
+            const day = dayByNumber.get(dayNumber);
+            const isCurrent = dayNumber === currentDayNumber;
+
+            return (
+              <div
+                key={`entete-${dayNumber}`}
+                className="relative z-10 min-w-0 px-3 py-3"
+                style={{
+                  gridColumn: `${index * 2 + 1} / span 2`,
+                  gridRow: 1,
+                }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-lg font-black text-[#0B302B]">
+                      J{dayNumber}
+                    </p>
+                    {day ? (
+                      <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[#688176]">
+                        {formatShortDate(day.calendarDate)}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {isCurrent ? (
+                    <span className="rounded-full bg-[#F2C94C] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#17261E]">
+                      Aujourd’hui
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="mt-3 space-y-1.5">
+                  {(eventsByDay.get(dayNumber) ?? []).map((event) => (
+                    <SeasonEventBadge key={event.id} event={event} compact />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {Array.from({ length: 7 }, (_, dayIndex) =>
+            RACE_DAY_SLOTS.map((slot, slotIndex) => {
+              const config = RACE_DAY_SLOT_CONFIG[slot];
+              const dayNumber = week.startDay + dayIndex;
+
+              return (
+                <div
+                  key={`${dayNumber}-${slot}`}
+                  className="relative z-10 mx-1 flex items-center justify-between gap-1 rounded-lg border border-white/10 bg-[#0B302B] px-2 py-1.5 text-white shadow-sm"
+                  style={{
+                    gridColumn: dayIndex * 2 + slotIndex + 1,
+                    gridRow: 2,
+                  }}
+                  title={`${config.departureLabel} · ${config.registrationCutoffLabel}`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-[0.16em]">
+                    {config.calendarLabel}
+                  </span>
+                  <span className="text-[9px] font-bold text-[#A9C6BB]">
+                    {config.departureHour} h
+                  </span>
+                </div>
+              );
+            })
+          )}
+
+          {week.segments
+            .filter((segment) => segment.lane < visibleLaneCount)
+            .map((segment) => {
+              const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
+              const columnStart =
+                segment.startHalfDayIndex - week.startHalfDayIndex + 1;
+              const columnEnd =
+                segment.endHalfDayIndex - week.startHalfDayIndex + 2;
+              const halfDaySpan =
+                segment.endHalfDayIndex - segment.startHalfDayIndex + 1;
+              const firstStage = segment.stages[0];
+              const lastStage = segment.stages.at(-1);
+              const hasSeveralStages = segment.stages.length > 1;
+              const stageLabel =
+                segment.edition.raceFormat === "stage_race" && firstStage
+                  ? firstStage.stageNumber === lastStage?.stageNumber
+                    ? `E${firstStage.stageNumber}`
+                    : `E${firstStage.stageNumber}–E${lastStage?.stageNumber}`
+                  : null;
+
+              return (
+                <Link
+                  key={`${segment.edition.id}-${week.weekNumber}-${segment.startHalfDayIndex}`}
+                  href={`/jeu/courses/${segment.edition.slug}`}
+                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}`}
+                  className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
+                    hasSeveralStages ? "pb-5" : ""
+                  } ${
+                    segment.startsBeforeWeek ? "rounded-l-sm" : "rounded-l-lg"
+                  } ${
+                    segment.continuesAfterWeek ? "rounded-r-sm" : "rounded-r-lg"
+                  }`}
+                  style={{
+                    gridColumn: `${columnStart} / ${columnEnd}`,
+                    gridRow: segment.lane + 3,
+                    backgroundColor: style.background,
+                    borderColor: style.border,
+                    color: style.foreground,
+                  }}
+                >
+                  <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[8px] tracking-wider">
+                    {style.shortLabel}
+                  </span>
+
+                  <span className="min-w-0 flex-1 truncate">
+                    {segment.startsBeforeWeek ? "← " : ""}
+                    {halfDaySpan <= 2
+                      ? segment.edition.shortName ?? segment.edition.name
+                      : segment.edition.name}
+                    {segment.continuesAfterWeek ? " →" : ""}
+                  </span>
+
+                  {stageLabel ? (
+                    <span className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-black">
+                      {stageLabel}
+                    </span>
+                  ) : null}
+
+                  {segment.edition.currentTeamRegistration?.status === "accepted" ? (
+                    <span className="shrink-0 text-[9px] font-black" title={`${segment.edition.currentTeamRegistration.rosterCount} coureurs engagés`}>
+                      ✓
+                    </span>
+                  ) : null}
+
+                  {hasSeveralStages ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-0 bottom-0 grid h-4 border-t border-black/10 bg-black/10"
+                      style={{
+                        gridTemplateColumns: `repeat(${halfDaySpan}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {segment.stages.map((stage) => (
+                        <span
+                          key={stage.id}
+                          className="flex items-center justify-center border-l border-white/20 text-[8px] font-black first:border-l-0"
+                        >
+                          E{stage.stageNumber}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+
+          {visibleLaneCount === 0 ? (
+            <p
+              className="relative z-10 mx-1 self-center rounded-lg border border-dashed border-[#315B3E]/20 bg-white/70 px-4 py-2 text-center text-xs font-semibold text-[#688176]"
+              style={{ gridColumn: "1 / 15", gridRow: 3 }}
+            >
+              Aucune course programmée cette semaine.
+            </p>
+          ) : null}
+
+          {hasHiddenLanes ? (
+            <button
+              type="button"
+              onClick={onToggleExpanded}
+              className="relative z-20 mx-1 self-center rounded-lg border border-[#315B3E]/20 bg-white/90 px-3 py-1.5 text-xs font-extrabold text-[#315B3E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+              style={{
+                gridColumn: "1 / 15",
+                gridRow: raceRowCount + 3,
+              }}
+            >
+              {isExpanded
+                ? "Réduire cette semaine"
+                : `Afficher les ${week.laneCount - visibleLaneCount} ligne${week.laneCount - visibleLaneCount > 1 ? "s" : ""} supplémentaire${week.laneCount - visibleLaneCount > 1 ? "s" : ""}`}
+            </button>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }
@@ -706,7 +747,7 @@ function MobileCalendarDay({
             {startsSlot ? (
               <div className="flex items-center justify-between gap-3 rounded-lg bg-[#0B302B] px-3 py-2 text-white">
                 <span className="text-[10px] font-black uppercase tracking-[0.16em]">
-                  {slotConfig.label} · {slotConfig.departureLabel}
+                  {slotConfig.calendarLabel} · {slotConfig.label} · {slotConfig.departureLabel}
                 </span>
                 <span className="text-[9px] font-bold text-[#A9C6BB]">
                   Gel {slotConfig.registrationCutoffHour} h
