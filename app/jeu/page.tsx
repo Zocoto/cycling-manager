@@ -128,6 +128,29 @@ type ManagementModuleIcon =
   | "staff"
   | "infrastructure";
 
+const UNSPLASH_RENDER_PARAMS =
+  "auto=format&fit=crop&w=900&q=60";
+
+/**
+ * Photographies Unsplash (licence libre, usage commercial autorisé) utilisées
+ * en filigrane sur les cartes de modules. Pour changer l’ambiance d’une carte,
+ * il suffit de remplacer l’identifiant de la photo ci-dessous.
+ */
+const MODULE_WATERMARKS: Partial<
+  Record<ManagementModuleIcon, string>
+> = {
+  equipment: `https://images.unsplash.com/photo-1534787238916-9ba6764efd4f?${UNSPLASH_RENDER_PARAMS}`,
+  finance: `https://images.unsplash.com/photo-1600403477955-2b8c2cfab221?${UNSPLASH_RENDER_PARAMS}`,
+  ranking: `https://images.unsplash.com/photo-1517649763962-0c623066013b?${UNSPLASH_RENDER_PARAMS}`,
+  sponsor: `https://images.unsplash.com/photo-1516147697747-02adcafd3fda?${UNSPLASH_RENDER_PARAMS}`,
+  training: `https://images.unsplash.com/photo-1541625602330-2277a4c46182?${UNSPLASH_RENDER_PARAMS}`,
+  staff: `https://images.unsplash.com/photo-1675798227643-da319f8ee8f7?${UNSPLASH_RENDER_PARAMS}`,
+  infrastructure: `https://images.unsplash.com/photo-1760310936486-4dd450aab2a8?${UNSPLASH_RENDER_PARAMS}`,
+  academy: `https://images.unsplash.com/photo-1606224547099-b15c94ca5ef2?${UNSPLASH_RENDER_PARAMS}`,
+  camp: `https://images.unsplash.com/photo-1471506480208-91b3a4cc78be?${UNSPLASH_RENDER_PARAMS}`,
+  transfer: `https://images.unsplash.com/photo-1681295692638-97ace05f56b4?${UNSPLASH_RENDER_PARAMS}`,
+};
+
 export default async function GamePage() {
   const supabase =
     await createSupabaseServerClient();
@@ -1278,10 +1301,30 @@ function ManagementModuleCard({
   description: string;
 }) {
   const className =
-    "group block rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
+    "group relative isolate block overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
+
+  const watermarkUrl = MODULE_WATERMARKS[icon];
+
+  const watermark = watermarkUrl ? (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.14] mix-blend-screen transition-opacity duration-300 group-hover:opacity-[0.22]"
+      style={{
+        backgroundImage: `url("${watermarkUrl}")`,
+        filter:
+          "grayscale(1) brightness(1.35) contrast(1.1)",
+        maskImage:
+          "radial-gradient(120% 110% at 100% 100%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 42%, rgba(0,0,0,0) 78%)",
+        WebkitMaskImage:
+          "radial-gradient(120% 110% at 100% 100%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 42%, rgba(0,0,0,0) 78%)",
+      }}
+    />
+  ) : null;
 
   const content = (
     <>
+      {watermark}
+
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
           <ManagementModuleIcon
