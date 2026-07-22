@@ -19,10 +19,7 @@ import {
   isSponsoringUnlocked,
 } from "../../lib/gameplay-rules";
 import { buildDashboardEventFeed } from "../../lib/game/dashboard-events";
-import {
-  selectDashboardObjectives,
-  type GameObjective,
-} from "../../lib/game/objectives";
+import type { GameObjective } from "../../lib/game/objectives";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -453,7 +450,6 @@ export default async function GamePage() {
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
-  const dashboardObjectives = selectDashboardObjectives(gameObjectives);
   const readyObjectiveCount = gameObjectives.filter(
     (objective) => objective.completed && !objective.claimedAt
   ).length;
@@ -484,9 +480,7 @@ export default async function GamePage() {
         <MountainDecoration />
 
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <DashboardEventsCard events={dashboardEvents} />
-
-          <header className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+          <header className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Bureau du Directeur Sportif
@@ -495,12 +489,6 @@ export default async function GamePage() {
               <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
                 Bonjour, {displayName}.
               </h1>
-
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-[#48665F]">
-                Suivez l’état de votre équipe,
-                votre progression et les principaux
-                domaines de votre carrière.
-              </p>
             </div>
 
             <div className="flex w-full items-stretch gap-3 xl:w-auto xl:justify-self-end">
@@ -508,9 +496,17 @@ export default async function GamePage() {
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
               />
+              <ObjectivesShortcut
+                totalCount={gameObjectives.length}
+                readyCount={readyObjectiveCount}
+              />
               <JerseyShortcut />
             </div>
           </header>
+
+          <div className="mt-10">
+            <DashboardEventsCard events={dashboardEvents} />
+          </div>
 
           {!sportingDirector ? (
             <ProfileErrorMessage />
@@ -545,12 +541,6 @@ export default async function GamePage() {
             />
 
             <div className="grid content-start gap-6">
-              <ObjectivesCard
-                objectives={dashboardObjectives}
-                totalCount={gameObjectives.length}
-                readyCount={readyObjectiveCount}
-              />
-
               <ManagementModuleCard
                 href="/jeu/sponsoring"
                 icon="sponsor"
@@ -1006,130 +996,6 @@ function TeamSponsorInformation({
   );
 }
 
-function ObjectivesCard({
-  objectives,
-  totalCount,
-  readyCount,
-}: {
-  objectives: GameObjective[];
-  totalCount: number;
-  readyCount: number;
-}) {
-  const priority = objectives[0] ?? null;
-  const priorityIsReady = Boolean(
-    priority?.completed && !priority.claimedAt
-  );
-  const hasReadyReward = readyCount > 0;
-
-  return (
-    <article
-      className={`relative isolate overflow-hidden rounded-2xl border p-4 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)] sm:p-5 ${
-        hasReadyReward
-          ? "border-[#FFB45C] bg-[linear-gradient(135deg,#C72F5E,#F06A45)] shadow-[0_20px_48px_rgba(199,47,94,0.28)]"
-          : "border-[#42B99A]/40 bg-[linear-gradient(135deg,#073A32,#0E6151)]"
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`absolute -right-7 -top-8 -z-10 h-28 w-28 rounded-full border-[18px] ${
-          hasReadyReward ? "border-[#FFE06B]/20" : "border-[#72D4B7]/15"
-        }`}
-      />
-      <span
-        aria-hidden="true"
-        className={`absolute inset-x-0 top-0 h-1 ${
-          hasReadyReward ? "bg-[#FFE06B]" : "bg-linear-to-r from-[#72D4B7] to-[#F2C94C]"
-        }`}
-      />
-
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg font-black ${
-            hasReadyReward ? "bg-[#FFE06B] text-[#6D1837]" : "bg-white/12 text-[#9BE0BC]"
-          }`}>
-            {hasReadyReward ? "!" : "◎"}
-          </span>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/75">
-              Objectifs de carrière
-            </p>
-            <h2 className="mt-0.5 text-lg font-black">
-              {hasReadyReward
-                ? `${readyCount > 1 ? "Actions" : "Action"} en attente`
-                : "Prochaine priorité"}
-            </h2>
-          </div>
-        </div>
-
-        <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
-          hasReadyReward ? "bg-white text-[#A5244E]" : "bg-white/12 text-[#D7F4E8]"
-        }`}>
-          {hasReadyReward ? `${readyCount} à récupérer` : `${totalCount} au total`}
-        </span>
-      </div>
-
-      {priority ? (
-        <div className="mt-4 rounded-xl border border-white/15 bg-black/10 p-3.5 backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[9px] font-black uppercase tracking-[0.14em] text-white/75">
-              {priority.type === "primary" ? "Objectif principal" : "Objectif secondaire"}
-            </span>
-            <span className="text-[10px] font-black text-white">
-              {priorityIsReady ? "Terminé" : `${priority.progressPercent} %`}
-            </span>
-          </div>
-          <h3 className="mt-2 line-clamp-1 text-sm font-black text-white">
-            {priority.title}
-          </h3>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/20">
-            <div
-              className={`h-full rounded-full ${priorityIsReady ? "bg-[#FFE06B]" : "bg-[#72D4B7]"}`}
-              style={{ width: `${priority.progressPercent}%` }}
-            />
-          </div>
-          <p className={`mt-2 truncate text-[10px] font-black ${
-            hasReadyReward ? "text-[#FFF0A8]" : "text-[#C9F4E6]"
-          }`}>
-            Gain · {formatDashboardObjectiveReward(priority)}
-          </p>
-        </div>
-      ) : (
-        <p className="mt-4 rounded-xl border border-white/15 bg-black/10 p-3 text-xs font-bold text-white/80">
-          Tous les objectifs disponibles ont été récupérés.
-        </p>
-      )}
-
-      <Link
-        href="/jeu/objectifs"
-        className={`mt-4 inline-flex min-h-9 w-full items-center justify-center rounded-xl px-4 text-[10px] font-black uppercase tracking-[0.12em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
-          hasReadyReward
-            ? "bg-[#FFE06B] text-[#6D1837] hover:bg-[#FFF09D]"
-            : "bg-white text-[#0B4C40] hover:bg-[#E5FFF6]"
-        }`}
-      >
-        Ouvrir mes objectifs →
-      </Link>
-    </article>
-  );
-}
-
-function formatDashboardObjectiveReward(objective: GameObjective) {
-  const rewards: string[] = [];
-  if (objective.reward.cash > 0) {
-    rewards.push(formatDashboardCurrency(objective.reward.cash, "EUR"));
-  }
-  if (objective.reward.experience > 0) {
-    rewards.push(`${objective.reward.experience} XP`);
-  }
-  if (objective.reward.reputation > 0) {
-    rewards.push(`${objective.reward.reputation} réputation`);
-  }
-  if (objective.reward.itemName) {
-    rewards.push(objective.reward.itemName);
-  }
-  return rewards.join(" · ");
-}
-
 function TeamRosterCard({
   status,
   description,
@@ -1394,6 +1260,52 @@ function InventoryShortcut({
             {formatInventoryUnits(totalUnits)} · {availableUnits} disponible{availableUnits > 1 ? "s" : ""}
           </span>
         </span>
+      </span>
+    </Link>
+  );
+}
+
+function ObjectivesShortcut({
+  totalCount,
+  readyCount,
+}: {
+  totalCount: number;
+  readyCount: number;
+}) {
+  return (
+    <Link
+      href="/jeu/objectifs"
+      title={
+        readyCount > 0
+          ? `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`
+          : "Consulter les objectifs de carrière"
+      }
+      className="group relative flex min-w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#A67C00]/55 bg-[#F2C94C] px-3 py-2.5 text-[#183F37] shadow-[0_12px_30px_rgba(122,91,9,0.2)] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] hover:shadow-[0_16px_34px_rgba(122,91,9,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#183F37] sm:min-w-28"
+    >
+      <span className="relative grid h-8 w-8 place-items-center rounded-lg bg-[#183F37] text-[#F2C94C] transition group-hover:bg-[#0B302B]">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-5 w-5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="3" />
+          <path d="m15 9 5-5M17 4h3v3" />
+        </svg>
+        {readyCount > 0 ? (
+          <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#C72F5E] px-1 text-[9px] font-black leading-none text-white">
+            {readyCount > 9 ? "9+" : readyCount}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-xs font-black text-[#183F37]">Objectifs</span>
+      <span className="text-[9px] font-extrabold leading-none text-[#594408]">
+        {readyCount > 0 ? "À récupérer" : `${totalCount} suivis`}
       </span>
     </Link>
   );
