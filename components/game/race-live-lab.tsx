@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { SideRaceCyclist, TopRaceCyclist } from "@/components/game/race-cyclist";
+import {
+  FinishRoadsideInfrastructure,
+  RaceSceneryBackdrop,
+} from "@/components/game/race-scenery";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-calendar";
 import {
@@ -27,6 +32,10 @@ import {
   type RiderSimulationInput,
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
+import {
+  getRaceSceneryKind,
+  shouldShowRaceSpectators,
+} from "@/lib/game/race-visuals";
 
 type LabTab = "live" | "classification" | "rules";
 type PlaybackSpeed = 1 | 2 | 4;
@@ -367,6 +376,7 @@ export function RaceLiveLab({
             <SprintLaneView
               simulation={simulation}
               riderById={riderById}
+              segment={finalSegment}
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
               scenario={finalBattleScenario}
@@ -390,6 +400,7 @@ export function RaceLiveLab({
               segmentProgress={displayedSegmentProgress}
               primeResult={activePrimeResult}
               previousPrimeResult={previousPrimeResult}
+              visualSeed={simulation.seed}
             />
           )}
 
@@ -479,6 +490,7 @@ function RoadScene({
   segmentProgress,
   primeResult,
   previousPrimeResult,
+  visualSeed,
 }: {
   snapshot: ReturnType<typeof simulateRaceStage>["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
@@ -487,6 +499,7 @@ function RoadScene({
   segmentProgress: number;
   primeResult: RacePrimeResult | null;
   previousPrimeResult: RacePrimeResult | null;
+  visualSeed: string | number;
 }) {
   const groups = snapshot.groups.slice(0, 6);
   const visualGradient = Math.max(
@@ -495,6 +508,13 @@ function RoadScene({
   );
   const roadLeftPct = 64 + visualGradient * 1.25;
   const roadRightPct = 64 - visualGradient * 1.25;
+  const scenery = getRaceSceneryKind({ seed: visualSeed, segment });
+  const showSpectators = shouldShowRaceSpectators({
+    seed: visualSeed,
+    segmentNumber: segment.segmentNumber,
+    scenery,
+  });
+  const roadPatternId = `road-surface-${segment.segmentNumber}`;
   const sky =
     segment.terrain === "climb"
       ? "bg-[linear-gradient(#83C0D0_0_40%,#7FAE72_40%_100%)]"
@@ -505,20 +525,17 @@ function RoadScene({
   return (
     <div className={`relative mt-6 h-72 overflow-hidden rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
       <div aria-hidden="true" className="absolute left-8 top-7 h-16 w-16 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
-      <div aria-hidden="true" className={`absolute inset-x-0 bottom-[35%] flex gap-20 opacity-35 ${isMoving ? "cm-race-scenery" : ""}`}>
-        {Array.from({ length: 12 }, (_, index) => (
-          <span key={index} className="block h-12 w-4 shrink-0 rounded-t-full bg-[#244C38] shadow-[0_18px_0_8px_#244C38]" />
-        ))}
-      </div>
+      <RaceSceneryBackdrop kind={scenery} isMoving={isMoving} showSpectators={showSpectators} />
       <svg
         aria-hidden="true"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         className="absolute inset-0 h-full w-full"
       >
+        <RoadSurfaceDefinition id={roadPatternId} surface={segment.surface} compact />
         <path
           d={`M 0 ${roadLeftPct} L 100 ${roadRightPct} L 100 100 L 0 100 Z`}
-          fill="#35453F"
+          fill={segment.surface === "cobbles" ? `url(#${roadPatternId})` : "#35453F"}
         />
         <path
           d={`M -5 ${roadLeftPct + 12} L 105 ${roadRightPct + 12}`}
@@ -538,7 +555,7 @@ function RoadScene({
         />
       </svg>
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
-        {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {formatDistance(snapshot.completedDistanceKm)} km
+        {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {segment.surface === "cobbles" ? "secteur pavé · " : ""}{formatDistance(snapshot.completedDistanceKm)} km
       </p>
 
       <PrimePassageOverlay
@@ -591,7 +608,7 @@ function RoadScene({
 
                 return (
                   <span key={riderId} className="relative">
-                    <SideCyclist rider={rider} isMoving={isMoving} />
+                    <SideRaceCyclist rider={rider} isMoving={isMoving} />
                     {showName ? (
                       <span
                         className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-black shadow ${
@@ -616,6 +633,64 @@ function RoadScene({
         );
       })}
     </div>
+  );
+}
+
+function RoadSurfaceDefinition({
+  id,
+  surface,
+  compact = false,
+}: {
+  id: string;
+  surface: RaceCalendarStage["segments"][number]["surface"];
+  compact?: boolean;
+}) {
+  if (surface !== "cobbles") return null;
+
+  const width = compact ? 5.4 : 30;
+  const height = compact ? 3.4 : 18;
+  const strokeWidth = compact ? 0.22 : 1.15;
+
+  return (
+    <defs>
+      <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse">
+        <rect width={width} height={height} fill="#67645C" />
+        <path
+          d={`M0 ${height / 2}H${width}M${width / 2} 0v${height / 2}M${width * 0.25} ${height / 2}V${height}M${width * 0.76} ${height / 2}V${height}`}
+          fill="none"
+          stroke="#A49A87"
+          strokeWidth={strokeWidth}
+          opacity="0.88"
+        />
+        <path d={`M0 0H${width}M0 ${height}H${width}`} stroke="#413F3A" strokeWidth={strokeWidth * 0.75} opacity="0.8" />
+      </pattern>
+    </defs>
+  );
+}
+
+function RoadTextureOverlay({
+  surface,
+}: {
+  surface: RaceCalendarStage["segments"][number]["surface"];
+}) {
+  const backgroundImage =
+    surface === "cobbles"
+      ? "linear-gradient(90deg,rgba(220,211,194,.28) 1px,transparent 1px),linear-gradient(0deg,rgba(220,211,194,.22) 1px,transparent 1px),linear-gradient(27deg,transparent 43%,rgba(30,29,27,.34) 44% 49%,transparent 50%)"
+      : "radial-gradient(circle at 20% 30%,rgba(255,255,255,.08) 0 1px,transparent 1.5px),linear-gradient(90deg,transparent,rgba(255,255,255,.025),transparent)";
+
+  return (
+    <div
+      aria-hidden="true"
+      data-road-surface={surface}
+      className="pointer-events-none absolute inset-0 opacity-75"
+      style={{
+        backgroundImage,
+        backgroundSize:
+          surface === "cobbles"
+            ? "28px 16px, 28px 16px, 56px 32px"
+            : "34px 34px, 100% 100%",
+      }}
+    />
   );
 }
 
@@ -877,32 +952,6 @@ function getFinishRiderName(name: string) {
   return `${parts[0].charAt(0)}. ${parts.at(-1)}`;
 }
 
-function SideCyclist({
-  rider,
-  isMoving = true,
-  className = "h-10 w-14",
-}: {
-  rider: RiderSimulationInput;
-  isMoving?: boolean;
-  className?: string;
-}) {
-  return (
-    <svg
-      viewBox="0 0 54 38"
-      role="img"
-      aria-label={rider.name}
-      className={`${className} drop-shadow-md ${isMoving ? "cm-bike-bob" : ""}`}
-    >
-      <circle className={isMoving ? "cm-bike-wheel" : ""} cx="12" cy="29" r="8" fill="none" stroke="#E7EEE9" strokeWidth="2" strokeDasharray="3 2" />
-      <circle className={isMoving ? "cm-bike-wheel" : ""} cx="42" cy="29" r="8" fill="none" stroke="#E7EEE9" strokeWidth="2" strokeDasharray="3 2" />
-      <path d="M12 29 23 18l8 11H12l9-14 11 2 10 12" fill="none" stroke="#D8E3DD" strokeWidth="2" strokeLinejoin="round" />
-      <circle cx="29" cy="7" r="4" fill="#E6B18B" />
-      <path d="m27 11-7 8 11 2 5-8Z" fill={rider.teamPrimaryColor} stroke={rider.teamSecondaryColor} strokeWidth="1.5" />
-      <path d="m32 13 8 2" stroke="#E6B18B" strokeWidth="2.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function getGroupScreenPosition(
   group: RaceGroupSnapshot,
   groupIndex: number,
@@ -945,12 +994,14 @@ function getVisualSeedNumber(seed: string) {
 function SprintLaneView({
   simulation,
   riderById,
+  segment,
   metersRemaining,
   finalSegmentMeters,
   scenario,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
+  segment: RaceCalendarStage["segments"][number];
   metersRemaining: number;
   finalSegmentMeters: number;
   scenario: ReturnType<typeof getFinalBattleScenario>;
@@ -998,6 +1049,8 @@ function SprintLaneView({
 
   return (
     <div className="relative mt-6 h-80 overflow-hidden rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
+      <RoadTextureOverlay surface={segment.surface} />
+      <FinishRoadsideInfrastructure mode="top" />
       <div
         aria-hidden="true"
         className={`absolute inset-y-0 left-[84%] z-10 w-3 bg-[repeating-linear-gradient(0deg,#fff_0_8px,#17261E_8px_16px)] shadow-[0_0_24px_rgba(255,255,255,0.45)] transition-opacity duration-300 ${showFinishLine ? "opacity-100" : "opacity-0"}`}
@@ -1075,7 +1128,7 @@ function SprintLaneView({
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
-            <TopCyclist rider={rider} />
+            <TopRaceCyclist rider={rider} />
             {hasFinished && result.rank !== null && result.rank <= 3 ? (
               <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[9px] font-black text-white shadow-lg">
                 {result.rank}. {rider.name.split(" ").at(-1)}
@@ -1093,19 +1146,6 @@ function SprintLaneView({
         <FinishVictoryBanner winner={winner} />
       ) : null}
     </div>
-  );
-}
-
-function TopCyclist({ rider }: { rider: RiderSimulationInput }) {
-  return (
-    <svg viewBox="0 0 66 30" role="img" aria-label={rider.name} className="h-8 w-16 drop-shadow-lg">
-      <ellipse cx="11" cy="15" rx="8" ry="3.5" fill="none" stroke="#E7EEE9" strokeWidth="1.5" />
-      <ellipse cx="55" cy="15" rx="8" ry="3.5" fill="none" stroke="#E7EEE9" strokeWidth="1.5" />
-      <path d="M11 15 28 8l12 7H11l15 7 14-7 15 0" fill="none" stroke="#D8E3DD" strokeWidth="1.5" />
-      <ellipse cx="34" cy="15" rx="12" ry="8" fill={rider.teamPrimaryColor} stroke={rider.teamSecondaryColor} strokeWidth="2" />
-      <circle cx="45" cy="15" r="4" fill="#E6B18B" />
-      <path d="M20 8h9M20 22h9" stroke={rider.teamSecondaryColor} strokeWidth="2" strokeLinecap="round" />
-    </svg>
   );
 }
 
@@ -1134,6 +1174,12 @@ function FinishBattleView({
   );
   const roadLeftY = 224 + visualGradient * 8;
   const roadRightY = 224 - visualGradient * 8;
+  const finishScenery = getRaceSceneryKind({
+    seed: simulation.seed,
+    segment,
+    isFinish: true,
+  });
+  const finishRoadPatternId = "finish-road-surface";
   const battleDistance = Math.min(2_400, finalSegmentMeters);
   const battleProgress = Math.max(
     0,
@@ -1211,10 +1257,12 @@ function FinishBattleView({
     <div className="mt-6">
     <div className="relative h-80 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(#8BCAD7_0_45%,#91B879_45%_100%)] shadow-inner shadow-black/30">
       <div aria-hidden="true" className="absolute left-8 top-7 h-14 w-14 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
+      <RaceSceneryBackdrop kind={finishScenery} isMoving={!hasFinished} showSpectators={false} />
       <svg aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        <RoadSurfaceDefinition id={finishRoadPatternId} surface={segment.surface} />
         <path
           d={`M -30 ${roadLeftY} L 1030 ${roadRightY} L 1030 320 L -30 320 Z`}
-          fill="#35453F"
+          fill={segment.surface === "cobbles" ? `url(#${finishRoadPatternId})` : "#35453F"}
         />
         <path
           d={`M -30 ${roadLeftY - 26} L 1030 ${roadRightY - 26}`}
@@ -1225,6 +1273,7 @@ function FinishBattleView({
           className="cm-finish-road-line"
         />
       </svg>
+      <FinishRoadsideInfrastructure mode="side" roadLeftY={roadLeftY} roadRightY={roadRightY} />
       <div
         aria-hidden="true"
         className={`absolute inset-y-0 left-[86%] z-10 w-2 bg-[repeating-linear-gradient(0deg,#FFFDF4_0_7px,#17261E_7px_14px)] shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-opacity duration-300 ${showFinishLine ? "opacity-100" : "opacity-0"}`}
@@ -1238,7 +1287,7 @@ function FinishBattleView({
           {getSmallGroupFinishPhase(metersRemaining)}
         </p>
         <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
-          {scenario.entryLeaderIds.length} à l’entrée · {decisiveRiderIds.length} encore en lutte · {terrainLabel(segment.terrain)} {segment.averageGradientPct > 0 ? "+" : ""}{segment.averageGradientPct} %
+          {scenario.entryLeaderIds.length} à l’entrée · {decisiveRiderIds.length} encore en lutte · {terrainLabel(segment.terrain)} {segment.averageGradientPct > 0 ? "+" : ""}{segment.averageGradientPct} %{segment.surface === "cobbles" ? " · pavés" : ""}
         </p>
         {breakawayStillAhead ? (
           <p className="mt-1 text-[9px] font-bold text-[#FFF4C4]">
@@ -1297,7 +1346,7 @@ function FinishBattleView({
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
-            <SideCyclist rider={rider} isMoving className="h-10 w-[3.75rem]" />
+            <SideRaceCyclist rider={rider} isMoving className="h-12 w-[4.5rem]" />
             <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${finalIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && hasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42 ? "border-[#B85A32]/65 bg-[#301A15]/92" : "border-white/20 bg-[#071A17]/90"}`}>
               <span className="flex items-center gap-1 text-[9px] font-black text-white">
                 <span

@@ -161,8 +161,8 @@ a {
 }
 
 @keyframes cm-race-scenery {
-  from { transform: translateX(0); }
-  to { transform: translateX(-12rem); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-7%, 0, 0); }
 }
 
 @keyframes cm-bike-bob {
@@ -172,6 +172,20 @@ a {
 
 @keyframes cm-bike-wheel {
   to { stroke-dashoffset: -20; }
+}
+
+@keyframes cm-bike-pedal {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cm-bike-top-sway {
+  0%, 100% { transform: translateY(0) rotate(-0.35deg); }
+  50% { transform: translateY(-0.7px) rotate(0.35deg); }
+}
+
+@keyframes cm-crowd-wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
 }
 
 @keyframes cm-sprint-surge {
@@ -244,7 +258,9 @@ a {
 }
 
 .cm-race-scenery {
-  animation: cm-race-scenery 2.8s linear infinite;
+  animation: cm-race-scenery 3.6s linear infinite alternate;
+  contain: paint;
+  will-change: transform;
 }
 
 .cm-bike-bob {
@@ -253,6 +269,23 @@ a {
 
 .cm-bike-wheel {
   animation: cm-bike-wheel 0.4s linear infinite;
+}
+
+.cm-bike-pedal {
+  animation: cm-bike-pedal 0.5s linear infinite;
+  transform-box: view-box;
+}
+
+.cm-bike-top-sway {
+  animation: cm-bike-top-sway 0.42s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.cm-crowd-wave {
+  animation: cm-crowd-wave 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
 }
 
 .cm-sprint-surge {
@@ -304,6 +337,9 @@ a {
   .cm-race-scenery,
   .cm-bike-bob,
   .cm-bike-wheel,
+  .cm-bike-pedal,
+  .cm-bike-top-sway,
+  .cm-crowd-wave,
   .cm-sprint-surge,
   .cm-sprint-finish-cross,
   .cm-sprint-wind,
