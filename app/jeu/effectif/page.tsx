@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey";
@@ -491,13 +492,25 @@ export default async function TeamRosterPage({
             />
 
             <SummaryCard
-              label="Échéance"
+              label="Nationalité"
               value={
-                riders[0]
-                  ?.contract_end_season_name ??
-                "Non disponible"
+                teamAmateurIdentity ? (
+                  <Link
+                    href={`/jeu/nations/${teamAmateurIdentity.homeCountryCode.toLowerCase()}`}
+                    className="inline-flex items-center gap-3 transition hover:text-[#176951] hover:underline"
+                  >
+                    <span
+                      className={`fi fi-${teamAmateurIdentity.homeCountryCode.toLowerCase()} shrink-0 rounded-sm shadow-sm`}
+                      role="img"
+                      aria-label={`Drapeau ${teamAmateurIdentity.homeCountryName}`}
+                    />
+                    <span>{teamAmateurIdentity.homeCountryName}</span>
+                  </Link>
+                ) : (
+                  "Non disponible"
+                )
               }
-              detail="Contrats initiaux"
+              detail="Pays d’affiliation"
             />
           </section>
 
@@ -730,13 +743,9 @@ function TeamAmateurIdentityBanner({
           <h2 className="mt-3 text-3xl font-black text-[#183F37]">
             {identity.amateurName}
           </h2>
-          <p className="mt-3 leading-7 text-[#60756E]">
-            Équipe amateur affiliée à {identity.homeCountryName}. Ce maillot
-            est utilisé tant qu’aucun sponsor principal n’est actif.
-          </p>
           <Link
             href="/jeu/maillot"
-            className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0F5944] hover:shadow-md"
+            className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0F5944] hover:shadow-md"
           >
             Modifier le maillot
             <span className="ml-2" aria-hidden="true">→</span>
@@ -919,7 +928,7 @@ function SummaryCard({
   detail,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   detail: string;
 }) {
   return (
