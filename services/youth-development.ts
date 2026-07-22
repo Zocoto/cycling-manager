@@ -17,6 +17,7 @@ import {
   type YouthRatings,
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
+import { getScoutYouthBonuses } from "@/lib/game/staff";
 import { getTrainingDomainWeight, type TrainingDomain } from "@/lib/game/training";
 import {
   generateRiderIdentities,
@@ -426,14 +427,21 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const random = createSeededRandom(mission.id);
   const facilityLevel = facilityResult.data?.facility_level ?? 1;
   const nationalityBonus = getScoutNationalityEfficiencyBonus(scout.country_id, country.id);
+  const scoutBonuses = getScoutYouthBonuses(scout.level);
   const count = getScoutingCandidateCount({ scoutLevel: scout.level, durationDays: mission.duration_days, facilityLevel, random });
   const identities = generateRiderIdentities(profile.name_profile_code, count);
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
   const reputation = getCountryBaseReputation(country.iso_alpha2);
   const candidates = identities.map((identity, index) => {
     const archetype = chooseYouthArchetype({ ...specialties, random });
-    const potentialSteps = clamp(Math.round(1 + scout.level * 0.55 + mission.duration_days * 0.16 + facilityLevel * 0.08 + reputation * 0.08 + nationalityBonus / 30 + random() * 1.5), 1, 8);
-    const ratings = generateYouthRatings({ archetype, talent: potentialSteps, accuracyBonus: nationalityBonus / 100, random });
+    const potentialSteps = clamp(Math.round(1 + scoutBonuses.potentialBonus + mission.duration_days * 0.16 + facilityLevel * 0.08 + reputation * 0.08 + nationalityBonus / 30 + random() * 1.5), 1, 8);
+    const ratings = generateYouthRatings({
+      archetype,
+      talent: potentialSteps,
+      accuracyBonus: nationalityBonus / 100,
+      initialRatingBonus: scoutBonuses.initialRatingBonus,
+      random,
+    });
     const costs = calculateYouthSigningCosts({ potentialSteps, ratings, countryReputation: reputation });
     return {
       mission_id: mission.id, report_slot: index + 1, country_id: country.id,

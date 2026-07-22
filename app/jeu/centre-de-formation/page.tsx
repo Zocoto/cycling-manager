@@ -100,7 +100,7 @@ function ScoutingTab({ overview }: { overview: YouthDevelopmentOverview }) {
   return (
     <div className="mt-7 space-y-8">
       <section aria-labelledby="scouts-title">
-        <SectionHeading eyebrow="Cellule de recrutement" title="Vos scouts disponibles" id="scouts-title" description="Un scout ne peut couvrir qu’une zone à la fois. Une nationalité commune avec le pays ciblé améliore son efficacité de 15 %." />
+        <SectionHeading eyebrow="Cellule de recrutement" title="Vos scouts disponibles" id="scouts-title" description="Un scout ne peut couvrir qu’une zone à la fois. Son niveau améliore le potentiel et les statistiques initiales des jeunes détectés ; une nationalité commune avec le pays ciblé ajoute 15 % d’efficacité." />
         {overview.scouts.length ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {overview.scouts.map((scout) => (

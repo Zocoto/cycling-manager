@@ -239,8 +239,8 @@ export default async function InfrastructuresPage() {
 
             <div className="grid gap-2 text-xs font-extrabold text-[#48665F] sm:grid-cols-3 lg:grid-cols-1">
               <ConstructionCheck label="Aucun fonds débité" />
-              <ConstructionCheck label="Aucun bonus actif" />
-              <ConstructionCheck label="Règles à arbitrer" />
+              <ConstructionCheck label="Bonus architecte défini : 5 à 25 %" />
+              <ConstructionCheck label="Coût et durée réduits au lancement" />
             </div>
           </div>
         </section>
