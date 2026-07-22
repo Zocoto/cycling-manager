@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import {
+  InventoryEquipmentForm,
+  type InventoryRiderOption,
+} from "@/components/game/inventory-equipment-form";
+import {
   INVENTORY_CATEGORY_DEFINITIONS,
   getInventoryCategory,
   getInventoryRarityLabel,
@@ -22,13 +26,17 @@ export const metadata: Metadata = {
 };
 
 type InventoryPageProps = {
-  searchParams: Promise<{ categorie?: string | string[] }>;
+  searchParams: Promise<{
+    categorie?: string | string[];
+    erreur?: string | string[];
+  }>;
 };
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
   const query = await searchParams;
   const rawCategory = readQuery(query.categorie);
   const category = isInventoryCategory(rawCategory) ? rawCategory : null;
+  const errorMessage = readQuery(query.erreur).slice(0, 300);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -37,12 +45,26 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview] = await Promise.all([
+  const [headerData, overview, rosterResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentTeamInventoryOverview(user.id),
+    supabase.rpc("get_current_team_roster"),
   ]);
 
   if (!overview) redirect("/jeu");
+
+  if (rosterResult.error) {
+    console.error(
+      "Impossible de récupérer l’effectif pour l’inventaire :",
+      rosterResult.error
+    );
+  }
+
+  const riders = ((rosterResult.data ?? []) as InventoryRiderOption[]).sort(
+    (left, right) =>
+      left.last_name.localeCompare(right.last_name, "fr") ||
+      left.first_name.localeCompare(right.first_name, "fr")
+  );
 
   const visibleItems = category
     ? overview.items.filter((item) => item.category === category)
@@ -65,6 +87,12 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           <span aria-hidden="true">←</span>
           Retour au bureau du DS
         </Link>
+
+        {errorMessage ? (
+          <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
+            {errorMessage}
+          </p>
+        ) : null}
 
         <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#0B302B_58%,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
           <div aria-hidden="true" className="absolute -right-12 -top-20 h-72 w-72 rounded-full border-[46px] border-white/5" />
@@ -157,7 +185,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           {visibleItems.length > 0 ? (
             <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {visibleItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} />
+                <InventoryItemCard key={item.id} item={item} riders={riders} />
               ))}
             </div>
           ) : (
@@ -169,11 +197,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   );
 }
 
-function InventoryItemCard({ item }: { item: TeamInventoryItem }) {
+function InventoryItemCard({
+  item,
+  riders,
+}: {
+  item: TeamInventoryItem;
+  riders: InventoryRiderOption[];
+}) {
   const category = getInventoryCategory(item.category);
-  const href = item.equipmentSlot
-    ? `/jeu/materiel?categorie=${item.equipmentSlot}`
-    : null;
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
@@ -226,13 +257,13 @@ function InventoryItemCard({ item }: { item: TeamInventoryItem }) {
           <ItemMetric label={item.pendingQuantity > 0 ? "Programmé" : "Utilisé"} value={item.pendingQuantity > 0 ? item.pendingQuantity : item.equippedQuantity} />
         </div>
 
-        {href ? (
-          <Link
-            href={href}
-            className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-          >
-            Gérer ce matériel <span aria-hidden="true">→</span>
-          </Link>
+        {item.equipmentSlot ? (
+          <InventoryEquipmentForm
+            equipmentItemId={item.sourceId}
+            slot={item.equipmentSlot}
+            availableQuantity={item.availableQuantity}
+            riders={riders}
+          />
         ) : (
           <p className="mt-5 text-xs font-bold text-[#60756E]">
             {item.isConsumable ? "Objet à usage individuel" : "Objet permanent"}

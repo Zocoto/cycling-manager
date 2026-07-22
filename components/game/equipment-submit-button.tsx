@@ -5,9 +5,11 @@ import { useFormStatus } from "react-dom";
 export function EquipmentSubmitButton({
   mode,
   disabled = false,
+  label,
 }: {
   mode: "purchase" | "equip";
   disabled?: boolean;
+  label?: string;
 }) {
   const { pending } = useFormStatus();
 
@@ -29,7 +31,7 @@ export function EquipmentSubmitButton({
           ? disabled
             ? "Trésorerie insuffisante"
             : "Acheter cette référence"
-          : "Équiper"}
+          : label ?? "Équiper"}
     </button>
   );
 }

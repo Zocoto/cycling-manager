@@ -39,10 +39,17 @@ export async function equipRiderAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const slot = readValue(formData, "slot");
   const equipmentItemId = readValue(formData, "equipmentItemId");
+  const origin = readValue(formData, "origin");
+  const errorPath =
+    origin === "inventory"
+      ? "/jeu/inventaire?categorie=equipment"
+      : isUuid(riderId)
+        ? `/jeu/coureurs/${riderId}`
+        : "/jeu/effectif";
 
   if (!isUuid(riderId) || !isUuid(equipmentItemId) || !isEquipmentSlot(slot)) {
     redirectWithError(
-      isUuid(riderId) ? `/jeu/coureurs/${riderId}` : "/jeu/effectif",
+      errorPath,
       "La demande d’équipement est invalide."
     );
   }
@@ -64,13 +71,14 @@ export async function equipRiderAction(formData: FormData) {
     }
   );
 
-  if (error) redirectWithError(`/jeu/coureurs/${riderId}`, error.message);
+  if (error) redirectWithError(errorPath, error.message);
 
   const isScheduled =
     typeof effectiveAt === "string" &&
     new Date(effectiveAt).getTime() > Date.now() + 60_000;
 
   revalidatePath(`/jeu/coureurs/${riderId}`);
+  revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
   redirect(
     `/jeu/coureurs/${riderId}?equipement=${isScheduled ? "programme" : "equipe"}`
