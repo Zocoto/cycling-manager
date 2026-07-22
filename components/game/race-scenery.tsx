@@ -73,10 +73,10 @@ export function FinishRoadsideInfrastructure({
   return (
     <svg aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 z-10 h-full w-full">
       <g className="cm-crowd-wave">
-        {Array.from({ length: 18 }, (_, index) => {
-          const x = 18 + index * 58;
-          const y = barrierY(x) - 20 - (index % 3) * 2;
-          return <Spectator key={x} x={x} y={y} color={CROWD_COLORS[index % CROWD_COLORS.length]} />;
+        {Array.from({ length: 14 }, (_, index) => {
+          const x = 28 + index * 75;
+          const y = barrierY(x) - 5 - (index % 3) * 1.5;
+          return <Spectator key={x} x={x} y={y} color={CROWD_COLORS[index % CROWD_COLORS.length]} scale={0.62} opacity={0.82} />;
         })}
       </g>
       <path d={`M0 ${barrierY(0)} 1000 ${barrierY(1000)}`} fill="none" stroke="#EEF2F0" strokeWidth="4" />
@@ -163,43 +163,155 @@ function CoastScenery() {
 }
 
 function VillageScenery() {
+  const houses = [
+    { x: 24, y: 145, width: 82, floors: 2, tone: "#E1C599", roof: "#805E4C" },
+    { x: 132, y: 158, width: 72, floors: 1, tone: "#F3E7CD", roof: "#A94735" },
+    { x: 232, y: 148, width: 88, floors: 2, tone: "#C9D7C2", roof: "#705145" },
+    { x: 350, y: 161, width: 74, floors: 1, tone: "#E7D0AA", roof: "#A94735" },
+    { x: 578, y: 153, width: 86, floors: 2, tone: "#F1E5CD", roof: "#775547" },
+    { x: 696, y: 161, width: 76, floors: 1, tone: "#CBD9C5", roof: "#9A493A" },
+    { x: 800, y: 146, width: 91, floors: 2, tone: "#DFC298", roof: "#775547" },
+    { x: 918, y: 159, width: 70, floors: 1, tone: "#F1E5CD", roof: "#A94735" },
+  ] as const;
+
   return (
     <>
       <path d="M0 165Q160 91 320 159T640 153T1000 145V227H0Z" fill="#7EA96F" />
-      {Array.from({ length: 9 }, (_, index) => {
-        const x = 38 + index * 113;
-        const y = 153 + (index % 3) * 10;
-        const width = 62 + (index % 2) * 10;
-        return (
-          <g key={x} transform={`translate(${x} ${y})`}>
-            <rect width={width} height="53" rx="2" fill={index % 3 === 0 ? "#E1C599" : index % 3 === 1 ? "#F3E7CD" : "#C9D7C2"} stroke="#6D735F" strokeWidth="1.4" />
-            <path d={`M-7 1 ${width / 2} -29 ${width + 7} 1Z`} fill={index % 2 ? "#A94735" : "#805E4C"} stroke="#5A463B" strokeWidth="1.4" />
-            <rect x="9" y="17" width="12" height="13" fill="#75A8B7" stroke="#FFFDF4" strokeWidth="2" />
-            <rect x={width - 22} y="17" width="12" height="13" fill="#75A8B7" stroke="#FFFDF4" strokeWidth="2" />
-          </g>
-        );
-      })}
+      {houses.map((house, index) => (
+        <VillageHouse key={house.x} {...house} index={index} />
+      ))}
       <g transform="translate(492 104)">
         <rect x="0" y="30" width="52" height="85" fill="#EADBBE" stroke="#665C4C" strokeWidth="1.5" />
         <path d="M-7 31 26 0l34 31Z" fill="#7C5A45" />
+        <path d="M4 38h44M4 43h44" stroke="#C8B99B" strokeWidth="1" opacity="0.7" />
         <rect x="20" y="50" width="13" height="25" fill="#7195A0" />
+        <path d="M26.5 50v25M20 62.5h13" stroke="#E7F0EC" strokeWidth="1.2" />
         <circle cx="26" cy="18" r="6" fill="#FFFDF4" stroke="#63594B" strokeWidth="1.5" />
+        <path d="M26 12v12M20 18h12" stroke="#63594B" strokeWidth="1" />
       </g>
     </>
   );
 }
 
 function UrbanScenery() {
+  const buildings = [
+    { x: 8, width: 102, height: 104, tone: "#58716C", rows: 4 },
+    { x: 126, width: 88, height: 140, tone: "#4D6662", rows: 6 },
+    { x: 230, width: 112, height: 91, tone: "#657C77", rows: 3 },
+    { x: 360, width: 104, height: 124, tone: "#516B66", rows: 5 },
+    { x: 482, width: 91, height: 78, tone: "#6B817A", rows: 3 },
+    { x: 591, width: 119, height: 151, tone: "#49615E", rows: 6 },
+    { x: 728, width: 87, height: 107, tone: "#617A73", rows: 4 },
+    { x: 833, width: 104, height: 84, tone: "#566F69", rows: 3 },
+    { x: 951, width: 72, height: 119, tone: "#4F6863", rows: 5 },
+  ] as const;
+
   return (
     <>
-      <path d="M0 181 34 181V89h74v92h26V55h93v126h29v-78h82v78h34V72h102v109h26v-59h88v59h36V43h112v138h25V93h76v88h36v-66h91v66h66v48H0Z" fill="#536B67" opacity="0.9" />
+      <path d="M0 173Q230 143 470 166T1000 151V229H0Z" fill="#678878" opacity="0.48" />
+      {buildings.map((building, index) => (
+        <UrbanBuilding key={building.x} {...building} index={index} />
+      ))}
       <path d="M0 196h1000v38H0Z" fill="#728E81" />
-      {Array.from({ length: 17 }, (_, index) => <rect key={index} x={18 + index * 61} y={104 + index % 3 * 18} width="18" height="7" rx="1" fill="#D8E8D9" opacity="0.68" />)}
+      <path d="M0 197h1000" stroke="#C1CEC8" strokeWidth="3" opacity="0.72" />
       {Array.from({ length: 8 }, (_, index) => {
         const x = 65 + index * 128;
         return <g key={x}><path d={`M${x} 149v58`} stroke="#243B35" strokeWidth="3" /><path d={`M${x} 150h13`} stroke="#243B35" strokeWidth="3" /><circle cx={x + 15} cy="151" r="4" fill="#FFF2B5" /></g>;
       })}
     </>
+  );
+}
+
+function VillageHouse({
+  x,
+  y,
+  width,
+  floors,
+  tone,
+  roof,
+  index,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  floors: number;
+  tone: string;
+  roof: string;
+  index: number;
+}) {
+  const height = floors === 2 ? 66 : 52;
+  const windowRows = floors === 2 ? [15, 36] : [17];
+
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect width={width} height={height} rx="2" fill={tone} stroke="#626A58" strokeWidth="1.3" />
+      <path d={`M-7 1 ${width / 2} -27 ${width + 7} 1Z`} fill={roof} stroke="#5A463B" strokeWidth="1.4" />
+      <path d={`M2 -2 ${width / 2} -23 ${width - 2} -2`} fill="none" stroke="#D68B70" strokeWidth="1.2" opacity="0.65" />
+      {index % 2 === 0 ? (
+        <g>
+          <rect x={width - 18} y="-23" width="9" height="18" fill="#75594A" stroke="#554035" strokeWidth="1" />
+          <path d={`M${width - 20} -23h13`} stroke="#3F302A" strokeWidth="2" />
+        </g>
+      ) : null}
+      {windowRows.flatMap((windowY) => [10, width - 25].map((windowX) => (
+        <g key={`${windowX}-${windowY}`}>
+          <rect x={windowX} y={windowY} width="14" height="14" rx="1" fill="#77A7B1" stroke="#FFFDF4" strokeWidth="1.8" />
+          <path d={`M${windowX + 7} ${windowY + 1}v12M${windowX + 1} ${windowY + 7}h12`} stroke="#E8F2EE" strokeWidth="0.9" />
+        </g>
+      )))}
+      <rect x={width / 2 - 7} y={height - 25} width="14" height="25" rx="1.5" fill="#765746" stroke="#4F3B31" strokeWidth="1" />
+      <circle cx={width / 2 + 4} cy={height - 12} r="1" fill="#E5C56D" />
+      <path d={`M2 ${height - 2}h${width - 4}`} stroke="#B69D72" strokeWidth="2" opacity="0.7" />
+    </g>
+  );
+}
+
+function UrbanBuilding({
+  x,
+  width,
+  height,
+  tone,
+  rows,
+  index,
+}: {
+  x: number;
+  width: number;
+  height: number;
+  tone: string;
+  rows: number;
+  index: number;
+}) {
+  const top = 196 - height;
+  const columns = width > 100 ? 4 : 3;
+  const windowWidth = 11;
+  const horizontalGap = (width - columns * windowWidth) / (columns + 1);
+
+  return (
+    <g>
+      <rect x={x} y={top} width={width} height={height} fill={tone} stroke="#344C47" strokeWidth="1.5" />
+      <path d={`M${x - 3} ${top}h${width + 6}`} stroke="#B6C5BF" strokeWidth="3" opacity="0.65" />
+      {index % 3 === 1 ? (
+        <g>
+          <rect x={x + width * 0.36} y={top - 10} width={width * 0.28} height="10" fill="#3C5550" />
+          <path d={`M${x + width * 0.5} ${top - 10}v-17`} stroke="#314741" strokeWidth="2" />
+        </g>
+      ) : null}
+      {Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: columns }, (_, column) => {
+          const windowX = x + horizontalGap + column * (windowWidth + horizontalGap);
+          const windowY = top + 15 + row * 19;
+          return (
+            <g key={`${row}-${column}`}>
+              <rect x={windowX} y={windowY} width={windowWidth} height="8" rx="1" fill={(row + column + index) % 5 === 0 ? "#FFF0AE" : "#B7D1D1"} opacity="0.78" />
+              <path d={`M${windowX + windowWidth / 2} ${windowY}v8`} stroke="#5B7775" strokeWidth="0.7" />
+            </g>
+          );
+        })
+      )}
+      {index % 2 === 0 ? (
+        <path d={`M${x + 8} ${top + height * 0.58}h${width - 16}m-${width - 21} 5h${width - 26}`} stroke="#CAD4CF" strokeWidth="1.5" opacity="0.58" />
+      ) : null}
+    </g>
   );
 }
 
@@ -216,16 +328,28 @@ function Tree({ x, y, scale }: { x: number; y: number; scale: number }) {
 function ScenerySpectators() {
   return (
     <g className="cm-crowd-wave">
-      {Array.from({ length: 14 }, (_, index) => (
-        <Spectator key={index} x={105 + index * 64} y={181 + (index % 4) * 4} color={CROWD_COLORS[index % CROWD_COLORS.length]} />
+      {Array.from({ length: 10 }, (_, index) => (
+        <Spectator key={index} x={90 + index * 94} y={190 + (index % 4) * 3} color={CROWD_COLORS[index % CROWD_COLORS.length]} scale={0.56} opacity={0.74} />
       ))}
     </g>
   );
 }
 
-function Spectator({ x, y, color }: { x: number; y: number; color: string }) {
+function Spectator({
+  x,
+  y,
+  color,
+  scale = 1,
+  opacity = 1,
+}: {
+  x: number;
+  y: number;
+  color: string;
+  scale?: number;
+  opacity?: number;
+}) {
   return (
-    <g transform={`translate(${x} ${y})`}>
+    <g transform={`translate(${x} ${y}) scale(${scale})`} opacity={opacity}>
       <circle cx="0" cy="-17" r="5.5" fill="#DDA37F" stroke="#5F4133" strokeWidth="0.7" />
       <path d="M-6-11h12l4 18h-20Z" fill={color} stroke="#31423A" strokeWidth="0.8" />
       <path d="m-5-8-8 10m18-10L14 0" stroke="#DDA37F" strokeWidth="3" strokeLinecap="round" />
@@ -235,13 +359,13 @@ function Spectator({ x, y, color }: { x: number; y: number; color: string }) {
 
 function TopCrowd({ y, flip }: { y: number; flip: boolean }) {
   return (
-    <g transform={flip ? `translate(0 ${y * 2}) scale(1 -1)` : undefined}>
-      {Array.from({ length: 22 }, (_, index) => {
-        const x = 15 + index * 47;
+    <g transform={flip ? `translate(0 ${y * 2}) scale(1 -1)` : undefined} opacity="0.8">
+      {Array.from({ length: 17 }, (_, index) => {
+        const x = 20 + index * 60;
         return (
           <g key={x} transform={`translate(${x} ${y + (index % 3) * 2})`}>
-            <circle cx="0" cy="0" r="5" fill="#DDA37F" />
-            <rect x="-7" y="5" width="14" height="8" rx="3" fill={CROWD_COLORS[index % CROWD_COLORS.length]} />
+            <circle cx="0" cy="0" r="3.4" fill="#DDA37F" />
+            <rect x="-5" y="3.5" width="10" height="5.5" rx="2" fill={CROWD_COLORS[index % CROWD_COLORS.length]} />
           </g>
         );
       })}

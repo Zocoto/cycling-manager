@@ -482,6 +482,32 @@ function TabButton({
   );
 }
 
+function RaceVisualViewport({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className: string;
+}) {
+  return (
+    <div className="mt-6">
+      <p className="mb-2 text-right text-[10px] font-bold text-[#8FA99D] sm:hidden">
+        Glissez horizontalement pour suivre la course
+      </p>
+      <div
+        dir="rtl"
+        role="region"
+        aria-label="Visualisation de la course, défilement horizontal sur téléphone"
+        className="-mx-5 overflow-x-auto px-5 pb-1 sm:mx-0 sm:overflow-visible sm:px-0"
+      >
+        <div dir="ltr" className={`relative min-w-[44rem] overflow-hidden sm:min-w-0 ${className}`}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RoadScene({
   snapshot,
   riderById,
@@ -523,7 +549,7 @@ function RoadScene({
         : "bg-[linear-gradient(#8FD1DC_0_46%,#A7C585_46%_100%)]";
 
   return (
-    <div className={`relative mt-6 h-72 overflow-hidden rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
+    <RaceVisualViewport className={`h-72 rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
       <div aria-hidden="true" className="absolute left-8 top-7 h-16 w-16 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
       <RaceSceneryBackdrop kind={scenery} isMoving={isMoving} showSpectators={showSpectators} />
       <svg
@@ -534,8 +560,22 @@ function RoadScene({
       >
         <RoadSurfaceDefinition id={roadPatternId} surface={segment.surface} compact />
         <path
+          d={`M -2 ${roadLeftPct} L 102 ${roadRightPct}`}
+          fill="none"
+          stroke="#557450"
+          strokeWidth="8"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={`M -2 ${roadLeftPct} L 102 ${roadRightPct}`}
+          fill="none"
+          stroke="#C8B889"
+          strokeWidth="5.2"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
           d={`M 0 ${roadLeftPct} L 100 ${roadRightPct} L 100 100 L 0 100 Z`}
-          fill={segment.surface === "cobbles" ? `url(#${roadPatternId})` : "#35453F"}
+          fill={segment.surface === "cobbles" ? `url(#${roadPatternId})` : `url(#${roadPatternId}-asphalt)`}
         />
         <path
           d={`M -5 ${roadLeftPct + 12} L 105 ${roadRightPct + 12}`}
@@ -549,8 +589,15 @@ function RoadScene({
         <path
           d={`M 0 ${roadLeftPct} L 100 ${roadRightPct}`}
           fill="none"
-          stroke="rgba(255,255,255,0.38)"
-          strokeWidth="0.55"
+          stroke="rgba(16,32,27,0.55)"
+          strokeWidth="1.8"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={`M 0 ${roadLeftPct} L 100 ${roadRightPct}`}
+          fill="none"
+          stroke="#E6D8AE"
+          strokeWidth="0.75"
           vectorEffect="non-scaling-stroke"
         />
       </svg>
@@ -587,7 +634,7 @@ function RoadScene({
             className="absolute -translate-x-1/2 -translate-y-full transition-[left,top] duration-700 ease-out"
             style={{
               left: `${left}%`,
-              top: `${roadTopPct + 2}%`,
+              top: `${roadTopPct + 9}%`,
               zIndex: 20 - groupIndex,
             }}
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
@@ -632,7 +679,7 @@ function RoadScene({
           </div>
         );
       })}
-    </div>
+    </RaceVisualViewport>
   );
 }
 
@@ -645,25 +692,30 @@ function RoadSurfaceDefinition({
   surface: RaceCalendarStage["segments"][number]["surface"];
   compact?: boolean;
 }) {
-  if (surface !== "cobbles") return null;
-
   const width = compact ? 5.4 : 30;
   const height = compact ? 3.4 : 18;
   const strokeWidth = compact ? 0.22 : 1.15;
 
   return (
     <defs>
-      <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse">
-        <rect width={width} height={height} fill="#67645C" />
-        <path
-          d={`M0 ${height / 2}H${width}M${width / 2} 0v${height / 2}M${width * 0.25} ${height / 2}V${height}M${width * 0.76} ${height / 2}V${height}`}
-          fill="none"
-          stroke="#A49A87"
-          strokeWidth={strokeWidth}
-          opacity="0.88"
-        />
-        <path d={`M0 0H${width}M0 ${height}H${width}`} stroke="#413F3A" strokeWidth={strokeWidth * 0.75} opacity="0.8" />
-      </pattern>
+      <linearGradient id={`${id}-asphalt`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#465650" />
+        <stop offset="0.24" stopColor="#35453F" />
+        <stop offset="1" stopColor="#283530" />
+      </linearGradient>
+      {surface === "cobbles" ? (
+        <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse">
+          <rect width={width} height={height} fill="#67645C" />
+          <path
+            d={`M0 ${height / 2}H${width}M${width / 2} 0v${height / 2}M${width * 0.25} ${height / 2}V${height}M${width * 0.76} ${height / 2}V${height}`}
+            fill="none"
+            stroke="#A49A87"
+            strokeWidth={strokeWidth}
+            opacity="0.88"
+          />
+          <path d={`M0 0H${width}M0 ${height}H${width}`} stroke="#413F3A" strokeWidth={strokeWidth * 0.75} opacity="0.8" />
+        </pattern>
+      ) : null}
     </defs>
   );
 }
@@ -1048,7 +1100,7 @@ function SprintLaneView({
     : null;
 
   return (
-    <div className="relative mt-6 h-80 overflow-hidden rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
+    <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
       <RoadTextureOverlay surface={segment.surface} />
       <FinishRoadsideInfrastructure mode="top" />
       <div
@@ -1145,7 +1197,7 @@ function SprintLaneView({
       {hasFinished && winner ? (
         <FinishVictoryBanner winner={winner} />
       ) : null}
-    </div>
+    </RaceVisualViewport>
   );
 }
 
@@ -1254,18 +1306,42 @@ function FinishBattleView({
     : null;
 
   return (
-    <div className="mt-6">
-    <div className="relative h-80 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(#8BCAD7_0_45%,#91B879_45%_100%)] shadow-inner shadow-black/30">
+    <div>
+    <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[linear-gradient(#8BCAD7_0_45%,#91B879_45%_100%)] shadow-inner shadow-black/30">
       <div aria-hidden="true" className="absolute left-8 top-7 h-14 w-14 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
       <RaceSceneryBackdrop kind={finishScenery} isMoving={!hasFinished} showSpectators={false} />
       <svg aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
         <RoadSurfaceDefinition id={finishRoadPatternId} surface={segment.surface} />
         <path
-          d={`M -30 ${roadLeftY} L 1030 ${roadRightY} L 1030 320 L -30 320 Z`}
-          fill={segment.surface === "cobbles" ? `url(#${finishRoadPatternId})` : "#35453F"}
+          d={`M -30 ${roadLeftY} L 1030 ${roadRightY}`}
+          fill="none"
+          stroke="#557450"
+          strokeWidth="26"
         />
         <path
-          d={`M -30 ${roadLeftY - 26} L 1030 ${roadRightY - 26}`}
+          d={`M -30 ${roadLeftY} L 1030 ${roadRightY}`}
+          fill="none"
+          stroke="#C8B889"
+          strokeWidth="16"
+        />
+        <path
+          d={`M -30 ${roadLeftY} L 1030 ${roadRightY} L 1030 320 L -30 320 Z`}
+          fill={segment.surface === "cobbles" ? `url(#${finishRoadPatternId})` : `url(#${finishRoadPatternId}-asphalt)`}
+        />
+        <path
+          d={`M -30 ${roadLeftY} L 1030 ${roadRightY}`}
+          fill="none"
+          stroke="rgba(16,32,27,0.58)"
+          strokeWidth="6"
+        />
+        <path
+          d={`M -30 ${roadLeftY} L 1030 ${roadRightY}`}
+          fill="none"
+          stroke="#E6D8AE"
+          strokeWidth="2.5"
+        />
+        <path
+          d={`M -30 ${roadLeftY + 42} L 1030 ${roadRightY + 42}`}
           fill="none"
           stroke="rgba(255,255,255,0.55)"
           strokeWidth="4"
@@ -1342,7 +1418,7 @@ function FinishBattleView({
             className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-out"
             style={{
               left: `${left}%`,
-              top: `${(roadY / 320) * 100 + 2}%`,
+              top: `${(roadY / 320) * 100 + 8}%`,
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
@@ -1368,7 +1444,7 @@ function FinishBattleView({
       {hasFinished && winner ? (
         <FinishVictoryBanner winner={winner} />
       ) : null}
-    </div>
+    </RaceVisualViewport>
     <div className="mt-3 grid gap-2 sm:grid-cols-3">
       <FinishScenarioStep
         label="Entrée du tronçon"

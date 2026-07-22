@@ -24,7 +24,7 @@ export function SideRaceCyclist({
       aria-label={`${rider.name}, ${rider.teamName}`}
       className={`${className} overflow-visible drop-shadow-md ${isMoving ? "cm-bike-bob" : ""}`}
     >
-      <title>{rider.name} · {rider.teamName}</title>
+      <title>{`${rider.name} · ${rider.teamName}`}</title>
       <SideWheel cx={14} moving={isMoving} />
       <SideWheel cx={58} moving={isMoving} />
 
@@ -82,7 +82,7 @@ export function TopRaceCyclist({
       aria-label={`${rider.name}, ${rider.teamName}`}
       className={`h-9 w-[4.75rem] overflow-visible drop-shadow-lg ${isMoving ? "cm-bike-top-sway" : ""}`}
     >
-      <title>{rider.name} · {rider.teamName}</title>
+      <title>{`${rider.name} · ${rider.teamName}`}</title>
       <g fill="none" stroke="#E7EEE9" strokeWidth="1.25">
         <ellipse className={isMoving ? "cm-bike-wheel" : ""} cx="10" cy="17" rx="8" ry="3.3" strokeDasharray="3 2" />
         <ellipse className={isMoving ? "cm-bike-wheel" : ""} cx="62" cy="17" rx="8" ry="3.3" strokeDasharray="3 2" />
