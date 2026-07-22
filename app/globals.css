@@ -119,23 +119,27 @@ a {
 
 .game-workspace-background {
   min-height: 100vh;
-  background-color: #f7faf8;
+  background-color: #f5f8f5;
   background-image:
-    radial-gradient(circle at 7% 2%, rgb(66 185 154 / 8%), transparent 30rem),
-    radial-gradient(circle at 95% 42%, rgb(242 201 76 / 5.5%), transparent 28rem),
-    radial-gradient(circle, rgb(23 105 81 / 3.6%) 0 0.75px, transparent 0.9px),
-    url("/game-workspace-pattern.svg");
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 84%) 0%,
+      rgb(255 255 255 / 80%) 42%,
+      rgb(250 252 251 / 88%) 100%
+    ),
+    radial-gradient(circle at 50% 12%, rgb(255 255 255 / 42%), transparent 48%),
+    url("/images/game-workspace-escape.webp");
   background-position:
-    left top,
-    right center,
-    0 0,
+    center,
+    center,
     center top;
-  background-repeat: no-repeat, no-repeat, repeat, repeat-y;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, normal, luminosity;
   background-size:
-    auto,
-    auto,
-    24px 24px,
-    1440px 900px;
+    cover,
+    cover,
+    cover;
+  background-attachment: fixed;
 }
 
 .game-workspace-background > main {
@@ -144,16 +148,10 @@ a {
 
 @media (max-width: 640px) {
   .game-workspace-background {
-    background-size:
-      auto,
-      auto,
-      22px 22px,
-      980px 613px;
     background-position:
-      left top,
-      right center,
-      0 0,
-      65% top;
+      center,
+      center,
+      34% center;
   }
 }
 
