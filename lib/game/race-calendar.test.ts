@@ -5,6 +5,7 @@ import {
   getEditionDayRange,
   getEffectiveSeasonDay,
   getRegistrationAvailability,
+  getSeasonHalfDayIndex,
   isBeforeRegistrationDeadline,
   isCurrentTeamRegisteredForRace,
   isRaceEditionAvailableToCurrentTeam,
@@ -48,7 +49,8 @@ describe("buildCalendarWeeks", () => {
   it("découpe une course traversant deux semaines", () => {
     const edition = createEdition(
       "tour-test",
-      [6, 7, 8, 9, 10]
+      [6, 6, 7, 7, 8],
+      ["early", "late", "early", "late", "early"]
     );
     const weeks = buildCalendarWeeks([
       edition,
@@ -57,19 +59,29 @@ describe("buildCalendarWeeks", () => {
     expect(weeks[0].segments[0]).toMatchObject({
       startDay: 6,
       endDay: 7,
+      startHalfDayIndex: 10,
+      endHalfDayIndex: 13,
       continuesAfterWeek: true,
     });
     expect(weeks[1].segments[0]).toMatchObject({
       startDay: 8,
-      endDay: 10,
+      endDay: 8,
       startsBeforeWeek: true,
     });
   });
 
   it("place deux courses simultanées sur deux lignes", () => {
     const weeks = buildCalendarWeeks([
-      createEdition("tour-a", [2, 3, 4]),
-      createEdition("tour-b", [3, 4, 5]),
+      createEdition(
+        "tour-a",
+        [2, 2, 3],
+        ["early", "late", "early"]
+      ),
+      createEdition(
+        "tour-b",
+        [2, 3, 3],
+        ["late", "early", "late"]
+      ),
     ]);
 
     expect(weeks[0].laneCount).toBe(2);
@@ -83,11 +95,9 @@ describe("buildCalendarWeeks", () => {
   it("condense cinq étapes de J2 matin à J4 matin", () => {
     const edition = createEdition(
       "tour-condense",
-      [2, 2, 3, 3, 4]
+      [2, 2, 3, 3, 4],
+      ["early", "late", "early", "late", "early"]
     );
-    edition.stages.forEach((stage, index) => {
-      stage.daySlot = index % 2 === 0 ? "early" : "late";
-    });
 
     expect(getEditionDayRange(edition)).toEqual({
       startDay: 2,
@@ -107,14 +117,34 @@ describe("buildCalendarWeeks", () => {
     ]);
   });
 
-  it("sépare les lignes de 14 h et de 18 h", () => {
+  it("place AM et PM dans deux sous-colonnes successives", () => {
     const weeks = buildCalendarWeeks([
-      createEdition("tour-matin", [2, 3, 4], "early"),
-      createEdition("tour-apres-midi", [2, 3, 4], "late"),
+      createEdition("course-am", [2], "early"),
+      createEdition("course-pm", [2], "late"),
     ]);
 
-    expect(weeks[0].laneCountBySlot).toEqual({ early: 1, late: 1 });
+    expect(weeks[0].laneCount).toBe(1);
     expect(weeks[0].segments.map((segment) => segment.lane)).toEqual([0, 0]);
+    expect(weeks[0].segments.map((segment) => segment.startHalfDayIndex)).toEqual([
+      getSeasonHalfDayIndex(2, "early"),
+      getSeasonHalfDayIndex(2, "late"),
+    ]);
+  });
+
+  it("n’invente pas une étape dans une demi-journée laissée vide", () => {
+    const weeks = buildCalendarWeeks([
+      createEdition(
+        "tour-interrompu",
+        [2, 3],
+        ["early", "early"]
+      ),
+    ]);
+
+    expect(weeks[0].segments).toHaveLength(2);
+    expect(weeks[0].segments.map((segment) => segment.startHalfDayIndex)).toEqual([
+      getSeasonHalfDayIndex(2, "early"),
+      getSeasonHalfDayIndex(3, "early"),
+    ]);
   });
 });
 
@@ -274,7 +304,7 @@ describe("règles de composition et de retrait", () => {
 function createEdition(
   slug: string,
   dayNumbers: number[],
-  daySlot: "early" | "late" = "early"
+  daySlot: "early" | "late" | Array<"early" | "late"> = "early"
 ): RaceCalendarEdition {
   return {
     id: slug,
@@ -308,7 +338,7 @@ function createEdition(
         status: "planned",
         profileType: "mixed",
         distanceKm: 170,
-        daySlot,
+        daySlot: Array.isArray(daySlot) ? daySlot[index] ?? "early" : daySlot,
         departureAt: null,
         segments: [],
       })

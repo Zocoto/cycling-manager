@@ -16,6 +16,7 @@ export const RACE_DAY_SLOT_CONFIG: Record<
   RaceDaySlot,
   {
     label: string;
+    calendarLabel: "AM" | "PM";
     shortLabel: string;
     departureLabel: string;
     registrationCutoffLabel: string;
@@ -25,6 +26,7 @@ export const RACE_DAY_SLOT_CONFIG: Record<
 > = {
   early: {
     label: "Matin",
+    calendarLabel: "AM",
     shortLabel: "14 h",
     departureLabel: "Départ à 14 h",
     registrationCutoffLabel: "Inscriptions figées à 8 h",
@@ -33,6 +35,7 @@ export const RACE_DAY_SLOT_CONFIG: Record<
   },
   late: {
     label: "Après-midi",
+    calendarLabel: "PM",
     shortLabel: "18 h",
     departureLabel: "Départ à 18 h",
     registrationCutoffLabel: "Inscriptions figées à 12 h",
@@ -157,11 +160,13 @@ export type SeasonRaceCalendar = {
 
 export type WeekRaceSegment = {
   edition: RaceCalendarEdition;
+  stages: RaceCalendarStage[];
+  startHalfDayIndex: number;
+  endHalfDayIndex: number;
   startDay: number;
   endDay: number;
   startsBeforeWeek: boolean;
   continuesAfterWeek: boolean;
-  daySlot: RaceDaySlot;
   lane: number;
 };
 
@@ -169,9 +174,10 @@ export type CalendarWeek = {
   weekNumber: number;
   startDay: number;
   endDay: number;
+  startHalfDayIndex: number;
+  endHalfDayIndex: number;
   segments: WeekRaceSegment[];
   laneCount: number;
-  laneCountBySlot: Record<RaceDaySlot, number>;
 };
 
 export const RACE_CATEGORY_STYLE: Record<
@@ -243,6 +249,16 @@ export function compareRaceDaySlots(first: RaceDaySlot, second: RaceDaySlot) {
   return RACE_DAY_SLOTS.indexOf(first) - RACE_DAY_SLOTS.indexOf(second);
 }
 
+export function getSeasonHalfDayIndex(
+  dayNumber: number,
+  daySlot: RaceDaySlot
+) {
+  return (
+    (Math.max(1, Math.trunc(dayNumber)) - 1) * RACE_DAY_SLOTS.length +
+    RACE_DAY_SLOTS.indexOf(daySlot)
+  );
+}
+
 export function getEffectiveSeasonDay({
   startsOn,
   persistedDayNumber,
@@ -290,12 +306,17 @@ export function buildCalendarWeeks(
     (_, weekIndex) => {
       const startDay = weekIndex * 7 + 1;
       const endDay = startDay + 6;
+      const startHalfDayIndex = getSeasonHalfDayIndex(startDay, "early");
+      const endHalfDayIndex = getSeasonHalfDayIndex(endDay, "late");
       const rawSegments = editions
-        .map((edition) =>
-          getEditionWeekSegment(
-            edition,
-            startDay,
-            endDay
+        .flatMap((edition) =>
+          getEditionHalfDayRuns(edition).map((run) =>
+            getEditionWeekSegment(
+              edition,
+              run,
+              startHalfDayIndex,
+              endHalfDayIndex
+            )
           )
         )
         .filter(
@@ -307,25 +328,21 @@ export function buildCalendarWeeks(
           > => segment !== null
         )
         .sort(compareWeekSegments);
-      const laneEndDaysBySlot: Record<RaceDaySlot, number[]> = {
-        early: [],
-        late: [],
-      };
+      const laneEndHalfDayIndexes: number[] = [];
 
       const segments = rawSegments.map(
         (segment) => {
-          const laneEndDays = laneEndDaysBySlot[segment.daySlot];
           const availableLane =
-            laneEndDays.findIndex(
-              (laneEndDay) =>
-                laneEndDay < segment.startDay
+            laneEndHalfDayIndexes.findIndex(
+              (laneEndHalfDayIndex) =>
+                laneEndHalfDayIndex < segment.startHalfDayIndex
             );
           const lane =
             availableLane === -1
-              ? laneEndDays.length
+              ? laneEndHalfDayIndexes.length
               : availableLane;
 
-          laneEndDays[lane] = segment.endDay;
+          laneEndHalfDayIndexes[lane] = segment.endHalfDayIndex;
 
           return {
             ...segment,
@@ -338,15 +355,10 @@ export function buildCalendarWeeks(
         weekNumber: weekIndex + 1,
         startDay,
         endDay,
+        startHalfDayIndex,
+        endHalfDayIndex,
         segments,
-        laneCount: Math.max(
-          laneEndDaysBySlot.early.length,
-          laneEndDaysBySlot.late.length
-        ),
-        laneCountBySlot: {
-          early: laneEndDaysBySlot.early.length,
-          late: laneEndDaysBySlot.late.length,
-        },
+        laneCount: laneEndHalfDayIndexes.length,
       };
     }
   );
@@ -489,30 +501,45 @@ export function isBeforeRegistrationDeadline(
 
 function getEditionWeekSegment(
   edition: RaceCalendarEdition,
-  weekStartDay: number,
-  weekEndDay: number
+  run: EditionHalfDayRun,
+  weekStartHalfDayIndex: number,
+  weekEndHalfDayIndex: number
 ): Omit<WeekRaceSegment, "lane"> | null {
-  if (edition.stages.length === 0) {
-    return null;
-  }
-
-  const { startDay, endDay } =
-    getEditionDayRange(edition);
-
   if (
-    endDay < weekStartDay ||
-    startDay > weekEndDay
+    run.endHalfDayIndex < weekStartHalfDayIndex ||
+    run.startHalfDayIndex > weekEndHalfDayIndex
   ) {
     return null;
   }
 
+  const startHalfDayIndex = Math.max(
+    run.startHalfDayIndex,
+    weekStartHalfDayIndex
+  );
+  const endHalfDayIndex = Math.min(
+    run.endHalfDayIndex,
+    weekEndHalfDayIndex
+  );
+
   return {
     edition,
-    startDay: Math.max(startDay, weekStartDay),
-    endDay: Math.min(endDay, weekEndDay),
-    startsBeforeWeek: startDay < weekStartDay,
-    continuesAfterWeek: endDay > weekEndDay,
-    daySlot: edition.stages[0]?.daySlot ?? "late",
+    stages: run.stages.filter((stage) => {
+      const halfDayIndex = getSeasonHalfDayIndex(
+        stage.dayNumber,
+        stage.daySlot
+      );
+
+      return (
+        halfDayIndex >= startHalfDayIndex &&
+        halfDayIndex <= endHalfDayIndex
+      );
+    }),
+    startHalfDayIndex,
+    endHalfDayIndex,
+    startDay: Math.floor(startHalfDayIndex / 2) + 1,
+    endDay: Math.floor(endHalfDayIndex / 2) + 1,
+    startsBeforeWeek: run.startHalfDayIndex < weekStartHalfDayIndex,
+    continuesAfterWeek: run.endHalfDayIndex > weekEndHalfDayIndex,
   };
 }
 
@@ -520,21 +547,14 @@ function compareWeekSegments(
   first: Omit<WeekRaceSegment, "lane">,
   second: Omit<WeekRaceSegment, "lane">
 ) {
-  if (first.startDay !== second.startDay) {
-    return first.startDay - second.startDay;
-  }
-
-
-  const slotComparison = compareRaceDaySlots(first.daySlot, second.daySlot);
-
-  if (slotComparison !== 0) {
-    return slotComparison;
+  if (first.startHalfDayIndex !== second.startHalfDayIndex) {
+    return first.startHalfDayIndex - second.startHalfDayIndex;
   }
 
   const firstDuration =
-    first.endDay - first.startDay;
+    first.endHalfDayIndex - first.startHalfDayIndex;
   const secondDuration =
-    second.endDay - second.startDay;
+    second.endHalfDayIndex - second.startHalfDayIndex;
 
   if (firstDuration !== secondDuration) {
     return secondDuration - firstDuration;
@@ -544,6 +564,49 @@ function compareWeekSegments(
     first.edition.prestigeRank -
     second.edition.prestigeRank
   );
+}
+
+type EditionHalfDayRun = {
+  stages: RaceCalendarStage[];
+  startHalfDayIndex: number;
+  endHalfDayIndex: number;
+};
+
+function getEditionHalfDayRuns(
+  edition: RaceCalendarEdition
+): EditionHalfDayRun[] {
+  const orderedStages = [...edition.stages].sort(
+    (first, second) =>
+      getSeasonHalfDayIndex(first.dayNumber, first.daySlot) -
+        getSeasonHalfDayIndex(second.dayNumber, second.daySlot) ||
+      first.stageNumber - second.stageNumber
+  );
+  const runs: EditionHalfDayRun[] = [];
+
+  for (const stage of orderedStages) {
+    const halfDayIndex = getSeasonHalfDayIndex(
+      stage.dayNumber,
+      stage.daySlot
+    );
+    const currentRun = runs.at(-1);
+
+    if (
+      !currentRun ||
+      halfDayIndex !== currentRun.endHalfDayIndex + 1
+    ) {
+      runs.push({
+        stages: [stage],
+        startHalfDayIndex: halfDayIndex,
+        endHalfDayIndex: halfDayIndex,
+      });
+      continue;
+    }
+
+    currentRun.stages.push(stage);
+    currentRun.endHalfDayIndex = halfDayIndex;
+  }
+
+  return runs;
 }
 
 function clampSeasonDay(dayNumber: number) {

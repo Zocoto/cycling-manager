@@ -22,7 +22,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-const DEFAULT_VISIBLE_LANES_PER_SLOT = 3;
+const DEFAULT_VISIBLE_LANES = 5;
 
 const shortDateFormatter =
   new Intl.DateTimeFormat("fr-FR", {
@@ -280,6 +280,19 @@ export function SeasonCalendar({
 
       {view === "planning" ? (
         <>
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#315B3E]/15 bg-[#F3F8F5] px-4 py-3 text-[11px] font-bold text-[#557064]">
+            <span className="font-black uppercase tracking-[0.14em] text-[#0B302B]">
+              Deux créneaux par jour
+            </span>
+            <span>
+              <strong className="text-[#176951]">AM</strong> · départ 14 h · gel 8 h
+            </span>
+            <span>
+              <strong className="text-[#176951]">PM</strong> · départ 18 h · gel 12 h
+            </span>
+            <span>Les tours enchaînent une étape à chaque demi-journée.</span>
+          </div>
+
       <div className="mt-7 hidden space-y-4 md:block">
         {weeks.map((week) => (
           <DesktopCalendarWeek
@@ -672,266 +685,299 @@ function DesktopCalendarWeek({
     SeasonRaceCalendar["events"]
   >;
 }) {
-  const visibleLaneCountBySlot = Object.fromEntries(
-    RACE_DAY_SLOTS.map((slot) => [
-      slot,
-      Math.min(
-        DEFAULT_VISIBLE_LANES_PER_SLOT,
-        week.laneCountBySlot[slot]
-      ),
-    ])
-  ) as Record<(typeof RACE_DAY_SLOTS)[number], number>;
-  const hasHiddenLanes = RACE_DAY_SLOTS.some(
-    (slot) => week.laneCountBySlot[slot] > DEFAULT_VISIBLE_LANES_PER_SLOT
-  );
-  const earlyLaneCount = visibleLaneCountBySlot.early;
-  const lateLaneCount = visibleLaneCountBySlot.late;
-  const rowCount = earlyLaneCount + lateLaneCount + 2 + (hasHiddenLanes ? 1 : 0);
+  const visibleLaneCount = Math.min(DEFAULT_VISIBLE_LANES, week.laneCount);
+  const hasHiddenLanes = week.laneCount > DEFAULT_VISIBLE_LANES;
+  const raceRowCount = Math.max(1, visibleLaneCount);
+  const totalRowCount = 2 + raceRowCount + (hasHiddenLanes ? 1 : 0);
 
   return (
     <section
       aria-label={`Semaine ${week.weekNumber}, J${week.startDay} à J${week.endDay}`}
-      className="grid grid-cols-7 gap-x-2 overflow-visible rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] p-2 shadow-sm"
-      style={{
-        gridTemplateRows: `minmax(9.5rem, auto) repeat(${rowCount}, minmax(2.1rem, auto))`,
-      }}
+      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] shadow-sm"
     >
-      {Array.from({ length: 7 }, (_, index) => {
-        const dayNumber =
-          week.startDay + index;
-        const day = dayByNumber.get(dayNumber);
-        const isCurrent =
-          dayNumber === currentDayNumber;
-        const isPast =
-          dayNumber < currentDayNumber;
-
-        return (
-          <div
-            key={dayNumber}
-            className={`min-w-0 rounded-xl border px-3 py-3 ${
-              isCurrent
-                ? "border-[#F2C94C] bg-[#FFF8D9] shadow-[inset_0_0_0_2px_rgba(242,201,76,0.28)]"
-                : isPast
-                  ? "border-[#315B3E]/10 bg-[#F3F6F3]/80"
-                  : "border-[#315B3E]/10 bg-white"
-            }`}
-            style={{
-              gridColumn: index + 1,
-              gridRow: `1 / span ${rowCount + 1}`,
-            }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-lg font-black text-[#0B302B]">
-                  J{dayNumber}
-                </p>
-                {day ? (
-                  <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[#688176]">
-                    {formatShortDate(
-                      day.calendarDate
-                    )}
-                  </p>
-                ) : null}
-              </div>
-
-              {isCurrent ? (
-                <span className="rounded-full bg-[#F2C94C] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#17261E]">
-                  Aujourd’hui
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-3 space-y-1.5">
-              {(eventsByDay.get(dayNumber) ?? []).map(
-                (event) => (
-                  <SeasonEventBadge
-                    key={event.id}
-                    event={event}
-                    compact
-                  />
-                )
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {RACE_DAY_SLOTS.map((slot) => {
-        const config = RACE_DAY_SLOT_CONFIG[slot];
-        const row = slot === "early" ? 2 : earlyLaneCount + 3;
-
-        return (
-          <div
-            key={slot}
-            className="relative z-20 mx-1 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0B302B] px-3 py-1.5 text-white shadow-sm"
-            style={{ gridColumn: "1 / 8", gridRow: row }}
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.18em]">
-              {config.label} · {config.departureLabel}
-            </span>
-            <span className="text-[9px] font-bold text-[#A9C6BB]">
-              {config.registrationCutoffLabel}
-            </span>
-          </div>
-        );
-      })}
-
-      {week.segments
-        .filter(
-          (segment) =>
-            segment.lane < visibleLaneCountBySlot[segment.daySlot]
-        )
-        .map((segment) => {
-          const style =
-            RACE_CATEGORY_STYLE[
-              segment.edition.categoryCode
-            ];
-          const columnStart =
-            segment.startDay -
-            week.startDay +
-            1;
-          const columnEnd =
-            segment.endDay -
-            week.startDay +
-            2;
-
-          return (
-            <Link
-              key={`${segment.edition.id}-${week.weekNumber}`}
-              href={`/jeu/courses/${segment.edition.slug}`}
-              title={`${segment.edition.name} — ${segment.edition.countryName}`}
-              className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2.5 py-1.5 text-[11px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
-                segment.startsBeforeWeek
-                  ? "rounded-l-sm"
-                  : "rounded-l-lg"
-              } ${
-                segment.continuesAfterWeek
-                  ? "rounded-r-sm"
-                  : "rounded-r-lg"
-              }`}
-              style={{
-                gridColumn: `${columnStart} / ${columnEnd}`,
-                gridRow:
-                  segment.daySlot === "early"
-                    ? segment.lane + 3
-                    : earlyLaneCount + segment.lane + 4,
-                backgroundColor: style.background,
-                borderColor: style.border,
-                color: style.foreground,
-              }}
-            >
-              <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[9px] tracking-wider">
-                {style.shortLabel}
-              </span>
-
-              <RaceCountryFlag
-                countryCode={segment.edition.countryCode}
-                countryName={segment.edition.countryName}
-                className="border-white/70"
-              />
-
-              <span className="truncate">
-                {segment.startsBeforeWeek
-                  ? "← "
-                  : ""}
-                {segment.edition.name}
-                {segment.continuesAfterWeek
-                  ? " →"
-                  : ""}
-              </span>
-
-              {segment.edition.currentTeamRegistration
-                ?.status === "accepted" ? (
-                <span className="ml-auto shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-black">
-                  ✓ {segment.edition.currentTeamRegistration.rosterCount}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
-
-      {hasHiddenLanes
-        ? Array.from({ length: 7 }, (_, index) => {
+      <div className="overflow-x-auto p-2">
+        <div
+          className="grid min-w-[70rem] grid-cols-14 gap-x-1.5"
+          style={{
+            gridTemplateRows: `minmax(8.5rem, auto) minmax(2.35rem, auto) repeat(${raceRowCount}, minmax(3.25rem, auto))${hasHiddenLanes ? " minmax(2.6rem, auto)" : ""}`,
+          }}
+        >
+          {Array.from({ length: 7 }, (_, index) => {
             const dayNumber = week.startDay + index;
-            const hiddenSegments = week.segments.filter(
-              (segment) =>
-                segment.lane >= visibleLaneCountBySlot[segment.daySlot] &&
-                segment.startDay <= dayNumber &&
-                segment.endDay >= dayNumber
-            );
-
-            if (hiddenSegments.length === 0) {
-              return null;
-            }
-
-            const tooltipId = `calendar-overflow-${week.weekNumber}-${dayNumber}`;
+            const isCurrent = dayNumber === currentDayNumber;
+            const isPast = dayNumber < currentDayNumber;
 
             return (
               <div
-                key={dayNumber}
-                className="group/overflow relative z-30 mx-1 self-center"
+                key={`fond-${dayNumber}`}
+                aria-hidden="true"
+                className={`relative z-0 rounded-xl border ${
+                  isCurrent
+                    ? "border-[#F2C94C] bg-[#FFF8D9] shadow-[inset_0_0_0_2px_rgba(242,201,76,0.28)]"
+                    : isPast
+                      ? "border-[#315B3E]/10 bg-[#F3F6F3]/80"
+                      : "border-[#315B3E]/10 bg-white"
+                }`}
                 style={{
-                  gridColumn: index + 1,
-                  gridRow: earlyLaneCount + lateLaneCount + 4,
+                  gridColumn: `${index * 2 + 1} / span 2`,
+                  gridRow: `1 / span ${totalRowCount}`,
+                }}
+              />
+            );
+          })}
+
+          {Array.from({ length: 7 }, (_, index) => {
+            const dayNumber = week.startDay + index;
+            const day = dayByNumber.get(dayNumber);
+            const isCurrent = dayNumber === currentDayNumber;
+
+            return (
+              <div
+                key={`entete-${dayNumber}`}
+                className="relative z-10 min-w-0 px-3 py-3"
+                style={{
+                  gridColumn: `${index * 2 + 1} / span 2`,
+                  gridRow: 1,
                 }}
               >
-                <button
-                  type="button"
-                  aria-describedby={tooltipId}
-                  aria-label={`${hiddenSegments.length} autres courses à J${dayNumber}`}
-                  className="w-full rounded-lg border border-[#315B3E]/20 bg-white/95 px-2 py-1.5 text-xs font-black text-[#315B3E] shadow-sm transition hover:border-[#176951]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-                >
-                  +{hiddenSegments.length}
-                </button>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-lg font-black text-[#0B302B]">
+                      J{dayNumber}
+                    </p>
+                    {day ? (
+                      <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[#688176]">
+                        {formatShortDate(day.calendarDate)}
+                      </p>
+                    ) : null}
+                  </div>
 
-                <div
-                  id={tooltipId}
-                  role="tooltip"
-                  className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-xl border border-[#315B3E]/15 bg-[#071A17] p-3 text-left text-white opacity-0 shadow-xl transition group-hover/overflow:visible group-hover/overflow:opacity-100 group-focus-within/overflow:visible group-focus-within/overflow:opacity-100"
-                >
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
-                    Autres courses · J{dayNumber}
-                  </p>
-                  <ul className="mt-2 space-y-2">
-                    {hiddenSegments.map((segment) => {
-                      const style =
-                        RACE_CATEGORY_STYLE[
-                          segment.edition.categoryCode
-                        ];
+                  {isCurrent ? (
+                    <span className="rounded-full bg-[#F2C94C] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#17261E]">
+                      Aujourd’hui
+                    </span>
+                  ) : null}
+                </div>
 
-                      return (
-                        <li
-                          key={segment.edition.id}
-                          className="flex min-w-0 items-center gap-2"
-                        >
-                          <span
-                            className="rounded px-1.5 py-0.5 text-[9px] font-black tracking-wider"
-                            style={{
-                              backgroundColor: style.background,
-                              color: style.foreground,
-                            }}
-                          >
-                            {style.shortLabel}
-                          </span>
-                          <RaceCountryFlag
-                            countryCode={segment.edition.countryCode}
-                            countryName={segment.edition.countryName}
-                          />
-                          <span className="truncate text-[11px] font-bold">
-                            {segment.edition.name}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <p className="mt-3 border-t border-white/10 pt-2 text-[10px] font-semibold leading-4 text-[#C8D8D0]">
-                    Filtrez une catégorie pour afficher et ouvrir la course souhaitée.
-                  </p>
+                <div className="mt-3 space-y-1.5">
+                  {(eventsByDay.get(dayNumber) ?? []).map((event) => (
+                    <SeasonEventBadge key={event.id} event={event} compact />
+                  ))}
                 </div>
               </div>
             );
-          })
-        : null}
+          })}
+
+          {Array.from({ length: 7 }, (_, dayIndex) =>
+            RACE_DAY_SLOTS.map((slot, slotIndex) => {
+              const config = RACE_DAY_SLOT_CONFIG[slot];
+              const dayNumber = week.startDay + dayIndex;
+
+              return (
+                <div
+                  key={`${dayNumber}-${slot}`}
+                  className="relative z-10 mx-1 flex items-center justify-between gap-1 rounded-lg border border-white/10 bg-[#0B302B] px-2 py-1.5 text-white shadow-sm"
+                  style={{
+                    gridColumn: dayIndex * 2 + slotIndex + 1,
+                    gridRow: 2,
+                  }}
+                  title={`${config.departureLabel} · ${config.registrationCutoffLabel}`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-[0.16em]">
+                    {config.calendarLabel}
+                  </span>
+                  <span className="text-[9px] font-bold text-[#A9C6BB]">
+                    {config.departureHour} h
+                  </span>
+                </div>
+              );
+            })
+          )}
+
+          {week.segments
+            .filter((segment) => segment.lane < visibleLaneCount)
+            .map((segment) => {
+              const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
+              const columnStart =
+                segment.startHalfDayIndex - week.startHalfDayIndex + 1;
+              const columnEnd =
+                segment.endHalfDayIndex - week.startHalfDayIndex + 2;
+              const halfDaySpan =
+                segment.endHalfDayIndex - segment.startHalfDayIndex + 1;
+              const firstStage = segment.stages[0];
+              const lastStage = segment.stages.at(-1);
+              const hasSeveralStages = segment.stages.length > 1;
+              const stageLabel =
+                segment.edition.raceFormat === "stage_race" && firstStage
+                  ? firstStage.stageNumber === lastStage?.stageNumber
+                    ? `E${firstStage.stageNumber}`
+                    : `E${firstStage.stageNumber}–E${lastStage?.stageNumber}`
+                  : null;
+
+              return (
+                <Link
+                  key={`${segment.edition.id}-${week.weekNumber}-${segment.startHalfDayIndex}`}
+                  href={`/jeu/courses/${segment.edition.slug}`}
+                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}`}
+                  className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
+                    hasSeveralStages ? "pb-5" : ""
+                  } ${
+                    segment.startsBeforeWeek ? "rounded-l-sm" : "rounded-l-lg"
+                  } ${
+                    segment.continuesAfterWeek ? "rounded-r-sm" : "rounded-r-lg"
+                  }`}
+                  style={{
+                    gridColumn: `${columnStart} / ${columnEnd}`,
+                    gridRow: segment.lane + 3,
+                    backgroundColor: style.background,
+                    borderColor: style.border,
+                    color: style.foreground,
+                  }}
+                >
+                  <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[8px] tracking-wider">
+                    {style.shortLabel}
+                  </span>
+
+                  <RaceCountryFlag
+                    countryCode={segment.edition.countryCode}
+                    countryName={segment.edition.countryName}
+                    className="border-white/70"
+                  />
+
+                  <span className="min-w-0 flex-1 truncate">
+                    {segment.startsBeforeWeek ? "← " : ""}
+                    {halfDaySpan <= 2
+                      ? segment.edition.shortName ?? segment.edition.name
+                      : segment.edition.name}
+                    {segment.continuesAfterWeek ? " →" : ""}
+                  </span>
+
+                  {stageLabel ? (
+                    <span className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-black">
+                      {stageLabel}
+                    </span>
+                  ) : null}
+
+                  {segment.edition.currentTeamRegistration?.status === "accepted" ? (
+                    <span className="shrink-0 text-[9px] font-black" title={`${segment.edition.currentTeamRegistration.rosterCount} coureurs engagés`}>
+                      ✓
+                    </span>
+                  ) : null}
+
+                  {hasSeveralStages ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-0 bottom-0 grid h-4 border-t border-black/10 bg-black/10"
+                      style={{
+                        gridTemplateColumns: `repeat(${halfDaySpan}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {segment.stages.map((stage) => (
+                        <span
+                          key={stage.id}
+                          className="flex items-center justify-center border-l border-white/20 text-[8px] font-black first:border-l-0"
+                        >
+                          E{stage.stageNumber}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+
+          {visibleLaneCount === 0 ? (
+            <p
+              className="relative z-10 mx-1 self-center rounded-lg border border-dashed border-[#315B3E]/20 bg-white/70 px-4 py-2 text-center text-xs font-semibold text-[#688176]"
+              style={{ gridColumn: "1 / 15", gridRow: 3 }}
+            >
+              Aucune course programmée cette semaine.
+            </p>
+          ) : null}
+
+          {hasHiddenLanes
+            ? Array.from({ length: 7 }, (_, index) => {
+                const dayNumber = week.startDay + index;
+                const dayStartHalfDayIndex = week.startHalfDayIndex + index * 2;
+                const dayEndHalfDayIndex = dayStartHalfDayIndex + 1;
+                const hiddenSegments = week.segments.filter(
+                  (segment) =>
+                    segment.lane >= visibleLaneCount &&
+                    segment.startHalfDayIndex <= dayEndHalfDayIndex &&
+                    segment.endHalfDayIndex >= dayStartHalfDayIndex
+                );
+
+                if (hiddenSegments.length === 0) {
+                  return null;
+                }
+
+                const tooltipId = `calendar-overflow-${week.weekNumber}-${dayNumber}`;
+
+                return (
+                  <div
+                    key={dayNumber}
+                    className="group/overflow relative z-30 mx-1 self-center"
+                    style={{
+                      gridColumn: `${index * 2 + 1} / span 2`,
+                      gridRow: raceRowCount + 3,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-describedby={tooltipId}
+                      aria-label={`${hiddenSegments.length} autres courses à J${dayNumber}`}
+                      className="w-full rounded-lg border border-[#315B3E]/20 bg-white/95 px-2 py-1.5 text-xs font-black text-[#315B3E] shadow-sm transition hover:border-[#176951]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+                    >
+                      +{hiddenSegments.length}
+                    </button>
+
+                    <div
+                      id={tooltipId}
+                      role="tooltip"
+                      className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-xl border border-[#315B3E]/15 bg-[#071A17] p-3 text-left text-white opacity-0 shadow-xl transition group-hover/overflow:visible group-hover/overflow:opacity-100 group-focus-within/overflow:visible group-focus-within/overflow:opacity-100"
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
+                        Autres courses · J{dayNumber}
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {hiddenSegments.map((segment) => {
+                          const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
+
+                          return (
+                            <li
+                              key={`${segment.edition.id}-${segment.startHalfDayIndex}`}
+                              className="flex min-w-0 items-center gap-2"
+                            >
+                              <span
+                                className="rounded px-1.5 py-0.5 text-[9px] font-black tracking-wider"
+                                style={{
+                                  backgroundColor: style.background,
+                                  color: style.foreground,
+                                }}
+                              >
+                                {style.shortLabel}
+                              </span>
+                              <RaceCountryFlag
+                                countryCode={segment.edition.countryCode}
+                                countryName={segment.edition.countryName}
+                              />
+                              <span className="truncate text-[11px] font-bold">
+                                {segment.edition.name}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <p className="mt-3 border-t border-white/10 pt-2 text-[10px] font-semibold leading-4 text-[#C8D8D0]">
+                        Filtrez une catégorie pour afficher et ouvrir la course souhaitée.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            : null}
+        </div>
+      </div>
     </section>
   );
 }
