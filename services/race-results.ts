@@ -14,6 +14,7 @@ import type {
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
   buildPersistedGeneralClassification,
+  buildPersistedStageRaceStandings,
   normalizeOfficialResultGapsToLeader,
   type OfficialAttackParticipant,
   type OfficialRaceEditionResults,
@@ -25,7 +26,6 @@ import {
 } from "@/lib/game/race-results";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
-  buildStageRaceStandings,
   getStageAttackParticipants,
   simulateRaceStage,
   type StageRaceStandings,
@@ -71,6 +71,7 @@ type StageResultRow = {
   mountain_points: number;
   sprint_points: number;
   abandonment_reason: string | null;
+  injury_id: string | null;
 };
 
 type RaceResultRow = {
@@ -124,11 +125,21 @@ export async function settleFinishedRaceResults(
 
     const unavailableRiderIds = new Set<string>();
     const finishedSimulations: StageSimulationResult[] = [];
+    const persistedStageClassifications: Array<{
+      stage: RaceCalendarStage;
+      results: OfficialRiderResult[];
+    }> = [];
     const orderedStages = [...edition.stages].sort(
       (first, second) => first.stageNumber - second.stageNumber
     );
+    let persistedStageRows = await loadPersistedStageResultRows(
+      admin,
+      orderedStages.map((stage) => stage.id)
+    );
 
     for (const stage of orderedStages) {
+      if (getStageLiveState(stage, now).status !== "finished") break;
+
       const input = createCalendarSimulationInput({
         edition,
         stage,
@@ -138,29 +149,67 @@ export async function settleFinishedRaceResults(
         ...input,
         unavailableRiderIds: [...unavailableRiderIds],
       });
+      let stageRows = persistedStageRows.filter(
+        (row) => row.stage_id === stage.id
+      );
+      const stageAlreadyComplete = stageRows.length === rosterByRiderId.size;
 
-      for (const result of simulation.results) {
-        if (result.status === "did_not_finish" || result.injury) {
+      if (!stageAlreadyComplete) {
+        await persistStageResult({
+          admin,
+          edition,
+          stage,
+          simulation,
+          rosterByRiderId,
+        });
+        processedStages += 1;
+        stageRows = await loadPersistedStageResultRows(admin, [stage.id]);
+        persistedStageRows = [
+          ...persistedStageRows.filter((row) => row.stage_id !== stage.id),
+          ...stageRows,
+        ];
+      }
+
+      if (stageRows.length !== rosterByRiderId.size) {
+        throw new Error(
+          `Le classement de ${stage.name} est incomplet (${stageRows.length}/${rosterByRiderId.size}).`
+        );
+      }
+
+      const officialStageResults = buildPersistedStageClassification({
+        rows: stageRows,
+        edition,
+        rosterByRiderId,
+      });
+      persistedStageClassifications.push({
+        stage,
+        results: officialStageResults,
+      });
+      finishedSimulations.push(simulation);
+
+      for (const result of officialStageResults) {
+        if (result.status !== "finished") {
           unavailableRiderIds.add(result.riderId);
         }
       }
-
-      if (getStageLiveState(stage, now).status !== "finished") break;
-
-      await persistStageResult({
-        admin,
-        edition,
-        stage,
-        simulation,
-        rosterByRiderId,
-      });
-      finishedSimulations.push(simulation);
-      processedStages += 1;
+      for (const row of stageRows) {
+        if (!row.injury_id) continue;
+        const riderId = findRiderIdByRosterId(
+          rosterByRiderId,
+          row.race_roster_id
+        );
+        if (riderId) unavailableRiderIds.add(riderId);
+      }
     }
 
-    if (finishedSimulations.length === 0) continue;
+    if (persistedStageClassifications.length === 0) continue;
 
-    const standings = buildStageRaceStandings(finishedSimulations);
+    const standings = buildPersistedStageRaceStandings(
+      persistedStageClassifications.map(
+        (classification) => classification.results
+      ),
+      new Map(edition.engagedRiders.map((rider) => [rider.id, rider.age]))
+    );
     if (edition.raceFormat === "stage_race") {
       await persistSecondaryClassifications({
         admin,
@@ -171,10 +220,20 @@ export async function settleFinishedRaceResults(
     }
 
     const editionIsComplete =
-      finishedSimulations.length === orderedStages.length;
+      persistedStageClassifications.length === orderedStages.length;
     if (!editionIsComplete) continue;
 
-    const general = buildSimulationGeneralClassification(finishedSimulations);
+    const general = buildPersistedGeneralClassification(
+      persistedStageClassifications.map((classification) =>
+        classification.results.map(toPersistedGeneralInput)
+      )
+    );
+    const raceClassificationAlreadyComplete =
+      await hasCompleteRaceClassification(
+        admin,
+        edition.id,
+        rosterByRiderId.size
+      );
     await persistRaceClassification({
       admin,
       edition,
@@ -182,6 +241,7 @@ export async function settleFinishedRaceResults(
       general,
       simulations: finishedSimulations,
       standings: edition.raceFormat === "stage_race" ? standings : null,
+      stageClassifications: persistedStageClassifications,
       rosterByRiderId,
     });
 
@@ -190,7 +250,7 @@ export async function settleFinishedRaceResults(
       .update({ status: "completed" })
       .eq("id", edition.id);
     assertQuery(editionError, `la clôture de ${edition.name}`);
-    completedEditions += 1;
+    if (!raceClassificationAlreadyComplete) completedEditions += 1;
   }
 
   return { processedStages, completedEditions };
@@ -218,7 +278,7 @@ export async function getOfficialRaceResults(
       admin
         .from("stage_results")
         .select(
-          "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason"
+          "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id"
         )
         .in("stage_id", stageIds)
         .returns<StageResultRow[]>(),
@@ -419,6 +479,89 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
         : [];
     })
   );
+}
+
+async function loadPersistedStageResultRows(
+  admin: AdminClient,
+  stageIds: string[]
+) {
+  if (stageIds.length === 0) return [] as StageResultRow[];
+
+  const { data, error } = await admin
+    .from("stage_results")
+    .select(
+      "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id"
+    )
+    .in("stage_id", stageIds)
+    .returns<StageResultRow[]>();
+  assertQuery(error, "les résultats d'étapes déjà enregistrés");
+  return data ?? [];
+}
+
+async function hasCompleteRaceClassification(
+  admin: AdminClient,
+  editionId: string,
+  expectedRiderCount: number
+) {
+  const { count, error } = await admin
+    .from("race_results")
+    .select("id", { count: "exact", head: true })
+    .eq("race_edition_id", editionId);
+  assertQuery(error, "le contrôle du classement général existant");
+  return count === expectedRiderCount;
+}
+
+function buildPersistedStageClassification({
+  rows,
+  edition,
+  rosterByRiderId,
+}: {
+  rows: StageResultRow[];
+  edition: RaceCalendarEdition;
+  rosterByRiderId: Map<string, RosterContext>;
+}) {
+  const riderById = new Map(
+    edition.engagedRiders.map((rider) => [rider.id, rider])
+  );
+
+  return normalizeOfficialResultGapsToLeader(
+    rows
+      .flatMap((row) => {
+        const riderId = findRiderIdByRosterId(
+          rosterByRiderId,
+          row.race_roster_id
+        );
+        const rider = riderId ? riderById.get(riderId) : null;
+        return rider
+          ? [
+              {
+                riderId: rider.id,
+                riderName: rider.name,
+                teamId: rider.teamId,
+                teamName: rider.teamName,
+                rank: row.rank,
+                status: row.status,
+                elapsedTimeMs: row.elapsed_time_ms,
+                gapToWinnerMs: row.gap_to_winner_ms,
+                mountainPoints: row.mountain_points,
+                sprintPoints: row.sprint_points,
+                abandonmentReason: row.abandonment_reason,
+              } satisfies OfficialRiderResult,
+            ]
+          : [];
+      })
+      .sort(compareOfficialResults)
+  );
+}
+
+function findRiderIdByRosterId(
+  rosterByRiderId: Map<string, RosterContext>,
+  rosterId: string
+) {
+  for (const [riderId, context] of rosterByRiderId) {
+    if (context.rosterId === rosterId) return riderId;
+  }
+  return null;
 }
 
 async function persistStageResult({
@@ -696,6 +839,7 @@ async function persistRaceClassification({
   general,
   simulations,
   standings,
+  stageClassifications,
   rosterByRiderId,
 }: {
   admin: AdminClient;
@@ -704,6 +848,10 @@ async function persistRaceClassification({
   general: OfficialRiderResult[];
   simulations: StageSimulationResult[];
   standings: StageRaceStandings | null;
+  stageClassifications: Array<{
+    stage: RaceCalendarStage;
+    results: OfficialRiderResult[];
+  }>;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const nowIso = new Date().toISOString();
@@ -728,7 +876,7 @@ async function persistRaceClassification({
       admin,
       edition,
       finalStage,
-      simulations,
+      stageClassifications,
       rosterByRiderId,
     });
   }
@@ -748,10 +896,11 @@ async function persistRaceClassification({
     secondaryWinners.get(standings.youth[0].riderId)?.push("youth");
   }
   if (standings?.teams[0]) {
-    for (const rider of edition.engagedRiders) {
-      if (rider.teamId === standings.teams[0].teamId) {
-        secondaryWinners.get(rider.id)?.push("team");
-      }
+    const teamPrizeRecipient = general.find(
+      (result) => result.teamId === standings.teams[0].teamId
+    );
+    if (teamPrizeRecipient) {
+      secondaryWinners.get(teamPrizeRecipient.riderId)?.push("team");
     }
   }
 
@@ -856,33 +1005,25 @@ async function persistStagePrizeRewards({
   admin,
   edition,
   finalStage,
-  simulations,
+  stageClassifications,
   rosterByRiderId,
 }: {
   admin: AdminClient;
   edition: RaceCalendarEdition;
   finalStage: RaceCalendarStage;
-  simulations: StageSimulationResult[];
+  stageClassifications: Array<{
+    stage: RaceCalendarStage;
+    results: OfficialRiderResult[];
+  }>;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
-  const stageById = new Map(
-    edition.stages.map((stage) => [stage.id, stage] as const)
-  );
-
-  for (const simulation of simulations) {
-    const stage = stageById.get(simulation.stageId);
-    if (!stage) {
-      throw new Error(
-        `L'étape ${simulation.stageId} est absente de ${edition.name}.`
-      );
-    }
-
-    for (const result of simulation.results) {
+  for (const { stage, results } of stageClassifications) {
+    for (const result of results) {
       if (result.status !== "finished") continue;
 
       const cashPrize = calculateStagePrize({
         tier: edition.categoryCode,
-        finalRank: result.rank,
+        finalRank: result.rank ?? 0,
       });
       if (cashPrize === 0) continue;
 
@@ -912,40 +1053,6 @@ async function persistStagePrizeRewards({
       );
     }
   }
-}
-
-function buildSimulationGeneralClassification(
-  simulations: StageSimulationResult[]
-) {
-  return buildPersistedGeneralClassification(
-    simulations.map((simulation, stageIndex) => {
-      const riderById = new Map(
-        simulation.resolvedRiders.map((rider) => [rider.id, rider])
-      );
-      return simulation.results.map((result) => {
-        const rider = riderById.get(result.riderId)!;
-        return {
-          riderId: result.riderId,
-          riderName: rider.name,
-          teamId: rider.teamId,
-          teamName: rider.teamName,
-          status:
-            result.injury && stageIndex < simulations.length - 1
-              ? "withdrawn"
-              : result.status,
-          elapsedTimeMs:
-            result.status === "finished"
-              ? result.elapsedTimeSeconds * 1_000
-              : null,
-          abandonmentReason:
-            result.abandonment?.reason ??
-            (result.injury && stageIndex < simulations.length - 1
-              ? "injury"
-              : null),
-        } satisfies PersistedStageResultForGeneral;
-      });
-    })
-  );
 }
 
 function toOfficialStageRiderResult({

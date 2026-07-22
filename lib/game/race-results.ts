@@ -74,6 +74,17 @@ export type PersistedStageResultForGeneral = {
   abandonmentReason: string | null;
 };
 
+export type PersistedStageRaceStandings = {
+  mountain: Array<{ riderId: string; points: number }>;
+  sprint: Array<{ riderId: string; points: number }>;
+  youth: Array<{ riderId: string; elapsedTimeSeconds: number }>;
+  teams: Array<{
+    teamId: string;
+    teamName: string;
+    elapsedTimeSeconds: number;
+  }>;
+};
+
 export function normalizeOfficialResultGapsToLeader(
   results: OfficialRiderResult[]
 ): OfficialRiderResult[] {
@@ -167,4 +178,108 @@ export function buildPersistedGeneralClassification(
     }));
 
   return [...general, ...abandonments];
+}
+
+export function buildPersistedStageRaceStandings(
+  stageResults: OfficialRiderResult[][],
+  riderAgeById: ReadonlyMap<string, number>
+): PersistedStageRaceStandings {
+  const riderTimes = new Map<string, number>();
+  const mountainPoints = new Map<string, number>();
+  const sprintPoints = new Map<string, number>();
+  const abandonedRiderIds = new Set<string>();
+  const teamTimes = new Map<string, number>();
+  const teamNameById = new Map<string, string>();
+
+  for (const stage of stageResults) {
+    const ridersByTeam = new Map<string, OfficialRiderResult[]>();
+    const finisherTimes = stage.flatMap((result) =>
+      result.status === "finished" && result.elapsedTimeMs !== null
+        ? [result.elapsedTimeMs]
+        : []
+    );
+    const nonFinisherTime = Math.max(0, ...finisherTimes) + 5 * 60_000;
+
+    for (const result of stage) {
+      const teamRiders = ridersByTeam.get(result.teamId) ?? [];
+      teamRiders.push(result);
+      ridersByTeam.set(result.teamId, teamRiders);
+      teamNameById.set(result.teamId, result.teamName);
+
+      if (result.status === "finished" && result.elapsedTimeMs !== null) {
+        riderTimes.set(
+          result.riderId,
+          (riderTimes.get(result.riderId) ?? 0) + result.elapsedTimeMs
+        );
+        if (result.mountainPoints > 0) {
+          mountainPoints.set(
+            result.riderId,
+            (mountainPoints.get(result.riderId) ?? 0) + result.mountainPoints
+          );
+        }
+        if (result.sprintPoints > 0) {
+          sprintPoints.set(
+            result.riderId,
+            (sprintPoints.get(result.riderId) ?? 0) + result.sprintPoints
+          );
+        }
+      } else {
+        abandonedRiderIds.add(result.riderId);
+      }
+    }
+
+    for (const [teamId, riders] of ridersByTeam) {
+      if (riders.length === 0) continue;
+      const stageTeamTime =
+        riders.reduce(
+          (total, rider) =>
+            total +
+            (rider.status === "finished" && rider.elapsedTimeMs !== null
+              ? rider.elapsedTimeMs
+              : nonFinisherTime),
+          0
+        ) / riders.length;
+      teamTimes.set(teamId, (teamTimes.get(teamId) ?? 0) + stageTeamTime);
+    }
+  }
+
+  const activeRider = ([riderId]: [string, number]) =>
+    !abandonedRiderIds.has(riderId);
+  const byPoints = (first: [string, number], second: [string, number]) =>
+    second[1] - first[1] || first[0].localeCompare(second[0]);
+
+  return {
+    mountain: [...mountainPoints.entries()]
+      .filter(activeRider)
+      .sort(byPoints)
+      .map(([riderId, points]) => ({ riderId, points })),
+    sprint: [...sprintPoints.entries()]
+      .filter(activeRider)
+      .sort(byPoints)
+      .map(([riderId, points]) => ({ riderId, points })),
+    youth: [...riderTimes.entries()]
+      .filter(
+        ([riderId]) =>
+          !abandonedRiderIds.has(riderId) &&
+          (riderAgeById.get(riderId) ?? 99) < 25
+      )
+      .sort(
+        (first, second) =>
+          first[1] - second[1] || first[0].localeCompare(second[0])
+      )
+      .map(([riderId, elapsedTimeMs]) => ({
+        riderId,
+        elapsedTimeSeconds: Math.round(elapsedTimeMs / 1_000),
+      })),
+    teams: [...teamTimes.entries()]
+      .sort(
+        (first, second) =>
+          first[1] - second[1] || first[0].localeCompare(second[0])
+      )
+      .map(([teamId, elapsedTimeMs]) => ({
+        teamId,
+        teamName: teamNameById.get(teamId) ?? teamId,
+        elapsedTimeSeconds: Math.round(elapsedTimeMs / 1_000),
+      })),
+  };
 }

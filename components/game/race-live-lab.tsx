@@ -11,6 +11,10 @@ import {
   getVisibleFinalBattleRiderIds,
 } from "@/lib/game/race-finish-visual";
 import { getStageLiveState } from "@/lib/game/race-live";
+import {
+  buildPersistedGeneralClassification,
+  type PersistedStageResultForGeneral,
+} from "@/lib/game/race-results";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
   buildStageRaceStandings,
@@ -21,6 +25,7 @@ import {
   type RaceIncident,
   type RacePrimeResult,
   type RiderSimulationInput,
+  type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 
 type LabTab = "live" | "classification" | "rules";
@@ -40,7 +45,7 @@ export function RaceLiveLab({
   mode: "live" | "replay";
   nowIso: string;
 }) {
-  const { input, simulation, tourStandings } = useMemo(() => {
+  const { input, simulation, tourGeneral, tourStandings } = useMemo(() => {
     const currentInput = createCalendarSimulationInput({
       edition,
       stage,
@@ -51,12 +56,13 @@ export function RaceLiveLab({
       return {
         input: currentInput,
         simulation: simulateRaceStage(currentInput),
+        tourGeneral: null,
         tourStandings: null,
       };
     }
 
     const unavailableRiderIds = new Set<string>();
-    const stageResults = [];
+    const stageResults: StageSimulationResult[] = [];
     let selectedInput = currentInput;
     let selectedSimulation = simulateRaceStage(currentInput);
 
@@ -88,6 +94,7 @@ export function RaceLiveLab({
     return {
       input: selectedInput,
       simulation: selectedSimulation,
+      tourGeneral: buildReplayStageRaceGeneral(stageResults),
       tourStandings: buildStageRaceStandings(stageResults),
     };
   }, [edition, stage]);
@@ -398,6 +405,7 @@ export function RaceLiveLab({
           <Classification
             simulation={simulation}
             riderById={riderById}
+            tourGeneral={tourGeneral}
             tourStandings={tourStandings}
           />
         )
@@ -1585,19 +1593,89 @@ function LiveClassification({
   );
 }
 
+function buildReplayStageRaceGeneral(simulations: StageSimulationResult[]) {
+  return buildPersistedGeneralClassification(
+    simulations.map((simulation, stageIndex) => {
+      const riderById = new Map(
+        simulation.resolvedRiders.map((rider) => [rider.id, rider])
+      );
+
+      return simulation.results.map((result) => {
+        const rider = riderById.get(result.riderId)!;
+        const medicallyWithdrawn =
+          Boolean(result.injury) && stageIndex < simulations.length - 1;
+        return {
+          riderId: result.riderId,
+          riderName: rider.name,
+          teamId: rider.teamId,
+          teamName: rider.teamName,
+          status: medicallyWithdrawn ? "withdrawn" : result.status,
+          elapsedTimeMs:
+            result.status === "finished"
+              ? result.elapsedTimeSeconds * 1_000
+              : null,
+          abandonmentReason:
+            result.abandonment?.reason ??
+            (medicallyWithdrawn ? "injury" : null),
+        } satisfies PersistedStageResultForGeneral;
+      });
+    })
+  );
+}
+
 function Classification({
   simulation,
   riderById,
+  tourGeneral,
   tourStandings,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
+  tourGeneral: ReturnType<typeof buildReplayStageRaceGeneral> | null;
   tourStandings: ReturnType<typeof buildStageRaceStandings> | null;
 }) {
+  const [classificationView, setClassificationView] = useState<
+    "stage" | "general"
+  >("stage");
   const winnerTime = simulation.results[0].elapsedTimeSeconds;
+  const resolvedView = tourGeneral ? classificationView : "stage";
 
   return (
     <div className="p-5 sm:p-8">
+      {tourGeneral ? (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-[#72D4B7]">
+              Course par étapes
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[#91A99E]">
+              Consultez séparément le résultat du jour et le général cumulé.
+            </p>
+          </div>
+          <div
+            className="inline-flex rounded-xl border border-white/10 bg-white/[0.04] p-1"
+            aria-label="Type de classement"
+          >
+            {(["stage", "general"] as const).map((view) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => setClassificationView(view)}
+                aria-pressed={resolvedView === view}
+                className={`min-h-9 rounded-lg px-4 text-[10px] font-black uppercase tracking-wider transition ${
+                  resolvedView === view
+                    ? "bg-[#F2C94C] text-[#17261E]"
+                    : "text-[#AFC6BB] hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {view === "stage" ? "Étape" : "Général"}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {resolvedView === "stage" ? (
       <div className="overflow-hidden rounded-2xl border border-white/10">
         <table className="w-full border-collapse text-left">
           <thead className="bg-white/[0.06] text-[10px] font-black uppercase tracking-widest text-[#809D90]">
@@ -1653,12 +1731,82 @@ function Classification({
           </tbody>
         </table>
       </div>
+      ) : tourGeneral ? (
+        <TourGeneralClassification results={tourGeneral} />
+      ) : null}
       {tourStandings ? (
         <TourSecondaryStandings
           standings={tourStandings}
           riderById={riderById}
         />
       ) : null}
+    </div>
+  );
+}
+
+function TourGeneralClassification({
+  results,
+}: {
+  results: ReturnType<typeof buildReplayStageRaceGeneral>;
+}) {
+  const leaderTime =
+    results.find(
+      (result) =>
+        result.status === "finished" &&
+        result.rank === 1 &&
+        result.elapsedTimeMs !== null
+    )?.elapsedTimeMs ?? 0;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/10">
+      <table className="w-full border-collapse text-left">
+        <thead className="bg-white/[0.06] text-[10px] font-black uppercase tracking-widest text-[#809D90]">
+          <tr>
+            <th className="px-4 py-3">Rang</th>
+            <th className="px-4 py-3">Coureur</th>
+            <th className="hidden px-4 py-3 md:table-cell">Équipe</th>
+            <th className="px-4 py-3 text-right">Temps / écart</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/10">
+          {results.map((result) => {
+            const abandoned = result.status !== "finished";
+            const gap =
+              result.elapsedTimeMs === null
+                ? null
+                : Math.max(0, result.elapsedTimeMs - leaderTime);
+            return (
+              <tr
+                key={result.riderId}
+                className={`${
+                  abandoned ? "bg-[#EF5B65]/[0.07]" : "bg-white/[0.025]"
+                } text-sm font-semibold`}
+              >
+                <td
+                  className={`px-4 py-3 font-black ${
+                    abandoned ? "text-[#FF9EA6]" : "text-[#F2C94C]"
+                  }`}
+                >
+                  {result.rank ?? "—"}
+                </td>
+                <td className="px-4 py-3">{result.riderName}</td>
+                <td className="hidden px-4 py-3 text-[#94ADA2] md:table-cell">
+                  {result.teamName}
+                </td>
+                <td className="px-4 py-3 text-right font-black">
+                  {abandoned
+                    ? "Abandon"
+                    : result.rank === 1 && result.elapsedTimeMs !== null
+                      ? formatTime(result.elapsedTimeMs / 1_000)
+                      : gap === 0
+                        ? "MT"
+                        : `+${formatGap((gap ?? 0) / 1_000)}`}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

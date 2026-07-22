@@ -57,9 +57,14 @@ export default async function RaceResultsPage({
     try {
       await settleFinishedRaceResults(calendarResult.calendar, now);
       await settleFinishedRaceConditions(supabase);
-      officialResults = await getOfficialRaceResults(calendarResult.calendar);
     } catch (error) {
       console.error("Impossible de consolider les résultats officiels :", error);
+    }
+
+    try {
+      officialResults = await getOfficialRaceResults(calendarResult.calendar);
+    } catch (error) {
+      console.error("Impossible de lire les résultats officiels :", error);
     }
   }
 
