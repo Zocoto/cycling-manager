@@ -146,9 +146,7 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
         {query.equipement ? (
           <p className="mb-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
-            {query.equipement === "programme"
-              ? "Le changement est programmé : il prendra effet demain à 12 h."
-              : "L’équipement du coureur a été mis à jour."}
+            Le changement d’équipement a été enregistré.
           </p>
         ) : null}
         {query.succes ? (

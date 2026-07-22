@@ -44,6 +44,8 @@ export const EMPTY_EQUIPMENT_EFFECTS: EquipmentEffects = {
   victoryReputationBonus: 0,
 };
 
+export const EQUIPMENT_FREEZE_LEAD_MINUTES = 5;
+
 export function combineEquipmentEffects(
   effects: ReadonlyArray<Partial<EquipmentEffects>>
 ): EquipmentEffects {
@@ -149,16 +151,21 @@ export function applyEquipmentRatingBonuses(
   ) as RiderRatings;
 }
 
-export function isEquipmentFrozenForToday(now = new Date()): boolean {
-  const hourPart = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    hour: "2-digit",
-    hourCycle: "h23",
-  })
-    .formatToParts(now)
-    .find((part) => part.type === "hour")?.value;
+export function isEquipmentChangeFrozenForRace({
+  now,
+  departureAt,
+  durationMinutes,
+}: {
+  now: Date;
+  departureAt: Date;
+  durationMinutes: number;
+}): boolean {
+  const cutoffAt =
+    departureAt.getTime() - EQUIPMENT_FREEZE_LEAD_MINUTES * 60_000;
+  const raceEndsAt =
+    departureAt.getTime() + Math.max(0, durationMinutes) * 60_000;
 
-  return Number(hourPart ?? 0) >= 12;
+  return now.getTime() >= cutoffAt && now.getTime() < raceEndsAt;
 }
 
 export function getEquipmentCategory(slot: EquipmentSlot) {

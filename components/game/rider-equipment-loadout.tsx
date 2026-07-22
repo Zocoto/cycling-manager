@@ -73,17 +73,6 @@ export function RiderEquipmentLoadout({
         </span>
       </div>
 
-      {canManage && management ? (
-        <div className={management.frozenForToday
-          ? "border-b border-[#F2C94C]/20 bg-[#F2C94C]/10 px-6 py-4 text-xs font-bold leading-5 text-[#FFE596] sm:px-8"
-          : "border-b border-[#42B99A]/20 bg-[#42B99A]/10 px-6 py-4 text-xs font-bold leading-5 text-[#9BE0BC] sm:px-8"}
-        >
-          {management.frozenForToday
-            ? "Gel de l’étape du jour actif depuis 12 h : vos changements sont enregistrés maintenant et prendront effet demain à 12 h."
-            : "Les changements réalisés avant 12 h sont actifs le jour même ; après 12 h, ils prennent effet le lendemain à midi."}
-        </div>
-      ) : null}
-
       <div className="grid gap-5 p-5 sm:p-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,1.15fr)_minmax(0,1fr)] xl:items-center">
         <div className="space-y-4">
           {LEFT_SLOTS.map((slot) => (

@@ -171,15 +171,8 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
         </section>
 
         <section className="mt-7">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">{category ? getEquipmentCategory(category).label : "Toutes les catégories"}</p>
-              <h2 className="mt-2 text-2xl font-black text-[#183F37]">{visibleItems.length} références disponibles</h2>
-            </div>
-            <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
-              Les modifications faites après 12 h sont enregistrées immédiatement mais ne deviennent actives que le lendemain à midi.
-            </p>
-          </div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">{category ? getEquipmentCategory(category).label : "Toutes les catégories"}</p>
+          <h2 className="mt-2 text-2xl font-black text-[#183F37]">{visibleItems.length} références disponibles</h2>
 
           <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleItems.map((item) => (
