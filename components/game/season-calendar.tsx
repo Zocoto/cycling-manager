@@ -13,6 +13,8 @@ import {
   RACE_PROFILE_LABELS,
   buildCalendarWeeks,
   compareRaceDaySlots,
+  getEditionDayRange,
+  getRegistrationAvailability,
   isRaceEditionAvailableToCurrentTeam,
   type CalendarWeek,
   type RaceCalendarEdition,
@@ -36,6 +38,7 @@ type SeasonCalendarProps = {
 };
 
 type CalendarScope = "team" | "all";
+type CalendarView = "planning" | "list";
 
 export function SeasonCalendar({
   calendar,
@@ -44,6 +47,8 @@ export function SeasonCalendar({
 }: SeasonCalendarProps) {
   const [scope, setScope] =
     useState<CalendarScope>("team");
+  const [view, setView] =
+    useState<CalendarView>("planning");
   const [selectedCategories, setSelectedCategories] =
     useState<RaceCategoryCode[]>([]);
   const scopeEditions = useMemo(
@@ -148,7 +153,8 @@ export function SeasonCalendar({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2" aria-label="Portée du calendrier">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap gap-2" aria-label="Portée du calendrier">
           <button
             type="button"
             onClick={() => {
@@ -180,6 +186,20 @@ export function SeasonCalendar({
           <span className="inline-flex min-h-10 items-center rounded-full border border-[#315B3E]/15 bg-white px-3 text-xs font-black text-[#315B3E]">
             {scopeEditions.length} / {calendar.editions.filter((edition) => edition.competitionType === "standard").length}
           </span>
+          </div>
+
+          <span aria-hidden="true" className="mx-1 hidden h-7 w-px bg-[#315B3E]/15 sm:block" />
+
+          <div className="flex rounded-xl border border-[#315B3E]/15 bg-white p-1" aria-label="Mode d’affichage">
+            <ViewButton active={view === "planning"} onClick={() => setView("planning")}>
+              <PlanningIcon />
+              Planning
+            </ViewButton>
+            <ViewButton active={view === "list"} onClick={() => setView("list")}>
+              <ListIcon />
+              Liste
+            </ViewButton>
+          </div>
         </div>
       </div>
 
@@ -258,6 +278,8 @@ export function SeasonCalendar({
         </div>
       </div>
 
+      {view === "planning" ? (
+        <>
       <div className="mt-7 hidden space-y-4 md:block">
         {weeks.map((week) => (
           <DesktopCalendarWeek
@@ -382,6 +404,16 @@ export function SeasonCalendar({
           </div>
         </section>
       ) : null}
+        </>
+      ) : (
+        <RaceCalendarList
+          editions={visibleEditions}
+          days={calendar.days}
+          currentDayNumber={calendar.currentDayNumber}
+          reputationPoints={reputationPoints}
+          nowIso={nowIso}
+        />
+      )}
 
       {visibleEditions.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-[#315B3E]/30 bg-[#F6FAF7] px-6 py-10 text-center">
@@ -407,6 +439,233 @@ export function SeasonCalendar({
       ) : null}
     </div>
   );
+}
+
+function ViewButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-black uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
+        active
+          ? "bg-[#0B302B] text-white shadow-sm"
+          : "text-[#60756E] hover:bg-[#EAF5F0] hover:text-[#176951]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RaceCalendarList({
+  editions,
+  days,
+  currentDayNumber,
+  reputationPoints,
+  nowIso,
+}: {
+  editions: RaceCalendarEdition[];
+  days: SeasonRaceCalendar["days"];
+  currentDayNumber: number;
+  reputationPoints: number;
+  nowIso: string;
+}) {
+  const dayByNumber = new Map(days.map((day) => [day.dayNumber, day]));
+  const orderedEditions = [...editions].sort((left, right) => {
+    const leftRange = getEditionDayRange(left);
+    const rightRange = getEditionDayRange(right);
+    return (
+      leftRange.startDay - rightRange.startDay ||
+      left.prestigeRank - right.prestigeRank ||
+      left.name.localeCompare(right.name, "fr")
+    );
+  });
+
+  return (
+    <section className="mt-7" aria-labelledby="race-list-title">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E]">
+            Vue synthétique
+          </p>
+          <h2 id="race-list-title" className="mt-1 text-2xl font-black text-[#0B302B]">
+            Courses et inscriptions
+          </h2>
+        </div>
+        <span className="rounded-full border border-[#315B3E]/15 bg-[#F6FAF7] px-3 py-1.5 text-xs font-black text-[#315B3E]">
+          {orderedEditions.length} course{orderedEditions.length > 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-white shadow-sm">
+        <div className="hidden grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] gap-4 border-b border-[#315B3E]/10 bg-[#F3F8F5] px-5 py-3 text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E] lg:grid">
+          <span>Date</span>
+          <span>Épreuve</span>
+          <span>Profil</span>
+          <span>Participation</span>
+          <span>Statut</span>
+          <span className="text-right">Action</span>
+        </div>
+
+        {orderedEditions.map((edition) => {
+          const range = getEditionDayRange(edition);
+          const firstStage = [...edition.stages].sort(
+            (left, right) => left.stageNumber - right.stageNumber
+          )[0];
+          const totalDistance = edition.stages.reduce(
+            (total, stage) => total + stage.distanceKm,
+            0
+          );
+          const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+          const registration = edition.currentTeamRegistration;
+          const availability = getRegistrationAvailability({
+            policy: edition.registrationPolicy,
+            closesAt: edition.registrationClosesAt,
+            minimumReputation: edition.minimumReputation,
+            reputationPoints,
+            now: new Date(nowIso),
+          });
+          const startDate = dayByNumber.get(range.startDay)?.calendarDate;
+          const isPast = range.endDay < currentDayNumber;
+          const status = getListRegistrationStatus({
+            registration,
+            availability,
+            isPast,
+          });
+
+          return (
+            <article
+              key={edition.id}
+              className="grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center"
+            >
+              <div>
+                <p className="text-sm font-black text-[#0B302B]">
+                  J{range.startDay}{range.endDay > range.startDay ? `–J${range.endDay}` : ""}
+                </p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#789087]">
+                  {startDate ? formatShortDate(startDate) : "Date à venir"}
+                </p>
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`} role="img" aria-label={`Drapeau ${edition.countryName}`} />
+                  <span
+                    className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
+                    style={{ backgroundColor: style.background, color: style.foreground }}
+                  >
+                    {style.shortLabel}
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#789087]">
+                    {edition.raceFormat === "stage_race" ? `${edition.stages.length} étapes` : "Un jour"}
+                  </span>
+                </div>
+                <h3 className="mt-2 truncate text-base font-black text-[#0B302B]">{edition.name}</h3>
+                <p className="mt-1 text-xs font-semibold text-[#688176]">{edition.countryName}</p>
+              </div>
+
+              <div>
+                <p className="text-xs font-black text-[#183F37]">
+                  {firstStage ? RACE_PROFILE_LABELS[firstStage.profileType] : "À définir"}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-[#789087]">
+                  {totalDistance.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} km
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-black text-[#183F37]">
+                  {edition.engagedRiderCount} engagé{edition.engagedRiderCount > 1 ? "s" : ""}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-[#789087]">
+                  {edition.minimumRosterSize}–{edition.maximumRosterSize} par équipe
+                </p>
+              </div>
+
+              <ListStatusBadge tone={status.tone}>{status.label}</ListStatusBadge>
+
+              <Link
+                href={`/jeu/courses/${edition.slug}`}
+                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
+              >
+                {registration?.status === "accepted" ? "Voir l’inscription" : availability === "open" && !isPast ? "S’inscrire" : "Consulter"}
+              </Link>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function getListRegistrationStatus({
+  registration,
+  availability,
+  isPast,
+}: {
+  registration: RaceCalendarEdition["currentTeamRegistration"];
+  availability: ReturnType<typeof getRegistrationAvailability>;
+  isPast: boolean;
+}): { label: string; tone: "success" | "warning" | "neutral" | "danger" } {
+  if (registration?.status === "accepted") {
+    return { label: `Inscrite · ${registration.rosterCount}`, tone: "success" };
+  }
+  if (registration?.status === "pending") {
+    return { label: "En attente", tone: "warning" };
+  }
+  if (registration?.status === "rejected") {
+    return { label: "Refusée", tone: "danger" };
+  }
+  if (registration?.status === "withdrawn") {
+    return { label: "Retirée", tone: "neutral" };
+  }
+  if (isPast || availability === "closed") {
+    return { label: "Clôturée", tone: "neutral" };
+  }
+  if (availability === "reputation_locked") {
+    return { label: "Réputation requise", tone: "danger" };
+  }
+  if (availability === "criteria_pending") {
+    return { label: "Critères à venir", tone: "warning" };
+  }
+  return { label: "Ouverte", tone: "success" };
+}
+
+function ListStatusBadge({
+  tone,
+  children,
+}: {
+  tone: "success" | "warning" | "neutral" | "danger";
+  children: React.ReactNode;
+}) {
+  const classes = {
+    success: "bg-[#DFF5EA] text-[#176951]",
+    warning: "bg-[#FFF3CC] text-[#7B621B]",
+    neutral: "bg-[#EEF2EF] text-[#60756E]",
+    danger: "bg-[#FFF0EE] text-[#A23D3D]",
+  }[tone];
+  return (
+    <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${classes}`}>
+      {children}
+    </span>
+  );
+}
+
+function PlanningIcon() {
+  return <span aria-hidden="true" className="text-sm leading-none">▦</span>;
+}
+
+function ListIcon() {
+  return <span aria-hidden="true" className="text-sm leading-none">☷</span>;
 }
 
 function DesktopCalendarWeek({
