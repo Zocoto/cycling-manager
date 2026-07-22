@@ -117,6 +117,45 @@ a {
   text-shadow: 0 5px 22px rgb(0 0 0 / 34%);
 }
 
+.game-workspace-background {
+  min-height: 100vh;
+  background-color: #f7faf8;
+  background-image:
+    radial-gradient(circle at 8% 3%, rgb(66 185 154 / 9%), transparent 28rem),
+    radial-gradient(circle at 94% 38%, rgb(242 201 76 / 7%), transparent 25rem),
+    linear-gradient(rgb(23 105 81 / 2.2%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 105 81 / 2.2%) 1px, transparent 1px),
+    url("/game-workspace-pattern.svg");
+  background-position:
+    left top,
+    right center,
+    0 0,
+    0 0,
+    center top;
+  background-repeat: no-repeat, no-repeat, repeat, repeat, repeat;
+  background-size:
+    auto,
+    auto,
+    44px 44px,
+    44px 44px,
+    760px 520px;
+}
+
+.game-workspace-background > main {
+  background-color: transparent;
+}
+
+@media (max-width: 640px) {
+  .game-workspace-background {
+    background-size:
+      auto,
+      auto,
+      36px 36px,
+      36px 36px,
+      620px 424px;
+  }
+}
+
 @keyframes cm-race-road-flow {
   from { transform: translateX(0); }
   to { transform: translateX(-8%); }
