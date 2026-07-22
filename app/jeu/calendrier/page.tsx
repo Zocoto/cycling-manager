@@ -80,6 +80,7 @@ export default async function RaceCalendarPage({
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
+        simulatorEmail={user.email}
         displayName={headerData.displayName}
         sponsor={
           headerData.teamSponsorIdentity

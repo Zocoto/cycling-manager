@@ -90,7 +90,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
-      <GameHeader displayName={headerData.displayName} sponsor={headerData.teamSponsorIdentity?.sponsor ?? null} maxWidth="wide" />
+      <GameHeader simulatorEmail={user.email} displayName={headerData.displayName} sponsor={headerData.teamSponsorIdentity?.sponsor ?? null} maxWidth="wide" />
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <Link href="/jeu" className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] hover:text-[#0B302B]">← Retour au bureau du DS</Link>
 

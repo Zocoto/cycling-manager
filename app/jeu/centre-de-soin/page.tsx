@@ -103,6 +103,7 @@ export default async function HealthCenterPage({
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
+        simulatorEmail={user.email}
         displayName={headerData.displayName}
         sponsor={sponsorIdentity?.sponsor ?? null}
         maxWidth="wide"

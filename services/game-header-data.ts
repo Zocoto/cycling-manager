@@ -1,17 +1,23 @@
 import "server-only";
 
+import { SPONSORS } from "@/data/sponsors";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  getActiveTeamSponsorIdentityForAuthUser,
-  type TeamSponsorIdentity,
-} from "@/services/team-sponsor-identity";
+import type { TeamSponsorIdentity } from "@/services/team-sponsor-identity";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
 >;
 
-type HeaderProfile = {
-  display_name: string;
+type GameHeaderSnapshot = {
+  display_name: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  team_short_name: string | null;
+  sponsor_catalog_key: string | null;
+  selected_jersey_id: string | null;
+  budget_per_season: number | string | null;
+  currency_code: string | null;
+  contract_duration_seasons: number | null;
 };
 
 export type GameHeaderData = {
@@ -21,42 +27,62 @@ export type GameHeaderData = {
 
 export async function getGameHeaderData(
   supabase: SupabaseServerClient,
-  authUserId: string
+  _authUserId: string
 ): Promise<GameHeaderData> {
-  const [profileResult, sponsorResult] = await Promise.all([
-    supabase
-      .from("sporting_directors")
-      .select("display_name")
-      .eq("auth_user_id", authUserId)
-      .maybeSingle<HeaderProfile>(),
+  // Conservé dans la signature pour éviter de dupliquer la résolution de
+  // session dans les pages ; l'identité est vérifiée dans la RPC via auth.uid().
+  void _authUserId;
 
-    getActiveTeamSponsorIdentityForAuthUser(authUserId)
-      .then((teamSponsorIdentity) => ({
-        teamSponsorIdentity,
-        error: null,
-      }))
-      .catch((error: unknown) => ({
-        teamSponsorIdentity: null,
-        error,
-      })),
-  ]);
+  const response = await supabase.rpc("get_current_game_header_snapshot");
+  const data = response.data as GameHeaderSnapshot | null;
+  const { error } = response;
 
-  if (profileResult.error) {
-    console.error(
-      "Impossible de charger le nom du Directeur Sportif dans le header :",
-      profileResult.error
-    );
-  }
-
-  if (sponsorResult.error) {
-    console.error(
-      "Impossible de charger l’identité visuelle du sponsor dans le header :",
-      sponsorResult.error
+  if (error) {
+    throw new Error(
+      `Impossible de charger le header de jeu : ${error.message}`
     );
   }
 
   return {
-    displayName: profileResult.data?.display_name,
-    teamSponsorIdentity: sponsorResult.teamSponsorIdentity,
+    displayName: data?.display_name ?? undefined,
+    teamSponsorIdentity: toTeamSponsorIdentity(data),
+  };
+}
+
+function toTeamSponsorIdentity(
+  snapshot: GameHeaderSnapshot | null
+): TeamSponsorIdentity | null {
+  if (
+    !snapshot?.team_id ||
+    !snapshot.team_name ||
+    !snapshot.sponsor_catalog_key ||
+    !snapshot.selected_jersey_id ||
+    !snapshot.currency_code ||
+    !snapshot.contract_duration_seasons
+  ) {
+    return null;
+  }
+
+  const sponsor = SPONSORS.find(
+    (candidate) => candidate.id === snapshot.sponsor_catalog_key
+  );
+  const selectedJersey = sponsor?.jerseys.find(
+    (jersey) => jersey.id === snapshot.selected_jersey_id
+  );
+  const budgetPerSeason = Number(snapshot.budget_per_season);
+
+  if (!sponsor || !selectedJersey || !Number.isFinite(budgetPerSeason)) {
+    return null;
+  }
+
+  return {
+    teamId: snapshot.team_id,
+    teamName: snapshot.team_name,
+    teamShortName: snapshot.team_short_name,
+    sponsor,
+    selectedJersey,
+    budgetPerSeason,
+    currencyCode: snapshot.currency_code,
+    contractDurationSeasons: snapshot.contract_duration_seasons,
   };
 }

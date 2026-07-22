@@ -213,24 +213,29 @@ export async function getTransferMarketOverview(
   authUserId: string,
   filters: TransferMarketFilters = {}
 ): Promise<TransferMarketOverview | null> {
-  const financeSettlement = await supabase.rpc("settle_current_team_finances");
+  const admin = createSupabaseAdminClient();
+  const [financeSettlement, context] = await Promise.all([
+    supabase.rpc("settle_current_team_finances"),
+    loadCurrentContext(admin, authUserId),
+    prepareCurrentTransferMarket(admin),
+  ]);
+
   if (financeSettlement.error) {
     throw new Error(`Impossible d’actualiser les finances : ${financeSettlement.error.message}`);
   }
 
-  const admin = createSupabaseAdminClient();
-  const { error: marketSettlementError } = await admin.rpc("settle_transfer_market");
-  assertQuery(marketSettlementError, "les enchères arrivées à échéance");
-
-  await ensureTodayDailyMarket(admin);
-  const { error: secondSettlementError } = await admin.rpc("settle_transfer_market");
-  assertQuery(secondSettlementError, "la clôture du marché quotidien");
-
-  const context = await loadCurrentContext(admin, authUserId);
   if (!context) return null;
 
   const marketDate = formatParisDate(new Date());
-  const [listingsResult, bidsResult, contractsResult, transactionsResult, countriesResult] =
+  const [
+    listingsResult,
+    bidsResult,
+    contractsResult,
+    transactionsResult,
+    countriesResult,
+    freeAgentResult,
+    seasonYears,
+  ] =
     await Promise.all([
       admin
         .from("transfer_market_listings")
@@ -263,6 +268,13 @@ export async function getTransferMarketOverview(
         .eq("is_active", true)
         .order("name")
         .returns<CountryRow[]>(),
+      admin
+        .from("riders")
+        .select("id")
+        .eq("status", "free_agent")
+        .limit(500)
+        .returns<Array<{ id: string }>>(),
+      loadSeasonYears(admin),
     ]);
 
   assertQuery(listingsResult.error, "les enchères");
@@ -270,6 +282,7 @@ export async function getTransferMarketOverview(
   assertQuery(contractsResult.error, "les contrats de l’effectif");
   assertQuery(transactionsResult.error, "le budget projeté");
   assertQuery(countriesResult.error, "les nationalités");
+  assertQuery(freeAgentResult.error, "les agents libres");
 
   const listings = listingsResult.data ?? [];
   const bids = bidsResult.data ?? [];
@@ -279,17 +292,16 @@ export async function getTransferMarketOverview(
   const riderIds = new Set(listings.map((listing) => listing.rider_id));
   activeContracts.forEach((contract) => riderIds.add(contract.rider_id));
 
-  const { data: freeAgentRows, error: freeAgentError } = await admin
-    .from("riders")
-    .select("id")
-    .eq("status", "free_agent")
-    .limit(500)
-    .returns<Array<{ id: string }>>();
-  assertQuery(freeAgentError, "les agents libres");
+  const freeAgentRows = freeAgentResult.data ?? [];
   (freeAgentRows ?? []).forEach((rider) => riderIds.add(rider.id));
 
   const [riders, teams] = await Promise.all([
-    loadMarketRiders(admin, [...riderIds], context.season.id),
+    loadMarketRiders(
+      admin,
+      [...riderIds],
+      context.season.id,
+      countriesResult.data ?? []
+    ),
     loadTeamNames(
       admin,
       [
@@ -350,7 +362,7 @@ export async function getTransferMarketOverview(
   const openListingRiderIds = new Set(
     listings.filter((listing) => listing.status === "open").map((listing) => listing.rider_id)
   );
-  const freeAgentIds = new Set((freeAgentRows ?? []).map((row) => row.id));
+  const freeAgentIds = new Set(freeAgentRows.map((row) => row.id));
   const freeAgents = applyFreeAgentFilters(
     riders
       .filter(
@@ -389,8 +401,6 @@ export async function getTransferMarketOverview(
       .map((contract) => contract.rider_id)
   );
   const currentSeasonYear = context.season.game_year;
-  const seasonYears = await loadSeasonYears(admin);
-
   return {
     teamId: context.teamSeason.team_id,
     teamName: context.teamSeason.display_name,
@@ -561,6 +571,22 @@ async function ensureTodayDailyMarket(admin: ReturnType<typeof createSupabaseAdm
   assertQuery(error, "les cinq coureurs du marché quotidien");
 }
 
+async function prepareCurrentTransferMarket(
+  admin: ReturnType<typeof createSupabaseAdminClient>
+) {
+  const { error: marketSettlementError } = await admin.rpc(
+    "settle_transfer_market"
+  );
+  assertQuery(marketSettlementError, "les enchères arrivées à échéance");
+
+  await ensureTodayDailyMarket(admin);
+
+  const { error: secondSettlementError } = await admin.rpc(
+    "settle_transfer_market"
+  );
+  assertQuery(secondSettlementError, "la clôture du marché quotidien");
+}
+
 async function loadCurrentContext(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   authUserId: string
@@ -605,7 +631,8 @@ async function loadCurrentContext(
 async function loadMarketRiders(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   riderIds: string[],
-  seasonId: string
+  seasonId: string,
+  countries: CountryRow[]
 ): Promise<LoadedMarketRider[]> {
   if (riderIds.length === 0) return [];
   const [ridersResult, ratingsResult] = await Promise.all([
@@ -623,15 +650,8 @@ async function loadMarketRiders(
   ]);
   assertQuery(ridersResult.error, "les coureurs du marché");
   assertQuery(ratingsResult.error, "leurs caractéristiques");
-  const countryIds = [...new Set((ridersResult.data ?? []).map((rider) => rider.country_id))];
-  const { data: countries, error: countriesError } = await admin
-    .from("countries")
-    .select("id, name, iso_alpha2, is_active")
-    .in("id", countryIds)
-    .returns<CountryRow[]>();
-  assertQuery(countriesError, "les nationalités du marché");
   const ratingByRider = new Map((ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]));
-  const countryById = new Map((countries ?? []).map((country) => [country.id, country]));
+  const countryById = new Map(countries.map((country) => [country.id, country]));
 
   return (ridersResult.data ?? []).flatMap((rider) => {
     const rating = ratingByRider.get(rider.id);

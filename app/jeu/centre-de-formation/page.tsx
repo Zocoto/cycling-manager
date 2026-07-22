@@ -53,7 +53,7 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
-      <GameHeader displayName={headerData.displayName} sponsor={headerData.teamSponsorIdentity?.sponsor ?? null} maxWidth="wide" />
+      <GameHeader simulatorEmail={user.email} displayName={headerData.displayName} sponsor={headerData.teamSponsorIdentity?.sponsor ?? null} maxWidth="wide" />
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-11">
         <Link href="/jeu" className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]">
           <span aria-hidden="true">←</span> Retour au bureau du DS

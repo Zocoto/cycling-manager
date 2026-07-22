@@ -29,11 +29,11 @@ import {
 } from "../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import {
-  getTeamAmateurIdentityForAuthUser,
+  getTeamAmateurIdentity,
   type TeamAmateurIdentity,
 } from "../../services/team-amateur-identity";
 import {
-  getActiveTeamSponsorIdentityForAuthUser,
+  getActiveTeamSponsorIdentity,
   type TeamSponsorIdentity,
 } from "../../services/team-sponsor-identity";
 import {
@@ -135,7 +135,7 @@ type ManagementModuleIcon =
   | "infrastructure";
 
 const UNSPLASH_RENDER_PARAMS =
-  "auto=format&fit=crop&w=900&q=60";
+  "auto=format&fit=crop&w=600&q=38";
 
 function unsplashWatermark(photoId: string): string {
   return `https://images.unsplash.com/photo-${photoId}?${UNSPLASH_RENDER_PARAMS}`;
@@ -269,82 +269,70 @@ export default async function GamePage() {
     supabase.rpc("get_current_team_roster"),
   ]);
 
-  let teamSponsorIdentity:
-    TeamSponsorIdentity | null = null;
+  const dashboardTeamId = (
+    teamSummaryResult.data as CurrentTeamDashboardSummary | null
+  )?.team_id ?? null;
 
-  let teamSponsorIdentityError:
-    string | null = null;
-
-  try {
-    teamSponsorIdentity =
-      await getActiveTeamSponsorIdentityForAuthUser(
-        user.id
+  const sponsorIdentityPromise: Promise<{
+    identity: TeamSponsorIdentity | null;
+    error: string | null;
+  }> = (dashboardTeamId
+    ? getActiveTeamSponsorIdentity(dashboardTeamId)
+    : Promise.resolve(null)
+  )
+    .then((identity) => ({ identity, error: null }))
+    .catch((error: unknown) => {
+      console.error(
+        "Impossible de récupérer l’identité commerciale de l’équipe :",
+        error
       );
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer l’identité commerciale de l’équipe :",
-      error
-    );
 
-    teamSponsorIdentityError =
-      getErrorMessage(error);
-  }
+      return {
+        identity: null,
+        error: getErrorMessage(error),
+      };
+    });
 
-  let teamAmateurIdentity: TeamAmateurIdentity | null = null;
+  const [
+    sponsorIdentityResult,
+    teamAmateurIdentity,
+    financeOverview,
+    inventoryOverview,
+    gameObjectives,
+    youthDevelopmentAlertCount,
+  ] = await Promise.all([
+    sponsorIdentityPromise,
+    loadDashboardValue(
+      dashboardTeamId
+        ? getTeamAmateurIdentity(dashboardTeamId)
+        : Promise.resolve(null),
+      null as TeamAmateurIdentity | null,
+      "Impossible de récupérer l’identité amateur de l’équipe :"
+    ),
+    loadDashboardValue(
+      getCurrentTeamFinanceOverview(supabase, user.id),
+      null as TeamFinanceOverview | null,
+      "Impossible de récupérer la situation financière de l’équipe :"
+    ),
+    loadDashboardValue(
+      getCurrentTeamInventoryOverview(user.id),
+      null as TeamInventoryOverview | null,
+      "Impossible de récupérer l’inventaire de l’équipe :"
+    ),
+    loadDashboardValue(
+      getCurrentGameObjectives(supabase),
+      [] as GameObjective[],
+      "Impossible de récupérer les objectifs de carrière :"
+    ),
+    loadDashboardValue(
+      getYouthDevelopmentAlertCount(user.id),
+      0,
+      "Impossible de récupérer les alertes du centre de formation :"
+    ),
+  ]);
 
-  try {
-    teamAmateurIdentity =
-      await getTeamAmateurIdentityForAuthUser(user.id);
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer l’identité amateur de l’équipe :",
-      error
-    );
-  }
-
-  let financeOverview: TeamFinanceOverview | null = null;
-
-  try {
-    financeOverview = await getCurrentTeamFinanceOverview(supabase, user.id);
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer la situation financière de l’équipe :",
-      error
-    );
-  }
-
-  let inventoryOverview: TeamInventoryOverview | null = null;
-
-  try {
-    inventoryOverview = await getCurrentTeamInventoryOverview(user.id);
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer l’inventaire de l’équipe :",
-      error
-    );
-  }
-
-  let gameObjectives: GameObjective[] = [];
-
-  try {
-    gameObjectives = await getCurrentGameObjectives(supabase);
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer les objectifs de carrière :",
-      error
-    );
-  }
-
-  let youthDevelopmentAlertCount = 0;
-
-  try {
-    youthDevelopmentAlertCount = await getYouthDevelopmentAlertCount(user.id);
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer les alertes du centre de formation :",
-      error
-    );
-  }
+  const teamSponsorIdentity = sponsorIdentityResult.identity;
+  const teamSponsorIdentityError = sponsorIdentityResult.error;
 
   const sportingDirector =
     profileResult.data;
@@ -450,6 +438,7 @@ export default async function GamePage() {
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
+        simulatorEmail={user.email}
         displayName={displayName}
         sponsor={teamSponsorIdentity?.sponsor ?? null}
       />
@@ -1804,6 +1793,19 @@ function getErrorMessage(
   }
 
   return "Une erreur inattendue est survenue.";
+}
+
+async function loadDashboardValue<T>(
+  promise: Promise<T>,
+  fallback: T,
+  errorMessage: string
+): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    console.error(errorMessage, error);
+    return fallback;
+  }
 }
 
 function formatCareerStart(

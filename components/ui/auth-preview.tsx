@@ -40,7 +40,7 @@ export function AuthPreview({
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-position-[70%_center] bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/peloton-header.png')",
+          backgroundImage: "url('/images/peloton-header.webp')",
         }}
       />
 

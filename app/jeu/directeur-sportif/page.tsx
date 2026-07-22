@@ -203,6 +203,7 @@ export default async function SportingDirectorProfilePage() {
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
+        simulatorEmail={user.email}
         displayName={displayName}
         sponsor={teamSponsorIdentity?.sponsor ?? null}
       />

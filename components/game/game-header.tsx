@@ -11,13 +11,13 @@ import {
   GLOBAL_SEARCH_MIN_LENGTH,
 } from "@/lib/game/global-search";
 import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type GameHeaderProps = {
   displayName?: string;
   sponsor?: Sponsor | null;
   maxWidth?: "standard" | "wide";
   searchQuery?: string;
+  simulatorEmail?: string | null;
 };
 
 const DEFAULT_HEADER_COLORS = {
@@ -31,6 +31,7 @@ export function GameHeader({
   sponsor = null,
   maxWidth = "standard",
   searchQuery = "",
+  simulatorEmail = null,
 }: GameHeaderProps) {
   const colors = sponsor?.colors ??
     DEFAULT_HEADER_COLORS;
@@ -181,7 +182,9 @@ export function GameHeader({
             </span>
           ) : null}
 
-          <RaceSimulatorShortcut />
+          {canAccessRaceSimulator(simulatorEmail) ? (
+            <RaceSimulatorShortcut />
+          ) : null}
 
           <form action={logoutAccount}>
             <button
@@ -197,23 +200,7 @@ export function GameHeader({
   );
 }
 
-async function RaceSimulatorShortcut() {
-  let email: string | null | undefined;
-
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    email = user?.email;
-  } catch (error) {
-    console.error("Impossible de vérifier l’accès au simulateur :", error);
-  }
-
-  if (!canAccessRaceSimulator(email)) {
-    return null;
-  }
-
+function RaceSimulatorShortcut() {
   return (
     <Link
       href="/jeu/simulateur-course"

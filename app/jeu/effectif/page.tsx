@@ -385,6 +385,7 @@ export default async function TeamRosterPage({
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
+        simulatorEmail={user.email}
         sponsor={teamSponsorIdentity?.sponsor ?? null}
         maxWidth="wide"
       />

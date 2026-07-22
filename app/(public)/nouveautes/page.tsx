@@ -25,7 +25,7 @@ function ReleasesHero() {
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-position-[68%_center] bg-no-repeat"
         style={{
-          backgroundImage: "url('/images/peloton-header.png')",
+          backgroundImage: "url('/images/peloton-header.webp')",
         }}
       />
 
@@ -170,7 +170,7 @@ function ReleaseCard({
         <div
           className="relative min-h-64 overflow-hidden bg-cover bg-center lg:min-h-full"
           style={{
-            backgroundImage: "url('/images/peloton-header.png')",
+            backgroundImage: "url('/images/peloton-header.webp')",
           }}
         >
           <div
