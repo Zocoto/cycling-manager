@@ -252,20 +252,9 @@ export default async function SportingDirectorProfilePage() {
           ) : (
             <div className="mt-10 space-y-6">
               <article className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-8">
-                <div className="border-b border-[#315B3E]/10 pb-6">
+                <div className="border-b border-[#315B3E]/10 pb-4">
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
                     Votre identité
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-black">
-                    Profil du Directeur Sportif
-                  </h2>
-
-                  <p className="mt-3 max-w-3xl leading-7 text-[#60756E]">
-                    Ces informations vous
-                    représenteront dans votre bureau
-                    et dans les différentes rubriques
-                    de votre carrière.
                   </p>
                 </div>
 
