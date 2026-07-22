@@ -103,7 +103,7 @@ export default async function SponsoringPage({
       : null;
 
   return (
-    <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+    <main className="min-h-screen text-[#082A2A]">
       <GameHeader
         simulatorEmail={user.email}
         sponsor={headerSponsor}
@@ -111,13 +111,6 @@ export default async function SponsoringPage({
       />
 
       <section className="relative overflow-hidden">
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-96 bg-linear-to-b from-[#D7EEE8] to-transparent"
-        />
-
-        <MountainDecoration />
-
         <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
           <Link
             href="/jeu"
@@ -1862,30 +1855,4 @@ function formatDate(value: string): string {
     month: "long",
     year: "numeric",
   }).format(parsedDate);
-}
-
-function MountainDecoration() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 1440 420"
-      preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-x-0 top-48 h-80 w-full opacity-20"
-    >
-      <path
-        d="M0 365 L170 215 L310 330 L490 105 L665 340 L835 180 L1005 350 L1190 135 L1440 315 L1440 420 L0 420 Z"
-        fill="#78B9A3"
-        opacity="0.34"
-      />
-
-      <path
-        d="M0 390 L220 300 L370 380 L545 235 L720 395 L900 285 L1075 400 L1260 255 L1440 365"
-        fill="none"
-        stroke="#315B3E"
-        strokeDasharray="17 15"
-        strokeWidth="3"
-        opacity="0.38"
-      />
-    </svg>
-  );
 }
