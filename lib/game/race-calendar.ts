@@ -46,9 +46,20 @@ export type RaceStageStatus =
   | "completed"
   | "cancelled";
 
+export type RaceDaySlot = 1 | 2;
+
+export const RACE_DAY_SLOT_LABELS: Record<
+  RaceDaySlot,
+  string
+> = {
+  1: "Matin",
+  2: "Après-midi",
+};
+
 export type RaceCalendarStage = {
   id: string;
   dayNumber: number;
+  daySlot: RaceDaySlot;
   stageNumber: number;
   name: string;
   stageType: RaceStageType;

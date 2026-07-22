@@ -8,6 +8,7 @@ import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
+  RACE_DAY_SLOT_LABELS,
   RACE_PROFILE_LABELS,
   buildCalendarWeeks,
   isRaceEditionAvailableToCurrentTeam,
@@ -43,8 +44,6 @@ export function SeasonCalendar({
     useState<CalendarScope>("team");
   const [selectedCategories, setSelectedCategories] =
     useState<RaceCategoryCode[]>([]);
-  const [expandedWeeks, setExpandedWeeks] =
-    useState<number[]>([]);
   const scopeEditions = useMemo(
     () => {
       const standardEditions = calendar.editions.filter(
@@ -87,8 +86,10 @@ export function SeasonCalendar({
         .sort(
           (first, second) =>
             first.stage.dayNumber - second.stage.dayNumber ||
+            first.stage.daySlot - second.stage.daySlot ||
             first.edition.prestigeRank - second.edition.prestigeRank ||
-            first.edition.name.localeCompare(second.edition.name, "fr")
+            first.edition.name.localeCompare(second.edition.name, "fr") ||
+            first.stage.stageNumber - second.stage.stageNumber
         ),
     [visibleEditions]
   );
@@ -131,17 +132,6 @@ export function SeasonCalendar({
           )
         : [...current, categoryCode]
     );
-    setExpandedWeeks([]);
-  }
-
-  function toggleWeek(weekNumber: number) {
-    setExpandedWeeks((current) =>
-      current.includes(weekNumber)
-        ? current.filter(
-            (value) => value !== weekNumber
-          )
-        : [...current, weekNumber]
-    );
   }
 
   return (
@@ -161,7 +151,6 @@ export function SeasonCalendar({
             type="button"
             onClick={() => {
               setScope("team");
-              setExpandedWeeks([]);
             }}
             aria-pressed={scope === "team"}
             className={`min-h-10 rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
@@ -176,7 +165,6 @@ export function SeasonCalendar({
             type="button"
             onClick={() => {
               setScope("all");
-              setExpandedWeeks([]);
             }}
             aria-pressed={scope === "all"}
             className={`min-h-10 rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] ${
@@ -209,7 +197,6 @@ export function SeasonCalendar({
             type="button"
             onClick={() => {
               setSelectedCategories([]);
-              setExpandedWeeks([]);
             }}
             aria-pressed={
               selectedCategories.length === 0
@@ -279,12 +266,6 @@ export function SeasonCalendar({
             }
             dayByNumber={dayByNumber}
             eventsByDay={eventsByDay}
-            isExpanded={expandedWeeks.includes(
-              week.weekNumber
-            )}
-            onToggleExpanded={() =>
-              toggleWeek(week.weekNumber)
-            }
           />
         ))}
       </div>
@@ -292,21 +273,21 @@ export function SeasonCalendar({
       <div className="mt-7 space-y-4 md:hidden">
         {calendar.days.map((day) => {
           const dayEditions = visibleEditions
-            .map((edition) => ({
-              edition,
-              stage: edition.stages.find(
-                (stage) =>
-                  stage.dayNumber ===
-                  day.dayNumber
-              ),
-            }))
-            .filter(
-              (
-                entry
-              ): entry is {
-                edition: RaceCalendarEdition;
-                stage: RaceCalendarEdition["stages"][number];
-              } => Boolean(entry.stage)
+            .flatMap((edition) =>
+              edition.stages
+                .filter(
+                  (stage) =>
+                    stage.dayNumber ===
+                    day.dayNumber
+                )
+                .map((stage) => ({ edition, stage }))
+            )
+            .sort(
+              (first, second) =>
+                first.stage.daySlot - second.stage.daySlot ||
+                first.edition.prestigeRank - second.edition.prestigeRank ||
+                first.edition.name.localeCompare(second.edition.name, "fr") ||
+                first.stage.stageNumber - second.stage.stageNumber
             );
 
           return (
@@ -371,8 +352,13 @@ export function SeasonCalendar({
                       >
                         {style.shortLabel}
                       </span>
+                      <RaceCountryFlag
+                        countryCode={edition.countryCode}
+                        countryName={edition.countryName}
+                      />
                       <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                        J{stage.dayNumber}{edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
+                        J{stage.dayNumber} · {RACE_DAY_SLOT_LABELS[stage.daySlot]}
+                        {edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
                       </span>
                     </div>
                     <h3 className="mt-2 truncate text-sm font-black text-[#0B302B] group-hover:text-[#176951]">
@@ -426,8 +412,6 @@ function DesktopCalendarWeek({
   currentDayNumber,
   dayByNumber,
   eventsByDay,
-  isExpanded,
-  onToggleExpanded,
 }: {
   week: CalendarWeek;
   currentDayNumber: number;
@@ -439,15 +423,11 @@ function DesktopCalendarWeek({
     number,
     SeasonRaceCalendar["events"]
   >;
-  isExpanded: boolean;
-  onToggleExpanded: () => void;
 }) {
-  const visibleLaneCount = isExpanded
-    ? week.laneCount
-    : Math.min(
-        DEFAULT_VISIBLE_LANES,
-        week.laneCount
-      );
+  const visibleLaneCount = Math.min(
+    DEFAULT_VISIBLE_LANES,
+    week.laneCount
+  );
   const hasHiddenLanes =
     week.laneCount > DEFAULT_VISIBLE_LANES;
   const rowCount =
@@ -457,7 +437,7 @@ function DesktopCalendarWeek({
   return (
     <section
       aria-label={`Semaine ${week.weekNumber}, J${week.startDay} à J${week.endDay}`}
-      className="grid grid-cols-7 gap-x-2 overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] p-2 shadow-sm"
+      className="grid grid-cols-7 gap-x-2 overflow-visible rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] p-2 shadow-sm"
       style={{
         gridTemplateRows: `minmax(9.5rem, auto) repeat(${rowCount}, minmax(2.1rem, auto))`,
       }}
@@ -567,6 +547,12 @@ function DesktopCalendarWeek({
                 {style.shortLabel}
               </span>
 
+              <RaceCountryFlag
+                countryCode={segment.edition.countryCode}
+                countryName={segment.edition.countryName}
+                className="border-white/70"
+              />
+
               <span className="truncate">
                 {segment.startsBeforeWeek
                   ? "← "
@@ -587,21 +573,88 @@ function DesktopCalendarWeek({
           );
         })}
 
-      {hasHiddenLanes ? (
-        <button
-          type="button"
-          onClick={onToggleExpanded}
-          className="relative z-20 mx-1 self-center rounded-lg border border-[#315B3E]/20 bg-white/90 px-3 py-1.5 text-xs font-extrabold text-[#315B3E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-          style={{
-            gridColumn: "1 / 8",
-            gridRow: visibleLaneCount + 2,
-          }}
-        >
-          {isExpanded
-            ? "Réduire cette semaine"
-            : `Afficher les ${week.laneCount - DEFAULT_VISIBLE_LANES} autres lignes de course`}
-        </button>
-      ) : null}
+      {hasHiddenLanes
+        ? Array.from({ length: 7 }, (_, index) => {
+            const dayNumber = week.startDay + index;
+            const hiddenSegments = week.segments.filter(
+              (segment) =>
+                segment.lane >= DEFAULT_VISIBLE_LANES &&
+                segment.startDay <= dayNumber &&
+                segment.endDay >= dayNumber
+            );
+
+            if (hiddenSegments.length === 0) {
+              return null;
+            }
+
+            const tooltipId = `calendar-overflow-${week.weekNumber}-${dayNumber}`;
+
+            return (
+              <div
+                key={dayNumber}
+                className="group/overflow relative z-30 mx-1 self-center"
+                style={{
+                  gridColumn: index + 1,
+                  gridRow: visibleLaneCount + 2,
+                }}
+              >
+                <button
+                  type="button"
+                  aria-describedby={tooltipId}
+                  aria-label={`${hiddenSegments.length} autres courses à J${dayNumber}`}
+                  className="w-full rounded-lg border border-[#315B3E]/20 bg-white/95 px-2 py-1.5 text-xs font-black text-[#315B3E] shadow-sm transition hover:border-[#176951]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
+                >
+                  +{hiddenSegments.length}
+                </button>
+
+                <div
+                  id={tooltipId}
+                  role="tooltip"
+                  className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-xl border border-[#315B3E]/15 bg-[#071A17] p-3 text-left text-white opacity-0 shadow-xl transition group-hover/overflow:visible group-hover/overflow:opacity-100 group-focus-within/overflow:visible group-focus-within/overflow:opacity-100"
+                >
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
+                    Autres courses · J{dayNumber}
+                  </p>
+                  <ul className="mt-2 space-y-2">
+                    {hiddenSegments.map((segment) => {
+                      const style =
+                        RACE_CATEGORY_STYLE[
+                          segment.edition.categoryCode
+                        ];
+
+                      return (
+                        <li
+                          key={segment.edition.id}
+                          className="flex min-w-0 items-center gap-2"
+                        >
+                          <span
+                            className="rounded px-1.5 py-0.5 text-[9px] font-black tracking-wider"
+                            style={{
+                              backgroundColor: style.background,
+                              color: style.foreground,
+                            }}
+                          >
+                            {style.shortLabel}
+                          </span>
+                          <RaceCountryFlag
+                            countryCode={segment.edition.countryCode}
+                            countryName={segment.edition.countryName}
+                          />
+                          <span className="truncate text-[11px] font-bold">
+                            {segment.edition.name}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="mt-3 border-t border-white/10 pt-2 text-[10px] font-semibold leading-4 text-[#C8D8D0]">
+                    Filtrez une catégorie pour afficher et ouvrir la course souhaitée.
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        : null}
     </section>
   );
 }
@@ -671,7 +724,7 @@ function MobileCalendarDay({
 
           return (
             <Link
-              key={edition.id}
+              key={stage.id}
               href={`/jeu/courses/${edition.slug}`}
               className="flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
               style={{
@@ -684,6 +737,12 @@ function MobileCalendarDay({
                 {style.shortLabel}
               </span>
 
+              <RaceCountryFlag
+                countryCode={edition.countryCode}
+                countryName={edition.countryName}
+                className="border-white/70"
+              />
+
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-black">
                   {edition.name}
@@ -693,6 +752,8 @@ function MobileCalendarDay({
                   "stage_race"
                     ? `Étape ${stage.stageNumber} · `
                     : ""}
+                  {RACE_DAY_SLOT_LABELS[stage.daySlot]}
+                  {" · "}
                   {
                     RACE_PROFILE_LABELS[
                       stage.profileType
@@ -726,6 +787,25 @@ function MobileCalendarDay({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function RaceCountryFlag({
+  countryCode,
+  countryName,
+  className = "border-white",
+}: {
+  countryCode: string;
+  countryName: string;
+  className?: string;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={`Drapeau ${countryName}`}
+      title={countryName}
+      className={`fi fi-${countryCode.toLowerCase()} inline-block h-3.5 w-5 shrink-0 rounded-sm border shadow-sm ${className}`}
+    />
   );
 }
 

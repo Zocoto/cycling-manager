@@ -10,6 +10,7 @@ import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
+  RACE_DAY_SLOT_LABELS,
   RACE_PROFILE_LABELS,
   isCurrentTeamRegisteredForRace,
   type RaceCalendarEdition,
@@ -338,7 +339,8 @@ function RaceDirectoryCard({
               <span className="min-w-0">
                 <span className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                    J{stage.dayNumber}{edition.raceFormat === "stage_race" ? ` · E${stage.stageNumber}` : ""}
+                    J{stage.dayNumber} · {RACE_DAY_SLOT_LABELS[stage.daySlot]}
+                    {edition.raceFormat === "stage_race" ? ` · E${stage.stageNumber}` : ""}
                   </span>
                   <LiveStateBadge
                     status={state.status}

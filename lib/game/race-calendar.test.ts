@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCalendarWeeks,
+  getEditionDayRange,
   getEffectiveSeasonDay,
   getRegistrationAvailability,
   isBeforeRegistrationDeadline,
@@ -77,6 +78,30 @@ describe("buildCalendarWeeks", () => {
         (segment) => segment.lane
       )
     ).toEqual([0, 1]);
+  });
+
+  it("condense cinq étapes de J2 matin à J4 matin", () => {
+    const edition = createEdition(
+      "tour-condense",
+      [2, 2, 3, 3, 4]
+    );
+
+    expect(getEditionDayRange(edition)).toEqual({
+      startDay: 2,
+      endDay: 4,
+    });
+    expect(
+      edition.stages.map((stage) => [
+        stage.dayNumber,
+        stage.daySlot,
+      ])
+    ).toEqual([
+      [2, 1],
+      [2, 2],
+      [3, 1],
+      [3, 2],
+      [4, 1],
+    ]);
   });
 });
 
@@ -261,8 +286,9 @@ function createEdition(
     currentTeamRegistration: null,
     stages: dayNumbers.map(
       (dayNumber, index) => ({
-        id: `${slug}-${dayNumber}`,
+        id: `${slug}-${dayNumber}-${index + 1}`,
         dayNumber,
+        daySlot: index % 2 === 0 ? 1 : 2,
         stageNumber: index + 1,
         name: `Étape ${index + 1}`,
         stageType: "road",

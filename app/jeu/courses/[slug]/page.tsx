@@ -14,6 +14,7 @@ import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   RACE_CATEGORY_STYLE,
+  RACE_DAY_SLOT_LABELS,
   RACE_PROFILE_LABELS,
   getEditionDayRange,
   getRegistrationAvailability,
@@ -846,7 +847,7 @@ function StageCard({
     <article className="grid gap-4 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm sm:grid-cols-[90px_minmax(0,0.85fr)_minmax(240px,1.15fr)] sm:items-center sm:p-5">
       <div>
         <p className="text-xs font-extrabold uppercase tracking-wider text-[#688176]">
-          J{stage.dayNumber}
+          J{stage.dayNumber} · {RACE_DAY_SLOT_LABELS[stage.daySlot]}
         </p>
         <p className="mt-1 font-black text-[#0B302B]">
           {showStageNumber
