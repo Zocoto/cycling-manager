@@ -5,6 +5,7 @@ import {
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
 import type { DashboardEvent } from "@/lib/game/dashboard-events";
+import { getRaceResultsHref } from "@/lib/game/race-live";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getYouthDevelopmentAlertCount } from "@/services/youth-development";
 
@@ -296,8 +297,8 @@ function buildCompletedRaceEvents(
         title: `${edition.display_name} est terminée`,
         description:
           "Les résultats sont homologués. Consultez le classement, les écarts et les performances de vos coureurs.",
-        href: `/jeu/courses/${slug}`,
-        actionLabel: "Voir la course",
+        href: getRaceResultsHref(slug),
+        actionLabel: "Voir les résultats",
         dayNumber: endDay,
         happenedAt: null,
       },

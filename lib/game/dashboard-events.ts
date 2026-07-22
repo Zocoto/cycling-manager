@@ -21,6 +21,7 @@ export type DashboardEvent = {
   description: string;
   href: string;
   actionLabel: string;
+  badgeLabel?: string;
   dayNumber: number | null;
   happenedAt: string | null;
 };
@@ -126,6 +127,7 @@ function buildNationalChampionshipReminders(
         "Le contre-la-montre national a lieu en J8. Vérifiez les engagements de chaque nationalité représentée dans votre effectif.",
       href: "/jeu/championnats-nationaux/contre-la-montre",
       actionLabel: "Vérifier les inscriptions",
+      badgeLabel: "Rappel",
       dayNumber: 8,
       happenedAt: null,
     });
@@ -141,6 +143,7 @@ function buildNationalChampionshipReminders(
         "La course en ligne nationale a lieu en J9. Seuls les coureurs de la nationalité du championnat peuvent y participer.",
       href: "/jeu/championnats-nationaux/route",
       actionLabel: "Vérifier les inscriptions",
+      badgeLabel: "Rappel",
       dayNumber: 9,
       happenedAt: null,
     });

@@ -122,3 +122,34 @@ export function getStageLiveState(
     progress: 0,
   };
 }
+
+export function getRaceResultsHref(raceSlug: string) {
+  return `/jeu/resultats?course=${encodeURIComponent(raceSlug)}#course-live`;
+}
+
+export function getRaceExperienceAvailability(
+  stages: RaceCalendarStage[],
+  now = new Date()
+): "live" | "replay" | null {
+  const statuses = stages.map((stage) => getStageLiveState(stage, now).status);
+
+  if (statuses.includes("live")) return "live";
+  if (statuses.includes("finished")) return "replay";
+  return null;
+}
+
+export function selectRaceStageForLiveAccess(
+  stages: RaceCalendarStage[],
+  now = new Date()
+): RaceCalendarStage | null {
+  const liveStage = stages.find(
+    (stage) => getStageLiveState(stage, now).status === "live"
+  );
+  if (liveStage) return liveStage;
+
+  const latestFinishedStage = [...stages]
+    .reverse()
+    .find((stage) => getStageLiveState(stage, now).status === "finished");
+
+  return latestFinishedStage ?? stages[0] ?? null;
+}

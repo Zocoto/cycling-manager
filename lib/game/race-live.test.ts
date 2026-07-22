@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   canSimulateRaceEdition,
   getEstimatedLiveDurationMinutes,
+  getRaceExperienceAvailability,
+  getRaceResultsHref,
   getStageLiveState,
+  selectRaceStageForLiveAccess,
 } from "./race-live";
 
 const STAGE = {
@@ -54,5 +57,56 @@ describe("canSimulateRaceEdition", () => {
         engagedRiderCount: 0,
       })
     ).toBe(true);
+  });
+});
+
+describe("accès direct aux résultats et au live", () => {
+  const stages = [
+    {
+      id: "stage-1",
+      dayNumber: 4,
+      stageNumber: 1,
+      name: "Étape 1",
+      stageType: "road" as const,
+      status: "planned" as const,
+      profileType: "flat" as const,
+      distanceKm: 120,
+      daySlot: "early" as const,
+      departureAt: "2026-07-20T14:00:00.000Z",
+      segments: [],
+    },
+    {
+      id: "stage-2",
+      dayNumber: 5,
+      stageNumber: 2,
+      name: "Étape 2",
+      stageType: "road" as const,
+      status: "planned" as const,
+      profileType: "hilly" as const,
+      distanceKm: 150,
+      daySlot: "late" as const,
+      departureAt: "2026-07-21T18:00:00.000Z",
+      segments: [],
+    },
+  ];
+
+  it("construit un lien profond vers la course demandée", () => {
+    expect(getRaceResultsHref("tour de l'avenir")).toBe(
+      "/jeu/resultats?course=tour%20de%20l'avenir#course-live"
+    );
+  });
+
+  it("ouvre l'étape en direct en priorité", () => {
+    const now = new Date("2026-07-21T18:10:00.000Z");
+
+    expect(getRaceExperienceAvailability(stages, now)).toBe("live");
+    expect(selectRaceStageForLiveAccess(stages, now)?.id).toBe("stage-2");
+  });
+
+  it("ouvre le dernier replay lorsque la course est passée", () => {
+    const now = new Date("2026-07-21T19:00:00.000Z");
+
+    expect(getRaceExperienceAvailability(stages, now)).toBe("replay");
+    expect(selectRaceStageForLiveAccess(stages, now)?.id).toBe("stage-2");
   });
 });

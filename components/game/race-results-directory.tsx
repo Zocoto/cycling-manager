@@ -23,6 +23,7 @@ import {
   RACE_SIMULATION_DEMO_SLUG,
   canSimulateRaceEdition,
   getStageLiveState,
+  selectRaceStageForLiveAccess,
 } from "@/lib/game/race-live";
 import type {
   OfficialRaceEditionResults,
@@ -33,6 +34,7 @@ type RaceResultsDirectoryProps = {
   calendar: SeasonRaceCalendar;
   nowIso: string;
   officialResults: OfficialRaceResultsDirectory;
+  initialRaceSlug?: string | null;
 };
 
 type StageEntry = {
@@ -46,11 +48,25 @@ export function RaceResultsDirectory({
   calendar,
   nowIso,
   officialResults,
+  initialRaceSlug = null,
 }: RaceResultsDirectoryProps) {
-  const [scope, setScope] = useState<ResultsScope>("team");
+  const initialNow = new Date(nowIso);
+  const initialEdition = initialRaceSlug
+    ? calendar.editions.find((edition) => edition.slug === initialRaceSlug) ?? null
+    : null;
+  const initialStage = initialEdition
+    ? selectRaceStageForLiveAccess(initialEdition.stages, initialNow)
+    : null;
+  const [scope, setScope] = useState<ResultsScope>(
+    initialEdition && !isCurrentTeamRegisteredForRace(initialEdition)
+      ? "all"
+      : "team"
+  );
   const [selectedCategories, setSelectedCategories] = useState<RaceCategoryCode[]>([]);
-  const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
-  const [now, setNow] = useState(() => new Date(nowIso));
+  const [selectedStageId, setSelectedStageId] = useState<string | null>(
+    initialStage?.id ?? null
+  );
+  const [now, setNow] = useState(initialNow);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 15_000);
