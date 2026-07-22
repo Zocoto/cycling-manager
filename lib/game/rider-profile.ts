@@ -15,6 +15,40 @@ export type RiderRatingKey =
 
 export type RiderRatings = Record<RiderRatingKey, number>;
 
+export function isSeasonPartOfRiderHistory(status: string): boolean {
+  return status === "active" || status === "completed";
+}
+
+export function resolvePublicTeamName({
+  seasonDisplayName,
+  amateurName,
+  internalName,
+}: {
+  seasonDisplayName?: string | null;
+  amateurName?: string | null;
+  internalName?: string | null;
+}): string {
+  for (const candidate of [seasonDisplayName, amateurName, internalName]) {
+    const publicName = normalizePublicTeamName(candidate);
+
+    if (publicName) {
+      return publicName;
+    }
+  }
+
+  return "Équipe inconnue";
+}
+
+function normalizePublicTeamName(value?: string | null): string | null {
+  const normalized = value?.trim();
+
+  if (!normalized || /^initial_team_[a-f0-9]+$/i.test(normalized)) {
+    return null;
+  }
+
+  return normalized.replace(/\s+\u00b7\s+[a-f0-9]{4}$/i, "").trim();
+}
+
 export type RiderSpecialtyProfile =
   | "Grimpeur"
   | "Puncheur"

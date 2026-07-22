@@ -5,7 +5,11 @@ import {
   type EquipmentEffects,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
-import type { RiderRatings } from "@/lib/game/rider-profile";
+import {
+  isSeasonPartOfRiderHistory,
+  resolvePublicTeamName,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -189,6 +193,7 @@ type NationalChampionshipTitleRow = {
 type TeamRow = {
   id: string;
   internal_name: string;
+  amateur_name: string | null;
 };
 
 type TeamSeasonRow = {
@@ -449,7 +454,7 @@ export async function getPublicRiderProfile({
       teamIds.length > 0
         ? supabase
             .from("teams")
-            .select("id, internal_name")
+            .select("id, internal_name, amateur_name")
             .in("id", teamIds)
             .returns<TeamRow[]>()
         : Promise.resolve({ data: [] as TeamRow[], error: null }),
@@ -512,10 +517,13 @@ export async function getPublicRiderProfile({
         );
         return {
           id: currentContract.team_id,
-          displayName:
-            currentTeamSeason?.display_name ??
-            teams.find((team) => team.id === currentContract.team_id)?.internal_name ??
-            "Équipe inconnue",
+          displayName: resolvePublicTeamName({
+            seasonDisplayName: currentTeamSeason?.display_name,
+            amateurName: teams.find((team) => team.id === currentContract.team_id)
+              ?.amateur_name,
+            internalName: teams.find((team) => team.id === currentContract.team_id)
+              ?.internal_name,
+          }),
           shortName: currentTeamSeason?.short_name ?? null,
           divisionCode,
           divisionName: getTeamDivisionLabel(divisionCode),
@@ -574,7 +582,10 @@ export async function getPublicRiderProfile({
 
       return seasons
         .filter(
-          (season) => season.game_year >= startYear && season.game_year <= endYear
+          (season) =>
+            isSeasonPartOfRiderHistory(season.status) &&
+            season.game_year >= startYear &&
+            season.game_year <= endYear
         )
         .map((season) => {
           const teamSeason = findTeamSeason({
@@ -589,10 +600,11 @@ export async function getPublicRiderProfile({
             seasonName: season.name,
             gameYear: season.game_year,
             teamId: contract.team_id,
-            teamName:
-              teamSeason?.display_name ??
-              teamById.get(contract.team_id)?.internal_name ??
-              "Équipe inconnue",
+            teamName: resolvePublicTeamName({
+              seasonDisplayName: teamSeason?.display_name,
+              amateurName: teamById.get(contract.team_id)?.amateur_name,
+              internalName: teamById.get(contract.team_id)?.internal_name,
+            }),
             victories: summary?.victories ?? null,
             points: summary?.points ?? null,
             uciRank: summary?.uci_rank ?? null,
