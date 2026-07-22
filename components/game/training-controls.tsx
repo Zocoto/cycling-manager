@@ -71,6 +71,12 @@ export function RiderTrainingPlanForm({
   );
   const nationalityBonus =
     selectedTrainer?.countryCode.toUpperCase() === riderCountryCode.toUpperCase();
+  const intensityLabelId = `training-intensity-${riderId}`;
+
+  function updateIntensity(value: number) {
+    if (!Number.isFinite(value)) return;
+    setIntensity(Math.min(100, Math.max(0, Math.round(value))));
+  }
 
   return (
     <form
@@ -78,19 +84,38 @@ export function RiderTrainingPlanForm({
       className="grid min-w-0 gap-4 lg:grid-cols-[minmax(210px,1.2fr)_minmax(170px,0.9fr)_minmax(190px,1fr)_150px] lg:items-end"
     >
       <input type="hidden" name="riderId" value={riderId} />
-      <label className="min-w-0">
-        <span className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-          Intensité
-          <strong className="text-sm text-[#176951]">{intensity}%</strong>
-        </span>
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3">
+          <span
+            id={intensityLabelId}
+            className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]"
+          >
+            Intensité
+          </span>
+          <label className="flex min-h-9 items-center overflow-hidden rounded-lg border border-[#315B3E]/20 bg-white shadow-sm focus-within:border-[#278B70] focus-within:ring-2 focus-within:ring-[#278B70]/15">
+            <span className="sr-only">Saisir l’intensité d’entraînement</span>
+            <input
+              type="number"
+              name="intensity"
+              min={0}
+              max={100}
+              step={1}
+              inputMode="numeric"
+              value={intensity}
+              onChange={(event) => updateIntensity(event.target.valueAsNumber)}
+              className="h-9 w-16 bg-transparent px-2 text-right text-sm font-black text-[#176951] outline-none"
+            />
+            <span className="pr-2 text-xs font-black text-[#60756E]">%</span>
+          </label>
+        </div>
         <input
           type="range"
-          name="intensity"
           min={0}
           max={100}
           step={1}
           value={intensity}
-          onChange={(event) => setIntensity(Number(event.target.value))}
+          aria-labelledby={intensityLabelId}
+          onChange={(event) => updateIntensity(event.target.valueAsNumber)}
           className="mt-3 h-2 w-full cursor-pointer accent-[#176951]"
         />
         <span
@@ -101,7 +126,7 @@ export function RiderTrainingPlanForm({
           Forme : {formDelta > 0 ? "+" : ""}
           {formDelta} point{Math.abs(formDelta) > 1 ? "s" : ""} / séance
         </span>
-      </label>
+      </div>
 
       <label>
         <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
