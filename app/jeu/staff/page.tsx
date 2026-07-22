@@ -464,13 +464,12 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
             Règle d’efficacité
           </p>
           <h2 className="mt-2 text-2xl font-black">
-            La compétence avant l’empilement
+            Les compétences se cumulent
           </h2>
           <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">
-            Pour un même effet global, le meilleur niveau actif fait référence.
-            Plusieurs entraîneurs restent utiles lorsqu’ils couvrent des
-            spécialités différentes. La nationalité du scout définit sa zone
-            géographique de prédilection.
+            Lorsque plusieurs membres du staff interviennent sur un même
+            périmètre, leurs effets s’additionnent. La nationalité du scout
+            définit sa zone géographique de prédilection.
           </p>
           <Link
             href="/jeu/staff?onglet=marche"
