@@ -10,8 +10,9 @@ import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
-  RACE_DAY_SLOT_LABELS,
+  RACE_DAY_SLOT_CONFIG,
   RACE_PROFILE_LABELS,
+  compareRaceDaySlots,
   isCurrentTeamRegisteredForRace,
   type RaceCalendarEdition,
   type RaceCalendarStage,
@@ -68,6 +69,7 @@ export function RaceResultsDirectory({
         .sort(
           (first, second) =>
             first.stage.dayNumber - second.stage.dayNumber ||
+            compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
             first.edition.prestigeRank - second.edition.prestigeRank ||
             first.stage.stageNumber - second.stage.stageNumber
         ),
@@ -124,7 +126,7 @@ export function RaceResultsDirectory({
                 Répertoire Résultats / Live
               </h2>
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#C1D3CA]">
-                Choisissez une course ou une étape. Le direct commence à 20 h, puis son replay et son classement deviennent disponibles.
+                Choisissez une course ou une étape. Deux vagues de directs sont programmées à 14 h et 18 h, puis les replays et classements deviennent disponibles.
               </p>
             </div>
             <div className="flex gap-2 text-xs font-black">
@@ -339,12 +341,12 @@ function RaceDirectoryCard({
               <span className="min-w-0">
                 <span className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                    J{stage.dayNumber} · {RACE_DAY_SLOT_LABELS[stage.daySlot]}
-                    {edition.raceFormat === "stage_race" ? ` · E${stage.stageNumber}` : ""}
+                    J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}{edition.raceFormat === "stage_race" ? ` · E${stage.stageNumber}` : ""}
                   </span>
                   <LiveStateBadge
                     status={state.status}
                     simulationAvailable={canSimulateRaceEdition(edition)}
+                    scheduledLabel={RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
                   />
                 </span>
                 <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
@@ -462,7 +464,7 @@ function SelectedRaceExperience({
           </div>
           <div className="rounded-2xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 p-6">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F2C94C]">Le direct n’a pas encore commencé</p>
-            <p className="mt-3 text-2xl font-black">Départ à {state.startsAt ? formatParisTime(state.startsAt) : "20 h"}</p>
+            <p className="mt-3 text-2xl font-black">Départ à {state.startsAt ? formatParisTime(state.startsAt) : RACE_DAY_SLOT_CONFIG[entry.stage.daySlot].shortLabel}</p>
             <p className="mt-3 text-sm font-semibold leading-6 text-[#C8D7D0]">
               La diffusion durera environ {state.durationMinutes} minutes. Le replay et le classement seront disponibles après l’arrivée.
             </p>
@@ -528,9 +530,11 @@ function SelectedRaceExperience({
 function LiveStateBadge({
   status,
   simulationAvailable,
+  scheduledLabel,
 }: {
   status: ReturnType<typeof getStageLiveState>["status"];
   simulationAvailable: boolean;
+  scheduledLabel: string;
 }) {
   if (!simulationAvailable) {
     return (
@@ -549,7 +553,7 @@ function LiveStateBadge({
   const label = {
     live: "● Live",
     finished: "Replay",
-    scheduled: "20 h",
+    scheduled: scheduledLabel,
     cancelled: "Annulée",
   }[status];
   return <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${style}`}>{label}</span>;

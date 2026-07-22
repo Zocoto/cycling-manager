@@ -14,7 +14,7 @@ import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   RACE_CATEGORY_STYLE,
-  RACE_DAY_SLOT_LABELS,
+  RACE_DAY_SLOT_CONFIG,
   RACE_PROFILE_LABELS,
   getEditionDayRange,
   getRegistrationAvailability,
@@ -467,11 +467,15 @@ export default async function RaceProfilePage({
                       )}
                     />
                     <DefinitionRow
-                      label="Départ"
+                      label="Première étape"
                       value={formatDeparture(
                         edition.stages[0]
                           ?.departureAt
                       )}
+                    />
+                    <DefinitionRow
+                      label="Créneau"
+                      value={`${RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"].label} · ${RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"].registrationCutoffLabel}`}
                     />
                     <DefinitionRow
                       label="Clôture"
@@ -621,7 +625,7 @@ function RegistrationPanel({
           </form>
         ) : (
           <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
-            Le délai H-12 est dépassé : cette inscription ne peut plus être retirée.
+            La startlist est figée : cette inscription ne peut plus être retirée.
           </p>
         )}
       </section>
@@ -666,7 +670,7 @@ function RegistrationPanel({
         </RegistrationNotice>
       ) : !canReactivate ? (
         <RegistrationNotice tone="warning">
-          Votre retrait est définitif pour cette course : la limite H-12 de réinscription est dépassée.
+          Votre retrait est définitif pour cette course : la startlist du créneau est déjà figée.
         </RegistrationNotice>
       ) : availability === "open" ? (
         <form
@@ -699,7 +703,7 @@ function RegistrationPanel({
         </form>
       ) : availability === "closed" ? (
         <RegistrationNotice tone="warning">
-          Les inscriptions sont fermées : la limite de huit heures avant le départ est dépassée.
+          Les inscriptions sont fermées : le gel du créneau ({RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"].registrationCutoffHour} h) est dépassé.
         </RegistrationNotice>
       ) : availability ===
         "reputation_locked" ? (
@@ -847,7 +851,7 @@ function StageCard({
     <article className="grid gap-4 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm sm:grid-cols-[90px_minmax(0,0.85fr)_minmax(240px,1.15fr)] sm:items-center sm:p-5">
       <div>
         <p className="text-xs font-extrabold uppercase tracking-wider text-[#688176]">
-          J{stage.dayNumber} · {RACE_DAY_SLOT_LABELS[stage.daySlot]}
+          J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
         </p>
         <p className="mt-1 font-black text-[#0B302B]">
           {showStageNumber

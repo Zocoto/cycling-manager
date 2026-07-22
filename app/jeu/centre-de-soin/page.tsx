@@ -270,6 +270,8 @@ function InjuryCard({
 }) {
   const remaining = getRemainingDuration(rider.injury.expectedRecoveryAt);
   const treatment = rider.injury.treatment;
+  const isFatigueInjury =
+    rider.injury.diagnosisCode === "fatigue_exhaustion";
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#D75D5D]/20 bg-white shadow-[0_18px_50px_rgba(88,34,34,0.08)]">
@@ -299,7 +301,9 @@ function InjuryCard({
                 {rider.firstName} {rider.lastName} ↗
               </Link>
               <p className="mt-1 text-sm font-bold text-[#60756E]">
-                Forme {rider.form}/100 · perte −{rider.injury.formLossPerDay}/jour
+                {isFatigueInjury
+                  ? "Forme bloquée à 0 pendant la convalescence"
+                  : `Forme ${rider.form}/100 · perte −${rider.injury.formLossPerDay}/jour`}
               </p>
             </div>
           </div>
@@ -337,52 +341,80 @@ function InjuryCard({
         </div>
 
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-            Protocoles disponibles
-          </p>
-          <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-            Un seul protocole peut être appliqué par blessure, tant qu’il reste au moins 24 heures de convalescence.
-          </p>
-          <div className="mt-4 grid gap-3 xl:grid-cols-3">
-            {overview.protocols.map((protocol) => {
-              const reductionHours = getProtocolRecoveryReductionHours({
-                recoveryHours: rider.injury.recoveryHours,
-                durationReductionPct: protocol.durationReductionPct,
-              });
-              const disabled =
-                Boolean(treatment) ||
-                remaining.hours < 24 ||
-                overview.balance < protocol.price;
+          {isFatigueInjury ? (
+            <div className="rounded-2xl border border-[#D75D5D]/20 bg-[#FFF3F1] p-5">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#B54242]">
+                Repos obligatoire
+              </p>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#702E2E]">
+                Cette blessure survient lorsque la forme devait passer sous zéro.
+                Sa durée est fixée à trois jours : le médecin et les protocoles ne
+                peuvent pas la raccourcir.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+                Protocoles disponibles
+              </p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
+                Un seul protocole peut être appliqué par blessure, tant qu’il
+                reste au moins 24 heures de convalescence.
+              </p>
+              <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                {overview.protocols.map((protocol) => {
+                  const reductionHours = getProtocolRecoveryReductionHours({
+                    recoveryHours: rider.injury.recoveryHours,
+                    durationReductionPct: protocol.durationReductionPct,
+                  });
+                  const disabled =
+                    Boolean(treatment) ||
+                    remaining.hours < 24 ||
+                    overview.balance < protocol.price;
 
-              return (
-                <form
-                  key={protocol.code}
-                  action={applyInjuryProtocolAction}
-                  className="flex flex-col rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-4"
-                >
-                  <input type="hidden" name="injuryId" value={rider.injury.id} />
-                  <input type="hidden" name="protocolCode" value={protocol.code} />
-                  <h4 className="font-black text-[#183F37]">{protocol.name}</h4>
-                  <p className="mt-2 flex-1 text-xs font-semibold leading-5 text-[#60756E]">
-                    {protocol.description}
-                  </p>
-                  <p className="mt-3 text-xs font-black text-[#176951]">
-                    {reductionHours > 0 ? `${reductionHours} h gagnées · ` : ""}
-                    {formatCurrency(protocol.price, overview.currency)}
-                  </p>
-                  <div className="mt-4">
-                    <HealthCenterSubmitButton
-                      pendingLabel="Application…"
-                      disabled={disabled}
-                      tone="green"
+                  return (
+                    <form
+                      key={protocol.code}
+                      action={applyInjuryProtocolAction}
+                      className="flex flex-col rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-4"
                     >
-                      Appliquer
-                    </HealthCenterSubmitButton>
-                  </div>
-                </form>
-              );
-            })}
-          </div>
+                      <input
+                        type="hidden"
+                        name="injuryId"
+                        value={rider.injury.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="protocolCode"
+                        value={protocol.code}
+                      />
+                      <h4 className="font-black text-[#183F37]">
+                        {protocol.name}
+                      </h4>
+                      <p className="mt-2 flex-1 text-xs font-semibold leading-5 text-[#60756E]">
+                        {protocol.description}
+                      </p>
+                      <p className="mt-3 text-xs font-black text-[#176951]">
+                        {reductionHours > 0
+                          ? `${reductionHours} h gagnées · `
+                          : ""}
+                        {formatCurrency(protocol.price, overview.currency)}
+                      </p>
+                      <div className="mt-4">
+                        <HealthCenterSubmitButton
+                          pendingLabel="Application…"
+                          disabled={disabled}
+                          tone="green"
+                        >
+                          Appliquer
+                        </HealthCenterSubmitButton>
+                      </div>
+                    </form>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </article>

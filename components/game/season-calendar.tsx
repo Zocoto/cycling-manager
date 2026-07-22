@@ -8,9 +8,11 @@ import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
-  RACE_DAY_SLOT_LABELS,
+  RACE_DAY_SLOTS,
+  RACE_DAY_SLOT_CONFIG,
   RACE_PROFILE_LABELS,
   buildCalendarWeeks,
+  compareRaceDaySlots,
   isRaceEditionAvailableToCurrentTeam,
   type CalendarWeek,
   type RaceCalendarEdition,
@@ -18,7 +20,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-const DEFAULT_VISIBLE_LANES = 6;
+const DEFAULT_VISIBLE_LANES_PER_SLOT = 3;
 
 const shortDateFormatter =
   new Intl.DateTimeFormat("fr-FR", {
@@ -86,7 +88,7 @@ export function SeasonCalendar({
         .sort(
           (first, second) =>
             first.stage.dayNumber - second.stage.dayNumber ||
-            first.stage.daySlot - second.stage.daySlot ||
+            compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
             first.edition.prestigeRank - second.edition.prestigeRank ||
             first.edition.name.localeCompare(second.edition.name, "fr") ||
             first.stage.stageNumber - second.stage.stageNumber
@@ -284,7 +286,7 @@ export function SeasonCalendar({
             )
             .sort(
               (first, second) =>
-                first.stage.daySlot - second.stage.daySlot ||
+                compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
                 first.edition.prestigeRank - second.edition.prestigeRank ||
                 first.edition.name.localeCompare(second.edition.name, "fr") ||
                 first.stage.stageNumber - second.stage.stageNumber
@@ -357,7 +359,7 @@ export function SeasonCalendar({
                         countryName={edition.countryName}
                       />
                       <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                        J{stage.dayNumber} · {RACE_DAY_SLOT_LABELS[stage.daySlot]}
+                        J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].label}
                         {edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
                       </span>
                     </div>
@@ -424,15 +426,21 @@ function DesktopCalendarWeek({
     SeasonRaceCalendar["events"]
   >;
 }) {
-  const visibleLaneCount = Math.min(
-    DEFAULT_VISIBLE_LANES,
-    week.laneCount
+  const visibleLaneCountBySlot = Object.fromEntries(
+    RACE_DAY_SLOTS.map((slot) => [
+      slot,
+      Math.min(
+        DEFAULT_VISIBLE_LANES_PER_SLOT,
+        week.laneCountBySlot[slot]
+      ),
+    ])
+  ) as Record<(typeof RACE_DAY_SLOTS)[number], number>;
+  const hasHiddenLanes = RACE_DAY_SLOTS.some(
+    (slot) => week.laneCountBySlot[slot] > DEFAULT_VISIBLE_LANES_PER_SLOT
   );
-  const hasHiddenLanes =
-    week.laneCount > DEFAULT_VISIBLE_LANES;
-  const rowCount =
-    visibleLaneCount +
-    (hasHiddenLanes ? 1 : 0);
+  const earlyLaneCount = visibleLaneCountBySlot.early;
+  const lateLaneCount = visibleLaneCountBySlot.late;
+  const rowCount = earlyLaneCount + lateLaneCount + 2 + (hasHiddenLanes ? 1 : 0);
 
   return (
     <section
@@ -502,10 +510,30 @@ function DesktopCalendarWeek({
         );
       })}
 
+      {RACE_DAY_SLOTS.map((slot) => {
+        const config = RACE_DAY_SLOT_CONFIG[slot];
+        const row = slot === "early" ? 2 : earlyLaneCount + 3;
+
+        return (
+          <div
+            key={slot}
+            className="relative z-20 mx-1 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0B302B] px-3 py-1.5 text-white shadow-sm"
+            style={{ gridColumn: "1 / 8", gridRow: row }}
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.18em]">
+              {config.label} · {config.departureLabel}
+            </span>
+            <span className="text-[9px] font-bold text-[#A9C6BB]">
+              {config.registrationCutoffLabel}
+            </span>
+          </div>
+        );
+      })}
+
       {week.segments
         .filter(
           (segment) =>
-            segment.lane < visibleLaneCount
+            segment.lane < visibleLaneCountBySlot[segment.daySlot]
         )
         .map((segment) => {
           const style =
@@ -537,7 +565,10 @@ function DesktopCalendarWeek({
               }`}
               style={{
                 gridColumn: `${columnStart} / ${columnEnd}`,
-                gridRow: segment.lane + 2,
+                gridRow:
+                  segment.daySlot === "early"
+                    ? segment.lane + 3
+                    : earlyLaneCount + segment.lane + 4,
                 backgroundColor: style.background,
                 borderColor: style.border,
                 color: style.foreground,
@@ -578,7 +609,7 @@ function DesktopCalendarWeek({
             const dayNumber = week.startDay + index;
             const hiddenSegments = week.segments.filter(
               (segment) =>
-                segment.lane >= DEFAULT_VISIBLE_LANES &&
+                segment.lane >= visibleLaneCountBySlot[segment.daySlot] &&
                 segment.startDay <= dayNumber &&
                 segment.endDay >= dayNumber
             );
@@ -595,7 +626,7 @@ function DesktopCalendarWeek({
                 className="group/overflow relative z-30 mx-1 self-center"
                 style={{
                   gridColumn: index + 1,
-                  gridRow: visibleLaneCount + 2,
+                  gridRow: earlyLaneCount + lateLaneCount + 4,
                 }}
               >
                 <button
@@ -716,15 +747,27 @@ function MobileCalendarDay({
       ) : null}
 
       <div className="mt-4 space-y-2">
-        {entries.map(({ edition, stage }) => {
+        {entries.map(({ edition, stage }, entryIndex) => {
           const style =
             RACE_CATEGORY_STYLE[
               edition.categoryCode
             ];
+          const slotConfig = RACE_DAY_SLOT_CONFIG[stage.daySlot];
+          const startsSlot = entries[entryIndex - 1]?.stage.daySlot !== stage.daySlot;
 
           return (
+            <div key={stage.id} className="space-y-2">
+            {startsSlot ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-[#0B302B] px-3 py-2 text-white">
+                <span className="text-[10px] font-black uppercase tracking-[0.16em]">
+                  {slotConfig.label} · {slotConfig.departureLabel}
+                </span>
+                <span className="text-[9px] font-bold text-[#A9C6BB]">
+                  Gel {slotConfig.registrationCutoffHour} h
+                </span>
+              </div>
+            ) : null}
             <Link
-              key={stage.id}
               href={`/jeu/courses/${edition.slug}`}
               className="flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
               style={{
@@ -752,7 +795,7 @@ function MobileCalendarDay({
                   "stage_race"
                     ? `Étape ${stage.stageNumber} · `
                     : ""}
-                  {RACE_DAY_SLOT_LABELS[stage.daySlot]}
+                  {slotConfig.shortLabel}
                   {" · "}
                   {
                     RACE_PROFILE_LABELS[
@@ -776,6 +819,7 @@ function MobileCalendarDay({
                 </span>
               ) : null}
             </Link>
+            </div>
           );
         })}
 

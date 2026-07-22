@@ -85,6 +85,9 @@ describe("buildCalendarWeeks", () => {
       "tour-condense",
       [2, 2, 3, 3, 4]
     );
+    edition.stages.forEach((stage, index) => {
+      stage.daySlot = index % 2 === 0 ? "early" : "late";
+    });
 
     expect(getEditionDayRange(edition)).toEqual({
       startDay: 2,
@@ -96,12 +99,22 @@ describe("buildCalendarWeeks", () => {
         stage.daySlot,
       ])
     ).toEqual([
-      [2, 1],
-      [2, 2],
-      [3, 1],
-      [3, 2],
-      [4, 1],
+      [2, "early"],
+      [2, "late"],
+      [3, "early"],
+      [3, "late"],
+      [4, "early"],
     ]);
+  });
+
+  it("sépare les lignes de 14 h et de 18 h", () => {
+    const weeks = buildCalendarWeeks([
+      createEdition("tour-matin", [2, 3, 4], "early"),
+      createEdition("tour-apres-midi", [2, 3, 4], "late"),
+    ]);
+
+    expect(weeks[0].laneCountBySlot).toEqual({ early: 1, late: 1 });
+    expect(weeks[0].segments.map((segment) => segment.lane)).toEqual([0, 0]);
   });
 });
 
@@ -240,7 +253,7 @@ describe("règles de composition et de retrait", () => {
     }
   );
 
-  it("autorise le retrait strictement avant H-12", () => {
+  it("autorise le retrait strictement avant le gel du créneau", () => {
     const cutoff = "2026-07-20T08:00:00Z";
 
     expect(
@@ -260,7 +273,8 @@ describe("règles de composition et de retrait", () => {
 
 function createEdition(
   slug: string,
-  dayNumbers: number[]
+  dayNumbers: number[],
+  daySlot: "early" | "late" = "early"
 ): RaceCalendarEdition {
   return {
     id: slug,
@@ -288,13 +302,13 @@ function createEdition(
       (dayNumber, index) => ({
         id: `${slug}-${dayNumber}-${index + 1}`,
         dayNumber,
-        daySlot: index % 2 === 0 ? 1 : 2,
         stageNumber: index + 1,
         name: `Étape ${index + 1}`,
         stageType: "road",
         status: "planned",
         profileType: "mixed",
         distanceKm: 170,
+        daySlot,
         departureAt: null,
         segments: [],
       })

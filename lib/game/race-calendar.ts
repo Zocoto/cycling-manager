@@ -8,6 +8,39 @@ export const RACE_CATEGORY_CODES = [
   "national",
 ] as const;
 
+export const RACE_DAY_SLOTS = ["early", "late"] as const;
+
+export type RaceDaySlot = (typeof RACE_DAY_SLOTS)[number];
+
+export const RACE_DAY_SLOT_CONFIG: Record<
+  RaceDaySlot,
+  {
+    label: string;
+    shortLabel: string;
+    departureLabel: string;
+    registrationCutoffLabel: string;
+    departureHour: number;
+    registrationCutoffHour: number;
+  }
+> = {
+  early: {
+    label: "Matin",
+    shortLabel: "14 h",
+    departureLabel: "Départ à 14 h",
+    registrationCutoffLabel: "Inscriptions figées à 8 h",
+    departureHour: 14,
+    registrationCutoffHour: 8,
+  },
+  late: {
+    label: "Après-midi",
+    shortLabel: "18 h",
+    departureLabel: "Départ à 18 h",
+    registrationCutoffLabel: "Inscriptions figées à 12 h",
+    departureHour: 18,
+    registrationCutoffHour: 12,
+  },
+};
+
 export type RaceCategoryCode =
   (typeof RACE_CATEGORY_CODES)[number];
 
@@ -46,26 +79,16 @@ export type RaceStageStatus =
   | "completed"
   | "cancelled";
 
-export type RaceDaySlot = 1 | 2;
-
-export const RACE_DAY_SLOT_LABELS: Record<
-  RaceDaySlot,
-  string
-> = {
-  1: "Matin",
-  2: "Après-midi",
-};
-
 export type RaceCalendarStage = {
   id: string;
   dayNumber: number;
-  daySlot: RaceDaySlot;
   stageNumber: number;
   name: string;
   stageType: RaceStageType;
   status: RaceStageStatus;
   profileType: RaceProfileType;
   distanceKm: number;
+  daySlot: RaceDaySlot;
   departureAt: string | null;
   segments: RaceStageSegment[];
 };
@@ -138,6 +161,7 @@ export type WeekRaceSegment = {
   endDay: number;
   startsBeforeWeek: boolean;
   continuesAfterWeek: boolean;
+  daySlot: RaceDaySlot;
   lane: number;
 };
 
@@ -147,6 +171,7 @@ export type CalendarWeek = {
   endDay: number;
   segments: WeekRaceSegment[];
   laneCount: number;
+  laneCountBySlot: Record<RaceDaySlot, number>;
 };
 
 export const RACE_CATEGORY_STYLE: Record<
@@ -208,6 +233,14 @@ export function isRaceCategoryCode(
   return RACE_CATEGORY_CODES.includes(
     value as RaceCategoryCode
   );
+}
+
+export function isRaceDaySlot(value: string): value is RaceDaySlot {
+  return RACE_DAY_SLOTS.includes(value as RaceDaySlot);
+}
+
+export function compareRaceDaySlots(first: RaceDaySlot, second: RaceDaySlot) {
+  return RACE_DAY_SLOTS.indexOf(first) - RACE_DAY_SLOTS.indexOf(second);
 }
 
 export function getEffectiveSeasonDay({
@@ -274,10 +307,14 @@ export function buildCalendarWeeks(
           > => segment !== null
         )
         .sort(compareWeekSegments);
-      const laneEndDays: number[] = [];
+      const laneEndDaysBySlot: Record<RaceDaySlot, number[]> = {
+        early: [],
+        late: [],
+      };
 
       const segments = rawSegments.map(
         (segment) => {
+          const laneEndDays = laneEndDaysBySlot[segment.daySlot];
           const availableLane =
             laneEndDays.findIndex(
               (laneEndDay) =>
@@ -302,7 +339,14 @@ export function buildCalendarWeeks(
         startDay,
         endDay,
         segments,
-        laneCount: laneEndDays.length,
+        laneCount: Math.max(
+          laneEndDaysBySlot.early.length,
+          laneEndDaysBySlot.late.length
+        ),
+        laneCountBySlot: {
+          early: laneEndDaysBySlot.early.length,
+          late: laneEndDaysBySlot.late.length,
+        },
       };
     }
   );
@@ -468,6 +512,7 @@ function getEditionWeekSegment(
     endDay: Math.min(endDay, weekEndDay),
     startsBeforeWeek: startDay < weekStartDay,
     continuesAfterWeek: endDay > weekEndDay,
+    daySlot: edition.stages[0]?.daySlot ?? "late",
   };
 }
 
@@ -477,6 +522,13 @@ function compareWeekSegments(
 ) {
   if (first.startDay !== second.startDay) {
     return first.startDay - second.startDay;
+  }
+
+
+  const slotComparison = compareRaceDaySlots(first.daySlot, second.daySlot);
+
+  if (slotComparison !== 0) {
+    return slotComparison;
   }
 
   const firstDuration =
