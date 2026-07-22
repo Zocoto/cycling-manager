@@ -434,6 +434,9 @@ export default async function GamePage() {
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
   const dashboardObjectives = selectDashboardObjectives(gameObjectives);
+  const readyObjectiveCount = gameObjectives.filter(
+    (objective) => objective.completed && !objective.claimedAt
+  ).length;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -452,7 +455,13 @@ export default async function GamePage() {
         <MountainDecoration />
 
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <header className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_auto] xl:items-start">
+            <ObjectivesCard
+              objectives={dashboardObjectives}
+              totalCount={gameObjectives.length}
+              readyCount={readyObjectiveCount}
+            />
+
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Bureau du Directeur Sportif
@@ -469,7 +478,7 @@ export default async function GamePage() {
               </p>
             </div>
 
-            <div className="flex w-full items-stretch gap-3 sm:w-auto">
+            <div className="flex w-full items-stretch gap-3 xl:w-auto xl:justify-self-end">
               <InventoryShortcut
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
@@ -640,22 +649,6 @@ export default async function GamePage() {
             />
           </section>
 
-          <section className="mt-10 border-t border-[#315B3E]/20 pt-7" aria-labelledby="dashboard-objectives-title">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="h-px flex-1 bg-[#315B3E]/15" />
-              <p id="dashboard-objectives-title" className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#315B3E]">
-                Priorités de carrière
-              </p>
-              <span className="h-px flex-1 bg-[#315B3E]/15" />
-            </div>
-            <ObjectivesCard
-              objectives={dashboardObjectives}
-              totalCount={gameObjectives.length}
-              readyCount={gameObjectives.filter(
-                (objective) => objective.completed && !objective.claimedAt
-              ).length}
-            />
-          </section>
         </div>
       </section>
     </main>
@@ -991,105 +984,100 @@ function ObjectivesCard({
   totalCount: number;
   readyCount: number;
 }) {
+  const priority = objectives[0] ?? null;
+  const priorityIsReady = Boolean(
+    priority?.completed && !priority.claimedAt
+  );
+  const hasReadyReward = readyCount > 0;
+
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-7">
-      <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
+    <article
+      className={`relative isolate overflow-hidden rounded-2xl border p-4 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)] sm:p-5 ${
+        hasReadyReward
+          ? "border-[#FFB45C] bg-[linear-gradient(135deg,#C72F5E,#F06A45)] shadow-[0_20px_48px_rgba(199,47,94,0.28)]"
+          : "border-[#42B99A]/40 bg-[linear-gradient(135deg,#073A32,#0E6151)]"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute -right-7 -top-8 -z-10 h-28 w-28 rounded-full border-[18px] ${
+          hasReadyReward ? "border-[#FFE06B]/20" : "border-[#72D4B7]/15"
+        }`}
+      />
+      <span
+        aria-hidden="true"
+        className={`absolute inset-x-0 top-0 h-1 ${
+          hasReadyReward ? "bg-[#FFE06B]" : "bg-linear-to-r from-[#72D4B7] to-[#F2C94C]"
+        }`}
+      />
 
-      <WheelDecoration />
-
-      <div className="relative">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg font-black ${
+            hasReadyReward ? "bg-[#FFE06B] text-[#6D1837]" : "bg-white/12 text-[#9BE0BC]"
+          }`}>
+            {hasReadyReward ? "!" : "◎"}
+          </span>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
-              Objectifs
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/75">
+              Objectifs de carrière
             </p>
-
-            <h2 className="mt-2 text-2xl font-black text-white">
-              Vos priorités
+            <h2 className="mt-0.5 text-lg font-black">
+              {hasReadyReward
+                ? `${readyCount > 1 ? "Actions" : "Action"} en attente`
+                : "Prochaine priorité"}
             </h2>
           </div>
-
-          <span className="rounded-full bg-white/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2]">
-            {readyCount > 0
-              ? `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`
-              : `${totalCount} objectifs de carrière`}
-          </span>
         </div>
 
-        {objectives.length > 0 ? (
-          <div className="mt-7 grid gap-3 lg:grid-cols-3">
-            {objectives.map((objective) => {
-              const ready = objective.completed && !objective.claimedAt;
-              return (
-                <div
-                  key={objective.key}
-                  className={`flex min-h-full flex-col rounded-xl border p-4 ${
-                    ready
-                      ? "border-[#F2C94C]/50 bg-[#F2C94C]/12"
-                      : "border-white/10 bg-white/6"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
-                      {objective.type === "primary" ? "Primaire" : "Secondaire"}
-                    </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
-                        ready
-                          ? "bg-[#F2C94C] text-[#071A17]"
-                          : "bg-white/10 text-[#D6DFD2]"
-                      }`}
-                    >
-                      {ready ? "À récupérer" : `${objective.progressPercent} %`}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-3 text-base font-black text-white">
-                    {objective.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-[#BFD1C6]">
-                    {objective.description}
-                  </p>
-
-                  <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className={`h-full rounded-full ${
-                        ready ? "bg-[#F2C94C]" : "bg-[#42B99A]"
-                      }`}
-                      style={{ width: `${objective.progressPercent}%` }}
-                    />
-                  </div>
-
-                  <p className="mt-auto pt-4 text-[11px] font-black text-[#F2C94C]">
-                    {formatDashboardObjectiveReward(objective)}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="mt-7 rounded-xl border border-white/10 bg-white/6 p-5">
-            <p className="font-black text-white">Feuille de route complétée</p>
-            <p className="mt-2 text-sm font-semibold text-[#BFD1C6]">
-              Toutes les récompenses disponibles ont été récupérées. Les
-              prochains objectifs apparaîtront ici.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
-          <p className="text-xs font-semibold text-[#9FB5A8]">
-            Les gains sont annoncés à l’avance et ne peuvent être réclamés
-            qu’une seule fois.
-          </p>
-          <Link
-            href="/jeu/objectifs"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
-          >
-            Voir tous les objectifs →
-          </Link>
-        </div>
+        <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
+          hasReadyReward ? "bg-white text-[#A5244E]" : "bg-white/12 text-[#D7F4E8]"
+        }`}>
+          {hasReadyReward ? `${readyCount} à récupérer` : `${totalCount} au total`}
+        </span>
       </div>
+
+      {priority ? (
+        <div className="mt-4 rounded-xl border border-white/15 bg-black/10 p-3.5 backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[9px] font-black uppercase tracking-[0.14em] text-white/75">
+              {priority.type === "primary" ? "Objectif principal" : "Objectif secondaire"}
+            </span>
+            <span className="text-[10px] font-black text-white">
+              {priorityIsReady ? "Terminé" : `${priority.progressPercent} %`}
+            </span>
+          </div>
+          <h3 className="mt-2 line-clamp-1 text-sm font-black text-white">
+            {priority.title}
+          </h3>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/20">
+            <div
+              className={`h-full rounded-full ${priorityIsReady ? "bg-[#FFE06B]" : "bg-[#72D4B7]"}`}
+              style={{ width: `${priority.progressPercent}%` }}
+            />
+          </div>
+          <p className={`mt-2 truncate text-[10px] font-black ${
+            hasReadyReward ? "text-[#FFF0A8]" : "text-[#C9F4E6]"
+          }`}>
+            Gain · {formatDashboardObjectiveReward(priority)}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-4 rounded-xl border border-white/15 bg-black/10 p-3 text-xs font-bold text-white/80">
+          Tous les objectifs disponibles ont été récupérés.
+        </p>
+      )}
+
+      <Link
+        href="/jeu/objectifs"
+        className={`mt-4 inline-flex min-h-9 w-full items-center justify-center rounded-xl px-4 text-[10px] font-black uppercase tracking-[0.12em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+          hasReadyReward
+            ? "bg-[#FFE06B] text-[#6D1837] hover:bg-[#FFF09D]"
+            : "bg-white text-[#0B4C40] hover:bg-[#E5FFF6]"
+        }`}
+      >
+        Ouvrir mes objectifs →
+      </Link>
     </article>
   );
 }
@@ -1852,18 +1840,5 @@ function MountainDecoration() {
         opacity="0.38"
       />
     </svg>
-  );
-}
-
-function WheelDecoration() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-white/10 opacity-55"
-      style={{
-        background:
-          "repeating-conic-gradient(transparent 0deg 13deg, rgba(124,207,156,0.10) 13deg 14deg)",
-      }}
-    />
   );
 }
