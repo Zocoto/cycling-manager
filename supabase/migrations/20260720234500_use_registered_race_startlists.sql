@@ -127,37 +127,37 @@ begin
   limit 1;
 
   if target_edition_id is null then
-    raise notice 'Rattrapage du GP de Bretagne ignoré : aucune édition active.';
-  else
-    select
-      count(distinct registration.id)::integer,
-      count(roster.id)::integer
-    into accepted_team_count, selected_rider_count
-    from public.race_registrations as registration
-    left join public.race_rosters as roster
-      on roster.race_registration_id = registration.id
-     and roster.status in ('selected', 'confirmed')
-    where registration.race_edition_id = target_edition_id
-      and registration.status = 'accepted';
-
-    if accepted_team_count = 0 or selected_rider_count = 0 then
-      raise notice 'Rattrapage du GP de Bretagne ignoré : aucune startlist complète.';
-    else
-      update public.race_editions
-      set status = 'in_progress'
-      where id = target_edition_id;
-
-      update public.stages
-      set
-        status = 'in_progress',
-        departure_at = now()
-      where race_edition_id = target_edition_id;
-
-      raise notice 'GP de Bretagne relancé avec % équipes et % coureurs.',
-        accepted_team_count,
-        selected_rider_count;
-    end if;
+    raise exception 'Edition active du Grand Prix de Bretagne introuvable.';
   end if;
+
+  select
+    count(distinct registration.id)::integer,
+    count(roster.id)::integer
+  into accepted_team_count, selected_rider_count
+  from public.race_registrations as registration
+  left join public.race_rosters as roster
+    on roster.race_registration_id = registration.id
+   and roster.status in ('selected', 'confirmed')
+  where registration.race_edition_id = target_edition_id
+    and registration.status = 'accepted';
+
+  if accepted_team_count = 0 or selected_rider_count = 0 then
+    raise exception 'Le GP de Bretagne ne peut pas être relancé sans inscription acceptée et sans coureur sélectionné.';
+  end if;
+
+  update public.race_editions
+  set status = 'in_progress'
+  where id = target_edition_id;
+
+  update public.stages
+  set
+    status = 'in_progress',
+    departure_at = now()
+  where race_edition_id = target_edition_id;
+
+  raise notice 'GP de Bretagne relancé avec % équipes et % coureurs.',
+    accepted_team_count,
+    selected_rider_count;
 end;
 $$;
 
