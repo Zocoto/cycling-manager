@@ -150,6 +150,18 @@ type SponsorRegistryRow = {
   catalog_key: string;
 };
 
+type PostRaceNewsRow = {
+  id: string;
+  race_edition_id: string;
+  stage_id: string;
+  event_kind: "breakaway" | "incident" | "classification";
+  title: string;
+  detail: string;
+  featured_rider_id: string | null;
+  featured_team_id: string | null;
+  happened_at: string;
+};
+
 type LoadedNews = {
   items: PublicGameNewsItem[];
   total: number | null;
@@ -171,6 +183,7 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   }
 
   const results = await Promise.allSettled([
+    loadRecentPostRaceNews(admin),
     loadRecentVictories(admin),
     loadRecentArrivals(admin),
     loadRecentRiderMovements(admin),
@@ -184,15 +197,16 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
     return createEmptyPublicGameNewsSnapshot();
   }
 
-  const [victories, arrivals, riderMovements, staffMovements] = results.map(
-    (result) =>
+  const [postRaceNews, victories, arrivals, riderMovements, staffMovements] =
+    results.map((result) =>
       result.status === "fulfilled"
         ? result.value
         : ({ items: [], total: null } satisfies LoadedNews)
-  );
+    );
 
   return createPublicGameNewsSnapshot({
     items: [
+      ...postRaceNews.items,
       ...victories.items,
       ...arrivals.items,
       ...riderMovements.items,
@@ -205,6 +219,105 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
     },
     isLive: true,
   });
+}
+
+async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
+  const [recentQuery, totalQuery] = await Promise.all([
+    admin
+      .from("post_race_news_events")
+      .select(
+        "id, race_edition_id, stage_id, event_kind, title, detail, featured_rider_id, featured_team_id, happened_at"
+      )
+      .order("happened_at", { ascending: false })
+      .limit(10)
+      .returns<PostRaceNewsRow[]>(),
+    admin
+      .from("post_race_news_events")
+      .select("id", { count: "exact", head: true }),
+  ]);
+  assertQuery(recentQuery.error, "les résumés de course");
+  assertQuery(totalQuery.error, "le total des résumés de course");
+
+  const rows = recentQuery.data ?? [];
+  if (rows.length === 0) {
+    return { items: [], total: totalQuery.count ?? 0 };
+  }
+
+  const riderIds = unique(
+    rows.flatMap((row) =>
+      row.featured_rider_id ? [row.featured_rider_id] : []
+    )
+  );
+  const teamIds = unique(
+    rows.flatMap((row) => (row.featured_team_id ? [row.featured_team_id] : []))
+  );
+  const editionIds = unique(rows.map((row) => row.race_edition_id));
+  const [ridersQuery, teamSeasonsQuery, profilesByEditionId] =
+    await Promise.all([
+      riderIds.length > 0
+        ? admin
+            .from("riders")
+            .select(
+              "id, first_name, last_name, avatar_profile_key, avatar_seed"
+            )
+            .in("id", riderIds)
+            .returns<RiderRow[]>()
+        : Promise.resolve({ data: [] as RiderRow[], error: null }),
+      teamIds.length > 0
+        ? admin
+            .from("team_seasons")
+            .select("id, team_id, display_name, created_at")
+            .in("team_id", teamIds)
+            .order("created_at", { ascending: false })
+            .returns<TeamSeasonRow[]>()
+        : Promise.resolve({ data: [] as TeamSeasonRow[], error: null }),
+      loadRaceProfiles(admin, editionIds),
+    ]);
+  assertQuery(ridersQuery.error, "les coureurs des résumés de course");
+  assertQuery(teamSeasonsQuery.error, "les équipes des résumés de course");
+
+  const riderById = toMap(ridersQuery.data ?? []);
+  const teamSeasons = teamSeasonsQuery.data ?? [];
+  const teamVisualByTeamId = await loadTeamVisuals(admin, teamSeasons);
+
+  const items = rows.map((row) => {
+    const rider = row.featured_rider_id
+      ? riderById.get(row.featured_rider_id)
+      : null;
+    const teamVisual = row.featured_team_id
+      ? teamVisualByTeamId.get(row.featured_team_id)
+      : null;
+    const riderName = rider
+      ? `${rider.first_name} ${rider.last_name}`
+      : null;
+    const raceProfile = profilesByEditionId.get(row.race_edition_id);
+
+    return {
+      id: `race-recap:${row.id}`,
+      kind: "race_recap" as const,
+      title: row.title,
+      detail: row.detail,
+      happenedAt: row.happened_at,
+      ...(rider && riderName
+        ? {
+            visual: {
+              person: {
+                kind: "rider" as const,
+                profileKey: rider.avatar_profile_key,
+                seed: String(rider.avatar_seed),
+                label: `Portrait de ${riderName}`,
+              },
+              team: teamVisual ?? null,
+              ...(raceProfile && raceProfile.length > 0
+                ? { raceProfile }
+                : {}),
+            },
+          }
+        : {}),
+    };
+  });
+
+  return { items, total: totalQuery.count ?? items.length };
 }
 
 async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {

@@ -594,7 +594,9 @@ function NewsBadge({
   compact?: boolean;
 }) {
   const label =
-    kind === "victory"
+    kind === "race_recap"
+      ? "Après-course"
+      : kind === "victory"
       ? "Victoire"
       : kind === "arrival"
         ? "Nouveau DS"
@@ -607,8 +609,10 @@ function NewsBadge({
       className={`rounded-full font-black uppercase tracking-[0.14em] ${
         compact ? "px-2 py-0.5 text-[9px]" : "px-3 py-1 text-[10px]"
       } ${
-        kind === "victory"
-          ? "bg-[#F2C94C] text-[#082A2A]"
+        kind === "race_recap"
+          ? "bg-[#D94F4F] text-white"
+          : kind === "victory"
+            ? "bg-[#F2C94C] text-[#082A2A]"
           : kind === "arrival"
             ? "bg-[#42CDA8]/15 text-[#8DE3C9]"
             : kind === "staff"
@@ -657,6 +661,22 @@ function NewsIcon({
   featured?: boolean;
 }) {
   const className = featured ? "h-7 w-7" : "h-5 w-5";
+
+  if (kind === "race_recap") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M4 12h3l2-5 4 10 2-5h5" />
+        <circle cx="12" cy="12" r="10" />
+      </svg>
+    );
+  }
 
   if (kind === "victory") {
     return (

@@ -9,6 +9,7 @@ import {
 import type { JerseyStyle, SponsorColors } from "@/types/sponsor";
 
 export type PublicGameNewsKind =
+  | "race_recap"
   | "victory"
   | "arrival"
   | "movement"
@@ -117,10 +118,11 @@ export type PublicGameNewsSnapshot = {
 };
 
 const kindPriority: Record<PublicGameNewsKind, number> = {
-  victory: 0,
-  movement: 1,
-  staff: 2,
-  arrival: 3,
+  race_recap: 0,
+  victory: 1,
+  movement: 2,
+  staff: 3,
+  arrival: 4,
 };
 
 export function createPublicGameNewsSnapshot({
