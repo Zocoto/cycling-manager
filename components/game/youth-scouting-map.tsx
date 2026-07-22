@@ -33,19 +33,37 @@ export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountr
         </div>
 
         <div className="relative aspect-[2/1] min-h-[330px] overflow-hidden bg-[radial-gradient(circle_at_50%_45%,#176951_0%,#0B302B_58%,#071A17_100%)]">
-          <WorldSilhouette />
+          <WorldPlanisphere />
+          <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-[#071A17]/65 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#D6DFD2] backdrop-blur-md">
+            {countries.length} pays explorables
+          </div>
           {countries.map((country) => {
             const point = projectCountryCoordinate({ latitude: country.latitude, longitude: country.longitude });
             const isSelected = country.id === selected.id;
             return (
-              <button key={country.id} type="button" title={country.name} aria-label={`Sélectionner ${country.name}`} onClick={() => setSelectedCountryId(country.id)} className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSelected ? "z-20 h-4 w-4 border-white bg-[#F2C94C] shadow-[0_0_0_7px_rgba(242,201,76,0.2)]" : "h-2 w-2 border-[#9BE0CA]/50 bg-[#72D4B7]/65 hover:z-10 hover:h-3 hover:w-3 hover:bg-[#F2C94C]"}`} style={{ left: `${point.x}%`, top: `${point.y}%` }} />
+              <button
+                key={country.id}
+                type="button"
+                title={country.name}
+                aria-label={`Sélectionner ${country.name}`}
+                onClick={() => setSelectedCountryId(country.id)}
+                className={`group absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSelected ? "z-20" : "z-10 hover:z-20"}`}
+                style={{ left: `${point.x}%`, top: `${point.y}%` }}
+              >
+                <span className={`block rounded-full border transition ${isSelected ? "h-4 w-4 border-white bg-[#F2C94C] shadow-[0_0_0_7px_rgba(242,201,76,0.2),0_0_22px_rgba(242,201,76,0.65)]" : "h-2 w-2 border-[#C9F0E4]/60 bg-[#72D4B7]/80 shadow-[0_0_7px_rgba(114,212,183,0.4)] group-hover:h-3 group-hover:w-3 group-hover:border-white group-hover:bg-[#F2C94C]"}`} />
+                {isSelected ? (
+                  <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#F2C94C]/50 bg-[#071A17]/90 px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow-lg backdrop-blur-md">
+                    {country.code} · {country.name}
+                  </span>
+                ) : null}
+              </button>
             );
           })}
-          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
-            {filtered.map((country) => (
-              <button key={country.id} type="button" onClick={() => setSelectedCountryId(country.id)} className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] backdrop-blur-md transition ${country.id === selected.id ? "border-[#F2C94C] bg-[#F2C94C] text-[#071A17]" : "border-white/15 bg-[#071A17]/70 text-[#D6DFD2] hover:border-[#72D4B7]"}`}>{country.code} · {country.name}</button>
-            ))}
-          </div>
+        </div>
+        <div className="flex min-h-16 flex-wrap items-center gap-2 border-t border-white/10 bg-[#071A17]/55 px-5 py-3">
+          {filtered.map((country) => (
+            <button key={country.id} type="button" onClick={() => setSelectedCountryId(country.id)} className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] transition ${country.id === selected.id ? "border-[#F2C94C] bg-[#F2C94C] text-[#071A17]" : "border-white/15 bg-[#071A17]/70 text-[#D6DFD2] hover:border-[#72D4B7]"}`}>{country.code} · {country.name}</button>
+          ))}
         </div>
       </div>
 
@@ -98,18 +116,12 @@ function MissionSubmitButton({ disabled }: { disabled: boolean }) {
   return <button type="submit" disabled={disabled || pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:bg-[#B8C8C2]">{pending ? "Départ en cours…" : "Envoyer le scout"}</button>;
 }
 
-function WorldSilhouette() {
+function WorldPlanisphere() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 1000 500" className="absolute inset-0 h-full w-full opacity-90">
-      <g fill="#9BE0CA" opacity="0.17" stroke="#9BE0CA" strokeWidth="2">
-        <path d="M55 105 105 55l105 12 76 43 14 49-54 35-31 70-50 38-38-61-51-20-34-64Z" />
-        <path d="m255 282 55 28 30 64-24 96-45-47-20-78Z" />
-        <path d="m430 98 48-42 75 18 46-20 115 24 79 62-42 47-105 2-43 53-33 106-70-27-23-75-65-26-17-61Z" />
-        <path d="m505 229 84 9 54 92-47 127-55-15-34-93-43-64Z" />
-        <path d="m793 315 73-30 82 49-19 73-91 7-55-46Z" />
-        <path d="m866 435 19-9 15 16-17 18Z" />
-      </g>
-      <g stroke="#D6DFD2" strokeWidth="1" opacity="0.08"><path d="M0 100h1000M0 200h1000M0 300h1000M0 400h1000" /><path d="M200 0v500M400 0v500M600 0v500M800 0v500" /></g>
-    </svg>
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat"
+      style={{ backgroundImage: 'url("/images/scouting-world-map.svg")' }}
+    />
   );
 }

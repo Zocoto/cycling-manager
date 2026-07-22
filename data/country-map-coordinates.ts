@@ -183,9 +183,30 @@ export const COUNTRY_MAP_COORDINATES: Readonly<
 };
 
 export function projectCountryCoordinate(coordinate: CountryMapCoordinate) {
-  const latitude = Math.min(78, Math.max(-55, coordinate.latitude));
+  // Equal Earth projection, matching the Natural Earth SVG used by the scouting map.
+  // It preserves a familiar planisphere silhouette while keeping every marker on
+  // the same geographic projection as the country borders.
+  const A1 = 1.340264;
+  const A2 = -0.081106;
+  const A3 = 0.000893;
+  const A4 = 0.003796;
+  const M = Math.sqrt(3) / 2;
+  const MAX_X = 2.706629983696075;
+  const MAX_Y = 1.3173627591574133;
+  const latitude = Math.min(90, Math.max(-90, coordinate.latitude));
+  const longitude = Math.min(180, Math.max(-180, coordinate.longitude));
+  const lambda = (longitude * Math.PI) / 180;
+  const phi = (latitude * Math.PI) / 180;
+  const l = Math.asin(M * Math.sin(phi));
+  const l2 = l * l;
+  const l6 = l2 * l2 * l2;
+  const rawX =
+    (lambda * Math.cos(l)) /
+    (M * (A1 + 3 * A2 * l2 + l6 * (7 * A3 + 9 * A4 * l2)));
+  const rawY = l * (A1 + A2 * l2 + l6 * (A3 + A4 * l2));
+
   return {
-    x: ((coordinate.longitude + 180) / 360) * 100,
-    y: ((78 - latitude) / 133) * 100,
+    x: ((rawX + MAX_X) / (2 * MAX_X)) * 100,
+    y: ((MAX_Y - rawY) / (2 * MAX_Y)) * 100,
   };
 }
