@@ -42,7 +42,8 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
   scout: {
     label: "Scout",
     pluralLabel: "Scouts",
-    shortDescription: "Détecte les talents dans sa zone de prédilection.",
+    shortDescription:
+      "Détecte davantage de talents et améliore leur potentiel initial.",
     salaryBase: 15_000,
     accent: "#4E8FB8",
   },
@@ -77,7 +78,8 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
   architect: {
     label: "Architecte",
     pluralLabel: "Architectes",
-    shortDescription: "Raccourcit les délais de construction des infrastructures.",
+    shortDescription:
+      "Réduit le coût et la durée de construction des infrastructures.",
     salaryBase: 9_000,
     accent: "#B27B4A",
   },
@@ -199,6 +201,77 @@ export function getNutritionistDailyCapacity(level: number): number {
   return [2, 3, 4, 5, 6][normalizeStaffLevel(level) - 1];
 }
 
+export function getScoutYouthBonuses(level: number): {
+  scoutingEfficiencyPercentage: number;
+  potentialBonus: number;
+  initialRatingBonus: number;
+} {
+  const safeLevel = normalizeStaffLevel(level);
+
+  return {
+    scoutingEfficiencyPercentage: safeLevel * 5,
+    potentialBonus: safeLevel * 0.55,
+    initialRatingBonus: safeLevel * 0.04,
+  };
+}
+
+export function getArchitectConstructionBonuses(level: number): {
+  costReductionPercentage: number;
+  durationReductionPercentage: number;
+} {
+  const reductionPercentage = normalizeStaffLevel(level) * 5;
+
+  return {
+    costReductionPercentage: reductionPercentage,
+    durationReductionPercentage: reductionPercentage,
+  };
+}
+
+export function calculateConstructionWithArchitect({
+  baseCost,
+  baseDurationDays,
+  architectLevel,
+}: {
+  baseCost: number;
+  baseDurationDays: number;
+  architectLevel?: number | null;
+}): {
+  cost: number;
+  durationDays: number;
+  costReductionPercentage: number;
+  durationReductionPercentage: number;
+} {
+  const hasArchitect =
+    architectLevel !== null &&
+    architectLevel !== undefined &&
+    Number.isFinite(architectLevel) &&
+    architectLevel > 0;
+  const bonuses = hasArchitect
+    ? getArchitectConstructionBonuses(architectLevel)
+    : {
+        costReductionPercentage: 0,
+        durationReductionPercentage: 0,
+      };
+  const safeCost = Math.max(0, Number.isFinite(baseCost) ? baseCost : 0);
+  const safeDurationDays = Math.max(
+    1,
+    Math.ceil(Number.isFinite(baseDurationDays) ? baseDurationDays : 1),
+  );
+
+  return {
+    cost: Math.round(
+      safeCost * (1 - bonuses.costReductionPercentage / 100),
+    ),
+    durationDays: Math.max(
+      1,
+      Math.ceil(
+        safeDurationDays * (1 - bonuses.durationReductionPercentage / 100),
+      ),
+    ),
+    ...bonuses,
+  };
+}
+
 export function getStaffEffectPercentage(role: StaffRole, level: number): number {
   const safeLevel = normalizeStaffLevel(level);
 
@@ -206,7 +279,7 @@ export function getStaffEffectPercentage(role: StaffRole, level: number): number
     case "trainer":
       return safeLevel * 4;
     case "scout":
-      return safeLevel * 5;
+      return getScoutYouthBonuses(safeLevel).scoutingEfficiencyPercentage;
     case "doctor":
       return safeLevel * 6;
     case "mechanic":
@@ -245,12 +318,18 @@ export function describeStaffEffect({
             : "de sa spécialité"
         }`,
       ];
-    case "scout":
+    case "scout": {
+      const youthBonuses = getScoutYouthBonuses(safeLevel);
       return [
-        `+${percentage} % de précision dans ses rapports${
+        `+${percentage} % d’efficacité lors de ses missions${
           countryName ? ` en ${countryName}` : " dans sa zone nationale"
         }`,
+        `Potentiel accru et +${youthBonuses.initialRatingBonus.toLocaleString(
+          "fr-FR",
+          { maximumFractionDigits: 2 },
+        )} point aux statistiques initiales des jeunes détectés`,
       ];
+    }
     case "doctor":
       return [`−${percentage} % de temps de récupération après une blessure`];
     case "mechanic":
@@ -267,7 +346,10 @@ export function describeStaffEffect({
         `−${safeLevel} point${safeLevel > 1 ? "s" : ""} sur le malus de forme après une course`,
       ];
     case "architect":
-      return [`−${percentage} % sur les délais de construction`];
+      return [
+        `−${percentage} % sur le coût des constructions`,
+        `−${percentage} % sur les délais de construction`,
+      ];
   }
 }
 

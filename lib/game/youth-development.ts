@@ -168,11 +168,13 @@ export function generateYouthRatings({
   archetype,
   talent,
   accuracyBonus = 0,
+  initialRatingBonus = 0,
   random,
 }: {
   archetype: YouthArchetype;
   talent: number;
   accuracyBonus?: number;
+  initialRatingBonus?: number;
   random: () => number;
 }): YouthRatings {
   const primary = new Set(ARCHETYPE_PRIMARY_STATS[archetype]);
@@ -180,10 +182,13 @@ export function generateYouthRatings({
   const ratings = Object.fromEntries(
     YOUTH_RATING_KEYS.map((key) => {
       const base = primary.has(key)
-        ? 2.8 + talent * 0.34 + accuracyBonus
+        ? 2.8 + talent * 0.34 + accuracyBonus + initialRatingBonus
         : secondary.has(key)
-          ? 2.1 + talent * 0.24 + accuracyBonus * 0.45
-          : 1.15 + talent * 0.13;
+          ? 2.1 +
+            talent * 0.24 +
+            accuracyBonus * 0.45 +
+            initialRatingBonus
+          : 1.15 + talent * 0.13 + initialRatingBonus;
       return [key, roundYouthRating(base + (random() - 0.5) * 1.15)];
     }),
   ) as YouthRatings;

@@ -4,12 +4,15 @@ import {
   STAFF_DAILY_LEVEL_DISTRIBUTION,
   STAFF_DAILY_ROLE_DISTRIBUTION,
   STAFF_ROLES,
+  calculateConstructionWithArchitect,
   calculateDueStaffSalary,
   calculateStaffSalary,
   calculateStaffSigningFee,
   describeStaffEffect,
   getNutritionistDailyCapacity,
+  getArchitectConstructionBonuses,
   getPhysiotherapistRiderCapacity,
+  getScoutYouthBonuses,
   getStaffCapacityForDirectorLevel,
 } from "@/lib/game/staff";
 
@@ -66,6 +69,43 @@ describe("staff economy", () => {
         getNutritionistDailyCapacity(index + 1),
       ),
     ).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it("links both architect construction reductions to staff level", () => {
+    expect(getArchitectConstructionBonuses(1)).toEqual({
+      costReductionPercentage: 5,
+      durationReductionPercentage: 5,
+    });
+    expect(getArchitectConstructionBonuses(5)).toEqual({
+      costReductionPercentage: 25,
+      durationReductionPercentage: 25,
+    });
+
+    expect(
+      calculateConstructionWithArchitect({
+        baseCost: 100_000,
+        baseDurationDays: 20,
+        architectLevel: 3,
+      }),
+    ).toEqual({
+      cost: 85_000,
+      durationDays: 17,
+      costReductionPercentage: 15,
+      durationReductionPercentage: 15,
+    });
+  });
+
+  it("improves youth potential and initial ratings with scout level", () => {
+    expect(getScoutYouthBonuses(1)).toEqual({
+      scoutingEfficiencyPercentage: 5,
+      potentialBonus: 0.55,
+      initialRatingBonus: 0.04,
+    });
+    expect(getScoutYouthBonuses(5)).toEqual({
+      scoutingEfficiencyPercentage: 25,
+      potentialBonus: 2.75,
+      initialRatingBonus: 0.2,
+    });
   });
 });
 

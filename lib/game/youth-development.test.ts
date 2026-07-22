@@ -32,6 +32,30 @@ describe("youth development", () => {
     expect(sprinter.mountain).toBeLessThanOrEqual(2.5);
   });
 
+  it("applies the scout bonus directly to a young rider's initial ratings", () => {
+    const baseline = generateYouthRatings({
+      archetype: "all_rounder",
+      talent: 5,
+      random: createSeededRandom("same-candidate"),
+    });
+    const improved = generateYouthRatings({
+      archetype: "all_rounder",
+      talent: 5,
+      initialRatingBonus: 0.2,
+      random: createSeededRandom("same-candidate"),
+    });
+
+    expect(
+      YOUTH_RATING_KEYS.reduce(
+        (total, key) => total + improved[key] - baseline[key],
+        0,
+      ),
+    ).toBeGreaterThan(0);
+    for (const key of YOUTH_RATING_KEYS) {
+      expect(improved[key]).toBeGreaterThanOrEqual(baseline[key]);
+    }
+  });
+
   it("returns between one and four candidates and rewards better missions", () => {
     const weak = getScoutingCandidateCount({ scoutLevel: 1, durationDays: 1, facilityLevel: 1, random: () => 0 });
     const strong = getScoutingCandidateCount({ scoutLevel: 5, durationDays: 7, facilityLevel: 10, random: () => 0.99 });

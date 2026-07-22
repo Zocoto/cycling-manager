@@ -517,8 +517,8 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
             detail="Médecins, kinés et nutritionnistes sont reliés au centre de soin, avec effets et capacités dépendant de leur niveau."
           />
           <ConnectionCard
-            title="Prochaines connexions"
-            detail="Entraîneur, scout, mécanicien et architecte sont prêts pour leurs moteurs fonctionnels respectifs."
+            title="Relève et futurs chantiers"
+            detail="Le niveau du scout renforce déjà le potentiel et les notes initiales des jeunes. L’architecte réduira coût et durée de 5 à 25 % dès l’ouverture des chantiers."
           />
         </div>
       </article>
