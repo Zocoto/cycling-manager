@@ -44,6 +44,10 @@ type BuildRaceSegmentsInput = {
   includeTourPrimes?: boolean;
 };
 
+type EnsureCompleteRaceSegmentsInput = BuildRaceSegmentsInput & {
+  segments: RaceStageSegment[];
+};
+
 /**
  * Produit le profil détaillé qui sert à la simulation et à l'affichage.
  * Une même graine donne toujours exactement le même parcours.
@@ -99,6 +103,30 @@ export function getStageDistance(segments: RaceStageSegment[]) {
     segments.reduce((total, segment) => total + segment.distanceKm, 0),
     2
   );
+}
+
+export function ensureCompleteRaceSegments({
+  segments,
+  distanceKm,
+  profileType,
+  seed,
+  includeTourPrimes = false,
+}: EnsureCompleteRaceSegmentsInput): RaceStageSegment[] {
+  const loadedDistance = getStageDistance(segments);
+
+  if (
+    segments.length > 0 &&
+    Math.abs(loadedDistance - distanceKm) <= 0.05
+  ) {
+    return segments;
+  }
+
+  return buildRaceSegments({
+    distanceKm,
+    profileType,
+    seed,
+    includeTourPrimes,
+  });
 }
 
 /**

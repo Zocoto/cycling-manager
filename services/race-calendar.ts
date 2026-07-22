@@ -21,8 +21,15 @@ import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
-import { resolveRaceProfileType } from "@/lib/game/race-profiles";
+import {
+  ensureCompleteRaceSegments,
+  resolveRaceProfileType,
+} from "@/lib/game/race-profiles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  chunkValues,
+  collectPaginatedRows,
+} from "@/lib/supabase/pagination";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -585,30 +592,7 @@ export async function getActiveSeasonRaceCalendar(
 
   const stageRows = stagesResult.data ?? [];
   const stageIds = stageRows.map((stage) => stage.id);
-  const segmentsResult =
-    stageIds.length > 0
-      ? await supabase
-          .from("stage_segments")
-          .select(
-            `
-              id,
-              stage_id,
-              segment_number,
-              distance_km,
-              terrain_type,
-              surface_type,
-              average_gradient_pct,
-              stage_segment_primes (
-                prime_type,
-                mountain_category,
-                points_scale
-              )
-            `
-          )
-          .in("stage_id", stageIds)
-          .order("segment_number", { ascending: true })
-          .returns<StageSegmentRow[]>()
-      : emptyResult<StageSegmentRow>();
+  const segmentsResult = await loadStageSegments(supabase, stageIds);
 
   assertQuerySucceeded(
     segmentsResult.error,
@@ -1068,7 +1052,7 @@ function groupStages(
       continue;
     }
 
-    const segments = (segmentsByStageId.get(row.id) ?? []).map((segment) => {
+    const loadedSegments = (segmentsByStageId.get(row.id) ?? []).map((segment) => {
       const prime = segment.stage_segment_primes[0];
 
       return {
@@ -1086,6 +1070,14 @@ function groupStages(
           : null,
       };
     });
+    const distanceKm = Number(row.distance_km);
+    const segments = ensureCompleteRaceSegments({
+      segments: loadedSegments,
+      distanceKm,
+      profileType: row.profile_type,
+      seed: row.id,
+      includeTourPrimes: loadedSegments.some((segment) => segment.prime !== null),
+    });
     const stage: RaceCalendarStage = {
       id: row.id,
       dayNumber: day.day_number,
@@ -1094,7 +1086,7 @@ function groupStages(
       stageType: row.stage_type,
       status: row.status,
       profileType: resolveRaceProfileType(row.profile_type, segments),
-      distanceKm: Number(row.distance_km),
+      distanceKm,
       daySlot: isRaceDaySlot(row.day_slot) ? row.day_slot : "late",
       departureAt: row.departure_at,
       segments,
@@ -1112,6 +1104,60 @@ function groupStages(
   }
 
   return stagesByEditionId;
+}
+
+async function loadStageSegments(
+  supabase: SupabaseServerClient,
+  stageIds: string[]
+) {
+  if (stageIds.length === 0) {
+    return emptyResult<StageSegmentRow>();
+  }
+
+  const batchResults = await Promise.all(
+    chunkValues(stageIds).map((stageIdBatch) =>
+      collectPaginatedRows<StageSegmentRow, { message: string }>({
+        fetchPage: async (from, to) => {
+          const result = await supabase
+            .from("stage_segments")
+            .select(
+              `
+                id,
+                stage_id,
+                segment_number,
+                distance_km,
+                terrain_type,
+                surface_type,
+                average_gradient_pct,
+                stage_segment_primes (
+                  prime_type,
+                  mountain_category,
+                  points_scale
+                )
+              `
+            )
+            .in("stage_id", stageIdBatch)
+            .order("stage_id", { ascending: true })
+            .order("segment_number", { ascending: true })
+            .range(from, to)
+            .returns<StageSegmentRow[]>();
+
+          return {
+            data: result.data,
+            error: result.error,
+          };
+        },
+      })
+    )
+  );
+  const failedBatch = batchResults.find((result) => result.error);
+
+  return failedBatch
+    ? { data: [] as StageSegmentRow[], error: failedBatch.error }
+    : {
+        data: batchResults.flatMap((result) => result.data),
+        error: null,
+      };
 }
 
 function formatParisDate(date: Date) {

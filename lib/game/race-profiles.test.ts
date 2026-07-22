@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   STANDARD_RACE_SEGMENT_KM,
   buildRaceSegments,
+  ensureCompleteRaceSegments,
   getStageDistance,
   resolveRaceProfileType,
 } from "./race-profiles";
@@ -154,5 +155,55 @@ describe("buildRaceSegments", () => {
     };
 
     expect(buildRaceSegments(input)).toEqual(buildRaceSegments(input));
+  });
+});
+
+describe("ensureCompleteRaceSegments", () => {
+  it("reconstruit une étape de 126 km lorsque seulement cinq tronçons ont été chargés", () => {
+    const truncated = buildRaceSegments({
+      distanceKm: 50,
+      profileType: "sprint",
+      seed: "profil-tronque",
+    });
+
+    const segments = ensureCompleteRaceSegments({
+      segments: truncated,
+      distanceKm: 126,
+      profileType: "sprint",
+      seed: "etape-126",
+    });
+
+    expect(segments).toHaveLength(13);
+    expect(getStageDistance(segments)).toBe(126);
+  });
+
+  it("conserve un profil complet même si ses tronçons dépassent 10 km", () => {
+    const complete = [
+      {
+        segmentNumber: 1,
+        distanceKm: 25,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 15,
+        terrain: "climb" as const,
+        averageGradientPct: 5,
+        surface: "asphalt" as const,
+        prime: null,
+      },
+    ];
+
+    expect(
+      ensureCompleteRaceSegments({
+        segments: complete,
+        distanceKm: 40,
+        profileType: "hilly",
+        seed: "profil-variable",
+      })
+    ).toBe(complete);
   });
 });
