@@ -19,6 +19,10 @@ import {
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
 import { indexLatestTrainingSessionsByRider } from "@/lib/game/training";
+import {
+  createStandardTransferScoutingReport,
+  type TransferScoutingReport,
+} from "@/lib/game/transfer-scouting";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type RiderEquipmentSlot = EquipmentSlot;
@@ -41,8 +45,9 @@ export type PublicRiderProfile = {
     gameYear: number;
   } | null;
   age: number | null;
-  potentialSteps: number;
+  potentialSteps: number | null;
   ratings: RiderRatings | null;
+  scoutingReport: TransferScoutingReport | null;
   condition: {
     form: number;
     dayNumber: number | null;
@@ -310,6 +315,7 @@ export async function getPublicRiderProfile({
     equipmentAssignmentsResult,
     specialAbilitiesResult,
     injuryResult,
+    marketListingResult,
   ] = await Promise.all([
     supabase
       .from("countries")
@@ -360,6 +366,13 @@ export async function getPublicRiderProfile({
       .order("expected_recovery_at", { ascending: false })
       .limit(1)
       .maybeSingle<InjuryRow>(),
+    supabase
+      .from("transfer_market_listings")
+      .select("id")
+      .eq("rider_id", rider.id)
+      .eq("status", "open")
+      .limit(1)
+      .maybeSingle<{ id: string }>(),
   ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -370,6 +383,7 @@ export async function getPublicRiderProfile({
   assertQuery(equipmentAssignmentsResult.error, "les équipements du coureur");
   assertQuery(specialAbilitiesResult.error, "les capacités spéciales du coureur");
   assertQuery(injuryResult.error, "la situation médicale du coureur");
+  assertQuery(marketListingResult.error, "la présence du coureur sur le marché");
 
   if (!countryResult.data) {
     throw new Error("Le pays du coureur est introuvable.");
@@ -495,6 +509,21 @@ export async function getPublicRiderProfile({
         })
       : Promise.resolve(false),
   ]);
+  const exactRatings = currentRating ? toRatings(currentRating) : null;
+  const isTransferTarget =
+    rider.status === "free_agent" || Boolean(marketListingResult.data);
+  const mustUseScoutingReport =
+    !canManage && isTransferTarget && Boolean(exactRatings);
+  const scoutingReport =
+    mustUseScoutingReport && exactRatings
+      ? createStandardTransferScoutingReport({
+          riderId: rider.id,
+          seasonId:
+            activeSeason?.id ?? currentRating?.season_id ?? "hors-saison",
+          ratings: exactRatings,
+          potentialSteps: rider.potential_steps,
+        })
+      : null;
 
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
   const trainingReport =
@@ -599,8 +628,9 @@ export async function getPublicRiderProfile({
         }
       : null,
     age: currentRating?.age ?? null,
-    potentialSteps: rider.potential_steps,
-    ratings: currentRating ? toRatings(currentRating) : null,
+    potentialSteps: mustUseScoutingReport ? null : rider.potential_steps,
+    ratings: mustUseScoutingReport ? null : exactRatings,
+    scoutingReport,
     condition,
     medical: injuryResult.data
       ? {

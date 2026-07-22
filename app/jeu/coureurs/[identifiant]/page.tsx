@@ -14,6 +14,7 @@ import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
+import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
   SPECIAL_ABILITY_CATALOG,
@@ -39,6 +40,7 @@ import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import { renewRiderContractAction, signFreeAgentAction } from "@/app/jeu/transferts/actions";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
+import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
 
 export const metadata: Metadata = {
   title: "Fiche coureur",
@@ -181,16 +183,24 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                 <IdentityBadge>
                   {profile.activeSeason?.name ?? "Hors saison"}
                 </IdentityBadge>
-                <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
-                  <PotentialStars
-                    potentialSteps={profile.potentialSteps}
-                    dark
-                    compact
-                  />
-                </span>
+                {profile.potentialSteps !== null ? (
+                  <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
+                    <PotentialStars
+                      potentialSteps={profile.potentialSteps}
+                      dark
+                      compact
+                    />
+                  </span>
+                ) : profile.scoutingReport ? (
+                  <IdentityBadge>
+                    Potentiel {formatScoutedPotentialValue(profile.scoutingReport.potential)}
+                  </IdentityBadge>
+                ) : null}
               </div>
               <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-                Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur.
+                {profile.scoutingReport
+                  ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
+                  : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
               </p>
             </div>
 
@@ -223,6 +233,10 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
             {profile.ratings ? (
               <div className="mt-5">
                 <RiderStatsRadar ratings={profile.ratings} />
+              </div>
+            ) : profile.scoutingReport ? (
+              <div className="mt-5">
+                <TransferScoutingReportPanel report={profile.scoutingReport} />
               </div>
             ) : (
               <EmptyBlock message="Aucune caractéristique n’est disponible pour ce coureur." />

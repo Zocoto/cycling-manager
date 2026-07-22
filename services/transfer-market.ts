@@ -16,6 +16,13 @@ import {
   getRiderSportingProfile,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import {
+  createExactTransferScoutingReport,
+  createStandardTransferScoutingReport,
+  getScoutedNumericSortValue,
+  scoutedValueCouldMeetMinimum,
+  type TransferScoutingReport,
+} from "@/lib/game/transfer-scouting";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -68,6 +75,7 @@ type RiderRow = {
   status: string;
   avatar_profile_key: string;
   avatar_seed: number | string;
+  potential_steps: number;
 };
 type RatingRow = {
   rider_id: string;
@@ -107,9 +115,16 @@ export type TransferMarketRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number;
-  overall: number;
-  ratings: RiderRatings;
   profileLabel: string;
+  salaryPerSeason: number;
+  scoutingReport: TransferScoutingReport;
+};
+
+export type TransferRosterRider = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  overall: number;
 };
 
 export type TransferMarketListing = {
@@ -134,7 +149,7 @@ export type TransferMarketListing = {
 };
 
 export type TransferRosterCandidate = {
-  rider: TransferMarketRider;
+  rider: TransferRosterRider;
   currentSalary: number;
   currency: string;
   recommendedPrice: number;
@@ -142,6 +157,17 @@ export type TransferRosterCandidate = {
   listBlockedReason: string | null;
   canRenew: boolean;
   renewalSalary: number;
+};
+
+type LoadedMarketRider = TransferRosterRider & {
+  countryName: string;
+  countryCode: string;
+  avatarProfileKey: string;
+  avatarSeed: number | string;
+  age: number;
+  potentialSteps: number;
+  ratings: RiderRatings;
+  profileLabel: string;
 };
 
 export type TransferMarketFilters = {
@@ -312,7 +338,12 @@ export async function getTransferMarketOverview(
       currency: listing.currency_code,
       opensAt: listing.opens_at,
       closesAt: listing.closes_at,
-      rider,
+      rider: toTransferMarketRider({
+        rider,
+        seasonId: context.season.id,
+        revealExactValues:
+          listing.seller_team_id === context.teamSeason.team_id,
+      }),
     } satisfies TransferMarketListing];
   });
 
@@ -321,7 +352,18 @@ export async function getTransferMarketOverview(
   );
   const freeAgentIds = new Set((freeAgentRows ?? []).map((row) => row.id));
   const freeAgents = applyFreeAgentFilters(
-    riders.filter((rider) => freeAgentIds.has(rider.id) && !openListingRiderIds.has(rider.id)),
+    riders
+      .filter(
+        (rider) =>
+          freeAgentIds.has(rider.id) && !openListingRiderIds.has(rider.id)
+      )
+      .map((rider) =>
+        toTransferMarketRider({
+          rider,
+          seasonId: context.season.id,
+          revealExactValues: false,
+        })
+      ),
     filters
   );
   const pendingTotal = (transactionsResult.data ?? []).reduce(
@@ -376,7 +418,12 @@ export async function getTransferMarketOverview(
       const renewalSalary = rider.overall < 60 ? 0 : calculateSalaryApproximation(rider.overall);
 
       return [{
-        rider,
+        rider: {
+          id: rider.id,
+          firstName: rider.firstName,
+          lastName: rider.lastName,
+          overall: rider.overall,
+        },
         currentSalary: toNumber(contract.salary_per_season),
         currency: context.teamSeason.currency,
         recommendedPrice: Math.max(500, Math.round((rider.overall - 35) ** 2 * 110 / 500) * 500),
@@ -559,12 +606,12 @@ async function loadMarketRiders(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   riderIds: string[],
   seasonId: string
-) {
+): Promise<LoadedMarketRider[]> {
   if (riderIds.length === 0) return [];
   const [ridersResult, ratingsResult] = await Promise.all([
     admin
       .from("riders")
-      .select("id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed")
+      .select("id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps")
       .in("id", riderIds)
       .returns<RiderRow[]>(),
     admin
@@ -601,9 +648,10 @@ async function loadMarketRiders(
       avatarSeed: rider.avatar_seed,
       age: rating.age,
       overall: calculateOverall(ratings),
+      potentialSteps: rider.potential_steps,
       ratings,
       profileLabel: getRiderSportingProfile(ratings),
-    } satisfies TransferMarketRider];
+    } satisfies LoadedMarketRider];
   });
 }
 
@@ -647,9 +695,55 @@ function applyFreeAgentFilters(riders: TransferMarketRider[], filters: TransferM
     .filter((rider) => filters.maximumAge === undefined || rider.age <= filters.maximumAge)
     .filter((rider) => {
       if (!filters.rating || filters.minimumRating === undefined) return true;
-      return (filters.rating === "overall" ? rider.overall : rider.ratings[filters.rating]) >= filters.minimumRating;
+      const scoutedValue =
+        filters.rating === "overall"
+          ? rider.scoutingReport.overall
+          : rider.scoutingReport.ratings[filters.rating];
+      return scoutedValueCouldMeetMinimum(
+        scoutedValue,
+        filters.minimumRating
+      );
     })
-    .sort((left, right) => right.overall - left.overall || left.lastName.localeCompare(right.lastName, "fr"));
+    .sort(
+      (left, right) =>
+        getScoutedNumericSortValue(right.scoutingReport.overall) -
+          getScoutedNumericSortValue(left.scoutingReport.overall) ||
+        left.lastName.localeCompare(right.lastName, "fr")
+    );
+}
+
+function toTransferMarketRider({
+  rider,
+  seasonId,
+  revealExactValues,
+}: {
+  rider: LoadedMarketRider;
+  seasonId: string;
+  revealExactValues: boolean;
+}): TransferMarketRider {
+  return {
+    id: rider.id,
+    firstName: rider.firstName,
+    lastName: rider.lastName,
+    countryName: rider.countryName,
+    countryCode: rider.countryCode,
+    avatarProfileKey: rider.avatarProfileKey,
+    avatarSeed: rider.avatarSeed,
+    age: rider.age,
+    profileLabel: rider.profileLabel,
+    salaryPerSeason: calculateSalaryApproximation(rider.overall),
+    scoutingReport: revealExactValues
+      ? createExactTransferScoutingReport({
+          ratings: rider.ratings,
+          potentialSteps: rider.potentialSteps,
+        })
+      : createStandardTransferScoutingReport({
+          riderId: rider.id,
+          seasonId,
+          ratings: rider.ratings,
+          potentialSteps: rider.potentialSteps,
+        }),
+  };
 }
 
 function toRatings(row: Omit<RatingRow, "rider_id" | "age">): RiderRatings {

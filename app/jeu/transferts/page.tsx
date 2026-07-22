@@ -10,6 +10,7 @@ import {
 import { GameHeader } from "@/components/game/game-header";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TransferCountdown } from "@/components/game/transfer-countdown";
+import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import {
   createAmateurRiderJersey,
@@ -100,7 +101,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">Recruter · vendre · construire</p>
               <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Bureau des transferts</h1>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-                Les visages restent permanents, mais chaque transfert active automatiquement le maillot de la nouvelle équipe et enrichit l’historique du coureur.
+                Recrutez à partir d’un rapport de scouting incomplet : certaines notes sont exactes, d’autres estimées ou encore inconnues. Les outils d’analyse permettront plus tard d’affiner ces informations.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
@@ -149,7 +150,7 @@ function DailyAuctions({ listings, overview, returnPath }: {
 }) {
   return (
     <section className="mt-7">
-      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les cinq enchères ouvrent à 9 h et sont attribuées à 18 h. Sans offre, le coureur rejoint les agents libres." />
+      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les cinq enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont volontairement partiels ; sans offre, le coureur rejoint les agents libres." />
       {listings.length > 0 ? (
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} returnPath={returnPath} />)}
@@ -213,7 +214,7 @@ function FreeAgents({ riders, countries, query, currency, returnPath }: {
 }) {
   return (
     <section className="mt-7">
-      <SectionHeading eyebrow="Sans indemnité de transfert" title="Base des agents libres" detail="Le contrat couvre la saison actuelle et la suivante. Seul le salaire vient augmenter la masse salariale." />
+      <SectionHeading eyebrow="Sans indemnité de transfert" title="Base des agents libres" detail="Le contrat couvre la saison actuelle et la suivante. Le salaire est connu, mais le niveau sportif reste soumis à la qualité du rapport de scouting." />
       <form className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-6">
         <input type="hidden" name="onglet" value="libres" />
         <FilterField label="Nom"><input name="recherche" defaultValue={readQuery(query.recherche)} placeholder="Rechercher…" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
@@ -221,7 +222,7 @@ function FreeAgents({ riders, countries, query, currency, returnPath }: {
         <FilterField label="Âge min."><input name="ageMin" type="number" min="15" max="60" defaultValue={readQuery(query.ageMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
         <FilterField label="Âge max."><input name="ageMax" type="number" min="15" max="60" defaultValue={readQuery(query.ageMax)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
         <FilterField label="Statistique"><select name="stat" defaultValue={readQuery(query.stat) || "overall"} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="overall">Moyenne</option>{RIDER_RATING_AXES.map((axis) => <option key={axis.key} value={axis.key}>{axis.label}</option>)}</select></FilterField>
-        <FilterField label="Minimum"><input name="statMin" type="number" min="0" max="100" defaultValue={readQuery(query.statMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
+        <FilterField label="Seuil estimé"><input name="statMin" type="number" min="0" max="100" defaultValue={readQuery(query.statMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
         <div className="flex gap-3 xl:col-span-6"><button className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white">Filtrer</button><Link href="/jeu/transferts?onglet=libres" className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-xs font-black uppercase tracking-wider text-[#315B3E]">Réinitialiser</Link></div>
       </form>
       {riders.length > 0 ? (
@@ -241,10 +242,10 @@ function AuctionCard({ listing, jersey, teamId, availableBudget, returnPath }: {
       <div className="relative flex items-center gap-5 bg-[linear-gradient(135deg,#0B302B,#176951)] p-5 text-white">
         <RiderAvatar profileKey={listing.rider.avatarProfileKey} seed={listing.rider.avatarSeed} riderId={listing.rider.id} age={listing.rider.age} jersey={jersey} label={`Portrait de ${listing.rider.firstName} ${listing.rider.lastName}`} className="h-24 w-24 border-2 border-white/20" />
         <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">{listing.sellerTeamName ?? "Sélection quotidienne"}</p><Link href={`/jeu/coureurs/${listing.rider.id}`} target="_blank" className="mt-1 block truncate text-xl font-black hover:text-[#F2C94C]">{listing.rider.firstName} {listing.rider.lastName} ↗</Link><p className="mt-2 text-xs font-bold text-[#D6DFD2]"><span className={`fi fi-${listing.rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{listing.rider.countryName} · {listing.rider.age} ans</p></div>
-        <span className="absolute right-4 top-4 rounded-full bg-[#F2C94C] px-3 py-1 text-xs font-black text-[#071A17]">MOY {formatRating(listing.rider.overall)}</span>
       </div>
       <div className="p-5">
-        <div className="flex flex-wrap gap-2"><span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span>{getTopRatings(listing.rider).map(([label, value]) => <span key={label} className="rounded-full bg-[#EAF2FA] px-3 py-1 text-xs font-black text-[#256390]">{label} {value}</span>)}</div>
+        <div className="mb-4 flex flex-wrap gap-2"><span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span></div>
+        <TransferScoutingReportPanel report={listing.rider.scoutingReport} compact />
         <div className="mt-4 grid grid-cols-2 gap-3"><PriceBlock label={listing.currentBid ? "Offre en tête" : "Prix d’appel"} value={formatMoney(listing.currentBid ?? listing.minimumBid, listing.currency)} /><PriceBlock label="Salaire hebdo." value={formatMoney(listing.salaryPerWeek, listing.currency)} /></div>
         <div className="mt-4 flex items-center justify-between rounded-xl border border-[#F2C94C]/25 bg-[#FFF9DF] px-4 py-3 text-xs font-black text-[#705B00]"><span>{listing.status === "open" ? "Temps restant" : listing.status === "settled" ? "Attribué" : "Clôturé sans offre"}</span>{listing.status === "open" ? <TransferCountdown closesAt={listing.closesAt} /> : <span>{listing.leaderTeamName ?? "Agent libre"}</span>}</div>
         {listing.isOwnTeamLeading ? <p className="mt-3 rounded-xl bg-[#DDF3E7] px-4 py-3 text-xs font-black text-[#176951]">Votre équipe mène l’enchère avec {formatMoney(listing.ownBid ?? 0, listing.currency)}.</p> : null}
@@ -262,11 +263,11 @@ function AuctionCard({ listing, jersey, teamId, availableBudget, returnPath }: {
 }
 
 function FreeAgentCard({ rider, currency, returnPath }: { rider: TransferMarketRider; currency: string; returnPath: string }) {
-  const seasonSalary = approximateSalary(rider.overall);
+  const seasonSalary = rider.salaryPerSeason;
   return (
     <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
-      <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} jersey={FREE_AGENT_RIDER_JERSEY} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-20 w-20" /><div className="min-w-0 flex-1"><Link href={`/jeu/coureurs/${rider.id}`} target="_blank" className="block truncate text-lg font-black text-[#183F37] hover:text-[#176951]">{rider.firstName} {rider.lastName} ↗</Link><p className="mt-1 text-xs font-bold text-[#60756E]"><span className={`fi fi-${rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{rider.countryName} · {rider.age} ans</p><div className="mt-2 flex gap-2"><span className="rounded-full bg-[#DDF3E7] px-2.5 py-1 text-[10px] font-black text-[#176951]">MOY {formatRating(rider.overall)}</span><span className="rounded-full bg-[#EAF2FA] px-2.5 py-1 text-[10px] font-black text-[#256390]">{rider.profileLabel}</span></div></div></div>
-      <div className="mt-4 flex flex-wrap gap-2">{getTopRatings(rider).map(([label, value]) => <span key={label} className="rounded-lg border border-[#315B3E]/10 bg-[#F7FAF8] px-2.5 py-1.5 text-xs font-black">{label} {value}</span>)}</div>
+      <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} jersey={FREE_AGENT_RIDER_JERSEY} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-20 w-20" /><div className="min-w-0 flex-1"><Link href={`/jeu/coureurs/${rider.id}`} target="_blank" className="block truncate text-lg font-black text-[#183F37] hover:text-[#176951]">{rider.firstName} {rider.lastName} ↗</Link><p className="mt-1 text-xs font-bold text-[#60756E]"><span className={`fi fi-${rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{rider.countryName} · {rider.age} ans</p><div className="mt-2 flex gap-2"><span className="rounded-full bg-[#EAF2FA] px-2.5 py-1 text-[10px] font-black text-[#256390]">{rider.profileLabel}</span></div></div></div>
+      <div className="mt-4"><TransferScoutingReportPanel report={rider.scoutingReport} compact /></div>
       <div className="mt-4 rounded-xl bg-[#F3F8F6] px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">Demande salariale</p><p className="mt-1 text-lg font-black text-[#183F37]">{formatMoney(Math.round(seasonSalary / 4), currency)} / semaine</p><p className="text-[10px] font-bold text-[#60756E]">{formatMoney(seasonSalary, currency)} par saison</p></div>
       <form action={signFreeAgentAction} className="mt-4 flex"><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>
     </article>
@@ -280,10 +281,7 @@ function Notice({ tone, children }: { tone: "success" | "error"; children: React
 function PriceBlock({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-[#315B3E]/10 bg-[#F7FAF8] px-4 py-3"><p className="text-[9px] font-black uppercase tracking-wider text-[#60756E]">{label}</p><p className="mt-1 text-base font-black text-[#183F37]">{value}</p></div>; }
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) { return <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">{label}{children}</label>; }
 
-function getTopRatings(rider: TransferMarketRider): Array<[string, number]> { return RIDER_RATING_AXES.map((axis) => [axis.shortLabel, rider.ratings[axis.key]] as [string, number]).sort((left, right) => right[1] - left[1]).slice(0, 3); }
-function approximateSalary(overall: number) { const factor = Math.max(0, (overall - 45) / 55); return Math.round((2500 + factor ** 2 * 100000) / 100) * 100; }
 function formatMoney(value: number, currency: string) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value); }
-function formatRating(value: number) { return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(`${value}T12:00:00Z`)); }
 function readQuery(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] ?? "" : value ?? ""; }
 function readTab(value: string): TransferTab { return value === "directeurs" || value === "libres" ? value : "quotidiennes"; }
