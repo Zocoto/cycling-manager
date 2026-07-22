@@ -78,6 +78,16 @@ describe("buildCalendarWeeks", () => {
       )
     ).toEqual([0, 1]);
   });
+
+  it("sépare les lignes de 14 h et de 18 h", () => {
+    const weeks = buildCalendarWeeks([
+      createEdition("tour-matin", [2, 3, 4], "early"),
+      createEdition("tour-apres-midi", [2, 3, 4], "late"),
+    ]);
+
+    expect(weeks[0].laneCountBySlot).toEqual({ early: 1, late: 1 });
+    expect(weeks[0].segments.map((segment) => segment.lane)).toEqual([0, 0]);
+  });
 });
 
 describe("getRegistrationAvailability", () => {
@@ -215,7 +225,7 @@ describe("règles de composition et de retrait", () => {
     }
   );
 
-  it("autorise le retrait strictement avant H-12", () => {
+  it("autorise le retrait strictement avant le gel du créneau", () => {
     const cutoff = "2026-07-20T08:00:00Z";
 
     expect(
@@ -235,7 +245,8 @@ describe("règles de composition et de retrait", () => {
 
 function createEdition(
   slug: string,
-  dayNumbers: number[]
+  dayNumbers: number[],
+  daySlot: "early" | "late" = "early"
 ): RaceCalendarEdition {
   return {
     id: slug,
@@ -268,6 +279,7 @@ function createEdition(
         status: "planned",
         profileType: "mixed",
         distanceKm: 170,
+        daySlot,
         departureAt: null,
         segments: [],
       })

@@ -4,6 +4,7 @@ import {
   getFormCampTotal,
   getProtocolRecoveryReductionHours,
   resolveCrashMedicalOutcome,
+  resolveRiderFormChange,
 } from "./health-center";
 
 describe("resolveCrashMedicalOutcome", () => {
@@ -54,6 +55,22 @@ describe("resolveCrashMedicalOutcome", () => {
 });
 
 describe("health center rules", () => {
+  it("bloque la forme a zero et cree trois jours de blessure sous zero", () => {
+    expect(resolveRiderFormChange({ formBefore: 8, formDelta: -10 })).toEqual({
+      form: 0,
+      causesFatigueInjury: true,
+      fatigueInjuryHours: 72,
+    });
+  });
+
+  it("ne blesse pas un coureur dont la forme atteint exactement zero", () => {
+    expect(resolveRiderFormChange({ formBefore: 10, formDelta: -10 })).toEqual({
+      form: 0,
+      causesFatigueInjury: false,
+      fatigueInjuryHours: 0,
+    });
+  });
+
   it("calcule des réductions médicales proportionnelles", () => {
     expect(
       getProtocolRecoveryReductionHours({

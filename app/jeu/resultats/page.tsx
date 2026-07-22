@@ -75,7 +75,7 @@ export default async function RaceResultsPage() {
               Vivez chaque course de la saison.
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-[#48665F]">
-              Filtrez le calendrier, rejoignez un direct à 20 h ou revivez une course terminée. Le profil, les groupes, les écarts et le classement partagent désormais les mêmes données.
+              Filtrez le calendrier, rejoignez les directs de 14 h et 18 h ou revivez une course terminée. Le profil, les groupes, les écarts et le classement partagent désormais les mêmes données.
             </p>
           </header>
 

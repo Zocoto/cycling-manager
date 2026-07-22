@@ -8,8 +8,11 @@ import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
+  RACE_DAY_SLOTS,
+  RACE_DAY_SLOT_CONFIG,
   RACE_PROFILE_LABELS,
   buildCalendarWeeks,
+  compareRaceDaySlots,
   isRaceEditionAvailableToCurrentTeam,
   type CalendarWeek,
   type RaceCalendarEdition,
@@ -17,7 +20,7 @@ import {
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-const DEFAULT_VISIBLE_LANES = 6;
+const DEFAULT_VISIBLE_LANES_PER_SLOT = 3;
 
 const shortDateFormatter =
   new Intl.DateTimeFormat("fr-FR", {
@@ -82,6 +85,7 @@ export function SeasonCalendar({
         .sort(
           (first, second) =>
             first.stage.dayNumber - second.stage.dayNumber ||
+            compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
             first.edition.prestigeRank - second.edition.prestigeRank ||
             first.edition.name.localeCompare(second.edition.name, "fr")
         ),
@@ -302,6 +306,11 @@ export function SeasonCalendar({
                 edition: RaceCalendarEdition;
                 stage: RaceCalendarEdition["stages"][number];
               } => Boolean(entry.stage)
+            )
+            .sort(
+              (first, second) =>
+                compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
+                first.edition.prestigeRank - second.edition.prestigeRank
             );
 
           return (
@@ -437,17 +446,20 @@ function DesktopCalendarWeek({
   isExpanded: boolean;
   onToggleExpanded: () => void;
 }) {
-  const visibleLaneCount = isExpanded
-    ? week.laneCount
-    : Math.min(
-        DEFAULT_VISIBLE_LANES,
-        week.laneCount
-      );
-  const hasHiddenLanes =
-    week.laneCount > DEFAULT_VISIBLE_LANES;
-  const rowCount =
-    visibleLaneCount +
-    (hasHiddenLanes ? 1 : 0);
+  const visibleLaneCountBySlot = Object.fromEntries(
+    RACE_DAY_SLOTS.map((slot) => [
+      slot,
+      isExpanded
+        ? week.laneCountBySlot[slot]
+        : Math.min(DEFAULT_VISIBLE_LANES_PER_SLOT, week.laneCountBySlot[slot]),
+    ])
+  ) as Record<(typeof RACE_DAY_SLOTS)[number], number>;
+  const hasHiddenLanes = RACE_DAY_SLOTS.some(
+    (slot) => week.laneCountBySlot[slot] > DEFAULT_VISIBLE_LANES_PER_SLOT
+  );
+  const earlyLaneCount = visibleLaneCountBySlot.early;
+  const lateLaneCount = visibleLaneCountBySlot.late;
+  const rowCount = earlyLaneCount + lateLaneCount + 2 + (hasHiddenLanes ? 1 : 0);
 
   return (
     <section
@@ -517,10 +529,30 @@ function DesktopCalendarWeek({
         );
       })}
 
+      {RACE_DAY_SLOTS.map((slot) => {
+        const config = RACE_DAY_SLOT_CONFIG[slot];
+        const row = slot === "early" ? 2 : earlyLaneCount + 3;
+
+        return (
+          <div
+            key={slot}
+            className="relative z-20 mx-1 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0B302B] px-3 py-1.5 text-white shadow-sm"
+            style={{ gridColumn: "1 / 8", gridRow: row }}
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.18em]">
+              {config.label} · {config.departureLabel}
+            </span>
+            <span className="text-[9px] font-bold text-[#A9C6BB]">
+              {config.registrationCutoffLabel}
+            </span>
+          </div>
+        );
+      })}
+
       {week.segments
         .filter(
           (segment) =>
-            segment.lane < visibleLaneCount
+            segment.lane < visibleLaneCountBySlot[segment.daySlot]
         )
         .map((segment) => {
           const style =
@@ -552,7 +584,10 @@ function DesktopCalendarWeek({
               }`}
               style={{
                 gridColumn: `${columnStart} / ${columnEnd}`,
-                gridRow: segment.lane + 2,
+                gridRow:
+                  segment.daySlot === "early"
+                    ? segment.lane + 3
+                    : earlyLaneCount + segment.lane + 4,
                 backgroundColor: style.background,
                 borderColor: style.border,
                 color: style.foreground,
@@ -589,12 +624,12 @@ function DesktopCalendarWeek({
           className="relative z-20 mx-1 self-center rounded-lg border border-[#315B3E]/20 bg-white/90 px-3 py-1.5 text-xs font-extrabold text-[#315B3E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
           style={{
             gridColumn: "1 / 8",
-            gridRow: visibleLaneCount + 2,
+            gridRow: earlyLaneCount + lateLaneCount + 4,
           }}
         >
           {isExpanded
             ? "Réduire cette semaine"
-            : `Afficher les ${week.laneCount - DEFAULT_VISIBLE_LANES} autres lignes de course`}
+            : "Afficher toutes les courses de la semaine"}
         </button>
       ) : null}
     </section>
@@ -658,15 +693,27 @@ function MobileCalendarDay({
       ) : null}
 
       <div className="mt-4 space-y-2">
-        {entries.map(({ edition, stage }) => {
+        {entries.map(({ edition, stage }, entryIndex) => {
           const style =
             RACE_CATEGORY_STYLE[
               edition.categoryCode
             ];
+          const slotConfig = RACE_DAY_SLOT_CONFIG[stage.daySlot];
+          const startsSlot = entries[entryIndex - 1]?.stage.daySlot !== stage.daySlot;
 
           return (
+            <div key={stage.id} className="space-y-2">
+            {startsSlot ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-[#0B302B] px-3 py-2 text-white">
+                <span className="text-[10px] font-black uppercase tracking-[0.16em]">
+                  {slotConfig.label} · {slotConfig.departureLabel}
+                </span>
+                <span className="text-[9px] font-bold text-[#A9C6BB]">
+                  Gel {slotConfig.registrationCutoffHour} h
+                </span>
+              </div>
+            ) : null}
             <Link
-              key={edition.id}
               href={`/jeu/courses/${edition.slug}`}
               className="flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
               style={{
@@ -710,6 +757,7 @@ function MobileCalendarDay({
                 </span>
               ) : null}
             </Link>
+            </div>
           );
         })}
 

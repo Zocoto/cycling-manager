@@ -1198,8 +1198,8 @@ function RaceOperationsCard() {
       icon: "result" as const,
       eyebrow: "Vivre",
       title: "Résultats & Live",
-      description: "Rejoignez les directs de 20 h, suivez les écarts et consultez les replays.",
-      status: "Direct à 20 h",
+      description: "Rejoignez les directs de 14 h et 18 h, suivez les écarts et consultez les replays.",
+      status: "Directs à 14 h / 18 h",
     },
   ];
 

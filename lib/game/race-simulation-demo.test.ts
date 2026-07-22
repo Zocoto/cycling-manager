@@ -88,6 +88,7 @@ function createEdition({
     status: "planned",
     profileType: "hilly",
     distanceKm: 174,
+    daySlot: "early",
     departureAt: null,
     segments: [],
   };

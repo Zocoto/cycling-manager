@@ -4,6 +4,7 @@ import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   getEffectiveSeasonDay,
   isRaceCategoryCode,
+  isRaceDaySlot,
   type RaceCalendarEdition,
   type RaceCalendarStage,
   type RaceFormat,
@@ -92,6 +93,7 @@ type StageRow = {
   profile_type: RaceProfileType;
   distance_km: number | string;
   departure_at: string | null;
+  day_slot: string;
 };
 
 type StageSegmentRow = {
@@ -549,6 +551,7 @@ export async function getActiveSeasonRaceCalendar(
                 status,
                 profile_type,
                 distance_km,
+                day_slot,
                 departure_at
               `
             )
@@ -1084,6 +1087,7 @@ function groupStages(
       status: row.status,
       profileType: resolveRaceProfileType(row.profile_type, segments),
       distanceKm: Number(row.distance_km),
+      daySlot: isRaceDaySlot(row.day_slot) ? row.day_slot : "late",
       departureAt: row.departure_at,
       segments,
     };

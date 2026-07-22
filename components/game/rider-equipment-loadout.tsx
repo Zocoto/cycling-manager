@@ -80,7 +80,7 @@ export function RiderEquipmentLoadout({
         >
           {management.frozenForToday
             ? "Gel de l’étape du jour actif depuis 12 h : vos changements sont enregistrés maintenant et prendront effet demain à 12 h."
-            : "Les changements réalisés avant 12 h seront actifs pour la course ou l’étape de 20 h."}
+            : "Les changements réalisés avant 12 h sont actifs le jour même ; après 12 h, ils prennent effet le lendemain à midi."}
         </div>
       ) : null}
 

@@ -1,6 +1,6 @@
 import type { RaceCalendarStage } from "./race-calendar";
 
-export const LIVE_START_HOUR_PARIS = 20;
+export const LIVE_START_HOURS_PARIS = [14, 18] as const;
 export const RACE_SIMULATION_DEMO_SLUG =
   "criterium-de-namur";
 
