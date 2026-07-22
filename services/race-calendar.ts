@@ -85,6 +85,7 @@ type StageRow = {
   id: string;
   race_edition_id: string;
   season_day_id: string;
+  day_slot: 1 | 2;
   stage_number: number;
   name: string;
   stage_type: RaceStageType;
@@ -543,6 +544,7 @@ export async function getActiveSeasonRaceCalendar(
                 id,
                 race_edition_id,
                 season_day_id,
+                day_slot,
                 stage_number,
                 name,
                 stage_type,
@@ -1078,6 +1080,7 @@ function groupStages(
     const stage: RaceCalendarStage = {
       id: row.id,
       dayNumber: day.day_number,
+      daySlot: row.day_slot,
       stageNumber: row.stage_number,
       name: row.name,
       stageType: row.stage_type,

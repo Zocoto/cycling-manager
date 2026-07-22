@@ -82,6 +82,7 @@ function createEdition({
   const stage: RaceCalendarStage = {
     id: `${slug}-stage`,
     dayNumber: 4,
+    daySlot: 1,
     stageNumber: 1,
     name: slug,
     stageType: "road",
