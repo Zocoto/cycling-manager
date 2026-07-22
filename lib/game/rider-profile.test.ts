@@ -3,10 +3,41 @@ import { describe, expect, it } from "vitest";
 import {
   createRadarPoints,
   getRiderSportingProfile,
+  isSeasonPartOfRiderHistory,
   RIDER_RATING_AXES,
+  resolvePublicTeamName,
   type RiderRatings,
   serializeRadarPoints,
 } from "./rider-profile";
+
+describe("rider career history", () => {
+  it("only includes seasons that have actually started", () => {
+    expect(isSeasonPartOfRiderHistory("active")).toBe(true);
+    expect(isSeasonPartOfRiderHistory("completed")).toBe(true);
+    expect(isSeasonPartOfRiderHistory("planned")).toBe(false);
+    expect(isSeasonPartOfRiderHistory("cancelled")).toBe(false);
+  });
+
+  it("keeps the historical season name when it is public", () => {
+    expect(
+      resolvePublicTeamName({
+        seasonDisplayName: "Union Cycliste des Coquinous",
+        amateurName: "Nouveau nom",
+        internalName: "initial_team_1234abcd",
+      })
+    ).toBe("Union Cycliste des Coquinous");
+  });
+
+  it("never exposes a generated technical team identifier", () => {
+    expect(
+      resolvePublicTeamName({
+        seasonDisplayName: "initial_team_3161715aad6a4335b82045fc1969a849",
+        amateurName: "Union Cycliste des Coquinous",
+        internalName: "initial_team_3161715aad6a4335b82045fc1969a849",
+      })
+    ).toBe("Union Cycliste des Coquinous");
+  });
+});
 
 describe("rider profile radar", () => {
   it("keeps coherent rider ratings next to each other", () => {
