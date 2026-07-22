@@ -339,22 +339,9 @@ export function SeasonCalendar({
 
       {profileEntries.length > 0 ? (
         <section className="mt-10 border-t border-[#315B3E]/15 pt-8" aria-labelledby="calendar-profiles-title">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E]">
-                Lecture du terrain
-              </p>
-              <h2 id="calendar-profiles-title" className="mt-2 text-2xl font-black text-[#0B302B]">
-                Profils tronçonnés de la saison
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-[#557064]">
-                Chaque trait vertical correspond à un tronçon de 10 km. Les drapeaux indiquent la position exacte des GPM et des sprints intermédiaires.
-              </p>
-            </div>
-            <span className="rounded-full border border-[#315B3E]/20 bg-white px-3 py-1.5 text-xs font-extrabold text-[#315B3E]">
-              {profileEntries.length} profil{profileEntries.length > 1 ? "s" : ""}
-            </span>
-          </div>
+          <h2 id="calendar-profiles-title" className="text-2xl font-black text-[#0B302B]">
+            Liste des courses
+          </h2>
 
           <div className="mt-5 grid gap-3 lg:grid-cols-2">
             {profileEntries.map(({ edition, stage }) => {
