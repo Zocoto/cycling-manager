@@ -1,4 +1,5 @@
 -- ============================================================
+-- Version distincte des migrations déjà livrées le 22 juillet.
 -- Objectifs de carrière du Directeur Sportif
 -- Progression calculée depuis les faits de jeu et gains atomiques.
 -- ============================================================
