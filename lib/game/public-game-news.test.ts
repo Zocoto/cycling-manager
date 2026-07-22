@@ -79,6 +79,13 @@ describe("public game news", () => {
     const snapshot = createPublicGameNewsSnapshot({
       items: [
         {
+          id: "race-recap:1",
+          kind: "race_recap",
+          title: "Après-course",
+          detail: "Détail",
+          happenedAt,
+        },
+        {
           id: "arrival:1",
           kind: "arrival",
           title: "Arrivée",
@@ -105,6 +112,7 @@ describe("public game news", () => {
     });
 
     expect(snapshot.items.map((item) => item.id)).toEqual([
+      "race-recap:1",
       "movement:1",
       "staff:1",
       "arrival:1",

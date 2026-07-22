@@ -32,6 +32,7 @@ import {
 } from "@/lib/game/race-simulation";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { persistPostRaceNewsEvents } from "@/services/post-race-news";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -145,6 +146,7 @@ export async function settleFinishedRaceResults(
 
       await persistStageResult({
         admin,
+        edition,
         stage,
         simulation,
         rosterByRiderId,
@@ -418,11 +420,13 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
 
 async function persistStageResult({
   admin,
+  edition,
   stage,
   simulation,
   rosterByRiderId,
 }: {
   admin: AdminClient;
+  edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   simulation: StageSimulationResult;
   rosterByRiderId: Map<string, RosterContext>;
@@ -524,6 +528,13 @@ async function persistStageResult({
     stage,
     simulation,
     rosterByRiderId,
+  });
+
+  await persistPostRaceNewsEvents({
+    admin,
+    edition,
+    stage,
+    simulation,
   });
 
   const { error: stageError } = await admin
