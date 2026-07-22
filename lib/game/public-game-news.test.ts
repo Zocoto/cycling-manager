@@ -5,6 +5,7 @@ import {
   formatPublicGameNewsDate,
   formatPublicGameNewsTotal,
   resolvePublicGameNewsTeamJersey,
+  resolvePublicGameNewsTeamJerseyArtwork,
   type PublicGameNewsItem,
 } from "./public-game-news";
 
@@ -172,6 +173,22 @@ describe("public game news", () => {
       secondaryColor: "#EEEEEE",
       accentColor: "#FF5500",
       status: "sponsored",
+    });
+
+    expect(
+      resolvePublicGameNewsTeamJerseyArtwork({ amateurJersey })
+    ).toEqual({
+      kind: "amateur",
+      jersey: amateurJersey,
+    });
+    expect(
+      resolvePublicGameNewsTeamJerseyArtwork({
+        amateurJersey,
+        sponsorJerseyImagePath: "/images/sponsors/test/jersey.png",
+      })
+    ).toEqual({
+      kind: "sponsor",
+      imagePath: "/images/sponsors/test/jersey.png",
     });
   });
 });

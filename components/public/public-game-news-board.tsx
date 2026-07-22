@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 
+import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
@@ -294,7 +296,7 @@ function FeaturedVisual({ item }: { item: PublicGameNewsItem }) {
       ) : null}
 
       <div className="pointer-events-none absolute right-5 top-5 flex items-center gap-2 sm:right-8 sm:top-7 sm:gap-3">
-        <PersonPortrait
+        <PersonWithTeamJersey
           person={visual.person}
           team={visual.team}
           size="featured"
@@ -329,7 +331,11 @@ function NewsVisual({ item }: { item: PublicGameNewsItem }) {
 
   return (
     <div className="flex min-w-12 items-center gap-1.5">
-      <PersonPortrait person={visual.person} team={visual.team} size="row" />
+      <PersonWithTeamJersey
+        person={visual.person}
+        team={visual.team}
+        size="row"
+      />
       {receivingTeam ? (
         <>
           <MovementArrow compact />
@@ -337,6 +343,72 @@ function NewsVisual({ item }: { item: PublicGameNewsItem }) {
         </>
       ) : null}
     </div>
+  );
+}
+
+function PersonWithTeamJersey({
+  person,
+  team,
+  size,
+}: {
+  person: PublicGameNewsPersonVisual;
+  team?: PublicGameNewsTeamVisual | null;
+  size: "featured" | "row";
+}) {
+  if (!team) {
+    return <PersonPortrait person={person} team={team} size={size} />;
+  }
+
+  return (
+    <span
+      className={
+        size === "featured"
+          ? "relative flex h-32 w-40 shrink-0 items-end sm:h-36 sm:w-44"
+          : "relative flex h-14 w-16 shrink-0 items-end"
+      }
+    >
+      <TeamJerseyBackdrop team={team} size={size} />
+      <span className="relative z-10 flex shrink-0">
+        <PersonPortrait person={person} team={team} size={size} />
+      </span>
+    </span>
+  );
+}
+
+function TeamJerseyBackdrop({
+  team,
+  size,
+}: {
+  team: PublicGameNewsTeamVisual;
+  size: "featured" | "row";
+}) {
+  const className =
+    size === "featured"
+      ? "absolute right-0 top-0 h-28 w-24 rotate-6 object-contain opacity-70 drop-shadow-[0_14px_18px_rgba(0,0,0,0.38)] transition-transform duration-500 group-hover:rotate-10 group-hover:scale-105 sm:h-32 sm:w-28"
+      : "absolute right-0 top-0 h-12 w-11 rotate-6 object-contain opacity-65 drop-shadow-[0_6px_8px_rgba(0,0,0,0.32)] transition-transform duration-300 group-hover:rotate-10 group-hover:scale-105";
+
+  if (team.jerseyArtwork.kind === "sponsor") {
+    return (
+      <Image
+        aria-hidden="true"
+        src={team.jerseyArtwork.imagePath}
+        alt=""
+        width={600}
+        height={750}
+        sizes={size === "featured" ? "112px" : "44px"}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <span aria-hidden="true" className="contents">
+      <AmateurTeamJersey
+        jersey={team.jerseyArtwork.jersey}
+        teamName={team.name}
+        className={className}
+      />
+    </span>
   );
 }
 
