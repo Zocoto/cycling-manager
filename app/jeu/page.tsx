@@ -18,6 +18,10 @@ import {
   isSponsoringUnlocked,
 } from "../../lib/gameplay-rules";
 import {
+  selectDashboardObjectives,
+  type GameObjective,
+} from "../../lib/game/objectives";
+import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
@@ -40,6 +44,7 @@ import {
   getCurrentTeamInventoryOverview,
   type TeamInventoryOverview,
 } from "../../services/team-inventory";
+import { getCurrentGameObjectives } from "../../services/game-objectives";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -318,6 +323,17 @@ export default async function GamePage() {
     );
   }
 
+  let gameObjectives: GameObjective[] = [];
+
+  try {
+    gameObjectives = await getCurrentGameObjectives(supabase);
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer les objectifs de carrière :",
+      error
+    );
+  }
+
   const sportingDirector =
     profileResult.data;
 
@@ -417,6 +433,7 @@ export default async function GamePage() {
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
+  const dashboardObjectives = selectDashboardObjectives(gameObjectives);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -630,11 +647,11 @@ export default async function GamePage() {
               <span className="h-px flex-1 bg-[#315B3E]/15" />
             </div>
             <ObjectivesCard
-              isProfileComplete={
-                isProfileComplete
-              }
-              teamSummary={teamSummary}
-              teamAmateurIdentity={teamAmateurIdentity}
+              objectives={dashboardObjectives}
+              totalCount={gameObjectives.length}
+              readyCount={gameObjectives.filter(
+                (objective) => objective.completed && !objective.claimedAt
+              ).length}
             />
           </section>
         </div>
@@ -964,22 +981,14 @@ function TeamSponsorInformation({
 }
 
 function ObjectivesCard({
-  isProfileComplete,
-  teamSummary,
-  teamAmateurIdentity,
+  objectives,
+  totalCount,
+  readyCount,
 }: {
-  isProfileComplete: boolean;
-  teamSummary:
-    CurrentTeamDashboardSummary | null;
-  teamAmateurIdentity:
-    TeamAmateurIdentity | null;
+  objectives: GameObjective[];
+  totalCount: number;
+  readyCount: number;
 }) {
-  const isTeamComplete = Boolean(
-    teamAmateurIdentity?.isConfigured && teamSummary
-  );
-  const completedSteps =
-    (isProfileComplete ? 1 : 0) + (isTeamComplete ? 1 : 0);
-
   return (
     <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-7">
       <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
@@ -999,72 +1008,105 @@ function ObjectivesCard({
           </div>
 
           <span className="rounded-full bg-white/10 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2]">
-            2 étapes d’onboarding
+            {readyCount > 0
+              ? `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`
+              : `${totalCount} objectifs de carrière`}
           </span>
         </div>
 
-        <div className="mt-7 rounded-xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#071A17]">
-              Objectif bloquant
-            </span>
+        {objectives.length > 0 ? (
+          <div className="mt-7 grid gap-3 lg:grid-cols-3">
+            {objectives.map((objective) => {
+              const ready = objective.completed && !objective.claimedAt;
+              return (
+                <div
+                  key={objective.key}
+                  className={`flex min-h-full flex-col rounded-xl border p-4 ${
+                    ready
+                      ? "border-[#F2C94C]/50 bg-[#F2C94C]/12"
+                      : "border-white/10 bg-white/6"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
+                      {objective.type === "primary" ? "Primaire" : "Secondaire"}
+                    </span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
+                        ready
+                          ? "bg-[#F2C94C] text-[#071A17]"
+                          : "bg-white/10 text-[#D6DFD2]"
+                      }`}
+                    >
+                      {ready ? "À récupérer" : `${objective.progressPercent} %`}
+                    </span>
+                  </div>
 
-            <span className="text-sm font-bold text-[#F2C94C]">
-              {completedSteps} / 2
-            </span>
+                  <h3 className="mt-3 text-base font-black text-white">
+                    {objective.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-[#BFD1C6]">
+                    {objective.description}
+                  </p>
+
+                  <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={`h-full rounded-full ${
+                        ready ? "bg-[#F2C94C]" : "bg-[#42B99A]"
+                      }`}
+                      style={{ width: `${objective.progressPercent}%` }}
+                    />
+                  </div>
+
+                  <p className="mt-auto pt-4 text-[11px] font-black text-[#F2C94C]">
+                    {formatDashboardObjectiveReward(objective)}
+                  </p>
+                </div>
+              );
+            })}
           </div>
+        ) : (
+          <div className="mt-7 rounded-xl border border-white/10 bg-white/6 p-5">
+            <p className="font-black text-white">Feuille de route complétée</p>
+            <p className="mt-2 text-sm font-semibold text-[#BFD1C6]">
+              Toutes les récompenses disponibles ont été récupérées. Les
+              prochains objectifs apparaîtront ici.
+            </p>
+          </div>
+        )}
 
-          <h3 className="mt-5 text-xl font-black">
-            {!isProfileComplete
-              ? "Compléter le profil du Directeur Sportif"
-              : !isTeamComplete
-                ? "Fonder votre équipe amateur"
-                : "Votre carrière amateur est prête"}
-          </h3>
-
-          <p className="mt-3 leading-7 text-[#D6DFD2]">
-            {!isProfileComplete
-              ? "Choisissez votre avatar et votre nationalité personnelle."
-              : !isTeamComplete
-                ? "Définissez le nom, le pays et le maillot fondateur de votre équipe."
-                : "Votre identité est complète et vos sept premiers coureurs sont prêts."}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+          <p className="text-xs font-semibold text-[#9FB5A8]">
+            Les gains sont annoncés à l’avance et ne peuvent être réclamés
+            qu’une seule fois.
           </p>
-
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-[#F2C94C] transition-all"
-              style={{
-                width: `${completedSteps * 50}%`,
-              }}
-            />
-          </div>
-
-          <div className="mt-5">
-            {isTeamComplete ? (
-              <p className="text-sm font-bold text-[#9BE0BC]">
-                Objectif rempli. Votre équipe compte {formatRiderCount(
-                  teamSummary?.rider_count ?? 0
-                )}.
-              </p>
-            ) : (
-              <Link
-                href={
-                  isProfileComplete
-                    ? "/jeu/directeur-sportif#equipe-amateur"
-                    : "/jeu/directeur-sportif"
-                }
-                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
-              >
-                {isProfileComplete
-                  ? "Fonder mon équipe"
-                  : "Compléter mon profil"}
-              </Link>
-            )}
-          </div>
+          <Link
+            href="/jeu/objectifs"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
+          >
+            Voir tous les objectifs →
+          </Link>
         </div>
       </div>
     </article>
   );
+}
+
+function formatDashboardObjectiveReward(objective: GameObjective) {
+  const rewards: string[] = [];
+  if (objective.reward.cash > 0) {
+    rewards.push(formatDashboardCurrency(objective.reward.cash, "EUR"));
+  }
+  if (objective.reward.experience > 0) {
+    rewards.push(`${objective.reward.experience} XP`);
+  }
+  if (objective.reward.reputation > 0) {
+    rewards.push(`${objective.reward.reputation} réputation`);
+  }
+  if (objective.reward.itemName) {
+    rewards.push(objective.reward.itemName);
+  }
+  return rewards.join(" · ");
 }
 
 function TeamRosterCard({
