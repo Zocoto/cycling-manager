@@ -12,7 +12,6 @@ import {
 } from "@/lib/game/global-search";
 import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getYouthDevelopmentAlertCount } from "@/services/youth-development";
 
 type GameHeaderProps = {
   displayName?: string;
@@ -182,7 +181,6 @@ export function GameHeader({
             </span>
           ) : null}
 
-          <YouthDevelopmentShortcut />
           <RaceSimulatorShortcut />
 
           <form action={logoutAccount}>
@@ -196,40 +194,6 @@ export function GameHeader({
         </div>
       </div>
     </header>
-  );
-}
-
-async function YouthDevelopmentShortcut() {
-  let alertCount = 0;
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-    alertCount = await getYouthDevelopmentAlertCount(user.id);
-  } catch (error) {
-    console.error("Impossible de charger les alertes du centre de formation :", error);
-    return null;
-  }
-
-  return (
-    <Link
-      href="/jeu/centre-de-formation"
-      aria-label={alertCount ? `${alertCount} nouveau rapport ou notification au centre de formation` : "Ouvrir le centre de formation"}
-      className={`relative hidden min-h-10 items-center justify-center rounded-lg border px-3 py-2 text-xs font-extrabold uppercase tracking-widest transition lg:inline-flex ${
-        alertCount
-          ? "border-[#F06A62] bg-[#F06A62]/12 text-[#FFB1AA] shadow-[inset_0_0_0_1px_rgba(240,106,98,0.12)] hover:bg-[#F06A62] hover:text-white"
-          : "border-[#78947D]/35 bg-white/5 text-[#D6DFD2] hover:border-[#72D4B7] hover:text-[#9BE0CA]"
-      }`}
-    >
-      Formation
-      {alertCount ? (
-        <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-[#071A17] bg-[#D94B45] px-1 text-[9px] font-black text-white">
-          {alertCount > 9 ? "9+" : alertCount}
-        </span>
-      ) : null}
-    </Link>
   );
 }
 

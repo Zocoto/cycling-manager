@@ -45,6 +45,7 @@ import {
   type TeamInventoryOverview,
 } from "../../services/team-inventory";
 import { getCurrentGameObjectives } from "../../services/game-objectives";
+import { getYouthDevelopmentAlertCount } from "../../services/youth-development";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -276,6 +277,17 @@ export default async function GamePage() {
   } catch (error) {
     console.error(
       "Impossible de récupérer les objectifs de carrière :",
+      error
+    );
+  }
+
+  let youthDevelopmentAlertCount = 0;
+
+  try {
+    youthDevelopmentAlertCount = await getYouthDevelopmentAlertCount(user.id);
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer les alertes du centre de formation :",
       error
     );
   }
@@ -572,6 +584,7 @@ export default async function GamePage() {
               icon="academy"
               title="Centre de formation"
               status="Scouting mondial"
+              alertCount={youthDevelopmentAlertCount}
               description="Envoyez vos scouts, signez les jeunes talents et accompagnez leur progression quotidienne jusqu’aux professionnels."
             />
 
@@ -1335,16 +1348,20 @@ function ManagementModuleCard({
   icon,
   title,
   status,
+  alertCount = 0,
   description,
 }: {
   href?: string;
   icon: ManagementModuleIcon;
   title: string;
   status: string;
+  alertCount?: number;
   description: string;
 }) {
   const className =
-    "group relative isolate block overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]";
+    `group relative isolate block overflow-hidden rounded-2xl border bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
+      alertCount > 0 ? "border-[#F06A62]/70" : "border-white/10"
+    }`;
 
   const watermarkUrl = MODULE_WATERMARKS[icon];
 
@@ -1367,6 +1384,9 @@ function ManagementModuleCard({
   const content = (
     <>
       {watermark}
+      {alertCount > 0 ? (
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#F06A62]" />
+      ) : null}
 
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
@@ -1375,8 +1395,14 @@ function ManagementModuleCard({
           />
         </span>
 
-        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#BFD1C6]">
-          {status}
+        <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+          alertCount > 0
+            ? "bg-[#F06A62]/20 text-[#FFB1AA]"
+            : "bg-white/10 text-[#BFD1C6]"
+        }`}>
+          {alertCount > 0
+            ? `${alertCount > 9 ? "9+" : alertCount} rapport${alertCount > 1 ? "s" : ""}`
+            : status}
         </span>
       </div>
 
