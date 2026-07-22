@@ -8,6 +8,7 @@ import { GREEK_SPONSORS } from "./greece";
 import { ITALIAN_SPONSORS } from "./italy";
 import { JAPANESE_SPONSORS } from "./japan";
 import { DUTCH_SPONSORS } from "./netherlands";
+import { PORTUGUESE_SPONSORS } from "./portugal";
 import { SPANISH_SPONSORS } from "./spain";
 import { AMERICAN_SPONSORS } from "./united-states";
 
@@ -20,6 +21,7 @@ export const SPONSORS = [
   ...AFRICAN_SPONSORS,
   ...BALTIC_SPONSORS,
   ...SPANISH_SPONSORS,
+  ...PORTUGUESE_SPONSORS,
   ...AMERICAN_SPONSORS,
   ...JAPANESE_SPONSORS,
 ] satisfies readonly Sponsor[];
