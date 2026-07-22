@@ -740,14 +740,14 @@ function SeasonEventBadge({
     <>
       <span
         aria-hidden="true"
-        className="h-2 w-2 shrink-0 rounded-full bg-[#F2C94C]"
+        className="h-2 w-2 shrink-0 rounded-full bg-[#176951]"
       />
       <span className="min-w-0 truncate">
         {event.title}
       </span>
     </>
   );
-  const className = `flex items-center gap-2 rounded-lg border border-[#F2C94C]/55 bg-[#0B302B] text-[#FFFDF4] ${
+  const className = `flex items-center gap-2 rounded-lg border border-[#B99525]/55 bg-[#FFF2C7] text-[#17261E] shadow-sm ${
     compact
       ? "px-2 py-1.5 text-[10px] font-extrabold"
       : "px-3 py-2.5 text-xs font-extrabold"
@@ -757,7 +757,7 @@ function SeasonEventBadge({
     return (
       <Link
         href={event.href}
-        className={`${className} transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]`}
+        className={`${className} transition hover:border-[#8A6B16] hover:bg-[#FFE58A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]`}
         title={event.description ?? event.title}
       >
         {content}
