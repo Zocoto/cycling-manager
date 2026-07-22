@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { DashboardEventsCard } from "../../components/game/dashboard-events-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
 import { RiderAvatar } from "../../components/game/rider-avatar";
@@ -17,6 +18,7 @@ import {
   getSponsoringUnlockProgress,
   isSponsoringUnlocked,
 } from "../../lib/gameplay-rules";
+import { buildDashboardEventFeed } from "../../lib/game/dashboard-events";
 import {
   selectDashboardObjectives,
   type GameObjective,
@@ -44,8 +46,11 @@ import {
   getCurrentTeamInventoryOverview,
   type TeamInventoryOverview,
 } from "../../services/team-inventory";
+import {
+  getCurrentDashboardOperationalEvents,
+  type DashboardOperationalEvents,
+} from "../../services/dashboard-events";
 import { getCurrentGameObjectives } from "../../services/game-objectives";
-import { getYouthDevelopmentAlertCount } from "../../services/youth-development";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -269,9 +274,12 @@ export default async function GamePage() {
     supabase.rpc("get_current_team_roster"),
   ]);
 
-  const dashboardTeamId = (
-    teamSummaryResult.data as CurrentTeamDashboardSummary | null
-  )?.team_id ?? null;
+  const dashboardTeamSummary =
+    (teamSummaryResult.data as CurrentTeamDashboardSummary | null) ?? null;
+  const dashboardTeamId = dashboardTeamSummary?.team_id ?? null;
+  const dashboardRiderIds = ((rosterResult.data ?? []) as DashboardRider[]).map(
+    (rider) => rider.rider_id
+  );
 
   const sponsorIdentityPromise: Promise<{
     identity: TeamSponsorIdentity | null;
@@ -299,7 +307,7 @@ export default async function GamePage() {
     financeOverview,
     inventoryOverview,
     gameObjectives,
-    youthDevelopmentAlertCount,
+    dashboardOperationalEvents,
   ] = await Promise.all([
     sponsorIdentityPromise,
     loadDashboardValue(
@@ -325,9 +333,23 @@ export default async function GamePage() {
       "Impossible de récupérer les objectifs de carrière :"
     ),
     loadDashboardValue(
-      getYouthDevelopmentAlertCount(user.id),
-      0,
-      "Impossible de récupérer les alertes du centre de formation :"
+      dashboardTeamSummary
+        ? getCurrentDashboardOperationalEvents({
+            authUserId: user.id,
+            teamId: dashboardTeamSummary.team_id,
+            seasonId: dashboardTeamSummary.season_id,
+            currentDayNumber: dashboardTeamSummary.season_day_number,
+            riderIds: dashboardRiderIds,
+          })
+        : Promise.resolve({
+            events: [],
+            youthDevelopmentAlertCount: 0,
+          } satisfies DashboardOperationalEvents),
+      {
+        events: [],
+        youthDevelopmentAlertCount: 0,
+      } satisfies DashboardOperationalEvents,
+      "Impossible de récupérer les événements du bureau :"
     ),
   ]);
 
@@ -337,9 +359,7 @@ export default async function GamePage() {
   const sportingDirector =
     profileResult.data;
 
-  const teamSummary =
-    (teamSummaryResult.data ??
-      null) as CurrentTeamDashboardSummary | null;
+  const teamSummary = dashboardTeamSummary;
 
   if (profileResult.error) {
     console.error(
@@ -437,6 +457,15 @@ export default async function GamePage() {
   const readyObjectiveCount = gameObjectives.filter(
     (objective) => objective.completed && !objective.claimedAt
   ).length;
+  const youthDevelopmentAlertCount =
+    dashboardOperationalEvents.youthDevelopmentAlertCount;
+  const dashboardEvents = buildDashboardEventFeed({
+    currentDayNumber: teamSummary?.season_day_number ?? 1,
+    currency: financeOverview?.currency ?? "EUR",
+    operationalEvents: dashboardOperationalEvents.events,
+    transactions: financeOverview?.transactions ?? [],
+    objectives: gameObjectives,
+  });
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -455,13 +484,9 @@ export default async function GamePage() {
         <MountainDecoration />
 
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <header className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)_auto] xl:items-start">
-            <ObjectivesCard
-              objectives={dashboardObjectives}
-              totalCount={gameObjectives.length}
-              readyCount={readyObjectiveCount}
-            />
+          <DashboardEventsCard events={dashboardEvents} />
 
+          <header className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Bureau du Directeur Sportif
@@ -520,6 +545,12 @@ export default async function GamePage() {
             />
 
             <div className="grid content-start gap-6">
+              <ObjectivesCard
+                objectives={dashboardObjectives}
+                totalCount={gameObjectives.length}
+                readyCount={readyObjectiveCount}
+              />
+
               <ManagementModuleCard
                 href="/jeu/sponsoring"
                 icon="sponsor"
