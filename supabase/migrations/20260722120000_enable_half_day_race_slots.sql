@@ -3,7 +3,10 @@ begin;
 -- La migration des deux vagues quotidiennes a créé les créneaux early/late.
 -- Ici, une même édition peut désormais occuper les deux vagues du même jour.
 alter table public.stages
-  drop constraint stages_day_unique;
+  drop constraint if exists stages_day_unique;
+
+alter table public.stages
+  drop constraint if exists stages_day_slot_unique;
 
 -- E1 le matin, E2 l'après-midi, puis J+1. Une édition déjà commencée ou
 -- dotée de résultats conserve son calendrier historique intact.

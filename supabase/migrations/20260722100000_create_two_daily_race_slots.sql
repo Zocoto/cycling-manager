@@ -139,17 +139,18 @@ where edition.status not in ('completed', 'cancelled', 'in_progress')
   ) at time zone 'Europe/Paris' > now()
   and seed.start_day + cardinality(seed.profiles) - 1 <= 28;
 
--- Le déplacement d'un tour peut temporairement échanger deux journées déjà
--- occupées par ses propres étapes. La contrainte reste vérifiée au commit.
+-- Le déplacement d'un tour peut temporairement échanger deux créneaux déjà
+-- occupés par ses propres étapes. Une édition peut utiliser les deux vagues
+-- d'une journée, mais jamais deux fois la même vague.
 alter table public.stages
 drop constraint stages_day_unique;
 
 alter table public.stages
-add constraint stages_day_unique
-unique (race_edition_id, season_day_id)
+add constraint stages_day_slot_unique
+unique (race_edition_id, season_day_id, day_slot)
 deferrable initially immediate;
 
-set constraints stages_day_unique deferred;
+set constraints stages_day_slot_unique deferred;
 
 -- Repositionnement et rééquilibrage des étapes déjà présentes.
 update public.stages as stage
