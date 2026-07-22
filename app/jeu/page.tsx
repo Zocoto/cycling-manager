@@ -551,10 +551,11 @@ export default async function GamePage() {
             />
 
             <ManagementModuleCard
+              href="/jeu/centre-de-formation"
               icon="academy"
               title="Centre de formation"
-              status="À développer"
-              description="Détectez, recrutez et accompagnez les jeunes coureurs destinés à rejoindre votre effectif."
+              status="Scouting mondial"
+              description="Envoyez vos scouts, signez les jeunes talents et accompagnez leur progression quotidienne jusqu’aux professionnels."
             />
 
             <ManagementModuleCard
