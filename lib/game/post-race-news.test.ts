@@ -150,6 +150,7 @@ function createEdition(
     categoryCode: "national",
     categoryName: "Nationale",
     prestigeRank: 4,
+    competitionType: "standard",
     raceFormat: "stage_race",
     registrationClosesAt: null,
     withdrawalClosesAt: null,
