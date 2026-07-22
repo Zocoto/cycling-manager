@@ -126,25 +126,86 @@ type ManagementModuleIcon =
 const UNSPLASH_RENDER_PARAMS =
   "auto=format&fit=crop&w=900&q=60";
 
+function unsplashWatermark(photoId: string): string {
+  return `https://images.unsplash.com/photo-${photoId}?${UNSPLASH_RENDER_PARAMS}`;
+}
+
 /**
  * Photographies Unsplash (licence libre, usage commercial autorisé) utilisées
- * en filigrane sur les cartes de modules. Pour changer l’ambiance d’une carte,
- * il suffit de remplacer l’identifiant de la photo ci-dessous.
+ * en filigrane sur les cartes. Chaque visuel illustre le SENS de la rubrique,
+ * pas nécessairement le cyclisme. Pour changer l’ambiance d’une carte, il
+ * suffit de remplacer l’identifiant de la photo ci-dessous.
  */
 const MODULE_WATERMARKS: Partial<
   Record<ManagementModuleIcon, string>
 > = {
-  equipment: `https://images.unsplash.com/photo-1534787238916-9ba6764efd4f?${UNSPLASH_RENDER_PARAMS}`,
-  finance: `https://images.unsplash.com/photo-1600403477955-2b8c2cfab221?${UNSPLASH_RENDER_PARAMS}`,
-  ranking: `https://images.unsplash.com/photo-1517649763962-0c623066013b?${UNSPLASH_RENDER_PARAMS}`,
-  sponsor: `https://images.unsplash.com/photo-1516147697747-02adcafd3fda?${UNSPLASH_RENDER_PARAMS}`,
-  training: `https://images.unsplash.com/photo-1541625602330-2277a4c46182?${UNSPLASH_RENDER_PARAMS}`,
-  staff: `https://images.unsplash.com/photo-1675798227643-da319f8ee8f7?${UNSPLASH_RENDER_PARAMS}`,
-  infrastructure: `https://images.unsplash.com/photo-1760310936486-4dd450aab2a8?${UNSPLASH_RENDER_PARAMS}`,
-  academy: `https://images.unsplash.com/photo-1606224547099-b15c94ca5ef2?${UNSPLASH_RENDER_PARAMS}`,
-  camp: `https://images.unsplash.com/photo-1471506480208-91b3a4cc78be?${UNSPLASH_RENDER_PARAMS}`,
-  transfer: `https://images.unsplash.com/photo-1681295692638-97ace05f56b4?${UNSPLASH_RENDER_PARAMS}`,
+  // Transmission et pièces détachées : le matériel au sens propre.
+  equipment: unsplashWatermark("1562615193-cbeef074a501"),
+  // Lecture de la presse économique : budget et trésorerie.
+  finance: unsplashWatermark("1444653614773-995cb1ef9efa"),
+  // Trophées alignés : hiérarchie et palmarès.
+  ranking: unsplashWatermark("1514820720301-4c4790309f46"),
+  // Poignée de main au-dessus d’un contrat : signature d’un sponsor.
+  sponsor: unsplashWatermark("1681505531034-8d67054e07f6"),
+  // Haltères : le travail physique et la préparation.
+  training: unsplashWatermark("1586401100295-7a8096fd231a"),
+  // Mécanicien au travail : le personnel technique de l’équipe.
+  staff: unsplashWatermark("1675798227643-da319f8ee8f7"),
+  // Bâtiments en contre-plongée : les infrastructures à bâtir.
+  infrastructure: unsplashWatermark("1508385082359-f38ae991e8f2"),
+  // Salle de formation : transmission et apprentissage.
+  academy: unsplashWatermark("1431540015161-0bf868a2d407"),
+  // Séance de kinésithérapie : soins et remise en forme.
+  camp: unsplashWatermark("1540205895360-4ad4cffb3aa8"),
+  // Poignée de main : négociation et signature d’un transfert.
+  transfer: unsplashWatermark("1521791136064-7986c2920216"),
 };
+
+/** Filigrane de la carte Effectif : le groupe de coureurs réuni. */
+const ROSTER_WATERMARK = unsplashWatermark(
+  "1713937071114-e94d5f8053a0"
+);
+
+/** Filigrane du Centre de course : le peloton lancé en course. */
+const RACE_HUB_WATERMARK = unsplashWatermark(
+  "1517649763962-0c623066013b"
+);
+
+/**
+ * Calque photo fondu dans le vert foncé de la carte : désaturé, éclairci puis
+ * mélangé en « screen », avec un masque radial qui le fait émerger d’un coin
+ * et disparaître avant le texte.
+ */
+function CardWatermark({
+  url,
+  className = "",
+  origin = "100% 100%",
+}: {
+  url: string;
+  className?: string;
+  origin?: string;
+}) {
+  const mask = `radial-gradient(120% 110% at ${origin}, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 42%, rgba(0,0,0,0) 78%)`;
+
+  return (
+    <span
+      aria-hidden="true"
+      className={[
+        "pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.14] mix-blend-screen transition-opacity duration-300 group-hover:opacity-[0.22]",
+        className,
+      ]
+        .join(" ")
+        .trim()}
+      style={{
+        backgroundImage: `url("${url}")`,
+        filter:
+          "grayscale(1) brightness(1.35) contrast(1.1)",
+        maskImage: mask,
+        WebkitMaskImage: mask,
+      }}
+    />
+  );
+}
 
 export default async function GamePage() {
   const supabase =
@@ -999,8 +1060,13 @@ function TeamRosterCard({
   return (
     <Link
       href="/jeu/effectif"
-      className="group flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
+      className="group relative isolate flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
+      <CardWatermark
+        url={ROSTER_WATERMARK}
+        origin="0% 100%"
+      />
+
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
           <ManagementModuleIcon icon="riders" />
@@ -1156,7 +1222,12 @@ function RaceOperationsCard() {
   ];
 
   return (
-    <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)]" aria-labelledby="race-hub-title">
+    <section className="group relative isolate mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)]" aria-labelledby="race-hub-title">
+      <CardWatermark
+        url={RACE_HUB_WATERMARK}
+        origin="100% 50%"
+      />
+
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-5 py-4 sm:px-7">
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">Centre de course</p>
@@ -1218,25 +1289,11 @@ function ManagementModuleCard({
 
   const watermarkUrl = MODULE_WATERMARKS[icon];
 
-  const watermark = watermarkUrl ? (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.14] mix-blend-screen transition-opacity duration-300 group-hover:opacity-[0.22]"
-      style={{
-        backgroundImage: `url("${watermarkUrl}")`,
-        filter:
-          "grayscale(1) brightness(1.35) contrast(1.1)",
-        maskImage:
-          "radial-gradient(120% 110% at 100% 100%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 42%, rgba(0,0,0,0) 78%)",
-        WebkitMaskImage:
-          "radial-gradient(120% 110% at 100% 100%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 42%, rgba(0,0,0,0) 78%)",
-      }}
-    />
-  ) : null;
-
   const content = (
     <>
-      {watermark}
+      {watermarkUrl ? (
+        <CardWatermark url={watermarkUrl} />
+      ) : null}
 
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
