@@ -517,8 +517,8 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
             detail="Le médecin raccourcit les blessures et chaque kiné protège les coureurs qui lui sont affectés dans le centre de soin."
           />
           <ConnectionCard
-            title="Prochaines connexions"
-            detail="Entraîneur, scout, nutritionniste, mécanicien et architecte sont prêts pour leurs moteurs fonctionnels respectifs."
+            title="Relève et futurs chantiers"
+            detail="Le niveau du scout renforce déjà le potentiel et les notes initiales des jeunes. L’architecte réduira coût et durée de 5 à 25 % dès l’ouverture des chantiers."
           />
         </div>
       </article>
