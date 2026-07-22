@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyEquipmentRatingBonuses,
   combineEquipmentEffects,
-  isEquipmentFrozenForToday,
+  isEquipmentChangeFrozenForRace,
 } from "./equipment";
 import type { RiderRatings } from "./rider-profile";
 
@@ -68,8 +68,39 @@ describe("equipment effects", () => {
     expect(boosted.timeTrial).toBe(100);
   });
 
-  it("gèle les changements à midi heure de Paris", () => {
-    expect(isEquipmentFrozenForToday(new Date("2026-07-20T09:59:00Z"))).toBe(false);
-    expect(isEquipmentFrozenForToday(new Date("2026-07-20T10:00:00Z"))).toBe(true);
+  it("gèle les changements cinq minutes avant chaque course", () => {
+    const earlyRace = {
+      departureAt: new Date("2026-07-20T12:00:00Z"),
+      durationMinutes: 25,
+    };
+    const lateRace = {
+      departureAt: new Date("2026-07-20T16:00:00Z"),
+      durationMinutes: 30,
+    };
+
+    expect(
+      isEquipmentChangeFrozenForRace({
+        ...earlyRace,
+        now: new Date("2026-07-20T11:54:59Z"),
+      })
+    ).toBe(false);
+    expect(
+      isEquipmentChangeFrozenForRace({
+        ...earlyRace,
+        now: new Date("2026-07-20T11:55:00Z"),
+      })
+    ).toBe(true);
+    expect(
+      isEquipmentChangeFrozenForRace({
+        ...earlyRace,
+        now: new Date("2026-07-20T12:25:00Z"),
+      })
+    ).toBe(false);
+    expect(
+      isEquipmentChangeFrozenForRace({
+        ...lateRace,
+        now: new Date("2026-07-20T15:55:00Z"),
+      })
+    ).toBe(true);
   });
 });

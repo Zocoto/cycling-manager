@@ -2,7 +2,6 @@ import "server-only";
 
 import {
   EQUIPMENT_SLOTS,
-  isEquipmentFrozenForToday,
   normalizeEquipmentEffects,
   type EquipmentEffects,
   type EquipmentSlot,
@@ -69,12 +68,10 @@ export type TeamEquipmentOverview = {
   currentDayNumber: number;
   balance: number;
   currency: string;
-  frozenForToday: boolean;
   catalog: TeamEquipmentCatalogItem[];
 };
 
 export type RiderEquipmentManagement = {
-  frozenForToday: boolean;
   current: Partial<Record<EquipmentSlot, TeamEquipmentCatalogItem>>;
   pending: Partial<
     Record<EquipmentSlot, { item: TeamEquipmentCatalogItem; effectiveAt: string }>
@@ -97,7 +94,6 @@ export async function getCurrentTeamEquipmentOverview(
     currentDayNumber: context.season.current_day_number ?? 1,
     balance: toNumber(context.teamSeason.cash_balance),
     currency: context.teamSeason.currency,
-    frozenForToday: isEquipmentFrozenForToday(),
     catalog: context.catalog,
   };
 }
@@ -154,7 +150,6 @@ export async function getRiderEquipmentManagement(
   ) as Record<EquipmentSlot, TeamEquipmentCatalogItem[]>;
 
   return {
-    frozenForToday: isEquipmentFrozenForToday(),
     current,
     pending,
     availableBySlot,

@@ -55,7 +55,7 @@ export async function equipRiderAction(formData: FormData) {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const { data: effectiveAt, error } = await supabase.rpc(
+  const { error } = await supabase.rpc(
     "equip_current_team_rider",
     {
       p_rider_id: riderId,
@@ -66,15 +66,9 @@ export async function equipRiderAction(formData: FormData) {
 
   if (error) redirectWithError(`/jeu/coureurs/${riderId}`, error.message);
 
-  const isScheduled =
-    typeof effectiveAt === "string" &&
-    new Date(effectiveAt).getTime() > Date.now() + 60_000;
-
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/materiel");
-  redirect(
-    `/jeu/coureurs/${riderId}?equipement=${isScheduled ? "programme" : "equipe"}`
-  );
+  redirect(`/jeu/coureurs/${riderId}?equipement=confirme`);
 }
 
 function buildMaterialPath(category: string) {
