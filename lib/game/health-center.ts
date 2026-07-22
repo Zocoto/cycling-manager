@@ -17,12 +17,22 @@ export const RIDER_INJURY_DIAGNOSES = {
     severity: "serious",
     abandonmentChance: 1,
   },
+  fatigue_exhaustion: {
+    label: "Blessure de fatigue",
+    recoveryHours: 72,
+    severity: "minor",
+    abandonmentChance: 0,
+  },
 } as const;
 
 export type RiderInjuryDiagnosisCode = keyof typeof RIDER_INJURY_DIAGNOSES;
+type CrashInjuryDiagnosisCode = Exclude<
+  RiderInjuryDiagnosisCode,
+  "fatigue_exhaustion"
+>;
 
 export type RaceMedicalOutcome = {
-  diagnosisCode: RiderInjuryDiagnosisCode;
+  diagnosisCode: CrashInjuryDiagnosisCode;
   label: string;
   recoveryHours: number;
   recoveryDays: number;
@@ -144,7 +154,7 @@ export function resolveCrashMedicalOutcome({
   if (random() >= injuryChance) return null;
 
   const diagnosisRoll = random();
-  const diagnosisCode: RiderInjuryDiagnosisCode =
+  const diagnosisCode: CrashInjuryDiagnosisCode =
     diagnosisRoll < 0.5
       ? "rib_fracture"
       : diagnosisRoll < 0.8
@@ -159,6 +169,22 @@ export function resolveCrashMedicalOutcome({
     recoveryDays: diagnosis.recoveryHours / 24,
     severity: diagnosis.severity,
     causesAbandonment: random() < diagnosis.abandonmentChance,
+  };
+}
+
+export function resolveRiderFormChange({
+  formBefore,
+  formDelta,
+}: {
+  formBefore: number;
+  formDelta: number;
+}) {
+  const attemptedForm = Math.trunc(formBefore) + Math.trunc(formDelta);
+
+  return {
+    form: clamp(attemptedForm, 0, 100),
+    causesFatigueInjury: attemptedForm < 0,
+    fatigueInjuryHours: attemptedForm < 0 ? 72 : 0,
   };
 }
 

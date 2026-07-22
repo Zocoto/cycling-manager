@@ -12,7 +12,7 @@ export function RaceWithdrawButton() {
       onClick={(event) => {
         if (
           !window.confirm(
-            "Retirer toute l’équipe ? Vous pourrez vous réinscrire avec une nouvelle composition uniquement avant H-12."
+            "Retirer toute l’équipe ? Vous pourrez vous réinscrire avec une nouvelle composition uniquement avant le gel de la startlist (8 h ou 12 h selon le créneau)."
           )
         ) {
           event.preventDefault();
