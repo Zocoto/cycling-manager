@@ -14,6 +14,10 @@ export async function registerRaceRosterAction(
     "editionId"
   );
   const slug = readFormValue(formData, "slug");
+  const nationalChampionshipType = readFormValue(
+    formData,
+    "nationalChampionshipType"
+  );
   const riderIds = formData
     .getAll("riderIds")
     .filter(
@@ -44,8 +48,13 @@ export async function registerRaceRosterAction(
     redirect("/connexion");
   }
 
+  const isNationalChampionship =
+    nationalChampionshipType === "road" ||
+    nationalChampionshipType === "time_trial";
   const { error } = await supabase.rpc(
-    "save_current_team_race_roster_with_roles",
+    isNationalChampionship
+      ? "save_current_team_national_championship_roster"
+      : "save_current_team_race_roster_with_roles",
     {
       p_race_edition_id: editionId,
       p_roster: roster,
@@ -57,6 +66,11 @@ export async function registerRaceRosterAction(
   }
 
   revalidateRacePaths(slug);
+  if (isNationalChampionship) {
+    redirect(
+      `/jeu/championnats-nationaux?discipline=${nationalChampionshipType}&inscription=confirmee`
+    );
+  }
   redirect(
     `/jeu/calendrier?inscription=confirmee&course=${encodeURIComponent(
       slug
@@ -72,6 +86,10 @@ export async function withdrawRaceRosterAction(
     "editionId"
   );
   const slug = readFormValue(formData, "slug");
+  const nationalChampionshipType = readFormValue(
+    formData,
+    "nationalChampionshipType"
+  );
 
   if (!isUuid(editionId) || !isSlug(slug)) {
     redirectWithError(
@@ -101,6 +119,14 @@ export async function withdrawRaceRosterAction(
   }
 
   revalidateRacePaths(slug);
+  if (
+    nationalChampionshipType === "road" ||
+    nationalChampionshipType === "time_trial"
+  ) {
+    redirect(
+      `/jeu/championnats-nationaux?discipline=${nationalChampionshipType}&desinscription=confirmee`
+    );
+  }
   redirect(
     `/jeu/calendrier?desinscription=confirmee&course=${encodeURIComponent(
       slug
@@ -112,6 +138,7 @@ function revalidateRacePaths(slug: string) {
   revalidatePath("/jeu/calendrier");
   revalidatePath(`/jeu/courses/${slug}`);
   revalidatePath("/jeu");
+  revalidatePath("/jeu/championnats-nationaux");
 }
 
 function redirectWithError(path: string, message: string): never {

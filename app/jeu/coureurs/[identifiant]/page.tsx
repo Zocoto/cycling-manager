@@ -149,19 +149,36 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
 
         <header className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-[linear-gradient(135deg,#071A17,#176951)] text-[#FFFDF4] shadow-[0_25px_70px_rgba(19,60,46,0.2)]">
           <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[auto_minmax(0,1fr)_280px] lg:items-center">
-            <RiderAvatar
-              profileKey={profile.avatarProfileKey}
-              seed={profile.avatarSeed}
-              riderId={profile.id}
-              age={profile.age ?? 25}
-              jersey={riderJersey}
-              label={`Portrait généré de ${fullName}`}
-              className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
-            />
+            <div className="relative w-fit">
+              <RiderAvatar
+                profileKey={profile.avatarProfileKey}
+                seed={profile.avatarSeed}
+                riderId={profile.id}
+                age={profile.age ?? 25}
+                jersey={riderJersey}
+                label={`Portrait généré de ${fullName}`}
+                className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
+              />
+              {profile.currentNationalTitles.length > 0 ? (
+                <NationalChampionSash
+                  countryCode={profile.country.code}
+                  timeTrial={profile.currentNationalTitles.includes("time_trial")}
+                />
+              ) : null}
+            </div>
 
-            <div className="min-w-0">
+            <div className={`relative min-w-0 overflow-hidden rounded-3xl ${profile.currentNationalTitles.length > 0 ? "border border-white/20 p-5 shadow-xl" : ""}`}>
+              {profile.currentNationalTitles.length > 0 ? (
+                <>
+                  <span aria-hidden className={`fi fi-${profile.country.code.toLowerCase()} absolute inset-0 h-full w-full bg-cover bg-center opacity-45`} />
+                  <span aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,26,23,0.78),rgba(7,26,23,0.42),rgba(7,26,23,0.74))]" />
+                </>
+              ) : null}
+              <div className="relative">
               <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#9BE0BC]">
-                Coureur cycliste
+                {profile.currentNationalTitles.length > 0
+                  ? `Champion national ${profile.currentNationalTitles.includes("road") ? "sur route" : "du contre-la-montre"}`
+                  : "Coureur cycliste"}
               </p>
               <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
                 {fullName}
@@ -202,6 +219,7 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                   ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
                   : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
               </p>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -261,7 +279,7 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
         </div>
 
         <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-          <CareerHistory history={profile.history} />
+          <CareerHistory history={profile.history} countryCode={profile.country.code} />
           {profile.privateContract ? (
             <div className="space-y-5">
               <PrivateContractCard contract={profile.privateContract} />
@@ -516,6 +534,7 @@ function CurrentTeamCard({
 
 function CareerHistory({
   history,
+  countryCode,
 }: {
   history: Array<{
     seasonId: string;
@@ -526,7 +545,9 @@ function CareerHistory({
     victories: number | null;
     points: number | null;
     uciRank: number | null;
+    nationalTitles: Array<"road" | "time_trial">;
   }>;
+  countryCode: string;
 }) {
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
@@ -541,13 +562,14 @@ function CareerHistory({
 
       {history.length > 0 ? (
         <div className="overflow-x-auto border-t border-[#315B3E]/10">
-          <table className="w-full min-w-[620px] border-collapse text-left">
+          <table className="w-full min-w-[720px] border-collapse text-left">
             <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
               <tr>
                 <th className="px-6 py-4">Saison</th>
                 <th className="px-5 py-4">Équipe</th>
                 <th className="px-4 py-4 text-center">Victoires</th>
                 <th className="px-4 py-4 text-center">Points</th>
+                <th className="px-4 py-4 text-center">Palmarès</th>
                 <th className="px-6 py-4 text-center">Classement UCI</th>
               </tr>
             </thead>
@@ -572,6 +594,18 @@ function CareerHistory({
                   </td>
                   <HistoryValue value={entry.victories} />
                   <HistoryValue value={entry.points} />
+                  <td className="px-4 py-4">
+                    <div className="flex justify-center gap-2">
+                      {entry.nationalTitles.map((discipline) => (
+                        <NationalTitleFlag
+                          key={discipline}
+                          countryCode={countryCode}
+                          discipline={discipline}
+                        />
+                      ))}
+                      {entry.nationalTitles.length === 0 ? "—" : null}
+                    </div>
+                  </td>
                   <HistoryValue value={entry.uciRank} prefix="#" />
                 </tr>
               ))}
@@ -584,6 +618,46 @@ function CareerHistory({
         </div>
       )}
     </section>
+  );
+}
+
+function NationalChampionSash({
+  countryCode,
+  timeTrial,
+}: {
+  countryCode: string;
+  timeTrial: boolean;
+}) {
+  return (
+    <div
+      className="pointer-events-none absolute -bottom-1 -right-7 z-10 h-12 w-40 -rotate-12 overflow-hidden rounded-xl border-2 border-white/80 shadow-[0_10px_22px_rgba(0,0,0,0.38)]"
+      title={timeTrial ? "Champion national du contre-la-montre" : "Champion national sur route"}
+    >
+      <span aria-hidden className={`fi fi-${countryCode.toLowerCase()} absolute inset-0 h-full w-full bg-cover bg-center`} />
+      <span className="absolute inset-0 flex items-center justify-center bg-black/10 text-[10px] font-black uppercase tracking-[0.16em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+        {timeTrial ? "◷ CLM" : "Champion"}
+      </span>
+    </div>
+  );
+}
+
+function NationalTitleFlag({
+  countryCode,
+  discipline,
+}: {
+  countryCode: string;
+  discipline: "road" | "time_trial";
+}) {
+  return (
+    <span
+      className="relative inline-flex h-7 w-10 overflow-hidden rounded-md border border-[#315B3E]/15 shadow-sm"
+      title={discipline === "time_trial" ? "Champion national du contre-la-montre" : "Champion national sur route"}
+    >
+      <span aria-hidden className={`fi fi-${countryCode.toLowerCase()} absolute inset-0 h-full w-full bg-cover bg-center`} />
+      {discipline === "time_trial" ? (
+        <span className="absolute inset-0 grid place-items-center bg-black/10 text-sm font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">◷</span>
+      ) : null}
+    </span>
   );
 }
 

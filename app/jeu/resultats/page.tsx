@@ -37,7 +37,9 @@ export default async function RaceResultsPage() {
 
   const [headerData, calendarResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase, now)
+    getActiveSeasonRaceCalendar(supabase, now, {
+      includeNationalChampionships: true,
+    })
       .then((calendar) => ({ calendar, error: null }))
       .catch((error: unknown) => ({ calendar: null, error })),
   ]);

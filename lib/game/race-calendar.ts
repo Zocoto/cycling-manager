@@ -29,6 +29,10 @@ export type RegistrationPolicy =
   | "criteria_pending"
   | "closed";
 
+export type NationalChampionshipType =
+  | "road"
+  | "time_trial";
+
 export type RaceStageType =
   | "road"
   | "individual_time_trial"
@@ -66,6 +70,7 @@ export type RaceCalendarEdition = {
   categoryName: string;
   prestigeRank: number;
   raceFormat: RaceFormat;
+  nationalChampionshipType: NationalChampionshipType | null;
   registrationClosesAt: string | null;
   withdrawalClosesAt: string | null;
   registrationPolicy: RegistrationPolicy;

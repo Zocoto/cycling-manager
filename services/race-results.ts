@@ -113,10 +113,11 @@ export async function settleFinishedRaceResults(
   let completedEditions = 0;
 
   for (const edition of calendar.editions) {
-    if (edition.engagedRiders.length < 2) continue;
+    const minimumStartListSize = edition.nationalChampionshipType ? 1 : 2;
+    if (edition.engagedRiders.length < minimumStartListSize) continue;
 
     const rosterByRiderId = await loadRosterContext(admin, edition.id);
-    if (rosterByRiderId.size < 2) continue;
+    if (rosterByRiderId.size < minimumStartListSize) continue;
 
     const unavailableRiderIds = new Set<string>();
     const finishedSimulations: StageSimulationResult[] = [];
@@ -709,6 +710,8 @@ async function persistRaceClassification({
     .upsert(rows, { onConflict: "race_edition_id,race_roster_id" });
   assertQuery(error, `le classement final de ${edition.name}`);
 
+  const winnerRiderId = general.find((result) => result.rank === 1)?.riderId;
+
   if (edition.raceFormat === "stage_race") {
     await persistStagePrizeRewards({
       admin,
@@ -793,6 +796,17 @@ async function persistRaceClassification({
     assertQuery(rewardError, `les gains de ${result.riderName}`);
   }
 
+  if (edition.nationalChampionshipType && winnerRiderId) {
+    const { error: titleError } = await admin.rpc(
+      "award_national_championship_title",
+      {
+        p_race_edition_id: edition.id,
+        p_rider_id: winnerRiderId,
+      }
+    );
+    assertQuery(titleError, `le titre national de ${edition.name}`);
+  }
+
   const attackedRiderIds = new Set(
     simulations.flatMap((simulation) =>
       getStageAttackParticipants(simulation).map(
@@ -800,7 +814,6 @@ async function persistRaceClassification({
       )
     )
   );
-  const winnerRiderId = general.find((result) => result.rank === 1)?.riderId;
   const riderById = new Map(
     simulations.flatMap((simulation) =>
       simulation.resolvedRiders.map((rider) => [rider.id, rider] as const)

@@ -18,7 +18,9 @@ export async function settleOfficialRaceResultsAction() {
   }
 
   const now = new Date();
-  const calendar = await getActiveSeasonRaceCalendar(supabase, now);
+  const calendar = await getActiveSeasonRaceCalendar(supabase, now, {
+    includeNationalChampionships: true,
+  });
   if (!calendar) return { processedStages: 0, completedEditions: 0 };
 
   const settlement = await settleFinishedRaceResults(calendar, now);

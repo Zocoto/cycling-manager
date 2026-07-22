@@ -95,7 +95,9 @@ export default async function RaceProfilePage({
 
   const [headerData, calendar] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase),
+    getActiveSeasonRaceCalendar(supabase, new Date(), {
+      includeNationalChampionships: true,
+    }),
   ]);
   const edition = calendar?.editions.find(
     (candidate) => candidate.slug === slug
@@ -182,7 +184,10 @@ export default async function RaceProfilePage({
         })),
       getCurrentTeamRaceRosterOptions(
         supabase,
-        edition.id
+        edition.id,
+        edition.nationalChampionshipType
+          ? edition.countryCode
+          : undefined
       )
         .then((riders) => ({ riders, error: null }))
         .catch((error: unknown) => ({
@@ -273,11 +278,17 @@ export default async function RaceProfilePage({
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <Link
-          href="/jeu/calendrier"
+          href={
+            edition.nationalChampionshipType
+              ? `/jeu/championnats-nationaux?discipline=${edition.nationalChampionshipType}`
+              : "/jeu/calendrier"
+          }
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
         >
           <span aria-hidden="true">←</span>
-          Retour au calendrier
+          {edition.nationalChampionshipType
+            ? "Retour aux championnats nationaux"
+            : "Retour au calendrier"}
         </Link>
 
         <article className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
@@ -610,6 +621,13 @@ function RegistrationPanel({
               name="slug"
               value={edition.slug}
             />
+            {edition.nationalChampionshipType ? (
+              <input
+                type="hidden"
+                name="nationalChampionshipType"
+                value={edition.nationalChampionshipType}
+              />
+            ) : null}
             <RaceWithdrawButton />
           </form>
         ) : (
@@ -674,6 +692,13 @@ function RegistrationPanel({
             name="slug"
             value={edition.slug}
           />
+          {edition.nationalChampionshipType ? (
+            <input
+              type="hidden"
+              name="nationalChampionshipType"
+              value={edition.nationalChampionshipType}
+            />
+          ) : null}
           {riders.length > 0 ? (
             <RaceRosterSelector
               riders={riders}

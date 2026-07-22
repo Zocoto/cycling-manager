@@ -11,6 +11,17 @@ import {
 } from "./economy";
 
 describe("calculateRaceReward", () => {
+  it("applique au champion national le barème d'une course Élite", () => {
+    expect(
+      calculateRaceReward({ tier: "elite", scope: "one_day", finalRank: 1 })
+    ).toEqual({
+      reputation: 10,
+      experience: 300,
+      cashPrize: 30_000,
+      uciPoints: 500,
+    });
+  });
+
   it("respecte le barème de réputation d’un grand tour Élite", () => {
     expect(
       calculateRaceReward({ tier: "elite", scope: "grand_tour", finalRank: 2 })

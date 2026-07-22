@@ -104,6 +104,7 @@ function createEdition({
     categoryName: "National",
     prestigeRank: 4,
     raceFormat: "one_day",
+    nationalChampionshipType: null,
     registrationClosesAt: null,
     withdrawalClosesAt: null,
     registrationPolicy: "open",

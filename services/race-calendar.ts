@@ -7,6 +7,7 @@ import {
   type RaceCalendarEdition,
   type RaceCalendarStage,
   type RaceFormat,
+  type NationalChampionshipType,
   type RaceProfileType,
   type RaceStageStatus,
   type RaceStageType,
@@ -61,6 +62,7 @@ type RaceEditionRow = {
   withdrawal_closes_at: string | null;
   minimum_reputation: number | null;
   registration_policy: RegistrationPolicy;
+  national_championship_type: NationalChampionshipType | null;
 };
 
 type RaceRow = {
@@ -339,7 +341,8 @@ export async function settleFinishedRaceConditions(
 
 export async function getActiveSeasonRaceCalendar(
   supabase: SupabaseServerClient,
-  now = new Date()
+  now = new Date(),
+  options: { includeNationalChampionships?: boolean } = {}
 ): Promise<SeasonRaceCalendar | null> {
   const {
     data: season,
@@ -369,6 +372,29 @@ export async function getActiveSeasonRaceCalendar(
     return null;
   }
 
+  const editionsQuery = supabase
+    .from("race_editions")
+    .select(
+      `
+        id,
+        race_id,
+        race_category_id,
+        display_name,
+        status,
+        registration_closes_at,
+        withdrawal_closes_at,
+        minimum_reputation,
+        registration_policy,
+        national_championship_type
+      `
+    )
+    .eq("season_id", season.id)
+    .neq("status", "cancelled");
+
+  if (!options.includeNationalChampionships) {
+    editionsQuery.is("national_championship_type", null);
+  }
+
   const [
     daysResult,
     editionsResult,
@@ -387,24 +413,7 @@ export async function getActiveSeasonRaceCalendar(
         })
         .returns<SeasonDayRow[]>(),
 
-      supabase
-        .from("race_editions")
-        .select(
-          `
-            id,
-            race_id,
-            race_category_id,
-            display_name,
-            status,
-            registration_closes_at,
-            withdrawal_closes_at,
-            minimum_reputation,
-            registration_policy
-          `
-        )
-        .eq("season_id", season.id)
-        .neq("status", "cancelled")
-        .returns<RaceEditionRow[]>(),
+      editionsQuery.returns<RaceEditionRow[]>(),
 
       supabase.rpc(
         "get_current_team_calendar_registrations"
@@ -700,6 +709,8 @@ export async function getActiveSeasonRaceCalendar(
         categoryName: category.name,
         prestigeRank: category.prestige_rank,
         raceFormat: race.race_format,
+        nationalChampionshipType:
+          edition.national_championship_type,
         registrationClosesAt:
           edition.registration_closes_at,
         withdrawalClosesAt:
@@ -708,10 +719,12 @@ export async function getActiveSeasonRaceCalendar(
           edition.registration_policy,
         minimumReputation:
           edition.minimum_reputation,
-        minimumRosterSize:
-          category.minimum_roster_size ?? 1,
-        maximumRosterSize:
-          category.maximum_roster_size ?? 1,
+        minimumRosterSize: edition.national_championship_type
+          ? 1
+          : category.minimum_roster_size ?? 1,
+        maximumRosterSize: edition.national_championship_type
+          ? 8
+          : category.maximum_roster_size ?? 1,
         engagedRiderCount:
           engagedRidersByEditionId.get(edition.id)?.length ?? 0,
         engagedRiders:
@@ -883,7 +896,8 @@ export async function getRacePastWinners(
 
 export async function getCurrentTeamRaceRosterOptions(
   supabase: SupabaseServerClient,
-  raceEditionId: string
+  raceEditionId: string,
+  countryCode?: string
 ): Promise<RaceRosterOption[]> {
   const { data, error } = await supabase.rpc(
     "get_current_team_race_roster_options",
@@ -896,7 +910,13 @@ export async function getCurrentTeamRaceRosterOptions(
     );
   }
 
-  return ((data as RaceRosterOptionRow[] | null) ?? []).map(
+  return ((data as RaceRosterOptionRow[] | null) ?? [])
+    .filter(
+      (rider) =>
+        !countryCode ||
+        rider.country_iso_alpha2.toUpperCase() === countryCode.toUpperCase()
+    )
+    .map(
     (rider) => ({
       riderId: rider.rider_id,
       firstName: rider.first_name,
