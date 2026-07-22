@@ -93,12 +93,18 @@ export function RaceStageProfile({
             vectorEffect="non-scaling-stroke"
           />
 
-          {chart.segments.map((entry) =>
-            entry.segment.prime ? (
+          {chart.segments.map((entry) => {
+            if (!entry.segment.prime) return null;
+            const markerX =
+              entry.endX === chart.finishX
+                ? entry.endX - (compact ? 18 : 28)
+                : entry.endX;
+
+            return (
               <g key={`prime-${entry.segment.segmentNumber}`}>
                 <line
-                  x1={entry.endX}
-                  x2={entry.endX}
+                  x1={markerX}
+                  x2={markerX}
                   y1={Math.max(4, entry.endY - (compact ? 16 : 25))}
                   y2={entry.endY}
                   stroke={entry.segment.prime.type === "mountain" ? "#EF5B65" : "#43C892"}
@@ -106,12 +112,12 @@ export function RaceStageProfile({
                   vectorEffect="non-scaling-stroke"
                 />
                 <path
-                  d={`M ${entry.endX} ${Math.max(4, entry.endY - (compact ? 16 : 25))} h ${compact ? 8 : 13} l -3 ${compact ? 4 : 6} l 3 ${compact ? 4 : 6} h -${compact ? 8 : 13} Z`}
+                  d={`M ${markerX} ${Math.max(4, entry.endY - (compact ? 16 : 25))} h ${compact ? 8 : 13} l -3 ${compact ? 4 : 6} l 3 ${compact ? 4 : 6} h -${compact ? 8 : 13} Z`}
                   fill={entry.segment.prime.type === "mountain" ? "#EF5B65" : "#43C892"}
                 />
                 {!compact ? (
                   <text
-                    x={entry.endX + 17}
+                    x={markerX + 17}
                     y={Math.max(11, entry.endY - 19)}
                     fill={entry.segment.prime.type === "mountain" ? "#EF5B65" : "#43C892"}
                     fontSize="11"
@@ -123,8 +129,24 @@ export function RaceStageProfile({
                   </text>
                 ) : null}
               </g>
-            ) : null
-          )}
+            );
+          })}
+
+          <g aria-hidden="true">
+            <line
+              x1={chart.finishX}
+              x2={chart.finishX}
+              y1={Math.max(4, chart.finishY - (compact ? 19 : 29))}
+              y2={chart.finishY}
+              stroke="#EF5B65"
+              strokeWidth={compact ? 2 : 3}
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d={`M ${chart.finishX} ${Math.max(4, chart.finishY - (compact ? 19 : 29))} h ${compact ? 11 : 17} v ${compact ? 8 : 12} h -${compact ? 11 : 17} Z`}
+              fill="#EF5B65"
+            />
+          </g>
 
           {!compact ? (
             <>
@@ -192,11 +214,14 @@ function buildProfileChart(segments: RaceStageSegment[], compact: boolean) {
   const minimum = Math.min(...elevations);
   const maximum = Math.max(...elevations);
   const range = Math.max(120, maximum - minimum);
-  const x = (value: number) => 10 + (value / totalDistance) * 980;
+  const plotLeft = compact ? 20 : 28;
+  const plotRight = compact ? 960 : 942;
+  const x = (value: number) =>
+    plotLeft + (value / totalDistance) * (plotRight - plotLeft);
   const y = (value: number) => baseline - ((value - minimum + range * 0.08) / (range * 1.16)) * (baseline - top);
   const chartPoints = points.map((point) => ({ x: x(point.distance), y: y(point.elevation) }));
   const linePath = chartPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
-  const areaPath = `${linePath} L 990 ${baseline} L 10 ${baseline} Z`;
+  const areaPath = `${linePath} L ${plotRight} ${baseline} L ${plotLeft} ${baseline} Z`;
   let cumulativeDistance = 0;
   const chartSegments = segments.map((segment, index) => {
     const startDistance = cumulativeDistance;
@@ -213,6 +238,8 @@ function buildProfileChart(segments: RaceStageSegment[], compact: boolean) {
     viewHeight,
     baseline,
     totalDistance,
+    finishX: chartPoints.at(-1)?.x ?? plotRight,
+    finishY: chartPoints.at(-1)?.y ?? baseline,
     segments: chartSegments,
     linePath,
     areaPath,
