@@ -514,11 +514,11 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
           />
           <ConnectionCard
             title="Soins actifs"
-            detail="Le médecin raccourcit les blessures et chaque kiné protège les coureurs qui lui sont affectés dans le centre de soin."
+            detail="Médecins, kinés et nutritionnistes sont reliés au centre de soin, avec effets et capacités dépendant de leur niveau."
           />
           <ConnectionCard
             title="Prochaines connexions"
-            detail="Entraîneur, scout, nutritionniste, mécanicien et architecte sont prêts pour leurs moteurs fonctionnels respectifs."
+            detail="Entraîneur, scout, mécanicien et architecte sont prêts pour leurs moteurs fonctionnels respectifs."
           />
         </div>
       </article>

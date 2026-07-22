@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 import {
   FORM_CAMP_TYPES,
   MEDICAL_PROTOCOLS,
+  NUTRITION_INTERVENTIONS,
   type FormCampType,
   type MedicalProtocolCode,
+  type NutritionInterventionCode,
 } from "@/lib/game/health-center";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -74,7 +76,7 @@ export async function assignPhysiotherapistAction(formData: FormData) {
     riderIds.length > 50 ||
     riderIds.some((riderId) => !isUuid(riderId))
   ) {
-    redirectWithError("staff", "L’affectation du kiné est invalide.");
+    redirectWithError("kines", "L’affectation du kiné est invalide.");
   }
 
   const supabase = await requireAuthenticatedClient();
@@ -86,11 +88,35 @@ export async function assignPhysiotherapistAction(formData: FormData) {
     },
   );
 
-  if (error) redirectWithError("staff", error.message);
+  if (error) redirectWithError("kines", error.message);
 
   revalidateHealthPaths();
   revalidatePath("/jeu/staff");
-  redirect("/jeu/centre-de-soin?onglet=staff&affectation=confirmee");
+  redirect("/jeu/centre-de-soin?onglet=kines&affectation=confirmee");
+}
+
+export async function applyNutritionInterventionAction(formData: FormData) {
+  const riderId = readValue(formData, "riderId");
+  const interventionCode = readValue(formData, "interventionCode");
+
+  if (!isUuid(riderId) || !isNutritionIntervention(interventionCode)) {
+    redirectWithError("nutrition", "L’intervention nutritionnelle est invalide.");
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "apply_current_team_nutrition_intervention",
+    {
+      p_rider_id: riderId,
+      p_intervention_code: interventionCode,
+    },
+  );
+
+  if (error) redirectWithError("nutrition", error.message);
+
+  revalidateHealthPaths();
+  revalidatePath("/jeu/entrainement");
+  redirect("/jeu/centre-de-soin?onglet=nutrition&nutrition=confirmee");
 }
 
 async function requireAuthenticatedClient() {
@@ -137,4 +163,10 @@ function isMedicalProtocol(value: string): value is MedicalProtocolCode {
 
 function isFormCampType(value: string): value is FormCampType {
   return value in FORM_CAMP_TYPES;
+}
+
+function isNutritionIntervention(
+  value: string,
+): value is NutritionInterventionCode {
+  return value in NUTRITION_INTERVENTIONS;
 }

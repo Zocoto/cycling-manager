@@ -8,6 +8,7 @@ import {
   calculateStaffSalary,
   calculateStaffSigningFee,
   describeStaffEffect,
+  getNutritionistDailyCapacity,
   getPhysiotherapistRiderCapacity,
   getStaffCapacityForDirectorLevel,
 } from "@/lib/game/staff";
@@ -57,6 +58,14 @@ describe("staff economy", () => {
         getPhysiotherapistRiderCapacity(index + 1),
       ),
     ).toEqual([2, 4, 6, 9, 12]);
+  });
+
+  it("augmente la capacité nutritionnelle quotidienne avec le niveau", () => {
+    expect(
+      Array.from({ length: 5 }, (_, index) =>
+        getNutritionistDailyCapacity(index + 1),
+      ),
+    ).toEqual([2, 3, 4, 5, 6]);
   });
 });
 

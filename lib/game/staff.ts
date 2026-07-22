@@ -195,6 +195,10 @@ export function getPhysiotherapistRiderCapacity(level: number): number {
   return [2, 4, 6, 9, 12][normalizeStaffLevel(level) - 1];
 }
 
+export function getNutritionistDailyCapacity(level: number): number {
+  return [2, 3, 4, 5, 6][normalizeStaffLevel(level) - 1];
+}
+
 export function getStaffEffectPercentage(role: StaffRole, level: number): number {
   const safeLevel = normalizeStaffLevel(level);
 

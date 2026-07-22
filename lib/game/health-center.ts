@@ -45,6 +45,64 @@ export const FORM_CAMP_TYPES = {
 
 export type FormCampType = keyof typeof FORM_CAMP_TYPES;
 
+export const NUTRITION_INTERVENTIONS = {
+  recovery_snack: {
+    label: "Collation de récupération",
+    description: "Un apport ciblé pour relancer rapidement la récupération.",
+    baseFormGain: 3,
+    basePrice: 1_500,
+    minimumNutritionistLevel: 1,
+  },
+  tailored_plan: {
+    label: "Plan nutritionnel personnalisé",
+    description: "Une journée alimentaire complète adaptée au profil du coureur.",
+    baseFormGain: 5,
+    basePrice: 3_500,
+    minimumNutritionistLevel: 3,
+  },
+  elite_recharge: {
+    label: "Recharge haute performance",
+    description: "Le protocole le plus poussé avant ou après un grand objectif.",
+    baseFormGain: 7,
+    basePrice: 6_500,
+    minimumNutritionistLevel: 5,
+  },
+} as const;
+
+export type NutritionInterventionCode = keyof typeof NUTRITION_INTERVENTIONS;
+
+export function getNutritionInterventionOutcome({
+  code,
+  nutritionistLevel,
+}: {
+  code: NutritionInterventionCode;
+  nutritionistLevel: number;
+}) {
+  const intervention = NUTRITION_INTERVENTIONS[code];
+  const level = clamp(Math.trunc(nutritionistLevel), 1, 5);
+  const discountPct = level * 5;
+
+  return {
+    formGain: intervention.baseFormGain + Math.floor((level - 1) / 2),
+    price: Math.round(intervention.basePrice * (1 - discountPct / 100)),
+    discountPct,
+    isUnlocked: level >= intervention.minimumNutritionistLevel,
+  };
+}
+
+export function getNutritionistDailyRecoveryBonus({
+  nutritionistLevel,
+  dayNumber,
+}: {
+  nutritionistLevel: number;
+  dayNumber: number;
+}) {
+  const level = clamp(Math.trunc(nutritionistLevel), 0, 5);
+  const day = Math.max(1, Math.trunc(dayNumber));
+
+  return Math.floor((day * level) / 5) - Math.floor(((day - 1) * level) / 5);
+}
+
 export const MEDICAL_PROTOCOLS = {
   accelerated_recovery: {
     label: "Récupération accélérée",

@@ -2,9 +2,11 @@ import "server-only";
 
 import {
   FORM_CAMP_TYPES,
+  NUTRITION_INTERVENTIONS,
   RIDER_INJURY_DIAGNOSES,
   type FormCampType,
   type MedicalProtocolCode,
+  type NutritionInterventionCode,
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -89,12 +91,24 @@ type MedicalStaffMemberRow = {
   id: string;
   first_name: string;
   last_name: string;
-  role: "doctor" | "physiotherapist";
+  role: "doctor" | "physiotherapist" | "nutritionist";
   level: number;
 };
 type StaffRiderAssignmentRow = {
   staff_contract_id: string;
   rider_id: string;
+};
+type NutritionInterventionRow = {
+  id: string;
+  rider_id: string;
+  nutritionist_contract_id: string;
+  intervention_code: NutritionInterventionCode;
+  nutritionist_level: number;
+  actual_form_gain: number;
+  price_paid: number | string;
+  form_before: number;
+  form_after: number;
+  applied_at: string;
 };
 
 export type RiderMedicalInjury = {
@@ -156,9 +170,23 @@ export type TeamMedicalStaffMember = {
   contractId: string;
   firstName: string;
   lastName: string;
-  role: "doctor" | "physiotherapist";
+  role: "doctor" | "physiotherapist" | "nutritionist";
   level: number;
   assignedRiderIds: string[];
+};
+
+export type TeamNutritionIntervention = {
+  id: string;
+  riderId: string;
+  nutritionistContractId: string;
+  code: NutritionInterventionCode;
+  label: string;
+  nutritionistLevel: number;
+  formGain: number;
+  pricePaid: number;
+  formBefore: number;
+  formAfter: number;
+  appliedAt: string;
 };
 
 export type TeamHealthOverview = {
@@ -172,6 +200,7 @@ export type TeamHealthOverview = {
   riders: TeamHealthRider[];
   protocols: TeamMedicalProtocol[];
   medicalStaff: TeamMedicalStaffMember[];
+  nutritionInterventionsToday: TeamNutritionIntervention[];
 };
 
 export async function getCurrentTeamHealthOverview(
@@ -263,6 +292,7 @@ export async function getCurrentTeamHealthOverview(
       riders: [],
       protocols: mapProtocols(protocolsResult.data ?? []),
       medicalStaff,
+      nutritionInterventionsToday: [],
     };
   }
 
@@ -324,7 +354,13 @@ export async function getCurrentTeamHealthOverview(
   const countryIds = [...new Set(riders.map((rider) => rider.country_id))];
   const injuryIds = (injuriesResult.data ?? []).map((injury) => injury.id);
   const dayIds = (daysResult.data ?? []).map((day) => day.id);
-  const [countriesResult, conditionsResult, treatmentsResult] =
+  const currentDayId = (daysResult.data ?? [])[0]?.id;
+  const [
+    countriesResult,
+    conditionsResult,
+    treatmentsResult,
+    nutritionInterventionsResult,
+  ] =
     await Promise.all([
       admin
         .from("countries")
@@ -348,10 +384,28 @@ export async function getCurrentTeamHealthOverview(
             .in("rider_injury_id", injuryIds)
             .returns<TreatmentRow[]>()
         : Promise.resolve({ data: [] as TreatmentRow[], error: null }),
+      currentDayId
+        ? admin
+            .from("rider_nutrition_interventions")
+            .select(
+              "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at",
+            )
+            .eq("team_season_id", teamSeason.id)
+            .eq("season_day_id", currentDayId)
+            .order("applied_at")
+            .returns<NutritionInterventionRow[]>()
+        : Promise.resolve({
+            data: [] as NutritionInterventionRow[],
+            error: null,
+          }),
     ]);
   assertQuery(countriesResult.error, "les pays des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
   assertQuery(treatmentsResult.error, "les soins appliqués");
+  assertQuery(
+    nutritionInterventionsResult.error,
+    "les interventions nutritionnelles",
+  );
 
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country])
@@ -396,6 +450,21 @@ export async function getCurrentTeamHealthOverview(
     currency: teamSeason.currency,
     protocols: mapProtocols(protocolsResult.data ?? []),
     medicalStaff,
+    nutritionInterventionsToday: (
+      nutritionInterventionsResult.data ?? []
+    ).map((intervention) => ({
+      id: intervention.id,
+      riderId: intervention.rider_id,
+      nutritionistContractId: intervention.nutritionist_contract_id,
+      code: intervention.intervention_code,
+      label: NUTRITION_INTERVENTIONS[intervention.intervention_code].label,
+      nutritionistLevel: intervention.nutritionist_level,
+      formGain: intervention.actual_form_gain,
+      pricePaid: toNumber(intervention.price_paid),
+      formBefore: intervention.form_before,
+      formAfter: intervention.form_after,
+      appliedAt: intervention.applied_at,
+    })),
     riders: riders
       .map((rider) => {
         const country = countryById.get(rider.country_id);
@@ -487,7 +556,7 @@ async function loadMedicalStaff(
       .from("staff_members")
       .select("id, first_name, last_name, role, level")
       .in("id", memberIds)
-      .in("role", ["doctor", "physiotherapist"])
+      .in("role", ["doctor", "physiotherapist", "nutritionist"])
       .returns<MedicalStaffMemberRow[]>(),
     admin
       .from("staff_rider_assignments")

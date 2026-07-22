@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   getFormCampTotal,
+  getNutritionInterventionOutcome,
+  getNutritionistDailyRecoveryBonus,
   getProtocolRecoveryReductionHours,
   resolveCrashMedicalOutcome,
 } from "./health-center";
@@ -86,6 +88,38 @@ describe("health center rules", () => {
       totalFormGain: 20,
       totalPrice: 12_000,
     });
+  });
+
+  it("améliore et réduit le prix des interventions nutritionnelles avec le niveau", () => {
+    expect(
+      getNutritionInterventionOutcome({
+        code: "recovery_snack",
+        nutritionistLevel: 1,
+      }),
+    ).toEqual({ formGain: 3, price: 1_425, discountPct: 5, isUnlocked: true });
+    expect(
+      getNutritionInterventionOutcome({
+        code: "tailored_plan",
+        nutritionistLevel: 3,
+      }),
+    ).toEqual({ formGain: 6, price: 2_975, discountPct: 15, isUnlocked: true });
+    expect(
+      getNutritionInterventionOutcome({
+        code: "elite_recharge",
+        nutritionistLevel: 4,
+      }).isUnlocked,
+    ).toBe(false);
+  });
+
+  it("répartit le bonus passif du nutritionniste sans perdre les fractions", () => {
+    expect(
+      Array.from({ length: 5 }, (_, index) =>
+        getNutritionistDailyRecoveryBonus({
+          nutritionistLevel: 3,
+          dayNumber: index + 1,
+        }),
+      ),
+    ).toEqual([0, 1, 0, 1, 1]);
   });
 });
 
