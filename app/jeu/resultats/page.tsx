@@ -21,7 +21,17 @@ export const metadata: Metadata = {
     "Testez le premier moteur de simulation de courses de Cyclostratège.",
 };
 
-export default async function RaceResultsPage() {
+type RaceResultsPageProps = {
+  searchParams: Promise<{
+    course?: string | string[];
+  }>;
+};
+
+export default async function RaceResultsPage({
+  searchParams,
+}: RaceResultsPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const initialRaceSlug = readSingleSearchParam(resolvedSearchParams.course);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -94,6 +104,7 @@ export default async function RaceResultsPage() {
               calendar={calendarResult.calendar}
               nowIso={now.toISOString()}
               officialResults={officialResults}
+              initialRaceSlug={initialRaceSlug}
             />
           ) : (
             <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-8 text-center font-bold text-red-900">
@@ -104,4 +115,8 @@ export default async function RaceResultsPage() {
       </div>
     </main>
   );
+}
+
+function readSingleSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }

@@ -95,7 +95,7 @@ export function DashboardEventsCard({
                     <span
                       className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${style.badge}`}
                     >
-                      {style.label}
+                      {event.badgeLabel ?? style.label}
                     </span>
                   </span>
                   <span className="mt-1.5 block max-w-4xl text-sm font-semibold leading-6 text-[#60756E]">

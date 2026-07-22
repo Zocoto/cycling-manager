@@ -27,6 +27,10 @@ import {
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
+import {
+  getRaceExperienceAvailability,
+  getRaceResultsHref,
+} from "@/lib/game/race-live";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -558,6 +562,7 @@ function RegistrationPanel({
       reputationPoints:
         context.reputationPoints,
     });
+  const raceExperience = getRaceExperienceAvailability(edition.stages);
 
   if (hasConfirmedRoster) {
     const selectedRiders = riders.filter(
@@ -610,6 +615,13 @@ function RegistrationPanel({
           </ul>
         ) : null}
 
+        {raceExperience ? (
+          <RaceExperienceLink
+            slug={edition.slug}
+            availability={raceExperience}
+          />
+        ) : null}
+
         {canWithdraw ? (
           <form action={withdrawRaceRosterAction}>
             <input
@@ -651,6 +663,13 @@ function RegistrationPanel({
           ? "Votre nationalité n’entre pas dans les critères. Seuls votre niveau de réputation et la catégorie de la course sont pris en compte."
           : `Seuls les coureurs de nationalité ${edition.countryName} peuvent participer. Le championnat accepte au maximum 200 coureurs.`}
       </p>
+
+      {raceExperience ? (
+        <RaceExperienceLink
+          slug={edition.slug}
+          availability={raceExperience}
+        />
+      ) : null}
 
       <div className="mt-5 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
         <span className="text-xs font-bold text-[#BFD1C6]">
@@ -717,6 +736,26 @@ function RegistrationPanel({
         </RegistrationNotice>
       )}
     </section>
+  );
+}
+
+function RaceExperienceLink({
+  slug,
+  availability,
+}: {
+  slug: string;
+  availability: "live" | "replay";
+}) {
+  return (
+    <Link
+      href={getRaceResultsHref(slug)}
+      className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#F2C94C] px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-[#183F37] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B302B]"
+    >
+      <span aria-hidden="true">{availability === "live" ? "●" : "▶"}</span>
+      {availability === "live"
+        ? "Suivre la course en direct"
+        : "Voir le replay et les résultats"}
+    </Link>
   );
 }
 
