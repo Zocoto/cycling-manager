@@ -76,6 +76,14 @@ export type PublicRiderProfile = {
     divisionCode: string;
     divisionName: string;
   } | null;
+  nationalTitles: Array<{
+    type: "road" | "time_trial";
+    seasonId: string;
+    seasonName: string;
+    countryName: string;
+    countryCode: string;
+    isActive: boolean;
+  }>;
   history: Array<{
     seasonId: string;
     seasonName: string;
@@ -85,6 +93,11 @@ export type PublicRiderProfile = {
     victories: number | null;
     points: number | null;
     uciRank: number | null;
+    nationalTitles: Array<{
+      type: "road" | "time_trial";
+      countryName: string;
+      countryCode: string;
+    }>;
   }>;
   specialAbilities: RiderSpecialAbility[];
   equipment: Partial<Record<RiderEquipmentSlot, {
@@ -164,6 +177,13 @@ type SummaryRow = {
   victories: number | null;
   points: number | null;
   uci_rank: number | null;
+};
+
+type NationalChampionshipTitleRow = {
+  country_id: string;
+  season_id: string;
+  championship_type: "road" | "time_trial";
+  relinquished_at: string | null;
 };
 
 type TeamRow = {
@@ -316,6 +336,7 @@ export async function getPublicRiderProfile({
     specialAbilitiesResult,
     injuryResult,
     marketListingResult,
+    nationalTitlesResult,
   ] = await Promise.all([
     supabase
       .from("countries")
@@ -373,6 +394,11 @@ export async function getPublicRiderProfile({
       .eq("status", "open")
       .limit(1)
       .maybeSingle<{ id: string }>(),
+    supabase
+      .from("rider_national_championship_titles")
+      .select("country_id, season_id, championship_type, relinquished_at")
+      .eq("rider_id", rider.id)
+      .returns<NationalChampionshipTitleRow[]>(),
   ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -384,6 +410,7 @@ export async function getPublicRiderProfile({
   assertQuery(specialAbilitiesResult.error, "les capacités spéciales du coureur");
   assertQuery(injuryResult.error, "la situation médicale du coureur");
   assertQuery(marketListingResult.error, "la présence du coureur sur le marché");
+  assertQuery(nationalTitlesResult.error, "les titres nationaux du coureur");
 
   if (!countryResult.data) {
     throw new Error("Le pays du coureur est introuvable.");
@@ -393,6 +420,7 @@ export async function getPublicRiderProfile({
   const ratings = ratingsResult.data ?? [];
   const contracts = contractsResult.data ?? [];
   const summaries = summariesResult.data ?? [];
+  const nationalTitleRows = nationalTitlesResult.data ?? [];
   const equipmentAssignments = equipmentAssignmentsResult.data ?? [];
   const specialAbilities = (specialAbilitiesResult.data ?? [])
     .map((row) => row.ability_code)
@@ -568,6 +596,13 @@ export async function getPublicRiderProfile({
             victories: summary?.victories ?? null,
             points: summary?.points ?? null,
             uciRank: summary?.uci_rank ?? null,
+            nationalTitles: nationalTitleRows
+              .filter((title) => title.season_id === season.id)
+              .map((title) => ({
+                type: title.championship_type,
+                countryName: countryResult.data!.name,
+                countryCode: countryResult.data!.iso_alpha2,
+              })),
           };
         });
     })
@@ -650,6 +685,14 @@ export async function getPublicRiderProfile({
       : null,
     trainingReport,
     currentTeam,
+    nationalTitles: nationalTitleRows.map((title) => ({
+      type: title.championship_type,
+      seasonId: title.season_id,
+      seasonName: seasonById.get(title.season_id)?.name ?? "Saison inconnue",
+      countryName: countryResult.data!.name,
+      countryCode: countryResult.data!.iso_alpha2,
+      isActive: title.relinquished_at === null,
+    })),
     history,
     specialAbilities,
     equipment,

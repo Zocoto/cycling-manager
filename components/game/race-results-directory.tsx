@@ -58,6 +58,11 @@ export function RaceResultsDirectory({
   const entries = useMemo(
     () =>
       calendar.editions
+        .filter(
+          (edition) =>
+            edition.competitionType === "standard" ||
+            edition.engagedRiderCount > 0
+        )
         .flatMap((edition) => edition.stages.map((stage) => ({ edition, stage })))
         .sort(
           (first, second) =>

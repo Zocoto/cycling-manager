@@ -46,16 +46,21 @@ export function SeasonCalendar({
   const [expandedWeeks, setExpandedWeeks] =
     useState<number[]>([]);
   const scopeEditions = useMemo(
-    () =>
-      scope === "all"
-        ? calendar.editions
-        : calendar.editions.filter((edition) =>
+    () => {
+      const standardEditions = calendar.editions.filter(
+        (edition) => edition.competitionType === "standard"
+      );
+
+      return scope === "all"
+        ? standardEditions
+        : standardEditions.filter((edition) =>
             isRaceEditionAvailableToCurrentTeam({
               edition,
               reputationPoints,
               now: new Date(nowIso),
             })
-          ),
+          );
+    },
     [calendar.editions, nowIso, reputationPoints, scope]
   );
   const visibleEditions = useMemo(
@@ -183,7 +188,7 @@ export function SeasonCalendar({
             Toutes les courses
           </button>
           <span className="inline-flex min-h-10 items-center rounded-full border border-[#315B3E]/15 bg-white px-3 text-xs font-black text-[#315B3E]">
-            {scopeEditions.length} / {calendar.editions.length}
+            {scopeEditions.length} / {calendar.editions.filter((edition) => edition.competitionType === "standard").length}
           </span>
         </div>
       </div>

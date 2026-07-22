@@ -6,6 +6,7 @@ import {
   isRaceCategoryCode,
   type RaceCalendarEdition,
   type RaceCalendarStage,
+  type RaceCompetitionType,
   type RaceFormat,
   type RaceProfileType,
   type RaceStageStatus,
@@ -70,6 +71,7 @@ type RaceRow = {
   short_name: string | null;
   race_format: RaceFormat;
   slug: string;
+  competition_type: RaceCompetitionType;
 };
 
 type RaceCategoryRow = {
@@ -516,7 +518,8 @@ export async function getActiveSeasonRaceCalendar(
                 name,
                 short_name,
                 race_format,
-                slug
+                slug,
+                competition_type
               `
             )
             .in("id", raceIds)
@@ -700,6 +703,7 @@ export async function getActiveSeasonRaceCalendar(
         categoryName: category.name,
         prestigeRank: category.prestige_rank,
         raceFormat: race.race_format,
+        competitionType: race.competition_type,
         registrationClosesAt:
           edition.registration_closes_at,
         withdrawalClosesAt:
@@ -709,9 +713,13 @@ export async function getActiveSeasonRaceCalendar(
         minimumReputation:
           edition.minimum_reputation,
         minimumRosterSize:
-          category.minimum_roster_size ?? 1,
+          race.competition_type === "standard"
+            ? category.minimum_roster_size ?? 1
+            : 1,
         maximumRosterSize:
-          category.maximum_roster_size ?? 1,
+          race.competition_type === "standard"
+            ? category.maximum_roster_size ?? 1
+            : 200,
         engagedRiderCount:
           engagedRidersByEditionId.get(edition.id)?.length ?? 0,
         engagedRiders:

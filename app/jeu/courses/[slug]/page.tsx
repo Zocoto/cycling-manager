@@ -221,6 +221,11 @@ export default async function RaceProfilePage({
   }
 
   rosterOptions = rosterResult.riders;
+  if (edition.competitionType !== "standard") {
+    rosterOptions = rosterOptions.filter(
+      (rider) => rider.countryCode === edition.countryCode
+    );
+  }
   if (rosterResult.error) {
     console.error(
       "Impossible de charger l'effectif pour l'inscription :",
@@ -385,6 +390,7 @@ export default async function RaceProfilePage({
                 </section>
 
                 <EngagedRidersSection
+                  edition={edition}
                   riders={engagedRiders}
                   hasError={engagedRidersError}
                 />
@@ -635,7 +641,9 @@ function RegistrationPanel({
       </h2>
 
       <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
-        Votre nationalité n’entre pas dans les critères. Seuls votre niveau de réputation et la catégorie de la course sont pris en compte.
+        {edition.competitionType === "standard"
+          ? "Votre nationalité n’entre pas dans les critères. Seuls votre niveau de réputation et la catégorie de la course sont pris en compte."
+          : `Seuls les coureurs de nationalité ${edition.countryName} peuvent participer. Le championnat accepte au maximum 200 coureurs.`}
       </p>
 
       <div className="mt-5 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
@@ -707,9 +715,11 @@ function RegistrationPanel({
 }
 
 function EngagedRidersSection({
+  edition,
   riders,
   hasError,
 }: {
+  edition: RaceCalendarEdition;
   riders: RaceEngagedRider[];
   hasError: boolean;
 }) {
@@ -744,7 +754,9 @@ function EngagedRidersSection({
           </h2>
         </div>
         <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
-          {teams.size} / 24 équipes · {riders.length} coureurs
+          {edition.competitionType === "standard"
+            ? `${teams.size} / 24 équipes · ${riders.length} coureurs`
+            : `${riders.length} / 200 coureurs · ${teams.size} équipes`}
         </span>
       </div>
 

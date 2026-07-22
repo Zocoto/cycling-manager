@@ -139,8 +139,8 @@ export default async function RaceCalendarPage({
                   const count =
                     calendar.editions.filter(
                       (edition) =>
-                        edition.categoryCode ===
-                        code
+                        edition.competitionType === "standard" &&
+                        edition.categoryCode === code
                     ).length;
 
                   return (

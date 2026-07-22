@@ -29,6 +29,10 @@ export type StagePrizeInput = {
   finalRank: number | null;
 };
 
+export type NationalChampionshipRewardInput = {
+  finalRank: number | null;
+};
+
 type PlacementRule = {
   maxRank: number;
   reputation: number;
@@ -289,6 +293,34 @@ export function calculateRaceReward(input: RaceRewardInput): RaceReward {
       + secondaryCount * scale.secondaryUciPoints
       + primeCount * scale.primeUciPoints,
   };
+}
+
+/**
+ * Les championnats nationaux valorisent le prestige local sans alimenter le
+ * classement UCI. Le barème est identique pour la route et le contre-la-montre.
+ */
+export function calculateNationalChampionshipReward({
+  finalRank,
+}: NationalChampionshipRewardInput): RaceReward {
+  if (finalRank === null || !Number.isFinite(finalRank) || finalRank < 1) {
+    return { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
+  }
+
+  const placement = [
+    { maxRank: 1, reputation: 5, experience: 125, cashPrize: 10_000 },
+    { maxRank: 2, reputation: 2, experience: 75, cashPrize: 5_000 },
+    { maxRank: 3, reputation: 1, experience: 45, cashPrize: 2_500 },
+    { maxRank: 5, reputation: 0, experience: 25, cashPrize: 1_000 },
+  ].find((rule) => finalRank <= rule.maxRank);
+
+  return placement
+    ? {
+        reputation: placement.reputation,
+        experience: placement.experience,
+        cashPrize: placement.cashPrize,
+        uciPoints: 0,
+      }
+    : { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
 }
 
 /**

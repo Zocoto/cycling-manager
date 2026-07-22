@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  calculateNationalChampionshipReward,
   calculateRaceReward,
   calculateStagePrize,
   type RaceRewardScope,
@@ -113,10 +114,12 @@ export async function settleFinishedRaceResults(
   let completedEditions = 0;
 
   for (const edition of calendar.editions) {
-    if (edition.engagedRiders.length < 2) continue;
+    const minimumFieldSize =
+      edition.competitionType === "standard" ? 2 : 1;
+    if (edition.engagedRiders.length < minimumFieldSize) continue;
 
     const rosterByRiderId = await loadRosterContext(admin, edition.id);
-    if (rosterByRiderId.size < 2) continue;
+    if (rosterByRiderId.size < minimumFieldSize) continue;
 
     const unavailableRiderIds = new Set<string>();
     const finishedSimulations: StageSimulationResult[] = [];
@@ -752,14 +755,16 @@ async function persistRaceClassification({
       result.riderId,
       "intermediate_sprint"
     );
-    const reward = calculateRaceReward({
-      tier: edition.categoryCode,
-      scope: getRewardScope(edition),
-      finalRank: result.rank,
-      secondaryClassifications: secondaryWinners.get(result.riderId) ?? [],
-      mountainPrimesWon,
-      intermediateSprintsWon,
-    });
+    const reward = edition.competitionType === "standard"
+      ? calculateRaceReward({
+          tier: edition.categoryCode,
+          scope: getRewardScope(edition),
+          finalRank: result.rank,
+          secondaryClassifications: secondaryWinners.get(result.riderId) ?? [],
+          mountainPrimesWon,
+          intermediateSprintsWon,
+        })
+      : calculateNationalChampionshipReward({ finalRank: result.rank });
     if (
       reward.reputation === 0 &&
       reward.experience === 0 &&

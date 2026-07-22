@@ -45,7 +45,7 @@ export async function registerRaceRosterAction(
   }
 
   const { error } = await supabase.rpc(
-    "save_current_team_race_roster_with_roles",
+    "save_current_team_competition_roster_with_roles",
     {
       p_race_edition_id: editionId,
       p_roster: roster,

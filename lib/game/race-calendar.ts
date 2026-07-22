@@ -15,6 +15,11 @@ export type RaceFormat =
   | "one_day"
   | "stage_race";
 
+export type RaceCompetitionType =
+  | "standard"
+  | "national_road"
+  | "national_time_trial";
+
 export type RaceProfileType =
   | "flat"
   | "sprint"
@@ -66,6 +71,7 @@ export type RaceCalendarEdition = {
   categoryName: string;
   prestigeRank: number;
   raceFormat: RaceFormat;
+  competitionType: RaceCompetitionType;
   registrationClosesAt: string | null;
   withdrawalClosesAt: string | null;
   registrationPolicy: RegistrationPolicy;

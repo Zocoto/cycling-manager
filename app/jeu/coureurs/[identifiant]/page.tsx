@@ -27,8 +27,10 @@ import {
 } from "@/lib/game/training";
 import {
   createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
+  getNationalChampionPalette,
 } from "@/lib/rider-jersey";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -105,14 +107,30 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
         getActiveTeamSponsorIdentity(profile.currentTeam.id),
       ])
     : [null, null];
-  const riderJersey = sponsorIdentity
-    ? createSponsoredRiderJersey({
-        colors: sponsorIdentity.sponsor.colors,
-        style: sponsorIdentity.selectedJersey.style,
+  const activeNationalTitle =
+    profile.nationalTitles.find(
+      (title) => title.isActive && title.type === "road"
+    ) ??
+    profile.nationalTitles.find(
+      (title) => title.isActive && title.type === "time_trial"
+    ) ??
+    null;
+  const riderJersey = activeNationalTitle
+    ? createNationalChampionRiderJersey({
+        countryCode: activeNationalTitle.countryCode,
+        championshipType: activeNationalTitle.type,
       })
-    : amateurIdentity
-      ? createAmateurRiderJersey(amateurIdentity.jersey)
-      : FREE_AGENT_RIDER_JERSEY;
+    : sponsorIdentity
+      ? createSponsoredRiderJersey({
+          colors: sponsorIdentity.sponsor.colors,
+          style: sponsorIdentity.selectedJersey.style,
+        })
+      : amateurIdentity
+        ? createAmateurRiderJersey(amateurIdentity.jersey)
+        : FREE_AGENT_RIDER_JERSEY;
+  const nationalPalette = activeNationalTitle
+    ? getNationalChampionPalette(activeNationalTitle.countryCode)
+    : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
   const countryHref = `/jeu/nations/${profile.country.code.toLowerCase()}`;
 
@@ -147,17 +165,38 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
           Fiche ouverte indépendamment de votre espace de jeu
         </p>
 
-        <header className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-[linear-gradient(135deg,#071A17,#176951)] text-[#FFFDF4] shadow-[0_25px_70px_rgba(19,60,46,0.2)]">
+        <header
+          className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-[linear-gradient(135deg,#071A17,#176951)] text-[#FFFDF4] shadow-[0_25px_70px_rgba(19,60,46,0.2)]"
+          style={
+            nationalPalette
+              ? {
+                  background: `linear-gradient(110deg, rgba(7,26,23,.94), rgba(7,26,23,.72)), linear-gradient(135deg, ${nationalPalette.primary}, ${nationalPalette.secondary} 52%, ${nationalPalette.accent})`,
+                }
+              : undefined
+          }
+        >
           <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[auto_minmax(0,1fr)_280px] lg:items-center">
-            <RiderAvatar
-              profileKey={profile.avatarProfileKey}
-              seed={profile.avatarSeed}
-              riderId={profile.id}
-              age={profile.age ?? 25}
-              jersey={riderJersey}
-              label={`Portrait généré de ${fullName}`}
-              className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
-            />
+            <div className="relative w-fit">
+              <RiderAvatar
+                profileKey={profile.avatarProfileKey}
+                seed={profile.avatarSeed}
+                riderId={profile.id}
+                age={profile.age ?? 25}
+                jersey={riderJersey}
+                label={`Portrait généré de ${fullName}`}
+                className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
+              />
+              {activeNationalTitle ? (
+                <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
+                  <span
+                    className={`fi fi-${activeNationalTitle.countryCode.toLowerCase()} rounded-sm`}
+                    role="img"
+                    aria-label={`Drapeau ${activeNationalTitle.countryName}`}
+                  />
+                  CN {activeNationalTitle.type === "road" ? "Route" : "CLM"}
+                </span>
+              ) : null}
+            </div>
 
             <div className="min-w-0">
               <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#9BE0BC]">
@@ -183,6 +222,18 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                 <IdentityBadge>
                   {profile.activeSeason?.name ?? "Hors saison"}
                 </IdentityBadge>
+                {profile.nationalTitles
+                  .filter((title) => title.isActive)
+                  .map((title) => (
+                    <IdentityBadge key={`${title.type}-${title.countryCode}`}>
+                      <span
+                        className={`fi fi-${title.countryCode.toLowerCase()} mr-2 rounded-sm`}
+                        role="img"
+                        aria-label={`Drapeau ${title.countryName}`}
+                      />
+                      Champion national {title.type === "road" ? "route" : "CLM"}
+                    </IdentityBadge>
+                  ))}
                 {profile.potentialSteps !== null ? (
                   <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5">
                     <PotentialStars
@@ -198,7 +249,9 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                 ) : null}
               </div>
               <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-                {profile.scoutingReport
+                {activeNationalTitle
+                  ? `Champion de ${activeNationalTitle.countryName} en titre : son identité nationale remplace le thème habituel pendant toute la durée de son règne.`
+                  : profile.scoutingReport
                   ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
                   : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
               </p>
@@ -526,6 +579,11 @@ function CareerHistory({
     victories: number | null;
     points: number | null;
     uciRank: number | null;
+    nationalTitles: Array<{
+      type: "road" | "time_trial";
+      countryName: string;
+      countryCode: string;
+    }>;
   }>;
 }) {
   return (
@@ -558,7 +616,18 @@ function CareerHistory({
                   className="border-t border-[#315B3E]/10 text-sm"
                 >
                   <td className="px-6 py-4 font-black text-[#183F37]">
-                    {entry.seasonName}
+                    <span className="flex items-center gap-2">
+                      {entry.seasonName}
+                      {entry.nationalTitles.map((title) => (
+                        <span
+                          key={`${title.type}-${title.countryCode}`}
+                          className={`fi fi-${title.countryCode.toLowerCase()} rounded-sm shadow-sm`}
+                          role="img"
+                          aria-label={`Champion national ${title.type === "road" ? "sur route" : "contre-la-montre"} de ${title.countryName}`}
+                          title={`Champion national ${title.type === "road" ? "sur route" : "contre-la-montre"} · ${title.countryName}`}
+                        />
+                      ))}
+                    </span>
                   </td>
                   <td className="px-5 py-4">
                     <Link

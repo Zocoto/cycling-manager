@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildFinanceProjection,
   calculateDebtReputationPenalty,
+  calculateNationalChampionshipReward,
   calculateRaceReward,
   calculateRiderSeasonSalary,
   calculateStagePrize,
@@ -52,6 +53,24 @@ describe("calculateRaceReward", () => {
     expect(reward.reputation).toBe(0);
     expect(reward.experience).toBe(6);
     expect(reward.uciPoints).toBe(2);
+  });
+});
+
+describe("calculateNationalChampionshipReward", () => {
+  it("récompense le podium sans jamais attribuer de points UCI", () => {
+    expect(calculateNationalChampionshipReward({ finalRank: 1 })).toEqual({
+      reputation: 5,
+      experience: 125,
+      cashPrize: 10_000,
+      uciPoints: 0,
+    });
+    expect(calculateNationalChampionshipReward({ finalRank: 3 }).uciPoints).toBe(0);
+    expect(calculateNationalChampionshipReward({ finalRank: 8 })).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 0,
+      uciPoints: 0,
+    });
   });
 });
 

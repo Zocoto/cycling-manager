@@ -249,6 +249,7 @@ function createEdition(
     categoryName: "Elite",
     prestigeRank: 1,
     raceFormat: "stage_race",
+    competitionType: "standard",
     registrationClosesAt: null,
     withdrawalClosesAt: null,
     registrationPolicy: "criteria_pending",
