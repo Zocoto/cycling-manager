@@ -121,24 +121,21 @@ a {
   min-height: 100vh;
   background-color: #f7faf8;
   background-image:
-    radial-gradient(circle at 8% 3%, rgb(66 185 154 / 9%), transparent 28rem),
-    radial-gradient(circle at 94% 38%, rgb(242 201 76 / 7%), transparent 25rem),
-    linear-gradient(rgb(23 105 81 / 2.2%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(23 105 81 / 2.2%) 1px, transparent 1px),
+    radial-gradient(circle at 7% 2%, rgb(66 185 154 / 8%), transparent 30rem),
+    radial-gradient(circle at 95% 42%, rgb(242 201 76 / 5.5%), transparent 28rem),
+    radial-gradient(circle, rgb(23 105 81 / 3.6%) 0 0.75px, transparent 0.9px),
     url("/game-workspace-pattern.svg");
   background-position:
     left top,
     right center,
     0 0,
-    0 0,
     center top;
-  background-repeat: no-repeat, no-repeat, repeat, repeat, repeat;
+  background-repeat: no-repeat, no-repeat, repeat, repeat-y;
   background-size:
     auto,
     auto,
-    44px 44px,
-    44px 44px,
-    760px 520px;
+    24px 24px,
+    1440px 900px;
 }
 
 .game-workspace-background > main {
@@ -150,9 +147,13 @@ a {
     background-size:
       auto,
       auto,
-      36px 36px,
-      36px 36px,
-      620px 424px;
+      22px 22px,
+      980px 613px;
+    background-position:
+      left top,
+      right center,
+      0 0,
+      65% top;
   }
 }
 
