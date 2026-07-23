@@ -66,7 +66,7 @@ function AboutHero() {
 
       <MountainDecoration />
 
-      <div className="relative mx-auto max-w-375 px-5 py-20 sm:px-8 sm:py-24">
+      <div className="relative mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24">
         <div className="max-w-3xl">
           <span className="inline-flex rounded-full bg-[#F2C94C] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#071A17] shadow-md">
             À propos
@@ -110,7 +110,7 @@ function AboutHero() {
 function AboutStory() {
   return (
     <section className="relative overflow-hidden bg-[#F7FAF7] px-5 py-16 text-[#082A2A] sm:px-8 sm:py-24">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-7xl">
         <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-[#42A884]">
           Notre projet
         </p>
@@ -119,7 +119,7 @@ function AboutStory() {
           L’histoire de Cyclo Stratège
         </h2>
 
-        <div className="mt-8 space-y-6 text-lg leading-8 text-[#3B564F]">
+        <div className="mt-8 max-w-3xl space-y-6 text-lg leading-8 text-[#3B564F]">
           <p>
             Cyclo Stratège est un projet indépendant, développé avec soin et
             porté par l’envie de créer le jeu de management cycliste que nous
@@ -150,7 +150,7 @@ function AboutStory() {
 function AboutValues() {
   return (
     <section className="relative overflow-hidden bg-[#EAF5F3] px-5 py-16 text-[#082A2A] sm:px-8 sm:py-24">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#42A884]">
             Nos valeurs
