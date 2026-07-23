@@ -252,17 +252,22 @@ export async function getYouthDevelopmentOverview(
 
 export async function getYouthDevelopmentAlertCount(
   authUserId: string,
+  options: {
+    settleInfrastructure?: boolean;
+  } = {},
 ): Promise<number> {
   const admin = createSupabaseAdminClient();
   const context = await loadContext(admin, authUserId);
   if (!context) return 0;
-  const infrastructureSettlement = await admin.rpc(
-    "settle_due_infrastructure_projects",
-  );
-  assertQuery(
-    infrastructureSettlement.error,
-    "les chantiers de formation internationale",
-  );
+  if (options.settleInfrastructure !== false) {
+    const infrastructureSettlement = await admin.rpc(
+      "settle_due_infrastructure_projects",
+    );
+    assertQuery(
+      infrastructureSettlement.error,
+      "les chantiers de formation internationale",
+    );
+  }
   await settleDueScoutingMissions(admin, context);
 
   const [missions, notifications] = await Promise.all([

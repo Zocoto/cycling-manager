@@ -128,7 +128,9 @@ export async function getCurrentDashboardOperationalEvents({
   ] = await Promise.all([
     admin.rpc("settle_due_training_sessions"),
     admin.rpc("settle_due_infrastructure_projects"),
-    getYouthDevelopmentAlertCount(authUserId),
+    getYouthDevelopmentAlertCount(authUserId, {
+      settleInfrastructure: false,
+    }),
     [21, 22, 25, 26].includes(currentDayNumber)
       ? getCurrentDirectorInternationalSelections({
           authUserId,

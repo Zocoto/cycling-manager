@@ -19,6 +19,7 @@ import {
   type RiderJerseyAppearance,
 } from "../../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { getAuthenticatedUser } from "../../../lib/supabase/authenticated-user";
 import {
   getTeamAmateurIdentityForAuthUser,
   type TeamAmateurIdentity,
@@ -211,7 +212,7 @@ export default async function TeamRosterPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

@@ -6,6 +6,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { SeasonCalendar } from "@/components/game/season-calendar";
 import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
@@ -36,7 +37,7 @@ export default async function RaceCalendarPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");
