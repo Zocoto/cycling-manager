@@ -7,6 +7,7 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
+import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
@@ -35,6 +36,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicRiderProfile } from "@/services/public-rider-profile";
+import { getCurrentTeamRiderSeasonPlanning } from "@/services/rider-season-planning";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getRiderTransferManagement } from "@/services/transfer-market";
@@ -94,12 +96,19 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
     notFound();
   }
 
-  const [equipmentManagement, transferManagement] = await Promise.all([
-    profile.canManage
-      ? getRiderEquipmentManagement(user.id, profile.id)
-      : Promise.resolve(null),
-    getRiderTransferManagement(user.id, profile.id),
-  ]);
+  const [equipmentManagement, transferManagement, riderPlanning] =
+    await Promise.all([
+      profile.canManage
+        ? getRiderEquipmentManagement(user.id, profile.id)
+        : Promise.resolve(null),
+      getRiderTransferManagement(user.id, profile.id),
+      profile.canManage
+        ? getCurrentTeamRiderSeasonPlanning({
+            authUserId: user.id,
+            riderId: profile.id,
+          })
+        : Promise.resolve(null),
+    ]);
 
   const [amateurIdentity, sponsorIdentity] = profile.currentTeam
     ? await Promise.all([
@@ -311,6 +320,16 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
             <SpecialAbilitiesCard abilities={profile.specialAbilities} />
           </aside>
         </div>
+
+        {profile.canManage && riderPlanning ? (
+          <div className="mt-7">
+            <RiderSeasonPlanning
+              planning={riderPlanning}
+              jersey={riderJersey}
+              variant="rider"
+            />
+          </div>
+        ) : null}
 
         <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
           <CareerHistory history={profile.history} />

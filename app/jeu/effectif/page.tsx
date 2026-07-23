@@ -8,6 +8,7 @@ import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey"
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { RiderAvatar } from "../../../components/game/rider-avatar";
+import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
 import { PotentialStars } from "../../../components/game/potential-stars";
 import { TeamDivisionBadge } from "../../../components/game/team-division-badge";
 import {
@@ -45,6 +46,7 @@ import {
   type RiderFormCamp,
   type RiderMedicalInjury,
 } from "../../../services/team-health";
+import { getCurrentTeamRiderSeasonPlanning } from "../../../services/rider-season-planning";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -184,9 +186,14 @@ export default async function TeamRosterPage({
   searchParams: Promise<{
     sort?: string | string[];
     direction?: string | string[];
+    vue?: string | string[];
   }>;
 }) {
   const rosterQuery = await searchParams;
+  const activeView =
+    getFirstSearchParam(rosterQuery.vue) === "planning"
+      ? "planning"
+      : "statistiques";
   const currentSortKey = parseRosterSortKey(
     getFirstSearchParam(rosterQuery.sort)
   );
@@ -209,13 +216,24 @@ export default async function TeamRosterPage({
     redirect("/connexion");
   }
 
-  const [teamSummaryResult, rosterResult] =
+  const [teamSummaryResult, rosterResult, planningOverview] =
     await Promise.all([
       supabase
         .rpc("get_current_team_dashboard_summary")
         .maybeSingle<CurrentTeamDashboardSummary>(),
 
       supabase.rpc("get_current_team_roster"),
+      activeView === "planning"
+        ? getCurrentTeamRiderSeasonPlanning({
+            authUserId: user.id,
+          }).catch((error: unknown) => {
+            console.error(
+              "Impossible de récupérer le planning de l’effectif :",
+              error,
+            );
+            return null;
+          })
+        : Promise.resolve(null),
     ]);
 
   let teamSponsorIdentity:
@@ -457,6 +475,8 @@ export default async function TeamRosterPage({
             <RosterErrorMessage />
           ) : null}
 
+          <RosterViewTabs activeView={activeView} />
+
           <section className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
               label="Coureurs"
@@ -507,16 +527,28 @@ export default async function TeamRosterPage({
             />
           </section>
 
-          <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]">
-            {teamSponsorIdentity ? (
-              <div
-                aria-hidden="true"
-                className="h-1.5 w-full"
-                style={{
-                  background: `linear-gradient(90deg, ${teamSponsorIdentity.sponsor.colors.primary}, ${teamSponsorIdentity.sponsor.colors.accent}, ${teamSponsorIdentity.sponsor.colors.secondary})`,
-                }}
-              />
-            ) : null}
+          {activeView === "planning" ? (
+            <div className="mt-6">
+              {planningOverview ? (
+                <RiderSeasonPlanning
+                  planning={planningOverview}
+                  jersey={riderJersey}
+                />
+              ) : (
+                <PlanningUnavailable />
+              )}
+            </div>
+          ) : (
+            <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]">
+              {teamSponsorIdentity ? (
+                <div
+                  aria-hidden="true"
+                  className="h-1.5 w-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${teamSponsorIdentity.sponsor.colors.primary}, ${teamSponsorIdentity.sponsor.colors.accent}, ${teamSponsorIdentity.sponsor.colors.secondary})`,
+                  }}
+                />
+              ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#315B3E]/15 bg-[#0B302B] px-5 py-5 text-[#FFFDF4] sm:px-7">
               <div>
@@ -643,14 +675,89 @@ export default async function TeamRosterPage({
             ) : (
               <EmptyRoster />
             )}
-          </section>
+            </section>
+          )}
 
-          <p className="mt-5 text-sm leading-6 text-[#60756E]">
-            Cliquez sur un coureur pour ouvrir sa fiche détaillée dans un nouvel onglet.
-          </p>
+          {activeView === "statistiques" ? (
+            <p className="mt-5 text-sm leading-6 text-[#60756E]">
+              Cliquez sur un coureur pour ouvrir sa fiche détaillée dans un nouvel onglet.
+            </p>
+          ) : null}
         </div>
       </section>
     </main>
+  );
+}
+
+function RosterViewTabs({
+  activeView,
+}: {
+  activeView: "statistiques" | "planning";
+}) {
+  return (
+    <nav
+      aria-label="Vues de l’effectif"
+      className="mt-8 grid gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm sm:grid-cols-2"
+    >
+      <Link
+        href="/jeu/effectif?vue=statistiques"
+        aria-current={activeView === "statistiques" ? "page" : undefined}
+        className={`rounded-xl px-5 py-4 transition ${
+          activeView === "statistiques"
+            ? "bg-[#0B302B] text-white shadow-md"
+            : "text-[#315B3E] hover:bg-[#F3F8F6]"
+        }`}
+      >
+        <strong className="block text-sm font-black">
+          Statistiques & contrats
+        </strong>
+        <span
+          className={`mt-1 block text-xs font-semibold ${
+            activeView === "statistiques"
+              ? "text-[#BFD1C6]"
+              : "text-[#60756E]"
+          }`}
+        >
+          Notes, potentiel, salaire et échéance
+        </span>
+      </Link>
+      <Link
+        href="/jeu/effectif?vue=planning"
+        aria-current={activeView === "planning" ? "page" : undefined}
+        className={`rounded-xl px-5 py-4 transition ${
+          activeView === "planning"
+            ? "bg-[#0B302B] text-white shadow-md"
+            : "text-[#315B3E] hover:bg-[#F3F8F6]"
+        }`}
+      >
+        <strong className="block text-sm font-black">
+          Planning de saison
+        </strong>
+        <span
+          className={`mt-1 block text-xs font-semibold ${
+            activeView === "planning"
+              ? "text-[#BFD1C6]"
+              : "text-[#60756E]"
+          }`}
+        >
+          Courses, stages, reconnaissances et blessures
+        </span>
+      </Link>
+    </nav>
+  );
+}
+
+function PlanningUnavailable() {
+  return (
+    <section className="rounded-[2rem] border border-[#C94F4F]/20 bg-[#FFF0EE] p-7">
+      <p className="text-lg font-black text-[#8A2F2F]">
+        Le planning est momentanément indisponible
+      </p>
+      <p className="mt-2 text-sm font-semibold text-[#7A5555]">
+        Les données de l’effectif restent accessibles dans la vue Statistiques
+        & contrats.
+      </p>
+    </section>
   );
 }
 
