@@ -708,7 +708,13 @@ function RosterViewTabs({
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
         }`}
       >
-        <strong className="block text-sm font-black">
+        <strong
+          className={`block text-sm font-black ${
+            activeView === "statistiques"
+              ? "text-white"
+              : "text-[#183F37]"
+          }`}
+        >
           Statistiques & contrats
         </strong>
         <span
@@ -730,7 +736,11 @@ function RosterViewTabs({
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
         }`}
       >
-        <strong className="block text-sm font-black">
+        <strong
+          className={`block text-sm font-black ${
+            activeView === "planning" ? "text-white" : "text-[#183F37]"
+          }`}
+        >
           Planning de saison
         </strong>
         <span
