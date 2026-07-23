@@ -17,6 +17,7 @@ import {
 } from "./health-center";
 import {
   applyRaceWeatherRatingAdjustments,
+  getRaceWeatherCrashRiskBonus,
   getRaceWeather,
   type RaceWeather,
 } from "./race-weather";
@@ -1857,14 +1858,7 @@ function maybeCreateRaceIncident({
   if (activeStates.length === 0) return null;
 
   const incidentRoll = random();
-  const rainCrashRisk = weather.isWet
-    ? {
-        none: 0,
-        light: 0.012,
-        steady: 0.025,
-        heavy: 0.04,
-      }[weather.rainIntensity]
-    : 0;
+  const rainCrashRisk = getRaceWeatherCrashRiskBonus(weather);
   const punctureThreshold =
     (segment.surface === "cobbles" ? 0.105 : 0.065) +
     rainCrashRisk * 0.25;

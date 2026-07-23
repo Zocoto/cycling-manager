@@ -386,14 +386,73 @@ a {
   will-change: background-position;
 }
 
+.cm-race-clouds {
+  background-image:
+    radial-gradient(ellipse at 12% 22%, rgba(245, 249, 248, 0.75) 0 7%, transparent 7.5%),
+    radial-gradient(ellipse at 24% 18%, rgba(232, 239, 238, 0.68) 0 10%, transparent 10.5%),
+    radial-gradient(ellipse at 58% 28%, rgba(245, 249, 248, 0.65) 0 8%, transparent 8.5%),
+    radial-gradient(ellipse at 73% 20%, rgba(225, 234, 233, 0.72) 0 11%, transparent 11.5%),
+    radial-gradient(ellipse at 95% 32%, rgba(245, 249, 248, 0.62) 0 8%, transparent 8.5%);
+  animation: cm-race-clouds-drift 22s linear infinite;
+  will-change: transform;
+}
+
+.cm-race-snow {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(245, 252, 255, 0.82) 0 1.5px, transparent 1.9px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.72) 0 0.8px, transparent 1.2px);
+  background-position: 0 0, 37px 51px, 91px 28px;
+  background-size: 72px 84px, 118px 132px, 54px 68px;
+  animation: cm-race-snow-fall 4.8s linear infinite;
+  will-change: background-position;
+}
+
+.cm-race-lightning {
+  animation: cm-race-lightning-flash 8s steps(1, end) infinite;
+}
+
 @keyframes cm-race-rain-fall {
   to {
     background-position: -42px 220px, -65px 285px;
   }
 }
 
+@keyframes cm-race-clouds-drift {
+  to {
+    transform: translateX(12%);
+  }
+}
+
+@keyframes cm-race-snow-fall {
+  to {
+    background-position: -26px 260px, 62px 330px, 54px 220px;
+  }
+}
+
+@keyframes cm-race-lightning-flash {
+  0%,
+  91%,
+  93%,
+  95%,
+  100% {
+    opacity: 0;
+  }
+
+  92% {
+    opacity: 0.24;
+  }
+
+  94% {
+    opacity: 0.12;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .cm-race-rain {
+  .cm-race-rain,
+  .cm-race-clouds,
+  .cm-race-snow,
+  .cm-race-lightning {
     animation: none;
   }
 }
