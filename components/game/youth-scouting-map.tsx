@@ -82,7 +82,7 @@ export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountr
         <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#EAF5F3] p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#60756E]">Traditions de formation</p>
           <p className="mt-2 text-sm font-extrabold text-[#176951]">{selected.specialtyLabel} · {selected.secondarySpecialtyLabel}</p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">Une tendance locale, jamais une garantie : les rapports peuvent révéler d’autres profils.</p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">Une tendance locale, jamais une garantie : les rapports peuvent révéler d’autres profils.</p>
         </div>
         <form action={startYouthScoutingAction} className="mt-5 space-y-4">
           <input type="hidden" name="countryId" value={selected.id} />
@@ -100,7 +100,7 @@ export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountr
             </select>
           </label>
           <MissionSubmitButton disabled={!availableScouts.length} />
-          {!availableScouts.length ? <p className="text-xs font-bold text-[#B54242]">Aucun scout disponible : attendez le retour d’une mission ou recrutez-en un.</p> : null}
+          {!availableScouts.length ? <p className="text-xs font-bold text-[#B54242]">Aucun scout disponible : attendez le retour d’une mission ou recrutez-en un.</p> : null}
         </form>
       </aside>
     </div>

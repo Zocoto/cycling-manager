@@ -160,7 +160,7 @@ function DailyAuctions({ listings, overview, returnPath }: {
           {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} returnPath={returnPath} />)}
         </div>
       ) : (
-        <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : cinq nouveaux coureurs apparaîtront automatiquement." />
+        <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : cinq nouveaux coureurs apparaîtront automatiquement." />
       )}
     </section>
   );
@@ -260,7 +260,7 @@ function AuctionCard({ listing, jersey, teamId, availableBudget, returnPath }: {
             <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid + listing.salaryPerSeason}>Enchérir</TransferSubmitButton></div>
           </form>
         ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : null}
-        <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
+        <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
       </div>
     </article>
   );

@@ -164,7 +164,7 @@ export async function updateSportingDirectorProfile(
 
   if (currentProfileError || !currentProfile) {
     console.error(
-      "Impossible de récupérer le profil du Directeur Sportif :",
+      "Impossible de récupérer le profil du Directeur Sportif :",
       currentProfileError
     );
 
@@ -226,7 +226,7 @@ export async function updateSportingDirectorProfile(
 
   if (updateError) {
     console.error(
-      "Échec de la mise à jour du Directeur Sportif :",
+      "Échec de la mise à jour du Directeur Sportif :",
       {
         code: updateError.code,
         message: updateError.message,
@@ -357,7 +357,7 @@ export async function createAmateurTeam(
 
   if (generationProfileError || !generationProfile) {
     console.error(
-      "Impossible de récupérer le profil de génération du pays de l’équipe :",
+      "Impossible de récupérer le profil de génération du pays de l’équipe :",
       generationProfileError
     );
 
@@ -377,7 +377,7 @@ export async function createAmateurTeam(
     );
   } catch (error) {
     console.error(
-      "Impossible de générer les identités des coureurs :",
+      "Impossible de générer les identités des coureurs :",
       error
     );
 
@@ -401,7 +401,7 @@ export async function createAmateurTeam(
     });
 
   if (careerGenerationError) {
-    console.error("Échec de la fondation de l’équipe amateur :", {
+    console.error("Échec de la fondation de l’équipe amateur :", {
       code: careerGenerationError.code,
       message: careerGenerationError.message,
       details: careerGenerationError.details,
@@ -505,7 +505,7 @@ export async function deleteSportingDirectorAccount(
 
   if (careerDeletionError) {
     console.error(
-      "Échec de la suppression de la carrière du Directeur Sportif :",
+      "Échec de la suppression de la carrière du Directeur Sportif :",
       {
         code: careerDeletionError.code,
         message: careerDeletionError.message,
@@ -529,7 +529,7 @@ export async function deleteSportingDirectorAccount(
 
   if (authDeletionError) {
     console.error(
-      "La carrière a été supprimée mais le compte Auth doit être supprimé de nouveau :",
+      "La carrière a été supprimée mais le compte Auth doit être supprimé de nouveau :",
       {
         code: authDeletionError.code,
         message: authDeletionError.message,
@@ -548,7 +548,7 @@ export async function deleteSportingDirectorAccount(
 
   if (signOutError) {
     console.warn(
-      "Le compte a été supprimé mais la session locale n’a pas pu être révoquée explicitement :",
+      "Le compte a été supprimé mais la session locale n’a pas pu être révoquée explicitement :",
       signOutError.message
     );
   }

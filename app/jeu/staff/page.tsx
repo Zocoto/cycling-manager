@@ -193,7 +193,7 @@ function EmploymentMarket({
         <SectionHeading
           eyebrow={`Sélection du ${formatDate(overview.marketDate)}`}
           title="25 spécialistes sur le marché mondial"
-          detail="Le pool est identique pour tous les joueurs. Une signature est définitive : dès qu’un DS recrute un profil, celui-ci n’est plus disponible pour les autres équipes."
+          detail="Le pool est identique pour tous les joueurs. Une signature est définitive : dès qu’un DS recrute un profil, celui-ci n’est plus disponible pour les autres équipes."
         />
         <div className="grid shrink-0 grid-cols-2 gap-3">
           <CompactMetric
@@ -770,7 +770,7 @@ function CountryFlag({ code, name }: { code: string; name: string }) {
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${name}`}
+      aria-label={`Drapeau : ${name}`}
       className={`fi fi-${code.toLowerCase()} mr-2 overflow-hidden rounded-sm shadow-sm`}
     />
   );

@@ -53,7 +53,7 @@ export default async function RaceResultsPage({
 
   if (calendarResult.error) {
     console.error(
-      "Impossible de charger le calendrier pour Résultats / Live :",
+      "Impossible de charger le calendrier pour Résultats / Live :",
       calendarResult.error
     );
   }
@@ -94,7 +94,7 @@ export default async function RaceResultsPage({
               Vivez chaque course de la saison.
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-[#48665F]">
-              Le répertoire reste léger : le moteur de course, la startlist, les résultats et le chat ne sont chargés qu’après l’ouverture d’une épreuve.
+              Le répertoire reste léger : le moteur de course, la startlist, les résultats et le chat ne sont chargés qu’après l’ouverture d’une épreuve.
             </p>
           </header>
 

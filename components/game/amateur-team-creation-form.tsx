@@ -130,7 +130,7 @@ export function AmateurTeamCreationForm({
             id="teamCountryId-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Choix définitif : il détermine les sept coureurs initiaux et la priorité géographique des sponsors.
+            Choix définitif : il détermine les sept coureurs initiaux et la priorité géographique des sponsors.
           </p>
         </div>
 

@@ -129,7 +129,7 @@ function EquipmentSlotCard({
         </span>
       </div>
 
-      {pending ? <p className="mt-2 rounded-lg border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-bold leading-4 text-[#FFE596]">Programmé : {pending.item.name} · actif {formatEffectiveDate(pending.effectiveAt)}</p> : null}
+      {pending ? <p className="mt-2 rounded-lg border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-bold leading-4 text-[#FFE596]">Programmé : {pending.item.name} · actif {formatEffectiveDate(pending.effectiveAt)}</p> : null}
 
       {canManage ? (
         <details className="group/slot mt-2 border-t border-white/10 pt-2">

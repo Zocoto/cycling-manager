@@ -66,14 +66,14 @@ export default async function RaceCalendarPage({
 
   if (calendarResult.error) {
     console.error(
-      "Impossible de charger le calendrier des courses :",
+      "Impossible de charger le calendrier des courses :",
       calendarResult.error
     );
   }
 
   if (reputationResult.error) {
     console.error(
-      "Impossible de charger la réputation pour filtrer les courses :",
+      "Impossible de charger la réputation pour filtrer les courses :",
       reputationResult.error
     );
   }

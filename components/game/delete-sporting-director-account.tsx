@@ -131,7 +131,7 @@ export function DeleteSportingDirectorAccount({
 
             <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
               <p className="text-sm font-black text-red-950">
-                Seront définitivement supprimés :
+                Seront définitivement supprimés :
               </p>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm font-semibold leading-6 text-red-900/80">
                 <li>le compte de connexion et le profil du Directeur Sportif ;</li>
@@ -140,7 +140,7 @@ export function DeleteSportingDirectorAccount({
               </ul>
 
               <p className="mt-5 text-sm font-black text-emerald-900">
-                Seront conservés :
+                Seront conservés :
               </p>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm font-semibold leading-6 text-emerald-900/80">
                 <li>les coureurs, qui deviendront agents libres ;</li>

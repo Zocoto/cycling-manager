@@ -32,6 +32,7 @@ type InventoryPageProps = {
   searchParams: Promise<{
     categorie?: string | string[];
     erreur?: string | string[];
+    equipement?: string | string[];
   }>;
 };
 
@@ -40,6 +41,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const rawCategory = readQuery(query.categorie);
   const category = isInventoryCategory(rawCategory) ? rawCategory : null;
   const errorMessage = readQuery(query.erreur).slice(0, 300);
+  const equipmentConfirmed = readQuery(query.equipement) === "confirme";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -58,7 +60,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
   if (rosterResult.error) {
     console.error(
-      "Impossible de récupérer l’effectif pour l’inventaire :",
+      "Impossible de récupérer l’effectif pour l’inventaire :",
       rosterResult.error
     );
   }
@@ -88,6 +90,10 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         {errorMessage ? (
           <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
             {errorMessage}
+          </p>
+        ) : equipmentConfirmed ? (
+          <p className="mt-5 rounded-2xl border border-[#176951]/25 bg-[#E7F6EF] px-5 py-4 text-sm font-bold text-[#176951]">
+            Le matériel a bien été attribué au coureur.
           </p>
         ) : null}
 

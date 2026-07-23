@@ -117,7 +117,7 @@ export default async function ObjectivesPage({
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Chaque accomplissement est mesuré à partir de vos actions et de
                 vos résultats officiels. Une fois le palier atteint, récupérez
-                vous-même les gains annoncés : ils ne pourront être versés
+                vous-même les gains annoncés : ils ne pourront être versés
                 qu’une seule fois.
               </p>
             </div>

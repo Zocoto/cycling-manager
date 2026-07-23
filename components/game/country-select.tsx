@@ -246,7 +246,7 @@ function CountryFlag({
       <span
         aria-label={
           countryName
-            ? `Drapeau : ${countryName}`
+            ? `Drapeau : ${countryName}`
             : "Drapeau indisponible"
         }
         role="img"
@@ -261,7 +261,7 @@ function CountryFlag({
     <span
       role={countryName ? "img" : undefined}
       aria-label={
-        countryName ? `Drapeau : ${countryName}` : undefined
+        countryName ? `Drapeau : ${countryName}` : undefined
       }
       aria-hidden={countryName ? undefined : true}
       className={[

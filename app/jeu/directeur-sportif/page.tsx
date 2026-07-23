@@ -135,7 +135,7 @@ export default async function SportingDirectorProfilePage() {
       );
   } catch (error) {
     console.error(
-      "Impossible de récupérer l’identité commerciale de l’équipe :",
+      "Impossible de récupérer l’identité commerciale de l’équipe :",
       error
     );
 
@@ -150,7 +150,7 @@ export default async function SportingDirectorProfilePage() {
       await getTeamAmateurIdentityForAuthUser(user.id);
   } catch (error) {
     console.error(
-      "Impossible de récupérer l’identité amateur de l’équipe :",
+      "Impossible de récupérer l’identité amateur de l’équipe :",
       error
     );
   }
@@ -163,14 +163,14 @@ export default async function SportingDirectorProfilePage() {
     !sportingDirector
   ) {
     console.error(
-      "Impossible de récupérer le profil du Directeur Sportif :",
+      "Impossible de récupérer le profil du Directeur Sportif :",
       profileResult.error
     );
   }
 
   if (countriesResult.error) {
     console.error(
-      "Impossible de récupérer le référentiel des pays :",
+      "Impossible de récupérer le référentiel des pays :",
       countriesResult.error
     );
   }
@@ -616,7 +616,7 @@ function TeamCommercialIdentity({
       </p>
 
       <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
-        Sponsor principal : {sponsor.name}
+        Sponsor principal : {sponsor.name}
       </p>
 
       <p className="mt-2 text-xs font-semibold text-[#9FB5A8]">
@@ -664,7 +664,7 @@ function CountryFlag({
     return (
       <span
         role="img"
-        aria-label={`Drapeau : ${countryName}`}
+        aria-label={`Drapeau : ${countryName}`}
       >
         🏳️
       </span>
@@ -674,7 +674,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,

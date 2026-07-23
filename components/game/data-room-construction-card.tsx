@@ -156,7 +156,7 @@ export function DataRoomConstructionCard({
               </dl>
               {architect ? (
                 <p className="mt-3 text-xs font-bold text-[#176951]">
-                  Économie : −{quote.costReductionPercentage} % · délai : −
+                  Économie : −{quote.costReductionPercentage} % · délai : −
                   {quote.durationReductionPercentage} %
                 </p>
               ) : (

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
   if (confirmationError) {
     console.error(
-      "Échec de la confirmation de l’adresse e-mail :",
+      "Échec de la confirmation de l’adresse e-mail :",
       {
         message: confirmationError.message,
       }
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   if (signOutError) {
     console.error(
-      "L’adresse e-mail est confirmée, mais la session temporaire n’a pas pu être fermée :",
+      "L’adresse e-mail est confirmée, mais la session temporaire n’a pas pu être fermée :",
       {
         code: signOutError.code,
         status: signOutError.status,

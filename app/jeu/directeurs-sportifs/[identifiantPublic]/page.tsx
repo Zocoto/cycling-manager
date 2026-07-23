@@ -220,7 +220,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={`fi fi-${countryCode.toLowerCase()} text-4xl shadow-sm`}
     />
   );

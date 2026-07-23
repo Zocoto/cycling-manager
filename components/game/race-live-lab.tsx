@@ -1644,7 +1644,7 @@ function FinishBattleView({
     <div className="mt-3 grid gap-2 sm:grid-cols-3">
       <FinishScenarioStep
         label="Entrée du tronçon"
-        text={`${scenario.entryGroupLabel} : ${formatRiderNames(entryLeaderNames)} ouvre${entryLeaderNames.length > 1 ? "nt" : ""} la route.`}
+        text={`${scenario.entryGroupLabel} : ${formatRiderNames(entryLeaderNames)} ouvre${entryLeaderNames.length > 1 ? "nt" : ""} la route.`}
         active={battleProgress === 0}
       />
       <FinishScenarioStep
@@ -2196,7 +2196,7 @@ function ActiveRules({ stageType }: { stageType: string }) {
     ["Énergie", "La forme constitue le capital initial ; END et RES déterminent la capacité à tenir le rythme et les efforts."],
     ["Tactique", "Les rôles orientent les attaques, la poursuite, les trains de sprint et les classements annexes."],
     ["Aléas", "Crevaisons, bordures et chutes individuelles ou massives peuvent isoler des coureurs et créer de nouveaux groupes."],
-    ["Rejouabilité", "Une graine fixe tous les aléas : un résultat peut être reproduit, expliqué et testé."],
+    ["Rejouabilité", "Une graine fixe tous les aléas : un résultat peut être reproduit, expliqué et testé."],
   ];
 
   return (
@@ -2211,7 +2211,7 @@ function ActiveRules({ stageType }: { stageType: string }) {
         </article>
       ))}
       <p className="sm:col-span-2 lg:col-span-3 rounded-xl border border-[#F2C94C]/20 bg-[#F2C94C]/5 px-4 py-3 text-xs font-semibold leading-5 text-[#DCCF9B]">
-        Mode actif : {stageType === "road" ? "course en ligne" : "contre-la-montre"}. Les paramètres sont volontairement centralisés dans le moteur pour pouvoir les rééquilibrer sans refaire l’interface.
+        Mode actif : {stageType === "road" ? "course en ligne" : "contre-la-montre"}. Les paramètres sont volontairement centralisés dans le moteur pour pouvoir les rééquilibrer sans refaire l’interface.
       </p>
     </div>
   );

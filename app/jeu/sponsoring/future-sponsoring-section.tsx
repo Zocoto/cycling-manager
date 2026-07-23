@@ -507,7 +507,7 @@ function FuturePlannedContract({
 
           <p className="mt-3 leading-7 text-[#60756E]">
             Le sponsor et le maillot sont réservés pour{" "}
-            {state.season.name}. Le contrat reste au statut planned : aucun
+            {state.season.name}. Le contrat reste au statut planned : aucun
             budget n’a été versé et l’identité actuelle de l’équipe reste
             inchangée jusqu’au changement de saison.
           </p>

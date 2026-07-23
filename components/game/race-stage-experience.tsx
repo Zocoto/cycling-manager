@@ -84,7 +84,7 @@ export function RaceStageExperience({
         router.refresh();
       } catch (error) {
         console.error(
-          "Impossible d’actualiser les résultats officiels :",
+          "Impossible d’actualiser les résultats officiels :",
           error
         );
         settlementStartedRef.current = false;

@@ -626,7 +626,7 @@ function SimulationLogs({
             </p>
             <h2 className="mt-2 text-2xl font-black">Journal du moteur</h2>
             <p className="mt-2 text-sm font-semibold text-[#AFC6BB]">
-              {logs.length} entrées : rôles, tronçons, groupes, écarts, énergie, événements et incidents.
+              {logs.length} entrées : rôles, tronçons, groupes, écarts, énergie, événements et incidents.
             </p>
           </div>
           <span className="rounded-full bg-white/10 px-3 py-1.5 font-mono text-[10px] font-bold text-[#BFD1C6]">
