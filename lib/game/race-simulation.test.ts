@@ -37,7 +37,7 @@ describe("accumulateRaceGroupGapsFromLeader", () => {
       accumulateRaceGroupGapsFromLeader(groups).map(
         (group) => group.gapToLeaderSeconds
       )
-    ).toEqual([0, 8, 18, 26]);
+    ).toEqual([0, 8, 10, 10]);
   });
 });
 

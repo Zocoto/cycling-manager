@@ -4,6 +4,7 @@ import type {
   RaceProfileType,
 } from "./race-calendar";
 import { buildRaceSegments } from "./race-profiles";
+import { getRaceWeather } from "./race-weather";
 import {
   type RiderSimulationInput,
   type RiderSimulationRatings,
@@ -85,6 +86,7 @@ export function createDemoSimulationInput(
     profileType: scenario.profileType,
     isStageRace: scenario.isStageRace,
     seed,
+    weather: getRaceWeather(`${scenario.id}:${seed}:weather`),
     segments: buildRaceSegments({
       distanceKm: scenario.distanceKm,
       profileType: scenario.profileType,
@@ -128,6 +130,7 @@ export function createCalendarSimulationInput({
     raceCountryCode: edition.countryCode,
     isStageRace: edition.raceFormat === "stage_race",
     seed,
+    weather: getRaceWeather(`${edition.id}:${stage.id}:weather`),
     segments:
       stage.segments.length > 0
         ? stage.segments

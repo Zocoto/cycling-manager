@@ -354,3 +354,34 @@ a {
     animation: none;
   }
 }
+
+.cm-race-rain {
+  background-image:
+    repeating-linear-gradient(
+      112deg,
+      transparent 0 13px,
+      rgba(220, 242, 247, 0.78) 13px 14px,
+      transparent 14px 27px
+    ),
+    repeating-linear-gradient(
+      112deg,
+      transparent 0 29px,
+      rgba(183, 221, 230, 0.48) 29px 30px,
+      transparent 30px 49px
+    );
+  background-size: 180px 240px, 250px 310px;
+  animation: cm-race-rain-fall 0.72s linear infinite;
+  will-change: background-position;
+}
+
+@keyframes cm-race-rain-fall {
+  to {
+    background-position: -42px 220px, -65px 285px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-race-rain {
+    animation: none;
+  }
+}

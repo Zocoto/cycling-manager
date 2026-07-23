@@ -15,6 +15,11 @@ import {
   resolveCrashMedicalOutcome,
   type RiderInjuryDiagnosisCode,
 } from "./health-center";
+import {
+  applyRaceWeatherRatingAdjustments,
+  getRaceWeather,
+  type RaceWeather,
+} from "./race-weather";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -91,6 +96,7 @@ export type StageSimulationInput = {
   raceCountryCode?: string | null;
   isStageRace: boolean;
   seed: string | number;
+  weather?: RaceWeather;
   segments: RaceStageSegment[];
   riders: RiderSimulationInput[];
   unavailableRiderIds?: string[];
@@ -380,28 +386,38 @@ export function areFinishersInSameTimeGroup(
 export function simulateRaceStage(
   input: StageSimulationInput
 ): StageSimulationResult {
+  const weather = input.weather ?? getRaceWeather(input.seed);
   const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
   const eligibleInput = {
     ...input,
+    weather,
     riders: input.riders
       .filter((rider) => !unavailableRiderIds.has(rider.id))
-      .map((rider) => ({
-        ...rider,
-        localRaceBonus:
-          rider.countryCode &&
-          input.raceCountryCode &&
-          rider.countryCode.toUpperCase() === input.raceCountryCode.toUpperCase()
-            ? 2
-            : 0,
-        ratings: rider.equipmentEffects
+      .map((rider) => {
+        const equipmentAdjustedRatings = rider.equipmentEffects
           ? applyEquipmentRatingBonuses(rider.ratings, rider.equipmentEffects, {
               isTimeTrial:
                 input.stageType === "individual_time_trial" ||
                 input.stageType === "team_time_trial" ||
                 input.stageType === "prologue",
             })
-          : rider.ratings,
-      })),
+          : rider.ratings;
+
+        return {
+          ...rider,
+          localRaceBonus:
+            rider.countryCode &&
+            input.raceCountryCode &&
+            rider.countryCode.toUpperCase() === input.raceCountryCode.toUpperCase()
+              ? 2
+              : 0,
+          ratings: applyRaceWeatherRatingAdjustments(
+            equipmentAdjustedRatings,
+            weather,
+            hasSpecialAbility(rider, "flahute")
+          ),
+        };
+      }),
   };
   validateSimulationInput(eligibleInput);
   const resolvedRiders = assignAutomaticRaceRoles(
@@ -535,7 +551,8 @@ function simulateRoadStage(
     0.025 +
       selectiveTerrainShare * 0.3 +
       Math.max(0, breakawayQuality - 72) * 0.007 -
-      (likelyMassSprint ? 0.035 : 0),
+      (likelyMassSprint ? 0.035 : 0) +
+      (input.weather?.isWet ? 0.04 : 0),
     0.02,
     0.42
   );
@@ -743,6 +760,7 @@ function simulateRoadStage(
       segment,
       segmentIndex,
       segmentCount: input.segments.length,
+      weather: input.weather ?? getRaceWeather(input.seed),
       random,
     });
     if (incident) {
@@ -1671,12 +1689,14 @@ function maybeCreateRaceIncident({
   segment,
   segmentIndex,
   segmentCount,
+  weather,
   random,
 }: {
   states: Map<string, RiderState>;
   segment: RaceStageSegment;
   segmentIndex: number;
   segmentCount: number;
+  weather: RaceWeather;
   random: () => number;
 }): {
   incident: RaceIncident;
@@ -1699,15 +1719,31 @@ function maybeCreateRaceIncident({
   if (activeStates.length === 0) return null;
 
   const incidentRoll = random();
+  const rainCrashRisk = weather.isWet
+    ? {
+        none: 0,
+        light: 0.012,
+        steady: 0.025,
+        heavy: 0.04,
+      }[weather.rainIntensity]
+    : 0;
   const punctureThreshold =
-    segment.surface === "cobbles" ? 0.105 : 0.065;
+    (segment.surface === "cobbles" ? 0.105 : 0.065) +
+    rainCrashRisk * 0.25;
   const individualCrashThreshold =
-    punctureThreshold + 0.045;
+    punctureThreshold + 0.045 + rainCrashRisk;
   const massCrashThreshold =
-    individualCrashThreshold + 0.028;
+    individualCrashThreshold + 0.028 + rainCrashRisk * 0.55;
+  const crosswindRisk =
+    weather.windDirection === "crosswind"
+      ? 0.03 + Math.max(0, weather.windSpeedKph - 16) * 0.0025
+      : 0;
   const crosswindThreshold =
     massCrashThreshold +
-    (segment.terrain === "flat" ? 0.065 : 0.018);
+    (segment.terrain === "flat" ? 0.065 : 0.018) +
+    (segment.terrain === "flat"
+      ? crosswindRisk
+      : crosswindRisk * 0.35);
 
   let type: RaceIncidentType;
   if (incidentRoll < punctureThreshold) {
@@ -2711,16 +2747,21 @@ function buildRoadSnapshot({
 export function accumulateRaceGroupGapsFromLeader(
   groups: RaceGroupSnapshot[]
 ): RaceGroupSnapshot[] {
-  let cumulativeGapSeconds = 0;
+  let previousGapSeconds = 0;
 
   return groups.map((group, index) => {
-    if (index > 0) {
-      cumulativeGapSeconds += Math.max(0, group.gapToLeaderSeconds);
-    }
+    const gapToLeaderSeconds =
+      index === 0
+        ? 0
+        : Math.max(
+            previousGapSeconds,
+            Math.max(0, group.gapToLeaderSeconds)
+          );
+    previousGapSeconds = gapToLeaderSeconds;
 
     return {
       ...group,
-      gapToLeaderSeconds: index === 0 ? 0 : cumulativeGapSeconds,
+      gapToLeaderSeconds,
     };
   });
 }

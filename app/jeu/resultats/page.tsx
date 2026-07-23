@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
-import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
-import { RaceResultsDirectory } from "@/components/game/race-results-directory";
+import { RaceLiveDirectory } from "@/components/game/race-live-directory";
+import Link from "@/components/ui/app-link";
+import { selectRaceStageForLiveAccess } from "@/lib/game/race-live";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
-import {
-  getActiveSeasonRaceCalendar,
-  settleFinishedRaceConditions,
-} from "@/services/race-calendar";
-import {
-  getOfficialRaceResults,
-  settleFinishedRaceResults,
-} from "@/services/race-results";
+import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
   description:
-    "Testez le premier moteur de simulation de courses de Cyclostratège.",
+    "Rejoignez les directs et les replays de Cyclostratège.",
 };
 
 type RaceResultsPageProps = {
@@ -31,7 +25,9 @@ export default async function RaceResultsPage({
   searchParams,
 }: RaceResultsPageProps) {
   const resolvedSearchParams = await searchParams;
-  const initialRaceSlug = readSingleSearchParam(resolvedSearchParams.course);
+  const initialRaceSlug = readSingleSearchParam(
+    resolvedSearchParams.course
+  );
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -43,33 +39,38 @@ export default async function RaceResultsPage({
   }
 
   const now = new Date();
-  await settleFinishedRaceConditions(supabase);
-
   const [headerData, calendarResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase, now)
+    getActiveSeasonRaceCalendar(supabase, now, {
+      includeEngagedRiders: false,
+    })
       .then((calendar) => ({ calendar, error: null }))
-      .catch((error: unknown) => ({ calendar: null, error })),
+      .catch((error: unknown) => ({
+        calendar: null,
+        error,
+      })),
   ]);
 
-  let officialResults = {};
-  if (calendarResult.calendar) {
-    try {
-      await settleFinishedRaceResults(calendarResult.calendar, now);
-      await settleFinishedRaceConditions(supabase);
-    } catch (error) {
-      console.error("Impossible de consolider les résultats officiels :", error);
-    }
-
-    try {
-      officialResults = await getOfficialRaceResults(calendarResult.calendar);
-    } catch (error) {
-      console.error("Impossible de lire les résultats officiels :", error);
-    }
+  if (calendarResult.error) {
+    console.error(
+      "Impossible de charger le calendrier pour Résultats / Live :",
+      calendarResult.error
+    );
   }
 
-  if (calendarResult.error) {
-    console.error("Impossible de charger le calendrier pour Résultats / Live :", calendarResult.error);
+  if (initialRaceSlug && calendarResult.calendar) {
+    const edition = calendarResult.calendar.editions.find(
+      (candidate) => candidate.slug === initialRaceSlug
+    );
+    const stage = edition
+      ? selectRaceStageForLiveAccess(edition.stages, now)
+      : null;
+
+    if (edition && stage) {
+      redirect(
+        `/jeu/resultats/${edition.slug}/${stage.stageNumber}`
+      );
+    }
   }
 
   return (
@@ -77,7 +78,9 @@ export default async function RaceResultsPage({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
+        sponsor={
+          headerData.teamSponsorIdentity?.sponsor ?? null
+        }
         maxWidth="wide"
       />
 
@@ -91,7 +94,7 @@ export default async function RaceResultsPage({
               Vivez chaque course de la saison.
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-[#48665F]">
-              Filtrez le calendrier, rejoignez les directs de 14 h et 18 h ou revivez une course terminée. Le profil, les groupes, les écarts et le classement partagent désormais les mêmes données.
+              Le répertoire reste léger : le moteur de course, la startlist, les résultats et le chat ne sont chargés qu’après l’ouverture d’une épreuve.
             </p>
           </header>
 
@@ -105,11 +108,9 @@ export default async function RaceResultsPage({
 
         <div className="mt-8">
           {calendarResult.calendar ? (
-            <RaceResultsDirectory
+            <RaceLiveDirectory
               calendar={calendarResult.calendar}
               nowIso={now.toISOString()}
-              officialResults={officialResults}
-              initialRaceSlug={initialRaceSlug}
             />
           ) : (
             <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-8 text-center font-bold text-red-900">
@@ -122,6 +123,10 @@ export default async function RaceResultsPage({
   );
 }
 
-function readSingleSearchParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+function readSingleSearchParam(
+  value: string | string[] | undefined
+) {
+  return Array.isArray(value)
+    ? value[0] ?? null
+    : value ?? null;
 }

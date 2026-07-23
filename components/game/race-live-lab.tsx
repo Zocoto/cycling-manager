@@ -8,6 +8,10 @@ import {
   RaceSceneryBackdrop,
 } from "@/components/game/race-scenery";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
+import {
+  RaceWeatherBadge,
+  RaceWeatherOverlay,
+} from "@/components/game/race-weather-overlay";
 import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-calendar";
 import {
   getFinalReplayMeters,
@@ -36,6 +40,10 @@ import {
   getRaceSceneryKind,
   shouldShowRaceSpectators,
 } from "@/lib/game/race-visuals";
+import {
+  getRaceWeather,
+  type RaceWeather,
+} from "@/lib/game/race-weather";
 
 type LabTab = "live" | "classification" | "rules";
 type PlaybackSpeed = 1 | 2 | 4;
@@ -107,6 +115,8 @@ export function RaceLiveLab({
       tourStandings: buildStageRaceStandings(stageResults),
     };
   }, [edition, stage]);
+  const raceWeather =
+    input.weather ?? getRaceWeather(`${edition.id}:${stage.id}:weather`);
   const [activeIndex, setActiveIndex] = useState(0);
   const [replaySegmentProgress, setReplaySegmentProgress] = useState(0);
   const replaySegmentProgressRef = useRef(0);
@@ -282,6 +292,7 @@ export function RaceLiveLab({
             <span className="rounded-full border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[#E9D98B]">
               Startlist officielle · {input.riders.length} engagés · {new Set(input.riders.map((rider) => rider.teamId)).size} équipe{new Set(input.riders.map((rider) => rider.teamId)).size > 1 ? "s" : ""}
             </span>
+            <RaceWeatherBadge weather={raceWeather} />
             {mode === "replay" ? (
             <button
               type="button"
@@ -312,7 +323,7 @@ export function RaceLiveLab({
       </nav>
 
       {tab === "live" ? (
-        <div className="p-5 sm:p-8">
+        <div className="p-3 sm:p-6 xl:p-8">
           <RaceStageProfile
             segments={input.segments}
             activeSegmentNumber={activeSegment.segmentNumber}
@@ -380,6 +391,7 @@ export function RaceLiveLab({
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
               scenario={finalBattleScenario}
+              weather={raceWeather}
             />
           ) : isFinal && isRoad ? (
             <FinishBattleView
@@ -390,6 +402,7 @@ export function RaceLiveLab({
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
               scenario={finalBattleScenario}
+              weather={raceWeather}
             />
           ) : (
             <RoadScene
@@ -401,6 +414,7 @@ export function RaceLiveLab({
               primeResult={activePrimeResult}
               previousPrimeResult={previousPrimeResult}
               visualSeed={simulation.seed}
+              weather={raceWeather}
             />
           )}
 
@@ -491,16 +505,16 @@ function RaceVisualViewport({
 }) {
   return (
     <div className="mt-6">
-      <p className="mb-2 text-right text-[10px] font-bold text-[#8FA99D] sm:hidden">
+      <p className="mb-2 text-right text-[10px] font-bold text-[#8FA99D] lg:hidden">
         Glissez horizontalement pour suivre la course
       </p>
       <div
         dir="rtl"
         role="region"
         aria-label="Visualisation de la course, défilement horizontal sur téléphone"
-        className="-mx-5 overflow-x-auto px-5 pb-1 sm:mx-0 sm:overflow-visible sm:px-0"
+        className="-mx-3 overflow-x-auto px-3 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0"
       >
-        <div dir="ltr" className={`relative min-w-[44rem] overflow-hidden sm:min-w-0 ${className}`}>
+        <div dir="ltr" className={`relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}>
           {children}
         </div>
       </div>
@@ -517,6 +531,7 @@ function RoadScene({
   primeResult,
   previousPrimeResult,
   visualSeed,
+  weather,
 }: {
   snapshot: ReturnType<typeof simulateRaceStage>["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
@@ -526,6 +541,7 @@ function RoadScene({
   primeResult: RacePrimeResult | null;
   previousPrimeResult: RacePrimeResult | null;
   visualSeed: string | number;
+  weather: RaceWeather;
 }) {
   const groups = snapshot.groups.slice(0, 6);
   const visualGradient = Math.max(
@@ -534,7 +550,11 @@ function RoadScene({
   );
   const roadLeftPct = 64 + visualGradient * 1.25;
   const roadRightPct = 64 - visualGradient * 1.25;
-  const scenery = getRaceSceneryKind({ seed: visualSeed, segment });
+  const scenery = getRaceSceneryKind({
+    seed: visualSeed,
+    segment,
+    isStart: segment.segmentNumber === 1,
+  });
   const showSpectators = shouldShowRaceSpectators({
     seed: visualSeed,
     segmentNumber: segment.segmentNumber,
@@ -601,6 +621,7 @@ function RoadScene({
           vectorEffect="non-scaling-stroke"
         />
       </svg>
+      <RaceWeatherOverlay weather={weather} />
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
         {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {segment.surface === "cobbles" ? "secteur pavé · " : ""}{formatDistance(snapshot.completedDistanceKm)} km
       </p>
@@ -1050,6 +1071,7 @@ function SprintLaneView({
   metersRemaining,
   finalSegmentMeters,
   scenario,
+  weather,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
@@ -1057,6 +1079,7 @@ function SprintLaneView({
   metersRemaining: number;
   finalSegmentMeters: number;
   scenario: ReturnType<typeof getFinalBattleScenario>;
+  weather: RaceWeather;
 }) {
   const battleRiderIds = scenario.contenderIds;
   const battleRiderSet = new Set(battleRiderIds);
@@ -1103,6 +1126,7 @@ function SprintLaneView({
     <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
       <RoadTextureOverlay surface={segment.surface} />
       <FinishRoadsideInfrastructure mode="top" />
+      <RaceWeatherOverlay weather={weather} />
       <div
         aria-hidden="true"
         className={`absolute inset-y-0 left-[84%] z-10 w-3 bg-[repeating-linear-gradient(0deg,#fff_0_8px,#17261E_8px_16px)] shadow-[0_0_24px_rgba(255,255,255,0.45)] transition-opacity duration-300 ${showFinishLine ? "opacity-100" : "opacity-0"}`}
@@ -1209,6 +1233,7 @@ function FinishBattleView({
   metersRemaining,
   finalSegmentMeters,
   scenario,
+  weather,
 }: {
   simulation: ReturnType<typeof simulateRaceStage>;
   riderById: Map<string, RiderSimulationInput>;
@@ -1217,6 +1242,7 @@ function FinishBattleView({
   metersRemaining: number;
   finalSegmentMeters: number;
   scenario: ReturnType<typeof getFinalBattleScenario>;
+  weather: RaceWeather;
 }) {
   const battleRiderIds = scenario.contenderIds;
   const battleRiderSet = new Set(battleRiderIds);
@@ -1349,6 +1375,7 @@ function FinishBattleView({
           className="cm-finish-road-line"
         />
       </svg>
+      <RaceWeatherOverlay weather={weather} />
       <FinishRoadsideInfrastructure mode="side" roadLeftY={roadLeftY} roadRightY={roadRightY} />
       <div
         aria-hidden="true"

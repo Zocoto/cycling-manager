@@ -23,6 +23,7 @@ export type TeamKitPattern = (typeof TEAM_KIT_PATTERNS)[number];
 export function getRaceSceneryKind({
   seed,
   segment,
+  isStart = false,
   isFinish = false,
 }: {
   seed: string | number;
@@ -30,32 +31,39 @@ export function getRaceSceneryKind({
     RaceStageSegment,
     "segmentNumber" | "terrain" | "surface"
   >;
+  isStart?: boolean;
   isFinish?: boolean;
 }): RaceSceneryKind {
   const seedNumber = stableVisualHash(String(seed));
 
-  if (isFinish) {
-    return seedNumber % 3 === 0 ? "village" : "urban";
+  if (isStart || isFinish) {
+    return "urban";
   }
 
-  const rotatedIndex =
-    (Math.max(1, segment.segmentNumber) - 1 +
-      seedNumber % RACE_SCENERY_KINDS.length) %
-    RACE_SCENERY_KINDS.length;
-  const candidate = RACE_SCENERY_KINDS[rotatedIndex];
+  const sceneryThemes = [
+    ["forest", "meadow"],
+    ["fields", "meadow"],
+    ["coast", "village"],
+    ["fields", "village"],
+  ] as const satisfies ReadonlyArray<
+    readonly [RaceSceneryKind, RaceSceneryKind]
+  >;
+  const theme = sceneryThemes[seedNumber % sceneryThemes.length];
+  const candidate =
+    theme[
+      (Math.max(2, segment.segmentNumber) +
+        ((seedNumber >>> 4) % 2)) %
+        theme.length
+    ];
 
   if (segment.surface === "cobbles") {
-    return (["village", "fields", "forest"] as const)[
-      (segment.segmentNumber + seedNumber) % 3
-    ];
+    return theme[1] === "village"
+      ? "village"
+      : theme[0];
   }
 
-  if (segment.terrain === "climb" && ["coast", "urban", "fields"].includes(candidate)) {
-    return segment.segmentNumber % 2 === 0 ? "forest" : "meadow";
-  }
-
-  if (segment.terrain === "descent" && candidate === "urban") {
-    return seedNumber % 2 === 0 ? "forest" : "coast";
+  if (segment.terrain === "climb" && candidate === "coast") {
+    return theme[1];
   }
 
   return candidate;

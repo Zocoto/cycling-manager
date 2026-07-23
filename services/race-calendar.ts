@@ -177,6 +177,16 @@ type CalendarEngagedRiderRow = {
   prologue: number;
 };
 
+type CalendarEngagedCountRow = {
+  race_edition_id: string;
+  engaged_rider_count: number;
+};
+
+type ActiveSeasonCalendarLoadOptions = {
+  raceSlug?: string;
+  includeEngagedRiders?: boolean;
+};
+
 type RiderCountryRow = {
   id: string;
   country_id: string;
@@ -350,7 +360,8 @@ export async function settleFinishedRaceConditions(
 
 export async function getActiveSeasonRaceCalendar(
   supabase: SupabaseServerClient,
-  now = new Date()
+  now = new Date(),
+  options: ActiveSeasonCalendarLoadOptions = {}
 ): Promise<SeasonRaceCalendar | null> {
   const {
     data: season,
@@ -380,11 +391,53 @@ export async function getActiveSeasonRaceCalendar(
     return null;
   }
 
+  const scopedRaceResult = options.raceSlug
+    ? await supabase
+        .from("races")
+        .select("id")
+        .eq("slug", options.raceSlug)
+        .maybeSingle<{ id: string }>()
+    : null;
+
+  if (scopedRaceResult?.error) {
+    throw new Error(
+      `Impossible de charger la course demandée : ${scopedRaceResult.error.message}`
+    );
+  }
+
+  if (options.raceSlug && !scopedRaceResult?.data) {
+    return null;
+  }
+
+  let editionsQuery = supabase
+    .from("race_editions")
+    .select(
+      `
+        id,
+        race_id,
+        race_category_id,
+        display_name,
+        status,
+        registration_closes_at,
+        withdrawal_closes_at,
+        minimum_reputation,
+        registration_policy
+      `
+    )
+    .eq("season_id", season.id)
+    .neq("status", "cancelled");
+
+  if (scopedRaceResult?.data) {
+    editionsQuery = editionsQuery.eq(
+      "race_id",
+      scopedRaceResult.data.id
+    );
+  }
+
   const [
     daysResult,
     editionsResult,
     registrationsResult,
-    engagedRidersResult,
   ] =
     await Promise.all([
       supabase
@@ -398,30 +451,11 @@ export async function getActiveSeasonRaceCalendar(
         })
         .returns<SeasonDayRow[]>(),
 
-      supabase
-        .from("race_editions")
-        .select(
-          `
-            id,
-            race_id,
-            race_category_id,
-            display_name,
-            status,
-            registration_closes_at,
-            withdrawal_closes_at,
-            minimum_reputation,
-            registration_policy
-          `
-        )
-        .eq("season_id", season.id)
-        .neq("status", "cancelled")
-        .returns<RaceEditionRow[]>(),
+      editionsQuery.returns<RaceEditionRow[]>(),
 
       supabase.rpc(
         "get_current_team_calendar_registrations"
       ),
-
-      supabase.rpc("get_active_calendar_engaged_riders"),
     ]);
 
   if (daysResult.error) {
@@ -442,14 +476,45 @@ export async function getActiveSeasonRaceCalendar(
     );
   }
 
-  if (engagedRidersResult.error) {
+  const editionRows = editionsResult.data ?? [];
+  const editionIds = editionRows.map(
+    (edition) => edition.id
+  );
+  const includeEngagedRiders =
+    options.includeEngagedRiders !== false;
+  const engagedRidersResult = includeEngagedRiders
+    ? scopedRaceResult?.data && editionIds.length === 1
+      ? await supabase.rpc("get_race_edition_engaged_riders", {
+          p_race_edition_id: editionIds[0],
+        })
+      : await supabase.rpc("get_active_calendar_engaged_riders")
+    : null;
+  const engagedCountsResult = includeEngagedRiders
+    ? null
+    : await supabase.rpc("get_active_calendar_engaged_counts");
+
+  if (engagedRidersResult?.error) {
     throw new Error(
       `Impossible de charger les coureurs engagés : ${engagedRidersResult.error.message}`
     );
   }
 
+  if (engagedCountsResult?.error) {
+    throw new Error(
+      `Impossible de charger le nombre de coureurs engagés : ${engagedCountsResult.error.message}`
+    );
+  }
+
   const engagedRiderRows =
-    (engagedRidersResult.data as CalendarEngagedRiderRow[] | null) ?? [];
+    (engagedRidersResult?.data as CalendarEngagedRiderRow[] | null) ?? [];
+  const engagedCountByEditionId = new Map(
+    (
+      (engagedCountsResult?.data as CalendarEngagedCountRow[] | null) ?? []
+    ).map((row) => [
+      row.race_edition_id,
+      row.engaged_rider_count,
+    ])
+  );
   const engagedRiderIds = unique(
     engagedRiderRows.map((rider) => rider.rider_id)
   );
@@ -483,12 +548,7 @@ export async function getActiveSeasonRaceCalendar(
   );
 
   const dayRows = daysResult.data ?? [];
-  const editionRows =
-    editionsResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
-  const editionIds = editionRows.map(
-    (edition) => edition.id
-  );
   const raceIds = unique(
     editionRows.map((edition) => edition.race_id)
   );
@@ -708,7 +768,9 @@ export async function getActiveSeasonRaceCalendar(
             ? category.maximum_roster_size ?? 1
             : 200,
         engagedRiderCount:
-          engagedRidersByEditionId.get(edition.id)?.length ?? 0,
+          engagedCountByEditionId.get(edition.id) ??
+          engagedRidersByEditionId.get(edition.id)?.length ??
+          0,
         engagedRiders:
           engagedRidersByEditionId.get(edition.id) ?? [],
         currentTeamRegistration: registrationByEditionId.has(

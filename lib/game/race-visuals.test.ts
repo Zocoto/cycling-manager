@@ -9,7 +9,7 @@ import {
 } from "./race-visuals";
 
 describe("race visual helpers", () => {
-  it("cycles through every scenery kind on a long flat course", () => {
+  it("keeps one coherent scenery family between an urban start and finish", () => {
     const scenery = new Set(
       Array.from({ length: 12 }, (_, index) =>
         getRaceSceneryKind({
@@ -19,11 +19,18 @@ describe("race visual helpers", () => {
             terrain: "flat",
             surface: "asphalt",
           },
+          isStart: index === 0,
+          isFinish: index === 11,
         })
       )
     );
+    const middleScenery = [...scenery].filter(
+      (kind) => kind !== "urban"
+    );
 
-    expect(scenery).toEqual(new Set(RACE_SCENERY_KINDS));
+    expect(scenery).toContain("urban");
+    expect(middleScenery.length).toBeLessThanOrEqual(2);
+    expect(middleScenery.every((kind) => RACE_SCENERY_KINDS.includes(kind))).toBe(true);
   });
 
   it("uses plausible roadside environments for cobbled sectors and finishes", () => {
@@ -37,8 +44,8 @@ describe("race visual helpers", () => {
       isFinish: true,
     });
 
-    expect(["village", "fields", "forest"]).toContain(cobbled);
-    expect(["village", "urban"]).toContain(finish);
+    expect(["village", "fields", "forest", "meadow"]).toContain(cobbled);
+    expect(finish).toBe("urban");
     expect(
       shouldShowRaceSpectators({
         seed: "finish",
