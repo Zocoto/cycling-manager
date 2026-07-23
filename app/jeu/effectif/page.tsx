@@ -17,7 +17,6 @@ import {
   type RiderJerseyAppearance,
 } from "../../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
-import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import {
   getTeamAmateurIdentityForAuthUser,
   type TeamAmateurIdentity,
@@ -209,60 +208,62 @@ export default async function TeamRosterPage({
     redirect("/connexion");
   }
 
-  const [teamSummaryResult, rosterResult] =
-    await Promise.all([
+  const sponsorIdentityPromise: Promise<{
+    identity: TeamSponsorIdentity | null;
+    error: string | null;
+  }> = getActiveTeamSponsorIdentityForAuthUser(user.id)
+    .then((identity) => ({ identity, error: null }))
+    .catch((error: unknown) => {
+      console.error(
+        "Impossible de récupérer l’identité commerciale de l’équipe :",
+        error
+      );
+
+      return {
+        identity: null,
+        error: getErrorMessage(error),
+      };
+    });
+
+  const [
+    teamSummaryResult,
+    rosterResult,
+    sponsorIdentityResult,
+    teamAmateurIdentity,
+    teamDivision,
+    healthOverview,
+  ] = await Promise.all([
       supabase
         .rpc("get_current_team_dashboard_summary")
         .maybeSingle<CurrentTeamDashboardSummary>(),
 
-      supabase.rpc("get_current_team_roster"),
+      supabase.rpc("get_current_team_roster_with_potential"),
+      sponsorIdentityPromise,
+      getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
+        console.error(
+          "Impossible de récupérer l’identité amateur de l’équipe :",
+          error
+        );
+        return null;
+      }),
+      getCurrentTeamDivisionForAuthUser(user.id).catch((error: unknown) => {
+        console.error(
+          "Impossible de récupérer la division de l’équipe :",
+          error
+        );
+        return null;
+      }),
+      getCurrentTeamHealthOverview(user.id).catch((error: unknown) => {
+        console.error(
+          "Impossible de récupérer les indisponibilités médicales :",
+          error
+        );
+        return null;
+      }),
     ]);
 
-  let teamSponsorIdentity:
-    TeamSponsorIdentity | null = null;
-
-  let teamSponsorIdentityError:
-    string | null = null;
-
-  try {
-    teamSponsorIdentity =
-      await getActiveTeamSponsorIdentityForAuthUser(
-        user.id
-      );
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer l’identité commerciale de l’équipe :",
-      error
-    );
-
-    teamSponsorIdentityError =
-      getErrorMessage(error);
-  }
-
-  let teamAmateurIdentity: TeamAmateurIdentity | null = null;
-
-  try {
-    teamAmateurIdentity =
-      await getTeamAmateurIdentityForAuthUser(user.id);
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer l’identité amateur de l’équipe :",
-      error
-    );
-  }
-
-  const teamDivision = await getCurrentTeamDivisionForAuthUser(user.id).catch(
-    (error: unknown) => {
-      console.error("Impossible de récupérer la division de l’équipe :", error);
-      return null;
-    }
-  );
-  const healthOverview = await getCurrentTeamHealthOverview(user.id).catch(
-    (error: unknown) => {
-      console.error("Impossible de récupérer les indisponibilités médicales :", error);
-      return null;
-    }
-  );
+  const teamSponsorIdentity = sponsorIdentityResult.identity;
+  const teamSponsorIdentityError = sponsorIdentityResult.error;
   const healthByRiderId = new Map(
     (healthOverview?.riders ?? []).map((rider) => [
       rider.id,
@@ -300,31 +301,7 @@ export default async function TeamRosterPage({
     (teamSummaryResult.data ??
       null) as CurrentTeamDashboardSummary | null;
 
-  const rawRiders = (rosterResult.data ?? []) as Omit<
-    RiderRow,
-    "potential_steps"
-  >[];
-  const potentialResult = rawRiders.length
-    ? await createSupabaseAdminClient()
-        .from("riders")
-        .select("id, potential_steps")
-        .in(
-          "id",
-          rawRiders.map((rider) => rider.rider_id),
-        )
-        .returns<Array<{ id: string; potential_steps: number }>>()
-    : { data: [] as Array<{ id: string; potential_steps: number }>, error: null };
-
-  if (potentialResult.error) {
-    console.error("Impossible de récupérer le potentiel des coureurs :", potentialResult.error);
-  }
-  const potentialByRiderId = new Map(
-    (potentialResult.data ?? []).map((rider) => [rider.id, rider.potential_steps]),
-  );
-  const riders: RiderRow[] = rawRiders.map((rider) => ({
-    ...rider,
-    potential_steps: potentialByRiderId.get(rider.rider_id) ?? 1,
-  }));
+  const riders = (rosterResult.data ?? []) as RiderRow[];
   const sortedRiders = currentSortKey
     ? sortRosterItems({
         items: riders,

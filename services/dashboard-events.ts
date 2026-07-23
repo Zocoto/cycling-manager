@@ -129,7 +129,12 @@ export async function getCurrentDashboardOperationalEvents({
     admin.rpc("settle_due_training_sessions"),
     admin.rpc("settle_due_infrastructure_projects"),
     getYouthDevelopmentAlertCount(authUserId),
-    getCurrentDirectorInternationalSelections({ authUserId }),
+    [21, 22, 25, 26].includes(currentDayNumber)
+      ? getCurrentDirectorInternationalSelections({
+          authUserId,
+          processDue: false,
+        })
+      : Promise.resolve([] as InternationalChampionshipSelection[]),
   ]);
 
   assertQuery(

@@ -53,26 +53,55 @@ export type RiderHairStyle =
 export type RiderEyeStyle =
   | "almond"
   | "deep"
+  | "downturned"
   | "hooded"
+  | "monolid"
   | "narrow"
+  | "prominent"
   | "round"
-  | "soft";
+  | "soft"
+  | "upturned";
 
 export type RiderNoseStyle =
   | "angular"
+  | "aquiline"
   | "broad"
+  | "button"
   | "compact"
+  | "long"
   | "rounded"
+  | "snub"
   | "straight"
   | "tapered";
 
 export type RiderMouthStyle =
   | "balanced"
+  | "bowed"
   | "defined"
+  | "downturned"
+  | "flat"
   | "full"
   | "narrow"
+  | "smile"
   | "soft"
   | "wide";
+
+export type RiderEarStyle =
+  | "angular"
+  | "attached"
+  | "prominent"
+  | "rounded"
+  | "small"
+  | "tapered";
+
+export type RiderFaceShape =
+  | "angular"
+  | "diamond"
+  | "heart"
+  | "long"
+  | "oval"
+  | "round"
+  | "square";
 
 export type RiderFacialHairStyle =
   | "clean"
@@ -116,6 +145,8 @@ export type RiderAvatarDesign = {
   eyeStyle: RiderEyeStyle;
   noseStyle: RiderNoseStyle;
   mouthStyle: RiderMouthStyle;
+  earStyle: RiderEarStyle;
+  faceShape: RiderFaceShape;
   facialHairStyle: RiderFacialHairStyle;
   faceMark: RiderFaceMark;
   faceWidth: number;
@@ -134,6 +165,7 @@ export type RiderAvatarDesign = {
   noseLength: number;
   mouthWidth: number;
   mouthCurve: number;
+  mouthYOffset: number;
   earHeight: number;
   earWidth: number;
   neckWidth: number;
@@ -359,16 +391,16 @@ const BALANCED_EYES: readonly RiderEyeStyle[] = [
   "round",
   "hooded",
   "narrow",
-  "soft",
-  "deep",
+  "upturned",
+  "downturned",
+  "monolid",
+  "prominent",
   "almond",
   "round",
   "hooded",
   "soft",
   "deep",
-  "almond",
-  "round",
-  "narrow",
+  "upturned",
 ] as const;
 
 const EAST_ASIAN_EYES: readonly RiderEyeStyle[] = [
@@ -376,17 +408,17 @@ const EAST_ASIAN_EYES: readonly RiderEyeStyle[] = [
   "hooded",
   "narrow",
   "soft",
-  "almond",
-  "hooded",
+  "monolid",
+  "upturned",
   "deep",
-  "narrow",
+  "downturned",
   "almond",
   "soft",
   "hooded",
-  "round",
+  "prominent",
   "narrow",
-  "almond",
-  "soft",
+  "monolid",
+  "round",
   "deep",
 ] as const;
 
@@ -397,10 +429,10 @@ const BALANCED_NOSES: readonly RiderNoseStyle[] = [
   "compact",
   "angular",
   "broad",
-  "straight",
-  "rounded",
-  "compact",
-  "tapered",
+  "aquiline",
+  "button",
+  "long",
+  "snub",
   "broad",
   "angular",
   "straight",
@@ -414,11 +446,11 @@ const BROADER_NOSES: readonly RiderNoseStyle[] = [
   "rounded",
   "compact",
   "straight",
-  "broad",
-  "rounded",
+  "button",
+  "snub",
   "angular",
-  "compact",
-  "straight",
+  "aquiline",
+  "long",
   "broad",
   "tapered",
   "rounded",
@@ -435,10 +467,10 @@ const BALANCED_MOUTHS: readonly RiderMouthStyle[] = [
   "wide",
   "full",
   "narrow",
-  "balanced",
-  "soft",
-  "defined",
-  "full",
+  "bowed",
+  "flat",
+  "smile",
+  "downturned",
   "wide",
   "balanced",
   "narrow",
@@ -446,6 +478,126 @@ const BALANCED_MOUTHS: readonly RiderMouthStyle[] = [
   "defined",
   "full",
 ] as const;
+
+const FACE_SHAPES: readonly RiderFaceShape[] = [
+  "oval",
+  "angular",
+  "round",
+  "square",
+  "diamond",
+  "long",
+  "heart",
+  "oval",
+  "angular",
+  "round",
+  "square",
+  "oval",
+  "diamond",
+  "long",
+  "heart",
+  "oval",
+] as const;
+
+const EAR_STYLES: readonly RiderEarStyle[] = [
+  "rounded",
+  "attached",
+  "small",
+  "angular",
+  "prominent",
+  "tapered",
+  "rounded",
+  "attached",
+  "small",
+  "rounded",
+  "prominent",
+  "angular",
+  "attached",
+  "tapered",
+  "rounded",
+  "small",
+] as const;
+
+const FACE_SHAPE_GEOMETRY: Record<
+  RiderFaceShape,
+  {
+    faceWidth: number;
+    faceHeight: number;
+    jawWidth: number;
+    foreheadWidth: number;
+    cheekboneWidth: number;
+    chinWidth: number;
+  }
+> = {
+  angular: {
+    faceWidth: 0.2,
+    faceHeight: 0.5,
+    jawWidth: 1,
+    foreheadWidth: 0,
+    cheekboneWidth: 0.8,
+    chinWidth: -1.2,
+  },
+  diamond: {
+    faceWidth: 0,
+    faceHeight: 0.4,
+    jawWidth: -0.8,
+    foreheadWidth: -1,
+    cheekboneWidth: 2.6,
+    chinWidth: -0.3,
+  },
+  heart: {
+    faceWidth: 0.3,
+    faceHeight: 0,
+    jawWidth: -1.8,
+    foreheadWidth: 2,
+    cheekboneWidth: 1,
+    chinWidth: -1,
+  },
+  long: {
+    faceWidth: -0.6,
+    faceHeight: 3,
+    jawWidth: -0.5,
+    foreheadWidth: -0.5,
+    cheekboneWidth: -0.4,
+    chinWidth: -0.2,
+  },
+  oval: {
+    faceWidth: 0,
+    faceHeight: 0,
+    jawWidth: 0,
+    foreheadWidth: 0,
+    cheekboneWidth: 0,
+    chinWidth: 0,
+  },
+  round: {
+    faceWidth: 1.4,
+    faceHeight: -1.6,
+    jawWidth: 1.4,
+    foreheadWidth: 0.5,
+    cheekboneWidth: 1.2,
+    chinWidth: 1.4,
+  },
+  square: {
+    faceWidth: 1,
+    faceHeight: -0.7,
+    jawWidth: 3,
+    foreheadWidth: 1,
+    cheekboneWidth: 1,
+    chinWidth: 2.3,
+  },
+};
+
+const NOSE_LENGTH_FACTORS: Record<RiderNoseStyle, number> = {
+  angular: 1,
+  aquiline: 1.06,
+  broad: 0.98,
+  button: 0.76,
+  compact: 0.88,
+  long: 1.14,
+  rounded: 0.96,
+  snub: 0.82,
+  straight: 1,
+  tapered: 1.02,
+};
 
 function createProfile({
   group,
@@ -715,6 +867,7 @@ export function createRiderAvatarDesign({
   const browHeightStep = primary.take(9);
   const eyeYStep = primary.take(7);
   const asymmetryStep = primary.take(7);
+  const mouthYStep = primary.take(7);
 
   const geometrySignature = [
     faceWidthStep,
@@ -736,11 +889,22 @@ export function createRiderAvatarDesign({
     browHeightStep,
     eyeYStep,
     asymmetryStep,
+    mouthYStep,
   ].join("-");
 
   const skinTone = pick(profile.skinTones, details.take(8));
   const hairColor = pick(profile.hairColors, details.take(8));
   const eyeColor = pick(profile.eyeColors, details.take(8));
+  const backgroundColor = pick(BACKGROUNDS, details.take(8));
+  const hairStyle = pick(profile.hairStyles, details.take(16));
+  const eyeStyle = pick(profile.eyeStyles, details.take(16));
+  const noseStyle = pick(profile.noseStyles, details.take(16));
+  const mouthStyle = pick(profile.mouthStyles, details.take(16));
+  const facialHairStyle = pick(FACIAL_HAIR_STYLES, details.take(16));
+  const faceMark = pick(FACE_MARKS, details.take(16));
+  const faceShape = pick(FACE_SHAPES, details.take(16));
+  const earStyle = pick(EAR_STYLES, details.take(16));
+  const shapeGeometry = FACE_SHAPE_GEOMETRY[faceShape];
 
   return {
     profileKey: normalizedProfileKey,
@@ -752,22 +916,23 @@ export function createRiderAvatarDesign({
     hairColor,
     hairHighlight: shiftHexColor(hairColor, 24),
     eyeColor,
-    backgroundColor: pick(BACKGROUNDS, details.take(8)),
-    hairStyle: pick(profile.hairStyles, details.take(16)),
-    eyeStyle: pick(profile.eyeStyles, details.take(16)),
-    noseStyle: pick(profile.noseStyles, details.take(16)),
-    mouthStyle: pick(profile.mouthStyles, details.take(16)),
-    facialHairStyle: pick(
-      FACIAL_HAIR_STYLES,
-      details.take(16)
-    ),
-    faceMark: pick(FACE_MARKS, details.take(16)),
-    faceWidth: 31 + faceWidthStep * 0.38,
-    faceHeight: 42 + faceHeightStep * 0.32,
-    jawWidth: 18 + jawWidthStep * 0.42,
-    foreheadWidth: 25 + foreheadWidthStep * 0.46,
-    cheekboneWidth: 25 + cheekboneWidthStep * 0.44,
-    chinWidth: 8.5 + chinWidthStep * 0.38,
+    backgroundColor,
+    hairStyle,
+    eyeStyle,
+    noseStyle,
+    mouthStyle,
+    facialHairStyle,
+    faceMark,
+    faceShape,
+    earStyle,
+    faceWidth: 31 + faceWidthStep * 0.38 + shapeGeometry.faceWidth,
+    faceHeight: 42 + faceHeightStep * 0.32 + shapeGeometry.faceHeight,
+    jawWidth: 18 + jawWidthStep * 0.42 + shapeGeometry.jawWidth,
+    foreheadWidth:
+      25 + foreheadWidthStep * 0.46 + shapeGeometry.foreheadWidth,
+    cheekboneWidth:
+      25 + cheekboneWidthStep * 0.44 + shapeGeometry.cheekboneWidth,
+    chinWidth: 8.5 + chinWidthStep * 0.38 + shapeGeometry.chinWidth,
     eyeSpacing: 14.5 + eyeSpacingStep * 0.42,
     eyeWidth: 6.2 + eyeWidthStep * 0.19,
     eyeTilt: -1 + eyeTiltStep * 0.25,
@@ -778,11 +943,45 @@ export function createRiderAvatarDesign({
     noseLength: 8.4 + noseLengthStep * 0.31,
     mouthWidth: 10.5 + mouthWidthStep * 0.33,
     mouthCurve: -1 + mouthCurveStep * 0.25,
+    mouthYOffset: (mouthYStep - 3) * 0.18,
     earHeight: 10 + earHeightStep * 0.32,
     earWidth: 3.8 + earWidthStep * 0.18,
     neckWidth: 14 + neckWidthStep * 0.4,
     ageLineOpacity: clamp((age - 27) / 32, 0, 0.34),
     geometrySignature,
+  };
+}
+
+export type RiderAvatarFeatureLayout = {
+  faceBottom: number;
+  noseTopY: number;
+  noseBaseY: number;
+  noseTipY: number;
+  mouthY: number;
+};
+
+export function getRiderAvatarFeatureLayout(
+  design: RiderAvatarDesign,
+  faceTop = 20
+): RiderAvatarFeatureLayout {
+  const faceBottom = faceTop + design.faceHeight;
+  const noseTopY = design.eyeY + 2.5;
+  const desiredNoseBaseY =
+    noseTopY + design.noseLength * NOSE_LENGTH_FACTORS[design.noseStyle];
+  const noseBaseY = Math.min(desiredNoseBaseY, faceBottom - 11.2);
+  const noseTipY = noseBaseY + 1;
+  const desiredMouthY = faceBottom - 7.1 + design.mouthYOffset;
+  const mouthY = Math.min(
+    faceBottom - 5.8,
+    Math.max(desiredMouthY, noseTipY + 3.1)
+  );
+
+  return {
+    faceBottom,
+    noseTopY,
+    noseBaseY,
+    noseTipY,
+    mouthY,
   };
 }
 

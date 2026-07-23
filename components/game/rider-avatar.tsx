@@ -2,7 +2,9 @@ import { useId, type ReactNode } from "react";
 
 import {
   createRiderAvatarDesign,
+  getRiderAvatarFeatureLayout,
   type RiderAvatarDesign,
+  type RiderAvatarFeatureLayout,
 } from "@/lib/rider-avatar";
 import {
   FREE_AGENT_RIDER_JERSEY,
@@ -38,10 +40,11 @@ export function RiderAvatar({
     age,
   });
   const resolvedJersey = jersey ?? FREE_AGENT_RIDER_JERSEY;
+  const featureLayout = getRiderAvatarFeatureLayout(design);
 
   const centerX = 48;
   const faceTop = 20;
-  const faceBottom = faceTop + design.faceHeight;
+  const faceBottom = featureLayout.faceBottom;
   const foreheadHalfWidth = design.foreheadWidth / 2;
   const cheekboneHalfWidth = design.cheekboneWidth / 2;
   const jawHalfWidth = design.jawWidth / 2;
@@ -110,38 +113,7 @@ export function RiderAvatar({
         strokeLinecap="round"
       />
 
-      <ellipse
-        cx={centerX - design.faceWidth / 2 - design.earWidth / 3}
-        cy={earY}
-        rx={design.earWidth}
-        ry={design.earHeight / 2}
-        fill={design.skinTone}
-        stroke={design.skinShadow}
-        strokeWidth="0.7"
-      />
-      <ellipse
-        cx={centerX + design.faceWidth / 2 + design.earWidth / 3}
-        cy={earY}
-        rx={design.earWidth}
-        ry={design.earHeight / 2}
-        fill={design.skinTone}
-        stroke={design.skinShadow}
-        strokeWidth="0.7"
-      />
-      <path
-        d={`M ${centerX - design.faceWidth / 2 - design.earWidth / 2} ${earY - 1} q ${design.earWidth * 0.8} -2 0 ${design.earHeight * 0.38}`}
-        fill="none"
-        stroke={design.skinShadow}
-        strokeWidth="0.65"
-        opacity="0.65"
-      />
-      <path
-        d={`M ${centerX + design.faceWidth / 2 + design.earWidth / 2} ${earY - 1} q ${-design.earWidth * 0.8} -2 0 ${design.earHeight * 0.38}`}
-        fill="none"
-        stroke={design.skinShadow}
-        strokeWidth="0.65"
-        opacity="0.65"
-      />
+      <Ears design={design} centerX={centerX} y={earY} />
 
       <path
         d={facePath}
@@ -183,10 +155,10 @@ export function RiderAvatar({
         y={rightEyeY}
         direction={1}
       />
-      <Nose design={design} />
+      <Nose design={design} layout={featureLayout} />
       <FaceMarks design={design} />
       <FacialHair design={design} faceBottom={faceBottom} />
-      <Mouth design={design} faceBottom={faceBottom} />
+      <Mouth design={design} layout={featureLayout} />
 
       {design.ageLineOpacity > 0 ? (
         <g
@@ -331,6 +303,90 @@ function JerseyPattern({
           opacity="0.7"
         />
       ) : null}
+    </g>
+  );
+}
+
+function Ears({
+  design,
+  centerX,
+  y,
+}: {
+  design: RiderAvatarDesign;
+  centerX: number;
+  y: number;
+}) {
+  const widthScale: Record<RiderAvatarDesign["earStyle"], number> = {
+    angular: 1,
+    attached: 0.82,
+    prominent: 1.28,
+    rounded: 1,
+    small: 0.72,
+    tapered: 0.9,
+  };
+  const heightScale: Record<RiderAvatarDesign["earStyle"], number> = {
+    angular: 1,
+    attached: 0.92,
+    prominent: 1.08,
+    rounded: 1,
+    small: 0.76,
+    tapered: 1.12,
+  };
+  const placementScale =
+    design.earStyle === "attached"
+      ? 0.08
+      : design.earStyle === "prominent"
+        ? 0.58
+        : 0.34;
+  const width = design.earWidth * widthScale[design.earStyle];
+  const height = design.earHeight * heightScale[design.earStyle];
+
+  return (
+    <g>
+      {([-1, 1] as const).map((direction) => {
+        const earX =
+          centerX +
+          direction * (design.faceWidth / 2 + width * placementScale);
+        const innerX = earX - direction * width * 0.72;
+        const outerX = earX + direction * width;
+
+        return (
+          <g key={direction}>
+            {design.earStyle === "angular" ? (
+              <path
+                d={`M ${innerX} ${y - height * 0.45} L ${outerX} ${y - height * 0.25} L ${outerX - direction * width * 0.08} ${y + height * 0.32} Q ${earX} ${y + height * 0.58} ${innerX} ${y + height * 0.38} Z`}
+                fill={design.skinTone}
+                stroke={design.skinShadow}
+                strokeWidth="0.7"
+              />
+            ) : design.earStyle === "tapered" ? (
+              <path
+                d={`M ${innerX} ${y - height * 0.42} Q ${outerX} ${y - height * 0.3} ${outerX - direction * width * 0.2} ${y + height * 0.08} Q ${earX} ${y + height * 0.62} ${innerX} ${y + height * 0.34} Z`}
+                fill={design.skinTone}
+                stroke={design.skinShadow}
+                strokeWidth="0.7"
+              />
+            ) : (
+              <ellipse
+                cx={earX}
+                cy={y}
+                rx={width}
+                ry={height / 2}
+                fill={design.skinTone}
+                stroke={design.skinShadow}
+                strokeWidth="0.7"
+              />
+            )}
+            <path
+              d={`M ${outerX - direction * width * 0.18} ${y - height * 0.12} q ${-direction * width * 0.76} ${-height * 0.2} ${-direction * width * 0.2} ${height * 0.42}`}
+              fill="none"
+              stroke={design.skinShadow}
+              strokeWidth="0.65"
+              opacity="0.65"
+            />
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -522,22 +578,44 @@ function Eye({
   const heightByStyle: Record<RiderAvatarDesign["eyeStyle"], number> = {
     almond: 2.2,
     deep: 2.05,
+    downturned: 2.15,
     hooded: 1.8,
+    monolid: 1.55,
     narrow: 1.45,
+    prominent: 2.95,
     round: 2.75,
     soft: 2.3,
+    upturned: 2.05,
   };
   const eyeHeight = heightByStyle[design.eyeStyle];
-  const tilt = design.eyeTilt * direction;
+  const styleTilt =
+    design.eyeStyle === "upturned"
+      ? 0.95
+      : design.eyeStyle === "downturned"
+        ? -0.95
+        : 0;
+  const tilt = (design.eyeTilt + styleTilt) * direction;
   const leftX = x - design.eyeWidth / 2;
   const rightX = x + design.eyeWidth / 2;
   const eyePath = `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight} ${rightX} ${y - tilt / 2} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`;
+  const irisScale =
+    design.eyeStyle === "prominent"
+      ? 0.83
+      : design.eyeStyle === "round"
+        ? 0.76
+        : 0.72;
 
   return (
     <g>
-      {design.eyeStyle === "deep" || design.eyeStyle === "hooded" ? (
+      {design.eyeStyle === "deep" ||
+      design.eyeStyle === "hooded" ||
+      design.eyeStyle === "monolid" ? (
         <path
-          d={`M ${leftX - 0.4} ${y - 2.2} Q ${x} ${y - 4} ${rightX + 0.4} ${y - 2.2}`}
+          d={
+            design.eyeStyle === "monolid"
+              ? `M ${leftX - 0.2} ${y - 1.5} Q ${x} ${y - 2.5} ${rightX + 0.2} ${y - 1.5}`
+              : `M ${leftX - 0.4} ${y - 2.2} Q ${x} ${y - 4} ${rightX + 0.4} ${y - 2.2}`
+          }
           fill="none"
           stroke={design.skinShadow}
           strokeWidth="0.65"
@@ -545,41 +623,87 @@ function Eye({
         />
       ) : null}
       <path d={eyePath} fill="#F7F3EA" stroke={design.skinShadow} strokeWidth="0.65" />
-      <circle cx={x} cy={y} r={eyeHeight * 0.72} fill={design.eyeColor} />
+      <circle cx={x} cy={y} r={eyeHeight * irisScale} fill={design.eyeColor} />
       <circle cx={x} cy={y} r={Math.max(0.75, eyeHeight * 0.34)} fill="#171513" />
       <circle cx={x - 0.45} cy={y - 0.55} r="0.38" fill="#FFFFFF" opacity="0.85" />
     </g>
   );
 }
 
-function Nose({ design }: { design: RiderAvatarDesign }) {
+function Nose({
+  design,
+  layout,
+}: {
+  design: RiderAvatarDesign;
+  layout: RiderAvatarFeatureLayout;
+}) {
   const centerX = 48;
-  const topY = design.eyeY + 2.5;
-  const bottomY = topY + design.noseLength;
-  const halfWidth = design.noseWidth / 2;
+  const topY = layout.noseTopY;
+  const bottomY = layout.noseBaseY;
+  const widthFactor: Record<RiderAvatarDesign["noseStyle"], number> = {
+    angular: 0.94,
+    aquiline: 0.9,
+    broad: 1.22,
+    button: 0.88,
+    compact: 0.92,
+    long: 0.9,
+    rounded: 1.08,
+    snub: 1.02,
+    straight: 1,
+    tapered: 0.82,
+  };
+  const halfWidth = (design.noseWidth * widthFactor[design.noseStyle]) / 2;
   const bridgeOffset =
     design.noseStyle === "angular"
       ? 1.15
+      : design.noseStyle === "aquiline"
+        ? 1.35
       : design.noseStyle === "tapered"
         ? 0.45
         : 0.8;
+  const bridgePath =
+    design.noseStyle === "aquiline"
+      ? `M ${centerX - bridgeOffset} ${topY} C ${centerX - 2.2} ${topY + (bottomY - topY) * 0.42}, ${centerX - 0.2} ${bottomY - 2.2}, ${centerX - halfWidth} ${bottomY - 0.8}`
+      : design.noseStyle === "button" || design.noseStyle === "snub"
+        ? `M ${centerX - bridgeOffset * 0.7} ${topY + 1} Q ${centerX - 0.5} ${bottomY - 2.2} ${centerX - halfWidth} ${bottomY - 0.7}`
+        : `M ${centerX - bridgeOffset} ${topY} Q ${centerX - bridgeOffset - 0.6} ${topY + (bottomY - topY) * 0.55} ${centerX - halfWidth} ${bottomY - 1}`;
+  const basePath =
+    design.noseStyle === "angular"
+      ? `M ${centerX - halfWidth} ${bottomY - 1} L ${centerX} ${bottomY + 0.9} L ${centerX + halfWidth} ${bottomY - 1}`
+      : design.noseStyle === "snub"
+        ? `M ${centerX - halfWidth} ${bottomY} Q ${centerX} ${bottomY - 0.8} ${centerX + halfWidth} ${bottomY}`
+        : `M ${centerX - halfWidth} ${bottomY - 1} Q ${centerX - halfWidth - 1} ${bottomY + 0.5} ${centerX} ${bottomY + 1} Q ${centerX + halfWidth + 1} ${bottomY + 0.5} ${centerX + halfWidth} ${bottomY - 1}`;
+  const showsNostrils = [
+    "broad",
+    "button",
+    "rounded",
+    "snub",
+  ].includes(design.noseStyle);
 
   return (
     <g fill="none" stroke={design.skinShadow} strokeLinecap="round">
       <path
-        d={`M ${centerX - bridgeOffset} ${topY} Q ${centerX - bridgeOffset - 0.6} ${topY + design.noseLength * 0.55} ${centerX - halfWidth} ${bottomY - 1}`}
+        d={bridgePath}
         strokeWidth="0.75"
         opacity="0.7"
       />
       <path
-        d={`M ${centerX - halfWidth} ${bottomY - 1} Q ${centerX - halfWidth - 1} ${bottomY + 0.5} ${centerX} ${bottomY + 1} Q ${centerX + halfWidth + 1} ${bottomY + 0.5} ${centerX + halfWidth} ${bottomY - 1}`}
+        d={basePath}
         strokeWidth="0.85"
       />
-      {design.noseStyle === "broad" || design.noseStyle === "rounded" ? (
+      {showsNostrils ? (
         <>
           <circle cx={centerX - halfWidth + 0.1} cy={bottomY} r="0.55" fill={design.skinShadow} stroke="none" />
           <circle cx={centerX + halfWidth - 0.1} cy={bottomY} r="0.55" fill={design.skinShadow} stroke="none" />
         </>
+      ) : null}
+      {design.noseStyle === "aquiline" || design.noseStyle === "long" ? (
+        <path
+          d={`M ${centerX + 0.8} ${topY + 1.4} Q ${centerX + 1.6} ${(topY + bottomY) / 2} ${centerX + halfWidth * 0.55} ${bottomY - 1.2}`}
+          stroke={design.skinHighlight}
+          strokeWidth="0.55"
+          opacity="0.45"
+        />
       ) : null}
     </g>
   );
@@ -587,43 +711,63 @@ function Nose({ design }: { design: RiderAvatarDesign }) {
 
 function Mouth({
   design,
-  faceBottom,
+  layout,
 }: {
   design: RiderAvatarDesign;
-  faceBottom: number;
+  layout: RiderAvatarFeatureLayout;
 }) {
   const centerX = 48;
-  const y = faceBottom - 10.5;
+  const y = layout.mouthY;
   const widthFactor: Record<RiderAvatarDesign["mouthStyle"], number> = {
     balanced: 1,
+    bowed: 0.98,
     defined: 0.94,
+    downturned: 0.96,
+    flat: 1,
     full: 1.03,
     narrow: 0.82,
+    smile: 1.08,
     soft: 0.95,
     wide: 1.15,
   };
+  const fullnessByStyle: Record<RiderAvatarDesign["mouthStyle"], number> = {
+    balanced: 1.15,
+    bowed: 1.5,
+    defined: 1.05,
+    downturned: 1.05,
+    flat: 0.8,
+    full: 2.1,
+    narrow: 1,
+    smile: 1.15,
+    soft: 1.55,
+    wide: 1,
+  };
   const halfWidth = (design.mouthWidth * widthFactor[design.mouthStyle]) / 2;
-  const fullness =
-    design.mouthStyle === "full"
-      ? 2.1
-      : design.mouthStyle === "soft"
-        ? 1.55
-        : 1.15;
+  const fullness = fullnessByStyle[design.mouthStyle];
+  const expressionCurve =
+    design.mouthStyle === "smile"
+      ? 1.8
+      : design.mouthStyle === "downturned"
+        ? -1.8
+        : design.mouthStyle === "flat"
+          ? 0
+          : design.mouthCurve;
+  const cupidDepth = design.mouthStyle === "bowed" ? 0.95 : 0.2;
   const lipColor = shiftForLip(design.skinShadow, design.mouthStyle === "full" ? 12 : 5);
 
   return (
     <g>
       <path
-        d={`M ${centerX - halfWidth} ${y} Q ${centerX - halfWidth / 2} ${y - fullness + design.mouthCurve * 0.25} ${centerX} ${y - 0.2} Q ${centerX + halfWidth / 2} ${y - fullness + design.mouthCurve * 0.25} ${centerX + halfWidth} ${y}`}
+        d={`M ${centerX - halfWidth} ${y} Q ${centerX - halfWidth / 2} ${y - fullness + expressionCurve * 0.2} ${centerX} ${y - cupidDepth} Q ${centerX + halfWidth / 2} ${y - fullness + expressionCurve * 0.2} ${centerX + halfWidth} ${y}`}
         fill={lipColor}
         opacity="0.85"
       />
       <path
-        d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y + fullness + design.mouthCurve * 0.4} ${centerX + halfWidth} ${y} Q ${centerX} ${y + 0.25} ${centerX - halfWidth} ${y} Z`}
+        d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y + fullness + expressionCurve * 0.34} ${centerX + halfWidth} ${y} Q ${centerX} ${y + 0.25} ${centerX - halfWidth} ${y} Z`}
         fill={lipColor}
       />
       <path
-        d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y + design.mouthCurve * 0.35} ${centerX + halfWidth} ${y}`}
+        d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y + expressionCurve * 0.5} ${centerX + halfWidth} ${y}`}
         fill="none"
         stroke={design.skinShadow}
         strokeWidth="0.65"

@@ -226,6 +226,22 @@ export default async function GamePage() {
     redirect("/connexion");
   }
 
+  const financeOverviewPromise = loadDashboardValue(
+    getCurrentTeamFinanceOverview(supabase, user.id),
+    null as TeamFinanceOverview | null,
+    "Impossible de récupérer la situation financière de l’équipe :"
+  );
+  const inventoryOverviewPromise = loadDashboardValue(
+    getCurrentTeamInventoryOverview(user.id),
+    null as TeamInventoryOverview | null,
+    "Impossible de récupérer l’inventaire de l’équipe :"
+  );
+  const gameObjectivesPromise = loadDashboardValue(
+    getCurrentGameObjectives(supabase),
+    [] as GameObjective[],
+    "Impossible de récupérer les objectifs de carrière :"
+  );
+
   const [
     profileResult,
     countriesResult,
@@ -314,21 +330,9 @@ export default async function GamePage() {
       null as TeamAmateurIdentity | null,
       "Impossible de récupérer l’identité amateur de l’équipe :"
     ),
-    loadDashboardValue(
-      getCurrentTeamFinanceOverview(supabase, user.id),
-      null as TeamFinanceOverview | null,
-      "Impossible de récupérer la situation financière de l’équipe :"
-    ),
-    loadDashboardValue(
-      getCurrentTeamInventoryOverview(user.id),
-      null as TeamInventoryOverview | null,
-      "Impossible de récupérer l’inventaire de l’équipe :"
-    ),
-    loadDashboardValue(
-      getCurrentGameObjectives(supabase),
-      [] as GameObjective[],
-      "Impossible de récupérer les objectifs de carrière :"
-    ),
+    financeOverviewPromise,
+    inventoryOverviewPromise,
+    gameObjectivesPromise,
     loadDashboardValue(
       dashboardTeamSummary
         ? getCurrentDashboardOperationalEvents({
