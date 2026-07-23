@@ -657,13 +657,28 @@ function simulateRoadStage(
     const chase = getStatesInGroup(states, "chase");
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
-    const frontTerrainRating = getFrontTerrainRating(peloton, segment);
+    const fieldPaceStates =
+      peloton.length > 0
+        ? peloton
+        : delayed.length > 0
+          ? delayed
+          : dropped.length > 0
+            ? dropped
+            : chase.length > 0
+              ? chase
+              : secondaryBreakaway.length > 0
+                ? secondaryBreakaway
+                : breakaway;
+    const frontTerrainRating = getFrontTerrainRating(
+      fieldPaceStates,
+      segment
+    );
     const raceProgress = segmentIndex / Math.max(1, input.segments.length - 1);
     const chasePressure =
       getPelotonChasePressure(peloton, segment, segmentIndex, input.segments) *
       (breakawayHasWinningDay && raceProgress > 0.52 ? 0.5 : 1);
     const pelotonSeconds = getGroupSegmentTime(
-      peloton,
+      fieldPaceStates,
       segment,
       "peloton",
       chasePressure,
@@ -871,12 +886,14 @@ function simulateRoadStage(
 
     promoteSecondaryBreakawayWhenNeeded(states, segmentIndex);
 
+    const activePeloton = getStatesInGroup(states, "peloton");
     if (
+      activePeloton.length > 0 &&
       getStatesInGroup(states, "breakaway").length > 0 &&
       breakawayGapSeconds <= 0
     ) {
       const pelotonTime = average(
-        getStatesInGroup(states, "peloton").map(
+        activePeloton.map(
           (item) => item.elapsedTimeSeconds
         )
       );
@@ -1894,15 +1911,22 @@ function maybeCreateRaceIncident({
   if (type === "crosswind" && peloton.length < 4) {
     return null;
   }
+  if (
+    (type === "crash_individual" ||
+      type === "crash_mass") &&
+    activeStates.length <= 1
+  ) {
+    return null;
+  }
   let affected: RiderState[];
 
   if (type === "crash_mass" || type === "crosswind") {
     const candidates =
       peloton.length >= 4 ? peloton : activeStates;
-    const maximumAffectedCount =
-      candidates === peloton
-        ? Math.max(1, candidates.length - 1)
-        : candidates.length;
+    const maximumAffectedCount = Math.max(
+      1,
+      candidates.length - 1
+    );
     const affectedCount = Math.min(
       maximumAffectedCount,
       type === "crash_mass"

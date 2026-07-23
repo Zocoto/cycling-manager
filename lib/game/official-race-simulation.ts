@@ -21,7 +21,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-synchronized-v1";
+export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-synchronized-v2";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
