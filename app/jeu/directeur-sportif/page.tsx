@@ -9,10 +9,8 @@ import { AmateurTeamCreationForm } from "../../../components/game/amateur-team-c
 import { DeleteSportingDirectorAccount } from "../../../components/game/delete-sporting-director-account";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "../../../components/game/sporting-director-avatar";
-import {
-  SportingDirectorProfileForm,
-  type CountryOption,
-} from "../../../components/game/sporting-director-profile-form";
+import type { CountryOption } from "../../../components/game/country-select";
+import { SportingDirectorProfileForm } from "../../../components/game/sporting-director-profile-form";
 import { SportingDirectorReputation } from "../../../components/game/sporting-director-reputation";
 import { TeamJerseyPreview } from "../../../components/game/team-jersey-preview";
 import { DEFAULT_AMATEUR_JERSEY } from "../../../lib/amateur-team";

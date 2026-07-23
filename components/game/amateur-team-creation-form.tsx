@@ -13,7 +13,10 @@ import {
 } from "@/lib/amateur-team";
 
 import { AmateurTeamJersey } from "./amateur-team-jersey";
-import type { CountryOption } from "./sporting-director-profile-form";
+import {
+  CountrySelect,
+  type CountryOption,
+} from "./country-select";
 
 type AmateurTeamCreationFormProps = {
   countries: CountryOption[];
@@ -100,27 +103,33 @@ export function AmateurTeamCreationForm({
           <label htmlFor="teamCountryId" className="block text-sm font-bold text-[#183F37]">
             Pays d’affiliation de l’équipe
           </label>
-          <select
-            id="teamCountryId"
-            name="countryId"
-            value={countryId}
-            onChange={(event) => setCountryId(event.target.value)}
-            required
-            disabled={pending || countryIsLocked}
-            className="mt-2 min-h-12 w-full rounded-lg border border-[#315B3E]/25 bg-white px-4 font-semibold text-[#082A2A] outline-none focus:border-[#42B99A] focus:ring-2 focus:ring-[#42B99A]/25 disabled:bg-[#EDF2EF] disabled:text-[#60756E]"
+          <div className="mt-2">
+            <CountrySelect
+              id="teamCountryId"
+              countries={countries}
+              value={countryId}
+              onChange={setCountryId}
+              placeholder="Sélectionnez un pays"
+              listAriaLabel="Liste des pays d’affiliation"
+              describedBy={
+                state.fieldErrors.countryId?.length
+                  ? "teamCountryId-error"
+                  : "teamCountryId-help"
+              }
+              disabled={pending}
+              invalid={Boolean(state.fieldErrors.countryId?.length)}
+              locked={countryIsLocked}
+            />
+          </div>
+          <input type="hidden" name="countryId" value={countryId} />
+          <FieldErrors
+            id="teamCountryId-error"
+            errors={state.fieldErrors.countryId}
+          />
+          <p
+            id="teamCountryId-help"
+            className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            <option value="">Sélectionnez un pays</option>
-            {countries.map((country) => (
-              <option key={country.id} value={country.id}>
-                {country.name}
-              </option>
-            ))}
-          </select>
-          {countryIsLocked ? (
-            <input type="hidden" name="countryId" value={initialCountryId ?? ""} />
-          ) : null}
-          <FieldErrors errors={state.fieldErrors.countryId} />
-          <p className="mt-2 text-xs leading-5 text-[#60756E]">
             Choix définitif : il détermine les sept coureurs initiaux et la priorité géographique des sponsors.
           </p>
         </div>
@@ -233,9 +242,15 @@ function ColorField({
   );
 }
 
-function FieldErrors({ errors }: { errors?: string[] }) {
+function FieldErrors({
+  id,
+  errors,
+}: {
+  id?: string;
+  errors?: string[];
+}) {
   return errors?.length ? (
-    <div className="mt-2">
+    <div id={id} className="mt-2">
       {errors.map((error) => (
         <p key={error} className="text-sm font-semibold text-[#80640C]">
           {error}
