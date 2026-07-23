@@ -177,7 +177,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                 matin ; une blessure ou un stage de forme le rend indisponible.
                 Si sa forme est sous le seuil fixé par le DS, il se repose et récupère
                 automatiquement {LOW_FORM_REST_GAIN} points de forme.
-                Une reconnaissance remplace ce cycle pendant deux jours : ni
+                Une reconnaissance remplace ce cycle pendant deux jours : ni
                 séance, ni récupération passive.
               </p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
@@ -240,7 +240,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                         <span
                           className={`fi fi-${trainer.countryCode.toLowerCase()} mr-2 rounded-sm`}
                           role="img"
-                          aria-label={`Drapeau : ${trainer.countryName}`}
+                          aria-label={`Drapeau : ${trainer.countryName}`}
                         />
                         {trainer.countryName} · {trainer.specialtyLabel}
                       </p>
@@ -348,7 +348,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                         <span
                           className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
                           role="img"
-                          aria-label={`Drapeau : ${rider.countryName}`}
+                          aria-label={`Drapeau : ${rider.countryName}`}
                         />
                         {rider.countryName} · {rider.age} ans · Forme {rider.form}%
                       </p>
@@ -616,7 +616,7 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                       `${STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
                   )
                   .join(" · ")
-              : "Aucune note entière n’a changé : les décimales sont conservées en base pour les prochaines séances."}
+              : "Aucune note entière n’a changé : les décimales sont conservées en base pour les prochaines séances."}
           </p>
         </div>
       </div>

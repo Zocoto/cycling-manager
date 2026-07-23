@@ -427,7 +427,7 @@ function SelectedRaceExperience({
         await settleOfficialRaceResultsAction();
         router.refresh();
       } catch (error) {
-        console.error("Impossible d’actualiser les résultats officiels :", error);
+        console.error("Impossible d’actualiser les résultats officiels :", error);
         settlementStartedRef.current = false;
       }
     });

@@ -110,7 +110,7 @@ export async function updatePassword(
     }
 
     console.error(
-      "Échec de la modification du mot de passe Supabase :",
+      "Échec de la modification du mot de passe Supabase :",
       {
         code: updateError.code,
         status: updateError.status,
@@ -132,7 +132,7 @@ export async function updatePassword(
 
   if (signOutError) {
     console.error(
-      "Le mot de passe a été modifié, mais la session de récupération n’a pas pu être fermée :",
+      "Le mot de passe a été modifié, mais la session de récupération n’a pas pu être fermée :",
       {
         code: signOutError.code,
         status: signOutError.status,

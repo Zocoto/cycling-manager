@@ -339,7 +339,7 @@ function EquipmentProductCard({
           <div className="mt-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-2xl font-black text-[#183F37]">{formatCurrency(item.price, currency)}</p>
-              <p className="mt-1 text-xs font-bold text-[#60756E]">Possédé : {item.ownedQuantity} · Libre : {item.availableQuantity}</p>
+              <p className="mt-1 text-xs font-bold text-[#60756E]">Possédé : {item.ownedQuantity} · Libre : {item.availableQuantity}</p>
             </div>
             {item.ownedQuantity > 0 ? (
               <span className="rounded-full bg-[#DDF3E7] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">Inventaire</span>

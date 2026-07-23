@@ -77,6 +77,9 @@ export async function equipRiderAction(formData: FormData) {
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
+  if (origin === "inventory") {
+    redirect("/jeu/inventaire?categorie=equipment&equipement=confirme");
+  }
   redirect(`/jeu/coureurs/${riderId}?equipement=confirme`);
 }
 

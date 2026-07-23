@@ -79,7 +79,7 @@ export default async function SponsoringPage({
       );
   } catch (error) {
     console.error(
-      "Impossible de récupérer l’état du sponsoring :",
+      "Impossible de récupérer l’état du sponsoring :",
       error
     );
 
@@ -753,7 +753,7 @@ function JerseySelectionSection({
             <p className="mt-4 max-w-3xl leading-7 text-[#60756E]">
               Votre accord avec ce sponsor est
               enregistré. Vous disposez de trois
-              propositions visuelles : une version
+              propositions visuelles : une version
               classique, une version moderne et une
               version plus audacieuse.
             </p>
@@ -960,7 +960,7 @@ function ActiveSponsorSection({
             <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
               {contract.signedAt ? (
                 <p>
-                  Signature :{" "}
+                  Signature :{" "}
                   <strong className="text-[#294B42]">
                     {formatDate(
                       contract.signedAt
@@ -971,7 +971,7 @@ function ActiveSponsorSection({
 
               {contract.activatedAt ? (
                 <p>
-                  Activation :{" "}
+                  Activation :{" "}
                   <strong className="text-[#294B42]">
                     {formatDate(
                       contract.activatedAt
@@ -1176,7 +1176,7 @@ function TerminatedSponsorSection({
             <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
               {contract.terminatedAt ? (
                 <p>
-                  Rupture :{" "}
+                  Rupture :{" "}
                   <strong className="text-red-900">
                     {formatDate(
                       contract.terminatedAt
@@ -1186,7 +1186,7 @@ function TerminatedSponsorSection({
               ) : null}
 
               <p>
-                Motif :{" "}
+                Motif :{" "}
                 <strong className="text-red-900">
                   {formatTerminationReason(
                     contract.terminationReason
@@ -1574,7 +1574,7 @@ function CountryFlag({
     return (
       <span
         role="img"
-        aria-label={`Drapeau : ${countryName}`}
+        aria-label={`Drapeau : ${countryName}`}
         className="text-2xl"
       >
         🏳️
@@ -1585,7 +1585,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,

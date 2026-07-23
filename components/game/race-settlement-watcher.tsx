@@ -45,7 +45,7 @@ export function RaceSettlementWatcher() {
         const settlement = await settleDueOfficialRaceRewardsAction();
         scheduleNextCheck(settlement.nextSettlementAt);
       } catch (error) {
-        console.error("Impossible de clôturer les récompenses de course :", error);
+        console.error("Impossible de clôturer les récompenses de course :", error);
         scheduleNextCheck(
           new Date(Date.now() + SETTLEMENT_RETRY_DELAY_MS).toISOString()
         );

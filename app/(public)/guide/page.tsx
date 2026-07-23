@@ -4,7 +4,7 @@ import Link from "@/components/ui/app-link";
 export const metadata: Metadata = {
   title: "Guide complet du Directeur Sportif",
   description:
-    "Le manuel complet de Cyclo Stratège : calendrier, courses, entraînement, forme, staff, transferts, finances, objectifs et progression.",
+    "Le manuel complet de Cyclo Stratège : calendrier, courses, entraînement, forme, staff, transferts, finances, objectifs et progression.",
 };
 
 const guideNavigation = [
@@ -135,7 +135,7 @@ const trainingDomains = [
 const staffRoles = [
   {
     title: "Entraîneur",
-    text: "Améliore la séance du coureur auquel il est affecté : +4 % par niveau sur sa spécialité, plus +5 % si les nationalités correspondent.",
+    text: "Améliore la séance du coureur auquel il est affecté : +4 % par niveau sur sa spécialité, plus +5 % si les nationalités correspondent.",
   },
   {
     title: "Scout",
@@ -279,7 +279,7 @@ function GuideHero() {
           <p className="mt-7 max-w-3xl text-lg font-medium leading-8 text-[#25443F]">
             Comprendre les pages, organiser une journée de jeu, préserver la
             forme, faire progresser les coureurs et construire une équipe
-            durable : tout le fonctionnement actuel de Cyclo Stratège est
+            durable : tout le fonctionnement actuel de Cyclo Stratège est
             rassemblé ici.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
@@ -291,7 +291,7 @@ function GuideHero() {
           <div className="mt-9 flex flex-wrap gap-4">
             <Link
               href="#demarrage"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-[#071A17] shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-white! shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
             >
               Commencer le tutoriel
             </Link>
@@ -376,7 +376,7 @@ function DaySection() {
       id="journee"
       eyebrow="Horloge de jeu"
       title="Une journée type dans Cyclo Stratège"
-      introduction="La saison dure 28 jours. Chaque journée est divisée en deux demi-journées : AM pour la course de 14 h et PM pour celle de 18 h."
+      introduction="La saison dure 28 jours. Chaque journée est divisée en deux demi-journées : AM pour la course de 14 h et PM pour celle de 18 h."
       tone="mint"
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -494,7 +494,7 @@ function RidersSection() {
             />
             <Definition
               term="Fatigue"
-              text="L’ancien champ séparé n’est plus utilisé dans l’interface : la gestion quotidienne repose sur la forme, tandis que le live suit l’énergie propre à chaque coureur."
+              text="L’ancien champ séparé n’est plus utilisé dans l’interface : la gestion quotidienne repose sur la forme, tandis que le live suit l’énergie propre à chaque coureur."
             />
           </dl>
           <div className="mt-5 rounded-xl border border-[#C94F4F]/20 bg-[#FFF3F0] px-4 py-3 text-sm font-bold leading-6 text-[#8A3830]">
@@ -571,7 +571,7 @@ function RacingSection() {
       id="courses"
       eyebrow="Compétition"
       title="Du calendrier au résultat officiel"
-      introduction="Chaque course suit une chaîne précise : inscription, gel de la startlist, live, classement d’étape ou de classique, puis récompenses et mise à jour des classements."
+      introduction="Chaque course suit une chaîne précise : inscription, gel de la startlist, live, classement d’étape ou de classique, puis récompenses et mise à jour des classements."
       tone="mint"
     >
       <div className="grid gap-5 lg:grid-cols-4">
@@ -715,8 +715,8 @@ function TeamManagementSection() {
             "Diagnostic et date de reprise",
             "Protocoles médicaux payants",
             "Compléments nutritionnels",
-            "Stages classiques : +5 forme par jour",
-            "Stages premium : +10 forme par jour",
+            "Stages classiques : +5 forme par jour",
+            "Stages premium : +10 forme par jour",
           ]}
         />
       </div>
@@ -799,7 +799,7 @@ function ProgressionSection() {
             Des récompenses à réclamer
           </h3>
           <p className="mt-4 text-sm font-medium leading-7 text-[#60756E]">
-            Les objectifs primaires accompagnent l’introduction : profil du DS,
+            Les objectifs primaires accompagnent l’introduction : profil du DS,
             équipe amateur, première inscription, puis recrutement d’un membre
             du staff et d’un coureur. Les objectifs secondaires suivent les
             victoires, l’effectif, le matériel, le staff, les niveaux, les
@@ -807,7 +807,7 @@ function ProgressionSection() {
           </p>
           <p className="mt-4 rounded-xl bg-[#FFF9DF] px-4 py-3 text-sm font-bold leading-6 text-[#705B00]">
             Un objectif ne peut être validé qu’une fois. Une fois terminé,
-            ouvrez sa fiche et cliquez sur « Récompense » : argent, XP,
+            ouvrez sa fiche et cliquez sur « Récompense » : argent, XP,
             réputation ou objet sont alors versés.
           </p>
           <Link
@@ -978,7 +978,7 @@ function GuideCallToAction() {
           Préparez une équipe, choisissez un objectif et prenez le départ.
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-          Revenez dans ce guide à tout moment : il reste accessible depuis le
+          Revenez dans ce guide à tout moment : il reste accessible depuis le
           site public et depuis l’en-tête de votre espace de jeu.
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">

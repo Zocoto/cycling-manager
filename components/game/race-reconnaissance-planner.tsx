@@ -160,7 +160,7 @@ export function RaceReconnaissancePlanner({
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
               Deux jours pour étudier une étape ou une classique. Choisissez
-              librement leur date avant la course : les coureurs mobilisés ne
+              librement leur date avant la course : les coureurs mobilisés ne
               s’entraînent pas et ne récupèrent pas les +2 points de forme
               quotidiens pendant cette période.
             </p>
@@ -407,7 +407,7 @@ export function RaceReconnaissancePlanner({
                 <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
                   {selectedDateCandidate
                     ? `Stage prévu J${effectiveStartDayNumber}–J${effectiveEndDayNumber}, avant l’étape de J${selectedStage.dayNumber}.`
-                    : `La course occupe J${selectedStage.editionStartDayNumber}–J${selectedStage.editionEndDayNumber} : toute période qui chevauche ce tour est bloquée.`}
+                    : `La course occupe J${selectedStage.editionStartDayNumber}–J${selectedStage.editionEndDayNumber} : toute période qui chevauche ce tour est bloquée.`}
                 </p>
               </div>
             ) : null}

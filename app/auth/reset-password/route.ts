@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
   if (recoveryError) {
     console.error(
-      "Échec de l’ouverture de la session de récupération :",
+      "Échec de l’ouverture de la session de récupération :",
       {
         message: recoveryError.message,
       }

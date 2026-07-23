@@ -314,7 +314,7 @@ function PlanningEventBar({
     title: `${event.title} · ${event.detail} · J${event.startDay}${
       event.endDay > event.startDay ? `–J${event.endDay}` : ""
     }`,
-    "aria-label": `${EVENT_TYPE_LABELS[event.type]} : ${event.title}, J${event.startDay} à J${event.endDay}`,
+    "aria-label": `${EVENT_TYPE_LABELS[event.type]} : ${event.title}, J${event.startDay} à J${event.endDay}`,
   };
 
   return event.href ? (

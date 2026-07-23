@@ -63,7 +63,7 @@ export async function runRaceSimulatorAction(
     return {
       status: "error",
       message:
-        "Sélection invalide : choisissez un profil et au moins deux coureurs présents en base.",
+        "Sélection invalide : choisissez un profil et au moins deux coureurs présents en base.",
       run: null,
     };
   }
@@ -161,7 +161,7 @@ export async function runRaceSimulatorAction(
         const rider = riderById.get(result.riderId);
         if (!rider) {
           throw new Error(
-            `Le moteur a renvoyé un coureur inconnu : ${result.riderId}.`
+            `Le moteur a renvoyé un coureur inconnu : ${result.riderId}.`
           );
         }
 
@@ -195,11 +195,11 @@ export async function runRaceSimulatorAction(
 
     return {
       status: "success",
-      message: `Simulation terminée : ${run.riderCount} coureurs et ${run.logs.length} entrées de journal générées.`,
+      message: `Simulation terminée : ${run.riderCount} coureurs et ${run.logs.length} entrées de journal générées.`,
       run,
     };
   } catch (error) {
-    console.error("Échec du laboratoire de simulation de course :", error);
+    console.error("Échec du laboratoire de simulation de course :", error);
     return {
       status: "error",
       message:

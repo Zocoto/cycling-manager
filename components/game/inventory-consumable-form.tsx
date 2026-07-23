@@ -54,7 +54,7 @@ export function InventoryConsumableForm({
       </select>
 
       <p className="mt-2 text-xs font-bold leading-5 text-[#8A6516]">
-        Usage unique : l’objet sera consommé et son effet restera acquis au
+        Usage unique : l’objet sera consommé et son effet restera acquis au
         coureur pendant toute sa carrière.
       </p>
 

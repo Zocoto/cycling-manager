@@ -116,7 +116,7 @@ export default async function RaceProfilePage({
       getActiveTeamSponsorIdentityForAuthUser(user.id).catch(
         (error: unknown) => {
           console.error(
-            "Impossible de charger le maillot sponsor pour les portraits :",
+            "Impossible de charger le maillot sponsor pour les portraits :",
             error
           );
           return null;
@@ -125,7 +125,7 @@ export default async function RaceProfilePage({
       getTeamAmateurIdentityForAuthUser(user.id).catch(
         (error: unknown) => {
           console.error(
-            "Impossible de charger le maillot amateur pour les portraits :",
+            "Impossible de charger le maillot amateur pour les portraits :",
             error
           );
           return null;
@@ -209,7 +209,7 @@ export default async function RaceProfilePage({
 
   if (contextResult.error) {
     console.error(
-      "Impossible de charger le contexte d'inscription de la course :",
+      "Impossible de charger le contexte d'inscription de la course :",
       contextResult.error
     );
     contextError =
@@ -220,7 +220,7 @@ export default async function RaceProfilePage({
 
   if (winnersResult.error) {
     console.error(
-      "Impossible de charger le palmarès de la course :",
+      "Impossible de charger le palmarès de la course :",
       winnersResult.error
     );
     winnersError = true;
@@ -234,7 +234,7 @@ export default async function RaceProfilePage({
   }
   if (rosterResult.error) {
     console.error(
-      "Impossible de charger l'effectif pour l'inscription :",
+      "Impossible de charger l'effectif pour l'inscription :",
       rosterResult.error
     );
     rosterError =
@@ -244,7 +244,7 @@ export default async function RaceProfilePage({
   engagedRiders = engagedRidersResult.riders;
   if (engagedRidersResult.error) {
     console.error(
-      "Impossible de charger les coureurs engagés :",
+      "Impossible de charger les coureurs engagés :",
       engagedRidersResult.error
     );
     engagedRidersError = true;
@@ -444,7 +444,7 @@ export default async function RaceProfilePage({
                     <p className="mt-4 rounded-xl border border-dashed border-[#315B3E]/25 bg-white px-5 py-5 text-sm font-semibold leading-6 text-[#688176]">
                       {winnersError
                         ? "Le palmarès est momentanément indisponible."
-                        : "Aucun podium précédent : cette édition inaugure l’histoire de la course. Les saisons terminées alimenteront automatiquement ce palmarès."}
+                        : "Aucun podium précédent : cette édition inaugure l’histoire de la course. Les saisons terminées alimenteront automatiquement ce palmarès."}
                     </p>
                   )}
                 </section>
@@ -689,7 +689,7 @@ function RegistrationPanel({
           </form>
         ) : (
           <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
-            La startlist est figée : cette inscription ne peut plus être retirée.
+            La startlist est figée : cette inscription ne peut plus être retirée.
           </p>
         )}
       </section>
@@ -741,7 +741,7 @@ function RegistrationPanel({
         </RegistrationNotice>
       ) : !canReactivate ? (
         <RegistrationNotice tone="warning">
-          Votre retrait est définitif pour cette course : la startlist du créneau est déjà figée.
+          Votre retrait est définitif pour cette course : la startlist du créneau est déjà figée.
         </RegistrationNotice>
       ) : availability === "open" ? (
         <form
@@ -774,7 +774,7 @@ function RegistrationPanel({
         </form>
       ) : availability === "closed" ? (
         <RegistrationNotice tone="warning">
-          Les inscriptions sont fermées : le gel du créneau ({RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"].registrationCutoffHour} h) est dépassé.
+          Les inscriptions sont fermées : le gel du créneau ({RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"].registrationCutoffHour} h) est dépassé.
         </RegistrationNotice>
       ) : availability ===
         "reputation_locked" ? (

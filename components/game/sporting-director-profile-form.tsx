@@ -279,7 +279,7 @@ export function SportingDirectorProfileForm({
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
             Composez le portrait qui vous représentera dans
-            votre bureau : carnation, traits du visage, regard,
+            votre bureau : carnation, traits du visage, regard,
             coiffure et accessoires. Vous pourrez le modifier à
             tout moment.
           </p>

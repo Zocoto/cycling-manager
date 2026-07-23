@@ -83,7 +83,7 @@ export default async function RaceLivePage({
       : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
           (error: unknown) => {
             console.error(
-              "Impossible de verrouiller le scénario officiel :",
+              "Impossible de verrouiller le scénario officiel :",
               error,
             );
             return {};
@@ -101,7 +101,7 @@ export default async function RaceLivePage({
       await settleFinishedRaceConditions(supabase);
     } catch (error) {
       console.error(
-        "Impossible de consolider cette course :",
+        "Impossible de consolider cette course :",
         error
       );
     }
@@ -115,7 +115,7 @@ export default async function RaceLivePage({
             .then((directory) => directory[edition.id] ?? null)
             .catch((error: unknown) => {
               console.error(
-                "Impossible de charger les résultats de cette course :",
+                "Impossible de charger les résultats de cette course :",
                 error
               );
               return null;
@@ -130,7 +130,7 @@ export default async function RaceLivePage({
         : getRaceLiveMessages(supabase, stage.id).catch(
             (error: unknown) => {
               console.error(
-                "Impossible de charger le chat de cette course :",
+                "Impossible de charger le chat de cette course :",
                 error
               );
               return [];

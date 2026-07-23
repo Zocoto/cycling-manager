@@ -116,7 +116,7 @@ export default async function TeamFinancesPage() {
           />
         ) : !overview.canSpend ? (
           <div className="mt-6 rounded-2xl border border-[#D29F32]/35 bg-[#FFF5D8] px-5 py-4 text-sm font-bold text-[#76530D]">
-            Votre solde est nul : les dépenses volontaires sont bloquées jusqu’au premier versement ou gain.
+            Votre solde est nul : les dépenses volontaires sont bloquées jusqu’au premier versement ou gain.
           </div>
         ) : null}
 
@@ -427,7 +427,7 @@ function DebtAlert({
           </p>
           <p className="mt-2 font-bold leading-6">{message}</p>
           {penalty > 0 ? (
-            <p className="mt-1 text-sm font-black">Pénalité appliquée : −{penalty} réputation.</p>
+            <p className="mt-1 text-sm font-black">Pénalité appliquée : −{penalty} réputation.</p>
           ) : null}
         </div>
         <p className="shrink-0 text-2xl font-black text-[#A44736]">

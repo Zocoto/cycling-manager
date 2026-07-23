@@ -132,7 +132,7 @@ export function RaceLiveDirectory({
               Répertoire Résultats / Live
             </h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#C1D3CA]">
-              Chaque course s’ouvre désormais dans son propre espace : seuls son live, sa startlist, son chat et ses résultats sont chargés.
+              Chaque course s’ouvre désormais dans son propre espace : seuls son live, sa startlist, son chat et ses résultats sont chargés.
             </p>
           </div>
           <div className="flex gap-2 text-xs font-black">

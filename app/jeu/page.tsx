@@ -230,17 +230,17 @@ export default async function GamePage() {
   const financeOverviewPromise = loadDashboardValue(
     getCurrentTeamFinanceOverview(supabase, user.id),
     null as TeamFinanceOverview | null,
-    "Impossible de récupérer la situation financière de l’équipe :"
+    "Impossible de récupérer la situation financière de l’équipe :"
   );
   const inventoryOverviewPromise = loadDashboardValue(
     getCurrentTeamInventoryOverview(user.id),
     null as TeamInventoryOverview | null,
-    "Impossible de récupérer l’inventaire de l’équipe :"
+    "Impossible de récupérer l’inventaire de l’équipe :"
   );
   const gameObjectivesPromise = loadDashboardValue(
     getCurrentGameObjectives(supabase),
     [] as GameObjective[],
-    "Impossible de récupérer les objectifs de carrière :"
+    "Impossible de récupérer les objectifs de carrière :"
   );
 
   const [
@@ -305,7 +305,7 @@ export default async function GamePage() {
     .then((identity) => ({ identity, error: null }))
     .catch((error: unknown) => {
       console.error(
-        "Impossible de récupérer l’identité commerciale de l’équipe :",
+        "Impossible de récupérer l’identité commerciale de l’équipe :",
         error
       );
 
@@ -329,7 +329,7 @@ export default async function GamePage() {
         ? getTeamAmateurIdentity(dashboardTeamId)
         : Promise.resolve(null),
       null as TeamAmateurIdentity | null,
-      "Impossible de récupérer l’identité amateur de l’équipe :"
+      "Impossible de récupérer l’identité amateur de l’équipe :"
     ),
     financeOverviewPromise,
     inventoryOverviewPromise,
@@ -351,7 +351,7 @@ export default async function GamePage() {
         events: [],
         youthDevelopmentAlertCount: 0,
       } satisfies DashboardOperationalEvents,
-      "Impossible de récupérer les événements du bureau :"
+      "Impossible de récupérer les événements du bureau :"
     ),
   ]);
 
@@ -371,7 +371,7 @@ export default async function GamePage() {
     raceRosterAlertCount = alertResult.count ?? 0;
   } catch (error) {
     console.error(
-      "Impossible de récupérer les remplacements médicaux en attente :",
+      "Impossible de récupérer les remplacements médicaux en attente :",
       error
     );
   }
@@ -383,7 +383,7 @@ export default async function GamePage() {
 
   if (profileResult.error) {
     console.error(
-      "Impossible de récupérer le profil du Directeur Sportif :",
+      "Impossible de récupérer le profil du Directeur Sportif :",
       {
         code: profileResult.error.code,
         message: profileResult.error.message,
@@ -393,7 +393,7 @@ export default async function GamePage() {
 
   if (countriesResult.error) {
     console.error(
-      "Impossible de récupérer le référentiel des pays :",
+      "Impossible de récupérer le référentiel des pays :",
       {
         code: countriesResult.error.code,
         message: countriesResult.error.message,
@@ -403,7 +403,7 @@ export default async function GamePage() {
 
   if (teamSummaryResult.error) {
     console.error(
-      "Impossible de récupérer le résumé de l’équipe :",
+      "Impossible de récupérer le résumé de l’équipe :",
       {
         code: teamSummaryResult.error.code,
         message:
@@ -414,7 +414,7 @@ export default async function GamePage() {
 
   if (rosterResult.error) {
     console.error(
-      "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
+      "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
       {
         code: rosterResult.error.code,
         message: rosterResult.error.message,
@@ -573,7 +573,7 @@ export default async function GamePage() {
                     ? `${teamSponsorIdentity.sponsor.name} est le sponsor principal de ${commercialTeamName}. Le maillot ${teamSponsorIdentity.selectedJersey.name} est actuellement utilisé.`
                     : sponsoringUnlocked
                       ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
-                      : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
+                      : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
                 }
               />
 
@@ -857,7 +857,7 @@ function DirectorProfileCard({
         </span>
 
         <span className="text-xs font-semibold text-[#9FB5A8]">
-          Début de carrière :{" "}
+          Début de carrière :{" "}
           {sportingDirector?.created_at
             ? formatCareerStart(
                 sportingDirector.created_at
@@ -988,13 +988,13 @@ function TeamSponsorInformation({
 
       <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
         {teamSponsorIdentity
-          ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}`
+          ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}`
           : "Aucun sponsor actif"}
       </p>
 
       {teamSponsorIdentity ? (
         <p className="mt-2 text-xs font-semibold text-[#BFD1C6]">
-          Maillot :{" "}
+          Maillot :{" "}
           {
             teamSponsorIdentity
               .selectedJersey.name
@@ -1453,7 +1453,7 @@ function CountryFlag({
     return (
       <span
         role="img"
-        aria-label={`Drapeau : ${countryName}`}
+        aria-label={`Drapeau : ${countryName}`}
       >
         🏳️
       </span>
@@ -1463,7 +1463,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,

@@ -102,21 +102,21 @@ export default async function GlobalSearchPage({
 
   if (profileResult.error) {
     console.error(
-      "Impossible de charger le nom du Directeur Sportif dans la recherche :",
+      "Impossible de charger le nom du Directeur Sportif dans la recherche :",
       profileResult.error
     );
   }
 
   if (sponsorResult.error) {
     console.error(
-      "Impossible de charger l’identité visuelle du sponsor dans la recherche :",
+      "Impossible de charger l’identité visuelle du sponsor dans la recherche :",
       sponsorResult.error
     );
   }
 
   if (searchResult.error) {
     console.error(
-      "Impossible d’effectuer la recherche globale :",
+      "Impossible d’effectuer la recherche globale :",
       searchResult.error
     );
   }
@@ -410,7 +410,7 @@ function TeamResult({
         </p>
         <p className="mt-0.5 truncate text-xs text-[#60756E]">
           {result.sponsor_name
-            ? `Sponsor : ${result.sponsor_name}`
+            ? `Sponsor : ${result.sponsor_name}`
             : "Équipe sans sponsor principal"}
         </p>
         <p className="mt-1 truncate text-xs font-semibold text-[#278B70]">
@@ -492,7 +492,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       title={countryName}
       className={`fi fi-${countryCode.toLowerCase()} shrink-0 rounded-sm shadow-sm ${
         large ? "text-3xl" : "text-xl"

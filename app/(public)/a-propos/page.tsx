@@ -4,7 +4,7 @@ import Link from "@/components/ui/app-link";
 export const metadata: Metadata = {
   title: "À propos",
   description:
-    "Découvrez le projet Cyclo Stratège : sa vision, ses valeurs et l’équipe qui le développe.",
+    "Découvrez le projet Cyclo Stratège : sa vision, ses valeurs et l’équipe qui le développe.",
 };
 
 const values = [
@@ -16,12 +16,12 @@ const values = [
   {
     title: "La profondeur stratégique",
     description:
-      "Nous voulons un jeu où chaque décision compte : recrutement, calendrier, tactiques de course. La réflexion prime sur le hasard.",
+      "Nous voulons un jeu où chaque décision compte : recrutement, calendrier, tactiques de course. La réflexion prime sur le hasard.",
   },
   {
-    title: "Un développement transparent",
+    title: "Un jeu accessible",
     description:
-      "Le projet avance étape par étape, au grand jour. Le journal des nouveautés documente chaque évolution partagée avec la communauté.",
+      "Cyclo Stratège se veut simple à prendre en main, sans sacrifier la profondeur, pour que chacun puisse jouer à son rythme.",
   },
 ] as const;
 
@@ -81,7 +81,7 @@ function AboutHero() {
 
           <p className="mt-7 max-w-2xl text-lg leading-8 text-[#25443F]">
             Cyclo Stratège est un jeu de management cycliste dans lequel vous
-            dirigez votre propre équipe. Notre ambition : offrir une expérience
+            dirigez votre propre équipe. Notre ambition : offrir une expérience
             riche, fidèle à l’esprit tactique des courses.
           </p>
 
@@ -127,14 +127,14 @@ function AboutStory() {
           </p>
 
           <p>
-            L’idée est simple : vous placer dans le rôle d’un directeur sportif.
+            L’idée est simple : vous placer dans le rôle d’un directeur sportif.
             À vous de recruter les bons coureurs, de bâtir un collectif, de
             choisir vos courses et de définir vos tactiques pour écrire votre
             propre légende.
           </p>
 
           <p>
-            Le développement se fait par étapes, avec un objectif constant : la
+            Le développement se fait par étapes, avec un objectif constant : la
             qualité plutôt que la précipitation. Chaque nouvelle version enrichit
             le jeu et se retrouve documentée dans le journal de développement,
             accessible depuis la page d’accueil.

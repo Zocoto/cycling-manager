@@ -225,7 +225,7 @@ export default async function TeamRosterPage({
     .then((identity) => ({ identity, error: null }))
     .catch((error: unknown) => {
       console.error(
-        "Impossible de récupérer l’identité commerciale de l’équipe :",
+        "Impossible de récupérer l’identité commerciale de l’équipe :",
         error
       );
 
@@ -253,7 +253,7 @@ export default async function TeamRosterPage({
           authUserId: user.id,
         }).catch((error: unknown) => {
           console.error(
-            "Impossible de récupérer le planning de l’effectif :",
+            "Impossible de récupérer le planning de l’effectif :",
             error
           );
           return null;
@@ -262,21 +262,21 @@ export default async function TeamRosterPage({
     sponsorIdentityPromise,
     getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
       console.error(
-        "Impossible de récupérer l’identité amateur de l’équipe :",
+        "Impossible de récupérer l’identité amateur de l’équipe :",
         error
       );
       return null;
     }),
     getCurrentTeamDivisionForAuthUser(user.id).catch((error: unknown) => {
       console.error(
-        "Impossible de récupérer la division de l’équipe :",
+        "Impossible de récupérer la division de l’équipe :",
         error
       );
       return null;
     }),
     getCurrentTeamHealthOverview(user.id).catch((error: unknown) => {
       console.error(
-        "Impossible de récupérer les indisponibilités médicales :",
+        "Impossible de récupérer les indisponibilités médicales :",
         error
       );
       return null;
@@ -294,7 +294,7 @@ export default async function TeamRosterPage({
 
   if (teamSummaryResult.error) {
     console.error(
-      "Impossible de récupérer le résumé de l’équipe :",
+      "Impossible de récupérer le résumé de l’équipe :",
       {
         code: teamSummaryResult.error.code,
         message:
@@ -308,7 +308,7 @@ export default async function TeamRosterPage({
 
   if (rosterResult.error) {
     console.error(
-      "Impossible de récupérer l’effectif :",
+      "Impossible de récupérer l’effectif :",
       {
         code: rosterResult.error.code,
         message: rosterResult.error.message,
@@ -911,7 +911,7 @@ function TeamCommercialIdentityBanner({
           </h2>
 
           <p className="mt-2 text-sm font-bold text-[#60756E]">
-            Sponsor principal : {sponsor.name}
+            Sponsor principal : {sponsor.name}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -1293,7 +1293,7 @@ function RatingBadge({
 }) {
   return (
     <span
-      title={`${label} : ${value}`}
+      title={`${label} : ${value}`}
       className={[
         "inline-flex h-9 min-w-10 items-center justify-center rounded-lg border px-2 text-sm font-black",
         getRiderRatingColorClasses(value),
@@ -1326,7 +1326,7 @@ function RatingLegend() {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
       <span className="text-[#BFD1C6]">
-        Échelle :
+        Échelle :
       </span>
 
       <span className="rounded-md bg-white px-2 py-1 text-[#48665F]">
@@ -1371,7 +1371,7 @@ function CountryFlag({
     return (
       <span
         role="img"
-        aria-label={`Drapeau : ${countryName}`}
+        aria-label={`Drapeau : ${countryName}`}
       >
         🏳️
       </span>
@@ -1381,7 +1381,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,

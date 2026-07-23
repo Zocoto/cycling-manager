@@ -113,7 +113,7 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
           <div
             key={axis.key}
             title={axis.label}
-            aria-label={`${axis.label} : ${ratings[axis.key]}`}
+            aria-label={`${axis.label} : ${ratings[axis.key]}`}
             className={[
               "flex items-center justify-between gap-2 rounded-lg border px-3 py-2",
               getRiderRatingColorClasses(ratings[axis.key]),
