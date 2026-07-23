@@ -341,6 +341,7 @@ export async function getCurrentTeamHealthOverview(
       .eq("season_id", season.id)
       .in("rider_id", riderIds)
       .in("status", ["planned", "active"])
+      .neq("camp_type", "reconnaissance")
       .order("start_day_number")
       .returns<CampRow[]>(),
   ]);

@@ -570,6 +570,29 @@ describe("simulateRaceStage", () => {
     expect(resolvedLocal.ratings).toEqual(local.ratings);
   });
 
+  it("applique le bonus de reconnaissance aux treize notes pour la seule étape ciblée", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const rider = {
+      ...createSelectionTestRider("reconnaissance", { hills: 64 }),
+      reconnaissanceBonus: 2.3,
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      riders: [
+        rider,
+        createSelectionTestRider("sans-reconnaissance", { hills: 64 }),
+      ],
+    });
+    const resolved = result.resolvedRiders.find(
+      (candidate) => candidate.id === rider.id,
+    )!;
+
+    expect(resolved.ratings.hills).toBeCloseTo(66.3);
+    expect(resolved.ratings.mountain).toBeCloseTo(rider.ratings.mountain + 2.3);
+    expect(resolved.ratings.breakaway).toBeCloseTo(rider.ratings.breakaway + 2.3);
+    expect(rider.ratings.hills).toBe(64);
+  });
+
   it("génère de manière déterministe crevaisons, bordures et chutes", () => {
     const incidentTypes = new Set(
       Array.from({ length: 60 }, (_, index) =>

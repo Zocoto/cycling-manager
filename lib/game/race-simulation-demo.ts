@@ -140,7 +140,13 @@ export function createCalendarSimulationInput({
             seed: `${stage.id}:fallback-profile`,
             includeTourPrimes: edition.raceFormat === "stage_race",
           }),
-    riders,
+    riders: riders.map((rider) => {
+      const reconnaissanceBonus =
+        stage.reconnaissanceBonuses?.[rider.id] ?? 0;
+      return reconnaissanceBonus > 0
+        ? { ...rider, reconnaissanceBonus }
+        : rider;
+    }),
   };
 }
 

@@ -5,6 +5,7 @@ export const STAFF_ROLES = [
   "mechanic",
   "nutritionist",
   "physiotherapist",
+  "race_preparer",
   "architect",
   "community_manager",
 ] as const;
@@ -75,6 +76,14 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     salaryBase: 9_500,
     accent: "#8B6FB6",
   },
+  race_preparer: {
+    label: "Préparateur de parcours",
+    pluralLabel: "Préparateurs de parcours",
+    shortDescription:
+      "Améliore le bonus obtenu lors des reconnaissances de course.",
+    salaryBase: 12_000,
+    accent: "#C4773D",
+  },
   architect: {
     label: "Architecte",
     pluralLabel: "Architectes",
@@ -111,14 +120,14 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "scout",
   "scout",
   "scout",
-  "scout",
   "doctor",
   "doctor",
   "doctor",
   "mechanic",
   "mechanic",
   "mechanic",
-  "community_manager",
+  "race_preparer",
+  "race_preparer",
   "community_manager",
   "community_manager",
   "nutritionist",
@@ -292,6 +301,8 @@ export function getStaffEffectPercentage(role: StaffRole, level: number): number
       return safeLevel * 5;
     case "physiotherapist":
       return safeLevel;
+    case "race_preparer":
+      return safeLevel * 5;
   }
 }
 
@@ -344,6 +355,10 @@ export function describeStaffEffect({
     case "physiotherapist":
       return [
         `−${safeLevel} point${safeLevel > 1 ? "s" : ""} sur le malus de forme après une course`,
+      ];
+    case "race_preparer":
+      return [
+        `+${percentage} % sur le bonus de statistiques obtenu lors d’une reconnaissance`,
       ];
     case "architect":
       return [

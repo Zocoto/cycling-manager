@@ -101,7 +101,8 @@ export type TrainingSessionStatus =
   | "completed"
   | "skipped_low_form"
   | "skipped_injury"
-  | "skipped_form_camp";
+  | "skipped_form_camp"
+  | "skipped_reconnaissance";
 
 export type TeamTrainer = {
   contractId: string;

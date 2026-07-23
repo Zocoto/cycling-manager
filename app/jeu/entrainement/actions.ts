@@ -56,6 +56,45 @@ export async function saveRiderTrainingPlanAction(formData: FormData) {
   redirect(`/jeu/entrainement?programme=confirme&effet=J${Number(data)}`);
 }
 
+export async function bookRaceReconnaissanceAction(formData: FormData) {
+  const stageId = readValue(formData, "stageId");
+  const preparerContractId =
+    readValue(formData, "preparerContractId") || null;
+  const riderIds = formData
+    .getAll("riderIds")
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (
+    !isUuid(stageId) ||
+    riderIds.length === 0 ||
+    riderIds.some((riderId) => !isUuid(riderId)) ||
+    (preparerContractId !== null && !isUuid(preparerContractId))
+  ) {
+    redirectWithError(
+      "Sélectionnez une course et au moins un coureur disponible.",
+    );
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "book_current_team_stage_reconnaissance",
+    {
+      p_stage_id: stageId,
+      p_rider_ids: [...new Set(riderIds)],
+      p_preparer_contract_id: preparerContractId,
+    },
+  );
+  if (error) redirectWithError(error.message);
+
+  revalidateTrainingPaths();
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/inscriptions");
+  revalidatePath("/jeu/finances");
+  redirect("/jeu/entrainement?reconnaissance=confirmee");
+}
+
 async function requireAuthenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const {

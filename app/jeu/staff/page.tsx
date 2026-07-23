@@ -507,7 +507,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
         <h2 className="mt-2 text-2xl font-black text-[#183F37]">
           Un modèle prêt pour le triptyque
         </h2>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <ConnectionCard
             title="Effet actif immédiatement"
             detail="Le community manager augmente automatiquement chaque gain de réputation de 2 à 10 %."
@@ -515,6 +515,10 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
           <ConnectionCard
             title="Soins actifs"
             detail="Médecins, kinés et nutritionnistes sont reliés au centre de soin, avec effets et capacités dépendant de leur niveau."
+          />
+          <ConnectionCard
+            title="Reconnaissances"
+            detail="Le préparateur de parcours augmente de 5 à 25 % le bonus gagné sur l’étape étudiée."
           />
           <ConnectionCard
             title="Relève et futurs chantiers"
@@ -615,6 +619,12 @@ function StaffRoleIcon({ role }: { role: StaffRole }) {
       <>
         <path d="M7 4v7a5 5 0 0 0 10 0V4M7 7h4M13 7h4" />
         <path d="M12 16v5" />
+      </>
+    ),
+    race_preparer: (
+      <>
+        <path d="M4 18 9 7l4 8 3-6 4 9" />
+        <path d="M3 21h18M6 5h6M9 2v6" />
       </>
     ),
     architect: (

@@ -122,6 +122,17 @@ type StageSegmentPrimeRow = {
   points_scale: number[];
 };
 
+type StageReconnaissanceRow = {
+  id: string;
+  target_stage_id: string;
+  bonus_points: number | string;
+};
+
+type StageReconnaissanceRiderRow = {
+  reconnaissance_id: string;
+  rider_id: string;
+};
+
 type CountryRow = {
   id: string;
   name: string;
@@ -247,7 +258,7 @@ export type RaceRosterOption = {
   isSelected: boolean;
   isAvailable: boolean;
   unavailability: {
-    type: "injury" | "form_camp" | "race";
+    type: "injury" | "form_camp" | "reconnaissance" | "race";
     label: string;
     until: string | null;
   } | null;
@@ -276,7 +287,12 @@ type RaceRosterOptionRow = {
   sprint: number;
   is_selected: boolean;
   is_available: boolean;
-  unavailability_type: "injury" | "form_camp" | "race" | null;
+  unavailability_type:
+    | "injury"
+    | "form_camp"
+    | "reconnaissance"
+    | "race"
+    | null;
   unavailability_label: string | null;
   unavailable_until: string | null;
   conflicting_race_slug: string | null;
@@ -652,14 +668,50 @@ export async function getActiveSeasonRaceCalendar(
 
   const stageRows = stagesResult.data ?? [];
   const stageIds = stageRows.map((stage) => stage.id);
-  const segmentsResult = await loadStageSegments(supabase, stageIds);
+  const admin = createSupabaseAdminClient();
+  const [segmentsResult, reconnaissanceResult] = await Promise.all([
+    loadStageSegments(supabase, stageIds),
+    stageIds.length > 0
+      ? admin
+          .from("stage_reconnaissances")
+          .select("id, target_stage_id, bonus_points")
+          .in("target_stage_id", stageIds)
+          .neq("status", "cancelled")
+          .returns<StageReconnaissanceRow[]>()
+      : Promise.resolve(emptyResult<StageReconnaissanceRow>()),
+  ]);
 
   assertQuerySucceeded(
     segmentsResult.error,
     "les profils tronçonnés"
   );
+  assertQuerySucceeded(
+    reconnaissanceResult.error,
+    "les reconnaissances de course"
+  );
 
   const segmentRows = segmentsResult.data ?? [];
+  const reconnaissanceRows = reconnaissanceResult.data ?? [];
+  const reconnaissanceIds = reconnaissanceRows.map(
+    (reconnaissance) => reconnaissance.id,
+  );
+  const reconnaissanceRidersResult =
+    reconnaissanceIds.length > 0
+      ? await admin
+          .from("stage_reconnaissance_riders")
+          .select("reconnaissance_id, rider_id")
+          .in("reconnaissance_id", reconnaissanceIds)
+          .returns<StageReconnaissanceRiderRow[]>()
+      : emptyResult<StageReconnaissanceRiderRow>();
+
+  assertQuerySucceeded(
+    reconnaissanceRidersResult.error,
+    "les coureurs ayant reconnu une course",
+  );
+  const reconnaissanceBonusesByStageId = groupReconnaissanceBonuses(
+    reconnaissanceRows,
+    reconnaissanceRidersResult.data ?? [],
+  );
 
   const raceRows = racesResult.data ?? [];
   const riderCountryRows = riderCountriesResult.data ?? [];
@@ -700,7 +752,8 @@ export async function getActiveSeasonRaceCalendar(
   const stagesByEditionId = groupStages(
     stageRows,
     dayById,
-    segmentRows
+    segmentRows,
+    reconnaissanceBonusesByStageId,
   );
   const registrationByEditionId = new Map(
     ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
@@ -1091,7 +1144,8 @@ function groupSpecialAbilities(rows: RiderSpecialAbilityRow[]) {
 function groupStages(
   rows: StageRow[],
   dayById: Map<string, SeasonDayRow>,
-  segmentRows: StageSegmentRow[]
+  segmentRows: StageSegmentRow[],
+  reconnaissanceBonusesByStageId: Map<string, Record<string, number>>,
 ) {
   const stagesByEditionId = new Map<
     string,
@@ -1152,6 +1206,8 @@ function groupStages(
       daySlot: isRaceDaySlot(row.day_slot) ? row.day_slot : "late",
       departureAt: row.departure_at,
       segments,
+      reconnaissanceBonuses:
+        reconnaissanceBonusesByStageId.get(row.id) ?? {},
     };
     const editionStages =
       stagesByEditionId.get(
@@ -1166,6 +1222,33 @@ function groupStages(
   }
 
   return stagesByEditionId;
+}
+
+function groupReconnaissanceBonuses(
+  reconnaissances: StageReconnaissanceRow[],
+  participants: StageReconnaissanceRiderRow[],
+) {
+  const reconnaissanceById = new Map(
+    reconnaissances.map((reconnaissance) => [
+      reconnaissance.id,
+      reconnaissance,
+    ]),
+  );
+  const bonusesByStageId = new Map<string, Record<string, number>>();
+
+  for (const participant of participants) {
+    const reconnaissance = reconnaissanceById.get(
+      participant.reconnaissance_id,
+    );
+    if (!reconnaissance) continue;
+
+    const stageBonuses =
+      bonusesByStageId.get(reconnaissance.target_stage_id) ?? {};
+    stageBonuses[participant.rider_id] = Number(reconnaissance.bonus_points);
+    bonusesByStageId.set(reconnaissance.target_stage_id, stageBonuses);
+  }
+
+  return bonusesByStageId;
 }
 
 async function loadStageSegments(

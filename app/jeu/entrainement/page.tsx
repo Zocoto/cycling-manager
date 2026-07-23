@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { PotentialStars } from "@/components/game/potential-stars";
+import { RaceReconnaissancePlanner } from "@/components/game/race-reconnaissance-planner";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   RiderTrainingPlanForm,
@@ -35,6 +36,7 @@ import {
 } from "@/services/team-training";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
+import { getCurrentTeamRaceReconnaissanceOverview } from "@/services/team-race-reconnaissance";
 
 export const metadata: Metadata = {
   title: "Entraînements",
@@ -48,6 +50,7 @@ type TrainingPageProps = {
     programme?: string;
     effet?: string;
     erreur?: string;
+    reconnaissance?: string;
   }>;
 };
 
@@ -72,12 +75,15 @@ const STATUS_LABELS: Record<TrainingSessionStatus, string> = {
   skipped_low_form: "Pas d’entraînement",
   skipped_injury: "Pas d’entraînement",
   skipped_form_camp: "Pas d’entraînement",
+  skipped_reconnaissance: "Pas d’entraînement",
 };
 
 const SKIPPED_REASON_LABELS: Partial<Record<TrainingSessionStatus, string>> = {
   skipped_low_form: "Forme inférieure au seuil fixé par l’équipe",
   skipped_injury: "Coureur indisponible en raison d’une blessure",
   skipped_form_camp: "Coureur indisponible pendant son stage de forme",
+  skipped_reconnaissance:
+    "Coureur indisponible pendant son stage de reconnaissance",
 };
 
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
@@ -90,14 +96,21 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [overview, headerData, amateurIdentity, sponsorIdentity] = await Promise.all([
+  const [
+    overview,
+    reconnaissanceOverview,
+    headerData,
+    amateurIdentity,
+    sponsorIdentity,
+  ] = await Promise.all([
     getCurrentTeamTrainingOverview(user.id),
+    getCurrentTeamRaceReconnaissanceOverview(user.id),
     getGameHeaderData(supabase, user.id),
     getTeamAmateurIdentityForAuthUser(user.id),
     getActiveTeamSponsorIdentityForAuthUser(user.id),
   ]);
 
-  if (!overview) redirect("/jeu");
+  if (!overview || !reconnaissanceOverview) redirect("/jeu");
 
   const jersey: RiderJerseyAppearance = sponsorIdentity
     ? createSponsoredRiderJersey({
@@ -133,6 +146,12 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               Le réglage est enregistré et prendra effet {query.effet ?? "à la prochaine séance"}.
             </Alert>
           ) : null}
+          {query.reconnaissance ? (
+            <Alert tone="success">
+              La reconnaissance est programmée. Les coureurs sélectionnés sont
+              désormais indisponibles pendant ses deux jours.
+            </Alert>
+          ) : null}
         </div>
 
         <header className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9">
@@ -150,6 +169,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                 matin ; une blessure ou un stage de forme le rend indisponible.
                 Si sa forme est sous le seuil fixé par le DS, il se repose et récupère
                 automatiquement {LOW_FORM_REST_GAIN} points de forme.
+                Une reconnaissance remplace ce cycle pendant deux jours : ni
+                séance, ni récupération passive.
               </p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
                 <span className="rounded-full bg-white/10 px-3 py-2 text-[#FFF4C5]">
@@ -233,6 +254,11 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             </p>
           )}
         </section>
+
+        <RaceReconnaissancePlanner
+          overview={reconnaissanceOverview}
+          jersey={jersey}
+        />
 
         <section className="mt-7">
           <div className="flex flex-wrap items-end justify-between gap-4 px-1">

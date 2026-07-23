@@ -91,6 +91,7 @@ function createEdition({
     daySlot: "early",
     departureAt: null,
     segments: [],
+    reconnaissanceBonuses: {},
   };
 
   return {

@@ -81,6 +81,7 @@ export type RiderSimulationInput = {
   form: number;
   countryCode?: string | null;
   localRaceBonus?: number;
+  reconnaissanceBonus?: number;
   role: RaceRole;
   specialAbility?: RiderSpecialAbility | null;
   specialAbilities?: RiderSpecialAbility[];
@@ -411,10 +412,13 @@ export function simulateRaceStage(
             rider.countryCode.toUpperCase() === input.raceCountryCode.toUpperCase()
               ? 2
               : 0,
-          ratings: applyRaceWeatherRatingAdjustments(
-            equipmentAdjustedRatings,
-            weather,
-            hasSpecialAbility(rider, "flahute")
+          ratings: applyReconnaissanceRatingBonus(
+            applyRaceWeatherRatingAdjustments(
+              equipmentAdjustedRatings,
+              weather,
+              hasSpecialAbility(rider, "flahute"),
+            ),
+            rider.reconnaissanceBonus,
           ),
         };
       }),
@@ -439,6 +443,30 @@ export function simulateRaceStage(
   }
 
   return simulateRoadStage(normalizedInput);
+}
+
+function applyReconnaissanceRatingBonus(
+  ratings: RiderSimulationRatings,
+  bonus: number | null | undefined,
+): RiderSimulationRatings {
+  const safeBonus = Number.isFinite(bonus) ? Math.max(0, bonus ?? 0) : 0;
+  if (safeBonus === 0) return ratings;
+
+  return {
+    mountain: Math.min(100, ratings.mountain + safeBonus),
+    hills: Math.min(100, ratings.hills + safeBonus),
+    flat: Math.min(100, ratings.flat + safeBonus),
+    cobbles: Math.min(100, ratings.cobbles + safeBonus),
+    downhill: Math.min(100, ratings.downhill + safeBonus),
+    sprint: Math.min(100, ratings.sprint + safeBonus),
+    acceleration: Math.min(100, ratings.acceleration + safeBonus),
+    timeTrial: Math.min(100, ratings.timeTrial + safeBonus),
+    prologue: Math.min(100, ratings.prologue + safeBonus),
+    endurance: Math.min(100, ratings.endurance + safeBonus),
+    resistance: Math.min(100, ratings.resistance + safeBonus),
+    recovery: Math.min(100, ratings.recovery + safeBonus),
+    breakaway: Math.min(100, ratings.breakaway + safeBonus),
+  };
 }
 
 export function assignAutomaticRaceRoles(

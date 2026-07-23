@@ -94,6 +94,7 @@ export type RaceCalendarStage = {
   daySlot: RaceDaySlot;
   departureAt: string | null;
   segments: RaceStageSegment[];
+  reconnaissanceBonuses?: Record<string, number>;
 };
 
 export type RaceCalendarEdition = {
