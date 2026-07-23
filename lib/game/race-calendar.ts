@@ -54,7 +54,9 @@ export type RaceFormat =
 export type RaceCompetitionType =
   | "standard"
   | "national_road"
-  | "national_time_trial";
+  | "national_time_trial"
+  | "continental_championship"
+  | "world_championship";
 
 export type RaceProfileType =
   | "flat"
@@ -99,6 +101,13 @@ export type RaceCalendarStage = {
 
 export type RaceCalendarEdition = {
   id: string;
+  status?:
+    | "planned"
+    | "registration_open"
+    | "registration_closed"
+    | "in_progress"
+    | "completed"
+    | "cancelled";
   raceId: string;
   slug: string;
   name: string;

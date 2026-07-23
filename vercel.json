@@ -1,4 +1,28 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["cdg1"]
+  "regions": ["cdg1"],
+  "crons": [
+    { "path": "/api/cron/race-settlements/early-summer-10", "schedule": "10 12 * * *" },
+    { "path": "/api/cron/race-settlements/early-summer-20", "schedule": "20 12 * * *" },
+    { "path": "/api/cron/race-settlements/early-summer-30", "schedule": "30 12 * * *" },
+    { "path": "/api/cron/race-settlements/early-summer-40", "schedule": "40 12 * * *" },
+    { "path": "/api/cron/race-settlements/early-summer-50", "schedule": "50 12 * * *" },
+    { "path": "/api/cron/race-settlements/early-winter-10", "schedule": "10 13 * * *" },
+    { "path": "/api/cron/race-settlements/early-winter-20", "schedule": "20 13 * * *" },
+    { "path": "/api/cron/race-settlements/early-winter-30", "schedule": "30 13 * * *" },
+    { "path": "/api/cron/race-settlements/early-winter-40", "schedule": "40 13 * * *" },
+    { "path": "/api/cron/race-settlements/early-winter-50", "schedule": "50 13 * * *" },
+    { "path": "/api/cron/race-settlements/late-summer-00", "schedule": "0 16 * * *" },
+    { "path": "/api/cron/race-settlements/late-summer-10", "schedule": "10 16 * * *" },
+    { "path": "/api/cron/race-settlements/late-summer-20", "schedule": "20 16 * * *" },
+    { "path": "/api/cron/race-settlements/late-summer-30", "schedule": "30 16 * * *" },
+    { "path": "/api/cron/race-settlements/late-summer-40", "schedule": "40 16 * * *" },
+    { "path": "/api/cron/race-settlements/late-summer-50", "schedule": "50 16 * * *" },
+    { "path": "/api/cron/race-settlements/late-winter-00", "schedule": "0 17 * * *" },
+    { "path": "/api/cron/race-settlements/late-winter-10", "schedule": "10 17 * * *" },
+    { "path": "/api/cron/race-settlements/late-winter-20", "schedule": "20 17 * * *" },
+    { "path": "/api/cron/race-settlements/late-winter-30", "schedule": "30 17 * * *" },
+    { "path": "/api/cron/race-settlements/late-winter-40", "schedule": "40 17 * * *" },
+    { "path": "/api/cron/race-settlements/late-winter-50", "schedule": "50 17 * * *" }
+  ]
 }

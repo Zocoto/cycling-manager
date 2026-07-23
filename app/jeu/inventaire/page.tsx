@@ -8,10 +8,12 @@ import {
   InventoryEquipmentForm,
   type InventoryRiderOption,
 } from "@/components/game/inventory-equipment-form";
+import { InventoryConsumableForm } from "@/components/game/inventory-consumable-form";
 import {
   INVENTORY_CATEGORY_DEFINITIONS,
   getInventoryCategory,
   getInventoryRarityLabel,
+  isAssignableInventoryCategory,
   isInventoryCategory,
   type InventoryCategory,
   type TeamInventoryItem,
@@ -261,6 +263,14 @@ function InventoryItemCard({
           <InventoryEquipmentForm
             equipmentItemId={item.sourceId}
             slot={item.equipmentSlot}
+            availableQuantity={item.availableQuantity}
+            riders={riders}
+          />
+        ) : item.isConsumable &&
+          isAssignableInventoryCategory(item.category) ? (
+          <InventoryConsumableForm
+            inventoryItemId={item.sourceId}
+            category={item.category}
             availableQuantity={item.availableQuantity}
             riders={riders}
           />

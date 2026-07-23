@@ -9,7 +9,8 @@ export type DashboardEventCategory =
   | "scouting"
   | "training"
   | "academy"
-  | "infrastructure";
+  | "infrastructure"
+  | "contract";
 
 export type DashboardEventPriority = "critical" | "action" | "update";
 
@@ -24,6 +25,13 @@ export type DashboardEvent = {
   badgeLabel?: string;
   dayNumber: number | null;
   happenedAt: string | null;
+};
+
+export type DashboardContractReminderRider = {
+  riderId: string;
+  firstName: string;
+  lastName: string;
+  hasNextSeasonContract: boolean;
 };
 
 export function buildDashboardEventFeed({
@@ -55,6 +63,36 @@ export function buildDashboardEventFeed({
   return events
     .sort(compareDashboardEvents)
     .slice(0, Math.max(0, limit));
+}
+
+export function buildContractRenewalReminderEvents({
+  currentDayNumber,
+  riders,
+}: {
+  currentDayNumber: number;
+  riders: DashboardContractReminderRider[];
+}): DashboardEvent[] {
+  if (currentDayNumber < 21) return [];
+
+  return riders
+    .filter((rider) => !rider.hasNextSeasonContract)
+    .map((rider) => {
+      const riderName = `${rider.firstName} ${rider.lastName}`.trim();
+
+      return {
+        id: `contract-expiry:${rider.riderId}`,
+        category: "contract",
+        priority: "action",
+        title: `Contrat de ${riderName || "ce coureur"} à renouveler`,
+        description:
+          "Ce coureur n’a aucun contrat pour la saison suivante. Consultez sa fiche pour préparer son avenir.",
+        href: `/jeu/coureurs/${rider.riderId}`,
+        actionLabel: "Voir le contrat",
+        badgeLabel: "Contrat",
+        dayNumber: 21,
+        happenedAt: null,
+      };
+    });
 }
 
 function buildSponsorPaymentEvents({

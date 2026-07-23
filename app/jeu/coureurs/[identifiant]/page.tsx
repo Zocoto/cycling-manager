@@ -35,7 +35,10 @@ import {
 } from "@/lib/rider-jersey";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getPublicRiderProfile } from "@/services/public-rider-profile";
+import {
+  getPublicRiderProfile,
+  type PublicRiderProfile,
+} from "@/services/public-rider-profile";
 import { getCurrentTeamRiderSeasonPlanning } from "@/services/rider-season-planning";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
@@ -318,6 +321,11 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
               <LockedTrainingCard canManage={profile.canManage} />
             )}
             <SpecialAbilitiesCard abilities={profile.specialAbilities} />
+            {profile.permanentEnhancements.length > 0 ? (
+              <PermanentEnhancementsCard
+                enhancements={profile.permanentEnhancements}
+              />
+            ) : null}
           </aside>
         </div>
 
@@ -903,6 +911,40 @@ function SpecialAbilitiesCard({
           ? `${abilities.length} capacité${abilities.length > 1 ? "s" : ""} débloquée${abilities.length > 1 ? "s" : ""}. Survolez ou sélectionnez un médaillon pour voir son effet.`
           : "Les capacités connues restent grisées tant que le coureur ne les a pas débloquées. Survolez ou sélectionnez un médaillon pour voir son effet."}
       </p>
+    </section>
+  );
+}
+
+function PermanentEnhancementsCard({
+  enhancements,
+}: {
+  enhancements: PublicRiderProfile["permanentEnhancements"];
+}) {
+  return (
+    <section className="rounded-2xl border border-[#D29F32]/20 bg-[#FFF9E8] p-5 shadow-[0_12px_34px_rgba(138,101,22,0.08)]">
+      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8A6516]">
+        Améliorations permanentes
+      </p>
+      <div className="mt-4 space-y-3">
+        {enhancements.map((enhancement) => (
+          <div
+            key={enhancement.id}
+            className="rounded-xl border border-[#D29F32]/15 bg-white/75 px-4 py-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-black text-[#183F37]">
+                {enhancement.itemName}
+              </p>
+              <span className="shrink-0 rounded-full bg-[#D29F32]/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#8A6516]">
+                À vie
+              </span>
+            </div>
+            <p className="mt-1 text-xs font-bold leading-5 text-[#60756E]">
+              {enhancement.effectSummary}
+            </p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

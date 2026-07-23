@@ -771,7 +771,7 @@ export async function getActiveSeasonRaceCalendar(
   );
 
   const editions = editionRows
-    .map((edition) => {
+    .map((edition): RaceCalendarEdition | null => {
       const race = raceById.get(
         edition.race_id
       );
@@ -793,6 +793,7 @@ export async function getActiveSeasonRaceCalendar(
 
       return {
         id: edition.id,
+        status: edition.status as RaceCalendarEdition["status"],
         raceId: race.id,
         slug: race.slug,
         name: edition.display_name,

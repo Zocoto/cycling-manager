@@ -11,6 +11,10 @@ export const INVENTORY_CATEGORIES = [
 export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number];
 export type StoredInventoryCategory = Exclude<InventoryCategory, "equipment">;
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic";
+export type AssignableInventoryCategory =
+  | "special_ability"
+  | "potential_boost"
+  | "rating_boost";
 
 export type TeamInventoryItem = {
   id: string;
@@ -73,6 +77,16 @@ export const INVENTORY_CATEGORY_DEFINITIONS = [
 
 export function isInventoryCategory(value: string): value is InventoryCategory {
   return (INVENTORY_CATEGORIES as readonly string[]).includes(value);
+}
+
+export function isAssignableInventoryCategory(
+  value: string
+): value is AssignableInventoryCategory {
+  return (
+    value === "special_ability" ||
+    value === "potential_boost" ||
+    value === "rating_boost"
+  );
 }
 
 export function getInventoryCategory(category: InventoryCategory) {

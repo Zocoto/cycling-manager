@@ -55,6 +55,15 @@ export default async function TeamFinancesPage() {
   const expenses = overview.transactions.filter(
     (transaction) => transaction.amount < 0 && transaction.status !== "cancelled"
   );
+  const raceSettlements = buildRacePrizeSettlements(gains);
+  const settledTransactionIds = new Set(
+    raceSettlements.flatMap((settlement) =>
+      settlement.transactions.map((transaction) => transaction.id)
+    )
+  );
+  const otherGains = gains.filter(
+    (transaction) => !settledTransactionIds.has(transaction.id)
+  );
   const latestAlert = overview.alerts[0] ?? null;
 
   return (
@@ -149,6 +158,13 @@ export default async function TeamFinancesPage() {
           />
         </section>
 
+        {raceSettlements.length > 0 ? (
+          <RacePrizeSettlements
+            settlements={raceSettlements}
+            currency={overview.currency}
+          />
+        ) : null}
+
         <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
           <div className="border-b border-[#315B3E]/10 px-6 py-6 sm:px-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
@@ -162,7 +178,7 @@ export default async function TeamFinancesPage() {
           <div className="grid lg:grid-cols-2">
             <TransactionColumn
               title="Gains"
-              transactions={gains}
+              transactions={otherGains}
               currency={overview.currency}
               positive
             />
@@ -199,6 +215,86 @@ function FinanceMetric({
       </p>
       <p className="mt-2 text-xs font-semibold leading-5 text-[#BFD1C6]">{detail}</p>
     </article>
+  );
+}
+
+type RacePrizeSettlement = {
+  editionId: string;
+  raceName: string;
+  dayNumber: number;
+  postedAt: string | null;
+  total: number;
+  transactions: TeamFinanceTransaction[];
+};
+
+function RacePrizeSettlements({
+  settlements,
+  currency,
+}: {
+  settlements: RacePrizeSettlement[];
+  currency: string;
+}) {
+  return (
+    <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#F2C94C]/35 bg-[#0B302B] text-[#FFFDF4] shadow-[0_20px_55px_rgba(7,26,23,0.16)]">
+      <div className="border-b border-white/10 px-6 py-6 sm:px-8">
+        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
+          Règlements de fin de tour
+        </p>
+        <h2 className="mt-2 text-2xl font-black">
+          Toutes les primes versées à l’arrivée
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#BFD1C6]">
+          Les gains des étapes, du classement général et des classements annexes
+          sont crédités ensemble après la dernière étape. Ouvrez un règlement pour
+          consulter chaque ligne.
+        </p>
+      </div>
+
+      <div className="space-y-3 p-5 sm:p-7">
+        {settlements.map((settlement) => (
+          <details
+            key={settlement.editionId}
+            className="group rounded-2xl border border-white/10 bg-white/[0.055] open:bg-white/[0.08]"
+          >
+            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 px-5 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7]">
+              <span>
+                <span className="block text-lg font-black">{settlement.raceName}</span>
+                <span className="mt-1 block text-xs font-bold uppercase tracking-wider text-[#9BE0BC]">
+                  J{settlement.dayNumber} · {settlement.transactions.length} ligne{settlement.transactions.length > 1 ? "s" : ""} · versé en une fois
+                </span>
+              </span>
+              <span className="flex items-center gap-3">
+                <span className="text-xl font-black text-[#F2C94C]">
+                  +{formatCurrency(settlement.total, currency)}
+                </span>
+                <span aria-hidden="true" className="text-[#9BE0BC] transition group-open:rotate-180">⌄</span>
+              </span>
+            </summary>
+
+            <div className="border-t border-white/10 px-5 py-4">
+              {settlement.transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-start justify-between gap-4 border-b border-white/10 py-3 last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-6 text-[#E8F2ED]">
+                      {transaction.description}
+                    </p>
+                    <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-[#89AA9D]">
+                      Prime de course · {formatStatus(transaction.status)}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-black text-[#72D4B7]">
+                    +{formatCurrency(transaction.amount, currency)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -255,6 +351,63 @@ function TransactionColumn({
       </div>
     </div>
   );
+}
+
+function buildRacePrizeSettlements(
+  transactions: TeamFinanceTransaction[]
+): RacePrizeSettlement[] {
+  const settlements = new Map<
+    string,
+    RacePrizeSettlement & { hasStagePrize: boolean }
+  >();
+
+  for (const transaction of transactions) {
+    if (transaction.category !== "race_prize") continue;
+    const match = transaction.sourceReference.match(
+      /^reward:official-(race|stage-prize):([^:]+)/
+    );
+    if (!match) continue;
+
+    const [, rewardType, editionId] = match;
+    const raceName = transaction.description.split(" — ")[0]?.trim() || "Tour";
+    const current = settlements.get(editionId) ?? {
+      editionId,
+      raceName,
+      dayNumber: transaction.dayNumber,
+      postedAt: transaction.postedAt,
+      total: 0,
+      transactions: [],
+      hasStagePrize: false,
+    };
+    current.total += transaction.amount;
+    current.transactions.push(transaction);
+    current.dayNumber = Math.max(current.dayNumber, transaction.dayNumber);
+    current.postedAt = [current.postedAt, transaction.postedAt]
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1) ?? null;
+    current.hasStagePrize ||= rewardType === "stage-prize";
+    settlements.set(editionId, current);
+  }
+
+  return [...settlements.values()]
+    .filter((settlement) => settlement.hasStagePrize)
+    .map((settlement) => ({
+      editionId: settlement.editionId,
+      raceName: settlement.raceName,
+      dayNumber: settlement.dayNumber,
+      postedAt: settlement.postedAt,
+      total: settlement.total,
+      transactions: [...settlement.transactions].sort(
+        (left, right) =>
+          left.description.localeCompare(right.description, "fr") ||
+          left.id.localeCompare(right.id)
+      ),
+    }))
+    .sort((left, right) =>
+      (right.postedAt ?? "").localeCompare(left.postedAt ?? "") ||
+      right.dayNumber - left.dayNumber
+    );
 }
 
 function DebtAlert({

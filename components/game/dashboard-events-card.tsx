@@ -31,10 +31,6 @@ export function DashboardEventsCard({
 }: {
   events: DashboardEvent[];
 }) {
-  const actionCount = events.filter(
-    (event) => event.priority !== "update"
-  ).length;
-
   return (
     <section
       aria-labelledby="dashboard-events-title"
@@ -60,11 +56,6 @@ export function DashboardEventsCard({
           <span className="rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-extrabold text-white">
             {events.length} actualité{events.length > 1 ? "s" : ""}
           </span>
-          {actionCount > 0 ? (
-            <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-black text-[#392B05]">
-              {actionCount} à traiter
-            </span>
-          ) : null}
         </div>
       </header>
 
@@ -204,6 +195,15 @@ function DashboardEventIcon({
     return (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M4 20V9l8-5 8 5v11M8 20v-6h8v6" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (category === "contract") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M7 3h8l4 4v14H7V3Z" strokeLinejoin="round" />
+        <path d="M15 3v5h4M10 12h6M10 16h4" strokeLinecap="round" />
       </svg>
     );
   }

@@ -43,6 +43,7 @@ type TransactionRow = {
   category: FinanceCategory;
   status: "pending" | "posted" | "cancelled";
   description: string;
+  source_reference: string;
   posted_at: string | null;
 };
 type AlertRow = {
@@ -72,6 +73,7 @@ export type TeamFinanceTransaction = {
   category: FinanceCategory;
   status: "pending" | "posted" | "cancelled";
   description: string;
+  sourceReference: string;
   postedAt: string | null;
 };
 
@@ -171,7 +173,7 @@ export async function getCurrentTeamFinanceOverview(
   const [transactionsResult, alertsResult, rankingTeamsResult, divisionResult] = await Promise.all([
     admin
       .from("team_finance_transactions")
-      .select("id, day_number, amount, category, status, description, posted_at")
+      .select("id, day_number, amount, category, status, description, source_reference, posted_at")
       .eq("team_season_id", teamSeason.id)
       .order("day_number", { ascending: true })
       .order("created_at", { ascending: true })
@@ -277,6 +279,7 @@ function toTransaction(row: TransactionRow): TeamFinanceTransaction {
     category: row.category,
     status: row.status,
     description: row.description,
+    sourceReference: row.source_reference,
     postedAt: row.posted_at,
   };
 }

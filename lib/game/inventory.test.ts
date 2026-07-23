@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getInventoryCategory,
   getInventoryRarityLabel,
+  isAssignableInventoryCategory,
   isInventoryCategory,
   summarizeInventory,
   type TeamInventoryItem,
@@ -33,6 +34,10 @@ describe("team inventory", () => {
   it("reconnaît uniquement les catégories d’inventaire", () => {
     expect(isInventoryCategory("equipment")).toBe(true);
     expect(isInventoryCategory("unknown")).toBe(false);
+    expect(isAssignableInventoryCategory("special_ability")).toBe(true);
+    expect(isAssignableInventoryCategory("potential_boost")).toBe(true);
+    expect(isAssignableInventoryCategory("rating_boost")).toBe(true);
+    expect(isAssignableInventoryCategory("equipment")).toBe(false);
   });
 
   it("expose des libellés lisibles", () => {

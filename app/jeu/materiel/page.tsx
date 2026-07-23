@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 type MaterialPageProps = {
   searchParams: Promise<{
     categorie?: string | string[];
+    marque?: string | string[];
     achat?: string | string[];
     erreur?: string | string[];
   }>;
@@ -36,6 +37,7 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
   const query = await searchParams;
   const rawCategory = readQuery(query.categorie);
   const category = isEquipmentSlot(rawCategory) ? rawCategory : null;
+  const rawSupplierKey = readQuery(query.marque);
   const success = readQuery(query.achat) === "confirme";
   const errorMessage = readQuery(query.erreur);
   const supabase = await createSupabaseServerClient();
@@ -54,9 +56,16 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
 
   if (!overview) redirect("/jeu");
 
-  const visibleItems = category
-    ? overview.catalog.filter((item) => item.slot === category)
-    : overview.catalog;
+  const supplierKey = overview.suppliers.some(
+    (supplier) => supplier.key === rawSupplierKey
+  )
+    ? rawSupplierKey
+    : null;
+  const visibleItems = overview.catalog.filter(
+    (item) =>
+      (!category || item.slot === category) &&
+      (!supplierKey || item.supplierKey === supplierKey)
+  );
   const ownedReferences = overview.catalog.filter(
     (item) => item.ownedQuantity > 0
   ).length;
@@ -131,13 +140,90 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
           </article>
 
           <article className="relative overflow-hidden rounded-[2rem] border border-[#D29F32]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
-            <span className="absolute right-5 top-5 rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">Maintenance</span>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Prochaine évolution</p>
-            <h2 className="mt-2 text-2xl font-black text-white">Partenariat équipementier</h2>
+            <span className="absolute right-5 top-5 rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">{overview.suppliers.length} marques</span>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Marché ouvert</p>
+            <h2 className="mt-2 text-2xl font-black text-white">Plusieurs philosophies</h2>
             <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">
-              Les contrats exclusifs, dotations automatiques et objectifs de marque seront développés dans une prochaine version.
+              Comparez une offre accessible, des spécialistes techniques et des gammes premium. Chaque famille compte désormais cinq références.
             </p>
           </article>
+        </section>
+
+        <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">Galerie des marques</p>
+              <h2 className="mt-2 text-2xl font-black text-[#183F37]">Choisir un équipementier</h2>
+            </div>
+            {supplierKey ? (
+              <Link
+                href={buildMaterialHref(category, null)}
+                className="text-sm font-black text-[#176951] hover:text-[#0B302B]"
+              >
+                Toutes les marques
+              </Link>
+            ) : null}
+          </div>
+
+          <nav
+            aria-label="Équipementiers"
+            className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {overview.suppliers.map((supplier) => {
+              const isActive = supplier.key === supplierKey;
+
+              return (
+                <Link
+                  key={supplier.key}
+                  href={buildMaterialHref(
+                    category,
+                    isActive ? null : supplier.key
+                  )}
+                  aria-current={isActive ? "page" : undefined}
+                  className={
+                    isActive
+                      ? "group overflow-hidden rounded-2xl border-2 bg-[#F8FBF9] shadow-lg"
+                      : "group overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] transition hover:-translate-y-0.5 hover:shadow-lg"
+                  }
+                  style={{
+                    borderColor: isActive
+                      ? supplier.primaryColor
+                      : `${supplier.primaryColor}33`,
+                  }}
+                >
+                  <span
+                    className="relative block h-24"
+                    style={{
+                      background: `linear-gradient(135deg, ${supplier.primaryColor}, ${supplier.secondaryColor})`,
+                    }}
+                  >
+                    <span className="absolute inset-3 rounded-xl bg-white shadow-sm">
+                      <Image
+                        src={supplier.logoPath}
+                        alt={`Logo ${supplier.name}`}
+                        fill
+                        sizes="(min-width:1024px) 22vw, (min-width:640px) 45vw, 90vw"
+                        className="object-contain p-2"
+                      />
+                    </span>
+                  </span>
+                  <span className="block p-4">
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-black text-[#183F37]">
+                        {supplier.name}
+                      </span>
+                      <span className="rounded-full bg-[#EAF5F3] px-2 py-1 text-[9px] font-black uppercase text-[#176951]">
+                        {supplier.referenceCount} réf.
+                      </span>
+                    </span>
+                    <span className="mt-2 line-clamp-2 block text-[11px] font-semibold leading-4 text-[#60756E]">
+                      {supplier.positioning}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
         </section>
 
         <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7">
@@ -147,7 +233,7 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
               <h2 className="mt-2 text-2xl font-black text-[#183F37]">Choisir une catégorie</h2>
             </div>
             {category ? (
-              <Link href="/jeu/materiel" className="text-sm font-black text-[#176951] hover:text-[#0B302B]">Voir tout le catalogue</Link>
+              <Link href={buildMaterialHref(null, supplierKey)} className="text-sm font-black text-[#176951] hover:text-[#0B302B]">Toutes les catégories</Link>
             ) : null}
           </div>
 
@@ -155,7 +241,7 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
             {EQUIPMENT_CATEGORIES.map((entry) => (
               <Link
                 key={entry.slot}
-                href={`/jeu/materiel?categorie=${entry.slot}`}
+                href={buildMaterialHref(entry.slot, supplierKey)}
                 aria-current={category === entry.slot ? "page" : undefined}
                 className={category === entry.slot
                   ? "group rounded-2xl border border-[#176951] bg-[#0B302B] p-3 text-center text-white shadow-lg"
@@ -171,20 +257,40 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
         </section>
 
         <section className="mt-7">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">{category ? getEquipmentCategory(category).label : "Toutes les catégories"}</p>
-          <h2 className="mt-2 text-2xl font-black text-[#183F37]">{visibleItems.length} références disponibles</h2>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+                {category ? getEquipmentCategory(category).label : "Toutes les catégories"}
+                {supplierKey ? ` · ${overview.suppliers.find((supplier) => supplier.key === supplierKey)?.name}` : ""}
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-[#183F37]">{visibleItems.length} références disponibles</h2>
+            </div>
+            <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
+              Les modifications faites après 12 h sont enregistrées immédiatement mais ne deviennent actives que le lendemain à midi.
+            </p>
+          </div>
 
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {visibleItems.map((item) => (
+          {visibleItems.length > 0 ? (
+            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {visibleItems.map((item) => (
               <EquipmentProductCard
                 key={item.id}
                 item={item}
                 currency={overview.currency}
                 balance={overview.balance}
                 activeCategory={category}
+                activeSupplierKey={supplierKey}
               />
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/25 bg-white px-6 py-10 text-center">
+              <p className="text-sm font-black text-[#183F37]">Cette marque ne propose pas encore cette famille.</p>
+              <Link href={buildMaterialHref(category, null)} className="mt-3 inline-block text-sm font-black text-[#176951] hover:text-[#0B302B]">
+                Comparer toutes les marques de la catégorie
+              </Link>
+            </div>
+          )}
         </section>
       </section>
     </main>
@@ -196,11 +302,13 @@ function EquipmentProductCard({
   currency,
   balance,
   activeCategory,
+  activeSupplierKey,
 }: {
   item: TeamEquipmentCatalogItem;
   currency: string;
   balance: number;
   activeCategory: EquipmentSlot | null;
+  activeSupplierKey: string | null;
 }) {
   const cannotAfford = balance <= 0 || balance < item.price;
 
@@ -208,8 +316,17 @@ function EquipmentProductCard({
     <article className="flex overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
       <div className="flex w-full flex-col">
         <div className="relative aspect-[16/10] overflow-hidden bg-[#071A17]">
-          <Image src={item.imagePath} alt={`Univers visuel ${item.supplierName}`} fill sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw" className="object-cover transition duration-500 hover:scale-[1.03]" />
+          <Image src={item.imagePath} alt={`${item.name} par ${item.supplierName}`} fill sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw" className="object-cover transition duration-500 hover:scale-[1.03]" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-5 pb-4 pt-12 text-white">
+            <div className="relative mb-3 h-9 w-36 overflow-hidden rounded-lg bg-white shadow-md">
+              <Image
+                src={item.supplierLogoPath}
+                alt=""
+                fill
+                sizes="144px"
+                className="object-contain p-1.5"
+              />
+            </div>
             <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">{item.supplierName}</p>
             <h3 className="mt-1 text-xl font-black">{item.name}</h3>
           </div>
@@ -237,6 +354,7 @@ function EquipmentProductCard({
           <form action={purchaseEquipmentAction} className="mt-5">
             <input type="hidden" name="equipmentItemId" value={item.id} />
             <input type="hidden" name="category" value={activeCategory ?? ""} />
+            <input type="hidden" name="supplier" value={activeSupplierKey ?? ""} />
             <EquipmentSubmitButton mode="purchase" disabled={cannotAfford} />
           </form>
         </div>
@@ -276,4 +394,15 @@ function readQuery(value: string | string[] | undefined) {
 
 function isEquipmentSlot(value: string): value is EquipmentSlot {
   return EQUIPMENT_SLOTS.includes(value as EquipmentSlot);
+}
+
+function buildMaterialHref(
+  category: EquipmentSlot | null,
+  supplierKey: string | null
+) {
+  const params = new URLSearchParams();
+  if (category) params.set("categorie", category);
+  if (supplierKey) params.set("marque", supplierKey);
+  const query = params.toString();
+  return query ? `/jeu/materiel?${query}` : "/jeu/materiel";
 }
