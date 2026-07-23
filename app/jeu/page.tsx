@@ -1029,9 +1029,18 @@ function TeamRosterCard({
       href="/jeu/effectif"
       className="group relative isolate flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
-      <CardWatermark
-        url={ROSTER_WATERMARK}
-        origin="0% 100%"
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center opacity-[0.4] transition-opacity duration-300 group-hover:opacity-[0.52]"
+        style={{
+          backgroundImage: `url("${ROSTER_WATERMARK}")`,
+          filter:
+            "grayscale(0.35) brightness(0.95) contrast(1.05)",
+        }}
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(11,48,43,0.55)_0%,rgba(11,48,43,0.78)_55%,rgba(11,48,43,0.95)_100%)]"
       />
 
       <div className="flex items-start justify-between gap-4">
@@ -1049,47 +1058,60 @@ function TeamRosterCard({
       </h2>
 
       <div
-        className="relative mt-4 h-52 overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_100%,rgba(66,185,154,0.2),transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.01))]"
+        className="relative mt-6"
         aria-label={
-          riders.length > 0
+          leadingRider
             ? `Photo d’équipe des ${riders.length} coureurs les mieux notés`
             : "Emplacement de la future photo d’équipe"
         }
       >
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-6 bottom-4 h-10 rounded-[50%] bg-[#071A17]/45 blur-md"
-        />
+        {leadingRider ? (
+          <div className="flex flex-col items-center">
+            <span
+              title={`${leadingRider.first_name} ${leadingRider.last_name} · Moyenne ${getDashboardRiderAverage(leadingRider)}`}
+            >
+              <RiderAvatar
+                profileKey={leadingRider.avatar_profile_key}
+                seed={leadingRider.avatar_seed}
+                riderId={leadingRider.rider_id}
+                age={leadingRider.age}
+                jersey={jersey}
+                label={`Portrait de ${leadingRider.first_name} ${leadingRider.last_name}`}
+                className="h-24 w-24 border-[3px] border-[#F2C94C]/80 shadow-2xl"
+              />
+            </span>
 
-        {riders.length > 0 ? (
-          <>
-            <RiderPortraitRow
-              riders={riders.slice(3, 6)}
-              jersey={jersey}
-              className="top-4 z-10"
-              avatarClassName="h-14 w-14 border-2 border-[#9BE0BC]/35 shadow-lg"
-            />
-            <RiderPortraitRow
-              riders={riders.slice(1, 3)}
-              jersey={jersey}
-              className="top-[4.4rem] z-20"
-              avatarClassName="h-16 w-16 border-2 border-[#9BE0BC]/45 shadow-xl"
-            />
-            <RiderPortraitRow
-              riders={riders.slice(0, 1)}
-              jersey={jersey}
-              className="bottom-7 z-30"
-              avatarClassName="h-20 w-20 border-2 border-[#F2C94C]/70 shadow-2xl"
-            />
+            <span className="mt-3 max-w-full truncate text-center text-xs font-extrabold uppercase tracking-[0.12em] text-[#F2C94C]">
+              {leadingRider.first_name} {leadingRider.last_name} · MOY {getDashboardRiderAverage(leadingRider)}
+            </span>
 
-            {leadingRider ? (
-              <span className="absolute inset-x-3 bottom-1 z-40 truncate text-center text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F2C94C]">
-                {leadingRider.first_name} {leadingRider.last_name} · MOY {getDashboardRiderAverage(leadingRider)}
-              </span>
+            {riders.length > 1 ? (
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                {riders.slice(1).map((rider) => {
+                  const riderName = `${rider.first_name} ${rider.last_name}`;
+
+                  return (
+                    <span
+                      key={rider.rider_id}
+                      title={`${riderName} · Moyenne ${getDashboardRiderAverage(rider)}`}
+                    >
+                      <RiderAvatar
+                        profileKey={rider.avatar_profile_key}
+                        seed={rider.avatar_seed}
+                        riderId={rider.rider_id}
+                        age={rider.age}
+                        jersey={jersey}
+                        label={`Portrait de ${riderName}`}
+                        className="h-12 w-12 border-2 border-[#9BE0BC]/40 shadow-lg"
+                      />
+                    </span>
+                  );
+                })}
+              </div>
             ) : null}
-          </>
+          </div>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+          <div className="flex flex-col items-center justify-center px-6 py-8 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-[#9BE0BC]/40 bg-white/5 text-[#9BE0BC]">
               <ManagementModuleIcon icon="riders" />
             </span>
@@ -1109,49 +1131,6 @@ function TeamRosterCard({
         <ArrowRightIcon />
       </span>
     </Link>
-  );
-}
-
-function RiderPortraitRow({
-  riders,
-  jersey,
-  className,
-  avatarClassName,
-}: {
-  riders: DashboardRider[];
-  jersey: RiderJerseyAppearance;
-  className: string;
-  avatarClassName: string;
-}) {
-  if (riders.length === 0) {
-    return null;
-  }
-
-  return (
-    <span
-      className={`absolute inset-x-0 flex items-center justify-center gap-2 ${className}`}
-    >
-      {riders.map((rider) => {
-        const riderName = `${rider.first_name} ${rider.last_name}`;
-
-        return (
-          <span
-            key={rider.rider_id}
-            title={`${riderName} · Moyenne ${getDashboardRiderAverage(rider)}`}
-          >
-            <RiderAvatar
-              profileKey={rider.avatar_profile_key}
-              seed={rider.avatar_seed}
-              riderId={rider.rider_id}
-              age={rider.age}
-              jersey={jersey}
-              label={`Portrait de ${riderName}`}
-              className={avatarClassName}
-            />
-          </span>
-        );
-      })}
-    </span>
   );
 }
 
