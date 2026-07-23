@@ -5,6 +5,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { GameHeader } from "@/components/game/game-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamFinanceOverview,
@@ -34,7 +35,7 @@ export default async function TeamFinancesPage() {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

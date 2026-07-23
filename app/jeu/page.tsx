@@ -27,6 +27,7 @@ import {
   type RiderJerseyAppearance,
 } from "../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
+import { getAuthenticatedUser } from "../../lib/supabase/authenticated-user";
 import {
   getTeamAmateurIdentity,
   type TeamAmateurIdentity,
@@ -220,7 +221,7 @@ export default async function GamePage() {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");
