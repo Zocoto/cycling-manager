@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { hireStaffMemberAction } from "@/app/jeu/staff/actions";
 import { GameHeader } from "@/components/game/game-header";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
+import { ARCHITECT_SPECIALTY_LABELS } from "@/lib/game/infrastructure";
 import {
   STAFF_ROLES,
   STAFF_ROLE_DEFINITIONS,
@@ -360,6 +361,11 @@ function StaffMarketCard({
             Spécialité · {TRAINER_SPECIALTY_LABELS[member.trainerSpecialty]}
           </p>
         ) : null}
+        {member.architectSpecialty ? (
+          <p className="mt-4 inline-flex rounded-full bg-[#F4E9DD] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#7A4E28]">
+            Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
+          </p>
+        ) : null}
 
         <div className="mt-4 rounded-2xl bg-[#F2F8F5] p-4">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
@@ -560,6 +566,11 @@ function TeamStaffCard({ member }: { member: TeamStaffMember }) {
       {member.trainerSpecialty ? (
         <p className="mt-4 text-xs font-black text-[#8A6714]">
           Spécialité · {TRAINER_SPECIALTY_LABELS[member.trainerSpecialty]}
+        </p>
+      ) : null}
+      {member.architectSpecialty ? (
+        <p className="mt-4 text-xs font-black text-[#7A4E28]">
+          Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
         </p>
       ) : null}
       <ul className="mt-4 space-y-2 text-sm font-bold leading-5 text-[#176951]">

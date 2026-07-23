@@ -71,14 +71,18 @@ describe("staff economy", () => {
     ).toEqual([2, 3, 4, 5, 6]);
   });
 
-  it("links both architect construction reductions to staff level", () => {
+  it("applies distinct architect specialties to construction reductions", () => {
     expect(getArchitectConstructionBonuses(1)).toEqual({
-      costReductionPercentage: 5,
-      durationReductionPercentage: 5,
+      costReductionPercentage: 4,
+      durationReductionPercentage: 4,
     });
-    expect(getArchitectConstructionBonuses(5)).toEqual({
-      costReductionPercentage: 25,
-      durationReductionPercentage: 25,
+    expect(getArchitectConstructionBonuses(5, "economist")).toEqual({
+      costReductionPercentage: 30,
+      durationReductionPercentage: 10,
+    });
+    expect(getArchitectConstructionBonuses(5, "foreman")).toEqual({
+      costReductionPercentage: 10,
+      durationReductionPercentage: 30,
     });
 
     expect(
@@ -86,12 +90,13 @@ describe("staff economy", () => {
         baseCost: 100_000,
         baseDurationDays: 20,
         architectLevel: 3,
+        architectSpecialty: "balanced",
       }),
     ).toEqual({
-      cost: 85_000,
-      durationDays: 17,
-      costReductionPercentage: 15,
-      durationReductionPercentage: 15,
+      cost: 88_000,
+      durationDays: 18,
+      costReductionPercentage: 12,
+      durationReductionPercentage: 12,
     });
   });
 

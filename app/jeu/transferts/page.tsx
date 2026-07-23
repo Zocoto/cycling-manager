@@ -101,13 +101,16 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">Recruter · vendre · construire</p>
               <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Bureau des transferts</h1>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-                Recrutez à partir d’un rapport de scouting incomplet : certaines notes sont exactes, d’autres estimées ou encore inconnues. Les outils d’analyse permettront plus tard d’affiner ces informations.
+                Recrutez à partir d’un rapport de scouting incomplet. Votre
+                Data Room affine automatiquement les notes estimées et réduit
+                les zones d’ombre.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
               <Metric label="Budget projeté" value={formatMoney(overview.projectedBudget, overview.currency)} />
               <Metric label="Réservé" value={formatMoney(overview.reservedBudget, overview.currency)} />
               <Metric label="Disponible" value={formatMoney(overview.availableBudget, overview.currency)} />
+              <Metric label="Data Room" value={`Niveau ${overview.dataRoomLevel}/3`} />
             </div>
           </div>
         </header>

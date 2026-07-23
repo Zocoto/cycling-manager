@@ -3,6 +3,7 @@ import {
   type RiderRatingKey,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import { getScoutingVisibilityForDataRoom } from "@/lib/game/infrastructure";
 import { normalizePotentialSteps } from "@/lib/game/training";
 
 export const STANDARD_SCOUTING_EXACT_RATING_COUNT = 3;
@@ -29,12 +30,15 @@ export function createStandardTransferScoutingReport({
   seasonId,
   ratings,
   potentialSteps,
+  dataRoomLevel = 0,
 }: {
   riderId: string;
   seasonId: string;
   ratings: RiderRatings;
   potentialSteps: number;
+  dataRoomLevel?: number;
 }): TransferScoutingReport {
+  const visibility = getScoutingVisibilityForDataRoom(dataRoomLevel);
   const visibilityOrder = RIDER_RATING_AXES.map((axis) => ({
     key: axis.key,
     score: stableHash(`${riderId}:${seasonId}:${axis.key}:visibility`),
@@ -43,15 +47,14 @@ export function createStandardTransferScoutingReport({
   );
   const exactKeys = new Set(
     visibilityOrder
-      .slice(0, STANDARD_SCOUTING_EXACT_RATING_COUNT)
+      .slice(0, visibility.exactRatingCount)
       .map(({ key }) => key)
   );
   const rangedKeys = new Set(
     visibilityOrder
       .slice(
-        STANDARD_SCOUTING_EXACT_RATING_COUNT,
-        STANDARD_SCOUTING_EXACT_RATING_COUNT +
-          STANDARD_SCOUTING_RANGE_RATING_COUNT
+        visibility.exactRatingCount,
+        visibility.exactRatingCount + visibility.rangeRatingCount
       )
       .map(({ key }) => key)
   );
@@ -68,7 +71,9 @@ export function createStandardTransferScoutingReport({
           axis.key,
           createNumericRange(
             value,
-            stableHash(`${riderId}:${seasonId}:${axis.key}:range`)
+            stableHash(`${riderId}:${seasonId}:${axis.key}:range`),
+            visibility.minimumRangeSpread,
+            visibility.maximumRangeSpread,
           ),
         ];
       }
@@ -83,12 +88,17 @@ export function createStandardTransferScoutingReport({
     overall: createNumericRange(
       overall,
       stableHash(`${riderId}:${seasonId}:overall`),
-      1
+      1,
+      dataRoomLevel >= 2 ? 1 : 3,
     ),
     potential:
-      potentialSeed % 4 === 0
+      visibility.potentialCanBeUnknown && potentialSeed % 4 === 0
         ? { kind: "unknown" }
-        : createPotentialRange(potentialSteps, potentialSeed),
+        : createPotentialRange(
+            potentialSteps,
+            potentialSeed,
+            visibility.potentialMaximumSpreadSteps,
+          ),
     ratings: scoutedRatings,
   };
 }
@@ -151,10 +161,12 @@ export function scoutedValueCouldMeetMinimum(
 function createNumericRange(
   value: number,
   seed: number,
-  minimumSpread = 2
+  minimumSpread = 2,
+  maximumSpread = 4,
 ): ScoutedNumericValue {
-  const lowerSpread = minimumSpread + (seed % 3);
-  const upperSpread = minimumSpread + ((seed >>> 4) % 3);
+  const spreadOptions = Math.max(1, maximumSpread - minimumSpread + 1);
+  const lowerSpread = minimumSpread + (seed % spreadOptions);
+  const upperSpread = minimumSpread + ((seed >>> 4) % spreadOptions);
   let minimum = clamp(Math.floor(value - lowerSpread), 0, 100);
   let maximum = clamp(Math.ceil(value + upperSpread), 0, 100);
 
@@ -168,11 +180,18 @@ function createNumericRange(
 
 function createPotentialRange(
   potentialSteps: number,
-  seed: number
+  seed: number,
+  maximumSpreadSteps = 2,
 ): ScoutedPotentialValue {
   const normalized = normalizePotentialSteps(potentialSteps);
-  const lowerSpread = seed % 3 === 0 ? 2 : 1;
-  const upperSpread = (seed >>> 3) % 3 === 0 ? 2 : 1;
+  const safeMaximumSpread = Math.min(
+    2,
+    Math.max(1, Math.floor(maximumSpreadSteps)),
+  );
+  const lowerSpread =
+    safeMaximumSpread === 2 && seed % 3 === 0 ? 2 : 1;
+  const upperSpread =
+    safeMaximumSpread === 2 && (seed >>> 3) % 3 === 0 ? 2 : 1;
   let minimumSteps = clamp(normalized - lowerSpread, 1, 8);
   let maximumSteps = clamp(normalized + upperSpread, 1, 8);
 

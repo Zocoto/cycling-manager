@@ -1,6 +1,7 @@
 import "server-only";
 
 import { COUNTRY_MAP_COORDINATES } from "@/data/country-map-coordinates";
+import { applyInternationalCenterPotentialBonus } from "@/lib/game/infrastructure";
 import {
   calculateCountryWorldReputation,
   calculateYouthSigningCosts,
@@ -91,9 +92,20 @@ type CandidateRow = {
   signing_fee: number | string;
   tuition_per_season: number | string;
   status: "spotted" | "signed" | "expired";
+  international_center_bonus_applied: boolean;
+  international_center_bonus_percentage: number;
 };
 
-type AcademyRow = Omit<CandidateRow, "mission_id" | "report_slot" | "age" | "signing_fee" | "status"> & {
+type AcademyRow = Omit<
+  CandidateRow,
+  | "mission_id"
+  | "report_slot"
+  | "age"
+  | "signing_fee"
+  | "status"
+  | "international_center_bonus_applied"
+  | "international_center_bonus_percentage"
+> & {
   team_id: string;
   joined_season_id: string;
   joined_day_number: number;
@@ -148,6 +160,8 @@ export type YouthCandidate = {
   signingFee: number;
   tuitionPerSeason: number;
   status: CandidateRow["status"];
+  internationalCenterBonusApplied: boolean;
+  internationalCenterBonusPercentage: number;
 };
 
 export type YouthMission = {
@@ -220,6 +234,13 @@ export async function getYouthDevelopmentOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
+  const infrastructureSettlement = await admin.rpc(
+    "settle_due_infrastructure_projects",
+  );
+  assertQuery(
+    infrastructureSettlement.error,
+    "les chantiers de formation internationale",
+  );
   await settleDueScoutingMissions(admin, context);
   await settleAcademyDailyOperations(admin, context);
   const financeSettlement = await supabase.rpc("settle_current_team_finances");
@@ -235,6 +256,13 @@ export async function getYouthDevelopmentAlertCount(
   const admin = createSupabaseAdminClient();
   const context = await loadContext(admin, authUserId);
   if (!context) return 0;
+  const infrastructureSettlement = await admin.rpc(
+    "settle_due_infrastructure_projects",
+  );
+  assertQuery(
+    infrastructureSettlement.error,
+    "les chantiers de formation internationale",
+  );
   await settleDueScoutingMissions(admin, context);
 
   const [missions, notifications] = await Promise.all([
@@ -409,14 +437,16 @@ async function settleDueScoutingMissions(admin: AdminClient, context: Context) {
 }
 
 async function completeMission(admin: AdminClient, mission: MissionRow) {
-  const [contractResult, countryResult, facilityResult, profileResult] = await Promise.all([
+  const [contractResult, countryResult, facilityResult, profileResult, centersResult] = await Promise.all([
     admin.from("staff_contracts").select("staff_member_id").eq("id", mission.scout_contract_id).single<{ staff_member_id: string }>(),
     admin.from("countries").select("id, name, iso_alpha2, is_active").eq("id", mission.country_id).single<CountryRow>(),
     admin.from("country_cycling_development").select("facility_level").eq("country_id", mission.country_id).maybeSingle<{ facility_level: number }>(),
     admin.from("country_rider_generation_profiles").select("name_profile_code, avatar_profile_key").eq("country_id", mission.country_id).single<{ name_profile_code: string; avatar_profile_key: string }>(),
+    admin.from("international_youth_centers").select("quality_level").eq("country_id", mission.country_id).returns<Array<{ quality_level: number }>>(),
   ]);
   assertQuery(contractResult.error, "le contrat du scout"); assertQuery(countryResult.error, "le pays scouté");
   assertQuery(facilityResult.error, "les installations locales"); assertQuery(profileResult.error, "le profil régional");
+  assertQuery(centersResult.error, "les centres internationaux");
   const contract = requireData(contractResult.data, "le contrat du scout");
   const country = requireData(countryResult.data, "le pays scouté");
   const profile = requireData(profileResult.data, "le profil régional");
@@ -432,9 +462,20 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const identities = generateRiderIdentities(profile.name_profile_code, count);
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
   const reputation = getCountryBaseReputation(country.iso_alpha2);
+  const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
+    (total, center) => total + center.quality_level,
+    0,
+  );
   const candidates = identities.map((identity, index) => {
     const archetype = chooseYouthArchetype({ ...specialties, random });
-    const potentialSteps = clamp(Math.round(1 + scoutBonuses.potentialBonus + mission.duration_days * 0.16 + facilityLevel * 0.08 + reputation * 0.08 + nationalityBonus / 30 + random() * 1.5), 1, 8);
+    const basePotentialSteps = clamp(Math.round(1 + scoutBonuses.potentialBonus + mission.duration_days * 0.16 + facilityLevel * 0.08 + reputation * 0.08 + nationalityBonus / 30 + random() * 1.5), 1, 8);
+    const internationalCenterBonus =
+      applyInternationalCenterPotentialBonus({
+        potentialSteps: basePotentialSteps,
+        totalQualityStars: totalInternationalCenterStars,
+        random,
+      });
+    const potentialSteps = internationalCenterBonus.potentialSteps;
     const ratings = generateYouthRatings({
       archetype,
       talent: potentialSteps,
@@ -447,6 +488,8 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       mission_id: mission.id, report_slot: index + 1, country_id: country.id,
       first_name: identity.first_name, last_name: identity.last_name,
       age: clamp(15 + Math.floor(random() * 4), 15, 18), archetype, potential_steps: potentialSteps,
+      international_center_bonus_applied: internationalCenterBonus.bonusApplied,
+      international_center_bonus_percentage: internationalCenterBonus.bonusPercentage,
       avatar_profile_key: profile.avatar_profile_key, avatar_seed: identity.avatar_seed,
       ...ratingsToRow(ratings), signing_fee: costs.signingFee, tuition_per_season: costs.tuitionPerSeason,
     };
@@ -560,7 +603,7 @@ async function loadContext(admin: AdminClient, authUserId: string): Promise<Cont
 
 function toCandidate(row: CandidateRow, country: CountryRow | undefined): YouthCandidate {
   const ratings = rowToRatings(row);
-  return { id: row.id, firstName: row.first_name, lastName: row.last_name, age: row.age, countryName: country?.name ?? "Pays inconnu", countryCode: country?.iso_alpha2 ?? "--", archetype: row.archetype, archetypeLabel: YOUTH_ARCHETYPE_LABELS[row.archetype], sportingProfile: getRiderSportingProfile(scaleYouthRatings(ratings)), potentialSteps: row.potential_steps, profileKey: row.avatar_profile_key, avatarSeed: String(row.avatar_seed), ratings, signingFee: toNumber(row.signing_fee), tuitionPerSeason: toNumber(row.tuition_per_season), status: row.status };
+  return { id: row.id, firstName: row.first_name, lastName: row.last_name, age: row.age, countryName: country?.name ?? "Pays inconnu", countryCode: country?.iso_alpha2 ?? "--", archetype: row.archetype, archetypeLabel: YOUTH_ARCHETYPE_LABELS[row.archetype], sportingProfile: getRiderSportingProfile(scaleYouthRatings(ratings)), potentialSteps: row.potential_steps, profileKey: row.avatar_profile_key, avatarSeed: String(row.avatar_seed), ratings, signingFee: toNumber(row.signing_fee), tuitionPerSeason: toNumber(row.tuition_per_season), status: row.status, internationalCenterBonusApplied: row.international_center_bonus_applied, internationalCenterBonusPercentage: row.international_center_bonus_percentage };
 }
 
 function rowToRatings(row: CandidateRow | AcademyRow): YouthRatings {

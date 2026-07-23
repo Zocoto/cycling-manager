@@ -8,6 +8,11 @@ import {
   hasRiderNameLibrary,
 } from "@/lib/rider-names/generate-rider-identities";
 import {
+  ARCHITECT_SPECIALTIES,
+  isArchitectSpecialty,
+  type ArchitectSpecialty,
+} from "@/lib/game/infrastructure";
+import {
   STAFF_DAILY_LEVEL_DISTRIBUTION,
   STAFF_DAILY_ROLE_DISTRIBUTION,
   TRAINER_SPECIALTIES,
@@ -83,6 +88,7 @@ type MemberRow = {
   role: string;
   level: number;
   trainer_specialty: string | null;
+  architect_specialty: string | null;
 };
 
 type ContractRow = {
@@ -115,6 +121,7 @@ export type TeamStaffMember = {
   role: StaffRole;
   level: number;
   trainerSpecialty: TrainerSpecialty | null;
+  architectSpecialty: ArchitectSpecialty | null;
   effects: string[];
   salaryPerSeason: number;
   salaryPerWeek: number;
@@ -232,7 +239,7 @@ export async function getTeamStaffOverview(
       ? await admin
           .from("staff_members")
           .select(
-            "id, country_id, first_name, last_name, role, level, trainer_specialty",
+            "id, country_id, first_name, last_name, role, level, trainer_specialty, architect_specialty",
           )
           .in("id", memberIds)
           .returns<MemberRow[]>()
@@ -417,6 +424,12 @@ async function ensureTodayStaffMarket(
         role === "trainer"
           ? TRAINER_SPECIALTIES[randomInt(0, TRAINER_SPECIALTIES.length)]
           : null,
+      architect_specialty:
+        role === "architect"
+          ? ARCHITECT_SPECIALTIES[
+              randomInt(0, ARCHITECT_SPECIALTIES.length)
+            ]
+          : null,
     };
   });
 
@@ -533,6 +546,13 @@ function toStaffMember({
     member.trainer_specialty && isTrainerSpecialty(member.trainer_specialty)
       ? member.trainer_specialty
       : null;
+  const architectSpecialty =
+    member.architect_specialty &&
+    isArchitectSpecialty(member.architect_specialty)
+      ? member.architect_specialty
+      : member.role === "architect"
+        ? "balanced"
+        : null;
 
   return {
     id: member.id,
@@ -545,10 +565,12 @@ function toStaffMember({
     role: member.role,
     level: member.level,
     trainerSpecialty,
+    architectSpecialty,
     effects: describeStaffEffect({
       role: member.role,
       level: member.level,
       trainerSpecialty,
+      architectSpecialty,
       countryName: country.name,
     }),
     salaryPerSeason,

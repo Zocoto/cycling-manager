@@ -189,6 +189,7 @@ export type TransferMarketOverview = {
   projectedBudget: number;
   reservedBudget: number;
   availableBudget: number;
+  dataRoomLevel: number;
   marketDate: string;
   dailyListings: TransferMarketListing[];
   directorListings: TransferMarketListing[];
@@ -235,6 +236,7 @@ export async function getTransferMarketOverview(
     countriesResult,
     freeAgentResult,
     seasonYears,
+    dataRoomResult,
   ] =
     await Promise.all([
       admin
@@ -275,6 +277,12 @@ export async function getTransferMarketOverview(
         .limit(500)
         .returns<Array<{ id: string }>>(),
       loadSeasonYears(admin),
+      admin
+        .from("team_infrastructures")
+        .select("level")
+        .eq("team_id", context.teamSeason.team_id)
+        .eq("infrastructure_code", "recruitment_data_room")
+        .maybeSingle<{ level: number }>(),
     ]);
 
   assertQuery(listingsResult.error, "les enchères");
@@ -283,6 +291,8 @@ export async function getTransferMarketOverview(
   assertQuery(transactionsResult.error, "le budget projeté");
   assertQuery(countriesResult.error, "les nationalités");
   assertQuery(freeAgentResult.error, "les agents libres");
+  assertQuery(dataRoomResult.error, "la Data Room de recrutement");
+  const dataRoomLevel = dataRoomResult.data?.level ?? 0;
 
   const listings = listingsResult.data ?? [];
   const bids = bidsResult.data ?? [];
@@ -353,6 +363,7 @@ export async function getTransferMarketOverview(
       rider: toTransferMarketRider({
         rider,
         seasonId: context.season.id,
+        dataRoomLevel,
         revealExactValues:
           listing.seller_team_id === context.teamSeason.team_id,
       }),
@@ -373,6 +384,7 @@ export async function getTransferMarketOverview(
         toTransferMarketRider({
           rider,
           seasonId: context.season.id,
+          dataRoomLevel,
           revealExactValues: false,
         })
       ),
@@ -411,6 +423,7 @@ export async function getTransferMarketOverview(
     projectedBudget,
     reservedBudget,
     availableBudget: Math.max(0, projectedBudget - reservedBudget),
+    dataRoomLevel,
     marketDate,
     dailyListings: mappedListings.filter((listing) => listing.type === "daily"),
     directorListings: mappedListings.filter((listing) => listing.type === "director"),
@@ -735,10 +748,12 @@ function applyFreeAgentFilters(riders: TransferMarketRider[], filters: TransferM
 function toTransferMarketRider({
   rider,
   seasonId,
+  dataRoomLevel,
   revealExactValues,
 }: {
   rider: LoadedMarketRider;
   seasonId: string;
+  dataRoomLevel: number;
   revealExactValues: boolean;
 }): TransferMarketRider {
   return {
@@ -762,6 +777,7 @@ function toTransferMarketRider({
           seasonId,
           ratings: rider.ratings,
           potentialSteps: rider.potentialSteps,
+          dataRoomLevel,
         }),
   };
 }

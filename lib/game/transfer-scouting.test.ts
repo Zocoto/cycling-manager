@@ -59,6 +59,24 @@ describe("transfer scouting", () => {
     }
   });
 
+  it("affine le rapport selon le niveau de la Data Room", () => {
+    const report = createStandardTransferScoutingReport({
+      riderId: "data-room-rider",
+      seasonId: "season-1",
+      ratings,
+      potentialSteps: 6,
+      dataRoomLevel: 3,
+    });
+    const values = RIDER_RATING_AXES.map(
+      (axis) => report.ratings[axis.key],
+    );
+
+    expect(values.filter((value) => value.kind === "exact")).toHaveLength(7);
+    expect(values.filter((value) => value.kind === "range")).toHaveLength(6);
+    expect(values.filter((value) => value.kind === "unknown")).toHaveLength(0);
+    expect(report.potential.kind).toBe("range");
+  });
+
   it("ne révèle jamais précisément le potentiel avec l'analyse standard", () => {
     const reports = Array.from({ length: 40 }, (_, index) =>
       createStandardTransferScoutingReport({

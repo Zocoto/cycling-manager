@@ -51,6 +51,13 @@ type YouthNotificationRow = {
   created_at: string;
 };
 
+type InfrastructureNotificationRow = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+};
+
 type RaceEditionEventRow = {
   id: string;
   display_name: string;
@@ -89,14 +96,23 @@ export async function getCurrentDashboardOperationalEvents({
   riderIds: string[];
 }): Promise<DashboardOperationalEvents> {
   const admin = createSupabaseAdminClient();
-  const [trainingSettlement, youthDevelopmentAlertCount] = await Promise.all([
+  const [
+    trainingSettlement,
+    infrastructureSettlement,
+    youthDevelopmentAlertCount,
+  ] = await Promise.all([
     admin.rpc("settle_due_training_sessions"),
+    admin.rpc("settle_due_infrastructure_projects"),
     getYouthDevelopmentAlertCount(authUserId),
   ]);
 
   assertQuery(
     trainingSettlement.error,
     "la mise à jour des entraînements du bureau"
+  );
+  assertQuery(
+    infrastructureSettlement.error,
+    "la mise à jour des chantiers du bureau",
   );
 
   const [
@@ -105,6 +121,7 @@ export async function getCurrentDashboardOperationalEvents({
     trainingResult,
     scoutingResult,
     youthNotificationsResult,
+    infrastructureNotificationsResult,
   ] = await Promise.all([
     admin
       .from("team_seasons")
@@ -185,6 +202,14 @@ export async function getCurrentDashboardOperationalEvents({
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<YouthNotificationRow[]>(),
+    admin
+      .from("infrastructure_notifications")
+      .select("id, title, message, created_at")
+      .eq("team_id", teamId)
+      .is("read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .returns<InfrastructureNotificationRow[]>(),
   ]);
 
   assertQuery(teamSeasonResult.error, "les courses de l’équipe");
@@ -194,6 +219,10 @@ export async function getCurrentDashboardOperationalEvents({
   assertQuery(
     youthNotificationsResult.error,
     "les notifications du centre de formation"
+  );
+  assertQuery(
+    infrastructureNotificationsResult.error,
+    "les notifications des infrastructures",
   );
 
   return {
@@ -228,6 +257,19 @@ export async function getCurrentDashboardOperationalEvents({
         dayNumber: currentDayNumber,
         happenedAt: notification.created_at,
       })),
+      ...(infrastructureNotificationsResult.data ?? []).map(
+        (notification) => ({
+          id: `infrastructure:${notification.id}`,
+          category: "infrastructure" as const,
+          priority: "update" as const,
+          title: notification.title,
+          description: notification.message,
+          href: "/jeu/infrastructures",
+          actionLabel: "Voir les infrastructures",
+          dayNumber: currentDayNumber,
+          happenedAt: notification.created_at,
+        }),
+      ),
     ],
     youthDevelopmentAlertCount,
   };

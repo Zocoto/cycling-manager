@@ -1,3 +1,9 @@
+import {
+  ARCHITECT_SPECIALTY_LABELS,
+  isArchitectSpecialty,
+  type ArchitectSpecialty,
+} from "@/lib/game/infrastructure";
+
 export const STAFF_ROLES = [
   "trainer",
   "scout",
@@ -224,15 +230,30 @@ export function getScoutYouthBonuses(level: number): {
   };
 }
 
-export function getArchitectConstructionBonuses(level: number): {
+export function getArchitectConstructionBonuses(
+  level: number,
+  specialty: ArchitectSpecialty = "balanced",
+): {
   costReductionPercentage: number;
   durationReductionPercentage: number;
 } {
-  const reductionPercentage = normalizeStaffLevel(level) * 5;
+  const safeLevel = normalizeStaffLevel(level);
 
+  if (specialty === "economist") {
+    return {
+      costReductionPercentage: safeLevel * 6,
+      durationReductionPercentage: safeLevel * 2,
+    };
+  }
+  if (specialty === "foreman") {
+    return {
+      costReductionPercentage: safeLevel * 2,
+      durationReductionPercentage: safeLevel * 6,
+    };
+  }
   return {
-    costReductionPercentage: reductionPercentage,
-    durationReductionPercentage: reductionPercentage,
+    costReductionPercentage: safeLevel * 4,
+    durationReductionPercentage: safeLevel * 4,
   };
 }
 
@@ -240,10 +261,12 @@ export function calculateConstructionWithArchitect({
   baseCost,
   baseDurationDays,
   architectLevel,
+  architectSpecialty = "balanced",
 }: {
   baseCost: number;
   baseDurationDays: number;
   architectLevel?: number | null;
+  architectSpecialty?: ArchitectSpecialty | null;
 }): {
   cost: number;
   durationDays: number;
@@ -256,7 +279,10 @@ export function calculateConstructionWithArchitect({
     Number.isFinite(architectLevel) &&
     architectLevel > 0;
   const bonuses = hasArchitect
-    ? getArchitectConstructionBonuses(architectLevel)
+    ? getArchitectConstructionBonuses(
+        architectLevel,
+        architectSpecialty ?? "balanced",
+      )
     : {
         costReductionPercentage: 0,
         durationReductionPercentage: 0,
@@ -310,11 +336,13 @@ export function describeStaffEffect({
   role,
   level,
   trainerSpecialty,
+  architectSpecialty,
   countryName,
 }: {
   role: StaffRole;
   level: number;
   trainerSpecialty?: TrainerSpecialty | null;
+  architectSpecialty?: ArchitectSpecialty | null;
   countryName?: string | null;
 }): string[] {
   const safeLevel = normalizeStaffLevel(level);
@@ -360,11 +388,20 @@ export function describeStaffEffect({
       return [
         `+${percentage} % sur le bonus de statistiques obtenu lors d’une reconnaissance`,
       ];
-    case "architect":
+    case "architect": {
+      const specialty =
+        architectSpecialty && isArchitectSpecialty(architectSpecialty)
+          ? architectSpecialty
+          : "balanced";
+      const architectBonuses = getArchitectConstructionBonuses(
+        safeLevel,
+        specialty,
+      );
       return [
-        `−${percentage} % sur le coût des constructions`,
-        `−${percentage} % sur les délais de construction`,
+        `${ARCHITECT_SPECIALTY_LABELS[specialty]} · −${architectBonuses.costReductionPercentage} % sur le coût des constructions`,
+        `−${architectBonuses.durationReductionPercentage} % sur les délais de construction`,
       ];
+    }
   }
 }
 

@@ -34,7 +34,9 @@ Au-delà du niveau 10, quatre places supplémentaires sont accordées par niveau
 | Community manager | +2 % de réputation | +10 % |
 | Nutritionniste | −5 % sur les compléments et +0,2 forme/jour | −25 % et +1 forme/jour |
 | Kiné | −1 point de malus après course, 2 coureurs suivis | −5 points, 12 coureurs suivis |
-| Architecte | −5 % sur les délais de construction | −25 % |
+| Architecte économe | −6 % coût / −2 % délai par niveau | −30 % coût / −10 % délai |
+| Architecte chef de chantier | −2 % coût / −6 % délai par niveau | −10 % coût / −30 % délai |
+| Architecte polyvalent | −4 % coût et délai par niveau | −20 % coût et délai |
 
 Pour un même effet global, seul le meilleur niveau actif est retenu. Les entraîneurs peuvent être complémentaires grâce à leurs spécialités distinctes.
 
@@ -44,4 +46,6 @@ La fonction SQL `get_active_team_staff_level` expose le meilleur niveau actif pa
 
 Le community manager est raccordé au registre central `reward_events`. Le médecin est appliqué à la création d’une blessure. Le kiné dispose d’affectations persistantes, configurables dans `Centre de soin > Staff médical`, et réduit le malus des coureurs suivis lors du règlement d’une course (un malus minimal de 1 point est conservé).
 
-Les effets de l’entraîneur, du scout, du mécanicien, du nutritionniste et de l’architecte deviendront actifs avec leurs moteurs fonctionnels respectifs.
+Les architectes sont actifs dans la rubrique Infrastructures : le profil et le niveau de l’architecte réduisent définitivement le coût et la durée au lancement du chantier.
+
+Les effets de l’entraîneur, du scout, du mécanicien et du nutritionniste deviendront actifs avec leurs moteurs fonctionnels respectifs.
