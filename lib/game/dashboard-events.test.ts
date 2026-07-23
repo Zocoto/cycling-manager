@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildContractRenewalReminderEvents,
   buildDashboardEventFeed,
   type DashboardEvent,
 } from "@/lib/game/dashboard-events";
@@ -54,6 +55,7 @@ describe("dashboard events", () => {
           category: "sponsor",
           status: "posted",
           description: "Versement du sponsor",
+          sourceReference: "test:sponsor-payment-1",
           postedAt: "2026-07-22T09:00:00.000Z",
         },
       ],
@@ -111,11 +113,51 @@ describe("dashboard events", () => {
           category: "sponsor",
           status: "posted",
           description: "Ancien versement",
+          sourceReference: "test:old-sponsor-payment",
           postedAt: "2026-07-20T09:00:00.000Z",
         },
       ],
     });
 
     expect(events).toEqual([]);
+  });
+
+  it("rappelle à partir de J21 les contrats sans saison suivante", () => {
+    const riders = [
+      {
+        riderId: "rider-expiring",
+        firstName: "Erik",
+        lastName: "Van Dijk",
+        hasNextSeasonContract: false,
+      },
+      {
+        riderId: "rider-renewed",
+        firstName: "Milan",
+        lastName: "De Smet",
+        hasNextSeasonContract: true,
+      },
+    ];
+
+    expect(
+      buildContractRenewalReminderEvents({
+        currentDayNumber: 20,
+        riders,
+      })
+    ).toEqual([]);
+
+    const reminders = buildContractRenewalReminderEvents({
+      currentDayNumber: 21,
+      riders,
+    });
+
+    expect(reminders).toHaveLength(1);
+    expect(reminders[0]).toMatchObject({
+      id: "contract-expiry:rider-expiring",
+      category: "contract",
+      priority: "action",
+      title: "Contrat de Erik Van Dijk à renouveler",
+      href: "/jeu/coureurs/rider-expiring",
+      badgeLabel: "Contrat",
+    });
   });
 });

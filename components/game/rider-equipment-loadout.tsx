@@ -192,117 +192,141 @@ function formatEffectiveDate(value: string) { return new Intl.DateTimeFormat("fr
 function CyclistSilhouette() {
   return (
     <svg
-      viewBox="0 0 400 270"
+      viewBox="0 0 480 310"
       role="img"
-      aria-label="Silhouette réaliste d’un cycliste sur un vélo de route"
-      className="mx-auto w-full max-w-sm"
+      aria-label="Cycliste de route clairement représenté de profil"
+      className="mx-auto w-full max-w-md"
     >
-      <g
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <g stroke="#88B9A7" strokeWidth="6" opacity="0.64">
-          <circle cx="78" cy="201" r="53" />
-          <circle cx="310" cy="201" r="53" />
+      <defs>
+        <linearGradient id="riderJersey" x1="0" x2="1">
+          <stop offset="0" stopColor="#8FD5B6" />
+          <stop offset="1" stopColor="#D7EEE8" />
+        </linearGradient>
+        <linearGradient id="riderShorts" x1="0" x2="1">
+          <stop offset="0" stopColor="#173D36" />
+          <stop offset="1" stopColor="#2D6658" />
+        </linearGradient>
+      </defs>
+
+      <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <g stroke="#83AB9D" opacity="0.72">
+          <circle cx="95" cy="228" r="67" strokeWidth="5" />
+          <circle cx="384" cy="228" r="67" strokeWidth="5" />
+          <circle cx="95" cy="228" r="5" fill="#83AB9D" stroke="none" />
+          <circle cx="384" cy="228" r="5" fill="#83AB9D" stroke="none" />
+          {[
+            [95, 161, 95, 295],
+            [28, 228, 162, 228],
+            [48, 181, 142, 275],
+            [48, 275, 142, 181],
+            [384, 161, 384, 295],
+            [317, 228, 451, 228],
+            [337, 181, 431, 275],
+            [337, 275, 431, 181],
+          ].map(([x1, y1, x2, y2], index) => (
+            <path
+              key={index}
+              d={`M${x1} ${y1} L${x2} ${y2}`}
+              strokeWidth="1.4"
+              opacity="0.34"
+            />
+          ))}
         </g>
 
-        <g stroke="#78A594" strokeWidth="7" opacity="0.78">
-          <path d="M78 201 L151 119 L190 201 L78 201 Z" />
-          <path d="M151 119 L256 123 L190 201" />
-          <path d="M256 123 L263 148 L310 201" />
-          <path d="M263 148 L190 201" />
-          <path d="M263 148 L305 198" opacity="0.7" />
+        <g stroke="#A7D2C3" strokeWidth="7">
+          <path d="M95 228 L178 139 L225 228 L95 228 Z" />
+          <path d="M178 139 L309 144 L225 228" />
+          <path d="M309 144 L384 228" />
+          <path d="M309 144 L225 228" />
         </g>
-
-        <g stroke="#A4CDBE" opacity="0.88">
-          <path d="M141 111 L163 111" strokeWidth="7" />
-          <path d="M151 119 L146 109" strokeWidth="5" />
-          <path d="M256 123 L270 109" strokeWidth="5" />
-          <path
-            d="M269 109 L286 109 C292 109 294 114 289 118 L282 124 C278 128 281 134 287 134"
-            strokeWidth="6"
-          />
-        </g>
-
-        <g stroke="#B9D9CE" opacity="0.9">
-          <circle cx="190" cy="201" r="12" strokeWidth="4" />
-          <path d="M190 201 L205 190 L221 190" strokeWidth="4" />
-          <path d="M190 201 L175 212 L159 212" strokeWidth="4" />
-        </g>
+        <path d="M166 130 L194 130" stroke="#D7EEE8" strokeWidth="8" />
+        <path d="M178 139 L173 127" stroke="#A7D2C3" strokeWidth="5" />
+        <path d="M309 144 L320 124" stroke="#A7D2C3" strokeWidth="5" />
+        <path
+          d="M318 124 L344 124 C352 124 354 130 348 135 L340 141 C336 145 339 151 347 151"
+          stroke="#D7EEE8"
+          strokeWidth="6"
+        />
+        <circle cx="225" cy="228" r="14" stroke="#F2C94C" strokeWidth="4" />
+        <path d="M225 228 L243 216 L262 216" stroke="#F2C94C" strokeWidth="4" />
+        <path d="M225 228 L208 240 L189 240" stroke="#F2C94C" strokeWidth="4" />
       </g>
 
       <g strokeLinecap="round" strokeLinejoin="round">
         <path
-          d="M151 117 C159 96 175 82 195 76 C204 74 212 79 215 88 L217 94 L169 128 Z"
-          fill="#D7EEE8"
+          d="M183 124 C186 101 203 83 226 77 C244 73 262 82 271 99 L279 116 L235 145 L198 139 Z"
+          fill="url(#riderJersey)"
           stroke="#D7EEE8"
-          strokeWidth="4"
+          strokeWidth="3"
         />
         <path
-          d="M151 112 C145 116 143 124 148 130 C155 136 166 134 172 126 L181 115 L160 104 Z"
-          fill="#8FD5B6"
+          d="M186 121 C174 124 168 135 173 145 C179 155 194 156 204 145 L216 131 L193 113 Z"
+          fill="url(#riderShorts)"
           stroke="#8FD5B6"
           strokeWidth="3"
         />
-
         <path
-          d="M200 84 C219 87 231 97 244 109 C251 115 259 117 272 114"
+          d="M227 82 C252 87 273 102 292 119 C301 127 313 130 331 127"
           fill="none"
           stroke="#D7EEE8"
-          strokeWidth="10"
-        />
-        <path
-          d="M194 91 C208 99 221 108 234 118 C243 125 253 125 264 120"
-          fill="none"
-          stroke="#B9D9CE"
-          strokeWidth="8"
-        />
-        <circle cx="273" cy="114" r="5" fill="#8FD5B6" />
-        <circle cx="264" cy="120" r="4.5" fill="#8FD5B6" />
-
-        <path
-          d="M161 126 C183 132 203 143 212 157 C216 165 211 178 204 190"
-          fill="none"
-          stroke="#D7EEE8"
-          strokeWidth="13"
-        />
-        <path
-          d="M154 127 C143 143 138 158 143 169 C149 183 163 197 175 208"
-          fill="none"
-          stroke="#B9D9CE"
           strokeWidth="11"
         />
-        <path d="M201 190 L218 190" stroke="#F2C94C" strokeWidth="7" />
-        <path d="M172 209 L158 212" stroke="#E5C65C" strokeWidth="7" />
-
         <path
-          d="M196 77 L204 65"
+          d="M224 91 C245 99 262 111 278 126 C287 135 301 138 318 134"
           fill="none"
-          stroke="#D7EEE8"
+          stroke="#B9D9CE"
           strokeWidth="9"
         />
-        <circle cx="214" cy="49" r="19" fill="#D7EEE8" />
+        <path d="M330 127 L341 128" stroke="#F2C94C" strokeWidth="7" />
+        <path d="M317 134 L329 138" stroke="#F2C94C" strokeWidth="7" />
+
         <path
-          d="M197 48 C201 29 219 20 236 30 C242 34 245 39 246 44 C231 39 214 40 197 48 Z"
-          fill="#8FD5B6"
+          d="M190 143 C208 150 223 163 232 179 C238 190 237 203 230 218"
+          fill="none"
+          stroke="#244E45"
+          strokeWidth="17"
         />
         <path
-          d="M241 43 L250 47"
+          d="M184 143 C172 158 164 174 167 187 C171 204 188 224 207 238"
           fill="none"
-          stroke="#8FD5B6"
-          strokeWidth="5"
+          stroke="#315F54"
+          strokeWidth="15"
+        />
+        <path d="M229 218 L250 216" stroke="#D7EEE8" strokeWidth="10" />
+        <path d="M207 238 L187 241" stroke="#B9D9CE" strokeWidth="10" />
+        <path d="M247 216 L265 216" stroke="#F2C94C" strokeWidth="7" />
+        <path d="M187 241 L174 241" stroke="#F2C94C" strokeWidth="7" />
+
+        <path d="M248 78 L257 64" stroke="#D7EEE8" strokeWidth="10" />
+        <path
+          d="M257 38 C266 26 286 23 300 32 C309 39 312 52 308 63 L300 73 C294 80 280 82 271 76 L259 68 C253 63 251 47 257 38 Z"
+          fill="#D7EEE8"
         />
         <path
-          d="M231 51 C232 56 229 60 225 62"
+          d="M251 45 C254 25 272 15 292 21 C305 25 315 35 318 48 C299 42 275 41 251 45 Z"
+          fill="#4A8E78"
+        />
+        <path d="M316 47 L329 51" stroke="#8FD5B6" strokeWidth="6" />
+        <path
+          d="M282 49 L305 49 L300 57 L282 57 Z"
+          fill="#102D28"
+          stroke="#F2C94C"
+          strokeWidth="2"
+        />
+        <circle cx="271" cy="57" r="3.5" fill="#8AB6A7" />
+        <path
+          d="M306 58 L315 61 L307 66"
           fill="none"
-          stroke="#8AB6A7"
+          stroke="#87AE9F"
           strokeWidth="2.5"
-          opacity="0.75"
+        />
+        <path
+          d="M286 70 C293 73 301 70 304 66"
+          fill="none"
+          stroke="#87AE9F"
+          strokeWidth="2.2"
         />
       </g>
-
-      <circle cx="190" cy="201" r="5" fill="#F2C94C" />
     </svg>
   );
 }

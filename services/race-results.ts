@@ -2,7 +2,7 @@ import "server-only";
 
 import {
   calculateNationalChampionshipReward,
-  calculateRaceReward,
+  calculateRaceRewardBreakdown,
   calculateStagePrize,
   type RaceRewardScope,
 } from "@/lib/game/economy";
@@ -116,6 +116,10 @@ export async function settleFinishedRaceResults(
   let completedEditions = 0;
 
   for (const edition of calendar.editions) {
+    if (edition.status === "completed" || edition.status === "cancelled") {
+      continue;
+    }
+
     const minimumFieldSize =
       edition.competitionType === "standard" ? 2 : 1;
     if (edition.engagedRiders.length < minimumFieldSize) continue;
@@ -915,8 +919,8 @@ async function persistRaceClassification({
       result.riderId,
       "intermediate_sprint"
     );
-    const reward = edition.competitionType === "standard"
-      ? calculateRaceReward({
+    const rewardBreakdown = edition.competitionType === "standard"
+      ? calculateRaceRewardBreakdown({
           tier: edition.categoryCode,
           scope: getRewardScope(edition),
           finalRank: result.rank,
@@ -924,7 +928,9 @@ async function persistRaceClassification({
           mountainPrimesWon,
           intermediateSprintsWon,
         })
-      : calculateNationalChampionshipReward({ finalRank: result.rank });
+      : null;
+    const reward = rewardBreakdown?.total
+      ?? calculateNationalChampionshipReward({ finalRank: result.rank });
     if (
       reward.reputation === 0 &&
       reward.experience === 0 &&
@@ -940,6 +946,12 @@ async function persistRaceClassification({
       : result.rank
         ? `${result.rank}e place`
         : "Primes et classements annexes";
+    const cashBreakdown = rewardBreakdown
+      ? describeCashRewardBreakdown(rewardBreakdown)
+      : null;
+    const settlementDetail = edition.raceFormat === "stage_race"
+      ? `${result.riderName} · ${placement}${cashBreakdown ? ` · ${cashBreakdown}` : ""} · règlement de fin de tour`
+      : `${result.riderName} · ${placement}`;
     const { error: rewardError } = await admin.rpc(
       "apply_race_roster_competition_reward",
       {
@@ -952,7 +964,7 @@ async function persistRaceClassification({
         p_cash_prize: reward.cashPrize,
         p_uci_points: reward.uciPoints,
         p_is_victory: result.rank === 1,
-        p_description: `${edition.name} — ${placement}`,
+        p_description: `${edition.name} — ${settlementDetail}`,
       }
     );
     assertQuery(rewardError, `les gains de ${result.riderName}`);
@@ -1044,7 +1056,7 @@ async function persistStagePrizeRewards({
           p_cash_prize: cashPrize,
           p_uci_points: 0,
           p_is_victory: false,
-          p_description: `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${placement} (versée en fin de tour)`,
+          p_description: `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${result.riderName} · ${placement} · règlement de fin de tour`,
         }
       );
       assertQuery(
@@ -1327,6 +1339,29 @@ function countPrimeWins(
       ).length,
     0
   );
+}
+
+function describeCashRewardBreakdown(
+  breakdown: ReturnType<typeof calculateRaceRewardBreakdown>
+) {
+  const labels = {
+    general: "classement général",
+    mountain_classification: "classement montagne",
+    sprint_classification: "classement par points",
+    youth_classification: "classement des jeunes",
+    team_classification: "classement par équipes",
+    mountain_prime: "prime GPM",
+    intermediate_sprint: "sprint intermédiaire",
+  } as const;
+
+  const details = breakdown.components
+    .filter((component) => component.cashPrize > 0)
+    .map((component) => {
+      const count = component.count > 1 ? `${component.count} × ` : "";
+      return `${count}${labels[component.type]} : ${component.cashPrize.toLocaleString("fr-FR")} €`;
+    });
+
+  return details.length > 0 ? `détail ${details.join(" + ")}` : null;
 }
 
 function getRewardScope(edition: RaceCalendarEdition): RaceRewardScope {

@@ -9,7 +9,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export async function purchaseEquipmentAction(formData: FormData) {
   const equipmentItemId = readValue(formData, "equipmentItemId");
   const category = readValue(formData, "category");
-  const returnPath = buildMaterialPath(category);
+  const supplier = readValue(formData, "supplier");
+  const returnPath = buildMaterialPath(category, supplier);
 
   if (!isUuid(equipmentItemId)) {
     redirectWithError(returnPath, "La référence de matériel est invalide.");
@@ -79,10 +80,12 @@ export async function equipRiderAction(formData: FormData) {
   redirect(`/jeu/coureurs/${riderId}?equipement=confirme`);
 }
 
-function buildMaterialPath(category: string) {
-  return isEquipmentSlot(category)
-    ? `/jeu/materiel?categorie=${encodeURIComponent(category)}`
-    : "/jeu/materiel";
+function buildMaterialPath(category: string, supplier: string) {
+  const params = new URLSearchParams();
+  if (isEquipmentSlot(category)) params.set("categorie", category);
+  if (/^[a-z0-9-]{1,64}$/.test(supplier)) params.set("marque", supplier);
+  const query = params.toString();
+  return query ? `/jeu/materiel?${query}` : "/jeu/materiel";
 }
 
 function redirectWithError(path: string, message: string): never {

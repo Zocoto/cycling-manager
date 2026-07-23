@@ -32,6 +32,15 @@ type CatalogRow = {
   effect_summary: string;
   effect_payload: unknown;
 };
+type SupplierRow = {
+  supplier_key: string;
+  name: string;
+  positioning: string;
+  logo_path: string;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+};
 type InventoryRow = { equipment_item_id: string; quantity: number };
 type ContractRow = { rider_id: string };
 type EquippedRow = {
@@ -48,6 +57,10 @@ export type TeamEquipmentCatalogItem = {
   slot: EquipmentSlot;
   supplierKey: string;
   supplierName: string;
+  supplierLogoPath: string;
+  supplierPrimaryColor: string;
+  supplierSecondaryColor: string;
+  supplierPositioning: string;
   description: string;
   price: number;
   rarity: CatalogRow["rarity"];
@@ -60,6 +73,17 @@ export type TeamEquipmentCatalogItem = {
   availableQuantity: number;
 };
 
+export type TeamEquipmentSupplier = {
+  key: string;
+  name: string;
+  positioning: string;
+  logoPath: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  referenceCount: number;
+};
+
 export type TeamEquipmentOverview = {
   teamId: string;
   teamSeasonId: string;
@@ -68,6 +92,7 @@ export type TeamEquipmentOverview = {
   currentDayNumber: number;
   balance: number;
   currency: string;
+  suppliers: TeamEquipmentSupplier[];
   catalog: TeamEquipmentCatalogItem[];
 };
 
@@ -94,6 +119,7 @@ export async function getCurrentTeamEquipmentOverview(
     currentDayNumber: context.season.current_day_number ?? 1,
     balance: toNumber(context.teamSeason.cash_balance),
     currency: context.teamSeason.currency,
+    suppliers: context.suppliers,
     catalog: context.catalog,
   };
 }
@@ -204,8 +230,13 @@ async function loadEquipmentContext(authUserId: string) {
   );
   assertQuery(settlementError, "les changements de matériel programmés");
 
-  const [catalogResult, inventoryResult, contractsResult, pendingResult] =
-    await Promise.all([
+  const [
+    catalogResult,
+    suppliersResult,
+    inventoryResult,
+    contractsResult,
+    pendingResult,
+  ] = await Promise.all([
       admin
         .from("equipment_catalog_items")
         .select(
@@ -214,6 +245,14 @@ async function loadEquipmentContext(authUserId: string) {
         .eq("status", "active")
         .order("price", { ascending: true })
         .returns<CatalogRow[]>(),
+      admin
+        .from("equipment_suppliers")
+        .select(
+          "supplier_key, name, positioning, logo_path, primary_color, secondary_color, accent_color"
+        )
+        .eq("status", "active")
+        .order("display_order", { ascending: true })
+        .returns<SupplierRow[]>(),
       admin
         .from("team_equipment_inventory")
         .select("equipment_item_id, quantity")
@@ -230,9 +269,10 @@ async function loadEquipmentContext(authUserId: string) {
         .select("rider_id, slot_type, equipment_item_id, effective_at")
         .eq("team_season_id", teamSeason.id)
         .returns<PendingRow[]>(),
-    ]);
+  ]);
 
   assertQuery(catalogResult.error, "le catalogue de matériel");
+  assertQuery(suppliersResult.error, "les équipementiers");
   assertQuery(inventoryResult.error, "l’inventaire de l’équipe");
   assertQuery(contractsResult.error, "l’effectif de l’équipe");
   assertQuery(pendingResult.error, "les équipements programmés");
@@ -253,6 +293,12 @@ async function loadEquipmentContext(authUserId: string) {
   );
   const pendingRows = pendingResult.data ?? [];
   const equippedRows = equipped ?? [];
+  const supplierByKey = new Map(
+    (suppliersResult.data ?? []).map((supplier) => [
+      supplier.supplier_key,
+      supplier,
+    ])
+  );
   const catalog = (catalogResult.data ?? []).map((row) => {
     const ownedQuantity = inventoryByItem.get(row.id) ?? 0;
     const equippedQuantity = equippedRows.filter(
@@ -261,6 +307,7 @@ async function loadEquipmentContext(authUserId: string) {
     const pendingQuantity = pendingRows.filter(
       (assignment) => assignment.equipment_item_id === row.id
     ).length;
+    const supplier = supplierByKey.get(row.supplier_key);
 
     return {
       id: row.id,
@@ -269,6 +316,12 @@ async function loadEquipmentContext(authUserId: string) {
       slot: row.slot_type,
       supplierKey: row.supplier_key,
       supplierName: row.supplier_name,
+      supplierLogoPath:
+        supplier?.logo_path ??
+        "/images/equipment/brands/echelon-cycles-logo.webp",
+      supplierPrimaryColor: supplier?.primary_color ?? "#164B3B",
+      supplierSecondaryColor: supplier?.secondary_color ?? "#B56E3E",
+      supplierPositioning: supplier?.positioning ?? "",
       description: row.description,
       price: toNumber(row.price),
       rarity: row.rarity,
@@ -284,11 +337,24 @@ async function loadEquipmentContext(authUserId: string) {
       ),
     } satisfies TeamEquipmentCatalogItem;
   });
+  const suppliers = (suppliersResult.data ?? []).map((supplier) => ({
+    key: supplier.supplier_key,
+    name: supplier.name,
+    positioning: supplier.positioning,
+    logoPath: supplier.logo_path,
+    primaryColor: supplier.primary_color,
+    secondaryColor: supplier.secondary_color,
+    accentColor: supplier.accent_color,
+    referenceCount: catalog.filter(
+      (item) => item.supplierKey === supplier.supplier_key
+    ).length,
+  })) satisfies TeamEquipmentSupplier[];
 
   return {
     teamSeason,
     season,
     catalog,
+    suppliers,
     rosterRiderIds,
     equipped: equippedRows,
     pending: pendingRows,

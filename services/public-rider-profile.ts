@@ -104,6 +104,13 @@ export type PublicRiderProfile = {
     }>;
   }>;
   specialAbilities: RiderSpecialAbility[];
+  permanentEnhancements: Array<{
+    id: string;
+    category: "special_ability" | "potential_boost" | "rating_boost";
+    itemName: string;
+    effectSummary: string;
+    appliedAt: string;
+  }>;
   equipment: Partial<Record<RiderEquipmentSlot, {
     id: string;
     name: string;
@@ -242,6 +249,14 @@ type RiderSpecialAbilityRow = {
   ability_code: string;
 };
 
+type RiderConsumableItemApplicationRow = {
+  id: string;
+  category: "special_ability" | "potential_boost" | "rating_boost";
+  item_name: string;
+  effect_summary: string;
+  applied_at: string;
+};
+
 type EquipmentItemRow = {
   id: string;
   catalog_key: string;
@@ -342,6 +357,7 @@ export async function getPublicRiderProfile({
     injuryResult,
     marketListingResult,
     nationalTitlesResult,
+    permanentEnhancementsResult,
   ] = await Promise.all([
     supabase
       .from("countries")
@@ -404,6 +420,12 @@ export async function getPublicRiderProfile({
       .select("country_id, season_id, championship_type, relinquished_at")
       .eq("rider_id", rider.id)
       .returns<NationalChampionshipTitleRow[]>(),
+    supabase
+      .from("rider_consumable_item_applications")
+      .select("id, category, item_name, effect_summary, applied_at")
+      .eq("rider_id", rider.id)
+      .order("applied_at", { ascending: false })
+      .returns<RiderConsumableItemApplicationRow[]>(),
   ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -416,6 +438,10 @@ export async function getPublicRiderProfile({
   assertQuery(injuryResult.error, "la situation médicale du coureur");
   assertQuery(marketListingResult.error, "la présence du coureur sur le marché");
   assertQuery(nationalTitlesResult.error, "les titres nationaux du coureur");
+  assertQuery(
+    permanentEnhancementsResult.error,
+    "les améliorations permanentes du coureur"
+  );
 
   if (!countryResult.data) {
     throw new Error("Le pays du coureur est introuvable.");
@@ -707,6 +733,15 @@ export async function getPublicRiderProfile({
     })),
     history,
     specialAbilities,
+    permanentEnhancements: canManage
+      ? (permanentEnhancementsResult.data ?? []).map((enhancement) => ({
+          id: enhancement.id,
+          category: enhancement.category,
+          itemName: enhancement.item_name,
+          effectSummary: enhancement.effect_summary,
+          appliedAt: enhancement.applied_at,
+        }))
+      : [],
     equipment,
     privateContract:
       currentContract && canManage

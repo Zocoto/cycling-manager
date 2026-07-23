@@ -4,9 +4,17 @@ import {
   RIDER_INJURY_DIAGNOSES,
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
-import type { DashboardEvent } from "@/lib/game/dashboard-events";
+import {
+  buildContractRenewalReminderEvents,
+  type DashboardContractReminderRider,
+  type DashboardEvent,
+} from "@/lib/game/dashboard-events";
 import { getRaceResultsHref } from "@/lib/game/race-live";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  getCurrentDirectorInternationalSelections,
+  type InternationalChampionshipSelection,
+} from "@/services/international-championship-selections";
 import { getYouthDevelopmentAlertCount } from "@/services/youth-development";
 
 type InjuryRow = {
@@ -77,6 +85,22 @@ type TeamSeasonEventRow = {
   }>;
 };
 
+type SeasonContractEventRow = {
+  id: string;
+  game_year: number;
+};
+
+type RiderContractEventRow = {
+  rider_id: string;
+  start_season_id: string;
+  end_season_id: string;
+  status: "active" | "planned";
+  riders: {
+    first_name: string;
+    last_name: string;
+  } | null;
+};
+
 export type DashboardOperationalEvents = {
   events: DashboardEvent[];
   youthDevelopmentAlertCount: number;
@@ -100,10 +124,12 @@ export async function getCurrentDashboardOperationalEvents({
     trainingSettlement,
     infrastructureSettlement,
     youthDevelopmentAlertCount,
+    internationalSelections,
   ] = await Promise.all([
     admin.rpc("settle_due_training_sessions"),
     admin.rpc("settle_due_infrastructure_projects"),
     getYouthDevelopmentAlertCount(authUserId),
+    getCurrentDirectorInternationalSelections({ authUserId }),
   ]);
 
   assertQuery(
@@ -122,6 +148,8 @@ export async function getCurrentDashboardOperationalEvents({
     scoutingResult,
     youthNotificationsResult,
     infrastructureNotificationsResult,
+    contractSeasonsResult,
+    riderContractsResult,
   ] = await Promise.all([
     admin
       .from("team_seasons")
@@ -210,6 +238,28 @@ export async function getCurrentDashboardOperationalEvents({
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<InfrastructureNotificationRow[]>(),
+    currentDayNumber >= 21
+      ? admin
+          .from("seasons")
+          .select("id, game_year")
+          .returns<SeasonContractEventRow[]>()
+      : Promise.resolve({
+          data: [] as SeasonContractEventRow[],
+          error: null,
+        }),
+    currentDayNumber >= 21 && riderIds.length > 0
+      ? admin
+          .from("rider_contracts")
+          .select(
+            "rider_id, start_season_id, end_season_id, status, riders (first_name, last_name)"
+          )
+          .in("rider_id", riderIds)
+          .in("status", ["active", "planned"])
+          .returns<RiderContractEventRow[]>()
+      : Promise.resolve({
+          data: [] as RiderContractEventRow[],
+          error: null,
+        }),
   ]);
 
   assertQuery(teamSeasonResult.error, "les courses de l’équipe");
@@ -224,9 +274,19 @@ export async function getCurrentDashboardOperationalEvents({
     infrastructureNotificationsResult.error,
     "les notifications des infrastructures",
   );
+  assertQuery(contractSeasonsResult.error, "les saisons des contrats");
+  assertQuery(riderContractsResult.error, "les contrats de l’effectif");
+
+  const contractReminderRiders = buildContractReminderRiders({
+    riderIds,
+    currentSeasonId: seasonId,
+    seasons: contractSeasonsResult.data ?? [],
+    contracts: riderContractsResult.data ?? [],
+  });
 
   return {
     events: [
+      ...buildInternationalSelectionEvents(internationalSelections),
       ...buildInjuryEvents(injuriesResult.data ?? [], currentDayNumber),
       ...buildCompletedRaceEvents(
         teamSeasonResult.data?.race_registrations ?? [],
@@ -270,9 +330,81 @@ export async function getCurrentDashboardOperationalEvents({
           happenedAt: notification.created_at,
         }),
       ),
+      ...buildContractRenewalReminderEvents({
+        currentDayNumber,
+        riders: contractReminderRiders,
+      }),
     ],
     youthDevelopmentAlertCount,
   };
+}
+
+function buildInternationalSelectionEvents(
+  selections: InternationalChampionshipSelection[]
+): DashboardEvent[] {
+  return selections
+    .filter((selection) => selection.canRespond)
+    .map((selection) => ({
+      id: `international-selection:${selection.candidateId}`,
+      category: "race",
+      priority: "critical",
+      title: `${selection.riderName} appelé en sélection`,
+      description: `${selection.championshipName} · ${selection.countryName}. Sans refus avant le départ, sa participation sera automatique. Une validation donne la priorité au championnat sur ses autres engagements.`,
+      href: `/jeu/selections-internationales#selection-${selection.candidateId}`,
+      actionLabel: "Décider",
+      badgeLabel: "Sélection",
+      dayNumber: selection.dayNumber,
+      happenedAt: null,
+    }));
+}
+
+function buildContractReminderRiders({
+  riderIds,
+  currentSeasonId,
+  seasons,
+  contracts,
+}: {
+  riderIds: string[];
+  currentSeasonId: string;
+  seasons: SeasonContractEventRow[];
+  contracts: RiderContractEventRow[];
+}): DashboardContractReminderRider[] {
+  const currentSeason = seasons.find((season) => season.id === currentSeasonId);
+  if (!currentSeason) return [];
+
+  const seasonYearById = new Map(
+    seasons.map((season) => [season.id, season.game_year])
+  );
+  const nextGameYear = currentSeason.game_year + 1;
+
+  return [...new Set(riderIds)].flatMap((riderId) => {
+    const riderContracts = contracts.filter(
+      (contract) => contract.rider_id === riderId
+    );
+    const identity = riderContracts.find((contract) => contract.riders)?.riders;
+    if (!identity) return [];
+
+    const hasNextSeasonContract = riderContracts.some((contract) => {
+      const startYear = seasonYearById.get(contract.start_season_id);
+      const endYear = seasonYearById.get(contract.end_season_id);
+
+      return (
+        startYear !== undefined &&
+        endYear !== undefined &&
+        startYear <= nextGameYear &&
+        endYear >= nextGameYear
+      );
+    });
+
+    return [
+      {
+        riderId,
+        firstName: identity.first_name,
+        lastName: identity.last_name,
+        hasNextSeasonContract,
+      },
+    ];
+  });
 }
 
 function buildInjuryEvents(
