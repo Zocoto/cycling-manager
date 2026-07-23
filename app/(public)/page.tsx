@@ -85,7 +85,7 @@ function HeroSection() {
         }}
       />
 
-      <div className="relative mx-auto flex min-h-150 max-w-375 items-center px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
+      <div className="relative mx-auto flex min-h-150 max-w-7xl items-center px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
         <div className="max-w-2xl">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full border border-[#315B3E]/20 bg-white/75 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E] shadow-sm backdrop-blur">
@@ -136,7 +136,7 @@ function CareerSection() {
       id="carriere"
       className="relative overflow-hidden bg-[#F7FAF7] px-5 pb-24 pt-5 text-[#082A2A] sm:px-8 sm:pb-28"
     >
-      <div className="mx-auto max-w-375">
+      <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#42A884]">
             Votre carrière

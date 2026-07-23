@@ -274,7 +274,7 @@ function GuideHero() {
           </span>
           <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
             Le guide complet du
-            <span className="mt-2 block text-[#278B70]">Directeur Sportif.</span>
+            <span className="mt-2 block text-[#42B99A]">Directeur Sportif.</span>
           </h1>
           <p className="mt-7 max-w-3xl text-lg font-medium leading-8 text-[#25443F]">
             Comprendre les pages, organiser une journée de jeu, préserver la
@@ -291,13 +291,13 @@ function GuideHero() {
           <div className="mt-9 flex flex-wrap gap-4">
             <Link
               href="#demarrage"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#176951]"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-[#071A17] shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
             >
               Commencer le tutoriel
             </Link>
             <Link
               href="/jeu"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-[#0B302B] bg-white/80 px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#0B302B] transition hover:-translate-y-0.5 hover:bg-white"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-[#0B302B] bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-white transition hover:-translate-y-0.5 hover:bg-[#123f37]"
             >
               Ouvrir mon bureau
             </Link>
