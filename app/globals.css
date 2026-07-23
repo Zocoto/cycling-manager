@@ -253,6 +253,11 @@ a {
   to { stroke-dashoffset: -104; }
 }
 
+@keyframes cm-start-flag {
+  0%, 100% { transform: rotate(-17deg); }
+  50% { transform: rotate(18deg); }
+}
+
 .cm-race-road-flow {
   animation: cm-race-road-flow 0.42s linear infinite;
 }
@@ -332,6 +337,12 @@ a {
   animation: cm-finish-road-line 0.8s linear infinite;
 }
 
+.cm-start-flag {
+  animation: cm-start-flag 0.48s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cm-race-road-flow,
   .cm-race-scenery,
@@ -350,7 +361,8 @@ a {
   .cm-incident-wheel,
   .cm-incident-wind,
   .cm-incident-crash,
-  .cm-finish-road-line {
+  .cm-finish-road-line,
+  .cm-start-flag {
     animation: none;
   }
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildSprintVisualTeams,
   getFinalReplayMeters,
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
+  keepPassageWinnerVisible,
 } from "./race-finish-visual";
 import type { FinalBattleScenario } from "./race-simulation";
 
@@ -29,6 +31,38 @@ const scenario: FinalBattleScenario = {
 };
 
 describe("final race visualization", () => {
+  it("ne place dans un train que le poisson-pilote et le sprinteur réels", () => {
+    const teams = buildSprintVisualTeams([
+      { id: "leader", teamId: "team-a", role: "leader" },
+      { id: "domestique-1", teamId: "team-a", role: "domestique" },
+      { id: "leadout", teamId: "team-a", role: "leadout" },
+      { id: "sprinter", teamId: "team-a", role: "sprinter" },
+      { id: "free", teamId: "team-b", role: "free_agent" },
+    ]);
+
+    expect(teams).toEqual([
+      {
+        teamId: "team-a",
+        riderIds: ["leader", "domestique-1", "leadout", "sprinter"],
+        trainRiderIds: ["leadout", "sprinter"],
+      },
+      {
+        teamId: "team-b",
+        riderIds: ["free"],
+        trainRiderIds: [],
+      },
+    ]);
+  });
+
+  it("garde le vainqueur d'un GPM visible et en tête du passage", () => {
+    expect(
+      keepPassageWinnerVisible({
+        orderedRiderIds: ["a", "b", "c", "d", "e", "winner"],
+        winnerRiderId: "winner",
+      })
+    ).toEqual(["a", "b", "c", "d", "winner"]);
+  });
+
   it("ne montre au début que le groupe de tête puis révèle les coureurs qui recollent", () => {
     expect(getVisibleFinalBattleRiderIds(scenario, 0)).toEqual([
       "leader-1",

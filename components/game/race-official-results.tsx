@@ -20,8 +20,8 @@ type ClassificationKey =
   | "team";
 
 const CLASSIFICATION_LABELS: Record<ClassificationKey, string> = {
-  stage: "Étape",
-  general: "Général",
+  stage: "Résultat de l’étape",
+  general: "Classement général",
   mountain: "Meilleur grimpeur",
   sprint: "Classement par points",
   youth: "Meilleur jeune",

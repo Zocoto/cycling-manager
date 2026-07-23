@@ -23,6 +23,8 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
+import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
+import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type { RaceLiveMessage } from "@/services/race-live-chat";
 
 export type RaceStageEntry = {
@@ -36,14 +38,16 @@ export function RaceStageExperience({
   officialResults,
   currentDirectorId,
   initialMessages,
+  lockedSimulations,
 }: {
   entry: RaceStageEntry;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
   currentDirectorId: string;
   initialMessages: RaceLiveMessage[];
+  lockedSimulations: LockedOfficialStageSimulation[];
 }) {
-  const [now, setNow] = useState(() => new Date(nowIso));
+  const now = useSynchronizedRaceClock(nowIso, 15_000);
   const state = getStageLiveState(entry.stage, now);
   const simulationAvailable = canSimulateRaceEdition(
     entry.edition
@@ -62,14 +66,6 @@ export function RaceStageExperience({
       ? "results"
       : "live"
   );
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setNow(new Date()),
-      15_000
-    );
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (
@@ -254,6 +250,7 @@ export function RaceStageExperience({
               ? now.toISOString()
               : nowIso
           }
+          lockedSimulations={lockedSimulations}
         />
       )}
 

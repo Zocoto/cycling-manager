@@ -9,6 +9,8 @@ import {
   getStageAttackParticipants,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
+  getLeadingFinishGroupRiderIds,
+  isMassGroupFinish,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -141,7 +143,7 @@ describe("simulateRaceStage", () => {
 
   it("détermine le format du final avec la taille du groupe qui joue la victoire", () => {
     const massFinish = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 1)
+      createDemoSimulationInput("sprint-littoral", 3)
     );
     const selectiveFinish = simulateRaceStage(
       createDemoSimulationInput("haute-montagne", 1)
@@ -149,6 +151,49 @@ describe("simulateRaceStage", () => {
 
     expect(getFinalBattleRiderIds(massFinish).length).toBeGreaterThan(10);
     expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(10);
+    expect(isMassGroupFinish(massFinish)).toBe(true);
+    expect(isMassGroupFinish(selectiveFinish)).toBe(false);
+  });
+
+  it("conserve la vue latérale si une attaque mène encore à l'entrée du dernier tronçon", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 3)
+    );
+    const entrySnapshot = simulation.timeline.at(-2)!;
+    const leadingGap = Math.min(
+      ...entrySnapshot.groups.map((group) => group.gapToLeaderSeconds)
+    );
+    for (const group of entrySnapshot.groups) {
+      if (group.gapToLeaderSeconds === leadingGap) {
+        group.type = "breakaway";
+      }
+    }
+
+    expect(isMassGroupFinish(simulation)).toBe(false);
+  });
+
+  it("conserve la vue latérale lorsque seuls cinq coureurs jouent encore la victoire", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 3)
+    );
+    const finalSnapshot = simulation.timeline.at(-1)!;
+    const leadingRiderIds = getLeadingFinishGroupRiderIds(simulation);
+    const leadingGroup = finalSnapshot.groups.find(
+      (group) => group.gapToLeaderSeconds === 0
+    )!;
+
+    finalSnapshot.groups = [
+      {
+        ...leadingGroup,
+        riderIds: leadingRiderIds.slice(0, 5),
+      },
+      ...finalSnapshot.groups.filter(
+        (group) => group.gapToLeaderSeconds > 0
+      ),
+    ];
+
+    expect(getLeadingFinishGroupRiderIds(simulation)).toHaveLength(5);
+    expect(isMassGroupFinish(simulation)).toBe(false);
   });
 
   it("explique l’origine de chaque coureur présent dans un final sélectif", () => {
@@ -832,6 +877,10 @@ describe("simulateRaceStage", () => {
     ];
     const standings = buildStageRaceStandings(stages);
 
+    expect(standings.general.length).toBeGreaterThan(1);
+    expect(standings.general[0].elapsedTimeSeconds).toBeLessThanOrEqual(
+      standings.general[1].elapsedTimeSeconds
+    );
     expect(standings.mountain[0]?.points).toBeGreaterThan(0);
     expect(standings.sprint[0]?.points).toBeGreaterThan(0);
     expect(

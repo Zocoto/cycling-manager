@@ -1,6 +1,87 @@
-import type { FinalBattleScenario } from "./race-simulation";
+import type {
+  FinalBattleScenario,
+  RiderSimulationInput,
+} from "./race-simulation";
 
 export const FINAL_KILOMETER_DURATION_MS = 8_000;
+
+type SprintVisualRider = Pick<
+  RiderSimulationInput,
+  "id" | "teamId" | "role"
+>;
+
+export type SprintVisualTeam = {
+  teamId: string;
+  riderIds: string[];
+  trainRiderIds: string[];
+};
+
+export function buildSprintVisualTeams(
+  riders: readonly SprintVisualRider[]
+): SprintVisualTeam[] {
+  const teams = new Map<
+    string,
+    SprintVisualTeam & {
+      leadoutRiderIds: string[];
+      sprinterRiderIds: string[];
+    }
+  >();
+
+  for (const rider of riders) {
+    const team = teams.get(rider.teamId) ?? {
+      teamId: rider.teamId,
+      riderIds: [],
+      trainRiderIds: [],
+      leadoutRiderIds: [],
+      sprinterRiderIds: [],
+    };
+    team.riderIds.push(rider.id);
+    if (rider.role === "leadout") {
+      team.leadoutRiderIds.push(rider.id);
+    } else if (rider.role === "sprinter") {
+      team.sprinterRiderIds.push(rider.id);
+    }
+    teams.set(rider.teamId, team);
+  }
+
+  return [...teams.values()].map(
+    ({
+      leadoutRiderIds,
+      sprinterRiderIds,
+      ...team
+    }) => ({
+      ...team,
+      trainRiderIds: [
+        ...leadoutRiderIds,
+        ...sprinterRiderIds,
+      ],
+    })
+  );
+}
+
+export function keepPassageWinnerVisible({
+  orderedRiderIds,
+  winnerRiderId,
+  maximumVisibleRiders = 5,
+}: {
+  orderedRiderIds: string[];
+  winnerRiderId: string | null;
+  maximumVisibleRiders?: number;
+}) {
+  if (
+    winnerRiderId === null ||
+    !orderedRiderIds.includes(winnerRiderId)
+  ) {
+    return orderedRiderIds.slice(0, maximumVisibleRiders);
+  }
+
+  return [
+    ...orderedRiderIds
+      .filter((riderId) => riderId !== winnerRiderId)
+      .slice(0, Math.max(0, maximumVisibleRiders - 1)),
+    winnerRiderId,
+  ];
+}
 
 export function getVisibleFinalBattleRiderIds(
   scenario: FinalBattleScenario,

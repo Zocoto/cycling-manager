@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import {
   registerRaceRosterAction,
+  replaceInjuredRaceRosterAction,
   withdrawRaceRosterAction,
 } from "./actions";
 
@@ -537,9 +538,12 @@ function RegistrationPanel({
   riderJersey: RiderJerseyAppearance;
 }) {
   const registration = context.registration;
+  const needsMedicalReplacement =
+    registration?.status === "accepted" &&
+    registration.rosterCount < edition.minimumRosterSize;
   const hasConfirmedRoster =
     registration?.status === "accepted" &&
-    registration.rosterCount > 0;
+    registration.rosterCount >= edition.minimumRosterSize;
   const withdrawalClosesAt =
     registration?.withdrawalClosesAt ??
     edition.withdrawalClosesAt;
@@ -563,6 +567,53 @@ function RegistrationPanel({
         context.reputationPoints,
     });
   const raceExperience = getRaceExperienceAvailability(edition.stages);
+
+  if (needsMedicalReplacement) {
+    return (
+      <section className="rounded-2xl border border-[#EF5B65]/60 bg-[#351D20] p-6 text-white shadow-[0_18px_45px_rgba(66,20,25,0.24)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#FF9EA6]">
+          Remplacement médical requis
+        </p>
+        <h2 className="mt-3 text-xl font-black">
+          Votre start-list est incomplète
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-[#F4D7D9]">
+          Un coureur blessé a été retiré automatiquement. Il reste {registration.rosterCount} engagé{registration.rosterCount > 1 ? "s" : ""}, alors que cette course en exige au moins {edition.minimumRosterSize}. Les coureurs encore valides restent verrouillés ; ajoutez un remplaçant avant le départ.
+        </p>
+
+        {contextError ? (
+          <RegistrationNotice tone="error">
+            {contextError}
+          </RegistrationNotice>
+        ) : rosterError ? (
+          <RegistrationNotice tone="error">
+            {rosterError}
+          </RegistrationNotice>
+        ) : riders.length > 0 ? (
+          <form
+            action={replaceInjuredRaceRosterAction}
+            className="mt-5"
+          >
+            <input type="hidden" name="editionId" value={edition.id} />
+            <input type="hidden" name="slug" value={edition.slug} />
+            <RaceRosterSelector
+              riders={riders}
+              minimum={edition.minimumRosterSize}
+              maximum={edition.maximumRosterSize}
+              jersey={riderJersey}
+              isStageRace={edition.raceFormat === "stage_race"}
+              lockInitiallySelected
+              submitLabel="Valider le remplacement"
+            />
+          </form>
+        ) : (
+          <RegistrationNotice tone="warning">
+            Aucun remplaçant n’est actuellement disponible dans votre effectif.
+          </RegistrationNotice>
+        )}
+      </section>
+    );
+  }
 
   if (hasConfirmedRoster) {
     const selectedRiders = riders.filter(

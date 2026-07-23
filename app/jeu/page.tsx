@@ -353,6 +353,24 @@ export default async function GamePage() {
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
 
+  let raceRosterAlertCount = 0;
+
+  try {
+    const alertResult = await supabase
+      .from("race_roster_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("requires_action", true)
+      .is("read_at", null);
+
+    if (alertResult.error) throw alertResult.error;
+    raceRosterAlertCount = alertResult.count ?? 0;
+  } catch (error) {
+    console.error(
+      "Impossible de récupérer les remplacements médicaux en attente :",
+      error
+    );
+  }
+
   const sportingDirector =
     profileResult.data;
 
@@ -575,7 +593,7 @@ export default async function GamePage() {
             </div>
           </section>
 
-          <RaceOperationsCard />
+          <RaceOperationsCard alertCount={raceRosterAlertCount} />
 
           <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             <ManagementModuleCard
@@ -1146,7 +1164,7 @@ function getDashboardRiderAverage(
   );
 }
 
-function RaceOperationsCard() {
+function RaceOperationsCard({ alertCount }: { alertCount: number }) {
   const entries = [
     {
       href: "/jeu/calendrier",
@@ -1154,7 +1172,10 @@ function RaceOperationsCard() {
       eyebrow: "Préparer",
       title: "Inscriptions & calendrier",
       description: "Choisissez vos courses, filtrez les catégories et composez les équipes engagées.",
-      status: "Saison ouverte",
+      status:
+        alertCount > 0
+          ? `${alertCount} remplacement${alertCount > 1 ? "s" : ""} requis`
+          : "Saison ouverte",
     },
     {
       href: "/jeu/resultats",
@@ -1200,7 +1221,15 @@ function RaceOperationsCard() {
             <span className="min-w-0">
               <span className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">{entry.eyebrow}</span>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#BFD1C6]">{entry.status}</span>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                    index === 0 && alertCount > 0
+                      ? "bg-[#EF5B65]/20 text-[#FFB0B6] ring-1 ring-[#EF5B65]/40"
+                      : "bg-white/10 text-[#BFD1C6]"
+                  }`}
+                >
+                  {entry.status}
+                </span>
               </span>
               <span className="mt-3 block text-xl font-black text-[#FFFDF4]">{entry.title}</span>
               <span className="mt-2 block text-sm font-medium leading-6 text-[#BFD1C6]">{entry.description}</span>

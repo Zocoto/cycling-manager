@@ -58,6 +58,7 @@ export async function saveRiderTrainingPlanAction(formData: FormData) {
 
 export async function bookRaceReconnaissanceAction(formData: FormData) {
   const stageId = readValue(formData, "stageId");
+  const startDayNumber = Number(readValue(formData, "startDayNumber"));
   const preparerContractId =
     readValue(formData, "preparerContractId") || null;
   const riderIds = formData
@@ -68,12 +69,15 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
 
   if (
     !isUuid(stageId) ||
+    !Number.isInteger(startDayNumber) ||
+    startDayNumber < 1 ||
+    startDayNumber > 27 ||
     riderIds.length === 0 ||
     riderIds.some((riderId) => !isUuid(riderId)) ||
     (preparerContractId !== null && !isUuid(preparerContractId))
   ) {
-    redirectWithError(
-      "Sélectionnez une course et au moins un coureur disponible.",
+    redirectWithRecognitionError(
+      "Sélectionnez une période, une course et au moins un coureur disponible.",
     );
   }
 
@@ -83,16 +87,19 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
     {
       p_stage_id: stageId,
       p_rider_ids: [...new Set(riderIds)],
+      p_start_day_number: startDayNumber,
       p_preparer_contract_id: preparerContractId,
     },
   );
-  if (error) redirectWithError(error.message);
+  if (error) redirectWithRecognitionError(error.message);
 
   revalidateTrainingPaths();
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/inscriptions");
   revalidatePath("/jeu/finances");
-  redirect("/jeu/entrainement?reconnaissance=confirmee");
+  redirect(
+    "/jeu/entrainement?onglet=reconnaissance&reconnaissance=confirmee",
+  );
 }
 
 async function requireAuthenticatedClient() {
@@ -113,6 +120,14 @@ function revalidateTrainingPaths() {
 
 function redirectWithError(message: string): never {
   redirect(`/jeu/entrainement?erreur=${encodeURIComponent(message.slice(0, 300))}`);
+}
+
+function redirectWithRecognitionError(message: string): never {
+  redirect(
+    `/jeu/entrainement?onglet=reconnaissance&erreur=${encodeURIComponent(
+      message.slice(0, 300),
+    )}`,
+  );
 }
 
 function readValue(formData: FormData, key: string) {

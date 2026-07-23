@@ -237,6 +237,10 @@ export function getStageAttackParticipants(
 }
 
 export type StageRaceStandings = {
+  general: Array<{
+    riderId: string;
+    elapsedTimeSeconds: number;
+  }>;
   mountain: Array<{ riderId: string; points: number }>;
   sprint: Array<{ riderId: string; points: number }>;
   youth: Array<{ riderId: string; elapsedTimeSeconds: number }>;
@@ -264,6 +268,59 @@ export function getFinalBattleRiderIds(
   simulation: StageSimulationResult
 ) {
   return getFinalBattleScenario(simulation).contenderIds;
+}
+
+export function getLeadingFinishGroupRiderIds(
+  simulation: StageSimulationResult
+) {
+  const finalSnapshot = simulation.timeline.at(-1);
+  if (!finalSnapshot) return [];
+
+  const eligibleGroups = finalSnapshot.groups.filter(
+    (group) => group.type !== "dropped" && group.type !== "time_trial"
+  );
+  if (eligibleGroups.length === 0) return [];
+
+  const leadingGap = Math.min(
+    ...eligibleGroups.map((group) => group.gapToLeaderSeconds)
+  );
+  return eligibleGroups
+    .filter((group) => group.gapToLeaderSeconds === leadingGap)
+    .flatMap((group) => group.riderIds);
+}
+
+export function isMassGroupFinish(
+  simulation: StageSimulationResult,
+  minimumGroupSize = 10
+) {
+  const scenario = getFinalBattleScenario(simulation);
+  const entrySnapshot =
+    simulation.timeline.at(-2) ?? simulation.timeline.at(-1);
+  if (!entrySnapshot) return false;
+
+  const eligibleGroups = entrySnapshot.groups.filter(
+    (group) => group.type !== "dropped" && group.type !== "time_trial"
+  );
+  const leadingGap = Math.min(
+    ...eligibleGroups.map((group) => group.gapToLeaderSeconds)
+  );
+  const leadingGroups = eligibleGroups.filter(
+    (group) => group.gapToLeaderSeconds === leadingGap
+  );
+  const hasAttackAtTheFront = leadingGroups.some(
+    (group) => group.type === "breakaway" || group.type === "chase"
+  );
+  const leadingFinishGroupRiderIds =
+    getLeadingFinishGroupRiderIds(simulation);
+
+  return (
+    Number.isFinite(leadingGap) &&
+    !hasAttackAtTheFront &&
+    scenario.lateJoiners.length === 0 &&
+    scenario.entryLeaderIds.length >= minimumGroupSize &&
+    scenario.decisiveContenderIds.length >= minimumGroupSize &&
+    leadingFinishGroupRiderIds.length >= minimumGroupSize
+  );
 }
 
 export function getFinalBattleScenario(
@@ -2178,8 +2235,18 @@ export function buildStageRaceStandings(
     !medicallyWithdrawnRiderIds.has(riderId);
   const byPoints = (first: [string, number], second: [string, number]) =>
     second[1] - first[1];
+  const general = [...riderTimes.entries()]
+    .filter(activeRider)
+    .sort(
+      (first, second) =>
+        first[1] - second[1] || first[0].localeCompare(second[0])
+    );
 
   return {
+    general: general.map(([riderId, elapsedTimeSeconds]) => ({
+      riderId,
+      elapsedTimeSeconds,
+    })),
     mountain: [...mountainPoints.entries()]
       .filter(activeRider)
       .sort(byPoints)
@@ -2188,14 +2255,11 @@ export function buildStageRaceStandings(
       .filter(activeRider)
       .sort(byPoints)
       .map(([riderId, points]) => ({ riderId, points })),
-    youth: [...riderTimes.entries()]
+    youth: general
       .filter(
         ([riderId]) =>
-          !abandonedRiderIds.has(riderId) &&
-          !medicallyWithdrawnRiderIds.has(riderId) &&
           (riderById.get(riderId)?.age ?? 99) < 25
       )
-      .sort((first, second) => first[1] - second[1])
       .map(([riderId, elapsedTimeSeconds]) => ({
         riderId,
         elapsedTimeSeconds,

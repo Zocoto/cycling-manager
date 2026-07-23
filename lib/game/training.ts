@@ -31,6 +31,108 @@ export const TRAINING_DOMAIN_LABELS: Record<TrainingDomain, string> = {
 export const POTENTIAL_MIN_STEPS = 1;
 export const POTENTIAL_MAX_STEPS = 8;
 export const LOW_FORM_REST_GAIN = 2;
+export const TRAINER_MIN_RIDER_CAPACITY = 4;
+export const TRAINER_MAX_RIDER_CAPACITY = 8;
+export const RECOGNITION_CAMP_DURATION_DAYS = 2;
+
+export type TrainingPageTab = "training" | "reconnaissance";
+
+export type RecognitionCampScheduleValidation =
+  | {
+      valid: true;
+      startDayNumber: number;
+      endDayNumber: number;
+    }
+  | {
+      valid: false;
+      error: string;
+    };
+
+export function parseTrainingPageTab(
+  value: string | string[] | undefined,
+): TrainingPageTab {
+  return value === "reconnaissance" ? "reconnaissance" : "training";
+}
+
+export function validateRecognitionCampSchedule({
+  currentDayNumber,
+  startDayNumber,
+  targetStageDayNumber,
+  targetEditionStartDayNumber,
+  targetEditionEndDayNumber,
+  seasonLastDayNumber = 28,
+}: {
+  currentDayNumber: number;
+  startDayNumber: number;
+  targetStageDayNumber: number;
+  targetEditionStartDayNumber: number;
+  targetEditionEndDayNumber: number;
+  seasonLastDayNumber?: number;
+}): RecognitionCampScheduleValidation {
+  if (
+    !Number.isInteger(startDayNumber) ||
+    !Number.isInteger(targetStageDayNumber) ||
+    !Number.isInteger(targetEditionStartDayNumber) ||
+    !Number.isInteger(targetEditionEndDayNumber)
+  ) {
+    return {
+      valid: false,
+      error: "La date du stage ou de l’étape cible est invalide.",
+    };
+  }
+
+  const endDayNumber =
+    startDayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1;
+
+  if (targetStageDayNumber <= currentDayNumber) {
+    return {
+      valid: false,
+      error: "L’étape ciblée doit se dérouler après la journée actuelle.",
+    };
+  }
+
+  if (startDayNumber <= currentDayNumber) {
+    return {
+      valid: false,
+      error: "Le stage doit commencer après la journée actuelle.",
+    };
+  }
+
+  if (endDayNumber > seasonLastDayNumber) {
+    return {
+      valid: false,
+      error: "La saison se termine avant la fin des deux jours de stage.",
+    };
+  }
+
+  if (endDayNumber >= targetStageDayNumber) {
+    return {
+      valid: false,
+      error: "Les deux jours de préparation doivent être terminés avant l’étape ciblée.",
+    };
+  }
+
+  if (
+    rangesOverlap(
+      startDayNumber,
+      endDayNumber,
+      targetEditionStartDayNumber,
+      targetEditionEndDayNumber,
+    )
+  ) {
+    return {
+      valid: false,
+      error:
+        "Le stage chevauche la course par étapes qui englobe l’étape ciblée.",
+    };
+  }
+
+  return {
+    valid: true,
+    startDayNumber,
+    endDayNumber,
+  };
+}
 
 export type SkippedTrainingStatus =
   | "skipped_low_form"
@@ -132,6 +234,14 @@ export function getTrainerMultiplier({
       : 0;
   const nationalityBonus = countryMatch ? 0.05 : 0;
   return 1 + specialtyBonus + nationalityBonus;
+}
+
+export function getTrainerRiderCapacity(level: number): number {
+  const normalizedLevel = Math.min(5, Math.max(1, Math.round(level)));
+  return Math.min(
+    TRAINER_MAX_RIDER_CAPACITY,
+    TRAINER_MIN_RIDER_CAPACITY + normalizedLevel - 1,
+  );
 }
 
 export function getTrainingAgeFactor(age: number): number {
@@ -264,4 +374,13 @@ function isTrainingSessionMoreRecent(
 
 export function isTrainingDomain(value: string): value is TrainingDomain {
   return TRAINING_DOMAINS.includes(value as TrainingDomain);
+}
+
+function rangesOverlap(
+  leftStart: number,
+  leftEnd: number,
+  rightStart: number,
+  rightEnd: number,
+) {
+  return leftStart <= rightEnd && leftEnd >= rightStart;
 }

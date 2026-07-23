@@ -106,18 +106,44 @@ export function createCalendarSimulationInput({
   stage: RaceCalendarStage;
   seed: string | number;
 }): StageSimulationInput {
-  const riders =
+  const sourceRiders =
     edition.engagedRiders.length > 0
       ? edition.engagedRiders
       : edition.slug === "criterium-de-namur"
         ? DEMO_RIDERS
         : [];
 
-  if (riders.length === 0) {
+  if (sourceRiders.length === 0) {
     throw new Error(
       `La course ${edition.name} ne peut pas être simulée sans startlist enregistrée.`
     );
   }
+
+  const riders = sourceRiders
+    .map((rider) => {
+      const specialAbilities = [
+        ...(rider.specialAbilities ?? []),
+        ...(rider.specialAbility ? [rider.specialAbility] : []),
+      ]
+        .filter((ability, index, abilities) =>
+          abilities.indexOf(ability) === index
+        )
+        .sort();
+
+      return {
+        ...rider,
+        specialAbility: specialAbilities[0] ?? null,
+        ...(specialAbilities.length > 0 || rider.specialAbilities !== undefined
+          ? { specialAbilities }
+          : {}),
+        ratings: { ...rider.ratings },
+      };
+    })
+    .sort(
+      (first, second) =>
+        first.teamId.localeCompare(second.teamId) ||
+        first.id.localeCompare(second.id)
+    );
 
   return {
     id: stage.id,
@@ -133,7 +159,10 @@ export function createCalendarSimulationInput({
     weather: getRaceWeather(`${edition.id}:${stage.id}:weather`),
     segments:
       stage.segments.length > 0
-        ? stage.segments
+        ? [...stage.segments].sort(
+            (first, second) =>
+              first.segmentNumber - second.segmentNumber
+          )
         : buildRaceSegments({
             distanceKm: stage.distanceKm,
             profileType: stage.profileType,
