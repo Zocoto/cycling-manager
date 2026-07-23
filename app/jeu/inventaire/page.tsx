@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import {
   InventoryEquipmentForm,
@@ -82,13 +83,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
       />
 
       <section className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12">
-        <Link
-          href="/jeu"
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour au bureau du DS
-        </Link>
+        <BackToOfficeLink />
 
         {errorMessage ? (
           <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">

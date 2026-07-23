@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamCreationForm } from "../../../components/game/amateur-team-creation-form";
 import { DeleteSportingDirectorAccount } from "../../../components/game/delete-sporting-director-account";
@@ -210,13 +211,7 @@ export default async function SportingDirectorProfilePage() {
 
       <section className="relative overflow-hidden">
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <Link
-            href="/jeu"
-            className="inline-flex items-center gap-2 rounded-md text-sm font-bold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
-          >
-            <BackArrowIcon />
-            Retour au bureau
-          </Link>
+          <BackToOfficeLink />
 
           <header className="mt-8 max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
@@ -714,22 +709,6 @@ function TeamSponsorIdentityWarning({
         {message}
       </span>
     </div>
-  );
-}
-
-function BackArrowIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path d="M17 10H4" />
-      <path d="m9 5-5 5 5 5" />
-    </svg>
   );
 }
 

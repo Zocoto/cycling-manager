@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey";
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
@@ -389,13 +390,7 @@ export default async function TeamRosterPage({
 
       <section className="relative overflow-hidden">
         <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
-          <Link
-            href="/jeu"
-            className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B4A3B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
-          >
-            <BackIcon />
-            Retour au bureau
-          </Link>
+          <BackToOfficeLink />
 
           <header className="mt-7 flex flex-wrap items-end justify-between gap-6">
             <div>
@@ -1439,23 +1434,6 @@ function TeamSponsorIdentityWarning({
         {message}
       </span>
     </div>
-  );
-}
-
-function BackIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      fill="none"
-      className="h-4 w-4"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m12.5 4.5-5.5 5.5 5.5 5.5" />
-    </svg>
   );
 }
 

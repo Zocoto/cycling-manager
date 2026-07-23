@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { GameHeader } from "@/components/game/game-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -76,13 +76,7 @@ export default async function TeamFinancesPage() {
       />
 
       <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-        <Link
-          href="/jeu"
-          className="inline-flex items-center gap-2 text-sm font-bold text-[#176951] transition hover:text-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour au bureau du DS
-        </Link>
+        <BackToOfficeLink />
 
         <header className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] shadow-[0_24px_70px_rgba(19,60,46,0.18)] sm:px-10 sm:py-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

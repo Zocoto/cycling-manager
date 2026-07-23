@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button";
 import { GameHeader } from "@/components/game/game-header";
 import {
@@ -84,13 +85,7 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
-        <Link
-          href="/jeu"
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour au bureau du DS
-        </Link>
+        <BackToOfficeLink />
 
         <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
           <div aria-hidden="true" className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[44px] border-white/5" />

@@ -175,8 +175,8 @@ export async function getCurrentTeamFinanceOverview(
       .from("team_finance_transactions")
       .select("id, day_number, amount, category, status, description, source_reference, posted_at")
       .eq("team_season_id", teamSeason.id)
-      .order("day_number", { ascending: true })
-      .order("created_at", { ascending: true })
+      .order("day_number", { ascending: false })
+      .order("created_at", { ascending: false })
       .returns<TransactionRow[]>(),
     admin
       .from("team_finance_alerts")
