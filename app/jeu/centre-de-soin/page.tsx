@@ -577,7 +577,7 @@ function NutritionPanel({
       <SectionHeading
         eyebrow="Nutrition"
         title="Récupération quotidienne et interventions ciblées"
-        detail="Le meilleur nutritionniste renforce passivement la récupération. Chaque spécialiste peut aussi traiter un nombre limité de coureurs par jour, avec un gain et un tarif liés à son niveau."
+        detail="Les niveaux de vos nutritionnistes se cumulent pour renforcer passivement la récupération. Chaque spécialiste peut aussi traiter un nombre limité de coureurs par jour, avec un gain et un tarif liés à son propre niveau."
       />
 
       {nutritionists.length === 0 ? (
@@ -793,7 +793,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                     </span>
                   </div>
                   <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                    Toute nouvelle blessure est raccourcie automatiquement de {doctor.level * 6} % de sa durée initiale. Le meilleur médecin actif fait référence.
+                    Ce médecin réduit de {doctor.level * 6} % la durée initiale de toute nouvelle blessure. Sa contribution se cumule avec celle des autres médecins actifs.
                   </p>
                 </article>
               ))
@@ -824,7 +824,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       </span>
                     </div>
                     <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                      Réduit de {nutritionist.level * 5} % le coût des compléments, améliore leur efficacité et apporte en moyenne +{nutritionist.level / 5} point de récupération quotidienne.
+                      Réduit de {nutritionist.level * 5} % le coût des compléments qu’il applique, améliore leur efficacité et ajoute en moyenne +{nutritionist.level / 5} point de récupération quotidienne au bonus cumulé de l’équipe.
                     </p>
                     <Link
                       href="/jeu/centre-de-soin?onglet=nutrition"

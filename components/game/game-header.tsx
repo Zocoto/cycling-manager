@@ -186,6 +186,28 @@ export function GameHeader({
             <RaceSimulatorShortcut />
           ) : null}
 
+          <Link
+            href="/guide"
+            title="Ouvrir le guide du jeu"
+            aria-label="Ouvrir le guide du jeu"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-extrabold uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-4 w-4"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
+              <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
+            </svg>
+            <span className="hidden xl:inline">Guide</span>
+          </Link>
+
           <form action={logoutAccount}>
             <button
               type="submit"

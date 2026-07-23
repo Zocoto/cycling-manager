@@ -8,7 +8,7 @@
 - Contrat permanent jusqu’à future résiliation, prime de signature immédiate et salaire saisonnier en quatre échéances (J7, J14, J21 et J28).
 - Vue du staff de l’équipe avec masse salariale, effets et places disponibles.
 - Bonus du community manager appliqué automatiquement aux événements de réputation.
-- Réduction automatique des nouvelles convalescences par le meilleur médecin actif.
+- Réduction automatique des nouvelles convalescences par le niveau cumulé des médecins actifs.
 - Affectation individuelle des kinés dans le centre de soin, avec réduction effective du malus de forme après course.
 
 ## Capacité du Directeur Sportif
@@ -38,11 +38,17 @@ Au-delà du niveau 10, quatre places supplémentaires sont accordées par niveau
 | Architecte chef de chantier | −2 % coût / −6 % délai par niveau | −10 % coût / −30 % délai |
 | Architecte polyvalent | −4 % coût et délai par niveau | −20 % coût et délai |
 
-Pour un même effet global, seul le meilleur niveau actif est retenu. Les entraîneurs peuvent être complémentaires grâce à leurs spécialités distinctes.
+Les effets globaux compatibles cumulent les niveaux de tous les membres actifs
+du métier concerné. Les entraîneurs n'agissent que sur le coureur auquel ils
+sont affectés dans la rubrique Entraînements. Les kinés n'agissent que sur les
+coureurs qui leur sont affectés dans le centre de soin ; plusieurs kinés affectés
+au même coureur cumulent leurs niveaux.
 
 ## Connexions avec les autres briques
 
-La fonction SQL `get_active_team_staff_level` expose le meilleur niveau actif par équipe, métier et, si nécessaire, spécialité d’entraîneur. Les futures rubriques Entraînements, Infrastructures, reconnaissance, nutrition et gestion des avaries peuvent donc consommer les effets sans modifier le modèle contractuel.
+La fonction SQL `get_active_team_staff_level` expose le niveau cumulé des membres
+actifs par équipe et métier. Les entraîneurs et les kinés sont volontairement
+exclus de ce calcul global puisqu'ils dépendent d'une affectation individuelle.
 
 Le community manager est raccordé au registre central `reward_events`. Le médecin est appliqué à la création d’une blessure. Le kiné dispose d’affectations persistantes, configurables dans `Centre de soin > Staff médical`, et réduit le malus des coureurs suivis lors du règlement d’une course (un malus minimal de 1 point est conservé).
 
