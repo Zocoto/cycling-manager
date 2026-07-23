@@ -7,6 +7,11 @@ import type {
 import {
   createCalendarSimulationInput,
 } from "./race-simulation-demo";
+import {
+  getOfficialStageSimulationContext,
+  isUnavailableForFollowingStage,
+  simulateOfficialRaceEdition,
+} from "./official-race-simulation";
 import type { RiderSimulationInput } from "./race-simulation";
 
 describe("createCalendarSimulationInput", () => {
@@ -69,6 +74,84 @@ describe("createCalendarSimulationInput", () => {
     expect(input.riders.every((rider) => !rider.id.startsWith("rider-"))).toBe(
       true
     );
+  });
+
+  it("produit le même scénario officiel quel que soit l'ordre reçu de la startlist", () => {
+    const riders = [
+      createRider("rider-c", "team-b"),
+      createRider("rider-a", "team-a"),
+      createRider("rider-b", "team-a"),
+    ];
+    const firstSpectatorEdition = createEdition({
+      slug: "course-synchronisee",
+      riders,
+    });
+    const secondSpectatorEdition = createEdition({
+      slug: "course-synchronisee",
+      riders: [...riders].reverse(),
+    });
+
+    expect(
+      simulateOfficialRaceEdition(firstSpectatorEdition)[0].simulation
+    ).toEqual(
+      simulateOfficialRaceEdition(secondSpectatorEdition)[0].simulation
+    );
+  });
+
+  it("réutilise le scénario verrouillé au lieu de le recalculer pour chaque spectateur", () => {
+    const edition = createEdition({
+      slug: "course-verrouillee",
+      riders: [
+        createRider("rider-a", "team-a"),
+        createRider("rider-b", "team-b"),
+      ],
+    });
+    const run = simulateOfficialRaceEdition(edition)[0];
+    const context = getOfficialStageSimulationContext({
+      edition,
+      stageId: run.stage.id,
+      lockedSimulations: [
+        {
+          stageId: run.stage.id,
+          raceEditionId: edition.id,
+          engineVersion: "test",
+          seed: String(run.input.seed),
+          input: run.input,
+          simulation: run.simulation,
+        },
+      ],
+    });
+
+    expect(context.simulation).toBe(run.simulation);
+    expect(context.input).toBe(run.input);
+  });
+
+  it("écarte aussi des étapes suivantes un coureur blessé qui a terminé", () => {
+    const edition = createEdition({
+      slug: "course-blessure",
+      riders: [
+        createRider("rider-a", "team-a"),
+        createRider("rider-b", "team-b"),
+      ],
+    });
+    const result = simulateOfficialRaceEdition(edition)[0].simulation.results[0];
+
+    expect(
+      isUnavailableForFollowingStage({
+        ...result,
+        status: "finished",
+        injury: {
+          riderId: result.riderId,
+          segmentNumber: 1,
+          type: "fracture",
+          diagnosisCode: "wrist_fracture",
+          label: "Fracture du poignet",
+          severity: "moderate",
+          recoveryHours: 96,
+          recoveryDays: 4,
+        },
+      })
+    ).toBe(true);
   });
 });
 

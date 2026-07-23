@@ -20,6 +20,8 @@ type RaceRosterSelectorProps = {
   maximum: number;
   jersey: RiderJerseyAppearance;
   isStageRace: boolean;
+  lockInitiallySelected?: boolean;
+  submitLabel?: string;
 };
 
 export function RaceRosterSelector({
@@ -28,10 +30,18 @@ export function RaceRosterSelector({
   maximum,
   jersey,
   isStageRace,
+  lockInitiallySelected = false,
+  submitLabel,
 }: RaceRosterSelectorProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(
-    riders.filter((rider) => rider.isSelected).map((rider) => rider.riderId)
+  const initiallySelectedIds = useMemo(
+    () => riders.filter((rider) => rider.isSelected).map((rider) => rider.riderId),
+    [riders]
   );
+  const initiallySelectedSet = useMemo(
+    () => new Set(initiallySelectedIds),
+    [initiallySelectedIds]
+  );
+  const [selectedIds, setSelectedIds] = useState<string[]>(initiallySelectedIds);
   const [roles, setRoles] = useState<Record<string, RaceRole>>({});
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const rosterSizeIsValid = isRosterSelectionValid({
@@ -47,6 +57,7 @@ export function RaceRosterSelector({
   const selectionIsValid = rosterSizeIsValid && uniqueRolesAreValid;
 
   function toggleRider(riderId: string) {
+    if (lockInitiallySelected && initiallySelectedSet.has(riderId)) return;
     setSelectedIds((current) =>
       current.includes(riderId)
         ? current.filter((id) => id !== riderId)
@@ -76,6 +87,8 @@ export function RaceRosterSelector({
       <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
         {riders.map((rider) => {
           const isSelected = selectedSet.has(rider.riderId);
+          const isLockedSelection =
+            lockInitiallySelected && initiallySelectedSet.has(rider.riderId);
           const isDisabled =
             !rider.isAvailable ||
             (!isSelected && selectedIds.length >= maximum);
@@ -188,41 +201,49 @@ export function RaceRosterSelector({
 
               {isSelected ? (
                 <div className="ml-7 mt-3 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
-                  <label
-                    htmlFor={`role-${rider.riderId}`}
-                    className="text-[10px] font-black uppercase tracking-widest text-[#9FB5A8]"
-                  >
-                    Rôle en course
-                  </label>
-                  <select
-                    id={`role-${rider.riderId}`}
-                    name="riderRoles"
-                    value={`${rider.riderId}:${roles[rider.riderId] ?? "auto"}`}
-                    onChange={(event) => {
-                      const nextRole = event.target.value.split(":").at(-1) as RaceRole;
-                      setRoles((current) => ({ ...current, [rider.riderId]: nextRole }));
-                    }}
-                    className="min-h-9 flex-1 rounded-lg border border-white/15 bg-[#102A25] px-3 text-xs font-bold text-white outline-none focus:border-emerald-300"
-                  >
-                    {RACE_ROLES.filter(
-                      (role) => isStageRace || role !== "mountain_classification"
-                    ).map((role) => {
-                      const isUniqueRole = role === "leader" || role === "sprinter";
-                      const isTakenByAnother =
-                        isUniqueRole &&
-                        selectedIds.some(
-                          (selectedId) =>
-                            selectedId !== rider.riderId &&
-                            (roles[selectedId] ?? "auto") === role
-                        );
+                  {isLockedSelection ? (
+                    <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#BFD1C6]">
+                      Rôle de course conservé
+                    </span>
+                  ) : (
+                    <>
+                      <label
+                        htmlFor={`role-${rider.riderId}`}
+                        className="text-[10px] font-black uppercase tracking-widest text-[#9FB5A8]"
+                      >
+                        Rôle en course
+                      </label>
+                      <select
+                        id={`role-${rider.riderId}`}
+                        name="riderRoles"
+                        value={`${rider.riderId}:${roles[rider.riderId] ?? "auto"}`}
+                        onChange={(event) => {
+                          const nextRole = event.target.value.split(":").at(-1) as RaceRole;
+                          setRoles((current) => ({ ...current, [rider.riderId]: nextRole }));
+                        }}
+                        className="min-h-9 flex-1 rounded-lg border border-white/15 bg-[#102A25] px-3 text-xs font-bold text-white outline-none focus:border-emerald-300"
+                      >
+                        {RACE_ROLES.filter(
+                          (role) => isStageRace || role !== "mountain_classification"
+                        ).map((role) => {
+                          const isUniqueRole = role === "leader" || role === "sprinter";
+                          const isTakenByAnother =
+                            isUniqueRole &&
+                            selectedIds.some(
+                              (selectedId) =>
+                                selectedId !== rider.riderId &&
+                                (roles[selectedId] ?? "auto") === role
+                            );
 
-                      return (
-                        <option key={role} value={`${rider.riderId}:${role}`} disabled={isTakenByAnother}>
-                          {RACE_ROLE_LABELS[role]}
-                        </option>
-                      );
-                    })}
-                  </select>
+                          return (
+                            <option key={role} value={`${rider.riderId}:${role}`} disabled={isTakenByAnother}>
+                              {RACE_ROLE_LABELS[role]}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -239,9 +260,12 @@ export function RaceRosterSelector({
       <SubmitRosterButton
         disabled={!selectionIsValid}
         count={selectedIds.length}
+        label={submitLabel}
       />
       <p className="mt-3 text-center text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-        Après validation, la composition ne pourra plus être modifiée directement.
+        {lockInitiallySelected
+          ? "Les coureurs encore aptes restent engagés ; seuls les remplaçants sont ajoutés."
+          : "Après validation, la composition ne pourra plus être modifiée directement."}
       </p>
     </div>
   );
@@ -273,9 +297,11 @@ function formatAvailabilityDate(value: string) {
 function SubmitRosterButton({
   disabled,
   count,
+  label,
 }: {
   disabled: boolean;
   count: number;
+  label?: string;
 }) {
   const { pending } = useFormStatus();
 
@@ -285,7 +311,9 @@ function SubmitRosterButton({
       disabled={disabled || pending}
       className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#F2C94C] px-5 py-3 text-sm font-black text-[#17261E] transition hover:-translate-y-0.5 hover:bg-[#F7D96C] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
     >
-      {pending ? "Validation en cours…" : `Valider l’inscription (${count})`}
+      {pending
+        ? "Validation en cours…"
+        : `${label ?? "Valider l’inscription"} (${count})`}
     </button>
   );
 }

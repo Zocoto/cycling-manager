@@ -22,15 +22,21 @@ import {
   canSimulateRaceEdition,
   getStageLiveState,
 } from "@/lib/game/race-live";
+import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type {
   OfficialRaceEditionResults,
   OfficialRaceResultsDirectory,
 } from "@/lib/game/race-results";
+import type {
+  LockedOfficialRaceSimulationDirectory,
+  LockedOfficialStageSimulation,
+} from "@/lib/game/official-race-simulation";
 
 type RaceResultsDirectoryProps = {
   calendar: SeasonRaceCalendar;
   nowIso: string;
   officialResults: OfficialRaceResultsDirectory;
+  lockedSimulations: LockedOfficialRaceSimulationDirectory;
 };
 
 type StageEntry = {
@@ -44,16 +50,12 @@ export function RaceResultsDirectory({
   calendar,
   nowIso,
   officialResults,
+  lockedSimulations,
 }: RaceResultsDirectoryProps) {
   const [scope, setScope] = useState<ResultsScope>("team");
   const [selectedCategories, setSelectedCategories] = useState<RaceCategoryCode[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
-  const [now, setNow] = useState(() => new Date(nowIso));
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 15_000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useSynchronizedRaceClock(nowIso, 15_000);
 
   const entries = useMemo(
     () =>
@@ -266,6 +268,7 @@ export function RaceResultsDirectory({
             now={now}
             nowIso={nowIso}
             officialResults={officialResults[selectedEntry.edition.id] ?? null}
+            lockedSimulations={lockedSimulations[selectedEntry.edition.id] ?? []}
           />
         ) : (
           <div className="rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white/55 px-6 py-12 text-center">
@@ -361,11 +364,13 @@ function SelectedRaceExperience({
   now,
   nowIso,
   officialResults,
+  lockedSimulations,
 }: {
   entry: StageEntry;
   now: Date;
   nowIso: string;
   officialResults: OfficialRaceEditionResults | null;
+  lockedSimulations: LockedOfficialStageSimulation[];
 }) {
   const state = getStageLiveState(entry.stage, now);
   const simulationAvailable = canSimulateRaceEdition(
@@ -512,6 +517,7 @@ function SelectedRaceExperience({
           stage={entry.stage}
           mode={state.status === "live" ? "live" : "replay"}
           nowIso={state.status === "live" ? now.toISOString() : nowIso}
+          lockedSimulations={lockedSimulations}
         />
       )}
     </div>

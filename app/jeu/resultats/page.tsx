@@ -14,6 +14,8 @@ import {
   getOfficialRaceResults,
   settleFinishedRaceResults,
 } from "@/services/race-results";
+import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
+import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
@@ -45,9 +47,18 @@ export default async function RaceResultsPage() {
   ]);
 
   let officialResults = {};
+  let lockedSimulations: LockedOfficialRaceSimulationDirectory = {};
   if (calendarResult.calendar) {
     try {
-      await settleFinishedRaceResults(calendarResult.calendar, now);
+      lockedSimulations = await ensureLockedOfficialRaceSimulations(
+        calendarResult.calendar,
+        now
+      );
+      await settleFinishedRaceResults(
+        calendarResult.calendar,
+        now,
+        lockedSimulations
+      );
       await settleFinishedRaceConditions(supabase);
       officialResults = await getOfficialRaceResults(calendarResult.calendar);
     } catch (error) {
@@ -95,6 +106,7 @@ export default async function RaceResultsPage() {
               calendar={calendarResult.calendar}
               nowIso={now.toISOString()}
               officialResults={officialResults}
+              lockedSimulations={lockedSimulations}
             />
           ) : (
             <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-8 text-center font-bold text-red-900">

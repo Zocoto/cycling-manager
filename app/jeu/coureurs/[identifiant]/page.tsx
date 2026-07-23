@@ -15,7 +15,9 @@ import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
+import { SeasonPerformancesPopover } from "@/components/game/season-performances-popover";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
+import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import {
   SPECIAL_ABILITY_CATALOG,
   type RiderSpecialAbility,
@@ -546,6 +548,7 @@ function CareerHistory({
     points: number | null;
     uciRank: number | null;
     nationalTitles: Array<"road" | "time_trial">;
+    notablePerformances: RiderNotablePerformance[];
   }>;
   countryCode: string;
 }) {
@@ -556,13 +559,13 @@ function CareerHistory({
           Carrière
         </p>
         <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-          Historique des clubs
+          Historique des saisons
         </h2>
       </div>
 
       {history.length > 0 ? (
         <div className="overflow-x-auto border-t border-[#315B3E]/10">
-          <table className="w-full min-w-[720px] border-collapse text-left">
+          <table className="w-full min-w-[980px] border-collapse text-left">
             <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
               <tr>
                 <th className="px-6 py-4">Saison</th>
@@ -570,6 +573,7 @@ function CareerHistory({
                 <th className="px-4 py-4 text-center">Victoires</th>
                 <th className="px-4 py-4 text-center">Points</th>
                 <th className="px-4 py-4 text-center">Palmarès</th>
+                <th className="px-5 py-4 text-center">Résultats notables</th>
                 <th className="px-6 py-4 text-center">Classement UCI</th>
               </tr>
             </thead>
@@ -605,6 +609,13 @@ function CareerHistory({
                       ))}
                       {entry.nationalTitles.length === 0 ? "—" : null}
                     </div>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <SeasonPerformancesPopover
+                      seasonName={entry.seasonName}
+                      gameYear={entry.gameYear}
+                      performances={entry.notablePerformances}
+                    />
                   </td>
                   <HistoryValue value={entry.uciRank} prefix="#" />
                 </tr>

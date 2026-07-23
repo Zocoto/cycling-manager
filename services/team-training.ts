@@ -7,6 +7,7 @@ import {
   type TrainerSpecialty,
 } from "@/lib/game/staff";
 import {
+  getTrainerRiderCapacity,
   indexLatestTrainingSessionsByRider,
   isTrainingDomain,
   type TrainingDomain,
@@ -114,6 +115,8 @@ export type TeamTrainer = {
   specialty: TrainerSpecialty;
   specialtyLabel: string;
   efficiencyBonus: number;
+  assignedRiderCount: number;
+  riderCapacity: number;
 };
 
 export type RiderTrainingReport = {
@@ -307,6 +310,15 @@ export async function getCurrentTeamTrainingOverview(
   const countryById = new Map((countriesResult.data ?? []).map((country) => [country.id, country]));
   const ratingByRiderId = new Map((ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]));
   const plansByRiderId = firstByKey(plansResult.data ?? [], (plan) => plan.rider_id);
+  const trainerAssignmentCountByContractId = new Map<string, number>();
+  for (const riderId of riderIds) {
+    const trainerContractId = plansByRiderId.get(riderId)?.trainer_contract_id;
+    if (!trainerContractId) continue;
+    trainerAssignmentCountByContractId.set(
+      trainerContractId,
+      (trainerAssignmentCountByContractId.get(trainerContractId) ?? 0) + 1,
+    );
+  }
   const latestSessionByRiderId = indexLatestTrainingSessionsByRider(
     sessionsResult.data ?? [],
     new Map(days.map((day) => [day.id, day.day_number])),
@@ -336,6 +348,8 @@ export async function getCurrentTeamTrainingOverview(
         specialty: member.trainer_specialty,
         specialtyLabel: TRAINER_SPECIALTY_LABELS[member.trainer_specialty],
         efficiencyBonus: member.level * 4,
+        assignedRiderCount: trainerAssignmentCountByContractId.get(contract.id) ?? 0,
+        riderCapacity: getTrainerRiderCapacity(member.level),
       } satisfies TeamTrainer,
     ];
   });

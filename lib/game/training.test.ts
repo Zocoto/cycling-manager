@@ -11,10 +11,87 @@ import {
   getSeasonRatingGainCap,
   getSkippedTrainingFormDelta,
   getTrainerMultiplier,
+  getTrainerRiderCapacity,
   getTrainingDomainWeight,
   getTrainingFormDelta,
   indexLatestTrainingSessionsByRider,
+  parseTrainingPageTab,
+  validateRecognitionCampSchedule,
 } from "@/lib/game/training";
+
+describe("training page tabs", () => {
+  it("affiche les entraînements par défaut et reconnaît le second onglet", () => {
+    expect(parseTrainingPageTab(undefined)).toBe("training");
+    expect(parseTrainingPageTab("inconnu")).toBe("training");
+    expect(parseTrainingPageTab(["reconnaissance"])).toBe("training");
+    expect(parseTrainingPageTab("reconnaissance")).toBe("reconnaissance");
+  });
+});
+
+describe("recognition camp scheduling", () => {
+  it("allows a two-day camp well before the target stage", () => {
+    expect(
+      validateRecognitionCampSchedule({
+        currentDayNumber: 8,
+        startDayNumber: 12,
+        targetStageDayNumber: 16,
+        targetEditionStartDayNumber: 14,
+        targetEditionEndDayNumber: 18,
+      }),
+    ).toEqual({
+      valid: true,
+      startDayNumber: 12,
+      endDayNumber: 13,
+    });
+  });
+
+  it("blocks either preparation day when it overlaps the target stage race", () => {
+    expect(
+      validateRecognitionCampSchedule({
+        currentDayNumber: 8,
+        startDayNumber: 13,
+        targetStageDayNumber: 16,
+        targetEditionStartDayNumber: 14,
+        targetEditionEndDayNumber: 18,
+      }),
+    ).toEqual({
+      valid: false,
+      error:
+        "Le stage chevauche la course par étapes qui englobe l’étape ciblée.",
+    });
+  });
+
+  it("requires both camp days to finish before the target stage", () => {
+    expect(
+      validateRecognitionCampSchedule({
+        currentDayNumber: 8,
+        startDayNumber: 15,
+        targetStageDayNumber: 16,
+        targetEditionStartDayNumber: 16,
+        targetEditionEndDayNumber: 16,
+      }),
+    ).toEqual({
+      valid: false,
+      error:
+        "Les deux jours de préparation doivent être terminés avant l’étape ciblée.",
+    });
+  });
+
+  it("rejects a camp starting on the current day", () => {
+    expect(
+      validateRecognitionCampSchedule({
+        currentDayNumber: 8,
+        startDayNumber: 8,
+        targetStageDayNumber: 16,
+        targetEditionStartDayNumber: 16,
+        targetEditionEndDayNumber: 16,
+      }),
+    ).toEqual({
+      valid: false,
+      error: "Le stage doit commencer après la journée actuelle.",
+    });
+  });
+});
 
 describe("rider potential", () => {
   it("maps the eight half-star steps to the expected overall caps", () => {
@@ -43,6 +120,10 @@ describe("training form", () => {
 });
 
 describe("training progression", () => {
+  it("limits trainer groups from four to eight riders according to level", () => {
+    expect([1, 2, 3, 4, 5].map(getTrainerRiderCapacity)).toEqual([4, 5, 6, 7, 8]);
+  });
+
   it("favours primary stats while keeping a small outside-domain progression", () => {
     expect(getTrainingDomainWeight("climber", "mountain")).toBe(1);
     expect(getTrainingDomainWeight("climber", "hills")).toBe(0.55);

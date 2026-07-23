@@ -156,12 +156,38 @@ export function RiderTrainingPlanForm({
           className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
         >
           <option value="">Sans entraîneur</option>
-          {trainers.map((trainer) => (
-            <option key={trainer.contractId} value={trainer.contractId}>
-              {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N{trainer.level} · {trainer.specialtyLabel}
-            </option>
-          ))}
+          {trainers.map((trainer) => {
+            const isCurrentTrainer =
+              trainer.contractId === initialTrainerContractId;
+            const isAtCapacity =
+              trainer.assignedRiderCount >= trainer.riderCapacity;
+
+            return (
+              <option
+                key={trainer.contractId}
+                value={trainer.contractId}
+                disabled={isAtCapacity && !isCurrentTrainer}
+              >
+                {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N{trainer.level} · {trainer.specialtyLabel} · {trainer.assignedRiderCount}/{trainer.riderCapacity}
+                {isAtCapacity ? " · Complet" : ""}
+              </option>
+            );
+          })}
         </select>
+        {selectedTrainer ? (
+          <span
+            className={`mt-2 block text-[10px] font-black ${
+              selectedTrainer.assignedRiderCount >= selectedTrainer.riderCapacity
+                ? "text-[#B54242]"
+                : "text-[#60756E]"
+            }`}
+          >
+            {selectedTrainer.assignedRiderCount}/{selectedTrainer.riderCapacity} coureurs suivis
+            {selectedTrainer.assignedRiderCount >= selectedTrainer.riderCapacity
+              ? " · quota atteint"
+              : ""}
+          </span>
+        ) : null}
         {nationalityBonus ? (
           <span className="mt-2 block text-[10px] font-black text-[#8A6B16]">
             Affinité nationale active · +5%

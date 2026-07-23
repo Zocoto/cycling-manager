@@ -4,6 +4,7 @@ import {
   serializeRadarPoints,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 
 type RiderStatsRadarProps = {
   ratings: RiderRatings;
@@ -112,12 +113,16 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
           <div
             key={axis.key}
             title={axis.label}
-            className="flex items-center justify-between gap-2 rounded-lg border border-[#315B3E]/10 bg-[#F6FAF7] px-3 py-2"
+            aria-label={`${axis.label} : ${ratings[axis.key]}`}
+            className={[
+              "flex items-center justify-between gap-2 rounded-lg border px-3 py-2",
+              getRiderRatingColorClasses(ratings[axis.key]),
+            ].join(" ")}
           >
-            <span className="text-[11px] font-extrabold text-[#60756E]">
+            <span className="text-[11px] font-extrabold opacity-75">
               {axis.shortLabel}
             </span>
-            <span className="text-sm font-black text-[#183F37]">
+            <span className="text-sm font-black">
               {ratings[axis.key]}
             </span>
           </div>

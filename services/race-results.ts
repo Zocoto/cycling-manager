@@ -22,16 +22,16 @@ import {
   type OfficialSecondaryClassification,
   type PersistedStageResultForGeneral,
 } from "@/lib/game/race-results";
-import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
+import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import {
   buildStageRaceStandings,
   getStageAttackParticipants,
-  simulateRaceStage,
   type StageRaceStandings,
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -106,9 +106,13 @@ type StageAttackParticipantRow = {
 
 export async function settleFinishedRaceResults(
   calendar: SeasonRaceCalendar,
-  now = new Date()
+  now = new Date(),
+  lockedDirectory?: LockedOfficialRaceSimulationDirectory
 ) {
   const admin = createSupabaseAdminClient();
+  const officialSimulations =
+    lockedDirectory ??
+    (await ensureLockedOfficialRaceSimulations(calendar, now));
   let processedStages = 0;
   let completedEditions = 0;
 
@@ -119,30 +123,25 @@ export async function settleFinishedRaceResults(
     const rosterByRiderId = await loadRosterContext(admin, edition.id);
     if (rosterByRiderId.size < minimumStartListSize) continue;
 
-    const unavailableRiderIds = new Set<string>();
     const finishedSimulations: StageSimulationResult[] = [];
     const orderedStages = [...edition.stages].sort(
       (first, second) => first.stageNumber - second.stageNumber
     );
+    const simulationByStageId = new Map(
+      (officialSimulations[edition.id] ?? []).map((lockedSimulation) => [
+        lockedSimulation.stageId,
+        lockedSimulation.simulation,
+      ])
+    );
 
     for (const stage of orderedStages) {
-      const input = createCalendarSimulationInput({
-        edition,
-        stage,
-        seed: `${edition.id}:${stage.id}:official`,
-      });
-      const simulation = simulateRaceStage({
-        ...input,
-        unavailableRiderIds: [...unavailableRiderIds],
-      });
-
-      for (const result of simulation.results) {
-        if (result.status === "did_not_finish" || result.injury) {
-          unavailableRiderIds.add(result.riderId);
-        }
-      }
-
       if (getStageLiveState(stage, now).status !== "finished") break;
+      const simulation = simulationByStageId.get(stage.id);
+      if (!simulation) {
+        throw new Error(
+          `Le scénario officiel de ${edition.name} — étape ${stage.stageNumber} n'est pas verrouillé.`
+        );
+      }
 
       await persistStageResult({
         admin,
@@ -490,6 +489,33 @@ async function persistStageResult({
     }
     assertQuery(inserted.error, "l’enregistrement d’une blessure de course");
     injuryIdByRiderId.set(result.riderId, inserted.data!.id);
+  }
+
+  const { data: persistedStageInjuries, error: persistedInjuryError } =
+    await admin
+      .from("rider_injuries")
+      .select("id, rider_id")
+      .eq("source_stage_id", stage.id)
+      .returns<Array<{ id: string; rider_id: string }>>();
+  assertQuery(
+    persistedInjuryError,
+    `la vérification des blessures de ${stage.name}`
+  );
+  const simulatedInjuredRiderIds = new Set(injuryIdByRiderId.keys());
+  const staleInjuryIds = (persistedStageInjuries ?? [])
+    .filter(
+      (injury) => !simulatedInjuredRiderIds.has(injury.rider_id)
+    )
+    .map((injury) => injury.id);
+  if (staleInjuryIds.length > 0) {
+    const { error: staleInjuryError } = await admin
+      .from("rider_injuries")
+      .delete()
+      .in("id", staleInjuryIds);
+    assertQuery(
+      staleInjuryError,
+      `le nettoyage des blessures obsolètes de ${stage.name}`
+    );
   }
 
   const rows = simulation.results.map((result) => {

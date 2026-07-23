@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { PotentialStars } from "@/components/game/potential-stars";
+import { RecognitionCampScheduler } from "@/components/game/recognition-camp-scheduler";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   RiderTrainingPlanForm,
@@ -17,7 +18,9 @@ import {
 import {
   formatTrainingProgressMilli,
   LOW_FORM_REST_GAIN,
+  parseTrainingPageTab,
   TRAINING_DOMAIN_LABELS,
+  type TrainingPageTab,
 } from "@/lib/game/training";
 import {
   createAmateurRiderJersey,
@@ -27,6 +30,10 @@ import {
 } from "@/lib/rider-jersey";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import {
+  getCurrentTeamRecognitionCampsOverview,
+  type TeamRecognitionCampsOverview,
+} from "@/services/team-recognition-camps";
 import {
   getCurrentTeamTrainingOverview,
   type RiderTrainingReport,
@@ -48,6 +55,8 @@ type TrainingPageProps = {
     programme?: string;
     effet?: string;
     erreur?: string;
+    onglet?: string | string[];
+    reconnaissance?: string;
   }>;
 };
 
@@ -82,6 +91,7 @@ const SKIPPED_REASON_LABELS: Partial<Record<TrainingSessionStatus, string>> = {
 
 export default async function TrainingPage({ searchParams }: TrainingPageProps) {
   const query = await searchParams;
+  const activeTab = parseTrainingPageTab(query.onglet);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -90,14 +100,24 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [overview, headerData, amateurIdentity, sponsorIdentity] = await Promise.all([
+  const [
+    overview,
+    headerData,
+    amateurIdentity,
+    sponsorIdentity,
+    recognitionOverview,
+  ] = await Promise.all([
     getCurrentTeamTrainingOverview(user.id),
     getGameHeaderData(supabase, user.id),
     getTeamAmateurIdentityForAuthUser(user.id),
     getActiveTeamSponsorIdentityForAuthUser(user.id),
+    activeTab === "reconnaissance"
+      ? getCurrentTeamRecognitionCampsOverview(user.id)
+      : Promise.resolve(null),
   ]);
 
   if (!overview) redirect("/jeu");
+  if (activeTab === "reconnaissance" && !recognitionOverview) redirect("/jeu");
 
   const jersey: RiderJerseyAppearance = sponsorIdentity
     ? createSponsoredRiderJersey({
@@ -132,8 +152,17 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               Le réglage est enregistré et prendra effet {query.effet ?? "à la prochaine séance"}.
             </Alert>
           ) : null}
+          {query.reconnaissance ? (
+            <Alert tone="success">
+              Le stage de reconnaissance est enregistré dans le planning.
+            </Alert>
+          ) : null}
         </div>
 
+        <TrainingSectionTabs activeTab={activeTab} />
+
+        {activeTab === "training" ? (
+          <>
         <header className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9">
           <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.75fr)] xl:items-end">
             <div>
@@ -222,6 +251,45 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                   <p className="mt-4 text-sm font-bold text-[#176951]">
                     +{trainer.efficiencyBonus}% d’efficacité sur les statistiques de sa spécialité
                   </p>
+                  <div className="mt-4 border-t border-[#315B3E]/10 pt-3">
+                    <div className="flex items-center justify-between gap-3 text-xs font-black">
+                      <span className="text-[#60756E]">Coureurs suivis</span>
+                      <span
+                        className={
+                          trainer.assignedRiderCount >= trainer.riderCapacity
+                            ? "text-[#B54242]"
+                            : "text-[#176951]"
+                        }
+                      >
+                        {trainer.assignedRiderCount}/{trainer.riderCapacity}
+                      </span>
+                    </div>
+                    <div
+                      className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#DCE8E3]"
+                      role="progressbar"
+                      aria-label={`Quota de ${trainer.firstName} ${trainer.lastName}`}
+                      aria-valuemin={0}
+                      aria-valuemax={trainer.riderCapacity}
+                      aria-valuenow={Math.min(
+                        trainer.assignedRiderCount,
+                        trainer.riderCapacity,
+                      )}
+                    >
+                      <span
+                        className={`block h-full rounded-full ${
+                          trainer.assignedRiderCount >= trainer.riderCapacity
+                            ? "bg-[#D84B4B]"
+                            : "bg-[#42B99A]"
+                        }`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (trainer.assignedRiderCount / trainer.riderCapacity) * 100,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>
@@ -315,8 +383,114 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
             ))}
           </div>
         </section>
+          </>
+        ) : (
+          <RecognitionStagesTab
+            overview={recognitionOverview!}
+          />
+        )}
       </section>
     </main>
+  );
+}
+
+function TrainingSectionTabs({
+  activeTab,
+}: {
+  activeTab: TrainingPageTab;
+}) {
+  const tabs: Array<{
+    id: TrainingPageTab;
+    label: string;
+    description: string;
+    href: string;
+  }> = [
+    {
+      id: "training",
+      label: "Entraînements",
+      description: "Programmes quotidiens",
+      href: "/jeu/entrainement",
+    },
+    {
+      id: "reconnaissance",
+      label: "Stages de reconnaissance",
+      description: "Préparation des parcours",
+      href: "/jeu/entrainement?onglet=reconnaissance",
+    },
+  ];
+
+  return (
+    <nav
+      aria-label="Rubriques de l’entraînement"
+      className="mb-7 grid gap-3 rounded-[1.6rem] border border-[#315B3E]/12 bg-white p-2 shadow-[0_12px_34px_rgba(19,60,46,0.07)] sm:grid-cols-2"
+    >
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <Link
+            key={tab.id}
+            href={tab.href}
+            aria-current={isActive ? "page" : undefined}
+            className={`rounded-[1.15rem] border px-5 py-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] ${
+              isActive
+                ? "border-[#176951]/25 bg-[#176951] text-white shadow-[0_10px_24px_rgba(23,105,81,0.2)]"
+                : "border-transparent bg-[#F3F8F5] text-[#183F37] hover:border-[#176951]/15 hover:bg-[#EAF5F3]"
+            }`}
+          >
+            <span className="block text-sm font-black">{tab.label}</span>
+            <span
+              className={`mt-1 block text-[10px] font-bold uppercase tracking-[0.12em] ${
+                isActive ? "text-[#9BE0BC]" : "text-[#60756E]"
+              }`}
+            >
+              {tab.description}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function RecognitionStagesTab({
+  overview,
+}: {
+  overview: TeamRecognitionCampsOverview;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-[#F7FAF8] shadow-[0_18px_50px_rgba(19,60,46,0.09)]">
+      <div className="bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white sm:px-9 sm:py-10">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
+          {overview.teamName} · {overview.seasonName} · J
+          {overview.currentDayNumber}
+        </p>
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+              Stages de reconnaissance
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#D6DFD2]">
+              Ciblez une étape future puis choisissez librement le premier jour.
+              Le stage occupe deux journées complètes et doit être terminé avant
+              l’étape.
+            </p>
+          </div>
+          <span className="rounded-full border border-[#F2C94C]/30 bg-[#F2C94C]/15 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#FFF4C5]">
+            Durée fixe · 2 jours
+          </span>
+        </div>
+      </div>
+
+      <div className="p-5 sm:p-8">
+        <RecognitionCampScheduler
+          currentDayNumber={overview.currentDayNumber}
+          seasonLastDayNumber={overview.seasonLastDayNumber}
+          seasonDays={overview.seasonDays}
+          targets={overview.targets}
+          scheduledCamps={overview.scheduledCamps}
+        />
+      </div>
+    </section>
   );
 }
 

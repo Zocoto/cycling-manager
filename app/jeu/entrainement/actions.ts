@@ -56,6 +56,37 @@ export async function saveRiderTrainingPlanAction(formData: FormData) {
   redirect(`/jeu/entrainement?programme=confirme&effet=J${Number(data)}`);
 }
 
+export async function scheduleRecognitionCampAction(formData: FormData) {
+  const targetStageId = readValue(formData, "targetStageId");
+  const startDayNumber = Number(readValue(formData, "startDayNumber"));
+
+  if (
+    !isUuid(targetStageId) ||
+    !Number.isInteger(startDayNumber) ||
+    startDayNumber < 1 ||
+    startDayNumber > 27
+  ) {
+    redirectWithRecognitionError(
+      "Choisissez une étape et une date de début valides.",
+    );
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "schedule_current_team_recognition_camp",
+    {
+      p_target_stage_id: targetStageId,
+      p_start_day_number: startDayNumber,
+    },
+  );
+  if (error) redirectWithRecognitionError(error.message);
+
+  revalidateTrainingPaths();
+  redirect(
+    "/jeu/entrainement?onglet=reconnaissance&reconnaissance=programmee",
+  );
+}
+
 async function requireAuthenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -74,6 +105,14 @@ function revalidateTrainingPaths() {
 
 function redirectWithError(message: string): never {
   redirect(`/jeu/entrainement?erreur=${encodeURIComponent(message.slice(0, 300))}`);
+}
+
+function redirectWithRecognitionError(message: string): never {
+  redirect(
+    `/jeu/entrainement?onglet=reconnaissance&erreur=${encodeURIComponent(
+      message.slice(0, 300),
+    )}`,
+  );
 }
 
 function readValue(formData: FormData, key: string) {
