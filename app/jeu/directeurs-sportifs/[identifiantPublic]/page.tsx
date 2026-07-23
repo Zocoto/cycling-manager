@@ -126,7 +126,7 @@ export default async function PublicSportingDirectorPage({
                 href={teamHref}
                 eyebrow="Équipe actuelle"
                 title={profile.team_name ?? "Équipe actuelle"}
-                description={`${profile.division_name ? `Division ${profile.division_name} · ` : ""}Ouvrir la fiche de l’équipe`}
+                description={`${teamSponsorIdentity ? "Équipe Pro" : "Équipe amateur"} · Ouvrir la fiche de l’équipe`}
                 leading={
                   teamSponsorIdentity ? (
                     <SponsorLogoMark
