@@ -291,7 +291,7 @@ function GuideHero() {
           <div className="mt-9 flex flex-wrap gap-4">
             <Link
               href="#demarrage"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-white! shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-[#071A17] shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
             >
               Commencer le tutoriel
             </Link>
