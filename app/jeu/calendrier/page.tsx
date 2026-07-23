@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { SeasonCalendar } from "@/components/game/season-calendar";
 import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
@@ -90,13 +90,7 @@ export default async function RaceCalendarPage({
       />
 
       <section className="mx-auto max-w-[1600px] px-4 py-8 sm:px-8 sm:py-12">
-        <Link
-          href="/jeu"
-          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour au bureau
-        </Link>
+        <BackToOfficeLink />
 
         <div className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)] backdrop-blur">
           <div className="relative overflow-hidden bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] sm:px-10 sm:py-10">

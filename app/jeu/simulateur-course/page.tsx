@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { RaceSimulatorWorkbench } from "@/components/game/race-simulator-workbench";
 import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
@@ -115,12 +116,7 @@ export default async function RaceSimulatorPage() {
             </p>
           </header>
 
-          <Link
-            href="/jeu"
-            className="inline-flex min-h-11 items-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            ← Retour au bureau
-          </Link>
+          <BackToOfficeLink />
         </div>
 
         {stages.length > 0 && teamsResult.teams.length > 0 ? (
