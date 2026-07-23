@@ -14,26 +14,29 @@ import {
 } from "@/components/game/race-weather-overlay";
 import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-calendar";
 import {
+  buildSprintVisualTeams,
   getFinalReplayMeters,
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
+  keepPassageWinnerVisible,
 } from "@/lib/game/race-finish-visual";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
-  buildPersistedGeneralClassification,
-  type PersistedStageResultForGeneral,
-} from "@/lib/game/race-results";
-import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
+  getOfficialStageSimulationContext,
+  type LockedOfficialStageSimulation,
+} from "@/lib/game/official-race-simulation";
+import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import {
-  buildStageRaceStandings,
   getFinalBattleScenario,
+  getLeadingFinishGroupRiderIds,
+  isMassGroupFinish,
   RACE_ROLE_LABELS,
-  simulateRaceStage,
   type RaceGroupSnapshot,
   type RaceIncident,
   type RacePrimeResult,
   type RiderSimulationInput,
+  type StageRaceStandings,
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 import {
@@ -56,65 +59,23 @@ export function RaceLiveLab({
   stage,
   mode,
   nowIso,
+  lockedSimulations = [],
 }: {
   edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   mode: "live" | "replay";
   nowIso: string;
+  lockedSimulations?: LockedOfficialStageSimulation[];
 }) {
-  const { input, simulation, tourGeneral, tourStandings } = useMemo(() => {
-    const currentInput = createCalendarSimulationInput({
-      edition,
-      stage,
-      seed: `${edition.id}:${stage.id}:official`,
-    });
-
-    if (edition.raceFormat !== "stage_race") {
-      return {
-        input: currentInput,
-        simulation: simulateRaceStage(currentInput),
-        tourGeneral: null,
-        tourStandings: null,
-      };
-    }
-
-    const unavailableRiderIds = new Set<string>();
-    const stageResults: StageSimulationResult[] = [];
-    let selectedInput = currentInput;
-    let selectedSimulation = simulateRaceStage(currentInput);
-
-    for (const candidateStage of edition.stages) {
-      const candidateInput = createCalendarSimulationInput({
+  const { input, simulation, standings: tourStandings } = useMemo(
+    () =>
+      getOfficialStageSimulationContext({
         edition,
-        stage: candidateStage,
-        seed: `${edition.id}:${candidateStage.id}:official`,
-      });
-      const candidateSimulation = simulateRaceStage({
-        ...candidateInput,
-        unavailableRiderIds: [...unavailableRiderIds],
-      });
-      stageResults.push(candidateSimulation);
-
-      for (const result of candidateSimulation.results) {
-        if (result.status === "did_not_finish") {
-          unavailableRiderIds.add(result.riderId);
-        }
-      }
-
-      if (candidateStage.id === stage.id) {
-        selectedInput = candidateInput;
-        selectedSimulation = candidateSimulation;
-        break;
-      }
-    }
-
-    return {
-      input: selectedInput,
-      simulation: selectedSimulation,
-      tourGeneral: buildReplayStageRaceGeneral(stageResults),
-      tourStandings: buildStageRaceStandings(stageResults),
-    };
-  }, [edition, stage]);
+        stageId: stage.id,
+        lockedSimulations,
+      }),
+    [edition, lockedSimulations, stage.id]
+  );
   const raceWeather =
     input.weather ?? getRaceWeather(`${edition.id}:${stage.id}:weather`);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -128,7 +89,7 @@ export function RaceLiveLab({
   );
   const finalMetersRemainingRef = useRef(finalMetersRemaining);
   const [tab, setTab] = useState<LabTab>("live");
-  const [clock, setClock] = useState(() => new Date(nowIso));
+  const clock = useSynchronizedRaceClock(nowIso, 1_000);
   const riderById = useMemo(
     () => new Map(simulation.resolvedRiders.map((rider) => [rider.id, rider])),
     [simulation.resolvedRiders]
@@ -143,13 +104,6 @@ export function RaceLiveLab({
       : simulation.timeline.length - 1;
   const displayedIndex = mode === "live" ? liveIndex : activeIndex;
   const snapshot = simulation.timeline[displayedIndex];
-
-  useEffect(() => {
-    if (mode !== "live") return;
-
-    const timer = window.setInterval(() => setClock(new Date()), 1_000);
-    return () => window.clearInterval(timer);
-  }, [mode]);
 
   useEffect(() => {
     finalMetersRemainingRef.current = finalMetersRemaining;
@@ -212,8 +166,7 @@ export function RaceLiveLab({
       ) ?? false
     : false;
   const finalBattleScenario = getFinalBattleScenario(simulation);
-  const finalBattleRiderIds = finalBattleScenario.contenderIds;
-  const isMassSprint = finalBattleRiderIds.length > 10;
+  const isMassSprint = isMassGroupFinish(simulation);
   const finalSegmentMeters = Math.round(finalSegment.distanceKm * 1_000);
   const liveFinalProgress = Math.max(
     0,
@@ -430,7 +383,6 @@ export function RaceLiveLab({
           <Classification
             simulation={simulation}
             riderById={riderById}
-            tourGeneral={tourGeneral}
             tourStandings={tourStandings}
           />
         )
@@ -533,7 +485,7 @@ function RoadScene({
   visualSeed,
   weather,
 }: {
-  snapshot: ReturnType<typeof simulateRaceStage>["timeline"][number];
+  snapshot: StageSimulationResult["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
   segment: RaceCalendarStage["segments"][number];
   isMoving: boolean;
@@ -544,6 +496,10 @@ function RoadScene({
   weather: RaceWeather;
 }) {
   const groups = snapshot.groups.slice(0, 6);
+  const primeWinnerId =
+    segmentProgress >= 0.5
+      ? primeResult?.classification[0]?.riderId ?? null
+      : null;
   const visualGradient = Math.max(
     -9,
     Math.min(9, segment.averageGradientPct)
@@ -561,6 +517,14 @@ function RoadScene({
     scenery,
   });
   const roadPatternId = `road-surface-${segment.segmentNumber}`;
+  const departureProgress =
+    snapshot.segmentNumber === 1 && segmentProgress < 0.46
+      ? Math.max(0, Math.min(1, segmentProgress / 0.46))
+      : null;
+  const departureGroup =
+    snapshot.groups.find((group) => group.type === "peloton") ??
+    snapshot.groups[0] ??
+    null;
   const sky =
     segment.terrain === "climb"
       ? "bg-[linear-gradient(#83C0D0_0_40%,#7FAE72_40%_100%)]"
@@ -626,21 +590,32 @@ function RoadScene({
         {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {segment.surface === "cobbles" ? "secteur pavé · " : ""}{formatDistance(snapshot.completedDistanceKm)} km
       </p>
 
-      <PrimePassageOverlay
-        primeResult={primeResult}
-        previousPrimeResult={previousPrimeResult}
-        segmentProgress={segmentProgress}
-        riderById={riderById}
-        roadLeftPct={roadLeftPct}
-        roadRightPct={roadRightPct}
-      />
+      {departureProgress !== null && departureGroup ? (
+        <RaceDepartureSequence
+          riderIds={departureGroup.riderIds}
+          riderById={riderById}
+          roadLeftPct={roadLeftPct}
+          roadRightPct={roadRightPct}
+          progress={departureProgress}
+          isMoving={isMoving}
+        />
+      ) : (
+        <>
+          <PrimePassageOverlay
+            primeResult={primeResult}
+            previousPrimeResult={previousPrimeResult}
+            segmentProgress={segmentProgress}
+            riderById={riderById}
+            roadLeftPct={roadLeftPct}
+            roadRightPct={roadRightPct}
+          />
 
-      <RaceIncidentOverlay
-        incidents={snapshot.incidents}
-        riderById={riderById}
-      />
+          <RaceIncidentOverlay
+            incidents={snapshot.incidents}
+            riderById={riderById}
+          />
 
-      {groups.map((group, groupIndex) => {
+          {groups.map((group, groupIndex) => {
         const left = getGroupScreenPosition(group, groupIndex, groups.length);
         const roadTopPct =
           roadLeftPct + (roadRightPct - roadLeftPct) * (left / 100);
@@ -648,6 +623,7 @@ function RoadScene({
           group,
           incidents: snapshot.incidents,
           riderById,
+          priorityRiderId: primeWinnerId,
         });
         return (
           <div
@@ -669,8 +645,10 @@ function RoadScene({
                 const incidentRider = snapshot.incidents.some(
                   (incident) => incident.riderIds.includes(riderId)
                 );
+                const primeWinner = riderId === primeWinnerId;
                 const showName =
                   incidentRider ||
+                  primeWinner ||
                   group.riderIds.length <= 3 ||
                   riderIndex < 2;
 
@@ -680,12 +658,16 @@ function RoadScene({
                     {showName ? (
                       <span
                         className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-black shadow ${
-                          incidentRider
+                          primeWinner
+                            ? "bg-[#F2C94C] text-[#17261E]"
+                            : incidentRider
                             ? "bg-[#EF5B65] text-white"
                             : "bg-[#071A17]/88 text-white"
                         }`}
                       >
-                        {getRiderShortName(rider.name)}
+                        {primeWinner
+                          ? `${primeResult?.prime.type === "mountain" ? "GPM" : "SI"} · ${getRiderShortName(rider.name)}`
+                          : getRiderShortName(rider.name)}
                       </span>
                     ) : null}
                   </span>
@@ -699,7 +681,9 @@ function RoadScene({
             </div>
           </div>
         );
-      })}
+          })}
+        </>
+      )}
     </RaceVisualViewport>
   );
 }
@@ -764,6 +748,154 @@ function RoadTextureOverlay({
             : "34px 34px, 100% 100%",
       }}
     />
+  );
+}
+
+function RaceDepartureSequence({
+  riderIds,
+  riderById,
+  roadLeftPct,
+  roadRightPct,
+  progress,
+  isMoving,
+}: {
+  riderIds: string[];
+  riderById: Map<string, RiderSimulationInput>;
+  roadLeftPct: number;
+  roadRightPct: number;
+  progress: number;
+  isMoving: boolean;
+}) {
+  const startLinePosition = 40;
+  const pelotonPosition = 12 + progress * 72;
+  const carPosition = 34 + progress * 70;
+  const pelotonRoadTop =
+    roadLeftPct +
+    (roadRightPct - roadLeftPct) * (pelotonPosition / 100);
+  const carRoadTop =
+    roadLeftPct +
+    (roadRightPct - roadLeftPct) *
+      (Math.min(100, carPosition) / 100);
+  const startLineRoadTop =
+    roadLeftPct +
+    (roadRightPct - roadLeftPct) * (startLinePosition / 100);
+  const visibleRiderIds = riderIds.slice(0, 10);
+  const hasCrossedStartLine = pelotonPosition >= startLinePosition;
+
+  return (
+    <>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+      >
+        <line
+          x1={startLinePosition}
+          y1={startLineRoadTop}
+          x2={startLinePosition}
+          y2="100"
+          stroke="#FFFDF4"
+          strokeWidth="1.4"
+          strokeDasharray="2.4 1.7"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <div
+        className="absolute z-30 -translate-x-1/2 -translate-y-full rounded-t-lg bg-[#FFFDF4] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-[#17261E] shadow-lg"
+        style={{
+          left: `${startLinePosition}%`,
+          top: `${Math.max(23, startLineRoadTop - 2)}%`,
+        }}
+      >
+        Départ
+      </div>
+
+      <div className="absolute left-4 top-4 z-30 max-w-[62%] rounded-xl bg-[#071A17]/88 px-3 py-2 text-white shadow-xl backdrop-blur">
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
+          {hasCrossedStartLine
+            ? "La course est lancée"
+            : "Départ fictif · drapeau du directeur de course"}
+        </p>
+        <p className="mt-1 text-[9px] font-bold text-[#C1D3CA]">
+          Le peloton franchit ensemble la ligne de départ.
+        </p>
+      </div>
+
+      <div
+        className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-100 ease-linear"
+        style={{
+          left: `${carPosition}%`,
+          top: `${carRoadTop + 3}%`,
+        }}
+      >
+        <RaceDirectorCar isMoving={isMoving} />
+      </div>
+
+      <div
+        className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-100 ease-linear"
+        style={{
+          left: `${pelotonPosition}%`,
+          top: `${pelotonRoadTop + 3}%`,
+        }}
+        title={riderIds
+          .map((riderId) => riderById.get(riderId)?.name)
+          .filter(Boolean)
+          .join(", ")}
+      >
+        <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-3 py-1 text-center text-[9px] font-black text-white shadow-lg backdrop-blur">
+          Peloton · {riderIds.length} coureurs
+        </div>
+        <div className="flex -space-x-4">
+          {visibleRiderIds.map((riderId) => {
+            const rider = riderById.get(riderId);
+            return rider ? (
+              <SideRaceCyclist
+                key={riderId}
+                rider={rider}
+                isMoving={isMoving}
+                className="h-8 w-11"
+              />
+            ) : null;
+          })}
+          {riderIds.length > visibleRiderIds.length ? (
+            <span className="relative z-20 grid h-7 w-7 place-items-center rounded-full border border-white/30 bg-[#071A17] text-[8px] font-black text-white shadow-lg">
+              +{riderIds.length - visibleRiderIds.length}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 120 68"
+      role="img"
+      aria-label="Voiture du directeur de course agitant le drapeau de départ"
+      className={`h-16 w-28 drop-shadow-xl ${
+        isMoving ? "cm-bike-bob" : ""
+      }`}
+    >
+      <circle cx="28" cy="53" r="10" fill="#17261E" stroke="#D7E5DE" strokeWidth="3" />
+      <circle cx="91" cy="53" r="10" fill="#17261E" stroke="#D7E5DE" strokeWidth="3" />
+      <path d="M9 48 18 29h60l18 8h15l5 16H7Z" fill="#C92F3C" stroke="#FFFDF4" strokeWidth="2" strokeLinejoin="round" />
+      <path d="m35 29 12-15h30l13 23H28Z" fill="#EAF5F3" stroke="#FFFDF4" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M50 16v19M76 16l9 19" stroke="#315B3E" strokeWidth="2" />
+      <circle cx="72" cy="10" r="5" fill="#E6B18B" />
+      <path d="M71 15 83 25" stroke="#E6B18B" strokeWidth="4" strokeLinecap="round" />
+      <g transform="translate(83 25)">
+        <g className={isMoving ? "cm-start-flag" : ""}>
+          <path d="M0 0V-28" stroke="#FFFDF4" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M1-28h24l-6 8H1Z" fill="#F2C94C" stroke="#17261E" strokeWidth="1.2" strokeLinejoin="round" />
+        </g>
+      </g>
+      <text x="53" y="47" textAnchor="middle" fill="#FFFDF4" fontSize="7" fontWeight="900">
+        COURSE
+      </text>
+    </svg>
   );
 }
 
@@ -982,10 +1114,12 @@ function getVisibleRiderIds({
   group,
   incidents,
   riderById,
+  priorityRiderId,
 }: {
   group: RaceGroupSnapshot;
   incidents: RaceIncident[];
   riderById: Map<string, RiderSimulationInput>;
+  priorityRiderId: string | null;
 }) {
   const incidentRiderIds = new Set(
     incidents.flatMap((incident) => incident.riderIds)
@@ -1000,7 +1134,7 @@ function getVisibleRiderIds({
     auto: 0,
   };
 
-  return [...group.riderIds]
+  const orderedRiderIds = [...group.riderIds]
     .sort((firstId, secondId) => {
       const first = riderById.get(firstId);
       const second = riderById.get(secondId);
@@ -1010,9 +1144,12 @@ function getVisibleRiderIds({
       const secondScore =
         (incidentRiderIds.has(secondId) ? 100 : 0) +
         (second ? rolePriority[second.role] : 0);
-      return secondScore - firstScore;
-    })
-    .slice(0, 5);
+      return secondScore - firstScore || firstId.localeCompare(secondId);
+    });
+  return keepPassageWinnerVisible({
+    orderedRiderIds,
+    winnerRiderId: priorityRiderId,
+  });
 }
 
 function getRiderShortName(name: string) {
@@ -1073,7 +1210,7 @@ function SprintLaneView({
   scenario,
   weather,
 }: {
-  simulation: ReturnType<typeof simulateRaceStage>;
+  simulation: StageSimulationResult;
   riderById: Map<string, RiderSimulationInput>;
   segment: RaceCalendarStage["segments"][number];
   metersRemaining: number;
@@ -1081,7 +1218,12 @@ function SprintLaneView({
   scenario: ReturnType<typeof getFinalBattleScenario>;
   weather: RaceWeather;
 }) {
-  const battleRiderIds = scenario.contenderIds;
+  const leadingFinishGroupRiderIds =
+    getLeadingFinishGroupRiderIds(simulation);
+  const battleRiderIds =
+    leadingFinishGroupRiderIds.length > 0
+      ? leadingFinishGroupRiderIds
+      : scenario.contenderIds;
   const battleRiderSet = new Set(battleRiderIds);
   const finalists = simulation.results
     .filter(
@@ -1094,13 +1236,25 @@ function SprintLaneView({
         (first.rank ?? 999) - (second.rank ?? 999)
     );
   const visibleFinalists = finalists;
-  const teamIds = [
-    ...new Set(
-      visibleFinalists.map(
-        (result) => riderById.get(result.riderId)!.teamId
-      )
-    ),
-  ];
+  const sprintTeams = buildSprintVisualTeams(
+    visibleFinalists.map((result) => {
+      const rider = riderById.get(result.riderId)!;
+      return {
+        id: rider.id,
+        teamId: rider.teamId,
+        role: rider.role,
+      };
+    })
+  );
+  const trainRiderSet = new Set(
+    sprintTeams.flatMap((team) => team.trainRiderIds)
+  );
+  const looseRiderIds = visibleFinalists
+    .map((result) => result.riderId)
+    .filter((riderId) => !trainRiderSet.has(riderId));
+  const activeTrainCount = sprintTeams.filter(
+    (team) => team.trainRiderIds.length >= 2
+  ).length;
   const finalProgress = Math.max(
     0,
     Math.min(1, 1 - metersRemaining / Math.max(1, finalSegmentMeters))
@@ -1148,7 +1302,7 @@ function SprintLaneView({
           {phaseLabel}
         </p>
         <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
-          {teamIds.length} trains en place · {battleRiderIds.length} coureurs dans le groupe de tête
+          {activeTrainCount} train{activeTrainCount > 1 ? "s" : ""} structuré{activeTrainCount > 1 ? "s" : ""} · {battleRiderIds.length} coureurs dans le groupe de tête
         </p>
         {hasFinished && isPhotoFinish ? (
           <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
@@ -1160,24 +1314,33 @@ function SprintLaneView({
 
       {visibleFinalists.map((result, index) => {
         const rider = riderById.get(result.riderId)!;
-        const teamIndex = teamIds.indexOf(rider.teamId);
-        const teamMembers = visibleFinalists.filter(
-          (candidate) =>
-            riderById.get(candidate.riderId)?.teamId === rider.teamId
+        const sprintTeam = sprintTeams.find(
+          (team) => team.teamId === rider.teamId
+        )!;
+        const teamIndex = sprintTeams.indexOf(sprintTeam);
+        const trainMemberIndex = sprintTeam.trainRiderIds.indexOf(
+          result.riderId
         );
-        const teamMemberIndex = teamMembers.findIndex(
-          (candidate) => candidate.riderId === result.riderId
-        );
-        const lane = teamIndex % 6;
+        const looseRiderIndex = looseRiderIds.indexOf(result.riderId);
+        const isTrainMember = trainMemberIndex >= 0;
+        const lane = isTrainMember
+          ? teamIndex % 6
+          : (sprintTeams.length + looseRiderIndex) % 6;
         const roleOffset =
           rider.role === "leadout"
             ? 5
             : rider.role === "sprinter"
               ? 1.5
-              : -teamMemberIndex * 2.1;
+              : 0;
         const trainPosition = Math.min(
           78,
-          27 + teamIndex * 3.8 + finalProgress * 31 + roleOffset
+          isTrainMember
+            ? 27 + teamIndex * 3.8 + finalProgress * 31 + roleOffset
+            : 22 +
+                ((looseRiderIndex * 13 +
+                  getVisualSeedNumber(result.riderId)) %
+                  24) +
+                finalProgress * 31
         );
         const finishPosition = getFinishTargetPosition({
           rank: index + 1,
@@ -1200,7 +1363,11 @@ function SprintLaneView({
             className="absolute z-20 transition-[left,top] duration-300 ease-out"
             style={{
               left: `${left}%`,
-              top: `${11 + lane * 13.4 + teamMemberIndex * 1.1}%`,
+              top: `${
+                11 +
+                lane * 13.4 +
+                (isTrainMember ? trainMemberIndex * 1.1 : 0)
+              }%`,
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
@@ -1210,7 +1377,9 @@ function SprintLaneView({
                 {result.rank}. {rider.name.split(" ").at(-1)}
               </span>
             ) : null}
-            {!hasFinished && teamMemberIndex === 0 ? (
+            {!hasFinished &&
+            trainMemberIndex === 0 &&
+            sprintTeam.trainRiderIds.length >= 2 ? (
               <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[8px] font-black text-white/85 shadow-lg">
                 Train {rider.teamName}
               </span>
@@ -1235,7 +1404,7 @@ function FinishBattleView({
   scenario,
   weather,
 }: {
-  simulation: ReturnType<typeof simulateRaceStage>;
+  simulation: StageSimulationResult;
   riderById: Map<string, RiderSimulationInput>;
   segment: RaceCalendarStage["segments"][number];
   breakawayStillAhead: boolean;
@@ -1637,7 +1806,7 @@ function RaceGroupCard({
           </p>
           <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#759286]">
             {group.riderIds.length} coureur
-            {group.riderIds.length > 1 ? "s" : ""} · énergie {Math.round(group.averageEnergy)} %
+            {group.riderIds.length > 1 ? "s" : ""} · énergie moy. {Math.round(group.averageEnergy)} %
           </p>
         </div>
         <span className="rounded-full bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#F2C94C]">
@@ -1692,7 +1861,7 @@ function LiveClassification({
   snapshot,
   riderById,
 }: {
-  snapshot: ReturnType<typeof simulateRaceStage>["timeline"][number];
+  snapshot: StageSimulationResult["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
 }) {
   const rows = snapshot.groups.flatMap((group) =>
@@ -1745,90 +1914,52 @@ function LiveClassification({
   );
 }
 
-function buildReplayStageRaceGeneral(simulations: StageSimulationResult[]) {
-  return buildPersistedGeneralClassification(
-    simulations.map((simulation, stageIndex) => {
-      const riderById = new Map(
-        simulation.resolvedRiders.map((rider) => [rider.id, rider])
-      );
-
-      return simulation.results.map((result) => {
-        const rider = riderById.get(result.riderId)!;
-        const medicallyWithdrawn =
-          Boolean(result.injury) && stageIndex < simulations.length - 1;
-        return {
-          riderId: result.riderId,
-          riderName: rider.name,
-          teamId: rider.teamId,
-          teamName: rider.teamName,
-          status: medicallyWithdrawn ? "withdrawn" : result.status,
-          elapsedTimeMs:
-            result.status === "finished"
-              ? result.elapsedTimeSeconds * 1_000
-              : null,
-          abandonmentReason:
-            result.abandonment?.reason ??
-            (medicallyWithdrawn ? "injury" : null),
-        } satisfies PersistedStageResultForGeneral;
-      });
-    })
-  );
-}
-
 function Classification({
   simulation,
   riderById,
-  tourGeneral,
   tourStandings,
 }: {
-  simulation: ReturnType<typeof simulateRaceStage>;
+  simulation: StageSimulationResult;
   riderById: Map<string, RiderSimulationInput>;
-  tourGeneral: ReturnType<typeof buildReplayStageRaceGeneral> | null;
-  tourStandings: ReturnType<typeof buildStageRaceStandings> | null;
+  tourStandings: StageRaceStandings | null;
 }) {
   const [classificationView, setClassificationView] = useState<
     "stage" | "general"
   >("stage");
   const winnerTime = simulation.results[0].elapsedTimeSeconds;
-  const resolvedView = tourGeneral ? classificationView : "stage";
+  const resolvedView = tourStandings ? classificationView : "stage";
 
   return (
     <div className="p-5 sm:p-8">
-      {tourGeneral ? (
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+      {tourStandings ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-[#72D4B7]">
               Course par étapes
             </p>
             <p className="mt-1 text-sm font-semibold text-[#91A99E]">
-              Consultez séparément le résultat du jour et le général cumulé.
+              Le résultat du jour et le cumul des étapes sont séparés.
             </p>
           </div>
-          <div
-            className="inline-flex rounded-xl border border-white/10 bg-white/[0.04] p-1"
-            aria-label="Type de classement"
-          >
-            {(["stage", "general"] as const).map((view) => (
-              <button
-                key={view}
-                type="button"
-                onClick={() => setClassificationView(view)}
-                aria-pressed={resolvedView === view}
-                className={`min-h-9 rounded-lg px-4 text-[10px] font-black uppercase tracking-wider transition ${
-                  resolvedView === view
-                    ? "bg-[#F2C94C] text-[#17261E]"
-                    : "text-[#AFC6BB] hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                {view === "stage" ? "Étape" : "Général"}
-              </button>
-            ))}
+          <div className="flex rounded-xl border border-white/15 bg-white/[0.055] p-1">
+            <ClassificationViewButton
+              active={resolvedView === "stage"}
+              onClick={() => setClassificationView("stage")}
+            >
+              Résultat de l’étape
+            </ClassificationViewButton>
+            <ClassificationViewButton
+              active={resolvedView === "general"}
+              onClick={() => setClassificationView("general")}
+            >
+              Classement général
+            </ClassificationViewButton>
           </div>
         </div>
       ) : null}
 
       {resolvedView === "stage" ? (
-      <div className="overflow-hidden rounded-2xl border border-white/10">
+        <div className="overflow-hidden rounded-2xl border border-white/10">
         <table className="w-full border-collapse text-left">
           <thead className="bg-white/[0.06] text-[10px] font-black uppercase tracking-widest text-[#809D90]">
             <tr>
@@ -1882,9 +2013,12 @@ function Classification({
             })}
           </tbody>
         </table>
-      </div>
-      ) : tourGeneral ? (
-        <TourGeneralClassification results={tourGeneral} />
+        </div>
+      ) : tourStandings ? (
+        <GeneralClassificationTable
+          standings={tourStandings}
+          riderById={riderById}
+        />
       ) : null}
       {tourStandings ? (
         <TourSecondaryStandings
@@ -1896,63 +2030,75 @@ function Classification({
   );
 }
 
-function TourGeneralClassification({
-  results,
+function ClassificationViewButton({
+  active,
+  onClick,
+  children,
 }: {
-  results: ReturnType<typeof buildReplayStageRaceGeneral>;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
-  const leaderTime =
-    results.find(
-      (result) =>
-        result.status === "finished" &&
-        result.rank === 1 &&
-        result.elapsedTimeMs !== null
-    )?.elapsedTimeMs ?? 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`min-h-9 rounded-lg px-3 text-[10px] font-black uppercase tracking-wide transition ${
+        active
+          ? "bg-[#F2C94C] text-[#17261E]"
+          : "text-[#AFC6BB] hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GeneralClassificationTable({
+  standings,
+  riderById,
+}: {
+  standings: StageRaceStandings;
+  riderById: Map<string, RiderSimulationInput>;
+}) {
+  const leaderTime = standings.general[0]?.elapsedTimeSeconds ?? 0;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10">
+    <div className="overflow-hidden rounded-2xl border border-[#F2C94C]/25">
       <table className="w-full border-collapse text-left">
-        <thead className="bg-white/[0.06] text-[10px] font-black uppercase tracking-widest text-[#809D90]">
+        <thead className="bg-[#F2C94C]/10 text-[10px] font-black uppercase tracking-widest text-[#DCCF9B]">
           <tr>
-            <th className="px-4 py-3">Rang</th>
+            <th className="px-4 py-3">Gén.</th>
             <th className="px-4 py-3">Coureur</th>
             <th className="hidden px-4 py-3 md:table-cell">Équipe</th>
-            <th className="px-4 py-3 text-right">Temps / écart</th>
+            <th className="px-4 py-3 text-right">Temps cumulé / écart</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/10">
-          {results.map((result) => {
-            const abandoned = result.status !== "finished";
-            const gap =
-              result.elapsedTimeMs === null
-                ? null
-                : Math.max(0, result.elapsedTimeMs - leaderTime);
+          {standings.general.map((result, index) => {
+            const rider = riderById.get(result.riderId)!;
             return (
-              <tr
-                key={result.riderId}
-                className={`${
-                  abandoned ? "bg-[#EF5B65]/[0.07]" : "bg-white/[0.025]"
-                } text-sm font-semibold`}
-              >
-                <td
-                  className={`px-4 py-3 font-black ${
-                    abandoned ? "text-[#FF9EA6]" : "text-[#F2C94C]"
-                  }`}
-                >
-                  {result.rank ?? "—"}
+              <tr key={result.riderId} className="bg-white/[0.025] text-sm font-semibold">
+                <td className="px-4 py-3 font-black text-[#F2C94C]">
+                  {index + 1}
                 </td>
-                <td className="px-4 py-3">{result.riderName}</td>
+                <td className="px-4 py-3">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-3 w-3 rounded-full border"
+                      style={{ backgroundColor: rider.teamPrimaryColor, borderColor: rider.teamSecondaryColor }}
+                    />
+                    {rider.name}
+                  </span>
+                </td>
                 <td className="hidden px-4 py-3 text-[#94ADA2] md:table-cell">
-                  {result.teamName}
+                  {rider.teamName}
                 </td>
                 <td className="px-4 py-3 text-right font-black">
-                  {abandoned
-                    ? "Abandon"
-                    : result.rank === 1 && result.elapsedTimeMs !== null
-                      ? formatTime(result.elapsedTimeMs / 1_000)
-                      : gap === 0
-                        ? "MT"
-                        : `+${formatGap((gap ?? 0) / 1_000)}`}
+                  {index === 0
+                    ? formatTime(result.elapsedTimeSeconds)
+                    : `+${formatGap(result.elapsedTimeSeconds - leaderTime)}`}
                 </td>
               </tr>
             );
@@ -1967,7 +2113,7 @@ function TourSecondaryStandings({
   standings,
   riderById,
 }: {
-  standings: ReturnType<typeof buildStageRaceStandings>;
+  standings: StageRaceStandings;
   riderById: Map<string, RiderSimulationInput>;
 }) {
   const youthLeaderTime = standings.youth[0]?.elapsedTimeSeconds ?? 0;

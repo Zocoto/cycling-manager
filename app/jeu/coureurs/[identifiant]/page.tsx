@@ -7,6 +7,7 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
+import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
@@ -15,7 +16,9 @@ import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
+import { SeasonPerformancesPopover } from "@/components/game/season-performances-popover";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
+import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import {
   SPECIAL_ABILITY_CATALOG,
   type RiderSpecialAbility,
@@ -38,6 +41,7 @@ import {
   getPublicRiderProfile,
   type PublicRiderProfile,
 } from "@/services/public-rider-profile";
+import { getCurrentTeamRiderSeasonPlanning } from "@/services/rider-season-planning";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getRiderTransferManagement } from "@/services/transfer-market";
@@ -97,12 +101,19 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
     notFound();
   }
 
-  const [equipmentManagement, transferManagement] = await Promise.all([
-    profile.canManage
-      ? getRiderEquipmentManagement(user.id, profile.id)
-      : Promise.resolve(null),
-    getRiderTransferManagement(user.id, profile.id),
-  ]);
+  const [equipmentManagement, transferManagement, riderPlanning] =
+    await Promise.all([
+      profile.canManage
+        ? getRiderEquipmentManagement(user.id, profile.id)
+        : Promise.resolve(null),
+      getRiderTransferManagement(user.id, profile.id),
+      profile.canManage
+        ? getCurrentTeamRiderSeasonPlanning({
+            authUserId: user.id,
+            riderId: profile.id,
+          })
+        : Promise.resolve(null),
+    ]);
 
   const [amateurIdentity, sponsorIdentity] = profile.currentTeam
     ? await Promise.all([
@@ -319,6 +330,16 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
             ) : null}
           </aside>
         </div>
+
+        {profile.canManage && riderPlanning ? (
+          <div className="mt-7">
+            <RiderSeasonPlanning
+              planning={riderPlanning}
+              jersey={riderJersey}
+              variant="rider"
+            />
+          </div>
+        ) : null}
 
         <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
           <CareerHistory history={profile.history} />
@@ -591,6 +612,7 @@ function CareerHistory({
       countryName: string;
       countryCode: string;
     }>;
+    notablePerformances: RiderNotablePerformance[];
   }>;
 }) {
   return (
@@ -600,19 +622,21 @@ function CareerHistory({
           Carrière
         </p>
         <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-          Historique des clubs
+          Historique des saisons
         </h2>
       </div>
 
       {history.length > 0 ? (
         <div className="overflow-x-auto border-t border-[#315B3E]/10">
-          <table className="w-full min-w-[620px] border-collapse text-left">
+          <table className="w-full min-w-[980px] border-collapse text-left">
             <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
               <tr>
                 <th className="px-6 py-4">Saison</th>
                 <th className="px-5 py-4">Équipe</th>
                 <th className="px-4 py-4 text-center">Victoires</th>
                 <th className="px-4 py-4 text-center">Points</th>
+                <th className="px-4 py-4 text-center">Palmarès</th>
+                <th className="px-5 py-4 text-center">Résultats notables</th>
                 <th className="px-6 py-4 text-center">Classement UCI</th>
               </tr>
             </thead>
@@ -623,18 +647,7 @@ function CareerHistory({
                   className="border-t border-[#315B3E]/10 text-sm"
                 >
                   <td className="px-6 py-4 font-black text-[#183F37]">
-                    <span className="flex items-center gap-2">
-                      {entry.seasonName}
-                      {entry.nationalTitles.map((title) => (
-                        <span
-                          key={`${title.type}-${title.countryCode}`}
-                          className={`fi fi-${title.countryCode.toLowerCase()} rounded-sm shadow-sm`}
-                          role="img"
-                          aria-label={`Champion national ${title.type === "road" ? "sur route" : "contre-la-montre"} de ${title.countryName}`}
-                          title={`Champion national ${title.type === "road" ? "sur route" : "contre-la-montre"} · ${title.countryName}`}
-                        />
-                      ))}
-                    </span>
+                    {entry.seasonName}
                   </td>
                   <td className="px-5 py-4">
                     <Link
@@ -648,6 +661,26 @@ function CareerHistory({
                   </td>
                   <HistoryValue value={entry.victories} />
                   <HistoryValue value={entry.points} />
+                  <td className="px-4 py-4">
+                    <div className="flex justify-center gap-2">
+                      {entry.nationalTitles.map((title) => (
+                        <NationalTitleFlag
+                          key={`${title.type}-${title.countryCode}`}
+                          countryCode={title.countryCode}
+                          countryName={title.countryName}
+                          discipline={title.type}
+                        />
+                      ))}
+                      {entry.nationalTitles.length === 0 ? "—" : null}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <SeasonPerformancesPopover
+                      seasonName={entry.seasonName}
+                      gameYear={entry.gameYear}
+                      performances={entry.notablePerformances}
+                    />
+                  </td>
                   <HistoryValue value={entry.uciRank} prefix="#" />
                 </tr>
               ))}
@@ -668,6 +701,42 @@ function HistoryValue({ value, prefix = "" }: { value: number | null; prefix?: s
     <td className="px-4 py-4 text-center font-black text-[#48665F]">
       {value === null ? "—" : `${prefix}${value}`}
     </td>
+  );
+}
+
+function NationalTitleFlag({
+  countryCode,
+  countryName,
+  discipline,
+}: {
+  countryCode: string;
+  countryName: string;
+  discipline: "road" | "time_trial";
+}) {
+  const title =
+    discipline === "time_trial"
+      ? `Champion national du contre-la-montre · ${countryName}`
+      : `Champion national sur route · ${countryName}`;
+
+  return (
+    <span
+      className="relative inline-flex h-7 w-10 overflow-hidden rounded-md border border-[#315B3E]/15 shadow-sm"
+      title={title}
+      aria-label={title}
+    >
+      <span
+        aria-hidden="true"
+        className={`fi fi-${countryCode.toLowerCase()} absolute inset-0 h-full w-full bg-cover bg-center`}
+      />
+      {discipline === "time_trial" ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 grid place-items-center bg-black/10 text-sm font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+        >
+          ◷
+        </span>
+      ) : null}
+    </span>
   );
 }
 

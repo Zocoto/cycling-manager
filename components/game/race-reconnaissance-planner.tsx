@@ -6,6 +6,10 @@ import { useFormStatus } from "react-dom";
 import { bookRaceReconnaissanceAction } from "@/app/jeu/entrainement/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { RaceProfileType } from "@/lib/game/race-calendar";
+import {
+  RECOGNITION_CAMP_DURATION_DAYS,
+  validateRecognitionCampSchedule,
+} from "@/lib/game/training";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   RaceReconnaissanceStage,
@@ -38,6 +42,7 @@ export function RaceReconnaissancePlanner({
 }) {
   const [selectedRiderIds, setSelectedRiderIds] = useState<string[]>([]);
   const [selectedStageId, setSelectedStageId] = useState("");
+  const [selectedStartDayNumber, setSelectedStartDayNumber] = useState("");
   const [preparerContractId, setPreparerContractId] = useState("");
   const selectedStage = overview.stages.find(
     (stage) => stage.id === selectedStageId,
@@ -45,11 +50,34 @@ export function RaceReconnaissancePlanner({
   const selectedPreparer = overview.preparers.find(
     (preparer) => preparer.contractId === preparerContractId,
   );
+  const dateCandidates = useMemo(
+    () =>
+      selectedStage
+        ? getRecognitionDateCandidates({
+            stage: selectedStage,
+            currentDayNumber: overview.currentDayNumber,
+            seasonDays: overview.seasonDays,
+          })
+        : [],
+    [overview.currentDayNumber, overview.seasonDays, selectedStage],
+  );
+  const selectedDateCandidate = dateCandidates.find(
+    (candidate) =>
+      String(candidate.dayNumber) === selectedStartDayNumber &&
+      candidate.validation.valid,
+  );
+  const effectiveStartDayNumber =
+    selectedDateCandidate?.dayNumber ?? overview.startDayNumber;
+  const effectiveEndDayNumber =
+    effectiveStartDayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1;
   const resultingBonus = selectedPreparer?.resultingBonus ?? 2;
   const canAfford =
     !selectedStage || overview.balance >= selectedStage.cost;
   const canSubmit =
-    selectedRiderIds.length > 0 && Boolean(selectedStage) && canAfford;
+    selectedRiderIds.length > 0 &&
+    Boolean(selectedStage) &&
+    Boolean(selectedDateCandidate) &&
+    canAfford;
   const stagesByDay = useMemo(() => {
     const grouped = new Map<number, RaceReconnaissanceStage[]>();
     for (const stage of overview.stages) {
@@ -68,6 +96,57 @@ export function RaceReconnaissancePlanner({
     );
   }
 
+  function selectStage(stageId: string) {
+    const stage = overview.stages.find((candidate) => candidate.id === stageId);
+    const firstValidDate = stage
+      ? getRecognitionDateCandidates({
+          stage,
+          currentDayNumber: overview.currentDayNumber,
+          seasonDays: overview.seasonDays,
+        }).find((candidate) => candidate.validation.valid)
+      : null;
+    const nextStartDayNumber = firstValidDate?.dayNumber ?? null;
+
+    setSelectedStageId(stageId);
+    setSelectedStartDayNumber(
+      nextStartDayNumber === null ? "" : String(nextStartDayNumber),
+    );
+    if (nextStartDayNumber !== null) {
+      setSelectedRiderIds((current) =>
+        current.filter((riderId) => {
+          const rider = overview.riders.find(
+            (candidate) => candidate.id === riderId,
+          );
+          return rider
+            ? !findRiderUnavailability(
+                rider,
+                nextStartDayNumber,
+                nextStartDayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1,
+              )
+            : false;
+        }),
+      );
+    }
+  }
+
+  function selectStartDay(dayNumber: number) {
+    setSelectedStartDayNumber(String(dayNumber));
+    setSelectedRiderIds((current) =>
+      current.filter((riderId) => {
+        const rider = overview.riders.find(
+          (candidate) => candidate.id === riderId,
+        );
+        return rider
+          ? !findRiderUnavailability(
+              rider,
+              dayNumber,
+              dayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1,
+            )
+          : false;
+      }),
+    );
+  }
+
   return (
     <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_18px_55px_rgba(19,60,46,0.09)]">
       <header className="bg-[#0B302B] px-6 py-6 text-white sm:px-8">
@@ -80,10 +159,10 @@ export function RaceReconnaissancePlanner({
               Stage de reconnaissance
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Deux jours pour étudier une étape ou une classique. Les coureurs
-              sont indisponibles de J{overview.startDayNumber} à J
-              {overview.endDayNumber}, ne s’entraînent pas et ne récupèrent pas
-              les +2 points de forme quotidiens.
+              Deux jours pour étudier une étape ou une classique. Choisissez
+              librement leur date avant la course : les coureurs mobilisés ne
+              s’entraînent pas et ne récupèrent pas les +2 points de forme
+              quotidiens pendant cette période.
             </p>
           </div>
           <div className="rounded-2xl border border-white/12 bg-white/8 px-5 py-4 text-right">
@@ -149,12 +228,18 @@ export function RaceReconnaissancePlanner({
 
             <div className="mt-5 max-h-[540px] space-y-2 overflow-y-auto pr-1">
               {overview.riders.map((rider) => {
+                const unavailability = findRiderUnavailability(
+                  rider,
+                  effectiveStartDayNumber,
+                  effectiveEndDayNumber,
+                );
+                const isAvailable = unavailability === null;
                 const checked = selectedRiderIds.includes(rider.id);
                 return (
                   <label
                     key={rider.id}
                     className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
-                      rider.isAvailable
+                      isAvailable
                         ? checked
                           ? "border-[#278B70] bg-[#E5F5EF]"
                           : "cursor-pointer border-[#315B3E]/12 bg-[#F9FBFA] hover:border-[#278B70]/45"
@@ -166,7 +251,7 @@ export function RaceReconnaissancePlanner({
                       name="riderIds"
                       value={rider.id}
                       checked={checked}
-                      disabled={!rider.isAvailable}
+                      disabled={!isAvailable}
                       onChange={(event) =>
                         toggleRider(rider.id, event.target.checked)
                       }
@@ -191,9 +276,9 @@ export function RaceReconnaissancePlanner({
                         />
                         {rider.countryName} · Forme {rider.form}%
                       </span>
-                      {rider.unavailableReason ? (
+                      {unavailability ? (
                         <span className="mt-1 block text-[10px] font-black text-[#9A4940]">
-                          {rider.unavailableReason}
+                          {unavailability.reason}
                         </span>
                       ) : null}
                     </span>
@@ -222,8 +307,9 @@ export function RaceReconnaissancePlanner({
                 (dayNumber) => {
                   const dayStages = stagesByDay.get(dayNumber) ?? [];
                   const isMissionDay =
-                    dayNumber >= overview.startDayNumber &&
-                    dayNumber <= overview.endDayNumber;
+                    Boolean(selectedDateCandidate) &&
+                    dayNumber >= effectiveStartDayNumber &&
+                    dayNumber <= effectiveEndDayNumber;
                   return (
                     <div
                       key={dayNumber}
@@ -259,7 +345,7 @@ export function RaceReconnaissancePlanner({
                               name="stageId"
                               value={stage.id}
                               checked={selectedStageId === stage.id}
-                              onChange={() => setSelectedStageId(stage.id)}
+                              onChange={() => selectStage(stage.id)}
                               className="sr-only"
                             />
                             <span className="line-clamp-2">
@@ -279,6 +365,53 @@ export function RaceReconnaissancePlanner({
               )}
             </div>
 
+            {selectedStage ? (
+              <div className="mt-5 rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-4">
+                <label className="block">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+                    Date des deux jours de préparation
+                  </span>
+                  <select
+                    name="startDayNumber"
+                    value={selectedStartDayNumber}
+                    onChange={(event) =>
+                      selectStartDay(Number(event.target.value))
+                    }
+                    className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-4 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
+                  >
+                    {dateCandidates.some(
+                      (candidate) => candidate.validation.valid,
+                    ) ? null : (
+                      <option value="">
+                        Aucune période compatible avant cette étape
+                      </option>
+                    )}
+                    {dateCandidates.map((candidate) => (
+                      <option
+                        key={candidate.dayNumber}
+                        value={candidate.dayNumber}
+                        disabled={!candidate.validation.valid}
+                      >
+                        J{candidate.dayNumber}–J
+                        {candidate.dayNumber +
+                          RECOGNITION_CAMP_DURATION_DAYS -
+                          1}{" "}
+                        · {formatShortDate(candidate.calendarDate)}
+                        {!candidate.validation.valid
+                          ? " · indisponible (tour en cours)"
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+                  {selectedDateCandidate
+                    ? `Stage prévu J${effectiveStartDayNumber}–J${effectiveEndDayNumber}, avant l’étape de J${selectedStage.dayNumber}.`
+                    : `La course occupe J${selectedStage.editionStartDayNumber}–J${selectedStage.editionEndDayNumber} : toute période qui chevauche ce tour est bloquée.`}
+                </p>
+              </div>
+            ) : null}
+
             {overview.stages.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
                 Aucune course suffisamment éloignée n’est encore disponible
@@ -297,7 +430,10 @@ export function RaceReconnaissancePlanner({
                   {selectedStage.raceFormat === "stage_race"
                     ? ` · étape ${selectedStage.stageNumber}`
                     : ""}
-                  {" · "}J{selectedStage.dayNumber}
+                  {" · "}course J{selectedStage.dayNumber}
+                  {selectedDateCandidate
+                    ? ` · stage J${effectiveStartDayNumber}–J${effectiveEndDayNumber}`
+                    : ""}
                 </p>
                 <p className="mt-1 text-xs font-bold text-[#60756E]">
                   {PROFILE_LABELS[selectedStage.profileType]} ·{" "}
@@ -311,6 +447,11 @@ export function RaceReconnaissancePlanner({
                 {!canAfford ? (
                   <p className="mt-1 text-xs font-black text-[#A13F37]">
                     Trésorerie insuffisante.
+                  </p>
+                ) : null}
+                {!selectedDateCandidate ? (
+                  <p className="mt-1 text-xs font-black text-[#A13F37]">
+                    Choisissez une période de deux jours compatible.
                   </p>
                 ) : null}
               </>
@@ -378,6 +519,48 @@ function ReconnaissanceSubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+function getRecognitionDateCandidates({
+  stage,
+  currentDayNumber,
+  seasonDays,
+}: {
+  stage: RaceReconnaissanceStage;
+  currentDayNumber: number;
+  seasonDays: TeamRaceReconnaissanceOverview["seasonDays"];
+}) {
+  return seasonDays
+    .filter(
+      (day) =>
+        day.dayNumber > currentDayNumber &&
+        day.dayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1 <
+          stage.dayNumber,
+    )
+    .map((day) => ({
+      ...day,
+      validation: validateRecognitionCampSchedule({
+        currentDayNumber,
+        startDayNumber: day.dayNumber,
+        targetStageDayNumber: stage.dayNumber,
+        targetEditionStartDayNumber: stage.editionStartDayNumber,
+        targetEditionEndDayNumber: stage.editionEndDayNumber,
+      }),
+    }));
+}
+
+function findRiderUnavailability(
+  rider: TeamRaceReconnaissanceOverview["riders"][number],
+  startDayNumber: number,
+  endDayNumber: number,
+) {
+  return (
+    rider.unavailabilities.find(
+      (unavailability) =>
+        unavailability.startDayNumber <= endDayNumber &&
+        unavailability.endDayNumber >= startDayNumber,
+    ) ?? null
+  );
+}
+
 function formatBonus(value: number) {
   return value.toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
@@ -391,6 +574,15 @@ function formatMoney(value: number, currency: string) {
     currency,
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(`${value}T12:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 function missionStatusLabel(

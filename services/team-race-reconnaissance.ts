@@ -134,6 +134,11 @@ export type RaceReconnaissanceRider = {
   form: number;
   isAvailable: boolean;
   unavailableReason: string | null;
+  unavailabilities: Array<{
+    startDayNumber: number;
+    endDayNumber: number;
+    reason: string;
+  }>;
 };
 
 export type RacePreparerOption = {
@@ -160,6 +165,8 @@ export type RaceReconnaissanceStage = {
   profileType: RaceProfileType;
   distanceKm: number;
   cost: number;
+  editionStartDayNumber: number;
+  editionEndDayNumber: number;
 };
 
 export type RaceReconnaissanceMission = {
@@ -183,6 +190,10 @@ export type TeamRaceReconnaissanceOverview = {
   currentDayNumber: number;
   startDayNumber: number;
   endDayNumber: number;
+  seasonDays: Array<{
+    dayNumber: number;
+    calendarDate: string;
+  }>;
   balance: number;
   currency: string;
   riders: RaceReconnaissanceRider[];
@@ -308,7 +319,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .in("rider_id", riderIds)
           .returns<ConditionRow[]>()
       : emptyResult<ConditionRow>(),
-    riderIds.length && endDayNumber <= 28
+    riderIds.length
       ? admin
           .from("rider_injuries")
           .select(
@@ -318,7 +329,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .neq("status", "recovered")
           .returns<InjuryRow[]>()
       : emptyResult<InjuryRow>(),
-    riderIds.length && endDayNumber <= 28
+    riderIds.length
       ? admin
           .from("rider_form_camps")
           .select(
@@ -327,8 +338,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .eq("season_id", season.id)
           .in("rider_id", riderIds)
           .neq("status", "cancelled")
-          .lte("start_day_number", endDayNumber)
-          .gte("end_day_number", startDayNumber)
           .returns<CampRow[]>()
       : emptyResult<CampRow>(),
     staffMemberIds.length
@@ -436,16 +445,12 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     startDayNumber,
     endDayNumber,
   );
-  const campByRiderId = new Map(
-    (campsResult.data ?? []).map((camp) => [camp.rider_id, camp]),
-  );
-  const raceConflictByRiderId = getRaceConflictsByRider(
+  const campsByRiderId = groupCampsByRider(campsResult.data ?? []);
+  const raceConflictsByRiderId = getRaceConflictsByRider(
     rosters,
     registrationsResult.data ?? [],
     stageRows,
     dayById,
-    startDayNumber,
-    endDayNumber,
   );
   const riderById = new Map(riderRows.map((rider) => [rider.id, rider]));
   const staffMemberById = new Map(
@@ -462,19 +467,41 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     .map((rider): RaceReconnaissanceRider => {
       const country = countryById.get(rider.country_id);
       const injury = injuryByRiderId.get(rider.id);
-      const camp = campByRiderId.get(rider.id);
-      const raceConflict = raceConflictByRiderId.get(rider.id);
-      const unavailableReason = injury
-        ? injuryLabel(injury.diagnosis_code)
-        : camp
-          ? camp.camp_type === "reconnaissance"
-            ? `Reconnaissance J${camp.start_day_number}–J${camp.end_day_number}`
-            : `Stage de forme J${camp.start_day_number}–J${camp.end_day_number}`
-          : raceConflict
-            ? `Course engagée J${raceConflict.startDay}–J${raceConflict.endDay}`
-            : endDayNumber > 28
-              ? "Saison trop proche de son terme"
-              : null;
+      const injuryRange = injury
+        ? getInjuryDayRange(injury, days)
+        : null;
+      const unavailabilities = [
+        ...(injury && injuryRange
+          ? [
+              {
+                startDayNumber: injuryRange.startDayNumber,
+                endDayNumber: injuryRange.endDayNumber,
+                reason: injuryLabel(injury.diagnosis_code),
+              },
+            ]
+          : []),
+        ...(campsByRiderId.get(rider.id) ?? []).map((camp) => ({
+          startDayNumber: camp.start_day_number,
+          endDayNumber: camp.end_day_number,
+          reason:
+            camp.camp_type === "reconnaissance"
+              ? `Reconnaissance J${camp.start_day_number}–J${camp.end_day_number}`
+              : `Stage de forme J${camp.start_day_number}–J${camp.end_day_number}`,
+        })),
+        ...(raceConflictsByRiderId.get(rider.id) ?? []).map((conflict) => ({
+          startDayNumber: conflict.startDay,
+          endDayNumber: conflict.endDay,
+          reason: `Course engagée J${conflict.startDay}–J${conflict.endDay}`,
+        })),
+      ];
+      const currentUnavailability = unavailabilities.find(
+        (unavailability) =>
+          unavailability.startDayNumber <= endDayNumber &&
+          unavailability.endDayNumber >= startDayNumber,
+      );
+      const unavailableReason =
+        currentUnavailability?.reason ??
+        (endDayNumber > 28 ? "Saison trop proche de son terme" : null);
 
       return {
         id: rider.id,
@@ -487,6 +514,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         form: latestConditionByRiderId.get(rider.id)?.form ?? 75,
         isAvailable: unavailableReason === null,
         unavailableReason,
+        unavailabilities,
       };
     })
     .sort((left, right) =>
@@ -513,6 +541,16 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     })
     .sort((left, right) => right.level - left.level);
 
+  const stageDaysByEditionId = new Map<string, number[]>();
+  for (const stage of stageRows) {
+    const dayNumber = dayById.get(stage.season_day_id)?.day_number;
+    if (!dayNumber) continue;
+    const editionDays =
+      stageDaysByEditionId.get(stage.race_edition_id) ?? [];
+    editionDays.push(dayNumber);
+    stageDaysByEditionId.set(stage.race_edition_id, editionDays);
+  }
+
   const stages = stageRows
     .flatMap((stage): RaceReconnaissanceStage[] => {
       const day = dayById.get(stage.season_day_id);
@@ -522,12 +560,15 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         ? categoryById.get(edition.race_category_id)
         : null;
       const country = race ? countryById.get(race.country_id) : null;
+      const editionDays =
+        stageDaysByEditionId.get(stage.race_edition_id) ?? [];
       if (
         !day ||
         !edition ||
         !race ||
         !category ||
         !country ||
+        editionDays.length === 0 ||
         !isRaceCategoryCode(category.code) ||
         stage.status !== "planned" ||
         day.day_number <= endDayNumber
@@ -554,6 +595,8 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
             categoryCode: category.code,
             raceFormat: race.race_format,
           }),
+          editionStartDayNumber: Math.min(...editionDays),
+          editionEndDayNumber: Math.max(...editionDays),
         },
       ];
     })
@@ -604,6 +647,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     currentDayNumber,
     startDayNumber,
     endDayNumber,
+    seasonDays: days.map((day) => ({
+      dayNumber: day.day_number,
+      calendarDate: day.calendar_date,
+    })),
     balance: Number(teamSeason.cash_balance),
     currency: teamSeason.currency,
     riders,
@@ -707,10 +754,11 @@ function getRaceConflictsByRider(
   registrations: RegistrationRow[],
   stages: StageRow[],
   dayById: Map<string, DayRow>,
-  startDayNumber: number,
-  endDayNumber: number,
 ) {
-  const result = new Map<string, { startDay: number; endDay: number }>();
+  const result = new Map<
+    string,
+    Array<{ startDay: number; endDay: number }>
+  >();
   const registrationById = new Map(
     registrations.map((registration) => [registration.id, registration]),
   );
@@ -727,20 +775,50 @@ function getRaceConflictsByRider(
     const registration = registrationById.get(roster.race_registration_id);
     if (!registration) continue;
     const days = stageDaysByEdition.get(registration.race_edition_id) ?? [];
-    if (
-      !days.some(
-        (dayNumber) =>
-          dayNumber >= startDayNumber && dayNumber <= endDayNumber,
-      )
-    ) {
-      continue;
-    }
-    result.set(roster.rider_id, {
+    if (days.length === 0) continue;
+    const conflict = {
       startDay: Math.min(...days),
       endDay: Math.max(...days),
-    });
+    };
+    const conflicts = result.get(roster.rider_id) ?? [];
+    if (
+      !conflicts.some(
+        (candidate) =>
+          candidate.startDay === conflict.startDay &&
+          candidate.endDay === conflict.endDay,
+      )
+    ) {
+      conflicts.push(conflict);
+      result.set(roster.rider_id, conflicts);
+    }
   }
   return result;
+}
+
+function groupCampsByRider(rows: CampRow[]) {
+  const result = new Map<string, CampRow[]>();
+  for (const camp of rows) {
+    const camps = result.get(camp.rider_id) ?? [];
+    camps.push(camp);
+    result.set(camp.rider_id, camps);
+  }
+  return result;
+}
+
+function getInjuryDayRange(injury: InjuryRow, days: DayRow[]) {
+  const injuryStart = new Date(injury.started_at).getTime();
+  const injuryEnd = new Date(injury.expected_recovery_at).getTime();
+  const affectedDays = days.filter((day) => {
+    const start = new Date(`${day.calendar_date}T00:00:00+02:00`).getTime();
+    const end = new Date(`${day.calendar_date}T23:59:59+02:00`).getTime();
+    return injuryStart <= end && injuryEnd > start;
+  });
+  if (affectedDays.length === 0) return null;
+
+  return {
+    startDayNumber: Math.min(...affectedDays.map((day) => day.day_number)),
+    endDayNumber: Math.max(...affectedDays.map((day) => day.day_number)),
+  };
 }
 
 function groupParticipants(rows: ParticipantRow[]) {

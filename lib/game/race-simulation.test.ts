@@ -9,6 +9,8 @@ import {
   getStageAttackParticipants,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
+  getLeadingFinishGroupRiderIds,
+  isMassGroupFinish,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -141,7 +143,7 @@ describe("simulateRaceStage", () => {
 
   it("détermine le format du final avec la taille du groupe qui joue la victoire", () => {
     const massFinish = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 1)
+      createDemoSimulationInput("sprint-littoral", 3)
     );
     const selectiveFinish = simulateRaceStage(
       createDemoSimulationInput("haute-montagne", 1)
@@ -149,6 +151,49 @@ describe("simulateRaceStage", () => {
 
     expect(getFinalBattleRiderIds(massFinish).length).toBeGreaterThan(10);
     expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(10);
+    expect(isMassGroupFinish(massFinish)).toBe(true);
+    expect(isMassGroupFinish(selectiveFinish)).toBe(false);
+  });
+
+  it("conserve la vue latérale si une attaque mène encore à l'entrée du dernier tronçon", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 3)
+    );
+    const entrySnapshot = simulation.timeline.at(-2)!;
+    const leadingGap = Math.min(
+      ...entrySnapshot.groups.map((group) => group.gapToLeaderSeconds)
+    );
+    for (const group of entrySnapshot.groups) {
+      if (group.gapToLeaderSeconds === leadingGap) {
+        group.type = "breakaway";
+      }
+    }
+
+    expect(isMassGroupFinish(simulation)).toBe(false);
+  });
+
+  it("conserve la vue latérale lorsque seuls cinq coureurs jouent encore la victoire", () => {
+    const simulation = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 3)
+    );
+    const finalSnapshot = simulation.timeline.at(-1)!;
+    const leadingRiderIds = getLeadingFinishGroupRiderIds(simulation);
+    const leadingGroup = finalSnapshot.groups.find(
+      (group) => group.gapToLeaderSeconds === 0
+    )!;
+
+    finalSnapshot.groups = [
+      {
+        ...leadingGroup,
+        riderIds: leadingRiderIds.slice(0, 5),
+      },
+      ...finalSnapshot.groups.filter(
+        (group) => group.gapToLeaderSeconds > 0
+      ),
+    ];
+
+    expect(getLeadingFinishGroupRiderIds(simulation)).toHaveLength(5);
+    expect(isMassGroupFinish(simulation)).toBe(false);
   });
 
   it("explique l’origine de chaque coureur présent dans un final sélectif", () => {
@@ -229,6 +274,103 @@ describe("simulateRaceStage", () => {
     const breakaway = comparableSnapshot!.groups.find((group) => group.type === "breakaway")!;
     const peloton = comparableSnapshot!.groups.find((group) => group.type === "peloton")!;
     expect(breakaway.averageEnergy).toBeLessThan(peloton.averageEnergy);
+  });
+
+  it("conserve l’énergie de chaque coureur sans faire ralentir le groupe par un équipier épuisé", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const riders = baseInput.riders.slice(0, 6).map((rider, index) => ({
+      ...rider,
+      id: `reserve-${index}`,
+      teamId: `reserve-team-${index}`,
+      teamName: `Reserve team ${index}`,
+      role: "leader" as const,
+      form: index === 0 ? 10 : 90,
+      ratings: {
+        ...rider.ratings,
+        flat: index === 0 ? 40 : 70,
+        endurance: index === 0 ? 45 : 70,
+      },
+    }));
+    const segment = {
+      ...baseInput.segments[0],
+      terrain: "flat" as const,
+      surface: "asphalt" as const,
+      averageGradientPct: 0,
+    };
+    const tiredRiderSimulation = simulateRaceStage({
+      ...baseInput,
+      id: "individual-energy-test",
+      segments: [segment],
+      riders,
+    });
+    const freshRiderSimulation = simulateRaceStage({
+      ...baseInput,
+      id: "individual-energy-test",
+      segments: [segment],
+      riders: riders.map((rider, index) => ({
+        ...rider,
+        form: index === 0 ? 90 : rider.form,
+      })),
+    });
+    const tiredRiderResult = tiredRiderSimulation.results.find(
+      (result) => result.riderId === "reserve-0"
+    )!;
+    const freshRiderResult = freshRiderSimulation.results.find(
+      (result) => result.riderId === "reserve-0"
+    )!;
+    const protectedTeammateResult = tiredRiderSimulation.results.find(
+      (result) => result.riderId === "reserve-1"
+    )!;
+
+    expect(tiredRiderResult.energyAfter).toBeLessThan(
+      protectedTeammateResult.energyAfter
+    );
+    expect(tiredRiderResult.energyAfter).toBeLessThan(
+      freshRiderResult.energyAfter
+    );
+    expect(tiredRiderSimulation.results[0].elapsedTimeSeconds).toBe(
+      freshRiderSimulation.results[0].elapsedTimeSeconds
+    );
+  });
+
+  it("lâche individuellement un coureur épuisé lorsque le peloton accélère", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const riders = baseInput.riders.slice(0, 8).map((rider, index) => ({
+      ...rider,
+      id: `pace-${index}`,
+      teamId: `pace-team-${index}`,
+      teamName: `Pace team ${index}`,
+      role: "leader" as const,
+      form: index === 0 ? 10 : 90,
+      ratings: {
+        ...rider.ratings,
+        flat: index === 0 ? 42 : 72,
+        endurance: index === 0 ? 45 : 72,
+        resistance: index === 0 ? 45 : 72,
+      },
+    }));
+    const flatSegments = baseInput.segments.slice(0, 3).map((segment) => ({
+      ...segment,
+      terrain: "flat" as const,
+      surface: "asphalt" as const,
+      averageGradientPct: 0,
+    }));
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "individual-drop-test",
+      segments: flatSegments,
+      riders,
+    });
+    const finalSnapshot = result.timeline.at(-1)!;
+    const tiredRiderGroup = finalSnapshot.groups.find((group) =>
+      group.riderIds.includes("pace-0")
+    );
+    const freshRiderGroup = finalSnapshot.groups.find((group) =>
+      group.riderIds.includes("pace-1")
+    );
+
+    expect(tiredRiderGroup?.type).toBe("dropped");
+    expect(freshRiderGroup?.type).toBe("peloton");
   });
 
   it("réduit l'avantage de l'aspiration lorsque la pente devient forte", () => {
@@ -735,6 +877,10 @@ describe("simulateRaceStage", () => {
     ];
     const standings = buildStageRaceStandings(stages);
 
+    expect(standings.general.length).toBeGreaterThan(1);
+    expect(standings.general[0].elapsedTimeSeconds).toBeLessThanOrEqual(
+      standings.general[1].elapsedTimeSeconds
+    );
     expect(standings.mountain[0]?.points).toBeGreaterThan(0);
     expect(standings.sprint[0]?.points).toBeGreaterThan(0);
     expect(

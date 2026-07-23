@@ -22,18 +22,18 @@ import {
   type OfficialResultStatus,
   type OfficialRiderResult,
   type OfficialSecondaryClassification,
+  type PersistedStageRaceStandings,
   type PersistedStageResultForGeneral,
 } from "@/lib/game/race-results";
-import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
+import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import {
   getStageAttackParticipants,
-  simulateRaceStage,
-  type StageRaceStandings,
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { persistPostRaceNewsEvents } from "@/services/post-race-news";
+import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -109,9 +109,13 @@ type StageAttackParticipantRow = {
 
 export async function settleFinishedRaceResults(
   calendar: SeasonRaceCalendar,
-  now = new Date()
+  now = new Date(),
+  lockedDirectory?: LockedOfficialRaceSimulationDirectory
 ) {
   const admin = createSupabaseAdminClient();
+  const officialSimulations =
+    lockedDirectory ??
+    (await ensureLockedOfficialRaceSimulations(calendar, now));
   let processedStages = 0;
   let completedEditions = 0;
 
@@ -127,7 +131,6 @@ export async function settleFinishedRaceResults(
     const rosterByRiderId = await loadRosterContext(admin, edition.id);
     if (rosterByRiderId.size < minimumFieldSize) continue;
 
-    const unavailableRiderIds = new Set<string>();
     const finishedSimulations: StageSimulationResult[] = [];
     const persistedStageClassifications: Array<{
       stage: RaceCalendarStage;
@@ -140,19 +143,21 @@ export async function settleFinishedRaceResults(
       admin,
       orderedStages.map((stage) => stage.id)
     );
+    const simulationByStageId = new Map(
+      (officialSimulations[edition.id] ?? []).map((lockedSimulation) => [
+        lockedSimulation.stageId,
+        lockedSimulation.simulation,
+      ])
+    );
 
     for (const stage of orderedStages) {
       if (getStageLiveState(stage, now).status !== "finished") break;
-
-      const input = createCalendarSimulationInput({
-        edition,
-        stage,
-        seed: `${edition.id}:${stage.id}:official`,
-      });
-      const simulation = simulateRaceStage({
-        ...input,
-        unavailableRiderIds: [...unavailableRiderIds],
-      });
+      const simulation = simulationByStageId.get(stage.id);
+      if (!simulation) {
+        throw new Error(
+          `Le scénario officiel de ${edition.name} — étape ${stage.stageNumber} n'est pas verrouillé.`
+        );
+      }
       let stageRows = persistedStageRows.filter(
         (row) => row.stage_id === stage.id
       );
@@ -190,20 +195,6 @@ export async function settleFinishedRaceResults(
         results: officialStageResults,
       });
       finishedSimulations.push(simulation);
-
-      for (const result of officialStageResults) {
-        if (result.status !== "finished") {
-          unavailableRiderIds.add(result.riderId);
-        }
-      }
-      for (const row of stageRows) {
-        if (!row.injury_id) continue;
-        const riderId = findRiderIdByRosterId(
-          rosterByRiderId,
-          row.race_roster_id
-        );
-        if (riderId) unavailableRiderIds.add(riderId);
-      }
     }
 
     if (persistedStageClassifications.length === 0) continue;
@@ -645,6 +636,33 @@ async function persistStageResult({
     injuryIdByRiderId.set(result.riderId, inserted.data!.id);
   }
 
+  const { data: persistedStageInjuries, error: persistedInjuryError } =
+    await admin
+      .from("rider_injuries")
+      .select("id, rider_id")
+      .eq("source_stage_id", stage.id)
+      .returns<Array<{ id: string; rider_id: string }>>();
+  assertQuery(
+    persistedInjuryError,
+    `la vérification des blessures de ${stage.name}`
+  );
+  const simulatedInjuredRiderIds = new Set(injuryIdByRiderId.keys());
+  const staleInjuryIds = (persistedStageInjuries ?? [])
+    .filter(
+      (injury) => !simulatedInjuredRiderIds.has(injury.rider_id)
+    )
+    .map((injury) => injury.id);
+  if (staleInjuryIds.length > 0) {
+    const { error: staleInjuryError } = await admin
+      .from("rider_injuries")
+      .delete()
+      .in("id", staleInjuryIds);
+    assertQuery(
+      staleInjuryError,
+      `le nettoyage des blessures obsolètes de ${stage.name}`
+    );
+  }
+
   const rows = simulation.results.map((result) => {
     const roster = requireRoster(rosterByRiderId, result.riderId);
     const finished = result.status === "finished";
@@ -752,7 +770,7 @@ async function persistSecondaryClassifications({
 }: {
   admin: AdminClient;
   edition: RaceCalendarEdition;
-  standings: StageRaceStandings;
+  standings: PersistedStageRaceStandings;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const teamSeasonByTeamId = new Map<string, string>();
@@ -851,7 +869,7 @@ async function persistRaceClassification({
   finalStage: RaceCalendarStage;
   general: OfficialRiderResult[];
   simulations: StageSimulationResult[];
-  standings: StageRaceStandings | null;
+  standings: PersistedStageRaceStandings | null;
   stageClassifications: Array<{
     stage: RaceCalendarStage;
     results: OfficialRiderResult[];

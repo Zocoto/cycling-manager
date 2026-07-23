@@ -114,6 +114,56 @@ function revalidateRacePaths(slug: string) {
   revalidatePath("/jeu");
 }
 
+export async function replaceInjuredRaceRosterAction(
+  formData: FormData
+) {
+  const editionId = readFormValue(formData, "editionId");
+  const slug = readFormValue(formData, "slug");
+  const riderIds = formData
+    .getAll("riderIds")
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && isUuid(value)
+    );
+  const submittedRoles = readSubmittedRoles(formData);
+  const roster = riderIds.map((riderId) => ({
+    riderId,
+    role: submittedRoles.get(riderId) ?? "auto",
+  }));
+
+  if (!isUuid(editionId) || !isSlug(slug)) {
+    redirectWithError(
+      "/jeu/calendrier",
+      "La course sélectionnée est invalide."
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc(
+    "replace_current_team_injured_race_roster",
+    {
+      p_race_edition_id: editionId,
+      p_roster: roster,
+    }
+  );
+
+  if (error) {
+    redirectWithError(`/jeu/courses/${slug}`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  redirect(`/jeu/courses/${slug}?remplacement=confirme`);
+}
+
 function redirectWithError(path: string, message: string): never {
   const separator = path.includes("?") ? "&" : "?";
   redirect(

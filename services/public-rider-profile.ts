@@ -24,6 +24,12 @@ import {
 } from "@/lib/game/health-center";
 import { indexLatestTrainingSessionsByRider } from "@/lib/game/training";
 import {
+  buildNotablePerformanceLabels,
+  shortlistNotablePerformances,
+  type RiderNotablePerformance,
+  type RiderSecondaryPerformance,
+} from "@/lib/game/rider-notable-performances";
+import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
@@ -102,6 +108,7 @@ export type PublicRiderProfile = {
       countryName: string;
       countryCode: string;
     }>;
+    notablePerformances: RiderNotablePerformance[];
   }>;
   specialAbilities: RiderSpecialAbility[];
   permanentEnhancements: Array<{
@@ -204,6 +211,7 @@ type TeamRow = {
 };
 
 type TeamSeasonRow = {
+  id: string;
   team_id: string;
   season_id: string;
   display_name: string;
@@ -255,6 +263,40 @@ type RiderConsumableItemApplicationRow = {
   item_name: string;
   effect_summary: string;
   applied_at: string;
+};
+
+type RewardEventRow = {
+  id: string;
+  team_season_id: string | null;
+  source_reference: string;
+  uci_points: number;
+  description: string;
+};
+
+type PerformanceEditionRow = {
+  id: string;
+  display_name: string;
+  race: {
+    competition_type: string;
+  } | null;
+};
+
+type PerformanceRosterRow = {
+  id: string;
+};
+
+type PerformanceResultRow = {
+  race_edition_id: string;
+  race_roster_id: string;
+  final_rank: number | null;
+};
+
+type PerformanceSecondaryRow = {
+  race_edition_id: string;
+  classification_type: RiderSecondaryPerformance;
+  race_roster_id: string | null;
+  team_season_id: string | null;
+  rank: number;
 };
 
 type EquipmentItemRow = {
@@ -358,6 +400,7 @@ export async function getPublicRiderProfile({
     marketListingResult,
     nationalTitlesResult,
     permanentEnhancementsResult,
+    rewardEventsResult,
   ] = await Promise.all([
     supabase
       .from("countries")
@@ -426,6 +469,15 @@ export async function getPublicRiderProfile({
       .eq("rider_id", rider.id)
       .order("applied_at", { ascending: false })
       .returns<RiderConsumableItemApplicationRow[]>(),
+    supabase
+      .from("reward_events")
+      .select(
+        "id, team_season_id, source_reference, uci_points, description"
+      )
+      .eq("rider_id", rider.id)
+      .eq("source_type", "race_result")
+      .gt("uci_points", 0)
+      .returns<RewardEventRow[]>(),
   ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -442,6 +494,7 @@ export async function getPublicRiderProfile({
     permanentEnhancementsResult.error,
     "les améliorations permanentes du coureur"
   );
+  assertQuery(rewardEventsResult.error, "les performances notables du coureur");
 
   if (!countryResult.data) {
     throw new Error("Le pays du coureur est introuvable.");
@@ -456,6 +509,7 @@ export async function getPublicRiderProfile({
   const specialAbilities = (specialAbilitiesResult.data ?? [])
     .map((row) => row.ability_code)
     .filter(isRiderSpecialAbility);
+  const rewardEvents = rewardEventsResult.data ?? [];
   const activeSeason = seasons.find((season) => season.status === "active") ?? null;
   const currentContract =
     contracts.find((contract) => contract.status === "active") ?? null;
@@ -474,8 +528,23 @@ export async function getPublicRiderProfile({
   const equipmentItemIds = [
     ...new Set(equipmentAssignments.map((assignment) => assignment.equipment_item_id)),
   ];
+  const performanceEditionIds = [
+    ...new Set(
+      rewardEvents
+        .map((reward) =>
+          getRaceEditionIdFromRewardReference(reward.source_reference)
+        )
+        .filter((editionId): editionId is string => Boolean(editionId))
+    ),
+  ];
 
-  const [teamsResult, teamSeasonsResult, equipmentItemsResult] =
+  const [
+    teamsResult,
+    teamSeasonsResult,
+    equipmentItemsResult,
+    performanceEditionsResult,
+    performanceRostersResult,
+  ] =
     await Promise.all([
       teamIds.length > 0
         ? supabase
@@ -487,7 +556,7 @@ export async function getPublicRiderProfile({
       teamIds.length > 0
         ? supabase
             .from("team_seasons")
-            .select("team_id, season_id, display_name, short_name, division_id")
+            .select("id, team_id, season_id, display_name, short_name, division_id")
             .in("team_id", teamIds)
             .returns<TeamSeasonRow[]>()
         : Promise.resolve({ data: [] as TeamSeasonRow[], error: null }),
@@ -501,14 +570,79 @@ export async function getPublicRiderProfile({
             .eq("status", "active")
             .returns<EquipmentItemRow[]>()
         : Promise.resolve({ data: [] as EquipmentItemRow[], error: null }),
+      performanceEditionIds.length > 0
+        ? supabase
+            .from("race_editions")
+            .select("id, display_name, race:races(competition_type)")
+            .in("id", performanceEditionIds)
+            .returns<PerformanceEditionRow[]>()
+        : Promise.resolve({
+            data: [] as PerformanceEditionRow[],
+            error: null,
+          }),
+      rewardEvents.length > 0
+        ? supabase
+            .from("race_rosters")
+            .select("id")
+            .eq("rider_id", rider.id)
+            .returns<PerformanceRosterRow[]>()
+        : Promise.resolve({
+            data: [] as PerformanceRosterRow[],
+            error: null,
+          }),
     ]);
 
   assertQuery(teamsResult.error, "les équipes du coureur");
   assertQuery(teamSeasonsResult.error, "les identités saisonnières des équipes");
   assertQuery(equipmentItemsResult.error, "le catalogue d’équipements");
+  assertQuery(
+    performanceEditionsResult.error,
+    "les courses des performances notables"
+  );
+  assertQuery(
+    performanceRostersResult.error,
+    "les start-lists des performances notables"
+  );
 
   const teams = teamsResult.data ?? [];
   const teamSeasons = teamSeasonsResult.data ?? [];
+  const performanceRosters = performanceRostersResult.data ?? [];
+  const performanceRosterIds = performanceRosters.map((roster) => roster.id);
+  const [performanceResultsResult, performanceSecondaryResult] =
+    await Promise.all([
+      performanceEditionIds.length > 0 && performanceRosterIds.length > 0
+        ? supabase
+            .from("race_results")
+            .select("race_edition_id, race_roster_id, final_rank")
+            .in("race_edition_id", performanceEditionIds)
+            .in("race_roster_id", performanceRosterIds)
+            .returns<PerformanceResultRow[]>()
+        : Promise.resolve({
+            data: [] as PerformanceResultRow[],
+            error: null,
+          }),
+      performanceEditionIds.length > 0
+        ? supabase
+            .from("race_secondary_results")
+            .select(
+              "race_edition_id, classification_type, race_roster_id, team_season_id, rank"
+            )
+            .in("race_edition_id", performanceEditionIds)
+            .eq("rank", 1)
+            .returns<PerformanceSecondaryRow[]>()
+        : Promise.resolve({
+            data: [] as PerformanceSecondaryRow[],
+            error: null,
+          }),
+    ]);
+  assertQuery(
+    performanceResultsResult.error,
+    "les classements des performances notables"
+  );
+  assertQuery(
+    performanceSecondaryResult.error,
+    "les maillots distinctifs des performances notables"
+  );
   const divisionIds = [
     ...new Set(
       teamSeasons
@@ -599,6 +733,15 @@ export async function getPublicRiderProfile({
   const summaryBySeasonId = new Map(
     summaries.map((summary) => [summary.season_id, summary])
   );
+  const notablePerformancesBySeasonId =
+    buildNotablePerformancesBySeason({
+      rewards: rewardEvents,
+      teamSeasons,
+      editions: performanceEditionsResult.data ?? [],
+      results: performanceResultsResult.data ?? [],
+      secondaryResults: performanceSecondaryResult.data ?? [],
+      performanceRosterIds: new Set(performanceRosterIds),
+    });
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const history = contracts
     .filter((contract) => contract.status !== "planned")
@@ -641,6 +784,8 @@ export async function getPublicRiderProfile({
                 countryName: countryResult.data!.name,
                 countryCode: countryResult.data!.iso_alpha2,
               })),
+            notablePerformances:
+              notablePerformancesBySeasonId.get(season.id) ?? [],
           };
         });
     })
@@ -1027,6 +1172,123 @@ async function viewerManagesTeam({
   assertQuery(assignmentError, "l’affectation du Directeur Sportif");
 
   return Boolean(assignment);
+}
+
+function buildNotablePerformancesBySeason({
+  rewards,
+  teamSeasons,
+  editions,
+  results,
+  secondaryResults,
+  performanceRosterIds,
+}: {
+  rewards: RewardEventRow[];
+  teamSeasons: TeamSeasonRow[];
+  editions: PerformanceEditionRow[];
+  results: PerformanceResultRow[];
+  secondaryResults: PerformanceSecondaryRow[];
+  performanceRosterIds: Set<string>;
+}) {
+  const teamSeasonById = new Map(
+    teamSeasons.map((teamSeason) => [teamSeason.id, teamSeason])
+  );
+  const editionById = new Map(
+    editions.map((edition) => [edition.id, edition])
+  );
+  const resultByEditionId = new Map(
+    results.map((result) => [result.race_edition_id, result])
+  );
+  const performancesBySeasonId = new Map<
+    string,
+    RiderNotablePerformance[]
+  >();
+
+  for (const reward of rewards) {
+    const teamSeason = reward.team_season_id
+      ? teamSeasonById.get(reward.team_season_id)
+      : null;
+    if (!teamSeason) continue;
+
+    const parsedDescription = parseRewardDescription(reward.description);
+    const editionId =
+      getRaceEditionIdFromRewardReference(reward.source_reference);
+    const edition = editionId ? editionById.get(editionId) : null;
+    const result = editionId ? resultByEditionId.get(editionId) : null;
+    const secondaryWins = editionId
+      ? secondaryResults
+          .filter(
+            (secondary) =>
+              secondary.race_edition_id === editionId &&
+              secondary.rank === 1 &&
+              ((secondary.race_roster_id !== null &&
+                performanceRosterIds.has(secondary.race_roster_id)) ||
+                (secondary.classification_type === "team" &&
+                  secondary.team_season_id === reward.team_season_id))
+          )
+          .map((secondary) => secondary.classification_type)
+      : [];
+    const labels =
+      edition || result || secondaryWins.length > 0
+        ? buildNotablePerformanceLabels({
+            finalRank: result?.final_rank ?? null,
+            nationalChampionshipType:
+              getNationalChampionshipType(
+                edition?.race?.competition_type
+              ),
+            secondaryWins,
+          })
+        : [parsedDescription.performance];
+    const performances =
+      performancesBySeasonId.get(teamSeason.season_id) ?? [];
+
+    performances.push({
+      raceEditionId: editionId ?? reward.id,
+      raceName: edition?.display_name ?? parsedDescription.raceName,
+      uciPoints: reward.uci_points,
+      labels,
+      finalRank: result?.final_rank ?? null,
+    });
+    performancesBySeasonId.set(teamSeason.season_id, performances);
+  }
+
+  for (const [seasonId, performances] of performancesBySeasonId) {
+    performancesBySeasonId.set(
+      seasonId,
+      shortlistNotablePerformances(performances)
+    );
+  }
+
+  return performancesBySeasonId;
+}
+
+function getRaceEditionIdFromRewardReference(sourceReference: string) {
+  const [, editionId] = sourceReference.split(":");
+  return sourceReference.startsWith("official-race:") &&
+    editionId &&
+    isUuid(editionId)
+    ? editionId
+    : null;
+}
+
+function getNationalChampionshipType(
+  competitionType: string | undefined
+): "road" | "time_trial" | null {
+  if (competitionType === "national_road") return "road";
+  if (competitionType === "national_time_trial") return "time_trial";
+  return null;
+}
+
+function parseRewardDescription(description: string) {
+  const [raceName, ...performanceParts] = description
+    .split(/\s+—\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    raceName: raceName || "Course",
+    performance:
+      performanceParts.join(" — ") || "Performance classée",
+  };
 }
 
 function findTeamSeason({

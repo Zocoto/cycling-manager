@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { RaceStageExperience } from "@/components/game/race-stage-experience";
 import Link from "@/components/ui/app-link";
+import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -16,6 +17,7 @@ import {
   getOfficialRaceResults,
   settleFinishedRaceResults,
 } from "@/services/race-results";
+import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 
 export const metadata: Metadata = {
   title: "Course en direct",
@@ -75,9 +77,27 @@ export default async function RaceLivePage({
   }
 
   const state = getStageLiveState(stage, now);
+  const lockedSimulationDirectory: LockedOfficialRaceSimulationDirectory =
+    state.status === "scheduled"
+      ? {}
+      : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
+          (error: unknown) => {
+            console.error(
+              "Impossible de verrouiller le scénario officiel :",
+              error,
+            );
+            return {};
+          },
+        );
+  const lockedSimulations =
+    lockedSimulationDirectory[edition.id] ?? [];
   if (state.status === "finished") {
     try {
-      await settleFinishedRaceResults(calendar, now);
+      await settleFinishedRaceResults(
+        calendar,
+        now,
+        lockedSimulationDirectory,
+      );
       await settleFinishedRaceConditions(supabase);
     } catch (error) {
       console.error(
@@ -160,6 +180,7 @@ export default async function RaceLivePage({
           officialResults={officialResults}
           currentDirectorId={directorResult.data.id}
           initialMessages={initialMessages}
+          lockedSimulations={lockedSimulations}
         />
       </div>
     </main>
