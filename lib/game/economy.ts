@@ -24,6 +24,23 @@ export type RaceReward = {
   uciPoints: number;
 };
 
+export type RaceRewardComponent = RaceReward & {
+  type:
+    | "general"
+    | "mountain_classification"
+    | "sprint_classification"
+    | "youth_classification"
+    | "team_classification"
+    | "mountain_prime"
+    | "intermediate_sprint";
+  count: number;
+};
+
+export type RaceRewardBreakdown = {
+  total: RaceReward;
+  components: RaceRewardComponent[];
+};
+
 export type StagePrizeInput = {
   tier: RaceTier;
   finalRank: number | null;
@@ -270,28 +287,75 @@ export type WildcardCandidate = {
 };
 
 export function calculateRaceReward(input: RaceRewardInput): RaceReward {
+  return calculateRaceRewardBreakdown(input).total;
+}
+
+export function calculateRaceRewardBreakdown(
+  input: RaceRewardInput
+): RaceRewardBreakdown {
   const scale = REWARD_SCALES[input.tier][input.scope];
   const placement = findPlacement(scale.placements, input.finalRank);
-  const secondaryCount = new Set(input.secondaryClassifications ?? []).size;
-  const primeCount = Math.max(0, Math.floor(input.mountainPrimesWon ?? 0))
-    + Math.max(0, Math.floor(input.intermediateSprintsWon ?? 0));
+  const secondaryClassifications = [
+    ...new Set(input.secondaryClassifications ?? []),
+  ];
+  const mountainPrimeCount = Math.max(
+    0,
+    Math.floor(input.mountainPrimesWon ?? 0)
+  );
+  const intermediateSprintCount = Math.max(
+    0,
+    Math.floor(input.intermediateSprintsWon ?? 0)
+  );
+  const components: RaceRewardComponent[] = [];
+
+  if (placement) {
+    components.push({ type: "general", count: 1, ...placement });
+  }
+
+  for (const classification of secondaryClassifications) {
+    components.push({
+      type: `${classification}_classification`,
+      count: 1,
+      reputation: scale.secondaryReputation,
+      experience: scale.secondaryExperience,
+      cashPrize: scale.secondaryCashPrize,
+      uciPoints: scale.secondaryUciPoints,
+    });
+  }
+
+  if (mountainPrimeCount > 0) {
+    components.push({
+      type: "mountain_prime",
+      count: mountainPrimeCount,
+      reputation: 0,
+      experience: mountainPrimeCount * scale.primeExperience,
+      cashPrize: mountainPrimeCount * scale.primeCashPrize,
+      uciPoints: mountainPrimeCount * scale.primeUciPoints,
+    });
+  }
+
+  if (intermediateSprintCount > 0) {
+    components.push({
+      type: "intermediate_sprint",
+      count: intermediateSprintCount,
+      reputation: 0,
+      experience: intermediateSprintCount * scale.primeExperience,
+      cashPrize: intermediateSprintCount * scale.primeCashPrize,
+      uciPoints: intermediateSprintCount * scale.primeUciPoints,
+    });
+  }
 
   return {
-    reputation:
-      (placement?.reputation ?? 0)
-      + secondaryCount * scale.secondaryReputation,
-    experience:
-      (placement?.experience ?? 0)
-      + secondaryCount * scale.secondaryExperience
-      + primeCount * scale.primeExperience,
-    cashPrize:
-      (placement?.cashPrize ?? 0)
-      + secondaryCount * scale.secondaryCashPrize
-      + primeCount * scale.primeCashPrize,
-    uciPoints:
-      (placement?.uciPoints ?? 0)
-      + secondaryCount * scale.secondaryUciPoints
-      + primeCount * scale.primeUciPoints,
+    components,
+    total: components.reduce<RaceReward>(
+      (total, component) => ({
+        reputation: total.reputation + component.reputation,
+        experience: total.experience + component.experience,
+        cashPrize: total.cashPrize + component.cashPrize,
+        uciPoints: total.uciPoints + component.uciPoints,
+      }),
+      { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 }
+    ),
   };
 }
 

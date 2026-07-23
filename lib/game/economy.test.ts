@@ -5,6 +5,7 @@ import {
   calculateDebtReputationPenalty,
   calculateNationalChampionshipReward,
   calculateRaceReward,
+  calculateRaceRewardBreakdown,
   calculateRiderSeasonSalary,
   calculateStagePrize,
   getDivisionForRank,
@@ -53,6 +54,32 @@ describe("calculateRaceReward", () => {
     expect(reward.reputation).toBe(0);
     expect(reward.experience).toBe(6);
     expect(reward.uciPoints).toBe(2);
+  });
+
+  it("expose le detail financier du general, des annexes et des primes", () => {
+    const breakdown = calculateRaceRewardBreakdown({
+      tier: "world",
+      scope: "tour",
+      finalRank: 4,
+      secondaryClassifications: ["mountain", "sprint"],
+      mountainPrimesWon: 2,
+      intermediateSprintsWon: 1,
+    });
+
+    expect(breakdown.total.cashPrize).toBe(16_750);
+    expect(
+      breakdown.components.map(({ type, count, cashPrize }) => ({
+        type,
+        count,
+        cashPrize,
+      }))
+    ).toEqual([
+      { type: "general", count: 1, cashPrize: 7_000 },
+      { type: "mountain_classification", count: 1, cashPrize: 4_500 },
+      { type: "sprint_classification", count: 1, cashPrize: 4_500 },
+      { type: "mountain_prime", count: 2, cashPrize: 500 },
+      { type: "intermediate_sprint", count: 1, cashPrize: 250 },
+    ]);
   });
 });
 

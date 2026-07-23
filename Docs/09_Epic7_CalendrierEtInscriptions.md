@@ -150,13 +150,16 @@ Les contrôles de capacité, de délais et de chevauchement sont atomiques afin 
 - la nationalité de l’équipe, du Directeur Sportif ou du sponsor n’est jamais contrôlée ;
 - la nationalité d’un coureur pourra produire un bonus de performance « local de l’étape » dans le futur moteur ;
 - les championnats nationaux constituent l’exception : seuls les coureurs du pays du championnat peuvent concourir.
-- les championnats continentaux et mondiaux ne proposent pas d’inscription manuelle : leurs participants seront choisis par une future mécanique de sélection des meilleurs coureurs.
+- les championnats continentaux et mondiaux ne proposent pas d’inscription manuelle ;
+- à H-24, le classement est figé et sélectionne les 20 meilleures nations mondiales pour les CM, ainsi que les 20 meilleures nations de chaque continent pour les CC ;
+- les huit meilleurs coureurs valides de chaque nation sont appelés ; un blessé est ignoré et le suivant au classement prend sa place ;
+- le Directeur Sportif propriétaire peut valider la convocation, ce qui annule les courses et stages en conflit, ou la refuser, ce qui appelle le réserviste suivant ;
+- sans réponse avant le départ, la participation est confirmée automatiquement et les impératifs concurrents sont annulés.
 
 ## Éléments différés
 
 - valeurs des seuils Continental, Mondial et Elite ;
 - fatigue et récupération ;
 - génération détaillée des deux championnats de chaque pays ;
-- sélections nationales pour les championnats continentaux et mondiaux ;
 - simulation et bonus « local de l’étape » ;
 - barèmes des classements général, sprint et montagne.

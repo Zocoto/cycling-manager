@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "names:validate": "node scripts/validate-rider-names.mjs",
+    "equipment:assets": "node scripts/optimize-equipment-assets.mjs",
     "sponsors:validate": "tsx scripts/validate-sponsors.ts",
     "sponsors:validate:strict": "tsx scripts/validate-sponsors.ts --strict-assets",
     "sponsors:sync": "tsx scripts/sync-sponsors.ts"
