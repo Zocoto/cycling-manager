@@ -231,6 +231,103 @@ describe("simulateRaceStage", () => {
     expect(breakaway.averageEnergy).toBeLessThan(peloton.averageEnergy);
   });
 
+  it("conserve l’énergie de chaque coureur sans faire ralentir le groupe par un équipier épuisé", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const riders = baseInput.riders.slice(0, 6).map((rider, index) => ({
+      ...rider,
+      id: `reserve-${index}`,
+      teamId: `reserve-team-${index}`,
+      teamName: `Reserve team ${index}`,
+      role: "leader" as const,
+      form: index === 0 ? 10 : 90,
+      ratings: {
+        ...rider.ratings,
+        flat: index === 0 ? 40 : 70,
+        endurance: index === 0 ? 45 : 70,
+      },
+    }));
+    const segment = {
+      ...baseInput.segments[0],
+      terrain: "flat" as const,
+      surface: "asphalt" as const,
+      averageGradientPct: 0,
+    };
+    const tiredRiderSimulation = simulateRaceStage({
+      ...baseInput,
+      id: "individual-energy-test",
+      segments: [segment],
+      riders,
+    });
+    const freshRiderSimulation = simulateRaceStage({
+      ...baseInput,
+      id: "individual-energy-test",
+      segments: [segment],
+      riders: riders.map((rider, index) => ({
+        ...rider,
+        form: index === 0 ? 90 : rider.form,
+      })),
+    });
+    const tiredRiderResult = tiredRiderSimulation.results.find(
+      (result) => result.riderId === "reserve-0"
+    )!;
+    const freshRiderResult = freshRiderSimulation.results.find(
+      (result) => result.riderId === "reserve-0"
+    )!;
+    const protectedTeammateResult = tiredRiderSimulation.results.find(
+      (result) => result.riderId === "reserve-1"
+    )!;
+
+    expect(tiredRiderResult.energyAfter).toBeLessThan(
+      protectedTeammateResult.energyAfter
+    );
+    expect(tiredRiderResult.energyAfter).toBeLessThan(
+      freshRiderResult.energyAfter
+    );
+    expect(tiredRiderSimulation.results[0].elapsedTimeSeconds).toBe(
+      freshRiderSimulation.results[0].elapsedTimeSeconds
+    );
+  });
+
+  it("lâche individuellement un coureur épuisé lorsque le peloton accélère", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const riders = baseInput.riders.slice(0, 8).map((rider, index) => ({
+      ...rider,
+      id: `pace-${index}`,
+      teamId: `pace-team-${index}`,
+      teamName: `Pace team ${index}`,
+      role: "leader" as const,
+      form: index === 0 ? 10 : 90,
+      ratings: {
+        ...rider.ratings,
+        flat: index === 0 ? 42 : 72,
+        endurance: index === 0 ? 45 : 72,
+        resistance: index === 0 ? 45 : 72,
+      },
+    }));
+    const flatSegments = baseInput.segments.slice(0, 3).map((segment) => ({
+      ...segment,
+      terrain: "flat" as const,
+      surface: "asphalt" as const,
+      averageGradientPct: 0,
+    }));
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "individual-drop-test",
+      segments: flatSegments,
+      riders,
+    });
+    const finalSnapshot = result.timeline.at(-1)!;
+    const tiredRiderGroup = finalSnapshot.groups.find((group) =>
+      group.riderIds.includes("pace-0")
+    );
+    const freshRiderGroup = finalSnapshot.groups.find((group) =>
+      group.riderIds.includes("pace-1")
+    );
+
+    expect(tiredRiderGroup?.type).toBe("dropped");
+    expect(freshRiderGroup?.type).toBe("peloton");
+  });
+
   it("réduit l'avantage de l'aspiration lorsque la pente devient forte", () => {
     const baseInput = createDemoSimulationInput("sprint-littoral", 1);
     const getAverageEnergyAfter = (

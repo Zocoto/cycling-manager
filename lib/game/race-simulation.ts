@@ -771,6 +771,7 @@ function simulateRoadStage(
       segment,
       segmentIndex,
       profileType: input.profileType,
+      chasePressure,
       random,
       commentary,
     });
@@ -1244,19 +1245,21 @@ function getGroupSegmentTime(
   random: () => number
 ) {
   if (states.length === 0) return 0;
-  const ratings = states
-    .map((state) => getTerrainRating(state.rider, segment))
-    .sort((first, second) => second - first);
   const scoringShare = group === "peloton" ? 0.42 : 0.72;
-  const scoringCount = Math.max(1, Math.ceil(ratings.length * scoringShare));
-  const groupRating = average(ratings.slice(0, scoringCount));
-  const averageEnergy = average(states.map((state) => state.energy));
+  const paceSetters = getGroupPaceSetters(states, segment, scoringShare);
+  const groupRating = average(
+    paceSetters.map((state) => getTerrainRating(state.rider, segment))
+  );
+  const paceSettersEnergy = average(
+    paceSetters.map((state) => state.energy)
+  );
   const draftingBonus =
     group === "peloton"
       ? Math.min(0.095, Math.log2(states.length + 1) * 0.018)
       : Math.min(0.055, Math.log2(states.length + 1) * 0.013);
   const chaseBonus = group === "peloton" ? chasePressure * 0.055 : 0.018;
-  const fatiguePenalty = Math.max(0, 30 - averageEnergy) * 0.0035;
+  const fatiguePenalty =
+    Math.max(0, 30 - paceSettersEnergy) * 0.0035;
   const speed = Math.max(
     8,
     getBaseSpeed(segment) *
@@ -1264,6 +1267,37 @@ function getGroupSegmentTime(
   );
 
   return (segment.distanceKm / speed) * 3_600;
+}
+
+function getGroupPaceSetters(
+  states: RiderState[],
+  segment: RaceStageSegment,
+  scoringShare: number
+) {
+  const ridersAbleToSetPace = states.filter(
+    (state) => state.energy >= 18
+  );
+  const candidates =
+    ridersAbleToSetPace.length > 0
+      ? ridersAbleToSetPace
+      : states;
+  const scoringCount = Math.max(
+    1,
+    Math.min(
+      candidates.length,
+      Math.ceil(states.length * scoringShare)
+    )
+  );
+
+  return [...candidates]
+    .sort(
+      (first, second) =>
+        getTerrainRating(second.rider, segment) +
+          second.rider.ratings.endurance * 0.08 -
+        (getTerrainRating(first.rider, segment) +
+          first.rider.ratings.endurance * 0.08)
+    )
+    .slice(0, scoringCount);
 }
 
 function updateRiderEnergy({
@@ -1387,6 +1421,7 @@ function dropStrugglingRiders({
   segment,
   segmentIndex,
   profileType,
+  chasePressure,
   random,
   commentary,
 }: {
@@ -1394,6 +1429,7 @@ function dropStrugglingRiders({
   segment: RaceStageSegment;
   segmentIndex: number;
   profileType: RaceProfileType;
+  chasePressure: number;
   random: () => number;
   commentary: string[];
 }) {
@@ -1430,7 +1466,14 @@ function dropStrugglingRiders({
     segment.terrain === "climb" || segment.surface === "cobbles";
 
   for (const state of peloton) {
-    if (!isSelectiveTerrain && state.energy >= 4) continue;
+    const isFastNonSelectiveSection =
+      !isSelectiveTerrain && chasePressure >= 0.5;
+    if (
+      !isSelectiveTerrain &&
+      (!isFastNonSelectiveSection || state.energy >= 18)
+    ) {
+      continue;
+    }
 
     const terrainDeficit =
       frontTerrainRating - getTerrainRating(state.rider, segment);
@@ -1440,6 +1483,13 @@ function dropStrugglingRiders({
     const fatiguePenalty = Math.max(0, 22 - state.energy) * 0.12;
     const effectiveDeficit = terrainDeficit - secondarySupport + fatiguePenalty;
     const ruptureThreshold = tolerance + random() * 2.5;
+    const minimumReserveToFollow =
+      6 +
+      chasePressure * 12 +
+      Math.max(0, terrainDeficit) * 0.25;
+    const losesContactFromExhaustion =
+      state.energy < minimumReserveToFollow &&
+      random() > 0.08;
     const exceptionalHoldChance = clamp(
       0.06 - Math.max(0, effectiveDeficit - tolerance) * 0.008,
       0.015,
@@ -1452,14 +1502,17 @@ function dropStrugglingRiders({
 
     if (
       state.energy < 4 ||
+      losesContactFromExhaustion ||
       (effectiveDeficit > ruptureThreshold && !exceptionallyHoldsOn)
     ) {
-      state.group = "dropped";
-      state.groupSinceSegment = segmentIndex;
-      state.lostTimeSeconds +=
+      const immediateLossSeconds =
         (profileType === "mountain" ? 18 : 10) +
         Math.max(0, effectiveDeficit) *
           (profileType === "mountain" ? 5 : 3);
+      state.group = "dropped";
+      state.groupSinceSegment = segmentIndex;
+      state.lostTimeSeconds += immediateLossSeconds;
+      state.elapsedTimeSeconds += immediateLossSeconds;
       if (commentary.length < 4) {
         commentary.push(
           `${state.rider.name} ne peut plus suivre dans la difficulté et bascule définitivement parmi les attardés.`
@@ -3043,10 +3096,11 @@ function getFrontTerrainRating(
   segment: RaceStageSegment
 ) {
   if (states.length === 0) return 60;
-  const ratings = states
-    .map((state) => getTerrainRating(state.rider, segment))
-    .sort((first, second) => second - first);
-  return average(ratings.slice(0, Math.max(2, Math.ceil(ratings.length * 0.2))));
+  return average(
+    getGroupPaceSetters(states, segment, 0.2).map((state) =>
+      getTerrainRating(state.rider, segment)
+    )
+  );
 }
 
 function isLikelyMassSprint(segments: RaceStageSegment[]) {

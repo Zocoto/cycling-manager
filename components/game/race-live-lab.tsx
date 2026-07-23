@@ -1637,7 +1637,7 @@ function RaceGroupCard({
           </p>
           <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#759286]">
             {group.riderIds.length} coureur
-            {group.riderIds.length > 1 ? "s" : ""} · énergie {Math.round(group.averageEnergy)} %
+            {group.riderIds.length > 1 ? "s" : ""} · énergie moy. {Math.round(group.averageEnergy)} %
           </p>
         </div>
         <span className="rounded-full bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#F2C94C]">
