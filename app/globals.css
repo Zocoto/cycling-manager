@@ -397,3 +397,51 @@ a {
     animation: none;
   }
 }
+
+.app-link-pending-indicator {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, #42cda8, #f2c94c, #42cda8);
+  box-shadow: 0 1px 10px rgba(66, 205, 168, 0.45);
+}
+
+.app-link-pending-indicator.is-pending {
+  visibility: visible;
+  animation:
+    app-link-progress-in 180ms ease 100ms forwards,
+    app-link-progress-pulse 900ms ease-in-out 100ms infinite;
+}
+
+@keyframes app-link-progress-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.08);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(0.82);
+  }
+}
+
+@keyframes app-link-progress-pulse {
+  50% {
+    filter: brightness(1.18);
+    transform: scaleX(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-link-pending-indicator.is-pending {
+    animation: app-link-progress-in 1ms linear 100ms forwards;
+  }
+}

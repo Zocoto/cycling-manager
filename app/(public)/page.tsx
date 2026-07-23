@@ -55,12 +55,14 @@ export default async function HomePage() {
 function HeroSection() {
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
-      <div
+      <Image
         aria-hidden="true"
-        className="absolute inset-0 bg-cover bg-position-[68%_center] bg-no-repeat"
-        style={{
-          backgroundImage: "url('/images/peloton-header.webp')",
-        }}
+        src="/images/peloton-header.webp"
+        alt=""
+        fill
+        preload
+        sizes="100vw"
+        className="object-cover object-[68%_center]"
       />
 
       <div

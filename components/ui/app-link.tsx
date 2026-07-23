@@ -1,6 +1,9 @@
 "use client";
 
-import NextLink, { type LinkProps } from "next/link";
+import NextLink, {
+  type LinkProps,
+  useLinkStatus,
+} from "next/link";
 import {
   forwardRef,
   type AnchorHTMLAttributes,
@@ -20,7 +23,7 @@ type AppLinkProps = LinkProps &
  * Pass `scroll` explicitly to override either default on a per-link basis.
  */
 const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
-  { href, scroll, ...props },
+  { href, scroll, children, ...props },
   ref,
 ) {
   const usesAnchor =
@@ -34,8 +37,22 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       href={href}
       scroll={scroll ?? usesAnchor}
       {...props}
-    />
+    >
+      {children}
+      <LinkPendingIndicator />
+    </NextLink>
   );
 });
 
 export default Link;
+
+function LinkPendingIndicator() {
+  const { pending } = useLinkStatus();
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`app-link-pending-indicator ${pending ? "is-pending" : ""}`}
+    />
+  );
+}

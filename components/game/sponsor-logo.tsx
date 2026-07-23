@@ -56,7 +56,7 @@ function SponsorLogoImage({
       alt={alt}
       width={420}
       height={180}
-      unoptimized
+      sizes="(max-width: 640px) 80vw, 420px"
       className="max-h-28 w-auto max-w-full object-contain"
       onError={() => {
         setHasImageError(true);
@@ -193,9 +193,9 @@ function SponsorLogoMarkImage({
         <Image
           src={src}
           alt={alt}
-          width={240}
-          height={120}
-          unoptimized
+          width={80}
+          height={56}
+          sizes="80px"
           className="h-full w-full object-contain"
           onError={() => {
             setHasImageError(true);

@@ -45,7 +45,9 @@ export default async function RaceCalendarPage({
   const [headerData, calendarResult, reputationResult] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
-      getActiveSeasonRaceCalendar(supabase)
+      getActiveSeasonRaceCalendar(supabase, new Date(), {
+        includeEngagedRiders: false,
+      })
         .then((calendar) => ({
           calendar,
           error: null,
