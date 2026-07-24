@@ -28,6 +28,10 @@ export type TutorialStepPlacement =
   | "left"
   | "center";
 
+export type TutorialDisplayMode =
+  | "overlay"
+  | "embedded";
+
 export type TutorialStepRequirement =
   | "profile_complete"
   | "team_created";
@@ -101,6 +105,12 @@ export type TutorialDefinition = {
    * depuis le Guide.
    */
   replayable: boolean;
+
+  /**
+   * Les parcours embarqués utilisent leur propre expérience de page
+   * et n’affichent pas la surcouche générique.
+   */
+  displayMode?: TutorialDisplayMode;
 
   steps: readonly TutorialStep[];
 };

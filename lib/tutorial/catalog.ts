@@ -1,5 +1,10 @@
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
+import {
+  TUTORIAL_RACE_KEY,
+  TUTORIAL_RACE_ROUTE,
+  TUTORIAL_RACE_VERSION,
+} from "@/lib/tutorial/tutorial-race";
 import type {
   TutorialCatalog,
   TutorialDefinition,
@@ -218,8 +223,32 @@ const onboardingTutorial = {
   ],
 } satisfies TutorialDefinition;
 
+
+const tutorialRace = {
+  key: TUTORIAL_RACE_KEY,
+  version: TUTORIAL_RACE_VERSION,
+  type: "race_scenario",
+  title: "Course d’initiation",
+  description:
+    "Sélectionnez cinq coureurs et découvrez le véritable moteur de course sans conséquence officielle.",
+  autoStart: false,
+  replayable: true,
+  displayMode: "embedded",
+  steps: [
+    {
+      key: "experience",
+      route: TUTORIAL_RACE_ROUTE,
+      title: "Critérium de découverte",
+      content:
+        "Composez votre sélection, suivez le direct accéléré puis validez le classement de démonstration.",
+      placement: "center",
+    },
+  ],
+} satisfies TutorialDefinition;
+
 export const tutorialCatalog = createTutorialCatalog([
   onboardingTutorial,
+  tutorialRace,
 ]);
 
 export function getTutorialDefinition(

@@ -60,6 +60,10 @@ type TutorialContextValue = {
   ) => TutorialProgressRow | null;
 
   clearTutorialError: () => void;
+
+  synchronizeTutorialProgress: (
+    progress: TutorialProgressRow,
+  ) => void;
 };
 
 type TutorialProviderProps = {
@@ -240,6 +244,15 @@ export function TutorialProvider({
               ? null
               : currentKey,
         );
+
+        if (
+          definition.displayMode ===
+          "embedded"
+        ) {
+          setActiveTutorial(null);
+          navigateToStep(step.route);
+          return true;
+        }
 
         setActiveTutorial({
           definition,
@@ -715,6 +728,8 @@ export function TutorialProvider({
         skipTutorial,
         getTutorialProgress,
         clearTutorialError,
+        synchronizeTutorialProgress:
+          saveProgress,
       }),
       [
         activeTutorial,
@@ -728,6 +743,7 @@ export function TutorialProvider({
         skipTutorial,
         getTutorialProgress,
         clearTutorialError,
+        saveProgress,
       ],
     );
 
