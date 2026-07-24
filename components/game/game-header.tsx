@@ -5,6 +5,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
+import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
 import { WheelLogo } from "@/components/ui/wheel-logo";
 import {
   GLOBAL_SEARCH_MAX_LENGTH,
@@ -185,6 +186,9 @@ export function GameHeader({
           {canAccessRaceSimulator(simulatorEmail) ? (
             <RaceSimulatorShortcut />
           ) : null}
+
+          <TutorialCenterMenu />
+
 
           <Link
             href="/guide"

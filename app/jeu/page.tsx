@@ -12,8 +12,6 @@ import { SportingDirectorProgression } from "../../components/game/sporting-dire
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
 import { TeamJerseyPreview } from "../../components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "../../components/game/team-division-badge";
-import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
-import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
 import { DEFAULT_AMATEUR_JERSEY } from "../../lib/amateur-team";
 import {
   GAMEPLAY_RULES,
@@ -513,10 +511,7 @@ export default async function GamePage() {
             </div>
 
             <div className="flex w-full flex-wrap items-stretch gap-3 xl:w-auto xl:justify-self-end">
-              <TutorialLaunchButton
-                tutorialKey={ONBOARDING_TUTORIAL_KEY}
-              />
-              <InventoryShortcut
+<InventoryShortcut
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
               />

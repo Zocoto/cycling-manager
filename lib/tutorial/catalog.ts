@@ -210,9 +210,9 @@ const onboardingTutorial = {
     {
       key: "complete",
       route: "/jeu",
-      title: "Vous connaissez les bases",
+      title: "Les bases sont acquises",
       content:
-        "Vous savez désormais suivre l’actualité de votre équipe, fonder votre structure, lire un effectif, préparer le calendrier et anticiper le sponsoring.\n\nLa prochaine livraison ajoutera la course d’initiation avec inscription, sélection et véritable live, sans point ni conséquence sur la saison. Les visites guidées détaillées de chaque rubrique resteront accessibles à la demande.",
+        "Vous avez terminé le tutoriel de base de Cyclostratège.\n\nRendez-vous maintenant dans le menu Didacticiels pour compléter votre formation et obtenir le succès « Finaliser le didacticiel ».\n\nLa course d’initiation et les futures visites guidées des rubriques rejoindront progressivement cette bibliothèque.",
       placement: "center",
     },
   ],
