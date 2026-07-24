@@ -319,7 +319,7 @@ export function TutorialOverlay({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[220]"
+      className="pointer-events-none fixed inset-0 z-[220]"
       data-tutorial-overlay="true"
     >
       {highlightedArea ? (
@@ -401,7 +401,7 @@ export function TutorialOverlay({
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal="true"
+        aria-modal={step.allowTargetInteraction ? undefined : true}
         aria-labelledby={panelLabelId}
         aria-describedby={panelDescriptionId}
         tabIndex={-1}
