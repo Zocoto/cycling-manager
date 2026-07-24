@@ -22,11 +22,13 @@ import {
   skipTutorialAction,
   startTutorialAction,
 } from "@/app/jeu/tutorial-actions";
+import { TutorialInstantIntro } from "@/components/tutorial/tutorial-instant-intro";
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay";
 import {
   getTutorialDefinition,
   listAutoStartTutorialDefinitions,
 } from "@/lib/tutorial/catalog";
+import { selectInstantAutoStartTutorialKey } from "@/lib/tutorial/instant-start";
 import type {
   ActiveTutorial,
   StartTutorialOptions,
@@ -136,6 +138,18 @@ export function TutorialProvider({
     setErrorMessage,
   ] = useState<string | null>(null);
 
+  const [
+    instantAutoStartTutorialKey,
+    setInstantAutoStartTutorialKey,
+  ] = useState<string | null>(() =>
+    selectInstantAutoStartTutorialKey({
+      autoStartTutorialKeys,
+      progressRows: initialProgress,
+      definitions:
+        listAutoStartTutorialDefinitions(),
+    }),
+  );
+
   const saveProgress = useCallback(
     (progress: TutorialProgressRow) => {
       setProgressByTutorialKey((current) => ({
@@ -219,6 +233,13 @@ export function TutorialProvider({
         }
 
         saveProgress(result.progress);
+
+        setInstantAutoStartTutorialKey(
+          (currentKey) =>
+            currentKey === definition.key
+              ? null
+              : currentKey,
+        );
 
         setActiveTutorial({
           definition,
@@ -535,6 +556,82 @@ export function TutorialProvider({
       setErrorMessage(null);
     }, []);
 
+  const startInstantAutoStartTutorial =
+    useCallback(() => {
+      if (!instantAutoStartTutorialKey) {
+        return;
+      }
+
+      const progress =
+        progressByTutorialKey[
+          instantAutoStartTutorialKey
+        ];
+
+      const launchSource: TutorialSessionLaunchSource =
+        progress?.status === "in_progress"
+          ? "resume"
+          : "automatic";
+
+      autoStartAttemptedRef.current = true;
+
+      void startTutorial({
+        tutorialKey:
+          instantAutoStartTutorialKey,
+        launchSource,
+        restartFromBeginning: false,
+      });
+    }, [
+      instantAutoStartTutorialKey,
+      progressByTutorialKey,
+      startTutorial,
+    ]);
+
+  const skipInstantAutoStartTutorial =
+    useCallback(async () => {
+      if (!instantAutoStartTutorialKey) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        "Passer le didacticiel ?\n\nIl ne sera plus proposé automatiquement, mais restera disponible depuis le Guide.",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      autoStartAttemptedRef.current = true;
+      setIsPending(true);
+      setErrorMessage(null);
+
+      try {
+        const result =
+          await skipTutorialAction({
+            tutorialKey:
+              instantAutoStartTutorialKey,
+          });
+
+        if (!result.ok) {
+          setErrorMessage(result.error);
+          return;
+        }
+
+        saveProgress(result.progress);
+        setInstantAutoStartTutorialKey(null);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Impossible d’ignorer le didacticiel.",
+        );
+      } finally {
+        setIsPending(false);
+      }
+    }, [
+      instantAutoStartTutorialKey,
+      saveProgress,
+    ]);
+
   useEffect(() => {
     if (
       autoStartAttemptedRef.current ||
@@ -634,6 +731,23 @@ export function TutorialProvider({
       ],
     );
 
+  const instantAutoStartDefinition =
+    instantAutoStartTutorialKey
+      ? getTutorialDefinition(
+          instantAutoStartTutorialKey,
+        )
+      : null;
+
+  const instantAutoStartStep =
+    instantAutoStartDefinition?.steps[0] ??
+    null;
+
+  const shouldDisplayInstantIntro =
+    !activeTutorial &&
+    Boolean(instantAutoStartDefinition) &&
+    Boolean(instantAutoStartStep) &&
+    instantAutoStartStep?.route === pathname;
+
   const currentStep =
     activeTutorial?.definition.steps[
       activeTutorial.currentStepIndex
@@ -648,6 +762,25 @@ export function TutorialProvider({
     <TutorialContext.Provider
       value={contextValue}
     >
+      {instantAutoStartDefinition &&
+      instantAutoStartStep &&
+      shouldDisplayInstantIntro ? (
+        <TutorialInstantIntro
+          tutorialTitle={
+            instantAutoStartDefinition.title
+          }
+          step={instantAutoStartStep}
+          isPending={isPending}
+          errorMessage={errorMessage}
+          onStart={
+            startInstantAutoStartTutorial
+          }
+          onSkip={() => {
+            void skipInstantAutoStartTutorial();
+          }}
+        />
+      ) : null}
+
       {children}
 
       {activeTutorial &&
