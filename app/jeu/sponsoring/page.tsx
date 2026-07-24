@@ -19,6 +19,7 @@ import {
   terminateSponsorContractAction,
 } from "./actions";
 import { FutureSponsoringSection } from "./future-sponsoring-section";
+import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import {
   ConfirmSponsorButton,
   SponsorJerseySelector,
@@ -149,10 +150,14 @@ export default async function SponsoringPage({
           </header>
 
           {sponsoringState ? (
-            <SponsoringStatusNotice
-              state={sponsoringState}
-            />
+            <div data-tutorial-id="sponsoring-overview">
+              <SponsoringStatusNotice
+                state={sponsoringState}
+              />
+            </div>
           ) : null}
+
+          <TutorialSponsorPreview />
 
           {actionSuccess === "rupture" ? (
             <ActionSuccessMessage />

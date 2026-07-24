@@ -96,7 +96,10 @@ export default async function RaceCalendarPage({
         <BackToOfficeLink />
 
         <div className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)] backdrop-blur">
-          <div className="relative overflow-hidden bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] sm:px-10 sm:py-10">
+          <div
+            data-tutorial-id="calendar-overview"
+            className="relative overflow-hidden bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] sm:px-10 sm:py-10"
+          >
             <div
               aria-hidden="true"
               className="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[36px] border-white/5"
@@ -198,14 +201,16 @@ export default async function RaceCalendarPage({
             ) : null}
 
             {calendar ? (
-              <SeasonCalendar
-                calendar={calendar}
-                reputationPoints={
-                  reputationResult.data
-                    ?.reputation_points ?? 0
-                }
-                nowIso={new Date().toISOString()}
-              />
+              <div data-tutorial-id="calendar-races">
+                <SeasonCalendar
+                  calendar={calendar}
+                  reputationPoints={
+                    reputationResult.data
+                      ?.reputation_points ?? 0
+                  }
+                  nowIso={new Date().toISOString()}
+                />
+              </div>
             ) : (
               <CalendarUnavailable />
             )}

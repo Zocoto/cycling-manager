@@ -8,12 +8,17 @@ import {
   requireAuthenticatedSportingDirectorId,
 } from "@/lib/tutorial/progress";
 import { getTutorialDefinition } from "@/lib/tutorial/catalog";
+import {
+  getTutorialRequirementError,
+} from "@/lib/tutorial/onboarding";
+import { getAuthenticatedTutorialOnboardingState } from "@/lib/tutorial/onboarding-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   TutorialDefinition,
   TutorialProgressRow,
   TutorialSessionLaunchSource,
   TutorialSessionRow,
+  TutorialStep,
 } from "@/types/tutorial";
 
 const TUTORIAL_KEY_PATTERN =
@@ -139,6 +144,37 @@ function requireTutorialStep(
   }
 
   return step;
+}
+
+async function requireTutorialStepRequirement({
+  supabase,
+  step,
+}: {
+  supabase: Awaited<
+    ReturnType<
+      typeof createSupabaseServerClient
+    >
+  >;
+  step: TutorialStep;
+}): Promise<void> {
+  if (!step.requirement) {
+    return;
+  }
+
+  const state =
+    await getAuthenticatedTutorialOnboardingState(
+      supabase,
+    );
+
+  const requirementError =
+    getTutorialRequirementError({
+      requirement: step.requirement,
+      state,
+    });
+
+  if (requirementError) {
+    throw new Error(requirementError);
+  }
 }
 
 function getInitialStep(
@@ -425,6 +461,11 @@ export async function startTutorialAction(
             progress,
           );
 
+    await requireTutorialStepRequirement({
+      supabase,
+      step: selectedStep,
+    });
+
     if (progress.status === "not_started") {
       const { data, error } = await supabase
         .from("tutorial_progress")
@@ -516,7 +557,7 @@ export async function setTutorialStepAction(
         parsed.tutorialKey,
       );
 
-    requireTutorialStep(
+    const step = requireTutorialStep(
       definition,
       parsed.stepKey,
       parsed.route,
@@ -524,6 +565,11 @@ export async function setTutorialStepAction(
 
     const supabase =
       await createSupabaseServerClient();
+
+    await requireTutorialStepRequirement({
+      supabase,
+      step,
+    });
 
     let progress =
       await getAuthenticatedTutorialProgress(

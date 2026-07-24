@@ -63,6 +63,7 @@ type TutorialContextValue = {
 type TutorialProviderProps = {
   children: ReactNode;
   initialProgress?: readonly TutorialProgressRow[];
+  autoStartTutorialKeys?: readonly string[];
 };
 
 const TutorialContext =
@@ -101,12 +102,19 @@ function findStepIndex(
 export function TutorialProvider({
   children,
   initialProgress = [],
+  autoStartTutorialKeys = [],
 }: TutorialProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
 
   const autoStartAttemptedRef =
     useRef(false);
+
+  const autoStartTutorialKeySet =
+    useMemo(
+      () => new Set(autoStartTutorialKeys),
+      [autoStartTutorialKeys],
+    );
 
   const [
     progressByTutorialKey,
@@ -543,6 +551,11 @@ export function TutorialProvider({
 
         const definition =
           listAutoStartTutorialDefinitions()
+            .filter((candidate) =>
+              autoStartTutorialKeySet.has(
+                candidate.key,
+              ),
+            )
             .find((candidate) => {
               const progress =
                 progressByTutorialKey[
@@ -585,6 +598,7 @@ export function TutorialProvider({
     };
   }, [
     activeTutorial,
+    autoStartTutorialKeySet,
     isPending,
     progressByTutorialKey,
     startTutorial,

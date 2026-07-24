@@ -28,6 +28,10 @@ export type TutorialStepPlacement =
   | "left"
   | "center";
 
+export type TutorialStepRequirement =
+  | "profile_complete"
+  | "team_created";
+
 export type TutorialStep = {
   /**
    * Identifiant stable de l’étape.
@@ -54,6 +58,12 @@ export type TutorialStep = {
   content: string;
 
   placement?: TutorialStepPlacement;
+
+  /**
+   * Condition métier à remplir avant d’ouvrir cette étape.
+   * La vérification est toujours réalisée côté serveur.
+   */
+  requirement?: TutorialStepRequirement;
 
   /**
    * Lorsque cette option est active, le joueur peut interagir

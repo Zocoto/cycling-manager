@@ -12,6 +12,8 @@ import { SportingDirectorProgression } from "../../components/game/sporting-dire
 import { SportingDirectorReputation } from "../../components/game/sporting-director-reputation";
 import { TeamJerseyPreview } from "../../components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "../../components/game/team-division-badge";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
 import { DEFAULT_AMATEUR_JERSEY } from "../../lib/amateur-team";
 import {
   GAMEPLAY_RULES,
@@ -496,7 +498,10 @@ export default async function GamePage() {
 
       <section className="relative overflow-hidden">
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <header className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+          <header
+            data-tutorial-id="dashboard-overview"
+            className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
+          >
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Bureau du Directeur Sportif
@@ -507,7 +512,10 @@ export default async function GamePage() {
               </h1>
             </div>
 
-            <div className="flex w-full items-stretch gap-3 xl:w-auto xl:justify-self-end">
+            <div className="flex w-full flex-wrap items-stretch gap-3 xl:w-auto xl:justify-self-end">
+              <TutorialLaunchButton
+                tutorialKey={ONBOARDING_TUTORIAL_KEY}
+              />
               <InventoryShortcut
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
@@ -520,7 +528,10 @@ export default async function GamePage() {
             </div>
           </header>
 
-          <div className="mt-10">
+          <div
+            className="mt-10"
+            data-tutorial-id="dashboard-news-feed"
+          >
             <DashboardEventsCard events={dashboardEvents} />
           </div>
 
@@ -560,6 +571,7 @@ export default async function GamePage() {
               <ManagementModuleCard
                 href="/jeu/sponsoring"
                 icon="sponsor"
+                tutorialId="dashboard-sponsoring"
                 title="Sponsoring"
                 status={
                   teamSponsorIdentity
@@ -730,7 +742,10 @@ function DirectorProfileCard({
     0;
 
   return (
-    <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8">
+    <article
+      data-tutorial-id="dashboard-director-profile"
+      className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#7CCF9C]">
@@ -804,7 +819,10 @@ function DirectorProfileCard({
         />
       </div>
 
-      <div className="mt-5 border-t border-white/10 pt-5">
+      <div
+        data-tutorial-id="dashboard-reputation"
+        className="mt-5 border-t border-white/10 pt-5"
+      >
         <SportingDirectorReputation
           reputationPoints={
             reputationPoints
@@ -1028,6 +1046,7 @@ function TeamRosterCard({
   return (
     <Link
       href="/jeu/effectif"
+      data-tutorial-id="dashboard-roster"
       className="group relative isolate flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
       <span
@@ -1339,6 +1358,7 @@ function ManagementModuleCard({
   status,
   alertCount = 0,
   description,
+  tutorialId,
 }: {
   href?: string;
   icon: ManagementModuleIcon;
@@ -1346,6 +1366,7 @@ function ManagementModuleCard({
   status: string;
   alertCount?: number;
   description: string;
+  tutorialId?: string;
 }) {
   const className =
     `group relative isolate block overflow-hidden rounded-2xl border bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
@@ -1402,6 +1423,7 @@ function ManagementModuleCard({
     return (
       <Link
         href={href}
+        data-tutorial-id={tutorialId}
         className={className}
       >
         {content}
@@ -1410,7 +1432,10 @@ function ManagementModuleCard({
   }
 
   return (
-    <article className={className}>
+    <article
+      data-tutorial-id={tutorialId}
+      className={className}
+    >
       {content}
     </article>
   );

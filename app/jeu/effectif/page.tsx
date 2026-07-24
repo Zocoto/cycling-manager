@@ -393,7 +393,10 @@ export default async function TeamRosterPage({
         <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
           <BackToOfficeLink />
 
-          <header className="mt-7 flex flex-wrap items-end justify-between gap-6">
+          <header
+            data-tutorial-id="roster-overview"
+            className="mt-7 flex flex-wrap items-end justify-between gap-6"
+          >
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Gestion sportive
@@ -513,7 +516,10 @@ export default async function TeamRosterPage({
               )}
             </div>
           ) : (
-            <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]">
+            <section
+              data-tutorial-id="roster-rating-table"
+              className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
+            >
               {teamSponsorIdentity ? (
                 <div
                   aria-hidden="true"

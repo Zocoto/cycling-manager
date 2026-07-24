@@ -211,7 +211,10 @@ export default async function SportingDirectorProfilePage() {
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
           <BackToOfficeLink />
 
-          <header className="mt-8 max-w-3xl">
+          <header
+            data-tutorial-id="profile-page-introduction"
+            className="mt-8 max-w-3xl"
+          >
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
               Directeur Sportif
             </p>
@@ -237,7 +240,10 @@ export default async function SportingDirectorProfilePage() {
             <ProfileUnavailableMessage />
           ) : (
             <div className="mt-10 space-y-6">
-              <article className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-8">
+              <article
+                data-tutorial-id="profile-form-section"
+                className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-8"
+              >
                 <div className="border-b border-[#315B3E]/10 pb-4">
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
                     Votre identité
@@ -271,61 +277,66 @@ export default async function SportingDirectorProfilePage() {
                 </div>
               </article>
 
-              {isProfileComplete &&
-              !teamAmateurIdentity?.isConfigured ? (
-                <article className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-8">
-                  <div className="border-b border-[#315B3E]/10 pb-6">
-                    <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-                      Étape 2 · Fondation
-                    </p>
-                    <h2 className="mt-2 text-2xl font-black">
-                      Créer votre équipe amateur
-                    </h2>
-                    <p className="mt-3 max-w-3xl leading-7 text-[#60756E]">
-                      Choisissez une identité propre à l’équipe. Son pays
-                      peut être différent de votre nationalité et servira à
-                      générer vos sept premiers coureurs.
-                    </p>
-                  </div>
+              <div
+                data-tutorial-id="team-foundation-area"
+                className="space-y-6"
+              >
+                {isProfileComplete &&
+                !teamAmateurIdentity?.isConfigured ? (
+                  <article className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-8">
+                    <div className="border-b border-[#315B3E]/10 pb-6">
+                      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+                        Étape 2 · Fondation
+                      </p>
+                      <h2 className="mt-2 text-2xl font-black">
+                        Créer votre équipe amateur
+                      </h2>
+                      <p className="mt-3 max-w-3xl leading-7 text-[#60756E]">
+                        Choisissez une identité propre à l’équipe. Son pays
+                        peut être différent de votre nationalité et servira à
+                        générer vos sept premiers coureurs.
+                      </p>
+                    </div>
 
-                  <div className="mt-8">
-                    <AmateurTeamCreationForm
-                      countries={countries}
-                      initialCountryId={
-                        teamAmateurIdentity?.homeCountryId ?? null
-                      }
-                      initialTeamName={
-                        teamAmateurIdentity?.amateurName ?? null
-                      }
-                      existingTeam={Boolean(teamAmateurIdentity)}
-                    />
-                  </div>
-                </article>
-              ) : null}
+                    <div className="mt-8">
+                      <AmateurTeamCreationForm
+                        countries={countries}
+                        initialCountryId={
+                          teamAmateurIdentity?.homeCountryId ?? null
+                        }
+                        initialTeamName={
+                          teamAmateurIdentity?.amateurName ?? null
+                        }
+                        existingTeam={Boolean(teamAmateurIdentity)}
+                      />
+                    </div>
+                  </article>
+                ) : null}
 
-              <ProfileSummaryCard
-                displayName={displayName}
-                username={
-                  sportingDirector.username
-                }
-                email={user.email ?? null}
-                isEmailVisible={
-                  sportingDirector.is_email_visible
-                }
-                selectedCountry={
-                  selectedCountry
-                }
-                avatarKey={
-                  sportingDirector.avatar_key
-                }
-                reputationPoints={
-                  sportingDirector.reputation_points
-                }
-                teamSponsorIdentity={
-                  teamSponsorIdentity
-                }
-                teamAmateurIdentity={teamAmateurIdentity}
+                <ProfileSummaryCard
+                  displayName={displayName}
+                  username={
+                    sportingDirector.username
+                  }
+                  email={user.email ?? null}
+                  isEmailVisible={
+                    sportingDirector.is_email_visible
+                  }
+                  selectedCountry={
+                    selectedCountry
+                  }
+                  avatarKey={
+                    sportingDirector.avatar_key
+                  }
+                  reputationPoints={
+                    sportingDirector.reputation_points
+                  }
+                  teamSponsorIdentity={
+                    teamSponsorIdentity
+                  }
+                  teamAmateurIdentity={teamAmateurIdentity}
                 />
+              </div>
 
               <DeleteSportingDirectorAccount
                 displayName={displayName}

@@ -6,26 +6,61 @@ import { connection } from "next/server";
 import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
 import { TutorialProvider } from "@/components/tutorial/tutorial-provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  ONBOARDING_TUTORIAL_KEY,
+  shouldAutoStartOnboarding,
+} from "@/lib/tutorial/onboarding";
+import { getAuthenticatedTutorialOnboardingState } from "@/lib/tutorial/onboarding-state";
 import { listAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import type { TutorialProgressRow } from "@/types/tutorial";
 
-async function loadInitialTutorialProgress(): Promise<
-  TutorialProgressRow[]
-> {
+type TutorialBootstrap = {
+  progress: TutorialProgressRow[];
+  autoStartTutorialKeys: string[];
+};
+
+async function loadTutorialBootstrap(): Promise<TutorialBootstrap> {
   try {
     const supabase =
       await createSupabaseServerClient();
 
-    return await listAuthenticatedTutorialProgress(
-      supabase,
-    );
+    const [progress, onboardingState] =
+      await Promise.all([
+        listAuthenticatedTutorialProgress(
+          supabase,
+        ),
+        getAuthenticatedTutorialOnboardingState(
+          supabase,
+        ),
+      ]);
+
+    const onboardingProgress =
+      progress.find(
+        (row) =>
+          row.tutorial_key ===
+          ONBOARDING_TUTORIAL_KEY,
+      ) ?? null;
+
+    return {
+      progress,
+      autoStartTutorialKeys:
+        shouldAutoStartOnboarding({
+          state: onboardingState,
+          progress: onboardingProgress,
+        })
+          ? [ONBOARDING_TUTORIAL_KEY]
+          : [],
+    };
   } catch (error) {
     console.error(
-      "Impossible de charger la progression des didacticiels.",
+      "Impossible de charger le démarrage des didacticiels.",
       error,
     );
 
-    return [];
+    return {
+      progress: [],
+      autoStartTutorialKeys: [],
+    };
   }
 }
 
@@ -34,22 +69,22 @@ export default async function GameLayout({
 }: {
   children: ReactNode;
 }) {
-  /*
-   * L’espace de jeu dépend de la session du joueur.
-   * On attend donc explicitement une requête réelle avant
-   * de lire les cookies Supabase.
-   */
   await connection();
 
-  const tutorialProgress =
-    await loadInitialTutorialProgress();
+  const tutorialBootstrap =
+    await loadTutorialBootstrap();
 
   return (
     <>
       <RaceSettlementWatcher />
 
       <TutorialProvider
-        initialProgress={tutorialProgress}
+        initialProgress={
+          tutorialBootstrap.progress
+        }
+        autoStartTutorialKeys={
+          tutorialBootstrap.autoStartTutorialKeys
+        }
       >
         {children}
       </TutorialProvider>

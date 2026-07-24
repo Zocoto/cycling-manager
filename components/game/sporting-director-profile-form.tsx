@@ -161,7 +161,7 @@ export function SportingDirectorProfileForm({
     getVisibleErrors("hideEmail");
 
   return (
-    <div>
+    <div data-tutorial-id="profile-form">
       {shouldShowStateMessage ? (
         <div
           role={
@@ -363,7 +363,7 @@ export function SportingDirectorProfileForm({
           ) : null}
         </fieldset>
 
-        <div>
+        <div data-tutorial-id="profile-nationality">
           <label
             htmlFor="countryId"
             className="block text-sm font-bold text-[#183F37]"

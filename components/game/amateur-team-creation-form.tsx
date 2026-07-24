@@ -63,7 +63,11 @@ export function AmateurTeamCreationForm({
   const countryIsLocked = Boolean(existingTeam && initialCountryId);
 
   return (
-    <div id="equipe-amateur" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div
+      id="equipe-amateur"
+      data-tutorial-id="team-creation-form"
+      className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]"
+    >
       <form action={formAction} className="space-y-7">
         {state.message ? (
           <div
