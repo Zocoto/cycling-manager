@@ -194,7 +194,7 @@ export function GameHeader({
             href="/guide"
             title="Ouvrir le guide du jeu"
             aria-label="Ouvrir le guide du jeu"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-extrabold uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
           >
             <svg
               aria-hidden="true"
@@ -215,7 +215,7 @@ export function GameHeader({
           <form action={logoutAccount}>
             <button
               type="submit"
-              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-extrabold uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
             >
               <svg
                 aria-hidden="true"
