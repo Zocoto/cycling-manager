@@ -117,7 +117,8 @@ type StageAttackParticipantRow = {
 export async function settleFinishedRaceResults(
   calendar: SeasonRaceCalendar,
   now = new Date(),
-  lockedDirectory?: LockedOfficialRaceSimulationDirectory
+  lockedDirectory?: LockedOfficialRaceSimulationDirectory,
+  options: { repairCompletedEditions?: boolean } = {}
 ) {
   const admin = createSupabaseAdminClient();
   const officialSimulations =
@@ -128,7 +129,14 @@ export async function settleFinishedRaceResults(
   let failedEditions = 0;
 
   for (const edition of calendar.editions) {
-    if (edition.status === "completed" || edition.status === "cancelled") {
+    if (edition.status === "cancelled") continue;
+    // La fin de journée marque les éditions « completed » même si leurs
+    // résultats n'ont jamais été consolidés (bug historique). Sur l'espace
+    // dédié d'une course, on réévalue donc ces éditions pour les réparer.
+    if (
+      edition.status === "completed" &&
+      !options.repairCompletedEditions
+    ) {
       continue;
     }
 
@@ -178,6 +186,19 @@ async function settleEditionRaceResults({
   const rosterByRiderId = await loadRosterContext(admin, edition.id);
   if (rosterByRiderId.size < minimumFieldSize) {
     return { processedStages: 0, completedEditions: 0 };
+  }
+
+  // Une édition déjà clôturée avec un classement général complet est saine :
+  // inutile de la retraiter.
+  if (edition.status === "completed") {
+    const alreadySettled = await hasCompleteRaceClassification(
+      admin,
+      edition.id,
+      rosterByRiderId.size
+    );
+    if (alreadySettled) {
+      return { processedStages: 0, completedEditions: 0 };
+    }
   }
 
   const orderedStages = [...edition.stages].sort(

@@ -116,6 +116,7 @@ export function buildPersistedGeneralClassification(
     Omit<PersistedStageResultForGeneral, "status" | "elapsedTimeMs" | "abandonmentReason">
   >();
   const totalTimeByRiderId = new Map<string, number>();
+  const finishedStagesByRiderId = new Map<string, number>();
   const abandonedByRiderId = new Map<string, PersistedStageResultForGeneral>();
 
   for (const stage of stageResults) {
@@ -132,10 +133,32 @@ export function buildPersistedGeneralClassification(
           result.riderId,
           (totalTimeByRiderId.get(result.riderId) ?? 0) + result.elapsedTimeMs
         );
+        finishedStagesByRiderId.set(
+          result.riderId,
+          (finishedStagesByRiderId.get(result.riderId) ?? 0) + 1
+        );
       } else if (result.status !== "finished") {
         abandonedByRiderId.set(result.riderId, result);
       }
     }
+  }
+
+  // Un coureur blessé peut terminer une étape puis ne pas repartir le
+  // lendemain : il n'apparaît plus dans les étapes suivantes. Sans résultat
+  // « finished » sur chaque étape, il ne peut pas figurer au classement
+  // général chronométré.
+  const stageCount = stageResults.length;
+  for (const [riderId, finishedStages] of finishedStagesByRiderId) {
+    if (finishedStages === stageCount || abandonedByRiderId.has(riderId)) {
+      continue;
+    }
+    const identity = identityByRiderId.get(riderId)!;
+    abandonedByRiderId.set(riderId, {
+      ...identity,
+      status: "did_not_start",
+      elapsedTimeMs: null,
+      abandonmentReason: null,
+    });
   }
 
   const classified = [...totalTimeByRiderId.entries()]
