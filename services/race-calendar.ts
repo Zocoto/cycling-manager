@@ -196,6 +196,7 @@ type CalendarEngagedCountRow = {
 type ActiveSeasonCalendarLoadOptions = {
   raceSlug?: string;
   includeEngagedRiders?: boolean;
+  seasonStatuses?: Array<"active" | "planned">;
 };
 
 type RiderCountryRow = {
@@ -379,9 +380,13 @@ export async function getActiveSeasonRaceCalendar(
   now = new Date(),
   options: ActiveSeasonCalendarLoadOptions = {}
 ): Promise<SeasonRaceCalendar | null> {
+  const seasonStatuses = options.seasonStatuses?.length
+    ? [...new Set(options.seasonStatuses)]
+    : ["active"];
+
   const {
-    data: season,
-    error: seasonError,
+    data: seasons,
+    error: seasonsError,
   } = await supabase
     .from("seasons")
     .select(
@@ -391,18 +396,66 @@ export async function getActiveSeasonRaceCalendar(
         name,
         starts_on,
         ends_on,
-        current_day_number
+        current_day_number,
+        status
       `
     )
-    .eq("status", "active")
-    .maybeSingle<SeasonRow>();
+    .in("status", seasonStatuses);
 
-  if (seasonError) {
+  if (seasonsError) {
     throw new Error(
-      `Impossible de charger la saison active : ${seasonError.message}`
+      `Impossible de charger les saisons actives${
+        seasonStatuses.length > 1 ? " ou planifiées" : ""
+      } : ${seasonsError.message}`
     );
   }
 
+  if (!seasons || seasons.length === 0) {
+    return null;
+  }
+
+  const prioritizedSeasons = [...seasons].sort((first, second) => {
+    const firstPriority = first.status === "active" ? 1 : 0;
+    const secondPriority = second.status === "active" ? 1 : 0;
+
+    if (firstPriority !== secondPriority) {
+      return secondPriority - firstPriority;
+    }
+
+    return second.game_year - first.game_year;
+  });
+
+  if (options.raceSlug) {
+    for (const season of prioritizedSeasons) {
+      const calendar = await getSeasonCalendarForSeason(
+        supabase,
+        now,
+        season,
+        options
+      );
+
+      if (calendar && calendar.editions.length > 0) {
+        return calendar;
+      }
+    }
+
+    return null;
+  }
+
+  return getSeasonCalendarForSeason(
+    supabase,
+    now,
+    prioritizedSeasons[0],
+    options
+  );
+}
+
+async function getSeasonCalendarForSeason(
+  supabase: SupabaseServerClient,
+  now: Date,
+  season: SeasonRow,
+  options: ActiveSeasonCalendarLoadOptions
+): Promise<SeasonRaceCalendar | null> {
   if (!season) {
     return null;
   }
@@ -424,7 +477,6 @@ export async function getActiveSeasonRaceCalendar(
   if (options.raceSlug && !scopedRaceResult?.data) {
     return null;
   }
-
   let editionsQuery = supabase
     .from("race_editions")
     .select(
@@ -469,9 +521,7 @@ export async function getActiveSeasonRaceCalendar(
 
       editionsQuery.returns<RaceEditionRow[]>(),
 
-      supabase.rpc(
-        "get_current_team_calendar_registrations"
-      ),
+      supabase.rpc("get_current_team_calendar_registrations"),
     ]);
 
   if (daysResult.error) {
