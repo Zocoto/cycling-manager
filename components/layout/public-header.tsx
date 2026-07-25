@@ -69,7 +69,7 @@ export function PublicHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/connexion"
-            className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-4 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-4 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
           >
             Se connecter
           </Link>
