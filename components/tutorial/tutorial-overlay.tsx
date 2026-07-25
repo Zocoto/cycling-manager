@@ -41,6 +41,19 @@ type TutorialOverlayProps = {
 const DEFAULT_PANEL_WIDTH = 420;
 const DEFAULT_PANEL_HEIGHT = 300;
 
+/**
+ * En dessous de cette largeur, le panneau est affiché
+ * en volet compact ancré en bas de l’écran.
+ */
+const MOBILE_BREAKPOINT = 640;
+
+function isMobileViewport(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.innerWidth < MOBILE_BREAKPOINT
+  );
+}
+
 const emptySubscribe = () => () => undefined;
 
 function useIsClient(): boolean {
@@ -66,6 +79,7 @@ function rectangleFromDomRect(
 
 function targetNeedsRecentering(
   rectangle: DOMRect,
+  reservedBottom = 32,
 ): boolean {
   const safeMargin = 32;
 
@@ -73,7 +87,7 @@ function targetNeedsRecentering(
     rectangle.top < safeMargin ||
     rectangle.left < safeMargin ||
     rectangle.bottom >
-      window.innerHeight - safeMargin ||
+      window.innerHeight - reservedBottom ||
     rectangle.right >
       window.innerWidth - safeMargin
   );
@@ -110,6 +124,10 @@ export function TutorialOverlay({
       width: 0,
       height: 0,
     });
+
+  const [isMobile, setIsMobile] = useState(
+    isMobileViewport,
+  );
 
   const [panelPosition, setPanelPosition] =
     useState<TutorialPanelPosition>({
@@ -173,6 +191,10 @@ export function TutorialOverlay({
 
       setViewportSize(nextViewportSize);
 
+      setIsMobile(
+        nextViewportSize.width < MOBILE_BREAKPOINT,
+      );
+
       const targetElement = findTargetElement();
       const rawTargetRectangle =
         targetElement?.getBoundingClientRect() ?? null;
@@ -228,12 +250,33 @@ export function TutorialOverlay({
       const rectangle =
         targetElement.getBoundingClientRect();
 
-      if (targetNeedsRecentering(rectangle)) {
+      const mobileViewport = isMobileViewport();
+
+      // Sur mobile, le volet ancré en bas occupe le
+      // bas de l’écran : on réserve cette hauteur
+      // pour garder la cible visible au-dessus.
+      const reservedBottom = mobileViewport
+        ? (panelRef.current?.offsetHeight ??
+            Math.round(
+              window.innerHeight * 0.4,
+            )) + 16
+        : 32;
+
+      if (
+        targetNeedsRecentering(
+          rectangle,
+          reservedBottom,
+        )
+      ) {
         targetElement.scrollIntoView({
           block: "center",
           inline: "center",
           behavior: "auto",
         });
+
+        if (mobileViewport) {
+          window.scrollBy(0, reservedBottom / 2);
+        }
       }
     }
 
@@ -405,22 +448,42 @@ export function TutorialOverlay({
         aria-labelledby={panelLabelId}
         aria-describedby={panelDescriptionId}
         tabIndex={-1}
-        className="pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border border-[#315B3E]/15 bg-[#FFFDF4] text-[#16342D] shadow-[0_28px_90px_rgba(7,26,23,0.42)] outline-none"
-        style={{
-          left: panelPosition.left,
-          top: panelPosition.top,
-        }}
+        className={
+          isMobile
+            ? "pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[48dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] shadow-[0_-16px_50px_rgba(7,26,23,0.4)] outline-none"
+            : "pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border border-[#315B3E]/15 bg-[#FFFDF4] text-[#16342D] shadow-[0_28px_90px_rgba(7,26,23,0.42)] outline-none"
+        }
+        style={
+          isMobile
+            ? undefined
+            : {
+                left: panelPosition.left,
+                top: panelPosition.top,
+              }
+        }
       >
-        <div className="border-b border-[#315B3E]/10 bg-[#E9F5F0] px-5 py-4">
+        <div
+          className={
+            isMobile
+              ? "shrink-0 border-b border-[#315B3E]/10 bg-[#E9F5F0] px-4 py-2.5"
+              : "border-b border-[#315B3E]/10 bg-[#E9F5F0] px-5 py-4"
+          }
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-                {tutorialTitle}
-              </p>
+              {isMobile ? null : (
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
+                  {tutorialTitle}
+                </p>
+              )}
 
               <h2
                 id={panelLabelId}
-                className="mt-1 text-lg font-black leading-tight text-[#0B302B]"
+                className={
+                  isMobile
+                    ? "text-base font-black leading-tight text-[#0B302B]"
+                    : "mt-1 text-lg font-black leading-tight text-[#0B302B]"
+                }
               >
                 {step.title}
               </h2>
@@ -431,13 +494,23 @@ export function TutorialOverlay({
               onClick={onQuit}
               disabled={isPending}
               aria-label="Quitter le didacticiel et reprendre plus tard"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#315B3E]/15 bg-white text-lg font-black text-[#48665F] transition hover:border-[#278B70]/40 hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-wait disabled:opacity-50"
+              className={
+                isMobile
+                  ? "grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#315B3E]/15 bg-white text-base font-black text-[#48665F] transition hover:border-[#278B70]/40 hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-wait disabled:opacity-50"
+                  : "grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#315B3E]/15 bg-white text-lg font-black text-[#48665F] transition hover:border-[#278B70]/40 hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-wait disabled:opacity-50"
+              }
             >
               ×
             </button>
           </div>
 
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white">
+          <div
+            className={
+              isMobile
+                ? "mt-2 h-1.5 overflow-hidden rounded-full bg-white"
+                : "mt-3 h-1.5 overflow-hidden rounded-full bg-white"
+            }
+          >
             <div
               className="h-full rounded-full bg-[#278B70] transition-[width] duration-200"
               style={{
@@ -446,7 +519,13 @@ export function TutorialOverlay({
             />
           </div>
 
-          <p className="mt-2 text-[10px] font-bold text-[#668078]">
+          <p
+            className={
+              isMobile
+                ? "mt-1.5 text-[10px] font-bold text-[#668078]"
+                : "mt-2 text-[10px] font-bold text-[#668078]"
+            }
+          >
             Étape {stepIndex + 1} sur {totalSteps}
           </p>
         </div>
@@ -454,7 +533,11 @@ export function TutorialOverlay({
         <div
           id={panelDescriptionId}
           aria-live="polite"
-          className="px-5 py-5"
+          className={
+            isMobile
+              ? "min-h-0 flex-1 overflow-y-auto px-4 py-3"
+              : "px-5 py-5"
+          }
         >
           <p className="whitespace-pre-line text-sm font-semibold leading-6 text-[#35554D]">
             {step.content}
@@ -478,7 +561,13 @@ export function TutorialOverlay({
           ) : null}
         </div>
 
-        <div className="border-t border-[#315B3E]/10 bg-white px-5 py-4">
+        <div
+          className={
+            isMobile
+              ? "shrink-0 border-t border-[#315B3E]/10 bg-white px-4 py-2.5"
+              : "border-t border-[#315B3E]/10 bg-white px-5 py-4"
+          }
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
@@ -516,12 +605,14 @@ export function TutorialOverlay({
             </div>
           </div>
 
-          <p className="mt-3 text-[10px] font-semibold leading-4 text-[#82928D]">
-            Quitter conserve votre progression. Passer
-            masque définitivement le lancement
-            automatique, mais le parcours restera
-            disponible dans le Guide.
-          </p>
+          {isMobile ? null : (
+            <p className="mt-3 text-[10px] font-semibold leading-4 text-[#82928D]">
+              Quitter conserve votre progression.
+              Passer masque définitivement le
+              lancement automatique, mais le parcours
+              restera disponible dans le Guide.
+            </p>
+          )}
         </div>
       </div>
     </div>,
