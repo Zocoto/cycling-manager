@@ -230,7 +230,7 @@ export function GameHeader({
                 <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
                 <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
               </svg>
-              Se déconnecter
+              <span className="hidden sm:inline">Se déconnecter</span>
             </button>
           </form>
         </div>
