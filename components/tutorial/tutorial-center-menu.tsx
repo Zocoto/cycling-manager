@@ -204,9 +204,9 @@ export function TutorialCenterMenu() {
           role="dialog"
           aria-modal="false"
           aria-labelledby={`${panelId}-title`}
-          className="absolute right-0 top-full z-[140] mt-2 w-[min(410px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)]"
+          className="absolute right-0 top-full z-[140] mt-2 w-[min(410px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)] max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:mt-0 max-sm:w-auto max-sm:rounded-b-none max-sm:rounded-t-2xl max-sm:border-x-0 max-sm:border-b-0 max-sm:border-t max-sm:pb-[env(safe-area-inset-bottom)] max-sm:shadow-[0_-16px_50px_rgba(0,0,0,0.35)]"
         >
-          <header className="border-b border-[#315B3E]/10 bg-[#E9F5F0] px-5 py-4">
+          <header className="border-b border-[#315B3E]/10 bg-[#E9F5F0] px-5 py-4 max-sm:px-4 max-sm:py-3">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
@@ -223,12 +223,12 @@ export function TutorialCenterMenu() {
                 {completedEssentialCount} / 2 essentiels
               </span>
             </div>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E] max-sm:hidden">
               Découvrez les fondamentaux puis vivez une course dans les mêmes conditions d’affichage que les épreuves officielles.
             </p>
           </header>
 
-          <div className="max-h-[min(620px,calc(100vh-100px))] overflow-y-auto p-4">
+          <div className="max-h-[min(620px,calc(100vh-100px))] overflow-y-auto p-4 max-sm:max-h-[55dvh] max-sm:p-3">
             <p className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
               Formation essentielle
             </p>
