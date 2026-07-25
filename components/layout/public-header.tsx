@@ -92,7 +92,7 @@ export function PublicHeader() {
             href="/inscription"
             className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-4 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
           >
-            S'inscrire
+            S’inscrire
           </Link>
         </div>
       </div>
