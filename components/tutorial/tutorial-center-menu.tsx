@@ -159,7 +159,7 @@ export function TutorialCenterMenu() {
         onClick={() => {
           setOpen((current) => !current);
         }}
-        className="relative inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] px-2.5 text-[11px] font-extrabold text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="relative inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] px-3 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span
           aria-hidden="true"
