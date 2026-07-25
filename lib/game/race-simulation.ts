@@ -3204,8 +3204,8 @@ function setBestAutomaticRole(
 }
 
 function validateSimulationInput(input: StageSimulationInput) {
-  if (input.riders.length < 2) {
-    throw new Error("Une simulation requiert au moins deux coureurs.");
+  if (input.riders.length < 1) {
+    throw new Error("Une simulation requiert au moins un coureur.");
   }
   if (input.segments.length === 0) {
     throw new Error("Une simulation requiert au moins un tronçon.");

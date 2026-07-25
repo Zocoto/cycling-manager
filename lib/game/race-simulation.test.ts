@@ -50,6 +50,38 @@ describe("simulateRaceStage", () => {
     expect(simulateRaceStage(input)).toEqual(simulateRaceStage(input));
   });
 
+  it("simule un contre-la-montre avec un seul engagé (championnat national)", () => {
+    const base = createDemoSimulationInput("sprint-littoral", 7);
+    const result = simulateRaceStage({
+      ...base,
+      stageType: "individual_time_trial",
+      riders: base.riders.slice(0, 1),
+    });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0].rank).toBe(1);
+    expect(result.results[0].status).toBe("finished");
+  });
+
+  it("simule une course en ligne avec un seul engagé", () => {
+    const base = createDemoSimulationInput("collines-ardennes", 3);
+    const result = simulateRaceStage({
+      ...base,
+      riders: base.riders.slice(0, 1),
+    });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.timeline.length).toBeGreaterThan(0);
+  });
+
+  it("refuse une simulation sans aucun coureur", () => {
+    const base = createDemoSimulationInput("sprint-littoral", 7);
+
+    expect(() =>
+      simulateRaceStage({ ...base, riders: [] })
+    ).toThrowError("Une simulation requiert au moins un coureur.");
+  });
+
   it("produit un classement complet avec des rangs uniques", () => {
     const input = createDemoSimulationInput("collines-ardennes", 3);
     const result = simulateRaceStage(input);

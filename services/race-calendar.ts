@@ -28,6 +28,7 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   chunkValues,
+  collectChunkedPaginatedRows,
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
 
@@ -425,30 +426,38 @@ export async function getActiveSeasonRaceCalendar(
     return null;
   }
 
-  let editionsQuery = supabase
-    .from("race_editions")
-    .select(
-      `
-        id,
-        race_id,
-        race_category_id,
-        display_name,
-        status,
-        registration_closes_at,
-        withdrawal_closes_at,
-        minimum_reputation,
-        registration_policy
-      `
-    )
-    .eq("season_id", season.id)
-    .neq("status", "cancelled");
+  const fetchEditionsPage = async (from: number, to: number) => {
+    let editionsQuery = supabase
+      .from("race_editions")
+      .select(
+        `
+          id,
+          race_id,
+          race_category_id,
+          display_name,
+          status,
+          registration_closes_at,
+          withdrawal_closes_at,
+          minimum_reputation,
+          registration_policy
+        `
+      )
+      .eq("season_id", season.id)
+      .neq("status", "cancelled");
 
-  if (scopedRaceResult?.data) {
-    editionsQuery = editionsQuery.eq(
-      "race_id",
-      scopedRaceResult.data.id
-    );
-  }
+    if (scopedRaceResult?.data) {
+      editionsQuery = editionsQuery.eq(
+        "race_id",
+        scopedRaceResult.data.id
+      );
+    }
+
+    const result = await editionsQuery
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<RaceEditionRow[]>();
+    return { data: result.data, error: result.error };
+  };
 
   const [
     daysResult,
@@ -467,7 +476,9 @@ export async function getActiveSeasonRaceCalendar(
         })
         .returns<SeasonDayRow[]>(),
 
-      editionsQuery.returns<RaceEditionRow[]>(),
+      collectPaginatedRows<RaceEditionRow, { message: string }>({
+        fetchPage: fetchEditionsPage,
+      }),
 
       supabase.rpc(
         "get_current_team_calendar_registrations"
@@ -498,16 +509,47 @@ export async function getActiveSeasonRaceCalendar(
   );
   const includeEngagedRiders =
     options.includeEngagedRiders !== false;
+  // Les RPC sont plafonnées à 1 000 lignes par PostgREST : on pagine pour ne
+  // jamais tronquer les startlists (source des simulations officielles).
   const engagedRidersResult = includeEngagedRiders
-    ? scopedRaceResult?.data && editionIds.length === 1
-      ? await supabase.rpc("get_race_edition_engaged_riders", {
-          p_race_edition_id: editionIds[0],
-        })
-      : await supabase.rpc("get_active_calendar_engaged_riders")
+    ? await collectPaginatedRows<
+        CalendarEngagedRiderRow,
+        { message: string }
+      >({
+        fetchPage: async (from, to) => {
+          const result =
+            scopedRaceResult?.data && editionIds.length === 1
+              ? await supabase
+                  .rpc("get_race_edition_engaged_riders", {
+                    p_race_edition_id: editionIds[0],
+                  })
+                  .range(from, to)
+              : await supabase
+                  .rpc("get_active_calendar_engaged_riders")
+                  .range(from, to);
+          return {
+            data: result.data as CalendarEngagedRiderRow[] | null,
+            error: result.error,
+          };
+        },
+      })
     : null;
   const engagedCountsResult = includeEngagedRiders
     ? null
-    : await supabase.rpc("get_active_calendar_engaged_counts");
+    : await collectPaginatedRows<
+        CalendarEngagedCountRow,
+        { message: string }
+      >({
+        fetchPage: async (from, to) => {
+          const result = await supabase
+            .rpc("get_active_calendar_engaged_counts")
+            .range(from, to);
+          return {
+            data: result.data as CalendarEngagedCountRow[] | null,
+            error: result.error,
+          };
+        },
+      });
 
   if (engagedRidersResult?.error) {
     throw new Error(
@@ -537,16 +579,41 @@ export async function getActiveSeasonRaceCalendar(
   const [specialAbilitiesResult, riderCountriesResult] =
     engagedRiderIds.length > 0
       ? await Promise.all([
-          supabase
-            .from("rider_special_abilities")
-            .select("rider_id, ability_code")
-            .in("rider_id", engagedRiderIds)
-            .returns<RiderSpecialAbilityRow[]>(),
-          createSupabaseAdminClient()
-            .from("riders")
-            .select("id, country_id")
-            .in("id", engagedRiderIds)
-            .returns<RiderCountryRow[]>(),
+          collectChunkedPaginatedRows<
+            RiderSpecialAbilityRow,
+            { message: string },
+            string
+          >({
+            values: engagedRiderIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await supabase
+                .from("rider_special_abilities")
+                .select("rider_id, ability_code")
+                .in("rider_id", chunk)
+                .order("rider_id", { ascending: true })
+                .order("ability_code", { ascending: true })
+                .range(from, to)
+                .returns<RiderSpecialAbilityRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          }),
+          collectChunkedPaginatedRows<
+            RiderCountryRow,
+            { message: string },
+            string
+          >({
+            values: engagedRiderIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await createSupabaseAdminClient()
+                .from("riders")
+                .select("id, country_id")
+                .in("id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to)
+                .returns<RiderCountryRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          }),
         ])
       : [emptyResult<RiderSpecialAbilityRow>(), emptyResult<RiderCountryRow>()];
 
@@ -594,21 +661,29 @@ export async function getActiveSeasonRaceCalendar(
         : Promise.resolve(emptyResult<SeasonEventRow>()),
 
       raceIds.length > 0
-        ? supabase
-            .from("races")
-            .select(
-              `
-                id,
-                country_id,
-                name,
-                short_name,
-                race_format,
-                slug,
-                competition_type
-              `
-            )
-            .in("id", raceIds)
-            .returns<RaceRow[]>()
+        ? collectChunkedPaginatedRows<RaceRow, { message: string }, string>({
+            values: raceIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await supabase
+                .from("races")
+                .select(
+                  `
+                    id,
+                    country_id,
+                    name,
+                    short_name,
+                    race_format,
+                    slug,
+                    competition_type
+                  `
+                )
+                .in("id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to)
+                .returns<RaceRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          })
         : Promise.resolve(emptyResult<RaceRow>()),
 
       categoryIds.length > 0
@@ -624,28 +699,36 @@ export async function getActiveSeasonRaceCalendar(
           ),
 
       editionIds.length > 0
-        ? supabase
-            .from("stages")
-            .select(
-              `
-                id,
-                race_edition_id,
-                season_day_id,
-                stage_number,
-                name,
-                stage_type,
-                status,
-                profile_type,
-                distance_km,
-                day_slot,
-                departure_at
-              `
-            )
-            .in("race_edition_id", editionIds)
-            .order("stage_number", {
-              ascending: true,
-            })
-            .returns<StageRow[]>()
+        ? collectChunkedPaginatedRows<StageRow, { message: string }, string>({
+            values: editionIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await supabase
+                .from("stages")
+                .select(
+                  `
+                    id,
+                    race_edition_id,
+                    season_day_id,
+                    stage_number,
+                    name,
+                    stage_type,
+                    status,
+                    profile_type,
+                    distance_km,
+                    day_slot,
+                    departure_at
+                  `
+                )
+                .in("race_edition_id", chunk)
+                .order("race_edition_id", { ascending: true })
+                .order("stage_number", {
+                  ascending: true,
+                })
+                .range(from, to)
+                .returns<StageRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          })
         : Promise.resolve(emptyResult<StageRow>()),
     ]);
 
@@ -672,12 +755,24 @@ export async function getActiveSeasonRaceCalendar(
   const [segmentsResult, reconnaissanceResult] = await Promise.all([
     loadStageSegments(supabase, stageIds),
     stageIds.length > 0
-      ? admin
-          .from("stage_reconnaissances")
-          .select("id, target_stage_id, bonus_points")
-          .in("target_stage_id", stageIds)
-          .neq("status", "cancelled")
-          .returns<StageReconnaissanceRow[]>()
+      ? collectChunkedPaginatedRows<
+          StageReconnaissanceRow,
+          { message: string },
+          string
+        >({
+          values: stageIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("stage_reconnaissances")
+              .select("id, target_stage_id, bonus_points")
+              .in("target_stage_id", chunk)
+              .neq("status", "cancelled")
+              .order("id", { ascending: true })
+              .range(from, to)
+              .returns<StageReconnaissanceRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
       : Promise.resolve(emptyResult<StageReconnaissanceRow>()),
   ]);
 
@@ -697,11 +792,24 @@ export async function getActiveSeasonRaceCalendar(
   );
   const reconnaissanceRidersResult =
     reconnaissanceIds.length > 0
-      ? await admin
-          .from("stage_reconnaissance_riders")
-          .select("reconnaissance_id, rider_id")
-          .in("reconnaissance_id", reconnaissanceIds)
-          .returns<StageReconnaissanceRiderRow[]>()
+      ? await collectChunkedPaginatedRows<
+          StageReconnaissanceRiderRow,
+          { message: string },
+          string
+        >({
+          values: reconnaissanceIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("stage_reconnaissance_riders")
+              .select("reconnaissance_id, rider_id")
+              .in("reconnaissance_id", chunk)
+              .order("reconnaissance_id", { ascending: true })
+              .order("rider_id", { ascending: true })
+              .range(from, to)
+              .returns<StageReconnaissanceRiderRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
       : emptyResult<StageReconnaissanceRiderRow>();
 
   assertQuerySucceeded(
@@ -721,11 +829,23 @@ export async function getActiveSeasonRaceCalendar(
   ]);
   const countriesResult =
     countryIds.length > 0
-      ? await supabase
-          .from("countries")
-          .select("id, name, iso_alpha2")
-          .in("id", countryIds)
-          .returns<CountryRow[]>()
+      ? await collectChunkedPaginatedRows<
+          CountryRow,
+          { message: string },
+          string
+        >({
+          values: countryIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await supabase
+              .from("countries")
+              .select("id, name, iso_alpha2")
+              .in("id", chunk)
+              .order("id", { ascending: true })
+              .range(from, to)
+              .returns<CountryRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
       : emptyResult<CountryRow>();
 
   assertQuerySucceeded(
@@ -1053,10 +1173,22 @@ export async function getRaceEngagedRiders(
   supabase: SupabaseServerClient,
   raceEditionId: string
 ): Promise<RaceEngagedRider[]> {
-  const { data, error } = await supabase.rpc(
-    "get_race_engaged_riders",
-    { p_race_edition_id: raceEditionId }
-  );
+  const { data, error } = await collectPaginatedRows<
+    RaceEngagedRiderRow,
+    { message: string }
+  >({
+    fetchPage: async (from, to) => {
+      const result = await supabase
+        .rpc("get_race_engaged_riders", {
+          p_race_edition_id: raceEditionId,
+        })
+        .range(from, to);
+      return {
+        data: result.data as RaceEngagedRiderRow[] | null,
+        error: result.error,
+      };
+    },
+  });
 
   if (error) {
     throw new Error(
