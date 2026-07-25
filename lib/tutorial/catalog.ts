@@ -97,7 +97,7 @@ const onboardingTutorial = {
       route: "/jeu",
       title: "Bienvenue dans Cyclostratège",
       content:
-        "Vous êtes désormais Directeur Sportif d’une jeune structure cycliste. Ce parcours présente les fonctions essentielles du jeu et vous prépare à votre future course d’initiation.\n\nVous pouvez quitter à tout moment, reprendre plus tard ou passer définitivement le didacticiel.",
+        "Vous êtes désormais Directeur Sportif d’une jeune structure cycliste. Ce parcours présente les fonctions essentielles du jeu et vous prépare au Critérium de la découverte.\n\nVous pouvez quitter à tout moment, reprendre plus tard ou passer définitivement le didacticiel.",
       placement: "center",
     },
     {
@@ -177,7 +177,7 @@ const onboardingTutorial = {
       targetId: "calendar-races",
       title: "Planifiez une saison de 28 jours",
       content:
-        "Le calendrier rassemble les courses d’un jour et les tours à étapes. Leur catégorie, leur profil et leur calendrier déterminent leur difficulté, leur prestige et les points disponibles.\n\nVous devrez inscrire votre équipe puis choisir les coureurs adaptés au parcours. Une course d’initiation sans conséquence officielle sera ajoutée dans la prochaine étape du projet.",
+        "Le calendrier rassemble les courses d’un jour et les tours à étapes. Leur catégorie, leur profil et leur calendrier déterminent leur difficulté, leur prestige et les points disponibles.\n\nVous devrez inscrire votre équipe puis choisir les coureurs adaptés au parcours. Le Critérium de la découverte est disponible depuis le menu Didacticiels et suit exactement ce parcours d’inscription.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -212,7 +212,7 @@ const onboardingTutorial = {
       route: "/jeu",
       title: "Les bases sont acquises",
       content:
-        "Vous avez terminé le tutoriel de base de Cyclostratège.\n\nRendez-vous maintenant dans le menu Didacticiels pour compléter votre formation et obtenir le succès « Finaliser le didacticiel ».\n\nLa course d’initiation et les futures visites guidées des rubriques rejoindront progressivement cette bibliothèque.",
+        "Vous avez terminé le tutoriel de base de Cyclostratège.\n\nRendez-vous maintenant dans le menu Didacticiels pour compléter votre formation et obtenir le succès « Finaliser le didacticiel ».\n\nLe Critérium de la découverte est maintenant disponible dans cette bibliothèque. Terminez-le pour compléter votre formation essentielle.",
       placement: "center",
     },
   ],

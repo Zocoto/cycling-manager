@@ -5,6 +5,14 @@ import { GameHeader } from "@/components/game/game-header";
 import { RaceLiveDirectory } from "@/components/game/race-live-directory";
 import Link from "@/components/ui/app-link";
 import { selectRaceStageForLiveAccess } from "@/lib/game/race-live";
+import {
+  CRITERIUM_DISCOVERY_KEY,
+  CRITERIUM_DISCOVERY_RESULTS_ROUTE,
+  CRITERIUM_DISCOVERY_SLUG,
+  appendCriteriumDiscoveryEdition,
+  getCriteriumDiscoveryRunFromMetadata,
+} from "@/lib/tutorial/criterium-discovery";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
@@ -39,7 +47,11 @@ export default async function RaceResultsPage({
   }
 
   const now = new Date();
-  const [headerData, calendarResult] = await Promise.all([
+  const [
+    headerData,
+    calendarResult,
+    criteriumProgress,
+  ] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {
       includeEngagedRiders: false,
@@ -49,6 +61,10 @@ export default async function RaceResultsPage({
         calendar: null,
         error,
       })),
+    getAuthenticatedTutorialProgress(
+      supabase,
+      CRITERIUM_DISCOVERY_KEY,
+    ),
   ]);
 
   if (calendarResult.error) {
@@ -58,8 +74,35 @@ export default async function RaceResultsPage({
     );
   }
 
-  if (initialRaceSlug && calendarResult.calendar) {
-    const edition = calendarResult.calendar.editions.find(
+  const criteriumRun =
+    getCriteriumDiscoveryRunFromMetadata(
+      criteriumProgress?.metadata,
+    );
+  const calendar =
+    calendarResult.calendar && criteriumRun
+      ? {
+          ...calendarResult.calendar,
+          editions:
+            appendCriteriumDiscoveryEdition({
+              editions:
+                calendarResult.calendar.editions,
+              edition: criteriumRun.edition,
+            }),
+        }
+      : calendarResult.calendar;
+
+  if (
+    initialRaceSlug ===
+      CRITERIUM_DISCOVERY_SLUG &&
+    criteriumRun
+  ) {
+    redirect(
+      CRITERIUM_DISCOVERY_RESULTS_ROUTE,
+    );
+  }
+
+  if (initialRaceSlug && calendar) {
+    const edition = calendar.editions.find(
       (candidate) => candidate.slug === initialRaceSlug
     );
     const stage = edition
@@ -107,9 +150,9 @@ export default async function RaceResultsPage({
         </div>
 
         <div className="mt-8">
-          {calendarResult.calendar ? (
+          {calendar ? (
             <RaceLiveDirectory
-              calendar={calendarResult.calendar}
+              calendar={calendar}
               nowIso={now.toISOString()}
             />
           ) : (

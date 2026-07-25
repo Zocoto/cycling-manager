@@ -5,6 +5,13 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { SeasonCalendar } from "@/components/game/season-calendar";
 import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
+import {
+  CRITERIUM_DISCOVERY_KEY,
+  appendCriteriumDiscoveryEdition,
+  createCriteriumDiscoveryPreviewEdition,
+  getCriteriumDiscoveryRunFromMetadata,
+} from "@/lib/tutorial/criterium-discovery";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -21,6 +28,7 @@ type RaceCalendarPageProps = {
     inscription?: string | string[];
     desinscription?: string | string[];
     erreur?: string | string[];
+    formation?: string | string[];
   }>;
 };
 
@@ -43,8 +51,12 @@ export default async function RaceCalendarPage({
     redirect("/connexion");
   }
 
-  const [headerData, calendarResult, reputationResult] =
-    await Promise.all([
+  const [
+    headerData,
+    calendarResult,
+    reputationResult,
+    criteriumProgress,
+  ] = await Promise.all([
       getGameHeaderData(supabase, user.id),
       getActiveSeasonRaceCalendar(supabase, new Date(), {
         includeEngagedRiders: false,
@@ -62,6 +74,10 @@ export default async function RaceCalendarPage({
         .select("reputation_points")
         .eq("auth_user_id", user.id)
         .maybeSingle<SportingDirectorReputation>(),
+      getAuthenticatedTutorialProgress(
+        supabase,
+        CRITERIUM_DISCOVERY_KEY,
+      ),
     ]);
 
   if (calendarResult.error) {
@@ -78,7 +94,32 @@ export default async function RaceCalendarPage({
     );
   }
 
-  const calendar = calendarResult.calendar;
+  const baseCalendar = calendarResult.calendar;
+  const criteriumRun =
+    getCriteriumDiscoveryRunFromMetadata(
+      criteriumProgress?.metadata,
+    );
+  const criteriumRequested =
+    readSingleSearchParam(
+      resolvedSearchParams.formation,
+    ) === "criterium";
+  const calendar =
+    baseCalendar &&
+    (criteriumRequested || criteriumRun)
+      ? {
+          ...baseCalendar,
+          editions:
+            appendCriteriumDiscoveryEdition({
+              editions: baseCalendar.editions,
+              edition:
+                criteriumRun?.edition ??
+                createCriteriumDiscoveryPreviewEdition({
+                  dayNumber:
+                    baseCalendar.currentDayNumber,
+                }),
+            }),
+        }
+      : baseCalendar;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -174,6 +215,11 @@ export default async function RaceCalendarPage({
           </div>
 
           <div className="p-5 sm:p-8 lg:p-10">
+            {criteriumRequested ? (
+              <div className="mb-6 rounded-xl border border-[#F2C94C]/55 bg-[#FFF4D6] px-5 py-4 text-sm font-bold leading-6 text-[#604B0F]">
+                Le Critérium de la découverte a été ajouté à votre calendrier. Ouvrez sa fiche et inscrivez exactement cinq coureurs comme pour une épreuve officielle.
+              </div>
+            ) : null}
             {readSingleSearchParam(
               resolvedSearchParams.inscription
             ) === "confirmee" ? (
