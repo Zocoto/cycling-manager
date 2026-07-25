@@ -484,6 +484,7 @@ export default async function GamePage() {
     operationalEvents: dashboardOperationalEvents.events,
     transactions: financeOverview?.transactions ?? [],
     objectives: gameObjectives,
+    limit: 30,
   });
 
   return (

@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 import Link from "@/components/ui/app-link";
 import type {
   DashboardEvent,
@@ -26,11 +30,47 @@ const PRIORITY_STYLES: Record<
   },
 };
 
+const EVENTS_PER_PAGE = 5;
+
 export function DashboardEventsCard({
   events,
 }: {
   events: DashboardEvent[];
 }) {
+  const [pageIndex, setPageIndex] = useState(0);
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(events.length / EVENTS_PER_PAGE),
+  );
+
+  const currentPageIndex = Math.min(
+    Math.max(0, pageIndex),
+    pageCount - 1,
+  );
+
+  const firstVisibleEventIndex =
+    currentPageIndex * EVENTS_PER_PAGE;
+
+  const visibleEvents = events.slice(
+    firstVisibleEventIndex,
+    firstVisibleEventIndex + EVENTS_PER_PAGE,
+  );
+
+  const firstVisiblePosition =
+    events.length > 0
+      ? firstVisibleEventIndex + 1
+      : 0;
+
+  const lastVisiblePosition =
+    firstVisibleEventIndex + visibleEvents.length;
+
+  const hasMoreRecentEvents =
+    currentPageIndex > 0;
+
+  const hasOlderEvents =
+    currentPageIndex < pageCount - 1;
+
   return (
     <section
       aria-labelledby="dashboard-events-title"
@@ -60,8 +100,13 @@ export function DashboardEventsCard({
       </header>
 
       {events.length > 0 ? (
-        <div role="list" className="divide-y divide-[#315B3E]/10">
-          {events.map((event) => {
+        <div>
+          <div
+            id="dashboard-events-list"
+            role="list"
+            className="divide-y divide-[#315B3E]/10"
+          >
+            {visibleEvents.map((event) => {
             const style = PRIORITY_STYLES[event.priority];
 
             return (
@@ -109,7 +154,55 @@ export function DashboardEventsCard({
                 </span>
               </Link>
             );
-          })}
+            })}
+          </div>
+
+          {events.length > EVENTS_PER_PAGE ? (
+            <footer className="flex flex-col items-center gap-3 border-t border-[#315B3E]/10 bg-[#F5F9F7] px-5 py-4 sm:flex-row sm:justify-between sm:px-8">
+              <p
+                aria-live="polite"
+                className="text-xs font-bold text-[#60756E]"
+              >
+                Actualités {firstVisiblePosition} à {lastVisiblePosition} sur{" "}
+                {events.length}
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  aria-controls="dashboard-events-list"
+                  disabled={!hasMoreRecentEvents}
+                  onClick={() => {
+                    setPageIndex((current) =>
+                      Math.max(0, current - 1),
+                    );
+                  }}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#315B3E]/15 bg-white px-4 text-xs font-black text-[#48665F] transition hover:border-[#278B70]/35 hover:bg-[#EEF5F1] hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronUpIcon />
+                  Plus récentes
+                </button>
+
+                <button
+                  type="button"
+                  aria-controls="dashboard-events-list"
+                  disabled={!hasOlderEvents}
+                  onClick={() => {
+                    setPageIndex((current) =>
+                      Math.min(
+                        pageCount - 1,
+                        current + 1,
+                      ),
+                    );
+                  }}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#278B70]/25 bg-white px-4 text-xs font-black text-[#176951] transition hover:border-[#278B70]/45 hover:bg-[#E8F7F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Plus anciennes
+                  <ChevronDownIcon />
+                </button>
+              </div>
+            </footer>
+          ) : null}
         </div>
       ) : (
         <div className="flex flex-col items-center px-6 py-10 text-center sm:px-8">
@@ -212,6 +305,40 @@ function DashboardEventIcon({
     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M12 3 4 7v5c0 4.7 3.2 7.5 8 9 4.8-1.5 8-4.3 8-9V7l-8-4Z" strokeLinejoin="round" />
       <path d="m9 12 2 2 4-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m5 7.5 5 5 5-5" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m5 12.5 5-5 5 5" />
     </svg>
   );
 }
