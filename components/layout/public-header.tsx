@@ -69,7 +69,7 @@ export function PublicHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/connexion"
-            className="hidden min-h-10 items-center justify-center rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-4 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:inline-flex"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-4 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
           >
             Se connecter
           </Link>
@@ -78,7 +78,7 @@ export function PublicHeader() {
             href="/inscription"
             className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-4 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
           >
-            Jouer maintenant
+            S'inscrire
           </Link>
         </div>
       </div>

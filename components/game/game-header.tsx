@@ -215,7 +215,7 @@ export function GameHeader({
           <form action={logoutAccount}>
             <button
               type="submit"
-              className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-[var(--game-header-accent)] bg-[var(--game-header-accent-soft)] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[var(--game-header-accent)] transition hover:bg-[var(--game-header-accent)] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
             >
               Se déconnecter
             </button>
