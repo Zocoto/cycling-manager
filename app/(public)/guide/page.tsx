@@ -291,9 +291,20 @@ function GuideHero() {
           <div className="mt-9 flex flex-wrap gap-4">
             <Link
               href="#demarrage"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] !text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#FFD968]"
             >
               Commencer le tutoriel
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M3 10h13" />
+                <path d="m11 5 5 5-5 5" />
+              </svg>
             </Link>
             <Link
               href="/jeu"
