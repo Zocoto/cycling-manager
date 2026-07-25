@@ -69,9 +69,23 @@ export function PublicHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/connexion"
-            className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-4 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            aria-label="Se connecter"
+            className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-3 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:px-4"
           >
-            Se connecter
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              className="h-5 w-5 sm:hidden"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11.5 3H14a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 14 17h-2.5" />
+              <path d="M3.5 10h8m0 0L9 7.5M11.5 10 9 12.5" />
+            </svg>
+            <span className="hidden sm:inline">Se connecter</span>
           </Link>
 
           <Link
