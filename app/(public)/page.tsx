@@ -120,7 +120,7 @@ function HeroSection() {
               href="/connexion"
               className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border-2 border-[#0B302B] bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#FFFDF4] shadow-[0_10px_25px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:bg-[#123f37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B302B]"
             >
-              Charger une partie
+              Se connecter
               <FolderIcon />
             </Link>
           </div>
