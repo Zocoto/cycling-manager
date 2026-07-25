@@ -369,7 +369,7 @@ export function TutorialOverlay({
         <>
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px]"
+            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
             style={{
               left: 0,
               top: 0,
@@ -380,7 +380,7 @@ export function TutorialOverlay({
 
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px]"
+            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
             style={{
               left: 0,
               top: highlightedArea.top,
@@ -391,7 +391,7 @@ export function TutorialOverlay({
 
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px]"
+            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
             style={{
               left: highlightedArea.right,
               top: highlightedArea.top,
@@ -406,7 +406,7 @@ export function TutorialOverlay({
 
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px]"
+            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
             style={{
               left: 0,
               top: highlightedArea.bottom,
@@ -437,7 +437,7 @@ export function TutorialOverlay({
       ) : (
         <div
           aria-hidden="true"
-          className="pointer-events-auto fixed inset-0 bg-[#071A17]/78 backdrop-blur-[1px]"
+          className="pointer-events-auto fixed inset-0 bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
         />
       )}
 
@@ -450,7 +450,7 @@ export function TutorialOverlay({
         tabIndex={-1}
         className={
           isMobile
-            ? "pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[48dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] shadow-[0_-16px_50px_rgba(7,26,23,0.4)] outline-none"
+            ? "pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[36dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] shadow-[0_-16px_50px_rgba(7,26,23,0.4)] outline-none"
             : "pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border border-[#315B3E]/15 bg-[#FFFDF4] text-[#16342D] shadow-[0_28px_90px_rgba(7,26,23,0.42)] outline-none"
         }
         style={
@@ -471,7 +471,11 @@ export function TutorialOverlay({
         >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              {isMobile ? null : (
+              {isMobile ? (
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+                  Étape {stepIndex + 1}/{totalSteps}
+                </p>
+              ) : (
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
                   {tutorialTitle}
                 </p>
@@ -507,7 +511,7 @@ export function TutorialOverlay({
           <div
             className={
               isMobile
-                ? "mt-2 h-1.5 overflow-hidden rounded-full bg-white"
+                ? "mt-1.5 h-1 overflow-hidden rounded-full bg-white"
                 : "mt-3 h-1.5 overflow-hidden rounded-full bg-white"
             }
           >
@@ -519,15 +523,11 @@ export function TutorialOverlay({
             />
           </div>
 
-          <p
-            className={
-              isMobile
-                ? "mt-1.5 text-[10px] font-bold text-[#668078]"
-                : "mt-2 text-[10px] font-bold text-[#668078]"
-            }
-          >
-            Étape {stepIndex + 1} sur {totalSteps}
-          </p>
+          {isMobile ? null : (
+            <p className="mt-2 text-[10px] font-bold text-[#668078]">
+              Étape {stepIndex + 1} sur {totalSteps}
+            </p>
+          )}
         </div>
 
         <div
@@ -539,7 +539,13 @@ export function TutorialOverlay({
               : "px-5 py-5"
           }
         >
-          <p className="whitespace-pre-line text-sm font-semibold leading-6 text-[#35554D]">
+          <p
+            className={
+              isMobile
+                ? "whitespace-pre-line text-[13px] font-semibold leading-5 text-[#35554D]"
+                : "whitespace-pre-line text-sm font-semibold leading-6 text-[#35554D]"
+            }
+          >
             {step.content}
           </p>
 
