@@ -15,6 +15,7 @@ import {
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 
 type OfficialStageSimulationRow = {
   stage_id: string;
@@ -35,13 +36,25 @@ export async function ensureLockedOfficialRaceSimulations(
   );
   if (stageIds.length === 0) return {};
 
-  const { data, error } = await admin
-    .from("official_stage_simulations")
-    .select(
-      "stage_id, race_edition_id, engine_version, seed, input_data, simulation_data"
-    )
-    .in("stage_id", stageIds)
-    .returns<OfficialStageSimulationRow[]>();
+  const { data, error } = await collectChunkedPaginatedRows<
+    OfficialStageSimulationRow,
+    { message: string },
+    string
+  >({
+    values: stageIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("official_stage_simulations")
+        .select(
+          "stage_id, race_edition_id, engine_version, seed, input_data, simulation_data"
+        )
+        .in("stage_id", chunk)
+        .order("stage_id", { ascending: true })
+        .range(from, to)
+        .returns<OfficialStageSimulationRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
   assertQuery(error, "les scénarios officiels existants");
 
   const lockedByStageId = new Map(

@@ -22,6 +22,49 @@ export function chunkValues<T>(values: T[], chunkSize = 100): T[][] {
   return chunks;
 }
 
+/**
+ * Combine le découpage en lots (pour les filtres `.in(...)`) et la pagination
+ * (pour dépasser la limite `max_rows` de PostgREST, 1 000 lignes par requête).
+ * Sans cela, les requêtes portant sur tout le calendrier sont silencieusement
+ * tronquées et produisent des startlists ou des classements incomplets.
+ */
+export async function collectChunkedPaginatedRows<T, E, V>({
+  values,
+  fetchPage,
+  chunkSize = 100,
+  pageSize = 1_000,
+}: {
+  values: V[];
+  fetchPage: (
+    chunk: V[],
+    from: number,
+    to: number
+  ) => Promise<PaginatedPage<T, E>>;
+  chunkSize?: number;
+  pageSize?: number;
+}): Promise<{ data: T[]; error: E | null }> {
+  if (values.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const batchResults = await Promise.all(
+    chunkValues(values, chunkSize).map((chunk) =>
+      collectPaginatedRows<T, E>({
+        fetchPage: (from, to) => fetchPage(chunk, from, to),
+        pageSize,
+      })
+    )
+  );
+  const failedBatch = batchResults.find((result) => result.error);
+
+  return failedBatch
+    ? { data: [], error: failedBatch.error }
+    : {
+        data: batchResults.flatMap((result) => result.data),
+        error: null,
+      };
+}
+
 export async function collectPaginatedRows<T, E>({
   fetchPage,
   pageSize = 1_000,
