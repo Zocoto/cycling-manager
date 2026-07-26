@@ -33,7 +33,9 @@ export async function purchaseEquipmentAction(formData: FormData) {
   revalidatePath("/jeu/materiel");
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu");
-  redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}achat=confirme`);
+  redirect(
+    `${returnPath}${returnPath.includes("?") ? "&" : "?"}achat=confirme`,
+  );
 }
 
 export async function equipRiderAction(formData: FormData) {
@@ -49,10 +51,7 @@ export async function equipRiderAction(formData: FormData) {
         : "/jeu/effectif";
 
   if (!isUuid(riderId) || !isUuid(equipmentItemId) || !isEquipmentSlot(slot)) {
-    redirectWithError(
-      errorPath,
-      "La demande d’équipement est invalide."
-    );
+    redirectWithError(errorPath, "La demande d’équipement est invalide.");
   }
 
   const supabase = await createSupabaseServerClient();
@@ -63,14 +62,11 @@ export async function equipRiderAction(formData: FormData) {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const { error } = await supabase.rpc(
-    "equip_current_team_rider",
-    {
-      p_rider_id: riderId,
-      p_slot_type: slot,
-      p_equipment_item_id: equipmentItemId,
-    }
-  );
+  const { error } = await supabase.rpc("equip_current_team_rider", {
+    p_rider_id: riderId,
+    p_slot_type: slot,
+    p_equipment_item_id: equipmentItemId,
+  });
 
   if (error) redirectWithError(errorPath, error.message);
 
@@ -92,10 +88,7 @@ export async function unequipRiderAction(formData: FormData) {
     : "/jeu/effectif";
 
   if (!isUuid(riderId) || !isEquipmentSlot(slot)) {
-    redirectWithError(
-      returnPath,
-      "La demande de retrait est invalide.",
-    );
+    redirectWithError(returnPath, "La demande de retrait est invalide.");
   }
 
   const supabase = await createSupabaseServerClient();
@@ -106,13 +99,10 @@ export async function unequipRiderAction(formData: FormData) {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const { error } = await supabase.rpc(
-    "unequip_current_team_rider",
-    {
-      p_rider_id: riderId,
-      p_slot_type: slot,
-    },
-  );
+  const { error } = await supabase.rpc("unequip_current_team_rider", {
+    p_rider_id: riderId,
+    p_slot_type: slot,
+  });
 
   if (error) redirectWithError(returnPath, error.message);
 
@@ -133,8 +123,8 @@ function buildMaterialPath(category: string, supplier: string) {
 function redirectWithError(path: string, message: string): never {
   redirect(
     `${path}${path.includes("?") ? "&" : "?"}erreur=${encodeURIComponent(
-      message.slice(0, 300)
-    )}`
+      message.slice(0, 300),
+    )}`,
   );
 }
 
@@ -149,6 +139,6 @@ function isEquipmentSlot(value: string): value is EquipmentSlot {
 
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
+    value,
   );
 }

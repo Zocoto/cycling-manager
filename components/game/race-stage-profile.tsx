@@ -197,7 +197,7 @@ export function RaceStageProfile({
           ) : (
             <span>Aucune prime programmée sur ce parcours</span>
           )}
-          <span>Traits verticaux : tronçons de 10 km</span>
+          <span>Traits verticaux : tronçons de 10 km</span>
           {segments.some((segment) => segment.surface === "cobbles") ? <span className="text-[#9B8468]">▬ Secteur pavé</span> : null}
         </div>
       ) : null}

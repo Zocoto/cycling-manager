@@ -435,7 +435,7 @@ function CountryTeamLink({
         </span>
         <span className="mt-1 block truncate text-xs text-[#60756E]">
           {team.sponsor_name
-            ? `Sponsor : ${team.sponsor_name}`
+            ? `Sponsor : ${team.sponsor_name}`
             : "Sans sponsor principal"}
         </span>
         <span className="mt-1 block truncate text-xs font-semibold text-[#278B70]">
@@ -464,7 +464,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={`fi fi-${countryCode.toLowerCase()} shadow-sm ${
         hero ? "text-6xl" : "text-3xl"
       }`}

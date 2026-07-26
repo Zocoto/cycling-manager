@@ -4,27 +4,18 @@ import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { CRITERIUM_DISCOVERY_KEY } from "@/lib/tutorial/criterium-discovery";
 
 export function CriteriumCompletionButton() {
-  const {
-    activeTutorial,
-    isPending,
-    startTutorial,
-  } = useTutorial();
+  const { activeTutorial, isPending, startTutorial } = useTutorial();
 
   const criteriumIsActive =
-    activeTutorial?.definition.key ===
-    CRITERIUM_DISCOVERY_KEY;
+    activeTutorial?.definition.key === CRITERIUM_DISCOVERY_KEY;
 
   return (
     <button
       type="button"
-      disabled={
-        isPending ||
-        criteriumIsActive
-      }
+      disabled={isPending || criteriumIsActive}
       onClick={() => {
         void startTutorial({
-          tutorialKey:
-            CRITERIUM_DISCOVERY_KEY,
+          tutorialKey: CRITERIUM_DISCOVERY_KEY,
           launchSource: "resume",
           restartFromBeginning: false,
         });

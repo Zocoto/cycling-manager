@@ -1,37 +1,19 @@
-export type TutorialType =
-  | "onboarding"
-  | "contextual"
-  | "race_scenario";
+export type TutorialType = "onboarding" | "contextual" | "race_scenario";
 
 export type TutorialProgressStatus =
-  | "not_started"
-  | "in_progress"
-  | "completed"
-  | "skipped";
+  "not_started" | "in_progress" | "completed" | "skipped";
 
 export type TutorialSessionLaunchSource =
-  | "automatic"
-  | "manual"
-  | "resume"
-  | "replay";
+  "automatic" | "manual" | "resume" | "replay";
 
 export type TutorialSessionStatus =
-  | "in_progress"
-  | "completed"
-  | "abandoned"
-  | "skipped";
+  "in_progress" | "completed" | "abandoned" | "skipped";
 
 export type TutorialStepPlacement =
-  | "top"
-  | "right"
-  | "bottom"
-  | "left"
-  | "center";
+  "top" | "right" | "bottom" | "left" | "center";
 
 export type TutorialStepRequirement =
-  | "profile_complete"
-  | "team_created"
-  | "criterium_registered";
+  "profile_complete" | "team_created" | "criterium_registered";
 
 export type TutorialStep = {
   /**
@@ -178,6 +160,4 @@ export type TutorialTargetRectangle = {
   height: number;
 };
 
-export type TutorialCatalog = Readonly<
-  Record<string, TutorialDefinition>
->;
+export type TutorialCatalog = Readonly<Record<string, TutorialDefinition>>;

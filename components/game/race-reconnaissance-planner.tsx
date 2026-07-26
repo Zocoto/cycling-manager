@@ -47,9 +47,7 @@ export function RaceReconnaissancePlanner({
   const [preparerContractId, setPreparerContractId] = useState("");
   const selectedRiders = useMemo(
     () =>
-      overview.riders.filter((rider) =>
-        selectedRiderIds.includes(rider.id),
-      ),
+      overview.riders.filter((rider) => selectedRiderIds.includes(rider.id)),
     [overview.riders, selectedRiderIds],
   );
   const upcomingDays = useMemo(
@@ -90,9 +88,9 @@ export function RaceReconnaissancePlanner({
   const visibleStages = useMemo(
     () =>
       overview.stages.filter((stage) =>
-        dateCandidatesByStageId.get(stage.id)?.some(
-          (candidate) => candidate.available,
-        ),
+        dateCandidatesByStageId
+          .get(stage.id)
+          ?.some((candidate) => candidate.available),
       ),
     [dateCandidatesByStageId, overview.stages],
   );
@@ -113,12 +111,10 @@ export function RaceReconnaissancePlanner({
       String(candidate.dayNumber) === selectedStartDayNumber &&
       candidate.available,
   );
-  const effectiveStartDayNumber =
-    selectedDateCandidate?.dayNumber ?? null;
+  const effectiveStartDayNumber = selectedDateCandidate?.dayNumber ?? null;
   const effectiveEndDayNumber = selectedDateCandidate?.endDayNumber ?? null;
   const resultingBonus = selectedPreparer?.resultingBonus ?? 2;
-  const canAfford =
-    !selectedStage || overview.balance >= selectedStage.cost;
+  const canAfford = !selectedStage || overview.balance >= selectedStage.cost;
   const canSubmit =
     selectedRiderIds.length > 0 &&
     Boolean(selectedStage) &&
@@ -168,7 +164,9 @@ export function RaceReconnaissancePlanner({
     }
 
     setSelectedStartDayNumber((current) =>
-      availableDates.some((candidate) => String(candidate.dayNumber) === current)
+      availableDates.some(
+        (candidate) => String(candidate.dayNumber) === current,
+      )
         ? current
         : String(availableDates[0].dayNumber),
     );
@@ -209,7 +207,7 @@ export function RaceReconnaissancePlanner({
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
               Deux jours pour étudier une étape ou une classique. Choisissez
-              librement leur date avant la course : les coureurs mobilisés ne
+              librement leur date avant la course : les coureurs mobilisés ne
               s’entraînent pas et ne récupèrent pas les +2 points de forme
               quotidiens pendant cette période.
             </p>
@@ -250,28 +248,23 @@ export function RaceReconnaissancePlanner({
               <select
                 name="preparerContractId"
                 value={preparerContractId}
-                onChange={(event) =>
-                  setPreparerContractId(event.target.value)
-                }
+                onChange={(event) => setPreparerContractId(event.target.value)}
                 className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-4 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
               >
                 <option value="">Sans préparateur · bonus +2,00</option>
                 {overview.preparers.map((preparer) => (
-                  <option
-                    key={preparer.contractId}
-                    value={preparer.contractId}
-                  >
-                    {preparer.firstName} {preparer.lastName} · N
-                    {preparer.level} · +{preparer.efficiencyPercentage}% ·
-                    bonus +{formatBonus(preparer.resultingBonus)}
+                  <option key={preparer.contractId} value={preparer.contractId}>
+                    {preparer.firstName} {preparer.lastName} · N{preparer.level}{" "}
+                    · +{preparer.efficiencyPercentage}% · bonus +
+                    {formatBonus(preparer.resultingBonus)}
                   </option>
                 ))}
               </select>
             </label>
             {overview.preparers.length === 0 ? (
               <p className="mt-2 text-xs font-bold leading-5 text-[#7A5B09]">
-                Aucun préparateur sous contrat. La reconnaissance reste
-                possible avec son bonus de base.
+                Aucun préparateur sous contrat. La reconnaissance reste possible
+                avec son bonus de base.
               </p>
             ) : null}
 
@@ -366,68 +359,66 @@ export function RaceReconnaissancePlanner({
 
             <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
               {upcomingDays.map((day) => {
-                  const dayNumber = day.dayNumber;
-                  const dayStages = stagesByDay.get(dayNumber) ?? [];
-                  const isMissionDay =
-                    effectiveStartDayNumber !== null &&
-                    effectiveEndDayNumber !== null &&
-                    dayNumber >= effectiveStartDayNumber &&
-                    dayNumber <= effectiveEndDayNumber;
-                  return (
-                    <div
-                      key={dayNumber}
-                      className={`min-h-24 rounded-xl border p-2 ${
-                        isMissionDay
-                          ? "border-[#F2C94C]/50 bg-[#FFF9DC]"
-                          : "border-[#315B3E]/10 bg-[#F8FAF9]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[10px] font-black text-[#60756E]">
-                          J{dayNumber}
+                const dayNumber = day.dayNumber;
+                const dayStages = stagesByDay.get(dayNumber) ?? [];
+                const isMissionDay =
+                  effectiveStartDayNumber !== null &&
+                  effectiveEndDayNumber !== null &&
+                  dayNumber >= effectiveStartDayNumber &&
+                  dayNumber <= effectiveEndDayNumber;
+                return (
+                  <div
+                    key={dayNumber}
+                    className={`min-h-24 rounded-xl border p-2 ${
+                      isMissionDay
+                        ? "border-[#F2C94C]/50 bg-[#FFF9DC]"
+                        : "border-[#315B3E]/10 bg-[#F8FAF9]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[10px] font-black text-[#60756E]">
+                        J{dayNumber}
+                      </span>
+                      <span className="text-[8px] font-bold text-[#82918C]">
+                        {formatShortDate(day.calendarDate)}
+                      </span>
+                      {isMissionDay ? (
+                        <span className="text-[8px] font-black uppercase text-[#8A6714]">
+                          stage
                         </span>
-                        <span className="text-[8px] font-bold text-[#82918C]">
-                          {formatShortDate(day.calendarDate)}
-                        </span>
-                        {isMissionDay ? (
-                          <span className="text-[8px] font-black uppercase text-[#8A6714]">
-                            stage
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 space-y-1.5">
-                        {dayStages.map((stage) => (
-                          <label
-                            key={stage.id}
-                            title={`${stage.raceName} · ${stage.stageName}`}
-                            className={`block cursor-pointer rounded-lg border px-2 py-2 text-[9px] font-black leading-3 transition ${
-                              selectedStageId === stage.id
-                                ? "ring-2 ring-[#071A17] ring-offset-1"
-                                : "hover:-translate-y-px"
-                            } ${CATEGORY_COLORS[stage.categoryCode]}`}
-                          >
-                            <input
-                              type="radio"
-                              name="stageId"
-                              value={stage.id}
-                              checked={selectedStageId === stage.id}
-                              onChange={() => selectStage(stage.id)}
-                              className="sr-only"
-                            />
-                            <span className="line-clamp-2">
-                              {stage.raceName}
-                            </span>
-                            {stage.raceFormat === "stage_race" ? (
-                              <span className="mt-1 block opacity-75">
-                                Ét. {stage.stageNumber}
-                              </span>
-                            ) : null}
-                          </label>
-                        ))}
-                      </div>
+                      ) : null}
                     </div>
-                  );
-                })}
+                    <div className="mt-2 space-y-1.5">
+                      {dayStages.map((stage) => (
+                        <label
+                          key={stage.id}
+                          title={`${stage.raceName} · ${stage.stageName}`}
+                          className={`block cursor-pointer rounded-lg border px-2 py-2 text-[9px] font-black leading-3 transition ${
+                            selectedStageId === stage.id
+                              ? "ring-2 ring-[#071A17] ring-offset-1"
+                              : "hover:-translate-y-px"
+                          } ${CATEGORY_COLORS[stage.categoryCode]}`}
+                        >
+                          <input
+                            type="radio"
+                            name="stageId"
+                            value={stage.id}
+                            checked={selectedStageId === stage.id}
+                            onChange={() => selectStage(stage.id)}
+                            className="sr-only"
+                          />
+                          <span className="line-clamp-2">{stage.raceName}</span>
+                          {stage.raceFormat === "stage_race" ? (
+                            <span className="mt-1 block opacity-75">
+                              Ét. {stage.stageNumber}
+                            </span>
+                          ) : null}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {selectedStage ? (
@@ -455,8 +446,8 @@ export function RaceReconnaissancePlanner({
                         value={candidate.dayNumber}
                       >
                         J{candidate.dayNumber}–J
-                        {candidate.endDayNumber}{" "}
-                        · {formatShortDate(candidate.calendarDate)}
+                        {candidate.endDayNumber} ·{" "}
+                        {formatShortDate(candidate.calendarDate)}
                       </option>
                     ))}
                   </select>
@@ -464,15 +455,15 @@ export function RaceReconnaissancePlanner({
                 <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
                   {selectedDateCandidate
                     ? `Stage prévu J${effectiveStartDayNumber}–J${effectiveEndDayNumber}, avant l’étape de J${selectedStage.dayNumber}.`
-                    : "Aucun créneau commun de deux jours n’est disponible pour la délégation sélectionnée."}
+                    : `La course occupe J${selectedStage.editionStartDayNumber}–J${selectedStage.editionEndDayNumber} : toute période qui chevauche ce tour est bloquée.`}
                 </p>
               </div>
             ) : null}
 
             {selectedRiderIds.length > 0 && visibleStages.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
-                Aucune épreuve future accessible à l’équipe ne possède encore
-                un créneau commun de deux jours pour tous les coureurs choisis.
+                Aucune épreuve future accessible à l’équipe ne possède encore un
+                créneau commun de deux jours pour tous les coureurs choisis.
               </p>
             ) : null}
 

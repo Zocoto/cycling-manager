@@ -50,6 +50,38 @@ describe("simulateRaceStage", () => {
     expect(simulateRaceStage(input)).toEqual(simulateRaceStage(input));
   });
 
+  it("simule un contre-la-montre avec un seul engagé (championnat national)", () => {
+    const base = createDemoSimulationInput("sprint-littoral", 7);
+    const result = simulateRaceStage({
+      ...base,
+      stageType: "individual_time_trial",
+      riders: base.riders.slice(0, 1),
+    });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0].rank).toBe(1);
+    expect(result.results[0].status).toBe("finished");
+  });
+
+  it("simule une course en ligne avec un seul engagé", () => {
+    const base = createDemoSimulationInput("collines-ardennes", 3);
+    const result = simulateRaceStage({
+      ...base,
+      riders: base.riders.slice(0, 1),
+    });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.timeline.length).toBeGreaterThan(0);
+  });
+
+  it("refuse une simulation sans aucun coureur", () => {
+    const base = createDemoSimulationInput("sprint-littoral", 7);
+
+    expect(() =>
+      simulateRaceStage({ ...base, riders: [] })
+    ).toThrowError("Une simulation requiert au moins un coureur.");
+  });
+
   it("produit un classement complet avec des rangs uniques", () => {
     const input = createDemoSimulationInput("collines-ardennes", 3);
     const result = simulateRaceStage(input);
@@ -371,6 +403,45 @@ describe("simulateRaceStage", () => {
 
     expect(tiredRiderGroup?.type).toBe("dropped");
     expect(freshRiderGroup?.type).toBe("peloton");
+  });
+
+  it("conserve les temps acquis lorsque le peloton constitué disparaît", () => {
+    const input = createDemoSimulationInput(
+      "collines-ardennes",
+      32
+    );
+    const result = simulateRaceStage(input);
+    const firstSnapshotWithoutPeloton = result.timeline.findIndex(
+      (snapshot, index) =>
+        index < result.timeline.length - 1 &&
+        !snapshot.groups.some(
+          (group) => group.type === "peloton"
+        ) &&
+        snapshot.groups.some(
+          (group) => group.type === "breakaway"
+        )
+    );
+    const finishers = result.results.filter(
+      (resultRow) => resultRow.status === "finished"
+    );
+    const winnerTime = finishers[0].elapsedTimeSeconds;
+    const maximumGap = Math.max(
+      ...finishers.map(
+        (resultRow) => resultRow.gapToWinnerSeconds
+      )
+    );
+    const maximumTimelineGap = Math.max(
+      ...result.timeline.flatMap((snapshot) =>
+        snapshot.groups.map(
+          (group) => group.gapToLeaderSeconds
+        )
+      )
+    );
+
+    expect(firstSnapshotWithoutPeloton).toBeGreaterThanOrEqual(0);
+    expect(winnerTime).toBeGreaterThan(0);
+    expect(maximumGap).toBeLessThan(winnerTime);
+    expect(maximumTimelineGap).toBeLessThan(3_600);
   });
 
   it("réduit l'avantage de l'aspiration lorsque la pente devient forte", () => {

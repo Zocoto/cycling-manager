@@ -76,7 +76,7 @@ export async function logoutAccount(): Promise<void> {
   });
 
   if (error) {
-    console.error("Échec de la déconnexion Supabase :", {
+    console.error("Échec de la déconnexion Supabase :", {
       code: error.code,
       status: error.status,
       message: error.message,

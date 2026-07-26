@@ -123,7 +123,7 @@ export function RiderTrainingPlanForm({
             formDelta < 0 ? "text-[#B54242]" : "text-[#278B70]"
           }`}
         >
-          Forme : {formDelta > 0 ? "+" : ""}
+          Forme : {formDelta > 0 ? "+" : ""}
           {formDelta} point{Math.abs(formDelta) > 1 ? "s" : ""} / séance
         </span>
       </div>

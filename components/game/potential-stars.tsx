@@ -18,8 +18,8 @@ export function PotentialStars({
   return (
     <span
       className="inline-flex items-center gap-2"
-      aria-label={`Potentiel : ${formatPotential(normalized)}`}
-      title={`Potentiel : ${formatPotential(normalized)}`}
+      aria-label={`Potentiel : ${formatPotential(normalized)}`}
+      title={`Potentiel : ${formatPotential(normalized)}`}
     >
       <span className={`flex ${compact ? "gap-0" : "gap-0.5"}`} aria-hidden="true">
         {Array.from({ length: 4 }, (_, index) => {

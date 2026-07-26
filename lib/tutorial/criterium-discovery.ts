@@ -8,9 +8,7 @@ import {
   type LockedOfficialStageSimulation,
 } from "@/lib/game/official-race-simulation";
 import { buildRaceSegments } from "@/lib/game/race-profiles";
-import {
-  createDemoSimulationInput,
-} from "@/lib/game/race-simulation-demo";
+import { createDemoSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
   RACE_ROLES,
   type RaceRole,
@@ -18,20 +16,16 @@ import {
   type RiderSimulationInput,
 } from "@/lib/game/race-simulation";
 
-export const CRITERIUM_DISCOVERY_KEY =
-  "criterium-discovery";
-export const CRITERIUM_DISCOVERY_SLUG =
-  "criterium-de-la-decouverte";
-export const CRITERIUM_DISCOVERY_NAME =
-  "Critérium de la découverte";
+export const CRITERIUM_DISCOVERY_KEY = "criterium-discovery";
+export const CRITERIUM_DISCOVERY_SLUG = "criterium-de-la-decouverte";
+export const CRITERIUM_DISCOVERY_NAME = "Critérium de la découverte";
 export const CRITERIUM_DISCOVERY_VERSION = 1;
 export const CRITERIUM_DISCOVERY_ROSTER_SIZE = 5;
 export const CRITERIUM_DISCOVERY_OPPONENT_COUNT = 10;
 
 export const CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY =
   "registration-confirmed";
-export const CRITERIUM_DISCOVERY_COMPLETION_STEP_KEY =
-  "formation-complete";
+export const CRITERIUM_DISCOVERY_COMPLETION_STEP_KEY = "formation-complete";
 
 export const CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEYS = [
   "briefing",
@@ -42,17 +36,12 @@ export const CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEYS = [
   "registration",
 ] as const;
 
-export const CRITERIUM_DISCOVERY_RACE_ROUTE =
-  `/jeu/courses/${CRITERIUM_DISCOVERY_SLUG}`;
-export const CRITERIUM_DISCOVERY_RESULTS_ROUTE =
-  `/jeu/resultats/${CRITERIUM_DISCOVERY_SLUG}/1`;
+export const CRITERIUM_DISCOVERY_RACE_ROUTE = `/jeu/courses/${CRITERIUM_DISCOVERY_SLUG}`;
+export const CRITERIUM_DISCOVERY_RESULTS_ROUTE = `/jeu/resultats/${CRITERIUM_DISCOVERY_SLUG}/1`;
 
-const CRITERIUM_RACE_ID =
-  "d15c0a01-6f04-4fc7-9a01-201c04c7d001";
-const CRITERIUM_EDITION_ID =
-  "d15c0a02-6f04-4fc7-9a02-201c04c7d002";
-const CRITERIUM_STAGE_ID =
-  "d15c0a03-6f04-4fc7-9a03-201c04c7d003";
+const CRITERIUM_RACE_ID = "d15c0a01-6f04-4fc7-9a01-201c04c7d001";
+const CRITERIUM_EDITION_ID = "d15c0a02-6f04-4fc7-9a02-201c04c7d002";
+const CRITERIUM_STAGE_ID = "d15c0a03-6f04-4fc7-9a03-201c04c7d003";
 
 export type CriteriumDiscoveryRosterEntry = {
   riderId: string;
@@ -88,10 +77,7 @@ export function createCriteriumDiscoveryPreviewEdition({
   engagedRiders = [],
   completed = false,
 }: CreateCriteriumDiscoveryEditionOptions): RaceCalendarEdition {
-  const safeDayNumber = Math.min(
-    28,
-    Math.max(1, Math.trunc(dayNumber)),
-  );
+  const safeDayNumber = Math.min(28, Math.max(1, Math.trunc(dayNumber)));
 
   const stage: RaceCalendarStage = {
     id: CRITERIUM_STAGE_ID,
@@ -162,10 +148,7 @@ export function createCriteriumDiscoveryRun({
     );
   }
 
-  if (
-    playerRiders.length !==
-    CRITERIUM_DISCOVERY_ROSTER_SIZE
-  ) {
+  if (playerRiders.length !== CRITERIUM_DISCOVERY_ROSTER_SIZE) {
     throw new Error(
       "La startlist du joueur ne correspond pas à la sélection enregistrée.",
     );
@@ -174,20 +157,16 @@ export function createCriteriumDiscoveryRun({
   const opponents = createDemoSimulationInput(
     "collines-ardennes",
     `${CRITERIUM_DISCOVERY_KEY}:opponents:v${CRITERIUM_DISCOVERY_VERSION}`,
-  ).riders
-    .slice(0, CRITERIUM_DISCOVERY_OPPONENT_COUNT)
+  )
+    .riders.slice(0, CRITERIUM_DISCOVERY_OPPONENT_COUNT)
     .map(createFictitiousCriteriumOpponent);
 
-  const edition =
-    createCriteriumDiscoveryPreviewEdition({
-      dayNumber,
-      rosterCount: roster.length,
-      engagedRiders: [
-        ...playerRiders.map(cloneRider),
-        ...opponents,
-      ],
-      completed: true,
-    });
+  const edition = createCriteriumDiscoveryPreviewEdition({
+    dayNumber,
+    rosterCount: roster.length,
+    engagedRiders: [...playerRiders.map(cloneRider), ...opponents],
+    completed: true,
+  });
 
   const stage = edition.stages[0];
 
@@ -197,8 +176,7 @@ export function createCriteriumDiscoveryRun({
     );
   }
 
-  const officialRun =
-    simulateOfficialRaceEdition(edition)[0];
+  const officialRun = simulateOfficialRaceEdition(edition)[0];
 
   if (!officialRun) {
     throw new Error(
@@ -215,8 +193,7 @@ export function createCriteriumDiscoveryRun({
     lockedSimulation: {
       stageId: stage.id,
       raceEditionId: edition.id,
-      engineVersion:
-        OFFICIAL_RACE_ENGINE_VERSION,
+      engineVersion: OFFICIAL_RACE_ENGINE_VERSION,
       seed: officialRun.simulation.seed,
       input: officialRun.input,
       simulation: officialRun.simulation,
@@ -227,88 +204,59 @@ export function createCriteriumDiscoveryRun({
 export function isValidCriteriumDiscoveryRoster(
   roster: readonly CriteriumDiscoveryRosterEntry[],
 ): boolean {
-  if (
-    roster.length !==
-    CRITERIUM_DISCOVERY_ROSTER_SIZE
-  ) {
+  if (roster.length !== CRITERIUM_DISCOVERY_ROSTER_SIZE) {
     return false;
   }
 
   if (
-    new Set(
-      roster.map((entry) => entry.riderId),
-    ).size !==
+    new Set(roster.map((entry) => entry.riderId)).size !==
     CRITERIUM_DISCOVERY_ROSTER_SIZE
   ) {
     return false;
   }
 
   return ["leader", "sprinter"].every(
-    (role) =>
-      roster.filter(
-        (entry) => entry.role === role,
-      ).length <= 1,
+    (role) => roster.filter((entry) => entry.role === role).length <= 1,
   );
 }
 
 export function getCriteriumDiscoveryRunFromMetadata(
-  metadata:
-    | Record<string, unknown>
-    | null
-    | undefined,
+  metadata: Record<string, unknown> | null | undefined,
 ): CriteriumDiscoveryRun | null {
-  const candidate =
-    metadata?.criteriumDiscoveryRun;
+  const candidate = metadata?.criteriumDiscoveryRun;
 
   if (!isRecord(candidate)) {
     return null;
   }
 
   if (
-    candidate.version !==
-      CRITERIUM_DISCOVERY_VERSION ||
-    typeof candidate.registeredAt !==
-      "string" ||
+    candidate.version !== CRITERIUM_DISCOVERY_VERSION ||
+    typeof candidate.registeredAt !== "string" ||
     !Array.isArray(candidate.roster) ||
     !isRecord(candidate.edition) ||
-    candidate.edition.slug !==
-      CRITERIUM_DISCOVERY_SLUG ||
-    !isRecord(
-      candidate.lockedSimulation,
-    )
+    candidate.edition.slug !== CRITERIUM_DISCOVERY_SLUG ||
+    !isRecord(candidate.lockedSimulation)
   ) {
     return null;
   }
 
-  const roster =
-    candidate.roster.filter(
-      (
-        entry,
-      ): entry is CriteriumDiscoveryRosterEntry =>
-        isRecord(entry) &&
-        typeof entry.riderId === "string" &&
-        typeof entry.role === "string" &&
-        RACE_ROLES.includes(
-          entry.role as RaceRole,
-        ),
-    );
+  const roster = candidate.roster.filter(
+    (entry): entry is CriteriumDiscoveryRosterEntry =>
+      isRecord(entry) &&
+      typeof entry.riderId === "string" &&
+      typeof entry.role === "string" &&
+      RACE_ROLES.includes(entry.role as RaceRole),
+  );
 
-  if (
-    !isValidCriteriumDiscoveryRoster(
-      roster,
-    )
-  ) {
+  if (!isValidCriteriumDiscoveryRoster(roster)) {
     return null;
   }
 
-  const locked =
-    candidate.lockedSimulation;
+  const locked = candidate.lockedSimulation;
 
   if (
-    locked.stageId !==
-      CRITERIUM_STAGE_ID ||
-    locked.raceEditionId !==
-      CRITERIUM_EDITION_ID ||
+    locked.stageId !== CRITERIUM_STAGE_ID ||
+    locked.raceEditionId !== CRITERIUM_EDITION_ID ||
     !isRecord(locked.input) ||
     !isRecord(locked.simulation)
   ) {
@@ -328,26 +276,21 @@ export function appendCriteriumDiscoveryEdition({
   return [
     edition,
     ...editions.filter(
-      (candidate) =>
-        candidate.slug !==
-        CRITERIUM_DISCOVERY_SLUG,
+      (candidate) => candidate.slug !== CRITERIUM_DISCOVERY_SLUG,
     ),
   ];
 }
 
-function cloneRider(
-  rider: RiderSimulationInput,
-): RiderSimulationInput {
+function cloneRider(rider: RiderSimulationInput): RiderSimulationInput {
   return {
     ...rider,
     ratings: { ...rider.ratings },
     specialAbilities: rider.specialAbilities
       ? [...rider.specialAbilities]
       : undefined,
-    equipmentEffects:
-      rider.equipmentEffects
-        ? { ...rider.equipmentEffects }
-        : undefined,
+    equipmentEffects: rider.equipmentEffects
+      ? { ...rider.equipmentEffects }
+      : undefined,
   };
 }
 
@@ -380,12 +323,6 @@ function createFictitiousCriteriumOpponent(
   };
 }
 
-function isRecord(
-  value: unknown,
-): value is Record<string, unknown> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value)
-  );
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

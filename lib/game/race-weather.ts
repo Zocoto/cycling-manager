@@ -1,6 +1,12 @@
 import type { RiderSimulationRatings } from "./race-simulation";
 
-export const RACE_WEATHER_CONDITIONS = ["dry", "rain"] as const;
+export const RACE_WEATHER_CONDITIONS = [
+  "clear",
+  "cloudy",
+  "rain",
+  "storm",
+  "snow",
+] as const;
 export type RaceWeatherCondition =
   (typeof RACE_WEATHER_CONDITIONS)[number];
 
@@ -23,29 +29,41 @@ export type RaceWeather = {
 
 export function getRaceWeather(seed: string | number): RaceWeather {
   const hash = stableWeatherHash(String(seed));
-  const rainRoll = hash % 100;
-  const condition: RaceWeatherCondition =
-    rainRoll < 36 ? "rain" : "dry";
-  const rainIntensity =
-    condition === "dry"
-      ? "none"
-      : rainRoll < 9
-        ? "heavy"
-        : rainRoll < 23
-          ? "steady"
-          : "light";
+  const weatherRoll = hash % 100;
+  const condition = getWeatherCondition(weatherRoll);
+  const rainIntensity = getPrecipitationIntensity(
+    condition,
+    (hash >>> 20) % 100
+  );
 
   return {
     condition,
     rainIntensity,
-    temperatureC: 9 + ((hash >>> 5) % 19),
+    temperatureC: getWeatherTemperature(condition, hash),
     windSpeedKph: 7 + ((hash >>> 10) % 30),
     windDirection:
       RACE_WIND_DIRECTIONS[
         (hash >>> 15) % RACE_WIND_DIRECTIONS.length
       ],
-    isWet: condition === "rain",
+    isWet:
+      condition === "rain" ||
+      condition === "storm" ||
+      condition === "snow",
   };
+}
+
+export function getRaceWeatherCrashRiskBonus(weather: RaceWeather) {
+  if (!weather.isWet) return 0;
+
+  if (weather.condition === "snow") return 0.075;
+  if (weather.condition === "storm") return 0.06;
+
+  return {
+    none: 0,
+    light: 0.012,
+    steady: 0.025,
+    heavy: 0.04,
+  }[weather.rainIntensity];
 }
 
 export function applyRaceWeatherRatingAdjustments(
@@ -85,7 +103,11 @@ export function applyRaceWeatherRatingAdjustments(
 }
 
 export function getRaceWeatherLabel(weather: RaceWeather) {
-  if (weather.condition === "dry") return "Route sèche";
+  if (weather.condition === "clear") return "Ciel bleu";
+  if (weather.condition === "cloudy") return "Quelques nuages";
+  if (weather.condition === "storm") return "Orage";
+  if (weather.condition === "snow") return "Neige";
+
   return {
     light: "Pluie légère",
     steady: "Pluie continue",
@@ -108,6 +130,44 @@ function stableWeatherHash(value: string) {
       (total * 33 + character.charCodeAt(0)) >>> 0,
     23
   );
+}
+
+function getWeatherCondition(
+  weatherRoll: number
+): RaceWeatherCondition {
+  if (weatherRoll < 62) return "clear";
+  if (weatherRoll < 87) return "cloudy";
+  if (weatherRoll < 97) return "rain";
+  if (weatherRoll < 99) return "storm";
+  return "snow";
+}
+
+function getPrecipitationIntensity(
+  condition: RaceWeatherCondition,
+  intensityRoll: number
+): RaceWeather["rainIntensity"] {
+  if (condition === "storm") return "heavy";
+  if (condition === "snow") return "steady";
+  if (condition !== "rain") return "none";
+  if (intensityRoll < 20) return "heavy";
+  if (intensityRoll < 60) return "steady";
+  return "light";
+}
+
+function getWeatherTemperature(
+  condition: RaceWeatherCondition,
+  hash: number
+) {
+  const temperatureRoll = (hash >>> 5) % 100;
+  const [minimum, range] = {
+    clear: [14, 17],
+    cloudy: [10, 16],
+    rain: [8, 15],
+    storm: [12, 13],
+    snow: [-4, 7],
+  }[condition];
+
+  return minimum + (temperatureRoll % range);
 }
 
 function clampRating(value: number) {

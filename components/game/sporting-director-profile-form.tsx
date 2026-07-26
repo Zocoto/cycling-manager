@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { updateSportingDirectorProfile } from "../../app/jeu/directeur-sportif/actions";
@@ -13,10 +8,7 @@ import {
   initialSportingDirectorProfileState,
   type SportingDirectorProfileField,
 } from "../../app/jeu/directeur-sportif/profile-state";
-import {
-  CountrySelect,
-  type CountryOption,
-} from "./country-select";
+import { CountrySelect, type CountryOption } from "./country-select";
 import { SportingDirectorAvatar } from "./sporting-director-avatar";
 import { SportingDirectorAvatarEditor } from "./sporting-director-avatar-editor";
 
@@ -44,95 +36,79 @@ export function SportingDirectorProfileForm({
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
-    initialSportingDirectorProfileState
+    initialSportingDirectorProfileState,
   );
 
-  const [selectedAvatarKey, setSelectedAvatarKey] =
-    useState(initialAvatarKey ?? "");
+  const [selectedAvatarKey, setSelectedAvatarKey] = useState(
+    initialAvatarKey ?? "",
+  );
 
-  const [isAvatarModalOpen, setIsAvatarModalOpen] =
-    useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
-  const [selectedCountryId, setSelectedCountryId] =
-    useState(initialCountryId ?? "");
+  const [selectedCountryId, setSelectedCountryId] = useState(
+    initialCountryId ?? "",
+  );
 
   const [dismissedFields, setDismissedFields] = useState<
     SportingDirectorProfileField[]
   >([]);
 
-  const [isAutoAdvancing, setIsAutoAdvancing] =
-    useState(false);
+  const autoAdvanceStartedRef = useRef(false);
 
   const { activeTutorial, nextStep } = useTutorial();
 
-  const avatarModalCloseButtonRef =
-    useRef<HTMLButtonElement>(null);
+  const avatarModalCloseButtonRef = useRef<HTMLButtonElement>(null);
 
-  const avatarModalTriggerRef =
-    useRef<HTMLButtonElement>(null);
+  const avatarModalTriggerRef = useRef<HTMLButtonElement>(null);
 
   const isCountryLocked = Boolean(initialCountryId);
 
   const hasSelectedAvatar = Boolean(selectedAvatarKey);
 
   const hasFieldErrors = profileFields.some((field) =>
-    Boolean(state.fieldErrors[field]?.length)
+    Boolean(state.fieldErrors[field]?.length),
   );
 
   const hasVisibleFieldErrors = profileFields.some(
     (field) =>
       Boolean(state.fieldErrors[field]?.length) &&
-      !dismissedFields.includes(field)
+      !dismissedFields.includes(field),
   );
 
   const shouldShowStateMessage =
     Boolean(state.message) &&
     !pending &&
-    (state.status !== "error" ||
-      !hasFieldErrors ||
-      hasVisibleFieldErrors);
+    (state.status !== "error" || !hasFieldErrors || hasVisibleFieldErrors);
 
   const tutorialStepKey =
-    activeTutorial?.definition.steps[
-      activeTutorial.currentStepIndex
-    ]?.key;
+    activeTutorial?.definition.steps[activeTutorial.currentStepIndex]?.key;
 
   useEffect(() => {
-    if (state.status !== "success" || pending) {
-      if (state.status !== "success") {
-        setIsAutoAdvancing(false);
-      }
-
+    if (state.status !== "success") {
+      autoAdvanceStartedRef.current = false;
       return;
     }
 
     if (
+      pending ||
       tutorialStepKey !== "profile-form" ||
-      isAutoAdvancing
+      autoAdvanceStartedRef.current
     ) {
       return;
     }
 
-    setIsAutoAdvancing(true);
+    autoAdvanceStartedRef.current = true;
     void nextStep();
-  }, [
-    isAutoAdvancing,
-    nextStep,
-    pending,
-    state.status,
-    tutorialStepKey,
-  ]);
+  }, [nextStep, pending, state.status, tutorialStepKey]);
 
   useEffect(() => {
     if (!isAvatarModalOpen) {
       return;
     }
 
-    const previousOverflow =
-      document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
 
-    const triggerButton =
-      avatarModalTriggerRef.current;
+    const triggerButton = avatarModalTriggerRef.current;
 
     document.body.style.overflow = "hidden";
 
@@ -144,33 +120,25 @@ export function SportingDirectorProfileForm({
       }
     }
 
-    document.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.body.style.overflow = previousOverflow;
 
-      document.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      document.removeEventListener("keydown", handleKeyDown);
 
       triggerButton?.focus();
     };
   }, [isAvatarModalOpen]);
 
-  function dismissFieldError(
-    field: SportingDirectorProfileField
-  ) {
+  function dismissFieldError(field: SportingDirectorProfileField) {
     setDismissedFields((currentFields) => [
       ...new Set([...currentFields, field]),
     ]);
   }
 
   function getVisibleErrors(
-    field: SportingDirectorProfileField
+    field: SportingDirectorProfileField,
   ): string[] | undefined {
     if (pending || dismissedFields.includes(field)) {
       return undefined;
@@ -185,27 +153,19 @@ export function SportingDirectorProfileForm({
     dismissFieldError("avatarKey");
   }
 
-  const displayNameErrors =
-    getVisibleErrors("displayName");
+  const displayNameErrors = getVisibleErrors("displayName");
 
-  const avatarErrors =
-    getVisibleErrors("avatarKey");
+  const avatarErrors = getVisibleErrors("avatarKey");
 
-  const countryErrors =
-    getVisibleErrors("countryId");
+  const countryErrors = getVisibleErrors("countryId");
 
-  const hideEmailErrors =
-    getVisibleErrors("hideEmail");
+  const hideEmailErrors = getVisibleErrors("hideEmail");
 
   return (
     <div data-tutorial-id="profile-form">
       {shouldShowStateMessage ? (
         <div
-          role={
-            state.status === "error"
-              ? "alert"
-              : "status"
-          }
+          role={state.status === "error" ? "alert" : "status"}
           aria-live="polite"
           className={
             state.status === "success"
@@ -269,17 +229,13 @@ export function SportingDirectorProfileForm({
             minLength={3}
             maxLength={30}
             disabled={pending}
-            aria-invalid={Boolean(
-              displayNameErrors?.length
-            )}
+            aria-invalid={Boolean(displayNameErrors?.length)}
             aria-describedby={
               displayNameErrors?.length
                 ? "displayName-error"
                 : "displayName-help"
             }
-            onChange={() =>
-              dismissFieldError("displayName")
-            }
+            onChange={() => dismissFieldError("displayName")}
             className="mt-2 min-h-12 w-full rounded-lg border border-[#315B3E]/25 bg-white px-4 text-[#082A2A] outline-none transition placeholder:text-[#789087] focus:border-[#42B99A] focus:ring-2 focus:ring-[#42B99A]/25 disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-[#D5B13E] aria-invalid:ring-2 aria-invalid:ring-[#D5B13E]/20"
           />
 
@@ -287,9 +243,8 @@ export function SportingDirectorProfileForm({
             id="displayName-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Ce nom sera visible dans l’univers de
-            Cyclostratège. Votre identifiant public reste
-            inchangé.
+            Ce nom sera visible dans l’univers de Cyclostratège. Votre
+            identifiant public reste inchangé.
           </p>
 
           {displayNameErrors?.length ? (
@@ -315,10 +270,9 @@ export function SportingDirectorProfileForm({
             id="avatarKey-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Composez le portrait qui vous représentera dans
-            votre bureau : carnation, traits du visage, regard,
-            coiffure et accessoires. Vous pourrez le modifier à
-            tout moment.
+            Composez le portrait qui vous représentera dans votre bureau :
+            carnation, traits du visage, regard, coiffure et accessoires. Vous
+            pourrez le modifier à tout moment.
           </p>
 
           <div
@@ -350,8 +304,8 @@ export function SportingDirectorProfileForm({
                 </p>
 
                 <p className="mt-1 max-w-md text-xs leading-5 text-[#60756E]">
-                  Ce portrait apparaîtra dans votre bureau, sur
-                  votre carte et dans les classements publics.
+                  Ce portrait apparaîtra dans votre bureau, sur votre carte et
+                  dans les classements publics.
                 </p>
               </div>
             </div>
@@ -363,28 +317,18 @@ export function SportingDirectorProfileForm({
               aria-haspopup="dialog"
               aria-expanded={isAvatarModalOpen}
               aria-describedby={
-                avatarErrors?.length
-                  ? "avatarKey-error"
-                  : "avatarKey-help"
+                avatarErrors?.length ? "avatarKey-error" : "avatarKey-help"
               }
-              onClick={() =>
-                setIsAvatarModalOpen(true)
-              }
+              onClick={() => setIsAvatarModalOpen(true)}
               className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#278B70]/30 bg-white px-4 py-2 text-sm font-extrabold text-[#176951] transition hover:border-[#278B70] hover:bg-[#DFF4EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <AvatarChangeIcon />
 
-              {hasSelectedAvatar
-                ? "Modifier l’avatar"
-                : "Créer mon avatar"}
+              {hasSelectedAvatar ? "Modifier l’avatar" : "Créer mon avatar"}
             </button>
           </div>
 
-          <input
-            type="hidden"
-            name="avatarKey"
-            value={selectedAvatarKey}
-          />
+          <input type="hidden" name="avatarKey" value={selectedAvatarKey} />
 
           {avatarErrors?.length ? (
             <div id="avatarKey-error">
@@ -420,9 +364,7 @@ export function SportingDirectorProfileForm({
               placeholder="Sélectionnez votre nationalité"
               listAriaLabel="Liste des nationalités"
               describedBy={
-                countryErrors?.length
-                  ? "countryId-error"
-                  : "countryId-help"
+                countryErrors?.length ? "countryId-error" : "countryId-help"
               }
               disabled={pending}
               invalid={Boolean(countryErrors?.length)}
@@ -444,10 +386,9 @@ export function SportingDirectorProfileForm({
             id="countryId-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Cette nationalité représente uniquement votre
-            Directeur Sportif. Le pays de l’équipe et de vos 7
-            premiers coureurs sera choisi à l’étape suivante.
-            Après validation, elle ne pourra plus être modifiée.
+            Cette nationalité représente uniquement votre Directeur Sportif. Le
+            pays de l’équipe et de vos 7 premiers coureurs sera choisi à l’étape
+            suivante. Après validation, elle ne pourra plus être modifiée.
           </p>
 
           {countryErrors?.length ? (
@@ -466,14 +407,12 @@ export function SportingDirectorProfileForm({
 
         {!isCountryLocked ? (
           <div className="rounded-xl border border-[#D5B13E]/35 bg-[#FFF9DE] px-4 py-4">
-            <p className="text-sm font-bold text-[#493B0B]">
-              Choix définitif
-            </p>
+            <p className="text-sm font-bold text-[#493B0B]">Choix définitif</p>
 
             <p className="mt-1 text-sm leading-6 text-[#705E23]">
-              Vérifiez bien votre nationalité avant de
-              l’enregistrer. Elle restera l’identité personnelle
-              définitive de votre Directeur Sportif.
+              Vérifiez bien votre nationalité avant de l’enregistrer. Elle
+              restera l’identité personnelle définitive de votre Directeur
+              Sportif.
             </p>
           </div>
         ) : null}
@@ -486,17 +425,11 @@ export function SportingDirectorProfileForm({
               value="true"
               defaultChecked={!initialIsEmailVisible}
               disabled={pending}
-              aria-invalid={Boolean(
-                hideEmailErrors?.length
-              )}
+              aria-invalid={Boolean(hideEmailErrors?.length)}
               aria-describedby={
-                hideEmailErrors?.length
-                  ? "hideEmail-error"
-                  : "hideEmail-help"
+                hideEmailErrors?.length ? "hideEmail-error" : "hideEmail-help"
               }
-              onChange={() =>
-                dismissFieldError("hideEmail")
-              }
+              onChange={() => dismissFieldError("hideEmail")}
               className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-[#315B3E]/30 accent-[#278B70] disabled:cursor-not-allowed"
             />
 
@@ -509,9 +442,8 @@ export function SportingDirectorProfileForm({
                 id="hideEmail-help"
                 className="mt-1 block text-xs leading-5 text-[#60756E]"
               >
-                Votre adresse restera utilisée pour votre
-                connexion, mais elle ne sera pas affichée sur
-                votre profil public.
+                Votre adresse restera utilisée pour votre connexion, mais elle
+                ne sera pas affichée sur votre profil public.
               </span>
             </span>
           </label>
@@ -580,8 +512,8 @@ export function SportingDirectorProfileForm({
                   id="avatar-modal-description"
                   className="mt-2 text-sm leading-6 text-[#60756E]"
                 >
-                  Composez un portrait unique en ajustant
-                  chaque détail de votre Directeur Sportif.
+                  Composez un portrait unique en ajustant chaque détail de votre
+                  Directeur Sportif.
                 </p>
               </div>
 
@@ -589,9 +521,7 @@ export function SportingDirectorProfileForm({
                 ref={avatarModalCloseButtonRef}
                 type="button"
                 aria-label="Fermer l’éditeur d’avatar"
-                onClick={() =>
-                  setIsAvatarModalOpen(false)
-                }
+                onClick={() => setIsAvatarModalOpen(false)}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#315B3E]/15 bg-white text-[#48665F] transition hover:border-[#278B70] hover:bg-[#DFF4EC] hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
               >
                 <CloseIcon />

@@ -13,9 +13,7 @@ import {
   CRITERIUM_DISCOVERY_RESULTS_ROUTE,
   getCriteriumDiscoveryRunFromMetadata,
 } from "@/lib/tutorial/criterium-discovery";
-import {
-  getAuthenticatedTutorialProgress,
-} from "@/lib/tutorial/progress";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -27,8 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CriteriumDiscoveryResultsPage() {
-  const supabase =
-    await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -39,22 +36,12 @@ export default async function CriteriumDiscoveryResultsPage() {
     redirect("/connexion");
   }
 
-  const [headerData, progress] =
-    await Promise.all([
-      getGameHeaderData(
-        supabase,
-        user.id,
-      ),
-      getAuthenticatedTutorialProgress(
-        supabase,
-        CRITERIUM_DISCOVERY_KEY,
-      ),
-    ]);
+  const [headerData, progress] = await Promise.all([
+    getGameHeaderData(supabase, user.id),
+    getAuthenticatedTutorialProgress(supabase, CRITERIUM_DISCOVERY_KEY),
+  ]);
 
-  const run =
-    getCriteriumDiscoveryRunFromMetadata(
-      progress?.metadata,
-    );
+  const run = getCriteriumDiscoveryRunFromMetadata(progress?.metadata);
 
   if (!progress || !run) {
     redirect(CRITERIUM_DISCOVERY_RACE_ROUTE);
@@ -68,34 +55,23 @@ export default async function CriteriumDiscoveryResultsPage() {
     );
   }
 
-  const isCompleted =
-    progress.status === "completed";
+  const isCompleted = progress.status === "completed";
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       {progress.status === "in_progress" &&
-      progress.current_route ===
-        CRITERIUM_DISCOVERY_RESULTS_ROUTE &&
+      progress.current_route === CRITERIUM_DISCOVERY_RESULTS_ROUTE &&
       progress.current_step_key ? (
         <TutorialRouteResume
-          tutorialKey={
-            CRITERIUM_DISCOVERY_KEY
-          }
-          currentStepKey={
-            progress.current_step_key
-          }
+          tutorialKey={CRITERIUM_DISCOVERY_KEY}
+          currentStepKey={progress.current_step_key}
         />
       ) : null}
 
       <GameHeader
         simulatorEmail={user.email}
-        displayName={
-          headerData.displayName
-        }
-        sponsor={
-          headerData.teamSponsorIdentity
-            ?.sponsor ?? null
-        }
+        displayName={headerData.displayName}
+        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
         maxWidth="wide"
       />
 
@@ -109,7 +85,9 @@ export default async function CriteriumDiscoveryResultsPage() {
               {CRITERIUM_DISCOVERY_NAME}
             </h1>
             <p className="mt-5 max-w-3xl text-lg font-medium leading-8 text-[#48665F]">
-              Vous êtes dans le même espace que pour les courses officielles. Lancez le replay, accélérez-le en ×2 ou ×4, consultez les écarts puis validez la formation.
+              Vous êtes dans le même espace que pour les courses officielles.
+              Lancez le replay, accélérez-le en ×2 ou ×4, consultez les écarts
+              puis validez la formation.
             </p>
           </header>
 
@@ -121,18 +99,13 @@ export default async function CriteriumDiscoveryResultsPage() {
           </Link>
         </div>
 
-        <div
-          data-tutorial-id="criterium-live-replay"
-          className="mt-8"
-        >
+        <div data-tutorial-id="criterium-live-replay" className="mt-8">
           <RaceLiveLab
             edition={run.edition}
             stage={stage}
             mode="replay"
             nowIso={new Date().toISOString()}
-            lockedSimulations={[
-              run.lockedSimulation,
-            ]}
+            lockedSimulations={[run.lockedSimulation]}
           />
         </div>
 
@@ -152,7 +125,9 @@ export default async function CriteriumDiscoveryResultsPage() {
           <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
             <div>
               <p className="text-sm font-semibold leading-7 text-[#48665F]">
-                Parcourez les onglets du replay, observez le classement et les écarts, puis terminez cette formation. Aucun résultat de cette course ne sera ajouté à la saison officielle.
+                Parcourez les onglets du replay, observez le classement et les
+                écarts, puis terminez cette formation. Aucun résultat de cette
+                course ne sera ajouté à la saison officielle.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
@@ -170,11 +145,10 @@ export default async function CriteriumDiscoveryResultsPage() {
 
             {isCompleted ? (
               <div className="rounded-xl border border-[#278B70]/25 bg-[#DDF3E7] px-5 py-4 text-[#176951]">
-                <p className="font-black">
-                  Formation pratique terminée
-                </p>
+                <p className="font-black">Formation pratique terminée</p>
                 <p className="mt-1 text-xs font-semibold leading-5 text-[#48665F]">
-                  La progression est enregistrée. Le replay reste disponible depuis le menu Didacticiels.
+                  La progression est enregistrée. Le replay reste disponible
+                  depuis le menu Didacticiels.
                 </p>
                 <Link
                   href="/jeu/objectifs"

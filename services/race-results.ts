@@ -28,6 +28,7 @@ import {
 import {
   sanitizeOfficialStageSimulationForRaceFormat,
   type LockedOfficialRaceSimulationDirectory,
+  type LockedOfficialStageSimulation,
 } from "@/lib/game/official-race-simulation";
 import {
   getStageAttackParticipants,
@@ -35,6 +36,10 @@ import {
 } from "@/lib/game/race-simulation";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  collectChunkedPaginatedRows,
+  collectPaginatedRows,
+} from "@/lib/supabase/pagination";
 import { persistPostRaceNewsEvents } from "@/services/post-race-news";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 
@@ -126,7 +131,8 @@ type StageAttackParticipantRow = {
 export async function settleFinishedRaceResults(
   calendar: SeasonRaceCalendar,
   now = new Date(),
-  lockedDirectory?: LockedOfficialRaceSimulationDirectory
+  lockedDirectory?: LockedOfficialRaceSimulationDirectory,
+  options: { repairCompletedEditions?: boolean } = {},
 ) {
   const admin = createSupabaseAdminClient();
   const officialSimulations =
@@ -134,152 +140,326 @@ export async function settleFinishedRaceResults(
     (await ensureLockedOfficialRaceSimulations(calendar, now));
   let processedStages = 0;
   let completedEditions = 0;
+  let failedEditions = 0;
 
   for (const edition of calendar.editions) {
-    if (edition.status === "completed" || edition.status === "cancelled") {
+    if (edition.status === "cancelled") continue;
+    // La fin de journée marque les éditions « completed » même si leurs
+    // résultats n'ont jamais été consolidés (bug historique). Sur l'espace
+    // dédié d'une course, on réévalue donc ces éditions pour les réparer.
+    if (edition.status === "completed" && !options.repairCompletedEditions) {
       continue;
     }
 
-    const minimumFieldSize =
-      edition.competitionType === "standard" ? 2 : 1;
-    if (edition.engagedRiders.length < minimumFieldSize) continue;
-
-    const rosterByRiderId = await loadRosterContext(admin, edition.id);
-    if (rosterByRiderId.size < minimumFieldSize) continue;
-
-    const finishedSimulations: StageSimulationResult[] = [];
-    const persistedStageClassifications: Array<{
-      stage: RaceCalendarStage;
-      results: OfficialRiderResult[];
-    }> = [];
-    const orderedStages = [...edition.stages].sort(
-      (first, second) => first.stageNumber - second.stageNumber
-    );
-    let persistedStageRows = await loadPersistedStageResultRows(
-      admin,
-      orderedStages.map((stage) => stage.id)
-    );
-    const simulationByStageId = new Map(
-      (officialSimulations[edition.id] ?? []).map(
-        (lockedSimulation) => [
-          lockedSimulation.stageId,
-          sanitizeOfficialStageSimulationForRaceFormat({
-            raceFormat: edition.raceFormat,
-            input: lockedSimulation.input,
-            simulation: lockedSimulation.simulation,
-          }).simulation,
-        ]
-      )
-    );
-
-    for (const stage of orderedStages) {
-      if (getStageLiveState(stage, now).status !== "finished") break;
-      const simulation = simulationByStageId.get(stage.id);
-      if (!simulation) {
-        throw new Error(
-          `Le scénario officiel de ${edition.name} — étape ${stage.stageNumber} n'est pas verrouillé.`
-        );
-      }
-      let stageRows = persistedStageRows.filter(
-        (row) => row.stage_id === stage.id
-      );
-      const stageAlreadyComplete = stageRows.length === rosterByRiderId.size;
-
-      if (!stageAlreadyComplete) {
-        await persistStageResult({
-          admin,
-          edition,
-          stage,
-          simulation,
-          rosterByRiderId,
-        });
-        processedStages += 1;
-        stageRows = await loadPersistedStageResultRows(admin, [stage.id]);
-        persistedStageRows = [
-          ...persistedStageRows.filter((row) => row.stage_id !== stage.id),
-          ...stageRows,
-        ];
-      }
-
-      if (stageRows.length !== rosterByRiderId.size) {
-        throw new Error(
-          `Le classement de ${stage.name} est incomplet (${stageRows.length}/${rosterByRiderId.size}).`
-        );
-      }
-
-      const officialStageResults = buildPersistedStageClassification({
-        rows: stageRows,
-        edition,
-        rosterByRiderId,
-      });
-      persistedStageClassifications.push({
-        stage,
-        results: officialStageResults,
-      });
-      finishedSimulations.push(simulation);
-    }
-
-    if (persistedStageClassifications.length === 0) continue;
-
-    const standings = buildPersistedStageRaceStandings(
-      persistedStageClassifications.map(
-        (classification) => classification.results
-      ),
-      new Map(edition.engagedRiders.map((rider) => [rider.id, rider.age]))
-    );
-    if (edition.raceFormat === "stage_race") {
-      await persistSecondaryClassifications({
+    // Chaque édition est consolidée indépendamment : une course en erreur ne
+    // doit jamais bloquer les primes et classements de toutes les autres.
+    try {
+      const settlement = await settleEditionRaceResults({
         admin,
+        calendar,
         edition,
-        standings,
-        rosterByRiderId,
+        now,
+        lockedSimulations: officialSimulations[edition.id] ?? [],
       });
+      processedStages += settlement.processedStages;
+      completedEditions += settlement.completedEditions;
+    } catch (error) {
+      failedEditions += 1;
+      console.error(`Impossible de consolider ${edition.name} :`, error);
     }
-
-    const editionIsComplete =
-      persistedStageClassifications.length === orderedStages.length;
-    if (!editionIsComplete) continue;
-
-    const general = buildPersistedGeneralClassification(
-      persistedStageClassifications.map((classification) =>
-        classification.results.map(toPersistedGeneralInput)
-      )
-    );
-    const raceClassificationAlreadyComplete =
-      await hasCompleteRaceClassification(
-        admin,
-        edition.id,
-        rosterByRiderId.size
-      );
-    await persistRaceClassification({
-      admin,
-      edition,
-      finalStage: orderedStages.at(-1)!,
-      general,
-      simulations: finishedSimulations,
-      standings: edition.raceFormat === "stage_race" ? standings : null,
-      stageClassifications: persistedStageClassifications,
-      rosterByRiderId,
-    });
-
-    const { error: editionError } = await admin
-      .from("race_editions")
-      .update({ status: "completed" })
-      .eq("id", edition.id);
-    assertQuery(editionError, `la clôture de ${edition.name}`);
-    if (!raceClassificationAlreadyComplete) completedEditions += 1;
   }
 
-  return { processedStages, completedEditions };
+  return { processedStages, completedEditions, failedEditions };
+}
+
+async function settleEditionRaceResults({
+  admin,
+  calendar,
+  edition,
+  now,
+  lockedSimulations,
+}: {
+  admin: AdminClient;
+  calendar: SeasonRaceCalendar;
+  edition: RaceCalendarEdition;
+  now: Date;
+  lockedSimulations: LockedOfficialStageSimulation[];
+}) {
+  const minimumFieldSize = edition.competitionType === "standard" ? 2 : 1;
+  if (edition.engagedRiders.length < minimumFieldSize) {
+    return { processedStages: 0, completedEditions: 0 };
+  }
+
+  const rosterByRiderId = await loadRosterContext(admin, edition.id);
+  if (rosterByRiderId.size < minimumFieldSize) {
+    return { processedStages: 0, completedEditions: 0 };
+  }
+
+  // Une édition déjà clôturée avec un classement général complet est saine :
+  // inutile de la retraiter.
+  if (edition.status === "completed") {
+    const alreadySettled = await hasCompleteRaceClassification(
+      admin,
+      edition.id,
+      rosterByRiderId.size,
+    );
+    if (alreadySettled) {
+      return { processedStages: 0, completedEditions: 0 };
+    }
+  }
+
+  const orderedStages = [...edition.stages].sort(
+    (first, second) => first.stageNumber - second.stageNumber,
+  );
+
+  // Un scénario verrouillé avec une startlist tronquée (bug historique de
+  // pagination) ne pourra jamais produire un classement complet : on le
+  // reconstruit tant que la course n'a pas été clôturée.
+  let editionSimulations = lockedSimulations;
+  const firstStageSimulation = editionSimulations.find(
+    (lockedSimulation) => lockedSimulation.stageId === orderedStages[0]?.id,
+  );
+  if (firstStageSimulation) {
+    const simulationRiderIds = new Set(
+      firstStageSimulation.simulation.results.map((result) => result.riderId),
+    );
+    const coversRoster =
+      simulationRiderIds.size === rosterByRiderId.size &&
+      [...simulationRiderIds].every((riderId) => rosterByRiderId.has(riderId));
+    if (!coversRoster) {
+      const alreadyComplete = await hasCompleteRaceClassification(
+        admin,
+        edition.id,
+        rosterByRiderId.size,
+      );
+      if (!alreadyComplete) {
+        editionSimulations = await relockEditionOfficialSimulations({
+          admin,
+          calendar,
+          edition,
+          now,
+        });
+      }
+    }
+  }
+
+  let processedStages = 0;
+  const finishedSimulations: StageSimulationResult[] = [];
+  const persistedStageClassifications: Array<{
+    stage: RaceCalendarStage;
+    results: OfficialRiderResult[];
+  }> = [];
+  let persistedStageRows = await loadPersistedStageResultRows(
+    admin,
+    orderedStages.map((stage) => stage.id),
+  );
+  const simulationByStageId = new Map(
+    editionSimulations.map((lockedSimulation) => [
+      lockedSimulation.stageId,
+      sanitizeOfficialStageSimulationForRaceFormat({
+        raceFormat: edition.raceFormat,
+        input: lockedSimulation.input,
+        simulation: lockedSimulation.simulation,
+      }).simulation,
+    ]),
+  );
+
+  for (const stage of orderedStages) {
+    if (getStageLiveState(stage, now).status !== "finished") break;
+    const simulation = simulationByStageId.get(stage.id);
+    if (!simulation) {
+      throw new Error(
+        `Le scénario officiel de ${edition.name} — étape ${stage.stageNumber} n'est pas verrouillé.`,
+      );
+    }
+
+    // Les partants attendus sont les coureurs simulés : les abandonnés et
+    // blessés des étapes précédentes ne reprennent pas le départ.
+    const expectedRosterIds = new Set(
+      simulation.results.map(
+        (result) => requireRoster(rosterByRiderId, result.riderId).rosterId,
+      ),
+    );
+    let stageRows = persistedStageRows.filter(
+      (row) =>
+        row.stage_id === stage.id && expectedRosterIds.has(row.race_roster_id),
+    );
+    const stageAlreadyComplete = stageRows.length === expectedRosterIds.size;
+
+    if (!stageAlreadyComplete) {
+      await persistStageResult({
+        admin,
+        edition,
+        stage,
+        simulation,
+        rosterByRiderId,
+      });
+      processedStages += 1;
+      const reloadedRows = await loadPersistedStageResultRows(admin, [
+        stage.id,
+      ]);
+      persistedStageRows = [
+        ...persistedStageRows.filter((row) => row.stage_id !== stage.id),
+        ...reloadedRows,
+      ];
+      stageRows = reloadedRows.filter((row) =>
+        expectedRosterIds.has(row.race_roster_id),
+      );
+    }
+
+    if (stageRows.length !== expectedRosterIds.size) {
+      throw new Error(
+        `Le classement de ${stage.name} est incomplet (${stageRows.length}/${expectedRosterIds.size}).`,
+      );
+    }
+
+    const officialStageResults = buildPersistedStageClassification({
+      rows: stageRows,
+      edition,
+      rosterByRiderId,
+    });
+    persistedStageClassifications.push({
+      stage,
+      results: officialStageResults,
+    });
+    finishedSimulations.push(simulation);
+  }
+
+  if (persistedStageClassifications.length === 0) {
+    return { processedStages, completedEditions: 0 };
+  }
+
+  const standings = buildPersistedStageRaceStandings(
+    persistedStageClassifications.map(
+      (classification) => classification.results,
+    ),
+    new Map(edition.engagedRiders.map((rider) => [rider.id, rider.age])),
+  );
+  if (edition.raceFormat === "stage_race") {
+    await persistSecondaryClassifications({
+      admin,
+      edition,
+      standings,
+      rosterByRiderId,
+    });
+  }
+
+  const editionIsComplete =
+    persistedStageClassifications.length === orderedStages.length;
+  if (!editionIsComplete) {
+    return { processedStages, completedEditions: 0 };
+  }
+
+  const general = buildPersistedGeneralClassification(
+    persistedStageClassifications.map((classification) =>
+      classification.results.map(toPersistedGeneralInput),
+    ),
+  );
+  const raceClassificationAlreadyComplete = await hasCompleteRaceClassification(
+    admin,
+    edition.id,
+    rosterByRiderId.size,
+  );
+  await persistRaceClassification({
+    admin,
+    edition,
+    finalStage: orderedStages.at(-1)!,
+    general,
+    simulations: finishedSimulations,
+    standings: edition.raceFormat === "stage_race" ? standings : null,
+    stageClassifications: persistedStageClassifications,
+    rosterByRiderId,
+  });
+
+  const { error: editionError } = await admin
+    .from("race_editions")
+    .update({ status: "completed" })
+    .eq("id", edition.id);
+  assertQuery(editionError, `la clôture de ${edition.name}`);
+
+  return {
+    processedStages,
+    completedEditions: raceClassificationAlreadyComplete ? 0 : 1,
+  };
+}
+
+/**
+ * Purge les résultats partiels d'une édition et verrouille un nouveau
+ * scénario officiel couvrant la startlist complète. Utilisé uniquement pour
+ * réparer les éditions corrompues par l'ancienne troncature des requêtes.
+ */
+async function relockEditionOfficialSimulations({
+  admin,
+  calendar,
+  edition,
+  now,
+}: {
+  admin: AdminClient;
+  calendar: SeasonRaceCalendar;
+  edition: RaceCalendarEdition;
+  now: Date;
+}): Promise<LockedOfficialStageSimulation[]> {
+  console.warn(
+    `Le scénario officiel de ${edition.name} ne couvre pas la startlist : reconstruction du classement.`,
+  );
+  const stageIds = edition.stages.map((stage) => stage.id);
+
+  const { error: attackError } = await admin
+    .from("stage_attack_participants")
+    .delete()
+    .in("stage_id", stageIds);
+  assertQuery(attackError, `la purge des attaquants de ${edition.name}`);
+
+  const { error: stageResultError } = await admin
+    .from("stage_results")
+    .delete()
+    .in("stage_id", stageIds);
+  assertQuery(
+    stageResultError,
+    `la purge des résultats d'étapes de ${edition.name}`,
+  );
+
+  const { error: secondaryError } = await admin
+    .from("race_secondary_results")
+    .delete()
+    .eq("race_edition_id", edition.id);
+  assertQuery(
+    secondaryError,
+    `la purge des classements annexes de ${edition.name}`,
+  );
+
+  const { error: raceResultError } = await admin
+    .from("race_results")
+    .delete()
+    .eq("race_edition_id", edition.id);
+  assertQuery(
+    raceResultError,
+    `la purge du classement général de ${edition.name}`,
+  );
+
+  const { error: simulationError } = await admin
+    .from("official_stage_simulations")
+    .delete()
+    .eq("race_edition_id", edition.id);
+  assertQuery(
+    simulationError,
+    `la purge du scénario officiel de ${edition.name}`,
+  );
+
+  const directory = await ensureLockedOfficialRaceSimulations(
+    { ...calendar, editions: [edition] },
+    now,
+  );
+  return directory[edition.id] ?? [];
 }
 
 export async function getOfficialRaceResults(
-  calendar: SeasonRaceCalendar
+  calendar: SeasonRaceCalendar,
 ): Promise<OfficialRaceResultsDirectory> {
   const admin = createSupabaseAdminClient();
   const editionIds = calendar.editions.map((edition) => edition.id);
   const stageIds = calendar.editions.flatMap((edition) =>
-    edition.stages.map((stage) => stage.id)
+    edition.stages.map((stage) => stage.id),
   );
 
   if (editionIds.length === 0 || stageIds.length === 0) return {};
@@ -290,42 +470,98 @@ export async function getOfficialRaceResults(
     secondaryQuery,
     registrationQuery,
     attackParticipantQuery,
-  ] =
-    await Promise.all([
-      admin
-        .from("stage_results")
-        .select(
-          "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id"
-        )
-        .in("stage_id", stageIds)
-        .returns<StageResultRow[]>(),
-      admin
-        .from("race_results")
-        .select(
-          "race_edition_id, race_roster_id, status, final_rank, total_time_ms, gap_to_winner_ms, abandonment_reason"
-        )
-        .in("race_edition_id", editionIds)
-        .returns<RaceResultRow[]>(),
-      admin
-        .from("race_secondary_results")
-        .select(
-          "race_edition_id, classification_type, race_roster_id, team_season_id, historical_team_name, rank, points, total_time_ms"
-        )
-        .in("race_edition_id", editionIds)
-        .returns<SecondaryResultRow[]>(),
-      admin
-        .from("race_registrations")
-        .select("id, race_edition_id, team_season_id, historical_team_name")
-        .in("race_edition_id", editionIds)
-        .returns<RaceRegistrationRow[]>(),
-      admin
-        .from("stage_attack_participants")
-        .select(
-          "stage_id, race_roster_id, participation_type, first_segment_number"
-        )
-        .in("stage_id", stageIds)
-        .returns<StageAttackParticipantRow[]>(),
-    ]);
+  ] = await Promise.all([
+    collectChunkedPaginatedRows<StageResultRow, { message: string }, string>({
+      values: stageIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("stage_results")
+          .select(
+            "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id",
+          )
+          .in("stage_id", chunk)
+          .order("stage_id", { ascending: true })
+          .order("race_roster_id", { ascending: true })
+          .range(from, to)
+          .returns<StageResultRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<RaceResultRow, { message: string }, string>({
+      values: editionIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_results")
+          .select(
+            "race_edition_id, race_roster_id, status, final_rank, total_time_ms, gap_to_winner_ms, abandonment_reason",
+          )
+          .in("race_edition_id", chunk)
+          .order("race_edition_id", { ascending: true })
+          .order("race_roster_id", { ascending: true })
+          .range(from, to)
+          .returns<RaceResultRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<
+      SecondaryResultRow,
+      { message: string },
+      string
+    >({
+      values: editionIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_secondary_results")
+          .select(
+            "race_edition_id, classification_type, race_roster_id, team_season_id, historical_team_name, rank, points, total_time_ms",
+          )
+          .in("race_edition_id", chunk)
+          .order("race_edition_id", { ascending: true })
+          .order("classification_type", { ascending: true })
+          .order("rank", { ascending: true })
+          .range(from, to)
+          .returns<SecondaryResultRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<
+      RaceRegistrationRow,
+      { message: string },
+      string
+    >({
+      values: editionIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_registrations")
+          .select("id, race_edition_id, team_season_id, historical_team_name")
+          .in("race_edition_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RaceRegistrationRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<
+      StageAttackParticipantRow,
+      { message: string },
+      string
+    >({
+      values: stageIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("stage_attack_participants")
+          .select(
+            "stage_id, race_roster_id, participation_type, first_segment_number",
+          )
+          .in("stage_id", chunk)
+          .order("stage_id", { ascending: true })
+          .order("race_roster_id", { ascending: true })
+          .range(from, to)
+          .returns<StageAttackParticipantRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+  ]);
 
   assertQuery(stageResultQuery.error, "les résultats d’étapes");
   assertQuery(raceResultQuery.error, "les classements généraux");
@@ -339,24 +575,38 @@ export async function getOfficialRaceResults(
     ...new Set(
       registrations
         .map((row) => row.team_season_id)
-        .filter((teamSeasonId): teamSeasonId is string => teamSeasonId !== null)
+        .filter(
+          (teamSeasonId): teamSeasonId is string => teamSeasonId !== null,
+        ),
     ),
   ];
   const [rosterQuery, teamSeasonQuery] = await Promise.all([
-    registrationIds.length > 0
-      ? admin
+    collectChunkedPaginatedRows<RaceRosterRow, { message: string }, string>({
+      values: registrationIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
           .from("race_rosters")
           .select("id, race_registration_id, rider_id")
-          .in("race_registration_id", registrationIds)
-          .returns<RaceRosterRow[]>()
-      : Promise.resolve({ data: [] as RaceRosterRow[], error: null }),
-    teamSeasonIds.length > 0
-      ? admin
+          .in("race_registration_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RaceRosterRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<TeamSeasonRow, { message: string }, string>({
+      values: teamSeasonIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
           .from("team_seasons")
           .select("id, team_id, display_name")
-          .in("id", teamSeasonIds)
-          .returns<TeamSeasonRow[]>()
-      : Promise.resolve({ data: [] as TeamSeasonRow[], error: null }),
+          .in("id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<TeamSeasonRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
   ]);
 
   assertQuery(rosterQuery.error, "les startlists historiques");
@@ -364,19 +614,20 @@ export async function getOfficialRaceResults(
 
   const rosterRows = rosterQuery.data ?? [];
   const riderIds = [...new Set(rosterRows.map((row) => row.rider_id))];
-  const riderQuery = riderIds.length > 0
-    ? await admin
-        .from("riders")
-        .select("id, first_name, last_name")
-        .in("id", riderIds)
-        .returns<OfficialResultRiderRow[]>()
-    : { data: [] as OfficialResultRiderRow[], error: null };
+  const riderQuery =
+    riderIds.length > 0
+      ? await admin
+          .from("riders")
+          .select("id, first_name, last_name")
+          .in("id", riderIds)
+          .returns<OfficialResultRiderRow[]>()
+      : { data: [] as OfficialResultRiderRow[], error: null };
   assertQuery(riderQuery.error, "les coureurs des résultats historiques");
 
   const registrationById = new Map(registrations.map((row) => [row.id, row]));
   const rosterById = new Map(rosterRows.map((row) => [row.id, row]));
   const teamSeasonById = new Map(
-    (teamSeasonQuery.data ?? []).map((row) => [row.id, row])
+    (teamSeasonQuery.data ?? []).map((row) => [row.id, row]),
   );
   const riderById = new Map(
     (riderQuery.data ?? []).map((rider) => [
@@ -385,7 +636,7 @@ export async function getOfficialRaceResults(
         id: rider.id,
         name: `${rider.first_name} ${rider.last_name}`,
       },
-    ])
+    ]),
   );
   const directory: OfficialRaceResultsDirectory = {};
 
@@ -404,10 +655,10 @@ export async function getOfficialRaceResults(
                 registrationById,
                 teamSeasonById,
                 riderById,
-              })
+              }),
             )
             .filter((row): row is OfficialRiderResult => row !== null)
-            .sort(compareOfficialResults)
+            .sort(compareOfficialResults),
         );
 
         return {
@@ -432,22 +683,22 @@ export async function getOfficialRaceResults(
             registrationById,
             teamSeasonById,
             riderById,
-          })
+          }),
         )
         .filter((row): row is OfficialRiderResult => row !== null)
-        .sort(compareOfficialResults)
+        .sort(compareOfficialResults),
     );
     const general =
       persistedGeneral.length > 0
         ? persistedGeneral
         : buildPersistedGeneralClassification(
             stageClassifications.map((stage) =>
-              stage.results.map(toPersistedGeneralInput)
-            )
+              stage.results.map(toPersistedGeneralInput),
+            ),
           );
     const secondary = buildOfficialSecondaryClassifications({
       rows: (secondaryQuery.data ?? []).filter(
-        (row) => row.race_edition_id === edition.id
+        (row) => row.race_edition_id === edition.id,
       ),
       editionId: edition.id,
       rosterById,
@@ -480,26 +731,47 @@ export async function getOfficialRaceResults(
 }
 
 async function loadRosterContext(admin: AdminClient, editionId: string) {
-  const { data: registrations, error: registrationError } = await admin
-    .from("race_registrations")
-    .select("id, race_edition_id, team_season_id")
-    .eq("race_edition_id", editionId)
-    .eq("status", "accepted")
-    .returns<RaceRegistrationRow[]>();
+  const { data: registrations, error: registrationError } =
+    await collectPaginatedRows<RaceRegistrationRow, { message: string }>({
+      fetchPage: async (from, to) => {
+        const result = await admin
+          .from("race_registrations")
+          .select("id, race_edition_id, team_season_id, historical_team_name")
+          .eq("race_edition_id", editionId)
+          .eq("status", "accepted")
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RaceRegistrationRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    });
   assertQuery(registrationError, "les inscriptions officielles");
 
   const registrationById = new Map(
-    (registrations ?? []).map((row) => [row.id, row])
+    (registrations ?? []).map((row) => [row.id, row]),
   );
   const registrationIds = [...registrationById.keys()];
   if (registrationIds.length === 0) return new Map<string, RosterContext>();
 
-  const { data: rosters, error: rosterError } = await admin
-    .from("race_rosters")
-    .select("id, race_registration_id, rider_id")
-    .in("race_registration_id", registrationIds)
-    .in("status", ["selected", "confirmed"])
-    .returns<RaceRosterRow[]>();
+  const { data: rosters, error: rosterError } =
+    await collectChunkedPaginatedRows<
+      RaceRosterRow,
+      { message: string },
+      string
+    >({
+      values: registrationIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_rosters")
+          .select("id, race_registration_id, rider_id")
+          .in("race_registration_id", chunk)
+          .in("status", ["selected", "confirmed"])
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RaceRosterRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    });
   assertQuery(rosterError, "la startlist officielle");
 
   return new Map(
@@ -517,23 +789,36 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
             ] as const,
           ]
         : [];
-    })
+    }),
   );
 }
 
 async function loadPersistedStageResultRows(
   admin: AdminClient,
-  stageIds: string[]
+  stageIds: string[],
 ) {
   if (stageIds.length === 0) return [] as StageResultRow[];
 
-  const { data, error } = await admin
-    .from("stage_results")
-    .select(
-      "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id"
-    )
-    .in("stage_id", stageIds)
-    .returns<StageResultRow[]>();
+  const { data, error } = await collectChunkedPaginatedRows<
+    StageResultRow,
+    { message: string },
+    string
+  >({
+    values: stageIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("stage_results")
+        .select(
+          "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id",
+        )
+        .in("stage_id", chunk)
+        .order("stage_id", { ascending: true })
+        .order("race_roster_id", { ascending: true })
+        .range(from, to)
+        .returns<StageResultRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
   assertQuery(error, "les résultats d'étapes déjà enregistrés");
   return data ?? [];
 }
@@ -541,7 +826,7 @@ async function loadPersistedStageResultRows(
 async function hasCompleteRaceClassification(
   admin: AdminClient,
   editionId: string,
-  expectedRiderCount: number
+  expectedRiderCount: number,
 ) {
   const { count, error } = await admin
     .from("race_results")
@@ -561,7 +846,7 @@ function buildPersistedStageClassification({
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const riderById = new Map(
-    edition.engagedRiders.map((rider) => [rider.id, rider])
+    edition.engagedRiders.map((rider) => [rider.id, rider]),
   );
 
   return normalizeOfficialResultGapsToLeader(
@@ -569,7 +854,7 @@ function buildPersistedStageClassification({
       .flatMap((row) => {
         const riderId = findRiderIdByRosterId(
           rosterByRiderId,
-          row.race_roster_id
+          row.race_roster_id,
         );
         const rider = riderId ? riderById.get(riderId) : null;
         return rider
@@ -590,13 +875,13 @@ function buildPersistedStageClassification({
             ]
           : [];
       })
-      .sort(compareOfficialResults)
+      .sort(compareOfficialResults),
   );
 }
 
 function findRiderIdByRosterId(
   rosterByRiderId: Map<string, RosterContext>,
-  rosterId: string
+  rosterId: string,
 ) {
   for (const [riderId, context] of rosterByRiderId) {
     if (context.rosterId === rosterId) return riderId;
@@ -621,7 +906,7 @@ async function persistStageResult({
   const winnerElapsedTimeSeconds = Math.min(
     ...simulation.results
       .filter((result) => result.status === "finished")
-      .map((result) => result.elapsedTimeSeconds)
+      .map((result) => result.elapsedTimeSeconds),
   );
 
   for (const result of simulation.results) {
@@ -645,13 +930,12 @@ async function persistStageResult({
     const recordedAtTimestamp = Number.isFinite(departureTimestamp)
       ? Math.min(
           Date.now(),
-          departureTimestamp +
-            Math.max(0, result.elapsedTimeSeconds) * 1_000
+          departureTimestamp + Math.max(0, result.elapsedTimeSeconds) * 1_000,
         )
       : Date.now();
     const startedAt = new Date(recordedAtTimestamp);
     const expectedRecoveryAt = new Date(
-      startedAt.getTime() + result.injury.recoveryHours * 3_600_000
+      startedAt.getTime() + result.injury.recoveryHours * 3_600_000,
     );
     let inserted = await admin
       .from("rider_injuries")
@@ -689,13 +973,11 @@ async function persistStageResult({
       .returns<Array<{ id: string; rider_id: string }>>();
   assertQuery(
     persistedInjuryError,
-    `la vérification des blessures de ${stage.name}`
+    `la vérification des blessures de ${stage.name}`,
   );
   const simulatedInjuredRiderIds = new Set(injuryIdByRiderId.keys());
   const staleInjuryIds = (persistedStageInjuries ?? [])
-    .filter(
-      (injury) => !simulatedInjuredRiderIds.has(injury.rider_id)
-    )
+    .filter((injury) => !simulatedInjuredRiderIds.has(injury.rider_id))
     .map((injury) => injury.id);
   if (staleInjuryIds.length > 0) {
     const { error: staleInjuryError } = await admin
@@ -704,7 +986,7 @@ async function persistStageResult({
       .in("id", staleInjuryIds);
     assertQuery(
       staleInjuryError,
-      `le nettoyage des blessures obsolètes de ${stage.name}`
+      `le nettoyage des blessures obsolètes de ${stage.name}`,
     );
   }
 
@@ -719,10 +1001,8 @@ async function persistStageResult({
       elapsed_time_ms: finished ? result.elapsedTimeSeconds * 1_000 : null,
       gap_to_winner_ms:
         finished && Number.isFinite(winnerElapsedTimeSeconds)
-          ? Math.max(
-              0,
-              result.elapsedTimeSeconds - winnerElapsedTimeSeconds
-            ) * 1_000
+          ? Math.max(0, result.elapsedTimeSeconds - winnerElapsedTimeSeconds) *
+            1_000
           : null,
       mountain_points: simulation.mountainPoints[result.riderId] ?? 0,
       sprint_points: simulation.sprintPoints[result.riderId] ?? 0,
@@ -771,10 +1051,8 @@ async function persistStageAttackParticipants({
   const participants = getStageAttackParticipants(simulation);
   const rows = participants.map((participant) => ({
     stage_id: stage.id,
-    race_roster_id: requireRoster(
-      rosterByRiderId,
-      participant.riderId
-    ).rosterId,
+    race_roster_id: requireRoster(rosterByRiderId, participant.riderId)
+      .rosterId,
     participation_type: participant.participationType,
     first_segment_number: participant.firstSegmentNumber,
   }));
@@ -791,7 +1069,10 @@ async function persistStageAttackParticipants({
     .select("race_roster_id")
     .eq("stage_id", stage.id)
     .returns<Array<{ race_roster_id: string }>>();
-  assertQuery(persistedError, `la vérification des attaquants de ${stage.name}`);
+  assertQuery(
+    persistedError,
+    `la vérification des attaquants de ${stage.name}`,
+  );
 
   const currentRosterIds = new Set(rows.map((row) => row.race_roster_id));
   const staleRosterIds = (persistedRows ?? [])
@@ -870,9 +1151,14 @@ async function persistSecondaryClassifications({
     }),
   ];
 
-  for (const classificationType of ["mountain", "sprint", "youth", "team"] as const) {
+  for (const classificationType of [
+    "mountain",
+    "sprint",
+    "youth",
+    "team",
+  ] as const) {
     const classificationRows = rows.filter(
-      (row) => row.classification_type === classificationType
+      (row) => row.classification_type === classificationType,
     );
     if (classificationRows.length > 0) {
       const { error } = await admin
@@ -880,7 +1166,10 @@ async function persistSecondaryClassifications({
         .upsert(classificationRows, {
           onConflict: "race_edition_id,classification_type,rank",
         });
-      assertQuery(error, `le classement ${classificationType} de ${edition.name}`);
+      assertQuery(
+        error,
+        `le classement ${classificationType} de ${edition.name}`,
+      );
     }
 
     let staleRowsQuery = admin
@@ -894,7 +1183,7 @@ async function persistSecondaryClassifications({
     const { error: staleRowsError } = await staleRowsQuery;
     assertQuery(
       staleRowsError,
-      `le nettoyage du classement ${classificationType} de ${edition.name}`
+      `le nettoyage du classement ${classificationType} de ${edition.name}`,
     );
   }
 }
@@ -950,7 +1239,7 @@ async function persistRaceClassification({
 
   const secondaryWinners = standings
     ? new Map<string, Array<"mountain" | "sprint" | "youth" | "team">>(
-        general.map((result) => [result.riderId, []])
+        general.map((result) => [result.riderId, []]),
       )
     : new Map<string, Array<"mountain" | "sprint" | "youth" | "team">>();
   if (standings?.mountain[0]) {
@@ -964,7 +1253,7 @@ async function persistRaceClassification({
   }
   if (standings?.teams[0]) {
     const teamPrizeRecipient = general.find(
-      (result) => result.teamId === standings.teams[0].teamId
+      (result) => result.teamId === standings.teams[0].teamId,
     );
     if (teamPrizeRecipient) {
       secondaryWinners.get(teamPrizeRecipient.riderId)?.push("team");
@@ -975,25 +1264,28 @@ async function persistRaceClassification({
     const mountainPrimesWon = countPrimeWins(
       simulations,
       result.riderId,
-      "mountain"
+      "mountain",
     );
     const intermediateSprintsWon = countPrimeWins(
       simulations,
       result.riderId,
-      "intermediate_sprint"
+      "intermediate_sprint",
     );
-    const rewardBreakdown = edition.competitionType === "standard"
-      ? calculateRaceRewardBreakdown({
-          tier: edition.categoryCode,
-          scope: getRewardScope(edition),
-          finalRank: result.rank,
-          secondaryClassifications: secondaryWinners.get(result.riderId) ?? [],
-          mountainPrimesWon,
-          intermediateSprintsWon,
-        })
-      : null;
-    const reward = rewardBreakdown?.total
-      ?? calculateNationalChampionshipReward({ finalRank: result.rank });
+    const rewardBreakdown =
+      edition.competitionType === "standard"
+        ? calculateRaceRewardBreakdown({
+            tier: edition.categoryCode,
+            scope: getRewardScope(edition),
+            finalRank: result.rank,
+            secondaryClassifications:
+              secondaryWinners.get(result.riderId) ?? [],
+            mountainPrimesWon,
+            intermediateSprintsWon,
+          })
+        : null;
+    const reward =
+      rewardBreakdown?.total ??
+      calculateNationalChampionshipReward({ finalRank: result.rank });
     if (
       reward.reputation === 0 &&
       reward.experience === 0 &&
@@ -1004,17 +1296,19 @@ async function persistRaceClassification({
     }
 
     const roster = requireRoster(rosterByRiderId, result.riderId);
-    const placement = result.rank === 1
-      ? "Victoire"
-      : result.rank
-        ? `${result.rank}e place`
-        : "Primes et classements annexes";
+    const placement =
+      result.rank === 1
+        ? "Victoire"
+        : result.rank
+          ? `${result.rank}e place`
+          : "Primes et classements annexes";
     const cashBreakdown = rewardBreakdown
       ? describeCashRewardBreakdown(rewardBreakdown)
       : null;
-    const settlementDetail = edition.raceFormat === "stage_race"
-      ? `${result.riderName} · ${placement}${cashBreakdown ? ` · ${cashBreakdown}` : ""} · règlement de fin de tour`
-      : `${result.riderName} · ${placement}`;
+    const settlementDetail =
+      edition.raceFormat === "stage_race"
+        ? `${result.riderName} · ${placement}${cashBreakdown ? ` · ${cashBreakdown}` : ""} · règlement de fin de tour`
+        : `${result.riderName} · ${placement}`;
     const { error: rewardError } = await admin.rpc(
       "apply_race_roster_competition_reward",
       {
@@ -1028,7 +1322,7 @@ async function persistRaceClassification({
         p_uci_points: reward.uciPoints,
         p_is_victory: result.rank === 1,
         p_description: `${edition.name} — ${settlementDetail}`,
-      }
+      },
     );
     assertQuery(rewardError, `les gains de ${result.riderName}`);
   }
@@ -1036,15 +1330,15 @@ async function persistRaceClassification({
   const attackedRiderIds = new Set(
     simulations.flatMap((simulation) =>
       getStageAttackParticipants(simulation).map(
-        (participant) => participant.riderId
-      )
-    )
+        (participant) => participant.riderId,
+      ),
+    ),
   );
   const winnerRiderId = general.find((result) => result.rank === 1)?.riderId;
   const riderById = new Map(
     simulations.flatMap((simulation) =>
-      simulation.resolvedRiders.map((rider) => [rider.id, rider] as const)
-    )
+      simulation.resolvedRiders.map((rider) => [rider.id, rider] as const),
+    ),
   );
 
   for (const [riderId, rider] of riderById) {
@@ -1054,11 +1348,12 @@ async function persistRaceClassification({
     if (!attacked && !won) continue;
 
     const roster = requireRoster(rosterByRiderId, riderId);
-    const reason = attacked && won
-      ? "échappée et victoire"
-      : attacked
-        ? "échappée"
-        : "victoire";
+    const reason =
+      attacked && won
+        ? "échappée et victoire"
+        : attacked
+          ? "échappée"
+          : "victoire";
     const { error: sandwichRewardError } = await admin.rpc(
       "apply_race_roster_reputation_bonus",
       {
@@ -1067,11 +1362,11 @@ async function persistRaceClassification({
         p_stage_id: finalStage.id,
         p_reputation_points: 0.5,
         p_description: `${edition.name} — Homme Sandwich : ${reason}`,
-      }
+      },
     );
     assertQuery(
       sandwichRewardError,
-      `le bonus Homme Sandwich de ${rider.name}`
+      `le bonus Homme Sandwich de ${rider.name}`,
     );
   }
 }
@@ -1103,9 +1398,8 @@ async function persistStagePrizeRewards({
       if (cashPrize === 0) continue;
 
       const roster = requireRoster(rosterByRiderId, result.riderId);
-      const placement = result.rank === 1
-        ? "Victoire d'étape"
-        : `${result.rank}e place`;
+      const placement =
+        result.rank === 1 ? "Victoire d'étape" : `${result.rank}e place`;
       const { error: rewardError } = await admin.rpc(
         "apply_race_roster_competition_reward",
         {
@@ -1120,11 +1414,11 @@ async function persistStagePrizeRewards({
           p_uci_points: 0,
           p_is_victory: false,
           p_description: `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${result.riderName} · ${placement} · règlement de fin de tour`,
-        }
+        },
       );
       assertQuery(
         rewardError,
-        `la prime d'étape de ${stage.name} pour ${result.riderId}`
+        `la prime d'étape de ${stage.name} pour ${result.riderId}`,
       );
     }
   }
@@ -1258,7 +1552,7 @@ function buildOfficialAttackParticipants({
   riderById: Map<string, OfficialResultRiderIdentity>;
 }): OfficialAttackParticipant[] {
   const stageNumberById = new Map(
-    edition.stages.map((stage) => [stage.id, stage.stageNumber])
+    edition.stages.map((stage) => [stage.id, stage.stageNumber]),
   );
   const participantByRiderId = new Map<string, OfficialAttackParticipant>();
 
@@ -1283,15 +1577,16 @@ function buildOfficialAttackParticipants({
         row.participation_type === "breakaway"
           ? "breakaway"
           : "chase",
-      stageNumbers: [...new Set([...(existing?.stageNumbers ?? []), stageNumber])]
-        .sort((left, right) => left - right),
+      stageNumbers: [
+        ...new Set([...(existing?.stageNumbers ?? []), stageNumber]),
+      ].sort((left, right) => left - right),
     });
   }
 
   return [...participantByRiderId.values()].sort(
     (left, right) =>
       (left.stageNumbers[0] ?? 0) - (right.stageNumbers[0] ?? 0) ||
-      left.riderName.localeCompare(right.riderName, "fr")
+      left.riderName.localeCompare(right.riderName, "fr"),
   );
 }
 
@@ -1313,79 +1608,79 @@ function buildOfficialSecondaryClassifications({
   const classifications: OfficialSecondaryClassification[] = [];
 
   for (const type of ["mountain", "sprint", "youth", "team"] as const) {
-      const classificationRows = rows
-        .filter((row) => row.classification_type === type)
-        .sort((first, second) => first.rank - second.rank);
-      if (classificationRows.length === 0) continue;
+    const classificationRows = rows
+      .filter((row) => row.classification_type === type)
+      .sort((first, second) => first.rank - second.rank);
+    if (classificationRows.length === 0) continue;
 
-      if (type === "team") {
-        classifications.push({
-          type,
-          riders: [],
-          teams: classificationRows.flatMap((row) => {
-            const team = row.team_season_id
-              ? teamSeasonById.get(row.team_season_id)
-              : null;
-            const historicalTeamName = row.historical_team_name?.trim() || null;
-            if (row.total_time_ms === null || (!team && !historicalTeamName)) {
-              return [];
-            }
-
-            return [
-              {
-                teamId:
-                  team?.team_id ??
-                  `history-${row.race_edition_id}-team-${row.rank}`,
-                teamProfileId: team?.team_id ?? null,
-                teamName: team?.display_name ?? historicalTeamName!,
-                rank: row.rank,
-                totalTimeMs: row.total_time_ms,
-              },
-            ];
-          }),
-        });
-        continue;
-      }
-
-      const winnerTime = classificationRows[0]?.total_time_ms ?? 0;
+    if (type === "team") {
       classifications.push({
         type,
-        teams: [],
-        riders: classificationRows.flatMap((row) => {
-          if (!row.race_roster_id) return [];
-          const identity = resolveResultIdentity({
-            rosterId: row.race_roster_id,
-            editionId,
-            rosterById,
-            registrationById,
-            teamSeasonById,
-            riderById,
-          });
-          if (!identity) return [];
+        riders: [],
+        teams: classificationRows.flatMap((row) => {
+          const team = row.team_season_id
+            ? teamSeasonById.get(row.team_season_id)
+            : null;
+          const historicalTeamName = row.historical_team_name?.trim() || null;
+          if (row.total_time_ms === null || (!team && !historicalTeamName)) {
+            return [];
+          }
+
           return [
             {
-              ...identity,
+              teamId:
+                team?.team_id ??
+                `history-${row.race_edition_id}-team-${row.rank}`,
+              teamProfileId: team?.team_id ?? null,
+              teamName: team?.display_name ?? historicalTeamName!,
               rank: row.rank,
-              status: "finished" as const,
-              elapsedTimeMs: row.total_time_ms,
-              gapToWinnerMs:
-                row.total_time_ms === null
-                  ? null
-                  : Math.max(0, row.total_time_ms - winnerTime),
-              mountainPoints: type === "mountain" ? row.points ?? 0 : 0,
-              sprintPoints: type === "sprint" ? row.points ?? 0 : 0,
-              abandonmentReason: null,
+              totalTimeMs: row.total_time_ms,
             },
           ];
         }),
       });
+      continue;
+    }
+
+    const winnerTime = classificationRows[0]?.total_time_ms ?? 0;
+    classifications.push({
+      type,
+      teams: [],
+      riders: classificationRows.flatMap((row) => {
+        if (!row.race_roster_id) return [];
+        const identity = resolveResultIdentity({
+          rosterId: row.race_roster_id,
+          editionId,
+          rosterById,
+          registrationById,
+          teamSeasonById,
+          riderById,
+        });
+        if (!identity) return [];
+        return [
+          {
+            ...identity,
+            rank: row.rank,
+            status: "finished" as const,
+            elapsedTimeMs: row.total_time_ms,
+            gapToWinnerMs:
+              row.total_time_ms === null
+                ? null
+                : Math.max(0, row.total_time_ms - winnerTime),
+            mountainPoints: type === "mountain" ? (row.points ?? 0) : 0,
+            sprintPoints: type === "sprint" ? (row.points ?? 0) : 0,
+            abandonmentReason: null,
+          },
+        ];
+      }),
+    });
   }
 
   return classifications;
 }
 
 function toPersistedGeneralInput(
-  result: OfficialRiderResult
+  result: OfficialRiderResult,
 ): PersistedStageResultForGeneral {
   return {
     riderId: result.riderId,
@@ -1402,7 +1697,7 @@ function toPersistedGeneralInput(
 function countPrimeWins(
   simulations: StageSimulationResult[],
   riderId: string,
-  primeType: "mountain" | "intermediate_sprint"
+  primeType: "mountain" | "intermediate_sprint",
 ) {
   return simulations.reduce(
     (total, simulation) =>
@@ -1410,14 +1705,14 @@ function countPrimeWins(
       simulation.primes.filter(
         (prime) =>
           prime.prime.type === primeType &&
-          prime.classification[0]?.riderId === riderId
+          prime.classification[0]?.riderId === riderId,
       ).length,
-    0
+    0,
   );
 }
 
 function describeCashRewardBreakdown(
-  breakdown: ReturnType<typeof calculateRaceRewardBreakdown>
+  breakdown: ReturnType<typeof calculateRaceRewardBreakdown>,
 ) {
   const labels = {
     general: "classement général",
@@ -1448,18 +1743,20 @@ function getRewardScope(edition: RaceCalendarEdition): RaceRewardScope {
 
 function requireRoster(
   rosterByRiderId: Map<string, RosterContext>,
-  riderId: string
+  riderId: string,
 ) {
   const roster = rosterByRiderId.get(riderId);
   if (!roster) {
-    throw new Error(`Le coureur ${riderId} est absent de la startlist officielle.`);
+    throw new Error(
+      `Le coureur ${riderId} est absent de la startlist officielle.`,
+    );
   }
   return roster;
 }
 
 function compareOfficialResults(
   first: OfficialRiderResult,
-  second: OfficialRiderResult
+  second: OfficialRiderResult,
 ) {
   if (first.rank === null && second.rank !== null) return 1;
   if (first.rank !== null && second.rank === null) return -1;
@@ -1471,5 +1768,6 @@ function compareOfficialResults(
 }
 
 function assertQuery(error: { message: string } | null, context: string) {
-  if (error) throw new Error(`Impossible de charger ${context} : ${error.message}`);
+  if (error)
+    throw new Error(`Impossible de charger ${context} : ${error.message}`);
 }

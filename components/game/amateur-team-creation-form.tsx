@@ -63,7 +63,11 @@ export function AmateurTeamCreationForm({
   const countryIsLocked = Boolean(existingTeam && initialCountryId);
 
   return (
-    <div id="equipe-amateur" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div
+      id="equipe-amateur"
+      data-tutorial-id="team-creation-form"
+      className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]"
+    >
       <form action={formAction} className="space-y-7">
         {state.message ? (
           <div
@@ -130,7 +134,7 @@ export function AmateurTeamCreationForm({
             id="teamCountryId-help"
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
-            Choix définitif : il détermine les sept coureurs initiaux et la priorité géographique des sponsors.
+            Choix définitif : il détermine les sept coureurs initiaux et la priorité géographique des sponsors.
           </p>
         </div>
 

@@ -80,7 +80,7 @@ export async function requestPasswordReset(
     }
 
     console.error(
-      "Échec de la demande de réinitialisation Supabase :",
+      "Échec de la demande de réinitialisation Supabase :",
       {
         code: error.code,
         status: error.status,

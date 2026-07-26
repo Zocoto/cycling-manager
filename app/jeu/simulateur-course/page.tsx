@@ -47,13 +47,13 @@ export default async function RaceSimulatorPage() {
 
   if (calendarResult.error) {
     console.error(
-      "Impossible de charger les profils du laboratoire de course :",
+      "Impossible de charger les profils du laboratoire de course :",
       calendarResult.error
     );
   }
   if (teamsResult.error) {
     console.error(
-      "Impossible de charger les équipes du laboratoire de course :",
+      "Impossible de charger les équipes du laboratoire de course :",
       teamsResult.error
     );
   }

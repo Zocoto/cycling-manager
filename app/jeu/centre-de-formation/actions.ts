@@ -69,7 +69,7 @@ export async function recruitYouthRiderAction(formData: FormData) {
   const result = await supabase.rpc("recruit_current_youth_rider", { p_academy_rider_id: academyRiderId });
   if (result.error) redirectWithMessage("ecole", "erreur", result.error.message);
   revalidateCenter();
-  redirectWithMessage("ecole", "succes", `Recrutement validé : arrivée dans l’équipe première en ${result.data}.`);
+  redirectWithMessage("ecole", "succes", `Recrutement validé : arrivée dans l’équipe première en ${result.data}.`);
 }
 
 export async function markYouthNotificationsReadAction() {

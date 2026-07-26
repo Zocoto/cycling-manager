@@ -17,6 +17,7 @@ import {
 } from "./health-center";
 import {
   applyRaceWeatherRatingAdjustments,
+  getRaceWeatherCrashRiskBonus,
   getRaceWeather,
   type RaceWeather,
 } from "./race-weather";
@@ -656,13 +657,28 @@ function simulateRoadStage(
     const chase = getStatesInGroup(states, "chase");
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
-    const frontTerrainRating = getFrontTerrainRating(peloton, segment);
+    const fieldPaceStates =
+      peloton.length > 0
+        ? peloton
+        : delayed.length > 0
+          ? delayed
+          : dropped.length > 0
+            ? dropped
+            : chase.length > 0
+              ? chase
+              : secondaryBreakaway.length > 0
+                ? secondaryBreakaway
+                : breakaway;
+    const frontTerrainRating = getFrontTerrainRating(
+      fieldPaceStates,
+      segment
+    );
     const raceProgress = segmentIndex / Math.max(1, input.segments.length - 1);
     const chasePressure =
       getPelotonChasePressure(peloton, segment, segmentIndex, input.segments) *
       (breakawayHasWinningDay && raceProgress > 0.52 ? 0.5 : 1);
     const pelotonSeconds = getGroupSegmentTime(
-      peloton,
+      fieldPaceStates,
       segment,
       "peloton",
       chasePressure,
@@ -870,12 +886,14 @@ function simulateRoadStage(
 
     promoteSecondaryBreakawayWhenNeeded(states, segmentIndex);
 
+    const activePeloton = getStatesInGroup(states, "peloton");
     if (
+      activePeloton.length > 0 &&
       getStatesInGroup(states, "breakaway").length > 0 &&
       breakawayGapSeconds <= 0
     ) {
       const pelotonTime = average(
-        getStatesInGroup(states, "peloton").map(
+        activePeloton.map(
           (item) => item.elapsedTimeSeconds
         )
       );
@@ -1857,14 +1875,7 @@ function maybeCreateRaceIncident({
   if (activeStates.length === 0) return null;
 
   const incidentRoll = random();
-  const rainCrashRisk = weather.isWet
-    ? {
-        none: 0,
-        light: 0.012,
-        steady: 0.025,
-        heavy: 0.04,
-      }[weather.rainIntensity]
-    : 0;
+  const rainCrashRisk = getRaceWeatherCrashRiskBonus(weather);
   const punctureThreshold =
     (segment.surface === "cobbles" ? 0.105 : 0.065) +
     rainCrashRisk * 0.25;
@@ -1900,15 +1911,22 @@ function maybeCreateRaceIncident({
   if (type === "crosswind" && peloton.length < 4) {
     return null;
   }
+  if (
+    (type === "crash_individual" ||
+      type === "crash_mass") &&
+    activeStates.length <= 1
+  ) {
+    return null;
+  }
   let affected: RiderState[];
 
   if (type === "crash_mass" || type === "crosswind") {
     const candidates =
       peloton.length >= 4 ? peloton : activeStates;
-    const maximumAffectedCount =
-      candidates === peloton
-        ? Math.max(1, candidates.length - 1)
-        : candidates.length;
+    const maximumAffectedCount = Math.max(
+      1,
+      candidates.length - 1
+    );
     const affectedCount = Math.min(
       maximumAffectedCount,
       type === "crash_mass"
@@ -3186,8 +3204,8 @@ function setBestAutomaticRole(
 }
 
 function validateSimulationInput(input: StageSimulationInput) {
-  if (input.riders.length < 2) {
-    throw new Error("Une simulation requiert au moins deux coureurs.");
+  if (input.riders.length < 1) {
+    throw new Error("Une simulation requiert au moins un coureur.");
   }
   if (input.segments.length === 0) {
     throw new Error("Une simulation requiert au moins un tronçon.");

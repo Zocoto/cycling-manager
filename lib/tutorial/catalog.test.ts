@@ -45,31 +45,19 @@ function createValidTutorial(
 
 describe("createTutorialCatalog", () => {
   it("enchaîne le socle avec le scénario de course guidé jusqu’au Live", () => {
-    const onboarding =
-      getTutorialDefinition(
-        ONBOARDING_TUTORIAL_KEY,
-      );
-    const criterium =
-      getTutorialDefinition(
-        CRITERIUM_DISCOVERY_KEY,
-      );
+    const onboarding = getTutorialDefinition(ONBOARDING_TUTORIAL_KEY);
+    const criterium = getTutorialDefinition(CRITERIUM_DISCOVERY_KEY);
 
-    expect(
-      onboarding?.followUpTutorialKey,
-    ).toBe(CRITERIUM_DISCOVERY_KEY);
+    expect(onboarding?.followUpTutorialKey).toBe(CRITERIUM_DISCOVERY_KEY);
     expect(criterium).not.toBeNull();
     expect(
       criterium?.steps.some(
-        (step) =>
-          step.route ===
-          CRITERIUM_DISCOVERY_RESULTS_ROUTE,
+        (step) => step.route === CRITERIUM_DISCOVERY_RESULTS_ROUTE,
       ),
     ).toBe(true);
     expect(
       criterium?.steps.some(
-        (step) =>
-          step.targetId ===
-          "criterium-role-assignment",
+        (step) => step.targetId === "criterium-role-assignment",
       ),
     ).toBe(true);
   });
@@ -79,9 +67,7 @@ describe("createTutorialCatalog", () => {
 
     const catalog = createTutorialCatalog([definition]);
 
-    expect(catalog["dashboard-introduction"]).toEqual(
-      definition,
-    );
+    expect(catalog["dashboard-introduction"]).toEqual(definition);
   });
 
   it("accepte plusieurs didacticiels aux clés distinctes", () => {
@@ -101,10 +87,7 @@ describe("createTutorialCatalog", () => {
       ],
     });
 
-    const catalog = createTutorialCatalog([
-      dashboardTutorial,
-      rosterTutorial,
-    ]);
+    const catalog = createTutorialCatalog([dashboardTutorial, rosterTutorial]);
 
     expect(Object.keys(catalog)).toEqual([
       "dashboard-introduction",
@@ -117,9 +100,7 @@ describe("createTutorialCatalog", () => {
       key: "Didacticiel invalide",
     });
 
-    expect(() =>
-      createTutorialCatalog([definition]),
-    ).toThrow(
+    expect(() => createTutorialCatalog([definition])).toThrow(
       'La clé de didacticiel "Didacticiel invalide" est invalide.',
     );
   });
@@ -129,9 +110,7 @@ describe("createTutorialCatalog", () => {
       version: 0,
     });
 
-    expect(() =>
-      createTutorialCatalog([definition]),
-    ).toThrow(
+    expect(() => createTutorialCatalog([definition])).toThrow(
       'La version du didacticiel "dashboard-introduction" doit être positive.',
     );
   });
@@ -141,9 +120,7 @@ describe("createTutorialCatalog", () => {
       steps: [],
     });
 
-    expect(() =>
-      createTutorialCatalog([definition]),
-    ).toThrow(
+    expect(() => createTutorialCatalog([definition])).toThrow(
       'Le didacticiel "dashboard-introduction" ne contient aucune étape.',
     );
   });
@@ -153,10 +130,7 @@ describe("createTutorialCatalog", () => {
     const secondDefinition = createValidTutorial();
 
     expect(() =>
-      createTutorialCatalog([
-        firstDefinition,
-        secondDefinition,
-      ]),
+      createTutorialCatalog([firstDefinition, secondDefinition]),
     ).toThrow(
       'Le didacticiel "dashboard-introduction" est déclaré plusieurs fois.',
     );
@@ -180,9 +154,7 @@ describe("createTutorialCatalog", () => {
       ],
     });
 
-    expect(() =>
-      createTutorialCatalog([definition]),
-    ).toThrow(
+    expect(() => createTutorialCatalog([definition])).toThrow(
       'La clé d’étape "duplicate-step" est déclarée plusieurs fois dans le didacticiel "dashboard-introduction".',
     );
   });
@@ -199,9 +171,7 @@ describe("createTutorialCatalog", () => {
       ],
     });
 
-    expect(() =>
-      createTutorialCatalog([definition]),
-    ).toThrow(
+    expect(() => createTutorialCatalog([definition])).toThrow(
       'La route "jeu/effectif" du didacticiel "dashboard-introduction" doit commencer par "/".',
     );
   });
@@ -219,9 +189,7 @@ describe("createTutorialCatalog", () => {
       ],
     });
 
-    expect(() =>
-      createTutorialCatalog([definition]),
-    ).toThrow(
+    expect(() => createTutorialCatalog([definition])).toThrow(
       'La cible "Cible invalide" du didacticiel "dashboard-introduction" est invalide.',
     );
   });

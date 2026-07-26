@@ -30,6 +30,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { TeamDivisionCode } from "@/lib/game/economy";
 import {
   chunkValues,
+  collectChunkedPaginatedRows,
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
@@ -150,11 +151,7 @@ type SportingDirectorReputationRow = {
 
 type RaceRegistrationRow = {
   registration_id: string;
-  registration_status:
-    | "pending"
-    | "accepted"
-    | "rejected"
-    | "withdrawn";
+  registration_status: "pending" | "accepted" | "rejected" | "withdrawn";
   registration_registered_at: string | null;
   roster_count: number;
   withdrawal_closes_at: string | null;
@@ -294,11 +291,7 @@ type RaceRosterOptionRow = {
   is_selected: boolean;
   is_available: boolean;
   unavailability_type:
-    | "injury"
-    | "form_camp"
-    | "reconnaissance"
-    | "race"
-    | null;
+    "injury" | "form_camp" | "reconnaissance" | "race" | null;
   unavailability_label: string | null;
   unavailable_until: string | null;
   conflicting_race_slug: string | null;
@@ -339,39 +332,35 @@ type RaceConditionSettlementRow = {
 };
 
 export async function settleFinishedRaceConditions(
-  supabase: SupabaseServerClient
+  supabase: SupabaseServerClient,
 ): Promise<RaceConditionSettlement> {
   const { error: trainingError } = await supabase.rpc(
-    "settle_due_training_sessions"
+    "settle_due_training_sessions",
   );
   if (trainingError) {
     throw new Error(
-      `Impossible de régler les entraînements du matin : ${trainingError.message}`
+      `Impossible de régler les entraînements du matin : ${trainingError.message}`,
     );
   }
 
-  const { data, error } = await supabase.rpc(
-    "settle_finished_race_conditions"
-  );
+  const { data, error } = await supabase.rpc("settle_finished_race_conditions");
 
   if (error) {
     throw new Error(
-      `Impossible de mettre à jour la forme après les courses : ${error.message}`
+      `Impossible de mettre à jour la forme après les courses : ${error.message}`,
     );
   }
 
   const { error: healthError } = await supabase.rpc(
-    "settle_current_health_and_form"
+    "settle_current_health_and_form",
   );
   if (healthError) {
     throw new Error(
-      `Impossible de mettre à jour la santé et le repos des coureurs : ${healthError.message}`
+      `Impossible de mettre à jour la santé et le repos des coureurs : ${healthError.message}`,
     );
   }
 
-  const row = (
-    (data as RaceConditionSettlementRow[] | null) ?? []
-  )[0];
+  const row = ((data as RaceConditionSettlementRow[] | null) ?? [])[0];
 
   return {
     processedStages: row?.processed_stages ?? 0,
@@ -383,21 +372,18 @@ export async function settleFinishedRaceConditions(
 export async function getActiveSeasonRaceCalendar(
   supabase: SupabaseServerClient,
   now = new Date(),
-  options: ActiveSeasonCalendarLoadOptions = {}
+  options: ActiveSeasonCalendarLoadOptions = {},
 ): Promise<SeasonRaceCalendar | null> {
   const { error: wildcardSettlementError } = await supabase.rpc(
-    "settle_due_elite_wildcards"
+    "settle_due_elite_wildcards",
   );
   if (wildcardSettlementError) {
     throw new Error(
-      `Impossible d'arbitrer les Wild Cards Elite : ${wildcardSettlementError.message}`
+      `Impossible d'arbitrer les Wild Cards Elite : ${wildcardSettlementError.message}`,
     );
   }
 
-  const {
-    data: season,
-    error: seasonError,
-  } = await supabase
+  const { data: season, error: seasonError } = await supabase
     .from("seasons")
     .select(
       `
@@ -407,14 +393,14 @@ export async function getActiveSeasonRaceCalendar(
         starts_on,
         ends_on,
         current_day_number
-      `
+      `,
     )
     .eq("status", "active")
     .maybeSingle<SeasonRow>();
 
   if (seasonError) {
     throw new Error(
-      `Impossible de charger la saison active : ${seasonError.message}`
+      `Impossible de charger la saison active : ${seasonError.message}`,
     );
   }
 
@@ -432,7 +418,7 @@ export async function getActiveSeasonRaceCalendar(
 
   if (scopedRaceResult?.error) {
     throw new Error(
-      `Impossible de charger la course demandée : ${scopedRaceResult.error.message}`
+      `Impossible de charger la course demandée : ${scopedRaceResult.error.message}`,
     );
   }
 
@@ -440,155 +426,193 @@ export async function getActiveSeasonRaceCalendar(
     return null;
   }
 
-  let editionsQuery = supabase
-    .from("race_editions")
-    .select(
-      `
-        id,
-        race_id,
-        race_category_id,
-        display_name,
-        status,
-        registration_closes_at,
-        withdrawal_closes_at,
-        wildcard_closes_at,
-        minimum_reputation,
-        registration_policy,
-        field_limit
-      `
-    )
-    .eq("season_id", season.id)
-    .neq("status", "cancelled");
+  const fetchEditionsPage = async (from: number, to: number) => {
+    let editionsQuery = supabase
+      .from("race_editions")
+      .select(
+        `
+          id,
+          race_id,
+          race_category_id,
+          display_name,
+          status,
+          registration_closes_at,
+          withdrawal_closes_at,
+          wildcard_closes_at,
+          minimum_reputation,
+          registration_policy,
+          field_limit
+        `,
+      )
+      .eq("season_id", season.id)
+      .neq("status", "cancelled");
 
-  if (scopedRaceResult?.data) {
-    editionsQuery = editionsQuery.eq(
-      "race_id",
-      scopedRaceResult.data.id
-    );
-  }
+    if (scopedRaceResult?.data) {
+      editionsQuery = editionsQuery.eq("race_id", scopedRaceResult.data.id);
+    }
 
-  const [
-    daysResult,
-    editionsResult,
-    registrationsResult,
-  ] =
-    await Promise.all([
-      supabase
-        .from("season_days")
-        .select(
-          "id, day_number, calendar_date, label"
-        )
-        .eq("season_id", season.id)
-        .order("day_number", {
-          ascending: true,
-        })
-        .returns<SeasonDayRow[]>(),
+    const result = await editionsQuery
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<RaceEditionRow[]>();
+    return { data: result.data, error: result.error };
+  };
 
-      editionsQuery.returns<RaceEditionRow[]>(),
+  const [daysResult, editionsResult, registrationsResult] = await Promise.all([
+    supabase
+      .from("season_days")
+      .select("id, day_number, calendar_date, label")
+      .eq("season_id", season.id)
+      .order("day_number", {
+        ascending: true,
+      })
+      .returns<SeasonDayRow[]>(),
 
-      supabase.rpc(
-        "get_current_team_calendar_registrations"
-      ),
-    ]);
+    collectPaginatedRows<RaceEditionRow, { message: string }>({
+      fetchPage: fetchEditionsPage,
+    }),
+
+    supabase.rpc("get_current_team_calendar_registrations"),
+  ]);
 
   if (daysResult.error) {
     throw new Error(
-      `Impossible de charger les journées de saison : ${daysResult.error.message}`
+      `Impossible de charger les journées de saison : ${daysResult.error.message}`,
     );
   }
 
   if (editionsResult.error) {
     throw new Error(
-      `Impossible de charger les éditions de course : ${editionsResult.error.message}`
+      `Impossible de charger les éditions de course : ${editionsResult.error.message}`,
     );
   }
 
   if (registrationsResult.error) {
     throw new Error(
-      `Impossible de charger les inscriptions du calendrier : ${registrationsResult.error.message}`
+      `Impossible de charger les inscriptions du calendrier : ${registrationsResult.error.message}`,
     );
   }
 
   const editionRows = editionsResult.data ?? [];
-  const editionIds = editionRows.map(
-    (edition) => edition.id
-  );
-  const includeEngagedRiders =
-    options.includeEngagedRiders !== false;
+  const editionIds = editionRows.map((edition) => edition.id);
+  const includeEngagedRiders = options.includeEngagedRiders !== false;
+  // Les RPC sont plafonnées à 1 000 lignes par PostgREST : on pagine pour ne
+  // jamais tronquer les startlists (source des simulations officielles).
   const engagedRidersResult = includeEngagedRiders
-    ? scopedRaceResult?.data && editionIds.length === 1
-      ? await supabase.rpc("get_race_edition_engaged_riders", {
-          p_race_edition_id: editionIds[0],
-        })
-      : await supabase.rpc("get_active_calendar_engaged_riders")
+    ? await collectPaginatedRows<CalendarEngagedRiderRow, { message: string }>({
+        fetchPage: async (from, to) => {
+          const result =
+            scopedRaceResult?.data && editionIds.length === 1
+              ? await supabase
+                  .rpc("get_race_edition_engaged_riders", {
+                    p_race_edition_id: editionIds[0],
+                  })
+                  .range(from, to)
+              : await supabase
+                  .rpc("get_active_calendar_engaged_riders")
+                  .range(from, to);
+          return {
+            data: result.data as CalendarEngagedRiderRow[] | null,
+            error: result.error,
+          };
+        },
+      })
     : null;
   const engagedCountsResult = includeEngagedRiders
     ? null
-    : await supabase.rpc("get_active_calendar_engaged_counts");
+    : await collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
+        fetchPage: async (from, to) => {
+          const result = await supabase
+            .rpc("get_active_calendar_engaged_counts")
+            .range(from, to);
+          return {
+            data: result.data as CalendarEngagedCountRow[] | null,
+            error: result.error,
+          };
+        },
+      });
 
   if (engagedRidersResult?.error) {
     throw new Error(
-      `Impossible de charger les coureurs engagés : ${engagedRidersResult.error.message}`
+      `Impossible de charger les coureurs engagés : ${engagedRidersResult.error.message}`,
     );
   }
 
   if (engagedCountsResult?.error) {
     throw new Error(
-      `Impossible de charger le nombre de coureurs engagés : ${engagedCountsResult.error.message}`
+      `Impossible de charger le nombre de coureurs engagés : ${engagedCountsResult.error.message}`,
     );
   }
 
   const engagedRiderRows =
     (engagedRidersResult?.data as CalendarEngagedRiderRow[] | null) ?? [];
   const engagedCountByEditionId = new Map(
-    (
-      (engagedCountsResult?.data as CalendarEngagedCountRow[] | null) ?? []
-    ).map((row) => [
-      row.race_edition_id,
-      row.engaged_rider_count,
-    ])
+    ((engagedCountsResult?.data as CalendarEngagedCountRow[] | null) ?? []).map(
+      (row) => [row.race_edition_id, row.engaged_rider_count],
+    ),
   );
   const engagedRiderIds = unique(
-    engagedRiderRows.map((rider) => rider.rider_id)
+    engagedRiderRows.map((rider) => rider.rider_id),
   );
   const [specialAbilitiesResult, riderCountriesResult] =
     engagedRiderIds.length > 0
       ? await Promise.all([
-          supabase
-            .from("rider_special_abilities")
-            .select("rider_id, ability_code")
-            .in("rider_id", engagedRiderIds)
-            .returns<RiderSpecialAbilityRow[]>(),
-          createSupabaseAdminClient()
-            .from("riders")
-            .select("id, country_id")
-            .in("id", engagedRiderIds)
-            .returns<RiderCountryRow[]>(),
+          collectChunkedPaginatedRows<
+            RiderSpecialAbilityRow,
+            { message: string },
+            string
+          >({
+            values: engagedRiderIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await supabase
+                .from("rider_special_abilities")
+                .select("rider_id, ability_code")
+                .in("rider_id", chunk)
+                .order("rider_id", { ascending: true })
+                .order("ability_code", { ascending: true })
+                .range(from, to)
+                .returns<RiderSpecialAbilityRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          }),
+          collectChunkedPaginatedRows<
+            RiderCountryRow,
+            { message: string },
+            string
+          >({
+            values: engagedRiderIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await createSupabaseAdminClient()
+                .from("riders")
+                .select("id, country_id")
+                .in("id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to)
+                .returns<RiderCountryRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          }),
         ])
       : [emptyResult<RiderSpecialAbilityRow>(), emptyResult<RiderCountryRow>()];
 
   assertQuerySucceeded(
     specialAbilitiesResult.error,
-    "les capacités spéciales des coureurs engagés"
+    "les capacités spéciales des coureurs engagés",
   );
   assertQuerySucceeded(
     riderCountriesResult.error,
-    "les nationalités des coureurs engagés"
+    "les nationalités des coureurs engagés",
   );
 
   const specialAbilitiesByRiderId = groupSpecialAbilities(
-    specialAbilitiesResult.data ?? []
+    specialAbilitiesResult.data ?? [],
   );
 
   const dayRows = daysResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
-  const raceIds = unique(
-    editionRows.map((edition) => edition.race_id)
-  );
+  const raceIds = unique(editionRows.map((edition) => edition.race_id));
   const categoryIds = unique(
-    editionRows.map(
-      (edition) => edition.race_category_id
-    )
+    editionRows.map((edition) => edition.race_category_id),
   );
 
   const [eventsResult, racesResult, categoriesResult, stagesResult] =
@@ -604,84 +628,86 @@ export async function getActiveSeasonRaceCalendar(
                 title,
                 description,
                 href
-              `
+              `,
             )
             .in("season_day_id", dayIds)
             .returns<SeasonEventRow[]>()
         : Promise.resolve(emptyResult<SeasonEventRow>()),
 
       raceIds.length > 0
-        ? supabase
-            .from("races")
-            .select(
-              `
-                id,
-                country_id,
-                name,
-                short_name,
-                race_format,
-                slug,
-                competition_type
-              `
-            )
-            .in("id", raceIds)
-            .returns<RaceRow[]>()
+        ? collectChunkedPaginatedRows<RaceRow, { message: string }, string>({
+            values: raceIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await supabase
+                .from("races")
+                .select(
+                  `
+                    id,
+                    country_id,
+                    name,
+                    short_name,
+                    race_format,
+                    slug,
+                    competition_type
+                  `,
+                )
+                .in("id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to)
+                .returns<RaceRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          })
         : Promise.resolve(emptyResult<RaceRow>()),
 
       categoryIds.length > 0
         ? supabase
             .from("race_categories")
             .select(
-              "id, code, name, prestige_rank, minimum_roster_size, maximum_roster_size"
+              "id, code, name, prestige_rank, minimum_roster_size, maximum_roster_size",
             )
             .in("id", categoryIds)
             .returns<RaceCategoryRow[]>()
-        : Promise.resolve(
-            emptyResult<RaceCategoryRow>()
-          ),
+        : Promise.resolve(emptyResult<RaceCategoryRow>()),
 
       editionIds.length > 0
-        ? supabase
-            .from("stages")
-            .select(
-              `
-                id,
-                race_edition_id,
-                season_day_id,
-                stage_number,
-                name,
-                stage_type,
-                status,
-                profile_type,
-                distance_km,
-                day_slot,
-                departure_at
-              `
-            )
-            .in("race_edition_id", editionIds)
-            .order("stage_number", {
-              ascending: true,
-            })
-            .returns<StageRow[]>()
+        ? collectChunkedPaginatedRows<StageRow, { message: string }, string>({
+            values: editionIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await supabase
+                .from("stages")
+                .select(
+                  `
+                    id,
+                    race_edition_id,
+                    season_day_id,
+                    stage_number,
+                    name,
+                    stage_type,
+                    status,
+                    profile_type,
+                    distance_km,
+                    day_slot,
+                    departure_at
+                  `,
+                )
+                .in("race_edition_id", chunk)
+                .order("race_edition_id", { ascending: true })
+                .order("stage_number", {
+                  ascending: true,
+                })
+                .range(from, to)
+                .returns<StageRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          })
         : Promise.resolve(emptyResult<StageRow>()),
     ]);
 
-  assertQuerySucceeded(
-    eventsResult.error,
-    "les temps forts de la saison"
-  );
-  assertQuerySucceeded(
-    racesResult.error,
-    "les courses"
-  );
-  assertQuerySucceeded(
-    categoriesResult.error,
-    "les catégories de course"
-  );
-  assertQuerySucceeded(
-    stagesResult.error,
-    "les étapes"
-  );
+  assertQuerySucceeded(eventsResult.error, "les temps forts de la saison");
+  assertQuerySucceeded(racesResult.error, "les courses");
+  assertQuerySucceeded(categoriesResult.error, "les catégories de course");
+  assertQuerySucceeded(stagesResult.error, "les étapes");
 
   const stageRows = stagesResult.data ?? [];
   const stageIds = stageRows.map((stage) => stage.id);
@@ -689,22 +715,31 @@ export async function getActiveSeasonRaceCalendar(
   const [segmentsResult, reconnaissanceResult] = await Promise.all([
     loadStageSegments(supabase, stageIds),
     stageIds.length > 0
-      ? admin
-          .from("stage_reconnaissances")
-          .select("id, target_stage_id, bonus_points")
-          .in("target_stage_id", stageIds)
-          .neq("status", "cancelled")
-          .returns<StageReconnaissanceRow[]>()
+      ? collectChunkedPaginatedRows<
+          StageReconnaissanceRow,
+          { message: string },
+          string
+        >({
+          values: stageIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("stage_reconnaissances")
+              .select("id, target_stage_id, bonus_points")
+              .in("target_stage_id", chunk)
+              .neq("status", "cancelled")
+              .order("id", { ascending: true })
+              .range(from, to)
+              .returns<StageReconnaissanceRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
       : Promise.resolve(emptyResult<StageReconnaissanceRow>()),
   ]);
 
-  assertQuerySucceeded(
-    segmentsResult.error,
-    "les profils tronçonnés"
-  );
+  assertQuerySucceeded(segmentsResult.error, "les profils tronçonnés");
   assertQuerySucceeded(
     reconnaissanceResult.error,
-    "les reconnaissances de course"
+    "les reconnaissances de course",
   );
 
   const segmentRows = segmentsResult.data ?? [];
@@ -714,11 +749,24 @@ export async function getActiveSeasonRaceCalendar(
   );
   const reconnaissanceRidersResult =
     reconnaissanceIds.length > 0
-      ? await admin
-          .from("stage_reconnaissance_riders")
-          .select("reconnaissance_id, rider_id")
-          .in("reconnaissance_id", reconnaissanceIds)
-          .returns<StageReconnaissanceRiderRow[]>()
+      ? await collectChunkedPaginatedRows<
+          StageReconnaissanceRiderRow,
+          { message: string },
+          string
+        >({
+          values: reconnaissanceIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("stage_reconnaissance_riders")
+              .select("reconnaissance_id, rider_id")
+              .in("reconnaissance_id", chunk)
+              .order("reconnaissance_id", { ascending: true })
+              .order("rider_id", { ascending: true })
+              .range(from, to)
+              .returns<StageReconnaissanceRiderRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
       : emptyResult<StageReconnaissanceRiderRow>();
 
   assertQuerySucceeded(
@@ -738,33 +786,34 @@ export async function getActiveSeasonRaceCalendar(
   ]);
   const countriesResult =
     countryIds.length > 0
-      ? await supabase
-          .from("countries")
-          .select("id, name, iso_alpha2")
-          .in("id", countryIds)
-          .returns<CountryRow[]>()
+      ? await collectChunkedPaginatedRows<
+          CountryRow,
+          { message: string },
+          string
+        >({
+          values: countryIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await supabase
+              .from("countries")
+              .select("id, name, iso_alpha2")
+              .in("id", chunk)
+              .order("id", { ascending: true })
+              .range(from, to)
+              .returns<CountryRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
       : emptyResult<CountryRow>();
 
-  assertQuerySucceeded(
-    countriesResult.error,
-    "les pays des courses"
-  );
+  assertQuerySucceeded(countriesResult.error, "les pays des courses");
 
-  const dayById = new Map(
-    dayRows.map((day) => [day.id, day])
-  );
-  const raceById = new Map(
-    raceRows.map((race) => [race.id, race])
-  );
+  const dayById = new Map(dayRows.map((day) => [day.id, day]));
+  const raceById = new Map(raceRows.map((race) => [race.id, race]));
   const categoryById = new Map(
-    (categoriesResult.data ?? []).map(
-      (category) => [category.id, category]
-    )
+    (categoriesResult.data ?? []).map((category) => [category.id, category]),
   );
   const countryById = new Map(
-    (countriesResult.data ?? []).map(
-      (country) => [country.id, country]
-    )
+    (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
   const stagesByEditionId = groupStages(
     stageRows,
@@ -774,30 +823,21 @@ export async function getActiveSeasonRaceCalendar(
   );
   const registrationByEditionId = new Map(
     ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
-      (registration) => [
-        registration.race_edition_id,
-        registration,
-      ]
-    )
+      (registration) => [registration.race_edition_id, registration],
+    ),
   );
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
     specialAbilitiesByRiderId,
     new Map(riderCountryRows.map((rider) => [rider.id, rider.country_id])),
-    countryById
+    countryById,
   );
 
   const editions = editionRows
     .map((edition): RaceCalendarEdition | null => {
-      const race = raceById.get(
-        edition.race_id
-      );
-      const category = categoryById.get(
-        edition.race_category_id
-      );
-      const country = race
-        ? countryById.get(race.country_id)
-        : null;
+      const race = raceById.get(edition.race_id);
+      const category = categoryById.get(edition.race_category_id);
+      const country = race ? countryById.get(race.country_id) : null;
 
       if (
         !race ||
@@ -822,76 +862,56 @@ export async function getActiveSeasonRaceCalendar(
         prestigeRank: category.prestige_rank,
         raceFormat: race.race_format,
         competitionType: race.competition_type,
-        registrationClosesAt:
-          edition.registration_closes_at,
-        wildcardClosesAt:
-          edition.wildcard_closes_at,
-        withdrawalClosesAt:
-          edition.withdrawal_closes_at,
-        registrationPolicy:
-          edition.registration_policy,
-        minimumReputation:
-          edition.minimum_reputation,
+        registrationClosesAt: edition.registration_closes_at,
+        wildcardClosesAt: edition.wildcard_closes_at,
+        withdrawalClosesAt: edition.withdrawal_closes_at,
+        registrationPolicy: edition.registration_policy,
+        minimumReputation: edition.minimum_reputation,
         fieldLimit: edition.field_limit,
         minimumRosterSize:
           race.competition_type === "standard"
-            ? category.minimum_roster_size ?? 1
+            ? (category.minimum_roster_size ?? 1)
             : 1,
         maximumRosterSize:
           race.competition_type === "standard"
-            ? category.maximum_roster_size ?? 1
+            ? (category.maximum_roster_size ?? 1)
             : 200,
         engagedRiderCount:
           engagedCountByEditionId.get(edition.id) ??
           engagedRidersByEditionId.get(edition.id)?.length ??
           0,
-        engagedRiders:
-          engagedRidersByEditionId.get(edition.id) ?? [],
-        currentTeamRegistration: registrationByEditionId.has(
-          edition.id
-        )
+        engagedRiders: engagedRidersByEditionId.get(edition.id) ?? [],
+        currentTeamRegistration: registrationByEditionId.has(edition.id)
           ? {
-              status: registrationByEditionId.get(
-                edition.id
-              )!.registration_status,
-              rosterCount: registrationByEditionId.get(
-                edition.id
-              )!.roster_count,
+              status: registrationByEditionId.get(edition.id)!
+                .registration_status,
+              rosterCount: registrationByEditionId.get(edition.id)!
+                .roster_count,
             }
           : null,
-        stages: (
-          stagesByEditionId.get(edition.id) ?? []
-        ).map((stage) => ({
+        stages: (stagesByEditionId.get(edition.id) ?? []).map((stage) => ({
           ...stage,
-          segments:
-            removeOneDayRaceMountainPrimes(
-              stage.segments,
-              race.race_format
-            ),
+          segments: removeOneDayRaceMountainPrimes(
+            stage.segments,
+            race.race_format,
+          ),
         })),
       } satisfies RaceCalendarEdition;
     })
     .filter(
-      (
-        edition
-      ): edition is RaceCalendarEdition =>
-        edition !== null &&
-        edition.stages.length > 0
+      (edition): edition is RaceCalendarEdition =>
+        edition !== null && edition.stages.length > 0,
     );
 
-  const days = dayRows.map(
-    (day): SeasonCalendarDay => ({
-      id: day.id,
-      dayNumber: day.day_number,
-      calendarDate: day.calendar_date,
-      label: day.label,
-    })
-  );
+  const days = dayRows.map((day): SeasonCalendarDay => ({
+    id: day.id,
+    dayNumber: day.day_number,
+    calendarDate: day.calendar_date,
+    label: day.label,
+  }));
   const events = (eventsResult.data ?? [])
     .map((event) => {
-      const day = dayById.get(
-        event.season_day_id
-      );
+      const day = dayById.get(event.season_day_id);
 
       if (!day) {
         return null;
@@ -906,12 +926,7 @@ export async function getActiveSeasonRaceCalendar(
         href: event.href,
       } satisfies SeasonCalendarEvent;
     })
-    .filter(
-      (
-        event
-      ): event is SeasonCalendarEvent =>
-        event !== null
-    );
+    .filter((event): event is SeasonCalendarEvent => event !== null);
 
   return {
     seasonId: season.id,
@@ -921,8 +936,7 @@ export async function getActiveSeasonRaceCalendar(
     endsOn: season.ends_on,
     currentDayNumber: getEffectiveSeasonDay({
       startsOn: season.starts_on,
-      persistedDayNumber:
-        season.current_day_number,
+      persistedDayNumber: season.current_day_number,
       parisDate: formatParisDate(now),
     }),
     days,
@@ -934,59 +948,47 @@ export async function getActiveSeasonRaceCalendar(
 export async function getCurrentRaceUserContext(
   supabase: SupabaseServerClient,
   authUserId: string,
-  raceEditionId: string
+  raceEditionId: string,
 ): Promise<CurrentRaceUserContext> {
-  const [directorResult, registrationResult, teamDivision] =
-    await Promise.all([
-      supabase
-        .from("sporting_directors")
-        .select("reputation_points")
-        .eq("auth_user_id", authUserId)
-        .maybeSingle<SportingDirectorReputationRow>(),
+  const [directorResult, registrationResult, teamDivision] = await Promise.all([
+    supabase
+      .from("sporting_directors")
+      .select("reputation_points")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle<SportingDirectorReputationRow>(),
 
-      supabase.rpc(
-        "get_current_team_race_registration",
-        {
-          p_race_edition_id: raceEditionId,
-        }
-      ),
-      getCurrentTeamDivisionForAuthUser(authUserId),
-    ]);
+    supabase.rpc("get_current_team_race_registration", {
+      p_race_edition_id: raceEditionId,
+    }),
+    getCurrentTeamDivisionForAuthUser(authUserId),
+  ]);
 
   if (directorResult.error) {
     throw new Error(
-      `Impossible de charger la réputation du Directeur Sportif : ${directorResult.error.message}`
+      `Impossible de charger la réputation du Directeur Sportif : ${directorResult.error.message}`,
     );
   }
 
   if (registrationResult.error) {
     throw new Error(
-      `Impossible de charger l'inscription de l'équipe : ${registrationResult.error.message}`
+      `Impossible de charger l'inscription de l'équipe : ${registrationResult.error.message}`,
     );
   }
 
-  const registrationRow = Array.isArray(
-    registrationResult.data
-  )
-    ? (registrationResult.data[0] as
-        | RaceRegistrationRow
-        | undefined)
+  const registrationRow = Array.isArray(registrationResult.data)
+    ? (registrationResult.data[0] as RaceRegistrationRow | undefined)
     : undefined;
 
   return {
-    reputationPoints:
-      directorResult.data?.reputation_points ?? 0,
+    reputationPoints: directorResult.data?.reputation_points ?? 0,
     divisionCode: teamDivision?.code ?? "amateur",
     registration: registrationRow
       ? {
           id: registrationRow.registration_id,
-          status:
-            registrationRow.registration_status,
-          registeredAt:
-            registrationRow.registration_registered_at,
+          status: registrationRow.registration_status,
+          registeredAt: registrationRow.registration_registered_at,
           rosterCount: registrationRow.roster_count,
-          withdrawalClosesAt:
-            registrationRow.withdrawal_closes_at,
+          withdrawalClosesAt: registrationRow.withdrawal_closes_at,
         }
       : null,
   };
@@ -994,123 +996,125 @@ export async function getCurrentRaceUserContext(
 
 export async function getRacePastWinners(
   supabase: SupabaseServerClient,
-  raceId: string
+  raceId: string,
 ): Promise<RacePastWinner[]> {
-  const { data, error } = await supabase.rpc(
-    "get_race_past_winners",
-    {
-      p_race_id: raceId,
-    }
-  );
+  const { data, error } = await supabase.rpc("get_race_past_winners", {
+    p_race_id: raceId,
+  });
 
   if (error) {
     throw new Error(
-      `Impossible de charger le palmarès de la course : ${error.message}`
+      `Impossible de charger le palmarès de la course : ${error.message}`,
     );
   }
 
-  return (
-    (data as RacePastWinnerRow[] | null) ?? []
-  ).map((winner) => ({
+  return ((data as RacePastWinnerRow[] | null) ?? []).map((winner) => ({
     gameYear: winner.game_year,
     seasonName: winner.season_name,
     finalRank: winner.final_rank,
     riderId: winner.rider_id,
-    riderName:
-      `${winner.rider_first_name} ${winner.rider_last_name}`,
+    riderName: `${winner.rider_first_name} ${winner.rider_last_name}`,
     teamName: winner.team_name,
   }));
 }
 
 export async function getCurrentTeamRaceRosterOptions(
   supabase: SupabaseServerClient,
-  raceEditionId: string
+  raceEditionId: string,
 ): Promise<RaceRosterOption[]> {
   const { data, error } = await supabase.rpc(
     "get_current_team_race_roster_options",
-    { p_race_edition_id: raceEditionId }
+    { p_race_edition_id: raceEditionId },
   );
 
   if (error) {
     throw new Error(
-      `Impossible de charger votre effectif pour cette course : ${error.message}`
+      `Impossible de charger votre effectif pour cette course : ${error.message}`,
     );
   }
 
-  return ((data as RaceRosterOptionRow[] | null) ?? []).map(
-    (rider) => ({
-      riderId: rider.rider_id,
-      firstName: rider.first_name,
-      lastName: rider.last_name,
-      countryName: rider.country_name,
-      countryCode: rider.country_iso_alpha2,
-      avatarProfileKey: rider.avatar_profile_key,
-      avatarSeed: rider.avatar_seed,
-      age: rider.age,
-      mountain: rider.mountain,
-      hills: rider.hills,
-      flat: rider.flat,
-      timeTrial: rider.time_trial,
-      cobbles: rider.cobbles,
-      sprint: rider.sprint,
-      isSelected: rider.is_selected,
-      isAvailable: rider.is_available,
-      unavailability:
-        rider.unavailability_type && rider.unavailability_label
-          ? {
-              type: rider.unavailability_type,
-              label: rider.unavailability_label,
-              until: rider.unavailable_until,
-            }
-          : null,
-      conflict:
-        rider.conflicting_race_slug &&
-        rider.conflicting_race_name &&
-        rider.conflicting_start_day !== null &&
-        rider.conflicting_end_day !== null
-          ? {
-              raceSlug: rider.conflicting_race_slug,
-              raceName: rider.conflicting_race_name,
-              startDay: rider.conflicting_start_day,
-              endDay: rider.conflicting_end_day,
-            }
-          : null,
-    })
-  );
+  return ((data as RaceRosterOptionRow[] | null) ?? []).map((rider) => ({
+    riderId: rider.rider_id,
+    firstName: rider.first_name,
+    lastName: rider.last_name,
+    countryName: rider.country_name,
+    countryCode: rider.country_iso_alpha2,
+    avatarProfileKey: rider.avatar_profile_key,
+    avatarSeed: rider.avatar_seed,
+    age: rider.age,
+    mountain: rider.mountain,
+    hills: rider.hills,
+    flat: rider.flat,
+    timeTrial: rider.time_trial,
+    cobbles: rider.cobbles,
+    sprint: rider.sprint,
+    isSelected: rider.is_selected,
+    isAvailable: rider.is_available,
+    unavailability:
+      rider.unavailability_type && rider.unavailability_label
+        ? {
+            type: rider.unavailability_type,
+            label: rider.unavailability_label,
+            until: rider.unavailable_until,
+          }
+        : null,
+    conflict:
+      rider.conflicting_race_slug &&
+      rider.conflicting_race_name &&
+      rider.conflicting_start_day !== null &&
+      rider.conflicting_end_day !== null
+        ? {
+            raceSlug: rider.conflicting_race_slug,
+            raceName: rider.conflicting_race_name,
+            startDay: rider.conflicting_start_day,
+            endDay: rider.conflicting_end_day,
+          }
+        : null,
+  }));
 }
 
 export async function getRaceEngagedRiders(
   supabase: SupabaseServerClient,
-  raceEditionId: string
+  raceEditionId: string,
 ): Promise<RaceEngagedRider[]> {
-  const { data, error } = await supabase.rpc(
-    "get_race_engaged_riders",
-    { p_race_edition_id: raceEditionId }
-  );
+  const { data, error } = await collectPaginatedRows<
+    RaceEngagedRiderRow,
+    { message: string }
+  >({
+    fetchPage: async (from, to) => {
+      const result = await supabase
+        .rpc("get_race_engaged_riders", {
+          p_race_edition_id: raceEditionId,
+        })
+        .range(from, to);
+      return {
+        data: result.data as RaceEngagedRiderRow[] | null,
+        error: result.error,
+      };
+    },
+  });
 
   if (error) {
     throw new Error(
-      `Impossible de charger les coureurs engagés : ${error.message}`
+      `Impossible de charger les coureurs engagés : ${error.message}`,
     );
   }
 
-  return ((data as RaceEngagedRiderRow[] | null) ?? []).map(
-    (rider) => ({
-      teamId: rider.team_id,
-      teamName: rider.team_name,
-      teamShortName: rider.team_short_name,
-      riderId: rider.rider_id,
-      riderName: `${rider.rider_first_name} ${rider.rider_last_name}`,
-      countryCode: rider.country_iso_alpha2,
-    })
-  );
+  return ((data as RaceEngagedRiderRow[] | null) ?? []).map((rider) => ({
+    teamId: rider.team_id,
+    teamName: rider.team_name,
+    teamShortName: rider.team_short_name,
+    riderId: rider.rider_id,
+    riderName: `${rider.rider_first_name} ${rider.rider_last_name}`,
+    countryCode: rider.country_iso_alpha2,
+  }));
 }
 
 function groupCalendarEngagedRiders(
   rows: CalendarEngagedRiderRow[],
   specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>,
   countryIdByRiderId: Map<string, string>,
-  countryById: Map<string, CountryRow>
+  countryById: Map<string, CountryRow>,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -1178,10 +1182,7 @@ function groupStages(
   segmentRows: StageSegmentRow[],
   reconnaissanceBonusesByStageId: Map<string, Record<string, number>>,
 ) {
-  const stagesByEditionId = new Map<
-    string,
-    RaceCalendarStage[]
-  >();
+  const stagesByEditionId = new Map<string, RaceCalendarStage[]>();
   const segmentsByStageId = new Map<string, StageSegmentRow[]>();
 
   for (const segment of segmentRows) {
@@ -1191,39 +1192,41 @@ function groupStages(
   }
 
   for (const row of rows) {
-    const day = dayById.get(
-      row.season_day_id
-    );
+    const day = dayById.get(row.season_day_id);
 
     if (!day) {
       continue;
     }
 
-    const loadedSegments = (segmentsByStageId.get(row.id) ?? []).map((segment) => {
-      const prime = segment.stage_segment_primes[0];
+    const loadedSegments = (segmentsByStageId.get(row.id) ?? []).map(
+      (segment) => {
+        const prime = segment.stage_segment_primes[0];
 
-      return {
-        segmentNumber: segment.segment_number,
-        distanceKm: Number(segment.distance_km),
-        terrain: segment.terrain_type,
-        averageGradientPct: Number(segment.average_gradient_pct),
-        surface: segment.surface_type,
-        prime: prime
-          ? {
-              type: prime.prime_type,
-              category: prime.mountain_category,
-              pointsScale: prime.points_scale,
-            }
-          : null,
-      };
-    });
+        return {
+          segmentNumber: segment.segment_number,
+          distanceKm: Number(segment.distance_km),
+          terrain: segment.terrain_type,
+          averageGradientPct: Number(segment.average_gradient_pct),
+          surface: segment.surface_type,
+          prime: prime
+            ? {
+                type: prime.prime_type,
+                category: prime.mountain_category,
+                pointsScale: prime.points_scale,
+              }
+            : null,
+        };
+      },
+    );
     const distanceKm = Number(row.distance_km);
     const segments = ensureCompleteRaceSegments({
       segments: loadedSegments,
       distanceKm,
       profileType: row.profile_type,
       seed: row.id,
-      includeTourPrimes: loadedSegments.some((segment) => segment.prime !== null),
+      includeTourPrimes: loadedSegments.some(
+        (segment) => segment.prime !== null,
+      ),
     });
     const stage: RaceCalendarStage = {
       id: row.id,
@@ -1237,19 +1240,12 @@ function groupStages(
       daySlot: isRaceDaySlot(row.day_slot) ? row.day_slot : "late",
       departureAt: row.departure_at,
       segments,
-      reconnaissanceBonuses:
-        reconnaissanceBonusesByStageId.get(row.id) ?? {},
+      reconnaissanceBonuses: reconnaissanceBonusesByStageId.get(row.id) ?? {},
     };
-    const editionStages =
-      stagesByEditionId.get(
-        row.race_edition_id
-      ) ?? [];
+    const editionStages = stagesByEditionId.get(row.race_edition_id) ?? [];
 
     editionStages.push(stage);
-    stagesByEditionId.set(
-      row.race_edition_id,
-      editionStages
-    );
+    stagesByEditionId.set(row.race_edition_id, editionStages);
   }
 
   return stagesByEditionId;
@@ -1284,7 +1280,7 @@ function groupReconnaissanceBonuses(
 
 async function loadStageSegments(
   supabase: SupabaseServerClient,
-  stageIds: string[]
+  stageIds: string[],
 ) {
   if (stageIds.length === 0) {
     return emptyResult<StageSegmentRow>();
@@ -1310,7 +1306,7 @@ async function loadStageSegments(
                   mountain_category,
                   points_scale
                 )
-              `
+              `,
             )
             .in("stage_id", stageIdBatch)
             .order("stage_id", { ascending: true })
@@ -1323,8 +1319,8 @@ async function loadStageSegments(
             error: result.error,
           };
         },
-      })
-    )
+      }),
+    ),
   );
   const failedBatch = batchResults.find((result) => result.error);
 
@@ -1337,18 +1333,13 @@ async function loadStageSegments(
 }
 
 function formatParisDate(date: Date) {
-  const parts = new Intl.DateTimeFormat(
-    "fr-FR",
-    {
-      timeZone: "Europe/Paris",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }
-  ).formatToParts(date);
-  const partByType = new Map(
-    parts.map((part) => [part.type, part.value])
-  );
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const partByType = new Map(parts.map((part) => [part.type, part.value]));
 
   return `${partByType.get("year")}-${partByType.get("month")}-${partByType.get("day")}`;
 }
@@ -1366,11 +1357,9 @@ function emptyResult<T>() {
 
 function assertQuerySucceeded(
   error: { message: string } | null,
-  subject: string
+  subject: string,
 ): asserts error is null {
   if (error) {
-    throw new Error(
-      `Impossible de charger ${subject} : ${error.message}`
-    );
+    throw new Error(`Impossible de charger ${subject} : ${error.message}`);
   }
 }

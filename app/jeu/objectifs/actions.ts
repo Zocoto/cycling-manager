@@ -38,7 +38,7 @@ export async function claimGameObjectiveAction(formData: FormData) {
 
   redirectWithMessage(
     "succes",
-    "Récompense récupérée : les gains ont été ajoutés à votre carrière."
+    "Récompense récupérée : les gains ont été ajoutés à votre carrière."
   );
 }
 

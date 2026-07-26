@@ -85,7 +85,7 @@ export async function loginAccount(
       };
     }
 
-    console.error("Échec de la connexion Supabase :", {
+    console.error("Échec de la connexion Supabase :", {
       code: error.code,
       status: error.status,
       message: error.message,

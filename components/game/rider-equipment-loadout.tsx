@@ -16,7 +16,10 @@ import {
   type EquipmentEffects,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
-import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
+import {
+  RIDER_RATING_AXES,
+  type RiderRatingKey,
+} from "@/lib/game/rider-profile";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 import type {
   RiderEquipmentManagement,
@@ -67,11 +70,29 @@ const SILHOUETTE_MARKERS: Array<
   { slot: "helmet", label: "Casque", icon: "CS", left: "62%", top: "10%" },
   { slot: "glasses", label: "Lunettes", icon: "LU", left: "70%", top: "18%" },
   { slot: "gloves", label: "Gants", icon: "GA", left: "77%", top: "37%" },
-  { slot: "bib_shorts", label: "Cuissard", icon: "CU", left: "47%", top: "43%" },
+  {
+    slot: "bib_shorts",
+    label: "Cuissard",
+    icon: "CU",
+    left: "47%",
+    top: "43%",
+  },
   { slot: "shoes", label: "Chaussures", icon: "CH", left: "55%", top: "73%" },
   { slot: "frame", label: "Cadre", icon: "CA", left: "53%", top: "61%" },
-  { slot: "front_wheel", label: "Roue avant", icon: "AV", left: "83%", top: "73%" },
-  { slot: "rear_wheel", label: "Roue arrière", icon: "AR", left: "18%", top: "73%" },
+  {
+    slot: "front_wheel",
+    label: "Roue avant",
+    icon: "AV",
+    left: "83%",
+    top: "73%",
+  },
+  {
+    slot: "rear_wheel",
+    label: "Roue arrière",
+    icon: "AR",
+    left: "18%",
+    top: "73%",
+  },
 ];
 
 export function RiderEquipmentLoadout({
@@ -94,8 +115,9 @@ export function RiderEquipmentLoadout({
   );
   const [draggedItem, setDraggedItem] =
     useState<TeamEquipmentCatalogItem | null>(null);
-  const [dropTargetSlot, setDropTargetSlot] =
-    useState<EquipmentSlot | null>(null);
+  const [dropTargetSlot, setDropTargetSlot] = useState<EquipmentSlot | null>(
+    null,
+  );
   const [isApplying, startApplying] = useTransition();
   const isManageable = canManage && Boolean(management);
 
@@ -113,10 +135,7 @@ export function RiderEquipmentLoadout({
     setDropTargetSlot(null);
   }
 
-  function dropEquipment(
-    event: DragEvent<HTMLElement>,
-    slot: EquipmentSlot,
-  ) {
+  function dropEquipment(event: DragEvent<HTMLElement>, slot: EquipmentSlot) {
     event.preventDefault();
 
     if (!draggedItem || draggedItem.slot !== slot || isApplying) {
@@ -145,7 +164,8 @@ export function RiderEquipmentLoadout({
           </p>
           <h2 className="mt-2 text-xl font-black">Configuration du coureur</h2>
           <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[#9FB5A8]">
-            Les zones colorées sur le coureur et son vélo indiquent immédiatement les slots équipés.
+            Les zones colorées sur le coureur et son vélo indiquent
+            immédiatement les slots équipés.
           </p>
         </div>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#BFD1C6]">
@@ -153,7 +173,9 @@ export function RiderEquipmentLoadout({
         </span>
       </div>
 
-      <div className={`grid gap-5 p-5 sm:p-8 ${isManageable ? "xl:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.7fr)]" : ""}`}>
+      <div
+        className={`grid gap-5 p-5 sm:p-8 ${isManageable ? "xl:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.7fr)]" : ""}`}
+      >
         <div className="rounded-3xl border border-white/10 bg-black/10 p-4 sm:p-5">
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,1.15fr)_minmax(0,1fr)] xl:items-center">
             <div className="space-y-4">
@@ -226,7 +248,9 @@ export function RiderEquipmentLoadout({
       </div>
 
       <p className="border-t border-white/10 bg-black/10 px-6 py-4 text-xs font-semibold leading-5 text-[#9FB5A8] sm:px-8">
-        Glissez une pièce vers le slot correspondant, ou ouvrez « Remplir ce slot ». Les bonus bleus sont ajoutés aux caractéristiques de base pendant les courses compatibles.
+        Glissez une pièce vers le slot correspondant, ou ouvrez « Remplir ce
+        slot ». Les bonus bleus sont ajoutés aux caractéristiques de base
+        pendant les courses compatibles.
       </p>
     </section>
   );
@@ -283,7 +307,9 @@ function EquipmentSlotCard({
             {label}
           </span>
           <span className="mt-1 block truncate text-sm font-black text-white">
-            {isDropTarget ? "Relâcher pour équiper" : item?.name ?? "Emplacement vide"}
+            {isDropTarget
+              ? "Relâcher pour équiper"
+              : (item?.name ?? "Emplacement vide")}
           </span>
           {item ? (
             <span className="mt-1 line-clamp-2 block text-[10px] font-semibold leading-4 text-[#9FB5A8]">
@@ -295,12 +321,16 @@ function EquipmentSlotCard({
 
       {pending ? (
         <p className="mt-2 rounded-lg border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-bold leading-4 text-[#FFE596]">
-          Programmé : {pending.item.name} · actif {formatEffectiveDate(pending.effectiveAt)}
+          Programmé : {pending.item.name} · actif{" "}
+          {formatEffectiveDate(pending.effectiveAt)}
         </p>
       ) : null}
 
       {canManage && (item || pending) ? (
-        <form action={unequipRiderAction} className="mt-2 flex justify-end border-t border-white/10 pt-2">
+        <form
+          action={unequipRiderAction}
+          className="mt-2 flex justify-end border-t border-white/10 pt-2"
+        >
           <input type="hidden" name="riderId" value={riderId} />
           <input type="hidden" name="slot" value={slot} />
           <EquipmentSubmitButton
@@ -326,11 +356,19 @@ function EquipmentSlotCard({
                 >
                   <input type="hidden" name="riderId" value={riderId} />
                   <input type="hidden" name="slot" value={slot} />
-                  <input type="hidden" name="equipmentItemId" value={option.id} />
+                  <input
+                    type="hidden"
+                    name="equipmentItemId"
+                    value={option.id}
+                  />
                   <input type="hidden" name="origin" value="rider" />
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-2">
-                      <EquipmentThumbnail item={option} fallback={icon} size="option" />
+                      <EquipmentThumbnail
+                        item={option}
+                        fallback={icon}
+                        size="option"
+                      />
                       <span className="min-w-0">
                         <span className="block truncate text-xs font-black text-white">
                           {option.name}
@@ -381,7 +419,8 @@ function AvailableEquipmentPanel({
         </p>
         <h3 className="mt-2 text-lg font-black text-white">Matériels libres</h3>
         <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-          Glissez une pièce vers son slot. Le slot compatible s’illumine automatiquement.
+          Glissez une pièce vers son slot. Le slot compatible s’illumine
+          automatiquement.
         </p>
       </div>
 
@@ -406,20 +445,24 @@ function AvailableEquipmentPanel({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-black text-white">{item.name}</p>
+                      <p className="truncate text-xs font-black text-white">
+                        {item.name}
+                      </p>
                       <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#8FD5B6]">
                         {getEquipmentCategory(item.slot).shortLabel}
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-1 text-[9px] font-black text-[#9BE0BC]">
-                      {item.availableQuantity} libre{item.availableQuantity > 1 ? "s" : ""}
+                      {item.availableQuantity} libre
+                      {item.availableQuantity > 1 ? "s" : ""}
                     </span>
                   </div>
                   <p className="mt-2 text-[10px] font-semibold leading-4 text-[#9FB5A8]">
                     {item.effectSummary}
                   </p>
                   <p className="mt-2 text-[9px] font-black uppercase tracking-wider text-[#F2C94C] opacity-70 transition group-hover:opacity-100">
-                    Glisser vers {getEquipmentCategory(item.slot).shortLabel.toLowerCase()} →
+                    Glisser vers{" "}
+                    {getEquipmentCategory(item.slot).shortLabel.toLowerCase()} →
                   </p>
                 </div>
               </div>
@@ -430,7 +473,8 @@ function AvailableEquipmentPanel({
         <div className="mt-4 rounded-2xl border border-dashed border-white/15 px-4 py-8 text-center">
           <p className="text-sm font-black text-white">Aucune pièce libre</p>
           <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-            Les objets équipés ou programmés ne sont plus affichés dans cette liste.
+            Les objets équipés ou programmés ne sont plus affichés dans cette
+            liste.
           </p>
           <Link
             href="/jeu/materiel"
@@ -463,7 +507,10 @@ function CyclistEquipmentVisual({
         alt="Cycliste de route et zones de matériel équipées"
         className="h-auto w-full object-contain"
       />
-      <div className="absolute inset-0" aria-label="Équipement visible sur le coureur">
+      <div
+        className="absolute inset-0"
+        aria-label="Équipement visible sur le coureur"
+      >
         {SILHOUETTE_MARKERS.map((marker) => {
           const item = equipment[marker.slot];
           const isCompatible = compatibleDragSlot === marker.slot;
@@ -472,7 +519,11 @@ function CyclistEquipmentVisual({
           return (
             <span
               key={marker.slot}
-              title={item ? `${marker.label} : ${item.name}` : `${marker.label} : vide`}
+              title={
+                item
+                  ? `${marker.label} : ${item.name}`
+                  : `${marker.label} : vide`
+              }
               className="group/marker absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: marker.left, top: marker.top }}
             >
@@ -499,7 +550,9 @@ function CyclistEquipmentVisual({
                   marker.icon
                 )}
               </span>
-              <span className={`pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black uppercase tracking-wide shadow ${item ? "bg-[#071A17] text-[#F7DA73]" : "bg-[#52645E]/90 text-white/80"}`}>
+              <span
+                className={`pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black uppercase tracking-wide shadow ${item ? "bg-[#071A17] text-[#F7DA73]" : "bg-[#52645E]/90 text-white/80"}`}
+              >
                 {marker.label}
               </span>
             </span>
@@ -526,13 +579,17 @@ function EquipmentThumbnail({
   }[size];
 
   return (
-    <span className={`relative grid shrink-0 place-items-center overflow-hidden border border-[#8FD5B6]/25 bg-[#8FD5B6]/10 text-xs font-black text-[#A9E0C7] ${sizeClass}`}>
+    <span
+      className={`relative grid shrink-0 place-items-center overflow-hidden border border-[#8FD5B6]/25 bg-[#8FD5B6]/10 text-xs font-black text-[#A9E0C7] ${sizeClass}`}
+    >
       {item ? (
         <Image
           src={item.imagePath}
           alt={`Visuel de ${item.name}`}
           fill
-          sizes={size === "available" ? "64px" : size === "slot" ? "56px" : "40px"}
+          sizes={
+            size === "available" ? "64px" : size === "slot" ? "56px" : "40px"
+          }
           className="object-cover"
         />
       ) : (
@@ -574,8 +631,9 @@ export function collectAvailableEquipment(
 }
 
 function EquipmentBonusSummary({ effects }: { effects: EquipmentEffects }) {
-  const ratingBonuses = getPositiveRatingBonuses(effects.ratingBonuses)
-    .sort(([left], [right]) => ratingOrder(left) - ratingOrder(right));
+  const ratingBonuses = getPositiveRatingBonuses(effects.ratingBonuses).sort(
+    ([left], [right]) => ratingOrder(left) - ratingOrder(right),
+  );
   const timeTrialRatingBonuses = getPositiveRatingBonuses(
     effects.timeTrialRatingBonuses,
   ).sort(([left], [right]) => ratingOrder(left) - ratingOrder(right));
@@ -594,12 +652,18 @@ function EquipmentBonusSummary({ effects }: { effects: EquipmentEffects }) {
       {hasEffects ? (
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {ratingBonuses.map(([key, value]) => (
-            <span key={key} className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]">
+            <span
+              key={key}
+              className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]"
+            >
               {ratingLabel(key)} +{formatBonus(value)}
             </span>
           ))}
           {timeTrialRatingBonuses.map(([key, value]) => (
-            <span key={`tt-${key}`} className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]">
+            <span
+              key={`tt-${key}`}
+              className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]"
+            >
               {ratingLabel(key)} +{formatBonus(value)} · CLM
             </span>
           ))}
@@ -640,9 +704,7 @@ function getPositiveRatingBonuses(
   bonuses: Partial<Record<RiderRatingKey, number>>,
 ) {
   return Object.entries(bonuses).flatMap(([key, value]) =>
-    Number(value) > 0
-      ? [[key as RiderRatingKey, Number(value)] as const]
-      : [],
+    Number(value) > 0 ? [[key as RiderRatingKey, Number(value)] as const] : [],
   );
 }
 

@@ -90,7 +90,9 @@ const SKIPPED_REASON_LABELS: Partial<Record<TrainingSessionStatus, string>> = {
     "Coureur indisponible pendant son stage de reconnaissance",
 };
 
-export default async function TrainingPage({ searchParams }: TrainingPageProps) {
+export default async function TrainingPage({
+  searchParams,
+}: TrainingPageProps) {
   const query = await searchParams;
   const activeTab = parseTrainingPageTab(query.onglet);
   const supabase = await createSupabaseServerClient();
@@ -147,7 +149,8 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
           {query.erreur ? <Alert tone="error">{query.erreur}</Alert> : null}
           {query.seuil || query.programme ? (
             <Alert tone="success">
-              Le réglage est enregistré et prendra effet {query.effet ?? "à la prochaine séance"}.
+              Le réglage est enregistré et prendra effet{" "}
+              {query.effet ?? "à la prochaine séance"}.
             </Alert>
           ) : null}
           {query.reconnaissance ? (
@@ -162,226 +165,246 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
 
         {activeTab === "training" ? (
           <>
-        <header className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9">
-          <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.75fr)] xl:items-end">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
-                {overview.teamName} · {overview.seasonName} · J{overview.currentDayNumber}
-              </p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-                Entraînements
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
-                Séance quotidienne à 8 h. Sous le seuil de forme, le coureur se repose
-                et récupère {LOW_FORM_REST_GAIN} points. Blessure, stage ou reconnaissance
-                suspendent l’entraînement.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
-                <span className="rounded-full bg-white/10 px-3 py-2 text-[#FFF4C5]">
-                  Forme uniquement
-                </span>
-                <span className="rounded-full bg-white/10 px-3 py-2 text-[#D6DFD2]">
-                  {overview.sessionCutoffPassed
-                    ? "Séance du jour réglée"
-                    : "Modifiable jusqu’à 8 h"}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-3 text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
-                Seuil minimal de forme
-              </p>
-              <TrainingThresholdForm minimumForm={overview.minimumForm} />
-              {overview.minimumFormIsPending ? (
-                <p className="mt-2 text-xs font-bold text-[#FFF4C5]">
-                  Nouveau seuil programmé pour J{overview.minimumFormEffectiveFromDayNumber}.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </header>
-
-        <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
-                Staff technique
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-                Entraîneurs disponibles
-              </h2>
-            </div>
-            <Link
-              href="/jeu/staff"
-              className="rounded-xl border border-[#176951]/20 px-4 py-2 text-xs font-black uppercase tracking-wider text-[#176951] transition hover:bg-[#EAF5F3]"
-            >
-              Gérer le staff
-            </Link>
-          </div>
-
-          {overview.trainers.length > 0 ? (
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {overview.trainers.map((trainer) => (
-                <article
-                  key={trainer.contractId}
-                  className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-black text-[#183F37]">
-                        {trainer.firstName} {trainer.lastName}
-                      </p>
-                      <p className="mt-1 text-xs font-bold text-[#60756E]">
-                        <span
-                          className={`fi fi-${trainer.countryCode.toLowerCase()} mr-2 rounded-sm`}
-                          role="img"
-                          aria-label={`Drapeau : ${trainer.countryName}`}
-                        />
-                        {trainer.countryName} · {trainer.specialtyLabel}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-[#FFF2C7] px-3 py-1 text-xs font-black text-[#7A5B09]">
-                      N{trainer.level}
+            <header className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9">
+              <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.75fr)] xl:items-end">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
+                    {overview.teamName} · {overview.seasonName} · J
+                    {overview.currentDayNumber}
+                  </p>
+                  <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
+                    Entraînements
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
+                    Séance quotidienne à 8 h. Sous le seuil de forme, le coureur
+                    se repose et récupère {LOW_FORM_REST_GAIN} points. Blessure,
+                    stage ou reconnaissance suspendent l’entraînement.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
+                    <span className="rounded-full bg-white/10 px-3 py-2 text-[#FFF4C5]">
+                      Forme uniquement
+                    </span>
+                    <span className="rounded-full bg-white/10 px-3 py-2 text-[#D6DFD2]">
+                      {overview.sessionCutoffPassed
+                        ? "Séance du jour réglée"
+                        : "Modifiable jusqu’à 8 h"}
                     </span>
                   </div>
-                  <p className="mt-4 text-sm font-bold text-[#176951]">
-                    +{trainer.efficiencyBonus}% d’efficacité sur les statistiques de sa spécialité
-                  </p>
-                  <div className="mt-4 border-t border-[#315B3E]/10 pt-3">
-                    <div className="flex items-center justify-between gap-3 text-xs font-black">
-                      <span className="text-[#60756E]">Coureurs suivis</span>
-                      <span
-                        className={
-                          trainer.assignedRiderCount >= trainer.riderCapacity
-                            ? "text-[#B54242]"
-                            : "text-[#176951]"
-                        }
-                      >
-                        {trainer.assignedRiderCount}/{trainer.riderCapacity}
-                      </span>
-                    </div>
-                    <div
-                      className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#DCE8E3]"
-                      role="progressbar"
-                      aria-label={`Quota de ${trainer.firstName} ${trainer.lastName}`}
-                      aria-valuemin={0}
-                      aria-valuemax={trainer.riderCapacity}
-                      aria-valuenow={Math.min(
-                        trainer.assignedRiderCount,
-                        trainer.riderCapacity,
-                      )}
-                    >
-                      <span
-                        className={`block h-full rounded-full ${
-                          trainer.assignedRiderCount >= trainer.riderCapacity
-                            ? "bg-[#D84B4B]"
-                            : "bg-[#42B99A]"
-                        }`}
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            (trainer.assignedRiderCount / trainer.riderCapacity) * 100,
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
-              Aucun entraîneur n’est encore sous contrat. Les programmes fonctionnent sans
-              bonus et pourront être rattachés à un entraîneur dès son recrutement.
-            </p>
-          )}
-        </section>
-
-        <section className="mt-7">
-          <div className="flex flex-wrap items-end justify-between gap-4 px-1">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
-                Programmes individuels
-              </p>
-              <h2 className="mt-2 text-3xl font-black text-[#183F37]">
-                {overview.riders.length} coureur{overview.riders.length > 1 ? "s" : ""}
-              </h2>
-            </div>
-            <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
-              Les gains hors domaine restent possibles mais faibles. Dès 32 ans,
-              le déclin s’accélère de 5 % par année d’âge. L’entraînement l’amortit
-              sans permettre de dépasser le niveau de début de saison.
-            </p>
-          </div>
-
-          <div className="mt-5 space-y-4">
-            {overview.riders.map((rider) => (
-              <article
-                key={rider.id}
-                className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
-              >
-                <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
-                  <div className="flex min-w-0 items-center gap-4">
-                    <RiderAvatar
-                      profileKey={rider.avatarProfileKey}
-                      seed={rider.avatarSeed}
-                      riderId={rider.id}
-                      age={rider.age}
-                      jersey={jersey}
-                      label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-                      className="h-16 w-16"
-                    />
-                    <div className="min-w-0">
-                      <Link
-                        href={`/jeu/coureurs/${rider.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
-                      >
-                        {rider.firstName} {rider.lastName} ↗
-                      </Link>
-                      <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
-                        <span
-                          className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
-                          role="img"
-                          aria-label={`Drapeau : ${rider.countryName}`}
-                        />
-                        {rider.countryName} · {rider.age} ans · Forme {rider.form}%
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                          title="Profil recalculé depuis les notes actuelles de la saison"
-                          className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
-                        >
-                          Profil · {getRiderSportingProfile(toTrainingRatings(rider.ratings))}
-                        </span>
-                        <PotentialStars potentialSteps={rider.potentialSteps} compact />
-                        <RiderDeclineIndicators rider={rider} />
-                      </div>
-                      {rider.plan.isPending ? (
-                        <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
-                          Programme à venir J{rider.plan.effectiveFromDayNumber}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <RiderTrainingPlanForm
-                    riderId={rider.id}
-                    initialIntensity={rider.plan.intensity}
-                    initialDomain={rider.plan.domain}
-                    initialTrainerContractId={rider.plan.trainerContractId}
-                    riderCountryCode={rider.countryCode}
-                    trainers={overview.trainers}
-                  />
-
-                  <TrainingReportPopover report={rider.latestReport} />
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
+
+                <div>
+                  <p className="mb-3 text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
+                    Seuil minimal de forme
+                  </p>
+                  <TrainingThresholdForm minimumForm={overview.minimumForm} />
+                  {overview.minimumFormIsPending ? (
+                    <p className="mt-2 text-xs font-bold text-[#FFF4C5]">
+                      Nouveau seuil programmé pour J
+                      {overview.minimumFormEffectiveFromDayNumber}.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </header>
+
+            <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+                    Staff technique
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black text-[#183F37]">
+                    Entraîneurs disponibles
+                  </h2>
+                </div>
+                <Link
+                  href="/jeu/staff"
+                  className="rounded-xl border border-[#176951]/20 px-4 py-2 text-xs font-black uppercase tracking-wider text-[#176951] transition hover:bg-[#EAF5F3]"
+                >
+                  Gérer le staff
+                </Link>
+              </div>
+
+              {overview.trainers.length > 0 ? (
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {overview.trainers.map((trainer) => (
+                    <article
+                      key={trainer.contractId}
+                      className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-black text-[#183F37]">
+                            {trainer.firstName} {trainer.lastName}
+                          </p>
+                          <p className="mt-1 text-xs font-bold text-[#60756E]">
+                            <span
+                              className={`fi fi-${trainer.countryCode.toLowerCase()} mr-2 rounded-sm`}
+                              role="img"
+                              aria-label={`Drapeau : ${trainer.countryName}`}
+                            />
+                            {trainer.countryName} · {trainer.specialtyLabel}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-[#FFF2C7] px-3 py-1 text-xs font-black text-[#7A5B09]">
+                          N{trainer.level}
+                        </span>
+                      </div>
+                      <p className="mt-4 text-sm font-bold text-[#176951]">
+                        +{trainer.efficiencyBonus}% d’efficacité sur les
+                        statistiques de sa spécialité
+                      </p>
+                      <div className="mt-4 border-t border-[#315B3E]/10 pt-3">
+                        <div className="flex items-center justify-between gap-3 text-xs font-black">
+                          <span className="text-[#60756E]">
+                            Coureurs suivis
+                          </span>
+                          <span
+                            className={
+                              trainer.assignedRiderCount >=
+                              trainer.riderCapacity
+                                ? "text-[#B54242]"
+                                : "text-[#176951]"
+                            }
+                          >
+                            {trainer.assignedRiderCount}/{trainer.riderCapacity}
+                          </span>
+                        </div>
+                        <div
+                          className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#DCE8E3]"
+                          role="progressbar"
+                          aria-label={`Quota de ${trainer.firstName} ${trainer.lastName}`}
+                          aria-valuemin={0}
+                          aria-valuemax={trainer.riderCapacity}
+                          aria-valuenow={Math.min(
+                            trainer.assignedRiderCount,
+                            trainer.riderCapacity,
+                          )}
+                        >
+                          <span
+                            className={`block h-full rounded-full ${
+                              trainer.assignedRiderCount >=
+                              trainer.riderCapacity
+                                ? "bg-[#D84B4B]"
+                                : "bg-[#42B99A]"
+                            }`}
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                (trainer.assignedRiderCount /
+                                  trainer.riderCapacity) *
+                                  100,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
+                  Aucun entraîneur n’est encore sous contrat. Les programmes
+                  fonctionnent sans bonus et pourront être rattachés à un
+                  entraîneur dès son recrutement.
+                </p>
+              )}
+            </section>
+
+            <section className="mt-7">
+              <div className="flex flex-wrap items-end justify-between gap-4 px-1">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
+                    Programmes individuels
+                  </p>
+                  <h2 className="mt-2 text-3xl font-black text-[#183F37]">
+                    {overview.riders.length} coureur
+                    {overview.riders.length > 1 ? "s" : ""}
+                  </h2>
+                </div>
+                <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
+                  Les gains hors domaine restent possibles mais faibles. Dès 32
+                  ans, le déclin s’accélère de 5 % par année d’âge.
+                  L’entraînement l’amortit sans permettre de dépasser le niveau
+                  de début de saison.
+                </p>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {overview.riders.map((rider) => (
+                  <article
+                    key={rider.id}
+                    className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
+                  >
+                    <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
+                      <div className="flex min-w-0 items-center gap-4">
+                        <RiderAvatar
+                          profileKey={rider.avatarProfileKey}
+                          seed={rider.avatarSeed}
+                          riderId={rider.id}
+                          age={rider.age}
+                          jersey={jersey}
+                          label={`Portrait de ${rider.firstName} ${rider.lastName}`}
+                          className="h-16 w-16"
+                        />
+                        <div className="min-w-0">
+                          <Link
+                            href={`/jeu/coureurs/${rider.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
+                          >
+                            {rider.firstName} {rider.lastName} ↗
+                          </Link>
+                          <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
+                            <span
+                              className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
+                              role="img"
+                              aria-label={`Drapeau : ${rider.countryName}`}
+                            />
+                            {rider.countryName} · {rider.age} ans · Forme{" "}
+                            {rider.form}%
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span
+                              title="Profil recalculé depuis les notes actuelles de la saison"
+                              className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
+                            >
+                              Profil ·{" "}
+                              {getRiderSportingProfile(
+                                toTrainingRatings(rider.ratings),
+                              )}
+                            </span>
+                            <PotentialStars
+                              potentialSteps={rider.potentialSteps}
+                              compact
+                            />
+                            <RiderDeclineIndicators rider={rider} />
+                          </div>
+                          {rider.plan.isPending ? (
+                            <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
+                              Programme à venir J
+                              {rider.plan.effectiveFromDayNumber}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <RiderTrainingPlanForm
+                        riderId={rider.id}
+                        initialIntensity={rider.plan.intensity}
+                        initialDomain={rider.plan.domain}
+                        initialTrainerContractId={rider.plan.trainerContractId}
+                        riderCountryCode={rider.countryCode}
+                        trainers={overview.trainers}
+                      />
+
+                      <TrainingReportPopover report={rider.latestReport} />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           </>
         ) : (
           <RaceReconnaissancePlanner
@@ -394,11 +417,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
   );
 }
 
-function TrainingSectionTabs({
-  activeTab,
-}: {
-  activeTab: TrainingPageTab;
-}) {
+function TrainingSectionTabs({ activeTab }: { activeTab: TrainingPageTab }) {
   const tabs: Array<{
     id: TrainingPageTab;
     label: string;
@@ -453,7 +472,7 @@ function TrainingSectionTabs({
 }
 
 function toTrainingRatings(
-  ratings: TeamTrainingRider["ratings"]
+  ratings: TeamTrainingRider["ratings"],
 ): RiderRatings {
   return {
     mountain: ratings.mountain,
@@ -521,7 +540,11 @@ function formatDeclinePoints(value: number) {
   }).format(value);
 }
 
-function TrainingReportPopover({ report }: { report: RiderTrainingReport | null }) {
+function TrainingReportPopover({
+  report,
+}: {
+  report: RiderTrainingReport | null;
+}) {
   if (!report) {
     return (
       <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dashed border-[#315B3E]/20 px-3 text-center text-xs font-black text-[#7B8D87]">
@@ -536,8 +559,9 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
   const ratingChanges = sortStatEntries(report.ratingChanges).filter(
     ([, value]) => value !== 0,
   );
-  const trainingProgress = sortStatEntries(report.progressMilli)
-    .filter(([, value]) => value > 0)
+  const trainingProgress = sortStatEntries(report.progressMilli).filter(
+    ([, value]) => value > 0,
+  );
   const declineProgress = sortStatEntries(report.declineMilli).filter(
     ([, value]) => value > 0,
   );
@@ -588,14 +612,18 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                 : "Aucun"
             }
           />
-                  <ReportValue
-                    label="Kiné"
-                    value={report.physiotherapistLevel > 0 ? `N${report.physiotherapistLevel}` : "Aucun"}
-                  />
-                  {report.trainerCountryMatch ? (
-                    <ReportValue label="Affinité nationale" value="Active · +5%" />
-                  ) : null}
-                </dl>
+          <ReportValue
+            label="Kiné"
+            value={
+              report.physiotherapistLevel > 0
+                ? `N${report.physiotherapistLevel}`
+                : "Aucun"
+            }
+          />
+          {report.trainerCountryMatch ? (
+            <ReportValue label="Affinité nationale" value="Active · +5%" />
+          ) : null}
+        </dl>
 
         {isCompleted ? (
           <div className="mt-4 border-t border-white/10 pt-4">
@@ -609,7 +637,9 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                     key={stat}
                     className="flex items-center justify-between rounded-lg bg-white/7 px-3 py-2"
                   >
-                    <span className="text-[#D6DFD2]">{STAT_LABELS[stat] ?? stat}</span>
+                    <span className="text-[#D6DFD2]">
+                      {STAT_LABELS[stat] ?? stat}
+                    </span>
                     <span className="text-[#9BE0BC]">
                       +{formatTrainingProgressMilli(value)}
                     </span>
@@ -663,7 +693,7 @@ function TrainingReportPopover({ report }: { report: RiderTrainingReport | null 
                       `${STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
                   )
                   .join(" · ")
-              : "Aucune note entière n’a changé : les décimales sont conservées en base pour les prochaines séances."}
+              : "Aucune note entière n’a changé : les décimales sont conservées en base pour les prochaines séances."}
           </p>
         </div>
       </div>
@@ -686,13 +716,21 @@ function sortStatEntries(values: Record<string, number>) {
 function ReportValue({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-black uppercase tracking-wider text-[#8EB9AA]">{label}</dt>
+      <dt className="font-black uppercase tracking-wider text-[#8EB9AA]">
+        {label}
+      </dt>
       <dd className="mt-1 font-black text-white">{value}</dd>
     </div>
   );
 }
 
-function Alert({ children, tone }: { children: React.ReactNode; tone: "success" | "error" }) {
+function Alert({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: "success" | "error";
+}) {
   return (
     <p
       className={`mb-5 rounded-2xl border px-5 py-4 text-sm font-bold ${

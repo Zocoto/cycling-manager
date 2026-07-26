@@ -121,6 +121,24 @@ function HeroSection() {
             Construisez votre équipe, recrutez les meilleurs coureurs et prenez
             les décisions qui feront la différence sur les plus grandes routes.
           </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/inscription"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-[0_14px_35px_rgba(128,100,10,0.24)] transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
+            >
+              Nouvelle carrière
+              <ArrowIcon />
+            </Link>
+
+            <Link
+              href="/connexion"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border-2 border-[#0B302B] bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#FFFDF4] shadow-[0_10px_25px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:bg-[#123f37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B302B]"
+            >
+              Se connecter
+              <FolderIcon />
+            </Link>
+          </div>
         </div>
       </div>
     </section>
@@ -150,9 +168,7 @@ function ProductNews() {
               <span
                 aria-hidden="true"
                 className={`absolute inset-y-0 left-0 w-1 ${
-                  news.accent === "leader"
-                    ? "bg-[#F2C94C]"
-                    : "bg-[#42CDA8]"
+                  news.accent === "leader" ? "bg-[#F2C94C]" : "bg-[#42CDA8]"
                 }`}
               />
 
@@ -299,11 +315,7 @@ function FeatureCard({
   );
 }
 
-function PillarIcon({
-  icon,
-}: {
-  icon: "team" | "strategy" | "trophy";
-}) {
+function PillarIcon({ icon }: { icon: "team" | "strategy" | "trophy" }) {
   if (icon === "team") {
     return (
       <svg
@@ -376,6 +388,21 @@ function ArrowIcon() {
   );
 }
 
+function FolderIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M2.5 5.5h5l1.5 2h8.5v8H2.5v-10Z" />
+      <path d="M2.5 7.5h15" />
+    </svg>
+  );
+}
 function HeroMountainLines() {
   return (
     <svg

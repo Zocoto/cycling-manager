@@ -50,7 +50,7 @@ export async function useInventoryItemAction(formData: FormData) {
   if (error) redirectWithError(returnPath, error.message);
 
   const result = normalizeApplicationResult(data, category);
-  const successMessage = `${result.itemName} a été attribué : ${result.effectSummary} L’effet est permanent.`;
+  const successMessage = `${result.itemName} a été attribué : ${result.effectSummary} L’effet est permanent.`;
 
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/effectif");

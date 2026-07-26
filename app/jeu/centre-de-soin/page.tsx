@@ -161,7 +161,7 @@ export default async function HealthCenterPage({
         ) : null}
         {readQuery(query.nutrition) === "confirmee" ? (
           <SuccessMessage>
-            L’intervention nutritionnelle est enregistrée : la forme du coureur et la trésorerie ont été mises à jour.
+            L’intervention nutritionnelle est enregistrée : la forme du coureur et la trésorerie ont été mises à jour.
           </SuccessMessage>
         ) : null}
         {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
@@ -344,7 +344,7 @@ function InjuryCard({
               </p>
               <p className="mt-3 text-sm font-semibold leading-6 text-[#702E2E]">
                 Cette blessure survient lorsque la forme devait passer sous zéro.
-                Sa durée est fixée à trois jours : le médecin et les protocoles ne
+                Sa durée est fixée à trois jours : le médecin et les protocoles ne
                 peuvent pas la raccourcir.
               </p>
             </div>

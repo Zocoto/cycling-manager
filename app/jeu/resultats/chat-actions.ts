@@ -102,7 +102,7 @@ export async function postRaceLiveMessageAction(
 
   if (error || !data) {
     throw new Error(
-      `Impossible d’envoyer le message : ${error?.message ?? "erreur inconnue"}`
+      `Impossible d’envoyer le message : ${error?.message ?? "erreur inconnue"}`
     );
   }
 

@@ -8,9 +8,7 @@ import {
   requireAuthenticatedSportingDirectorId,
 } from "@/lib/tutorial/progress";
 import { getTutorialDefinition } from "@/lib/tutorial/catalog";
-import {
-  getTutorialRequirementError,
-} from "@/lib/tutorial/onboarding";
+import { getTutorialRequirementError } from "@/lib/tutorial/onboarding";
 import {
   CRITERIUM_DISCOVERY_KEY,
   getCriteriumDiscoveryRunFromMetadata,
@@ -25,8 +23,7 @@ import type {
   TutorialStep,
 } from "@/types/tutorial";
 
-const TUTORIAL_KEY_PATTERN =
-  /^[a-z0-9][a-z0-9._-]*$/;
+const TUTORIAL_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
 const tutorialKeySchema = z
   .string()
@@ -52,20 +49,12 @@ const routeSchema = z
     "La route doit commencer par « / ».",
   );
 
-const launchSourceSchema = z.enum([
-  "automatic",
-  "manual",
-  "resume",
-  "replay",
-]);
+const launchSourceSchema = z.enum(["automatic", "manual", "resume", "replay"]);
 
 const startTutorialSchema = z.object({
   tutorialKey: tutorialKeySchema,
   launchSource: launchSourceSchema,
-  restartFromBeginning: z
-    .boolean()
-    .optional()
-    .default(false),
+  restartFromBeginning: z.boolean().optional().default(false),
 });
 
 const tutorialStepSchema = z.object({
@@ -90,13 +79,9 @@ type TutorialActionFailure = {
   error: string;
 };
 
-type TutorialActionResult =
-  | TutorialActionSuccess
-  | TutorialActionFailure;
+type TutorialActionResult = TutorialActionSuccess | TutorialActionFailure;
 
-function actionFailure(
-  error: unknown,
-): TutorialActionFailure {
+function actionFailure(error: unknown): TutorialActionFailure {
   if (error instanceof Error) {
     return {
       ok: false,
@@ -106,16 +91,12 @@ function actionFailure(
 
   return {
     ok: false,
-    error:
-      "Une erreur inattendue est survenue pendant le didacticiel.",
+    error: "Une erreur inattendue est survenue pendant le didacticiel.",
   };
 }
 
-function requireTutorialDefinition(
-  tutorialKey: string,
-): TutorialDefinition {
-  const definition =
-    getTutorialDefinition(tutorialKey);
+function requireTutorialDefinition(tutorialKey: string): TutorialDefinition {
+  const definition = getTutorialDefinition(tutorialKey);
 
   if (!definition) {
     throw new Error(
@@ -131,9 +112,7 @@ function requireTutorialStep(
   stepKey: string,
   route: string,
 ) {
-  const step = definition.steps.find(
-    (candidate) => candidate.key === stepKey,
-  );
+  const step = definition.steps.find((candidate) => candidate.key === stepKey);
 
   if (!step) {
     throw new Error(
@@ -154,32 +133,20 @@ async function requireTutorialStepRequirement({
   supabase,
   step,
 }: {
-  supabase: Awaited<
-    ReturnType<
-      typeof createSupabaseServerClient
-    >
-  >;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   step: TutorialStep;
 }): Promise<void> {
   if (!step.requirement) {
     return;
   }
 
-  if (
-    step.requirement ===
-    "criterium_registered"
-  ) {
-    const progress =
-      await getAuthenticatedTutorialProgress(
-        supabase,
-        CRITERIUM_DISCOVERY_KEY,
-      );
+  if (step.requirement === "criterium_registered") {
+    const progress = await getAuthenticatedTutorialProgress(
+      supabase,
+      CRITERIUM_DISCOVERY_KEY,
+    );
 
-    if (
-      !getCriteriumDiscoveryRunFromMetadata(
-        progress?.metadata,
-      )
-    ) {
+    if (!getCriteriumDiscoveryRunFromMetadata(progress?.metadata)) {
       throw new Error(
         "Validez d’abord l’inscription de vos cinq coureurs avant de poursuivre vers le Live.",
       );
@@ -188,25 +155,19 @@ async function requireTutorialStepRequirement({
     return;
   }
 
-  const state =
-    await getAuthenticatedTutorialOnboardingState(
-      supabase,
-    );
+  const state = await getAuthenticatedTutorialOnboardingState(supabase);
 
-  const requirementError =
-    getTutorialRequirementError({
-      requirement: step.requirement,
-      state,
-    });
+  const requirementError = getTutorialRequirementError({
+    requirement: step.requirement,
+    state,
+  });
 
   if (requirementError) {
     throw new Error(requirementError);
   }
 }
 
-function getInitialStep(
-  definition: TutorialDefinition,
-) {
+function getInitialStep(definition: TutorialDefinition) {
   const step = definition.steps[0];
 
   if (!step) {
@@ -224,8 +185,7 @@ function getResumeStep(
 ) {
   if (progress.current_step_key) {
     const savedStep = definition.steps.find(
-      (step) =>
-        step.key === progress.current_step_key,
+      (step) => step.key === progress.current_step_key,
     );
 
     if (savedStep) {
@@ -243,11 +203,7 @@ async function updateProgressStep({
   stepKey,
   route,
 }: {
-  supabase: Awaited<
-    ReturnType<
-      typeof createSupabaseServerClient
-    >
-  >;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   progress: TutorialProgressRow;
   definition: TutorialDefinition;
   stepKey: string;
@@ -283,11 +239,7 @@ async function updateActiveSessionStep({
   definition,
   stepKey,
 }: {
-  supabase: Awaited<
-    ReturnType<
-      typeof createSupabaseServerClient
-    >
-  >;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   session: TutorialSessionRow;
   definition: TutorialDefinition;
   stepKey: string;
@@ -317,16 +269,9 @@ async function finishSession({
   status,
   lastStepKey,
 }: {
-  supabase: Awaited<
-    ReturnType<
-      typeof createSupabaseServerClient
-    >
-  >;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   session: TutorialSessionRow;
-  status:
-    | "completed"
-    | "abandoned"
-    | "skipped";
+  status: "completed" | "abandoned" | "skipped";
   lastStepKey: string | null;
 }): Promise<TutorialSessionRow> {
   const { data, error } = await supabase
@@ -356,11 +301,7 @@ async function createTutorialSession({
   launchSource,
   firstStepKey,
 }: {
-  supabase: Awaited<
-    ReturnType<
-      typeof createSupabaseServerClient
-    >
-  >;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   progress: TutorialProgressRow;
   definition: TutorialDefinition;
   launchSource: TutorialSessionLaunchSource;
@@ -392,65 +333,42 @@ export async function startTutorialAction(
   input: unknown,
 ): Promise<TutorialActionResult> {
   try {
-    const parsed =
-      startTutorialSchema.parse(input);
+    const parsed = startTutorialSchema.parse(input);
 
-    const definition =
-      requireTutorialDefinition(
-        parsed.tutorialKey,
-      );
+    const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    if (
-      parsed.launchSource === "automatic" &&
-      !definition.autoStart
-    ) {
-      throw new Error(
-        "Ce didacticiel ne peut pas démarrer automatiquement.",
-      );
+    if (parsed.launchSource === "automatic" && !definition.autoStart) {
+      throw new Error("Ce didacticiel ne peut pas démarrer automatiquement.");
     }
 
-    if (
-      parsed.launchSource === "replay" &&
-      !definition.replayable
-    ) {
-      throw new Error(
-        "Ce didacticiel ne peut pas être rejoué.",
-      );
+    if (parsed.launchSource === "replay" && !definition.replayable) {
+      throw new Error("Ce didacticiel ne peut pas être rejoué.");
     }
 
-    const supabase =
-      await createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     const sportingDirectorId =
-      await requireAuthenticatedSportingDirectorId(
-        supabase,
-      );
+      await requireAuthenticatedSportingDirectorId(supabase);
 
-    let progress =
-      await getAuthenticatedTutorialProgress(
-        supabase,
-        definition.key,
-      );
+    let progress = await getAuthenticatedTutorialProgress(
+      supabase,
+      definition.key,
+    );
 
     const now = new Date().toISOString();
-    const initialStep =
-      getInitialStep(definition);
+    const initialStep = getInitialStep(definition);
 
     if (!progress) {
       const { data, error } = await supabase
         .from("tutorial_progress")
         .insert({
-          sporting_director_id:
-            sportingDirectorId,
+          sporting_director_id: sportingDirectorId,
           tutorial_key: definition.key,
           tutorial_type: definition.type,
-          tutorial_version:
-            definition.version,
+          tutorial_version: definition.version,
           status: "in_progress",
-          current_step_key:
-            initialStep.key,
-          current_route:
-            initialStep.route,
+          current_step_key: initialStep.key,
+          current_route: initialStep.route,
           started_at: now,
         })
         .select("*")
@@ -470,23 +388,16 @@ export async function startTutorialAction(
       progress.status !== "not_started" &&
       progress.status !== "in_progress"
     ) {
-      throw new Error(
-        "Ce didacticiel a déjà été terminé ou ignoré.",
-      );
+      throw new Error("Ce didacticiel a déjà été terminé ou ignoré.");
     }
 
     const isHistoricalReplay =
-      progress.status === "completed" ||
-      progress.status === "skipped";
+      progress.status === "completed" || progress.status === "skipped";
 
     const selectedStep =
-      parsed.restartFromBeginning ||
-      isHistoricalReplay
+      parsed.restartFromBeginning || isHistoricalReplay
         ? initialStep
-        : getResumeStep(
-            definition,
-            progress,
-          );
+        : getResumeStep(definition, progress);
 
     await requireTutorialStepRequirement({
       supabase,
@@ -498,13 +409,10 @@ export async function startTutorialAction(
         .from("tutorial_progress")
         .update({
           tutorial_type: definition.type,
-          tutorial_version:
-            definition.version,
+          tutorial_version: definition.version,
           status: "in_progress",
-          current_step_key:
-            selectedStep.key,
-          current_route:
-            selectedStep.route,
+          current_step_key: selectedStep.key,
+          current_route: selectedStep.route,
           started_at: now,
           completed_at: null,
           skipped_at: null,
@@ -520,9 +428,7 @@ export async function startTutorialAction(
       }
 
       progress = data as TutorialProgressRow;
-    } else if (
-      progress.status === "in_progress"
-    ) {
+    } else if (progress.status === "in_progress") {
       progress = await updateProgressStep({
         supabase,
         progress,
@@ -532,25 +438,17 @@ export async function startTutorialAction(
       });
     }
 
-    let session =
-      await getActiveTutorialSession(
-        supabase,
-        progress.id,
-      );
+    let session = await getActiveTutorialSession(supabase, progress.id);
 
     if (session) {
-      session =
-        await updateActiveSessionStep({
-          supabase,
-          session,
-          definition,
-          stepKey: selectedStep.key,
-        });
+      session = await updateActiveSessionStep({
+        supabase,
+        session,
+        definition,
+        stepKey: selectedStep.key,
+      });
     } else {
-      const launchSource =
-        isHistoricalReplay
-          ? "replay"
-          : parsed.launchSource;
+      const launchSource = isHistoricalReplay ? "replay" : parsed.launchSource;
 
       session = await createTutorialSession({
         supabase,
@@ -576,22 +474,13 @@ export async function setTutorialStepAction(
   input: unknown,
 ): Promise<TutorialActionResult> {
   try {
-    const parsed =
-      tutorialStepSchema.parse(input);
+    const parsed = tutorialStepSchema.parse(input);
 
-    const definition =
-      requireTutorialDefinition(
-        parsed.tutorialKey,
-      );
+    const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    const step = requireTutorialStep(
-      definition,
-      parsed.stepKey,
-      parsed.route,
-    );
+    const step = requireTutorialStep(definition, parsed.stepKey, parsed.route);
 
-    const supabase =
-      await createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     await requireTutorialStepRequirement({
       supabase,
@@ -600,23 +489,19 @@ export async function setTutorialStepAction(
 
     const now = new Date().toISOString();
 
-    let progress =
-      await getAuthenticatedTutorialProgress(
-        supabase,
-        definition.key,
-      );
+    let progress = await getAuthenticatedTutorialProgress(
+      supabase,
+      definition.key,
+    );
 
     if (!progress) {
       const sportingDirectorId =
-        await requireAuthenticatedSportingDirectorId(
-          supabase,
-        );
+        await requireAuthenticatedSportingDirectorId(supabase);
 
       const { data, error } = await supabase
         .from("tutorial_progress")
         .insert({
-          sporting_director_id:
-            sportingDirectorId,
+          sporting_director_id: sportingDirectorId,
           tutorial_key: definition.key,
           tutorial_type: definition.type,
           tutorial_version: definition.version,
@@ -663,11 +548,7 @@ export async function setTutorialStepAction(
       progress = data as TutorialProgressRow;
     }
 
-    let session =
-      await getActiveTutorialSession(
-        supabase,
-        progress.id,
-      );
+    let session = await getActiveTutorialSession(supabase, progress.id);
 
     if (!session && progress.status === "in_progress") {
       session = await createTutorialSession({
@@ -680,9 +561,7 @@ export async function setTutorialStepAction(
     }
 
     if (!session && progress.status === "in_progress") {
-      throw new Error(
-        "Aucune session active n’existe pour ce didacticiel.",
-      );
+      throw new Error("Aucune session active n’existe pour ce didacticiel.");
     }
 
     progress = await updateProgressStep({
@@ -693,15 +572,14 @@ export async function setTutorialStepAction(
       route: parsed.route,
     });
 
-    const updatedSession =
-      session
-        ? await updateActiveSessionStep({
-            supabase,
-            session,
-            definition,
-            stepKey: parsed.stepKey,
-          })
-        : null;
+    const updatedSession = session
+      ? await updateActiveSessionStep({
+          supabase,
+          session,
+          definition,
+          stepKey: parsed.stepKey,
+        })
+      : null;
 
     return {
       ok: true,
@@ -717,33 +595,21 @@ export async function quitTutorialAction(
   input: unknown,
 ): Promise<TutorialActionResult> {
   try {
-    const parsed =
-      tutorialStepSchema.parse(input);
+    const parsed = tutorialStepSchema.parse(input);
 
-    const definition =
-      requireTutorialDefinition(
-        parsed.tutorialKey,
-      );
+    const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    requireTutorialStep(
-      definition,
-      parsed.stepKey,
-      parsed.route,
+    requireTutorialStep(definition, parsed.stepKey, parsed.route);
+
+    const supabase = await createSupabaseServerClient();
+
+    let progress = await getAuthenticatedTutorialProgress(
+      supabase,
+      definition.key,
     );
 
-    const supabase =
-      await createSupabaseServerClient();
-
-    let progress =
-      await getAuthenticatedTutorialProgress(
-        supabase,
-        definition.key,
-      );
-
     if (!progress) {
-      throw new Error(
-        "Aucune progression n’existe pour ce didacticiel.",
-      );
+      throw new Error("Aucune progression n’existe pour ce didacticiel.");
     }
 
     progress = await updateProgressStep({
@@ -754,11 +620,7 @@ export async function quitTutorialAction(
       route: parsed.route,
     });
 
-    const activeSession =
-      await getActiveTutorialSession(
-        supabase,
-        progress.id,
-      );
+    const activeSession = await getActiveTutorialSession(supabase, progress.id);
 
     const session = activeSession
       ? await finishSession({
@@ -784,27 +646,19 @@ export async function skipTutorialAction(
   input: unknown,
 ): Promise<TutorialActionResult> {
   try {
-    const parsed =
-      tutorialKeyOnlySchema.parse(input);
+    const parsed = tutorialKeyOnlySchema.parse(input);
 
-    const definition =
-      requireTutorialDefinition(
-        parsed.tutorialKey,
-      );
+    const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    const supabase =
-      await createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
     const sportingDirectorId =
-      await requireAuthenticatedSportingDirectorId(
-        supabase,
-      );
+      await requireAuthenticatedSportingDirectorId(supabase);
 
-    let progress =
-      await getAuthenticatedTutorialProgress(
-        supabase,
-        definition.key,
-      );
+    let progress = await getAuthenticatedTutorialProgress(
+      supabase,
+      definition.key,
+    );
 
     const now = new Date().toISOString();
 
@@ -812,12 +666,10 @@ export async function skipTutorialAction(
       const { data, error } = await supabase
         .from("tutorial_progress")
         .insert({
-          sporting_director_id:
-            sportingDirectorId,
+          sporting_director_id: sportingDirectorId,
           tutorial_key: definition.key,
           tutorial_type: definition.type,
-          tutorial_version:
-            definition.version,
+          tutorial_version: definition.version,
           status: "skipped",
           skipped_at: now,
         })
@@ -831,15 +683,12 @@ export async function skipTutorialAction(
       }
 
       progress = data as TutorialProgressRow;
-    } else if (
-      progress.status !== "completed"
-    ) {
+    } else if (progress.status !== "completed") {
       const { data, error } = await supabase
         .from("tutorial_progress")
         .update({
           tutorial_type: definition.type,
-          tutorial_version:
-            definition.version,
+          tutorial_version: definition.version,
           status: "skipped",
           completed_at: null,
           skipped_at: now,
@@ -857,19 +706,14 @@ export async function skipTutorialAction(
       progress = data as TutorialProgressRow;
     }
 
-    const activeSession =
-      await getActiveTutorialSession(
-        supabase,
-        progress.id,
-      );
+    const activeSession = await getActiveTutorialSession(supabase, progress.id);
 
     const session = activeSession
       ? await finishSession({
           supabase,
           session: activeSession,
           status: "skipped",
-          lastStepKey:
-            activeSession.last_step_key,
+          lastStepKey: activeSession.last_step_key,
         })
       : null;
 
@@ -877,8 +721,7 @@ export async function skipTutorialAction(
       ok: true,
       progress,
       session,
-      currentStepKey:
-        progress.current_step_key,
+      currentStepKey: progress.current_step_key,
     };
   } catch (error) {
     return actionFailure(error);
@@ -889,33 +732,21 @@ export async function completeTutorialAction(
   input: unknown,
 ): Promise<TutorialActionResult> {
   try {
-    const parsed =
-      tutorialStepSchema.parse(input);
+    const parsed = tutorialStepSchema.parse(input);
 
-    const definition =
-      requireTutorialDefinition(
-        parsed.tutorialKey,
-      );
+    const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    requireTutorialStep(
-      definition,
-      parsed.stepKey,
-      parsed.route,
+    requireTutorialStep(definition, parsed.stepKey, parsed.route);
+
+    const supabase = await createSupabaseServerClient();
+
+    let progress = await getAuthenticatedTutorialProgress(
+      supabase,
+      definition.key,
     );
 
-    const supabase =
-      await createSupabaseServerClient();
-
-    let progress =
-      await getAuthenticatedTutorialProgress(
-        supabase,
-        definition.key,
-      );
-
     if (!progress) {
-      throw new Error(
-        "Aucune progression n’existe pour ce didacticiel.",
-      );
+      throw new Error("Aucune progression n’existe pour ce didacticiel.");
     }
 
     const now = new Date().toISOString();
@@ -924,13 +755,11 @@ export async function completeTutorialAction(
       .from("tutorial_progress")
       .update({
         tutorial_type: definition.type,
-        tutorial_version:
-          definition.version,
+        tutorial_version: definition.version,
         status: "completed",
         current_step_key: parsed.stepKey,
         current_route: parsed.route,
-        started_at:
-          progress.started_at ?? now,
+        started_at: progress.started_at ?? now,
         completed_at: now,
         skipped_at: null,
       })
@@ -946,11 +775,7 @@ export async function completeTutorialAction(
 
     progress = data as TutorialProgressRow;
 
-    const activeSession =
-      await getActiveTutorialSession(
-        supabase,
-        progress.id,
-      );
+    const activeSession = await getActiveTutorialSession(supabase, progress.id);
 
     const session = activeSession
       ? await finishSession({

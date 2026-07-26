@@ -81,7 +81,7 @@ export function PublicGameNewsBoard({
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#536B64] sm:text-lg">
               Victoires, nouveaux directeurs, transferts et recrutements de
-              staff : suivez les derniers échos du peloton en un coup d’œil.
+              staff : suivez les derniers échos du peloton en un coup d’œil.
             </p>
           </div>
 

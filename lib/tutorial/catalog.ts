@@ -8,20 +8,13 @@ import {
   CRITERIUM_DISCOVERY_VERSION,
 } from "@/lib/tutorial/criterium-discovery";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
-import type {
-  TutorialCatalog,
-  TutorialDefinition,
-} from "@/types/tutorial";
+import type { TutorialCatalog, TutorialDefinition } from "@/types/tutorial";
 
 const TUTORIAL_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
-function validateTutorialDefinition(
-  definition: TutorialDefinition,
-): void {
+function validateTutorialDefinition(definition: TutorialDefinition): void {
   if (!TUTORIAL_KEY_PATTERN.test(definition.key)) {
-    throw new Error(
-      `La clé de didacticiel "${definition.key}" est invalide.`,
-    );
+    throw new Error(`La clé de didacticiel "${definition.key}" est invalide.`);
   }
 
   if (definition.version < 1) {
@@ -99,8 +92,7 @@ const onboardingTutorial = {
     "Découvrez les bases du métier de Directeur Sportif, de la fondation de votre équipe au sponsoring.",
   autoStart: true,
   replayable: true,
-  followUpTutorialKey:
-    CRITERIUM_DISCOVERY_KEY,
+  followUpTutorialKey: CRITERIUM_DISCOVERY_KEY,
   steps: [
     {
       key: "welcome",
@@ -303,11 +295,9 @@ const criteriumDiscoveryTutorial = {
       highlightPadding: 6,
     },
     {
-      key:
-        CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
+      key: CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
       route: "/jeu/calendrier",
-      targetId:
-        "criterium-registration-confirmation",
+      targetId: "criterium-registration-confirmation",
       title: "Inscription confirmée",
       content:
         "Votre équipe est inscrite et la course apparaît dans le calendrier comme une épreuve normale. La différence reste invisible pour le moteur d’affichage, mais essentielle pour votre carrière : aucun règlement officiel ne sera exécuté.\n\nCliquez sur Suivant pour rejoindre directement le replay dans Résultats / Live.",
@@ -349,8 +339,7 @@ const criteriumDiscoveryTutorial = {
       highlightPadding: 6,
     },
     {
-      key:
-        CRITERIUM_DISCOVERY_COMPLETION_STEP_KEY,
+      key: CRITERIUM_DISCOVERY_COMPLETION_STEP_KEY,
       route: CRITERIUM_DISCOVERY_RESULTS_ROUTE,
       targetId: "criterium-tutorial-completion",
       title: "Votre première course est terminée",
@@ -379,7 +368,5 @@ export function listTutorialDefinitions(): readonly TutorialDefinition[] {
 }
 
 export function listAutoStartTutorialDefinitions(): readonly TutorialDefinition[] {
-  return listTutorialDefinitions().filter(
-    (definition) => definition.autoStart,
-  );
+  return listTutorialDefinitions().filter((definition) => definition.autoStart);
 }

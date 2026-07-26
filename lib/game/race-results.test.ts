@@ -83,6 +83,33 @@ describe("buildPersistedGeneralClassification", () => {
     });
   });
 
+  it("écarte du général un coureur absent d'une étape (blessé non repartant)", () => {
+    const general = buildPersistedGeneralClassification([
+      [
+        { ...coquinous, elapsedTimeMs: 3_600_000 },
+        { ...challengers, elapsedTimeMs: 3_500_000 },
+      ],
+      [
+        // Le challenger, blessé à l'étape 1, ne reprend pas le départ :
+        // aucun résultat pour lui sur cette étape.
+        { ...coquinous, elapsedTimeMs: 3_700_000 },
+      ],
+    ]);
+
+    expect(general[0]).toMatchObject({
+      riderId: "rider-coquinous",
+      rank: 1,
+      status: "finished",
+      elapsedTimeMs: 7_300_000,
+    });
+    expect(general[1]).toMatchObject({
+      riderId: "rider-challenger",
+      rank: null,
+      status: "did_not_start",
+      elapsedTimeMs: null,
+    });
+  });
+
   it("conserve un nom d'équipe historique sans lien vers un profil", () => {
     const general = buildPersistedGeneralClassification([
       [
@@ -144,10 +171,7 @@ describe("normalizeOfficialResultGapsToLeader", () => {
     ]);
 
     expect(results.map((result) => result.gapToWinnerMs)).toEqual([
-      0,
-      8_000,
-      18_000,
-      26_000,
+      0, 8_000, 18_000, 26_000,
     ]);
   });
 });
@@ -198,7 +222,7 @@ describe("buildPersistedStageRaceStandings", () => {
       new Map([
         [coquinous.riderId, 22],
         [challengers.riderId, 28],
-      ])
+      ]),
     );
 
     expect(standings.mountain.map((row) => row.riderId)).toEqual([
@@ -242,7 +266,7 @@ describe("buildPersistedStageRaceStandings", () => {
       new Map([
         [coquinous.riderId, 22],
         [challengers.riderId, 21],
-      ])
+      ]),
     );
 
     expect(standings.youth.map((row) => row.riderId)).toEqual([

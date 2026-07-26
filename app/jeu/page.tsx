@@ -400,7 +400,7 @@ export default async function GamePage() {
 
   if (rosterResult.error) {
     console.error(
-      "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
+      "Impossible de récupérer l’effectif pour le bureau du Directeur Sportif :",
       {
         code: rosterResult.error.code,
         message: rosterResult.error.message,
@@ -481,7 +481,10 @@ export default async function GamePage() {
 
       <section className="relative overflow-hidden">
         <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-          <header className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+          <header
+            data-tutorial-id="dashboard-overview"
+            className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
+          >
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Bureau du Directeur Sportif
@@ -492,7 +495,7 @@ export default async function GamePage() {
               </h1>
             </div>
 
-            <div className="flex w-full items-stretch gap-3 xl:w-auto xl:justify-self-end">
+            <div className="flex w-full flex-wrap items-stretch gap-3 xl:w-auto xl:justify-self-end">
               <InventoryShortcut
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
@@ -534,6 +537,7 @@ export default async function GamePage() {
               <ManagementModuleCard
                 href="/jeu/sponsoring"
                 icon="sponsor"
+                tutorialId="dashboard-sponsoring"
                 title="Sponsoring"
                 status={
                   teamSponsorIdentity
@@ -550,7 +554,7 @@ export default async function GamePage() {
                       )}`
                     : sponsoringUnlocked
                       ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
-                      : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
+                      : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
                 }
               />
 
@@ -700,7 +704,10 @@ function DirectorProfileCard({
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
 
   return (
-    <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8">
+    <article
+      data-tutorial-id="dashboard-director-profile"
+      className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#7CCF9C]">
@@ -820,7 +827,7 @@ function DirectorProfileCard({
         </span>
 
         <span className="text-xs font-semibold text-[#9FB5A8]">
-          Début de carrière :{" "}
+          Début de carrière :{" "}
           {sportingDirector?.created_at
             ? formatCareerStart(sportingDirector.created_at)
             : "Non disponible"}
@@ -932,9 +939,15 @@ function TeamSponsorInformation({
 
       <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
         {teamSponsorIdentity
-          ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}`
+          ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}`
           : "Aucun sponsor actif"}
       </p>
+
+      {teamSponsorIdentity ? (
+        <p className="mt-2 text-xs font-semibold text-[#BFD1C6]">
+          Maillot : {teamSponsorIdentity.selectedJersey.name}
+        </p>
+      ) : null}
 
       {teamSummary ? (
         <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#7CCF9C]">
@@ -963,6 +976,7 @@ function TeamRosterCard({
   return (
     <Link
       href="/jeu/effectif"
+      data-tutorial-id="dashboard-roster"
       className="group relative isolate flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
       <span
@@ -1297,6 +1311,7 @@ function ManagementModuleCard({
   status,
   alertCount = 0,
   description,
+  tutorialId,
 }: {
   href?: string;
   icon: ManagementModuleIcon;
@@ -1304,6 +1319,7 @@ function ManagementModuleCard({
   status: string;
   alertCount?: number;
   description: string;
+  tutorialId?: string;
 }) {
   const className = `group relative isolate block overflow-hidden rounded-2xl border bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
     alertCount > 0 ? "border-[#F06A62]/70" : "border-white/10"
@@ -1356,13 +1372,17 @@ function ManagementModuleCard({
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} data-tutorial-id={tutorialId} className={className}>
         {content}
       </Link>
     );
   }
 
-  return <article className={className}>{content}</article>;
+  return (
+    <article data-tutorial-id={tutorialId} className={className}>
+      {content}
+    </article>
+  );
 }
 
 function formatInventoryUnits(value: number) {
@@ -1407,7 +1427,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,

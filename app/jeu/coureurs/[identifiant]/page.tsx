@@ -292,7 +292,7 @@ export default async function RiderProfilePage({
               </div>
               <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-[#D6DFD2]">
                 {activeNationalTitle
-                  ? `Champion de ${activeNationalTitle.countryName} en titre : son identité nationale remplace le thème habituel pendant toute la durée de son règne.`
+                  ? `Champion de ${activeNationalTitle.countryName} en titre : son identité nationale remplace le thème habituel pendant toute la durée de son règne.`
                   : profile.scoutingReport
                     ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
                     : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
@@ -549,7 +549,7 @@ function ContractRenewalCard({
         <>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
             {management.renewalSalary === 0
-              ? "Sa moyenne est inférieure à 60 : il accepte de rester amateur sans salaire."
+              ? "Sa moyenne est inférieure à 60 : il accepte de rester amateur sans salaire."
               : `Sa demande sera de ${formatMoney(management.renewalSalary ?? 0, "EUR")} pour la prochaine saison.`}
           </p>
           <form action={renewRiderContractAction} className="mt-4">
@@ -974,7 +974,7 @@ function PrivateTrainingReportCard({
       </p>
       {changes.length > 0 ? (
         <p className="mt-2 text-xs font-bold leading-5 text-[#60756E]">
-          Notes entières :{" "}
+          Notes entières :{" "}
           {changes
             .map(
               ([stat, value]) =>
@@ -1141,7 +1141,7 @@ function CountryFlag({ code, name }: { code: string; name: string }) {
     <span
       className={`fi fi-${code.toLowerCase()} shrink-0 rounded-sm`}
       role="img"
-      aria-label={`Drapeau : ${name}`}
+      aria-label={`Drapeau : ${name}`}
     />
   );
 }

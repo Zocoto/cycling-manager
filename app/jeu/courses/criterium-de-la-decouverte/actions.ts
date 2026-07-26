@@ -1,8 +1,6 @@
 "use server";
 
-import {
-  revalidatePath,
-} from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
@@ -28,15 +26,9 @@ import {
   requireAuthenticatedSportingDirectorId,
 } from "@/lib/tutorial/progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  getCurrentTeamHealthOverview,
-} from "@/services/team-health";
-import {
-  getTeamAmateurIdentityForAuthUser,
-} from "@/services/team-amateur-identity";
-import {
-  getActiveTeamSponsorIdentityForAuthUser,
-} from "@/services/team-sponsor-identity";
+import { getCurrentTeamHealthOverview } from "@/services/team-health";
+import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
+import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
 type TutorialRosterRow = {
   rider_id: string;
   first_name: string;
@@ -69,34 +61,23 @@ export async function registerCriteriumDiscoveryRosterAction(
   const riderIds = formData
     .getAll("riderIds")
     .filter(
-      (value): value is string =>
-        typeof value === "string" &&
-        isUuid(value),
+      (value): value is string => typeof value === "string" && isUuid(value),
     );
 
-  const submittedRoles =
-    readSubmittedRoles(formData);
+  const submittedRoles = readSubmittedRoles(formData);
 
-  const roster: CriteriumDiscoveryRosterEntry[] =
-    riderIds.map((riderId) => ({
-      riderId,
-      role:
-        submittedRoles.get(riderId) ??
-        "auto",
-    }));
+  const roster: CriteriumDiscoveryRosterEntry[] = riderIds.map((riderId) => ({
+    riderId,
+    role: submittedRoles.get(riderId) ?? "auto",
+  }));
 
-  if (
-    !isValidCriteriumDiscoveryRoster(
-      roster,
-    )
-  ) {
+  if (!isValidCriteriumDiscoveryRoster(roster)) {
     redirectWithError(
       `Sélectionnez exactement ${CRITERIUM_DISCOVERY_ROSTER_SIZE} coureurs différents, avec au maximum un leader et un sprinteur.`,
     );
   }
 
-  const supabase =
-    await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -108,29 +89,15 @@ export async function registerCriteriumDiscoveryRosterAction(
   }
 
   const sportingDirectorId =
-    await requireAuthenticatedSportingDirectorId(
-      supabase,
-    );
+    await requireAuthenticatedSportingDirectorId(supabase);
 
-  const [
-    rosterResult,
-    healthOverview,
-    sponsorIdentity,
-    amateurIdentity,
-  ] = await Promise.all([
-    supabase.rpc(
-      "get_current_team_roster_with_potential",
-    ),
-    getCurrentTeamHealthOverview(
-      user.id,
-    ),
-    getActiveTeamSponsorIdentityForAuthUser(
-      user.id,
-    ).catch(() => null),
-    getTeamAmateurIdentityForAuthUser(
-      user.id,
-    ).catch(() => null),
-  ]);
+  const [rosterResult, healthOverview, sponsorIdentity, amateurIdentity] =
+    await Promise.all([
+      supabase.rpc("get_current_team_roster_with_potential"),
+      getCurrentTeamHealthOverview(user.id),
+      getActiveTeamSponsorIdentityForAuthUser(user.id).catch(() => null),
+      getTeamAmateurIdentityForAuthUser(user.id).catch(() => null),
+    ]);
 
   if (rosterResult.error) {
     redirectWithError(
@@ -144,61 +111,43 @@ export async function registerCriteriumDiscoveryRosterAction(
     );
   }
 
-  const rosterRows =
-    (rosterResult.data ??
-      []) as TutorialRosterRow[];
+  const rosterRows = (rosterResult.data ?? []) as TutorialRosterRow[];
 
-  const rowById = new Map(
-    rosterRows.map((rider) => [
-      rider.rider_id,
-      rider,
-    ]),
-  );
+  const rowById = new Map(rosterRows.map((rider) => [rider.rider_id, rider]));
 
   const healthById = new Map(
-    healthOverview.riders.map(
-      (rider) => [rider.id, rider],
-    ),
+    healthOverview.riders.map((rider) => [rider.id, rider]),
   );
 
-  const selectedRows =
-    roster.map((entry) => {
-      const rider =
-        rowById.get(entry.riderId);
+  const selectedRows = roster.map((entry) => {
+    const rider = rowById.get(entry.riderId);
 
-      if (!rider) {
-        redirectWithError(
-          "La sélection contient un coureur qui n’appartient plus à votre effectif.",
-        );
-      }
+    if (!rider) {
+      redirectWithError(
+        "La sélection contient un coureur qui n’appartient plus à votre effectif.",
+      );
+    }
 
-      const health =
-        healthById.get(entry.riderId);
+    const health = healthById.get(entry.riderId);
 
-      if (
-        health?.injury ||
-        health?.formCamp
-      ) {
-        redirectWithError(
-          `${rider.first_name} ${rider.last_name} est indisponible et ne peut pas être inscrit.`,
-        );
-      }
+    if (health?.injury || health?.formCamp) {
+      redirectWithError(
+        `${rider.first_name} ${rider.last_name} est indisponible et ne peut pas être inscrit.`,
+      );
+    }
 
-      return {
-        entry,
-        rider,
-        form: health?.form ?? 75,
-      };
-    });
+    return {
+      entry,
+      rider,
+      form: health?.form ?? 75,
+    };
+  });
 
-  const abilitiesResult =
-    await supabase
-      .from("rider_special_abilities")
-      .select(
-        "rider_id, ability_code",
-      )
-      .in("rider_id", riderIds)
-      .returns<RiderSpecialAbilityRow[]>();
+  const abilitiesResult = await supabase
+    .from("rider_special_abilities")
+    .select("rider_id, ability_code")
+    .in("rider_id", riderIds)
+    .returns<RiderSpecialAbilityRow[]>();
 
   if (abilitiesResult.error) {
     redirectWithError(
@@ -206,154 +155,91 @@ export async function registerCriteriumDiscoveryRosterAction(
     );
   }
 
-  const abilitiesByRiderId =
-    groupSpecialAbilities(
-      abilitiesResult.data ?? [],
-    );
+  const abilitiesByRiderId = groupSpecialAbilities(abilitiesResult.data ?? []);
 
   const teamPrimaryColor =
-    sponsorIdentity?.sponsor.colors
-      .primary ??
-    amateurIdentity?.jersey
-      .primaryColor ??
+    sponsorIdentity?.sponsor.colors.primary ??
+    amateurIdentity?.jersey.primaryColor ??
     "#176951";
 
   const teamSecondaryColor =
-    sponsorIdentity?.sponsor.colors
-      .secondary ??
-    amateurIdentity?.jersey
-      .secondaryColor ??
+    sponsorIdentity?.sponsor.colors.secondary ??
+    amateurIdentity?.jersey.secondaryColor ??
     "#F2C94C";
 
-  const playerRiders: RiderSimulationInput[] =
-    selectedRows.map(
-      ({
-        entry,
-        rider,
-        form,
-      }) => {
-        const specialAbilities =
-          abilitiesByRiderId.get(
-            rider.rider_id,
-          ) ?? [];
+  const playerRiders: RiderSimulationInput[] = selectedRows.map(
+    ({ entry, rider, form }) => {
+      const specialAbilities = abilitiesByRiderId.get(rider.rider_id) ?? [];
 
-        return {
-          id: rider.rider_id,
-          name: `${rider.first_name} ${rider.last_name}`.trim(),
-          teamId:
-            healthOverview.teamId,
-          teamName:
-            healthOverview.teamName,
-          teamPrimaryColor,
-          teamSecondaryColor,
-          countryCode:
-            rider.country_iso_alpha2,
-          age: Number(rider.age),
-          form: Number(form),
-          role: entry.role,
-          specialAbility:
-            specialAbilities[0] ??
-            null,
-          specialAbilities,
-          ratings: {
-            mountain: Number(
-              rider.mountain,
-            ),
-            hills: Number(
-              rider.hills,
-            ),
-            flat: Number(
-              rider.flat,
-            ),
-            timeTrial: Number(
-              rider.time_trial,
-            ),
-            cobbles: Number(
-              rider.cobbles,
-            ),
-            sprint: Number(
-              rider.sprint,
-            ),
-            acceleration: Number(
-              rider.acceleration,
-            ),
-            downhill: Number(
-              rider.downhill,
-            ),
-            endurance: Number(
-              rider.endurance,
-            ),
-            resistance: Number(
-              rider.resistance,
-            ),
-            recovery: Number(
-              rider.recovery,
-            ),
-            breakaway: Number(
-              rider.breakaway,
-            ),
-            prologue: Number(
-              rider.prologue,
-            ),
-          },
-        };
-      },
-    );
+      return {
+        id: rider.rider_id,
+        name: `${rider.first_name} ${rider.last_name}`.trim(),
+        teamId: healthOverview.teamId,
+        teamName: healthOverview.teamName,
+        teamPrimaryColor,
+        teamSecondaryColor,
+        countryCode: rider.country_iso_alpha2,
+        age: Number(rider.age),
+        form: Number(form),
+        role: entry.role,
+        specialAbility: specialAbilities[0] ?? null,
+        specialAbilities,
+        ratings: {
+          mountain: Number(rider.mountain),
+          hills: Number(rider.hills),
+          flat: Number(rider.flat),
+          timeTrial: Number(rider.time_trial),
+          cobbles: Number(rider.cobbles),
+          sprint: Number(rider.sprint),
+          acceleration: Number(rider.acceleration),
+          downhill: Number(rider.downhill),
+          endurance: Number(rider.endurance),
+          resistance: Number(rider.resistance),
+          recovery: Number(rider.recovery),
+          breakaway: Number(rider.breakaway),
+          prologue: Number(rider.prologue),
+        },
+      };
+    },
+  );
 
-  const registeredAt =
-    new Date().toISOString();
+  const registeredAt = new Date().toISOString();
 
-  const run =
-    createCriteriumDiscoveryRun({
-      dayNumber:
-        healthOverview.currentDayNumber,
-      roster,
-      playerRiders,
-      registeredAt,
-    });
+  const run = createCriteriumDiscoveryRun({
+    dayNumber: healthOverview.currentDayNumber,
+    roster,
+    playerRiders,
+    registeredAt,
+  });
 
-  const existingProgress =
-    await getAuthenticatedTutorialProgress(
-      supabase,
-      CRITERIUM_DISCOVERY_KEY,
-    );
+  const existingProgress = await getAuthenticatedTutorialProgress(
+    supabase,
+    CRITERIUM_DISCOVERY_KEY,
+  );
 
-  const remainsCompleted =
-    existingProgress?.status ===
-    "completed";
+  const remainsCompleted = existingProgress?.status === "completed";
 
   if (remainsCompleted) {
-    run.completedAt =
-      existingProgress.completed_at ??
-      registeredAt;
+    run.completedAt = existingProgress.completed_at ?? registeredAt;
   }
 
   const metadata = {
-    ...(existingProgress?.metadata ??
-      {}),
+    ...(existingProgress?.metadata ?? {}),
     criteriumDiscoveryRun: run,
   };
 
   if (!existingProgress) {
-    const { error } = await supabase
-      .from("tutorial_progress")
-      .insert({
-        sporting_director_id:
-          sportingDirectorId,
-        tutorial_key:
-          CRITERIUM_DISCOVERY_KEY,
-        tutorial_type:
-          "race_scenario",
-        tutorial_version:
-          CRITERIUM_DISCOVERY_VERSION,
-        status: "in_progress",
-        current_step_key:
-          CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
-        current_route:
-          "/jeu/calendrier",
-        started_at: registeredAt,
-        metadata,
-      });
+    const { error } = await supabase.from("tutorial_progress").insert({
+      sporting_director_id: sportingDirectorId,
+      tutorial_key: CRITERIUM_DISCOVERY_KEY,
+      tutorial_type: "race_scenario",
+      tutorial_version: CRITERIUM_DISCOVERY_VERSION,
+      status: "in_progress",
+      current_step_key: CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
+      current_route: "/jeu/calendrier",
+      started_at: registeredAt,
+      metadata,
+    });
 
     if (error) {
       redirectWithError(
@@ -364,25 +250,15 @@ export async function registerCriteriumDiscoveryRosterAction(
     const { error } = await supabase
       .from("tutorial_progress")
       .update({
-        tutorial_type:
-          "race_scenario",
-        tutorial_version:
-          CRITERIUM_DISCOVERY_VERSION,
-        status: remainsCompleted
-          ? "completed"
-          : "in_progress",
-        current_step_key:
-          CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
-        current_route:
-          "/jeu/calendrier",
-        started_at:
-          existingProgress.started_at ??
-          registeredAt,
-        completed_at:
-          remainsCompleted
-            ? existingProgress.completed_at ??
-              registeredAt
-            : null,
+        tutorial_type: "race_scenario",
+        tutorial_version: CRITERIUM_DISCOVERY_VERSION,
+        status: remainsCompleted ? "completed" : "in_progress",
+        current_step_key: CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
+        current_route: "/jeu/calendrier",
+        started_at: existingProgress.started_at ?? registeredAt,
+        completed_at: remainsCompleted
+          ? (existingProgress.completed_at ?? registeredAt)
+          : null,
         skipped_at: null,
         metadata,
       })
@@ -404,47 +280,26 @@ export async function registerCriteriumDiscoveryRosterAction(
   );
 }
 
-function readSubmittedRoles(
-  formData: FormData,
-): Map<string, RaceRole> {
-  const roles = new Map<
-    string,
-    RaceRole
-  >();
+function readSubmittedRoles(formData: FormData): Map<string, RaceRole> {
+  const roles = new Map<string, RaceRole>();
 
-  for (const value of formData.getAll(
-    "riderRoles",
-  )) {
+  for (const value of formData.getAll("riderRoles")) {
     if (typeof value !== "string") {
       continue;
     }
 
-    const separatorIndex =
-      value.indexOf(":");
+    const separatorIndex = value.indexOf(":");
 
     if (separatorIndex < 1) {
       continue;
     }
 
-    const riderId = value.slice(
-      0,
-      separatorIndex,
-    );
+    const riderId = value.slice(0, separatorIndex);
 
-    const role = value.slice(
-      separatorIndex + 1,
-    );
+    const role = value.slice(separatorIndex + 1);
 
-    if (
-      isUuid(riderId) &&
-      RACE_ROLES.includes(
-        role as RaceRole,
-      )
-    ) {
-      roles.set(
-        riderId,
-        role as RaceRole,
-      );
+    if (isUuid(riderId) && RACE_ROLES.includes(role as RaceRole)) {
+      roles.set(riderId, role as RaceRole);
     }
   }
 
@@ -453,60 +308,38 @@ function readSubmittedRoles(
 
 function groupSpecialAbilities(
   rows: RiderSpecialAbilityRow[],
-): Map<
-  string,
-  RiderSpecialAbility[]
-> {
-  const result = new Map<
-    string,
-    RiderSpecialAbility[]
-  >();
+): Map<string, RiderSpecialAbility[]> {
+  const result = new Map<string, RiderSpecialAbility[]>();
 
   for (const row of rows) {
     if (
-      !RIDER_SPECIAL_ABILITIES.includes(
-        row.ability_code as RiderSpecialAbility,
-      )
+      !RIDER_SPECIAL_ABILITIES.includes(row.ability_code as RiderSpecialAbility)
     ) {
       continue;
     }
 
-    const abilities =
-      result.get(row.rider_id) ??
-      [];
+    const abilities = result.get(row.rider_id) ?? [];
 
-    const ability =
-      row.ability_code as RiderSpecialAbility;
+    const ability = row.ability_code as RiderSpecialAbility;
 
-    if (
-      !abilities.includes(ability)
-    ) {
+    if (!abilities.includes(ability)) {
       abilities.push(ability);
     }
 
-    result.set(
-      row.rider_id,
-      abilities,
-    );
+    result.set(row.rider_id, abilities);
   }
 
   return result;
 }
 
 function revalidateCriteriumPaths(): void {
-  revalidatePath(
-    CRITERIUM_DISCOVERY_RACE_ROUTE,
-  );
-  revalidatePath(
-    CRITERIUM_DISCOVERY_RESULTS_ROUTE,
-  );
+  revalidatePath(CRITERIUM_DISCOVERY_RACE_ROUTE);
+  revalidatePath(CRITERIUM_DISCOVERY_RESULTS_ROUTE);
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/resultats");
 }
 
-function redirectWithError(
-  message: string,
-): never {
+function redirectWithError(message: string): never {
   redirect(
     `${CRITERIUM_DISCOVERY_RACE_ROUTE}?erreur=${encodeURIComponent(
       message.slice(0, 300),
@@ -514,9 +347,7 @@ function redirectWithError(
   );
 }
 
-function isUuid(
-  value: string,
-): boolean {
+function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );

@@ -87,7 +87,7 @@ export async function updateAmateurTeamJersey(
   );
 
   if (error) {
-    console.error("Échec de la mise à jour du maillot amateur :", {
+    console.error("Échec de la mise à jour du maillot amateur :", {
       code: error.code,
       message: error.message,
       details: error.details,

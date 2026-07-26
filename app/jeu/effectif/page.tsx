@@ -396,7 +396,10 @@ export default async function TeamRosterPage({
         <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
           <BackToOfficeLink />
 
-          <header className="mt-7 flex flex-wrap items-end justify-between gap-6">
+          <header
+            data-tutorial-id="roster-overview"
+            className="mt-7 flex flex-wrap items-end justify-between gap-6"
+          >
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Gestion sportive
@@ -909,7 +912,7 @@ function TeamCommercialIdentityBanner({
           </h2>
 
           <p className="mt-2 text-sm font-bold text-[#60756E]">
-            Sponsor principal : {sponsor.name}
+            Sponsor principal : {sponsor.name}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -1561,7 +1564,7 @@ function RiderFormBadge({ value }: { value: number }) {
 function RatingBadge({ value, label }: { value: number; label: string }) {
   return (
     <span
-      title={`${label} : ${value}`}
+      title={`${label} : ${value}`}
       className={[
         "inline-flex h-8 min-w-9 items-center justify-center rounded-md border px-1.5 text-xs font-black",
         getRiderRatingColorClasses(value),
@@ -1643,7 +1646,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,

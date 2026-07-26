@@ -42,22 +42,13 @@ type SponsoringPageProps = {
 export default async function SponsoringPage({
   searchParams,
 }: SponsoringPageProps) {
-  const resolvedSearchParams =
-    searchParams
-      ? await searchParams
-      : {};
+  const resolvedSearchParams = searchParams ? await searchParams : {};
 
-  const actionError = readSearchParameter(
-    resolvedSearchParams.erreur
-  );
+  const actionError = readSearchParameter(resolvedSearchParams.erreur);
 
-  const actionSuccess =
-    readSearchParameter(
-      resolvedSearchParams.succes
-    );
+  const actionSuccess = readSearchParameter(resolvedSearchParams.succes);
 
-  const supabase =
-    await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -68,21 +59,14 @@ export default async function SponsoringPage({
     redirect("/connexion");
   }
 
-  let sponsoringState: SponsoringState | null =
-    null;
+  let sponsoringState: SponsoringState | null = null;
 
   let sponsoringError: string | null = null;
 
   try {
-    sponsoringState =
-      await getSponsoringStateForAuthUser(
-        user.id
-      );
+    sponsoringState = await getSponsoringStateForAuthUser(user.id);
   } catch (error) {
-    console.error(
-      "Impossible de récupérer l’état du sponsoring :",
-      error
-    );
+    console.error("Impossible de récupérer l’état du sponsoring :", error);
 
     sponsoringError = getErrorMessage(error);
   }
@@ -99,8 +83,7 @@ export default async function SponsoringPage({
 
   const headerSponsor =
     sponsoringState?.kind === "active" ||
-    sponsoringState?.kind ===
-      "jersey-selection"
+    sponsoringState?.kind === "jersey-selection"
       ? sponsoringState.contract.sponsor
       : null;
 
@@ -127,104 +110,68 @@ export default async function SponsoringPage({
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
-                {getPageIntroduction(
-                  sponsoringState
-                )}
+                {getPageIntroduction(sponsoringState)}
               </p>
             </div>
 
-            {availableOfferCount !== null &&
-            !sponsoringError ? (
+            {availableOfferCount !== null && !sponsoringError ? (
               <div className="rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 text-right shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
-                <p className="text-2xl font-black">
-                  {availableOfferCount}
-                </p>
+                <p className="text-2xl font-black">{availableOfferCount}</p>
 
                 <p className="mt-1 text-sm font-semibold text-[#60756E]">
-                  {formatOfferCount(
-                    availableOfferCount
-                  )}
+                  {formatOfferCount(availableOfferCount)}
                 </p>
               </div>
             ) : null}
           </header>
 
           {sponsoringState ? (
-            <SponsoringStatusNotice
-              state={sponsoringState}
-            />
+            <div data-tutorial-id="sponsoring-overview">
+              <SponsoringStatusNotice state={sponsoringState} />
+            </div>
           ) : null}
 
-          {actionSuccess === "rupture" ? (
-            <ActionSuccessMessage />
-          ) : null}
+          <TutorialSponsorPreview />
 
-          {actionError ? (
-            <ActionErrorMessage
-              message={actionError}
-            />
-          ) : null}
+          {actionSuccess === "rupture" ? <ActionSuccessMessage /> : null}
+
+          {actionError ? <ActionErrorMessage message={actionError} /> : null}
 
           {sponsoringError ? (
-            <SponsoringErrorMessage
-              message={sponsoringError}
-            />
+            <SponsoringErrorMessage message={sponsoringError} />
           ) : null}
 
           <div data-tutorial-id="sponsoring-overview">
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
-            sponsoringState.offers.length ===
-              0 ? (
+            sponsoringState.offers.length === 0 ? (
               <EmptyOffers />
             ) : null}
 
             {!sponsoringError &&
             sponsoringState?.kind === "offers" &&
             sponsoringState.offers.length > 0 ? (
-              <OffersSection
-                offers={sponsoringState.offers}
-              />
+              <OffersSection offers={sponsoringState.offers} />
             ) : null}
 
             {!sponsoringError &&
-            sponsoringState?.kind ===
-              "jersey-selection" ? (
-              <JerseySelectionSection
-                contract={
-                  sponsoringState.contract
-                }
-              />
+            sponsoringState?.kind === "jersey-selection" ? (
+              <JerseySelectionSection contract={sponsoringState.contract} />
             ) : null}
 
-            {!sponsoringError &&
-            sponsoringState?.kind === "active" ? (
+            {!sponsoringError && sponsoringState?.kind === "active" ? (
               <>
-                <ActiveSponsorSection
-                  contract={
-                    sponsoringState.contract
-                  }
-                />
+                <ActiveSponsorSection contract={sponsoringState.contract} />
 
-                <FutureSponsoringSection
-                  state={sponsoringState.future}
-                />
+                <FutureSponsoringSection state={sponsoringState.future} />
               </>
             ) : null}
 
-            {!sponsoringError &&
-            sponsoringState?.kind ===
-              "terminated" ? (
+            {!sponsoringError && sponsoringState?.kind === "terminated" ? (
               <>
-                <TerminatedSponsorSection
-                  contract={
-                    sponsoringState.contract
-                  }
-                />
+                <TerminatedSponsorSection contract={sponsoringState.contract} />
 
-                <FutureSponsoringSection
-                  state={sponsoringState.future}
-                />
+                <FutureSponsoringSection state={sponsoringState.future} />
               </>
             ) : null}
 
@@ -236,11 +183,7 @@ export default async function SponsoringPage({
   );
 }
 
-function SponsoringStatusNotice({
-  state,
-}: {
-  state: SponsoringState;
-}) {
+function SponsoringStatusNotice({ state }: { state: SponsoringState }) {
   if (state.kind === "onboarding") {
     return (
       <aside className="mt-8 rounded-2xl border border-[#D99A32]/30 bg-[#FFF4D6]/90 px-6 py-6 shadow-[0_12px_30px_rgba(102,72,18,0.07)]">
@@ -248,8 +191,8 @@ function SponsoringStatusNotice({
           Fondez d’abord votre équipe amateur
         </p>
         <p className="mt-2 max-w-3xl text-sm leading-7 text-[#715F2A]">
-          Le marché du sponsoring devient pertinent une fois l’identité,
-          le pays et le maillot fondateur de votre équipe enregistrés.
+          Le marché du sponsoring devient pertinent une fois l’identité, le pays
+          et le maillot fondateur de votre équipe enregistrés.
         </p>
         <Link
           href="/jeu/directeur-sportif#equipe-amateur"
@@ -264,9 +207,7 @@ function SponsoringStatusNotice({
   if (state.kind === "locked") {
     const progress = Math.min(
       100,
-      Math.round(
-        (state.currentReputation / state.requiredReputation) * 100
-      )
+      Math.round((state.currentReputation / state.requiredReputation) * 100),
     );
 
     return (
@@ -280,9 +221,8 @@ function SponsoringStatusNotice({
               Le marché du sponsoring est encore verrouillé
             </p>
             <p className="mt-1 text-sm leading-6 text-[#48665F]">
-              Développez votre réputation pour attirer vos premiers
-              partenaires. Les offres se débloquent à {state.requiredReputation}{" "}
-              points.
+              Développez votre réputation pour attirer vos premiers partenaires.
+              Les offres se débloquent à {state.requiredReputation} points.
             </p>
             <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#D7EEE8]">
               <div
@@ -307,19 +247,13 @@ function SponsoringStatusNotice({
         </span>
 
         <div>
-          <p className="font-black text-[#604B0F]">
-            Votre sponsor est signé
-          </p>
+          <p className="font-black text-[#604B0F]">Votre sponsor est signé</p>
 
           <p className="mt-1 text-sm leading-6 text-[#715F2A]">
-            Le contrat avec{" "}
-            <strong>
-              {state.contract.sponsor.name}
-            </strong>{" "}
-            est enregistré. Sélectionnez maintenant
-            l’un des trois maillots proposés pour
-            activer définitivement le partenariat et
-            recevoir le budget sponsor.
+            Le contrat avec <strong>{state.contract.sponsor.name}</strong> est
+            enregistré. Sélectionnez maintenant l’un des trois maillots proposés
+            pour activer définitivement le partenariat et recevoir le budget
+            sponsor.
           </p>
         </div>
       </aside>
@@ -334,20 +268,14 @@ function SponsoringStatusNotice({
         </span>
 
         <div>
-          <p className="font-black text-red-900">
-            Votre contrat a été rompu
-          </p>
+          <p className="font-black text-red-900">Votre contrat a été rompu</p>
 
           <p className="mt-1 text-sm leading-6 text-red-800">
-            Le partenariat avec{" "}
-            <strong>
-              {state.contract.sponsor.name}
-            </strong>{" "}
-            est terminé. Votre équipe a retrouvé son
-            identité amateur. Aucune nouvelle signature
-            ne peut activer un sponsor pendant la saison
-            en cours ; les offres pour la saison suivante
-            ouvrent à partir du jour 21.
+            Le partenariat avec <strong>{state.contract.sponsor.name}</strong>{" "}
+            est terminé. Votre équipe a retrouvé son identité amateur. Aucune
+            nouvelle signature ne peut activer un sponsor pendant la saison en
+            cours ; les offres pour la saison suivante ouvrent à partir du jour
+            21.
           </p>
         </div>
       </aside>
@@ -367,9 +295,8 @@ function SponsoringStatusNotice({
           </p>
 
           <p className="mt-1 text-sm leading-6 text-[#48665F]">
-            Le sponsor principal, le maillot et le
-            budget de votre équipe sont désormais
-            enregistrés pour la saison en cours.
+            Le sponsor principal, le maillot et le budget de votre équipe sont
+            désormais enregistrés pour la saison en cours.
           </p>
         </div>
       </aside>
@@ -388,50 +315,35 @@ function SponsoringStatusNotice({
         </p>
 
         <p className="mt-1 text-sm leading-6 text-[#48665F]">
-          Ces offres ont été générées pour votre
-          Directeur Sportif et enregistrées pour la
-          saison actuelle. Leurs budgets, durées et
-          objectifs resteront identiques lors de vos
-          prochaines visites.
+          Ces offres ont été générées pour votre Directeur Sportif et
+          enregistrées pour la saison actuelle. Leurs budgets, durées et
+          objectifs resteront identiques lors de vos prochaines visites.
         </p>
       </div>
     </aside>
   );
 }
 
-function OffersSection({
-  offers,
-}: {
-  offers: PersistedSponsorOffer[];
-}) {
+function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
   return (
     <>
       <section className="mt-8 grid items-stretch gap-6 xl:grid-cols-3">
         {offers.map((offer) => (
-          <SponsorOfferCard
-            key={offer.id}
-            offer={offer}
-          />
+          <SponsorOfferCard key={offer.id} offer={offer} />
         ))}
       </section>
 
       <p className="mt-6 text-sm leading-7 text-[#60756E]">
-        Les objectifs de cette première version
-        utilisent des courses et classements
-        provisoires. Ils sont enregistrés avec
-        l’offre et ne changent pas au rechargement
-        de la page. Ils seront reliés au calendrier
+        Les objectifs de cette première version utilisent des courses et
+        classements provisoires. Ils sont enregistrés avec l’offre et ne
+        changent pas au rechargement de la page. Ils seront reliés au calendrier
         sportif réel dans une future évolution.
       </p>
     </>
   );
 }
 
-function SponsorOfferCard({
-  offer,
-}: {
-  offer: PersistedSponsorOffer;
-}) {
+function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
   const sponsor = offer.sponsor;
 
   return (
@@ -445,9 +357,7 @@ function SponsorOfferCard({
     >
       <SponsorColorDecoration
         primaryColor={sponsor.colors.primary}
-        secondaryColor={
-          sponsor.colors.secondary
-        }
+        secondaryColor={sponsor.colors.secondary}
         accentColor={sponsor.colors.accent}
       />
 
@@ -465,8 +375,7 @@ function SponsorOfferCard({
             className="rounded-full border px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider"
             style={{
               borderColor: `${sponsor.colors.primary}44`,
-              backgroundColor:
-                sponsor.colors.background,
+              backgroundColor: sponsor.colors.background,
               color: sponsor.colors.text,
             }}
           >
@@ -475,9 +384,7 @@ function SponsorOfferCard({
 
           <CountryFlag
             isoAlpha2={sponsor.countryCode}
-            countryName={getCountryName(
-              sponsor.countryCode
-            )}
+            countryName={getCountryName(sponsor.countryCode)}
           />
         </div>
 
@@ -492,8 +399,7 @@ function SponsorOfferCard({
             aria-hidden="true"
             className="absolute -left-10 -top-12 h-28 w-28 rounded-full opacity-10"
             style={{
-              backgroundColor:
-                sponsor.colors.primary,
+              backgroundColor: sponsor.colors.primary,
             }}
           />
 
@@ -501,8 +407,7 @@ function SponsorOfferCard({
             aria-hidden="true"
             className="absolute -bottom-14 -right-8 h-32 w-32 rounded-full opacity-10"
             style={{
-              backgroundColor:
-                sponsor.colors.accent,
+              backgroundColor: sponsor.colors.accent,
             }}
           />
 
@@ -511,12 +416,8 @@ function SponsorOfferCard({
               src={sponsor.logoPath}
               alt={`Logo de ${sponsor.name}`}
               sponsorName={sponsor.name}
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
               textColor={sponsor.colors.text}
             />
           </div>
@@ -527,8 +428,7 @@ function SponsorOfferCard({
             <span
               className="rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wider"
               style={{
-                backgroundColor:
-                  sponsor.colors.background,
+                backgroundColor: sponsor.colors.background,
                 color: sponsor.colors.text,
               }}
             >
@@ -555,38 +455,24 @@ function SponsorOfferCard({
             {sponsor.name}
           </h2>
 
-          <p className="mt-3 leading-7 text-[#60756E]">
-            {sponsor.description}
-          </p>
+          <p className="mt-3 leading-7 text-[#60756E]">{sponsor.description}</p>
         </div>
 
         <section className="mt-6 grid grid-cols-2 gap-3">
           <OfferMetric
             label="Budget annuel"
-            value={formatMoney(
-              offer.proposedBudget
-            )}
+            value={formatMoney(offer.proposedBudget)}
             detail="Versé par saison"
-            primaryColor={
-              sponsor.colors.primary
-            }
-            backgroundColor={
-              sponsor.colors.background
-            }
+            primaryColor={sponsor.colors.primary}
+            backgroundColor={sponsor.colors.background}
           />
 
           <OfferMetric
             label="Durée proposée"
-            value={formatDuration(
-              offer.contractDurationSeasons
-            )}
+            value={formatDuration(offer.contractDurationSeasons)}
             detail="Contrat principal"
-            primaryColor={
-              sponsor.colors.primary
-            }
-            backgroundColor={
-              sponsor.colors.background
-            }
+            primaryColor={sponsor.colors.primary}
+            backgroundColor={sponsor.colors.background}
           />
         </section>
 
@@ -619,16 +505,14 @@ function SponsorOfferCard({
                   color: sponsor.colors.text,
                 }}
               >
-                {offer.objectives.length} objectifs
-                saisonniers
+                {offer.objectives.length} objectifs saisonniers
               </h3>
             </div>
 
             <span
               className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-black"
               style={{
-                backgroundColor:
-                  sponsor.colors.primary,
+                backgroundColor: sponsor.colors.primary,
                 color: "#FFFFFF",
               }}
             >
@@ -637,52 +521,32 @@ function SponsorOfferCard({
           </div>
 
           <ol className="grid gap-x-5 gap-y-2.5 px-4 py-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            {offer.objectives.map(
-              (objective) => (
-                <SponsorObjectiveItem
-                  key={objective.id}
-                  objective={objective}
-                  accentColor={
-                    sponsor.colors.accent
-                  }
-                  textColor={
-                    sponsor.colors.text
-                  }
-                />
-              )
-            )}
+            {offer.objectives.map((objective) => (
+              <SponsorObjectiveItem
+                key={objective.id}
+                objective={objective}
+                accentColor={sponsor.colors.accent}
+                textColor={sponsor.colors.text}
+              />
+            ))}
           </ol>
         </section>
 
         <div className="mt-auto pt-7">
-          <form
-            action={signSponsorOfferAction}
-          >
-            <input
-              type="hidden"
-              name="offerId"
-              value={offer.id}
-            />
+          <form action={signSponsorOfferAction}>
+            <input type="hidden" name="offerId" value={offer.id} />
 
             <ConfirmSponsorButton
               sponsorName={sponsor.name}
-              budgetLabel={formatMoney(
-                offer.proposedBudget
-              )}
-              durationLabel={formatDuration(
-                offer.contractDurationSeasons
-              )}
-              objectives={offer.objectives.map(
-                (objective) => objective.name
-              )}
+              budgetLabel={formatMoney(offer.proposedBudget)}
+              durationLabel={formatDuration(offer.contractDurationSeasons)}
+              objectives={offer.objectives.map((objective) => objective.name)}
             />
           </form>
 
           <p className="mt-3 text-center text-xs font-semibold leading-5 text-[#7A8C86]">
-            La signature est définitive. Les deux
-            autres propositions seront retirées et le
-            choix du maillot sera demandé
-            immédiatement après.
+            La signature est définitive. Les deux autres propositions seront
+            retirées et le choix du maillot sera demandé immédiatement après.
           </p>
         </div>
       </div>
@@ -725,12 +589,8 @@ function JerseySelectionSection({
               src={sponsor.logoPath}
               alt={`Logo de ${sponsor.name}`}
               sponsorName={sponsor.name}
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
               textColor={sponsor.colors.text}
             />
           </div>
@@ -751,16 +611,13 @@ function JerseySelectionSection({
                 color: sponsor.colors.text,
               }}
             >
-              Choisissez le maillot de{" "}
-              {sponsor.name}
+              Choisissez le maillot de {sponsor.name}
             </h2>
 
             <p className="mt-4 max-w-3xl leading-7 text-[#60756E]">
-              Votre accord avec ce sponsor est
-              enregistré. Vous disposez de trois
-              propositions visuelles : une version
-              classique, une version moderne et une
-              version plus audacieuse.
+              Votre accord avec ce sponsor est enregistré. Vous disposez de
+              trois propositions visuelles : une version classique, une version
+              moderne et une version plus audacieuse.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -768,43 +625,28 @@ function JerseySelectionSection({
                 label="Budget annuel"
                 value={formatMoney(
                   contract.budgetPerSeason,
-                  contract.currencyCode
+                  contract.currencyCode,
                 )}
                 detail="Versé après validation du maillot"
-                primaryColor={
-                  sponsor.colors.primary
-                }
-                backgroundColor={
-                  sponsor.colors.background
-                }
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
               />
 
               <ContractMetric
                 label="Durée du contrat"
-                value={formatDuration(
-                  contract.contractDurationSeasons
-                )}
+                value={formatDuration(contract.contractDurationSeasons)}
                 detail="Sponsor principal"
-                primaryColor={
-                  sponsor.colors.primary
-                }
-                backgroundColor={
-                  sponsor.colors.background
-                }
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
               />
             </div>
           </div>
         </div>
       </div>
 
-      <SponsorJerseySelector
-        contractId={contract.id}
-        sponsor={sponsor}
-      />
+      <SponsorJerseySelector contractId={contract.id} sponsor={sponsor} />
 
-      <ContractObjectivesSection
-        contract={contract}
-      />
+      <ContractObjectivesSection contract={contract} />
     </section>
   );
 }
@@ -817,11 +659,8 @@ function ActiveSponsorSection({
   const sponsor = contract.sponsor;
 
   const selectedJersey =
-    sponsor.jerseys.find(
-      (jersey) =>
-        jersey.id ===
-        contract.selectedJerseyId
-    ) ?? null;
+    sponsor.jerseys.find((jersey) => jersey.id === contract.selectedJerseyId) ??
+    null;
 
   return (
     <section className="mt-8">
@@ -833,12 +672,8 @@ function ActiveSponsorSection({
         }}
       >
         <SponsorColorDecoration
-          primaryColor={
-            sponsor.colors.primary
-          }
-          secondaryColor={
-            sponsor.colors.secondary
-          }
+          primaryColor={sponsor.colors.primary}
+          secondaryColor={sponsor.colors.secondary}
           accentColor={sponsor.colors.accent}
         />
 
@@ -861,12 +696,8 @@ function ActiveSponsorSection({
               src={sponsor.logoPath}
               alt={`Logo de ${sponsor.name}`}
               sponsorName={sponsor.name}
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
               textColor={sponsor.colors.text}
             />
           </div>
@@ -876,8 +707,7 @@ function ActiveSponsorSection({
               <span
                 className="rounded-full px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider"
                 style={{
-                  backgroundColor:
-                    sponsor.colors.primary,
+                  backgroundColor: sponsor.colors.primary,
                   color: "#FFFFFF",
                 }}
               >
@@ -886,9 +716,7 @@ function ActiveSponsorSection({
 
               <CountryFlag
                 isoAlpha2={sponsor.countryCode}
-                countryName={getCountryName(
-                  sponsor.countryCode
-                )}
+                countryName={getCountryName(sponsor.countryCode)}
               />
             </div>
 
@@ -902,8 +730,7 @@ function ActiveSponsorSection({
             </h2>
 
             <p className="mt-3 text-sm font-extrabold uppercase tracking-[0.15em] text-[#60756E]">
-              {sponsor.sector} · Prestige{" "}
-              {sponsor.prestige} / 5
+              {sponsor.sector} · Prestige {sponsor.prestige} / 5
             </p>
 
             <p className="mt-5 max-w-3xl leading-7 text-[#60756E]">
@@ -915,72 +742,49 @@ function ActiveSponsorSection({
                 label="Budget annuel"
                 value={formatMoney(
                   contract.budgetPerSeason,
-                  contract.currencyCode
+                  contract.currencyCode,
                 )}
                 detail="Budget sponsor actif"
-                primaryColor={
-                  sponsor.colors.primary
-                }
-                backgroundColor={
-                  sponsor.colors.background
-                }
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
               />
 
               <ContractMetric
                 label="Durée"
-                value={formatDuration(
-                  contract.contractDurationSeasons
-                )}
+                value={formatDuration(contract.contractDurationSeasons)}
                 detail="Contrat principal"
-                primaryColor={
-                  sponsor.colors.primary
-                }
-                backgroundColor={
-                  sponsor.colors.background
-                }
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
               />
 
               <ContractMetric
                 label="Maillot retenu"
-                value={
-                  selectedJersey?.name ??
-                  "Maillot validé"
-                }
+                value={selectedJersey?.name ?? "Maillot validé"}
                 detail={
                   selectedJersey
-                    ? formatJerseyStyle(
-                        selectedJersey.style
-                      )
+                    ? formatJerseyStyle(selectedJersey.style)
                     : "Modèle enregistré"
                 }
-                primaryColor={
-                  sponsor.colors.primary
-                }
-                backgroundColor={
-                  sponsor.colors.background
-                }
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
               />
             </div>
 
             <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
               {contract.signedAt ? (
                 <p>
-                  Signature :{" "}
+                  Signature :{" "}
                   <strong className="text-[#294B42]">
-                    {formatDate(
-                      contract.signedAt
-                    )}
+                    {formatDate(contract.signedAt)}
                   </strong>
                 </p>
               ) : null}
 
               {contract.activatedAt ? (
                 <p>
-                  Activation :{" "}
+                  Activation :{" "}
                   <strong className="text-[#294B42]">
-                    {formatDate(
-                      contract.activatedAt
-                    )}
+                    {formatDate(contract.activatedAt)}
                   </strong>
                 </p>
               ) : null}
@@ -989,20 +793,15 @@ function ActiveSponsorSection({
         </div>
       </article>
 
-      <ContractObjectivesSection
-        contract={contract}
-      />
+      <ContractObjectivesSection contract={contract} />
 
       <aside className="mt-6 rounded-2xl border border-[#315B3E]/15 bg-white/80 px-5 py-4 text-sm leading-7 text-[#60756E]">
-        Le suivi sportif détaillé des objectifs sera
-        connecté aux courses, résultats et classements
-        lors de la future US de complétude des
+        Le suivi sportif détaillé des objectifs sera connecté aux courses,
+        résultats et classements lors de la future US de complétude des
         objectifs sponsors.
       </aside>
 
-      <EarlyTerminationSection
-        contract={contract}
-      />
+      <EarlyTerminationSection contract={contract} />
     </section>
   );
 }
@@ -1027,54 +826,35 @@ function EarlyTerminationSection({
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_360px] lg:items-center">
         <div>
           <p className="leading-7 text-red-900">
-            Vous pouvez mettre immédiatement fin au
-            partenariat avec{" "}
-            <strong>
-              {contract.sponsor.name}
-            </strong>
-            . Cette décision retire le sponsor et son
-            maillot de votre équipe.
+            Vous pouvez mettre immédiatement fin au partenariat avec{" "}
+            <strong>{contract.sponsor.name}</strong>. Cette décision retire le
+            sponsor et son maillot de votre équipe.
           </p>
 
           <ul className="mt-4 grid gap-2 text-sm font-semibold leading-6 text-red-800">
             <li>
-              • Pénalité immédiate de 10 points de
-              réputation, avec un minimum final de 0.
+              • Pénalité immédiate de 10 points de réputation, avec un minimum
+              final de 0.
             </li>
 
             <li>
-              • Les objectifs non atteints seront
-              considérés comme échoués.
+              • Les objectifs non atteints seront considérés comme échoués.
             </li>
 
-            <li>
-              • Le budget déjà versé reste acquis à
-              l’équipe.
-            </li>
+            <li>• Le budget déjà versé reste acquis à l’équipe.</li>
 
-            <li>
-              • Aucune nouvelle offre avant la saison
-              suivante.
-            </li>
+            <li>• Aucune nouvelle offre avant la saison suivante.</li>
           </ul>
         </div>
 
         <form
-          action={
-            terminateSponsorContractAction
-          }
+          action={terminateSponsorContractAction}
           className="rounded-xl border border-red-200 bg-white p-4"
         >
-          <input
-            type="hidden"
-            name="contractId"
-            value={contract.id}
-          />
+          <input type="hidden" name="contractId" value={contract.id} />
 
           <TerminateSponsorContractButton
-            sponsorName={
-              contract.sponsor.name
-            }
+            sponsorName={contract.sponsor.name}
             reputationPenalty={10}
           />
 
@@ -1095,17 +875,12 @@ function TerminatedSponsorSection({
   const sponsor = contract.sponsor;
 
   const selectedJersey =
-    sponsor.jerseys.find(
-      (jersey) =>
-        jersey.id ===
-        contract.selectedJerseyId
-    ) ?? null;
+    sponsor.jerseys.find((jersey) => jersey.id === contract.selectedJerseyId) ??
+    null;
 
   return (
     <section className="mt-8">
-      <article
-        className="overflow-hidden rounded-2xl border border-red-300 bg-white shadow-[0_22px_55px_rgba(127,29,29,0.1)]"
-      >
+      <article className="overflow-hidden rounded-2xl border border-red-300 bg-white shadow-[0_22px_55px_rgba(127,29,29,0.1)]">
         <div className="h-2 w-full bg-red-700" />
 
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[320px_1fr]">
@@ -1114,12 +889,8 @@ function TerminatedSponsorSection({
               src={sponsor.logoPath}
               alt={`Ancien logo de ${sponsor.name}`}
               sponsorName={sponsor.name}
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
               textColor={sponsor.colors.text}
             />
           </div>
@@ -1134,10 +905,9 @@ function TerminatedSponsorSection({
             </h2>
 
             <p className="mt-3 leading-7 text-[#60756E]">
-              Ce sponsor n’est plus associé à votre
-              équipe. Le contrat reste conservé dans
-              votre historique avec son budget, son
-              maillot et ses objectifs.
+              Ce sponsor n’est plus associé à votre équipe. Le contrat reste
+              conservé dans votre historique avec son budget, son maillot et ses
+              objectifs.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -1145,7 +915,7 @@ function TerminatedSponsorSection({
                 label="Budget annuel"
                 value={formatMoney(
                   contract.budgetPerSeason,
-                  contract.currencyCode
+                  contract.currencyCode,
                 )}
                 detail="Budget déjà versé et conservé"
                 primaryColor="#B91C1C"
@@ -1154,15 +924,10 @@ function TerminatedSponsorSection({
 
               <ContractMetric
                 label="Ancien maillot"
-                value={
-                  selectedJersey?.name ??
-                  "Maillot enregistré"
-                }
+                value={selectedJersey?.name ?? "Maillot enregistré"}
                 detail={
                   selectedJersey
-                    ? formatJerseyStyle(
-                        selectedJersey.style
-                      )
+                    ? formatJerseyStyle(selectedJersey.style)
                     : "Modèle archivé"
                 }
                 primaryColor="#B91C1C"
@@ -1181,21 +946,17 @@ function TerminatedSponsorSection({
             <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-[#60756E]">
               {contract.terminatedAt ? (
                 <p>
-                  Rupture :{" "}
+                  Rupture :{" "}
                   <strong className="text-red-900">
-                    {formatDate(
-                      contract.terminatedAt
-                    )}
+                    {formatDate(contract.terminatedAt)}
                   </strong>
                 </p>
               ) : null}
 
               <p>
-                Motif :{" "}
+                Motif :{" "}
                 <strong className="text-red-900">
-                  {formatTerminationReason(
-                    contract.terminationReason
-                  )}
+                  {formatTerminationReason(contract.terminationReason)}
                 </strong>
               </p>
             </div>
@@ -1203,16 +964,12 @@ function TerminatedSponsorSection({
         </div>
       </article>
 
-      <ContractObjectivesSection
-        contract={contract}
-      />
+      <ContractObjectivesSection contract={contract} />
 
       <aside className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-950">
-        Votre équipe évolue désormais sous son identité
-        amateur. À partir du jour 21, de nouvelles
-        propositions pourront être signées uniquement
-        pour la saison suivante. Leur activation restera
-        différée jusqu’au jour 1.
+        Votre équipe évolue désormais sous son identité amateur. À partir du
+        jour 21, de nouvelles propositions pourront être signées uniquement pour
+        la saison suivante. Leur activation restera différée jusqu’au jour 1.
       </aside>
     </section>
   );
@@ -1255,16 +1012,14 @@ function ContractObjectivesSection({
               color: sponsor.colors.text,
             }}
           >
-            {contract.objectives.length} objectifs
-            saisonniers
+            {contract.objectives.length} objectifs saisonniers
           </h2>
         </div>
 
         <span
           className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black"
           style={{
-            backgroundColor:
-              sponsor.colors.primary,
+            backgroundColor: sponsor.colors.primary,
             color: "#FFFFFF",
           }}
         >
@@ -1273,18 +1028,14 @@ function ContractObjectivesSection({
       </div>
 
       <ol className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
-        {contract.objectives.map(
-          (objective) => (
-            <ContractObjectiveItem
-              key={objective.id}
-              objective={objective}
-              accentColor={
-                sponsor.colors.accent
-              }
-              textColor={sponsor.colors.text}
-            />
-          )
-        )}
+        {contract.objectives.map((objective) => (
+          <ContractObjectiveItem
+            key={objective.id}
+            objective={objective}
+            accentColor={sponsor.colors.accent}
+            textColor={sponsor.colors.text}
+          />
+        ))}
       </ol>
     </section>
   );
@@ -1323,9 +1074,7 @@ function ContractObjectiveItem({
         </p>
 
         <p className="mt-1 text-xs font-semibold text-[#7A8C86]">
-          {formatObjectiveStatus(
-            objective.status
-          )}
+          {formatObjectiveStatus(objective.status)}
         </p>
       </div>
     </li>
@@ -1400,13 +1149,9 @@ function OfferMetric({
         {label}
       </p>
 
-      <p className="mt-2 text-lg font-black sm:text-xl">
-        {value}
-      </p>
+      <p className="mt-2 text-lg font-black sm:text-xl">{value}</p>
 
-      <p className="mt-1 text-xs font-semibold text-[#7A8C86]">
-        {detail}
-      </p>
+      <p className="mt-1 text-xs font-semibold text-[#7A8C86]">{detail}</p>
     </div>
   );
 }
@@ -1441,9 +1186,7 @@ function ContractMetric({
         {label}
       </p>
 
-      <p className="mt-2 text-lg font-black">
-        {value}
-      </p>
+      <p className="mt-2 text-lg font-black">{value}</p>
 
       <p className="mt-1 text-xs font-semibold leading-5 text-[#7A8C86]">
         {detail}
@@ -1489,57 +1232,38 @@ function ActionSuccessMessage() {
       role="status"
       className="mt-8 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-5 text-emerald-950"
     >
-      <p className="font-black">
-        Le contrat sponsor a été rompu.
-      </p>
+      <p className="font-black">Le contrat sponsor a été rompu.</p>
 
       <p className="mt-2 text-sm leading-6">
-        L’identité amateur de votre équipe a été
-        restaurée et la pénalité de réputation a été
-        appliquée.
+        L’identité amateur de votre équipe a été restaurée et la pénalité de
+        réputation a été appliquée.
       </p>
     </div>
   );
 }
 
-function ActionErrorMessage({
-  message,
-}: {
-  message: string;
-}) {
+function ActionErrorMessage({ message }: { message: string }) {
   return (
     <div
       role="alert"
       className="mt-8 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-5 text-amber-950"
     >
-      <p className="font-black">
-        L’opération n’a pas pu être réalisée.
-      </p>
+      <p className="font-black">L’opération n’a pas pu être réalisée.</p>
 
-      <p className="mt-2 text-sm leading-6">
-        {message}
-      </p>
+      <p className="mt-2 text-sm leading-6">{message}</p>
     </div>
   );
 }
 
-function SponsoringErrorMessage({
-  message,
-}: {
-  message: string;
-}) {
+function SponsoringErrorMessage({ message }: { message: string }) {
   return (
     <div
       role="alert"
       className="mt-8 rounded-2xl border border-red-300 bg-red-50 px-5 py-5 text-red-900"
     >
-      <p className="font-black">
-        L’espace sponsoring n’a pas pu être préparé.
-      </p>
+      <p className="font-black">L’espace sponsoring n’a pas pu être préparé.</p>
 
-      <p className="mt-2 text-sm leading-6">
-        {message}
-      </p>
+      <p className="mt-2 text-sm leading-6">{message}</p>
     </div>
   );
 }
@@ -1551,14 +1275,11 @@ function EmptyOffers() {
         <BriefcaseIcon />
       </div>
 
-      <h2 className="mt-5 text-2xl font-black">
-        Aucune offre disponible
-      </h2>
+      <h2 className="mt-5 text-2xl font-black">Aucune offre disponible</h2>
 
       <p className="mx-auto mt-3 max-w-xl leading-7 text-[#60756E]">
-        Aucun sponsor compatible avec votre
-        réputation et votre situation actuelle n’a pu
-        être proposé.
+        Aucun sponsor compatible avec votre réputation et votre situation
+        actuelle n’a pu être proposé.
       </p>
     </div>
   );
@@ -1571,15 +1292,13 @@ function CountryFlag({
   isoAlpha2: string;
   countryName: string;
 }) {
-  const normalizedCode = isoAlpha2
-    .trim()
-    .toLowerCase();
+  const normalizedCode = isoAlpha2.trim().toLowerCase();
 
   if (!/^[a-z]{2}$/.test(normalizedCode)) {
     return (
       <span
         role="img"
-        aria-label={`Drapeau : ${countryName}`}
+        aria-label={`Drapeau : ${countryName}`}
         className="text-2xl"
       >
         🏳️
@@ -1590,7 +1309,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={[
         "fi",
         `fi-${normalizedCode}`,
@@ -1612,13 +1331,7 @@ function LockIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <rect
-        x="5"
-        y="10"
-        width="14"
-        height="10"
-        rx="2"
-      />
+      <rect x="5" y="10" width="14" height="10" rx="2" />
 
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
@@ -1700,7 +1413,7 @@ function BriefcaseIcon() {
 }
 
 function readSearchParameter(
-  value: string | string[] | undefined
+  value: string | string[] | undefined,
 ): string | null {
   if (typeof value === "string") {
     return value.trim() || null;
@@ -1713,9 +1426,7 @@ function readSearchParameter(
   return null;
 }
 
-function getPageIntroduction(
-  state: SponsoringState | null
-): string {
+function getPageIntroduction(state: SponsoringState | null): string {
   if (state?.kind === "onboarding") {
     return "Fondez votre équipe amateur avant de construire son avenir commercial.";
   }
@@ -1739,9 +1450,7 @@ function getPageIntroduction(
   return "Comparez les budgets, les durées de contrat et les objectifs proposés avant de choisir le partenaire principal de votre équipe.";
 }
 
-function getErrorMessage(
-  error: unknown
-): string {
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
@@ -1749,25 +1458,17 @@ function getErrorMessage(
   return "Une erreur inattendue est survenue.";
 }
 
-function getCountryName(
-  countryCode: string
-): string {
+function getCountryName(countryCode: string): string {
   const countryNames: Record<string, string> = {
     BE: "Belgique",
     ES: "Espagne",
     FR: "France",
   };
 
-  return (
-    countryNames[countryCode.toUpperCase()] ??
-    countryCode.toUpperCase()
-  );
+  return countryNames[countryCode.toUpperCase()] ?? countryCode.toUpperCase();
 }
 
-function formatMoney(
-  value: number,
-  currencyCode = "EUR"
-): string {
+function formatMoney(value: number, currencyCode = "EUR"): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: currencyCode,
@@ -1783,9 +1484,7 @@ function formatOfferCount(value: number): string {
   return `${value} offre${value === 1 ? "" : "s"} disponible${value === 1 ? "" : "s"}`;
 }
 
-function formatJerseyStyle(
-  style: "classic" | "modern" | "bold"
-): string {
+function formatJerseyStyle(style: "classic" | "modern" | "bold"): string {
   const labels = {
     classic: "Style classique",
     modern: "Style moderne",
@@ -1795,9 +1494,7 @@ function formatJerseyStyle(
   return labels[style];
 }
 
-function formatObjectiveStatus(
-  status: string
-): string {
+function formatObjectiveStatus(status: string): string {
   const labels: Record<string, string> = {
     draft: "Objectif en préparation",
     active: "Suivi disponible prochainement",
@@ -1805,25 +1502,15 @@ function formatObjectiveStatus(
     cancelled: "Annulé après la rupture",
   };
 
-  return (
-    labels[status] ??
-    "Statut de l’objectif indisponible"
-  );
+  return labels[status] ?? "Statut de l’objectif indisponible";
 }
 
-function formatTerminationReason(
-  reason: string | null
-): string {
-  if (
-    reason ===
-    "director_early_termination"
-  ) {
+function formatTerminationReason(reason: string | null): string {
+  if (reason === "director_early_termination") {
     return "Rupture anticipée par le Directeur Sportif";
   }
 
-  return reason
-    ? reason
-    : "Motif non renseigné";
+  return reason ? reason : "Motif non renseigné";
 }
 
 function formatDate(value: string): string {

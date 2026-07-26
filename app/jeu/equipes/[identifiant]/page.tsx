@@ -127,7 +127,7 @@ export default async function PublicTeamPage({
                   {team.display_name}
                 </h1>
                 <p className="mt-3 text-sm font-semibold text-[#D6DFD2]">
-                  Identifiant : {team.public_identifier}
+                  Identifiant : {team.public_identifier}
                 </p>
               </div>
 
@@ -457,7 +457,7 @@ function CountryFlag({
   return (
     <span
       role="img"
-      aria-label={`Drapeau : ${countryName}`}
+      aria-label={`Drapeau : ${countryName}`}
       className={`fi fi-${countryCode.toLowerCase()} ${compact ? "text-base" : "text-4xl shadow-sm"}`}
     />
   );

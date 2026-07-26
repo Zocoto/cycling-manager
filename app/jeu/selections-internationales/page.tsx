@@ -46,7 +46,7 @@ const STATUS_CONTENT: Record<
     label: "Participation automatique",
     className: "border-[#278B70]/25 bg-[#E8F7F1] text-[#176951]",
     description:
-      "Aucun refus n’a été reçu : le coureur participe au championnat.",
+      "Aucun refus n’a été reçu : le coureur participe au championnat.",
   },
   declined: {
     label: "Participation refusée",

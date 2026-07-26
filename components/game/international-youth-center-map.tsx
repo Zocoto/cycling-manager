@@ -317,7 +317,7 @@ export function InternationalYouthCenterMap({
             </dl>
             {selectedArchitect ? (
               <p className="text-xs font-bold text-[#176951]">
-                Architecte : −{quote.costReductionPercentage} % sur le
+                Architecte : −{quote.costReductionPercentage} % sur le
                 coût et −{quote.durationReductionPercentage} % sur le délai.
               </p>
             ) : null}

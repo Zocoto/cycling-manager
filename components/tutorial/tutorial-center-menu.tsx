@@ -1,12 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/app-link";
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
@@ -15,76 +10,46 @@ import {
   CRITERIUM_DISCOVERY_RESULTS_ROUTE,
 } from "@/lib/tutorial/criterium-discovery";
 import { getTutorialCenterEntryPresentation } from "@/lib/tutorial/tutorial-center";
-import type {
-  TutorialProgressRow,
-} from "@/types/tutorial";
+import type { TutorialProgressRow } from "@/types/tutorial";
 
 export function TutorialCenterMenu() {
   const panelId = useId();
-  const rootRef =
-    useRef<HTMLDivElement>(null);
-  const triggerRef =
-    useRef<HTMLButtonElement>(null);
-  const [open, setOpen] =
-    useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
 
-  const {
-    activeTutorial,
-    getTutorialProgress,
-    isPending,
-    startTutorial,
-  } = useTutorial();
+  const { activeTutorial, getTutorialProgress, isPending, startTutorial } =
+    useTutorial();
 
-  const baseProgress =
-    getTutorialProgress(
-      ONBOARDING_TUTORIAL_KEY,
-    );
-  const criteriumProgress =
-    getTutorialProgress(
-      CRITERIUM_DISCOVERY_KEY,
-    );
+  const baseProgress = getTutorialProgress(ONBOARDING_TUTORIAL_KEY);
+  const criteriumProgress = getTutorialProgress(CRITERIUM_DISCOVERY_KEY);
 
-  const basePresentation =
-    getTutorialCenterEntryPresentation(
-      baseProgress?.status ?? null,
-    );
-  const criteriumPresentation =
-    getTutorialCenterEntryPresentation(
-      criteriumProgress?.status ?? null,
-    );
+  const basePresentation = getTutorialCenterEntryPresentation(
+    baseProgress?.status ?? null,
+  );
+  const criteriumPresentation = getTutorialCenterEntryPresentation(
+    criteriumProgress?.status ?? null,
+  );
 
-  const tutorialIsActive =
-    Boolean(activeTutorial);
-  const disabled =
-    tutorialIsActive || isPending;
+  const tutorialIsActive = Boolean(activeTutorial);
+  const disabled = tutorialIsActive || isPending;
 
-  const completedEssentialCount = [
-    baseProgress,
-    criteriumProgress,
-  ].filter(
-    (progress) =>
-      progress?.status === "completed",
+  const completedEssentialCount = [baseProgress, criteriumProgress].filter(
+    (progress) => progress?.status === "completed",
   ).length;
 
   useEffect(() => {
     if (!open) return;
 
-    function handlePointerDown(
-      event: MouseEvent,
-    ) {
+    function handlePointerDown(event: MouseEvent) {
       const target = event.target;
 
-      if (
-        target instanceof Node &&
-        !rootRef.current?.contains(target)
-      ) {
+      if (target instanceof Node && !rootRef.current?.contains(target)) {
         setOpen(false);
       }
     }
 
-    function handleKeyDown(
-      event: KeyboardEvent,
-    ) {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") {
         return;
       }
@@ -94,35 +59,20 @@ export function TutorialCenterMenu() {
       triggerRef.current?.focus();
     }
 
-    document.addEventListener(
-      "mousedown",
-      handlePointerDown,
-    );
-    document.addEventListener(
-      "keydown",
-      handleKeyDown,
-    );
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handlePointerDown,
-      );
-      document.removeEventListener(
-        "keydown",
-        handleKeyDown,
-      );
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
 
   async function launchBaseTutorial() {
     const started = await startTutorial({
-      tutorialKey:
-        ONBOARDING_TUTORIAL_KEY,
-      launchSource:
-        basePresentation.launchSource,
-      restartFromBeginning:
-        basePresentation.restartFromBeginning,
+      tutorialKey: ONBOARDING_TUTORIAL_KEY,
+      launchSource: basePresentation.launchSource,
+      restartFromBeginning: basePresentation.restartFromBeginning,
     });
 
     if (started) {
@@ -132,12 +82,9 @@ export function TutorialCenterMenu() {
 
   async function launchCriteriumTutorial() {
     const started = await startTutorial({
-      tutorialKey:
-        CRITERIUM_DISCOVERY_KEY,
-      launchSource:
-        criteriumPresentation.launchSource,
-      restartFromBeginning:
-        criteriumPresentation.restartFromBeginning,
+      tutorialKey: CRITERIUM_DISCOVERY_KEY,
+      launchSource: criteriumPresentation.launchSource,
+      restartFromBeginning: criteriumPresentation.restartFromBeginning,
     });
 
     if (started) {
@@ -146,18 +93,13 @@ export function TutorialCenterMenu() {
   }
 
   return (
-    <div
-      ref={rootRef}
-      className="relative"
-    >
+    <div ref={rootRef} className="relative">
       <button
         ref={triggerRef}
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-controls={
-          open ? panelId : undefined
-        }
+        aria-controls={open ? panelId : undefined}
         title={
           tutorialIsActive
             ? "Un didacticiel est déjà en cours"
@@ -175,12 +117,8 @@ export function TutorialCenterMenu() {
         >
           ?
         </span>
-        <span className="sm:hidden">
-          Tutos
-        </span>
-        <span className="hidden sm:inline">
-          Didacticiels
-        </span>
+        <span className="sm:hidden">Tutos</span>
+        <span className="hidden sm:inline">Didacticiels</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
@@ -197,8 +135,7 @@ export function TutorialCenterMenu() {
           <path d="m4 6 4 4 4-4" />
         </svg>
         {basePresentation.needsAttention ||
-        criteriumProgress?.status ===
-          "in_progress" ? (
+        criteriumProgress?.status === "in_progress" ? (
           <span
             aria-hidden="true"
             className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#071A17] bg-[#F2C94C]"
@@ -232,7 +169,8 @@ export function TutorialCenterMenu() {
               </span>
             </div>
             <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-              Découvrez les fondamentaux puis vivez une course dans les mêmes conditions d’affichage que les épreuves officielles.
+              Découvrez les fondamentaux puis vivez une course dans les mêmes
+              conditions d’affichage que les épreuves officielles.
             </p>
           </header>
 
@@ -246,39 +184,28 @@ export function TutorialCenterMenu() {
                 title="Tutoriel de base"
                 description="Bureau, profil, fondation de l’équipe, effectif, calendrier et sponsoring."
                 progress={baseProgress}
-                statusLabel={
-                  basePresentation.statusLabel
-                }
-                actionLabel={
-                  basePresentation.actionLabel
-                }
+                statusLabel={basePresentation.statusLabel}
+                actionLabel={basePresentation.actionLabel}
                 pending={isPending}
                 onAction={() => {
                   void launchBaseTutorial();
                 }}
               />
 
-              {criteriumProgress?.status ===
-              "completed" ? (
+              {criteriumProgress?.status === "completed" ? (
                 <TutorialLinkEntry
                   title="Critérium de la découverte"
                   description="Inscrivez cinq coureurs, attribuez les rôles tactiques puis suivez la course dans le véritable replay Résultats / Live."
                   progress={criteriumProgress}
-                  href={
-                    CRITERIUM_DISCOVERY_RESULTS_ROUTE
-                  }
+                  href={CRITERIUM_DISCOVERY_RESULTS_ROUTE}
                 />
               ) : (
                 <TutorialEntry
                   title="Critérium de la découverte"
                   description="Inscrivez cinq coureurs, attribuez les rôles tactiques puis suivez la course dans le véritable replay Résultats / Live."
                   progress={criteriumProgress}
-                  statusLabel={
-                    criteriumPresentation.statusLabel
-                  }
-                  actionLabel={
-                    criteriumPresentation.actionLabel
-                  }
+                  statusLabel={criteriumPresentation.statusLabel}
+                  actionLabel={criteriumPresentation.actionLabel}
                   pending={isPending}
                   onAction={() => {
                     void launchCriteriumTutorial();
@@ -289,7 +216,8 @@ export function TutorialCenterMenu() {
 
             <div className="mt-4 rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F5F9F7] px-4 py-3">
               <p className="text-xs font-bold leading-5 text-[#60756E]">
-                Terminez les deux formations essentielles pour rendre disponible l’objectif « Finaliser le didacticiel ».
+                Terminez les deux formations essentielles pour rendre disponible
+                l’objectif « Finaliser le didacticiel ».
               </p>
             </div>
           </div>
@@ -330,9 +258,7 @@ function TutorialEntry({
         onClick={onAction}
         className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black text-white transition hover:bg-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-55"
       >
-        {pending
-          ? "Préparation…"
-          : actionLabel}
+        {pending ? "Préparation…" : actionLabel}
       </button>
     </article>
   );
@@ -352,16 +278,14 @@ function TutorialLinkEntry({
   const statusLabel =
     progress?.status === "completed"
       ? "Terminé"
-      : progress?.status ===
-          "in_progress"
+      : progress?.status === "in_progress"
         ? "Replay prêt"
         : "À découvrir";
 
   const actionLabel =
     progress?.status === "completed"
       ? "Revoir le replay"
-      : progress?.current_route ===
-          CRITERIUM_DISCOVERY_RESULTS_ROUTE
+      : progress?.current_route === CRITERIUM_DISCOVERY_RESULTS_ROUTE
         ? "Ouvrir le replay"
         : "Commencer depuis le calendrier";
 
@@ -397,9 +321,7 @@ function EntryHeader({
   return (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <h3 className="font-black text-[#183F37]">
-          {title}
-        </h3>
+        <h3 className="font-black text-[#183F37]">{title}</h3>
         <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
           {description}
         </p>
@@ -409,8 +331,7 @@ function EntryHeader({
           "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black",
           progress?.status === "completed"
             ? "bg-[#DDF3E7] text-[#176951]"
-            : progress?.status ===
-                "in_progress"
+            : progress?.status === "in_progress"
               ? "bg-[#FFF4D6] text-[#765A18]"
               : "bg-[#E9F5F0] text-[#278B70]",
         ].join(" ")}

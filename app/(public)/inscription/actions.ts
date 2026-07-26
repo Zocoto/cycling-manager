@@ -150,7 +150,7 @@ export async function registerAccount(
       };
     }
 
-    console.error("Échec de l’inscription Supabase :", {
+    console.error("Échec de l’inscription Supabase :", {
       code: error.code,
       status: error.status,
       message: error.message,
@@ -171,7 +171,7 @@ export async function registerAccount(
 
     if (signOutError) {
       console.error(
-        "Le compte a été créé, mais la session locale n’a pas pu être fermée :",
+        "Le compte a été créé, mais la session locale n’a pas pu être fermée :",
         signOutError
       );
     }
