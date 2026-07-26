@@ -61,7 +61,7 @@ declare
   v_old_message constant text :=
     'Le nombre maximal de 24 équipes inscrites est atteint.';
   v_new_message constant text :=
-    'Le nombre maximal d''équipes inscrites pour cette course est atteint.';
+    'Le nombre maximal d''''équipes inscrites pour cette course est atteint.';
 begin
   if v_function_signature is null then
     raise exception 'La fonction save_current_team_race_roster est introuvable.';
