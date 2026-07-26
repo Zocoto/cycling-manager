@@ -331,6 +331,44 @@ from adjusted_deadlines as adjusted
 where stage.race_edition_id = adjusted.edition_id
   and stage.stage_number = 1;
 
+with national_edition_slots as (
+  select
+    edition.id as edition_id,
+    day.calendar_date as day_date,
+    case
+      when get_byte(
+        decode(
+          md5(country.iso_alpha2 || '-' || race.competition_type),
+          'hex'
+        ),
+        0
+      ) % 2 = 0
+        then 'early'
+      else 'late'
+    end as day_slot
+  from public.race_editions as edition
+  join public.races as race
+    on race.id = edition.race_id
+  join public.countries as country
+    on country.id = race.country_id
+  join public.seasons as season
+    on season.id = edition.season_id
+  join public.stages as stage
+    on stage.race_edition_id = edition.id
+   and stage.stage_number = 1
+  join public.season_days as day
+    on day.id = stage.season_day_id
+  where season.status in ('active', 'planned')
+    and edition.status not in ('completed', 'cancelled')
+    and race.competition_type in ('national_road', 'national_time_trial')
+), adjusted_deadlines as (
+  select
+    edition_id,
+    (day_date::timestamp
+      + case day_slot when 'early' then time '08:00' else time '12:00' end
+    ) at time zone 'Europe/Paris' as closes_at
+  from national_edition_slots
+)
 update public.race_editions as edition
 set
   registration_closes_at = adjusted.closes_at,
