@@ -112,7 +112,7 @@ function TeamsTable({ entries }: { entries: TeamRankingEntry[] }) {
 }
 
 function TeamRows({ entry }: { entry: TeamRankingEntry }) {
-  const boundary = [1, 21, 51, 101, 201].includes(entry.rank);
+  const boundary = [1, 21, 51, 101].includes(entry.rank);
   return <>
     {boundary ? <tr><td colSpan={4} className="border-y border-[#278B70]/15 bg-[#DDF3E7] px-6 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#176951]">Projection saison suivante · {TEAM_DIVISION_LABELS[entry.projectedDivision]} à partir de la position {entry.rank}</td></tr> : null}
     <tr className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">

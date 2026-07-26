@@ -5,6 +5,7 @@ import {
   buildRaceSegments,
   ensureCompleteRaceSegments,
   getStageDistance,
+  removeOneDayRaceMountainPrimes,
   resolveRaceProfileType,
 } from "./race-profiles";
 
@@ -69,6 +70,62 @@ describe("buildRaceSegments", () => {
     expect(segments.some((segment) => segment.prime?.type === "intermediate_sprint")).toBe(true);
   });
 
+  it("retire les GPM d'une course d'un jour sans retirer son sprint intermediaire", () => {
+    const segments = buildRaceSegments({
+      distanceKm: 177,
+      profileType: "mountain",
+      seed: "classique",
+      includeTourPrimes: true,
+    });
+    const hadIntermediateSprint =
+      segments.some(
+        (segment) =>
+          segment.prime?.type ===
+          "intermediate_sprint"
+      );
+
+    const sanitized =
+      removeOneDayRaceMountainPrimes(
+        segments,
+        "one_day"
+      );
+
+    expect(
+      sanitized.some(
+        (segment) =>
+          segment.prime?.type === "mountain"
+      )
+    ).toBe(false);
+    expect(
+      sanitized.some(
+        (segment) =>
+          segment.prime?.type ===
+          "intermediate_sprint"
+      )
+    ).toBe(hadIntermediateSprint);
+    expect(
+      segments.some(
+        (segment) =>
+          segment.prime?.type === "mountain"
+      )
+    ).toBe(true);
+  });
+
+  it("conserve les GPM des courses par etapes", () => {
+    const segments = buildRaceSegments({
+      distanceKm: 177,
+      profileType: "mountain",
+      seed: "tour",
+      includeTourPrimes: true,
+    });
+
+    expect(
+      removeOneDayRaceMountainPrimes(
+        segments,
+        "stage_race"
+      )
+    ).toBe(segments);
+  });
   it.each(["alpes", "andes", "tyrol", "atlas"])(
     "dessine de grands cols de trois à six tronçons (%s)",
     (seed) => {

@@ -120,9 +120,11 @@ export type RaceCalendarEdition = {
   raceFormat: RaceFormat;
   competitionType: RaceCompetitionType;
   registrationClosesAt: string | null;
+  wildcardClosesAt: string | null;
   withdrawalClosesAt: string | null;
   registrationPolicy: RegistrationPolicy;
   minimumReputation: number | null;
+  fieldLimit?: number | null;
   minimumRosterSize: number;
   maximumRosterSize: number;
   engagedRiderCount: number;
@@ -387,6 +389,19 @@ export function getEditionDayRange(
   };
 }
 
+export function isRaceEditionPast({
+  edition,
+  currentDayNumber,
+}: {
+  edition: RaceCalendarEdition;
+  currentDayNumber: number;
+}) {
+  return (
+    getEditionDayRange(edition).endDay <
+    currentDayNumber
+  );
+}
+
 export function getRegistrationAvailability({
   policy,
   closesAt,
@@ -430,6 +445,39 @@ export function getRegistrationAvailability({
   return "open";
 }
 
+export function isRaceRegistrationClosed({
+  edition,
+  currentDayNumber,
+  now = new Date(),
+}: {
+  edition: RaceCalendarEdition;
+  currentDayNumber: number;
+  now?: Date;
+}) {
+  if (
+    isRaceEditionPast({
+      edition,
+      currentDayNumber,
+    })
+  ) {
+    return true;
+  }
+
+  if (edition.registrationPolicy === "closed") {
+    return true;
+  }
+
+  const closesAt = edition.categoryCode === "elite"
+    ? edition.wildcardClosesAt
+    : edition.registrationClosesAt;
+
+  return Boolean(
+    closesAt &&
+      Date.parse(closesAt) <=
+        now.getTime()
+  );
+}
+
 export function isRaceEditionAvailableToCurrentTeam({
   edition,
   reputationPoints,
@@ -446,6 +494,10 @@ export function isRaceEditionAvailableToCurrentTeam({
     registrationStatus === "accepted" ||
     registrationStatus === "pending"
   ) {
+    return true;
+  }
+
+  if (edition.categoryCode === "elite") {
     return true;
   }
 

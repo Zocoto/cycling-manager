@@ -22,6 +22,8 @@ const baseItem: TeamInventoryItem = {
   availableQuantity: 2,
   equippedQuantity: 0,
   pendingQuantity: 0,
+  equippedRiderIds: [],
+  pendingRiderIds: [],
   iconKey: "rating",
   imagePath: null,
   supplierName: null,

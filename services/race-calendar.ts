@@ -23,13 +23,16 @@ import {
 } from "@/lib/game/special-abilities";
 import {
   ensureCompleteRaceSegments,
+  removeOneDayRaceMountainPrimes,
   resolveRaceProfileType,
 } from "@/lib/game/race-profiles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { TeamDivisionCode } from "@/lib/game/economy";
 import {
   chunkValues,
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
+import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -67,9 +70,11 @@ type RaceEditionRow = {
   display_name: string;
   status: string;
   registration_closes_at: string | null;
+  wildcard_closes_at: string | null;
   withdrawal_closes_at: string | null;
   minimum_reputation: number | null;
   registration_policy: RegistrationPolicy;
+  field_limit: number | null;
 };
 
 type RaceRow = {
@@ -196,7 +201,6 @@ type CalendarEngagedCountRow = {
 type ActiveSeasonCalendarLoadOptions = {
   raceSlug?: string;
   includeEngagedRiders?: boolean;
-  seasonStatuses?: Array<"active" | "planned">;
 };
 
 type RiderCountryRow = {
@@ -219,6 +223,7 @@ export type CurrentRaceRegistration = {
 
 export type CurrentRaceUserContext = {
   reputationPoints: number;
+  divisionCode: TeamDivisionCode;
   registration: CurrentRaceRegistration | null;
 };
 
@@ -380,13 +385,18 @@ export async function getActiveSeasonRaceCalendar(
   now = new Date(),
   options: ActiveSeasonCalendarLoadOptions = {}
 ): Promise<SeasonRaceCalendar | null> {
-  const seasonStatuses = options.seasonStatuses?.length
-    ? [...new Set(options.seasonStatuses)]
-    : ["active"];
+  const { error: wildcardSettlementError } = await supabase.rpc(
+    "settle_due_elite_wildcards"
+  );
+  if (wildcardSettlementError) {
+    throw new Error(
+      `Impossible d'arbitrer les Wild Cards Elite : ${wildcardSettlementError.message}`
+    );
+  }
 
   const {
-    data: seasons,
-    error: seasonsError,
+    data: season,
+    error: seasonError,
   } = await supabase
     .from("seasons")
     .select(
@@ -396,66 +406,18 @@ export async function getActiveSeasonRaceCalendar(
         name,
         starts_on,
         ends_on,
-        current_day_number,
-        status
+        current_day_number
       `
     )
-    .in("status", seasonStatuses);
+    .eq("status", "active")
+    .maybeSingle<SeasonRow>();
 
-  if (seasonsError) {
+  if (seasonError) {
     throw new Error(
-      `Impossible de charger les saisons actives${
-        seasonStatuses.length > 1 ? " ou planifiées" : ""
-      } : ${seasonsError.message}`
+      `Impossible de charger la saison active : ${seasonError.message}`
     );
   }
 
-  if (!seasons || seasons.length === 0) {
-    return null;
-  }
-
-  const prioritizedSeasons = [...seasons].sort((first, second) => {
-    const firstPriority = first.status === "active" ? 1 : 0;
-    const secondPriority = second.status === "active" ? 1 : 0;
-
-    if (firstPriority !== secondPriority) {
-      return secondPriority - firstPriority;
-    }
-
-    return second.game_year - first.game_year;
-  });
-
-  if (options.raceSlug) {
-    for (const season of prioritizedSeasons) {
-      const calendar = await getSeasonCalendarForSeason(
-        supabase,
-        now,
-        season,
-        options
-      );
-
-      if (calendar && calendar.editions.length > 0) {
-        return calendar;
-      }
-    }
-
-    return null;
-  }
-
-  return getSeasonCalendarForSeason(
-    supabase,
-    now,
-    prioritizedSeasons[0],
-    options
-  );
-}
-
-async function getSeasonCalendarForSeason(
-  supabase: SupabaseServerClient,
-  now: Date,
-  season: SeasonRow,
-  options: ActiveSeasonCalendarLoadOptions
-): Promise<SeasonRaceCalendar | null> {
   if (!season) {
     return null;
   }
@@ -477,6 +439,7 @@ async function getSeasonCalendarForSeason(
   if (options.raceSlug && !scopedRaceResult?.data) {
     return null;
   }
+
   let editionsQuery = supabase
     .from("race_editions")
     .select(
@@ -488,8 +451,10 @@ async function getSeasonCalendarForSeason(
         status,
         registration_closes_at,
         withdrawal_closes_at,
+        wildcard_closes_at,
         minimum_reputation,
-        registration_policy
+        registration_policy,
+        field_limit
       `
     )
     .eq("season_id", season.id)
@@ -521,7 +486,9 @@ async function getSeasonCalendarForSeason(
 
       editionsQuery.returns<RaceEditionRow[]>(),
 
-      supabase.rpc("get_current_team_calendar_registrations"),
+      supabase.rpc(
+        "get_current_team_calendar_registrations"
+      ),
     ]);
 
   if (daysResult.error) {
@@ -857,12 +824,15 @@ async function getSeasonCalendarForSeason(
         competitionType: race.competition_type,
         registrationClosesAt:
           edition.registration_closes_at,
+        wildcardClosesAt:
+          edition.wildcard_closes_at,
         withdrawalClosesAt:
           edition.withdrawal_closes_at,
         registrationPolicy:
           edition.registration_policy,
         minimumReputation:
           edition.minimum_reputation,
+        fieldLimit: edition.field_limit,
         minimumRosterSize:
           race.competition_type === "standard"
             ? category.minimum_roster_size ?? 1
@@ -889,8 +859,16 @@ async function getSeasonCalendarForSeason(
               )!.roster_count,
             }
           : null,
-        stages:
-          stagesByEditionId.get(edition.id) ?? [],
+        stages: (
+          stagesByEditionId.get(edition.id) ?? []
+        ).map((stage) => ({
+          ...stage,
+          segments:
+            removeOneDayRaceMountainPrimes(
+              stage.segments,
+              race.race_format
+            ),
+        })),
       } satisfies RaceCalendarEdition;
     })
     .filter(
@@ -958,7 +936,7 @@ export async function getCurrentRaceUserContext(
   authUserId: string,
   raceEditionId: string
 ): Promise<CurrentRaceUserContext> {
-  const [directorResult, registrationResult] =
+  const [directorResult, registrationResult, teamDivision] =
     await Promise.all([
       supabase
         .from("sporting_directors")
@@ -972,6 +950,7 @@ export async function getCurrentRaceUserContext(
           p_race_edition_id: raceEditionId,
         }
       ),
+      getCurrentTeamDivisionForAuthUser(authUserId),
     ]);
 
   if (directorResult.error) {
@@ -997,6 +976,7 @@ export async function getCurrentRaceUserContext(
   return {
     reputationPoints:
       directorResult.data?.reputation_points ?? 0,
+    divisionCode: teamDivision?.code ?? "amateur",
     registration: registrationRow
       ? {
           id: registrationRow.registration_id,

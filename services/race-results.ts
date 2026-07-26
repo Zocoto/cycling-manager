@@ -25,7 +25,10 @@ import {
   type PersistedStageRaceStandings,
   type PersistedStageResultForGeneral,
 } from "@/lib/game/race-results";
-import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
+import {
+  sanitizeOfficialStageSimulationForRaceFormat,
+  type LockedOfficialRaceSimulationDirectory,
+} from "@/lib/game/official-race-simulation";
 import {
   getStageAttackParticipants,
   type StageSimulationResult,
@@ -46,7 +49,8 @@ type RosterContext = {
 type RaceRegistrationRow = {
   id: string;
   race_edition_id: string;
-  team_season_id: string;
+  team_season_id: string | null;
+  historical_team_name: string | null;
 };
 
 type RaceRosterRow = {
@@ -59,6 +63,17 @@ type TeamSeasonRow = {
   id: string;
   team_id: string;
   display_name: string;
+};
+
+type OfficialResultRiderIdentity = {
+  id: string;
+  name: string;
+};
+
+type OfficialResultRiderRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
 };
 
 type StageResultRow = {
@@ -95,6 +110,7 @@ type SecondaryResultRow = {
   classification_type: "mountain" | "sprint" | "youth" | "team";
   race_roster_id: string | null;
   team_season_id: string | null;
+  historical_team_name: string | null;
   rank: number;
   points: number | null;
   total_time_ms: number | null;
@@ -144,10 +160,16 @@ export async function settleFinishedRaceResults(
       orderedStages.map((stage) => stage.id)
     );
     const simulationByStageId = new Map(
-      (officialSimulations[edition.id] ?? []).map((lockedSimulation) => [
-        lockedSimulation.stageId,
-        lockedSimulation.simulation,
-      ])
+      (officialSimulations[edition.id] ?? []).map(
+        (lockedSimulation) => [
+          lockedSimulation.stageId,
+          sanitizeOfficialStageSimulationForRaceFormat({
+            raceFormat: edition.raceFormat,
+            input: lockedSimulation.input,
+            simulation: lockedSimulation.simulation,
+          }).simulation,
+        ]
+      )
     );
 
     for (const stage of orderedStages) {
@@ -287,13 +309,13 @@ export async function getOfficialRaceResults(
       admin
         .from("race_secondary_results")
         .select(
-          "race_edition_id, classification_type, race_roster_id, team_season_id, rank, points, total_time_ms"
+          "race_edition_id, classification_type, race_roster_id, team_season_id, historical_team_name, rank, points, total_time_ms"
         )
         .in("race_edition_id", editionIds)
         .returns<SecondaryResultRow[]>(),
       admin
         .from("race_registrations")
-        .select("id, race_edition_id, team_season_id")
+        .select("id, race_edition_id, team_season_id, historical_team_name")
         .in("race_edition_id", editionIds)
         .returns<RaceRegistrationRow[]>(),
       admin
@@ -313,7 +335,13 @@ export async function getOfficialRaceResults(
 
   const registrations = registrationQuery.data ?? [];
   const registrationIds = registrations.map((row) => row.id);
-  const teamSeasonIds = [...new Set(registrations.map((row) => row.team_season_id))];
+  const teamSeasonIds = [
+    ...new Set(
+      registrations
+        .map((row) => row.team_season_id)
+        .filter((teamSeasonId): teamSeasonId is string => teamSeasonId !== null)
+    ),
+  ];
   const [rosterQuery, teamSeasonQuery] = await Promise.all([
     registrationIds.length > 0
       ? admin
@@ -334,17 +362,34 @@ export async function getOfficialRaceResults(
   assertQuery(rosterQuery.error, "les startlists historiques");
   assertQuery(teamSeasonQuery.error, "les équipes historiques");
 
+  const rosterRows = rosterQuery.data ?? [];
+  const riderIds = [...new Set(rosterRows.map((row) => row.rider_id))];
+  const riderQuery = riderIds.length > 0
+    ? await admin
+        .from("riders")
+        .select("id, first_name, last_name")
+        .in("id", riderIds)
+        .returns<OfficialResultRiderRow[]>()
+    : { data: [] as OfficialResultRiderRow[], error: null };
+  assertQuery(riderQuery.error, "les coureurs des résultats historiques");
+
   const registrationById = new Map(registrations.map((row) => [row.id, row]));
-  const rosterById = new Map((rosterQuery.data ?? []).map((row) => [row.id, row]));
+  const rosterById = new Map(rosterRows.map((row) => [row.id, row]));
   const teamSeasonById = new Map(
     (teamSeasonQuery.data ?? []).map((row) => [row.id, row])
+  );
+  const riderById = new Map(
+    (riderQuery.data ?? []).map((rider) => [
+      rider.id,
+      {
+        id: rider.id,
+        name: `${rider.first_name} ${rider.last_name}`,
+      },
+    ])
   );
   const directory: OfficialRaceResultsDirectory = {};
 
   for (const edition of calendar.editions) {
-    const riderById = new Map(
-      edition.engagedRiders.map((rider) => [rider.id, rider])
-    );
     const stageClassifications = [...edition.stages]
       .sort((first, second) => first.stageNumber - second.stageNumber)
       .map((stage) => {
@@ -460,7 +505,7 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
   return new Map(
     (rosters ?? []).flatMap((roster) => {
       const registration = registrationById.get(roster.race_registration_id);
-      return registration
+      return registration?.team_season_id
         ? [
             [
               roster.rider_id,
@@ -1098,7 +1143,7 @@ function toOfficialStageRiderResult({
   rosterById: Map<string, RaceRosterRow>;
   registrationById: Map<string, RaceRegistrationRow>;
   teamSeasonById: Map<string, TeamSeasonRow>;
-  riderById: Map<string, RaceCalendarEdition["engagedRiders"][number]>;
+  riderById: Map<string, OfficialResultRiderIdentity>;
 }): OfficialRiderResult | null {
   const identity = resolveResultIdentity({
     rosterId: row.race_roster_id,
@@ -1135,7 +1180,7 @@ function toOfficialRaceRiderResult({
   rosterById: Map<string, RaceRosterRow>;
   registrationById: Map<string, RaceRegistrationRow>;
   teamSeasonById: Map<string, TeamSeasonRow>;
-  riderById: Map<string, RaceCalendarEdition["engagedRiders"][number]>;
+  riderById: Map<string, OfficialResultRiderIdentity>;
 }): OfficialRiderResult | null {
   const identity = resolveResultIdentity({
     rosterId: row.race_roster_id,
@@ -1172,7 +1217,7 @@ function resolveResultIdentity({
   rosterById: Map<string, RaceRosterRow>;
   registrationById: Map<string, RaceRegistrationRow>;
   teamSeasonById: Map<string, TeamSeasonRow>;
-  riderById: Map<string, RaceCalendarEdition["engagedRiders"][number]>;
+  riderById: Map<string, OfficialResultRiderIdentity>;
 }) {
   const roster = rosterById.get(rosterId);
   const registration = roster
@@ -1182,13 +1227,18 @@ function resolveResultIdentity({
     return null;
   }
   const rider = riderById.get(roster.rider_id);
-  const teamSeason = teamSeasonById.get(registration.team_season_id);
-  if (!rider || !teamSeason) return null;
+  const teamSeason = registration.team_season_id
+    ? teamSeasonById.get(registration.team_season_id)
+    : null;
+  const historicalTeamName = registration.historical_team_name?.trim() || null;
+  if (!rider || (!teamSeason && !historicalTeamName)) return null;
+
   return {
     riderId: rider.id,
     riderName: rider.name,
-    teamId: teamSeason.team_id,
-    teamName: teamSeason.display_name,
+    teamId: teamSeason?.team_id ?? `history-${registration.id}`,
+    teamProfileId: teamSeason?.team_id ?? null,
+    teamName: teamSeason?.display_name ?? historicalTeamName!,
   };
 }
 
@@ -1205,7 +1255,7 @@ function buildOfficialAttackParticipants({
   rosterById: Map<string, RaceRosterRow>;
   registrationById: Map<string, RaceRegistrationRow>;
   teamSeasonById: Map<string, TeamSeasonRow>;
-  riderById: Map<string, RaceCalendarEdition["engagedRiders"][number]>;
+  riderById: Map<string, OfficialResultRiderIdentity>;
 }): OfficialAttackParticipant[] {
   const stageNumberById = new Map(
     edition.stages.map((stage) => [stage.id, stage.stageNumber])
@@ -1258,7 +1308,7 @@ function buildOfficialSecondaryClassifications({
   rosterById: Map<string, RaceRosterRow>;
   registrationById: Map<string, RaceRegistrationRow>;
   teamSeasonById: Map<string, TeamSeasonRow>;
-  riderById: Map<string, RaceCalendarEdition["engagedRiders"][number]>;
+  riderById: Map<string, OfficialResultRiderIdentity>;
 }): OfficialSecondaryClassification[] {
   const classifications: OfficialSecondaryClassification[] = [];
 
@@ -1276,16 +1326,22 @@ function buildOfficialSecondaryClassifications({
             const team = row.team_season_id
               ? teamSeasonById.get(row.team_season_id)
               : null;
-            return team && row.total_time_ms !== null
-              ? [
-                  {
-                    teamId: team.team_id,
-                    teamName: team.display_name,
-                    rank: row.rank,
-                    totalTimeMs: row.total_time_ms,
-                  },
-                ]
-              : [];
+            const historicalTeamName = row.historical_team_name?.trim() || null;
+            if (row.total_time_ms === null || (!team && !historicalTeamName)) {
+              return [];
+            }
+
+            return [
+              {
+                teamId:
+                  team?.team_id ??
+                  `history-${row.race_edition_id}-team-${row.rank}`,
+                teamProfileId: team?.team_id ?? null,
+                teamName: team?.display_name ?? historicalTeamName!,
+                rank: row.rank,
+                totalTimeMs: row.total_time_ms,
+              },
+            ];
           }),
         });
         continue;
@@ -1335,6 +1391,7 @@ function toPersistedGeneralInput(
     riderId: result.riderId,
     riderName: result.riderName,
     teamId: result.teamId,
+    teamProfileId: result.teamProfileId,
     teamName: result.teamName,
     status: result.status,
     elapsedTimeMs: result.elapsedTimeMs,

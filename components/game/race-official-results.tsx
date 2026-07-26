@@ -98,12 +98,13 @@ export function RaceOfficialResults({
               >
                 {winner.riderName}
               </Link>
-              <Link
-                href={`/jeu/equipes/${winner.teamId}`}
-                className="text-xs font-bold text-[#BFD2C9] hover:text-white"
-              >
-                {winner.teamName}
-              </Link>
+              <TeamHistoryName
+                teamId={winner.teamId}
+                teamProfileId={winner.teamProfileId}
+                teamName={winner.teamName}
+                className="text-xs font-bold text-[#BFD2C9]"
+                linkClassName="hover:text-white"
+              />
             </div>
           ) : null}
         </div>
@@ -186,12 +187,13 @@ function RaceAnimators({
                   >
                     {participant.riderName}
                   </Link>
-                  <Link
-                    href={`/jeu/equipes/${participant.teamId}`}
-                    className="mt-0.5 block truncate text-xs font-bold text-[#688176] hover:text-[#176951] hover:underline"
-                  >
-                    {participant.teamName}
-                  </Link>
+                  <TeamHistoryName
+                    teamId={participant.teamId}
+                    teamProfileId={participant.teamProfileId}
+                    teamName={participant.teamName}
+                    className="mt-0.5 block truncate text-xs font-bold text-[#688176]"
+                    linkClassName="hover:text-[#176951] hover:underline"
+                  />
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${
@@ -267,12 +269,13 @@ function RiderResultsTable({
                 ) : null}
               </td>
               <td className="px-4 py-4">
-                <Link
-                  href={`/jeu/equipes/${result.teamId}`}
-                  className="text-sm font-bold text-[#48665F] hover:text-[#176951] hover:underline"
-                >
-                  {result.teamName}
-                </Link>
+                <TeamHistoryName
+                  teamId={result.teamId}
+                  teamProfileId={result.teamProfileId}
+                  teamName={result.teamName}
+                  className="text-sm font-bold text-[#48665F]"
+                  linkClassName="hover:text-[#176951] hover:underline"
+                />
               </td>
               <td className="px-4 py-4 font-mono text-sm font-black text-[#173E35]">
                 {formatResultTime(result, results[index - 1])}
@@ -316,12 +319,13 @@ function TeamResultsTable({
             <tr key={team.teamId} className="bg-white hover:bg-[#EEF7F2]">
               <td className="px-5 py-4 sm:px-7"><Rank rank={team.rank} /></td>
               <td className="px-4 py-4">
-                <Link
-                  href={`/jeu/equipes/${team.teamId}`}
-                  className="font-black text-[#0B302B] hover:text-[#176951] hover:underline"
-                >
-                  {team.teamName}
-                </Link>
+                <TeamHistoryName
+                  teamId={team.teamId}
+                  teamProfileId={team.teamProfileId}
+                  teamName={team.teamName}
+                  className="font-black text-[#0B302B]"
+                  linkClassName="hover:text-[#176951] hover:underline"
+                />
               </td>
               <td className="px-4 py-4 font-mono text-sm font-black text-[#173E35]">
                 {team.rank === 1
@@ -340,6 +344,36 @@ function Rank({ rank }: { rank: number | null }) {
   if (rank === null) return <span className="text-xs font-black text-[#A33A3A]">ABD</span>;
   const tone = rank === 1 ? "bg-[#F2C94C] text-[#382E00]" : rank === 2 ? "bg-[#DDE5E2] text-[#173E35]" : rank === 3 ? "bg-[#D7A36A]/25 text-[#734719]" : "bg-[#176951]/10 text-[#176951]";
   return <span className={`inline-grid h-8 min-w-8 place-items-center rounded-full px-2 text-xs font-black ${tone}`}>{rank}</span>;
+}
+
+function TeamHistoryName({
+  teamId,
+  teamProfileId,
+  teamName,
+  className,
+  linkClassName,
+}: {
+  teamId: string;
+  teamProfileId?: string | null;
+  teamName: string;
+  className: string;
+  linkClassName: string;
+}) {
+  const resolvedTeamProfileId =
+    teamProfileId === undefined ? teamId : teamProfileId;
+
+  if (resolvedTeamProfileId === null) {
+    return <span className={className}>{teamName}</span>;
+  }
+
+  return (
+    <Link
+      href={`/jeu/equipes/${resolvedTeamProfileId}`}
+      className={`${className} ${linkClassName}`}
+    >
+      {teamName}
+    </Link>
+  );
 }
 
 type OfficialResultStatusLike = OfficialRiderResult["status"];

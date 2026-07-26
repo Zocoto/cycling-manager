@@ -154,6 +154,7 @@ function createEdition(
     competitionType: "standard",
     raceFormat: "stage_race",
     registrationClosesAt: null,
+    wildcardClosesAt: null,
     withdrawalClosesAt: null,
     registrationPolicy: "open",
     minimumReputation: null,

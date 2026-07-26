@@ -651,10 +651,12 @@ function RacingSection() {
       </div>
 
       <StrategyNote title="Catégories et wildcards">
-        Les équipes Élite accèdent normalement aux courses Élite. Quatre
-        wildcards sont réservées aux équipes World, Continentales ou Nationales,
-        avec priorité à la division la mieux classée, puis à l’adéquation du
-        leader et aux points UCI.
+        Toutes les équipes voient les courses Élite dans leur calendrier. Les
+        équipes Élite inscrivent directement huit à neuf coureurs ; toutes les
+        autres divisions peuvent demander une Wild Card avec la même composition.
+        À J-1, l’organisateur départage les demandes selon la nationalité de
+        l’équipe, celle du sponsor principal, la réputation et le meilleur
+        coureur aligné pour le profil de la course.
       </StrategyNote>
     </GuideSection>
   );

@@ -47,7 +47,7 @@ function redirectWithMessage(
   message: string
 ): never {
   redirect(
-    `/jeu/objectifs?${key}=${encodeURIComponent(message.slice(0, 300))}`
+    `/jeu/objectifs?statut=completed&${key}=${encodeURIComponent(message.slice(0, 300))}#objectives-list`
   );
 }
 

@@ -32,6 +32,7 @@ type InventoryPageProps = {
   searchParams: Promise<{
     categorie?: string | string[];
     erreur?: string | string[];
+    equipement?: string | string[];
   }>;
 };
 
@@ -40,6 +41,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const rawCategory = readQuery(query.categorie);
   const category = isInventoryCategory(rawCategory) ? rawCategory : null;
   const errorMessage = readQuery(query.erreur).slice(0, 300);
+  const equipmentConfirmed =
+    readQuery(query.equipement) === "confirme";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -69,6 +72,11 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
       left.first_name.localeCompare(right.first_name, "fr")
   );
 
+  const equipmentByRiderAndSlot =
+    buildEquipmentByRiderAndSlot(overview.items);
+  const pendingEquipmentByRiderAndSlot =
+    buildEquipmentByRiderAndSlot(overview.items, true);
+
   const visibleItems = category
     ? overview.items.filter((item) => item.category === category)
     : overview.items;
@@ -84,6 +92,12 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
       <section className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
+
+        {equipmentConfirmed ? (
+          <p className="mt-5 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
+            Le matériel a été attribué. Vous pouvez poursuivre la gestion de l’inventaire.
+          </p>
+        ) : null}
 
         {errorMessage ? (
           <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
@@ -182,7 +196,17 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           {visibleItems.length > 0 ? (
             <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {visibleItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} riders={riders} />
+                <InventoryItemCard
+                  key={item.id}
+                  item={item}
+                  riders={riders}
+                  equipmentByRiderAndSlot={
+                    equipmentByRiderAndSlot
+                  }
+                  pendingEquipmentByRiderAndSlot={
+                    pendingEquipmentByRiderAndSlot
+                  }
+                />
               ))}
             </div>
           ) : (
@@ -197,9 +221,13 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 function InventoryItemCard({
   item,
   riders,
+  equipmentByRiderAndSlot,
+  pendingEquipmentByRiderAndSlot,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
+  equipmentByRiderAndSlot: Map<string, string>;
+  pendingEquipmentByRiderAndSlot: Map<string, string>;
 }) {
   const category = getInventoryCategory(item.category);
 
@@ -255,12 +283,31 @@ function InventoryItemCard({
         </div>
 
         {item.equipmentSlot ? (
-          <InventoryEquipmentForm
-            equipmentItemId={item.sourceId}
-            slot={item.equipmentSlot}
-            availableQuantity={item.availableQuantity}
-            riders={riders}
-          />
+          <>
+            <EquipmentOwnerSummary item={item} riders={riders} />
+            <InventoryEquipmentForm
+              equipmentItemId={item.sourceId}
+              slot={item.equipmentSlot}
+              availableQuantity={item.availableQuantity}
+              riders={riders.map((rider) => ({
+                ...rider,
+                currentEquipmentName:
+                  equipmentByRiderAndSlot.get(
+                    equipmentRiderSlotKey(
+                      rider.rider_id,
+                      item.equipmentSlot!,
+                    ),
+                  ) ?? null,
+                pendingEquipmentName:
+                  pendingEquipmentByRiderAndSlot.get(
+                    equipmentRiderSlotKey(
+                      rider.rider_id,
+                      item.equipmentSlot!,
+                    ),
+                  ) ?? null,
+              }))}
+            />
+          </>
         ) : item.isConsumable &&
           isAssignableInventoryCategory(item.category) ? (
           <InventoryConsumableForm
@@ -279,6 +326,74 @@ function InventoryItemCard({
   );
 }
 
+function EquipmentOwnerSummary({
+  item,
+  riders,
+}: {
+  item: TeamInventoryItem;
+  riders: InventoryRiderOption[];
+}) {
+  const riderNameById = new Map(
+    riders.map((rider) => [
+      rider.rider_id,
+      `${rider.first_name} ${rider.last_name}`,
+    ]),
+  );
+  const equippedNames = item.equippedRiderIds
+    .map((riderId) => riderNameById.get(riderId))
+    .filter((name): name is string => Boolean(name));
+  const pendingNames = item.pendingRiderIds
+    .map((riderId) => riderNameById.get(riderId))
+    .filter((name): name is string => Boolean(name));
+
+  return (
+    <div className="mt-4 space-y-1.5 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-bold leading-5 text-[#48665F]">
+      <p>
+        <span className="font-black text-[#183F37]">Équipé sur :</span>{" "}
+        {equippedNames.length > 0
+          ? equippedNames.join(", ")
+          : "aucun coureur"}
+      </p>
+      {pendingNames.length > 0 ? (
+        <p className="text-[#8A6516]">
+          <span className="font-black">Programmé pour :</span>{" "}
+          {pendingNames.join(", ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function buildEquipmentByRiderAndSlot(
+  items: TeamInventoryItem[],
+  pending = false,
+) {
+  const equipmentByRiderAndSlot = new Map<string, string>();
+
+  for (const item of items) {
+    if (!item.equipmentSlot) continue;
+
+    const riderIds = pending
+      ? item.pendingRiderIds
+      : item.equippedRiderIds;
+
+    for (const riderId of riderIds) {
+      equipmentByRiderAndSlot.set(
+        equipmentRiderSlotKey(riderId, item.equipmentSlot),
+        item.name,
+      );
+    }
+  }
+
+  return equipmentByRiderAndSlot;
+}
+
+function equipmentRiderSlotKey(
+  riderId: string,
+  slot: NonNullable<TeamInventoryItem["equipmentSlot"]>,
+) {
+  return `${riderId}:${slot}`;
+}
 function InventoryEmptyState({ category }: { category: InventoryCategory | null }) {
   const definition = category ? getInventoryCategory(category) : null;
 

@@ -44,7 +44,7 @@ export async function registerRaceRosterAction(
     redirect("/connexion");
   }
 
-  const { error } = await supabase.rpc(
+  const { data, error } = await supabase.rpc(
     "save_current_team_competition_roster_with_roles",
     {
       p_race_edition_id: editionId,
@@ -56,11 +56,58 @@ export async function registerRaceRosterAction(
     redirectWithError(`/jeu/courses/${slug}`, error.message);
   }
 
+  const registrationStatus = Array.isArray(data)
+    ? (data[0] as { registration_status?: string } | undefined)
+        ?.registration_status
+    : null;
+
   revalidateRacePaths(slug);
   redirect(
-    `/jeu/calendrier?inscription=confirmee&course=${encodeURIComponent(
+    `/jeu/calendrier?${
+      registrationStatus === "pending"
+        ? "wildcard=demandee"
+        : "inscription=confirmee"
+    }&course=${encodeURIComponent(
       slug
     )}`
+  );
+}
+
+export async function withdrawEliteWildcardRequestAction(
+  formData: FormData
+) {
+  const editionId = readFormValue(formData, "editionId");
+  const slug = readFormValue(formData, "slug");
+
+  if (!isUuid(editionId) || !isSlug(slug)) {
+    redirectWithError(
+      "/jeu/calendrier",
+      "La course s\u00e9lectionn\u00e9e est invalide."
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc(
+    "withdraw_current_team_elite_wildcard_request",
+    { p_race_edition_id: editionId }
+  );
+
+  if (error) {
+    redirectWithError(`/jeu/courses/${slug}`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  redirect(
+    `/jeu/calendrier?wildcard=retiree&course=${encodeURIComponent(slug)}`
   );
 }
 

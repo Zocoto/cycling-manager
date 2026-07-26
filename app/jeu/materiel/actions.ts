@@ -77,7 +77,49 @@ export async function equipRiderAction(formData: FormData) {
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
-  redirect(`/jeu/coureurs/${riderId}?equipement=confirme`);
+  redirect(
+    origin === "inventory"
+      ? "/jeu/inventaire?categorie=equipment&equipement=confirme"
+      : `/jeu/coureurs/${riderId}?equipement=confirme`,
+  );
+}
+
+export async function unequipRiderAction(formData: FormData) {
+  const riderId = readValue(formData, "riderId");
+  const slot = readValue(formData, "slot");
+  const returnPath = isUuid(riderId)
+    ? `/jeu/coureurs/${riderId}`
+    : "/jeu/effectif";
+
+  if (!isUuid(riderId) || !isEquipmentSlot(slot)) {
+    redirectWithError(
+      returnPath,
+      "La demande de retrait est invalide.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc(
+    "unequip_current_team_rider",
+    {
+      p_rider_id: riderId,
+      p_slot_type: slot,
+    },
+  );
+
+  if (error) redirectWithError(returnPath, error.message);
+
+  revalidatePath(`/jeu/coureurs/${riderId}`);
+  revalidatePath("/jeu/inventaire");
+  revalidatePath("/jeu/materiel");
+  redirect(`/jeu/coureurs/${riderId}?equipement=retire`);
 }
 
 function buildMaterialPath(category: string, supplier: string) {

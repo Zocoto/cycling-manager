@@ -43,6 +43,38 @@ describe("createCalendarSimulationInput", () => {
     );
   });
 
+  it("ecarte les GPM herites du live d'une course d'un jour", () => {
+    const edition = createEdition({
+      slug: "classique-avec-gpm",
+      riders: [createRider("rider-a", "team-a")],
+    });
+    edition.stages[0].segments = [
+      {
+        segmentNumber: 1,
+        distanceKm: 10,
+        terrain: "climb",
+        averageGradientPct: 6,
+        surface: "asphalt",
+        prime: {
+          type: "mountain",
+          category: "3",
+          pointsScale: [2, 1],
+        },
+      },
+    ];
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "official",
+    });
+
+    expect(input.segments[0].prime).toBeNull();
+    expect(
+      edition.stages[0].segments[0].prime
+    ).not.toBeNull();
+  });
+
   it("refuse une course ordinaire sans startlist", () => {
     const edition = createEdition({
       slug: "grand-prix-de-bretagne",
@@ -126,6 +158,77 @@ describe("createCalendarSimulationInput", () => {
     expect(context.input).toBe(run.input);
   });
 
+  it("nettoie les GPM d'une ancienne simulation verrouillee", () => {
+    const edition = createEdition({
+      slug: "course-verrouillee-avec-gpm",
+      riders: [
+        createRider("rider-a", "team-a"),
+        createRider("rider-b", "team-b"),
+      ],
+    });
+    const run = simulateOfficialRaceEdition(edition)[0];
+    const prime = {
+      type: "mountain" as const,
+      category: "3" as const,
+      pointsScale: [2, 1],
+    };
+    const lockedInput = {
+      ...run.input,
+      segments: [
+        {
+          ...run.input.segments[0],
+          prime,
+        },
+        ...run.input.segments.slice(1),
+      ],
+    };
+    const lockedSimulation = {
+      ...run.simulation,
+      primes: [
+        {
+          segmentNumber: 1,
+          prime,
+          classification: [
+            {
+              riderId: "rider-a",
+              rank: 1,
+              points: 2,
+            },
+          ],
+        },
+      ],
+      mountainPoints: { "rider-a": 2 },
+    };
+
+    const context =
+      getOfficialStageSimulationContext({
+        edition,
+        stageId: run.stage.id,
+        lockedSimulations: [
+          {
+            stageId: run.stage.id,
+            raceEditionId: edition.id,
+            engineVersion: "test",
+            seed: String(run.input.seed),
+            input: lockedInput,
+            simulation: lockedSimulation,
+          },
+        ],
+      });
+
+    expect(
+      context.input.segments.some(
+        (segment) =>
+          segment.prime?.type === "mountain"
+      )
+    ).toBe(false);
+    expect(context.simulation.primes).toEqual([]);
+    expect(
+      context.simulation.mountainPoints
+    ).toEqual({});
+    expect(lockedSimulation.primes).toHaveLength(1);
+  });
+
   it("écarte aussi des étapes suivantes un coureur blessé qui a terminé", () => {
     const edition = createEdition({
       slug: "course-blessure",
@@ -191,6 +294,7 @@ function createEdition({
     raceFormat: "one_day",
     competitionType: "standard",
     registrationClosesAt: null,
+    wildcardClosesAt: null,
     withdrawalClosesAt: null,
     registrationPolicy: "open",
     minimumReputation: 0,

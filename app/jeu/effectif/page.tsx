@@ -14,6 +14,7 @@ import { PotentialStars } from "../../../components/game/potential-stars";
 import { TeamDivisionBadge } from "../../../components/game/team-division-badge";
 import {
   createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
@@ -49,11 +50,11 @@ import {
   type RiderMedicalInjury,
 } from "../../../services/team-health";
 import { getCurrentTeamRiderSeasonPlanning } from "../../../services/rider-season-planning";
+import { getActiveNationalChampionshipTitlesForRiders } from "@/services/rider-national-championship-titles";
 
 export const metadata: Metadata = {
   title: "Effectif",
-  description:
-    "Consultez les coureurs de votre équipe dans Cyclostratège.",
+  description: "Consultez les coureurs de votre équipe dans Cyclostratège.",
 };
 
 type CurrentTeamDashboardSummary = {
@@ -93,6 +94,12 @@ type RiderRow = {
   contract_currency: string;
   contract_end_season_id: string;
   contract_end_season_name: string;
+};
+
+type RiderRosterHealth = {
+  form: number;
+  injury: RiderMedicalInjury | null;
+  formCamp: RiderFormCamp | null;
 };
 
 type RatingKey =
@@ -197,17 +204,16 @@ export default async function TeamRosterPage({
       ? "planning"
       : "statistiques";
   const currentSortKey = parseRosterSortKey(
-    getFirstSearchParam(rosterQuery.sort)
+    getFirstSearchParam(rosterQuery.sort),
   );
   const currentSortDirection = currentSortKey
     ? parseRosterSortDirection(
         getFirstSearchParam(rosterQuery.direction),
-        currentSortKey
+        currentSortKey,
       )
     : "asc";
 
-  const supabase =
-    await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -226,7 +232,7 @@ export default async function TeamRosterPage({
     .catch((error: unknown) => {
       console.error(
         "Impossible de récupérer l’identité commerciale de l’équipe :",
-        error
+        error,
       );
 
       return {
@@ -254,7 +260,7 @@ export default async function TeamRosterPage({
         }).catch((error: unknown) => {
           console.error(
             "Impossible de récupérer le planning de l’effectif :",
-            error
+            error,
           );
           return null;
         })
@@ -263,21 +269,18 @@ export default async function TeamRosterPage({
     getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer l’identité amateur de l’équipe :",
-        error
+        error,
       );
       return null;
     }),
     getCurrentTeamDivisionForAuthUser(user.id).catch((error: unknown) => {
-      console.error(
-        "Impossible de récupérer la division de l’équipe :",
-        error
-      );
+      console.error("Impossible de récupérer la division de l’équipe :", error);
       return null;
     }),
     getCurrentTeamHealthOverview(user.id).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer les indisponibilités médicales :",
-        error
+        error,
       );
       return null;
     }),
@@ -288,41 +291,56 @@ export default async function TeamRosterPage({
   const healthByRiderId = new Map(
     (healthOverview?.riders ?? []).map((rider) => [
       rider.id,
-      { injury: rider.injury, formCamp: rider.formCamp },
-    ])
+      {
+        form: rider.form,
+        injury: rider.injury,
+        formCamp: rider.formCamp,
+      },
+    ]),
   );
 
   if (teamSummaryResult.error) {
-    console.error(
-      "Impossible de récupérer le résumé de l’équipe :",
-      {
-        code: teamSummaryResult.error.code,
-        message:
-          teamSummaryResult.error.message,
-        details:
-          teamSummaryResult.error.details,
-        hint: teamSummaryResult.error.hint,
-      }
-    );
+    console.error("Impossible de récupérer le résumé de l’équipe :", {
+      code: teamSummaryResult.error.code,
+      message: teamSummaryResult.error.message,
+      details: teamSummaryResult.error.details,
+      hint: teamSummaryResult.error.hint,
+    });
   }
 
   if (rosterResult.error) {
-    console.error(
-      "Impossible de récupérer l’effectif :",
-      {
-        code: rosterResult.error.code,
-        message: rosterResult.error.message,
-        details: rosterResult.error.details,
-        hint: rosterResult.error.hint,
-      }
-    );
+    console.error("Impossible de récupérer l’effectif :", {
+      code: rosterResult.error.code,
+      message: rosterResult.error.message,
+      details: rosterResult.error.details,
+      hint: rosterResult.error.hint,
+    });
   }
 
-  const teamSummary =
-    (teamSummaryResult.data ??
-      null) as CurrentTeamDashboardSummary | null;
+  const teamSummary = (teamSummaryResult.data ??
+    null) as CurrentTeamDashboardSummary | null;
 
   const riders = (rosterResult.data ?? []) as RiderRow[];
+  const activeNationalTitlesByRiderId =
+    await getActiveNationalChampionshipTitlesForRiders(
+      supabase,
+      riders.map((rider) => rider.rider_id),
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de récupérer les maillots de champions nationaux de l’effectif :",
+        error,
+      );
+      return new Map();
+    });
+  const nationalChampionJerseyByRiderId = new Map(
+    [...activeNationalTitlesByRiderId].map(([riderId, title]) => [
+      riderId,
+      createNationalChampionRiderJersey({
+        countryCode: title.countryCode,
+        championshipType: title.championshipType,
+      }),
+    ]),
+  );
   const sortedRiders = currentSortKey
     ? sortRosterItems({
         items: riders,
@@ -330,7 +348,8 @@ export default async function TeamRosterPage({
         getValue: (rider) =>
           getRosterSortValue(
             rider,
-            currentSortKey
+            currentSortKey,
+            healthByRiderId.get(rider.rider_id)?.form ?? 75,
           ),
         getTieBreaker: getRiderSortName,
       })
@@ -352,32 +371,16 @@ export default async function TeamRosterPage({
       : FREE_AGENT_RIDER_JERSEY;
 
   const minimumAge =
-    riders.length > 0
-      ? Math.min(
-          ...riders.map(
-            (rider) => rider.age
-          )
-        )
-      : 0;
+    riders.length > 0 ? Math.min(...riders.map((rider) => rider.age)) : 0;
 
   const maximumAge =
-    riders.length > 0
-      ? Math.max(
-          ...riders.map(
-            (rider) => rider.age
-          )
-        )
-      : 0;
+    riders.length > 0 ? Math.max(...riders.map((rider) => rider.age)) : 0;
 
   const teamAverage =
     riders.length > 0
       ? Math.round(
-          riders.reduce(
-            (total, rider) =>
-              total +
-              getRiderAverage(rider),
-            0
-          ) / riders.length
+          riders.reduce((total, rider) => total + getRiderAverage(rider), 0) /
+            riders.length,
         )
       : 0;
 
@@ -404,8 +407,7 @@ export default async function TeamRosterPage({
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
-                Consultez les qualités, les
-                contrats et les spécialités de vos
+                Consultez les qualités, les contrats et les spécialités de vos
                 coureurs pour la saison actuelle.
               </p>
             </div>
@@ -413,45 +415,32 @@ export default async function TeamRosterPage({
             {teamSummary ? (
               <TeamSeasonSummary
                 teamName={commercialTeamName}
-                seasonName={
-                  teamSummary.season_name
-                }
-                seasonDayNumber={
-                  teamSummary.season_day_number
-                }
-                sponsorIdentity={
-                  teamSponsorIdentity
-                }
+                seasonName={teamSummary.season_name}
+                seasonDayNumber={teamSummary.season_day_number}
+                sponsorIdentity={teamSponsorIdentity}
                 divisionCode={teamDivision?.code ?? null}
               />
             ) : null}
           </header>
 
           {teamSponsorIdentityError ? (
-            <TeamSponsorIdentityWarning
-              message={
-                teamSponsorIdentityError
-              }
-            />
+            <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
           ) : null}
 
           {teamSponsorIdentity ? (
-            <TeamCommercialIdentityBanner
-              identity={
-                teamSponsorIdentity
-              }
-            />
+            <TeamCommercialIdentityBanner identity={teamSponsorIdentity} />
           ) : teamAmateurIdentity?.isConfigured ? (
             <TeamAmateurIdentityBanner identity={teamAmateurIdentity} />
           ) : null}
 
-          {rosterResult.error ? (
-            <RosterErrorMessage />
-          ) : null}
+          {rosterResult.error ? <RosterErrorMessage /> : null}
 
           <RosterViewTabs activeView={activeView} />
 
-          <section className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section
+            className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            data-tutorial-id="roster-overview"
+          >
             <SummaryCard
               label="Coureurs"
               value={String(riders.length)}
@@ -470,11 +459,7 @@ export default async function TeamRosterPage({
 
             <SummaryCard
               label="Niveau moyen"
-              value={
-                riders.length > 0
-                  ? String(teamAverage)
-                  : "—"
-              }
+              value={riders.length > 0 ? String(teamAverage) : "—"}
               detail="Moyenne des 13 caractéristiques"
             />
 
@@ -502,18 +487,22 @@ export default async function TeamRosterPage({
           </section>
 
           {activeView === "planning" ? (
-            <div className="mt-6">
+            <div className="mt-6" data-tutorial-id="roster-rating-table">
               {planningOverview ? (
                 <RiderSeasonPlanning
                   planning={planningOverview}
                   jersey={riderJersey}
+                  jerseyByRiderId={nationalChampionJerseyByRiderId}
                 />
               ) : (
                 <PlanningUnavailable />
               )}
             </div>
           ) : (
-            <section className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]">
+            <section
+              className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
+              data-tutorial-id="roster-rating-table"
+            >
               {teamSponsorIdentity ? (
                 <div
                   aria-hidden="true"
@@ -524,137 +513,173 @@ export default async function TeamRosterPage({
                 />
               ) : null}
 
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#315B3E]/15 bg-[#0B302B] px-5 py-5 text-[#FFFDF4] sm:px-7">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
-                  Équipe première
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#315B3E]/15 bg-[#0B302B] px-5 py-5 text-[#FFFDF4] sm:px-7">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
+                    Équipe première
+                  </p>
 
-                <h2 className="mt-2 text-2xl font-black">
-                  {commercialTeamName}
-                </h2>
+                  <h2 className="mt-2 text-2xl font-black">
+                    {commercialTeamName}
+                  </h2>
 
-                <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
-                  {formatRiderCount(
-                    riders.length
-                  )}
-                </p>
+                  <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
+                    {formatRiderCount(riders.length)}
+                  </p>
+                </div>
+
+                <RatingLegend />
               </div>
 
-              <RatingLegend />
-            </div>
+              {riders.length > 0 ? (
+                <>
+                  <div className="xl:hidden">
+                    <MobileRosterSortMenu
+                      currentSortKey={currentSortKey}
+                      currentDirection={currentSortDirection}
+                    />
+                    <div className="divide-y divide-[#315B3E]/12">
+                      {sortedRiders.map((rider) => (
+                        <RiderMobileCard
+                          key={rider.rider_id}
+                          rider={rider}
+                          jersey={
+                            nationalChampionJerseyByRiderId.get(
+                              rider.rider_id,
+                            ) ?? riderJersey
+                          }
+                          health={healthByRiderId.get(rider.rider_id) ?? null}
+                        />
+                      ))}
+                    </div>
+                  </div>
 
-            {riders.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-[1450px] w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
-                      <SortableTableHeader
-                        sortKey="rider"
-                        label="Coureur"
-                        fullLabel="nom du coureur"
-                        align="left"
-                        className="sticky left-0 z-10 min-w-80"
-                        linkClassName="px-5"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
-
-                      <SortableTableHeader
-                        sortKey="age"
-                        label="Âge"
-                        fullLabel="âge"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
-
-                      <SortableTableHeader
-                        sortKey="profile"
-                        label="Profil"
-                        fullLabel="profil"
-                        align="left"
-                        className="min-w-40"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
-
-                      <SortableTableHeader
-                        sortKey="potential"
-                        label="Potentiel"
-                        fullLabel="potentiel"
-                        className="min-w-36"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
-
-                      {ratingColumns.map(
-                        (column) => (
+                  <div className="hidden overflow-x-auto xl:block">
+                    <table className="min-w-[1380px] w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
                           <SortableTableHeader
-                            key={column.key}
-                            sortKey={column.key}
-                            label={column.label}
-                            fullLabel={column.fullLabel}
+                            sortKey="rider"
+                            label="Coureur"
+                            fullLabel="nom du coureur"
+                            align="left"
+                            className="sticky left-0 z-10 min-w-64 shadow-[8px_0_16px_-14px_rgba(8,42,42,0.45)]"
+                            linkClassName="px-4"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
+
+                          <SortableTableHeader
+                            sortKey="age"
+                            label="Âge"
+                            fullLabel="âge"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
+
+                          <SortableTableHeader
+                            sortKey="profile"
+                            label="Profil"
+                            fullLabel="profil"
+                            align="left"
+                            className="min-w-28"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
+
+                          <SortableTableHeader
+                            sortKey="potential"
+                            label="Potentiel"
+                            fullLabel="potentiel"
+                            className="min-w-24"
                             linkClassName="px-2"
                             currentSortKey={currentSortKey}
                             currentDirection={currentSortDirection}
                           />
-                        )
-                      )}
 
-                      <SortableTableHeader
-                        sortKey="average"
-                        label="Moy."
-                        fullLabel="moyenne"
-                        className="min-w-28"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
+                          <SortableTableHeader
+                            sortKey="form"
+                            label="Forme"
+                            fullLabel="forme actuelle"
+                            className="min-w-20"
+                            linkClassName="px-2"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
 
-                      <SortableTableHeader
-                        sortKey="salary"
-                        label="Salaire"
-                        fullLabel="salaire"
-                        align="right"
-                        className="min-w-36"
-                        linkClassName="px-4"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
+                          {ratingColumns.map((column) => (
+                            <SortableTableHeader
+                              key={column.key}
+                              sortKey={column.key}
+                              label={column.label}
+                              fullLabel={column.fullLabel}
+                              linkClassName="px-1"
+                              currentSortKey={currentSortKey}
+                              currentDirection={currentSortDirection}
+                            />
+                          ))}
 
-                      <SortableTableHeader
-                        sortKey="contract"
-                        label="Contrat"
-                        fullLabel="échéance du contrat"
-                        align="left"
-                        className="min-w-36"
-                        linkClassName="px-5"
-                        currentSortKey={currentSortKey}
-                        currentDirection={currentSortDirection}
-                      />
-                    </tr>
-                  </thead>
+                          <SortableTableHeader
+                            sortKey="average"
+                            label="Moy."
+                            fullLabel="moyenne"
+                            className="min-w-20"
+                            linkClassName="px-2"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
 
-                  <tbody>
-                    {sortedRiders.map((rider) => (
-                      <RiderTableRow
-                        key={rider.rider_id}
-                        rider={rider}
-                        jersey={riderJersey}
-                        health={healthByRiderId.get(rider.rider_id) ?? null}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyRoster />
-            )}
+                          <SortableTableHeader
+                            sortKey="salary"
+                            label="Salaire"
+                            fullLabel="salaire"
+                            align="right"
+                            className="min-w-32"
+                            linkClassName="px-3"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
+
+                          <SortableTableHeader
+                            sortKey="contract"
+                            label="Contrat"
+                            fullLabel="échéance du contrat"
+                            align="left"
+                            className="min-w-28"
+                            linkClassName="px-3"
+                            currentSortKey={currentSortKey}
+                            currentDirection={currentSortDirection}
+                          />
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {sortedRiders.map((rider) => (
+                          <RiderTableRow
+                            key={rider.rider_id}
+                            rider={rider}
+                            jersey={
+                              nationalChampionJerseyByRiderId.get(
+                                rider.rider_id,
+                              ) ?? riderJersey
+                            }
+                            health={healthByRiderId.get(rider.rider_id) ?? null}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <EmptyRoster />
+              )}
             </section>
           )}
 
           {activeView === "statistiques" ? (
             <p className="mt-5 text-sm leading-6 text-[#60756E]">
-              Cliquez sur un coureur pour ouvrir sa fiche détaillée dans un nouvel onglet.
+              Cliquez sur un coureur pour ouvrir sa fiche détaillée dans un
+              nouvel onglet.
             </p>
           ) : null}
         </div>
@@ -684,18 +709,14 @@ function RosterViewTabs({
       >
         <strong
           className={`block text-sm font-black ${
-            activeView === "statistiques"
-              ? "text-white"
-              : "text-[#183F37]"
+            activeView === "statistiques" ? "text-white" : "text-[#183F37]"
           }`}
         >
           Statistiques & contrats
         </strong>
         <span
           className={`mt-1 block text-xs font-semibold ${
-            activeView === "statistiques"
-              ? "text-[#BFD1C6]"
-              : "text-[#60756E]"
+            activeView === "statistiques" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
           Notes, potentiel, salaire et échéance
@@ -719,9 +740,7 @@ function RosterViewTabs({
         </strong>
         <span
           className={`mt-1 block text-xs font-semibold ${
-            activeView === "planning"
-              ? "text-[#BFD1C6]"
-              : "text-[#60756E]"
+            activeView === "planning" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
           Courses, stages, reconnaissances et blessures
@@ -738,8 +757,8 @@ function PlanningUnavailable() {
         Le planning est momentanément indisponible
       </p>
       <p className="mt-2 text-sm font-semibold text-[#7A5555]">
-        Les données de l’effectif restent accessibles dans la vue Statistiques
-        & contrats.
+        Les données de l’effectif restent accessibles dans la vue Statistiques &
+        contrats.
       </p>
     </section>
   );
@@ -755,8 +774,7 @@ function TeamSeasonSummary({
   teamName: string;
   seasonName: string;
   seasonDayNumber: number;
-  sponsorIdentity:
-    TeamSponsorIdentity | null;
+  sponsorIdentity: TeamSponsorIdentity | null;
   divisionCode: string | null;
 }) {
   return (
@@ -766,43 +784,25 @@ function TeamSeasonSummary({
           className="hidden h-14 w-24 items-center justify-center overflow-hidden rounded-lg border bg-white px-2 py-1 sm:flex"
           style={{
             borderColor: `${sponsorIdentity.sponsor.colors.primary}35`,
-            backgroundColor:
-              sponsorIdentity.sponsor.colors
-                .background,
+            backgroundColor: sponsorIdentity.sponsor.colors.background,
           }}
         >
           <SponsorLogo
-            src={
-              sponsorIdentity.sponsor.logoPath
-            }
+            src={sponsorIdentity.sponsor.logoPath}
             alt={`Logo de ${sponsorIdentity.sponsor.name}`}
-            sponsorName={
-              sponsorIdentity.sponsor.name
-            }
-            primaryColor={
-              sponsorIdentity.sponsor.colors
-                .primary
-            }
-            backgroundColor={
-              sponsorIdentity.sponsor.colors
-                .background
-            }
-            textColor={
-              sponsorIdentity.sponsor.colors
-                .text
-            }
+            sponsorName={sponsorIdentity.sponsor.name}
+            primaryColor={sponsorIdentity.sponsor.colors.primary}
+            backgroundColor={sponsorIdentity.sponsor.colors.background}
+            textColor={sponsorIdentity.sponsor.colors.text}
           />
         </div>
       ) : null}
 
       <div className="text-right">
-        <p className="font-black text-[#082A2A]">
-          {teamName}
-        </p>
+        <p className="font-black text-[#082A2A]">{teamName}</p>
 
         <p className="mt-1 text-sm font-semibold text-[#60756E]">
-          {seasonName} · Jour{" "}
-          {seasonDayNumber} / 28
+          {seasonName} · Jour {seasonDayNumber} / 28
         </p>
         <span className="mt-2 flex justify-end">
           <TeamDivisionBadge division={divisionCode} compact />
@@ -832,7 +832,9 @@ function TeamAmateurIdentityBanner({
             className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0F5944] hover:shadow-md"
           >
             Modifier le maillot
-            <span className="ml-2" aria-hidden="true">→</span>
+            <span className="ml-2" aria-hidden="true">
+              →
+            </span>
           </Link>
         </div>
         <div className="flex justify-center">
@@ -881,12 +883,8 @@ function TeamCommercialIdentityBanner({
             src={sponsor.logoPath}
             alt={`Logo de ${sponsor.name}`}
             sponsorName={sponsor.name}
-            primaryColor={
-              sponsor.colors.primary
-            }
-            backgroundColor={
-              sponsor.colors.background
-            }
+            primaryColor={sponsor.colors.primary}
+            backgroundColor={sponsor.colors.background}
             textColor={sponsor.colors.text}
           />
         </div>
@@ -919,40 +917,24 @@ function TeamCommercialIdentityBanner({
               label="Budget annuel"
               value={formatMoney(
                 identity.budgetPerSeason,
-                identity.currencyCode
+                identity.currencyCode,
               )}
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
             />
 
             <CommercialMetric
               label="Durée"
-              value={formatDuration(
-                identity.contractDurationSeasons
-              )}
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              value={formatDuration(identity.contractDurationSeasons)}
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
             />
 
             <CommercialMetric
               label="Maillot"
-              value={
-                identity.selectedJersey.name
-              }
-              primaryColor={
-                sponsor.colors.primary
-              }
-              backgroundColor={
-                sponsor.colors.background
-              }
+              value={identity.selectedJersey.name}
+              primaryColor={sponsor.colors.primary}
+              backgroundColor={sponsor.colors.background}
             />
           </div>
         </div>
@@ -960,9 +942,7 @@ function TeamCommercialIdentityBanner({
         <div className="flex justify-center">
           <SponsorJerseyPreview
             sponsor={sponsor}
-            jersey={
-              identity.selectedJersey
-            }
+            jersey={identity.selectedJersey}
             className="h-44 w-40 drop-shadow-xl"
           />
         </div>
@@ -999,9 +979,7 @@ function CommercialMetric({
         {label}
       </p>
 
-      <p className="mt-1 text-sm font-black text-[#082A2A]">
-        {value}
-      </p>
+      <p className="mt-1 text-sm font-black text-[#082A2A]">{value}</p>
     </div>
   );
 }
@@ -1021,13 +999,9 @@ function SummaryCard({
         {label}
       </p>
 
-      <p className="mt-3 text-2xl font-black text-[#082A2A]">
-        {value}
-      </p>
+      <p className="mt-3 text-2xl font-black text-[#082A2A]">{value}</p>
 
-      <p className="mt-2 text-sm font-semibold text-[#60756E]">
-        {detail}
-      </p>
+      <p className="mt-2 text-sm font-semibold text-[#60756E]">{detail}</p>
     </article>
   );
 }
@@ -1051,18 +1025,14 @@ function SortableTableHeader({
   className?: string;
   linkClassName?: string;
 }) {
-  const isActive =
-    currentSortKey === sortKey;
-  const nextDirection =
-    getNextRosterSortDirection({
-      sortKey,
-      currentSortKey,
-      currentDirection,
-    });
+  const isActive = currentSortKey === sortKey;
+  const nextDirection = getNextRosterSortDirection({
+    sortKey,
+    currentSortKey,
+    currentDirection,
+  });
   const nextDirectionLabel =
-    nextDirection === "asc"
-      ? "croissant"
-      : "décroissant";
+    nextDirection === "asc" ? "croissant" : "décroissant";
   const alignmentClass =
     align === "left"
       ? "justify-start text-left"
@@ -1114,19 +1084,289 @@ function SortableTableHeader({
           aria-hidden="true"
           className={[
             "text-[0.7rem] leading-none",
-            isActive
-              ? "text-[#176951]"
-              : "text-[#91A69F]",
+            isActive ? "text-[#176951]" : "text-[#91A69F]",
           ].join(" ")}
         >
-          {isActive
-            ? currentDirection === "asc"
-              ? "↑"
-              : "↓"
-            : "↕"}
+          {isActive ? (currentDirection === "asc" ? "↑" : "↓") : "↕"}
         </span>
       </Link>
     </th>
+  );
+}
+
+function MobileRosterSortMenu({
+  currentSortKey,
+  currentDirection,
+}: {
+  currentSortKey: RosterSortKey | null;
+  currentDirection: RosterSortDirection;
+}) {
+  const sortOptions: Array<{
+    key: RosterSortKey;
+    label: string;
+    fullLabel: string;
+  }> = [
+    { key: "rider", label: "Nom", fullLabel: "nom du coureur" },
+    { key: "age", label: "\u00c2ge", fullLabel: "\u00e2ge" },
+    { key: "profile", label: "Profil", fullLabel: "profil" },
+    { key: "potential", label: "Potentiel", fullLabel: "potentiel" },
+    { key: "form", label: "Forme", fullLabel: "forme actuelle" },
+    ...ratingColumns.map((column) => ({
+      key: column.key,
+      label: column.label,
+      fullLabel: column.fullLabel,
+    })),
+    { key: "average", label: "Moyenne", fullLabel: "moyenne" },
+    { key: "salary", label: "Salaire", fullLabel: "salaire" },
+    { key: "contract", label: "Contrat", fullLabel: "contrat" },
+  ];
+  const activeOption = sortOptions.find(
+    (option) => option.key === currentSortKey,
+  );
+
+  return (
+    <details className="border-b border-[#315B3E]/12 bg-[#F3F8F6] px-4 py-3">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg text-sm font-black text-[#183F37] marker:hidden">
+        <span>Trier l&apos;effectif</span>
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] text-[#176951] shadow-sm">
+          {activeOption?.label ?? "Par d\u00e9faut"}
+          {activeOption
+            ? currentDirection === "asc"
+              ? "  \u2191"
+              : "  \u2193"
+            : ""}
+        </span>
+      </summary>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {sortOptions.map((option) => {
+          const isActive = option.key === currentSortKey;
+          const nextDirection = getNextRosterSortDirection({
+            sortKey: option.key,
+            currentSortKey,
+            currentDirection,
+          });
+
+          return (
+            <Link
+              key={option.key}
+              href={{
+                pathname: "/jeu/effectif",
+                query: {
+                  vue: "statistiques",
+                  sort: option.key,
+                  direction: nextDirection,
+                },
+              }}
+              scroll={false}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={`Trier par ${option.fullLabel}`}
+              className={[
+                "flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-extrabold transition",
+                isActive
+                  ? "border-[#278B70] bg-[#D7EEE8] text-[#0F5944]"
+                  : "border-[#315B3E]/12 bg-white text-[#48665F] hover:border-[#278B70]/40 hover:bg-[#EAF5F3]",
+              ].join(" ")}
+            >
+              <span>{option.label}</span>
+              <span aria-hidden="true">
+                {isActive
+                  ? currentDirection === "asc"
+                    ? "\u2191"
+                    : "\u2193"
+                  : "\u2195"}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
+
+function RiderMobileCard({
+  rider,
+  jersey,
+  health,
+}: {
+  rider: RiderRow;
+  jersey: RiderJerseyAppearance;
+  health: RiderRosterHealth | null;
+}) {
+  const riderName = `${rider.first_name} ${rider.last_name}`.trim();
+  const riderProfile = getRiderSportingProfile(toRiderRatings(rider));
+  const riderAverage = getRiderAverage(rider);
+
+  return (
+    <article className="bg-white p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <Link
+          href={`/jeu/coureurs/${rider.rider_id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
+          aria-label={`Ouvrir la fiche de ${riderName} dans un nouvel onglet`}
+        >
+          <span className="relative shrink-0">
+            <RiderAvatar
+              profileKey={rider.avatar_profile_key}
+              seed={rider.avatar_seed}
+              riderId={rider.rider_id}
+              age={rider.age}
+              jersey={jersey}
+              label={`Portrait de ${riderName}`}
+            />
+            {health?.injury ? (
+              <span
+                title={`${health.injury.label} - retour le ${formatMedicalDate(
+                  health.injury.expectedRecoveryAt,
+                )}`}
+                className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#D94F4F] text-white shadow-md"
+              >
+                <MedicalCrossIcon />
+              </span>
+            ) : null}
+          </span>
+
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base font-black text-[#082A2A]">
+              {riderName}
+            </span>
+            <span className="mt-1 flex items-center gap-2">
+              <CountryFlag
+                isoAlpha2={rider.country_iso_alpha2}
+                countryName={rider.country_name}
+              />
+              <span className="truncate text-xs font-semibold text-[#60756E]">
+                {rider.country_name}
+              </span>
+              <span
+                className="text-xs font-black text-[#278B70]"
+                aria-hidden="true"
+              >
+                {"\u2197"}
+              </span>
+            </span>
+            <span className="mt-2 inline-flex max-w-full rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[11px] font-extrabold leading-4 text-[#176951]">
+              {riderProfile}
+            </span>
+          </span>
+        </Link>
+
+        <span className="shrink-0 rounded-xl bg-[#EAF5F3] px-2.5 py-2 text-center">
+          <span className="block text-[9px] font-extrabold uppercase tracking-wide text-[#60756E]">
+            Moy.
+          </span>
+          <span className="mt-0.5 block text-lg font-black text-[#183F37]">
+            {riderAverage}
+          </span>
+        </span>
+      </div>
+
+      {health?.injury ? (
+        <p className="mt-3 rounded-lg bg-[#FFF0F0] px-3 py-2 text-[10px] font-black text-[#B54242]">
+          {health.injury.label} {"\u00b7"} reprise{" "}
+          {formatMedicalDate(health.injury.expectedRecoveryAt)}
+        </p>
+      ) : health?.formCamp ? (
+        <p className="mt-3 rounded-lg bg-[#FFF8DD] px-3 py-2 text-[10px] font-black text-[#8A6B16]">
+          {health.formCamp.label} {"\u00b7"} J{health.formCamp.startDay}
+          {"\u2013"}J{health.formCamp.endDay}
+        </p>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <MobileRiderMetric label={"\u00c2ge"} value={`${rider.age} ans`} />
+        <MobileRiderMetric
+          label="Potentiel"
+          value={
+            <PotentialStars
+              potentialSteps={rider.potential_steps}
+              compact
+              showLabel={false}
+            />
+          }
+        />
+        <MobileRiderMetric
+          label="Forme"
+          value={<RiderFormBadge value={health?.form ?? 75} />}
+        />
+      </div>
+
+      <section
+        aria-label={`Statistiques de ${riderName}`}
+        className="mt-4 rounded-xl border border-[#315B3E]/12 bg-[#F7FAF9] p-3"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#48665F]">
+            Statistiques
+          </h3>
+          <span className="text-[10px] font-bold text-[#82958F]">
+            13 notes du coureur
+          </span>
+        </div>
+        <dl className="mt-3 grid grid-cols-4 gap-2 min-[420px]:grid-cols-5 sm:grid-cols-7">
+          {ratingColumns.map((column) => (
+            <div key={column.key} className="text-center">
+              <dt
+                title={column.fullLabel}
+                className="text-[9px] font-extrabold uppercase tracking-wide text-[#60756E]"
+              >
+                {column.label}
+              </dt>
+              <dd className="mt-1">
+                <RatingBadge
+                  value={rider[column.key]}
+                  label={column.fullLabel}
+                />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#315B3E]/10 pt-3">
+        <div>
+          <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#82958F]">
+            Salaire
+          </p>
+          <p className="mt-1 text-xs font-black text-[#183F37]">
+            {formatMoney(
+              Number(rider.salary_per_season) / 4,
+              rider.contract_currency,
+            )}{" "}
+            / sem.
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#82958F]">
+            Contrat
+          </p>
+          <p className="mt-1 text-xs font-black text-[#183F37]">
+            {rider.contract_end_season_name}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MobileRiderMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[#315B3E]/10 bg-[#F7FAF9] px-2 py-2.5 text-center">
+      <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#60756E]">
+        {label}
+      </p>
+      <div className="mt-1.5 flex min-h-8 items-center justify-center text-sm font-black text-[#183F37]">
+        {value}
+      </div>
+    </div>
   );
 }
 
@@ -1137,30 +1377,25 @@ function RiderTableRow({
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
-  health: {
-    injury: RiderMedicalInjury | null;
-    formCamp: RiderFormCamp | null;
-  } | null;
+  health: RiderRosterHealth | null;
 }) {
-  const riderName =
-    `${rider.first_name} ${rider.last_name}`.trim();
+  const riderName = `${rider.first_name} ${rider.last_name}`.trim();
 
   const riderProfile = getRiderSportingProfile(toRiderRatings(rider));
 
-  const riderAverage =
-    getRiderAverage(rider);
+  const riderAverage = getRiderAverage(rider);
 
   return (
     <tr className="border-b border-[#315B3E]/10 transition last:border-b-0 hover:bg-[#F6FAF8]">
       <th
         scope="row"
-        className="sticky left-0 z-10 bg-white px-5 py-4 text-left"
+        className="sticky left-0 z-10 bg-white px-4 py-4 text-left shadow-[8px_0_16px_-14px_rgba(8,42,42,0.45)]"
       >
         <Link
           href={`/jeu/coureurs/${rider.rider_id}`}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
+          className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
           aria-label={`Ouvrir la fiche de ${riderName} dans un nouvel onglet`}
         >
           <span className="relative shrink-0">
@@ -1175,7 +1410,7 @@ function RiderTableRow({
             {health?.injury ? (
               <span
                 title={`${health.injury.label} · retour le ${formatMedicalDate(
-                  health.injury.expectedRecoveryAt
+                  health.injury.expectedRecoveryAt,
                 )}`}
                 className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-[#D94F4F] text-white shadow-md"
               >
@@ -1191,45 +1426,46 @@ function RiderTableRow({
 
             <div className="mt-1 flex items-center gap-2">
               <CountryFlag
-                isoAlpha2={
-                  rider.country_iso_alpha2
-                }
-                countryName={
-                  rider.country_name
-                }
+                isoAlpha2={rider.country_iso_alpha2}
+                countryName={rider.country_name}
               />
 
               <span className="truncate text-xs font-semibold text-[#60756E]">
                 {rider.country_name}
               </span>
-              <span className="text-xs font-black text-[#278B70]" aria-hidden="true">
+              <span
+                className="text-xs font-black text-[#278B70]"
+                aria-hidden="true"
+              >
                 ↗
               </span>
             </div>
             {health?.injury ? (
               <p className="mt-1 truncate text-[10px] font-black text-[#B54242]">
-                {health.injury.label} · reprise {formatMedicalDate(health.injury.expectedRecoveryAt)}
+                {health.injury.label} · reprise{" "}
+                {formatMedicalDate(health.injury.expectedRecoveryAt)}
               </p>
             ) : health?.formCamp ? (
               <p className="mt-1 truncate text-[10px] font-black text-[#8A6B16]">
-                {health.formCamp.label} · J{health.formCamp.startDay}–J{health.formCamp.endDay}
+                {health.formCamp.label} · J{health.formCamp.startDay}–J
+                {health.formCamp.endDay}
               </p>
             ) : null}
           </div>
         </Link>
       </th>
 
-      <td className="px-3 py-4 text-center font-black text-[#082A2A]">
+      <td className="px-2 py-4 text-center font-black text-[#082A2A]">
         {rider.age}
       </td>
 
-      <td className="px-3 py-4">
-        <span className="inline-flex rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-extrabold text-[#176951]">
+      <td className="px-2 py-4">
+        <span className="inline-flex max-w-28 rounded-full bg-[#D7EEE8] px-2.5 py-1.5 text-xs font-extrabold leading-4 text-[#176951]">
           {riderProfile}
         </span>
       </td>
 
-      <td className="px-3 py-4 text-center">
+      <td className="px-2 py-4 text-center">
         <PotentialStars
           potentialSteps={rider.potential_steps}
           compact
@@ -1237,43 +1473,41 @@ function RiderTableRow({
         />
       </td>
 
+      <td className="px-2 py-4 text-center">
+        <RiderFormBadge value={health?.form ?? 75} />
+      </td>
+
       {ratingColumns.map((column) => {
         const value = rider[column.key];
 
         return (
-          <td
-            key={column.key}
-            className="px-2 py-4 text-center"
-          >
-            <RatingBadge
-              value={value}
-              label={column.fullLabel}
-            />
+          <td key={column.key} className="px-1 py-4 text-center">
+            <RatingBadge value={value} label={column.fullLabel} />
           </td>
         );
       })}
 
-      <td className="px-3 py-4 text-center">
-        <span className="font-black text-[#082A2A]">
-          {riderAverage}
-        </span>
+      <td className="px-2 py-4 text-center">
+        <span className="font-black text-[#082A2A]">{riderAverage}</span>
       </td>
 
-      <td className="px-4 py-4 text-right font-bold text-[#48665F]">
-        <p>{formatMoney(
-          Number(rider.salary_per_season) / 4,
-          rider.contract_currency
-        )} / sem.</p>
+      <td className="px-3 py-4 text-right font-bold text-[#48665F]">
+        <p>
+          {formatMoney(
+            Number(rider.salary_per_season) / 4,
+            rider.contract_currency,
+          )}{" "}
+          / sem.
+        </p>
         <p className="mt-1 text-[10px] font-semibold text-[#82958F]">
-          {formatMoney(rider.salary_per_season, rider.contract_currency)} / saison
+          {formatMoney(rider.salary_per_season, rider.contract_currency)} /
+          saison
         </p>
       </td>
 
-      <td className="px-5 py-4">
+      <td className="px-3 py-4">
         <p className="font-bold text-[#082A2A]">
-          {
-            rider.contract_end_season_name
-          }
+          {rider.contract_end_season_name}
         </p>
 
         <p className="mt-1 text-xs font-semibold text-[#60756E]">
@@ -1284,18 +1518,52 @@ function RiderTableRow({
   );
 }
 
-function RatingBadge({
-  value,
-  label,
-}: {
-  value: number;
-  label: string;
-}) {
+function RiderFormBadge({ value }: { value: number }) {
+  const normalizedValue = Math.min(Math.max(Math.round(value), 0), 100);
+  const colorClass =
+    normalizedValue >= 80
+      ? "bg-[#176951]"
+      : normalizedValue >= 60
+        ? "bg-[#2FA982]"
+        : normalizedValue >= 40
+          ? "bg-[#D39B2F]"
+          : "bg-[#D94F4F]";
+
+  return (
+    <div
+      title={`Forme actuelle : ${normalizedValue} %`}
+      className="mx-auto w-14"
+    >
+      <span
+        aria-hidden="true"
+        className="block text-sm font-black tabular-nums text-[#183F37]"
+      >
+        {normalizedValue}
+        <span className="ml-0.5 text-[9px] text-[#60756E]">%</span>
+      </span>
+      <span
+        role="progressbar"
+        aria-label={`Forme actuelle : ${normalizedValue} %`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={normalizedValue}
+        className="mx-auto mt-1 block h-1.5 w-12 overflow-hidden rounded-full bg-[#D7EEE8]"
+      >
+        <span
+          className={`block h-full rounded-full ${colorClass}`}
+          style={{ width: `${normalizedValue}%` }}
+        />
+      </span>
+    </div>
+  );
+}
+
+function RatingBadge({ value, label }: { value: number; label: string }) {
   return (
     <span
       title={`${label} : ${value}`}
       className={[
-        "inline-flex h-9 min-w-10 items-center justify-center rounded-lg border px-2 text-sm font-black",
+        "inline-flex h-8 min-w-9 items-center justify-center rounded-md border px-1.5 text-xs font-black",
         getRiderRatingColorClasses(value),
       ].join(" ")}
     >
@@ -1306,7 +1574,12 @@ function RatingBadge({
 
 function MedicalCrossIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor">
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-3 w-3"
+      fill="currentColor"
+    >
       <path d="M7.5 2.5h5v5h5v5h-5v5h-5v-5h-5v-5h5v-5Z" />
     </svg>
   );
@@ -1325,9 +1598,7 @@ function formatMedicalDate(value: string) {
 function RatingLegend() {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-      <span className="text-[#BFD1C6]">
-        Échelle :
-      </span>
+      <span className="text-[#BFD1C6]">Échelle :</span>
 
       <span className="rounded-md bg-white px-2 py-1 text-[#48665F]">
         &lt; 50
@@ -1341,17 +1612,13 @@ function RatingLegend() {
         60+
       </span>
 
-      <span className="rounded-md bg-[#3F8F5A] px-2 py-1 text-white">
-        70+
-      </span>
+      <span className="rounded-md bg-[#3F8F5A] px-2 py-1 text-white">70+</span>
 
       <span className="rounded-md bg-[#F4B04D] px-2 py-1 text-[#5B3100]">
         80+
       </span>
 
-      <span className="rounded-md bg-[#D84B4B] px-2 py-1 text-white">
-        90+
-      </span>
+      <span className="rounded-md bg-[#D84B4B] px-2 py-1 text-white">90+</span>
     </div>
   );
 }
@@ -1363,16 +1630,11 @@ function CountryFlag({
   isoAlpha2: string;
   countryName: string;
 }) {
-  const normalizedCode = isoAlpha2
-    .trim()
-    .toLowerCase();
+  const normalizedCode = isoAlpha2.trim().toLowerCase();
 
   if (!/^[a-z]{2}$/.test(normalizedCode)) {
     return (
-      <span
-        role="img"
-        aria-label={`Drapeau : ${countryName}`}
-      >
+      <span role="img" aria-label={`Drapeau : ${countryName}`}>
         🏳️
       </span>
     );
@@ -1398,13 +1660,11 @@ function EmptyRoster() {
         <RosterIcon />
       </div>
 
-      <h2 className="mt-5 text-xl font-black">
-        Aucun coureur récupéré
-      </h2>
+      <h2 className="mt-5 text-xl font-black">Aucun coureur récupéré</h2>
 
       <p className="mx-auto mt-3 max-w-xl leading-7 text-[#60756E]">
-        L’équipe existe, mais aucun contrat actif
-        n’a été trouvé pour la saison actuelle.
+        L’équipe existe, mais aucun contrat actif n’a été trouvé pour la saison
+        actuelle.
       </p>
     </div>
   );
@@ -1413,27 +1673,18 @@ function EmptyRoster() {
 function RosterErrorMessage() {
   return (
     <div className="mt-8 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
-      L’effectif n’a pas pu être récupéré.
-      Consultez les journaux techniques pour
-      connaître le détail de l’erreur.
+      L’effectif n’a pas pu être récupéré. Consultez les journaux techniques
+      pour connaître le détail de l’erreur.
     </div>
   );
 }
 
-function TeamSponsorIdentityWarning({
-  message,
-}: {
-  message: string;
-}) {
+function TeamSponsorIdentityWarning({ message }: { message: string }) {
   return (
     <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
-      L’effectif reste disponible, mais
-      l’identité commerciale de l’équipe n’a pas
-      pu être chargée.
-
-      <span className="mt-1 block text-xs font-medium">
-        {message}
-      </span>
+      L’effectif reste disponible, mais l’identité commerciale de l’équipe n’a
+      pas pu être chargée.
+      <span className="mt-1 block text-xs font-medium">{message}</span>
     </div>
   );
 }
@@ -1450,17 +1701,9 @@ function RosterIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle
-        cx="8"
-        cy="8"
-        r="3"
-      />
+      <circle cx="8" cy="8" r="3" />
 
-      <circle
-        cx="17"
-        cy="9"
-        r="2.5"
-      />
+      <circle cx="17" cy="9" r="2.5" />
 
       <path d="M2.5 20c.5-4.5 2.5-7 5.5-7s5 2.5 5.5 7" />
 
@@ -1488,30 +1731,23 @@ function toRiderRatings(rider: RiderRow): RiderRatings {
 }
 
 function getFirstSearchParam(
-  value: string | string[] | undefined
+  value: string | string[] | undefined,
 ): string | undefined {
-  return Array.isArray(value)
-    ? value[0]
-    : value;
+  return Array.isArray(value) ? value[0] : value;
 }
 
-function isRatingKey(
-  sortKey: RosterSortKey
-): sortKey is RatingKey {
-  return ratingColumns.some(
-    (column) => column.key === sortKey
-  );
+function isRatingKey(sortKey: RosterSortKey): sortKey is RatingKey {
+  return ratingColumns.some((column) => column.key === sortKey);
 }
 
-function getRiderSortName(
-  rider: RiderRow
-): string {
+function getRiderSortName(rider: RiderRow): string {
   return `${rider.last_name} ${rider.first_name} ${rider.rider_id}`;
 }
 
 function getRosterSortValue(
   rider: RiderRow,
-  sortKey: RosterSortKey
+  sortKey: RosterSortKey,
+  form: number,
 ): RosterSortValue {
   if (isRatingKey(sortKey)) {
     return rider[sortKey];
@@ -1523,44 +1759,33 @@ function getRosterSortValue(
     case "age":
       return rider.age;
     case "profile":
-      return getRiderSportingProfile(
-        toRiderRatings(rider)
-      );
+      return getRiderSportingProfile(toRiderRatings(rider));
     case "potential":
       return rider.potential_steps;
+    case "form":
+      return form;
     case "average":
       return getRiderAverage(rider);
     case "salary": {
-      const salary = Number(
-        rider.salary_per_season
-      );
+      const salary = Number(rider.salary_per_season);
 
-      return Number.isFinite(salary)
-        ? salary
-        : null;
+      return Number.isFinite(salary) ? salary : null;
     }
     case "contract":
       return rider.contract_end_season_name;
   }
 }
 
-function getRiderAverage(
-  rider: RiderRow
-): number {
+function getRiderAverage(rider: RiderRow): number {
   const total = ratingColumns.reduce(
-    (sum, column) =>
-      sum + rider[column.key],
-    0
+    (sum, column) => sum + rider[column.key],
+    0,
   );
 
-  return Math.round(
-    total / ratingColumns.length
-  );
+  return Math.round(total / ratingColumns.length);
 }
 
-function getErrorMessage(
-  error: unknown
-): string {
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
@@ -1568,10 +1793,7 @@ function getErrorMessage(
   return "Une erreur inattendue est survenue.";
 }
 
-function formatMoney(
-  value: number | string,
-  currency: string
-): string {
+function formatMoney(value: number | string, currency: string): string {
   const numericValue = Number(value);
 
   if (!Number.isFinite(numericValue)) {
@@ -1585,20 +1807,14 @@ function formatMoney(
       maximumFractionDigits: 0,
     }).format(numericValue);
   } catch {
-    return `${numericValue.toLocaleString(
-      "fr-FR"
-    )} ${currency}`;
+    return `${numericValue.toLocaleString("fr-FR")} ${currency}`;
   }
 }
 
-function formatDuration(
-  value: number
-): string {
+function formatDuration(value: number): string {
   return `${value} saison${value === 1 ? "" : "s"}`;
 }
 
-function formatRiderCount(
-  value: number
-): string {
+function formatRiderCount(value: number): string {
   return `${value} coureur${value === 1 ? "" : "s"}`;
 }

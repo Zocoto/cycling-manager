@@ -73,6 +73,17 @@ export type TeamEquipmentCatalogItem = {
   availableQuantity: number;
 };
 
+export type TeamEquipmentAssignment = {
+  riderId: string;
+  slot: EquipmentSlot;
+  equipmentItemId: string;
+};
+
+export type TeamEquipmentPendingAssignment =
+  TeamEquipmentAssignment & {
+    effectiveAt: string;
+  };
+
 export type TeamEquipmentSupplier = {
   key: string;
   name: string;
@@ -94,6 +105,8 @@ export type TeamEquipmentOverview = {
   currency: string;
   suppliers: TeamEquipmentSupplier[];
   catalog: TeamEquipmentCatalogItem[];
+  assignments: TeamEquipmentAssignment[];
+  pendingAssignments: TeamEquipmentPendingAssignment[];
 };
 
 export type RiderEquipmentManagement = {
@@ -121,6 +134,23 @@ export async function getCurrentTeamEquipmentOverview(
     currency: context.teamSeason.currency,
     suppliers: context.suppliers,
     catalog: context.catalog,
+    assignments: context.equipped.map(
+      (assignment) => ({
+        riderId: assignment.rider_id,
+        slot: assignment.slot_type,
+        equipmentItemId:
+          assignment.equipment_item_id,
+      }),
+    ),
+    pendingAssignments: context.pending.map(
+      (assignment) => ({
+        riderId: assignment.rider_id,
+        slot: assignment.slot_type,
+        equipmentItemId:
+          assignment.equipment_item_id,
+        effectiveAt: assignment.effective_at,
+      }),
+    ),
   };
 }
 

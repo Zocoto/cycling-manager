@@ -10,6 +10,7 @@ export type OfficialRiderResult = {
   riderId: string;
   riderName: string;
   teamId: string;
+  teamProfileId?: string | null;
   teamName: string;
   rank: number | null;
   status: OfficialResultStatus;
@@ -22,6 +23,7 @@ export type OfficialRiderResult = {
 
 export type OfficialTeamResult = {
   teamId: string;
+  teamProfileId?: string | null;
   teamName: string;
   rank: number;
   totalTimeMs: number;
@@ -44,6 +46,7 @@ export type OfficialAttackParticipant = {
   riderId: string;
   riderName: string;
   teamId: string;
+  teamProfileId?: string | null;
   teamName: string;
   participationType: "breakaway" | "chase";
   stageNumbers: number[];
@@ -68,6 +71,7 @@ export type PersistedStageResultForGeneral = {
   riderId: string;
   riderName: string;
   teamId: string;
+  teamProfileId?: string | null;
   teamName: string;
   status: OfficialResultStatus;
   elapsedTimeMs: number | null;
@@ -124,6 +128,7 @@ export function buildPersistedGeneralClassification(
         riderId: result.riderId,
         riderName: result.riderName,
         teamId: result.teamId,
+        teamProfileId: result.teamProfileId,
         teamName: result.teamName,
       });
 
@@ -167,6 +172,7 @@ export function buildPersistedGeneralClassification(
       riderId: result.riderId,
       riderName: result.riderName,
       teamId: result.teamId,
+      teamProfileId: result.teamProfileId,
       teamName: result.teamName,
       rank: null,
       status: result.status,

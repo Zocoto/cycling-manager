@@ -10,6 +10,7 @@ const UNLOCKED_TONES: Record<SpecialAbilityDefinition["tone"], string> = {
   red: "border-[#E45D5D] bg-[linear-gradient(145deg,#FF9A8E,#B72F36)] text-white shadow-[#A6242D]/30",
   purple: "border-[#9A6DD1] bg-[linear-gradient(145deg,#CEAAEE,#6E3BA0)] text-white shadow-[#5B278D]/30",
   green: "border-[#42B99A] bg-[linear-gradient(145deg,#9BE0BC,#278B70)] text-[#07302A] shadow-[#176951]/30",
+  slate: "border-[#56616A] bg-[linear-gradient(145deg,#6C7881,#20272C)] text-[#F3F5F6] shadow-black/35",
 };
 
 export function SpecialAbilityMedallion({
@@ -67,6 +68,9 @@ function AbilityIcon({ icon }: { icon: SpecialAbilityDefinition["icon"] }) {
   }
   if (icon === "potato") {
     return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-current stroke-current" strokeWidth="1.5"><path d="M24.5 8.8c4.2 4.5 3.3 12.8-2.2 16.4-5.2 3.4-13.6 1.1-16.2-4.7C3.8 15.3 7.7 7.7 14 6.4c3.7-.8 7.9-.3 10.5 2.4Z" opacity=".45" /><circle cx="12" cy="12" r="1" /><circle cx="20" cy="11" r="1" /><circle cx="18" cy="21" r="1" /></svg>;
+  }
+  if (icon === "walking_cane") {
+    return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5c4 0 6 2 6 5s-2 5-5 5h-3" /><path d="M18 10v16c0 2-1 3-3 3s-3-1-3-3" /><path d="M14 11h8" /></svg>;
   }
   if (icon === "sandwich") {
     return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinejoin="round"><path d="m5 11 11-6 11 6-11 6L5 11Z" /><path d="m5 17 11 6 11-6M5 21l11 6 11-6" /><path d="m6 14 10 6 10-6" /></svg>;

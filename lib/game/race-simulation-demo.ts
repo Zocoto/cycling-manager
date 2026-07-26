@@ -3,7 +3,10 @@ import type {
   RaceCalendarStage,
   RaceProfileType,
 } from "./race-calendar";
-import { buildRaceSegments } from "./race-profiles";
+import {
+  buildRaceSegments,
+  removeOneDayRaceMountainPrimes,
+} from "./race-profiles";
 import { getRaceWeather } from "./race-weather";
 import {
   type RiderSimulationInput,
@@ -145,6 +148,25 @@ export function createCalendarSimulationInput({
         first.id.localeCompare(second.id)
     );
 
+  const segments =
+    removeOneDayRaceMountainPrimes(
+      stage.segments.length > 0
+        ? [...stage.segments].sort(
+            (first, second) =>
+              first.segmentNumber -
+              second.segmentNumber
+          )
+        : buildRaceSegments({
+            distanceKm: stage.distanceKm,
+            profileType: stage.profileType,
+            seed: `${stage.id}:fallback-profile`,
+            includeTourPrimes:
+              edition.raceFormat ===
+              "stage_race",
+          }),
+      edition.raceFormat
+    );
+
   return {
     id: stage.id,
     name:
@@ -157,18 +179,7 @@ export function createCalendarSimulationInput({
     isStageRace: edition.raceFormat === "stage_race",
     seed,
     weather: getRaceWeather(`${edition.id}:${stage.id}:weather`),
-    segments:
-      stage.segments.length > 0
-        ? [...stage.segments].sort(
-            (first, second) =>
-              first.segmentNumber - second.segmentNumber
-          )
-        : buildRaceSegments({
-            distanceKm: stage.distanceKm,
-            profileType: stage.profileType,
-            seed: `${stage.id}:fallback-profile`,
-            includeTourPrimes: edition.raceFormat === "stage_race",
-          }),
+    segments,
     riders: riders.map((rider) => {
       const reconnaissanceBonus =
         stage.reconnaissanceBonuses?.[rider.id] ?? 0;

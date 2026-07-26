@@ -34,6 +34,14 @@ export const LOW_FORM_REST_GAIN = 2;
 export const TRAINER_MIN_RIDER_CAPACITY = 4;
 export const TRAINER_MAX_RIDER_CAPACITY = 8;
 export const RECOGNITION_CAMP_DURATION_DAYS = 2;
+export const IRON_HEALTH_DECLINE_MULTIPLIER = 0.7;
+export const IRON_HEALTH_DECLINE_DELAY_YEARS = 1;
+
+export type RiderLongevityTier =
+  | "standard"
+  | "durable"
+  | "long_lived"
+  | "exceptional";
 
 export type TrainingPageTab = "training" | "reconnaissance";
 
@@ -250,7 +258,8 @@ export function getTrainingAgeFactor(age: number): number {
   if (age <= 27) return 0.85;
   if (age <= 29) return 0.72;
   if (age <= 31) return 0.55;
-  return Math.max(0.2, 0.5 - (age - 32) * 0.04);
+  if (age <= 36) return 0.5 - (age - 32) * 0.04;
+  return Math.max(0.3, 0.34 - (age - 36) * 0.01);
 }
 
 export function getRatingProgressFactor(rating: number): number {
@@ -270,9 +279,58 @@ export function getSeasonRatingGainCap(initialRating: number): number {
   return 2;
 }
 
-export function getSeasonDeclinePoints(age: number): number {
-  if (age < 32) return 0;
-  return Math.min(7, 1 + (age - 32) * 0.5);
+export function getNaturalDeclineMultiplierFromRoll(roll: number): number {
+  const normalizedRoll = Math.min(9_999, Math.max(0, Math.floor(roll)));
+  if (normalizedRoll < 100) return 0.65;
+  if (normalizedRoll < 600) return 0.8;
+  if (normalizedRoll < 2_200) return 0.92;
+  return 1;
+}
+
+export function getLongevityTier(
+  declineMultiplier: number,
+): RiderLongevityTier {
+  if (declineMultiplier <= 0.7) return "exceptional";
+  if (declineMultiplier <= 0.85) return "long_lived";
+  if (declineMultiplier <= 0.95) return "durable";
+  return "standard";
+}
+
+export function getSeasonDeclinePoints(
+  age: number,
+  {
+    declineMultiplier = 1,
+    hasIronHealth = false,
+  }: {
+    declineMultiplier?: number;
+    hasIronHealth?: boolean;
+  } = {},
+): number {
+  const declineAge =
+    age - (hasIronHealth ? IRON_HEALTH_DECLINE_DELAY_YEARS : 0);
+  if (declineAge < 32) return 0;
+
+  const veteranYears = declineAge - 32;
+  const baseDecline = 3.6 * Math.pow(1.05, veteranYears);
+  const abilityMultiplier = hasIronHealth
+    ? IRON_HEALTH_DECLINE_MULTIPLIER
+    : 1;
+
+  return (
+    Math.min(8, baseDecline) *
+    Math.min(1, Math.max(0.55, declineMultiplier)) *
+    abilityMultiplier
+  );
+}
+
+export function getDailyDeclineMilli(
+  age: number,
+  options?: {
+    declineMultiplier?: number;
+    hasIronHealth?: boolean;
+  },
+): number {
+  return Math.round((getSeasonDeclinePoints(age, options) * 1_000) / 28);
 }
 
 export function calculateDailyTrainingProgressMilli({

@@ -87,10 +87,15 @@ export function RiderAvatar({
       <circle cx="84" cy="36" r="21" fill="#315B3E" opacity="0.035" />
 
       <path d={shouldersPath} fill={resolvedJersey.primaryColor} />
-      <JerseyPattern
-        jersey={resolvedJersey}
-        clipPathId={shoulderClipId}
-      />
+      {resolvedJersey.status === "national-champion" &&
+      resolvedJersey.countryCode ? (
+        <NationalChampionFlagPattern
+          countryCode={resolvedJersey.countryCode}
+          clipPathId={shoulderClipId}
+        />
+      ) : (
+        <JerseyPattern jersey={resolvedJersey} clipPathId={shoulderClipId} />
+      )}
 
       <path
         d={`M ${centerX - design.neckWidth / 2} 60 L ${centerX - design.neckWidth / 2 - 0.8} 75 Q 48 82 ${centerX + design.neckWidth / 2 + 0.8} 75 L ${centerX + design.neckWidth / 2} 60 Z`}
@@ -138,23 +143,9 @@ export function RiderAvatar({
       />
 
       <Hair design={design} faceTop={faceTop} />
-      <Brows
-        design={design}
-        leftEyeX={leftEyeX}
-        rightEyeX={rightEyeX}
-      />
-      <Eye
-        design={design}
-        x={leftEyeX}
-        y={leftEyeY}
-        direction={-1}
-      />
-      <Eye
-        design={design}
-        x={rightEyeX}
-        y={rightEyeY}
-        direction={1}
-      />
+      <Brows design={design} leftEyeX={leftEyeX} rightEyeX={rightEyeX} />
+      <Eye design={design} x={leftEyeX} y={leftEyeY} direction={-1} />
+      <Eye design={design} x={rightEyeX} y={rightEyeY} direction={1} />
       <Nose design={design} layout={featureLayout} />
       <FaceMarks design={design} />
       <FacialHair design={design} faceBottom={faceBottom} />
@@ -177,6 +168,35 @@ export function RiderAvatar({
   );
 }
 
+function NationalChampionFlagPattern({
+  countryCode,
+  clipPathId,
+}: {
+  countryCode: string;
+  clipPathId: string;
+}) {
+  const normalizedCountryCode = countryCode.trim().toLowerCase();
+
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      <foreignObject x="0" y="64" width="96" height="34">
+        <span
+          aria-hidden="true"
+          className={`fi fi-${normalizedCountryCode}`}
+          style={{
+            display: "block",
+            width: "100%",
+            height: "100%",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "100% 100%",
+          }}
+        />
+      </foreignObject>
+      <path d="M0 66h96v8c-24 5-72 5-96 0Z" fill="#FFFFFF" opacity="0.1" />
+    </g>
+  );
+}
 function JerseyPattern({
   jersey,
   clipPathId,
@@ -188,67 +208,154 @@ function JerseyPattern({
     <g clipPath={`url(#${clipPathId})`}>
       {jersey.pattern === "center" ? (
         <>
-          <rect x="40" y="67" width="16" height="31" fill={jersey.secondaryColor} />
+          <rect
+            x="40"
+            y="67"
+            width="16"
+            height="31"
+            fill={jersey.secondaryColor}
+          />
           <rect x="46" y="67" width="4" height="31" fill={jersey.accentColor} />
         </>
       ) : null}
 
       {jersey.pattern === "diagonal" ? (
         <>
-          <path d="M 4 97 L 37 68 H 55 L 22 97 Z" fill={jersey.secondaryColor} />
+          <path
+            d="M 4 97 L 37 68 H 55 L 22 97 Z"
+            fill={jersey.secondaryColor}
+          />
           <path d="M 21 97 L 55 68 H 62 L 29 97 Z" fill={jersey.accentColor} />
         </>
       ) : null}
 
       {jersey.pattern === "hoops" ? (
         <>
-          <rect x="0" y="79" width="96" height="8" fill={jersey.secondaryColor} />
+          <rect
+            x="0"
+            y="79"
+            width="96"
+            height="8"
+            fill={jersey.secondaryColor}
+          />
           <rect x="0" y="82" width="96" height="2" fill={jersey.accentColor} />
         </>
       ) : null}
 
       {jersey.pattern === "split" ? (
         <>
-          <rect x="48" y="65" width="48" height="33" fill={jersey.secondaryColor} />
-          <rect x="45.5" y="65" width="5" height="33" fill={jersey.accentColor} />
+          <rect
+            x="48"
+            y="65"
+            width="48"
+            height="33"
+            fill={jersey.secondaryColor}
+          />
+          <rect
+            x="45.5"
+            y="65"
+            width="5"
+            height="33"
+            fill={jersey.accentColor}
+          />
         </>
       ) : null}
 
       {jersey.pattern === "vertical" ? (
         <>
-          <rect x="34" y="66" width="9" height="32" fill={jersey.secondaryColor} />
-          <rect x="53" y="66" width="9" height="32" fill={jersey.secondaryColor} />
+          <rect
+            x="34"
+            y="66"
+            width="9"
+            height="32"
+            fill={jersey.secondaryColor}
+          />
+          <rect
+            x="53"
+            y="66"
+            width="9"
+            height="32"
+            fill={jersey.secondaryColor}
+          />
           <rect x="46" y="66" width="4" height="32" fill={jersey.accentColor} />
         </>
       ) : null}
 
       {jersey.pattern === "chevron" ? (
         <>
-          <path d="M8 76 48 96 88 76v8L48 104 8 84Z" fill={jersey.secondaryColor} />
-          <path d="M8 80 48 100 88 80" fill="none" stroke={jersey.accentColor} strokeWidth="3" />
+          <path
+            d="M8 76 48 96 88 76v8L48 104 8 84Z"
+            fill={jersey.secondaryColor}
+          />
+          <path
+            d="M8 80 48 100 88 80"
+            fill="none"
+            stroke={jersey.accentColor}
+            strokeWidth="3"
+          />
         </>
       ) : null}
 
       {jersey.pattern === "quarters" ? (
         <>
-          <rect x="0" y="64" width="48" height="17" fill={jersey.secondaryColor} />
-          <rect x="48" y="81" width="48" height="17" fill={jersey.secondaryColor} />
-          <path d="M48 64v34M0 81h96" stroke={jersey.accentColor} strokeWidth="3" />
+          <rect
+            x="0"
+            y="64"
+            width="48"
+            height="17"
+            fill={jersey.secondaryColor}
+          />
+          <rect
+            x="48"
+            y="81"
+            width="48"
+            height="17"
+            fill={jersey.secondaryColor}
+          />
+          <path
+            d="M48 64v34M0 81h96"
+            stroke={jersey.accentColor}
+            strokeWidth="3"
+          />
         </>
       ) : null}
 
       {jersey.pattern === "cross" ? (
         <>
-          <rect x="38" y="64" width="13" height="34" fill={jersey.secondaryColor} />
-          <rect x="0" y="78" width="96" height="12" fill={jersey.secondaryColor} />
-          <path d="M44.5 64v34M0 84h96" stroke={jersey.accentColor} strokeWidth="4" />
+          <rect
+            x="38"
+            y="64"
+            width="13"
+            height="34"
+            fill={jersey.secondaryColor}
+          />
+          <rect
+            x="0"
+            y="78"
+            width="96"
+            height="12"
+            fill={jersey.secondaryColor}
+          />
+          <path
+            d="M44.5 64v34M0 84h96"
+            stroke={jersey.accentColor}
+            strokeWidth="4"
+          />
         </>
       ) : null}
 
       {jersey.pattern === "shoulders" ? (
         <>
-          <path d="M0 64h96v17c-20 7-32 8-48 8s-28-1-48-8Z" fill={jersey.secondaryColor} />
-          <path d="M0 80c20 7 32 8 48 8s28-1 48-8" fill="none" stroke={jersey.accentColor} strokeWidth="3" />
+          <path
+            d="M0 64h96v17c-20 7-32 8-48 8s-28-1-48-8Z"
+            fill={jersey.secondaryColor}
+          />
+          <path
+            d="M0 80c20 7 32 8 48 8s28-1 48-8"
+            fill="none"
+            stroke={jersey.accentColor}
+            strokeWidth="3"
+          />
         </>
       ) : null}
 
@@ -265,17 +372,30 @@ function JerseyPattern({
                   height="10"
                   fill={jersey.secondaryColor}
                 />
-              ) : null
-            )
+              ) : null,
+            ),
           )}
-          <path d="M24 67h48v30H24Z" fill="none" stroke={jersey.accentColor} strokeWidth="2" />
+          <path
+            d="M24 67h48v30H24Z"
+            fill="none"
+            stroke={jersey.accentColor}
+            strokeWidth="2"
+          />
         </>
       ) : null}
 
       {jersey.pattern === "wave" ? (
         <>
-          <path d="M0 76c20-13 32 13 49 0s30 13 47 0v17c-17 13-30-13-47 0S20 80 0 93Z" fill={jersey.secondaryColor} />
-          <path d="M0 84c20-13 32 13 49 0s30 13 47 0" fill="none" stroke={jersey.accentColor} strokeWidth="3" />
+          <path
+            d="M0 76c20-13 32 13 49 0s30 13 47 0v17c-17 13-30-13-47 0S20 80 0 93Z"
+            fill={jersey.secondaryColor}
+          />
+          <path
+            d="M0 84c20-13 32 13 49 0s30 13 47 0"
+            fill="none"
+            stroke={jersey.accentColor}
+            strokeWidth="3"
+          />
         </>
       ) : null}
 
@@ -345,8 +465,7 @@ function Ears({
     <g>
       {([-1, 1] as const).map((direction) => {
         const earX =
-          centerX +
-          direction * (design.faceWidth / 2 + width * placementScale);
+          centerX + direction * (design.faceWidth / 2 + width * placementScale);
         const innerX = earX - direction * width * 0.72;
         const outerX = earX + direction * width;
 
@@ -435,8 +554,17 @@ function Hair({
     case "side-part":
       detail = (
         <>
-          <path d={`M 39 ${faceTop - 1} Q 48 ${faceTop + 2} 60 ${faceTop - 2}`} fill="none" stroke={highlight} strokeWidth="1.4" />
-          <path d={`M 40 ${faceTop - 3} L 38 ${faceTop + 6}`} stroke={design.backgroundColor} strokeWidth="0.9" />
+          <path
+            d={`M 39 ${faceTop - 1} Q 48 ${faceTop + 2} 60 ${faceTop - 2}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="1.4"
+          />
+          <path
+            d={`M 40 ${faceTop - 3} L 38 ${faceTop + 6}`}
+            stroke={design.backgroundColor}
+            strokeWidth="0.9"
+          />
         </>
       );
       break;
@@ -475,8 +603,18 @@ function Hair({
     case "slicked":
       detail = (
         <>
-          <path d={`M 37 ${faceTop + 1} Q 46 ${faceTop - 5} 60 ${faceTop - 2}`} fill="none" stroke={highlight} strokeWidth="1.1" />
-          <path d={`M 39 ${faceTop + 3} Q 48 ${faceTop - 2} 61 ${faceTop}`} fill="none" stroke={highlight} strokeWidth="0.8" />
+          <path
+            d={`M 37 ${faceTop + 1} Q 46 ${faceTop - 5} 60 ${faceTop - 2}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="1.1"
+          />
+          <path
+            d={`M 39 ${faceTop + 3} Q 48 ${faceTop - 2} 61 ${faceTop}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="0.8"
+          />
         </>
       );
       break;
@@ -514,7 +652,10 @@ function Hair({
       detail = (
         <g stroke={color} strokeWidth="3.2" strokeLinecap="round">
           {[36, 41, 46, 51, 56, 61].map((x, index) => (
-            <path key={x} d={`M ${x} ${faceTop - 3} q ${index % 2 ? 1 : -1} 5 0 10`} />
+            <path
+              key={x}
+              d={`M ${x} ${faceTop - 3} q ${index % 2 ? 1 : -1} 5 0 10`}
+            />
           ))}
         </g>
       );
@@ -558,8 +699,12 @@ function Brows({
       strokeWidth="1.65"
       strokeLinecap="round"
     >
-      <path d={`M ${leftEyeX - browWidth / 2} ${design.browY + 0.5} Q ${leftEyeX} ${design.browY - 1.2} ${leftEyeX + browWidth / 2} ${design.browY}`} />
-      <path d={`M ${rightEyeX - browWidth / 2} ${design.browY} Q ${rightEyeX} ${design.browY - 1.2} ${rightEyeX + browWidth / 2} ${design.browY + 0.5}`} />
+      <path
+        d={`M ${leftEyeX - browWidth / 2} ${design.browY + 0.5} Q ${leftEyeX} ${design.browY - 1.2} ${leftEyeX + browWidth / 2} ${design.browY}`}
+      />
+      <path
+        d={`M ${rightEyeX - browWidth / 2} ${design.browY} Q ${rightEyeX} ${design.browY - 1.2} ${rightEyeX + browWidth / 2} ${design.browY + 0.5}`}
+      />
     </g>
   );
 }
@@ -622,10 +767,26 @@ function Eye({
           opacity="0.55"
         />
       ) : null}
-      <path d={eyePath} fill="#F7F3EA" stroke={design.skinShadow} strokeWidth="0.65" />
+      <path
+        d={eyePath}
+        fill="#F7F3EA"
+        stroke={design.skinShadow}
+        strokeWidth="0.65"
+      />
       <circle cx={x} cy={y} r={eyeHeight * irisScale} fill={design.eyeColor} />
-      <circle cx={x} cy={y} r={Math.max(0.75, eyeHeight * 0.34)} fill="#171513" />
-      <circle cx={x - 0.45} cy={y - 0.55} r="0.38" fill="#FFFFFF" opacity="0.85" />
+      <circle
+        cx={x}
+        cy={y}
+        r={Math.max(0.75, eyeHeight * 0.34)}
+        fill="#171513"
+      />
+      <circle
+        cx={x - 0.45}
+        cy={y - 0.55}
+        r="0.38"
+        fill="#FFFFFF"
+        opacity="0.85"
+      />
     </g>
   );
 }
@@ -658,9 +819,9 @@ function Nose({
       ? 1.15
       : design.noseStyle === "aquiline"
         ? 1.35
-      : design.noseStyle === "tapered"
-        ? 0.45
-        : 0.8;
+        : design.noseStyle === "tapered"
+          ? 0.45
+          : 0.8;
   const bridgePath =
     design.noseStyle === "aquiline"
       ? `M ${centerX - bridgeOffset} ${topY} C ${centerX - 2.2} ${topY + (bottomY - topY) * 0.42}, ${centerX - 0.2} ${bottomY - 2.2}, ${centerX - halfWidth} ${bottomY - 0.8}`
@@ -673,28 +834,30 @@ function Nose({
       : design.noseStyle === "snub"
         ? `M ${centerX - halfWidth} ${bottomY} Q ${centerX} ${bottomY - 0.8} ${centerX + halfWidth} ${bottomY}`
         : `M ${centerX - halfWidth} ${bottomY - 1} Q ${centerX - halfWidth - 1} ${bottomY + 0.5} ${centerX} ${bottomY + 1} Q ${centerX + halfWidth + 1} ${bottomY + 0.5} ${centerX + halfWidth} ${bottomY - 1}`;
-  const showsNostrils = [
-    "broad",
-    "button",
-    "rounded",
-    "snub",
-  ].includes(design.noseStyle);
+  const showsNostrils = ["broad", "button", "rounded", "snub"].includes(
+    design.noseStyle,
+  );
 
   return (
     <g fill="none" stroke={design.skinShadow} strokeLinecap="round">
-      <path
-        d={bridgePath}
-        strokeWidth="0.75"
-        opacity="0.7"
-      />
-      <path
-        d={basePath}
-        strokeWidth="0.85"
-      />
+      <path d={bridgePath} strokeWidth="0.75" opacity="0.7" />
+      <path d={basePath} strokeWidth="0.85" />
       {showsNostrils ? (
         <>
-          <circle cx={centerX - halfWidth + 0.1} cy={bottomY} r="0.55" fill={design.skinShadow} stroke="none" />
-          <circle cx={centerX + halfWidth - 0.1} cy={bottomY} r="0.55" fill={design.skinShadow} stroke="none" />
+          <circle
+            cx={centerX - halfWidth + 0.1}
+            cy={bottomY}
+            r="0.55"
+            fill={design.skinShadow}
+            stroke="none"
+          />
+          <circle
+            cx={centerX + halfWidth - 0.1}
+            cy={bottomY}
+            r="0.55"
+            fill={design.skinShadow}
+            stroke="none"
+          />
         </>
       ) : null}
       {design.noseStyle === "aquiline" || design.noseStyle === "long" ? (
@@ -753,7 +916,10 @@ function Mouth({
           ? 0
           : design.mouthCurve;
   const cupidDepth = design.mouthStyle === "bowed" ? 0.95 : 0.2;
-  const lipColor = shiftForLip(design.skinShadow, design.mouthStyle === "full" ? 12 : 5);
+  const lipColor = shiftForLip(
+    design.skinShadow,
+    design.mouthStyle === "full" ? 12 : 5,
+  );
 
   return (
     <g>
@@ -804,8 +970,18 @@ function FacialHair({
   if (design.facialHairStyle === "goatee") {
     return (
       <>
-        <path d={`M 41 ${faceBottom - 12.6} Q 48 ${faceBottom - 15} 55 ${faceBottom - 12.6}`} fill="none" stroke={color} strokeWidth="1.8" opacity="0.75" />
-        <path d={`M 44 ${faceBottom - 8} Q 48 ${faceBottom - 4} 52 ${faceBottom - 8} L 51 ${faceBottom - 2} Q 48 ${faceBottom} 45 ${faceBottom - 2} Z`} fill={color} opacity="0.68" />
+        <path
+          d={`M 41 ${faceBottom - 12.6} Q 48 ${faceBottom - 15} 55 ${faceBottom - 12.6}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.8"
+          opacity="0.75"
+        />
+        <path
+          d={`M 44 ${faceBottom - 8} Q 48 ${faceBottom - 4} 52 ${faceBottom - 8} L 51 ${faceBottom - 2} Q 48 ${faceBottom} 45 ${faceBottom - 2} Z`}
+          fill={color}
+          opacity="0.68"
+        />
       </>
     );
   }
@@ -845,14 +1021,33 @@ function FaceMarks({ design }: { design: RiderAvatarDesign }) {
   const freckles =
     design.faceMark === "freckles"
       ? [
-          [37, 43], [40, 44], [43, 43.5], [53, 43.5], [56, 44], [59, 43],
+          [37, 43],
+          [40, 44],
+          [43, 43.5],
+          [53, 43.5],
+          [56, 44],
+          [59, 43],
         ]
       : design.faceMark === "cheek-freckles"
-        ? [[35, 48], [38, 49], [58, 49], [61, 48]]
-        : [[38, 48], [41, 49], [55, 49], [58, 48], [48, 54]];
+        ? [
+            [35, 48],
+            [38, 49],
+            [58, 49],
+            [61, 48],
+          ]
+        : [
+            [38, 48],
+            [41, 49],
+            [55, 49],
+            [58, 48],
+            [48, 54],
+          ];
 
   return (
-    <g fill={design.skinShadow} opacity={design.faceMark === "sun-kissed" ? 0.28 : 0.45}>
+    <g
+      fill={design.skinShadow}
+      opacity={design.faceMark === "sun-kissed" ? 0.28 : 0.45}
+    >
       {freckles.map(([x, y]) => (
         <circle key={`${x}-${y}`} cx={x} cy={y} r="0.45" />
       ))}
@@ -862,9 +1057,18 @@ function FaceMarks({ design }: { design: RiderAvatarDesign }) {
 
 function shiftForLip(color: string, amount: number): string {
   const normalized = color.replace("#", "");
-  const red = Math.min(255, Number.parseInt(normalized.slice(0, 2), 16) + amount + 12);
-  const green = Math.min(255, Number.parseInt(normalized.slice(2, 4), 16) + amount);
-  const blue = Math.min(255, Number.parseInt(normalized.slice(4, 6), 16) + amount);
+  const red = Math.min(
+    255,
+    Number.parseInt(normalized.slice(0, 2), 16) + amount + 12,
+  );
+  const green = Math.min(
+    255,
+    Number.parseInt(normalized.slice(2, 4), 16) + amount,
+  );
+  const blue = Math.min(
+    255,
+    Number.parseInt(normalized.slice(4, 6), 16) + amount,
+  );
 
   return `#${[red, green, blue]
     .map((channel) => channel.toString(16).padStart(2, "0"))

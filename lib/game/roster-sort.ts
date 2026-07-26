@@ -3,6 +3,7 @@ export const ROSTER_SORT_KEYS = [
   "age",
   "profile",
   "potential",
+  "form",
   "mountain",
   "hills",
   "flat",
@@ -35,6 +36,7 @@ export type RosterSortValue =
 
 const DESCENDING_BY_DEFAULT = new Set<RosterSortKey>([
   "potential",
+  "form",
   "mountain",
   "hills",
   "flat",

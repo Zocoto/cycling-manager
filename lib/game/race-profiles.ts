@@ -1,4 +1,7 @@
-import type { RaceProfileType } from "./race-calendar";
+import type {
+  RaceFormat,
+  RaceProfileType,
+} from "./race-calendar";
 
 export const STANDARD_RACE_SEGMENT_KM = 10;
 
@@ -102,6 +105,27 @@ export function getStageDistance(segments: RaceStageSegment[]) {
   return round(
     segments.reduce((total, segment) => total + segment.distanceKm, 0),
     2
+  );
+}
+
+export function removeOneDayRaceMountainPrimes(
+  segments: RaceStageSegment[],
+  raceFormat: RaceFormat
+) {
+  if (
+    raceFormat !== "one_day" ||
+    !segments.some(
+      (segment) =>
+        segment.prime?.type === "mountain"
+    )
+  ) {
+    return segments;
+  }
+
+  return segments.map((segment) =>
+    segment.prime?.type === "mountain"
+      ? { ...segment, prime: null }
+      : segment
   );
 }
 

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
+  getNationalChampionPalette,
 } from "./rider-jersey";
 
 describe("maillot contextuel du portrait", () => {
@@ -14,7 +16,7 @@ describe("maillot contextuel du portrait", () => {
         primaryColor: "#123456",
         secondaryColor: "#ABCDEF",
         accentColor: "#FEDCBA",
-      })
+      }),
     ).toEqual({
       pattern: "diagonal",
       primaryColor: "#123456",
@@ -31,7 +33,7 @@ describe("maillot contextuel du portrait", () => {
         primaryColor: "#123456",
         secondaryColor: "#ABCDEF",
         accentColor: "#FEDCBA",
-      }).pattern
+      }).pattern,
     ).toBe("chevron");
 
     expect(
@@ -40,7 +42,7 @@ describe("maillot contextuel du portrait", () => {
         primaryColor: "#123456",
         secondaryColor: "#ABCDEF",
         accentColor: "#FEDCBA",
-      }).pattern
+      }).pattern,
     ).toBe("checkerboard");
   });
 
@@ -55,7 +57,7 @@ describe("maillot contextuel du portrait", () => {
           text: "#000000",
         },
         style: "bold",
-      })
+      }),
     ).toMatchObject({
       pattern: "split",
       primaryColor: "#102030",
@@ -63,6 +65,35 @@ describe("maillot contextuel du portrait", () => {
     });
   });
 
+  it("reprend les couleurs exactes du drapeau bulgare", () => {
+    expect(getNationalChampionPalette("BG").dominantColors).toEqual([
+      "#FFFFFF",
+      "#00966E",
+      "#D62612",
+    ]);
+    expect(
+      createNationalChampionRiderJersey({
+        countryCode: "bg",
+        championshipType: "road",
+      }),
+    ).toMatchObject({
+      status: "national-champion",
+      countryCode: "BG",
+      championshipType: "road",
+      primaryColor: "#FFFFFF",
+      secondaryColor: "#00966E",
+      accentColor: "#D62612",
+      pattern: "solid",
+    });
+  });
+
+  it("conserve le bleu, le blanc et le rouge du drapeau français", () => {
+    expect(getNationalChampionPalette("FR").dominantColors).toEqual([
+      "#000091",
+      "#FFFFFF",
+      "#E1000F",
+    ]);
+  });
   it("utilise un maillot gris pour un coureur libre", () => {
     expect(FREE_AGENT_RIDER_JERSEY).toMatchObject({
       pattern: "solid",

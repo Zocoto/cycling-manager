@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { updateSportingDirectorProfile } from "../../app/jeu/directeur-sportif/actions";
 import {
   initialSportingDirectorProfileState,
@@ -59,6 +60,11 @@ export function SportingDirectorProfileForm({
     SportingDirectorProfileField[]
   >([]);
 
+  const [isAutoAdvancing, setIsAutoAdvancing] =
+    useState(false);
+
+  const { activeTutorial, nextStep } = useTutorial();
+
   const avatarModalCloseButtonRef =
     useRef<HTMLButtonElement>(null);
 
@@ -85,6 +91,37 @@ export function SportingDirectorProfileForm({
     (state.status !== "error" ||
       !hasFieldErrors ||
       hasVisibleFieldErrors);
+
+  const tutorialStepKey =
+    activeTutorial?.definition.steps[
+      activeTutorial.currentStepIndex
+    ]?.key;
+
+  useEffect(() => {
+    if (state.status !== "success" || pending) {
+      if (state.status !== "success") {
+        setIsAutoAdvancing(false);
+      }
+
+      return;
+    }
+
+    if (
+      tutorialStepKey !== "profile-form" ||
+      isAutoAdvancing
+    ) {
+      return;
+    }
+
+    setIsAutoAdvancing(true);
+    void nextStep();
+  }, [
+    isAutoAdvancing,
+    nextStep,
+    pending,
+    state.status,
+    tutorialStepKey,
+  ]);
 
   useEffect(() => {
     if (!isAvatarModalOpen) {
@@ -161,7 +198,7 @@ export function SportingDirectorProfileForm({
     getVisibleErrors("hideEmail");
 
   return (
-    <div>
+    <div data-tutorial-id="profile-form">
       {shouldShowStateMessage ? (
         <div
           role={
@@ -279,7 +316,7 @@ export function SportingDirectorProfileForm({
             className="mt-2 text-xs leading-5 text-[#60756E]"
           >
             Composez le portrait qui vous représentera dans
-            votre bureau : carnation, traits du visage, regard,
+            votre bureau : carnation, traits du visage, regard,
             coiffure et accessoires. Vous pourrez le modifier à
             tout moment.
           </p>
@@ -363,7 +400,7 @@ export function SportingDirectorProfileForm({
           ) : null}
         </fieldset>
 
-        <div>
+        <div data-tutorial-id="profile-nationality">
           <label
             htmlFor="countryId"
             className="block text-sm font-bold text-[#183F37]"
@@ -512,7 +549,7 @@ export function SportingDirectorProfileForm({
 
       {isAvatarModalOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#071A17]/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[260] flex items-center justify-center bg-[#071A17]/70 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setIsAvatarModalOpen(false);

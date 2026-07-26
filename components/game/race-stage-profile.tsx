@@ -30,6 +30,12 @@ export function RaceStageProfile({
   const muted = tone === "dark" ? "#78968A" : "#8AA299";
   const grid = tone === "dark" ? "rgba(255,255,255,0.13)" : "rgba(11,48,43,0.14)";
   const fill = tone === "dark" ? "rgba(114,212,183,0.17)" : "rgba(23,105,81,0.14)";
+  const hasMountainPrime = segments.some(
+    (segment) => segment.prime?.type === "mountain"
+  );
+  const hasIntermediateSprint = segments.some(
+    (segment) => segment.prime?.type === "intermediate_sprint"
+  );
 
   return (
     <div>
@@ -179,13 +185,17 @@ export function RaceStageProfile({
 
       {showLegend ? (
         <div className={`mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[10px] font-bold uppercase tracking-wider ${tone === "dark" ? "text-[#78968A]" : "text-[#688176]"}`}>
-          {segments.some((segment) => segment.prime) ? (
+          {hasMountainPrime || hasIntermediateSprint ? (
             <>
-              <span><span className="text-[#EF5B65]">⚑</span> GPM</span>
-              <span><span className="text-[#43C892]">⚑</span> Sprint intermédiaire</span>
+              {hasMountainPrime ? (
+                <span><span className="text-[#EF5B65]">⚑</span> GPM</span>
+              ) : null}
+              {hasIntermediateSprint ? (
+                <span><span className="text-[#43C892]">⚑</span> Sprint intermédiaire</span>
+              ) : null}
             </>
           ) : (
-            <span>Aucun GPM/SI programmé sur ce parcours</span>
+            <span>Aucune prime programmée sur ce parcours</span>
           )}
           <span>Traits verticaux : tronçons de 10 km</span>
           {segments.some((segment) => segment.surface === "cobbles") ? <span className="text-[#9B8468]">▬ Secteur pavé</span> : null}
@@ -250,7 +260,21 @@ function describeProfile(segments: RaceStageSegment[]) {
   const distance = segments.reduce((total, segment) => total + segment.distanceKm, 0);
   const mountains = segments.filter((segment) => segment.prime?.type === "mountain").length;
   const sprints = segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length;
-  return `Profil de ${formatDistance(distance)} kilomètres, ${segments.length} tronçons, ${mountains} GPM et ${sprints} sprint intermédiaire`;
+  const primeDescriptions = [
+    mountains > 0 ? `${mountains} GPM` : null,
+    sprints > 0
+      ? `${sprints} sprint${sprints > 1 ? "s" : ""} intermédiaire${sprints > 1 ? "s" : ""}`
+      : null,
+  ].filter(
+    (description): description is string =>
+      description !== null
+  );
+  const primeSummary =
+    primeDescriptions.length > 0
+      ? primeDescriptions.join(" et ")
+      : "aucune prime de parcours";
+
+  return `Profil de ${formatDistance(distance)} kilomètres, ${segments.length} tronçons, ${primeSummary}`;
 }
 
 function describeSegment(segment: RaceStageSegment) {

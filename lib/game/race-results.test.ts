@@ -82,6 +82,26 @@ describe("buildPersistedGeneralClassification", () => {
       abandonmentReason: "crash",
     });
   });
+
+  it("conserve un nom d'équipe historique sans lien vers un profil", () => {
+    const general = buildPersistedGeneralClassification([
+      [
+        {
+          ...coquinous,
+          teamId: "history-season-1",
+          teamProfileId: null,
+          teamName: "Vélo Club Amateur",
+          elapsedTimeMs: 3_600_000,
+        },
+      ],
+    ]);
+
+    expect(general[0]).toMatchObject({
+      teamId: "history-season-1",
+      teamProfileId: null,
+      teamName: "Vélo Club Amateur",
+    });
+  });
 });
 
 describe("normalizeOfficialResultGapsToLeader", () => {

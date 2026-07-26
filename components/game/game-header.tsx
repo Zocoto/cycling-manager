@@ -5,6 +5,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
+import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
 import { WheelLogo } from "@/components/ui/wheel-logo";
 import {
   GLOBAL_SEARCH_MAX_LENGTH,
@@ -186,11 +187,14 @@ export function GameHeader({
             <RaceSimulatorShortcut />
           ) : null}
 
+          <TutorialCenterMenu />
+
+
           <Link
             href="/guide"
             title="Ouvrir le guide du jeu"
             aria-label="Ouvrir le guide du jeu"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-extrabold uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
           >
             <svg
               aria-hidden="true"
@@ -211,9 +215,22 @@ export function GameHeader({
           <form action={logoutAccount}>
             <button
               type="submit"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--game-header-accent)] bg-[var(--game-header-accent-soft)] px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[var(--game-header-accent)] transition hover:bg-[var(--game-header-accent)] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
             >
-              Se déconnecter
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="h-4 w-4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
+                <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
+              </svg>
+              <span className="hidden sm:inline">Se déconnecter</span>
             </button>
           </form>
         </div>

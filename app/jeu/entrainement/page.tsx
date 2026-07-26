@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
@@ -171,30 +171,26 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
                 Entraînements
               </h1>
-              <p className="mt-4 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
-                Chaque séance est réglée à 8 h, heure de Paris. Une modification faite après
-                8 h s’applique au lendemain. Un coureur engagé en course peut s’entraîner le
-                matin ; une blessure ou un stage de forme le rend indisponible.
-                Si sa forme est sous le seuil fixé par le DS, il se repose et récupère
-                automatiquement {LOW_FORM_REST_GAIN} points de forme.
-                Une reconnaissance remplace ce cycle pendant deux jours : ni
-                séance, ni récupération passive.
+              <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-[#D6DFD2] sm:text-base">
+                Séance quotidienne à 8 h. Sous le seuil de forme, le coureur se repose
+                et récupère {LOW_FORM_REST_GAIN} points. Blessure, stage ou reconnaissance
+                suspendent l’entraînement.
               </p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs font-black">
                 <span className="rounded-full bg-white/10 px-3 py-2 text-[#FFF4C5]">
-                  Fatigue désactivée · seule la forme compte
+                  Forme uniquement
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-2 text-[#D6DFD2]">
                   {overview.sessionCutoffPassed
-                    ? "Séance du jour réglée ou en cours de règlement"
-                    : "Réglages encore modifiables pour aujourd’hui"}
+                    ? "Séance du jour réglée"
+                    : "Modifiable jusqu’à 8 h"}
                 </span>
               </div>
             </div>
 
             <div>
               <p className="mb-3 text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
-                Garde-fou collectif
+                Seuil minimal de forme
               </p>
               <TrainingThresholdForm minimumForm={overview.minimumForm} />
               {overview.minimumFormIsPending ? (
@@ -313,8 +309,9 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
               </h2>
             </div>
             <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
-              Les gains hors domaine restent possibles mais faibles. Après 32 ans,
-              l’entraînement amortit le déclin sans permettre de dépasser le niveau de début de saison.
+              Les gains hors domaine restent possibles mais faibles. Dès 32 ans,
+              le déclin s’accélère de 5 % par année d’âge. L’entraînement l’amortit
+              sans permettre de dépasser le niveau de début de saison.
             </p>
           </div>
 
@@ -360,6 +357,7 @@ export default async function TrainingPage({ searchParams }: TrainingPageProps) 
                           Profil · {getRiderSportingProfile(toTrainingRatings(rider.ratings))}
                         </span>
                         <PotentialStars potentialSteps={rider.potentialSteps} compact />
+                        <RiderDeclineIndicators rider={rider} />
                       </div>
                       {rider.plan.isPending ? (
                         <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
@@ -472,6 +470,55 @@ function toTrainingRatings(
     breakaway: ratings.breakaway,
     prologue: ratings.prologue,
   };
+}
+
+function RiderDeclineIndicators({ rider }: { rider: TeamTrainingRider }) {
+  if (rider.age < 32) return null;
+
+  const { declineProfile } = rider;
+  const longevityLabel = {
+    standard: null,
+    durable: "Longévité solide",
+    long_lived: "Grande longévité",
+    exceptional: "Longévité exceptionnelle",
+  }[declineProfile.longevityTier];
+  const declineLabel =
+    declineProfile.seasonPointsBeforeTraining > 0
+      ? `Déclin brut · −${formatDeclinePoints(
+          declineProfile.seasonPointsBeforeTraining,
+        )}/saison`
+      : "Déclin repoussé cette saison";
+
+  return (
+    <>
+      <span
+        title="Perte naturelle estimée par caractéristique avant compensation de l’entraînement."
+        className="inline-flex rounded-full bg-[#FBE3DE] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#9B4538]"
+      >
+        {declineLabel}
+      </span>
+      {declineProfile.hasIronHealth ? (
+        <span
+          title="Santé de fer repousse le déclin d’un an puis réduit sa vitesse de 30 %."
+          className="inline-flex rounded-full bg-[#303A40] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#F3F5F6]"
+        >
+          Santé de fer
+        </span>
+      ) : null}
+      {longevityLabel ? (
+        <span className="inline-flex rounded-full bg-[#E4E8EA] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#34434A]">
+          {longevityLabel}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function formatDeclinePoints(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function TrainingReportPopover({ report }: { report: RiderTrainingReport | null }) {

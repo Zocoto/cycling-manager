@@ -11,6 +11,7 @@ import {
   RACE_PROFILE_LABELS,
   compareRaceDaySlots,
   isCurrentTeamRegisteredForRace,
+  isRaceEditionPast,
   type RaceCalendarEdition,
   type RaceCalendarStage,
   type RaceCategoryCode,
@@ -23,6 +24,9 @@ import {
 } from "@/lib/game/race-live";
 
 type ResultsScope = "team" | "all";
+
+const PAST_RACE_PATTERN =
+  "repeating-linear-gradient(135deg, rgba(11, 48, 43, 0.055) 0, rgba(11, 48, 43, 0.055) 1px, transparent 1px, transparent 8px)";
 
 export function RaceLiveDirectory({
   calendar,
@@ -241,6 +245,19 @@ export function RaceLiveDirectory({
             })}
           </div>
         </div>
+        <div className="mt-4 flex justify-end">
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold text-[#60756E]">
+            <span
+              aria-hidden="true"
+              className="h-4 w-7 rounded border border-[#315B3E]/20 bg-[#F8FBF9]"
+              style={{
+                backgroundImage:
+                  PAST_RACE_PATTERN,
+              }}
+            />
+            Hachuré : course passée, replay disponible
+          </span>
+        </div>
       </div>
 
       <div className="grid max-h-[48rem] gap-3 overflow-y-auto p-4 sm:p-6 lg:grid-cols-2">
@@ -250,6 +267,11 @@ export function RaceLiveDirectory({
             edition={edition}
             stages={stages}
             now={now}
+            isPast={isRaceEditionPast({
+              edition,
+              currentDayNumber:
+                calendar.currentDayNumber,
+            })}
           />
         ))}
         {visibleEditions.length === 0 ? (
@@ -282,16 +304,32 @@ function RaceDirectoryCard({
   edition,
   stages,
   now,
+  isPast,
 }: {
   edition: RaceCalendarEdition;
   stages: RaceCalendarStage[];
   now: Date;
+  isPast: boolean;
 }) {
   const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+  const pastRaceStyle = isPast
+    ? {
+        backgroundImage: PAST_RACE_PATTERN,
+      }
+    : undefined;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9]">
-      <header className="flex items-center gap-3 border-b border-[#315B3E]/10 bg-white px-4 py-3">
+    <article
+      data-race-period={isPast ? "past" : "current-or-upcoming"}
+      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9]"
+      style={pastRaceStyle}
+    >
+      <header
+        className={`flex items-center gap-3 border-b border-[#315B3E]/10 px-4 py-3 ${
+          isPast ? "bg-[#F4F8F6]" : "bg-white"
+        }`}
+        style={pastRaceStyle}
+      >
         <span
           className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
           style={{

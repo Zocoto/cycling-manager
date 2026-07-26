@@ -66,6 +66,18 @@ type InfrastructureNotificationRow = {
   created_at: string;
 };
 
+type EliteWildcardDecisionRow = {
+  id: string;
+  decision: "accepted" | "rejected";
+  title: string;
+  message: string;
+  decided_at: string;
+  race_editions: {
+    display_name: string;
+    races: { slug: string } | null;
+  } | null;
+};
+
 type RaceEditionEventRow = {
   id: string;
   display_name: string;
@@ -123,11 +135,13 @@ export async function getCurrentDashboardOperationalEvents({
   const [
     trainingSettlement,
     infrastructureSettlement,
+    wildcardSettlement,
     youthDevelopmentAlertCount,
     internationalSelections,
   ] = await Promise.all([
     admin.rpc("settle_due_training_sessions"),
     admin.rpc("settle_due_infrastructure_projects"),
+    admin.rpc("settle_due_elite_wildcards"),
     getYouthDevelopmentAlertCount(authUserId, {
       settleInfrastructure: false,
     }),
@@ -146,6 +160,10 @@ export async function getCurrentDashboardOperationalEvents({
   assertQuery(
     infrastructureSettlement.error,
     "la mise à jour des chantiers du bureau",
+  );
+  assertQuery(
+    wildcardSettlement.error,
+    "l'arbitrage des Wild Cards Elite"
   );
 
   const [
@@ -284,6 +302,30 @@ export async function getCurrentDashboardOperationalEvents({
   assertQuery(contractSeasonsResult.error, "les saisons des contrats");
   assertQuery(riderContractsResult.error, "les contrats de l’effectif");
 
+  const wildcardDecisionsResult = teamSeasonResult.data
+    ? await admin
+        .from("elite_wildcard_decisions")
+        .select(
+          `
+            id,
+            decision,
+            title,
+            message,
+            decided_at,
+            race_editions (
+              display_name,
+              races (slug)
+            )
+          `
+        )
+        .eq("team_season_id", teamSeasonResult.data.id)
+        .order("decided_at", { ascending: false })
+        .limit(5)
+        .returns<EliteWildcardDecisionRow[]>()
+    : { data: [] as EliteWildcardDecisionRow[], error: null };
+
+  assertQuery(wildcardDecisionsResult.error, "les r\u00e9ponses de Wild Card");
+
   const contractReminderRiders = buildContractReminderRiders({
     riderIds,
     currentSeasonId: seasonId,
@@ -295,6 +337,20 @@ export async function getCurrentDashboardOperationalEvents({
     events: [
       ...buildInternationalSelectionEvents(internationalSelections),
       ...buildInjuryEvents(injuriesResult.data ?? [], currentDayNumber),
+      ...(wildcardDecisionsResult.data ?? []).map((decision) => ({
+        id: `elite-wildcard:${decision.id}`,
+        category: "race" as const,
+        priority: "update" as const,
+        title: decision.title,
+        description: decision.message,
+        href: decision.race_editions?.races?.slug
+          ? `/jeu/courses/${decision.race_editions.races.slug}`
+          : "/jeu/calendrier",
+        actionLabel: "Voir la course",
+        badgeLabel: "Wild Card",
+        dayNumber: currentDayNumber,
+        happenedAt: decision.decided_at,
+      })),
       ...buildCompletedRaceEvents(
         teamSeasonResult.data?.race_registrations ?? [],
         currentDayNumber

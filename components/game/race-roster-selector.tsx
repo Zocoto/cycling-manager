@@ -22,6 +22,13 @@ type RaceRosterSelectorProps = {
   isStageRace: boolean;
   lockInitiallySelected?: boolean;
   submitLabel?: string;
+  showRoleGuide?: boolean;
+  tutorialIds?: {
+    selection?: string;
+    roleGuide?: string;
+    roleAssignment?: string;
+    submit?: string;
+  };
 };
 
 export function RaceRosterSelector({
@@ -32,6 +39,8 @@ export function RaceRosterSelector({
   isStageRace,
   lockInitiallySelected = false,
   submitLabel,
+  showRoleGuide = false,
+  tutorialIds,
 }: RaceRosterSelectorProps) {
   const initiallySelectedIds = useMemo(
     () => riders.filter((rider) => rider.isSelected).map((rider) => rider.riderId),
@@ -68,7 +77,10 @@ export function RaceRosterSelector({
   }
 
   return (
-    <div className="mt-5">
+    <div
+      className="mt-5"
+      data-tutorial-id={tutorialIds?.selection}
+    >
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-bold text-[#BFD1C6]">
           Sélectionnez {minimum} à {maximum} coureurs
@@ -84,8 +96,11 @@ export function RaceRosterSelector({
         </span>
       </div>
 
-      <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
-        {riders.map((rider) => {
+      <div
+        data-tutorial-id={tutorialIds?.roleAssignment}
+      >
+        <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
+          {riders.map((rider) => {
           const isSelected = selectedSet.has(rider.riderId);
           const isLockedSelection =
             lockInitiallySelected && initiallySelectedSet.has(rider.riderId);
@@ -248,26 +263,98 @@ export function RaceRosterSelector({
               ) : null}
             </div>
           );
-        })}
+          })}
+        </div>
+
+        <p className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold leading-5 text-[#BFD1C6]">
+          Un seul leader et un seul sprinteur peuvent être désignés. Les rôles laissés
+          sur « Automatique » seront attribués selon les statistiques et le profil de
+          la course.
+        </p>
       </div>
 
-      <p className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold leading-5 text-[#BFD1C6]">
-        Un seul leader et un seul sprinteur peuvent être désignés. Les rôles laissés
-        sur « Automatique » seront attribués selon les statistiques et le profil de
-        la course.
-      </p>
+      {showRoleGuide ? (
+        <CriteriumRoleGuide tutorialId={tutorialIds?.roleGuide} />
+      ) : null}
 
-      <SubmitRosterButton
-        disabled={!selectionIsValid}
-        count={selectedIds.length}
-        label={submitLabel}
-      />
+      <div
+        data-tutorial-id={tutorialIds?.submit}
+      >
+        <SubmitRosterButton
+          disabled={!selectionIsValid}
+          count={selectedIds.length}
+          label={submitLabel}
+        />
+      </div>
       <p className="mt-3 text-center text-[11px] font-semibold leading-5 text-[#9FB5A8]">
         {lockInitiallySelected
           ? "Les coureurs encore aptes restent engagés ; seuls les remplaçants sont ajoutés."
           : "Après validation, la composition ne pourra plus être modifiée directement."}
       </p>
     </div>
+  );
+}
+
+function CriteriumRoleGuide({
+  tutorialId,
+}: {
+  tutorialId?: string;
+}) {
+  const roles = [
+    {
+      label: "Automatique",
+      detail:
+        "Analyse le profil et les notes pour distribuer les rôles encore vacants, puis affecte les autres coureurs comme équipiers.",
+    },
+    {
+      label: "Leader",
+      detail:
+        "Est préservé pour les secteurs décisifs et bénéficie des choix tactiques orientés vers le résultat final.",
+    },
+    {
+      label: "Sprinteur",
+      detail:
+        "Pousse son équipe à contrôler les échappées et devient la priorité lors d’une arrivée groupée.",
+    },
+    {
+      label: "Poisson pilote",
+      detail:
+        "Travaille dans le peloton et augmente la qualité du train qui lance le sprinteur.",
+    },
+    {
+      label: "Électron libre",
+      detail:
+        "Reçoit une forte priorité pour intégrer l’échappée et courir de manière offensive.",
+    },
+    {
+      label: "Équipier",
+      detail:
+        "Dépense davantage d’énergie dans la poursuite et le travail collectif avant le final.",
+    },
+  ] as const;
+
+  return (
+    <section
+      data-tutorial-id={tutorialId}
+      className="mt-4 rounded-xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 p-4"
+    >
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#F7DA73]">
+        Décisions de l’IA
+      </p>
+      <div className="mt-3 grid gap-2">
+        {roles.map((role) => (
+          <p
+            key={role.label}
+            className="text-[11px] font-semibold leading-5 text-[#D6DFD2]"
+          >
+            <span className="font-black text-white">
+              {role.label}
+            </span>{" "}
+            — {role.detail}
+          </p>
+        ))}
+      </div>
+    </section>
   );
 }
 

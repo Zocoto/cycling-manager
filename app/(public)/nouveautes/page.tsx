@@ -166,80 +166,67 @@ function ReleaseCard({
 
       <WheelDecoration />
 
-      <div className="relative grid gap-0 lg:grid-cols-[290px_1fr]">
-        <div
-          className="relative min-h-64 overflow-hidden bg-cover bg-center lg:min-h-full"
-          style={{
-            backgroundImage: "url('/images/peloton-header.webp')",
-          }}
-        >
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-linear-to-t from-[#071A17] via-[#071A17]/30 to-transparent"
-          />
+      <details className="group relative">
+        <summary className="relative flex min-h-20 cursor-pointer list-none items-center gap-4 px-5 py-4 marker:content-none sm:px-7">
+          <span className="shrink-0 rounded-md bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#071A17]">
+            {release.version}
+          </span>
 
-          <div className="absolute left-5 top-5 flex flex-wrap gap-2">
-            <span className="rounded-md bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#071A17]">
-              Version {release.version}
+          <span className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-4">
+            <span className="block truncate text-lg font-black tracking-tight">
+              {release.title}
             </span>
+            <span className="mt-1 block shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-[#8DCFB8] sm:mt-0">
+              {release.date}
+            </span>
+          </span>
 
-            {isCurrent && (
-              <span className="rounded-md border border-[#7CCF9C]/45 bg-[#071A17]/70 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#7CCF9C] backdrop-blur">
-                Version actuelle
-              </span>
-            )}
-          </div>
+          {isCurrent && (
+            <span className="hidden shrink-0 rounded-md border border-[#7CCF9C]/45 bg-[#071A17]/70 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#7CCF9C] sm:inline-flex">
+              Actuelle
+            </span>
+          )}
 
-          <div className="absolute bottom-5 left-5 right-5">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F2C94C]">
-              Publiée en {release.date}
-            </p>
+          <span
+            aria-hidden="true"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xl font-black text-[#F2C94C] transition group-open:rotate-45"
+          >
+            +
+          </span>
+        </summary>
 
-            <p className="mt-2 text-sm leading-6 text-[#D6DFD2]">
-              Une nouvelle étape dans la construction de Cyclo Stratège.
-            </p>
-          </div>
-        </div>
-
-        <div className="relative p-6 sm:p-8 lg:p-10">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
-            Mise à jour du projet
-          </p>
-
-          <h2 className="mt-4 text-3xl font-black tracking-tight">
-            {release.title}
-          </h2>
-
-          <p className="mt-5 max-w-3xl leading-7 text-[#D6DFD2]">
+        <div className="relative border-t border-white/10 px-5 pb-7 pt-6 sm:px-7 sm:pb-8">
+          <p className="max-w-4xl leading-7 text-[#D6DFD2]">
             {release.description}
           </p>
 
-          <div className="mt-8 border-t border-white/10 pt-7">
+          <div className="mt-7">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F2C94C]">
-              Fonctionnalités et évolutions
+              Fonctionnalités, améliorations et corrections
             </p>
 
-            <ul className="mt-5 grid gap-4 md:grid-cols-2">
+            <ul className="mt-5 grid gap-3 md:grid-cols-2">
               {release.features.map((feature) => (
                 <li
                   key={feature}
-                  className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-4"
+                  className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3.5"
                 >
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#42B99A]/15 text-sm font-black text-[#7CCF9C]">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#42B99A]/15 text-xs font-black text-[#7CCF9C]">
                     ✓
                   </span>
 
-                  <span className="leading-6 text-[#E6ECE7]">{feature}</span>
+                  <span className="text-sm leading-6 text-[#E6ECE7]">
+                    {feature}
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-      </div>
+      </details>
     </article>
   );
 }
-
 function ArrowIcon() {
   return (
     <svg

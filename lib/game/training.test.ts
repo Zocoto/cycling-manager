@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateDailyTrainingProgressMilli,
+  getDailyDeclineMilli,
   formatTrainingProgressMilli,
   getPotentialEfficiency,
   getPotentialOverallCap,
   getPotentialStars,
+  getLongevityTier,
+  getNaturalDeclineMultiplierFromRoll,
   getRatingProgressFactor,
   getSeasonDeclinePoints,
   getSeasonRatingGainCap,
@@ -176,10 +179,36 @@ describe("training progression", () => {
     expect((daily * 28) / 1_000).toBeCloseTo(12, 1);
   });
 
-  it("starts decline at 32 and never models growth for veteran riders", () => {
+  it("accélère le déclin de façon composée après 32 ans", () => {
     expect(getSeasonDeclinePoints(31)).toBe(0);
-    expect(getSeasonDeclinePoints(32)).toBe(1);
-    expect(getSeasonDeclinePoints(36)).toBe(3);
+    expect(getSeasonDeclinePoints(32)).toBeCloseTo(3.6);
+    expect(getSeasonDeclinePoints(38)).toBeGreaterThan(
+      getSeasonDeclinePoints(32) * 1.3,
+    );
+    expect(getSeasonDeclinePoints(40)).toBeCloseTo(5.32, 1);
+  });
+
+  it("crée rarement une longévité naturelle exceptionnelle", () => {
+    expect(getNaturalDeclineMultiplierFromRoll(0)).toBe(0.65);
+    expect(getNaturalDeclineMultiplierFromRoll(99)).toBe(0.65);
+    expect(getNaturalDeclineMultiplierFromRoll(100)).toBe(0.8);
+    expect(getNaturalDeclineMultiplierFromRoll(599)).toBe(0.8);
+    expect(getNaturalDeclineMultiplierFromRoll(600)).toBe(0.92);
+    expect(getNaturalDeclineMultiplierFromRoll(2_199)).toBe(0.92);
+    expect(getNaturalDeclineMultiplierFromRoll(2_200)).toBe(1);
+    expect(getLongevityTier(0.65)).toBe("exceptional");
+  });
+
+  it("repousse et réduit le déclin avec Santé de fer", () => {
+    expect(getSeasonDeclinePoints(32, { hasIronHealth: true })).toBe(0);
+    expect(
+      getDailyDeclineMilli(38, { hasIronHealth: true }),
+    ).toBeLessThan(getDailyDeclineMilli(38) * 0.7);
+  });
+
+  it("reproduit la trajectoire d’un ancien pic à 85 bien entraîné", () => {
+    expect(simulateVeteranMountainRating(85, 32, 36)).toBe(78);
+    expect(simulateVeteranMountainRating(85, 32, 40)).toBe(71);
   });
 });
 
@@ -213,3 +242,47 @@ describe("training reports", () => {
     expect(formatTrainingProgressMilli(1_000)).toBe("1,000");
   });
 });
+function simulateVeteranMountainRating(
+  initialRating: number,
+  startAge: number,
+  endAge: number,
+) {
+  let rating = initialRating;
+
+  for (let age = startAge; age <= endAge; age += 1) {
+    const seasonInitialRating = rating;
+    let balanceMilli = 0;
+
+    for (let day = 1; day <= 28; day += 1) {
+      balanceMilli +=
+        calculateDailyTrainingProgressMilli({
+          intensity: 100,
+          age,
+          potentialSteps: 8,
+          rating,
+          domain: "climber",
+          ratingKey: "mountain",
+          trainerSpecialty: "mountain",
+          trainerLevel: 5,
+          trainerCountryMatch: true,
+        }) - getDailyDeclineMilli(age);
+
+      if (balanceMilli <= -1_000) {
+        const loss = Math.min(Math.floor(Math.abs(balanceMilli) / 1_000), rating);
+        rating -= loss;
+        balanceMilli += loss * 1_000;
+      } else if (balanceMilli >= 1_000 && rating < seasonInitialRating) {
+        const gain = Math.min(
+          Math.floor(balanceMilli / 1_000),
+          seasonInitialRating - rating,
+        );
+        rating += gain;
+        balanceMilli -= gain * 1_000;
+      } else if (rating >= seasonInitialRating) {
+        balanceMilli = Math.min(balanceMilli, 999);
+      }
+    }
+  }
+
+  return rating;
+}

@@ -6,7 +6,13 @@ import { claimGameObjectiveAction } from "@/app/jeu/objectifs/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
-import type { GameObjective } from "@/lib/game/objectives";
+import { ObjectiveFilters } from "@/components/game/objective-filters";
+import {
+  filterGameObjectives,
+  parseGameObjectiveStatusFilter,
+  parseGameObjectiveTypeFilter,
+  type GameObjective,
+} from "@/lib/game/objectives";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
@@ -33,6 +39,14 @@ const groupLabels: Record<string, string> = {
   wildcards: "Wildcards",
   racing: "Animation de course",
   sponsoring: "Sponsoring",
+  monuments: "Monuments",
+  grand_tours: "Grands Tours",
+  rankings: "Classements UCI",
+  youth: "Centre de formation",
+  training: "Entraînement",
+  reconnaissance: "Reconnaissance",
+  health: "Santé et récupération",
+  tutorials: "Didacticiels",
 };
 
 const groupLinks: Record<string, { href: string; label: string }> = {
@@ -47,6 +61,14 @@ const groupLinks: Record<string, { href: string; label: string }> = {
   wildcards: { href: "/jeu/calendrier", label: "Voir le calendrier" },
   racing: { href: "/jeu/resultats", label: "Voir les courses" },
   sponsoring: { href: "/jeu/sponsoring", label: "Voir le sponsoring" },
+  monuments: { href: "/jeu/calendrier", label: "Voir le calendrier" },
+  grand_tours: { href: "/jeu/calendrier", label: "Voir le calendrier" },
+  rankings: { href: "/jeu/classements", label: "Voir les classements" },
+  youth: { href: "/jeu/centre-de-formation", label: "Voir les juniors" },
+  training: { href: "/jeu/entrainement", label: "Gérer l’entraînement" },
+  reconnaissance: { href: "/jeu/entrainement", label: "Planifier un stage" },
+  health: { href: "/jeu/centre-de-soin", label: "Voir le centre médical" },
+  tutorials: { href: "/jeu", label: "Ouvrir les didacticiels" },
 };
 
 export default async function ObjectivesPage({
@@ -68,12 +90,32 @@ export default async function ObjectivesPage({
     getCurrentGameObjectives(supabase),
   ]);
 
-  const primaryObjectives = objectives.filter(
+  const availableGroups = Array.from(
+    new Set(objectives.map((objective) => objective.group))
+  );
+  const requestedGroup = readQuery(query.groupe);
+  const selectedGroup =
+    requestedGroup && availableGroups.includes(requestedGroup)
+      ? requestedGroup
+      : "all";
+  const selectedType = parseGameObjectiveTypeFilter(readQuery(query.type));
+  const selectedStatus = parseGameObjectiveStatusFilter(
+    readQuery(query.statut)
+  );
+  const visibleObjectives = filterGameObjectives(objectives, {
+    type: selectedType,
+    status: selectedStatus,
+    group: selectedGroup,
+  });
+  const primaryObjectives = visibleObjectives.filter(
     (objective) => objective.type === "primary"
   );
-  const secondaryObjectives = objectives.filter(
+  const secondaryObjectives = visibleObjectives.filter(
     (objective) => objective.type === "secondary"
   );
+  const groupOptions = availableGroups
+    .map((group) => ({ value: group, label: groupLabels[group] ?? group }))
+    .sort((left, right) => left.label.localeCompare(right.label, "fr"));
   const readyCount = objectives.filter(
     (objective) => objective.completed && !objective.claimedAt
   ).length;
@@ -153,8 +195,26 @@ export default async function ObjectivesPage({
             <span className="text-xs font-black uppercase tracking-[0.15em] text-[#8A7000]">
               Versement immédiat et définitif
             </span>
+            <Link
+              href="/jeu/objectifs?statut=completed#objectives-list"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
+            >
+              Afficher et récupérer →
+            </Link>
           </aside>
         ) : null}
+
+        <div id="objectives-list" className="scroll-mt-6">
+          <ObjectiveFilters
+            key={`${selectedType}-${selectedStatus}-${selectedGroup}`}
+            groups={groupOptions}
+            initialType={selectedType}
+            initialStatus={selectedStatus}
+            initialGroup={selectedGroup}
+            totalCount={objectives.length}
+            visibleCount={visibleObjectives.length}
+          />
+        </div>
 
         <ObjectiveSection
           eyebrow="Parcours fondateur"
@@ -170,6 +230,20 @@ export default async function ObjectivesPage({
           description="Des paliers durables dans toutes les dimensions du club. Les niveaux supérieurs offrent les objets les plus rares."
           objectives={secondaryObjectives}
         />
+
+        {visibleObjectives.length === 0 ? (
+          <div className="mt-8 rounded-[1.65rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center">
+            <p className="text-xl font-black text-[#183F37]">
+              Aucun objectif ne correspond à ces filtres.
+            </p>
+            <Link
+              href="/jeu/objectifs#objectives-list"
+              className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B]"
+            >
+              Réinitialiser les filtres
+            </Link>
+          </div>
+        ) : null}
       </section>
     </main>
   );
@@ -191,6 +265,10 @@ function ObjectiveSection({
   const sectionId = featured
     ? "primary-career-objectives"
     : "secondary-career-objectives";
+
+  if (objectives.length === 0) {
+    return null;
+  }
 
   return (
     <section className="mt-10" aria-labelledby={sectionId}>

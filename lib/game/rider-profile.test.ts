@@ -69,56 +69,107 @@ describe("rider profile radar", () => {
     ).toBe("10.12,20.13 30,40");
   });
 
-  it("keeps every qualifying specialty when the current ratings evolve", () => {
-    const breakawayRider = createRatings({
-      breakaway: 66,
-      endurance: 62,
-      cobbles: 54,
-      resistance: 59,
-    });
+  it.each([
+    [{ mountain: 70 }, "Grimpeur"],
+    [{ hills: 70 }, "Puncheur"],
+    [{ cobbles: 70 }, "Coureur de pavés"],
+    [{ sprint: 70 }, "Sprinteur"],
+    [{ breakaway: 70 }, "Baroudeur"],
+  ] as const)(
+    "uses only the dominant primary rating for %s",
+    (overrides, expectedProfile) => {
+      expect(getRiderSportingProfile(createRatings(overrides))).toBe(
+        expectedProfile
+      );
+    }
+  );
 
-    expect(getRiderSportingProfile(breakawayRider)).toBe("Baroudeur");
-    expect(
-      getRiderSportingProfile({
-        ...breakawayRider,
-        cobbles: 68,
-        resistance: 64,
-      })
-    ).toBe("Spécialiste des pavés / Baroudeur");
-  });
-
-  it("shows two or three hybrid specialties ordered by their main rating", () => {
-    const hybridRider = createRatings({
-      mountain: 69,
-      hills: 67,
-      acceleration: 65,
-      sprint: 66,
-    });
-
-    expect(getRiderSportingProfile(hybridRider)).toBe(
-      "Grimpeur / Puncheur / Sprinteur"
-    );
-    expect(
-      getRiderSportingProfile({
-        ...hybridRider,
-        mountain: 60,
-      })
-    ).toBe("Puncheur / Sprinteur");
-  });
-
-  it("uses the complete-rider label beyond three qualifying specialties", () => {
+  it("requires both mountain and time trial ratings for a tour rider", () => {
     expect(
       getRiderSportingProfile(
         createRatings({
           mountain: 69,
-          hills: 67,
-          acceleration: 65,
-          sprint: 66,
-          cobbles: 68,
-          resistance: 62,
+          timeTrial: 67,
         })
       )
-    ).toBe("Coureur complet");
+    ).toBe("Coureur de tour");
+
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 69,
+          timeTrial: 61,
+        })
+      )
+    ).toBe("Grimpeur");
+  });
+
+  it("creates a two-profile hybrid within a four-point gap", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 69,
+          hills: 65,
+        })
+      )
+    ).toBe("Grimpeur / Puncheur");
+
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 70,
+          hills: 65,
+        })
+      )
+    ).toBe("Grimpeur");
+  });
+
+  it("keeps at most the two most representative specialties", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 69,
+          hills: 68,
+          sprint: 67,
+        })
+      )
+    ).toBe("Grimpeur / Puncheur");
+  });
+
+  it("labels a rider without a strong primary rating as balanced", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 61,
+          hills: 60,
+          timeTrial: 61,
+          cobbles: 59,
+          sprint: 60,
+          breakaway: 61,
+        })
+      )
+    ).toBe("Coureur équilibré");
+  });
+
+  it("matches the representative cases from the roster", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 70,
+          breakaway: 65,
+        })
+      )
+    ).toBe("Grimpeur");
+
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 64,
+          cobbles: 70,
+          sprint: 64,
+        })
+      )
+    ).toBe("Coureur de pavés");
   });
 });
 

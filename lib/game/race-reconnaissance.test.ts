@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   RACE_RECONNAISSANCE_BASE_BONUS,
   RACE_RECONNAISSANCE_DURATION_DAYS,
+  canTeamRecognizeRace,
   getRacePreparerBonusPercentage,
   getRaceReconnaissanceBonus,
   getRaceReconnaissanceCost,
@@ -52,5 +53,41 @@ describe("race reconnaissance", () => {
         raceFormat: "one_day",
       }),
     );
+  });
+
+  it("allows reconnaissance for races open to the team's reputation", () => {
+    expect(
+      canTeamRecognizeRace({
+        registrationStatus: null,
+        registrationPolicy: "open",
+        registrationClosesAt: "2026-07-30T12:00:00Z",
+        minimumReputation: 20,
+        reputationPoints: 30,
+        now: new Date("2026-07-26T12:00:00Z"),
+      }),
+    ).toBe(true);
+    expect(
+      canTeamRecognizeRace({
+        registrationStatus: null,
+        registrationPolicy: "open",
+        registrationClosesAt: "2026-07-30T12:00:00Z",
+        minimumReputation: 40,
+        reputationPoints: 30,
+        now: new Date("2026-07-26T12:00:00Z"),
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps accepted races eligible after registrations close", () => {
+    expect(
+      canTeamRecognizeRace({
+        registrationStatus: "accepted",
+        registrationPolicy: "closed",
+        registrationClosesAt: "2026-07-25T12:00:00Z",
+        minimumReputation: 40,
+        reputationPoints: 0,
+        now: new Date("2026-07-26T12:00:00Z"),
+      }),
+    ).toBe(true);
   });
 });

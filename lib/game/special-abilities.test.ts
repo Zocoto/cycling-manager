@@ -8,15 +8,19 @@ import {
 } from "./special-abilities";
 
 describe("special abilities", () => {
-  it("décrit exactement les sept médaillons connus", () => {
+  it("décrit exactement les huit médaillons connus", () => {
     expect(SPECIAL_ABILITY_CATALOG.map((ability) => ability.code)).toEqual(
       RIDER_SPECIAL_ABILITIES
     );
-    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(7);
+    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(8);
     expect(
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "sandwich_man")
         ?.effect
     ).toContain("+0,5 réputation");
+    expect(
+      SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "iron_health")
+        ?.effect,
+    ).toContain("30 %");
   });
 
   it("reconnaît une capacité historique ou une capacité parmi plusieurs", () => {

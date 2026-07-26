@@ -40,6 +40,29 @@ const gamePillars = [
   },
 ] as const;
 
+const productNews = [
+  {
+    category: "Développement",
+    title: "MVP déployé, pré-alpha lancée",
+    description:
+      "La première version de Cyclo Stratège est en ligne. La phase pré-alpha commence et le jeu va désormais évoluer au fil des tests et de vos retours.",
+    dateTime: "2026-07-26",
+    dateLabel: "26 juillet 2026",
+    accent: "leader",
+  },
+  {
+    category: "Communauté",
+    title: "Le Discord ouvre ses portes",
+    description:
+      "Un espace pour signaler les bugs, partager vos idées et échanger avec nous autour de l’application.",
+    dateTime: "2026-07-26",
+    dateLabel: "26 juillet 2026",
+    accent: "mint",
+    href: "https://discord.gg/tz4EA3e2b",
+    linkLabel: "Rejoindre le Discord",
+  },
+] as const;
+
 export default async function HomePage() {
   const gameNews = await getPublicGameNews();
 
@@ -87,45 +110,89 @@ function HeroSection() {
 
       <div className="relative mx-auto flex min-h-150 max-w-7xl items-center px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
         <div className="max-w-2xl">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-[#315B3E]/20 bg-white/75 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.2em] text-[#315B3E] shadow-sm backdrop-blur">
-              Devenez directeur sportif
-            </span>
-
-            <span className="rounded-full bg-[#F2C94C] px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#071A17] shadow-sm">
-              Saison 2026
-            </span>
-          </div>
-
-          <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
+          <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
             Prenez la tête
             <span className="mt-2 block text-[#42B99A]">du peloton.</span>
           </h1>
+
+          <ProductNews />
 
           <p className="mt-7 max-w-xl text-lg leading-8 text-[#25443F] sm:text-xl">
             Construisez votre équipe, recrutez les meilleurs coureurs et prenez
             les décisions qui feront la différence sur les plus grandes routes.
           </p>
-
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/inscription"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-[0_14px_35px_rgba(128,100,10,0.24)] transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
-            >
-              Nouvelle carrière
-              <ArrowIcon />
-            </Link>
-
-            <Link
-              href="/connexion"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border-2 border-[#0B302B] bg-[#0B302B] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#FFFDF4] shadow-[0_10px_25px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:bg-[#123f37] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B302B]"
-            >
-              Charger une partie
-              <FolderIcon />
-            </Link>
-          </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function ProductNews() {
+  return (
+    <section className="mt-8 max-w-2xl" aria-labelledby="product-news-title">
+      <div className="flex items-center gap-3">
+        <h2
+          id="product-news-title"
+          className="shrink-0 text-xs font-black uppercase tracking-[0.2em] text-[#278B70]"
+        >
+          News du jeu
+        </h2>
+        <span aria-hidden="true" className="h-px flex-1 bg-[#315B3E]/20" />
+        <span className="shrink-0 rounded-full bg-[#082A2A] px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#8DE3C9]">
+          Pré-alpha
+        </span>
+      </div>
+
+      <ol className="mt-3 grid gap-3 sm:grid-cols-2">
+        {productNews.map((news) => (
+          <li key={news.title}>
+            <article className="relative h-full overflow-hidden rounded-xl border border-[#315B3E]/15 bg-white/82 p-4 shadow-[0_12px_35px_rgba(19,60,46,0.11)] backdrop-blur-sm">
+              <span
+                aria-hidden="true"
+                className={`absolute inset-y-0 left-0 w-1 ${
+                  news.accent === "leader"
+                    ? "bg-[#F2C94C]"
+                    : "bg-[#42CDA8]"
+                }`}
+              />
+
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-1">
+                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+                  {news.category}
+                </span>
+                <span aria-hidden="true" className="text-[#78947D]">
+                  ·
+                </span>
+                <time
+                  dateTime={news.dateTime}
+                  className="text-[11px] font-semibold text-[#6A7E77]"
+                >
+                  {news.dateLabel}
+                </time>
+              </div>
+
+              <h3 className="mt-2 pl-1 text-base font-black leading-5 text-[#082A2A]">
+                {news.title}
+              </h3>
+              <p className="mt-2 pl-1 text-sm leading-5 text-[#536B64]">
+                {news.description}
+              </p>
+
+              {"href" in news ? (
+                <a
+                  href={news.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-sm pl-1 text-xs font-extrabold text-[#278B70] underline decoration-[#42CDA8]/45 underline-offset-4 transition hover:text-[#173C2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
+                >
+                  {news.linkLabel}
+                  <span aria-hidden="true">↗</span>
+                </a>
+              ) : null}
+            </article>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -305,22 +372,6 @@ function ArrowIcon() {
     >
       <path d="M3 10h13" />
       <path d="m11 5 5 5-5 5" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 20 20"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M2.5 5.5h5l1.5 2h8.5v8H2.5v-10Z" />
-      <path d="M2.5 7.5h15" />
     </svg>
   );
 }

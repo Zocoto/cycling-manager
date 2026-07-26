@@ -52,17 +52,15 @@ function normalizePublicTeamName(value?: string | null): string | null {
 export type RiderSpecialtyProfile =
   | "Grimpeur"
   | "Puncheur"
-  | "Rouleur / CLM"
+  | "Coureur de tour"
   | "Sprinteur"
-  | "Spécialiste des pavés"
+  | "Coureur de pavés"
   | "Baroudeur";
 
 export type RiderSportingProfile =
   | RiderSpecialtyProfile
   | `${RiderSpecialtyProfile} / ${RiderSpecialtyProfile}`
-  | `${RiderSpecialtyProfile} / ${RiderSpecialtyProfile} / ${RiderSpecialtyProfile}`
-  | "Coureur complet"
-  | "Équipier polyvalent";
+  | "Coureur équilibré";
 
 export const RIDER_RATING_AXES: ReadonlyArray<{
   key: RiderRatingKey;
@@ -122,35 +120,41 @@ export function serializeRadarPoints(points: readonly RadarPoint[]): string {
 export function getRiderSportingProfile(
   ratings: RiderRatings
 ): RiderSportingProfile {
+  const isTourRider =
+    ratings.mountain >= RIDER_PROFILE_MINIMUM_RATING &&
+    ratings.timeTrial >= RIDER_PROFILE_MINIMUM_RATING;
+
   const profiles = [
     {
+      label: "Coureur de tour",
+      qualifies: isTourRider,
+      score: (ratings.mountain + ratings.timeTrial) / 2,
+    },
+    {
       label: "Grimpeur",
-      qualifies: ratings.mountain >= 62,
+      qualifies:
+        !isTourRider &&
+        ratings.mountain >= RIDER_PROFILE_MINIMUM_RATING,
       score: ratings.mountain,
     },
     {
       label: "Puncheur",
-      qualifies: ratings.hills >= 62 && ratings.acceleration >= 60,
+      qualifies: ratings.hills >= RIDER_PROFILE_MINIMUM_RATING,
       score: ratings.hills,
     },
     {
-      label: "Rouleur / CLM",
-      qualifies: ratings.timeTrial >= 62 && ratings.flat >= 60,
-      score: Math.max(ratings.timeTrial, ratings.flat),
-    },
-    {
       label: "Sprinteur",
-      qualifies: ratings.sprint >= 62 && ratings.acceleration >= 60,
+      qualifies: ratings.sprint >= RIDER_PROFILE_MINIMUM_RATING,
       score: ratings.sprint,
     },
     {
-      label: "Spécialiste des pavés",
-      qualifies: ratings.cobbles >= 62 && ratings.resistance >= 58,
+      label: "Coureur de pavés",
+      qualifies: ratings.cobbles >= RIDER_PROFILE_MINIMUM_RATING,
       score: ratings.cobbles,
     },
     {
       label: "Baroudeur",
-      qualifies: ratings.breakaway >= 62 && ratings.endurance >= 58,
+      qualifies: ratings.breakaway >= RIDER_PROFILE_MINIMUM_RATING,
       score: ratings.breakaway,
     },
   ] satisfies Array<{
@@ -163,13 +167,27 @@ export function getRiderSportingProfile(
     .filter((profile) => profile.qualifies)
     .sort((left, right) => right.score - left.score);
 
-  if (qualifiedProfiles.length === 0) return "Équipier polyvalent";
-  if (qualifiedProfiles.length > 3) return "Coureur complet";
+  const primaryProfile = qualifiedProfiles[0];
 
-  return qualifiedProfiles
-    .map((profile) => profile.label)
-    .join(" / ") as RiderSportingProfile;
+  if (!primaryProfile) {
+    return "Coureur équilibré";
+  }
+
+  const secondaryProfile = qualifiedProfiles[1];
+
+  if (
+    !secondaryProfile ||
+    primaryProfile.score - secondaryProfile.score >
+      RIDER_PROFILE_HYBRID_MAX_GAP
+  ) {
+    return primaryProfile.label;
+  }
+
+  return `${primaryProfile.label} / ${secondaryProfile.label}`;
 }
+
+const RIDER_PROFILE_MINIMUM_RATING = 62;
+const RIDER_PROFILE_HYBRID_MAX_GAP = 4;
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;

@@ -1,4 +1,16 @@
 export type GameObjectiveType = "primary" | "secondary";
+export type GameObjectiveTypeFilter = "all" | GameObjectiveType;
+export type GameObjectiveStatusFilter =
+  | "all"
+  | "in_progress"
+  | "completed"
+  | "claimed";
+
+export type GameObjectiveFilters = {
+  type: GameObjectiveTypeFilter;
+  status: GameObjectiveStatusFilter;
+  group: string;
+};
 
 export type GameObjectiveRewardItemKind =
   | "equipment"
@@ -93,6 +105,54 @@ export function selectDashboardObjectives(
     .filter((objective) => !objective.claimedAt)
     .sort(compareDashboardObjectives)
     .slice(0, Math.max(0, limit));
+}
+
+export function filterGameObjectives(
+  objectives: GameObjective[],
+  filters: GameObjectiveFilters
+): GameObjective[] {
+  return objectives.filter((objective) => {
+    if (filters.type !== "all" && objective.type !== filters.type) {
+      return false;
+    }
+
+    if (filters.group !== "all" && objective.group !== filters.group) {
+      return false;
+    }
+
+    if (filters.status === "in_progress" && objective.completed) {
+      return false;
+    }
+
+    if (
+      filters.status === "completed" &&
+      (!objective.completed || objective.claimedAt)
+    ) {
+      return false;
+    }
+
+    if (filters.status === "claimed" && !objective.claimedAt) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+export function parseGameObjectiveTypeFilter(
+  value: string | null
+): GameObjectiveTypeFilter {
+  return value === "primary" || value === "secondary" ? value : "all";
+}
+
+export function parseGameObjectiveStatusFilter(
+  value: string | null
+): GameObjectiveStatusFilter {
+  return value === "in_progress" ||
+    value === "completed" ||
+    value === "claimed"
+    ? value
+    : "all";
 }
 
 export function compareDashboardObjectives(

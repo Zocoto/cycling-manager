@@ -10,6 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
+import { RiderPreviewLink } from "@/components/game/rider-preview-link";
+import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
+
 type AppLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
     children?: ReactNode;
@@ -30,6 +33,33 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     typeof href === "string"
       ? href.includes("#")
       : typeof href.hash === "string" && href.hash.length > 0;
+  const hrefPathname =
+    typeof href === "string"
+      ? href
+      : typeof href.pathname === "string"
+        ? href.pathname
+        : "";
+  const riderId = getRiderIdFromProfileHref(hrefPathname);
+  const linkChildren = (
+    <>
+      {children}
+      <LinkPendingIndicator />
+    </>
+  );
+
+  if (riderId) {
+    return (
+      <RiderPreviewLink
+        ref={ref}
+        riderId={riderId}
+        href={href}
+        scroll={scroll ?? usesAnchor}
+        {...props}
+      >
+        {linkChildren}
+      </RiderPreviewLink>
+    );
+  }
 
   return (
     <NextLink
@@ -38,8 +68,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       scroll={scroll ?? usesAnchor}
       {...props}
     >
-      {children}
-      <LinkPendingIndicator />
+      {linkChildren}
     </NextLink>
   );
 });

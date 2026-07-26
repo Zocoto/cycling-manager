@@ -442,9 +442,12 @@ suivante :
 | Continentale | 51 à 100 | +4 |
 | Nationale | 101 à 200 | +1 |
 
-Quatre wildcards de course Élite sont réservées aux équipes World,
-Continentales ou Nationales. La priorité va à la meilleure division, puis à
-l'adéquation du leader, aux points UCI et au classement.
+Toutes les équipes voient les courses Élite dans leur calendrier. Les équipes
+Élite y inscrivent directement huit à neuf coureurs. Les équipes de toute autre
+division peuvent demander une Wild Card en proposant huit à neuf coureurs, dont
+l'agenda reste bloqué jusqu'à l'arbitrage à J-1. La décision tient compte de la
+nationalité de l'équipe, de celle du sponsor principal, de la réputation et du
+meilleur coureur aligné par rapport au profil de la course.
 
 ## 20. Infrastructures et formation
 

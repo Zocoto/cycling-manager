@@ -7,6 +7,8 @@ import {
   type TrainerSpecialty,
 } from "@/lib/game/staff";
 import {
+  getLongevityTier,
+  getSeasonDeclinePoints,
   getTrainerRiderCapacity,
   indexLatestTrainingSessionsByRider,
   isTrainingDomain,
@@ -31,8 +33,10 @@ type RiderRow = {
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
   potential_steps: number;
+  decline_resistance_multiplier: number | string;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
+type IronHealthAbilityRow = { rider_id: string };
 type RatingRow = {
   rider_id: string;
   age: number;
@@ -150,6 +154,12 @@ export type TeamTrainingRider = {
   age: number;
   potentialSteps: number;
   form: number;
+  declineProfile: {
+    seasonPointsBeforeTraining: number;
+    naturalMultiplier: number;
+    longevityTier: ReturnType<typeof getLongevityTier>;
+    hasIronHealth: boolean;
+  };
   ratings: Omit<RatingRow, "rider_id" | "age">;
   plan: {
     intensity: number;
@@ -236,13 +246,20 @@ export async function getCurrentTeamTrainingOverview(
   const staffContracts = staffContractsResult.data ?? [];
   const staffMemberIds = staffContracts.map((contract) => contract.staff_member_id);
 
-  const [ridersResult, ratingsResult, conditionsResult, sessionsResult, staffMembersResult] =
+  const [
+    ridersResult,
+    ratingsResult,
+    conditionsResult,
+    sessionsResult,
+    staffMembersResult,
+    ironHealthResult,
+  ] =
     await Promise.all([
       riderIds.length
         ? admin
             .from("riders")
             .select(
-              "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, potential_steps",
+              "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed, potential_steps, decline_resistance_multiplier",
             )
             .in("id", riderIds)
             .returns<RiderRow[]>()
@@ -283,6 +300,14 @@ export async function getCurrentTeamTrainingOverview(
             .in("id", staffMemberIds)
             .returns<StaffMemberRow[]>()
         : Promise.resolve({ data: [] as StaffMemberRow[], error: null }),
+      riderIds.length
+        ? admin
+            .from("rider_special_abilities")
+            .select("rider_id")
+            .eq("ability_code", "iron_health")
+            .in("rider_id", riderIds)
+            .returns<IronHealthAbilityRow[]>()
+        : Promise.resolve({ data: [] as IronHealthAbilityRow[], error: null }),
     ]);
 
   assertQuery(ridersResult.error, "les coureurs");
@@ -290,6 +315,7 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(conditionsResult.error, "la forme des coureurs");
   assertQuery(sessionsResult.error, "les rapports d’entraînement");
   assertQuery(staffMembersResult.error, "les entraîneurs");
+  assertQuery(ironHealthResult.error, "les capacités de longévité");
 
   const countryIds = [
     ...new Set([
@@ -306,6 +332,9 @@ export async function getCurrentTeamTrainingOverview(
     : { data: [] as CountryRow[], error: null };
   assertQuery(countriesResult.error, "les pays des coureurs");
 
+  const ironHealthRiderIds = new Set(
+    (ironHealthResult.data ?? []).map((ability) => ability.rider_id),
+  );
   const currentDayNumber = season.current_day_number ?? 1;
   const dayById = new Map(days.map((day) => [day.id, day]));
   const countryById = new Map((countriesResult.data ?? []).map((country) => [country.id, country]));
@@ -388,6 +417,10 @@ export async function getCurrentTeamTrainingOverview(
             ? reportRow.trainer_specialty
             : null;
         const condition = conditionByRiderId.get(rider.id);
+        const naturalDeclineMultiplier = Number(
+          rider.decline_resistance_multiplier,
+        );
+        const hasIronHealth = ironHealthRiderIds.has(rider.id);
 
         return [
           {
@@ -401,6 +434,15 @@ export async function getCurrentTeamTrainingOverview(
             age: rating.age,
             potentialSteps: rider.potential_steps,
             form: condition?.form ?? 75,
+            declineProfile: {
+              seasonPointsBeforeTraining: getSeasonDeclinePoints(rating.age, {
+                declineMultiplier: naturalDeclineMultiplier,
+                hasIronHealth,
+              }),
+              naturalMultiplier: naturalDeclineMultiplier,
+              longevityTier: getLongevityTier(naturalDeclineMultiplier),
+              hasIronHealth,
+            },
             ratings: {
               mountain: rating.mountain,
               hills: rating.hills,

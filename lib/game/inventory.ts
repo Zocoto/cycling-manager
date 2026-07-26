@@ -29,6 +29,8 @@ export type TeamInventoryItem = {
   availableQuantity: number;
   equippedQuantity: number;
   pendingQuantity: number;
+  equippedRiderIds: string[];
+  pendingRiderIds: string[];
   iconKey: string;
   imagePath: string | null;
   supplierName: string | null;

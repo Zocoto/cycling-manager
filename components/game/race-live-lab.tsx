@@ -21,6 +21,7 @@ import {
   getVisibleFinalBattleRiderIds,
   keepPassageWinnerVisible,
 } from "@/lib/game/race-finish-visual";
+import { buildRaceGapLine } from "@/lib/game/race-gap-line";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
   getOfficialStageSimulationContext,
@@ -223,7 +224,10 @@ export function RaceLiveLab({
   }, [finalSegmentMeters, isFinal, isPlaying, mode, playbackSpeed]);
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-[#FFFDF4] shadow-[0_30px_80px_rgba(7,26,23,0.22)]">
+    <section
+      data-tutorial-id="race-live-lab"
+      className="overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-[#FFFDF4] shadow-[0_30px_80px_rgba(7,26,23,0.22)]"
+    >
       <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(66,185,154,0.2),transparent_38%)] px-5 py-6 sm:px-8">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -265,7 +269,11 @@ export function RaceLiveLab({
         </div>
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-white/10 px-5 pt-3 sm:px-8" aria-label="Vues du moteur de course">
+      <nav
+        data-tutorial-id="race-live-tabs"
+        className="flex gap-1 overflow-x-auto border-b border-white/10 px-5 pt-3 sm:px-8"
+        aria-label="Vues du moteur de course"
+      >
         <TabButton active={tab === "live"} onClick={() => setTab("live")}>Live</TabButton>
         <TabButton active={tab === "classification"} onClick={() => setTab("classification")}>
           Classement
@@ -295,7 +303,10 @@ export function RaceLiveLab({
           />
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              data-tutorial-id="race-replay-controls"
+              className="flex flex-wrap items-center gap-2"
+            >
               {mode === "replay" ? <button
                 type="button"
                 onClick={() => {
@@ -371,8 +382,11 @@ export function RaceLiveLab({
             />
           )}
 
-          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.75fr)]">
-            <GroupDetails groups={snapshot.groups} riderById={riderById} />
+          <div className="mt-5 space-y-5">
+            <RaceGapLine
+              groups={snapshot.groups}
+              riderById={riderById}
+            />
             <RaceCommentary commentary={snapshot.commentary} />
           </div>
         </div>
@@ -1738,67 +1752,129 @@ function FinishDistanceCounter({
   );
 }
 
-function GroupDetails({
+function RaceGapLine({
   groups,
   riderById,
 }: {
   groups: RaceGroupSnapshot[];
   riderById: Map<string, RiderSimulationInput>;
 }) {
-  const leftGroups = groups
-    .filter((group) =>
-      ["peloton", "dropped", "time_trial"].includes(
-        group.type
-      )
-    )
-    .sort(
-      (first, second) =>
-        first.gapToLeaderSeconds -
-        second.gapToLeaderSeconds
-    );
-  const rightGroups = groups
-    .filter((group) =>
-      ["breakaway", "chase"].includes(group.type)
-    )
-    .sort(
-      (first, second) =>
-        first.gapToLeaderSeconds -
-        second.gapToLeaderSeconds
-    );
+  const entries = buildRaceGapLine(groups);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div className="space-y-3">
-        {leftGroups.slice(0, 3).map((group) => (
-          <RaceGroupCard
-            key={group.id}
-            group={group}
-            riderById={riderById}
-          />
-        ))}
+    <section
+      aria-labelledby="race-gap-line-title"
+      className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]"
+    >
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 px-5 py-4">
+        <div>
+          <p
+            id="race-gap-line-title"
+            className="text-xs font-black uppercase tracking-[0.16em] text-[#72D4B7]"
+          >
+            Ordre et écarts en course
+          </p>
+          <p className="mt-1 text-[11px] font-semibold text-[#91A99E]">
+            De gauche à droite · tous les écarts sont mesurés depuis la tête
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#B7CAC1]">
+            {entries.length} groupe
+            {entries.length > 1 ? "s" : ""}
+          </span>
+          {entries.length > 1 ? (
+            <span className="text-[10px] font-black uppercase tracking-wide text-[#F2C94C]">
+              Défiler →
+            </span>
+          ) : null}
+        </div>
+      </header>
+      <div
+        role="region"
+        aria-label="Groupes classés de la tête vers l’arrière de la course"
+        tabIndex={0}
+        className="overflow-x-auto overscroll-x-contain px-5 pb-5 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#72D4B7]"
+      >
+        <ol className="flex min-w-max snap-x snap-mandatory items-stretch">
+          {entries.map((entry, index) => (
+            <li
+              key={entry.group.id}
+              className="flex w-[17rem] shrink-0 snap-start flex-col pr-4 sm:w-[19rem]"
+            >
+              <div className="mb-3 flex h-10 items-center">
+                <span
+                  aria-hidden="true"
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-[11px] font-black ${
+                    entry.position === 1
+                      ? "border-[#F2C94C] bg-[#F2C94C] text-[#071A17]"
+                      : "border-[#72D4B7]/55 bg-[#102B25] text-[#9BE0CA]"
+                  }`}
+                >
+                  {entry.position}
+                </span>
+                <span
+                  className={`ml-2 shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black tabular-nums ${
+                    entry.gapToLeaderSeconds === 0
+                      ? "bg-[#F2C94C]/15 text-[#F7DA73]"
+                      : "bg-[#72D4B7]/10 text-[#9BE0CA]"
+                  }`}
+                >
+                  {entry.gapToLeaderSeconds === 0
+                    ? "TÊTE"
+                    : `+${formatGap(entry.gapToLeaderSeconds)}`}
+                </span>
+                {index < entries.length - 1 ? (
+                  <span
+                    aria-hidden="true"
+                    className="relative ml-2 h-px flex-1 bg-[#72D4B7]/35"
+                  >
+                    <span className="absolute -right-0.5 -top-[7px] text-base font-black text-[#72D4B7]/70">
+                      ›
+                    </span>
+                  </span>
+                ) : null}
+              </div>
+              <RaceGroupCard
+                group={entry.group}
+                riderById={riderById}
+                gapToLeaderSeconds={
+                  entry.gapToLeaderSeconds
+                }
+              />
+            </li>
+          ))}
+        </ol>
       </div>
-      <div className="space-y-3">
-        {rightGroups.slice(0, 3).map((group) => (
-          <RaceGroupCard
-            key={group.id}
-            group={group}
-            riderById={riderById}
-          />
-        ))}
-      </div>
-    </div>
+    </section>
   );
 }
 
 function RaceGroupCard({
   group,
   riderById,
+  gapToLeaderSeconds,
 }: {
   group: RaceGroupSnapshot;
   riderById: Map<string, RiderSimulationInput>;
+  gapToLeaderSeconds: number;
 }) {
+  const isRaceLeader =
+    gapToLeaderSeconds === 0;
+
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+    <article
+      aria-label={`${group.label}, ${
+        isRaceLeader
+          ? "en tête"
+          : `à ${formatGap(gapToLeaderSeconds)} de la tête`
+      }`}
+      className={`flex min-h-[15rem] flex-1 flex-col rounded-2xl border p-4 ${
+        isRaceLeader
+          ? "border-[#F2C94C]/35 bg-[#F2C94C]/[0.065]"
+          : "border-white/10 bg-white/[0.045]"
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black text-white">
@@ -1809,19 +1885,23 @@ function RaceGroupCard({
             {group.riderIds.length > 1 ? "s" : ""} · énergie moy. {Math.round(group.averageEnergy)} %
           </p>
         </div>
-        <span className="rounded-full bg-[#F2C94C]/10 px-2.5 py-1 text-[10px] font-black text-[#F2C94C]">
-          {group.gapToLeaderSeconds
-            ? `+${formatGap(group.gapToLeaderSeconds)}`
-            : "Tête"}
+        <span className="rounded-full bg-white/[0.065] px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#AFC6BB]">
+          {groupTypeLabel(group.type)}
         </span>
       </div>
-      <ul className="mt-3 space-y-1.5 text-xs font-semibold text-[#B7CAC1]">
-        {group.riderIds.slice(0, 5).map((id) => {
-          const rider = riderById.get(id)!;
+      <ul className="mt-3 max-h-44 flex-1 space-y-1.5 overflow-y-auto pr-1 text-xs font-semibold text-[#B7CAC1]">
+        {group.riderIds.map((id) => {
+          const rider = riderById.get(id);
+
+          if (!rider) {
+            return null;
+          }
+
           return (
             <li key={id} className="flex items-center gap-2">
               <span
-                className="h-2.5 w-2.5 rounded-full border"
+                aria-hidden="true"
+                className="h-2.5 w-2.5 shrink-0 rounded-full border"
                 style={{
                   backgroundColor: rider.teamPrimaryColor,
                   borderColor: rider.teamSecondaryColor,
@@ -1837,6 +1917,23 @@ function RaceGroupCard({
       </ul>
     </article>
   );
+}
+
+function groupTypeLabel(
+  type: RaceGroupSnapshot["type"],
+) {
+  switch (type) {
+    case "breakaway":
+      return "Échappée";
+    case "chase":
+      return "Poursuite";
+    case "peloton":
+      return "Peloton";
+    case "dropped":
+      return "Attardés";
+    case "time_trial":
+      return "Chrono";
+  }
 }
 
 function RaceCommentary({ commentary }: { commentary: string[] }) {

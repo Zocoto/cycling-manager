@@ -201,25 +201,24 @@ describe("selectWildcardTeams", () => {
     expect(selected.map((candidate) => candidate.teamId)).toEqual(["b", "a"]);
   });
 
-  it("prioritizes World, Continental, then National teams", () => {
+  it("scores nationality, sponsor, reputation and rider fit across non-Elite divisions", () => {
     const selected = selectWildcardTeams(
       [
-        { teamId: "world-b", rankingPosition: 45, uciPoints: 350, leaderProfileFit: 91, requested: true },
-        { teamId: "world-a", rankingPosition: 30, uciPoints: 500, leaderProfileFit: 72, requested: true },
-        { teamId: "continental", rankingPosition: 60, uciPoints: 300, leaderProfileFit: 99, requested: true },
-        { teamId: "national", rankingPosition: 120, uciPoints: 150, leaderProfileFit: 99, requested: true },
+        { teamId: "local-team", rankingPosition: 220, uciPoints: 50, leaderProfileFit: 70, requested: true, teamCountryMatchesRace: true },
+        { teamId: "local-sponsor", rankingPosition: 120, uciPoints: 150, leaderProfileFit: 80, requested: true, sponsorCountryMatchesRace: true },
+        { teamId: "reputation", rankingPosition: 60, uciPoints: 300, leaderProfileFit: 75, requested: true, reputationPoints: 800 },
+        { teamId: "profile-fit", rankingPosition: 220, uciPoints: 50, leaderProfileFit: 100, requested: true },
         { teamId: "elite", rankingPosition: 12, uciPoints: 900, leaderProfileFit: 100, requested: true },
-        { teamId: "amateur", rankingPosition: 220, uciPoints: 50, leaderProfileFit: 100, requested: true },
         { teamId: "not-requested", rankingPosition: 25, uciPoints: 800, leaderProfileFit: 100, requested: false },
       ],
       4
     );
 
     expect(selected.map((candidate) => candidate.teamId)).toEqual([
-      "world-b",
-      "world-a",
-      "continental",
-      "national",
+      "local-team",
+      "reputation",
+      "local-sponsor",
+      "profile-fit",
     ]);
   });
 });

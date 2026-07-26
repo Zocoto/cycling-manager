@@ -1,6 +1,8 @@
-import type {
-  RaceCategoryCode,
-  RaceFormat,
+import {
+  getRegistrationAvailability,
+  type RaceCategoryCode,
+  type RaceFormat,
+  type RegistrationPolicy,
 } from "./race-calendar";
 
 export const RACE_RECONNAISSANCE_DURATION_DAYS = 2;
@@ -56,5 +58,45 @@ export function getRaceReconnaissanceBonus(level?: number | null) {
         (1 + preparerBonusPercentage / 100) *
         100,
     ) / 100
+  );
+}
+
+export function canTeamRecognizeRace({
+  registrationStatus,
+  registrationPolicy,
+  registrationClosesAt,
+  minimumReputation,
+  reputationPoints,
+  now = new Date(),
+}: {
+  registrationStatus: string | null;
+  registrationPolicy: RegistrationPolicy;
+  registrationClosesAt: string | null;
+  minimumReputation: number | null;
+  reputationPoints: number;
+  now?: Date;
+}) {
+  if (
+    registrationStatus === "accepted" ||
+    registrationStatus === "pending"
+  ) {
+    return true;
+  }
+
+  if (
+    registrationStatus === "rejected" ||
+    registrationStatus === "withdrawn"
+  ) {
+    return false;
+  }
+
+  return (
+    getRegistrationAvailability({
+      policy: registrationPolicy,
+      closesAt: registrationClosesAt,
+      minimumReputation,
+      reputationPoints,
+      now,
+    }) === "open"
   );
 }

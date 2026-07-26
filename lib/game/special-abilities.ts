@@ -6,6 +6,7 @@ export const RIDER_SPECIAL_ABILITIES = [
   "giclette",
   "chase_potato",
   "sandwich_man",
+  "iron_health",
 ] as const;
 
 export type RiderSpecialAbility =
@@ -22,8 +23,17 @@ export type SpecialAbilityDefinition = {
     | "locomotive"
     | "pump"
     | "potato"
-    | "sandwich";
-  tone: "silver" | "gold" | "copper" | "anthracite" | "red" | "purple" | "green";
+    | "sandwich"
+    | "walking_cane";
+  tone:
+    | "silver"
+    | "gold"
+    | "copper"
+    | "anthracite"
+    | "red"
+    | "purple"
+    | "green"
+    | "slate";
 };
 
 export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
@@ -75,6 +85,13 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
     effect: "Accorde +0,5 réputation après une échappée ou une victoire.",
     icon: "sandwich",
     tone: "green",
+  },
+  {
+    code: "iron_health",
+    name: "Santé de fer",
+    effect: "Repousse le déclin d’un an et réduit ensuite de 30 % la perte naturelle de caractéristiques.",
+    icon: "walking_cane",
+    tone: "slate",
   },
 ];
 

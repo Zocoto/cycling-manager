@@ -1,8 +1,10 @@
 import type {
   RaceCalendarEdition,
   RaceCalendarStage,
+  RaceFormat,
 } from "./race-calendar";
 import { createCalendarSimulationInput } from "./race-simulation-demo";
+import { removeOneDayRaceMountainPrimes } from "./race-profiles";
 import {
   buildStageRaceStandings,
   simulateRaceStage,
@@ -36,6 +38,48 @@ export type LockedOfficialRaceSimulationDirectory = Record<
   string,
   LockedOfficialStageSimulation[]
 >;
+
+export function sanitizeOfficialStageSimulationForRaceFormat({
+  raceFormat,
+  input,
+  simulation,
+}: {
+  raceFormat: RaceFormat;
+  input: StageSimulationInput;
+  simulation: StageSimulationResult;
+}) {
+  if (raceFormat !== "one_day") {
+    return { input, simulation };
+  }
+
+  const segments =
+    removeOneDayRaceMountainPrimes(
+      input.segments,
+      raceFormat
+    );
+  const primes = simulation.primes.filter(
+    (prime) => prime.prime.type !== "mountain"
+  );
+  const sanitizedInput =
+    segments === input.segments
+      ? input
+      : { ...input, segments };
+  const sanitizedSimulation =
+    primes.length === simulation.primes.length &&
+    Object.keys(simulation.mountainPoints)
+      .length === 0
+      ? simulation
+      : {
+          ...simulation,
+          primes,
+          mountainPoints: {},
+        };
+
+  return {
+    input: sanitizedInput,
+    simulation: sanitizedSimulation,
+  };
+}
 
 export function isUnavailableForFollowingStage(
   result: StageSimulationResult["results"][number]
@@ -121,10 +165,18 @@ export function getOfficialStageSimulationContext({
           simulation !== undefined
       );
 
+    const sanitizedLockedSimulationData =
+      sanitizeOfficialStageSimulationForRaceFormat({
+        raceFormat: edition.raceFormat,
+        input: selectedLockedSimulation.input,
+        simulation:
+          selectedLockedSimulation.simulation,
+      });
+
     return {
       stage,
-      input: selectedLockedSimulation.input,
-      simulation: selectedLockedSimulation.simulation,
+      input: sanitizedLockedSimulationData.input,
+      simulation: sanitizedLockedSimulationData.simulation,
       standings:
         edition.raceFormat === "stage_race"
           ? buildStageRaceStandings(

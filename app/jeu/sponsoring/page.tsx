@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
+import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
@@ -170,61 +171,65 @@ export default async function SponsoringPage({
             />
           ) : null}
 
-          {!sponsoringError &&
-          sponsoringState?.kind === "offers" &&
-          sponsoringState.offers.length ===
-            0 ? (
-            <EmptyOffers />
-          ) : null}
+          <div data-tutorial-id="sponsoring-overview">
+            {!sponsoringError &&
+            sponsoringState?.kind === "offers" &&
+            sponsoringState.offers.length ===
+              0 ? (
+              <EmptyOffers />
+            ) : null}
 
-          {!sponsoringError &&
-          sponsoringState?.kind === "offers" &&
-          sponsoringState.offers.length > 0 ? (
-            <OffersSection
-              offers={sponsoringState.offers}
-            />
-          ) : null}
+            {!sponsoringError &&
+            sponsoringState?.kind === "offers" &&
+            sponsoringState.offers.length > 0 ? (
+              <OffersSection
+                offers={sponsoringState.offers}
+              />
+            ) : null}
 
-          {!sponsoringError &&
-          sponsoringState?.kind ===
-            "jersey-selection" ? (
-            <JerseySelectionSection
-              contract={
-                sponsoringState.contract
-              }
-            />
-          ) : null}
-
-          {!sponsoringError &&
-          sponsoringState?.kind === "active" ? (
-            <>
-              <ActiveSponsorSection
+            {!sponsoringError &&
+            sponsoringState?.kind ===
+              "jersey-selection" ? (
+              <JerseySelectionSection
                 contract={
                   sponsoringState.contract
                 }
               />
+            ) : null}
 
-              <FutureSponsoringSection
-                state={sponsoringState.future}
-              />
-            </>
-          ) : null}
+            {!sponsoringError &&
+            sponsoringState?.kind === "active" ? (
+              <>
+                <ActiveSponsorSection
+                  contract={
+                    sponsoringState.contract
+                  }
+                />
 
-          {!sponsoringError &&
-          sponsoringState?.kind ===
-            "terminated" ? (
-            <>
-              <TerminatedSponsorSection
-                contract={
-                  sponsoringState.contract
-                }
-              />
+                <FutureSponsoringSection
+                  state={sponsoringState.future}
+                />
+              </>
+            ) : null}
 
-              <FutureSponsoringSection
-                state={sponsoringState.future}
-              />
-            </>
-          ) : null}
+            {!sponsoringError &&
+            sponsoringState?.kind ===
+              "terminated" ? (
+              <>
+                <TerminatedSponsorSection
+                  contract={
+                    sponsoringState.contract
+                  }
+                />
+
+                <FutureSponsoringSection
+                  state={sponsoringState.future}
+                />
+              </>
+            ) : null}
+
+            <TutorialSponsorPreview />
+          </div>
         </div>
       </section>
     </main>

@@ -61,7 +61,6 @@ export default async function RaceLivePage({
     getActiveSeasonRaceCalendar(supabase, now, {
       raceSlug: slug,
       includeEngagedRiders: true,
-      seasonStatuses: ["active", "planned"],
     }),
   ]);
 

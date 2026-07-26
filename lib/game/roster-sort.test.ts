@@ -12,12 +12,14 @@ describe("roster sorting", () => {
   it("valide uniquement les colonnes autorisées", () => {
     expect(parseRosterSortKey("sprint")).toBe("sprint");
     expect(parseRosterSortKey("mountain")).toBe("mountain");
+    expect(parseRosterSortKey("form")).toBe("form");
     expect(parseRosterSortKey("unknown")).toBeNull();
   });
 
   it("affiche les meilleures notes en premier au premier clic", () => {
     expect(parseRosterSortDirection(undefined, "sprint")).toBe("desc");
     expect(parseRosterSortDirection(undefined, "average")).toBe("desc");
+    expect(parseRosterSortDirection(undefined, "form")).toBe("desc");
     expect(parseRosterSortDirection(undefined, "rider")).toBe("asc");
   });
 

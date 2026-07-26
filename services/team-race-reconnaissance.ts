@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  canTeamRecognizeRace,
   getRacePreparerBonusPercentage,
   getRaceReconnaissanceBonus,
   getRaceReconnaissanceCost,
@@ -10,10 +11,14 @@ import {
   type RaceCategoryCode,
   type RaceFormat,
   type RaceProfileType,
+  type RegistrationPolicy,
 } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-type DirectorRow = { id: string };
+type DirectorRow = {
+  id: string;
+  reputation_points: number;
+};
 type AssignmentRow = { team_id: string };
 type SeasonRow = {
   id: string;
@@ -74,6 +79,9 @@ type EditionRow = {
   race_category_id: string;
   display_name: string;
   status: string;
+  registration_policy: RegistrationPolicy;
+  registration_closes_at: string | null;
+  minimum_reputation: number | null;
 };
 type RaceRow = {
   id: string;
@@ -132,8 +140,6 @@ export type RaceReconnaissanceRider = {
   avatarProfileKey: string | null;
   avatarSeed: number | string | null;
   form: number;
-  isAvailable: boolean;
-  unavailableReason: string | null;
   unavailabilities: Array<{
     startDayNumber: number;
     endDayNumber: number;
@@ -219,7 +225,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
-  const { season, teamSeason } = context;
+  const { director, season, teamSeason } = context;
   const currentDayNumber = season.current_day_number ?? 1;
   const startDayNumber = currentDayNumber + 1;
   const endDayNumber = startDayNumber + 1;
@@ -252,7 +258,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       .returns<StaffContractRow[]>(),
     admin
       .from("race_editions")
-      .select("id, race_id, race_category_id, display_name, status")
+      .select(
+        "id, race_id, race_category_id, display_name, status, registration_policy, registration_closes_at, minimum_reputation",
+      )
       .eq("season_id", season.id)
       .neq("status", "cancelled")
       .returns<EditionRow[]>(),
@@ -409,18 +417,13 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   assertQuery(countriesResult.error, "les pays");
 
   const rosters = rostersResult.data ?? [];
-  const registrationIds = [
-    ...new Set(rosters.map((roster) => roster.race_registration_id)),
-  ];
-  const registrationsResult = registrationIds.length
-    ? await admin
-        .from("race_registrations")
-        .select("id, race_edition_id, status")
-        .in("id", registrationIds)
-        .eq("status", "accepted")
-        .returns<RegistrationRow[]>()
-    : emptyResult<RegistrationRow>();
+  const registrationsResult = await admin
+    .from("race_registrations")
+    .select("id, race_edition_id, status")
+    .eq("team_season_id", teamSeason.id)
+    .returns<RegistrationRow[]>();
   assertQuery(registrationsResult.error, "les inscriptions en course");
+  const registrations = registrationsResult.data ?? [];
 
   const dayById = new Map(days.map((day) => [day.id, day]));
   const countryById = new Map(
@@ -435,6 +438,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   );
   const stageRows = stagesResult.data ?? [];
   const stageById = new Map(stageRows.map((stage) => [stage.id, stage]));
+  const registrationByEditionId = new Map(
+    registrations.map((registration) => [registration.race_edition_id, registration]),
+  );
   const latestConditionByRiderId = latestConditions(
     conditionsResult.data ?? [],
     dayById,
@@ -448,7 +454,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   const campsByRiderId = groupCampsByRider(campsResult.data ?? []);
   const raceConflictsByRiderId = getRaceConflictsByRider(
     rosters,
-    registrationsResult.data ?? [],
+    registrations,
     stageRows,
     dayById,
   );
@@ -494,14 +500,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           reason: `Course engagée J${conflict.startDay}–J${conflict.endDay}`,
         })),
       ];
-      const currentUnavailability = unavailabilities.find(
-        (unavailability) =>
-          unavailability.startDayNumber <= endDayNumber &&
-          unavailability.endDayNumber >= startDayNumber,
-      );
-      const unavailableReason =
-        currentUnavailability?.reason ??
-        (endDayNumber > 28 ? "Saison trop proche de son terme" : null);
 
       return {
         id: rider.id,
@@ -512,8 +510,6 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         avatarProfileKey: rider.avatar_profile_key,
         avatarSeed: rider.avatar_seed,
         form: latestConditionByRiderId.get(rider.id)?.form ?? 75,
-        isAvailable: unavailableReason === null,
-        unavailableReason,
         unavailabilities,
       };
     })
@@ -562,6 +558,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       const country = race ? countryById.get(race.country_id) : null;
       const editionDays =
         stageDaysByEditionId.get(stage.race_edition_id) ?? [];
+      const registrationStatus = edition
+        ? registrationByEditionId.get(edition.id)?.status ?? null
+        : null;
       if (
         !day ||
         !edition ||
@@ -571,7 +570,14 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         editionDays.length === 0 ||
         !isRaceCategoryCode(category.code) ||
         stage.status !== "planned" ||
-        day.day_number <= endDayNumber
+        day.day_number <= endDayNumber ||
+        !canTeamRecognizeRace({
+          registrationStatus,
+          registrationPolicy: edition.registration_policy,
+          registrationClosesAt: edition.registration_closes_at,
+          minimumReputation: edition.minimum_reputation,
+          reputationPoints: Number(director.reputation_points),
+        })
       ) {
         return [];
       }
@@ -666,7 +672,7 @@ async function loadContext(
 ) {
   const { data: director, error: directorError } = await admin
     .from("sporting_directors")
-    .select("id")
+    .select("id, reputation_points")
     .eq("auth_user_id", authUserId)
     .eq("status", "active")
     .maybeSingle<DirectorRow>();
@@ -700,7 +706,7 @@ async function loadContext(
   assertQuery(error, "l’équipe de la saison");
   if (!teamSeason) return null;
 
-  return { season: seasonResult.data, teamSeason };
+  return { director, season: seasonResult.data, teamSeason };
 }
 
 function latestConditions(
@@ -773,7 +779,7 @@ function getRaceConflictsByRider(
 
   for (const roster of rosters) {
     const registration = registrationById.get(roster.race_registration_id);
-    if (!registration) continue;
+    if (!registration || registration.status !== "accepted") continue;
     const days = stageDaysByEdition.get(registration.race_edition_id) ?? [];
     if (days.length === 0) continue;
     const conflict = {

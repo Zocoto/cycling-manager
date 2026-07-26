@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
+import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
@@ -46,7 +47,10 @@ import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getRiderTransferManagement } from "@/services/transfer-market";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
-import { renewRiderContractAction, signFreeAgentAction } from "@/app/jeu/transferts/actions";
+import {
+  renewRiderContractAction,
+  signFreeAgentAction,
+} from "@/app/jeu/transferts/actions";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
@@ -75,7 +79,10 @@ const FREE_AGENT_JERSEY: AmateurJerseyConfig = {
   accentColor: FREE_AGENT_RIDER_JERSEY.accentColor,
 };
 
-export default async function RiderProfilePage({ params, searchParams }: RiderProfilePageProps) {
+export default async function RiderProfilePage({
+  params,
+  searchParams,
+}: RiderProfilePageProps) {
   const { identifiant } = await params;
   const query = await searchParams;
   const supabase = await createSupabaseServerClient();
@@ -123,10 +130,10 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
     : [null, null];
   const activeNationalTitle =
     profile.nationalTitles.find(
-      (title) => title.isActive && title.type === "road"
+      (title) => title.isActive && title.type === "road",
     ) ??
     profile.nationalTitles.find(
-      (title) => title.isActive && title.type === "time_trial"
+      (title) => title.isActive && title.type === "time_trial",
     ) ??
     null;
   const riderJersey = activeNationalTitle
@@ -160,7 +167,9 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
         {query.equipement ? (
           <p className="mb-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
-            Le changement d’équipement a été enregistré.
+            {query.equipement === "retire"
+              ? "Le matériel a été retiré et replacé dans l’inventaire."
+              : "Le changement d’équipement a été enregistré."}
           </p>
         ) : null}
         {query.succes ? (
@@ -188,7 +197,20 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
               : undefined
           }
         >
-          <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[auto_minmax(0,1fr)_280px] lg:items-center">
+          {nationalPalette ? (
+            <div
+              aria-label={`Couleurs nationales de ${activeNationalTitle?.countryName ?? profile.country.name}`}
+              className="grid h-2"
+              style={{
+                gridTemplateColumns: `repeat(${new Set(nationalPalette.dominantColors).size}, minmax(0, 1fr))`,
+              }}
+            >
+              {[...new Set(nationalPalette.dominantColors)].map((color) => (
+                <span key={color} style={{ backgroundColor: color }} />
+              ))}
+            </div>
+          ) : null}
+          <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[auto_minmax(0,1fr)_360px] lg:items-center">
             <div className="relative w-fit">
               <RiderAvatar
                 profileKey={profile.avatarProfileKey}
@@ -228,7 +250,10 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
                 >
-                  <CountryFlag code={profile.country.code} name={profile.country.name} />
+                  <CountryFlag
+                    code={profile.country.code}
+                    name={profile.country.name}
+                  />
                   {profile.country.name}
                   <span aria-hidden="true">↗</span>
                 </Link>
@@ -244,7 +269,8 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                         role="img"
                         aria-label={`Drapeau ${title.countryName}`}
                       />
-                      Champion national {title.type === "road" ? "route" : "CLM"}
+                      Champion national{" "}
+                      {title.type === "road" ? "route" : "CLM"}
                     </IdentityBadge>
                   ))}
                 {profile.potentialSteps !== null ? (
@@ -257,7 +283,10 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                   </span>
                 ) : profile.scoutingReport ? (
                   <IdentityBadge>
-                    Potentiel {formatScoutedPotentialValue(profile.scoutingReport.potential)}
+                    Potentiel{" "}
+                    {formatScoutedPotentialValue(
+                      profile.scoutingReport.potential,
+                    )}
                   </IdentityBadge>
                 ) : null}
               </div>
@@ -265,8 +294,8 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                 {activeNationalTitle
                   ? `Champion de ${activeNationalTitle.countryName} en titre : son identité nationale remplace le thème habituel pendant toute la durée de son règne.`
                   : profile.scoutingReport
-                  ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
-                  : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
+                    ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
+                    : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
               </p>
             </div>
 
@@ -283,6 +312,7 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
                 amateurJersey={amateurIdentity?.jersey ?? FREE_AGENT_JERSEY}
                 amateurTeamName={amateurIdentity?.amateurName ?? null}
                 sponsorIdentity={sponsorIdentity}
+                activeNationalTitle={activeNationalTitle}
               />
             </div>
           </div>
@@ -361,7 +391,9 @@ export default async function RiderProfilePage({ params, searchParams }: RiderPr
           ) : (
             <CareerSummaryCard
               teamName={profile.currentTeam?.displayName ?? "Agent libre"}
-              seasonsCount={new Set(profile.history.map((entry) => entry.seasonId)).size}
+              seasonsCount={
+                new Set(profile.history.map((entry) => entry.seasonId)).size
+              }
             />
           )}
         </div>
@@ -394,7 +426,12 @@ function RiderMedicalCard({
     <section className="rounded-2xl border border-[#D75D5D]/25 bg-[#FFF0EE] p-5 shadow-[0_12px_34px_rgba(111,38,38,0.08)]">
       <div className="flex items-start gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#D94F4F] text-white">
-          <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className="h-5 w-5"
+            fill="currentColor"
+          >
             <path d="M7.5 2.5h5v5h5v5h-5v5h-5v-5h-5v-5h5v-5Z" />
           </svg>
         </span>
@@ -438,7 +475,9 @@ function FreeAgentSigningCard({
   management,
 }: {
   riderId: string;
-  management: NonNullable<Awaited<ReturnType<typeof getRiderTransferManagement>>>;
+  management: NonNullable<
+    Awaited<ReturnType<typeof getRiderTransferManagement>>
+  >;
 }) {
   return (
     <article className="rounded-[2rem] border border-[#42B99A]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.16)] sm:p-7">
@@ -447,24 +486,39 @@ function FreeAgentSigningCard({
       </p>
       <h2 className="mt-2 text-2xl font-black text-white">Signer un contrat</h2>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#BFD1C6]">
-        Aucune indemnité de transfert. Le contrat couvre la saison actuelle et la suivante.
+        Aucune indemnité de transfert. Le contrat couvre la saison actuelle et
+        la suivante.
       </p>
       {management.freeAgentSalary !== null ? (
         <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">Demande salariale</p>
-          <p className="mt-1 text-xl font-black text-[#F2C94C]">{formatMoney(management.freeAgentWeeklySalary ?? 0, "EUR")} / semaine</p>
-          <p className="mt-1 text-xs font-bold text-[#BFD1C6]">{formatMoney(management.freeAgentSalary, "EUR")} par saison</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">
+            Demande salariale
+          </p>
+          <p className="mt-1 text-xl font-black text-[#F2C94C]">
+            {formatMoney(management.freeAgentWeeklySalary ?? 0, "EUR")} /
+            semaine
+          </p>
+          <p className="mt-1 text-xs font-bold text-[#BFD1C6]">
+            {formatMoney(management.freeAgentSalary, "EUR")} par saison
+          </p>
         </div>
       ) : null}
       {management.canSignFreeAgent ? (
         <form action={signFreeAgentAction} className="mt-5">
           <input type="hidden" name="riderId" value={riderId} />
-          <input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} />
-          <TransferSubmitButton pendingLabel="Signature…">Signer pour 2 saisons</TransferSubmitButton>
+          <input
+            type="hidden"
+            name="returnPath"
+            value={`/jeu/coureurs/${riderId}`}
+          />
+          <TransferSubmitButton pendingLabel="Signature…">
+            Signer pour 2 saisons
+          </TransferSubmitButton>
         </form>
       ) : (
         <p className="mt-5 rounded-xl bg-[#F2C94C]/10 px-4 py-3 text-xs font-bold text-[#FFE596]">
-          {management.freeAgentBlockedReason ?? "Ce coureur n’est pas disponible à la signature."}
+          {management.freeAgentBlockedReason ??
+            "Ce coureur n’est pas disponible à la signature."}
         </p>
       )}
     </article>
@@ -476,15 +530,21 @@ function ContractRenewalCard({
   management,
 }: {
   riderId: string;
-  management: NonNullable<Awaited<ReturnType<typeof getRiderTransferManagement>>>;
+  management: NonNullable<
+    Awaited<ReturnType<typeof getRiderTransferManagement>>
+  >;
 }) {
   if (!management.canRenew && !management.hasPlannedRenewal) return null;
   return (
     <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
-      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">Avenir contractuel</p>
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+        Avenir contractuel
+      </p>
       <h2 className="mt-2 text-xl font-black text-[#183F37]">Renouvellement</h2>
       {management.hasPlannedRenewal ? (
-        <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">Le contrat de la saison suivante est déjà signé.</p>
+        <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
+          Le contrat de la saison suivante est déjà signé.
+        </p>
       ) : (
         <>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
@@ -494,8 +554,14 @@ function ContractRenewalCard({
           </p>
           <form action={renewRiderContractAction} className="mt-4">
             <input type="hidden" name="riderId" value={riderId} />
-            <input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} />
-            <TransferSubmitButton pendingLabel="Renouvellement…" tone="green">Renouveler</TransferSubmitButton>
+            <input
+              type="hidden"
+              name="returnPath"
+              value={`/jeu/coureurs/${riderId}`}
+            />
+            <TransferSubmitButton pendingLabel="Renouvellement…" tone="green">
+              Renouveler
+            </TransferSubmitButton>
           </form>
         </>
       )}
@@ -508,6 +574,7 @@ function CurrentTeamCard({
   amateurJersey,
   amateurTeamName,
   sponsorIdentity,
+  activeNationalTitle,
 }: {
   team: {
     id: string;
@@ -519,16 +586,37 @@ function CurrentTeamCard({
   amateurJersey: AmateurJerseyConfig;
   amateurTeamName: string | null;
   sponsorIdentity: Awaited<ReturnType<typeof getActiveTeamSponsorIdentity>>;
+  activeNationalTitle: PublicRiderProfile["nationalTitles"][number] | null;
 }) {
   const content = (
     <>
-      <TeamJerseyPreview
-        amateurJersey={amateurJersey}
-        amateurTeamName={amateurTeamName}
-        sponsor={sponsorIdentity?.sponsor ?? null}
-        sponsorJersey={sponsorIdentity?.selectedJersey ?? null}
-        className="h-28 w-24 shrink-0 drop-shadow-xl"
-      />
+      <span className="flex shrink-0 items-end gap-1.5">
+        {activeNationalTitle ? (
+          <span className="text-center">
+            <NationalChampionJersey
+              countryCode={activeNationalTitle.countryCode}
+              countryName={activeNationalTitle.countryName}
+              championshipType={activeNationalTitle.type}
+              className="h-24 w-20 drop-shadow-xl"
+            />
+            <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
+              Maillot CN
+            </span>
+          </span>
+        ) : null}
+        <span className="text-center">
+          <TeamJerseyPreview
+            amateurJersey={amateurJersey}
+            amateurTeamName={amateurTeamName}
+            sponsor={sponsorIdentity?.sponsor ?? null}
+            sponsorJersey={sponsorIdentity?.selectedJersey ?? null}
+            className="h-24 w-20 drop-shadow-xl"
+          />
+          <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#BFD1C6]">
+            Maillot équipe
+          </span>
+        </span>
+      </span>
       <span className="min-w-0">
         <span className="block text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#9BE0BC]">
           Équipe actuelle
@@ -573,7 +661,10 @@ function CurrentTeamCard({
       className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 p-4 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
     >
       {content}
-      <span className="ml-auto self-start text-sm font-black text-[#9BE0BC]" aria-hidden="true">
+      <span
+        className="ml-auto self-start text-sm font-black text-[#9BE0BC]"
+        aria-hidden="true"
+      >
         ↗
       </span>
     </Link>
@@ -589,7 +680,9 @@ function CurrentTeamCard({
           Équipe actuelle
         </span>
         <span className="mt-2 block text-lg font-black">Agent libre</span>
-        <span className="mt-1 block text-xs font-semibold text-[#BFD1C6]">Maillot neutre</span>
+        <span className="mt-1 block text-xs font-semibold text-[#BFD1C6]">
+          Maillot neutre
+        </span>
       </span>
     </div>
   );
@@ -696,7 +789,13 @@ function CareerHistory({
   );
 }
 
-function HistoryValue({ value, prefix = "" }: { value: number | null; prefix?: string }) {
+function HistoryValue({
+  value,
+  prefix = "",
+}: {
+  value: number | null;
+  prefix?: string;
+}) {
   return (
     <td className="px-4 py-4 text-center font-black text-[#48665F]">
       {value === null ? "—" : `${prefix}${value}`}
@@ -743,7 +842,9 @@ function NationalTitleFlag({
 function PrivateContractCard({
   contract,
 }: {
-  contract: NonNullable<Awaited<ReturnType<typeof getPublicRiderProfile>>>["privateContract"] & {};
+  contract: NonNullable<
+    Awaited<ReturnType<typeof getPublicRiderProfile>>
+  >["privateContract"] & {};
 }) {
   if (!contract) {
     return null;
@@ -778,7 +879,8 @@ function PrivateContractCard({
         <FutureActionButton label="Organiser un stage" />
       </div>
       <p className="mt-3 text-[11px] font-semibold leading-5 text-[#7E7043]">
-        Ces interactions seront activées avec les mécaniques de contrats et d’entraînement.
+        Ces interactions seront activées avec les mécaniques de contrats et
+        d’entraînement.
       </p>
     </section>
   );
@@ -796,7 +898,9 @@ function CareerSummaryCard({
       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
         En bref
       </p>
-      <h2 className="mt-2 text-xl font-black text-[#183F37]">Situation sportive</h2>
+      <h2 className="mt-2 text-xl font-black text-[#183F37]">
+        Situation sportive
+      </h2>
       <dl className="mt-5 space-y-3 text-sm">
         <ContractLine label="Équipe actuelle" value={teamName} />
         <ContractLine
@@ -805,7 +909,8 @@ function CareerSummaryCard({
         />
       </dl>
       <p className="mt-5 rounded-xl border border-[#315B3E]/10 bg-[#F3F8F5] px-4 py-3 text-xs font-semibold leading-5 text-[#60756E]">
-        Les informations contractuelles sont réservées au Directeur Sportif de l’équipe actuelle.
+        Les informations contractuelles sont réservées au Directeur Sportif de
+        l’équipe actuelle.
       </p>
     </section>
   );
@@ -908,7 +1013,10 @@ function LockedTrainingCard({ canManage }: { canManage: boolean }) {
   return (
     <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#EAF5F3] text-lg" aria-hidden="true">
+        <span
+          className="grid h-10 w-10 place-items-center rounded-xl bg-[#EAF5F3] text-lg"
+          aria-hidden="true"
+        >
           🔒
         </span>
         <div>

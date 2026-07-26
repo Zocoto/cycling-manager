@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   registerRaceRosterAction,
   replaceInjuredRaceRosterAction,
+  withdrawEliteWildcardRequestAction,
   withdrawRaceRosterAction,
 } from "./actions";
 
@@ -143,6 +144,7 @@ export default async function RaceProfilePage({
       : FREE_AGENT_RIDER_JERSEY;
 
   let raceUserContext: CurrentRaceUserContext = {
+    divisionCode: "amateur",
     reputationPoints: 0,
     registration: null,
   };
@@ -486,7 +488,9 @@ export default async function RaceProfilePage({
                     <DefinitionRow
                       label="Clôture"
                       value={formatDeparture(
-                        edition.registrationClosesAt
+                        edition.categoryCode === "elite"
+                          ? edition.wildcardClosesAt
+                          : edition.registrationClosesAt
                       )}
                     />
                     <DefinitionRow
@@ -538,6 +542,14 @@ function RegistrationPanel({
   riderJersey: RiderJerseyAppearance;
 }) {
   const registration = context.registration;
+  const isEliteRace =
+    edition.competitionType === "standard" &&
+    edition.categoryCode === "elite";
+  const isEliteTeam = context.divisionCode === "elite";
+  const isWildcardRequest = isEliteRace && !isEliteTeam;
+  const registrationDeadline = isEliteRace
+    ? edition.wildcardClosesAt
+    : edition.registrationClosesAt;
   const needsMedicalReplacement =
     registration?.status === "accepted" &&
     registration.rosterCount < edition.minimumRosterSize;
@@ -560,7 +572,7 @@ function RegistrationPanel({
   const availability =
     getRegistrationAvailability({
       policy: edition.registrationPolicy,
-      closesAt: edition.registrationClosesAt,
+      closesAt: registrationDeadline,
       minimumReputation:
         edition.minimumReputation,
       reputationPoints:
@@ -691,6 +703,174 @@ function RegistrationPanel({
           <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
             La startlist est figée : cette inscription ne peut plus être retirée.
           </p>
+        )}
+      </section>
+    );
+  }
+
+  if (registration?.status === "pending") {
+    const selectedRiders = riders.filter((rider) => rider.isSelected);
+    const canWithdrawRequest = isBeforeRegistrationDeadline(
+      edition.wildcardClosesAt
+    );
+
+    return (
+      <section className="rounded-2xl border border-[#F2C94C]/45 bg-[#2F321F] p-6 text-white shadow-[0_18px_45px_rgba(45,42,19,0.2)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
+          Wild Card
+        </p>
+        <h2 className="mt-3 text-xl font-black">
+          Demande de Wild Card transmise
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-[#E7E1C8]">
+          Les {registration.rosterCount} coureurs propos&eacute;s sont
+          r&eacute;serv&eacute;s dans leur agenda jusqu&apos;&agrave; la
+          d&eacute;cision de l&apos;organisateur, 24 heures avant le
+          d&eacute;part.
+        </p>
+        <span className="mt-5 inline-flex rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#F7DA72]">
+          En attente &middot; {registration.rosterCount} coureurs
+        </span>
+
+        {selectedRiders.length > 0 ? (
+          <ul className="mt-4 space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 text-xs font-bold text-[#E7E1C8]">
+            {selectedRiders.map((rider) => (
+              <li key={rider.riderId} className="flex items-center">
+                <Link
+                  href={`/jeu/coureurs/${rider.riderId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 rounded-lg transition hover:text-[#F7DA72] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F7DA72]"
+                >
+                  <RiderAvatar
+                    profileKey={rider.avatarProfileKey}
+                    seed={rider.avatarSeed}
+                    riderId={rider.riderId}
+                    age={rider.age}
+                    jersey={riderJersey}
+                    label={`Portrait de ${rider.firstName} ${rider.lastName}`}
+                    className="h-9 w-9"
+                  />
+                  <span>
+                    {rider.firstName} {rider.lastName}{" "}
+                    <span aria-hidden="true">&#8599;</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div className="mt-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#E7E1C8]">
+          L&apos;arbitrage tient compte de la nationalit&eacute; de
+          l&apos;&eacute;quipe, de celle du sponsor principal, de la
+          r&eacute;putation et du meilleur coureur align&eacute; pour le
+          profil de la course.
+        </div>
+
+        {canWithdrawRequest ? (
+          <form action={withdrawEliteWildcardRequestAction}>
+            <input type="hidden" name="editionId" value={edition.id} />
+            <input type="hidden" name="slug" value={edition.slug} />
+            <button
+              type="submit"
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-red-200/30 bg-red-300/10 px-4 py-2.5 text-sm font-black text-red-100 transition hover:bg-red-300/20"
+            >
+              Retirer la demande
+            </button>
+          </form>
+        ) : (
+          <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#E7E1C8]">
+            La demande est en cours d&apos;arbitrage.
+          </p>
+        )}
+      </section>
+    );
+  }
+
+  if (registration?.status === "rejected") {
+    return (
+      <section className="rounded-2xl border border-[#EF5B65]/55 bg-[#351D20] p-6 text-white shadow-[0_18px_45px_rgba(66,20,25,0.22)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#FF9EA6]">
+          Wild Card
+        </p>
+        <h2 className="mt-3 text-xl font-black">Wild Card refus&eacute;e</h2>
+        <p className="mt-3 text-sm leading-6 text-[#F4D7D9]">
+          L&apos;organisateur n&apos;a pas retenu votre candidature. Les
+          cr&eacute;neaux des coureurs propos&eacute;s ont &eacute;t&eacute;
+          lib&eacute;r&eacute;s dans leur agenda.
+        </p>
+        <span className="mt-5 inline-flex rounded-full bg-[#EF5B65]/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#FF9EA6]">
+          Refus&eacute;e
+        </span>
+      </section>
+    );
+  }
+
+  if (isWildcardRequest) {
+    return (
+      <section className="rounded-2xl border border-[#F2C94C]/30 bg-[#0B302B] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
+          Course Elite
+        </p>
+        <h2 className="mt-3 text-xl font-black">
+          Demander une Wild Card
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
+          Proposez {edition.minimumRosterSize} &agrave;{" "}
+          {edition.maximumRosterSize} coureurs. Leur agenda sera
+          bloqu&eacute; jusqu&apos;&agrave; l&apos;arbitrage &agrave; J-1.
+          La nationalit&eacute; de l&apos;&eacute;quipe, celle du sponsor
+          principal, la r&eacute;putation et le meilleur coureur adapt&eacute;
+          au profil sont pris en compte.
+        </p>
+
+        <div className="mt-5 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+          <span className="text-xs font-bold text-[#BFD1C6]">
+            Votre r&eacute;putation
+          </span>
+          <span className="font-black text-[#F2C94C]">
+            {context.reputationPoints} pts
+          </span>
+        </div>
+
+        {contextError ? (
+          <RegistrationNotice tone="error">
+            {contextError}
+          </RegistrationNotice>
+        ) : rosterError ? (
+          <RegistrationNotice tone="error">
+            {rosterError}
+          </RegistrationNotice>
+        ) : !canReactivate ? (
+          <RegistrationNotice tone="warning">
+            Cette demande retir&eacute;e ne peut plus &ecirc;tre
+            r&eacute;activ&eacute;e apr&egrave;s la cl&ocirc;ture.
+          </RegistrationNotice>
+        ) : availability === "open" ? (
+          <form action={registerRaceRosterAction} className="mt-5">
+            <input type="hidden" name="editionId" value={edition.id} />
+            <input type="hidden" name="slug" value={edition.slug} />
+            {riders.length > 0 ? (
+              <RaceRosterSelector
+                riders={riders}
+                minimum={edition.minimumRosterSize}
+                maximum={edition.maximumRosterSize}
+                jersey={riderJersey}
+                isStageRace={edition.raceFormat === "stage_race"}
+                submitLabel="Demander une Wild Card"
+              />
+            ) : (
+              <RegistrationNotice tone="warning">
+                Aucun coureur actif n&apos;est disponible dans votre effectif.
+              </RegistrationNotice>
+            )}
+          </form>
+        ) : (
+          <RegistrationNotice tone="warning">
+            Les demandes de Wild Card ferment 24 heures avant le
+            d&eacute;part afin de permettre l&apos;arbitrage.
+          </RegistrationNotice>
         )}
       </section>
     );
@@ -838,6 +1018,13 @@ function EngagedRidersSection({
     teams.set(rider.teamId, team);
   }
 
+  const standardTeamLimit =
+    edition.fieldLimit ??
+    (edition.categoryCode === "national" ||
+    edition.categoryCode === "continental"
+      ? 30
+      : 24);
+
   return (
     <section className="mt-8 rounded-2xl border border-[#315B3E]/15 bg-white p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -851,7 +1038,7 @@ function EngagedRidersSection({
         </div>
         <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
           {edition.competitionType === "standard"
-            ? `${teams.size} / 24 équipes · ${riders.length} coureurs`
+            ? `${teams.size} / ${standardTeamLimit} équipes · ${riders.length} coureurs`
             : `${riders.length} / 200 coureurs · ${teams.size} équipes`}
         </span>
       </div>

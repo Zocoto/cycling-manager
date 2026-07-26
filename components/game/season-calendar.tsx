@@ -16,6 +16,8 @@ import {
   getEditionDayRange,
   getRegistrationAvailability,
   isRaceEditionAvailableToCurrentTeam,
+  isRaceEditionPast,
+  isRaceRegistrationClosed,
   type CalendarWeek,
   type RaceCalendarEdition,
   type RaceCategoryCode,
@@ -23,6 +25,10 @@ import {
 } from "@/lib/game/race-calendar";
 
 const DEFAULT_VISIBLE_LANES = 5;
+const CLOSED_RACE_PATTERN_ON_LIGHT =
+  "repeating-linear-gradient(135deg, rgba(11, 48, 43, 0.11) 0, rgba(11, 48, 43, 0.11) 1px, transparent 1px, transparent 7px)";
+const CLOSED_RACE_PATTERN_ON_DARK =
+  "repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0, rgba(255, 255, 255, 0.14) 1px, transparent 1px, transparent 7px)";
 
 const shortDateFormatter =
   new Intl.DateTimeFormat("fr-FR", {
@@ -54,7 +60,13 @@ export function SeasonCalendar({
   const scopeEditions = useMemo(
     () => {
       const standardEditions = calendar.editions.filter(
-        (edition) => edition.competitionType === "standard"
+        (edition) =>
+          edition.competitionType === "standard" &&
+          !isRaceEditionPast({
+            edition,
+            currentDayNumber:
+              calendar.currentDayNumber,
+          })
       );
 
       return scope === "all"
@@ -67,7 +79,26 @@ export function SeasonCalendar({
             })
           );
     },
-    [calendar.editions, nowIso, reputationPoints, scope]
+    [
+      calendar.currentDayNumber,
+      calendar.editions,
+      nowIso,
+      reputationPoints,
+      scope,
+    ]
+  );
+  const upcomingStandardEditionCount = useMemo(
+    () =>
+      calendar.editions.filter(
+        (edition) =>
+          edition.competitionType === "standard" &&
+          !isRaceEditionPast({
+            edition,
+            currentDayNumber:
+              calendar.currentDayNumber,
+          })
+      ).length,
+    [calendar.currentDayNumber, calendar.editions]
   );
   const visibleEditions = useMemo(
     () =>
@@ -83,6 +114,24 @@ export function SeasonCalendar({
   const weeks = useMemo(
     () => buildCalendarWeeks(visibleEditions),
     [visibleEditions]
+  );
+  const visibleWeeks = useMemo(
+    () =>
+      weeks.filter(
+        (week) =>
+          week.endDay >=
+          calendar.currentDayNumber
+      ),
+    [calendar.currentDayNumber, weeks]
+  );
+  const visibleDays = useMemo(
+    () =>
+      calendar.days.filter(
+        (day) =>
+          day.dayNumber >=
+          calendar.currentDayNumber
+      ),
+    [calendar.currentDayNumber, calendar.days]
   );
   const profileEntries = useMemo(
     () =>
@@ -184,7 +233,7 @@ export function SeasonCalendar({
             Toutes les courses
           </button>
           <span className="inline-flex min-h-10 items-center rounded-full border border-[#315B3E]/15 bg-white px-3 text-xs font-black text-[#315B3E]">
-            {scopeEditions.length} / {calendar.editions.filter((edition) => edition.competitionType === "standard").length}
+            {scopeEditions.length} / {upcomingStandardEditionCount}
           </span>
           </div>
 
@@ -290,17 +339,29 @@ export function SeasonCalendar({
             <span>
               <strong className="text-[#176951]">PM</strong> · départ 18 h · gel 12 h
             </span>
+            <span className="inline-flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-4 w-7 rounded border border-[#315B3E]/20 bg-white"
+                style={{
+                  backgroundImage:
+                    CLOSED_RACE_PATTERN_ON_LIGHT,
+                }}
+              />
+              Hachuré : inscriptions closes
+            </span>
             <span>Les tours enchaînent une étape à chaque demi-journée.</span>
           </div>
 
       <div className="mt-7 hidden space-y-4 md:block">
-        {weeks.map((week) => (
+        {visibleWeeks.map((week) => (
           <DesktopCalendarWeek
             key={week.weekNumber}
             week={week}
             currentDayNumber={
               calendar.currentDayNumber
             }
+            nowIso={nowIso}
             dayByNumber={dayByNumber}
             eventsByDay={eventsByDay}
           />
@@ -308,7 +369,7 @@ export function SeasonCalendar({
       </div>
 
       <div className="mt-7 space-y-4 md:hidden">
-        {calendar.days.map((day) => {
+        {visibleDays.map((day) => {
           const dayEditions = visibleEditions
             .flatMap((edition) =>
               edition.stages
@@ -340,6 +401,10 @@ export function SeasonCalendar({
                 day.dayNumber <
                 calendar.currentDayNumber
               }
+              currentDayNumber={
+                calendar.currentDayNumber
+              }
+              nowIso={nowIso}
               events={
                 eventsByDay.get(day.dayNumber) ??
                 []
@@ -361,12 +426,35 @@ export function SeasonCalendar({
               const style = RACE_CATEGORY_STYLE[edition.categoryCode];
               const mountainCount = stage.segments.filter((segment) => segment.prime?.type === "mountain").length;
               const sprintCount = stage.segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length;
+              const registrationClosed =
+                isRaceRegistrationClosed({
+                  edition,
+                  currentDayNumber:
+                    calendar.currentDayNumber,
+                  now: new Date(nowIso),
+                });
 
               return (
                 <Link
                   key={stage.id}
                   href={`/jeu/courses/${edition.slug}`}
+                  data-registration-status={
+                    registrationClosed
+                      ? "closed"
+                      : "not-closed"
+                  }
+                  title={
+                    registrationClosed
+                      ? `${edition.name} · Inscriptions closes`
+                      : edition.name
+                  }
                   className="group grid gap-3 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#315B3E]/30 hover:shadow-md sm:grid-cols-[minmax(180px,0.75fr)_minmax(260px,1.25fr)] sm:items-center"
+                  style={{
+                    backgroundImage:
+                      registrationClosed
+                        ? CLOSED_RACE_PATTERN_ON_LIGHT
+                        : undefined,
+                  }}
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -501,9 +589,22 @@ function RaceCalendarList({
             Courses et inscriptions
           </h2>
         </div>
-        <span className="rounded-full border border-[#315B3E]/15 bg-[#F6FAF7] px-3 py-1.5 text-xs font-black text-[#315B3E]">
-          {orderedEditions.length} course{orderedEditions.length > 1 ? "s" : ""}
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold text-[#557064]">
+            <span
+              aria-hidden="true"
+              className="h-4 w-7 rounded border border-[#315B3E]/20 bg-white"
+              style={{
+                backgroundImage:
+                  CLOSED_RACE_PATTERN_ON_LIGHT,
+              }}
+            />
+            Hachuré : inscriptions closes
+          </span>
+          <span className="rounded-full border border-[#315B3E]/15 bg-[#F6FAF7] px-3 py-1.5 text-xs font-black text-[#315B3E]">
+            {orderedEditions.length} course{orderedEditions.length > 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-white shadow-sm">
@@ -529,13 +630,21 @@ function RaceCalendarList({
           const registration = edition.currentTeamRegistration;
           const availability = getRegistrationAvailability({
             policy: edition.registrationPolicy,
-            closesAt: edition.registrationClosesAt,
+            closesAt: edition.categoryCode === "elite"
+              ? edition.wildcardClosesAt
+              : edition.registrationClosesAt,
             minimumReputation: edition.minimumReputation,
             reputationPoints,
             now: new Date(nowIso),
           });
           const startDate = dayByNumber.get(range.startDay)?.calendarDate;
           const isPast = range.endDay < currentDayNumber;
+          const registrationClosed =
+            isRaceRegistrationClosed({
+              edition,
+              currentDayNumber,
+              now: new Date(nowIso),
+            });
           const status = getListRegistrationStatus({
             registration,
             availability,
@@ -545,7 +654,23 @@ function RaceCalendarList({
           return (
             <article
               key={edition.id}
+              data-registration-status={
+                registrationClosed
+                  ? "closed"
+                  : "not-closed"
+              }
+              title={
+                registrationClosed
+                  ? `${edition.name} · Inscriptions closes`
+                  : edition.name
+              }
               className="grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center"
+              style={{
+                backgroundImage:
+                  registrationClosed
+                    ? CLOSED_RACE_PATTERN_ON_LIGHT
+                    : undefined,
+              }}
             >
               <div>
                 <p className="text-sm font-black text-[#0B302B]">
@@ -597,7 +722,17 @@ function RaceCalendarList({
                 href={`/jeu/courses/${edition.slug}`}
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
               >
-                {registration?.status === "accepted" ? "Voir l’inscription" : availability === "open" && !isPast ? "S’inscrire" : "Consulter"}
+                {registration?.status === "accepted"
+                  ? "Voir l’inscription"
+                  : registration?.status === "pending"
+                    ? "Voir la demande"
+                    : registration?.status === "rejected"
+                      ? "Voir la décision"
+                      : registration?.status === "withdrawn"
+                        ? "Consulter"
+                      : availability === "open" && !isPast
+                        ? "S’inscrire"
+                        : "Consulter"}
               </Link>
             </article>
           );
@@ -671,11 +806,13 @@ function ListIcon() {
 function DesktopCalendarWeek({
   week,
   currentDayNumber,
+  nowIso,
   dayByNumber,
   eventsByDay,
 }: {
   week: CalendarWeek;
   currentDayNumber: number;
+  nowIso: string;
   dayByNumber: Map<
     number,
     SeasonRaceCalendar["days"][number]
@@ -813,12 +950,23 @@ function DesktopCalendarWeek({
                     ? `E${firstStage.stageNumber}`
                     : `E${firstStage.stageNumber}–E${lastStage?.stageNumber}`
                   : null;
+              const registrationClosed =
+                isRaceRegistrationClosed({
+                  edition: segment.edition,
+                  currentDayNumber,
+                  now: new Date(nowIso),
+                });
 
               return (
                 <Link
                   key={`${segment.edition.id}-${week.weekNumber}-${segment.startHalfDayIndex}`}
                   href={`/jeu/courses/${segment.edition.slug}`}
-                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}`}
+                  data-registration-status={
+                    registrationClosed
+                      ? "closed"
+                      : "not-closed"
+                  }
+                  title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${registrationClosed ? " · Inscriptions closes" : ""}`}
                   className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
                   } ${
@@ -830,6 +978,12 @@ function DesktopCalendarWeek({
                     gridColumn: `${columnStart} / ${columnEnd}`,
                     gridRow: segment.lane + 3,
                     backgroundColor: style.background,
+                    backgroundImage:
+                      registrationClosed
+                        ? getClosedRacePattern(
+                            style.foreground
+                          )
+                        : undefined,
                     borderColor: style.border,
                     color: style.foreground,
                   }}
@@ -942,16 +1096,36 @@ function DesktopCalendarWeek({
                       <ul className="mt-2 space-y-2">
                         {hiddenSegments.map((segment) => {
                           const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
+                          const registrationClosed =
+                            isRaceRegistrationClosed({
+                              edition:
+                                segment.edition,
+                              currentDayNumber,
+                              now: new Date(
+                                nowIso
+                              ),
+                            });
 
                           return (
                             <li
                               key={`${segment.edition.id}-${segment.startHalfDayIndex}`}
+                              data-registration-status={
+                                registrationClosed
+                                  ? "closed"
+                                  : "not-closed"
+                              }
                               className="flex min-w-0 items-center gap-2"
                             >
                               <span
                                 className="rounded px-1.5 py-0.5 text-[9px] font-black tracking-wider"
                                 style={{
                                   backgroundColor: style.background,
+                                  backgroundImage:
+                                    registrationClosed
+                                      ? getClosedRacePattern(
+                                          style.foreground
+                                        )
+                                      : undefined,
                                   color: style.foreground,
                                 }}
                               >
@@ -987,6 +1161,8 @@ function MobileCalendarDay({
   date,
   isCurrent,
   isPast,
+  currentDayNumber,
+  nowIso,
   events,
   entries,
 }: {
@@ -994,6 +1170,8 @@ function MobileCalendarDay({
   date: string;
   isCurrent: boolean;
   isPast: boolean;
+  currentDayNumber: number;
+  nowIso: string;
   events: SeasonRaceCalendar["events"];
   entries: Array<{
     edition: RaceCalendarEdition;
@@ -1044,8 +1222,17 @@ function MobileCalendarDay({
             RACE_CATEGORY_STYLE[
               edition.categoryCode
             ];
-          const slotConfig = RACE_DAY_SLOT_CONFIG[stage.daySlot];
-          const startsSlot = entries[entryIndex - 1]?.stage.daySlot !== stage.daySlot;
+          const slotConfig =
+            RACE_DAY_SLOT_CONFIG[stage.daySlot];
+          const startsSlot =
+            entries[entryIndex - 1]?.stage
+              .daySlot !== stage.daySlot;
+          const registrationClosed =
+            isRaceRegistrationClosed({
+              edition,
+              currentDayNumber,
+              now: new Date(nowIso),
+            });
 
           return (
             <div key={stage.id} className="space-y-2">
@@ -1061,10 +1248,26 @@ function MobileCalendarDay({
             ) : null}
             <Link
               href={`/jeu/courses/${edition.slug}`}
+              data-registration-status={
+                registrationClosed
+                  ? "closed"
+                  : "not-closed"
+              }
+              title={
+                registrationClosed
+                  ? `${edition.name} · Inscriptions closes`
+                  : edition.name
+              }
               className="flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
               style={{
                 borderColor: style.border,
                 backgroundColor: style.background,
+                backgroundImage:
+                  registrationClosed
+                    ? getClosedRacePattern(
+                        style.foreground
+                      )
+                    : undefined,
                 color: style.foreground,
               }}
             >
@@ -1195,4 +1398,10 @@ function formatShortDate(value: string) {
   return shortDateFormatter.format(
     new Date(`${value}T00:00:00Z`)
   );
+}
+
+function getClosedRacePattern(foregroundColor: string) {
+  return foregroundColor.toUpperCase() === "#FFFFFF"
+    ? CLOSED_RACE_PATTERN_ON_DARK
+    : CLOSED_RACE_PATTERN_ON_LIGHT;
 }

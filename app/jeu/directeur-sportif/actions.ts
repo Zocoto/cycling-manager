@@ -17,6 +17,10 @@ import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { AmateurTeamCreationState } from "./amateur-team-state";
 import type { SportingDirectorProfileState } from "./profile-state";
+import {
+  setTutorialStepAction,
+} from "../tutorial-actions";
+import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
 
 const sportingDirectorProfileSchema = z.object({
   displayName: z
@@ -45,6 +49,7 @@ const sportingDirectorProfileSchema = z.object({
 
 type CurrentSportingDirectorProfile = {
   country_id: string | null;
+  avatar_key: string | null;
 };
 
 type AmateurTeamDirectorProfile = {
@@ -158,7 +163,7 @@ export async function updateSportingDirectorProfile(
     error: currentProfileError,
   } = await supabase
     .from("sporting_directors")
-    .select("country_id")
+    .select("country_id, avatar_key")
     .eq("auth_user_id", user.id)
     .maybeSingle<CurrentSportingDirectorProfile>();
 
@@ -242,6 +247,25 @@ export async function updateSportingDirectorProfile(
   }
 
   revalidateSportingDirectorPages();
+
+  const wasProfileComplete =
+    Boolean(
+      currentProfile.country_id &&
+        currentProfile.avatar_key,
+    );
+
+  if (!wasProfileComplete) {
+    const result = await setTutorialStepAction({
+      tutorialKey: ONBOARDING_TUTORIAL_KEY,
+      stepKey: "team-foundation",
+      route: "/jeu/directeur-sportif",
+    });
+
+    if (!result.ok) {
+      // Ignorer silencieusement : le didacticiel peut
+      // ne pas être démarré pour ce compte.
+    }
+  }
 
   return {
     status: "success",

@@ -22,12 +22,17 @@ import { buildDashboardEventFeed } from "../../lib/game/dashboard-events";
 import type { GameObjective } from "../../lib/game/objectives";
 import {
   createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getAuthenticatedUser } from "../../lib/supabase/authenticated-user";
+import {
+  getActiveNationalChampionshipTitlesForRiders,
+  type ActiveNationalChampionshipTitle,
+} from "@/services/rider-national-championship-titles";
 import {
   getTeamAmateurIdentity,
   type TeamAmateurIdentity,
@@ -52,8 +57,7 @@ import { getCurrentGameObjectives } from "../../services/game-objectives";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
-  description:
-    "Pilotez votre carrière et votre équipe dans Cyclostratège.",
+  description: "Pilotez votre carrière et votre équipe dans Cyclostratège.",
 };
 
 type SportingDirector = {
@@ -137,8 +141,7 @@ type ManagementModuleIcon =
   | "staff"
   | "infrastructure";
 
-const UNSPLASH_RENDER_PARAMS =
-  "auto=format&fit=crop&w=600&q=38";
+const UNSPLASH_RENDER_PARAMS = "auto=format&fit=crop&w=600&q=38";
 
 function unsplashWatermark(photoId: string): string {
   return `https://images.unsplash.com/photo-${photoId}?${UNSPLASH_RENDER_PARAMS}`;
@@ -150,9 +153,7 @@ function unsplashWatermark(photoId: string): string {
  * pas nécessairement le cyclisme. Pour changer l’ambiance d’une carte, il
  * suffit de remplacer l’identifiant de la photo ci-dessous.
  */
-const MODULE_WATERMARKS: Partial<
-  Record<ManagementModuleIcon, string>
-> = {
+const MODULE_WATERMARKS: Partial<Record<ManagementModuleIcon, string>> = {
   // Transmission et pignons : le matériel au sens propre.
   equipment: unsplashWatermark("1562615193-cbeef074a501"),
   // Lecture de la presse économique : budget et trésorerie.
@@ -176,14 +177,10 @@ const MODULE_WATERMARKS: Partial<
 };
 
 /** Filigrane de la carte Effectif : le groupe de coureurs réuni. */
-const ROSTER_WATERMARK = unsplashWatermark(
-  "1713937071114-e94d5f8053a0"
-);
+const ROSTER_WATERMARK = unsplashWatermark("1713937071114-e94d5f8053a0");
 
 /** Filigrane du Centre de course : le peloton lancé en course. */
-const RACE_HUB_WATERMARK = unsplashWatermark(
-  "1517649763962-0c623066013b"
-);
+const RACE_HUB_WATERMARK = unsplashWatermark("1517649763962-0c623066013b");
 
 /**
  * Calque photo fondu dans le vert foncé de la carte : désaturé, éclairci puis
@@ -205,8 +202,7 @@ function CardWatermark({
       className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center opacity-[0.14] mix-blend-screen transition-opacity duration-300 group-hover:opacity-[0.22]"
       style={{
         backgroundImage: `url("${url}")`,
-        filter:
-          "grayscale(1) brightness(1.35) contrast(1.1)",
+        filter: "grayscale(1) brightness(1.35) contrast(1.1)",
         maskImage: mask,
         WebkitMaskImage: mask,
       }}
@@ -215,8 +211,7 @@ function CardWatermark({
 }
 
 export default async function GamePage() {
-  const supabase =
-    await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -230,29 +225,25 @@ export default async function GamePage() {
   const financeOverviewPromise = loadDashboardValue(
     getCurrentTeamFinanceOverview(supabase, user.id),
     null as TeamFinanceOverview | null,
-    "Impossible de récupérer la situation financière de l’équipe :"
+    "Impossible de récupérer la situation financière de l’équipe :",
   );
   const inventoryOverviewPromise = loadDashboardValue(
     getCurrentTeamInventoryOverview(user.id),
     null as TeamInventoryOverview | null,
-    "Impossible de récupérer l’inventaire de l’équipe :"
+    "Impossible de récupérer l’inventaire de l’équipe :",
   );
   const gameObjectivesPromise = loadDashboardValue(
     getCurrentGameObjectives(supabase),
     [] as GameObjective[],
-    "Impossible de récupérer les objectifs de carrière :"
+    "Impossible de récupérer les objectifs de carrière :",
   );
 
-  const [
-    profileResult,
-    countriesResult,
-    teamSummaryResult,
-    rosterResult,
-  ] = await Promise.all([
-    supabase
-      .from("sporting_directors")
-      .select(
-        `
+  const [profileResult, countriesResult, teamSummaryResult, rosterResult] =
+    await Promise.all([
+      supabase
+        .from("sporting_directors")
+        .select(
+          `
           id,
           username,
           display_name,
@@ -262,51 +253,52 @@ export default async function GamePage() {
           experience_points,
           is_email_visible,
           created_at
-        `
-      )
-      .eq("auth_user_id", user.id)
-      .maybeSingle<SportingDirector>(),
+        `,
+        )
+        .eq("auth_user_id", user.id)
+        .maybeSingle<SportingDirector>(),
 
-    supabase
-      .from("countries")
-      .select(
-        `
+      supabase
+        .from("countries")
+        .select(
+          `
           id,
           name,
           iso_alpha2
-        `
-      )
-      .eq("is_active", true)
-      .order("name", {
-        ascending: true,
-      }),
+        `,
+        )
+        .eq("is_active", true)
+        .order("name", {
+          ascending: true,
+        }),
 
-    supabase
-      .rpc("get_current_team_dashboard_summary")
-      .maybeSingle<CurrentTeamDashboardSummary>(),
+      supabase
+        .rpc("get_current_team_dashboard_summary")
+        .maybeSingle<CurrentTeamDashboardSummary>(),
 
-    supabase.rpc("get_current_team_roster"),
-  ]);
+      supabase.rpc("get_current_team_roster"),
+    ]);
 
   const dashboardTeamSummary =
     (teamSummaryResult.data as CurrentTeamDashboardSummary | null) ?? null;
   const dashboardTeamId = dashboardTeamSummary?.team_id ?? null;
   const dashboardRiderIds = ((rosterResult.data ?? []) as DashboardRider[]).map(
-    (rider) => rider.rider_id
+    (rider) => rider.rider_id,
   );
 
   const sponsorIdentityPromise: Promise<{
     identity: TeamSponsorIdentity | null;
     error: string | null;
-  }> = (dashboardTeamId
-    ? getActiveTeamSponsorIdentity(dashboardTeamId)
-    : Promise.resolve(null)
+  }> = (
+    dashboardTeamId
+      ? getActiveTeamSponsorIdentity(dashboardTeamId)
+      : Promise.resolve(null)
   )
     .then((identity) => ({ identity, error: null }))
     .catch((error: unknown) => {
       console.error(
         "Impossible de récupérer l’identité commerciale de l’équipe :",
-        error
+        error,
       );
 
       return {
@@ -329,7 +321,7 @@ export default async function GamePage() {
         ? getTeamAmateurIdentity(dashboardTeamId)
         : Promise.resolve(null),
       null as TeamAmateurIdentity | null,
-      "Impossible de récupérer l’identité amateur de l’équipe :"
+      "Impossible de récupérer l’identité amateur de l’équipe :",
     ),
     financeOverviewPromise,
     inventoryOverviewPromise,
@@ -351,10 +343,15 @@ export default async function GamePage() {
         events: [],
         youthDevelopmentAlertCount: 0,
       } satisfies DashboardOperationalEvents,
-      "Impossible de récupérer les événements du bureau :"
+      "Impossible de récupérer les événements du bureau :",
     ),
   ]);
 
+  const activeNationalTitlesByRiderId = await loadDashboardValue(
+    getActiveNationalChampionshipTitlesForRiders(supabase, dashboardRiderIds),
+    new Map<string, ActiveNationalChampionshipTitle>(),
+    "Impossible de récupérer les maillots de champions nationaux du bureau :",
+  );
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
 
@@ -372,44 +369,33 @@ export default async function GamePage() {
   } catch (error) {
     console.error(
       "Impossible de récupérer les remplacements médicaux en attente :",
-      error
+      error,
     );
   }
 
-  const sportingDirector =
-    profileResult.data;
+  const sportingDirector = profileResult.data;
 
   const teamSummary = dashboardTeamSummary;
 
   if (profileResult.error) {
-    console.error(
-      "Impossible de récupérer le profil du Directeur Sportif :",
-      {
-        code: profileResult.error.code,
-        message: profileResult.error.message,
-      }
-    );
+    console.error("Impossible de récupérer le profil du Directeur Sportif :", {
+      code: profileResult.error.code,
+      message: profileResult.error.message,
+    });
   }
 
   if (countriesResult.error) {
-    console.error(
-      "Impossible de récupérer le référentiel des pays :",
-      {
-        code: countriesResult.error.code,
-        message: countriesResult.error.message,
-      }
-    );
+    console.error("Impossible de récupérer le référentiel des pays :", {
+      code: countriesResult.error.code,
+      message: countriesResult.error.message,
+    });
   }
 
   if (teamSummaryResult.error) {
-    console.error(
-      "Impossible de récupérer le résumé de l’équipe :",
-      {
-        code: teamSummaryResult.error.code,
-        message:
-          teamSummaryResult.error.message,
-      }
-    );
+    console.error("Impossible de récupérer le résumé de l’équipe :", {
+      code: teamSummaryResult.error.code,
+      message: teamSummaryResult.error.message,
+    });
   }
 
   if (rosterResult.error) {
@@ -418,20 +404,15 @@ export default async function GamePage() {
       {
         code: rosterResult.error.code,
         message: rosterResult.error.message,
-      }
+      },
     );
   }
 
-  const countries =
-    (countriesResult.data ??
-      []) as CountryRow[];
+  const countries = (countriesResult.data ?? []) as CountryRow[];
 
   const selectedCountry =
-    countries.find(
-      (country) =>
-        country.id ===
-        sportingDirector?.country_id
-    ) ?? null;
+    countries.find((country) => country.id === sportingDirector?.country_id) ??
+    null;
 
   const displayName =
     sportingDirector?.display_name ??
@@ -439,12 +420,10 @@ export default async function GamePage() {
     "Directeur Sportif";
 
   const isProfileComplete = Boolean(
-    sportingDirector?.country_id &&
-      sportingDirector?.avatar_key
+    sportingDirector?.country_id && sportingDirector?.avatar_key,
   );
 
-  const riderCount =
-    teamSummary?.rider_count ?? 0;
+  const riderCount = teamSummary?.rider_count ?? 0;
 
   const commercialTeamName =
     teamSponsorIdentity?.teamName ??
@@ -452,13 +431,10 @@ export default async function GamePage() {
     teamSummary?.team_name ??
     "Votre équipe";
 
-  const featuredRiders = [
-    ...((rosterResult.data ?? []) as DashboardRider[]),
-  ]
+  const featuredRiders = [...((rosterResult.data ?? []) as DashboardRider[])]
     .sort(
       (left, right) =>
-        getDashboardRiderAverage(right) -
-        getDashboardRiderAverage(left)
+        getDashboardRiderAverage(right) - getDashboardRiderAverage(left),
     )
     .slice(0, 6);
 
@@ -470,11 +446,20 @@ export default async function GamePage() {
     : teamAmateurIdentity
       ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
       : FREE_AGENT_RIDER_JERSEY;
+  const nationalChampionJerseyByRiderId = new Map(
+    [...activeNationalTitlesByRiderId].map(([riderId, title]) => [
+      riderId,
+      createNationalChampionRiderJersey({
+        countryCode: title.countryCode,
+        championshipType: title.championshipType,
+      }),
+    ]),
+  );
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
   const readyObjectiveCount = gameObjectives.filter(
-    (objective) => objective.completed && !objective.claimedAt
+    (objective) => objective.completed && !objective.claimedAt,
   ).length;
   const youthDevelopmentAlertCount =
     dashboardOperationalEvents.youthDevelopmentAlertCount;
@@ -520,38 +505,27 @@ export default async function GamePage() {
             </div>
           </header>
 
-          <div className="mt-10">
+          <div className="mt-10" data-tutorial-id="dashboard-news-feed">
             <DashboardEventsCard events={dashboardEvents} />
           </div>
 
-          {!sportingDirector ? (
-            <ProfileErrorMessage />
-          ) : null}
+          {!sportingDirector ? <ProfileErrorMessage /> : null}
 
           {teamSponsorIdentityError ? (
-            <TeamSponsorIdentityWarning
-              message={
-                teamSponsorIdentityError
-              }
-            />
+            <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
           ) : null}
 
-          <section className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.38fr)_minmax(300px,0.62fr)]">
+          <section
+            className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.38fr)_minmax(300px,0.62fr)]"
+            data-tutorial-id="dashboard-director-profile"
+          >
             <DirectorProfileCard
-              sportingDirector={
-                sportingDirector
-              }
+              sportingDirector={sportingDirector}
               email={user.email ?? null}
-              selectedCountry={
-                selectedCountry
-              }
-              isProfileComplete={
-                isProfileComplete
-              }
+              selectedCountry={selectedCountry}
+              isProfileComplete={isProfileComplete}
               teamSummary={teamSummary}
-              teamSponsorIdentity={
-                teamSponsorIdentity
-              }
+              teamSponsorIdentity={teamSponsorIdentity}
               teamAmateurIdentity={teamAmateurIdentity}
               financeOverview={financeOverview}
             />
@@ -570,7 +544,10 @@ export default async function GamePage() {
                 }
                 description={
                   teamSponsorIdentity
-                    ? `${teamSponsorIdentity.sponsor.name} est le sponsor principal de ${commercialTeamName}. Le maillot ${teamSponsorIdentity.selectedJersey.name} est actuellement utilisé.`
+                    ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}\nBudget annuel : ${formatDashboardCurrency(
+                        teamSponsorIdentity.budgetPerSeason,
+                        teamSponsorIdentity.currencyCode,
+                      )}`
                     : sponsoringUnlocked
                       ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
                       : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
@@ -594,6 +571,9 @@ export default async function GamePage() {
                 }
                 riders={featuredRiders}
                 jersey={riderJersey}
+                nationalChampionJerseyByRiderId={
+                  nationalChampionJerseyByRiderId
+                }
               />
             </div>
           </section>
@@ -633,7 +613,7 @@ export default async function GamePage() {
                 financeOverview
                   ? formatDashboardCurrency(
                       financeOverview.balance,
-                      financeOverview.currency
+                      financeOverview.currency,
                     )
                   : "À initialiser"
               }
@@ -685,7 +665,6 @@ export default async function GamePage() {
               description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
             />
           </section>
-
         </div>
       </section>
     </main>
@@ -702,32 +681,23 @@ function DirectorProfileCard({
   teamAmateurIdentity,
   financeOverview,
 }: {
-  sportingDirector:
-    SportingDirector | null;
+  sportingDirector: SportingDirector | null;
   email: string | null;
   selectedCountry: CountryRow | null;
   isProfileComplete: boolean;
-  teamSummary:
-    CurrentTeamDashboardSummary | null;
-  teamSponsorIdentity:
-    TeamSponsorIdentity | null;
-  teamAmateurIdentity:
-    TeamAmateurIdentity | null;
-  financeOverview:
-    TeamFinanceOverview | null;
+  teamSummary: CurrentTeamDashboardSummary | null;
+  teamSponsorIdentity: TeamSponsorIdentity | null;
+  teamAmateurIdentity: TeamAmateurIdentity | null;
+  financeOverview: TeamFinanceOverview | null;
 }) {
   const profileName =
     sportingDirector?.display_name ??
     sportingDirector?.username ??
     "Directeur Sportif";
 
-  const experiencePoints =
-    sportingDirector?.experience_points ??
-    0;
+  const experiencePoints = sportingDirector?.experience_points ?? 0;
 
-  const reputationPoints =
-    sportingDirector?.reputation_points ??
-    0;
+  const reputationPoints = sportingDirector?.reputation_points ?? 0;
 
   return (
     <article className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8">
@@ -753,14 +723,10 @@ function DirectorProfileCard({
 
       <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <DirectorIdentity
-          sportingDirector={
-            sportingDirector
-          }
+          sportingDirector={sportingDirector}
           profileName={profileName}
           email={email}
-          selectedCountry={
-            selectedCountry
-          }
+          selectedCountry={selectedCountry}
         />
 
         <div className="flex items-start gap-5 md:justify-self-end">
@@ -777,9 +743,7 @@ function DirectorProfileCard({
           <div className="min-w-44 pt-4">
             <TeamSponsorInformation
               teamSummary={teamSummary}
-              teamSponsorIdentity={
-                teamSponsorIdentity
-              }
+              teamSponsorIdentity={teamSponsorIdentity}
               teamAmateurIdentity={teamAmateurIdentity}
             />
             {financeOverview ? (
@@ -797,18 +761,17 @@ function DirectorProfileCard({
 
       <div className="mt-6 border-t border-white/10 pt-5">
         <SportingDirectorProgression
-          experiencePoints={
-            experiencePoints
-          }
+          experiencePoints={experiencePoints}
           compact
         />
       </div>
 
-      <div className="mt-5 border-t border-white/10 pt-5">
+      <div
+        className="mt-5 border-t border-white/10 pt-5"
+        data-tutorial-id="dashboard-reputation"
+      >
         <SportingDirectorReputation
-          reputationPoints={
-            reputationPoints
-          }
+          reputationPoints={reputationPoints}
           compact
         />
       </div>
@@ -824,12 +787,14 @@ function DirectorProfileCard({
             </span>
             <span
               className={`mt-1 block text-xl font-black ${
-                financeOverview.balance < 0 ? "text-[#FF9D8F]" : "text-[#F2C94C]"
+                financeOverview.balance < 0
+                  ? "text-[#FF9D8F]"
+                  : "text-[#F2C94C]"
               }`}
             >
               {formatDashboardCurrency(
                 financeOverview.balance,
-                financeOverview.currency
+                financeOverview.currency,
               )}
             </span>
           </Link>
@@ -851,17 +816,13 @@ function DirectorProfileCard({
               : "rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C]"
           }
         >
-          {isProfileComplete
-            ? "Profil initial complété"
-            : "Profil incomplet"}
+          {isProfileComplete ? "Profil initial complété" : "Profil incomplet"}
         </span>
 
         <span className="text-xs font-semibold text-[#9FB5A8]">
           Début de carrière :{" "}
           {sportingDirector?.created_at
-            ? formatCareerStart(
-                sportingDirector.created_at
-              )
+            ? formatCareerStart(sportingDirector.created_at)
             : "Non disponible"}
         </span>
       </div>
@@ -875,8 +836,7 @@ function DirectorIdentity({
   email,
   selectedCountry,
 }: {
-  sportingDirector:
-    SportingDirector | null;
+  sportingDirector: SportingDirector | null;
   profileName: string;
   email: string | null;
   selectedCountry: CountryRow | null;
@@ -885,9 +845,7 @@ function DirectorIdentity({
     <div className="flex min-w-0 items-center gap-5">
       {sportingDirector?.avatar_key ? (
         <SportingDirectorAvatar
-          avatarKey={
-            sportingDirector.avatar_key
-          }
+          avatarKey={sportingDirector.avatar_key}
           size="large"
           label={`Avatar de ${profileName}`}
         />
@@ -898,9 +856,7 @@ function DirectorIdentity({
       )}
 
       <div className="min-w-0">
-        <h3 className="truncate text-2xl font-black">
-          {profileName}
-        </h3>
+        <h3 className="truncate text-2xl font-black">{profileName}</h3>
 
         <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
           {sportingDirector?.username
@@ -912,12 +868,8 @@ function DirectorIdentity({
           {selectedCountry ? (
             <>
               <CountryFlag
-                isoAlpha2={
-                  selectedCountry.iso_alpha2
-                }
-                countryName={
-                  selectedCountry.name
-                }
+                isoAlpha2={selectedCountry.iso_alpha2}
+                countryName={selectedCountry.name}
               />
 
               <span className="font-semibold text-[#FFFDF4]">
@@ -934,15 +886,12 @@ function DirectorIdentity({
         <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#9FB5A8]">
           {sportingDirector?.is_email_visible ? (
             <span className="break-all">
-              {email ??
-                "Adresse e-mail non disponible"}
+              {email ?? "Adresse e-mail non disponible"}
             </span>
           ) : (
             <>
               <PrivacyIcon />
-              <span>
-                Adresse e-mail masquée
-              </span>
+              <span>Adresse e-mail masquée</span>
             </>
           )}
         </div>
@@ -956,12 +905,9 @@ function TeamSponsorInformation({
   teamSponsorIdentity,
   teamAmateurIdentity,
 }: {
-  teamSummary:
-    CurrentTeamDashboardSummary | null;
-  teamSponsorIdentity:
-    TeamSponsorIdentity | null;
-  teamAmateurIdentity:
-    TeamAmateurIdentity | null;
+  teamSummary: CurrentTeamDashboardSummary | null;
+  teamSponsorIdentity: TeamSponsorIdentity | null;
+  teamAmateurIdentity: TeamAmateurIdentity | null;
 }) {
   const teamName =
     teamSponsorIdentity?.teamName ??
@@ -982,9 +928,7 @@ function TeamSponsorInformation({
           className="mb-4 h-14 w-24 rounded-xl p-1.5"
         />
       ) : null}
-      <p className="max-w-56 text-xl font-black text-[#FFFDF4]">
-        {teamName}
-      </p>
+      <p className="max-w-56 text-xl font-black text-[#FFFDF4]">{teamName}</p>
 
       <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
         {teamSponsorIdentity
@@ -992,20 +936,9 @@ function TeamSponsorInformation({
           : "Aucun sponsor actif"}
       </p>
 
-      {teamSponsorIdentity ? (
-        <p className="mt-2 text-xs font-semibold text-[#BFD1C6]">
-          Maillot :{" "}
-          {
-            teamSponsorIdentity
-              .selectedJersey.name
-          }
-        </p>
-      ) : null}
-
       {teamSummary ? (
         <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#7CCF9C]">
-          {teamSummary.season_name} · Jour{" "}
-          {teamSummary.season_day_number} / 28
+          {teamSummary.season_name} · Jour {teamSummary.season_day_number} / 28
         </p>
       ) : null}
     </div>
@@ -1017,11 +950,13 @@ function TeamRosterCard({
   description,
   riders,
   jersey,
+  nationalChampionJerseyByRiderId,
 }: {
   status: string;
   description: string;
   riders: DashboardRider[];
   jersey: RiderJerseyAppearance;
+  nationalChampionJerseyByRiderId: ReadonlyMap<string, RiderJerseyAppearance>;
 }) {
   const leadingRider = riders[0] ?? null;
 
@@ -1035,8 +970,7 @@ function TeamRosterCard({
         className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center opacity-[0.4] transition-opacity duration-300 group-hover:opacity-[0.52]"
         style={{
           backgroundImage: `url("${ROSTER_WATERMARK}")`,
-          filter:
-            "grayscale(0.35) brightness(0.95) contrast(1.05)",
+          filter: "grayscale(0.35) brightness(0.95) contrast(1.05)",
         }}
       />
       <span
@@ -1054,9 +988,7 @@ function TeamRosterCard({
         </span>
       </div>
 
-      <h2 className="mt-5 text-xl font-black text-white">
-        Effectif
-      </h2>
+      <h2 className="mt-5 text-xl font-black text-white">Effectif</h2>
 
       <div
         className="relative mt-6"
@@ -1076,14 +1008,18 @@ function TeamRosterCard({
                 seed={leadingRider.avatar_seed}
                 riderId={leadingRider.rider_id}
                 age={leadingRider.age}
-                jersey={jersey}
+                jersey={
+                  nationalChampionJerseyByRiderId.get(leadingRider.rider_id) ??
+                  jersey
+                }
                 label={`Portrait de ${leadingRider.first_name} ${leadingRider.last_name}`}
                 className="h-24 w-24 border-[3px] border-[#F2C94C]/80 shadow-2xl"
               />
             </span>
 
             <span className="mt-3 max-w-full truncate text-center text-xs font-extrabold uppercase tracking-[0.12em] text-[#F2C94C]">
-              {leadingRider.first_name} {leadingRider.last_name} · MOY {getDashboardRiderAverage(leadingRider)}
+              {leadingRider.first_name} {leadingRider.last_name} · MOY{" "}
+              {getDashboardRiderAverage(leadingRider)}
             </span>
 
             {riders.length > 1 ? (
@@ -1101,7 +1037,10 @@ function TeamRosterCard({
                         seed={rider.avatar_seed}
                         riderId={rider.rider_id}
                         age={rider.age}
-                        jersey={jersey}
+                        jersey={
+                          nationalChampionJerseyByRiderId.get(rider.rider_id) ??
+                          jersey
+                        }
                         label={`Portrait de ${riderName}`}
                         className="h-12 w-12 border-2 border-[#9BE0BC]/40 shadow-lg"
                       />
@@ -1123,9 +1062,7 @@ function TeamRosterCard({
         )}
       </div>
 
-      <p className="mt-4 leading-7 text-[#BFD1C6]">
-        {description}
-      </p>
+      <p className="mt-4 leading-7 text-[#BFD1C6]">{description}</p>
 
       <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-extrabold text-[#9BE0BC]">
         Ouvrir
@@ -1135,17 +1072,13 @@ function TeamRosterCard({
   );
 }
 
-function getDashboardRiderAverage(
-  rider: DashboardRider
-): number {
+function getDashboardRiderAverage(rider: DashboardRider): number {
   const ratingsTotal = dashboardRatingKeys.reduce(
     (total, ratingKey) => total + rider[ratingKey],
-    0
+    0,
   );
 
-  return Math.round(
-    ratingsTotal / dashboardRatingKeys.length
-  );
+  return Math.round(ratingsTotal / dashboardRatingKeys.length);
 }
 
 function RaceOperationsCard({ alertCount }: { alertCount: number }) {
@@ -1155,7 +1088,8 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
       icon: "calendar" as const,
       eyebrow: "Préparer",
       title: "Inscriptions & calendrier",
-      description: "Choisissez vos courses, filtrez les catégories et composez les équipes engagées.",
+      description:
+        "Choisissez vos courses, filtrez les catégories et composez les équipes engagées.",
       status:
         alertCount > 0
           ? `${alertCount} remplacement${alertCount > 1 ? "s" : ""} requis`
@@ -1166,21 +1100,29 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
       icon: "result" as const,
       eyebrow: "Vivre",
       title: "Résultats & Live",
-      description: "Rejoignez les directs de 14 h et 18 h, suivez les écarts et consultez les replays.",
+      description:
+        "Rejoignez les directs de 14 h et 18 h, suivez les écarts et consultez les replays.",
       status: "Directs à 14 h / 18 h",
     },
   ];
 
   return (
-    <section className="group relative isolate mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)]" aria-labelledby="race-hub-title">
-      <CardWatermark
-        url={RACE_HUB_WATERMARK}
-        origin="100% 50%"
-      />
+    <section
+      className="group relative isolate mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)]"
+      aria-labelledby="race-hub-title"
+    >
+      <CardWatermark url={RACE_HUB_WATERMARK} origin="100% 50%" />
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-5 py-4 sm:px-7">
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">Centre de course</p>
-          <h2 id="race-hub-title" className="mt-1 text-xl font-black text-[#FFFDF4]">Planifier puis vibrer</h2>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
+            Centre de course
+          </p>
+          <h2
+            id="race-hub-title"
+            className="mt-1 text-xl font-black text-[#FFFDF4]"
+          >
+            Planifier puis vibrer
+          </h2>
         </div>
         <span className="rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">
           Accès prioritaire
@@ -1193,18 +1135,25 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
             key={entry.href}
             href={entry.href}
             className={`group relative grid min-h-48 grid-cols-[auto_minmax(0,1fr)] gap-4 p-6 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:p-7 ${
-              index === 1 ? "border-t border-white/10 md:border-l md:border-t-0" : ""
+              index === 1
+                ? "border-t border-white/10 md:border-l md:border-t-0"
+                : ""
             }`}
           >
             {index === 1 ? (
-              <span aria-hidden="true" className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b" />
+              <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b"
+              />
             ) : null}
             <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
               <ManagementModuleIcon icon={entry.icon} />
             </span>
             <span className="min-w-0">
               <span className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">{entry.eyebrow}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
+                  {entry.eyebrow}
+                </span>
                 <span
                   className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
                     index === 0 && alertCount > 0
@@ -1215,8 +1164,12 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
                   {entry.status}
                 </span>
               </span>
-              <span className="mt-3 block text-xl font-black text-[#FFFDF4]">{entry.title}</span>
-              <span className="mt-2 block text-sm font-medium leading-6 text-[#BFD1C6]">{entry.description}</span>
+              <span className="mt-3 block text-xl font-black text-[#FFFDF4]">
+                {entry.title}
+              </span>
+              <span className="mt-2 block text-sm font-medium leading-6 text-[#BFD1C6]">
+                {entry.description}
+              </span>
               <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[#9BE0BC]">
                 Ouvrir <ArrowRightIcon />
               </span>
@@ -1259,11 +1212,16 @@ function InventoryShortcut({
 
         <span className="min-w-0 flex-1">
           <span className="flex items-center justify-between gap-4">
-            <span className="text-sm font-black text-[#183F37]">Inventaire</span>
-            <span className="text-[#176951] transition-transform group-hover:translate-x-0.5">→</span>
+            <span className="text-sm font-black text-[#183F37]">
+              Inventaire
+            </span>
+            <span className="text-[#176951] transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
           </span>
           <span className="mt-1 block text-xs font-bold text-[#60756E]">
-            {formatInventoryUnits(totalUnits)} · {availableUnits} disponible{availableUnits > 1 ? "s" : ""}
+            {formatInventoryUnits(totalUnits)} · {availableUnits} disponible
+            {availableUnits > 1 ? "s" : ""}
           </span>
         </span>
       </span>
@@ -1347,45 +1305,43 @@ function ManagementModuleCard({
   alertCount?: number;
   description: string;
 }) {
-  const className =
-    `group relative isolate block overflow-hidden rounded-2xl border bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
-      alertCount > 0 ? "border-[#F06A62]/70" : "border-white/10"
-    }`;
+  const className = `group relative isolate block overflow-hidden rounded-2xl border bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
+    alertCount > 0 ? "border-[#F06A62]/70" : "border-white/10"
+  }`;
 
   const watermarkUrl = MODULE_WATERMARKS[icon];
 
   const content = (
     <>
-      {watermarkUrl ? (
-        <CardWatermark url={watermarkUrl} />
-      ) : null}
+      {watermarkUrl ? <CardWatermark url={watermarkUrl} /> : null}
       {alertCount > 0 ? (
-        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#F06A62]" />
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-1 bg-[#F06A62]"
+        />
       ) : null}
 
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
-          <ManagementModuleIcon
-            icon={icon}
-          />
+          <ManagementModuleIcon icon={icon} />
         </span>
 
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-          alertCount > 0
-            ? "bg-[#F06A62]/20 text-[#FFB1AA]"
-            : "bg-white/10 text-[#BFD1C6]"
-        }`}>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${
+            alertCount > 0
+              ? "bg-[#F06A62]/20 text-[#FFB1AA]"
+              : "bg-white/10 text-[#BFD1C6]"
+          }`}
+        >
           {alertCount > 0
             ? `${alertCount > 9 ? "9+" : alertCount} rapport${alertCount > 1 ? "s" : ""}`
             : status}
         </span>
       </div>
 
-      <h2 className="mt-6 text-xl font-black text-white">
-        {title}
-      </h2>
+      <h2 className="mt-6 text-xl font-black text-white">{title}</h2>
 
-      <p className="mt-3 leading-7 text-[#BFD1C6]">
+      <p className="mt-3 whitespace-pre-line leading-7 text-[#BFD1C6]">
         {description}
       </p>
 
@@ -1400,20 +1356,13 @@ function ManagementModuleCard({
 
   if (href) {
     return (
-      <Link
-        href={href}
-        className={className}
-      >
+      <Link href={href} className={className}>
         {content}
       </Link>
     );
   }
 
-  return (
-    <article className={className}>
-      {content}
-    </article>
-  );
+  return <article className={className}>{content}</article>;
 }
 
 function formatInventoryUnits(value: number) {
@@ -1445,16 +1394,11 @@ function CountryFlag({
   isoAlpha2: string;
   countryName: string;
 }) {
-  const normalizedCode = isoAlpha2
-    .trim()
-    .toLowerCase();
+  const normalizedCode = isoAlpha2.trim().toLowerCase();
 
   if (!/^[a-z]{2}$/.test(normalizedCode)) {
     return (
-      <span
-        role="img"
-        aria-label={`Drapeau : ${countryName}`}
-      >
+      <span role="img" aria-label={`Drapeau : ${countryName}`}>
         🏳️
       </span>
     );
@@ -1483,13 +1427,7 @@ function PrivacyIcon() {
       stroke="currentColor"
       strokeWidth="1.8"
     >
-      <rect
-        x="4"
-        y="8"
-        width="12"
-        height="9"
-        rx="2"
-      />
+      <rect x="4" y="8" width="12" height="9" rx="2" />
 
       <path d="M7 8V6a3 3 0 0 1 6 0v2" />
     </svg>
@@ -1515,53 +1453,29 @@ function EditIcon() {
 function ProfileErrorMessage() {
   return (
     <div className="mt-8 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800">
-      Votre compte est bien connecté, mais
-      votre profil de Directeur Sportif n’a pas
-      pu être récupéré.
+      Votre compte est bien connecté, mais votre profil de Directeur Sportif n’a
+      pas pu être récupéré.
     </div>
   );
 }
 
-function TeamSponsorIdentityWarning({
-  message,
-}: {
-  message: string;
-}) {
+function TeamSponsorIdentityWarning({ message }: { message: string }) {
   return (
     <div className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
-      Le bureau reste disponible, mais
-      l’identité commerciale de l’équipe n’a pas
-      pu être chargée.
-
-      <span className="mt-1 block text-xs font-medium">
-        {message}
-      </span>
+      Le bureau reste disponible, mais l’identité commerciale de l’équipe n’a
+      pas pu être chargée.
+      <span className="mt-1 block text-xs font-medium">{message}</span>
     </div>
   );
 }
 
-function ManagementModuleIcon({
-  icon,
-}: {
-  icon: ManagementModuleIcon;
-}) {
-  const paths: Record<
-    ManagementModuleIcon,
-    React.ReactNode
-  > = {
+function ManagementModuleIcon({ icon }: { icon: ManagementModuleIcon }) {
+  const paths: Record<ManagementModuleIcon, React.ReactNode> = {
     riders: (
       <>
-        <circle
-          cx="8"
-          cy="8"
-          r="3"
-        />
+        <circle cx="8" cy="8" r="3" />
 
-        <circle
-          cx="17"
-          cy="9"
-          r="2.5"
-        />
+        <circle cx="17" cy="9" r="2.5" />
 
         <path d="M2.5 20c.5-4.5 2.5-7 5.5-7s5 2.5 5.5 7" />
 
@@ -1587,13 +1501,7 @@ function ManagementModuleIcon({
 
     calendar: (
       <>
-        <rect
-          x="3"
-          y="5"
-          width="18"
-          height="16"
-          rx="2"
-        />
+        <rect x="3" y="5" width="18" height="16" rx="2" />
 
         <path d="M7 3v4M17 3v4M3 10h18" />
 
@@ -1701,30 +1609,22 @@ function ManagementModuleIcon({
   );
 }
 
-function formatRiderCount(
-  value: number
-): string {
+function formatRiderCount(value: number): string {
   return `${value} coureur${value === 1 ? "" : "s"}`;
 }
 
-function getInitials(
-  value: string
-): string {
+function getInitials(value: string): string {
   const initials = value
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) =>
-      part.charAt(0).toUpperCase()
-    )
+    .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
   return initials || "DS";
 }
 
-function getErrorMessage(
-  error: unknown
-): string {
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
@@ -1735,7 +1635,7 @@ function getErrorMessage(
 async function loadDashboardValue<T>(
   promise: Promise<T>,
   fallback: T,
-  errorMessage: string
+  errorMessage: string,
 ): Promise<T> {
   try {
     return await promise;
@@ -1745,17 +1645,12 @@ async function loadDashboardValue<T>(
   }
 }
 
-function formatCareerStart(
-  value: string
-): string {
-  return new Intl.DateTimeFormat(
-    "fr-FR",
-    {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }
-  ).format(new Date(value));
+function formatCareerStart(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function formatDashboardCurrency(value: number, currency: string): string {

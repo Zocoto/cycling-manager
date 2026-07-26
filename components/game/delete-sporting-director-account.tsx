@@ -135,8 +135,9 @@ export function DeleteSportingDirectorAccount({
               </p>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm font-semibold leading-6 text-red-900/80">
                 <li>le compte de connexion et le profil du Directeur Sportif ;</li>
-                <li>{teamName}, ses contrats et ses inscriptions aux courses ;</li>
-                <li>les offres et objectifs de sponsoring propres à cette carrière.</li>
+                <li>{teamName}, ses contrats et ses données de gestion ;</li>
+                <li>les inscriptions aux courses sans résultat officiel ;</li>
+                <li>les offres et objectifs propres à cette carrière.</li>
               </ul>
 
               <p className="mt-5 text-sm font-black text-emerald-900">
@@ -145,6 +146,11 @@ export function DeleteSportingDirectorAccount({
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm font-semibold leading-6 text-emerald-900/80">
                 <li>les coureurs, qui deviendront agents libres ;</li>
                 <li>le sponsor, qui redeviendra disponible pour les autres équipes.</li>
+                <li>
+                  les éventuels résultats officiels, avec le nom amateur de
+                  votre équipe conservé comme simple texte, sans lien vers une
+                  équipe ou un profil.
+                </li>
               </ul>
             </div>
 

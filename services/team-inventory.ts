@@ -81,6 +81,8 @@ export async function getCurrentTeamInventoryOverview(
         availableQuantity: inventory.quantity,
         equippedQuantity: 0,
         pendingQuantity: 0,
+        equippedRiderIds: [],
+        pendingRiderIds: [],
         iconKey: catalogItem.icon_key,
         imagePath: null,
         supplierName: null,
@@ -108,6 +110,20 @@ export async function getCurrentTeamInventoryOverview(
           availableQuantity: item.availableQuantity,
           equippedQuantity: item.equippedQuantity,
           pendingQuantity: item.pendingQuantity,
+          equippedRiderIds:
+            equipmentOverview.assignments
+              .filter(
+                (assignment) =>
+                  assignment.equipmentItemId === item.id,
+              )
+              .map((assignment) => assignment.riderId),
+          pendingRiderIds:
+            equipmentOverview.pendingAssignments
+              .filter(
+                (assignment) =>
+                  assignment.equipmentItemId === item.id,
+              )
+              .map((assignment) => assignment.riderId),
           iconKey: "equipment",
           imagePath: item.imagePath,
           supplierName: item.supplierName,

@@ -282,6 +282,9 @@ export type WildcardCandidate = {
   rankingPosition: number;
   uciPoints: number;
   leaderProfileFit: number;
+  teamCountryMatchesRace?: boolean;
+  sponsorCountryMatchesRace?: boolean;
+  reputationPoints?: number;
   requested: boolean;
   alreadyInvited?: boolean;
 };
@@ -493,13 +496,12 @@ export function selectWildcardTeams(
 
       return candidate.requested
         && !candidate.alreadyInvited
-        && division !== "elite"
-        && division !== "amateur";
+        && division !== "elite";
     })
     .sort(
       (left, right) =>
-        getWildcardDivisionPriority(left.rankingPosition)
-        - getWildcardDivisionPriority(right.rankingPosition)
+        calculateWildcardSelectionScore(right)
+        - calculateWildcardSelectionScore(left)
         || right.leaderProfileFit - left.leaderProfileFit
         || right.uciPoints - left.uciPoints
         || left.rankingPosition - right.rankingPosition
@@ -508,13 +510,18 @@ export function selectWildcardTeams(
     .slice(0, places);
 }
 
-function getWildcardDivisionPriority(rankingPosition: number): number {
-  const division = getDivisionForRank(rankingPosition);
+export function calculateWildcardSelectionScore(
+  candidate: WildcardCandidate
+): number {
+  const reputation = Math.min(
+    1_000,
+    Math.max(0, candidate.reputationPoints ?? 0)
+  );
 
-  if (division === "world") return 0;
-  if (division === "continental") return 1;
-  if (division === "national") return 2;
-  return 3;
+  return (candidate.teamCountryMatchesRace ? 250 : 0)
+    + (candidate.sponsorCountryMatchesRace ? 150 : 0)
+    + reputation * 0.25
+    + candidate.leaderProfileFit * 5;
 }
 
 function createScale({

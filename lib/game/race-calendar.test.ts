@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  RACE_CATEGORY_CODES,
   buildCalendarWeeks,
   getEditionDayRange,
   getEffectiveSeasonDay,
@@ -9,6 +10,8 @@ import {
   isBeforeRegistrationDeadline,
   isCurrentTeamRegisteredForRace,
   isRaceEditionAvailableToCurrentTeam,
+  isRaceEditionPast,
+  isRaceRegistrationClosed,
   isRosterSelectionValid,
   type RaceCalendarEdition,
 } from "./race-calendar";
@@ -185,11 +188,158 @@ describe("getRegistrationAvailability", () => {
   });
 });
 
+describe("isRaceRegistrationClosed", () => {
+  it("hachure une course révolue même si sa politique n’est pas encore finalisée", () => {
+    const edition = createEdition(
+      "course-revolue",
+      [8]
+    );
+
+    expect(
+      isRaceRegistrationClosed({
+        edition,
+        currentDayNumber: 9,
+        now: new Date(
+          "2026-07-25T06:00:00Z"
+        ),
+      })
+    ).toBe(true);
+  });
+
+  it.each(RACE_CATEGORY_CODES)(
+    "ferme visuellement une course %s à son heure de gel",
+    (categoryCode) => {
+      const edition = createEdition(
+        `course-${categoryCode}`,
+        [10]
+      );
+      edition.categoryCode = categoryCode;
+      edition.registrationPolicy = "open";
+      edition.minimumReputation = 0;
+      edition.registrationClosesAt =
+        "2026-07-26T10:00:00Z";
+      edition.wildcardClosesAt = edition.registrationClosesAt;
+
+      expect(
+        isRaceRegistrationClosed({
+          edition,
+          currentDayNumber: 10,
+          now: new Date(
+            "2026-07-26T10:00:00Z"
+          ),
+        })
+      ).toBe(true);
+    }
+  );
+
+  it("closes an Elite race at the Wild Card arbitration deadline", () => {
+    const edition = createEdition("elite-j-minus-one", [10]);
+    edition.categoryCode = "elite";
+    edition.registrationPolicy = "open";
+    edition.registrationClosesAt = "2026-07-26T18:00:00Z";
+    edition.wildcardClosesAt = "2026-07-26T10:00:00Z";
+
+    expect(
+      isRaceRegistrationClosed({
+        edition,
+        currentDayNumber: 10,
+        now: new Date("2026-07-26T10:00:00Z"),
+      })
+    ).toBe(true);
+  });
+
+  it("laisse nette une course dont les inscriptions sont encore ouvertes", () => {
+    const edition = createEdition(
+      "course-ouverte",
+      [10]
+    );
+    edition.registrationPolicy = "open";
+    edition.minimumReputation = 0;
+    edition.registrationClosesAt =
+      "2026-07-26T12:00:00Z";
+
+    expect(
+      isRaceRegistrationClosed({
+        edition,
+        currentDayNumber: 10,
+        now: new Date(
+          "2026-07-26T11:59:59Z"
+        ),
+      })
+    ).toBe(false);
+  });
+
+  it("respecte l’heure de gel même si les critères ne sont pas encore finalisés", () => {
+    const edition = createEdition(
+      "course-criteres-en-attente",
+      [10]
+    );
+    edition.categoryCode = "world";
+    edition.registrationPolicy =
+      "criteria_pending";
+    edition.registrationClosesAt =
+      "2026-07-26T10:00:00Z";
+
+    expect(
+      isRaceRegistrationClosed({
+        edition,
+        currentDayNumber: 10,
+        now: new Date(
+          "2026-07-26T10:00:00Z"
+        ),
+      })
+    ).toBe(true);
+  });
+});
+
+describe("isRaceEditionPast", () => {
+  it("considère une course comme passée à partir du lendemain", () => {
+    const edition = createEdition(
+      "course-un-jour",
+      [8]
+    );
+
+    expect(
+      isRaceEditionPast({
+        edition,
+        currentDayNumber: 8,
+      })
+    ).toBe(false);
+    expect(
+      isRaceEditionPast({
+        edition,
+        currentDayNumber: 9,
+      })
+    ).toBe(true);
+  });
+
+  it("attend la fin de toutes les étapes d’un tour", () => {
+    const edition = createEdition(
+      "tour-trois-jours",
+      [6, 7, 8]
+    );
+
+    expect(
+      isRaceEditionPast({
+        edition,
+        currentDayNumber: 8,
+      })
+    ).toBe(false);
+    expect(
+      isRaceEditionPast({
+        edition,
+        currentDayNumber: 9,
+      })
+    ).toBe(true);
+  });
+});
+
 describe("filtres centrés sur l’équipe", () => {
   const now = new Date("2026-07-19T10:00:00Z");
 
   it("propose par défaut une course ouverte au niveau de réputation de l’équipe", () => {
     const edition = createEdition("course-ouverte", [4]);
+    edition.categoryCode = "world";
     edition.registrationPolicy = "open";
     edition.registrationClosesAt = "2026-07-20T18:00:00Z";
     edition.minimumReputation = 20;
@@ -210,6 +360,22 @@ describe("filtres centrés sur l’équipe", () => {
     ).toBe(false);
   });
 
+
+  it("keeps every Elite race visible for a possible Wild Card request", () => {
+    const edition = createEdition("elite-wildcard", [4]);
+    edition.registrationPolicy = "open";
+    edition.registrationClosesAt = "2026-07-20T18:00:00Z";
+    edition.wildcardClosesAt = "2026-07-20T10:00:00Z";
+    edition.minimumReputation = 999;
+
+    expect(
+      isRaceEditionAvailableToCurrentTeam({
+        edition,
+        reputationPoints: 0,
+        now,
+      })
+    ).toBe(true);
+  });
   it("conserve une course déjà acceptée même si ses inscriptions sont fermées", () => {
     const edition = createEdition("course-inscrite", [4]);
     edition.registrationPolicy = "closed";
@@ -229,6 +395,7 @@ describe("filtres centrés sur l’équipe", () => {
 
   it("écarte une réinscription dont la limite de retrait est dépassée", () => {
     const edition = createEdition("course-retiree", [4]);
+    edition.categoryCode = "world";
     edition.registrationPolicy = "open";
     edition.registrationClosesAt = "2026-07-20T18:00:00Z";
     edition.withdrawalClosesAt = "2026-07-19T10:00:00Z";
@@ -320,6 +487,7 @@ function createEdition(
     raceFormat: "stage_race",
     competitionType: "standard",
     registrationClosesAt: null,
+    wildcardClosesAt: null,
     withdrawalClosesAt: null,
     registrationPolicy: "criteria_pending",
     minimumReputation: null,

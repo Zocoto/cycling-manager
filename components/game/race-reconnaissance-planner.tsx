@@ -7,9 +7,10 @@ import { bookRaceReconnaissanceAction } from "@/app/jeu/entrainement/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { RaceProfileType } from "@/lib/game/race-calendar";
 import {
-  RECOGNITION_CAMP_DURATION_DAYS,
-  validateRecognitionCampSchedule,
-} from "@/lib/game/training";
+  findRiderUnavailability,
+  getRecognitionDateCandidates,
+  getUpcomingRecognitionDays,
+} from "@/lib/game/race-reconnaissance-planning";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   RaceReconnaissanceStage,
@@ -44,32 +45,77 @@ export function RaceReconnaissancePlanner({
   const [selectedStageId, setSelectedStageId] = useState("");
   const [selectedStartDayNumber, setSelectedStartDayNumber] = useState("");
   const [preparerContractId, setPreparerContractId] = useState("");
-  const selectedStage = overview.stages.find(
+  const selectedRiders = useMemo(
+    () =>
+      overview.riders.filter((rider) =>
+        selectedRiderIds.includes(rider.id),
+      ),
+    [overview.riders, selectedRiderIds],
+  );
+  const upcomingDays = useMemo(
+    () =>
+      getUpcomingRecognitionDays({
+        seasonDays: overview.seasonDays,
+        currentDayNumber: overview.currentDayNumber,
+      }),
+    [overview.currentDayNumber, overview.seasonDays],
+  );
+  const dateCandidatesByStageId = useMemo(() => {
+    const candidatesByStageId = new Map<
+      string,
+      ReturnType<typeof getRecognitionDateCandidates>
+    >();
+
+    if (selectedRiders.length === 0) return candidatesByStageId;
+
+    for (const stage of overview.stages) {
+      candidatesByStageId.set(
+        stage.id,
+        getRecognitionDateCandidates({
+          stage,
+          currentDayNumber: overview.currentDayNumber,
+          seasonDays: overview.seasonDays,
+          riders: selectedRiders,
+        }),
+      );
+    }
+
+    return candidatesByStageId;
+  }, [
+    overview.currentDayNumber,
+    overview.seasonDays,
+    overview.stages,
+    selectedRiders,
+  ]);
+  const visibleStages = useMemo(
+    () =>
+      overview.stages.filter((stage) =>
+        dateCandidatesByStageId.get(stage.id)?.some(
+          (candidate) => candidate.available,
+        ),
+      ),
+    [dateCandidatesByStageId, overview.stages],
+  );
+  const selectedStage = visibleStages.find(
     (stage) => stage.id === selectedStageId,
   );
   const selectedPreparer = overview.preparers.find(
     (preparer) => preparer.contractId === preparerContractId,
   );
-  const dateCandidates = useMemo(
-    () =>
-      selectedStage
-        ? getRecognitionDateCandidates({
-            stage: selectedStage,
-            currentDayNumber: overview.currentDayNumber,
-            seasonDays: overview.seasonDays,
-          })
-        : [],
-    [overview.currentDayNumber, overview.seasonDays, selectedStage],
+  const dateCandidates = selectedStage
+    ? (dateCandidatesByStageId.get(selectedStage.id) ?? [])
+    : [];
+  const availableDateCandidates = dateCandidates.filter(
+    (candidate) => candidate.available,
   );
   const selectedDateCandidate = dateCandidates.find(
     (candidate) =>
       String(candidate.dayNumber) === selectedStartDayNumber &&
-      candidate.validation.valid,
+      candidate.available,
   );
   const effectiveStartDayNumber =
-    selectedDateCandidate?.dayNumber ?? overview.startDayNumber;
-  const effectiveEndDayNumber =
-    effectiveStartDayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1;
+    selectedDateCandidate?.dayNumber ?? null;
+  const effectiveEndDayNumber = selectedDateCandidate?.endDayNumber ?? null;
   const resultingBonus = selectedPreparer?.resultingBonus ?? 2;
   const canAfford =
     !selectedStage || overview.balance >= selectedStage.cost;
@@ -80,19 +126,51 @@ export function RaceReconnaissancePlanner({
     canAfford;
   const stagesByDay = useMemo(() => {
     const grouped = new Map<number, RaceReconnaissanceStage[]>();
-    for (const stage of overview.stages) {
+    for (const stage of visibleStages) {
       const stages = grouped.get(stage.dayNumber) ?? [];
       stages.push(stage);
       grouped.set(stage.dayNumber, stages);
     }
     return grouped;
-  }, [overview.stages]);
+  }, [visibleStages]);
 
   function toggleRider(riderId: string, checked: boolean) {
-    setSelectedRiderIds((current) =>
-      checked
-        ? [...new Set([...current, riderId])]
-        : current.filter((id) => id !== riderId),
+    const nextRiderIds = checked
+      ? [...new Set([...selectedRiderIds, riderId])]
+      : selectedRiderIds.filter((id) => id !== riderId);
+    const nextRiders = overview.riders.filter((rider) =>
+      nextRiderIds.includes(rider.id),
+    );
+
+    setSelectedRiderIds(nextRiderIds);
+
+    if (nextRiders.length === 0) {
+      setSelectedStageId("");
+      setSelectedStartDayNumber("");
+      return;
+    }
+
+    const stage = overview.stages.find(
+      (candidate) => candidate.id === selectedStageId,
+    );
+    if (!stage) return;
+
+    const availableDates = getRecognitionDateCandidates({
+      stage,
+      currentDayNumber: overview.currentDayNumber,
+      seasonDays: overview.seasonDays,
+      riders: nextRiders,
+    }).filter((candidate) => candidate.available);
+    if (availableDates.length === 0) {
+      setSelectedStageId("");
+      setSelectedStartDayNumber("");
+      return;
+    }
+
+    setSelectedStartDayNumber((current) =>
+      availableDates.some((candidate) => String(candidate.dayNumber) === current)
+        ? current
+        : String(availableDates[0].dayNumber),
     );
   }
 
@@ -103,7 +181,8 @@ export function RaceReconnaissancePlanner({
           stage,
           currentDayNumber: overview.currentDayNumber,
           seasonDays: overview.seasonDays,
-        }).find((candidate) => candidate.validation.valid)
+          riders: selectedRiders,
+        }).find((candidate) => candidate.available)
       : null;
     const nextStartDayNumber = firstValidDate?.dayNumber ?? null;
 
@@ -111,40 +190,10 @@ export function RaceReconnaissancePlanner({
     setSelectedStartDayNumber(
       nextStartDayNumber === null ? "" : String(nextStartDayNumber),
     );
-    if (nextStartDayNumber !== null) {
-      setSelectedRiderIds((current) =>
-        current.filter((riderId) => {
-          const rider = overview.riders.find(
-            (candidate) => candidate.id === riderId,
-          );
-          return rider
-            ? !findRiderUnavailability(
-                rider,
-                nextStartDayNumber,
-                nextStartDayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1,
-              )
-            : false;
-        }),
-      );
-    }
   }
 
   function selectStartDay(dayNumber: number) {
     setSelectedStartDayNumber(String(dayNumber));
-    setSelectedRiderIds((current) =>
-      current.filter((riderId) => {
-        const rider = overview.riders.find(
-          (candidate) => candidate.id === riderId,
-        );
-        return rider
-          ? !findRiderUnavailability(
-              rider,
-              dayNumber,
-              dayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1,
-            )
-          : false;
-      }),
-    );
   }
 
   return (
@@ -226,24 +275,25 @@ export function RaceReconnaissancePlanner({
               </p>
             ) : null}
 
+            <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
+              Sélectionnez d’abord les coureurs. Leurs indisponibilités futures
+              seront croisées pour proposer un créneau commun de deux jours.
+            </p>
             <div className="mt-5 max-h-[540px] space-y-2 overflow-y-auto pr-1">
               {overview.riders.map((rider) => {
-                const unavailability = findRiderUnavailability(
+                const currentUnavailability = findRiderUnavailability(
                   rider,
-                  effectiveStartDayNumber,
-                  effectiveEndDayNumber,
+                  overview.currentDayNumber,
+                  overview.currentDayNumber,
                 );
-                const isAvailable = unavailability === null;
                 const checked = selectedRiderIds.includes(rider.id);
                 return (
                   <label
                     key={rider.id}
                     className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
-                      isAvailable
-                        ? checked
-                          ? "border-[#278B70] bg-[#E5F5EF]"
-                          : "cursor-pointer border-[#315B3E]/12 bg-[#F9FBFA] hover:border-[#278B70]/45"
-                        : "cursor-not-allowed border-[#315B3E]/8 bg-[#EEF2F0] opacity-60"
+                      checked
+                        ? "cursor-pointer border-[#278B70] bg-[#E5F5EF]"
+                        : "cursor-pointer border-[#315B3E]/12 bg-[#F9FBFA] hover:border-[#278B70]/45"
                     }`}
                   >
                     <input
@@ -251,7 +301,6 @@ export function RaceReconnaissancePlanner({
                       name="riderIds"
                       value={rider.id}
                       checked={checked}
-                      disabled={!isAvailable}
                       onChange={(event) =>
                         toggleRider(rider.id, event.target.checked)
                       }
@@ -276,11 +325,16 @@ export function RaceReconnaissancePlanner({
                         />
                         {rider.countryName} · Forme {rider.form}%
                       </span>
-                      {unavailability ? (
+                      {currentUnavailability ? (
                         <span className="mt-1 block text-[10px] font-black text-[#9A4940]">
-                          {unavailability.reason}
+                          Aujourd’hui : {currentUnavailability.reason}. Les
+                          dates futures restent accessibles.
                         </span>
-                      ) : null}
+                      ) : (
+                        <span className="mt-1 block text-[10px] font-black text-[#278B70]">
+                          Disponible aujourd’hui
+                        </span>
+                      )}
                     </span>
                   </label>
                 );
@@ -298,16 +352,25 @@ export function RaceReconnaissancePlanner({
               </h3>
               <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
                 Une étape d’un tour coûte moins cher qu’une classique de même
-                catégorie. Le prix est fixe pour le groupe sélectionné.
+                catégorie. Seules les épreuves accessibles à votre équipe et
+                compatibles avec tous les coureurs sélectionnés sont affichées.
               </p>
             </div>
 
+            {selectedRiderIds.length === 0 ? (
+              <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-4 text-sm font-semibold text-[#60756E]">
+                Sélectionnez au moins un coureur pour afficher les épreuves et
+                les créneaux de reconnaissance qu’il peut réaliser.
+              </p>
+            ) : null}
+
             <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-              {Array.from({ length: 28 }, (_, index) => index + 1).map(
-                (dayNumber) => {
+              {upcomingDays.map((day) => {
+                  const dayNumber = day.dayNumber;
                   const dayStages = stagesByDay.get(dayNumber) ?? [];
                   const isMissionDay =
-                    Boolean(selectedDateCandidate) &&
+                    effectiveStartDayNumber !== null &&
+                    effectiveEndDayNumber !== null &&
                     dayNumber >= effectiveStartDayNumber &&
                     dayNumber <= effectiveEndDayNumber;
                   return (
@@ -322,6 +385,9 @@ export function RaceReconnaissancePlanner({
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[10px] font-black text-[#60756E]">
                           J{dayNumber}
+                        </span>
+                        <span className="text-[8px] font-bold text-[#82918C]">
+                          {formatShortDate(day.calendarDate)}
                         </span>
                         {isMissionDay ? (
                           <span className="text-[8px] font-black uppercase text-[#8A6714]">
@@ -361,8 +427,7 @@ export function RaceReconnaissancePlanner({
                       </div>
                     </div>
                   );
-                },
-              )}
+                })}
             </div>
 
             {selectedStage ? (
@@ -379,27 +444,19 @@ export function RaceReconnaissancePlanner({
                     }
                     className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-4 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
                   >
-                    {dateCandidates.some(
-                      (candidate) => candidate.validation.valid,
-                    ) ? null : (
+                    {availableDateCandidates.length > 0 ? null : (
                       <option value="">
                         Aucune période compatible avant cette étape
                       </option>
                     )}
-                    {dateCandidates.map((candidate) => (
+                    {availableDateCandidates.map((candidate) => (
                       <option
                         key={candidate.dayNumber}
                         value={candidate.dayNumber}
-                        disabled={!candidate.validation.valid}
                       >
                         J{candidate.dayNumber}–J
-                        {candidate.dayNumber +
-                          RECOGNITION_CAMP_DURATION_DAYS -
-                          1}{" "}
+                        {candidate.endDayNumber}{" "}
                         · {formatShortDate(candidate.calendarDate)}
-                        {!candidate.validation.valid
-                          ? " · indisponible (tour en cours)"
-                          : ""}
                       </option>
                     ))}
                   </select>
@@ -407,15 +464,21 @@ export function RaceReconnaissancePlanner({
                 <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
                   {selectedDateCandidate
                     ? `Stage prévu J${effectiveStartDayNumber}–J${effectiveEndDayNumber}, avant l’étape de J${selectedStage.dayNumber}.`
-                    : `La course occupe J${selectedStage.editionStartDayNumber}–J${selectedStage.editionEndDayNumber} : toute période qui chevauche ce tour est bloquée.`}
+                    : "Aucun créneau commun de deux jours n’est disponible pour la délégation sélectionnée."}
                 </p>
               </div>
             ) : null}
 
-            {overview.stages.length === 0 ? (
+            {selectedRiderIds.length > 0 && visibleStages.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
-                Aucune course suffisamment éloignée n’est encore disponible
-                pour une reconnaissance de deux jours.
+                Aucune épreuve future accessible à l’équipe ne possède encore
+                un créneau commun de deux jours pour tous les coureurs choisis.
+              </p>
+            ) : null}
+
+            {upcomingDays.length === 0 ? (
+              <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
+                La saison ne comporte plus de journée à venir.
               </p>
             ) : null}
           </div>
@@ -516,48 +579,6 @@ function ReconnaissanceSubmitButton({ disabled }: { disabled: boolean }) {
     >
       {pending ? "Programmation…" : "Valider la reconnaissance"}
     </button>
-  );
-}
-
-function getRecognitionDateCandidates({
-  stage,
-  currentDayNumber,
-  seasonDays,
-}: {
-  stage: RaceReconnaissanceStage;
-  currentDayNumber: number;
-  seasonDays: TeamRaceReconnaissanceOverview["seasonDays"];
-}) {
-  return seasonDays
-    .filter(
-      (day) =>
-        day.dayNumber > currentDayNumber &&
-        day.dayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1 <
-          stage.dayNumber,
-    )
-    .map((day) => ({
-      ...day,
-      validation: validateRecognitionCampSchedule({
-        currentDayNumber,
-        startDayNumber: day.dayNumber,
-        targetStageDayNumber: stage.dayNumber,
-        targetEditionStartDayNumber: stage.editionStartDayNumber,
-        targetEditionEndDayNumber: stage.editionEndDayNumber,
-      }),
-    }));
-}
-
-function findRiderUnavailability(
-  rider: TeamRaceReconnaissanceOverview["riders"][number],
-  startDayNumber: number,
-  endDayNumber: number,
-) {
-  return (
-    rider.unavailabilities.find(
-      (unavailability) =>
-        unavailability.startDayNumber <= endDayNumber &&
-        unavailability.endDayNumber >= startDayNumber,
-    ) ?? null
   );
 }
 

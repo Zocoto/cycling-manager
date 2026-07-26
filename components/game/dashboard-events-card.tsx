@@ -15,7 +15,7 @@ const PRIORITY_STYLES: Record<
     icon: "border-[#D85D5D]/20 bg-[#FFF0EE] text-[#B53F3F]",
   },
   action: {
-    label: "À traiter",
+    label: "À suivre",
     badge: "border-[#D4A82F]/30 bg-[#FFF7D9] text-[#7A5B09]",
     icon: "border-[#D4A82F]/25 bg-[#FFF7D9] text-[#8A6812]",
   },
@@ -26,29 +26,81 @@ const PRIORITY_STYLES: Record<
   },
 };
 
+type DashboardEventGroup = {
+  id: "health" | "race" | "squad" | "club" | "objectives";
+  title: string;
+  description: string;
+  iconCategory: DashboardEventCategory;
+  categories: readonly DashboardEventCategory[];
+  events: DashboardEvent[];
+};
+
+const EVENT_GROUPS = [
+  {
+    id: "health",
+    title: "Santé de l’effectif",
+    description: "Blessures, indisponibilités et retours estimés.",
+    iconCategory: "health",
+    categories: ["health"],
+  },
+  {
+    id: "race",
+    title: "Courses et résultats",
+    description: "Résultats, inscriptions et sélections à suivre.",
+    iconCategory: "race",
+    categories: ["race"],
+  },
+  {
+    id: "squad",
+    title: "Effectif et développement",
+    description: "Contrats, entraînement et détection des coureurs.",
+    iconCategory: "contract",
+    categories: ["contract", "training", "scouting"],
+  },
+  {
+    id: "club",
+    title: "Vie de l’équipe",
+    description: "Finances, centre de formation et infrastructures.",
+    iconCategory: "infrastructure",
+    categories: ["finance", "academy", "infrastructure"],
+  },
+  {
+    id: "objectives",
+    title: "Objectifs et récompenses",
+    description: "Objectifs terminés et récompenses disponibles.",
+    iconCategory: "objective",
+    categories: ["objective"],
+  },
+] as const satisfies ReadonlyArray<
+  Omit<DashboardEventGroup, "events">
+>;
+
 export function DashboardEventsCard({
   events,
 }: {
   events: DashboardEvent[];
 }) {
+  const eventGroups = groupDashboardEvents(events);
+
   return (
     <section
       aria-labelledby="dashboard-events-title"
       className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.13)]"
     >
-      <header className="flex flex-col gap-4 bg-[#0B302B] px-6 py-6 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <header className="flex flex-col gap-3 bg-[#0B302B] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#8ED9B1]">
             Fil du Directeur Sportif
           </p>
           <h2
             id="dashboard-events-title"
-            className="mt-2 text-2xl font-black tracking-[-0.02em]"
+            className="mt-1.5 text-xl font-black tracking-[-0.02em]"
           >
             À ne pas manquer
           </h2>
-          <p className="mt-1 text-sm font-semibold text-[#BDD1C7]">
-            Les événements récents et les décisions qui demandent votre attention.
+          <p className="mt-0.5 text-sm font-semibold text-[#BDD1C7]">
+            L’essentiel aujourd’hui. Ouvrez une rubrique pour consulter son
+            historique.
           </p>
         </div>
 
@@ -61,65 +113,109 @@ export function DashboardEventsCard({
 
       {events.length > 0 ? (
         <div role="list" className="divide-y divide-[#315B3E]/10">
-          {events.map((event) => {
-            const style = PRIORITY_STYLES[event.priority];
+          {eventGroups.map((eventGroup) => {
+            const groupPriority = getGroupPriority(eventGroup.events);
+            const style = PRIORITY_STYLES[groupPriority];
 
             return (
-              <Link
-                key={event.id}
-                href={event.href}
+              <details
+                key={eventGroup.id}
                 role="listitem"
-                className="group grid gap-4 px-5 py-5 transition hover:bg-[#F5FAF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] sm:px-8 lg:grid-cols-[52px_minmax(0,1fr)_auto_auto] lg:items-center"
+                className="group/event"
               >
-                <span
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${style.icon}`}
-                  aria-hidden="true"
-                >
-                  <DashboardEventIcon category={event.category} />
-                </span>
-
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-base font-black text-[#153C34]">
-                      {event.title}
-                    </span>
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${style.badge}`}
-                    >
-                      {event.badgeLabel ?? style.label}
-                    </span>
-                  </span>
-                  <span className="mt-1.5 block max-w-4xl text-sm font-semibold leading-6 text-[#60756E]">
-                    {event.description}
-                  </span>
-                </span>
-
-                <span className="justify-self-start rounded-full bg-[#EEF5F1] px-3 py-1.5 text-xs font-black text-[#315B3E] lg:justify-self-end">
-                  {event.dayNumber ? `J${event.dayNumber}` : "Récent"}
-                </span>
-
-                <span className="inline-flex items-center gap-2 justify-self-start text-sm font-black text-[#176951] lg:min-w-40 lg:justify-self-end">
-                  {event.actionLabel}
+                <summary className="grid cursor-pointer list-none gap-3 px-5 py-3.5 transition hover:bg-[#F5FAF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] [&::-webkit-details-marker]:hidden sm:px-8 lg:grid-cols-[44px_minmax(0,1fr)_auto_auto] lg:items-center">
                   <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl border ${style.icon}`}
                     aria-hidden="true"
-                    className="transition-transform group-hover:translate-x-1"
                   >
-                    →
+                    <DashboardEventIcon category={eventGroup.iconCategory} />
                   </span>
-                </span>
-              </Link>
+
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-black text-[#153C34] sm:text-base">
+                        {eventGroup.title}
+                      </span>
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${style.badge}`}
+                      >
+                        {style.label}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs font-semibold text-[#60756E] sm:text-sm">
+                      {eventGroup.description}
+                    </span>
+                  </span>
+
+                  <span className="justify-self-start rounded-full bg-[#EEF5F1] px-3 py-1.5 text-xs font-black text-[#315B3E] lg:justify-self-end">
+                    {formatEventCount(eventGroup.events.length)}
+                  </span>
+
+                  <span className="inline-flex items-center gap-2 justify-self-start text-sm font-black text-[#176951] lg:min-w-36 lg:justify-self-end">
+                    Voir le détail
+                    <ChevronIcon />
+                  </span>
+                </summary>
+
+                <div
+                  role="list"
+                  aria-label={`Détail : ${eventGroup.title}`}
+                  className="divide-y divide-[#315B3E]/10 border-t border-[#315B3E]/10 bg-[#F8FBF9]"
+                >
+                  {eventGroup.events.map((event) => (
+                    <Link
+                      key={event.id}
+                      href={event.href}
+                      role="listitem"
+                      className="group/detail grid gap-2 px-5 py-3 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center"
+                    >
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-black text-[#153C34]">
+                            {event.title}
+                          </span>
+                          {event.badgeLabel ? (
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${PRIORITY_STYLES[event.priority].badge}`}
+                            >
+                              {event.badgeLabel}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs font-semibold text-[#60756E] sm:text-sm">
+                          {event.description}
+                        </span>
+                      </span>
+
+                      <span className="justify-self-start rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#315B3E] lg:justify-self-end">
+                        {event.dayNumber ? `J${event.dayNumber}` : "Récent"}
+                      </span>
+
+                      <span className="inline-flex items-center gap-2 justify-self-start text-xs font-black text-[#176951] lg:min-w-36 lg:justify-self-end">
+                        {event.actionLabel}
+                        <span
+                          aria-hidden="true"
+                          className="transition-transform group-hover/detail:translate-x-1"
+                        >
+                          →
+                        </span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </details>
             );
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center px-6 py-10 text-center sm:px-8">
+        <div className="flex flex-col items-center px-6 py-8 text-center sm:px-8">
           <span
             aria-hidden="true"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E8F7F1] text-[#176951]"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1] text-[#176951]"
           >
             <CheckIcon />
           </span>
-          <p className="mt-4 text-lg font-black text-[#153C34]">
+          <p className="mt-3 text-base font-black text-[#153C34]">
             Tout est à jour
           </p>
           <p className="mt-1 max-w-xl text-sm font-semibold leading-6 text-[#60756E]">
@@ -129,6 +225,70 @@ export function DashboardEventsCard({
         </div>
       )}
     </section>
+  );
+}
+
+function groupDashboardEvents(
+  events: DashboardEvent[]
+): DashboardEventGroup[] {
+  return EVENT_GROUPS
+    .flatMap((eventGroup) => {
+      const groupedEvents = events.filter((event) =>
+        (
+          eventGroup.categories as readonly DashboardEventCategory[]
+        ).includes(event.category)
+      );
+
+      if (groupedEvents.length === 0) {
+        return [];
+      }
+
+      return [
+        {
+          ...eventGroup,
+          events: groupedEvents,
+        },
+      ];
+    })
+    .sort(
+      (left, right) =>
+        events.indexOf(left.events[0]) -
+        events.indexOf(right.events[0])
+    );
+}
+
+function getGroupPriority(
+  events: DashboardEvent[]
+): DashboardEventPriority {
+  if (events.some((event) => event.priority === "critical")) {
+    return "critical";
+  }
+
+  if (events.some((event) => event.priority === "action")) {
+    return "action";
+  }
+
+  return "update";
+}
+
+function formatEventCount(value: number): string {
+  return `${value} élément${value > 1 ? "s" : ""}`;
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4 transition-transform group-open/event:rotate-180"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m5 7.5 5 5 5-5" />
+    </svg>
   );
 }
 

@@ -31,10 +31,12 @@ const EVENT_STATUS_LABELS: Record<RiderPlanningEventStatus, string> = {
 export function RiderSeasonPlanning({
   planning,
   jersey,
+  jerseyByRiderId,
   variant = "team",
 }: {
   planning: TeamRiderSeasonPlanning;
   jersey: RiderJerseyAppearance;
+  jerseyByRiderId?: ReadonlyMap<string, RiderJerseyAppearance>;
   variant?: "team" | "rider";
 }) {
   const events = planning.riders.flatMap((rider) => rider.events);
@@ -92,7 +94,7 @@ export function RiderSeasonPlanning({
                   <PlanningRiderRow
                     key={rider.id}
                     rider={rider}
-                    jersey={jersey}
+                    jersey={jerseyByRiderId?.get(rider.id) ?? jersey}
                     currentDayNumber={planning.currentDayNumber}
                   />
                 ))}
@@ -374,9 +376,7 @@ function RiderEventDetails({ rider }: { rider: RiderPlanningEntry }) {
                 </p>
                 <p className="mt-3 text-xs font-black text-[#176951]">
                   J{event.startDay}
-                  {event.endDay > event.startDay
-                    ? ` → J${event.endDay}`
-                    : ""}
+                  {event.endDay > event.startDay ? ` → J${event.endDay}` : ""}
                 </p>
               </article>
             );

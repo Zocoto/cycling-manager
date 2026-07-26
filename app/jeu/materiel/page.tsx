@@ -364,12 +364,157 @@ function HeroMetric({ label, value }: { label: string; value: string }) {
 
 function EquipmentCategoryIcon({ slot }: { slot: EquipmentSlot }) {
   const common = "h-9 w-9";
-  if (slot === "helmet") return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><path d="M8 27C8 15 15 8 25 8c9 0 15 7 15 17v5H18l-4 7H8V27Z"/><path d="M18 30c1 6 5 9 11 9 5 0 8-2 10-6"/><path d="M14 20h25"/></svg>;
-  if (slot === "glasses") return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><path d="M5 18h7l3 13c1 4 7 5 10 1l2-4 2 4c3 4 9 3 10-1l3-13h3"/><path d="M16 20h10M28 20h12"/></svg>;
-  if (slot === "gloves") return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><path d="M13 22V9c0-3 4-3 4 0v10-12c0-3 4-3 4 0v12-13c0-3 4-3 4 0v13-10c0-3 4-3 4 0v15l4-5c3-3 7 1 5 4L29 40H16l-7-12c-2-4 3-7 6-3l3 4"/></svg>;
-  if (slot === "bib_shorts") return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><path d="M15 6h6l3 15 3-15h6l5 19-5 17h-8l-1-12-1 12h-8l-5-17 5-19Z"/><path d="M14 23h20"/></svg>;
-  if (slot === "shoes") return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><path d="M8 29c8 0 11-6 14-16l7 2c0 8 4 12 11 15v8H9c-5 0-5-9-1-9Z"/><path d="M20 22l8 2M17 27l10 2"/></svg>;
-  if (slot === "frame") return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><circle cx="12" cy="35" r="8"/><circle cx="38" cy="35" r="8"/><path d="m12 35 9-18 8 18H12Zm9-18 12 2 5 16M29 35l4-16"/></svg>;
+
+  if (slot === "helmet") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 48 48"
+        fill="none"
+        className={common}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M7 27C8 15 16 8 27 8c8 0 14 4 17 12l-3 8H19l-5 7H8c-1-2-2-5-1-8Z"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path d="M7 27C8 15 16 8 27 8c8 0 14 4 17 12l-3 8H19l-5 7H8c-1-2-2-5-1-8Z" />
+        <path d="M11 24h31" />
+        <path d="m18 12-3 12M27 9l-2 15M36 12l-3 12" />
+        <path d="M17 29c1 7 5 11 12 11 5 0 9-3 11-8" />
+        <path d="M40 32h-8l-4 4" />
+      </svg>
+    );
+  }
+
+  if (slot === "glasses") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 48 48"
+        fill="none"
+        className={common}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M7 19c5-2 11-1 16 2l-2 10c-.7 3-3 5-6 5s-5-2-6-5L7 19Z"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path
+          d="M41 19c-5-2-11-1-16 2l2 10c.7 3 3 5 6 5s5-2 6-5l2-12Z"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path d="M7 19c5-2 11-1 16 2l-2 10c-.7 3-3 5-6 5s-5-2-6-5L7 19Z" />
+        <path d="M41 19c-5-2-11-1-16 2l2 10c.7 3 3 5 6 5s5-2 6-5l2-12Z" />
+        <path d="M22 22c1-1.5 3-1.5 4 0M7 19l-3-3M41 19l3-3" />
+        <path d="M11 25c3-1 6-1 9 0M28 25c3-1 6-1 9 0" />
+      </svg>
+    );
+  }
+
+  if (slot === "gloves") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 48 48"
+        fill="none"
+        className={common}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M13 22V11c0-2.5 4-2.5 4 0v8V8c0-2.5 4-2.5 4 0v11V7c0-2.5 4-2.5 4 0v12V9c0-2.5 4-2.5 4 0v13l4-5c2-3 6 0 4 3l-5 8v8c0 3-2 5-5 5H17L9 28c-2-4 3-7 6-3l4 5"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path d="M13 22V11c0-2.5 4-2.5 4 0v8V8c0-2.5 4-2.5 4 0v11V7c0-2.5 4-2.5 4 0v12V9c0-2.5 4-2.5 4 0v13l4-5c2-3 6 0 4 3l-5 8v8c0 3-2 5-5 5H17L9 28c-2-4 3-7 6-3l4 5" />
+        <path d="M15 33h17M18 33v8M29 33v8" />
+        <path d="M19 26c3-2 6-2 9 0l-2 5h-5l-2-5Z" />
+      </svg>
+    );
+  }
+
+  if (slot === "bib_shorts") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 48 48"
+        fill="none"
+        className={common}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M17 15h14l5 12-3 15h-8l-1-12-1 12h-8l-3-15 5-12Z"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path d="M16 6h5l3 11 3-11h5M16 6l1 11h14L32 6" />
+        <path d="M17 15h14l5 12-3 15h-8l-1-12-1 12h-8l-3-15 5-12Z" />
+        <path d="M13 27h22M15 37h8M25 37h8" />
+      </svg>
+    );
+  }
+
+  if (slot === "shoes") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 48 48"
+        fill="none"
+        className={common}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d="M7 31c7 0 10-5 12-14l2-7 8 2c1 8 5 13 13 17 2 1 3 3 3 5v5H9c-4 0-6-2-6-4s2-4 4-4Z"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path d="M7 31c7 0 10-5 12-14l2-7 8 2c1 8 5 13 13 17 2 1 3 3 3 5v5H9c-4 0-6-2-6-4s2-4 4-4Z" />
+        <path d="M8 39h37M19 20l11 3M16 26l15 3" />
+        <circle cx="29" cy="17" r="2.5" />
+        <path d="M28 39v4h7v-4" />
+      </svg>
+    );
+  }
+
+  if (slot === "frame") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 48 48"
+        fill="none"
+        className={common}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m9 36 10-20 10 20H9Z" />
+        <path d="m19 16 14 2-4 18M29 36h10l-6-18" />
+        <path d="M16 11h7M19 16l-2-7M33 18l4-9h6" />
+        <circle cx="29" cy="36" r="3.5" />
+        <path d="M29 32.5v7" />
+      </svg>
+    );
+  }
+
   return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="4"/><path d="M24 7v13M24 28v13M7 24h13M28 24h13M12 12l9 9M27 27l9 9M36 12l-9 9M21 27l-9 9"/></svg>;
 }
 

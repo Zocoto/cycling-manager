@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { SeasonCalendar } from "@/components/game/season-calendar";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
+import {
+  CRITERIUM_DISCOVERY_KEY,
+  appendCriteriumDiscoveryEdition,
+  createCriteriumDiscoveryPreviewEdition,
+  getCriteriumDiscoveryRunFromMetadata,
+} from "@/lib/tutorial/criterium-discovery";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -20,7 +28,9 @@ type RaceCalendarPageProps = {
   searchParams: Promise<{
     inscription?: string | string[];
     desinscription?: string | string[];
+    wildcard?: string | string[];
     erreur?: string | string[];
+    formation?: string | string[];
   }>;
 };
 
@@ -43,8 +53,12 @@ export default async function RaceCalendarPage({
     redirect("/connexion");
   }
 
-  const [headerData, calendarResult, reputationResult] =
-    await Promise.all([
+  const [
+    headerData,
+    calendarResult,
+    reputationResult,
+    criteriumProgress,
+  ] = await Promise.all([
       getGameHeaderData(supabase, user.id),
       getActiveSeasonRaceCalendar(supabase, new Date(), {
         includeEngagedRiders: false,
@@ -62,26 +76,70 @@ export default async function RaceCalendarPage({
         .select("reputation_points")
         .eq("auth_user_id", user.id)
         .maybeSingle<SportingDirectorReputation>(),
+      getAuthenticatedTutorialProgress(
+        supabase,
+        CRITERIUM_DISCOVERY_KEY,
+      ),
     ]);
 
   if (calendarResult.error) {
     console.error(
-      "Impossible de charger le calendrier des courses :",
+      "Impossible de charger le calendrier des courses :",
       calendarResult.error
     );
   }
 
   if (reputationResult.error) {
     console.error(
-      "Impossible de charger la réputation pour filtrer les courses :",
+      "Impossible de charger la réputation pour filtrer les courses :",
       reputationResult.error
     );
   }
 
-  const calendar = calendarResult.calendar;
+  const baseCalendar = calendarResult.calendar;
+  const criteriumRun =
+    getCriteriumDiscoveryRunFromMetadata(
+      criteriumProgress?.metadata,
+    );
+  const criteriumRequested =
+    readSingleSearchParam(
+      resolvedSearchParams.formation,
+    ) === "criterium";
+  const calendar =
+    baseCalendar &&
+    (criteriumRequested || criteriumRun)
+      ? {
+          ...baseCalendar,
+          editions:
+            appendCriteriumDiscoveryEdition({
+              editions: baseCalendar.editions,
+              edition:
+                criteriumRun?.edition ??
+                createCriteriumDiscoveryPreviewEdition({
+                  dayNumber:
+                    baseCalendar.currentDayNumber,
+                }),
+            }),
+        }
+      : baseCalendar;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {criteriumProgress?.status ===
+        "in_progress" &&
+      criteriumProgress.current_route ===
+        "/jeu/calendrier" &&
+      criteriumProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={
+            CRITERIUM_DISCOVERY_KEY
+          }
+          currentStepKey={
+            criteriumProgress.current_step_key
+          }
+        />
+      ) : null}
+
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -96,7 +154,10 @@ export default async function RaceCalendarPage({
         <BackToOfficeLink />
 
         <div className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)] backdrop-blur">
-          <div className="relative overflow-hidden bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] sm:px-10 sm:py-10">
+          <div
+            data-tutorial-id="calendar-overview"
+            className="relative overflow-hidden bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] sm:px-10 sm:py-10"
+          >
             <div
               aria-hidden="true"
               className="absolute -right-16 -top-20 h-64 w-64 rounded-full border-[36px] border-white/5"
@@ -171,11 +232,38 @@ export default async function RaceCalendarPage({
           </div>
 
           <div className="p-5 sm:p-8 lg:p-10">
+            {criteriumRequested ? (
+              <div className="mb-6 rounded-xl border border-[#F2C94C]/55 bg-[#FFF4D6] px-5 py-4 text-sm font-bold leading-6 text-[#604B0F]">
+                Le Critérium de la découverte a été ajouté à votre calendrier. Ouvrez sa fiche et inscrivez exactement cinq coureurs comme pour une épreuve officielle.
+              </div>
+            ) : null}
             {readSingleSearchParam(
               resolvedSearchParams.inscription
             ) === "confirmee" ? (
-              <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
+              <div
+                data-tutorial-id="criterium-registration-confirmation"
+                className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900"
+              >
                 L’équipe et sa composition sont inscrites. Les coureurs apparaissent immédiatement sur la fiche de course.
+              </div>
+            ) : null}
+
+            {readSingleSearchParam(
+              resolvedSearchParams.wildcard
+            ) === "demandee" ? (
+              <div className="mb-6 rounded-xl border border-[#E6BE3F] bg-[#FFF4D6] px-5 py-4 text-sm font-bold leading-6 text-[#604B0F]">
+                La demande de Wild Card a &eacute;t&eacute; transmise. Les coureurs
+                propos&eacute;s sont r&eacute;serv&eacute;s dans leur agenda jusqu&apos;&agrave;
+                la d&eacute;cision de l&apos;organisateur &agrave; J-1.
+              </div>
+            ) : null}
+
+            {readSingleSearchParam(
+              resolvedSearchParams.wildcard
+            ) === "retiree" ? (
+              <div className="mb-6 rounded-xl border border-sky-300 bg-sky-50 px-5 py-4 text-sm font-bold leading-6 text-sky-900">
+                La demande de Wild Card a &eacute;t&eacute; retir&eacute;e. Les coureurs
+                propos&eacute;s sont de nouveau disponibles.
               </div>
             ) : null}
 
@@ -198,14 +286,16 @@ export default async function RaceCalendarPage({
             ) : null}
 
             {calendar ? (
-              <SeasonCalendar
-                calendar={calendar}
-                reputationPoints={
-                  reputationResult.data
-                    ?.reputation_points ?? 0
-                }
-                nowIso={new Date().toISOString()}
-              />
+              <div data-tutorial-id="calendar-races">
+                <SeasonCalendar
+                  calendar={calendar}
+                  reputationPoints={
+                    reputationResult.data
+                      ?.reputation_points ?? 0
+                  }
+                  nowIso={new Date().toISOString()}
+                />
+              </div>
             ) : (
               <CalendarUnavailable />
             )}
