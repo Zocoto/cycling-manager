@@ -6,6 +6,8 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
+import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
+import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
@@ -75,7 +77,8 @@ export default async function SponsoringPage({
     sponsoringState?.kind === "offers"
       ? sponsoringState.offers.length
       : sponsoringState?.kind === "active" ||
-          sponsoringState?.kind === "terminated"
+          sponsoringState?.kind === "terminated" ||
+          sponsoringState?.kind === "amateur-qualified"
         ? sponsoringState.future.kind === "offers"
           ? sponsoringState.future.offers.length
           : null
@@ -159,6 +162,11 @@ export default async function SponsoringPage({
               <JerseySelectionSection contract={sponsoringState.contract} />
             ) : null}
 
+            {!sponsoringError &&
+            sponsoringState?.kind === "amateur-qualified" ? (
+              <FutureSponsoringSection state={sponsoringState.future} />
+            ) : null}
+
             {!sponsoringError && sponsoringState?.kind === "active" ? (
               <>
                 <ActiveSponsorSection contract={sponsoringState.contract} />
@@ -234,6 +242,35 @@ function SponsoringStatusNotice({ state }: { state: SponsoringState }) {
               {state.currentReputation} / {state.requiredReputation} points
             </p>
           </div>
+        </div>
+      </aside>
+    );
+  }
+
+  if (state.kind === "amateur-qualified") {
+    const futureSeasonName =
+      state.future.kind === "offers" ||
+      state.future.kind === "jersey-selection" ||
+      state.future.kind === "planned"
+        ? state.future.season.name
+        : state.future.targetSeasonName;
+
+    return (
+      <aside className="mt-8 flex items-start gap-4 rounded-2xl border border-[#278B70]/25 bg-[#D7EEE8]/85 px-5 py-4 shadow-[0_12px_30px_rgba(19,60,46,0.06)]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#278B70] text-white">
+          <BriefcaseIcon />
+        </span>
+
+        <div>
+          <p className="font-black text-[#0B4A3B]">
+            Votre équipe attire désormais les sponsors
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-[#48665F]">
+            Le seuil des {GAMEPLAY_RULES.sponsoringUnlockReputation} points est
+            franchi. Votre équipe terminera {state.currentSeasonName} sous son
+            identité amateur. {getQualifiedAmateurTimingMessage(state.future, futureSeasonName)}
+          </p>
         </div>
       </aside>
     );
@@ -1032,7 +1069,6 @@ function ContractObjectivesSection({
           <ContractObjectiveItem
             key={objective.id}
             objective={objective}
-            accentColor={sponsor.colors.accent}
             textColor={sponsor.colors.text}
           />
         ))}
@@ -1043,41 +1079,92 @@ function ContractObjectivesSection({
 
 function ContractObjectiveItem({
   objective,
-  accentColor,
   textColor,
 }: {
   objective: SponsorContractObjective;
-  accentColor: string;
   textColor: string;
 }) {
+  const presentation = getSponsorObjectiveStatusPresentation(objective.status);
+
   return (
     <li className="flex items-start gap-3 rounded-xl border border-[#315B3E]/10 bg-white/75 px-4 py-3">
-      <span
-        aria-hidden="true"
-        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black"
-        style={{
-          backgroundColor: `${accentColor}25`,
-          color: textColor,
-        }}
-      >
-        {objective.displayOrder}
-      </span>
+      <SponsorObjectiveStatusIcon status={presentation.status} />
 
       <div>
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#8A9A94]">
+          Objectif {objective.displayOrder}
+        </p>
         <p
-          className="text-sm font-black leading-5"
-          style={{
-            color: textColor,
-          }}
+          className="mt-0.5 text-sm font-black leading-5"
+          style={{ color: textColor }}
         >
           {objective.name}
         </p>
 
-        <p className="mt-1 text-xs font-semibold text-[#7A8C86]">
-          {formatObjectiveStatus(objective.status)}
+        <p
+          className={`mt-1 text-xs font-extrabold ${
+            presentation.status === "achieved"
+              ? "text-[#17865F]"
+              : presentation.status === "failed"
+                ? "text-[#C4473B]"
+                : "text-[#B57A09]"
+          }`}
+        >
+          {presentation.label}
         </p>
       </div>
     </li>
+  );
+}
+
+function SponsorObjectiveStatusIcon({
+  status,
+}: {
+  status: "achieved" | "failed" | "in_progress";
+}) {
+  const tone =
+    status === "achieved"
+      ? "bg-[#DDF5E9] text-[#17865F] ring-[#17865F]/15"
+      : status === "failed"
+        ? "bg-[#FDE7E4] text-[#C4473B] ring-[#C4473B]/15"
+        : "bg-[#FFF2C9] text-[#B57A09] ring-[#B57A09]/15";
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-1 ${tone}`}
+    >
+      {status === "achieved" ? (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="m5 12.5 4.2 4L19 7"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : status === "failed" ? (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="m7 7 10 10M17 7 7 17"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="M7 4h10M7 20h10M8.5 4c0 3.8 1.3 5.3 3.5 7-2.2 1.7-3.5 3.2-3.5 7m7-14c0 3.8-1.3 5.3-3.5 7 2.2 1.7 3.5 3.2 3.5 7"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
   );
 }
 
@@ -1426,6 +1513,31 @@ function readSearchParameter(
   return null;
 }
 
+function getQualifiedAmateurTimingMessage(
+  future: Extract<SponsoringState, { kind: "amateur-qualified" }>[
+    "future"
+  ],
+  futureSeasonName: string
+): string {
+  if (future.kind === "locked") {
+    return `Trois sponsors se manifesteront à partir du jour ${future.opensOnDay} pour un contrat prenant effet en ${futureSeasonName}.`;
+  }
+
+  if (future.kind === "offers") {
+    return `Trois sponsors se sont manifestés pour ${futureSeasonName}. Le contrat choisi ne prendra effet qu’au jour 1 de cette saison.`;
+  }
+
+  if (future.kind === "jersey-selection") {
+    return `Votre premier sponsor est choisi pour ${futureSeasonName}. Le partenariat restera en attente jusqu’au jour 1.`;
+  }
+
+  if (future.kind === "planned") {
+    return `Votre premier sponsor et son maillot sont prêts pour ${futureSeasonName}. Leur activation aura lieu au jour 1.`;
+  }
+
+  return `La préparation commerciale de ${futureSeasonName} n’affecte pas votre statut amateur actuel.`;
+}
+
 function getPageIntroduction(state: SponsoringState | null): string {
   if (state?.kind === "onboarding") {
     return "Fondez votre équipe amateur avant de construire son avenir commercial.";
@@ -1433,6 +1545,10 @@ function getPageIntroduction(state: SponsoringState | null): string {
 
   if (state?.kind === "locked") {
     return "Faites progresser votre réputation pour débloquer vos premières propositions de sponsoring.";
+  }
+
+  if (state?.kind === "amateur-qualified") {
+    return "Le seuil sponsor est atteint : restez amateur cette saison et préparez votre premier partenariat à partir du jour 21.";
   }
 
   if (state?.kind === "jersey-selection") {
@@ -1492,17 +1608,6 @@ function formatJerseyStyle(style: "classic" | "modern" | "bold"): string {
   };
 
   return labels[style];
-}
-
-function formatObjectiveStatus(status: string): string {
-  const labels: Record<string, string> = {
-    draft: "Objectif en préparation",
-    active: "Suivi disponible prochainement",
-    completed: "Objectif terminé",
-    cancelled: "Annulé après la rupture",
-  };
-
-  return labels[status] ?? "Statut de l’objectif indisponible";
 }
 
 function formatTerminationReason(reason: string | null): string {

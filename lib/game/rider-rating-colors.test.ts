@@ -13,4 +13,16 @@ describe("getRiderRatingColorClasses", () => {
   ])("applique la bonne couleur à la note %i", (value, expectedClass) => {
     expect(getRiderRatingColorClasses(value)).toContain(expectedClass);
   });
+
+  it("uses a lighter palette for secondary ratings", () => {
+    expect(getRiderRatingColorClasses(91, "primary")).toContain(
+      "bg-[#D84B4B]",
+    );
+    expect(getRiderRatingColorClasses(91, "secondary")).toContain(
+      "bg-[#F8DADA]",
+    );
+    expect(getRiderRatingColorClasses(70, "secondary")).toContain(
+      "bg-[#DDEDE1]",
+    );
+  });
 });

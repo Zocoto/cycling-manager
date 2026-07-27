@@ -7,6 +7,8 @@ export const RIDER_SPECIAL_ABILITIES = [
   "chase_potato",
   "sandwich_man",
   "iron_health",
+  "first_in_class",
+  "homegrown",
 ] as const;
 
 export type RiderSpecialAbility =
@@ -24,7 +26,9 @@ export type SpecialAbilityDefinition = {
     | "pump"
     | "potato"
     | "sandwich"
-    | "walking_cane";
+    | "walking_cane"
+    | "ruler"
+    | "baby_bottle";
   tone:
     | "silver"
     | "gold"
@@ -33,7 +37,9 @@ export type SpecialAbilityDefinition = {
     | "red"
     | "purple"
     | "green"
-    | "slate";
+    | "slate"
+    | "teal"
+    | "pink";
 };
 
 export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
@@ -92,6 +98,20 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
     effect: "Repousse le déclin d’un an et réduit ensuite de 30 % la perte naturelle de caractéristiques.",
     icon: "walking_cane",
     tone: "slate",
+  },
+  {
+    code: "first_in_class",
+    name: "Premier de la classe",
+    effect: "Accorde +50 % de progression des caractéristiques lors des entraînements.",
+    icon: "ruler",
+    tone: "teal",
+  },
+  {
+    code: "homegrown",
+    name: "Formé au club",
+    effect: "Accorde +2 à toutes les caractéristiques ; cette capacité est perdue définitivement en cas de départ ou de non-renouvellement.",
+    icon: "baby_bottle",
+    tone: "pink",
   },
 ];
 

@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
+
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { RegistrationState } from "./registration-state";
 
@@ -68,14 +70,11 @@ export async function registerAccount(
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(
-    /\/+$/,
-    ""
-  );
+  const siteUrl = getPublicSiteUrl();
 
   if (!siteUrl) {
     console.error(
-      "La variable NEXT_PUBLIC_SITE_URL est manquante."
+      "La variable NEXT_PUBLIC_SITE_URL est absente ou invalide."
     );
 
     return {
@@ -92,7 +91,7 @@ export async function registerAccount(
     email: validationResult.data.email,
     password: validationResult.data.password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/confirm`,
+      emailRedirectTo: `${siteUrl}/inscription/confirmer`,
       data: {
         manager_name: validationResult.data.managerName,
       },
@@ -180,9 +179,10 @@ export async function registerAccount(
   return {
     status: "success",
     message: confirmationRequired
-      ? "Ton compte a été créé. Consulte ta boîte e-mail pour confirmer ton inscription."
-      : "Ton compte a bien été créé. La connexion sera disponible dans la prochaine étape.",
+      ? "Ton compte a été créé. Consulte ta boîte e-mail et confirme ton adresse avant de te connecter."
+      : "Ton compte a été créé, mais la vérification e-mail n’est pas active. Contacte l’assistance avant de commencer ta carrière.",
     fieldErrors: {},
+    email: validationResult.data.email,
   };
 }
 

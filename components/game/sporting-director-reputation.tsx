@@ -1,11 +1,17 @@
+import type { SportingDirectorReputationBreakdown } from "@/lib/game/reputation-breakdown";
+
+import { ReputationBreakdownPopover } from "./reputation-breakdown-popover";
+
 type SportingDirectorReputationProps = {
   reputationPoints: number;
   compact?: boolean;
+  breakdown?: SportingDirectorReputationBreakdown | null;
 };
 
 export function SportingDirectorReputation({
   reputationPoints,
   compact = false,
+  breakdown = null,
 }: SportingDirectorReputationProps) {
   const safeReputationPoints = new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: 2,
@@ -19,9 +25,10 @@ export function SportingDirectorReputation({
             Réputation
           </p>
 
-          <p className="mt-1 text-lg font-black text-[#FFFDF4]">
-            {safeReputationPoints} points
-          </p>
+          <ReputationBreakdownPopover
+            formattedReputationPoints={safeReputationPoints}
+            breakdown={breakdown}
+          />
         </div>
 
         <span className="rounded-full border border-[#7CCF9C]/25 bg-[#7CCF9C]/10 px-3 py-1.5 text-xs font-bold text-[#9BE0BC]">

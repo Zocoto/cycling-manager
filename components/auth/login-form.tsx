@@ -7,6 +7,7 @@ import {
   initialLoginState,
   type LoginField,
 } from "../../app/(public)/connexion/login-state";
+import { EmailVerificationResendForm } from "./email-verification-resend-form";
 
 const loginFields: LoginField[] = ["email", "password"];
 
@@ -77,6 +78,14 @@ export function LoginForm() {
               </p>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {state.unconfirmedEmail ? (
+        <div className="mb-6">
+          <EmailVerificationResendForm
+            initialEmail={state.unconfirmedEmail}
+          />
         </div>
       ) : null}
 

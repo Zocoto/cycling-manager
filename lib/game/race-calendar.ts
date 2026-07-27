@@ -47,6 +47,19 @@ export const RACE_DAY_SLOT_CONFIG: Record<
 export type RaceCategoryCode =
   (typeof RACE_CATEGORY_CODES)[number];
 
+export const RACE_CATEGORY_REPUTATION_THRESHOLDS = {
+  continental: 100,
+  world: 200,
+} as const satisfies Partial<Record<RaceCategoryCode, number>>;
+
+export function getRaceCategoryReputationThreshold(
+  categoryCode: RaceCategoryCode
+): number | null {
+  return categoryCode === "continental" || categoryCode === "world"
+    ? RACE_CATEGORY_REPUTATION_THRESHOLDS[categoryCode]
+    : null;
+}
+
 export type RaceFormat =
   | "one_day"
   | "stage_race";

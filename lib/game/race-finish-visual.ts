@@ -10,6 +10,24 @@ type SprintVisualRider = Pick<
   "id" | "teamId" | "role"
 >;
 
+type SprintVisualBattleRider = Pick<
+  RiderSimulationInput,
+  "id" | "name" | "teamId" | "role" | "ratings"
+>;
+
+type SprintVisualResult = {
+  riderId: string;
+  status: "finished" | "did_not_finish";
+  rank: number | null;
+  energyAfter: number;
+};
+
+export type SprintVisualBattle = {
+  favoriteRiderIds: string[];
+  wheelTargetByRiderId: Record<string, string>;
+  dominantWinnerId: string | null;
+};
+
 export type SprintVisualTeam = {
   teamId: string;
   riderIds: string[];
@@ -56,6 +74,138 @@ export function buildSprintVisualTeams(
         ...sprinterRiderIds,
       ],
     })
+  );
+}
+
+export function buildSprintVisualBattle({
+  riders,
+  results,
+  seed,
+}: {
+  riders: readonly SprintVisualBattleRider[];
+  results: readonly SprintVisualResult[];
+  seed: string | number;
+}): SprintVisualBattle {
+  const riderById = new Map(riders.map((rider) => [rider.id, rider]));
+  const resultByRiderId = new Map(
+    results.map((result) => [result.riderId, result])
+  );
+  const finishers = riders.filter(
+    (rider) => resultByRiderId.get(rider.id)?.status === "finished"
+  );
+  const sprinters = finishers.filter(
+    (rider) => rider.role === "sprinter"
+  );
+  const candidatePool = sprinters.length >= 3 ? sprinters : finishers;
+  const orderedCandidates = [...candidatePool].sort(
+    (first, second) =>
+      getSprintVisualStrength(
+        second,
+        resultByRiderId.get(second.id)?.energyAfter ?? 0
+      ) -
+      getSprintVisualStrength(
+        first,
+        resultByRiderId.get(first.id)?.energyAfter ?? 0
+      )
+  );
+  const favorites = orderedCandidates.slice(0, 5);
+  const winnerResult = results.find(
+    (result) => result.status === "finished" && result.rank === 1
+  );
+  const winner = winnerResult
+    ? riderById.get(winnerResult.riderId)
+    : undefined;
+
+  if (winner && !favorites.some((favorite) => favorite.id === winner.id)) {
+    favorites.splice(Math.min(4, favorites.length), 0, winner);
+    favorites.splice(5);
+  }
+
+  const wheelTargetByRiderId: Record<string, string> = {};
+  favorites.forEach((rider, index) => {
+    if (index === 0) return;
+    const riderStrength = getSprintVisualStrength(
+      rider,
+      resultByRiderId.get(rider.id)?.energyAfter ?? 0
+    );
+    const target = favorites
+      .slice(0, index)
+      .find(
+        (candidate) =>
+          candidate.teamId !== rider.teamId &&
+          getSprintVisualStrength(
+            candidate,
+            resultByRiderId.get(candidate.id)?.energyAfter ?? 0
+          ) -
+            riderStrength <=
+            10
+      );
+    if (!target) return;
+
+    const hasOwnLeadout = riders.some(
+      (candidate) =>
+        candidate.teamId === rider.teamId &&
+        candidate.role === "leadout"
+    );
+    const borrowsWheel =
+      !hasOwnLeadout ||
+      getVisualHash(`${seed}:${rider.id}:wheel`) % 3 === 0;
+    if (borrowsWheel) {
+      wheelTargetByRiderId[rider.id] = target.id;
+    }
+  });
+
+  let dominantWinnerId: string | null = null;
+  if (winner) {
+    const winnerStrength = getSprintVisualStrength(
+      winner,
+      winnerResult?.energyAfter ?? 0
+    );
+    const strongestOpponent = favorites
+      .filter((favorite) => favorite.id !== winner.id)
+      .reduce(
+        (best, favorite) =>
+          Math.max(
+            best,
+            getSprintVisualStrength(
+              favorite,
+              resultByRiderId.get(favorite.id)?.energyAfter ?? 0
+            )
+          ),
+        Number.NEGATIVE_INFINITY
+      );
+    const strengthGap = winnerStrength - strongestOpponent;
+    const exceptionalDay = getVisualHash(`${seed}:dominance`) % 5 === 0;
+    if (strengthGap >= 5 || (strengthGap >= 2 && exceptionalDay)) {
+      dominantWinnerId = winner.id;
+    }
+  }
+
+  return {
+    favoriteRiderIds: favorites.map((favorite) => favorite.id),
+    wheelTargetByRiderId,
+    dominantWinnerId,
+  };
+}
+
+function getSprintVisualStrength(
+  rider: SprintVisualBattleRider,
+  energyAfter: number
+) {
+  return (
+    rider.ratings.sprint * 0.68 +
+    rider.ratings.acceleration * 0.2 +
+    rider.ratings.resistance * 0.04 +
+    energyAfter * 0.08 +
+    (rider.role === "sprinter" ? 3 : 0)
+  );
+}
+
+function getVisualHash(value: string) {
+  return [...value].reduce(
+    (total, character) =>
+      (total * 31 + character.charCodeAt(0)) >>> 0,
+    7
   );
 }
 

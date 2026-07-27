@@ -1,7 +1,13 @@
 import "server-only";
 
 import { COUNTRY_MAP_COORDINATES } from "@/data/country-map-coordinates";
+import {
+  calculateInGameTenureDays,
+  evaluateNaturalizationEligibility,
+  type NaturalizationEligibility,
+} from "@/lib/game/naturalization";
 import { applyInternationalCenterPotentialBonus } from "@/lib/game/infrastructure";
+import { MAX_TEAM_ROSTER_SIZE } from "@/lib/game/team-roster-capacity";
 import {
   calculateCountryWorldReputation,
   calculateYouthSigningCosts,
@@ -19,7 +25,24 @@ import {
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
 import { getScoutYouthBonuses } from "@/lib/game/staff";
-import { getTrainingDomainWeight, type TrainingDomain } from "@/lib/game/training";
+import {
+  getScoutTalentBonuses,
+  isStaffTalentForRole,
+} from "@/lib/game/staff-talents";
+import {
+  YOUTH_RAW_RATING_MAX,
+  calculateYouthAutomaticTrainingGain,
+  getYouthAutomaticFirstDay,
+  getYouthManualTrainingSlot,
+  getYouthTrainingGameType,
+  isYouthAutomaticTrainingDue,
+  projectYouthRating,
+  projectedGainToRawGain,
+  type YouthManualTrainingSlot,
+  type YouthTrainingDomain,
+  type YouthTrainingGameType,
+  type YouthTrainingMode,
+} from "@/lib/game/youth-training";
 import {
   generateRiderIdentities,
   hasRiderNameLibrary,
@@ -40,6 +63,7 @@ type Context = {
   seasonName: string;
   gameYear: number;
   currentDayNumber: number;
+  registrationCountryId: string;
 };
 
 type CountryRow = {
@@ -110,10 +134,24 @@ type AcademyRow = Omit<
   joined_season_id: string;
   joined_day_number: number;
   birth_game_year: number;
-  training_priority: TrainingDomain;
+  training_priority: YouthTrainingDomain;
+  training_mode: YouthTrainingMode;
+  automatic_since_season_id: string | null;
+  automatic_since_day_number: number | null;
   status: "active" | "recruited" | "promoted" | "free_agent";
   promotion_game_year: number | null;
   promoted_rider_id: string | null;
+};
+
+type YouthTrainingSessionRow = {
+  academy_rider_id: string;
+  day_number: number;
+  training_mode: YouthTrainingMode;
+  slot: "automatic" | YouthManualTrainingSlot;
+  game_type: YouthTrainingGameType | null;
+  score: number | null;
+  rating_changes: Record<string, number>;
+  processed_at: string;
 };
 
 export type YouthCountry = {
@@ -189,14 +227,27 @@ export type AcademyYouth = {
   sportingProfile: string;
   potentialSteps: number;
   ratings: YouthRatings;
-  trainingPriority: TrainingDomain;
+  trainingPriority: YouthTrainingDomain;
+  trainingMode: YouthTrainingMode;
+  manualTraining: {
+    currentSlot: YouthManualTrainingSlot;
+    currentSlotLabel: string;
+    currentSlotCompleted: boolean;
+    currentSlotScore: number | null;
+    completedSlotCount: number;
+    gameType: YouthTrainingGameType;
+  };
   tuitionPerSeason: number;
   status: AcademyRow["status"];
   promotionGameYear: number | null;
   canRecruit: boolean;
+  naturalization: NaturalizationEligibility;
   latestTrainingReport: {
     dayNumber: number;
     ratingChanges: Record<string, number>;
+    trainingMode: YouthTrainingMode;
+    slot: "automatic" | YouthManualTrainingSlot;
+    score: number | null;
   } | null;
 };
 
@@ -223,6 +274,9 @@ export type YouthDevelopmentOverview = {
   academy: AcademyYouth[];
   notifications: YouthNotification[];
   unreadCount: number;
+  nextSeasonRosterCommitments: number;
+  rosterLimit: number;
+  canScheduleYouthPromotion: boolean;
   totalTuitionPerSeason: number;
 };
 
@@ -269,6 +323,7 @@ export async function getYouthDevelopmentAlertCount(
     );
   }
   await settleDueScoutingMissions(admin, context);
+  await settleAcademyDailyOperations(admin, context);
 
   const [missions, notifications] = await Promise.all([
     admin
@@ -289,7 +344,7 @@ export async function getYouthDevelopmentAlertCount(
 }
 
 async function loadOverview(admin: AdminClient, context: Context) {
-  const [countriesResult, facilitiesResult, contractsResult, missionsResult, academyResult, notificationsResult] =
+  const [countriesResult, facilitiesResult, contractsResult, missionsResult, academyResult, notificationsResult, rosterCapacityResult] =
     await Promise.all([
       admin.from("countries").select("id, name, iso_alpha2, is_active").eq("is_active", true).order("name").returns<CountryRow[]>(),
       admin.from("country_cycling_development").select("country_id, facility_level").returns<Array<{ country_id: string; facility_level: number }>>(),
@@ -297,16 +352,24 @@ async function loadOverview(admin: AdminClient, context: Context) {
       admin.from("youth_scouting_missions").select("*").eq("team_id", context.teamId).order("created_at", { ascending: false }).returns<MissionRow[]>(),
       admin.from("youth_academy_riders").select("*").eq("team_id", context.teamId).in("status", ["active", "recruited"]).order("signed_at", { ascending: true }).returns<AcademyRow[]>(),
       admin.from("youth_development_notifications").select("id, notification_type, title, message, read_at, created_at").eq("team_id", context.teamId).order("created_at", { ascending: false }).limit(20).returns<Array<{ id: string; notification_type: YouthNotification["type"]; title: string; message: string; read_at: string | null; created_at: string }>>(),
+      admin.rpc("get_team_roster_commitment_count", {
+        p_team_id: context.teamId,
+        p_game_year: context.gameYear + 1,
+      }),
     ]);
   for (const [result, label] of [
     [countriesResult, "les pays"], [facilitiesResult, "les installations"],
     [contractsResult, "les contrats du staff"], [missionsResult, "les missions"],
     [academyResult, "l’école de cyclisme"], [notificationsResult, "les notifications"],
+    [rosterCapacityResult, "la capacité du prochain effectif"],
   ] as const) assertQuery(result.error, label);
 
   const countries = countriesResult.data ?? [];
   const countryById = new Map(countries.map((country) => [country.id, country]));
   const contracts = contractsResult.data ?? [];
+  const nextSeasonRosterCommitments = Number(rosterCapacityResult.data ?? 0);
+  const canScheduleYouthPromotion =
+    nextSeasonRosterCommitments < MAX_TEAM_ROSTER_SIZE;
   const staffIds = contracts.map((contract) => contract.staff_member_id);
   const memberResult = staffIds.length
     ? await admin.from("staff_members").select("id, country_id, first_name, last_name, role, level").in("id", staffIds).eq("role", "scout").returns<Array<{ id: string; country_id: string; first_name: string; last_name: string; role: string; level: number }>>()
@@ -354,27 +417,114 @@ async function loadOverview(admin: AdminClient, context: Context) {
   });
 
   const academyRows = academyResult.data ?? [];
+  const joinedSeasonIds = [
+    ...new Set(academyRows.map((rider) => rider.joined_season_id)),
+  ];
+  const joinedSeasonsResult = joinedSeasonIds.length
+    ? await admin
+        .from("seasons")
+        .select("id, game_year")
+        .in("id", joinedSeasonIds)
+        .returns<Array<{ id: string; game_year: number }>>()
+    : {
+        data: [] as Array<{ id: string; game_year: number }>,
+        error: null,
+      };
+  assertQuery(joinedSeasonsResult.error, "les saisons d’arrivée des juniors");
+  const joinedGameYearBySeasonId = new Map(
+    (joinedSeasonsResult.data ?? []).map((season) => [
+      season.id,
+      season.game_year,
+    ]),
+  );
+  const targetCountry = requireData(
+    countryById.get(context.registrationCountryId) ?? null,
+    "la nationalité de l’équipe",
+  );
   const academyIds = academyRows.map((rider) => rider.id);
   const latestSessionsResult = academyIds.length
-    ? await admin.from("youth_academy_training_sessions").select("academy_rider_id, day_number, rating_changes, processed_at").in("academy_rider_id", academyIds).order("processed_at", { ascending: false }).returns<Array<{ academy_rider_id: string; day_number: number; rating_changes: Record<string, number>; processed_at: string }>>()
+    ? await admin
+        .from("youth_academy_training_sessions")
+        .select(
+          "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
+        )
+        .in("academy_rider_id", academyIds)
+        .order("processed_at", { ascending: false })
+        .returns<YouthTrainingSessionRow[]>()
     : { data: [], error: null };
-  assertQuery(latestSessionsResult.error, "les rapports d’entraînement des jeunes");
-  const latestByRider = new Map<string, { dayNumber: number; ratingChanges: Record<string, number> }>();
-  for (const session of latestSessionsResult.data ?? []) {
-    if (!latestByRider.has(session.academy_rider_id)) latestByRider.set(session.academy_rider_id, { dayNumber: session.day_number, ratingChanges: session.rating_changes });
+  assertQuery(
+    latestSessionsResult.error,
+    "les rapports d’entraînement des jeunes",
+  );
+  const sessionRows = latestSessionsResult.data ?? [];
+  const latestByRider = new Map<
+    string,
+    NonNullable<AcademyYouth["latestTrainingReport"]>
+  >();
+  const currentSessionsByRider = new Map<string, YouthTrainingSessionRow[]>();
+  for (const session of sessionRows) {
+    if (!latestByRider.has(session.academy_rider_id)) {
+      latestByRider.set(session.academy_rider_id, {
+        dayNumber: session.day_number,
+        ratingChanges: projectYouthRatingChanges(session.rating_changes),
+        trainingMode: session.training_mode,
+        slot: session.slot,
+        score: session.score,
+      });
+    }
+    if (session.day_number === context.currentDayNumber) {
+      currentSessionsByRider.set(session.academy_rider_id, [
+        ...(currentSessionsByRider.get(session.academy_rider_id) ?? []),
+        session,
+      ]);
+    }
   }
+  const currentManualSlot = getYouthManualTrainingSlot(getParisHour());
   const academy = academyRows.map((rider): AcademyYouth => {
     const country = countryById.get(rider.country_id);
     const ratings = rowToRatings(rider);
     const age = context.gameYear - rider.birth_game_year;
+    const todaySessions = currentSessionsByRider.get(rider.id) ?? [];
+    const currentSlotSession = todaySessions.find(
+      (session) => session.slot === currentManualSlot,
+    );
+    const joinedGameYear =
+      joinedGameYearBySeasonId.get(rider.joined_season_id) ?? context.gameYear;
+    const naturalization = evaluateNaturalizationEligibility({
+      level: "youth",
+      elapsedDays: calculateInGameTenureDays({
+        startGameYear: joinedGameYear,
+        startDayNumber: rider.joined_day_number,
+        currentGameYear: context.gameYear,
+        currentDayNumber: context.currentDayNumber,
+      }),
+      currentCountry: {
+        id: country?.id ?? rider.country_id,
+        name: country?.name ?? "Pays inconnu",
+        code: country?.iso_alpha2 ?? "--",
+      },
+      targetCountry: {
+        id: targetCountry.id,
+        name: targetCountry.name,
+        code: targetCountry.iso_alpha2,
+      },
+    });
     return {
       id: rider.id, firstName: rider.first_name, lastName: rider.last_name, age,
       countryName: country?.name ?? "Pays inconnu", countryCode: country?.iso_alpha2 ?? "--",
       profileKey: rider.avatar_profile_key, avatarSeed: String(rider.avatar_seed),
       sportingProfile: getRiderSportingProfile(scaleYouthRatings(ratings)), potentialSteps: rider.potential_steps,
-      ratings, trainingPriority: rider.training_priority, tuitionPerSeason: toNumber(rider.tuition_per_season),
+      ratings: scaleYouthRatings(ratings), trainingPriority: rider.training_priority, trainingMode: rider.training_mode,
+      manualTraining: {
+        currentSlot: currentManualSlot,
+        currentSlotLabel: currentManualSlot === "manual_am" ? "Minuit – midi" : "Midi – minuit",
+        currentSlotCompleted: Boolean(currentSlotSession),
+        currentSlotScore: currentSlotSession?.score ?? null,
+        completedSlotCount: todaySessions.filter((session) => session.training_mode === "manual").length,
+        gameType: getYouthTrainingGameType(rider.training_priority),
+      }, tuitionPerSeason: toNumber(rider.tuition_per_season),
       status: rider.status, promotionGameYear: rider.promotion_game_year,
-      canRecruit: rider.status === "active" && age >= 17,
+      canRecruit: rider.status === "active" && age >= 17, naturalization,
       latestTrainingReport: latestByRider.get(rider.id) ?? null,
     };
   });
@@ -389,6 +539,9 @@ async function loadOverview(admin: AdminClient, context: Context) {
     gameYear: context.gameYear, currentDayNumber: context.currentDayNumber,
     balance: context.balance, currency: context.currency, countries: countriesDto,
     scouts, missions, academy, notifications, unreadCount,
+    nextSeasonRosterCommitments,
+    rosterLimit: MAX_TEAM_ROSTER_SIZE,
+    canScheduleYouthPromotion,
     totalTuitionPerSeason: academy.reduce((sum, rider) => sum + rider.tuitionPerSeason, 0),
   } satisfies YouthDevelopmentOverview;
 }
@@ -458,12 +611,52 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const memberResult = await admin.from("staff_members").select("country_id, level").eq("id", contract.staff_member_id).single<{ country_id: string; level: number }>();
   assertQuery(memberResult.error, "le scout missionné");
   const scout = requireData(memberResult.data, "le scout missionné");
+  const [talentsResult, teamSeasonResult] = await Promise.all([
+    admin
+      .from("staff_member_talents")
+      .select("talent_code")
+      .eq("staff_member_id", contract.staff_member_id)
+      .returns<Array<{ talent_code: string }>>(),
+    admin
+      .from("team_seasons")
+      .select("registration_country_id")
+      .eq("team_id", mission.team_id)
+      .eq("season_id", mission.season_id)
+      .maybeSingle<{ registration_country_id: string }>(),
+  ]);
+  assertQuery(talentsResult.error, "les talents du scout");
+  assertQuery(teamSeasonResult.error, "la nationalité de l’équipe");
+  const talentCodes = (talentsResult.data ?? []).flatMap((talent) =>
+    isStaffTalentForRole(talent.talent_code, "scout")
+      ? [talent.talent_code]
+      : [],
+  );
+  const nationalityAffinity =
+    scout.country_id === teamSeasonResult.data?.registration_country_id
+      ? 1.1
+      : 1;
   if (!hasRiderNameLibrary(profile.name_profile_code)) throw new Error(`Aucune bibliothèque de noms pour ${country.name}.`);
   const random = createSeededRandom(mission.id);
   const facilityLevel = facilityResult.data?.facility_level ?? 1;
   const nationalityBonus = getScoutNationalityEfficiencyBonus(scout.country_id, country.id);
-  const scoutBonuses = getScoutYouthBonuses(scout.level);
-  const count = getScoutingCandidateCount({ scoutLevel: scout.level, durationDays: mission.duration_days, facilityLevel, random });
+  const baseScoutBonuses = getScoutYouthBonuses(scout.level);
+  const talentBonuses = getScoutTalentBonuses(talentCodes, scout.level);
+  const scoutBonuses = {
+    potentialBonus:
+      (baseScoutBonuses.potentialBonus + talentBonuses.potentialBonus) *
+      nationalityAffinity,
+    initialRatingBonus:
+      (baseScoutBonuses.initialRatingBonus +
+        talentBonuses.initialRatingBonus) *
+      nationalityAffinity,
+  };
+  const count =
+    getScoutingCandidateCount({
+      scoutLevel: scout.level * nationalityAffinity,
+      durationDays: mission.duration_days,
+      facilityLevel,
+      random,
+    }) + talentBonuses.reportSizeBonus;
   const identities = generateRiderIdentities(profile.name_profile_code, count);
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
   const reputation = getCountryBaseReputation(country.iso_alpha2);
@@ -496,7 +689,19 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       international_center_bonus_applied: internationalCenterBonus.bonusApplied,
       international_center_bonus_percentage: internationalCenterBonus.bonusPercentage,
       avatar_profile_key: profile.avatar_profile_key, avatar_seed: identity.avatar_seed,
-      ...ratingsToRow(ratings), signing_fee: costs.signingFee, tuition_per_season: costs.tuitionPerSeason,
+      ...ratingsToRow(ratings),
+      signing_fee: costs.signingFee,
+      tuition_per_season: Math.max(
+        500,
+        Math.round(
+          (costs.tuitionPerSeason *
+            (1 -
+              (talentBonuses.tuitionReductionPercentage *
+                nationalityAffinity) /
+                100)) /
+            500,
+        ) * 500,
+      ),
     };
   });
   const insertion = await admin.from("youth_scouting_candidates").upsert(candidates, { onConflict: "mission_id,report_slot", ignoreDuplicates: true });
@@ -505,42 +710,151 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   assertQuery(completion.error, "la finalisation du rapport de scouting");
 }
 
-async function settleAcademyDailyOperations(admin: AdminClient, context: Context) {
+async function settleAcademyDailyOperations(
+  admin: AdminClient,
+  context: Context,
+) {
   await settleAcademyTransitions(admin, context);
-  const ridersResult = await admin.from("youth_academy_riders").select("*").eq("team_id", context.teamId).in("status", ["active", "recruited"]).returns<AcademyRow[]>();
+  const ridersResult = await admin
+    .from("youth_academy_riders")
+    .select("*")
+    .eq("team_id", context.teamId)
+    .in("status", ["active", "recruited"])
+    .returns<AcademyRow[]>();
   assertQuery(ridersResult.error, "les jeunes à entraîner");
   const riders = ridersResult.data ?? [];
   if (!riders.length) return;
-  const daysResult = await admin.from("season_days").select("id, day_number").eq("season_id", context.seasonId).lte("day_number", context.currentDayNumber).order("day_number").returns<Array<{ id: string; day_number: number }>>();
+
+  const daysResult = await admin
+    .from("season_days")
+    .select("id, day_number")
+    .eq("season_id", context.seasonId)
+    .lte("day_number", context.currentDayNumber)
+    .order("day_number")
+    .returns<Array<{ id: string; day_number: number }>>();
   assertQuery(daysResult.error, "les journées d’entraînement de l’école");
-  const existingResult = await admin.from("youth_academy_training_sessions").select("academy_rider_id, season_day_id").eq("season_id", context.seasonId).in("academy_rider_id", riders.map((rider) => rider.id)).returns<Array<{ academy_rider_id: string; season_day_id: string }>>();
+
+  const existingResult = await admin
+    .from("youth_academy_training_sessions")
+    .select("academy_rider_id, season_day_id, slot")
+    .eq("season_id", context.seasonId)
+    .in(
+      "academy_rider_id",
+      riders.map((rider) => rider.id),
+    )
+    .returns<
+      Array<{
+        academy_rider_id: string;
+        season_day_id: string;
+        slot: "automatic" | YouthManualTrainingSlot;
+      }>
+    >();
   assertQuery(existingResult.error, "l’historique d’entraînement de l’école");
-  const existing = new Set((existingResult.data ?? []).map((row) => `${row.academy_rider_id}:${row.season_day_id}`));
+  const existingDays = new Set(
+    (existingResult.data ?? []).map(
+      (row) => `${row.academy_rider_id}:${row.season_day_id}`,
+    ),
+  );
+  const parisHour = getParisHour();
+
   for (const rider of riders) {
+    if (rider.training_mode !== "automatic") continue;
+
     const ratings = rowToRatings(rider);
     const sessions: Array<Record<string, unknown>> = [];
+    const age = context.gameYear - rider.birth_game_year;
+    const automaticSinceDay = getYouthAutomaticFirstDay({
+      automaticSinceSeasonId: rider.automatic_since_season_id,
+      automaticSinceDayNumber:
+        rider.automatic_since_day_number ?? rider.joined_day_number,
+      currentSeasonId: context.seasonId,
+    });
+
     for (const day of daysResult.data ?? []) {
-      if (rider.joined_season_id === context.seasonId && day.day_number < rider.joined_day_number) continue;
-      if (existing.has(`${rider.id}:${day.id}`)) continue;
+      if (day.day_number < automaticSinceDay) continue;
+      if (
+        rider.joined_season_id === context.seasonId &&
+        day.day_number < rider.joined_day_number
+      ) {
+        continue;
+      }
+      if (
+        !isYouthAutomaticTrainingDue({
+          dayNumber: day.day_number,
+          currentDayNumber: context.currentDayNumber,
+          parisHour,
+        })
+      ) {
+        continue;
+      }
+
+      const sessionKey = `${rider.id}:${day.id}`;
+      if (existingDays.has(sessionKey)) continue;
+
       const changes: Record<string, number> = {};
       for (const key of YOUTH_RATING_KEYS) {
-        const gain = (0.007 + rider.potential_steps * 0.0015) * getTrainingDomainWeight(rider.training_priority, key);
-        const next = Math.min(6, Math.round((ratings[key] + gain) * 1000) / 1000);
-        if (next > ratings[key]) changes[key] = Math.round((next - ratings[key]) * 1000) / 1000;
+        const projectedGain = calculateYouthAutomaticTrainingGain({
+          age,
+          potentialSteps: rider.potential_steps,
+          currentProjectedRating: projectYouthRating(ratings[key]),
+          domain: rider.training_priority,
+          ratingKey: key,
+        });
+        const next = Math.min(
+          YOUTH_RAW_RATING_MAX,
+          Math.round(
+            (ratings[key] + projectedGainToRawGain(projectedGain)) * 1_000,
+          ) / 1_000,
+        );
+        if (next > ratings[key]) {
+          changes[key] = Math.round((next - ratings[key]) * 1_000) / 1_000;
+        }
         ratings[key] = next;
       }
-      sessions.push({ academy_rider_id: rider.id, season_id: context.seasonId, season_day_id: day.id, day_number: day.day_number, training_priority: rider.training_priority, rating_changes: changes, ratings_after: ratingsToRow(ratings) });
+
+      sessions.push({
+        academy_rider_id: rider.id,
+        season_id: context.seasonId,
+        season_day_id: day.id,
+        day_number: day.day_number,
+        training_priority: rider.training_priority,
+        training_mode: "automatic",
+        slot: "automatic",
+        game_type: null,
+        score: null,
+        rating_changes: changes,
+        ratings_after: ratingsToRow(ratings),
+      });
+      existingDays.add(sessionKey);
     }
+
     if (sessions.length) {
-      const insertion = await admin.from("youth_academy_training_sessions").insert(sessions);
-      assertQuery(insertion.error, `les séances de ${rider.first_name} ${rider.last_name}`);
-      const update = await admin.from("youth_academy_riders").update({ ...ratingsToRow(ratings), updated_at: new Date().toISOString() }).eq("id", rider.id);
-      assertQuery(update.error, `la progression de ${rider.first_name} ${rider.last_name}`);
+      const insertion = await admin
+        .from("youth_academy_training_sessions")
+        .upsert(sessions, {
+          onConflict: "academy_rider_id,season_day_id,slot",
+          ignoreDuplicates: true,
+        });
+      assertQuery(
+        insertion.error,
+        `les séances de ${rider.first_name} ${rider.last_name}`,
+      );
+      const update = await admin
+        .from("youth_academy_riders")
+        .update({
+          ...ratingsToRow(ratings),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", rider.id);
+      assertQuery(
+        update.error,
+        `la progression de ${rider.first_name} ${rider.last_name}`,
+      );
     }
   }
+
   await scheduleTuition(admin, riders, context, daysResult.data ?? []);
 }
-
 async function scheduleTuition(admin: AdminClient, riders: AcademyRow[], context: Context, days: Array<{ id: string; day_number: number }>) {
   const dayId = new Map(days.map((day) => [day.day_number, day.id]));
   const transactions = riders.flatMap((rider) => [7, 14, 21, 28].flatMap((installmentDay, index) => {
@@ -600,10 +914,10 @@ async function loadContext(admin: AdminClient, authUserId: string): Promise<Cont
   const seasonResult = await admin.from("seasons").select("id, name, game_year, current_day_number").eq("status", "active").maybeSingle<{ id: string; name: string; game_year: number; current_day_number: number | null }>();
   assertQuery(seasonResult.error, "la saison active");
   if (!seasonResult.data) return null;
-  const teamSeasonResult = await admin.from("team_seasons").select("id, display_name, currency, cash_balance").eq("team_id", assignmentResult.data.team_id).eq("season_id", seasonResult.data.id).maybeSingle<{ id: string; display_name: string; currency: string; cash_balance: number | string }>();
+  const teamSeasonResult = await admin.from("team_seasons").select("id, display_name, currency, cash_balance, registration_country_id").eq("team_id", assignmentResult.data.team_id).eq("season_id", seasonResult.data.id).maybeSingle<{ id: string; display_name: string; currency: string; cash_balance: number | string; registration_country_id: string }>();
   assertQuery(teamSeasonResult.error, "l’équipe de la saison");
   if (!teamSeasonResult.data) return null;
-  return { teamId: assignmentResult.data.team_id, teamSeasonId: teamSeasonResult.data.id, teamName: teamSeasonResult.data.display_name, currency: teamSeasonResult.data.currency, balance: toNumber(teamSeasonResult.data.cash_balance), seasonId: seasonResult.data.id, seasonName: seasonResult.data.name, gameYear: seasonResult.data.game_year, currentDayNumber: seasonResult.data.current_day_number ?? 1 };
+  return { teamId: assignmentResult.data.team_id, teamSeasonId: teamSeasonResult.data.id, teamName: teamSeasonResult.data.display_name, currency: teamSeasonResult.data.currency, balance: toNumber(teamSeasonResult.data.cash_balance), seasonId: seasonResult.data.id, seasonName: seasonResult.data.name, gameYear: seasonResult.data.game_year, currentDayNumber: seasonResult.data.current_day_number ?? 1, registrationCountryId: teamSeasonResult.data.registration_country_id };
 }
 
 function toCandidate(row: CandidateRow, country: CountryRow | undefined): YouthCandidate {
@@ -621,6 +935,26 @@ function ratingsToRow(ratings: YouthRatings) {
 
 function scaleYouthRatings(ratings: YouthRatings): YouthRatings {
   return Object.fromEntries(YOUTH_RATING_KEYS.map((key) => [key, clamp(Math.round(34 + ratings[key] * 8), 0, 100)])) as YouthRatings;
+}
+
+function projectYouthRatingChanges(changes: Record<string, number>) {
+  return Object.fromEntries(
+    Object.entries(changes).map(([key, value]) => [
+      key,
+      Math.round(value * 8 * 1_000) / 1_000,
+    ]),
+  );
+}
+
+function getParisHour(now = new Date()) {
+  const hourPart = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    hourCycle: "h23",
+  })
+    .formatToParts(now)
+    .find((part) => part.type === "hour");
+  return Number(hourPart?.value ?? 0);
 }
 
 function groupBy<T>(rows: T[], key: (row: T) => string) {

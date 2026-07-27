@@ -37,5 +37,7 @@ describe("rendu du maillot de champion national", () => {
 
     expect(markup).toContain("fi fi-fr");
     expect(markup).toContain('x="0" y="64" width="96" height="34"');
+    expect(markup).toContain("contain:paint");
+    expect(markup).toContain('overflow="hidden"');
   });
 });

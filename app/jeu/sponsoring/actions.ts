@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import {
   GAMEPLAY_RULES,
+  isFutureSponsoringWindowOpen,
   isSponsoringUnlocked,
 } from "@/lib/gameplay-rules";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -51,10 +52,10 @@ export async function signSponsorOfferAction(
 
   const { data: director, error: directorError } = await supabase
     .from("sporting_directors")
-    .select("reputation_points")
+    .select("id, reputation_points")
     .eq("auth_user_id", user.id)
     .eq("status", "active")
-    .maybeSingle<{ reputation_points: number }>();
+    .maybeSingle<{ id: string; reputation_points: number }>();
 
   if (directorError || !director) {
     redirectWithError(
@@ -65,6 +66,62 @@ export async function signSponsorOfferAction(
   if (!isSponsoringUnlocked(director.reputation_points)) {
     redirectWithError(
       `Le marché du sponsoring se débloque à ${GAMEPLAY_RULES.sponsoringUnlockReputation} points de réputation.`
+    );
+  }
+
+  const [offerResult, activeSeasonResult] = await Promise.all([
+    supabase
+      .from("sponsor_offers")
+      .select("season_id")
+      .eq("id", offerId)
+      .eq("sporting_director_id", director.id)
+      .maybeSingle<{ season_id: string }>(),
+    supabase
+      .from("seasons")
+      .select("id, game_year, current_day_number")
+      .eq("status", "active")
+      .maybeSingle<{
+        id: string;
+        game_year: number;
+        current_day_number: number | null;
+      }>(),
+  ]);
+
+  if (offerResult.error || !offerResult.data) {
+    redirectWithError(
+      "Cette offre est introuvable ou ne vous appartient pas."
+    );
+  }
+
+  if (activeSeasonResult.error || !activeSeasonResult.data) {
+    redirectWithError("La saison active est indisponible.");
+  }
+
+  if (
+    activeSeasonResult.data.current_day_number === null ||
+    !isFutureSponsoringWindowOpen(
+      activeSeasonResult.data.current_day_number
+    )
+  ) {
+    redirectWithError(
+      `Les trois offres sponsor de la saison suivante seront accessibles à partir du jour ${GAMEPLAY_RULES.futureSponsoringOpeningDay}.`
+    );
+  }
+
+  const { data: offerSeason, error: offerSeasonError } = await supabase
+    .from("seasons")
+    .select("game_year, status")
+    .eq("id", offerResult.data.season_id)
+    .maybeSingle<{ game_year: number; status: string }>();
+
+  if (
+    offerSeasonError ||
+    !offerSeason ||
+    offerSeason.status !== "planned" ||
+    offerSeason.game_year !== activeSeasonResult.data.game_year + 1
+  ) {
+    redirectWithError(
+      "Une offre sponsor ne peut désormais être signée que pour la saison suivante. Votre équipe reste amateur pendant la saison en cours."
     );
   }
 

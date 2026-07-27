@@ -18,6 +18,92 @@ export type TrainingSessionTimelineRow = {
   processed_at: string;
 };
 
+export const TRAINING_STAT_CODES = [
+  "mountain",
+  "hills",
+  "flat",
+  "time_trial",
+  "cobbles",
+  "sprint",
+  "acceleration",
+  "downhill",
+  "endurance",
+  "resistance",
+  "recovery",
+  "breakaway",
+  "prologue",
+] as const;
+
+export type TrainingStatCode = (typeof TRAINING_STAT_CODES)[number];
+
+export type TrainingSessionStatus =
+  | "completed"
+  | "skipped_low_form"
+  | "skipped_injury"
+  | "skipped_form_camp"
+  | "skipped_reconnaissance";
+
+export type RiderTrainingReport = {
+  dayNumber: number;
+  status: TrainingSessionStatus;
+  intensity: number;
+  domain: TrainingDomain;
+  minimumForm: number;
+  trainerLevel: number;
+  trainerSpecialty: TrainerSpecialty | null;
+  trainerCountryMatch: boolean;
+  physiotherapistLevel: number;
+  formBefore: number;
+  formDelta: number;
+  formAfter: number;
+  progressMilli: Record<string, number>;
+  declineMilli: Record<string, number>;
+  ratingChanges: Record<string, number>;
+  processedAt: string;
+};
+
+export type RiderTrainingSeasonStatReport = {
+  statCode: TrainingStatCode;
+  initialRating: number;
+  currentRating: number;
+  ratingGain: number;
+  ratingLoss: number;
+  netRatingChange: number;
+  balanceMilli: number;
+  totalTrainingMilli: number;
+  totalDeclineMilli: number;
+};
+
+export type RiderTrainingSeasonReport = {
+  fromDayNumber: 1;
+  toDayNumber: number;
+  firstSessionDayNumber: number;
+  lastSessionDayNumber: number;
+  sessionCount: number;
+  completedSessionCount: number;
+  skippedSessionCount: number;
+  totalFormDelta: number;
+  stats: RiderTrainingSeasonStatReport[];
+};
+
+export type TrainingSeasonSessionRow = {
+  season_day_id: string;
+  status: TrainingSessionStatus;
+  form_delta: number;
+  progress_milli: Record<string, number>;
+  decline_milli: Record<string, number>;
+  rating_changes: Record<string, number>;
+};
+
+export type TrainingSeasonStatProgressRow = {
+  stat_code: string;
+  initial_rating: number;
+  balance_milli: number;
+  total_training_milli: number;
+  rating_gain: number;
+  rating_loss: number;
+};
+
 export const TRAINING_DOMAIN_LABELS: Record<TrainingDomain, string> = {
   climber: "Grimpeur",
   puncheur: "Puncheur",
@@ -36,6 +122,7 @@ export const TRAINER_MAX_RIDER_CAPACITY = 8;
 export const RECOGNITION_CAMP_DURATION_DAYS = 2;
 export const IRON_HEALTH_DECLINE_MULTIPLIER = 0.7;
 export const IRON_HEALTH_DECLINE_DELAY_YEARS = 1;
+export const FIRST_IN_CLASS_TRAINING_MULTIPLIER = 1.5;
 
 export type RiderLongevityTier =
   | "standard"
@@ -68,6 +155,7 @@ export function validateRecognitionCampSchedule({
   targetStageDayNumber,
   targetEditionStartDayNumber,
   targetEditionEndDayNumber,
+  durationDays = RECOGNITION_CAMP_DURATION_DAYS,
   seasonLastDayNumber = 28,
 }: {
   currentDayNumber: number;
@@ -75,13 +163,17 @@ export function validateRecognitionCampSchedule({
   targetStageDayNumber: number;
   targetEditionStartDayNumber: number;
   targetEditionEndDayNumber: number;
+  durationDays?: number;
   seasonLastDayNumber?: number;
 }): RecognitionCampScheduleValidation {
   if (
     !Number.isInteger(startDayNumber) ||
     !Number.isInteger(targetStageDayNumber) ||
     !Number.isInteger(targetEditionStartDayNumber) ||
-    !Number.isInteger(targetEditionEndDayNumber)
+    !Number.isInteger(targetEditionEndDayNumber) ||
+    !Number.isInteger(durationDays) ||
+    durationDays < 1 ||
+    durationDays > RECOGNITION_CAMP_DURATION_DAYS
   ) {
     return {
       valid: false,
@@ -89,8 +181,7 @@ export function validateRecognitionCampSchedule({
     };
   }
 
-  const endDayNumber =
-    startDayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1;
+  const endDayNumber = startDayNumber + durationDays - 1;
 
   if (targetStageDayNumber <= currentDayNumber) {
     return {
@@ -109,7 +200,7 @@ export function validateRecognitionCampSchedule({
   if (endDayNumber > seasonLastDayNumber) {
     return {
       valid: false,
-      error: "La saison se termine avant la fin des deux jours de stage.",
+      error: "La saison se termine avant la fin de la reconnaissance.",
     };
   }
 
@@ -343,6 +434,7 @@ export function calculateDailyTrainingProgressMilli({
   trainerSpecialty = null,
   trainerLevel = 0,
   trainerCountryMatch = false,
+  hasFirstInClass = false,
 }: {
   intensity: number;
   age: number;
@@ -353,6 +445,7 @@ export function calculateDailyTrainingProgressMilli({
   trainerSpecialty?: TrainerSpecialty | null;
   trainerLevel?: number;
   trainerCountryMatch?: boolean;
+  hasFirstInClass?: boolean;
 }): number {
   const intensityFactor = Math.min(100, Math.max(0, intensity)) / 100;
   const raw =
@@ -367,7 +460,8 @@ export function calculateDailyTrainingProgressMilli({
       level: trainerLevel,
       ratingKey,
       countryMatch: trainerCountryMatch,
-    });
+    }) *
+    (hasFirstInClass ? FIRST_IN_CLASS_TRAINING_MULTIPLIER : 1);
 
   return Math.max(0, Math.round(raw));
 }
@@ -413,6 +507,102 @@ export function indexLatestTrainingSessionsByRider<
 
 export function formatTrainingProgressMilli(value: number): string {
   return (Math.round(value) / 1_000).toFixed(3).replace(".", ",");
+}
+
+export function buildRiderTrainingSeasonReport({
+  currentDayNumber,
+  currentRatings,
+  sessions,
+  statProgressRows,
+  dayNumberById,
+}: {
+  currentDayNumber: number;
+  currentRatings: Readonly<Record<TrainingStatCode, number>>;
+  sessions: readonly TrainingSeasonSessionRow[];
+  statProgressRows: readonly TrainingSeasonStatProgressRow[];
+  dayNumberById: ReadonlyMap<string, number>;
+}): RiderTrainingSeasonReport | null {
+  if (sessions.length === 0) return null;
+
+  const statProgressByCode = new Map(
+    statProgressRows.map((row) => [row.stat_code, row]),
+  );
+  const totalTrainingMilliByStat = new Map<TrainingStatCode, number>();
+  const totalDeclineMilliByStat = new Map<TrainingStatCode, number>();
+  const ratingChangeByStat = new Map<TrainingStatCode, number>();
+  let completedSessionCount = 0;
+  let totalFormDelta = 0;
+  let firstSessionDayNumber = Number.MAX_SAFE_INTEGER;
+  let lastSessionDayNumber = 1;
+
+  for (const session of sessions) {
+    const dayNumber = dayNumberById.get(session.season_day_id) ?? 1;
+    firstSessionDayNumber = Math.min(firstSessionDayNumber, dayNumber);
+    lastSessionDayNumber = Math.max(lastSessionDayNumber, dayNumber);
+    totalFormDelta += session.form_delta;
+    if (session.status === "completed") completedSessionCount += 1;
+
+    for (const statCode of TRAINING_STAT_CODES) {
+      totalTrainingMilliByStat.set(
+        statCode,
+        (totalTrainingMilliByStat.get(statCode) ?? 0) +
+          (session.progress_milli[statCode] ?? 0),
+      );
+      totalDeclineMilliByStat.set(
+        statCode,
+        (totalDeclineMilliByStat.get(statCode) ?? 0) +
+          (session.decline_milli[statCode] ?? 0),
+      );
+      ratingChangeByStat.set(
+        statCode,
+        (ratingChangeByStat.get(statCode) ?? 0) +
+          (session.rating_changes[statCode] ?? 0),
+      );
+    }
+  }
+
+  const stats = TRAINING_STAT_CODES.map((statCode) => {
+    const progress = statProgressByCode.get(statCode);
+    const currentRating = currentRatings[statCode];
+    const recordedRatingChange = ratingChangeByStat.get(statCode) ?? 0;
+    const initialRating =
+      progress?.initial_rating ?? currentRating - recordedRatingChange;
+    const ratingGain =
+      progress?.rating_gain ?? Math.max(0, recordedRatingChange);
+    const ratingLoss =
+      progress?.rating_loss ?? Math.max(0, -recordedRatingChange);
+    const totalTrainingMilli =
+      progress?.total_training_milli ??
+      (totalTrainingMilliByStat.get(statCode) ?? 0);
+    const totalDeclineMilli = totalDeclineMilliByStat.get(statCode) ?? 0;
+    const netRatingChange = currentRating - initialRating;
+
+    return {
+      statCode,
+      initialRating,
+      currentRating,
+      ratingGain,
+      ratingLoss,
+      netRatingChange,
+      balanceMilli:
+        progress?.balance_milli ??
+        totalTrainingMilli - totalDeclineMilli - netRatingChange * 1_000,
+      totalTrainingMilli,
+      totalDeclineMilli,
+    } satisfies RiderTrainingSeasonStatReport;
+  });
+
+  return {
+    fromDayNumber: 1,
+    toDayNumber: Math.max(1, currentDayNumber),
+    firstSessionDayNumber,
+    lastSessionDayNumber,
+    sessionCount: sessions.length,
+    completedSessionCount,
+    skippedSessionCount: sessions.length - completedSessionCount,
+    totalFormDelta,
+    stats,
+  };
 }
 
 function isTrainingSessionMoreRecent(

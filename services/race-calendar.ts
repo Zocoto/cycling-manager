@@ -22,6 +22,11 @@ import {
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
 import {
+  combineEquipmentEffects,
+  normalizeEquipmentEffects,
+  type EquipmentEffects,
+} from "@/lib/game/equipment";
+import {
   ensureCompleteRaceSegments,
   removeOneDayRaceMountainPrimes,
   resolveRaceProfileType,
@@ -34,6 +39,15 @@ import {
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
 import { getCurrentTeamDivisionForAuthUser } from "@/services/team-divisions";
+import {
+  loadRaceStaffEffects,
+  type RaceStaffEffects,
+  type TeamRaceStaffEffects,
+} from "@/services/staff-race-effects";
+import {
+  getActiveNationalChampionshipTitlesByDisciplineForRiders,
+  type ActiveNationalChampionshipTitlesByDiscipline,
+} from "@/services/rider-national-championship-titles";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -188,6 +202,7 @@ type CalendarEngagedRiderRow = {
   recovery: number;
   breakaway: number;
   prologue: number;
+  equipment_effects: unknown;
 };
 
 type CalendarEngagedCountRow = {
@@ -203,6 +218,9 @@ type ActiveSeasonCalendarLoadOptions = {
 type RiderCountryRow = {
   id: string;
   country_id: string;
+  avatar_profile_key: string;
+  avatar_seed: number | string;
+  career_race_days: number;
 };
 
 type RiderSpecialAbilityRow = {
@@ -554,7 +572,19 @@ export async function getActiveSeasonRaceCalendar(
   const engagedRiderIds = unique(
     engagedRiderRows.map((rider) => rider.rider_id),
   );
-  const [specialAbilitiesResult, riderCountriesResult] =
+  const raceStaffEffectsPromise = loadRaceStaffEffects(
+    createSupabaseAdminClient(),
+    {
+      seasonId: season.id,
+      teamIds: unique(engagedRiderRows.map((rider) => rider.team_id)),
+      riderIds: engagedRiderIds,
+    },
+  );
+  const [
+    specialAbilitiesResult,
+    riderCountriesResult,
+    nationalChampionshipTitlesByRiderId,
+  ] =
     engagedRiderIds.length > 0
       ? await Promise.all([
           collectChunkedPaginatedRows<
@@ -584,7 +614,7 @@ export async function getActiveSeasonRaceCalendar(
             fetchPage: async (chunk, from, to) => {
               const result = await createSupabaseAdminClient()
                 .from("riders")
-                .select("id, country_id")
+                .select("id, country_id, avatar_profile_key, avatar_seed, career_race_days")
                 .in("id", chunk)
                 .order("id", { ascending: true })
                 .range(from, to)
@@ -592,8 +622,19 @@ export async function getActiveSeasonRaceCalendar(
               return { data: result.data, error: result.error };
             },
           }),
+          getActiveNationalChampionshipTitlesByDisciplineForRiders(
+            supabase,
+            engagedRiderIds,
+          ),
         ])
-      : [emptyResult<RiderSpecialAbilityRow>(), emptyResult<RiderCountryRow>()];
+      : [
+          emptyResult<RiderSpecialAbilityRow>(),
+          emptyResult<RiderCountryRow>(),
+          new Map<
+            string,
+            ActiveNationalChampionshipTitlesByDiscipline
+          >(),
+        ];
 
   assertQuerySucceeded(
     specialAbilitiesResult.error,
@@ -607,6 +648,7 @@ export async function getActiveSeasonRaceCalendar(
   const specialAbilitiesByRiderId = groupSpecialAbilities(
     specialAbilitiesResult.data ?? [],
   );
+  const raceStaffEffects = await raceStaffEffectsPromise;
 
   const dayRows = daysResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
@@ -829,8 +871,10 @@ export async function getActiveSeasonRaceCalendar(
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
     specialAbilitiesByRiderId,
-    new Map(riderCountryRows.map((rider) => [rider.id, rider.country_id])),
+    new Map(riderCountryRows.map((rider) => [rider.id, rider])),
     countryById,
+    nationalChampionshipTitlesByRiderId,
+    raceStaffEffects,
   );
 
   const editions = editionRows
@@ -1110,11 +1154,74 @@ export async function getRaceEngagedRiders(
   }));
 }
 
+function combineEquipmentEffectsWithStaff({
+  values,
+  teamStaffEffects,
+  injuryPreventionPercentage,
+}: {
+  values: unknown[];
+  teamStaffEffects: TeamRaceStaffEffects | undefined;
+  injuryPreventionPercentage: number;
+}): EquipmentEffects {
+  const adjustedEffects = values.map((value) => {
+    const effect = normalizeEquipmentEffects(value);
+    const slotType =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? String((value as Record<string, unknown>)._slotType ?? "")
+        : "";
+    const efficiencyPercentage =
+      slotType === "front_wheel" || slotType === "rear_wheel"
+        ? (teamStaffEffects?.wheelEfficiencyPercentage ?? 0)
+        : slotType === "frame"
+          ? (teamStaffEffects?.frameEfficiencyPercentage ?? 0)
+          : 0;
+
+    return scaleEquipmentEffect(effect, efficiencyPercentage);
+  });
+  const combined = combineEquipmentEffects(adjustedEffects);
+  combined.injuryRiskReductionPct = Math.min(
+    45,
+    Math.max(
+      0,
+      combined.injuryRiskReductionPct + injuryPreventionPercentage,
+    ),
+  );
+  return combined;
+}
+
+function scaleEquipmentEffect(
+  effect: EquipmentEffects,
+  percentage: number,
+): EquipmentEffects {
+  const multiplier = 1 + Math.max(0, percentage) / 100;
+  const scaleRatings = (ratings: EquipmentEffects["ratingBonuses"]) =>
+    Object.fromEntries(
+      Object.entries(ratings).map(([key, value]) => [
+        key,
+        Number(value ?? 0) * multiplier,
+      ]),
+    ) as EquipmentEffects["ratingBonuses"];
+
+  return {
+    ratingBonuses: scaleRatings(effect.ratingBonuses),
+    timeTrialRatingBonuses: scaleRatings(effect.timeTrialRatingBonuses),
+    injuryRiskReductionPct: effect.injuryRiskReductionPct * multiplier,
+    breakawayReputationBonus:
+      effect.breakawayReputationBonus * multiplier,
+    victoryReputationBonus: effect.victoryReputationBonus * multiplier,
+  };
+}
+
 function groupCalendarEngagedRiders(
   rows: CalendarEngagedRiderRow[],
   specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>,
-  countryIdByRiderId: Map<string, string>,
+  riderMetadataById: Map<string, RiderCountryRow>,
   countryById: Map<string, CountryRow>,
+  nationalChampionshipTitlesByRiderId: Map<
+    string,
+    ActiveNationalChampionshipTitlesByDiscipline
+  >,
+  raceStaffEffects: RaceStaffEffects,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -1124,10 +1231,19 @@ function groupCalendarEngagedRiders(
   for (const row of rows) {
     const riders = ridersByEditionId.get(row.race_edition_id) ?? [];
     const specialAbilities = specialAbilitiesByRiderId.get(row.rider_id) ?? [];
-    const riderCountryId = countryIdByRiderId.get(row.rider_id);
-    const riderCountry = riderCountryId
-      ? countryById.get(riderCountryId)
+    const riderMetadata = riderMetadataById.get(row.rider_id);
+    const nationalChampionships =
+      nationalChampionshipTitlesByRiderId.get(row.rider_id);
+    const riderCountry = riderMetadata
+      ? countryById.get(riderMetadata.country_id)
       : null;
+    const teamStaffEffects = raceStaffEffects.byTeamId.get(row.team_id);
+    const equipmentEffects = combineEquipmentEffectsWithStaff({
+      values: Array.isArray(row.equipment_effects) ? row.equipment_effects : [],
+      teamStaffEffects,
+      injuryPreventionPercentage:
+        raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
+    });
     riders.push({
       id: row.rider_id,
       name: `${row.rider_first_name} ${row.rider_last_name}`,
@@ -1135,12 +1251,19 @@ function groupCalendarEngagedRiders(
       teamName: row.team_name,
       teamPrimaryColor: row.team_primary_color,
       teamSecondaryColor: row.team_secondary_color,
+      avatarProfileKey: riderMetadata?.avatar_profile_key ?? null,
+      avatarSeed: riderMetadata?.avatar_seed ?? null,
+      nationalChampionships,
       age: Number(row.age),
       form: Number(row.form),
+      careerRaceDays: Number(riderMetadata?.career_race_days ?? 0),
       countryCode: riderCountry?.iso_alpha2 ?? null,
       role: row.race_role,
       specialAbility: specialAbilities[0] ?? null,
       specialAbilities,
+      equipmentEffects,
+      mechanicalIncidentTimeReductionPct:
+        teamStaffEffects?.incidentTimeReductionPercentage ?? 0,
       ratings: {
         mountain: Number(row.mountain),
         hills: Number(row.hills),

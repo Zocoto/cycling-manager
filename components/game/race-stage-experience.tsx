@@ -231,34 +231,40 @@ export function RaceStageExperience({
         </button>
       </nav>
 
-      {view === "results" && officialResults ? (
-        <RaceOfficialResults
-          edition={entry.edition}
-          selectedStageId={entry.stage.id}
-          officialResults={officialResults}
-        />
-      ) : (
-        <RaceLiveLab
-          key={`${entry.stage.id}-${state.status}`}
-          edition={entry.edition}
-          stage={entry.stage}
-          mode={
-            state.status === "live" ? "live" : "replay"
-          }
-          nowIso={
-            state.status === "live"
-              ? now.toISOString()
-              : nowIso
-          }
-          lockedSimulations={lockedSimulations}
-        />
-      )}
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
+        <div className="min-w-0">
+          {view === "results" && officialResults ? (
+            <RaceOfficialResults
+              edition={entry.edition}
+              selectedStageId={entry.stage.id}
+              officialResults={officialResults}
+            />
+          ) : (
+            <RaceLiveLab
+              key={`${entry.stage.id}-${state.status}`}
+              edition={entry.edition}
+              stage={entry.stage}
+              mode={
+                state.status === "live" ? "live" : "replay"
+              }
+              nowIso={
+                state.status === "live"
+                  ? now.toISOString()
+                  : nowIso
+              }
+              lockedSimulations={lockedSimulations}
+            />
+          )}
+        </div>
 
-      <RaceLiveChat
-        stageId={entry.stage.id}
-        currentDirectorId={currentDirectorId}
-        initialMessages={initialMessages}
-      />
+        <RaceLiveChat
+          key={entry.stage.id}
+          stageId={entry.stage.id}
+          currentDirectorId={currentDirectorId}
+          initialMessages={initialMessages}
+          mode={state.status === "live" ? "live" : "replay"}
+        />
+      </div>
     </div>
   );
 }

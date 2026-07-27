@@ -79,7 +79,7 @@ export function GameHeader({
             <WheelLogo colors={colors} className="h-12 w-12" />
           </span>
 
-          <span className="inline-flex h-11 -translate-y-[3px] flex-col justify-between leading-none">
+          <span className="hidden h-11 -translate-y-[3px] flex-col justify-between leading-none sm:inline-flex">
             <span
               aria-hidden="true"
               className="-mt-[2px] flex justify-between text-2xl font-extrabold uppercase"
@@ -147,22 +147,50 @@ export function GameHeader({
 
             <button
               type="submit"
-              className="m-1 inline-flex min-h-9 items-center justify-center rounded-lg bg-[var(--game-header-accent)] px-3 text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Lancer la recherche"
+              className="m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:w-auto sm:px-3"
             >
-              Rechercher
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4 sm:hidden"
+              >
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="6.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path
+                  d="m16 16 4 4"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                />
+              </svg>
+              <span className="hidden sm:inline">Rechercher</span>
             </button>
           </div>
         </form>
 
-        <div className="flex items-center gap-3">
-          {sponsor ? (
-            <span
-              className="hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold lg:inline-flex"
-              style={{
-                borderColor: `${colors.primary}66`,
-                backgroundColor: `${colors.primary}20`,
-              }}
-            >
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Link
+            href="/jeu/equipe"
+            title="Ouvrir la fiche de mon équipe"
+            aria-label={
+              sponsor
+                ? `Ouvrir la fiche de mon équipe ${sponsor.shortName}`
+                : "Ouvrir la fiche de mon équipe"
+            }
+            className="hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] lg:inline-flex"
+            style={{
+              borderColor: `${colors.primary}66`,
+              backgroundColor: `${colors.primary}20`,
+            }}
+          >
+            {sponsor ? (
               <SponsorLogoMark
                 src={sponsor.logoPath}
                 alt={`Logo de ${sponsor.name}`}
@@ -172,20 +200,64 @@ export function GameHeader({
                 textColor={sponsor.colors.text}
                 className="h-7 w-10 rounded-lg p-0.5"
               />
+            ) : (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="7" cy="7" r="2.5" />
+                <circle cx="14" cy="8" r="2" />
+                <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
+              </svg>
+            )}
 
-              {sponsor.shortName}
-            </span>
-          ) : null}
+            {sponsor?.shortName ?? "Mon équipe"}
+          </Link>
 
           {displayName ? (
-            <span className="hidden text-sm font-semibold text-[#D6DFD2] md:inline">
+            <Link
+              href="/jeu/directeur-sportif"
+              title="Ouvrir ma fiche de Directeur Sportif"
+              className="hidden rounded-md text-sm font-semibold text-[#D6DFD2] transition hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] md:inline"
+            >
               {displayName}
-            </span>
+            </Link>
           ) : null}
 
           {canAccessRaceSimulator(simulatorEmail) ? (
             <RaceSimulatorShortcut />
           ) : null}
+
+          <Link
+            href="/jeu/chat"
+            title="Ouvrir le chat général"
+            aria-label="Ouvrir le chat général"
+            className="group relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-[1.1rem] w-[1.1rem]"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 3.5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" />
+              <path d="M6 9h.01M10 9h.01M14 9h.01" />
+            </svg>
+            <span
+              aria-hidden="true"
+              className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border border-[#071A17] bg-[#42B99A] transition group-hover:bg-[var(--game-header-accent)]"
+            />
+          </Link>
 
           <TutorialCenterMenu />
 
@@ -194,7 +266,7 @@ export function GameHeader({
             href="/guide"
             title="Ouvrir le guide du jeu"
             aria-label="Ouvrir le guide du jeu"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
           >
             <svg
               aria-hidden="true"
@@ -209,13 +281,14 @@ export function GameHeader({
               <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
               <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
             </svg>
-            <span className="hidden xl:inline">Guide</span>
           </Link>
 
-          <form action={logoutAccount}>
+          <form action={logoutAccount} className="shrink-0">
             <button
               type="submit"
-              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-widest text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+              title="Se déconnecter"
+              aria-label="Se déconnecter"
+              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
             >
               <svg
                 aria-hidden="true"
@@ -230,7 +303,6 @@ export function GameHeader({
                 <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
                 <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
               </svg>
-              <span className="hidden sm:inline">Se déconnecter</span>
             </button>
           </form>
         </div>
@@ -243,7 +315,9 @@ function RaceSimulatorShortcut() {
   return (
     <Link
       href="/jeu/simulateur-course"
-      className="group inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#72D4B7]/40 bg-[#72D4B7]/10 px-3 py-2 text-xs font-extrabold uppercase tracking-widest text-[#9BE0CA] transition hover:border-[#72D4B7] hover:bg-[#72D4B7] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7]"
+      title="Ouvrir le simulateur de course"
+      aria-label="Ouvrir le simulateur de course"
+      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#72D4B7]/40 bg-[#72D4B7]/10 text-xs font-extrabold uppercase tracking-widest text-[#9BE0CA] transition hover:border-[#72D4B7] hover:bg-[#72D4B7] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7] xl:w-auto xl:gap-2 xl:px-3"
     >
       <svg
         aria-hidden="true"
@@ -259,7 +333,6 @@ function RaceSimulatorShortcut() {
         <path d="M8 7V4h4v3M8 11h4" />
       </svg>
       <span className="hidden xl:inline">Simulateur</span>
-      <span className="xl:hidden">Lab</span>
     </Link>
   );
 }

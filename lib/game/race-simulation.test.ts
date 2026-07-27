@@ -9,11 +9,15 @@ import {
   getStageAttackParticipants,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
+  getHillyClimbSelectionRating,
   getLeadingFinishGroupRiderIds,
+  getNextHillyClimbLoad,
   isMassGroupFinish,
+  reduceMechanicalIncidentTimeLoss,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
+import type { RaceStageSegment } from "./race-profiles";
 
 describe("areFinishersInSameTimeGroup", () => {
   it("conserve les écarts de 1, 2 ou 3 secondes en MT et casse à 4 secondes", () => {
@@ -40,6 +44,14 @@ describe("accumulateRaceGroupGapsFromLeader", () => {
         (group) => group.gapToLeaderSeconds
       )
     ).toEqual([0, 8, 10, 10]);
+  });
+});
+
+describe("reduceMechanicalIncidentTimeLoss", () => {
+  it("réduit uniquement le temps d’avarie dans la limite de 80 %", () => {
+    expect(reduceMechanicalIncidentTimeLoss(20, 35)).toBe(13);
+    expect(reduceMechanicalIncidentTimeLoss(20, 120)).toBeCloseTo(4);
+    expect(reduceMechanicalIncidentTimeLoss(20, -10)).toBe(20);
   });
 });
 
@@ -669,6 +681,145 @@ describe("simulateRaceStage", () => {
     expect(puncherWins).toBeGreaterThanOrEqual(84);
   });
 
+  it("protège d'abord le grimpeur dans les côtes courtes puis use cet avantage par répétition", () => {
+    const climber = createSelectionTestRider("grimpeur-vallons", {
+      mountain: 70,
+      hills: 45,
+      endurance: 75,
+      resistance: 75,
+    });
+    const puncher = createSelectionTestRider("puncheur-vallons", {
+      mountain: 58,
+      hills: 65,
+      endurance: 62,
+      resistance: 62,
+    });
+    const shallowClimb: RaceStageSegment = {
+      segmentNumber: 2,
+      distanceKm: 10,
+      terrain: "climb",
+      averageGradientPct: 4,
+      surface: "asphalt",
+      prime: null,
+    };
+    const freshClimberRating = getHillyClimbSelectionRating(
+      climber,
+      shallowClimb,
+      0
+    );
+    const tiredClimberRating = getHillyClimbSelectionRating(
+      climber,
+      shallowClimb,
+      42
+    );
+    const freshPuncherRating = getHillyClimbSelectionRating(
+      puncher,
+      shallowClimb,
+      0
+    );
+    const tiredPuncherRating = getHillyClimbSelectionRating(
+      puncher,
+      shallowClimb,
+      42
+    );
+
+    expect(freshClimberRating).toBeGreaterThan(tiredClimberRating + 10);
+    expect(freshClimberRating).toBeCloseTo(freshPuncherRating, 0);
+    expect(tiredPuncherRating).toBeCloseTo(freshPuncherRating, 5);
+  });
+
+  it("fait céder tardivement un grimpeur peu puncheur sans lui infliger un gouffre", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 37);
+    const flat = (segmentNumber: number, distanceKm = 10): RaceStageSegment => ({
+      segmentNumber,
+      distanceKm,
+      terrain: "flat",
+      averageGradientPct: 0,
+      surface: "asphalt",
+      prime: null,
+    });
+    const climb = (segmentNumber: number): RaceStageSegment => ({
+      segmentNumber,
+      distanceKm: 10,
+      terrain: "climb",
+      averageGradientPct: 4,
+      surface: "asphalt",
+      prime: null,
+    });
+    const descent = (segmentNumber: number): RaceStageSegment => ({
+      segmentNumber,
+      distanceKm: 5,
+      terrain: "descent",
+      averageGradientPct: -4,
+      surface: "asphalt",
+      prime: null,
+    });
+    const segments = [
+      flat(1),
+      climb(2),
+      descent(3),
+      climb(4),
+      descent(5),
+      climb(6),
+      descent(7),
+      climb(8),
+      descent(9),
+      climb(10),
+      flat(11),
+    ];
+    const climber = createSelectionTestRider("grimpeur-resistant", {
+      mountain: 70,
+      hills: 45,
+      endurance: 75,
+      resistance: 75,
+      acceleration: 55,
+    });
+    const punchers = Array.from({ length: 6 }, (_, index) => ({
+      ...createSelectionTestRider(`puncheur-reference-${index}`, {
+        mountain: 58,
+        hills: 65,
+        endurance: 62,
+        resistance: 62,
+        acceleration: 68,
+      }),
+      teamId: `puncheur-team-${index}`,
+    }));
+    const result = simulateRaceStage({
+      ...baseInput,
+      seed: 37,
+      segments,
+      riders: [climber, ...punchers],
+    });
+    const firstDropIndex = result.timeline.findIndex((snapshot) =>
+      snapshot.groups.some(
+        (group) =>
+          group.type === "dropped" &&
+          group.riderIds.includes(climber.id)
+      )
+    );
+    const climberResult = result.results.find(
+      (row) => row.riderId === climber.id
+    )!;
+
+    expect(firstDropIndex).toBeGreaterThan(1);
+    expect(climberResult.rank).not.toBe(1);
+    expect(climberResult.gapToWinnerSeconds).toBeGreaterThan(0);
+    expect(climberResult.gapToWinnerSeconds).toBeLessThan(240);
+
+    const loadAfterOneClimb = getNextHillyClimbLoad(
+      0,
+      climb(2),
+      "hilly"
+    );
+    expect(
+      getNextHillyClimbLoad(
+        loadAfterOneClimb,
+        descent(3),
+        "hilly"
+      )
+    ).toBeGreaterThan(0);
+  });
+
   it("écarte durablement les coureurs très inférieurs dans la statistique clé", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const strongRiders = Array.from({ length: 2 }, (_, index) =>
@@ -754,6 +905,37 @@ describe("simulateRaceStage", () => {
         (result) => result.results[0].riderId === pureSprinter.id
       ).length / groupedFinishes.length;
     expect(pureSprinterWinRate).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it("permet au vécu de course de départager deux coureurs très proches sans remplacer les notes", () => {
+    const youngerRider = {
+      ...createSelectionTestRider("jeune-plus-fort", { flat: 65 }),
+      age: 22,
+      careerRaceDays: 0,
+    };
+    const experiencedRider = {
+      ...createSelectionTestRider("veteran-experimente", { flat: 64 }),
+      age: 32,
+      careerRaceDays: 360,
+    };
+    const flatSegment: RaceStageSegment = {
+      segmentNumber: 1,
+      distanceKm: 20,
+      terrain: "flat",
+      averageGradientPct: 0,
+      surface: "asphalt",
+      prime: null,
+    };
+
+    expect(experiencedRider.ratings.flat).toBeLessThan(
+      youngerRider.ratings.flat,
+    );
+    expect(
+      getHillyClimbSelectionRating(experiencedRider, flatSegment, 0),
+    ).toBeGreaterThan(
+      getHillyClimbSelectionRating(youngerRider, flatSegment, 0),
+    );
+    expect(experiencedRider.ratings.flat).toBe(64);
   });
 
   it("applique le bonus local de +2 sans modifier les notes permanentes", () => {

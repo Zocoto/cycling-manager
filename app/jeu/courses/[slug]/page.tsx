@@ -138,6 +138,7 @@ export default async function RaceProfilePage({
     ? createSponsoredRiderJersey({
         colors: teamSponsorIdentity.sponsor.colors,
         style: teamSponsorIdentity.selectedJersey.style,
+        imagePath: teamSponsorIdentity.selectedJersey.imagePath,
       })
     : teamAmateurIdentity
       ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
@@ -578,6 +579,10 @@ function RegistrationPanel({
       reputationPoints:
         context.reputationPoints,
     });
+  const missingReputation = Math.max(
+    (edition.minimumReputation ?? 0) - context.reputationPoints,
+    0
+  );
   const raceExperience = getRaceExperienceAvailability(edition.stages);
 
   if (needsMedicalReplacement) {
@@ -959,7 +964,10 @@ function RegistrationPanel({
       ) : availability ===
         "reputation_locked" ? (
         <RegistrationNotice tone="warning">
-          Votre réputation est insuffisante pour cette catégorie.
+          Cette course {edition.categoryName} nécessite au minimum{" "}
+          <strong>{edition.minimumReputation} points de réputation</strong>.
+          Vous en avez {context.reputationPoints} : il vous manque encore{" "}
+          {missingReputation} point{missingReputation > 1 ? "s" : ""}.
         </RegistrationNotice>
       ) : (
         <RegistrationNotice tone="neutral">

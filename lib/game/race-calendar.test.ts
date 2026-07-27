@@ -5,6 +5,7 @@ import {
   buildCalendarWeeks,
   getEditionDayRange,
   getEffectiveSeasonDay,
+  getRaceCategoryReputationThreshold,
   getRegistrationAvailability,
   getSeasonHalfDayIndex,
   isBeforeRegistrationDeadline,
@@ -152,6 +153,39 @@ describe("buildCalendarWeeks", () => {
 });
 
 describe("getRegistrationAvailability", () => {
+  it("applique les paliers Continental 100 et Mondial 200", () => {
+    expect(getRaceCategoryReputationThreshold("continental")).toBe(100);
+    expect(getRaceCategoryReputationThreshold("world")).toBe(200);
+    expect(getRaceCategoryReputationThreshold("national")).toBeNull();
+  });
+
+  it.each([
+    ["continental", 100],
+    ["world", 200],
+  ] as const)(
+    "verrouille puis ouvre une course %s exactement à %s points",
+    (_categoryCode, threshold) => {
+      expect(
+        getRegistrationAvailability({
+          policy: "open",
+          closesAt: "2026-07-22T10:00:00Z",
+          minimumReputation: threshold,
+          reputationPoints: threshold - 1,
+          now: new Date("2026-07-19T10:00:00Z"),
+        })
+      ).toBe("reputation_locked");
+
+      expect(
+        getRegistrationAvailability({
+          policy: "open",
+          closesAt: "2026-07-22T10:00:00Z",
+          minimumReputation: threshold,
+          reputationPoints: threshold,
+          now: new Date("2026-07-19T10:00:00Z"),
+        })
+      ).toBe("open");
+    }
+  );
   it("ouvre une course nationale à réputation zéro", () => {
     expect(
       getRegistrationAvailability({

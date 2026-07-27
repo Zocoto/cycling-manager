@@ -1,7 +1,11 @@
+import { STAFF_ACADEMY_LEVELS } from "@/lib/game/staff-academy";
+
 export const INFRASTRUCTURE_UNLOCK_LEVEL = 10;
 export const MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE = 90;
 
-export type TeamInfrastructureCode = "recruitment_data_room";
+export type TeamInfrastructureCode =
+  | "recruitment_data_room"
+  | "staff_academy";
 
 export type ArchitectSpecialty = "economist" | "foreman" | "balanced";
 
@@ -68,6 +72,19 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
           "7 notes exactes et 6 fourchettes très resserrées ; potentiel estimé à une demi-étoile près.",
       },
     ],
+  },
+  staff_academy: {
+    code: "staff_academy",
+    name: "Académie des métiers",
+    domain: "Staff · Formation avancée",
+    summary:
+      "Développe durablement les étoiles et les domaines d’expertise du staff.",
+    levels: STAFF_ACADEMY_LEVELS.map((definition) => ({
+      level: definition.level,
+      cost: definition.cost,
+      durationDays: definition.durationDays,
+      effect: `${definition.capacity} stage${definition.capacity > 1 ? "s" : ""} de staff ${definition.capacity > 1 ? "peuvent" : "peut"} être mené${definition.capacity > 1 ? "s" : ""} simultanément.`,
+    })),
   },
 };
 
@@ -214,7 +231,7 @@ export function getScoutingVisibilityForDataRoom(level: number): {
 export function isTeamInfrastructureCode(
   value: string,
 ): value is TeamInfrastructureCode {
-  return value === "recruitment_data_room";
+  return value === "recruitment_data_room" || value === "staff_academy";
 }
 
 export function isArchitectSpecialty(

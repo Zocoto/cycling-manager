@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   createRadarPoints,
+  getRiderRatingImportance,
   getRiderSportingProfile,
   isSeasonPartOfRiderHistory,
+  RIDER_PRIMARY_RATING_KEYS,
   RIDER_RATING_AXES,
+  RIDER_SECONDARY_RATING_KEYS,
   resolvePublicTeamName,
   type RiderRatings,
   serializeRadarPoints,
@@ -40,6 +43,25 @@ describe("rider career history", () => {
 });
 
 describe("rider profile radar", () => {
+  it("separates primary ratings from secondary ratings", () => {
+    expect(RIDER_PRIMARY_RATING_KEYS).toEqual([
+      "mountain",
+      "hills",
+      "flat",
+      "timeTrial",
+      "cobbles",
+      "sprint",
+    ]);
+    expect(RIDER_SECONDARY_RATING_KEYS).toHaveLength(7);
+    expect(getRiderRatingImportance("mountain")).toBe("primary");
+    expect(getRiderRatingImportance("recovery")).toBe("secondary");
+    expect(
+      RIDER_RATING_AXES.every(
+        (axis) => axis.importance === getRiderRatingImportance(axis.key),
+      ),
+    ).toBe(true);
+  });
+
   it("keeps coherent rider ratings next to each other", () => {
     expect(RIDER_RATING_AXES.slice(0, 3).map((axis) => axis.shortLabel)).toEqual([
       "MON",

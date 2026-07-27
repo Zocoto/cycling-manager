@@ -3,10 +3,12 @@ import type {
   RaceStageSegment,
 } from "./race-profiles";
 import type { RaceProfileType } from "./race-calendar";
+import type { StageRaceJerseyType } from "./stage-race-jerseys";
 import {
   applyEquipmentRatingBonuses,
   type EquipmentEffects,
 } from "./equipment";
+import { getRiderExperienceRaceBonus } from "./rider-experience";
 import {
   hasSpecialAbility,
   type RiderSpecialAbility,
@@ -71,6 +73,11 @@ export type RiderSimulationRatings = {
   breakaway: number;
 };
 
+export type RiderNationalChampionship = {
+  countryCode: string;
+  championshipType: "road" | "time_trial";
+};
+
 export type RiderSimulationInput = {
   id: string;
   name: string;
@@ -78,8 +85,19 @@ export type RiderSimulationInput = {
   teamName: string;
   teamPrimaryColor: string;
   teamSecondaryColor: string;
+  avatarProfileKey?: string | null;
+  avatarSeed?: number | string | null;
+  nationalChampionships?: Partial<
+    Record<
+      RiderNationalChampionship["championshipType"],
+      RiderNationalChampionship
+    >
+  >;
+  activeNationalChampion?: RiderNationalChampionship | null;
+  classificationJersey?: StageRaceJerseyType | null;
   age: number;
   form: number;
+  careerRaceDays?: number;
   countryCode?: string | null;
   localRaceBonus?: number;
   reconnaissanceBonus?: number;
@@ -88,6 +106,7 @@ export type RiderSimulationInput = {
   specialAbilities?: RiderSpecialAbility[];
   ratings: RiderSimulationRatings;
   equipmentEffects?: EquipmentEffects;
+  mechanicalIncidentTimeReductionPct?: number;
 };
 
 export type StageSimulationInput = {
@@ -442,6 +461,16 @@ export function areFinishersInSameTimeGroup(
  * séparation permet de le tester, le rejouer et, plus tard, de l'exécuter
  * côté serveur au moment du départ officiel.
  */
+export function reduceMechanicalIncidentTimeLoss(
+  timeLossSeconds: number,
+  reductionPercentage: number,
+) {
+  return (
+    Math.max(0, timeLossSeconds) *
+    (1 - clamp(reductionPercentage, 0, 80) / 100)
+  );
+}
+
 export function simulateRaceStage(
   input: StageSimulationInput
 ): StageSimulationResult {
@@ -647,6 +676,7 @@ function simulateRoadStage(
   let completedDistanceKm = 0;
   let breakawayWasCaught = false;
   const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
+  let hillyClimbLoad = 0;
 
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
@@ -671,7 +701,9 @@ function simulateRoadStage(
                 : breakaway;
     const frontTerrainRating = getFrontTerrainRating(
       fieldPaceStates,
-      segment
+      segment,
+      input.profileType,
+      hillyClimbLoad
     );
     const raceProgress = segmentIndex / Math.max(1, input.segments.length - 1);
     const chasePressure =
@@ -775,6 +807,7 @@ function simulateRoadStage(
           segment,
           frontTerrainRating,
           input.profileType,
+          hillyClimbLoad,
           random
         );
         state.lostTimeSeconds += extraLoss;
@@ -800,18 +833,45 @@ function simulateRoadStage(
               : Math.max(1, dropped.length),
         chasePressure,
         hasBottleCarrierSupport: hasTeammateBottleCarrier(state, states),
+        profileType: input.profileType,
+        hillyClimbLoad,
         groupPaceRating:
           state.group === "peloton"
             ? frontTerrainRating
             : state.group === "breakaway"
-              ? getFrontTerrainRating(breakaway, segment)
+              ? getFrontTerrainRating(
+                  breakaway,
+                  segment,
+                  input.profileType,
+                  hillyClimbLoad
+                )
               : state.group === "breakaway_2"
-                ? getFrontTerrainRating(secondaryBreakaway, segment)
+                ? getFrontTerrainRating(
+                    secondaryBreakaway,
+                    segment,
+                    input.profileType,
+                    hillyClimbLoad
+                  )
                 : state.group === "chase"
-                  ? getFrontTerrainRating(chase, segment)
+                  ? getFrontTerrainRating(
+                      chase,
+                      segment,
+                      input.profileType,
+                      hillyClimbLoad
+                    )
                   : state.group === "delayed"
-                    ? getFrontTerrainRating(delayed, segment)
-                  : getTerrainRating(state.rider, segment),
+                    ? getFrontTerrainRating(
+                        delayed,
+                        segment,
+                        input.profileType,
+                        hillyClimbLoad
+                      )
+                  : getSelectionTerrainRating(
+                      state.rider,
+                      segment,
+                      input.profileType,
+                      hillyClimbLoad
+                    ),
       });
     }
 
@@ -845,6 +905,7 @@ function simulateRoadStage(
       segmentIndex,
       profileType: input.profileType,
       chasePressure,
+      hillyClimbLoad,
       random,
       commentary,
     });
@@ -957,6 +1018,11 @@ function simulateRoadStage(
         abandonments,
         commentary,
       })
+    );
+    hillyClimbLoad = getNextHillyClimbLoad(
+      hillyClimbLoad,
+      segment,
+      input.profileType
     );
 
     if (segmentIndex === 0) {
@@ -1384,6 +1450,8 @@ function updateRiderEnergy({
   chasePressure,
   hasBottleCarrierSupport,
   groupPaceRating,
+  profileType,
+  hillyClimbLoad = 0,
   timeTrial = false,
 }: {
   state: RiderState;
@@ -1394,6 +1462,8 @@ function updateRiderEnergy({
   chasePressure: number;
   hasBottleCarrierSupport: boolean;
   groupPaceRating?: number;
+  profileType?: RaceProfileType;
+  hillyClimbLoad?: number;
   timeTrial?: boolean;
 }) {
   const rider = state.rider;
@@ -1444,10 +1514,17 @@ function updateRiderEnergy({
         : 0.86;
   const enduranceFactor = 1.2 - rider.ratings.endurance / 300;
   const longEffortFactor = 1 + (segmentIndex / Math.max(1, segmentCount - 1)) * 0.22;
+  const riderTerrainRating = profileType
+    ? getSelectionTerrainRating(
+        rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      )
+    : getTerrainRating(rider, segment);
   const terrainDeficit = Math.max(
     0,
-    (groupPaceRating ?? getTerrainRating(rider, segment)) -
-      getTerrainRating(rider, segment)
+    (groupPaceRating ?? riderTerrainRating) - riderTerrainRating
   );
   const paceSustainabilityFactor =
     1 + terrainDeficit * (segment.terrain === "climb" ? 0.025 : 0.015);
@@ -1497,6 +1574,7 @@ function dropStrugglingRiders({
   segmentIndex,
   profileType,
   chasePressure,
+  hillyClimbLoad,
   random,
   commentary,
 }: {
@@ -1505,6 +1583,7 @@ function dropStrugglingRiders({
   segmentIndex: number;
   profileType: RaceProfileType;
   chasePressure: number;
+  hillyClimbLoad: number;
   random: () => number;
   commentary: string[];
 }) {
@@ -1513,15 +1592,32 @@ function dropStrugglingRiders({
   if (peloton.length < 4) return;
   const ranked = [...peloton].sort(
     (first, second) =>
-      getTerrainRating(second.rider, segment) -
-      getTerrainRating(first.rider, segment)
+      getSelectionTerrainRating(
+        second.rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      ) -
+      getSelectionTerrainRating(
+        first.rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      )
   );
   const frontRiders = ranked.slice(
     0,
     Math.max(2, Math.ceil(ranked.length * 0.2))
   );
   const frontTerrainRating = average(
-    frontRiders.map((state) => getTerrainRating(state.rider, segment))
+    frontRiders.map((state) =>
+      getSelectionTerrainRating(
+        state.rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      )
+    )
   );
   const frontResistance = average(
     frontRiders.map((state) => state.rider.ratings.resistance)
@@ -1551,7 +1647,13 @@ function dropStrugglingRiders({
     }
 
     const terrainDeficit =
-      frontTerrainRating - getTerrainRating(state.rider, segment);
+      frontTerrainRating -
+      getSelectionTerrainRating(
+        state.rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      );
     const secondarySupport =
       Math.max(0, state.rider.ratings.resistance - frontResistance) * 0.12 +
       Math.max(0, state.energy - frontEnergy) * 0.06;
@@ -1979,6 +2081,13 @@ function maybeCreateRaceIncident({
         random() * 16;
     }
 
+    if (type === "puncture") {
+      timeLossSeconds = reduceMechanicalIncidentTimeLoss(
+        timeLossSeconds,
+        state.rider.mechanicalIncidentTimeReductionPct ?? 0,
+      );
+    }
+
     state.lostTimeSeconds += timeLossSeconds;
     state.elapsedTimeSeconds += timeLossSeconds;
 
@@ -2372,12 +2481,46 @@ function getRoadFinishScores(
     .sort((first, second) => second[1] - first[1])
     .map(([teamId]) => teamId);
   const finalAttackScores: Array<{ state: RiderState; score: number }> = [];
+  const sprintContenders = [...peloton]
+    .filter((state) => state.rider.role === "sprinter")
+    .sort(
+      (first, second) =>
+        getSprintLaunchRating(second) - getSprintLaunchRating(first)
+    );
+  const borrowedWheelByRiderId = new Map<string, RiderState>();
+  const primaryFavorite = sprintContenders[0];
 
-  if (sprintFinish && peloton.length > 3) {
-    const bestTrain = positionedTeams[0];
-    if (bestTrain) {
-      const teamName = peloton.find((state) => state.rider.teamId === bestTrain)?.rider.teamName;
-      if (teamName) commentary.push(`${teamName} prend la tête de la mise en place du sprint.`);
+  if (sprintFinish && primaryFavorite) {
+    for (const challenger of sprintContenders.slice(1)) {
+      const trainRank = positionedTeams.indexOf(challenger.rider.teamId);
+      const canFollowFavorite =
+        challenger.rider.teamId !== primaryFavorite.rider.teamId &&
+        trainRank > 1 &&
+        getSprintLaunchRating(challenger) >=
+          getSprintLaunchRating(primaryFavorite) - 8;
+      if (canFollowFavorite) {
+        borrowedWheelByRiderId.set(
+          challenger.rider.id,
+          primaryFavorite
+        );
+      }
+    }
+
+    const wheelFollower = [...borrowedWheelByRiderId.keys()]
+      .map((riderId) => states.get(riderId))
+      .find((state): state is RiderState => state !== undefined);
+    if (wheelFollower) {
+      commentary.push(
+        `${primaryFavorite.rider.name} lance le sprint ; ${wheelFollower.rider.name} a pris sa roue malgré les maillots adverses.`
+      );
+    } else if (sprintContenders[1]) {
+      commentary.push(
+        `${primaryFavorite.rider.name} et ${sprintContenders[1].rider.name} se découvrent pour jouer la victoire.`
+      );
+    } else {
+      commentary.push(
+        `${primaryFavorite.rider.name} lance le sprint en position de favori.`
+      );
     }
   }
 
@@ -2413,7 +2556,7 @@ function getRoadFinishScores(
       }
     } else if (sprintFinish && state.group !== "abandoned") {
       const trainRank = positionedTeams.indexOf(rider.teamId);
-      const trainBonus =
+      const ownTrainBonus =
         trainRank === 0
           ? 5
           : trainRank === 1
@@ -2421,16 +2564,21 @@ function getRoadFinishScores(
             : trainRank >= 0 && trainRank < 4
               ? 1
               : 0;
+      const borrowedWheel = borrowedWheelByRiderId.has(rider.id);
+      const positioningBonus = borrowedWheel
+        ? Math.max(3.5, ownTrainBonus)
+        : ownTrainBonus;
       const roleFactor =
         rider.role === "sprinter" ? 3 : rider.role === "leadout" ? -3 : 0;
-      const lostWheelPenalty = trainRank > 2 && random() < 0.16 ? 4 : 0;
+      const lostWheelPenalty =
+        !borrowedWheel && trainRank > 2 && random() < 0.16 ? 4 : 0;
       score =
         rider.ratings.sprint * 0.76 +
         rider.ratings.acceleration * 0.12 +
         rider.ratings.resistance * 0.04 +
         state.energy * 0.08 +
         getRaceDayBonus(rider) +
-        trainBonus +
+        positioningBonus +
         roleFactor -
         lostWheelPenalty;
     } else if (profileType === "hilly") {
@@ -2690,6 +2838,15 @@ function splitFinishGroupByTime(
   }
 
   return groups;
+}
+
+function getSprintLaunchRating(state: RiderState) {
+  return (
+    state.rider.ratings.sprint * 0.68 +
+    state.rider.ratings.acceleration * 0.2 +
+    state.rider.ratings.resistance * 0.04 +
+    state.energy * 0.08
+  );
 }
 
 function getSprintTrainScores(states: RiderState[]) {
@@ -2993,6 +3150,67 @@ function getTerrainRating(rider: RiderSimulationInput, segment: RaceStageSegment
   return rating + getRaceDayBonus(rider);
 }
 
+export function getHillyClimbSelectionRating(
+  rider: RiderSimulationInput,
+  segment: RaceStageSegment,
+  accumulatedClimbLoad: number
+) {
+  const baseRating = getTerrainRating(rider, segment);
+  const gradient = Math.abs(segment.averageGradientPct);
+  if (segment.terrain !== "climb" || gradient >= 6) {
+    return baseRating;
+  }
+
+  const mountainAdvantage = Math.max(
+    0,
+    rider.ratings.mountain - rider.ratings.hills
+  );
+  const freshMountainSupport =
+    mountainAdvantage *
+    0.56 *
+    clamp(1 - accumulatedClimbLoad / 48, 0, 1);
+  const repetitionPenalty =
+    Math.max(0, accumulatedClimbLoad - 24) *
+    (mountainAdvantage / 25) *
+    0.055;
+
+  return baseRating + freshMountainSupport - repetitionPenalty;
+}
+
+export function getNextHillyClimbLoad(
+  currentLoad: number,
+  segment: RaceStageSegment,
+  profileType: RaceProfileType
+) {
+  if (profileType !== "hilly") return 0;
+
+  const gradient = Math.abs(segment.averageGradientPct);
+  if (segment.terrain === "climb") {
+    const gradientFactor = gradient < 6 ? 0.55 + gradient / 12 : 0.38;
+    return currentLoad + segment.distanceKm * gradientFactor;
+  }
+
+  const recoveryPerKm = segment.terrain === "descent" ? 0.04 : 0.02;
+  return Math.max(0, currentLoad - segment.distanceKm * recoveryPerKm);
+}
+
+function getSelectionTerrainRating(
+  rider: RiderSimulationInput,
+  segment: RaceStageSegment,
+  profileType: RaceProfileType,
+  hillyClimbLoad: number
+) {
+  if (profileType !== "hilly") {
+    return getTerrainRating(rider, segment);
+  }
+
+  return getHillyClimbSelectionRating(
+    rider,
+    segment,
+    hillyClimbLoad
+  );
+}
+
 function splitDroppedGroups(states: RiderState[]) {
   const ordered = [...states].sort(
     (first, second) => first.lostTimeSeconds - second.lostTimeSeconds
@@ -3131,7 +3349,10 @@ function isBreakawaySpecialist(rider: RiderSimulationInput) {
 }
 
 function getRaceDayBonus(rider: RiderSimulationInput) {
-  return rider.localRaceBonus ?? 0;
+  return (
+    (rider.localRaceBonus ?? 0) +
+    getRiderExperienceRaceBonus(rider.careerRaceDays ?? 0)
+  );
 }
 
 function getBaseSpeed(segment: RaceStageSegment) {
@@ -3148,11 +3369,18 @@ function getDroppedRiderLoss(
   segment: RaceStageSegment,
   frontTerrainRating: number,
   profileType: RaceProfileType,
+  hillyClimbLoad: number,
   random: () => number
 ) {
   const terrainDeficit = Math.max(
     0,
-    frontTerrainRating - getTerrainRating(state.rider, segment)
+    frontTerrainRating -
+      getSelectionTerrainRating(
+        state.rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      )
   );
 
   if (segment.terrain === "climb") {
@@ -3175,12 +3403,19 @@ function getDroppedRiderLoss(
 
 function getFrontTerrainRating(
   states: RiderState[],
-  segment: RaceStageSegment
+  segment: RaceStageSegment,
+  profileType: RaceProfileType,
+  hillyClimbLoad: number
 ) {
   if (states.length === 0) return 60;
   return average(
     getGroupPaceSetters(states, segment, 0.2).map((state) =>
-      getTerrainRating(state.rider, segment)
+      getSelectionTerrainRating(
+        state.rider,
+        segment,
+        profileType,
+        hillyClimbLoad
+      )
     )
   );
 }

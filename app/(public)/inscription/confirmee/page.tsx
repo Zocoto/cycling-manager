@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 
+import { EmailVerificationResendForm } from "@/components/auth/email-verification-resend-form";
+
 export const metadata: Metadata = {
   title: "Confirmation de l’inscription",
   description:
@@ -74,8 +76,8 @@ export default async function ConfirmationPage({
 
             <p className="mx-auto mt-5 max-w-md text-base leading-7 text-[#BFD1C6]">
               {confirmationSucceeded
-                ? "Votre compte Cyclo Stratège est désormais validé. La connexion sera activée lors de la prochaine étape du développement."
-                : "Le lien de confirmation est invalide ou a expiré. Une nouvelle demande de confirmation pourra être effectuée depuis l’espace de connexion."}
+                ? "Votre compte Cyclo Stratège est désormais validé. Vous pouvez vous connecter et commencer votre carrière."
+                : "Le lien de confirmation est invalide, incomplet ou a expiré. Demandez un nouveau message ci-dessous."}
             </p>
 
             <div className="mt-8">
@@ -87,12 +89,9 @@ export default async function ConfirmationPage({
                   Accéder à la connexion
                 </Link>
               ) : (
-                <Link
-                  href="/inscription"
-                  className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#F2C94C]/70 px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#F2C94C] transition hover:bg-[#F2C94C]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-                >
-                  Retour à l’inscription
-                </Link>
+                <div className="text-left">
+                  <EmailVerificationResendForm />
+                </div>
               )}
             </div>
 

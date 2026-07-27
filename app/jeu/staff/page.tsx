@@ -16,6 +16,7 @@ import {
   isTrainerSpecialty,
   type StaffRole,
 } from "@/lib/game/staff";
+import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -318,10 +319,7 @@ function StaffMarketCard({
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
-      <div
-        className="h-1.5"
-        style={{ backgroundColor: definition.accent }}
-      />
+      <div className="h-1.5" style={{ backgroundColor: definition.accent }} />
       <div className="p-5">
         <div className="flex items-start gap-4">
           <span
@@ -362,6 +360,8 @@ function StaffMarketCard({
             Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
           </p>
         ) : null}
+
+        <StaffTalentBlock member={member} />
 
         <div className="mt-4 rounded-2xl bg-[#F2F8F5] p-4">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
@@ -405,9 +405,7 @@ function StaffMarketCard({
                 : "mt-4 rounded-xl bg-[#EEF1F0] px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-[#60756E]"
             }
           >
-            {listing.hiredByCurrentTeam
-              ? "Dans votre staff"
-              : "Déjà recruté"}
+            {listing.hiredByCurrentTeam ? "Dans votre staff" : "Déjà recruté"}
           </p>
         )}
 
@@ -470,8 +468,9 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
           </h2>
           <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">
             Lorsque plusieurs membres du staff interviennent sur un même
-            périmètre, leurs effets s’additionnent. La nationalité du scout
-            définit sa zone géographique de prédilection.
+            périmètre, leurs effets s’additionnent. Un staff de la nationalité
+            de l’équipe reçoit 10 % d’efficacité en plus ; pour l’entraîneur,
+            l’affinité se mesure avec le coureur suivi.
           </p>
           <Link
             href="/jeu/staff?onglet=marche"
@@ -569,6 +568,7 @@ function TeamStaffCard({ member }: { member: TeamStaffMember }) {
           Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
         </p>
       ) : null}
+      <StaffTalentBlock member={member} />
       <ul className="mt-4 space-y-2 text-sm font-bold leading-5 text-[#176951]">
         {member.effects.map((effect) => (
           <li key={effect}>◆ {effect}</li>
@@ -583,6 +583,30 @@ function TeamStaffCard({ member }: { member: TeamStaffMember }) {
         </p>
       </div>
     </article>
+  );
+}
+
+function StaffTalentBlock({ member }: { member: TeamStaffMember }) {
+  if (member.talents.length === 0 && !member.nationalityAffinity) return null;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
+      {member.talents.map((talent) => (
+        <div key={talent.code}>
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
+            Talent {talent.slot}/3 · {talent.label}
+          </p>
+          <p className="mt-1 text-xs font-bold leading-5 text-[#5E4A18]">
+            {talent.description}
+          </p>
+        </div>
+      ))}
+      {member.nationalityAffinity ? (
+        <p className="mt-2 text-[10px] font-black text-[#176951]">
+          Affinité nationale · {getStaffNationalityAffinityDescription()}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

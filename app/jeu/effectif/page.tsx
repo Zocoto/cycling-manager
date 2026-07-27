@@ -32,6 +32,7 @@ import {
 import { getCurrentTeamDivisionForAuthUser } from "../../../services/team-divisions";
 import {
   getRiderSportingProfile,
+  type RiderRatingImportance,
   type RiderRatings,
 } from "../../../lib/game/rider-profile";
 import { getRiderRatingColorClasses } from "../../../lib/game/rider-rating-colors";
@@ -44,6 +45,7 @@ import {
   type RosterSortKey,
   type RosterSortValue,
 } from "../../../lib/game/roster-sort";
+import { MAX_TEAM_ROSTER_SIZE } from "../../../lib/game/team-roster-capacity";
 import {
   getCurrentTeamHealthOverview,
   type RiderFormCamp,
@@ -121,71 +123,85 @@ const ratingColumns: Array<{
   key: RatingKey;
   label: string;
   fullLabel: string;
+  importance: RiderRatingImportance;
 }> = [
   {
     key: "mountain",
     label: "MON",
     fullLabel: "Montagne",
+    importance: "primary",
   },
   {
     key: "hills",
     label: "VAL",
     fullLabel: "Vallon",
+    importance: "primary",
   },
   {
     key: "flat",
     label: "PLA",
     fullLabel: "Plaine",
+    importance: "primary",
   },
   {
     key: "time_trial",
     label: "CLM",
     fullLabel: "Contre-la-montre",
+    importance: "primary",
   },
   {
     key: "cobbles",
     label: "PAV",
     fullLabel: "Pavés",
+    importance: "primary",
   },
   {
     key: "sprint",
     label: "SPR",
     fullLabel: "Sprint",
+    importance: "primary",
   },
   {
     key: "acceleration",
     label: "ACC",
     fullLabel: "Accélération",
+    importance: "secondary",
   },
   {
     key: "downhill",
     label: "DES",
     fullLabel: "Descente",
+    importance: "secondary",
   },
   {
     key: "endurance",
     label: "END",
     fullLabel: "Endurance",
+    importance: "secondary",
   },
   {
     key: "resistance",
     label: "RES",
     fullLabel: "Résistance",
+    importance: "secondary",
   },
   {
     key: "recovery",
     label: "REC",
     fullLabel: "Récupération",
+    importance: "secondary",
   },
   {
     key: "breakaway",
     label: "BAR",
     fullLabel: "Baroudeur",
+    importance: "secondary",
   },
   {
     key: "prologue",
     label: "PRO",
     fullLabel: "Prologue",
+    importance: "secondary",
   },
 ];
 
@@ -365,6 +381,7 @@ export default async function TeamRosterPage({
     ? createSponsoredRiderJersey({
         colors: teamSponsorIdentity.sponsor.colors,
         style: teamSponsorIdentity.selectedJersey.style,
+        imagePath: teamSponsorIdentity.selectedJersey.imagePath,
       })
     : teamAmateurIdentity
       ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
@@ -446,8 +463,8 @@ export default async function TeamRosterPage({
           >
             <SummaryCard
               label="Coureurs"
-              value={String(riders.length)}
-              detail="Sous contrat actif"
+              value={`${riders.length} / ${MAX_TEAM_ROSTER_SIZE}`}
+              detail="Sous contrat actif · maximum autorisé"
             />
 
             <SummaryCard
@@ -557,7 +574,7 @@ export default async function TeamRosterPage({
                     </div>
                   </div>
 
-                  <div className="hidden overflow-x-auto xl:block">
+                  <div className="hidden max-h-[calc(100vh-6rem)] overflow-auto overscroll-contain [scrollbar-gutter:stable] xl:block">
                     <table className="min-w-[1380px] w-full border-collapse">
                       <thead>
                         <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
@@ -566,7 +583,7 @@ export default async function TeamRosterPage({
                             label="Coureur"
                             fullLabel="nom du coureur"
                             align="left"
-                            className="sticky left-0 z-10 min-w-64 shadow-[8px_0_16px_-14px_rgba(8,42,42,0.45)]"
+                            className="left-0 z-30 min-w-64 shadow-[8px_0_16px_-14px_rgba(8,42,42,0.45)]"
                             linkClassName="px-4"
                             currentSortKey={currentSortKey}
                             currentDirection={currentSortDirection}
@@ -616,6 +633,7 @@ export default async function TeamRosterPage({
                               sortKey={column.key}
                               label={column.label}
                               fullLabel={column.fullLabel}
+                              importance={column.importance}
                               linkClassName="px-1"
                               currentSortKey={currentSortKey}
                               currentDirection={currentSortDirection}
@@ -1018,6 +1036,7 @@ function SortableTableHeader({
   align = "center",
   className,
   linkClassName,
+  importance,
 }: {
   sortKey: RosterSortKey;
   label: string;
@@ -1027,6 +1046,7 @@ function SortableTableHeader({
   align?: "left" | "center" | "right";
   className?: string;
   linkClassName?: string;
+  importance?: RiderRatingImportance;
 }) {
   const isActive = currentSortKey === sortKey;
   const nextDirection = getNextRosterSortDirection({
@@ -1054,10 +1074,14 @@ function SortableTableHeader({
           : undefined
       }
       className={[
-        "p-0 text-xs font-extrabold uppercase tracking-wider",
+        "sticky top-0 z-20 p-0 text-xs font-extrabold uppercase tracking-wider",
         isActive
           ? "bg-[#E1F0EA] text-[#176951]"
-          : "bg-[#F3F8F6] text-[#48665F]",
+          : importance === "primary"
+            ? "bg-[#EAF4EF] text-[#234E45]"
+            : importance === "secondary"
+              ? "bg-[#F7F9F8] text-[#82928F]"
+              : "bg-[#F3F8F6] text-[#48665F]",
         className,
       ]
         .filter(Boolean)
@@ -1310,10 +1334,19 @@ function RiderMobileCard({
         </div>
         <dl className="mt-3 grid grid-cols-4 gap-2 min-[420px]:grid-cols-5 sm:grid-cols-7">
           {ratingColumns.map((column) => (
-            <div key={column.key} className="text-center">
+            <div
+              key={column.key}
+              data-rating-importance={column.importance}
+              className="text-center"
+            >
               <dt
                 title={column.fullLabel}
-                className="text-[9px] font-extrabold uppercase tracking-wide text-[#60756E]"
+                className={[
+                  "text-[9px] uppercase tracking-wide",
+                  column.importance === "primary"
+                    ? "font-black text-[#48665F]"
+                    : "font-bold text-[#91A098]",
+                ].join(" ")}
               >
                 {column.label}
               </dt>
@@ -1321,6 +1354,7 @@ function RiderMobileCard({
                 <RatingBadge
                   value={rider[column.key]}
                   label={column.fullLabel}
+                  importance={column.importance}
                 />
               </dd>
             </div>
@@ -1484,8 +1518,12 @@ function RiderTableRow({
         const value = rider[column.key];
 
         return (
-          <td key={column.key} className="px-1 py-4 text-center">
-            <RatingBadge value={value} label={column.fullLabel} />
+          <td
+            key={column.key}
+            data-rating-importance={column.importance}
+            className={column.importance === "primary" ? "px-1 py-4 text-center" : "bg-[#FAFBFA] px-1 py-4 text-center"}
+          >
+            <RatingBadge value={value} label={column.fullLabel} importance={column.importance} />
           </td>
         );
       })}
@@ -1561,13 +1599,22 @@ function RiderFormBadge({ value }: { value: number }) {
   );
 }
 
-function RatingBadge({ value, label }: { value: number; label: string }) {
+function RatingBadge({
+  value,
+  label,
+  importance,
+}: {
+  value: number;
+  label: string;
+  importance: RiderRatingImportance;
+}) {
   return (
     <span
       title={`${label} : ${value}`}
+      data-rating-importance={importance}
       className={[
         "inline-flex h-8 min-w-9 items-center justify-center rounded-md border px-1.5 text-xs font-black",
-        getRiderRatingColorClasses(value),
+        getRiderRatingColorClasses(value, importance),
       ].join(" ")}
     >
       {value}

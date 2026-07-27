@@ -649,6 +649,7 @@ function RaceCalendarList({
             registration,
             availability,
             isPast,
+            minimumReputation: edition.minimumReputation,
           });
 
           return (
@@ -746,10 +747,12 @@ function getListRegistrationStatus({
   registration,
   availability,
   isPast,
+  minimumReputation,
 }: {
   registration: RaceCalendarEdition["currentTeamRegistration"];
   availability: ReturnType<typeof getRegistrationAvailability>;
   isPast: boolean;
+  minimumReputation: number | null;
 }): { label: string; tone: "success" | "warning" | "neutral" | "danger" } {
   if (registration?.status === "accepted") {
     return { label: `Inscrite · ${registration.rosterCount}`, tone: "success" };
@@ -767,7 +770,13 @@ function getListRegistrationStatus({
     return { label: "Clôturée", tone: "neutral" };
   }
   if (availability === "reputation_locked") {
-    return { label: "Réputation requise", tone: "danger" };
+    return {
+      label:
+        minimumReputation === null
+          ? "Réputation requise"
+          : `${minimumReputation} pts requis`,
+      tone: "danger",
+    };
   }
   if (availability === "criteria_pending") {
     return { label: "Critères à venir", tone: "warning" };

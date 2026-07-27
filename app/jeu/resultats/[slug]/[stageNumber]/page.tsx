@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceStageExperience } from "@/components/game/race-stage-experience";
+import { RaceStageNavigation } from "@/components/game/race-stage-navigation";
 import Link from "@/components/ui/app-link";
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
@@ -174,6 +175,12 @@ export default async function RaceLivePage({
             ← Toutes les courses
           </Link>
         </div>
+
+        <RaceStageNavigation
+          edition={edition}
+          currentStageNumber={stage.stageNumber}
+          currentDayNumber={calendar.currentDayNumber}
+        />
 
         <RaceStageExperience
           entry={{ edition, stage }}

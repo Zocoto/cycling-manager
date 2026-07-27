@@ -528,9 +528,9 @@ function toProject(
     id: project.id,
     code: project.infrastructure_code,
     name:
-      project.infrastructure_code === "recruitment_data_room"
-        ? "Data Room du recrutement"
-        : "École de cyclisme internationale",
+      project.infrastructure_code === "international_youth_center"
+        ? "École de cyclisme internationale"
+        : TEAM_INFRASTRUCTURE_DEFINITIONS[project.infrastructure_code].name,
     countryName: project.country_id
       ? countryById.get(project.country_id)?.name ?? "Pays"
       : null,

@@ -6,6 +6,10 @@ import type {
 import { createCalendarSimulationInput } from "./race-simulation-demo";
 import { removeOneDayRaceMountainPrimes } from "./race-profiles";
 import {
+  assignStageRaceJerseys,
+  getStageRaceJerseyByRiderId,
+} from "./stage-race-jerseys";
+import {
   buildStageRaceStandings,
   simulateRaceStage,
   type StageRaceStandings,
@@ -23,7 +27,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-synchronized-v2";
+export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-experience-v4";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -78,6 +82,124 @@ export function sanitizeOfficialStageSimulationForRaceFormat({
   return {
     input: sanitizedInput,
     simulation: sanitizedSimulation,
+  };
+}
+
+function hydrateLockedRiderVisualMetadata({
+  edition,
+  input,
+  simulation,
+}: {
+  edition: RaceCalendarEdition;
+  input: StageSimulationInput;
+  simulation: StageSimulationResult;
+}) {
+  const metadataByRiderId = new Map(
+    edition.engagedRiders.map((rider) => [rider.id, rider])
+  );
+  const hydrateRider = (
+    rider: StageSimulationInput["riders"][number]
+  ) => {
+    const current = metadataByRiderId.get(rider.id);
+    if (!current) return rider;
+    const avatarProfileKey =
+      current.avatarProfileKey ?? rider.avatarProfileKey;
+    const avatarSeed = current.avatarSeed ?? rider.avatarSeed;
+    const nationalChampionships =
+      current.nationalChampionships ?? rider.nationalChampionships;
+    if (
+      avatarProfileKey === rider.avatarProfileKey &&
+      avatarSeed === rider.avatarSeed &&
+      nationalChampionships === rider.nationalChampionships
+    ) {
+      return rider;
+    }
+    return {
+      ...rider,
+      avatarProfileKey,
+      avatarSeed,
+      nationalChampionships,
+    };
+  };
+
+  const hydratedInputRiders = input.riders.map(hydrateRider);
+  const hydratedResolvedRiders =
+    simulation.resolvedRiders.map(hydrateRider);
+  const inputChanged = hydratedInputRiders.some(
+    (rider, index) => rider !== input.riders[index]
+  );
+  const simulationChanged = hydratedResolvedRiders.some(
+    (rider, index) => rider !== simulation.resolvedRiders[index]
+  );
+
+  return {
+    input: inputChanged
+      ? { ...input, riders: hydratedInputRiders }
+      : input,
+    simulation: simulationChanged
+      ? { ...simulation, resolvedRiders: hydratedResolvedRiders }
+      : simulation,
+  };
+}
+
+function decorateStageRaceJerseys({
+  stage,
+  input,
+  simulation,
+  standingsBeforeStage,
+}: {
+  stage: RaceCalendarStage;
+  input: StageSimulationInput;
+  simulation: StageSimulationResult;
+  standingsBeforeStage: StageRaceStandings | null;
+}) {
+  const classificationJerseyByRiderId =
+    getStageRaceJerseyByRiderId(
+      assignStageRaceJerseys(standingsBeforeStage)
+    );
+  const nationalChampionshipDiscipline =
+    stage.stageType === "individual_time_trial" ||
+    stage.stageType === "prologue"
+      ? "time_trial"
+      : "road";
+  const decorateRider = (
+    rider: StageSimulationInput["riders"][number]
+  ) => {
+    const classificationJersey =
+      classificationJerseyByRiderId.get(rider.id) ?? null;
+    const activeNationalChampion =
+      rider.nationalChampionships?.[
+        nationalChampionshipDiscipline
+      ] ?? null;
+    if (
+      classificationJersey === (rider.classificationJersey ?? null) &&
+      activeNationalChampion === (rider.activeNationalChampion ?? null)
+    ) {
+      return rider;
+    }
+    return {
+      ...rider,
+      classificationJersey,
+      activeNationalChampion,
+    };
+  };
+  const decoratedInputRiders = input.riders.map(decorateRider);
+  const decoratedResolvedRiders =
+    simulation.resolvedRiders.map(decorateRider);
+  const inputChanged = decoratedInputRiders.some(
+    (rider, index) => rider !== input.riders[index]
+  );
+  const simulationChanged = decoratedResolvedRiders.some(
+    (rider, index) => rider !== simulation.resolvedRiders[index]
+  );
+
+  return {
+    input: inputChanged
+      ? { ...input, riders: decoratedInputRiders }
+      : input,
+    simulation: simulationChanged
+      ? { ...simulation, resolvedRiders: decoratedResolvedRiders }
+      : simulation,
   };
 }
 
@@ -164,6 +286,24 @@ export function getOfficialStageSimulationContext({
         ): simulation is LockedOfficialStageSimulation =>
           simulation !== undefined
       );
+    const simulationsBeforeStage = orderedStages
+      .slice(0, selectedIndex)
+      .map((candidateStage) => lockedByStageId.get(candidateStage.id))
+      .filter(
+        (
+          simulation
+        ): simulation is LockedOfficialStageSimulation =>
+          simulation !== undefined
+      );
+    const standingsBeforeStage =
+      edition.raceFormat === "stage_race" &&
+      simulationsBeforeStage.length > 0
+        ? buildStageRaceStandings(
+            simulationsBeforeStage.map(
+              (lockedSimulation) => lockedSimulation.simulation
+            )
+          )
+        : null;
 
     const sanitizedLockedSimulationData =
       sanitizeOfficialStageSimulationForRaceFormat({
@@ -173,10 +313,25 @@ export function getOfficialStageSimulationContext({
           selectedLockedSimulation.simulation,
       });
 
+    const hydratedLockedSimulationData =
+      hydrateLockedRiderVisualMetadata({
+        edition,
+        input: sanitizedLockedSimulationData.input,
+        simulation: sanitizedLockedSimulationData.simulation,
+      });
+
+    const decoratedLockedSimulationData =
+      decorateStageRaceJerseys({
+        stage,
+        input: hydratedLockedSimulationData.input,
+        simulation: hydratedLockedSimulationData.simulation,
+        standingsBeforeStage,
+      });
+
     return {
       stage,
-      input: sanitizedLockedSimulationData.input,
-      simulation: sanitizedLockedSimulationData.simulation,
+      input: decoratedLockedSimulationData.input,
+      simulation: decoratedLockedSimulationData.simulation,
       standings:
         edition.raceFormat === "stage_race"
           ? buildStageRaceStandings(
@@ -198,8 +353,25 @@ export function getOfficialStageSimulationContext({
   }
 
   const selectedRun = runs[selectedIndex];
+  const standingsBeforeStage =
+    edition.raceFormat === "stage_race" && selectedIndex > 0
+      ? buildStageRaceStandings(
+          runs
+            .slice(0, selectedIndex)
+            .map((run) => run.simulation)
+        )
+      : null;
+  const decoratedSelectedRun = decorateStageRaceJerseys({
+    stage: selectedRun.stage,
+    input: selectedRun.input,
+    simulation: selectedRun.simulation,
+    standingsBeforeStage,
+  });
+
   return {
     ...selectedRun,
+    input: decoratedSelectedRun.input,
+    simulation: decoratedSelectedRun.simulation,
     standings:
       edition.raceFormat === "stage_race"
         ? buildStageRaceStandings(

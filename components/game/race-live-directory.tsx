@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import Link from "@/components/ui/app-link";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
+import Link from "@/components/ui/app-link";
 import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
@@ -11,22 +11,27 @@ import {
   RACE_PROFILE_LABELS,
   compareRaceDaySlots,
   isCurrentTeamRegisteredForRace,
-  isRaceEditionPast,
   type RaceCalendarEdition,
   type RaceCalendarStage,
   type RaceCategoryCode,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 import {
-  RACE_SIMULATION_DEMO_SLUG,
   canSimulateRaceEdition,
   getStageLiveState,
 } from "@/lib/game/race-live";
 
 type ResultsScope = "team" | "all";
 
-const PAST_RACE_PATTERN =
-  "repeating-linear-gradient(135deg, rgba(11, 48, 43, 0.055) 0, rgba(11, 48, 43, 0.055) 1px, transparent 1px, transparent 8px)";
+type DirectoryEntry = {
+  edition: RaceCalendarEdition;
+  stage: RaceCalendarStage;
+};
+
+type DirectoryEdition = {
+  edition: RaceCalendarEdition;
+  stages: RaceCalendarStage[];
+};
 
 export function RaceLiveDirectory({
   calendar,
@@ -42,10 +47,7 @@ export function RaceLiveDirectory({
   const [now, setNow] = useState(() => new Date(nowIso));
 
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setNow(new Date()),
-      15_000
-    );
+    const timer = window.setInterval(() => setNow(new Date()), 15_000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -55,99 +57,87 @@ export function RaceLiveDirectory({
         .filter(
           (edition) =>
             edition.competitionType === "standard" ||
-            edition.engagedRiderCount > 0
+            edition.engagedRiderCount > 0,
         )
         .flatMap((edition) =>
           edition.stages.map((stage) => ({
             edition,
             stage,
-          }))
+          })),
         )
         .sort(
           (first, second) =>
             first.stage.dayNumber - second.stage.dayNumber ||
-            compareRaceDaySlots(
-              first.stage.daySlot,
-              second.stage.daySlot
-            ) ||
-            first.edition.prestigeRank -
-              second.edition.prestigeRank ||
-            first.stage.stageNumber -
-              second.stage.stageNumber
+            compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
+            first.edition.prestigeRank - second.edition.prestigeRank ||
+            first.stage.stageNumber - second.stage.stageNumber,
         ),
-    [calendar.editions]
+    [calendar.editions],
   );
   const scopeEntries =
     scope === "all"
       ? entries
       : entries.filter(({ edition }) =>
-          isCurrentTeamRegisteredForRace(edition)
+          isCurrentTeamRegisteredForRace(edition),
         );
   const visibleEntries =
     selectedCategories.length === 0
       ? scopeEntries
       : scopeEntries.filter(({ edition }) =>
-          selectedCategories.includes(edition.categoryCode)
+          selectedCategories.includes(edition.categoryCode),
         );
-  const visibleEditions = useMemo(() => {
-    const grouped = new Map<
-      string,
-      {
-        edition: RaceCalendarEdition;
-        stages: RaceCalendarStage[];
-      }
-    >();
-    for (const entry of visibleEntries) {
-      const current = grouped.get(entry.edition.id) ?? {
-        edition: entry.edition,
-        stages: [],
-      };
-      current.stages.push(entry.stage);
-      grouped.set(entry.edition.id, current);
-    }
-    return [...grouped.values()];
-  }, [visibleEntries]);
-  const liveCount = scopeEntries.filter(
-    ({ stage }) =>
-      getStageLiveState(stage, now).status === "live"
+  const currentDayEntries = visibleEntries.filter(
+    ({ stage }) => stage.dayNumber === calendar.currentDayNumber,
+  );
+  const currentEditionIds = new Set(
+    currentDayEntries.map(({ edition }) => edition.id),
+  );
+  const pastEntries = visibleEntries.filter(
+    ({ edition, stage }) =>
+      stage.dayNumber < calendar.currentDayNumber &&
+      !currentEditionIds.has(edition.id),
+  );
+  const currentEditions = groupEntriesByEdition(currentDayEntries);
+  const pastEditions = groupEntriesByEdition(pastEntries).reverse();
+  const liveCount = currentDayEntries.filter(
+    ({ stage }) => getStageLiveState(stage, now).status === "live",
   ).length;
-  const finishedCount = scopeEntries.filter(
-    ({ stage }) =>
-      getStageLiveState(stage, now).status === "finished"
+  const replayCount = currentDayEntries.filter(
+    ({ stage }) => getStageLiveState(stage, now).status === "finished",
   ).length;
 
   function toggleCategory(category: RaceCategoryCode) {
     setSelectedCategories((current) =>
       current.includes(category)
         ? current.filter((value) => value !== category)
-        : [...current, category]
+        : [...current, category],
     );
   }
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
-      <div className="bg-[linear-gradient(135deg,#071A17,#176951)] px-5 py-6 text-white sm:px-8 sm:py-8">
+    <section className="overflow-visible rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
+      <div className="overflow-hidden rounded-t-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-5 py-6 text-white sm:px-8 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#9BE0CA]">
-              Saison {calendar.gameYear}
+              Saison {calendar.gameYear} · Jour {calendar.currentDayNumber}
             </p>
             <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
-              Répertoire Résultats / Live
+              Résultats / Live du jour
             </h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#C1D3CA]">
-              Chaque course s’ouvre désormais dans son propre espace : seuls son live, sa startlist, son chat et ses résultats sont chargés.
+              Accédez aux directs et aux replays du jour. Les anciennes courses
+              restent disponibles dans les archives.
             </p>
           </div>
-          <div className="flex gap-2 text-xs font-black">
+          <div className="flex flex-wrap gap-2 text-xs font-black">
             {liveCount > 0 ? (
               <span className="rounded-full bg-[#EF5B65] px-3 py-2 text-white shadow-[0_0_22px_rgba(239,91,101,0.45)]">
                 ● {liveCount} en direct
               </span>
             ) : null}
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[#DCE9E3]">
-              {finishedCount} replay
-              {finishedCount > 1 ? "s" : ""}
+              {replayCount} replay{replayCount > 1 ? "s" : ""} aujourd’hui
             </span>
           </div>
         </div>
@@ -179,9 +169,7 @@ export function RaceLiveDirectory({
                     : "border-[#315B3E]/25 bg-white text-[#315B3E]"
                 }`}
               >
-                {value === "team"
-                  ? "Mon équipe"
-                  : "Toutes les courses"}
+                {value === "team" ? "Mon équipe" : "Toutes les courses"}
               </button>
             ))}
           </div>
@@ -214,8 +202,7 @@ export function RaceLiveDirectory({
             </button>
             {RACE_CATEGORY_CODES.map((category) => {
               const style = RACE_CATEGORY_STYLE[category];
-              const selected =
-                selectedCategories.includes(category);
+              const selected = selectedCategories.includes(category);
               return (
                 <button
                   key={category}
@@ -225,19 +212,13 @@ export function RaceLiveDirectory({
                   className="inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-xs font-extrabold uppercase tracking-wider transition hover:-translate-y-0.5"
                   style={{
                     borderColor: style.border,
-                    backgroundColor: selected
-                      ? style.background
-                      : "#FFFFFF",
-                    color: selected
-                      ? style.foreground
-                      : style.border,
+                    backgroundColor: selected ? style.background : "#FFFFFF",
+                    color: selected ? style.foreground : style.border,
                   }}
                 >
                   <span
                     className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      backgroundColor: style.background,
-                    }}
+                    style={{ backgroundColor: style.background }}
                   />
                   {style.label}
                 </button>
@@ -245,91 +226,301 @@ export function RaceLiveDirectory({
             })}
           </div>
         </div>
-        <div className="mt-4 flex justify-end">
-          <span className="inline-flex items-center gap-2 text-[11px] font-bold text-[#60756E]">
-            <span
-              aria-hidden="true"
-              className="h-4 w-7 rounded border border-[#315B3E]/20 bg-[#F8FBF9]"
-              style={{
-                backgroundImage:
-                  PAST_RACE_PATTERN,
-              }}
-            />
-            Hachuré : course passée, replay disponible
-          </span>
-        </div>
       </div>
 
-      <div className="grid max-h-[48rem] gap-3 overflow-y-auto p-4 sm:p-6 lg:grid-cols-2">
-        {visibleEditions.map(({ edition, stages }) => (
-          <RaceDirectoryCard
-            key={edition.id}
-            edition={edition}
-            stages={stages}
-            now={now}
-            isPast={isRaceEditionPast({
-              edition,
-              currentDayNumber:
-                calendar.currentDayNumber,
-            })}
-          />
-        ))}
-        {visibleEditions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#315B3E]/25 bg-[#F8FBF9] px-6 py-10 text-center lg:col-span-2">
-            <p className="font-black text-[#0B302B]">
-              {scope === "team"
-                ? "Votre équipe n’est engagée sur aucune course de cette sélection."
-                : "Aucune course ne correspond à ces catégories."}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
+      <div className="p-4 sm:p-6">
+        <div className="grid gap-3 lg:grid-cols-2">
+          {currentEditions.map(({ edition, stages }) => (
+            <DirectoryCard
+              key={edition.id}
+              edition={edition}
+              stages={stages}
+              currentDayNumber={calendar.currentDayNumber}
+              now={now}
+              period="today"
+            />
+          ))}
+          {currentEditions.length === 0 ? (
+            <DirectoryEmptyState
+              scope={scope}
+              hasCategoryFilter={selectedCategories.length > 0}
+              onReset={() => {
                 setSelectedCategories([]);
                 if (scope === "team") setScope("all");
               }}
-              className="mt-4 min-h-10 rounded-full bg-[#0B302B] px-5 text-xs font-extrabold uppercase tracking-wider text-white"
-            >
-              {scope === "team"
-                ? "Voir toutes les courses"
-                : "Réinitialiser les catégories"}
-            </button>
-          </div>
-        ) : null}
+            />
+          ) : null}
+        </div>
       </div>
+
+      {pastEditions.length > 0 ? (
+        <details className="group/archive border-t border-[#315B3E]/15 bg-[#F6FAF7] last:rounded-b-[2rem]">
+          <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:content-none sm:px-8 [&::-webkit-details-marker]:hidden">
+            <span>
+              <span className="block text-xs font-extrabold uppercase tracking-[0.18em] text-[#315B3E]">
+                Courses passées
+              </span>
+              <span className="mt-1 block text-xs font-semibold text-[#688176]">
+                Retrouvez les résultats et replays des jours précédents.
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-3">
+              <span className="rounded-full bg-[#176951]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
+                {pastEditions.length} course{pastEditions.length > 1 ? "s" : ""}
+              </span>
+              <span
+                aria-hidden="true"
+                className="text-xl font-black text-[#176951] transition group-open/archive:rotate-180"
+              >
+                ⌄
+              </span>
+            </span>
+          </summary>
+          <div className="grid gap-3 border-t border-[#315B3E]/10 p-4 sm:p-6 lg:grid-cols-2">
+            {pastEditions.map(({ edition, stages }) => (
+              <DirectoryCard
+                key={edition.id}
+                edition={edition}
+                stages={stages}
+                currentDayNumber={calendar.currentDayNumber}
+                now={now}
+                period="past"
+              />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </section>
   );
 }
 
-function RaceDirectoryCard({
+function DirectoryCard({
   edition,
   stages,
+  currentDayNumber,
   now,
-  isPast,
+  period,
 }: {
   edition: RaceCalendarEdition;
   stages: RaceCalendarStage[];
+  currentDayNumber: number;
   now: Date;
-  isPast: boolean;
+  period: "today" | "past";
+}) {
+  if (edition.raceFormat === "stage_race") {
+    return (
+      <TourDirectoryCard
+        edition={edition}
+        visibleStages={stages}
+        currentDayNumber={currentDayNumber}
+        now={now}
+        period={period}
+      />
+    );
+  }
+
+  const stage = stages[stages.length - 1];
+  if (!stage) {
+    return null;
+  }
+
+  return (
+    <OneDayDirectoryCard
+      edition={edition}
+      stage={stage}
+      now={now}
+      period={period}
+    />
+  );
+}
+
+function TourDirectoryCard({
+  edition,
+  visibleStages,
+  currentDayNumber,
+  now,
+  period,
+}: {
+  edition: RaceCalendarEdition;
+  visibleStages: RaceCalendarStage[];
+  currentDayNumber: number;
+  now: Date;
+  period: "today" | "past";
 }) {
   const style = RACE_CATEGORY_STYLE[edition.categoryCode];
-  const pastRaceStyle = isPast
-    ? {
-        backgroundImage: PAST_RACE_PATTERN,
-      }
-    : undefined;
+  const anchorStage = [...visibleStages].sort(
+    (first, second) => second.stageNumber - first.stageNumber,
+  )[0];
+  const availableStages = edition.stages.filter(
+    (stage) => stage.dayNumber <= currentDayNumber,
+  );
+  const futureStageCount = edition.stages.length - availableStages.length;
+  const state = anchorStage ? getStageLiveState(anchorStage, now) : null;
 
   return (
     <article
-      data-race-period={isPast ? "past" : "current-or-upcoming"}
-      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9]"
-      style={pastRaceStyle}
+      data-race-period={period}
+      data-race-format="stage-race"
+      className="relative rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] shadow-sm"
     >
-      <header
-        className={`flex items-center gap-3 border-b border-[#315B3E]/10 px-4 py-3 ${
-          isPast ? "bg-[#F4F8F6]" : "bg-white"
-        }`}
-        style={pastRaceStyle}
+      <div className="flex items-center gap-3 rounded-t-2xl border-b border-[#315B3E]/10 bg-white px-4 py-3">
+        <span
+          className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
+          style={{
+            backgroundColor: style.background,
+            color: style.foreground,
+          }}
+        >
+          {style.shortLabel}
+        </span>
+        <span
+          className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
+          aria-label={edition.countryName}
+        />
+        <span className="min-w-0 flex-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#688176]">
+          Tour · {edition.stages.length} étapes
+        </span>
+        {state ? (
+          <LiveStateBadge
+            status={state.status}
+            simulationAvailable={canSimulateRaceEdition(edition)}
+            scheduledLabel={RACE_DAY_SLOT_CONFIG[anchorStage.daySlot].shortLabel}
+          />
+        ) : null}
+      </div>
+
+      <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(180px,1.1fr)] sm:items-center">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            {period === "today" && anchorStage
+              ? `Étape du jour · E${anchorStage.stageNumber}`
+              : anchorStage
+                ? `Dernier replay · E${anchorStage.stageNumber}`
+                : "Épreuve par étapes"}
+          </p>
+          <h3 className="mt-1 truncate text-base font-black text-[#0B302B]">
+            {edition.name}
+          </h3>
+          {anchorStage ? (
+            <>
+              <p className="mt-1 truncate text-xs font-bold text-[#48665F]">
+                {anchorStage.name}
+              </p>
+              <p className="mt-1 text-[10px] font-semibold text-[#789087]">
+                {RACE_PROFILE_LABELS[anchorStage.profileType]} ·{" "}
+                {formatDistance(anchorStage.distanceKm)} km
+              </p>
+            </>
+          ) : null}
+          <Link
+            href={`/jeu/resultats/${edition.slug}`}
+            className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-[#0B302B] px-4 text-xs font-black text-white transition hover:-translate-y-0.5 hover:bg-[#176951]"
+          >
+            Ouvrir le tour →
+          </Link>
+        </div>
+        {anchorStage ? (
+          <RaceStageProfile segments={anchorStage.segments} compact />
+        ) : null}
+      </div>
+
+      <StageSummaryPopover
+        edition={edition}
+        availableStages={availableStages}
+        futureStageCount={futureStageCount}
+        now={now}
+      />
+    </article>
+  );
+}
+
+function StageSummaryPopover({
+  edition,
+  availableStages,
+  futureStageCount,
+  now,
+}: {
+  edition: RaceCalendarEdition;
+  availableStages: RaceCalendarStage[];
+  futureStageCount: number;
+  now: Date;
+}) {
+  return (
+    <details className="group/stages relative border-t border-[#315B3E]/10">
+      <summary
+        title="Afficher le résumé des étapes"
+        className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] marker:content-none [&::-webkit-details-marker]:hidden"
       >
+        Résumé des étapes
+        <span aria-hidden="true">ⓘ</span>
+      </summary>
+      <div className="invisible absolute bottom-10 right-3 z-30 w-[min(23rem,calc(100vw-3rem))] translate-y-1 rounded-2xl border border-[#176951]/20 bg-white p-3 opacity-0 shadow-[0_18px_45px_rgba(11,48,43,0.24)] transition group-hover/stages:visible group-hover/stages:translate-y-0 group-hover/stages:opacity-100 group-focus-within/stages:visible group-focus-within/stages:translate-y-0 group-focus-within/stages:opacity-100 group-open/stages:visible group-open/stages:translate-y-0 group-open/stages:opacity-100">
+        <p className="px-1 pb-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#315B3E]">
+          {edition.name}
+        </p>
+        <ul className="max-h-64 space-y-1 overflow-y-auto">
+          {availableStages.map((stage) => {
+            const state = getStageLiveState(stage, now);
+            return (
+              <li key={stage.id}>
+                <Link
+                  href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+                  prefetch={false}
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl px-2 py-2 text-left normal-case tracking-normal transition hover:bg-[#EAF5F0]"
+                >
+                  <span className="rounded-lg bg-[#176951]/10 px-2 py-1 text-[10px] font-black text-[#176951]">
+                    E{stage.stageNumber}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-black text-[#0B302B]">
+                      {stage.name}
+                    </span>
+                    <span className="block text-[9px] font-bold text-[#789087]">
+                      J{stage.dayNumber} ·{" "}
+                      {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
+                      {formatDistance(stage.distanceKm)} km
+                    </span>
+                  </span>
+                  <span className="text-[9px] font-black uppercase text-[#176951]">
+                    {({ live: "Live", finished: "Replay", scheduled: "À venir", cancelled: "Annulée" } as const)[state.status]}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        {futureStageCount > 0 ? (
+          <p className="mt-2 rounded-lg bg-[#F4F8F6] px-3 py-2 text-[9px] font-bold normal-case tracking-normal text-[#688176]">
+            {futureStageCount} étape{futureStageCount > 1 ? "s" : ""} à venir
+            apparaîtra{futureStageCount > 1 ? "ont" : ""} au fil des jours.
+          </p>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
+function OneDayDirectoryCard({
+  edition,
+  stage,
+  now,
+  period,
+}: {
+  edition: RaceCalendarEdition;
+  stage: RaceCalendarStage;
+  now: Date;
+  period: "today" | "past";
+}) {
+  const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+  const state = getStageLiveState(stage, now);
+
+  return (
+    <article
+      data-race-period={period}
+      data-race-format="one-day"
+      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] shadow-sm"
+    >
+      <div className="flex items-center gap-3 border-b border-[#315B3E]/10 bg-white px-4 py-3">
         <span
           className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
           style={{
@@ -346,67 +537,63 @@ function RaceDirectoryCard({
         <h3 className="min-w-0 flex-1 truncate text-sm font-black text-[#0B302B]">
           {edition.name}
         </h3>
-        <span className="rounded-full bg-[#176951]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#176951]">
-          {edition.slug === RACE_SIMULATION_DEMO_SLUG &&
-          edition.engagedRiderCount === 0
-            ? "Démo"
-            : `${edition.engagedRiderCount} engagé${edition.engagedRiderCount > 1 ? "s" : ""}`}
-        </span>
-      </header>
-      <div className="divide-y divide-[#315B3E]/10">
-        {stages.map((stage) => {
-          const state = getStageLiveState(stage, now);
-          return (
-            <Link
-              key={stage.id}
-              href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
-              prefetch={false}
-              className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white sm:grid-cols-[minmax(140px,0.72fr)_minmax(180px,1.28fr)] sm:items-center"
-            >
-              <span className="min-w-0">
-                <span className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                    J{stage.dayNumber} ·{" "}
-                    {
-                      RACE_DAY_SLOT_CONFIG[stage.daySlot]
-                        .shortLabel
-                    }
-                    {edition.raceFormat === "stage_race"
-                      ? ` · E${stage.stageNumber}`
-                      : ""}
-                  </span>
-                  <LiveStateBadge
-                    status={state.status}
-                    simulationAvailable={canSimulateRaceEdition(
-                      edition
-                    )}
-                    scheduledLabel={
-                      RACE_DAY_SLOT_CONFIG[stage.daySlot]
-                        .shortLabel
-                    }
-                  />
-                </span>
-                <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
-                  {edition.raceFormat === "stage_race"
-                    ? stage.name
-                    : RACE_PROFILE_LABELS[stage.profileType]}
-                </span>
-                <span className="mt-1 block text-[10px] font-semibold text-[#789087]">
-                  {stage.distanceKm.toLocaleString("fr-FR", {
-                    maximumFractionDigits: 1,
-                  })}{" "}
-                  km · {state.durationMinutes} min de live
-                </span>
-              </span>
-              <RaceStageProfile
-                segments={stage.segments}
-                compact
-              />
-            </Link>
-          );
-        })}
+        <LiveStateBadge
+          status={state.status}
+          simulationAvailable={canSimulateRaceEdition(edition)}
+          scheduledLabel={RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
+        />
       </div>
+      <Link
+        href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+        prefetch={false}
+        className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white sm:grid-cols-[minmax(140px,0.72fr)_minmax(180px,1.28fr)] sm:items-center"
+      >
+        <span className="min-w-0">
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
+            J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
+          </span>
+          <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
+            {RACE_PROFILE_LABELS[stage.profileType]}
+          </span>
+          <span className="mt-1 block text-[10px] font-semibold text-[#789087]">
+            {formatDistance(stage.distanceKm)} km · {state.durationMinutes} min
+            de live
+          </span>
+        </span>
+        <RaceStageProfile segments={stage.segments} compact />
+      </Link>
     </article>
+  );
+}
+
+function DirectoryEmptyState({
+  scope,
+  hasCategoryFilter,
+  onReset,
+}: {
+  scope: ResultsScope;
+  hasCategoryFilter: boolean;
+  onReset: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[#315B3E]/25 bg-[#F8FBF9] px-6 py-10 text-center lg:col-span-2">
+      <p className="font-black text-[#0B302B]">
+        {scope === "team"
+          ? "Votre équipe n’a aucune course aujourd’hui."
+          : hasCategoryFilter
+            ? "Aucune course du jour ne correspond à ces catégories."
+            : "Aucune course n’est programmée aujourd’hui."}
+      </p>
+      {scope === "team" || hasCategoryFilter ? (
+        <button
+          type="button"
+          onClick={onReset}
+          className="mt-4 min-h-10 rounded-full bg-[#0B302B] px-5 text-xs font-extrabold uppercase tracking-wider text-white"
+        >
+          {scope === "team" ? "Voir toutes les courses" : "Réinitialiser"}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -442,9 +629,30 @@ function LiveStateBadge({
 
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${style}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${style}`}
     >
       {label}
     </span>
   );
+}
+
+function groupEntriesByEdition(entries: DirectoryEntry[]): DirectoryEdition[] {
+  const grouped = new Map<string, DirectoryEdition>();
+
+  for (const entry of entries) {
+    const current = grouped.get(entry.edition.id) ?? {
+      edition: entry.edition,
+      stages: [],
+    };
+    current.stages.push(entry.stage);
+    grouped.set(entry.edition.id, current);
+  }
+
+  return [...grouped.values()];
+}
+
+function formatDistance(distanceKm: number) {
+  return distanceKm.toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+  });
 }

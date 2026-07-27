@@ -42,30 +42,28 @@ export function getRecognitionDateCandidates({
   currentDayNumber,
   seasonDays,
   riders,
+  durationDays = RECOGNITION_CAMP_DURATION_DAYS,
 }: {
   stage: RecognitionPlanningStage;
   currentDayNumber: number;
   seasonDays: RecognitionPlanningSeasonDay[];
   riders: RecognitionPlanningRider[];
+  durationDays?: number;
 }) {
   return getUpcomingRecognitionDays({
     seasonDays,
     currentDayNumber,
   })
-    .filter(
-      (day) =>
-        day.dayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1 <
-        stage.dayNumber,
-    )
+    .filter((day) => day.dayNumber + durationDays - 1 < stage.dayNumber)
     .map((day) => {
-      const endDayNumber =
-        day.dayNumber + RECOGNITION_CAMP_DURATION_DAYS - 1;
+      const endDayNumber = day.dayNumber + durationDays - 1;
       const scheduleValidation = validateRecognitionCampSchedule({
         currentDayNumber,
         startDayNumber: day.dayNumber,
         targetStageDayNumber: stage.dayNumber,
         targetEditionStartDayNumber: stage.editionStartDayNumber,
         targetEditionEndDayNumber: stage.editionEndDayNumber,
+        durationDays,
       });
       const riderConflicts = riders.flatMap((rider) => {
         const unavailability = findRiderUnavailability(

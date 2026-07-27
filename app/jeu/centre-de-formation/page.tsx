@@ -5,17 +5,21 @@ import { redirect } from "next/navigation";
 import {
   markYouthNotificationsReadAction,
   markYouthScoutingReportViewedAction,
+  naturalizeYouthRiderAction,
   recruitYouthRiderAction,
-  saveYouthTrainingPriorityAction,
+  saveYouthTrainingSettingsAction,
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
-import { TRAINING_DOMAINS, TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
+import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
+import { YOUTH_TRAINING_DOMAINS } from "@/lib/game/youth-training";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -137,25 +141,88 @@ function AcademyTab({ overview }: { overview: YouthDevelopmentOverview }) {
         </section>
       ) : null}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <SectionHeading eyebrow="Formation quotidienne" title="École de cyclisme" description="Choisissez une priorité par jeune. Une séance est traitée chaque jour de jeu et son évolution apparaît dans le dernier rapport." />
+        <SectionHeading eyebrow="Formation quotidienne" title="École de cyclisme" description="Programmez une séance automatique à 8 h avec un bonus ×2, ou jouez les deux créneaux manuels de minuit à midi et de midi à minuit. Un créneau manuel manqué n’est pas rattrapé." />
         <div className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-right"><p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">Frais annuels récurrents</p><p className="mt-1 text-2xl font-black text-[#071A17]">{formatCurrency(overview.totalTuitionPerSeason, overview.currency)}</p></div>
       </div>
-      {overview.academy.length ? <div className="space-y-4">{overview.academy.map((rider) => <AcademyRiderCard key={rider.id} rider={rider} gameYear={overview.gameYear} currency={overview.currency} />)}</div> : <EmptyState title="Votre école est encore vide" text="Signez un jeune depuis un rapport de scouting pour commencer sa formation." />}
+      {!overview.canScheduleYouthPromotion ? <Alert tone="error">Effectif de la saison prochaine complet : {overview.nextSeasonRosterCommitments} / {overview.rosterLimit} places sont déjà engagées. Libérez une place avant de programmer une nouvelle promotion.</Alert> : null}
+      {overview.academy.length ? <div className="space-y-4">{overview.academy.map((rider) => <AcademyRiderCard key={rider.id} rider={rider} gameYear={overview.gameYear} currency={overview.currency} canSchedulePromotion={overview.canScheduleYouthPromotion} rosterLimit={overview.rosterLimit} />)}</div> : <EmptyState title="Votre école est encore vide" text="Signez un jeune depuis un rapport de scouting pour commencer sa formation." />}
     </div>
   );
 }
 
-function AcademyRiderCard({ rider, gameYear, currency }: { rider: AcademyYouth; gameYear: number; currency: string }) {
+function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, rosterLimit }: { rider: AcademyYouth; gameYear: number; currency: string; canSchedulePromotion: boolean; rosterLimit: number }) {
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-[#315B3E]/12 bg-white shadow-sm">
       <div className="grid gap-5 p-5 xl:grid-cols-[minmax(250px,0.72fr)_minmax(0,1.35fr)_minmax(260px,0.75fr)] xl:items-center">
         <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.profileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} className="h-20 w-20" /><div className="min-w-0"><div className="flex items-center gap-2"><span className={`fi fi-${rider.countryCode.toLowerCase()} h-4 w-6 rounded`} /><span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">{rider.age} ans</span></div><h3 className="mt-2 text-xl font-black text-[#071A17]">{rider.firstName} {rider.lastName}</h3><p className="mt-1 text-xs font-extrabold text-[#278B70]">{rider.sportingProfile}</p><div className="mt-2"><PotentialStars potentialSteps={rider.potentialSteps} /></div></div></div>
-        <RatingsGrid ratings={rider.ratings} compact />
+        <div>
+          <p className="mb-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+            Projection professionnelle /100
+          </p>
+          <RatingsGrid ratings={rider.ratings} compact />
+        </div>
         <div className="space-y-3">
-          <form action={saveYouthTrainingPriorityAction} className="rounded-2xl bg-[#EAF5F3] p-3"><input type="hidden" name="academyRiderId" value={rider.id} /><label className="text-[9px] font-black uppercase tracking-[0.15em] text-[#60756E]">Priorité d’entraînement<select name="trainingPriority" defaultValue={rider.trainingPriority} className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]">{TRAINING_DOMAINS.map((domain) => <option key={domain} value={domain}>{TRAINING_DOMAIN_LABELS[domain]}</option>)}</select></label><button className="mt-2 w-full rounded-lg bg-[#176951] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white">Enregistrer</button></form>
-          {rider.latestTrainingReport ? <div className="rounded-xl border border-[#315B3E]/10 p-3"><p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">Rapport · jour {rider.latestTrainingReport.dayNumber}</p><p className="mt-1 text-xs font-bold text-[#176951]">{formatRatingChanges(rider.latestTrainingReport.ratingChanges)}</p></div> : null}
+          <NaturalizationCard
+            eligibility={rider.naturalization}
+            subjectName={`${rider.firstName} ${rider.lastName}`}
+            subjectId={rider.id}
+            subjectIdField="academyRiderId"
+            action={naturalizeYouthRiderAction}
+            compact
+          />
+          <form
+            action={saveYouthTrainingSettingsAction}
+            className="rounded-2xl bg-[#EAF5F3] p-3"
+          >
+            <input type="hidden" name="academyRiderId" value={rider.id} />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <label className="text-[9px] font-black uppercase tracking-[0.15em] text-[#60756E]">
+                Mode d’entraînement
+                <select
+                  name="trainingMode"
+                  defaultValue={rider.trainingMode}
+                  className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]"
+                >
+                  <option value="automatic">Automatique · 8 h · bonus ×2</option>
+                  <option value="manual">Manuel · 2 minijeux / jour</option>
+                </select>
+              </label>
+              <label className="text-[9px] font-black uppercase tracking-[0.15em] text-[#60756E]">
+                Profil travaillé
+                <select
+                  name="trainingPriority"
+                  defaultValue={rider.trainingPriority}
+                  className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]"
+                >
+                  {YOUTH_TRAINING_DOMAINS.map((domain) => (
+                    <option key={domain} value={domain}>
+                      {domain === "rouleur"
+                        ? "CLM / Rouleur"
+                        : TRAINING_DOMAIN_LABELS[domain]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <button className="mt-3 w-full rounded-lg bg-[#176951] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+              Enregistrer la programmation
+            </button>
+          </form>
+          <YouthTrainingMiniGame
+            academyRiderId={rider.id}
+            riderName={`${rider.firstName} ${rider.lastName}`}
+            trainingMode={rider.trainingMode}
+            gameType={rider.manualTraining.gameType}
+            currentSlotLabel={rider.manualTraining.currentSlotLabel}
+            currentSlotCompleted={rider.manualTraining.currentSlotCompleted}
+            currentSlotScore={rider.manualTraining.currentSlotScore}
+            completedSlotCount={rider.manualTraining.completedSlotCount}
+          />
+          {rider.latestTrainingReport ? <div className="rounded-xl border border-[#315B3E]/10 p-3"><p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+              Rapport · jour {rider.latestTrainingReport.dayNumber} · {rider.latestTrainingReport.trainingMode === "automatic" ? "auto" : rider.latestTrainingReport.slot === "manual_am" ? "matin" : "soir"}
+            </p><p className="mt-1 text-xs font-bold text-[#176951]">{formatRatingChanges(rider.latestTrainingReport.ratingChanges)}</p></div> : null}
           <p className="text-[10px] font-bold text-[#60756E]">Scolarité : {formatCurrency(rider.tuitionPerSeason, currency)} / saison</p>
-          {rider.status === "recruited" ? <div className="rounded-xl bg-[#F2C94C]/20 p-3 text-xs font-black text-[#8A6B16]">Recruté · arrivée pro en {rider.promotionGameYear}</div> : rider.canRecruit ? <form action={recruitYouthRiderAction}><input type="hidden" name="academyRiderId" value={rider.id} /><button className="w-full rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">Recruter pour {gameYear + 1}</button></form> : <p className="rounded-xl bg-[#F6F7F2] p-3 text-[10px] font-bold text-[#60756E]">Recrutable à partir de 17 ans.</p>}
+          {rider.status === "recruited" ? <div className="rounded-xl bg-[#F2C94C]/20 p-3 text-xs font-black text-[#8A6B16]">Recruté · arrivée pro en {rider.promotionGameYear}</div> : rider.canRecruit ? canSchedulePromotion ? <form action={recruitYouthRiderAction}><input type="hidden" name="academyRiderId" value={rider.id} /><button className="w-full rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">Recruter pour {gameYear + 1}</button></form> : <p className="rounded-xl bg-[#FFF0EE] p-3 text-[10px] font-bold text-[#8A2F2F]">Promotion impossible · {rosterLimit} places déjà engagées.</p> : <p className="rounded-xl bg-[#F6F7F2] p-3 text-[10px] font-bold text-[#60756E]">Recrutable à partir de 17 ans.</p>}
         </div>
       </div>
     </article>
@@ -181,10 +248,52 @@ function CandidateCard({ candidate, currency, balance }: { candidate: YouthCandi
   );
 }
 
-function RatingsGrid({ ratings, compact = false }: { ratings: Record<RiderRatingKey, number>; compact?: boolean }) {
-  return <div className={`grid gap-1.5 ${compact ? "grid-cols-7" : "grid-cols-5"}`}>{RIDER_RATING_AXES.map((axis) => <div key={axis.key} title={axis.label} className="rounded-lg border border-[#315B3E]/10 bg-white px-1 py-1.5 text-center"><span className="block text-[8px] font-black uppercase text-[#60756E]">{axis.shortLabel}</span><strong className="mt-0.5 block text-xs text-[#071A17]">{ratings[axis.key].toFixed(1)}</strong></div>)}</div>;
+function RatingsGrid({
+  ratings,
+  compact = false,
+}: {
+  ratings: Record<RiderRatingKey, number>;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={`grid gap-1.5 ${compact ? "grid-cols-7" : "grid-cols-5"}`}
+    >
+      {RIDER_RATING_AXES.map((axis) => (
+        <div
+          key={axis.key}
+          title={axis.label}
+          data-rating-importance={axis.importance}
+          className={[
+            "rounded-lg border px-1 py-1.5 text-center",
+            axis.importance === "primary"
+              ? "border-[#278B70]/18 bg-white shadow-sm"
+              : "border-[#315B3E]/8 bg-[#F1F5F3]",
+          ].join(" ")}
+        >
+          <span
+            className={
+              axis.importance === "primary"
+                ? "block text-[8px] font-black uppercase text-[#48665F]"
+                : "block text-[8px] font-bold uppercase text-[#91A098]"
+            }
+          >
+            {axis.shortLabel}
+          </span>
+          <strong
+            className={
+              axis.importance === "primary"
+                ? "mt-0.5 block text-xs text-[#071A17]"
+                : "mt-0.5 block text-xs font-bold text-[#71837D]"
+            }
+          >
+            {ratings[axis.key].toFixed(1)}
+          </strong>
+        </div>
+      ))}
+    </div>
+  );
 }
-
 function ActiveMissionCard({ mission, currentDay }: { mission: YouthMission; currentDay: number }) {
   const progress = Math.min(100, Math.max(4, ((currentDay - mission.startDayNumber) / mission.durationDays) * 100));
   return <article className="rounded-2xl border border-[#F2C94C]/45 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#8A6B16]">{mission.countryName}</p><h3 className="mt-1 font-black text-[#071A17]">{mission.scoutName}</h3></div><span className="rounded-full bg-[#F2C94C]/20 px-3 py-1 text-[9px] font-black text-[#8A6B16]">Retour J{mission.completesDayNumber}</span></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-[#315B3E]/10"><div className="h-full rounded-full bg-[#F2C94C]" style={{ width: `${progress}%` }} /></div></article>;

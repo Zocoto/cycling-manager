@@ -4,6 +4,7 @@ import { SPONSORS } from "@/data/sponsors";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   GAMEPLAY_RULES,
+  isFutureSponsoringWindowOpen,
   isSponsoringUnlocked,
 } from "@/lib/gameplay-rules";
 import {
@@ -11,14 +12,12 @@ import {
   type FutureSponsorOfferMode,
   type FutureSponsorSeason,
 } from "@/services/future-sponsor-offers";
-import {
-  getOrCreateSponsorOffersForAuthUser,
-  type PersistedSponsorOffer,
-} from "@/services/persisted-sponsor-offers";
+import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
 import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
+import type { SponsorObjectiveStatus } from "@/types/sponsor-objective";
 
-const FUTURE_SPONSORING_OPENING_DAY = 21;
+
 
 export type SponsorJerseyStyle =
   | "classic"
@@ -36,7 +35,7 @@ export type SponsorContractObjective = {
   name: string;
   description: string | null;
   displayOrder: number;
-  status: string;
+  status: SponsorObjectiveStatus;
 };
 
 export type PersistedSponsorContract = {
@@ -110,6 +109,11 @@ export type SponsoringState =
       kind: "locked";
       currentReputation: number;
       requiredReputation: number;
+    }
+  | {
+      kind: "amateur-qualified";
+      currentSeasonName: string;
+      future: FutureSponsoringState;
     }
   | {
       kind: "offers";
@@ -323,13 +327,20 @@ export async function getSponsoringStateForAuthUser(
     };
   }
 
-  const offers = await getOrCreateSponsorOffersForAuthUser(
-    normalizedAuthUserId
-  );
-
   return {
-    kind: "offers",
-    offers,
+    kind: "amateur-qualified",
+    currentSeasonName: activeSeason.name,
+    future: await resolveFutureSponsoringState({
+      supabase,
+      authUserId: normalizedAuthUserId,
+      teamId,
+      activeSeason,
+      currentContract: null,
+      terminatedContract: null,
+      nextGameYear,
+      targetSeasonName,
+      currentReputation: sportingDirector.reputation_points,
+    }),
   };
 }
 
@@ -376,9 +387,10 @@ async function resolveFutureSponsoringState({
         teamReputationPoints: currentReputation,
       });
 
-      const mode: FutureSponsorOfferMode = currentContract
-        ? "renewal"
-        : "replacement";
+      const mode = resolveFutureSponsorOfferMode({
+        currentContract,
+        terminatedContract,
+      });
 
       if (
         !futureContract.selectedJerseyId ||
@@ -413,14 +425,11 @@ async function resolveFutureSponsoringState({
     };
   }
 
-  if (
-    activeSeason.current_day_number <
-    FUTURE_SPONSORING_OPENING_DAY
-  ) {
+  if (!isFutureSponsoringWindowOpen(activeSeason.current_day_number)) {
     return {
       kind: "locked",
       currentDayNumber: activeSeason.current_day_number,
-      opensOnDay: FUTURE_SPONSORING_OPENING_DAY,
+      opensOnDay: GAMEPLAY_RULES.futureSponsoringOpeningDay,
       targetGameYear: nextGameYear,
       targetSeasonName,
     };
@@ -437,9 +446,10 @@ async function resolveFutureSponsoringState({
     };
   }
 
-  const mode: FutureSponsorOfferMode = currentContract
-    ? "renewal"
-    : "replacement";
+  const mode = resolveFutureSponsorOfferMode({
+    currentContract,
+    terminatedContract,
+  });
 
   const offerPackage =
     await getOrCreateFutureSponsorOffersForAuthUser({
@@ -467,6 +477,24 @@ async function resolveFutureSponsoringState({
     season: offerPackage.season,
     offers: offerPackage.offers,
   };
+}
+
+function resolveFutureSponsorOfferMode({
+  currentContract,
+  terminatedContract,
+}: {
+  currentContract: PersistedSponsorContract | null;
+  terminatedContract: PersistedSponsorContract | null;
+}): FutureSponsorOfferMode {
+  if (currentContract) {
+    return "renewal";
+  }
+
+  if (terminatedContract) {
+    return "replacement";
+  }
+
+  return "first-contract";
 }
 
 async function loadPrincipalContract({
@@ -612,29 +640,51 @@ async function hydrateSponsorContract({
     );
   }
 
-  const objectives = contractRow.sponsor_offer_id
-    ? (
-        await ensureAndLoadSponsorObjectives({
-          supabase,
-          seasonId: startSeasonResult.data.id,
-          teamReputationPoints,
-          offers: [
-            {
-              offerId: contractRow.sponsor_offer_id,
-              sponsor,
-            },
-          ],
-        })
-      )
-        .get(contractRow.sponsor_offer_id)
-        ?.map((objective) => ({
-          id: objective.id,
-          name: objective.name,
-          description: objective.description,
-          displayOrder: objective.displayOrder,
-          status: objective.status,
-        })) ?? []
-    : [];
+  let objectives: SponsorContractObjective[] = [];
+
+  if (contractRow.sponsor_offer_id) {
+    const objectiveContext = {
+      supabase,
+      seasonId: startSeasonResult.data.id,
+      teamReputationPoints,
+      offers: [
+        {
+          offerId: contractRow.sponsor_offer_id,
+          sponsor,
+        },
+      ],
+    } as const;
+    let objectivesByOffer =
+      await ensureAndLoadSponsorObjectives(objectiveContext);
+
+    if (contractRow.status === "active") {
+      const { error: evaluationError } = await supabase.rpc(
+        "evaluate_sponsor_objectives_for_contract",
+        {
+          p_contract_id: contractRow.id,
+          p_finalize: false,
+        },
+      );
+
+      if (evaluationError) {
+        throw new Error(
+          `Impossible d’évaluer les objectifs sponsor : ${evaluationError.message}`,
+        );
+      }
+
+      objectivesByOffer =
+        await ensureAndLoadSponsorObjectives(objectiveContext);
+    }
+
+    objectives =
+      objectivesByOffer.get(contractRow.sponsor_offer_id)?.map((objective) => ({
+        id: objective.id,
+        name: objective.name,
+        description: objective.description,
+        displayOrder: objective.displayOrder,
+        status: objective.status,
+      })) ?? [];
+  }
 
   const budgetPerSeason = Number(
     contractRow.budget_per_season

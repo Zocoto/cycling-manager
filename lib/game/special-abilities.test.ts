@@ -8,11 +8,11 @@ import {
 } from "./special-abilities";
 
 describe("special abilities", () => {
-  it("décrit exactement les huit médaillons connus", () => {
+  it("décrit exactement les dix médaillons connus", () => {
     expect(SPECIAL_ABILITY_CATALOG.map((ability) => ability.code)).toEqual(
       RIDER_SPECIAL_ABILITIES
     );
-    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(8);
+    expect(SPECIAL_ABILITY_CATALOG).toHaveLength(10);
     expect(
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "sandwich_man")
         ?.effect
@@ -21,6 +21,16 @@ describe("special abilities", () => {
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "iron_health")
         ?.effect,
     ).toContain("30 %");
+    expect(
+      SPECIAL_ABILITY_CATALOG.find(
+        (ability) => ability.code === "first_in_class",
+      )?.effect,
+    ).toContain("50 %");
+    const homegrownAbility = SPECIAL_ABILITY_CATALOG.find(
+      (ability) => ability.code === "homegrown",
+    );
+    expect(homegrownAbility?.effect).toContain("+2");
+    expect(homegrownAbility?.effect).toContain("non-renouvellement");
   });
 
   it("reconnaît une capacité historique ou une capacité parmi plusieurs", () => {

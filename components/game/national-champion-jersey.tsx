@@ -45,7 +45,14 @@ export function NationalChampionJersey({
       />
 
       <g clipPath={`url(#${jerseyClipId})`}>
-        <foreignObject x="0" y="0" width="260" height="300">
+        <foreignObject
+          x="0"
+          y="0"
+          width="260"
+          height="300"
+          overflow="hidden"
+          style={{ overflow: "hidden" }}
+        >
           <span
             aria-hidden="true"
             className={`fi fi-${normalizedCountryCode}`}

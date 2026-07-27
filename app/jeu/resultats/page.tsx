@@ -105,11 +105,19 @@ export default async function RaceResultsPage({
     const edition = calendar.editions.find(
       (candidate) => candidate.slug === initialRaceSlug
     );
+    if (edition?.raceFormat === "stage_race") {
+      redirect(`/jeu/resultats/${edition.slug}`);
+    }
+
     const stage = edition
       ? selectRaceStageForLiveAccess(edition.stages, now)
       : null;
 
-    if (edition && stage) {
+    if (
+      edition &&
+      stage &&
+      stage.dayNumber <= calendar.currentDayNumber
+    ) {
       redirect(
         `/jeu/resultats/${edition.slug}/${stage.stageNumber}`
       );

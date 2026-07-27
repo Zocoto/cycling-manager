@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
+import { NutritionInterventionControls } from "@/components/game/nutrition-intervention-controls";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   FORM_CAMP_TYPES,
@@ -94,6 +95,7 @@ export default async function HealthCenterPage({
     ? createSponsoredRiderJersey({
         colors: sponsorIdentity.sponsor.colors,
         style: sponsorIdentity.selectedJersey.style,
+        imagePath: sponsorIdentity.selectedJersey.imagePath,
       })
     : amateurIdentity
       ? createAmateurRiderJersey(amateurIdentity.jersey)
@@ -571,6 +573,17 @@ function NutritionPanel({
       getNutritionistDailyCapacity(member.level),
   );
   const referenceNutritionist = availableNutritionist ?? nutritionists[0];
+  const nutritionistOptions = nutritionists.map((nutritionist) => {
+    const used = usageByContract.get(nutritionist.contractId) ?? 0;
+    const capacity = getNutritionistDailyCapacity(nutritionist.level);
+
+    return {
+      contractId: nutritionist.contractId,
+      name: `${nutritionist.firstName} ${nutritionist.lastName}`,
+      level: nutritionist.level,
+      remainingCapacity: Math.max(0, capacity - used),
+    };
+  });
 
   return (
     <section className="mt-7">
@@ -700,30 +713,13 @@ function NutritionPanel({
                       {applied.label} appliquée aujourd’hui · {applied.formBefore} → {applied.formAfter} de forme.
                     </p>
                   ) : (
-                    <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                      <select
-                        name="interventionCode"
-                        defaultValue="recovery_snack"
-                        disabled={disabled}
-                        className="min-h-11 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E]"
-                      >
-                        {(Object.keys(NUTRITION_INTERVENTIONS) as NutritionInterventionCode[]).map((code) => {
-                          const intervention = NUTRITION_INTERVENTIONS[code];
-                          const unlocked = (availableNutritionist?.level ?? 0) >= intervention.minimumNutritionistLevel;
-                          return (
-                            <option key={code} value={code} disabled={!unlocked}>
-                              {intervention.label}{unlocked ? "" : ` · niveau ${intervention.minimumNutritionistLevel} requis`}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <HealthCenterSubmitButton
-                        pendingLabel="Application…"
-                        disabled={disabled}
-                      >
-                        Appliquer
-                      </HealthCenterSubmitButton>
-                    </div>
+                    <NutritionInterventionControls
+                      nutritionists={nutritionistOptions}
+                      riderForm={rider.form}
+                      balance={overview.balance}
+                      currency={overview.currency}
+                      disabled={disabled}
+                    />
                   )}
                 </form>
               );

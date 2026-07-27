@@ -406,16 +406,19 @@ function PreviewContent({
                     const value = preview.ratings![axis.key];
                     const tone =
                       value.kind === "exact"
-                        ? getRiderRatingColorClasses(value.value)
-                        : "border-[#D9E3DE] bg-white text-[#48665F]";
+                        ? getRiderRatingColorClasses(value.value, axis.importance)
+                        : axis.importance === "primary"
+                          ? "border-[#D9E3DE] bg-white text-[#48665F] shadow-sm"
+                          : "border-[#E4EAE7] bg-[#F7F9F8] text-[#82958F]";
 
                     return (
                       <div
                         key={axis.key}
                         title={axis.label}
+                        data-rating-importance={axis.importance}
                         className={`flex min-h-12 flex-col items-center justify-center rounded-lg border px-1 py-1.5 ${tone}`}
                       >
-                        <span className="text-[9px] font-extrabold opacity-70">
+                        <span className={axis.importance === "primary" ? "text-[9px] font-black" : "text-[9px] font-bold opacity-60"}>
                           {axis.shortLabel}
                         </span>
                         <span className="mt-0.5 text-xs font-black">

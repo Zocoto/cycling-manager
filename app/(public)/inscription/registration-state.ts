@@ -8,6 +8,7 @@ export type RegistrationState = {
   status: "idle" | "error" | "success";
   message: string;
   fieldErrors: Partial<Record<RegistrationField, string[]>>;
+  email?: string;
 };
 
 export const initialRegistrationState: RegistrationState = {

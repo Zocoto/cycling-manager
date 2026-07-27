@@ -425,11 +425,11 @@ export function calculateRiderSeasonSalary({
 
   const safeOverall = clamp(overall, 0, 100);
   const talentFactor = Math.max(0, (safeOverall - 45) / 55);
-  const talentSalary = 2_500 + talentFactor ** 2 * 100_000;
-  const pedigreeBonus = Math.min(37_500, Math.max(0, previousSeasonUciPoints) * 30)
-    + Math.min(20_000, Math.max(0, majorWins) * 5_000);
+  const talentSalary = 6_000 + talentFactor ** 2.15 * 240_000;
+  const pedigreeBonus = Math.min(90_000, Math.max(0, previousSeasonUciPoints) * 50)
+    + Math.min(50_000, Math.max(0, majorWins) * 10_000);
 
-  return Math.round(clamp(talentSalary + pedigreeBonus, 2_500, 150_000) / 100) * 100;
+  return Math.round(clamp(talentSalary + pedigreeBonus, 6_000, 400_000) / 100) * 100;
 }
 
 export function getDivisionForRank(rank: number): TeamDivisionCode {

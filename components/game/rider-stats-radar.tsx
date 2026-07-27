@@ -62,7 +62,7 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
             x2={point.x}
             y2={point.y}
             stroke="#315B3E"
-            strokeOpacity="0.14"
+            strokeOpacity={RIDER_RATING_AXES[index].importance === "primary" ? 0.18 : 0.08}
           />
         ))}
 
@@ -79,10 +79,10 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
             key={RIDER_RATING_AXES[index].key}
             cx={point.x}
             cy={point.y}
-            r="2.8"
+            r={RIDER_RATING_AXES[index].importance === "primary" ? 3.2 : 2.2}
             fill="#FFFDF4"
-            stroke="#176951"
-            strokeWidth="1.8"
+            stroke={RIDER_RATING_AXES[index].importance === "primary" ? "#176951" : "#91A69F"}
+            strokeWidth={RIDER_RATING_AXES[index].importance === "primary" ? 1.9 : 1.2}
           />
         ))}
 
@@ -98,9 +98,9 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
               y={y}
               textAnchor={x < CENTER - 10 ? "end" : x > CENTER + 10 ? "start" : "middle"}
               dominantBaseline="middle"
-              fill="#183F37"
+              fill={axis.importance === "primary" ? "#183F37" : "#82958F"}
               fontSize="10"
-              fontWeight="900"
+              fontWeight={axis.importance === "primary" ? "900" : "700"}
             >
               {axis.shortLabel}
             </text>
@@ -113,13 +113,14 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
           <div
             key={axis.key}
             title={axis.label}
+            data-rating-importance={axis.importance}
             aria-label={`${axis.label} : ${ratings[axis.key]}`}
             className={[
               "flex items-center justify-between gap-2 rounded-lg border px-3 py-2",
-              getRiderRatingColorClasses(ratings[axis.key]),
+              getRiderRatingColorClasses(ratings[axis.key], axis.importance),
             ].join(" ")}
           >
-            <span className="text-[11px] font-extrabold opacity-75">
+            <span className={axis.importance === "primary" ? "text-[11px] font-black" : "text-[11px] font-bold opacity-65"}>
               {axis.shortLabel}
             </span>
             <span className="text-sm font-black">

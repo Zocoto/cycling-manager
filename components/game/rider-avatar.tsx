@@ -67,15 +67,18 @@ export function RiderAvatar({
     "M 1 96 C 3 82, 14 76, 34 71 L 39 69 H 57 L 62 71 C 82 76, 93 82, 95 96 Z";
 
   return (
-    <svg
-      aria-label={label}
-      role="img"
-      viewBox="0 0 96 96"
+    <span
       className={[
-        "shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm",
+        "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:paint]",
         className,
       ].join(" ")}
     >
+      <svg
+        aria-label={label}
+        role="img"
+        viewBox="0 0 96 96"
+        className="block h-full w-full overflow-hidden"
+      >
       <defs>
         <clipPath id={shoulderClipId}>
           <path d={shouldersPath} />
@@ -94,7 +97,16 @@ export function RiderAvatar({
           clipPathId={shoulderClipId}
         />
       ) : (
-        <JerseyPattern jersey={resolvedJersey} clipPathId={shoulderClipId} />
+        <>
+          <JerseyPattern jersey={resolvedJersey} clipPathId={shoulderClipId} />
+          {resolvedJersey.status === "sponsored" &&
+          resolvedJersey.imagePath ? (
+            <SponsorJerseyArtwork
+              imagePath={resolvedJersey.imagePath}
+              clipPathId={shoulderClipId}
+            />
+          ) : null}
+        </>
       )}
 
       <path
@@ -106,17 +118,22 @@ export function RiderAvatar({
         fill={design.skinTone}
       />
 
-      <path
-        d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"
-        fill={resolvedJersey.secondaryColor}
-      />
-      <path
-        d="M 39 70 Q 48 77 57 70"
-        fill="none"
-        stroke={resolvedJersey.accentColor}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      {resolvedJersey.status !== "sponsored" ||
+      !resolvedJersey.imagePath ? (
+        <>
+          <path
+            d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"
+            fill={resolvedJersey.secondaryColor}
+          />
+          <path
+            d="M 39 70 Q 48 77 57 70"
+            fill="none"
+            stroke={resolvedJersey.accentColor}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </>
+      ) : null}
 
       <Ears design={design} centerX={centerX} y={earY} />
 
@@ -164,7 +181,8 @@ export function RiderAvatar({
           <path d="M 42 61 q 6 2 12 0" />
         </g>
       ) : null}
-    </svg>
+      </svg>
+    </span>
   );
 }
 
@@ -179,7 +197,14 @@ function NationalChampionFlagPattern({
 
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <foreignObject x="0" y="64" width="96" height="34">
+      <foreignObject
+        x="0"
+        y="64"
+        width="96"
+        height="34"
+        overflow="hidden"
+        style={{ overflow: "hidden" }}
+      >
         <span
           aria-hidden="true"
           className={`fi fi-${normalizedCountryCode}`}
@@ -197,6 +222,36 @@ function NationalChampionFlagPattern({
     </g>
   );
 }
+
+function SponsorJerseyArtwork({
+  imagePath,
+  clipPathId,
+}: {
+  imagePath: string;
+  clipPathId: string;
+}) {
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      <image
+        data-sponsor-jersey-artwork="true"
+        href={imagePath}
+        x="-6"
+        y="62"
+        width="110"
+        height="138"
+        preserveAspectRatio="none"
+      />
+      <path
+        d="M2 94C8 80 20 75 35 71M94 94C88 80 76 75 61 71"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="1.2"
+        opacity="0.1"
+      />
+    </g>
+  );
+}
+
 function JerseyPattern({
   jersey,
   clipPathId,

@@ -1,4 +1,7 @@
-import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
+import {
+  RIDER_RATING_AXES,
+  type RiderRatingImportance,
+} from "@/lib/game/rider-profile";
 import {
   formatScoutedNumericValue,
   formatScoutedPotentialValue,
@@ -59,6 +62,7 @@ export function TransferScoutingReportPanel({
             key={axis.key}
             label={axis.shortLabel}
             value={report.ratings[axis.key]}
+            importance={axis.importance}
           />
         ))}
       </div>
@@ -97,9 +101,11 @@ function ScoutingSummaryBadge({
 function ScoutingRating({
   label,
   value,
+  importance,
 }: {
   label: string;
   value: ScoutedNumericValue;
+  importance: RiderRatingImportance;
 }) {
   const valueClass =
     value.kind === "exact"
@@ -109,11 +115,28 @@ function ScoutingRating({
         : "text-[#8A6B16]";
 
   return (
-    <span className="rounded-xl border border-[#315B3E]/10 bg-white px-2 py-2 text-center shadow-sm">
-      <span className="block text-[9px] font-black uppercase tracking-wider text-[#60756E]">
+    <span
+      data-rating-importance={importance}
+      className={`rounded-xl border px-2 py-2 text-center ${
+        importance === "primary"
+          ? "border-[#278B70]/18 bg-white shadow-sm"
+          : "border-[#315B3E]/8 bg-[#F1F5F3]"
+      }`}
+    >
+      <span
+        className={`block text-[9px] uppercase tracking-wider ${
+          importance === "primary"
+            ? "font-black text-[#48665F]"
+            : "font-bold text-[#8A9A94]"
+        }`}
+      >
         {label}
       </span>
-      <span className={`mt-0.5 block text-xs font-black ${valueClass}`}>
+      <span
+        className={`mt-0.5 block text-xs ${
+          importance === "primary" ? "font-black" : "font-bold opacity-75"
+        } ${valueClass}`}
+      >
         {formatScoutedNumericValue(value)}
       </span>
     </span>

@@ -1,5 +1,6 @@
 export const GAMEPLAY_RULES = {
   sponsoringUnlockReputation: 30,
+  futureSponsoringOpeningDay: 21,
 } as const;
 
 export function isSponsoringUnlocked(
@@ -23,5 +24,13 @@ export function getSponsoringUnlockProgress(
   return Math.min(
     100,
     Math.max(0, Math.round((reputationPoints / threshold) * 100))
+  );
+}
+export function isFutureSponsoringWindowOpen(
+  currentDayNumber: number
+): boolean {
+  return (
+    Math.floor(currentDayNumber) >=
+    GAMEPLAY_RULES.futureSponsoringOpeningDay
   );
 }

@@ -13,6 +13,13 @@ export type ActiveNationalChampionshipTitle = {
   championshipType: "road" | "time_trial";
 };
 
+export type ActiveNationalChampionshipTitlesByDiscipline = Partial<
+  Record<
+    ActiveNationalChampionshipTitle["championshipType"],
+    ActiveNationalChampionshipTitle
+  >
+>;
+
 type NationalChampionshipTitleRow = {
   rider_id: string;
   country_id: string;
@@ -29,6 +36,23 @@ export async function getActiveNationalChampionshipTitlesForRiders(
   supabase: SupabaseServerClient,
   riderIds: readonly string[],
 ): Promise<Map<string, ActiveNationalChampionshipTitle>> {
+  const titlesByDiscipline =
+    await getActiveNationalChampionshipTitlesByDisciplineForRiders(
+      supabase,
+      riderIds,
+    );
+  return new Map(
+    [...titlesByDiscipline.entries()].flatMap(([riderId, titles]) => {
+      const preferred = titles.road ?? titles.time_trial;
+      return preferred ? [[riderId, preferred] as const] : [];
+    }),
+  );
+}
+
+export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
+  supabase: SupabaseServerClient,
+  riderIds: readonly string[],
+): Promise<Map<string, ActiveNationalChampionshipTitlesByDiscipline>> {
   const uniqueRiderIds = [...new Set(riderIds.filter(Boolean))];
 
   if (uniqueRiderIds.length === 0) {
@@ -70,25 +94,22 @@ export async function getActiveNationalChampionshipTitlesForRiders(
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
-  const titleByRiderId = new Map<string, ActiveNationalChampionshipTitle>();
+  const titleByRiderId = new Map<
+    string,
+    ActiveNationalChampionshipTitlesByDiscipline
+  >();
 
   for (const title of titleRows) {
     const country = countryById.get(title.country_id);
-    const currentTitle = titleByRiderId.get(title.rider_id);
-
-    if (
-      !country ||
-      (currentTitle && currentTitle.championshipType === "road")
-    ) {
-      continue;
-    }
-
-    titleByRiderId.set(title.rider_id, {
+    if (!country) continue;
+    const currentTitles = titleByRiderId.get(title.rider_id) ?? {};
+    currentTitles[title.championship_type] = {
       riderId: title.rider_id,
       countryCode: country.iso_alpha2,
       countryName: country.name,
       championshipType: title.championship_type,
-    });
+    };
+    titleByRiderId.set(title.rider_id, currentTitles);
   }
 
   return titleByRiderId;

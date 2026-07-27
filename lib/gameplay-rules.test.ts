@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   GAMEPLAY_RULES,
   getSponsoringUnlockProgress,
+  isFutureSponsoringWindowOpen,
   isSponsoringUnlocked,
 } from "./gameplay-rules";
 
@@ -19,6 +20,22 @@ describe("sponsoring unlock rules", () => {
     expect(
       isSponsoringUnlocked(
         GAMEPLAY_RULES.sponsoringUnlockReputation
+      )
+    ).toBe(true);
+  });
+
+  it("keeps first sponsor offers closed before day 21", () => {
+    expect(
+      isFutureSponsoringWindowOpen(
+        GAMEPLAY_RULES.futureSponsoringOpeningDay - 1
+      )
+    ).toBe(false);
+  });
+
+  it("opens exactly on day 21 for the next season", () => {
+    expect(
+      isFutureSponsoringWindowOpen(
+        GAMEPLAY_RULES.futureSponsoringOpeningDay
       )
     ).toBe(true);
   });

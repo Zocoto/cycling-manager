@@ -23,6 +23,7 @@ export type RiderJerseyAppearance = {
   accentColor: string;
   pattern: RiderJerseyPattern;
   status: "amateur" | "free-agent" | "sponsored" | "national-champion";
+  imagePath?: string;
   countryCode?: string;
   championshipType?: "road" | "time_trial";
 };
@@ -64,10 +65,14 @@ export function createAmateurRiderJersey(
 export function createSponsoredRiderJersey({
   colors,
   style,
+  imagePath,
 }: {
   colors: SponsorColors;
   style: JerseyStyle;
+  imagePath?: string | null;
 }): RiderJerseyAppearance {
+  const normalizedImagePath = imagePath?.trim();
+
   return {
     primaryColor: colors.primary,
     secondaryColor: colors.secondary,
@@ -75,6 +80,7 @@ export function createSponsoredRiderJersey({
     pattern:
       style === "classic" ? "hoops" : style === "modern" ? "diagonal" : "split",
     status: "sponsored",
+    ...(normalizedImagePath ? { imagePath: normalizedImagePath } : {}),
   };
 }
 

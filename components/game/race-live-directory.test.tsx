@@ -9,39 +9,42 @@ import type {
 import { RaceLiveDirectory } from "./race-live-directory";
 
 describe("RaceLiveDirectory", () => {
-  it("hachure seulement les courses passées avant la journée courante", () => {
+  it("affiche le jour courant, replie le passé et masque les courses futures", () => {
     const pastEdition = createEdition({
       id: "course-passee",
+      name: "Classique passée",
       dayNumbers: [3],
     });
     const currentTour = createEdition({
       id: "tour-en-cours",
-      dayNumbers: [2, 3, 4],
+      name: "Tour en cours",
+      dayNumbers: [2, 4, 5],
+    });
+    const futureEdition = createEdition({
+      id: "course-future",
+      name: "Course de demain",
+      dayNumbers: [5],
     });
     const calendar = createCalendar({
       currentDayNumber: 4,
-      editions: [pastEdition, currentTour],
+      editions: [pastEdition, currentTour, futureEdition],
     });
 
     const markup = renderToStaticMarkup(
       <RaceLiveDirectory
         calendar={calendar}
         nowIso="2026-07-29T20:00:00Z"
-      />
+      />,
     );
 
-    expect(markup).toContain(
-      'data-race-period="past"'
-    );
-    expect(markup).toContain(
-      'data-race-period="current-or-upcoming"'
-    );
-    expect(markup).toContain(
-      "Hachuré : course passée, replay disponible"
-    );
-    expect(markup).toContain(
-      "repeating-linear-gradient"
-    );
+    expect(markup).toContain('data-race-period="today"');
+    expect(markup).toContain('data-race-period="past"');
+    expect(markup).toContain("Courses passées");
+    expect(markup).toContain("Classique passée");
+    expect(markup).not.toContain("Course de demain");
+    expect(markup).toContain('href="/jeu/resultats/tour-en-cours"');
+    expect(markup).toContain("Résumé des étapes");
+    expect(markup).toContain("1 étape à venir");
   });
 });
 
@@ -67,26 +70,25 @@ function createCalendar({
 
 function createEdition({
   id,
+  name,
   dayNumbers,
 }: {
   id: string;
+  name: string;
   dayNumbers: number[];
 }): RaceCalendarEdition {
   return {
     id,
     raceId: `race-${id}`,
     slug: id,
-    name: id,
-    shortName: id,
+    name,
+    shortName: name,
     countryName: "France",
     countryCode: "FR",
     categoryCode: "national",
     categoryName: "National",
     prestigeRank: 4,
-    raceFormat:
-      dayNumbers.length > 1
-        ? "stage_race"
-        : "one_day",
+    raceFormat: dayNumbers.length > 1 ? "stage_race" : "one_day",
     competitionType: "standard",
     registrationClosesAt: null,
     wildcardClosesAt: null,
@@ -101,23 +103,18 @@ function createEdition({
       status: "accepted",
       rosterCount: 5,
     },
-    stages: dayNumbers.map(
-      (dayNumber, index) => ({
-        id: `${id}-stage-${index + 1}`,
-        dayNumber,
-        stageNumber: index + 1,
-        name: `Étape ${index + 1}`,
-        stageType: "road",
-        status:
-          dayNumber < 4
-            ? "completed"
-            : "planned",
-        profileType: "mixed",
-        distanceKm: 150,
-        daySlot: "early",
-        departureAt: null,
-        segments: [],
-      })
-    ),
+    stages: dayNumbers.map((dayNumber, index) => ({
+      id: `${id}-stage-${index + 1}`,
+      dayNumber,
+      stageNumber: index + 1,
+      name: `Étape ${index + 1}`,
+      stageType: "road",
+      status: dayNumber < 4 ? "completed" : "planned",
+      profileType: "mixed",
+      distanceKm: 150,
+      daySlot: "early",
+      departureAt: null,
+      segments: [],
+    })),
   };
 }

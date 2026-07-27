@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
-import { DashboardEventsCard } from "../../components/game/dashboard-events-card";
+import { DashboardWorldOverview } from "../../components/game/dashboard-world-overview";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
 import { RiderAvatar } from "../../components/game/rider-avatar";
@@ -19,7 +19,10 @@ import {
   isSponsoringUnlocked,
 } from "../../lib/gameplay-rules";
 import { buildDashboardEventFeed } from "../../lib/game/dashboard-events";
+import type { PublicGameNewsItem } from "../../lib/game/public-game-news";
+import type { SeasonRaceCalendar } from "../../lib/game/race-calendar";
 import type { GameObjective } from "../../lib/game/objectives";
+import type { SportingDirectorReputationBreakdown } from "../../lib/game/reputation-breakdown";
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
@@ -49,11 +52,18 @@ import {
   getCurrentTeamInventoryOverview,
   type TeamInventoryOverview,
 } from "../../services/team-inventory";
+import { getSportingDirectorReputationBreakdown } from "../../services/sporting-director-reputation";
 import {
   getCurrentDashboardOperationalEvents,
   type DashboardOperationalEvents,
 } from "../../services/dashboard-events";
 import { getCurrentGameObjectives } from "../../services/game-objectives";
+import { getDashboardPelotonNews } from "../../services/public-game-news";
+import { getActiveSeasonRaceCalendar } from "../../services/race-calendar";
+import {
+  getUciRankings,
+  type UciRankings,
+} from "../../services/uci-rankings";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -237,6 +247,23 @@ export default async function GamePage() {
     [] as GameObjective[],
     "Impossible de récupérer les objectifs de carrière :",
   );
+  const uciRankingsPromise = loadDashboardValue(
+    getUciRankings(),
+    null as UciRankings | null,
+    "Impossible de récupérer les classements UCI du bureau :",
+  );
+  const raceCalendarPromise = loadDashboardValue(
+    getActiveSeasonRaceCalendar(supabase, new Date(), {
+      includeEngagedRiders: false,
+    }),
+    null as SeasonRaceCalendar | null,
+    "Impossible de récupérer les prochaines courses du bureau :",
+  );
+  const pelotonNewsPromise = loadDashboardValue(
+    getDashboardPelotonNews(),
+    [] as PublicGameNewsItem[],
+    "Impossible de récupérer les temps forts du peloton :",
+  );
 
   const [profileResult, countriesResult, teamSummaryResult, rosterResult] =
     await Promise.all([
@@ -281,6 +308,7 @@ export default async function GamePage() {
 
   const dashboardTeamSummary =
     (teamSummaryResult.data as CurrentTeamDashboardSummary | null) ?? null;
+  const dashboardSportingDirector = profileResult.data;
   const dashboardTeamId = dashboardTeamSummary?.team_id ?? null;
   const dashboardRiderIds = ((rosterResult.data ?? []) as DashboardRider[]).map(
     (rider) => rider.rider_id,
@@ -314,6 +342,10 @@ export default async function GamePage() {
     inventoryOverview,
     gameObjectives,
     dashboardOperationalEvents,
+    reputationBreakdown,
+    uciRankings,
+    raceCalendar,
+    pelotonNews,
   ] = await Promise.all([
     sponsorIdentityPromise,
     loadDashboardValue(
@@ -345,6 +377,20 @@ export default async function GamePage() {
       } satisfies DashboardOperationalEvents,
       "Impossible de récupérer les événements du bureau :",
     ),
+    loadDashboardValue(
+      dashboardSportingDirector
+        ? getSportingDirectorReputationBreakdown(
+            supabase,
+            dashboardSportingDirector.id,
+            dashboardSportingDirector.reputation_points,
+          )
+        : Promise.resolve(null),
+      null as SportingDirectorReputationBreakdown | null,
+      "Impossible de r\u00e9cup\u00e9rer le d\u00e9tail de la r\u00e9putation :",
+    ),
+    uciRankingsPromise,
+    raceCalendarPromise,
+    pelotonNewsPromise,
   ]);
 
   const activeNationalTitlesByRiderId = await loadDashboardValue(
@@ -373,7 +419,7 @@ export default async function GamePage() {
     );
   }
 
-  const sportingDirector = profileResult.data;
+  const sportingDirector = dashboardSportingDirector;
 
   const teamSummary = dashboardTeamSummary;
 
@@ -442,6 +488,7 @@ export default async function GamePage() {
     ? createSponsoredRiderJersey({
         colors: teamSponsorIdentity.sponsor.colors,
         style: teamSponsorIdentity.selectedJersey.style,
+        imagePath: teamSponsorIdentity.selectedJersey.imagePath,
       })
     : teamAmateurIdentity
       ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
@@ -508,9 +555,13 @@ export default async function GamePage() {
             </div>
           </header>
 
-          <div className="mt-10" data-tutorial-id="dashboard-news-feed">
-            <DashboardEventsCard events={dashboardEvents} />
-          </div>
+          <DashboardWorldOverview
+            teamId={dashboardTeamId}
+            dashboardEvents={dashboardEvents}
+            rankings={uciRankings}
+            calendar={raceCalendar}
+            pelotonNews={pelotonNews}
+          />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}
 
@@ -519,7 +570,7 @@ export default async function GamePage() {
           ) : null}
 
           <section
-            className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.38fr)_minmax(300px,0.62fr)]"
+            className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
             data-tutorial-id="dashboard-director-profile"
           >
             <DirectorProfileCard
@@ -531,6 +582,7 @@ export default async function GamePage() {
               teamSponsorIdentity={teamSponsorIdentity}
               teamAmateurIdentity={teamAmateurIdentity}
               financeOverview={financeOverview}
+              reputationBreakdown={reputationBreakdown}
             />
 
             <div className="grid content-start gap-6">
@@ -684,6 +736,7 @@ function DirectorProfileCard({
   teamSponsorIdentity,
   teamAmateurIdentity,
   financeOverview,
+  reputationBreakdown,
 }: {
   sportingDirector: SportingDirector | null;
   email: string | null;
@@ -693,6 +746,7 @@ function DirectorProfileCard({
   teamSponsorIdentity: TeamSponsorIdentity | null;
   teamAmateurIdentity: TeamAmateurIdentity | null;
   financeOverview: TeamFinanceOverview | null;
+  reputationBreakdown: SportingDirectorReputationBreakdown | null;
 }) {
   const profileName =
     sportingDirector?.display_name ??
@@ -706,7 +760,7 @@ function DirectorProfileCard({
   return (
     <article
       data-tutorial-id="dashboard-director-profile"
-      className="rounded-2xl border border-[#315B3E]/20 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:p-8"
+      className="rounded-[1.75rem] border border-[#315B3E]/20 bg-[#0B302B] p-5 text-[#FFFDF4] shadow-[0_20px_54px_rgba(7,26,23,0.2)] sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -714,21 +768,21 @@ function DirectorProfileCard({
             Directeur Sportif
           </p>
 
-          <h2 className="mt-2 text-2xl font-black text-white">
-            Aperçu du profil
+          <h2 className="mt-1 text-lg font-black text-white">
+            Vos repères
           </h2>
         </div>
 
         <Link
           href="/jeu/directeur-sportif"
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/45 bg-[#F2C94C]/10 px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+          className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/40 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
         >
           <EditIcon />
-          Modifier mon profil
+          Profil
         </Link>
       </div>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+      <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <DirectorIdentity
           sportingDirector={sportingDirector}
           profileName={profileName}
@@ -744,10 +798,10 @@ function DirectorProfileCard({
             amateurTeamName={teamAmateurIdentity?.amateurName}
             sponsor={teamSponsorIdentity?.sponsor}
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
-            className="h-32 w-28 shrink-0 drop-shadow-xl"
+            className="h-24 w-20 shrink-0 drop-shadow-lg"
           />
 
-          <div className="min-w-44 pt-4">
+          <div className="min-w-40 pt-1">
             <TeamSponsorInformation
               teamSummary={teamSummary}
               teamSponsorIdentity={teamSponsorIdentity}
@@ -766,25 +820,25 @@ function DirectorProfileCard({
         </div>
       </div>
 
-      <div className="mt-6 border-t border-white/10 pt-5">
+      <div className="mt-4 grid gap-4 border-t border-white/10 pt-4 md:grid-cols-2 md:items-center">
         <SportingDirectorProgression
           experiencePoints={experiencePoints}
           compact
         />
-      </div>
-
-      <div
-        className="mt-5 border-t border-white/10 pt-5"
-        data-tutorial-id="dashboard-reputation"
-      >
-        <SportingDirectorReputation
-          reputationPoints={reputationPoints}
-          compact
-        />
+        <div
+          className="md:border-l md:border-white/10 md:pl-4"
+          data-tutorial-id="dashboard-reputation"
+        >
+          <SportingDirectorReputation
+            reputationPoints={reputationPoints}
+            breakdown={reputationBreakdown}
+            compact
+          />
+        </div>
       </div>
 
       {financeOverview ? (
-        <div className="mt-5 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
           <Link
             href="/jeu/finances"
             className="rounded-xl border border-white/12 bg-white/7 px-4 py-3 transition hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
@@ -815,7 +869,7 @@ function DirectorProfileCard({
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
         <span
           className={
             isProfileComplete
@@ -849,21 +903,21 @@ function DirectorIdentity({
   selectedCountry: CountryRow | null;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-5">
+    <div className="flex min-w-0 items-center gap-4">
       {sportingDirector?.avatar_key ? (
         <SportingDirectorAvatar
           avatarKey={sportingDirector.avatar_key}
-          size="large"
+          size="medium"
           label={`Avatar de ${profileName}`}
         />
       ) : (
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-2xl font-black text-[#07302A]">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#42B99A] text-xl font-black text-[#07302A]">
           {getInitials(profileName)}
         </div>
       )}
 
       <div className="min-w-0">
-        <h3 className="truncate text-2xl font-black">{profileName}</h3>
+        <h3 className="truncate text-xl font-black">{profileName}</h3>
 
         <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
           {sportingDirector?.username
@@ -932,10 +986,10 @@ function TeamSponsorInformation({
           primaryColor={teamSponsorIdentity.sponsor.colors.primary}
           backgroundColor={teamSponsorIdentity.sponsor.colors.background}
           textColor={teamSponsorIdentity.sponsor.colors.text}
-          className="mb-4 h-14 w-24 rounded-xl p-1.5"
+          className="mb-2 h-10 w-20 rounded-lg p-1"
         />
       ) : null}
-      <p className="max-w-56 text-xl font-black text-[#FFFDF4]">{teamName}</p>
+      <p className="max-w-52 text-base font-black text-[#FFFDF4]">{teamName}</p>
 
       <p className="mt-2 text-sm font-semibold text-[#9FB5A8]">
         {teamSponsorIdentity
@@ -1138,9 +1192,6 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
             Planifier puis vibrer
           </h2>
         </div>
-        <span className="rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">
-          Accès prioritaire
-        </span>
       </header>
 
       <div className="grid md:grid-cols-2">

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildSprintVisualBattle,
   buildSprintVisualTeams,
   getFinalReplayMeters,
   getFinishTargetPosition,
@@ -52,6 +53,69 @@ describe("final race visualization", () => {
         trainRiderIds: [],
       },
     ]);
+  });
+
+  it("nomme les favoris et permet à un sprinteur de prendre une roue adverse", () => {
+    const riders = [
+      createSprintVisualRider("favori-a", "team-a", 84),
+      createSprintVisualRider("favori-b", "team-b", 82),
+      createSprintVisualRider("favori-c", "team-c", 80),
+    ];
+    const results = riders.map((rider, index) => ({
+      riderId: rider.id,
+      status: "finished" as const,
+      rank: index + 1,
+      energyAfter: 58,
+    }));
+    const battle = buildSprintVisualBattle({
+      riders,
+      results,
+      seed: "wheel-test",
+    });
+
+    expect(battle.favoriteRiderIds).toEqual([
+      "favori-a",
+      "favori-b",
+      "favori-c",
+    ]);
+    expect(battle.wheelTargetByRiderId["favori-b"]).toBe(
+      "favori-a"
+    );
+  });
+
+  it("distingue une démonstration nette d'un sprint encore indécis", () => {
+    const dominantRiders = [
+      createSprintVisualRider("dominant", "team-a", 94, 90),
+      createSprintVisualRider("challenger", "team-b", 74, 72),
+      createSprintVisualRider("third", "team-c", 72, 72),
+    ];
+    const closeRiders = [
+      createSprintVisualRider("close-a", "team-a", 84, 82),
+      createSprintVisualRider("close-b", "team-b", 84, 82),
+      createSprintVisualRider("close-c", "team-c", 83, 82),
+    ];
+    const toResults = (riders: typeof dominantRiders) =>
+      riders.map((rider, index) => ({
+        riderId: rider.id,
+        status: "finished" as const,
+        rank: index + 1,
+        energyAfter: 60,
+      }));
+
+    expect(
+      buildSprintVisualBattle({
+        riders: dominantRiders,
+        results: toResults(dominantRiders),
+        seed: "dominant-test",
+      }).dominantWinnerId
+    ).toBe("dominant");
+    expect(
+      buildSprintVisualBattle({
+        riders: closeRiders,
+        results: toResults(closeRiders),
+        seed: "close-test",
+      }).dominantWinnerId
+    ).toBeNull();
   });
 
   it("garde le vainqueur d'un GPM visible et en tête du passage", () => {
@@ -200,3 +264,32 @@ describe("final race visualization", () => {
     expect(Math.max(...dropped)).toBeLessThan(Math.min(...leaders));
   });
 });
+
+function createSprintVisualRider(
+  id: string,
+  teamId: string,
+  sprint: number,
+  acceleration = 78
+) {
+  return {
+    id,
+    name: id,
+    teamId,
+    role: "sprinter" as const,
+    ratings: {
+      flat: 70,
+      mountain: 45,
+      hills: 52,
+      cobbles: 50,
+      downhill: 60,
+      sprint,
+      acceleration,
+      timeTrial: 55,
+      prologue: 58,
+      endurance: 65,
+      resistance: 65,
+      recovery: 60,
+      breakaway: 45,
+    },
+  };
+}

@@ -6,6 +6,7 @@ import {
   formatPublicGameNewsTotal,
   resolvePublicGameNewsTeamJersey,
   resolvePublicGameNewsTeamJerseyArtwork,
+  selectDashboardPelotonHighlights,
   type PublicGameNewsItem,
 } from "./public-game-news";
 
@@ -120,6 +121,49 @@ describe("public game news", () => {
     ]);
   });
 
+it("conserve uniquement les temps forts utiles au bureau du DS", () => {
+    const happenedAt = "2026-07-21T09:00:00.000Z";
+    const highlights = selectDashboardPelotonHighlights([
+      {
+        id: "victory:1",
+        kind: "victory",
+        title: "Victoire",
+        detail: "Détail",
+        happenedAt,
+        significance: "major",
+      },
+      {
+        id: "movement:major",
+        kind: "movement",
+        title: "Transfert entre DS",
+        detail: "Détail",
+        happenedAt: "2026-07-21T08:00:00.000Z",
+        significance: "major",
+      },
+      {
+        id: "movement:daily",
+        kind: "movement",
+        title: "Marché quotidien",
+        detail: "Détail",
+        happenedAt: "2026-07-21T10:00:00.000Z",
+        significance: "standard",
+      },
+      {
+        id: "arrival:1",
+        kind: "arrival",
+        title: "Nouveau DS",
+        detail: "Détail",
+        happenedAt,
+        significance: "major",
+      },
+    ]);
+
+    expect(highlights.map((item) => item.id)).toEqual([
+      "victory:1",
+      "movement:major",
+    ]);
+  });
+
   it("présente les dates récentes sous une forme lisible", () => {
     const now = new Date("2026-07-21T12:00:00.000Z");
 
@@ -173,6 +217,7 @@ describe("public game news", () => {
             text: "#111111",
           },
           jerseyStyle: "bold",
+          jerseyImagePath: "/images/sponsors/test/jersey.png",
         },
       })
     ).toEqual({
@@ -181,6 +226,7 @@ describe("public game news", () => {
       secondaryColor: "#EEEEEE",
       accentColor: "#FF5500",
       status: "sponsored",
+      imagePath: "/images/sponsors/test/jersey.png",
     });
 
     expect(

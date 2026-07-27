@@ -444,7 +444,7 @@ function TeamSelectionCard({
               <span className="hidden items-center gap-1.5 sm:flex">
                 <RatingChip label="MON" value={rider.ratings.mountain} />
                 <RatingChip label="VAL" value={rider.ratings.hills} />
-                <RatingChip label="BAR" value={rider.ratings.breakaway} />
+                <RatingChip label="BAR" value={rider.ratings.breakaway} secondary />
               </span>
             </label>
           );
@@ -454,9 +454,21 @@ function TeamSelectionCard({
   );
 }
 
-function RatingChip({ label, value }: { label: string; value: number }) {
+function RatingChip({ label, value, secondary = false }: {
+  label: string;
+  value: number;
+  secondary?: boolean;
+}) {
   return (
-    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[#176951] shadow-sm">
+    <span
+      data-rating-importance={secondary ? "secondary" : "primary"}
+      className={[
+        "rounded-full px-2 py-1 text-[10px]",
+        secondary
+          ? "bg-[#F1F5F3] font-bold text-[#82958F]"
+          : "bg-white font-black text-[#176951] shadow-sm",
+      ].join(" ")}
+    >
       {label} {value}
     </span>
   );

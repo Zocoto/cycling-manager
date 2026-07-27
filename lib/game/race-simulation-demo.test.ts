@@ -12,7 +12,14 @@ import {
   isUnavailableForFollowingStage,
   simulateOfficialRaceEdition,
 } from "./official-race-simulation";
-import type { RiderSimulationInput } from "./race-simulation";
+import {
+  buildStageRaceStandings,
+  type RiderSimulationInput,
+} from "./race-simulation";
+import {
+  assignStageRaceJerseys,
+  getStageRaceJerseyByRiderId,
+} from "./stage-race-jerseys";
 
 describe("createCalendarSimulationInput", () => {
   it("utilise exclusivement les coureurs de la startlist enregistrée", () => {
@@ -156,6 +163,154 @@ describe("createCalendarSimulationInput", () => {
 
     expect(context.simulation).toBe(run.simulation);
     expect(context.input).toBe(run.input);
+  });
+
+  it("porte les maillots acquis la veille et laisse le champion national dessous", () => {
+    const riders = Array.from({ length: 6 }, (_, index) => ({
+      ...createRider(`tour-rider-${index}`, `tour-team-${index}`),
+      nationalChampionships: {
+        road: {
+          countryCode: "FR",
+          championshipType: "road" as const,
+        },
+      },
+    }));
+    const baseEdition = createEdition({
+      slug: "tour-maillots",
+      riders,
+    });
+    const firstStage = baseEdition.stages[0];
+    const secondStage = {
+      ...firstStage,
+      id: `${baseEdition.slug}-stage-2`,
+      dayNumber: firstStage.dayNumber + 1,
+      stageNumber: 2,
+      name: "Étape 2",
+    };
+    const edition: RaceCalendarEdition = {
+      ...baseEdition,
+      raceFormat: "stage_race",
+      stages: [firstStage, secondStage],
+    };
+    const runs = simulateOfficialRaceEdition(edition);
+    const firstStageSimulation = {
+      ...runs[0].simulation,
+      mountainPoints: {
+        [riders[0].id]: 12,
+        [riders[1].id]: 8,
+        [riders[2].id]: 4,
+      },
+      sprintPoints: {
+        [riders[0].id]: 20,
+        [riders[1].id]: 17,
+        [riders[2].id]: 15,
+      },
+    };
+    const standingsAfterStageOne = buildStageRaceStandings([
+      firstStageSimulation,
+    ]);
+    const expectedJerseyByRiderId = getStageRaceJerseyByRiderId(
+      assignStageRaceJerseys(standingsAfterStageOne),
+    );
+    const lockedSimulations = [
+      {
+        stageId: firstStage.id,
+        raceEditionId: edition.id,
+        engineVersion: "test",
+        seed: String(runs[0].input.seed),
+        input: runs[0].input,
+        simulation: firstStageSimulation,
+      },
+      {
+        stageId: secondStage.id,
+        raceEditionId: edition.id,
+        engineVersion: "test",
+        seed: String(runs[1].input.seed),
+        input: runs[1].input,
+        simulation: runs[1].simulation,
+      },
+    ];
+    const firstContext = getOfficialStageSimulationContext({
+      edition,
+      stageId: firstStage.id,
+      lockedSimulations,
+    });
+    const secondContext = getOfficialStageSimulationContext({
+      edition,
+      stageId: secondStage.id,
+      lockedSimulations,
+    });
+
+    expect(
+      firstContext.simulation.resolvedRiders.every(
+        (rider) =>
+          !rider.classificationJersey &&
+          rider.activeNationalChampion?.countryCode === "FR",
+      ),
+    ).toBe(true);
+    for (const rider of secondContext.simulation.resolvedRiders) {
+      expect(rider.classificationJersey ?? null).toBe(
+        expectedJerseyByRiderId.get(rider.id) ?? null,
+      );
+    }
+    expect(
+      secondContext.simulation.resolvedRiders.some(
+        (rider) =>
+          !rider.classificationJersey &&
+          rider.activeNationalChampion?.countryCode === "FR",
+      ),
+    ).toBe(true);
+  });
+
+  it("complète la carnation d'un scénario verrouillé sans recalculer ses résultats", () => {
+    const rider = {
+      ...createRider("rider-avatar", "team-avatar"),
+      avatarProfileKey: "west_africa",
+      avatarSeed: 987654,
+    };
+    const edition = createEdition({
+      slug: "course-verrouillee-avatar",
+      riders: [rider],
+    });
+    const run = simulateOfficialRaceEdition(edition)[0];
+    const stripAvatar = (candidate: RiderSimulationInput) => {
+      const withoutAvatar = { ...candidate };
+      delete withoutAvatar.avatarProfileKey;
+      delete withoutAvatar.avatarSeed;
+      return withoutAvatar;
+    };
+    const lockedInput = {
+      ...run.input,
+      riders: run.input.riders.map(stripAvatar),
+    };
+    const lockedSimulation = {
+      ...run.simulation,
+      resolvedRiders: run.simulation.resolvedRiders.map(stripAvatar),
+    };
+    const context = getOfficialStageSimulationContext({
+      edition,
+      stageId: run.stage.id,
+      lockedSimulations: [
+        {
+          stageId: run.stage.id,
+          raceEditionId: edition.id,
+          engineVersion: "legacy",
+          seed: String(run.input.seed),
+          input: lockedInput,
+          simulation: lockedSimulation,
+        },
+      ],
+    });
+
+    expect(context.input.riders[0]).toMatchObject({
+      avatarProfileKey: "west_africa",
+      avatarSeed: 987654,
+    });
+    expect(context.simulation.resolvedRiders[0]).toMatchObject({
+      avatarProfileKey: "west_africa",
+      avatarSeed: 987654,
+    });
+    expect(context.simulation.results).toBe(lockedSimulation.results);
   });
 
   it("nettoie les GPM d'une ancienne simulation verrouillee", () => {

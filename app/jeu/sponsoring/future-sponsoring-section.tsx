@@ -170,6 +170,12 @@ function FutureOffersSection({
             garantie. Les deux autres offres permettent de changer de
             partenaire pour {state.season.name}.
           </>
+        ) : state.mode === "first-contract" ? (
+          <>
+            Trois partenaires vous proposent le premier contrat professionnel
+            de l’équipe pour {state.season.name}. Aucun d’eux ne prendra effet
+            pendant la saison amateur en cours.
+          </>
         ) : (
           <>
             Trois nouveaux partenaires sont proposés pour{" "}
@@ -604,8 +610,12 @@ function getFutureSectionTitle(
   }
 
   if (state.kind === "offers") {
-    return state.mode === "renewal"
-      ? "Renouveler ou changer de partenaire"
+    if (state.mode === "renewal") {
+      return "Renouveler ou changer de partenaire";
+    }
+
+    return state.mode === "first-contract"
+      ? "Choisir votre premier sponsor"
       : "Choisir le prochain sponsor";
   }
 

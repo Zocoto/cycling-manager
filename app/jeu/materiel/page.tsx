@@ -57,12 +57,15 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
 
   if (!overview) redirect("/jeu");
 
+  const commercialCatalog = overview.catalog.filter(
+    (item) => item.channel === "commercial",
+  );
   const supplierKey = overview.suppliers.some(
     (supplier) => supplier.key === rawSupplierKey
   )
     ? rawSupplierKey
     : null;
-  const visibleItems = overview.catalog.filter(
+  const visibleItems = commercialCatalog.filter(
     (item) =>
       (!category || item.slot === category) &&
       (!supplierKey || item.supplierKey === supplierKey)
@@ -70,6 +73,13 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
   const ownedReferences = overview.catalog.filter(
     (item) => item.ownedQuantity > 0
   ).length;
+  const minimumReferencesPerCategory = Math.min(
+    ...EQUIPMENT_CATEGORIES.map(
+      (entry) =>
+        commercialCatalog.filter((item) => item.slot === entry.slot).length
+    )
+  );
+
   const ownedPieces = overview.catalog.reduce(
     (total, item) => total + item.ownedQuantity,
     0
@@ -86,6 +96,25 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
+
+        <nav
+          aria-label="Rubriques du matériel"
+          className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm"
+        >
+          <Link
+            href="/jeu/materiel"
+            aria-current="page"
+            className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white"
+          >
+            Matériel commercial
+          </Link>
+          <Link
+            href="/jeu/materiel/equipementier"
+            className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
+          >
+            Équipementier
+          </Link>
+        </nav>
 
         <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
           <div aria-hidden="true" className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[44px] border-white/5" />
@@ -139,7 +168,9 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Marché ouvert</p>
             <h2 className="mt-2 text-2xl font-black text-white">Plusieurs philosophies</h2>
             <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">
-              Comparez une offre accessible, des spécialistes techniques et des gammes premium. Chaque famille compte désormais cinq références.
+              Comparez une offre accessible, des spécialistes techniques et des gammes premium. Le catalogue réunit{" "}
+              {commercialCatalog.length} références, avec au moins {minimumReferencesPerCategory} choix dans chaque
+              famille.
             </p>
           </article>
         </section>

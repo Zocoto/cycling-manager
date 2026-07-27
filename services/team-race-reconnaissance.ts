@@ -3,7 +3,6 @@ import "server-only";
 import {
   canTeamRecognizeRace,
   getRacePreparerBonusPercentage,
-  getRaceReconnaissanceBonus,
   getRaceReconnaissanceCost,
 } from "@/lib/game/race-reconnaissance";
 import {
@@ -32,6 +31,7 @@ type TeamSeasonRow = {
   display_name: string;
   cash_balance: number | string;
   currency: string;
+  registration_country_id: string;
 };
 type DayRow = {
   id: string;
@@ -69,9 +69,14 @@ type CampRow = {
 type StaffContractRow = { id: string; staff_member_id: string };
 type StaffMemberRow = {
   id: string;
+  country_id: string;
   first_name: string;
   last_name: string;
   level: number;
+};
+type StaffTalentRow = {
+  staff_member_id: string;
+  talent_code: string;
 };
 type EditionRow = {
   id: string;
@@ -154,6 +159,9 @@ export type RacePreparerOption = {
   level: number;
   efficiencyPercentage: number;
   resultingBonus: number;
+  riderCapacity: number;
+  durationDays: number;
+  nationalityAffinity: boolean;
 };
 
 export type RaceReconnaissanceStage = {
@@ -306,6 +314,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     injuriesResult,
     campsResult,
     staffMembersResult,
+    staffTalentsResult,
     racesResult,
     stagesResult,
     participantsResult,
@@ -330,9 +339,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     riderIds.length
       ? admin
           .from("rider_injuries")
-          .select(
-            "rider_id, diagnosis_code, started_at, expected_recovery_at",
-          )
+          .select("rider_id, diagnosis_code, started_at, expected_recovery_at")
           .in("rider_id", riderIds)
           .neq("status", "recovered")
           .returns<InjuryRow[]>()
@@ -340,9 +347,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     riderIds.length
       ? admin
           .from("rider_form_camps")
-          .select(
-            "rider_id, camp_type, start_day_number, end_day_number",
-          )
+          .select("rider_id, camp_type, start_day_number, end_day_number")
           .eq("season_id", season.id)
           .in("rider_id", riderIds)
           .neq("status", "cancelled")
@@ -351,11 +356,18 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     staffMemberIds.length
       ? admin
           .from("staff_members")
-          .select("id, first_name, last_name, level")
+          .select("id, country_id, first_name, last_name, level")
           .eq("role", "race_preparer")
           .in("id", staffMemberIds)
           .returns<StaffMemberRow[]>()
       : emptyResult<StaffMemberRow>(),
+    staffMemberIds.length
+      ? admin
+          .from("staff_member_talents")
+          .select("staff_member_id, talent_code")
+          .in("staff_member_id", staffMemberIds)
+          .returns<StaffTalentRow[]>()
+      : emptyResult<StaffTalentRow>(),
     raceIds.length
       ? admin
           .from("races")
@@ -394,6 +406,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   assertQuery(injuriesResult.error, "les blessures");
   assertQuery(campsResult.error, "les indisponibilités");
   assertQuery(staffMembersResult.error, "les préparateurs");
+  assertQuery(staffTalentsResult.error, "les talents des préparateurs");
   assertQuery(racesResult.error, "les courses");
   assertQuery(stagesResult.error, "les étapes");
   assertQuery(participantsResult.error, "les participants aux reconnaissances");
@@ -433,13 +446,14 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     (categoriesResult.data ?? []).map((category) => [category.id, category]),
   );
   const raceById = new Map(races.map((race) => [race.id, race]));
-  const editionById = new Map(
-    editions.map((edition) => [edition.id, edition]),
-  );
+  const editionById = new Map(editions.map((edition) => [edition.id, edition]));
   const stageRows = stagesResult.data ?? [];
   const stageById = new Map(stageRows.map((stage) => [stage.id, stage]));
   const registrationByEditionId = new Map(
-    registrations.map((registration) => [registration.race_edition_id, registration]),
+    registrations.map((registration) => [
+      registration.race_edition_id,
+      registration,
+    ]),
   );
   const latestConditionByRiderId = latestConditions(
     conditionsResult.data ?? [],
@@ -465,6 +479,13 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   const staffContractById = new Map(
     staffContracts.map((contract) => [contract.id, contract]),
   );
+  const talentCodesByStaffMemberId = new Map<string, Set<string>>();
+  for (const talent of staffTalentsResult.data ?? []) {
+    const talentCodes =
+      talentCodesByStaffMemberId.get(talent.staff_member_id) ?? new Set();
+    talentCodes.add(talent.talent_code);
+    talentCodesByStaffMemberId.set(talent.staff_member_id, talentCodes);
+  }
   const participantsByMissionId = groupParticipants(
     participantsResult.data ?? [],
   );
@@ -473,9 +494,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     .map((rider): RaceReconnaissanceRider => {
       const country = countryById.get(rider.country_id);
       const injury = injuryByRiderId.get(rider.id);
-      const injuryRange = injury
-        ? getInjuryDayRange(injury, days)
-        : null;
+      const injuryRange = injury ? getInjuryDayRange(injury, days) : null;
       const unavailabilities = [
         ...(injury && injuryRange
           ? [
@@ -524,14 +543,31 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     .flatMap((contract): RacePreparerOption[] => {
       const member = staffMemberById.get(contract.staff_member_id);
       if (!member) return [];
+      const talents =
+        talentCodesByStaffMemberId.get(contract.staff_member_id) ?? new Set();
+      const nationalityAffinity =
+        member.country_id === teamSeason.registration_country_id;
+      const affinityMultiplier = nationalityAffinity ? 1.1 : 1;
+      const efficiencyPercentage = Number(
+        (
+          (getRacePreparerBonusPercentage(member.level) +
+            (talents.has("preparer_quality") ? member.level * 3 : 0)) *
+          affinityMultiplier
+        ).toFixed(1),
+      );
       return [
         {
           contractId: contract.id,
           firstName: member.first_name,
           lastName: member.last_name,
           level: member.level,
-          efficiencyPercentage: getRacePreparerBonusPercentage(member.level),
-          resultingBonus: getRaceReconnaissanceBonus(member.level),
+          efficiencyPercentage,
+          resultingBonus: Number(
+            (2 * (1 + efficiencyPercentage / 100)).toFixed(2),
+          ),
+          riderCapacity: 3 + (talents.has("preparer_capacity") ? 2 : 0),
+          durationDays: talents.has("preparer_duration") ? 1 : 2,
+          nationalityAffinity,
         },
       ];
     })
@@ -541,8 +577,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   for (const stage of stageRows) {
     const dayNumber = dayById.get(stage.season_day_id)?.day_number;
     if (!dayNumber) continue;
-    const editionDays =
-      stageDaysByEditionId.get(stage.race_edition_id) ?? [];
+    const editionDays = stageDaysByEditionId.get(stage.race_edition_id) ?? [];
     editionDays.push(dayNumber);
     stageDaysByEditionId.set(stage.race_edition_id, editionDays);
   }
@@ -556,10 +591,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         ? categoryById.get(edition.race_category_id)
         : null;
       const country = race ? countryById.get(race.country_id) : null;
-      const editionDays =
-        stageDaysByEditionId.get(stage.race_edition_id) ?? [];
+      const editionDays = stageDaysByEditionId.get(stage.race_edition_id) ?? [];
       const registrationStatus = edition
-        ? registrationByEditionId.get(edition.id)?.status ?? null
+        ? (registrationByEditionId.get(edition.id)?.status ?? null)
         : null;
       if (
         !day ||
@@ -630,7 +664,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       raceName: edition?.display_name ?? "Course",
       stageName: stage?.name ?? "Étape",
       targetDayNumber: stage
-        ? dayById.get(stage.season_day_id)?.day_number ?? 0
+        ? (dayById.get(stage.season_day_id)?.day_number ?? 0)
         : 0,
       startDayNumber: mission.start_day_number,
       endDayNumber: mission.end_day_number,
@@ -699,7 +733,9 @@ async function loadContext(
 
   const { data: teamSeason, error } = await admin
     .from("team_seasons")
-    .select("id, team_id, display_name, cash_balance, currency")
+    .select(
+      "id, team_id, display_name, cash_balance, currency, registration_country_id",
+    )
     .eq("team_id", assignmentResult.data.team_id)
     .eq("season_id", seasonResult.data.id)
     .maybeSingle<TeamSeasonRow>();
@@ -709,16 +745,13 @@ async function loadContext(
   return { director, season: seasonResult.data, teamSeason };
 }
 
-function latestConditions(
-  rows: ConditionRow[],
-  dayById: Map<string, DayRow>,
-) {
+function latestConditions(rows: ConditionRow[], dayById: Map<string, DayRow>) {
   const result = new Map<string, ConditionRow>();
   for (const row of rows) {
     const rowDay = dayById.get(row.season_day_id)?.day_number ?? 0;
     const current = result.get(row.rider_id);
     const currentDay = current
-      ? dayById.get(current.season_day_id)?.day_number ?? 0
+      ? (dayById.get(current.season_day_id)?.day_number ?? 0)
       : 0;
     if (
       !current ||
@@ -741,7 +774,9 @@ function activeInjuriesByRider(
   const startDay = days.find((day) => day.day_number === startDayNumber);
   const endDay = days.find((day) => day.day_number === endDayNumber);
   if (!startDay || !endDay) return result;
-  const startAt = new Date(`${startDay.calendar_date}T00:00:00+02:00`).getTime();
+  const startAt = new Date(
+    `${startDay.calendar_date}T00:00:00+02:00`,
+  ).getTime();
   const endAt = new Date(`${endDay.calendar_date}T23:59:59+02:00`).getTime();
 
   for (const injury of injuries) {
@@ -761,10 +796,7 @@ function getRaceConflictsByRider(
   stages: StageRow[],
   dayById: Map<string, DayRow>,
 ) {
-  const result = new Map<
-    string,
-    Array<{ startDay: number; endDay: number }>
-  >();
+  const result = new Map<string, Array<{ startDay: number; endDay: number }>>();
   const registrationById = new Map(
     registrations.map((registration) => [registration.id, registration]),
   );

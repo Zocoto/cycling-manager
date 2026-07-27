@@ -93,13 +93,20 @@ export function TutorialCenterMenu() {
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative shrink-0">
       <button
         ref={triggerRef}
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
+        aria-label={
+          tutorialIsActive
+            ? "Un didacticiel est déjà en cours"
+            : open
+              ? "Fermer le centre des didacticiels"
+              : "Ouvrir le centre des didacticiels"
+        }
         title={
           tutorialIsActive
             ? "Un didacticiel est déjà en cours"
@@ -109,7 +116,7 @@ export function TutorialCenterMenu() {
         onClick={() => {
           setOpen((current) => !current);
         }}
-        className="relative inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] px-2.5 text-[11px] font-extrabold text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] text-[11px] font-extrabold text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span
           aria-hidden="true"
@@ -117,23 +124,6 @@ export function TutorialCenterMenu() {
         >
           ?
         </span>
-        <span className="sm:hidden">Tutos</span>
-        <span className="hidden sm:inline">Didacticiels</span>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 16 16"
-          fill="none"
-          className={[
-            "h-3.5 w-3.5 transition-transform",
-            open ? "rotate-180" : "",
-          ].join(" ")}
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m4 6 4 4 4-4" />
-        </svg>
         {basePresentation.needsAttention ||
         criteriumProgress?.status === "in_progress" ? (
           <span

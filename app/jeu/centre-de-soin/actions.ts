@@ -97,9 +97,17 @@ export async function assignPhysiotherapistAction(formData: FormData) {
 
 export async function applyNutritionInterventionAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
+  const nutritionistContractId = readValue(
+    formData,
+    "nutritionistContractId",
+  );
   const interventionCode = readValue(formData, "interventionCode");
 
-  if (!isUuid(riderId) || !isNutritionIntervention(interventionCode)) {
+  if (
+    !isUuid(riderId) ||
+    !isUuid(nutritionistContractId) ||
+    !isNutritionIntervention(interventionCode)
+  ) {
     redirectWithError("nutrition", "L’intervention nutritionnelle est invalide.");
   }
 
@@ -108,6 +116,7 @@ export async function applyNutritionInterventionAction(formData: FormData) {
     "apply_current_team_nutrition_intervention",
     {
       p_rider_id: riderId,
+      p_nutritionist_contract_id: nutritionistContractId,
       p_intervention_code: interventionCode,
     },
   );

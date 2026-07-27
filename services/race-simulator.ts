@@ -39,6 +39,7 @@ type RiderRow = {
   country_id: string;
   first_name: string;
   last_name: string;
+  career_race_days: number;
 };
 
 type RiderIdRow = {
@@ -172,7 +173,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
     await Promise.all([
       admin
         .from("riders")
-        .select("id, country_id, first_name, last_name")
+        .select("id, country_id, first_name, last_name, career_race_days")
         .in("id", riderIds)
         .returns<RiderRow[]>(),
       admin
@@ -358,6 +359,7 @@ function toSimulatorRider({
     countryCode: country.iso_alpha2,
     age: rating.age,
     form,
+    careerRaceDays: Number(rider.career_race_days ?? 0),
     ratings: toSimulationRatings(rating),
     specialAbilities,
   };

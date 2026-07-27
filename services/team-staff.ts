@@ -13,8 +13,8 @@ import {
   type ArchitectSpecialty,
 } from "@/lib/game/infrastructure";
 import {
-  STAFF_DAILY_LEVEL_DISTRIBUTION,
   STAFF_DAILY_ROLE_DISTRIBUTION,
+  STAFF_LEVEL_WEIGHT_TOTAL,
   TRAINER_SPECIALTIES,
   calculateDueStaffSalary,
   calculateStaffWeeklySalary,
@@ -22,13 +22,24 @@ import {
   getStaffCapacityForDirectorLevel,
   isStaffRole,
   isTrainerSpecialty,
+  selectStaffLevelFromRoll,
   type StaffRole,
   type TrainerSpecialty,
 } from "@/lib/game/staff";
+import {
+  STAFF_TALENT_DEFINITIONS,
+  describeStaffTalent,
+  getStaffTalentCodes,
+  isStaffTalentForRole,
+  selectInitialStaffTalent,
+  type StaffTalentCode,
+} from "@/lib/game/staff-talents";
 import { calculateSportingDirectorProgression } from "@/lib/game/sporting-director-progression";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type SupabaseServerClient = Awaited<
+  ReturnType<typeof createSupabaseServerClient>
+>;
 
 type DirectorRow = {
   id: string;
@@ -49,6 +60,7 @@ type TeamSeasonRow = {
   display_name: string;
   cash_balance: number | string;
   currency: string;
+  registration_country_id: string;
 };
 
 type CountryRow = {
@@ -91,6 +103,12 @@ type MemberRow = {
   architect_specialty: string | null;
 };
 
+type MemberTalentRow = {
+  staff_member_id: string;
+  slot_number: number;
+  talent_code: string;
+};
+
 type ContractRow = {
   id: string;
   staff_member_id: string;
@@ -123,6 +141,13 @@ export type TeamStaffMember = {
   trainerSpecialty: TrainerSpecialty | null;
   architectSpecialty: ArchitectSpecialty | null;
   effects: string[];
+  talents: Array<{
+    slot: number;
+    code: StaffTalentCode;
+    label: string;
+    description: string;
+  }>;
+  nationalityAffinity: boolean;
   salaryPerSeason: number;
   salaryPerWeek: number;
   signingFee: number;
@@ -246,8 +271,23 @@ export async function getTeamStaffOverview(
       : { data: [] as MemberRow[], error: null };
 
   assertQuery(membersError, "les identités du staff");
+  const { data: talentRows, error: talentsError } =
+    memberIds.length > 0
+      ? await admin
+          .from("staff_member_talents")
+          .select("staff_member_id, slot_number, talent_code")
+          .in("staff_member_id", memberIds)
+          .order("slot_number", { ascending: true })
+          .returns<MemberTalentRow[]>()
+      : { data: [] as MemberTalentRow[], error: null };
+
+  assertQuery(talentsError, "les talents du staff");
   const membersById = new Map(
     (memberRows ?? []).map((member) => [member.id, member]),
+  );
+  const talentsByMemberId = groupBy(
+    talentRows ?? [],
+    (talent) => talent.staff_member_id,
   );
   const countriesById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
@@ -276,6 +316,8 @@ export async function getTeamStaffOverview(
       salaryPerSeason: toNumber(listing.salary_per_season),
       signingFee: toNumber(listing.signing_fee),
       currency: listing.currency_code,
+      talents: talentsByMemberId.get(memberRow.id) ?? [],
+      teamCountryId: context.teamSeason.registration_country_id,
     });
     if (!member || !matchesFilters(member, filters)) return [];
 
@@ -288,12 +330,12 @@ export async function getTeamStaffOverview(
         ? listing.hired_team_id === context.teamSeason.team_id
           ? "Déjà recruté par votre équipe."
           : "Ce profil a déjà été recruté."
-        : commonBlockReason ??
+        : (commonBlockReason ??
           (balance < member.signingFee + dueSalary
             ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."
             : projectedBudget < member.signingFee + member.salaryPerSeason
               ? "Budget projeté insuffisant pour couvrir la signature et la saison de salaire."
-              : null);
+              : null));
 
     return [
       {
@@ -322,6 +364,8 @@ export async function getTeamStaffOverview(
         signingFee: toNumber(contract.signing_fee),
         currency: contract.currency_code,
         signedAt: contract.signed_at,
+        talents: talentsByMemberId.get(memberRow.id) ?? [],
+        teamCountryId: context.teamSeason.registration_country_id,
       });
       return member ? [member] : [];
     })
@@ -406,7 +450,6 @@ async function ensureTodayStaffMarket(
     profileByCountryId,
   );
   const roles = shuffleCopy(STAFF_DAILY_ROLE_DISTRIBUTION);
-  const levels = shuffleCopy(STAFF_DAILY_LEVEL_DISTRIBUTION);
   const candidates = selectedCountries.map((country, index) => {
     const identity = identitiesByCountryId.get(country.id);
     const role = roles[index]!;
@@ -414,22 +457,28 @@ async function ensureTodayStaffMarket(
       throw new Error(`Aucune identité générée pour ${country.name}.`);
     }
 
+    const trainerSpecialty =
+      role === "trainer"
+        ? TRAINER_SPECIALTIES[randomInt(0, TRAINER_SPECIALTIES.length)]
+        : null;
+    const talentCodes = getStaffTalentCodes(role);
+
     return {
       country_id: country.id,
       first_name: identity.first_name,
       last_name: identity.last_name,
       role,
-      level: levels[index]!,
-      trainer_specialty:
-        role === "trainer"
-          ? TRAINER_SPECIALTIES[randomInt(0, TRAINER_SPECIALTIES.length)]
-          : null,
+      level: selectStaffLevelFromRoll(randomInt(0, STAFF_LEVEL_WEIGHT_TOTAL)),
+      trainer_specialty: trainerSpecialty,
       architect_specialty:
         role === "architect"
-          ? ARCHITECT_SPECIALTIES[
-              randomInt(0, ARCHITECT_SPECIALTIES.length)
-            ]
+          ? ARCHITECT_SPECIALTIES[randomInt(0, ARCHITECT_SPECIALTIES.length)]
           : null,
+      talent_code: selectInitialStaffTalent({
+        role,
+        trainerSpecialty,
+        roll: randomInt(0, talentCodes.length),
+      }),
     };
   });
 
@@ -509,7 +558,9 @@ async function loadCurrentContext(
 
   const { data: teamSeason, error: teamSeasonError } = await admin
     .from("team_seasons")
-    .select("id, team_id, display_name, cash_balance, currency")
+    .select(
+      "id, team_id, display_name, cash_balance, currency, registration_country_id",
+    )
     .eq("team_id", assignmentResult.data.team_id)
     .eq("season_id", seasonResult.data.id)
     .maybeSingle<TeamSeasonRow>();
@@ -532,6 +583,8 @@ function toStaffMember({
   signingFee,
   currency,
   signedAt = null,
+  talents,
+  teamCountryId,
 }: {
   member: MemberRow;
   country: CountryRow | undefined;
@@ -540,8 +593,11 @@ function toStaffMember({
   signingFee: number;
   currency: string;
   signedAt?: string | null;
+  talents: MemberTalentRow[];
+  teamCountryId: string;
 }): TeamStaffMember | null {
   if (!country || !isStaffRole(member.role)) return null;
+  const role = member.role;
   const trainerSpecialty =
     member.trainer_specialty && isTrainerSpecialty(member.trainer_specialty)
       ? member.trainer_specialty
@@ -553,6 +609,19 @@ function toStaffMember({
       : member.role === "architect"
         ? "balanced"
         : null;
+  const parsedTalents = talents.flatMap((talent) => {
+    if (!isStaffTalentForRole(talent.talent_code, role)) return [];
+    const code = talent.talent_code;
+
+    return [
+      {
+        slot: talent.slot_number,
+        code,
+        label: STAFF_TALENT_DEFINITIONS[code].label,
+        description: describeStaffTalent(code, member.level),
+      },
+    ];
+  });
 
   return {
     id: member.id,
@@ -573,6 +642,9 @@ function toStaffMember({
       architectSpecialty,
       countryName: country.name,
     }),
+    talents: parsedTalents,
+    nationalityAffinity:
+      member.role !== "trainer" && country.id === teamCountryId,
     salaryPerSeason,
     salaryPerWeek: calculateStaffWeeklySalary(salaryPerSeason),
     signingFee,
@@ -581,10 +653,7 @@ function toStaffMember({
   };
 }
 
-function matchesFilters(
-  member: TeamStaffMember,
-  filters: StaffMarketFilters,
-) {
+function matchesFilters(member: TeamStaffMember, filters: StaffMarketFilters) {
   const search = normalizeSearch(filters.search ?? "");
   if (
     search &&
@@ -655,6 +724,15 @@ function shuffleCopy<T>(values: readonly T[]) {
     [copy[index], copy[selectedIndex]] = [copy[selectedIndex]!, copy[index]!];
   }
   return copy;
+}
+
+function groupBy<T>(values: readonly T[], key: (value: T) => string) {
+  const grouped = new Map<string, T[]>();
+  for (const value of values) {
+    const groupKey = key(value);
+    grouped.set(groupKey, [...(grouped.get(groupKey) ?? []), value]);
+  }
+  return grouped;
 }
 
 function toNumber(value: unknown) {

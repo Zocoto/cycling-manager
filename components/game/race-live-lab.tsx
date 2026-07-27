@@ -14,6 +14,7 @@ import {
 } from "@/components/game/race-weather-overlay";
 import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-calendar";
 import {
+  buildSprintVisualBattle,
   buildSprintVisualTeams,
   getFinalReplayMeters,
   getFinishTargetPosition,
@@ -1266,23 +1267,32 @@ function SprintLaneView({
   const looseRiderIds = visibleFinalists
     .map((result) => result.riderId)
     .filter((riderId) => !trainRiderSet.has(riderId));
-  const activeTrainCount = sprintTeams.filter(
-    (team) => team.trainRiderIds.length >= 2
-  ).length;
+  const sprintBattle = buildSprintVisualBattle({
+    riders: visibleFinalists.map((result) => riderById.get(result.riderId)!),
+    results: visibleFinalists,
+    seed: simulation.seed,
+  });
+  const favoriteRiderSet = new Set(sprintBattle.favoriteRiderIds);
+  const favoriteNames = sprintBattle.favoriteRiderIds
+    .map((riderId) => riderById.get(riderId)?.name.split(" ").at(-1))
+    .filter((name): name is string => Boolean(name));
   const finalProgress = Math.max(
     0,
     Math.min(1, 1 - metersRemaining / Math.max(1, finalSegmentMeters))
   );
+  const revealDistance = sprintBattle.dominantWinnerId ? 650 : 180;
   const sprintProgress = Math.max(
     0,
-    Math.min(1, (1_200 - metersRemaining) / 1_200)
+    Math.min(1, (revealDistance - metersRemaining) / revealDistance)
   );
   const decisiveProgress =
     sprintProgress * sprintProgress * (3 - 2 * sprintProgress);
   const showFinishLine = metersRemaining <= FINISH_LINE_REVEAL_METERS;
   const hasFinished = metersRemaining <= 0;
   const phaseLabel = getMassSprintPhase(metersRemaining);
-  const isPhotoFinish = getVisualSeedNumber(simulation.seed) % 3 === 0;
+  const isPhotoFinish =
+    sprintBattle.dominantWinnerId === null &&
+    getVisualSeedNumber(simulation.seed) % 3 === 0;
   const winnerResult = simulation.results.find(
     (result) => result.status === "finished" && result.rank === 1
   );
@@ -1316,8 +1326,15 @@ function SprintLaneView({
           {phaseLabel}
         </p>
         <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
-          {activeTrainCount} train{activeTrainCount > 1 ? "s" : ""} structuré{activeTrainCount > 1 ? "s" : ""} · {battleRiderIds.length} coureurs dans le groupe de tête
+          {favoriteNames.length > 0
+            ? `Favoris : ${favoriteNames.join(" · ")}`
+            : `${battleRiderIds.length} coureurs dans le groupe de tête`}
         </p>
+        {!hasFinished && sprintBattle.dominantWinnerId ? (
+          <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
+            Un favori creuse nettement l’écart
+          </p>
+        ) : null}
         {hasFinished && isPhotoFinish ? (
           <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
             Photo-finish · victoire au coude-à-coude
@@ -1337,9 +1354,25 @@ function SprintLaneView({
         );
         const looseRiderIndex = looseRiderIds.indexOf(result.riderId);
         const isTrainMember = trainMemberIndex >= 0;
-        const lane = isTrainMember
-          ? teamIndex % 6
-          : (sprintTeams.length + looseRiderIndex) % 6;
+        const wheelTargetRiderId =
+          sprintBattle.wheelTargetByRiderId[result.riderId] ?? null;
+        const wheelTarget = wheelTargetRiderId
+          ? riderById.get(wheelTargetRiderId)
+          : null;
+        const wheelTargetTeamIndex = wheelTarget
+          ? sprintTeams.findIndex(
+              (team) => team.teamId === wheelTarget.teamId
+            )
+          : -1;
+        const favoriteIndex = sprintBattle.favoriteRiderIds.indexOf(
+          result.riderId
+        );
+        const lane =
+          wheelTargetTeamIndex >= 0
+            ? wheelTargetTeamIndex % 6
+            : isTrainMember
+              ? teamIndex % 6
+              : (sprintTeams.length + looseRiderIndex) % 6;
         const roleOffset =
           rider.role === "leadout"
             ? 5
@@ -1348,25 +1381,42 @@ function SprintLaneView({
               : 0;
         const trainPosition = Math.min(
           78,
-          isTrainMember
-            ? 27 + teamIndex * 3.8 + finalProgress * 31 + roleOffset
-            : 22 +
-                ((looseRiderIndex * 13 +
-                  getVisualSeedNumber(result.riderId)) %
-                  24) +
-                finalProgress * 31
+          wheelTargetTeamIndex >= 0
+            ? 27 +
+                wheelTargetTeamIndex * 3.8 +
+                finalProgress * 31 +
+                0.5
+            : isTrainMember
+              ? 27 + teamIndex * 3.8 + finalProgress * 31 + roleOffset
+              : 22 +
+                  ((looseRiderIndex * 13 +
+                    getVisualSeedNumber(result.riderId)) %
+                    24) +
+                  finalProgress * 31
         );
         const finishPosition = getFinishTargetPosition({
           rank: index + 1,
           hasFinished,
           finishLinePosition: 84,
         });
+        const dominanceProgress = Math.max(
+          0,
+          Math.min(1, (650 - metersRemaining) / 650)
+        );
+        const dominanceOffset =
+          result.riderId === sprintBattle.dominantWinnerId
+            ? dominanceProgress * 7
+            : sprintBattle.dominantWinnerId &&
+                favoriteRiderSet.has(result.riderId)
+              ? -dominanceProgress * Math.max(0.5, favoriteIndex * 0.45)
+              : 0;
         const left = Math.max(
           14,
           Math.min(
             90,
             trainPosition * (1 - decisiveProgress) +
-              finishPosition * decisiveProgress
+              finishPosition * decisiveProgress +
+              dominanceOffset
           )
         );
         return (
@@ -1380,7 +1430,11 @@ function SprintLaneView({
               top: `${
                 11 +
                 lane * 13.4 +
-                (isTrainMember ? trainMemberIndex * 1.1 : 0)
+                (wheelTargetRiderId
+                  ? 1.2
+                  : isTrainMember
+                    ? trainMemberIndex * 1.1
+                    : 0)
               }%`,
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
@@ -1391,11 +1445,14 @@ function SprintLaneView({
                 {result.rank}. {rider.name.split(" ").at(-1)}
               </span>
             ) : null}
-            {!hasFinished &&
-            trainMemberIndex === 0 &&
-            sprintTeam.trainRiderIds.length >= 2 ? (
-              <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[8px] font-black text-white/85 shadow-lg">
-                Train {rider.teamName}
+            {!hasFinished && favoriteIndex >= 0 ? (
+              <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[8px] font-black text-white/90 shadow-lg">
+                {rider.name.split(" ").at(-1)}
+                {wheelTarget
+                  ? ` · roue de ${wheelTarget.name.split(" ").at(-1)}`
+                  : favoriteIndex === 0
+                    ? " · favori"
+                    : ""}
               </span>
             ) : null}
           </div>

@@ -78,7 +78,11 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
     jerseys.set(
       teamId,
       sponsor
-        ? createSponsoredRiderJersey({ colors: sponsor.sponsor.colors, style: sponsor.selectedJersey.style })
+        ? createSponsoredRiderJersey({
+            colors: sponsor.sponsor.colors,
+            style: sponsor.selectedJersey.style,
+            imagePath: sponsor.selectedJersey.imagePath,
+          })
         : amateur
           ? createAmateurRiderJersey(amateur.jersey)
           : FREE_AGENT_RIDER_JERSEY
@@ -112,6 +116,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
               <Metric label="Réservé" value={formatMoney(overview.reservedBudget, overview.currency)} />
               <Metric label="Disponible" value={formatMoney(overview.availableBudget, overview.currency)} />
               <Metric label="Data Room" value={`Niveau ${overview.dataRoomLevel}/3`} />
+              <Metric label="Effectif" value={`${overview.rosterSize} / ${overview.rosterLimit}`} />
             </div>
           </div>
         </header>
@@ -140,7 +145,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
         ) : tab === "directeurs" ? (
           <DirectorAuctions listings={overview.directorListings} roster={overview.roster} overview={overview} jerseys={jerseys} returnPath={currentPath} />
         ) : (
-          <FreeAgents riders={overview.freeAgents} countries={overview.countries} query={query} currency={overview.currency} returnPath={currentPath} />
+          <FreeAgents riders={overview.freeAgents} countries={overview.countries} query={query} currency={overview.currency} rosterSize={overview.rosterSize} rosterLimit={overview.rosterLimit} rosterIsFull={overview.rosterIsFull} returnPath={currentPath} />
         )}
       </section>
     </main>
@@ -157,7 +162,7 @@ function DailyAuctions({ listings, overview, returnPath }: {
       <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les cinq enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont volontairement partiels ; sans offre, le coureur rejoint les agents libres." />
       {listings.length > 0 ? (
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} returnPath={returnPath} />)}
+          {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
         </div>
       ) : (
         <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : cinq nouveaux coureurs apparaîtront automatiquement." />
@@ -203,22 +208,30 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
 
       <div>
         <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture ; le transfert et les écritures financières sont ensuite automatiques." />
-        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
+        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
       </div>
     </section>
   );
 }
 
-function FreeAgents({ riders, countries, query, currency, returnPath }: {
+function FreeAgents({ riders, countries, query, currency, rosterSize, rosterLimit, rosterIsFull, returnPath }: {
   riders: TransferMarketRider[];
   countries: Array<{ name: string; code: string }>;
   query: Record<string, string | string[] | undefined>;
   currency: string;
+  rosterSize: number;
+  rosterLimit: number;
+  rosterIsFull: boolean;
   returnPath: string;
 }) {
   return (
     <section className="mt-7">
       <SectionHeading eyebrow="Sans indemnité de transfert" title="Base des agents libres" detail="Le contrat couvre la saison actuelle et la suivante. Le salaire est connu, mais le niveau sportif reste soumis à la qualité du rapport de scouting." />
+      {rosterIsFull ? (
+        <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
+          Effectif complet : {rosterSize} / {rosterLimit} coureurs. Libérez une place avant toute nouvelle signature.
+        </p>
+      ) : null}
       <form className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-6">
         <input type="hidden" name="onglet" value="libres" />
         <FilterField label="Nom"><input name="recherche" defaultValue={readQuery(query.recherche)} placeholder="Rechercher…" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
@@ -231,15 +244,15 @@ function FreeAgents({ riders, countries, query, currency, returnPath }: {
       </form>
       {riders.length > 0 ? (
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {riders.map((rider) => <FreeAgentCard key={rider.id} rider={rider} currency={currency} returnPath={returnPath} />)}
+          {riders.map((rider) => <FreeAgentCard key={rider.id} rider={rider} currency={currency} rosterIsFull={rosterIsFull} returnPath={returnPath} />)}
         </div>
       ) : <EmptyState title="Aucun agent libre pour ces filtres" detail="Élargissez les critères ou attendez la prochaine clôture d’enchère sans offre." />}
     </section>
   );
 }
 
-function AuctionCard({ listing, jersey, teamId, availableBudget, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; teamId: string; availableBudget: number; returnPath: string }) {
-  const canBid = listing.status === "open" && listing.sellerTeamId !== teamId;
+function AuctionCard({ listing, jersey, teamId, availableBudget, rosterIsFull, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; teamId: string; availableBudget: number; rosterIsFull: boolean; returnPath: string }) {
+  const canBid = listing.status === "open" && listing.sellerTeamId !== teamId && !rosterIsFull;
   const bidCapacity = availableBudget + (listing.isOwnTeamLeading ? listing.currentBid ?? 0 : 0);
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
@@ -259,21 +272,21 @@ function AuctionCard({ listing, jersey, teamId, availableBudget, returnPath }: {
             <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">Votre offre<input name="amount" type="number" min={listing.minimumNextBid} step="100" required defaultValue={listing.minimumNextBid} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 px-3 text-sm font-black" /></label>
             <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid + listing.salaryPerSeason}>Enchérir</TransferSubmitButton></div>
           </form>
-        ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : null}
+        ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : rosterIsFull && listing.status === "open" ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · 35 coureurs maximum</p> : null}
         <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
       </div>
     </article>
   );
 }
 
-function FreeAgentCard({ rider, currency, returnPath }: { rider: TransferMarketRider; currency: string; returnPath: string }) {
+function FreeAgentCard({ rider, currency, rosterIsFull, returnPath }: { rider: TransferMarketRider; currency: string; rosterIsFull: boolean; returnPath: string }) {
   const seasonSalary = rider.salaryPerSeason;
   return (
     <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
       <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} jersey={FREE_AGENT_RIDER_JERSEY} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-20 w-20" /><div className="min-w-0 flex-1"><Link href={`/jeu/coureurs/${rider.id}`} target="_blank" className="block truncate text-lg font-black text-[#183F37] hover:text-[#176951]">{rider.firstName} {rider.lastName} ↗</Link><p className="mt-1 text-xs font-bold text-[#60756E]"><span className={`fi fi-${rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{rider.countryName} · {rider.age} ans</p><div className="mt-2 flex gap-2"><span className="rounded-full bg-[#EAF2FA] px-2.5 py-1 text-[10px] font-black text-[#256390]">{rider.profileLabel}</span></div></div></div>
       <div className="mt-4"><TransferScoutingReportPanel report={rider.scoutingReport} compact /></div>
       <div className="mt-4 rounded-xl bg-[#F3F8F6] px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">Demande salariale</p><p className="mt-1 text-lg font-black text-[#183F37]">{formatMoney(Math.round(seasonSalary / 4), currency)} / semaine</p><p className="text-[10px] font-bold text-[#60756E]">{formatMoney(seasonSalary, currency)} par saison</p></div>
-      <form action={signFreeAgentAction} className="mt-4 flex"><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>
+      {rosterIsFull ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · signature impossible</p> : <form action={signFreeAgentAction} className="mt-4 flex"><input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="returnPath" value={returnPath} /><TransferSubmitButton pendingLabel="Signature…" tone="green">Signer 2 saisons</TransferSubmitButton></form>}
     </article>
   );
 }

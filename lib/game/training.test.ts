@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildRiderTrainingSeasonReport,
   calculateDailyTrainingProgressMilli,
   getDailyDeclineMilli,
   formatTrainingProgressMilli,
@@ -19,6 +20,7 @@ import {
   getTrainingFormDelta,
   indexLatestTrainingSessionsByRider,
   parseTrainingPageTab,
+  TRAINING_STAT_CODES,
   validateRecognitionCampSchedule,
 } from "@/lib/game/training";
 
@@ -179,6 +181,26 @@ describe("training progression", () => {
     expect((daily * 28) / 1_000).toBeCloseTo(12, 1);
   });
 
+  it("augmente de 50 % la progression avec Premier de la classe", () => {
+    const input = {
+      intensity: 75,
+      age: 24,
+      potentialSteps: 6,
+      rating: 72,
+      domain: "climber" as const,
+      ratingKey: "mountain" as const,
+      trainerSpecialty: "mountain" as const,
+      trainerLevel: 3,
+    };
+    const regularProgress = calculateDailyTrainingProgressMilli(input);
+    const giftedProgress = calculateDailyTrainingProgressMilli({
+      ...input,
+      hasFirstInClass: true,
+    });
+
+    expect(giftedProgress / regularProgress).toBeCloseTo(1.5, 2);
+  });
+
   it("accélère le déclin de façon composée après 32 ans", () => {
     expect(getSeasonDeclinePoints(31)).toBe(0);
     expect(getSeasonDeclinePoints(32)).toBeCloseTo(3.6);
@@ -242,6 +264,96 @@ describe("training reports", () => {
     expect(formatTrainingProgressMilli(1_000)).toBe("1,000");
   });
 });
+describe("season training reports", () => {
+  it("cumule les séances et compare chaque note entre J1 et la journée actuelle", () => {
+    const currentRatings = Object.fromEntries(
+      TRAINING_STAT_CODES.map((statCode) => [statCode, 50]),
+    ) as Record<(typeof TRAINING_STAT_CODES)[number], number>;
+    currentRatings.mountain = 62;
+
+    const report = buildRiderTrainingSeasonReport({
+      currentDayNumber: 5,
+      currentRatings,
+      sessions: [
+        {
+          season_day_id: "day-1",
+          status: "completed",
+          form_delta: -25,
+          progress_milli: { mountain: 1_300 },
+          decline_milli: { mountain: 100 },
+          rating_changes: { mountain: 1 },
+        },
+        {
+          season_day_id: "day-2",
+          status: "skipped_low_form",
+          form_delta: 2,
+          progress_milli: {},
+          decline_milli: { mountain: 100 },
+          rating_changes: {},
+        },
+      ],
+      statProgressRows: [
+        {
+          stat_code: "mountain",
+          initial_rating: 60,
+          balance_milli: 100,
+          total_training_milli: 2_100,
+          rating_gain: 2,
+          rating_loss: 0,
+        },
+      ],
+      dayNumberById: new Map([
+        ["day-1", 1],
+        ["day-2", 2],
+      ]),
+    });
+
+    expect(report).not.toBeNull();
+    expect(report).toMatchObject({
+      fromDayNumber: 1,
+      toDayNumber: 5,
+      firstSessionDayNumber: 1,
+      lastSessionDayNumber: 2,
+      sessionCount: 2,
+      completedSessionCount: 1,
+      skippedSessionCount: 1,
+      totalFormDelta: -23,
+    });
+    expect(report?.stats.find((stat) => stat.statCode === "mountain")).toEqual({
+      statCode: "mountain",
+      initialRating: 60,
+      currentRating: 62,
+      ratingGain: 2,
+      ratingLoss: 0,
+      netRatingChange: 2,
+      balanceMilli: 100,
+      totalTrainingMilli: 2_100,
+      totalDeclineMilli: 200,
+    });
+    expect(report?.stats.find((stat) => stat.statCode === "sprint")).toMatchObject({
+      initialRating: 50,
+      currentRating: 50,
+      netRatingChange: 0,
+    });
+  });
+
+  it("ne crée pas de bilan avant le premier rapport de la saison", () => {
+    const currentRatings = Object.fromEntries(
+      TRAINING_STAT_CODES.map((statCode) => [statCode, 50]),
+    ) as Record<(typeof TRAINING_STAT_CODES)[number], number>;
+
+    expect(
+      buildRiderTrainingSeasonReport({
+        currentDayNumber: 1,
+        currentRatings,
+        sessions: [],
+        statProgressRows: [],
+        dayNumberById: new Map(),
+      }),
+    ).toBeNull();
+  });
+});
+
 function simulateVeteranMountainRating(
   initialRating: number,
   startAge: number,

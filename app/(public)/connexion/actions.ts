@@ -62,8 +62,9 @@ export async function loginAccount(
       return {
         status: "error",
         message:
-          "Ton adresse e-mail n’a pas encore été confirmée. Consulte le message envoyé lors de ton inscription.",
+          "a’a pas encore été confirmée. Consulte le message envoyé lors de ton inscription.",
         fieldErrors: {},
+        unconfirmedEmail: validationResult.data.email,
       };
     }
 

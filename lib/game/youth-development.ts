@@ -1,9 +1,10 @@
 import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
+import { TRAINING_DOMAIN_LABELS, type TrainingDomain } from "@/lib/game/training";
 import {
-  TRAINING_DOMAINS,
-  TRAINING_DOMAIN_LABELS,
-  type TrainingDomain,
-} from "@/lib/game/training";
+  YOUTH_TRAINING_DOMAINS,
+  isYouthTrainingDomain,
+  type YouthTrainingDomain,
+} from "@/lib/game/youth-training";
 
 export const YOUTH_RATING_KEYS = [
   "mountain",
@@ -29,7 +30,7 @@ export const YOUTH_ARCHETYPE_LABELS: Record<YouthArchetype, string> = {
   all_rounder: "Polyvalent",
 };
 
-export const YOUTH_TRAINING_PRIORITIES = TRAINING_DOMAINS;
+export const YOUTH_TRAINING_PRIORITIES = YOUTH_TRAINING_DOMAINS;
 
 const ARCHETYPE_PRIMARY_STATS: Record<YouthArchetype, readonly RiderRatingKey[]> = {
   climber: ["mountain", "endurance", "recovery"],
@@ -250,8 +251,8 @@ export function getScoutNationalityEfficiencyBonus(
   return scoutCountryId === targetCountryId ? 15 : 0;
 }
 
-export function isYouthTrainingPriority(value: string): value is TrainingDomain {
-  return YOUTH_TRAINING_PRIORITIES.includes(value as TrainingDomain);
+export function isYouthTrainingPriority(value: string): value is YouthTrainingDomain {
+  return isYouthTrainingDomain(value);
 }
 
 export function createSeededRandom(seed: string): () => number {

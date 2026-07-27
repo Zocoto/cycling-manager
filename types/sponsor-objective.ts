@@ -14,6 +14,7 @@ export type SponsorObjectiveStatus =
   | "draft"
   | "active"
   | "completed"
+  | "failed"
   | "cancelled";
 
 export type RaceResultObjectiveDetails = {

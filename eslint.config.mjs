@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     ".tmp-*/**",
+    ".codex-feature-*/**",
+    ".pnpm-store/**",
+    "artifacts/**",
+    "tmp/**",
     "next-env.d.ts",
   ]),
 ]);

@@ -4,6 +4,7 @@ export type LoginState = {
   status: "idle" | "error";
   message: string;
   fieldErrors: Partial<Record<LoginField, string[]>>;
+  unconfirmedEmail?: string;
 };
 
 export const initialLoginState: LoginState = {

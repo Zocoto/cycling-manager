@@ -43,7 +43,7 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     label: "Entraîneur",
     pluralLabel: "Entraîneurs",
     shortDescription: "Accélère la progression dans sa spécialité.",
-    salaryBase: 18_000,
+    salaryBase: 22_000,
     accent: "#E2A63B",
   },
   scout: {
@@ -51,35 +51,35 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     pluralLabel: "Scouts",
     shortDescription:
       "Détecte davantage de talents et améliore leur potentiel initial.",
-    salaryBase: 15_000,
+    salaryBase: 19_000,
     accent: "#4E8FB8",
   },
   doctor: {
     label: "Médecin",
     pluralLabel: "Médecins",
     shortDescription: "Réduit le temps de récupération après une blessure.",
-    salaryBase: 13_000,
+    salaryBase: 17_000,
     accent: "#D6655A",
   },
   mechanic: {
     label: "Mécanicien",
     pluralLabel: "Mécaniciens",
     shortDescription: "Limite le temps perdu lors d’une avarie en course.",
-    salaryBase: 11_000,
+    salaryBase: 14_000,
     accent: "#71827C",
   },
   nutritionist: {
     label: "Nutritionniste",
     pluralLabel: "Nutritionnistes",
     shortDescription: "Optimise la récupération et le coût des compléments.",
-    salaryBase: 10_000,
+    salaryBase: 13_000,
     accent: "#78A94E",
   },
   physiotherapist: {
     label: "Kiné",
     pluralLabel: "Kinés",
     shortDescription: "Réduit le malus de forme subi après une course.",
-    salaryBase: 9_500,
+    salaryBase: 13_000,
     accent: "#8B6FB6",
   },
   race_preparer: {
@@ -87,7 +87,7 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     pluralLabel: "Préparateurs de parcours",
     shortDescription:
       "Améliore le bonus obtenu lors des reconnaissances de course.",
-    salaryBase: 12_000,
+    salaryBase: 15_000,
     accent: "#C4773D",
   },
   architect: {
@@ -95,14 +95,14 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     pluralLabel: "Architectes",
     shortDescription:
       "Réduit le coût et la durée de construction des infrastructures.",
-    salaryBase: 9_000,
+    salaryBase: 12_000,
     accent: "#B27B4A",
   },
   community_manager: {
     label: "Community manager",
     pluralLabel: "Community managers",
     shortDescription: "Amplifie tous les gains de réputation de l’équipe.",
-    salaryBase: 8_000,
+    salaryBase: 11_000,
     accent: "#3FA58B",
   },
 };
@@ -145,15 +145,38 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "architect",
 ];
 
-export const STAFF_DAILY_LEVEL_DISTRIBUTION: readonly number[] = [
-  1, 1, 1, 1, 1, 1, 1, 1,
-  2, 2, 2, 2, 2, 2, 2,
-  3, 3, 3, 3, 3,
-  4, 4, 4,
-  5, 5,
-];
+export const STAFF_LEVEL_RARITY_WEIGHTS = [
+  { level: 1, weight: 50 },
+  { level: 2, weight: 28 },
+  { level: 3, weight: 15 },
+  { level: 4, weight: 6 },
+  { level: 5, weight: 1 },
+] as const;
 
-const STAFF_LEVEL_SALARY_MULTIPLIERS = [1, 1.35, 1.75, 2.25, 3] as const;
+export const STAFF_LEVEL_WEIGHT_TOTAL = STAFF_LEVEL_RARITY_WEIGHTS.reduce(
+  (total, entry) => total + entry.weight,
+  0,
+);
+
+export function selectStaffLevelFromRoll(roll: number): number {
+  const normalizedRoll = Number.isFinite(roll)
+    ? Math.min(
+        STAFF_LEVEL_WEIGHT_TOTAL - 1,
+        Math.max(0, Math.floor(roll)),
+      )
+    : 0;
+  let upperBound = 0;
+
+  for (const entry of STAFF_LEVEL_RARITY_WEIGHTS) {
+    upperBound += entry.weight;
+    if (normalizedRoll < upperBound) return entry.level;
+  }
+
+  return 1;
+}
+
+const STAFF_LEVEL_SALARY_MULTIPLIERS = [1, 1.5, 2.2, 3.3, 5] as const;
+const STAFF_LEVEL_SIGNING_FEE_RATES = [0.15, 0.2, 0.3, 0.45, 0.65] as const;
 
 export function normalizeStaffLevel(level: number): number {
   if (!Number.isFinite(level)) return 1;
@@ -172,7 +195,7 @@ export function calculateStaffSalary(role: StaffRole, level: number): number {
 export function calculateStaffSigningFee(role: StaffRole, level: number): number {
   const safeLevel = normalizeStaffLevel(level);
   const salary = calculateStaffSalary(role, safeLevel);
-  const feeRate = 0.1 + safeLevel * 0.02;
+  const feeRate = STAFF_LEVEL_SIGNING_FEE_RATES[safeLevel - 1];
 
   return Math.max(1_000, Math.round((salary * feeRate) / 500) * 500);
 }

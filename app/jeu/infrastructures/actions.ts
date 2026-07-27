@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { isStaffAcademyImprovementType } from "@/lib/game/staff-academy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const INFRASTRUCTURE_PATH = "/jeu/infrastructures";
@@ -21,6 +22,7 @@ export async function startInfrastructureProjectAction(formData: FormData) {
 
   if (
     infrastructureCode !== "recruitment_data_room" &&
+    infrastructureCode !== "staff_academy" &&
     infrastructureCode !== "international_youth_center"
   ) {
     redirectWithMessage(tab, "erreur", "Le chantier transmis est invalide.");
@@ -67,6 +69,37 @@ export async function startInfrastructureProjectAction(formData: FormData) {
   );
 }
 
+export async function startStaffAcademyTrainingAction(formData: FormData) {
+  const staffContractId = readValue(formData, "staffContractId");
+  const improvementType = readValue(formData, "improvementType");
+
+  if (!isUuid(staffContractId)) {
+    redirectWithMessage("batiments", "erreur", "Le membre du staff sélectionné est invalide.");
+  }
+  if (!isStaffAcademyImprovementType(improvementType)) {
+    redirectWithMessage("batiments", "erreur", "Le type de stage est invalide.");
+  }
+
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc(
+    "start_current_team_staff_academy_training",
+    {
+      p_staff_contract_id: staffContractId,
+      p_improvement_type: improvementType,
+    },
+  );
+  if (result.error) {
+    redirectWithMessage("batiments", "erreur", result.error.message);
+  }
+
+  revalidateInfrastructurePages();
+  revalidatePath("/jeu/staff");
+  redirectWithMessage(
+    "batiments",
+    "succes",
+    "Le stage est lancé. Le membre du staff reste pleinement opérationnel jusqu’à l’activation de son amélioration.",
+  );
+}
 export async function markInfrastructureNotificationsReadAction() {
   const supabase = await authenticatedClient();
   const result = await supabase.rpc(

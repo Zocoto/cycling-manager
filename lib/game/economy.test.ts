@@ -119,14 +119,14 @@ describe("calculateStagePrize", () => {
 describe("calculateRiderSeasonSalary", () => {
   it("maintient les amateurs sans salaire et encadre les professionnels", () => {
     expect(calculateRiderSeasonSalary({ overall: 90, isAmateur: true })).toBe(0);
-    expect(calculateRiderSeasonSalary({ overall: 20 })).toBe(2_500);
+    expect(calculateRiderSeasonSalary({ overall: 20 })).toBe(6_000);
     expect(
       calculateRiderSeasonSalary({
         overall: 100,
         previousSeasonUciPoints: 5_000,
         majorWins: 10,
       })
-    ).toBe(150_000);
+    ).toBe(386_000);
   });
 
   it("valorise le niveau puis le palmarès", () => {
@@ -139,6 +139,12 @@ describe("calculateRiderSeasonSalary", () => {
 
     expect(established).toBeGreaterThan(emerging);
   });
+  it("rend les leaders nettement plus coûteux que les équipiers", () => {
+    expect(calculateRiderSeasonSalary({ overall: 55 })).toBe(12_100);
+    expect(calculateRiderSeasonSalary({ overall: 70 })).toBe(50_100);
+    expect(calculateRiderSeasonSalary({ overall: 85 })).toBe(127_000);
+  });
+
 });
 
 describe("division et dette", () => {

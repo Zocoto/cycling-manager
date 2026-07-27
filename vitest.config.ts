@@ -10,6 +10,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    exclude: [...defaultExclude, "**/.tmp-*/**"],
+    exclude: [
+      ...defaultExclude,
+      "**/.tmp-*/**",
+      "**/.codex-feature-*/**",
+    ],
   },
 });

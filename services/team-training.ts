@@ -7,12 +7,17 @@ import {
   type TrainerSpecialty,
 } from "@/lib/game/staff";
 import {
+  buildRiderTrainingSeasonReport,
   getLongevityTier,
   getSeasonDeclinePoints,
   getTrainerRiderCapacity,
   indexLatestTrainingSessionsByRider,
   isTrainingDomain,
+  type RiderTrainingReport,
+  type RiderTrainingSeasonReport,
   type TrainingDomain,
+  type TrainingSeasonStatProgressRow,
+  type TrainingSessionStatus,
 } from "@/lib/game/training";
 
 type DirectorRow = { id: string };
@@ -102,12 +107,9 @@ type SessionRow = {
   processed_at: string;
 };
 
-export type TrainingSessionStatus =
-  | "completed"
-  | "skipped_low_form"
-  | "skipped_injury"
-  | "skipped_form_camp"
-  | "skipped_reconnaissance";
+type StatProgressRow = TrainingSeasonStatProgressRow & {
+  rider_id: string;
+};
 
 export type TeamTrainer = {
   contractId: string;
@@ -122,25 +124,6 @@ export type TeamTrainer = {
   efficiencyBonus: number;
   assignedRiderCount: number;
   riderCapacity: number;
-};
-
-export type RiderTrainingReport = {
-  dayNumber: number;
-  status: TrainingSessionStatus;
-  intensity: number;
-  domain: TrainingDomain;
-  minimumForm: number;
-  trainerLevel: number;
-  trainerSpecialty: TrainerSpecialty | null;
-  trainerCountryMatch: boolean;
-  physiotherapistLevel: number;
-  formBefore: number;
-  formDelta: number;
-  formAfter: number;
-  progressMilli: Record<string, number>;
-  declineMilli: Record<string, number>;
-  ratingChanges: Record<string, number>;
-  processedAt: string;
 };
 
 export type TeamTrainingRider = {
@@ -169,6 +152,7 @@ export type TeamTrainingRider = {
     isPending: boolean;
   };
   latestReport: RiderTrainingReport | null;
+  seasonReport: RiderTrainingSeasonReport | null;
 };
 
 export type TeamTrainingOverview = {
@@ -251,6 +235,7 @@ export async function getCurrentTeamTrainingOverview(
     ratingsResult,
     conditionsResult,
     sessionsResult,
+    statProgressResult,
     staffMembersResult,
     ironHealthResult,
   ] =
@@ -292,6 +277,16 @@ export async function getCurrentTeamTrainingOverview(
             .order("processed_at", { ascending: false })
             .returns<SessionRow[]>()
         : Promise.resolve({ data: [] as SessionRow[], error: null }),
+      riderIds.length
+        ? admin
+            .from("rider_training_stat_progress")
+            .select(
+              "rider_id, stat_code, initial_rating, balance_milli, total_training_milli, rating_gain, rating_loss",
+            )
+            .eq("season_id", season.id)
+            .in("rider_id", riderIds)
+            .returns<StatProgressRow[]>()
+        : Promise.resolve({ data: [] as StatProgressRow[], error: null }),
       staffMemberIds.length
         ? admin
             .from("staff_members")
@@ -314,6 +309,7 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(ratingsResult.error, "les caractéristiques des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
   assertQuery(sessionsResult.error, "les rapports d’entraînement");
+  assertQuery(statProgressResult.error, "la progression saisonnière des coureurs");
   assertQuery(staffMembersResult.error, "les entraîneurs");
   assertQuery(ironHealthResult.error, "les capacités de longévité");
 
@@ -337,6 +333,17 @@ export async function getCurrentTeamTrainingOverview(
   );
   const currentDayNumber = season.current_day_number ?? 1;
   const dayById = new Map(days.map((day) => [day.id, day]));
+  const dayNumberById = new Map(
+    days.map((day) => [day.id, day.day_number]),
+  );
+  const sessionsByRiderId = groupByKey(
+    sessionsResult.data ?? [],
+    (session) => session.rider_id,
+  );
+  const statProgressByRiderId = groupByKey(
+    statProgressResult.data ?? [],
+    (progress) => progress.rider_id,
+  );
   const countryById = new Map((countriesResult.data ?? []).map((country) => [country.id, country]));
   const ratingByRiderId = new Map((ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]));
   const plansByRiderId = firstByKey(plansResult.data ?? [], (plan) => plan.rider_id);
@@ -351,7 +358,7 @@ export async function getCurrentTeamTrainingOverview(
   }
   const latestSessionByRiderId = indexLatestTrainingSessionsByRider(
     sessionsResult.data ?? [],
-    new Map(days.map((day) => [day.id, day.day_number])),
+    dayNumberById,
   );
   const conditionByRiderId = latestConditions(
     conditionsResult.data ?? [],
@@ -421,6 +428,21 @@ export async function getCurrentTeamTrainingOverview(
           rider.decline_resistance_multiplier,
         );
         const hasIronHealth = ironHealthRiderIds.has(rider.id);
+        const riderRatings = {
+          mountain: rating.mountain,
+          hills: rating.hills,
+          flat: rating.flat,
+          time_trial: rating.time_trial,
+          cobbles: rating.cobbles,
+          sprint: rating.sprint,
+          acceleration: rating.acceleration,
+          downhill: rating.downhill,
+          endurance: rating.endurance,
+          resistance: rating.resistance,
+          recovery: rating.recovery,
+          breakaway: rating.breakaway,
+          prologue: rating.prologue,
+        };
 
         return [
           {
@@ -443,21 +465,7 @@ export async function getCurrentTeamTrainingOverview(
               longevityTier: getLongevityTier(naturalDeclineMultiplier),
               hasIronHealth,
             },
-            ratings: {
-              mountain: rating.mountain,
-              hills: rating.hills,
-              flat: rating.flat,
-              time_trial: rating.time_trial,
-              cobbles: rating.cobbles,
-              sprint: rating.sprint,
-              acceleration: rating.acceleration,
-              downhill: rating.downhill,
-              endurance: rating.endurance,
-              resistance: rating.resistance,
-              recovery: rating.recovery,
-              breakaway: rating.breakaway,
-              prologue: rating.prologue,
-            },
+            ratings: riderRatings,
             plan: {
               intensity: planRow?.intensity ?? 0,
               domain,
@@ -488,6 +496,13 @@ export async function getCurrentTeamTrainingOverview(
                   processedAt: reportRow.processed_at,
                 }
               : null,
+            seasonReport: buildRiderTrainingSeasonReport({
+              currentDayNumber,
+              currentRatings: riderRatings,
+              sessions: sessionsByRiderId.get(rider.id) ?? [],
+              statProgressRows: statProgressByRiderId.get(rider.id) ?? [],
+              dayNumberById,
+            }),
           } satisfies TeamTrainingRider,
         ];
       })
@@ -541,6 +556,20 @@ async function loadContext(
   if (!teamSeason) return null;
 
   return { season: seasonResult.data, teamSeason };
+}
+
+function groupByKey<T>(
+  rows: readonly T[],
+  key: (row: T) => string,
+): Map<string, T[]> {
+  const result = new Map<string, T[]>();
+  for (const row of rows) {
+    const value = key(row);
+    const group = result.get(value);
+    if (group) group.push(row);
+    else result.set(value, [row]);
+  }
+  return result;
 }
 
 function firstByKey<T>(rows: T[], key: (row: T) => string): Map<string, T> {

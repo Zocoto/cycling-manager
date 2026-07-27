@@ -1,7 +1,11 @@
 import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
-import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
+import {
+  GAMEPLAY_RULES,
+  isFutureSponsoringWindowOpen,
+  isSponsoringUnlocked,
+} from "@/lib/gameplay-rules";
 import {
   buildRiderCountrySponsorAffinities,
   calculateOverallRating,
@@ -19,13 +23,14 @@ import type {
 import { generateSponsorProposals } from "@/services/sponsor-proposals";
 import type { Sponsor } from "@/types/sponsor";
 
-const FUTURE_SPONSORING_OPENING_DAY = 21;
+
 const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
 
 export type FutureSponsorOfferMode =
   | "renewal"
-  | "replacement";
+  | "replacement"
+  | "first-contract";
 
 export type FutureSponsorSeason = {
   id: string;
@@ -174,12 +179,9 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     );
   }
 
-  if (
-    activeSeason.currentDayNumber <
-    FUTURE_SPONSORING_OPENING_DAY
-  ) {
+  if (!isFutureSponsoringWindowOpen(activeSeason.currentDayNumber)) {
     throw new Error(
-      `Les offres pour la saison suivante ouvrent au jour ${FUTURE_SPONSORING_OPENING_DAY}.`
+      `Les offres pour la saison suivante ouvrent au jour ${GAMEPLAY_RULES.futureSponsoringOpeningDay}.`
     );
   }
 
@@ -268,7 +270,7 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     );
   }
 
-  if (existingOfferRows && existingOfferRows.length > 0) {
+  if (existingOfferRows?.length === DEFAULT_PROPOSAL_COUNT) {
     return {
       mode,
       season: targetSeason,
@@ -283,6 +285,22 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
             : null,
       }),
     };
+  }
+
+  if (existingOfferRows && existingOfferRows.length > 0) {
+    const { error: withdrawIncompleteOffersError } = await supabase
+      .from("sponsor_offers")
+      .update({ status: "withdrawn" })
+      .in(
+        "id",
+        existingOfferRows.map((offer) => offer.id)
+      );
+
+    if (withdrawIncompleteOffersError) {
+      throw new Error(
+        `Impossible de réinitialiser le lot incomplet d’offres : ${withdrawIncompleteOffersError.message}`
+      );
+    }
   }
 
   const unavailableSponsorCatalogKeys =

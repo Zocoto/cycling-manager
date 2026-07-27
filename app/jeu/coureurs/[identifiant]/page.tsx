@@ -3,6 +3,8 @@ import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profile-view";
+import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
@@ -20,6 +22,7 @@ import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting
 import { SeasonPerformancesPopover } from "@/components/game/season-performances-popover";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
+import { getRiderExperience } from "@/lib/game/rider-experience";
 import {
   SPECIAL_ABILITY_CATALOG,
   type RiderSpecialAbility,
@@ -43,6 +46,7 @@ import {
   type PublicRiderProfile,
 } from "@/services/public-rider-profile";
 import { getCurrentTeamRiderSeasonPlanning } from "@/services/rider-season-planning";
+import { getProfessionalRiderNaturalizationEligibility } from "@/services/rider-naturalization";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getRiderTransferManagement } from "@/services/transfer-market";
@@ -52,6 +56,7 @@ import {
   signFreeAgentAction,
 } from "@/app/jeu/transferts/actions";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
+import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
 
@@ -108,19 +113,39 @@ export default async function RiderProfilePage({
     notFound();
   }
 
-  const [equipmentManagement, transferManagement, riderPlanning] =
-    await Promise.all([
-      profile.canManage
-        ? getRiderEquipmentManagement(user.id, profile.id)
-        : Promise.resolve(null),
-      getRiderTransferManagement(user.id, profile.id),
-      profile.canManage
-        ? getCurrentTeamRiderSeasonPlanning({
-            authUserId: user.id,
-            riderId: profile.id,
-          })
-        : Promise.resolve(null),
-    ]);
+  if (profile.archive) {
+    return (
+      <ArchivedRiderProfileView
+        profile={profile}
+        headerData={headerData}
+        simulatorEmail={user.email}
+      />
+    );
+  }
+
+  const [
+    equipmentManagement,
+    transferManagement,
+    riderPlanning,
+    naturalizationEligibility,
+  ] = await Promise.all([
+    profile.canManage
+      ? getRiderEquipmentManagement(user.id, profile.id)
+      : Promise.resolve(null),
+    getRiderTransferManagement(user.id, profile.id),
+    profile.canManage
+      ? getCurrentTeamRiderSeasonPlanning({
+          authUserId: user.id,
+          riderId: profile.id,
+        })
+      : Promise.resolve(null),
+    profile.canManage
+      ? getProfessionalRiderNaturalizationEligibility({
+          authUserId: user.id,
+          riderId: profile.id,
+        })
+      : Promise.resolve(null),
+  ]);
 
   const [amateurIdentity, sponsorIdentity] = profile.currentTeam
     ? await Promise.all([
@@ -145,6 +170,7 @@ export default async function RiderProfilePage({
       ? createSponsoredRiderJersey({
           colors: sponsorIdentity.sponsor.colors,
           style: sponsorIdentity.selectedJersey.style,
+          imagePath: sponsorIdentity.selectedJersey.imagePath,
         })
       : amateurIdentity
         ? createAmateurRiderJersey(amateurIdentity.jersey)
@@ -153,6 +179,7 @@ export default async function RiderProfilePage({
     ? getNationalChampionPalette(activeNationalTitle.countryCode)
     : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+  const riderExperience = getRiderExperience(profile.careerRaceDays);
   const countryHref = `/jeu/nations/${profile.country.code.toLowerCase()}`;
 
   return (
@@ -244,6 +271,12 @@ export default async function RiderProfilePage({
                 {profile.age ? (
                   <IdentityBadge>{profile.age} ans</IdentityBadge>
                 ) : null}
+                <IdentityBadge>
+                  Expérience · {riderExperience.level} · {riderExperience.score}/100
+                </IdentityBadge>
+                <IdentityBadge>
+                  Jours de course · {riderExperience.raceDays}
+                </IdentityBadge>
                 <Link
                   href={countryHref}
                   target="_blank"
@@ -290,13 +323,6 @@ export default async function RiderProfilePage({
                   </IdentityBadge>
                 ) : null}
               </div>
-              <p className="mt-5 max-w-xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-                {activeNationalTitle
-                  ? `Champion de ${activeNationalTitle.countryName} en titre : son identité nationale remplace le thème habituel pendant toute la durée de son règne.`
-                  : profile.scoutingReport
-                    ? "Portrait permanent et rapport de scouting partiel : le recrutement conserve une part d’incertitude."
-                    : "Portrait permanent, caractéristiques sportives de la saison et parcours professionnel du coureur."}
-              </p>
             </div>
 
             <div className="space-y-3">
@@ -340,6 +366,15 @@ export default async function RiderProfilePage({
           </section>
 
           <aside className="space-y-5">
+            {naturalizationEligibility ? (
+              <NaturalizationCard
+                eligibility={naturalizationEligibility}
+                subjectName={fullName}
+                subjectId={profile.id}
+                subjectIdField="riderId"
+                action={naturalizeProfessionalRiderAction}
+              />
+            ) : null}
             {profile.medical ? (
               <RiderMedicalCard medical={profile.medical} />
             ) : null}
@@ -353,11 +388,6 @@ export default async function RiderProfilePage({
               <LockedTrainingCard canManage={profile.canManage} />
             )}
             <SpecialAbilitiesCard abilities={profile.specialAbilities} />
-            {profile.permanentEnhancements.length > 0 ? (
-              <PermanentEnhancementsCard
-                enhancements={profile.permanentEnhancements}
-              />
-            ) : null}
           </aside>
         </div>
 
@@ -1069,40 +1099,6 @@ function SpecialAbilitiesCard({
           ? `${abilities.length} capacité${abilities.length > 1 ? "s" : ""} débloquée${abilities.length > 1 ? "s" : ""}. Survolez ou sélectionnez un médaillon pour voir son effet.`
           : "Les capacités connues restent grisées tant que le coureur ne les a pas débloquées. Survolez ou sélectionnez un médaillon pour voir son effet."}
       </p>
-    </section>
-  );
-}
-
-function PermanentEnhancementsCard({
-  enhancements,
-}: {
-  enhancements: PublicRiderProfile["permanentEnhancements"];
-}) {
-  return (
-    <section className="rounded-2xl border border-[#D29F32]/20 bg-[#FFF9E8] p-5 shadow-[0_12px_34px_rgba(138,101,22,0.08)]">
-      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8A6516]">
-        Améliorations permanentes
-      </p>
-      <div className="mt-4 space-y-3">
-        {enhancements.map((enhancement) => (
-          <div
-            key={enhancement.id}
-            className="rounded-xl border border-[#D29F32]/15 bg-white/75 px-4 py-3"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-black text-[#183F37]">
-                {enhancement.itemName}
-              </p>
-              <span className="shrink-0 rounded-full bg-[#D29F32]/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#8A6516]">
-                À vie
-              </span>
-            </div>
-            <p className="mt-1 text-xs font-bold leading-5 text-[#60756E]">
-              {enhancement.effectSummary}
-            </p>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }

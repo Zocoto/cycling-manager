@@ -41,6 +41,7 @@ function equipment(
     imagePath: "/images/equipment/products/test.webp",
     effectSummary: "Test",
     effects: EMPTY_EQUIPMENT_EFFECTS,
+    channel: "commercial",
     ownedQuantity: 1,
     equippedQuantity: 0,
     pendingQuantity: 0,

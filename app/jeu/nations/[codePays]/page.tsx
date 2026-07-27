@@ -291,6 +291,7 @@ async function getNationRiderJerseys(
         ? createSponsoredRiderJersey({
             colors: sponsorIdentity.sponsor.colors,
             style: sponsorIdentity.selectedJersey.style,
+            imagePath: sponsorIdentity.selectedJersey.imagePath,
           })
         : amateurIdentity
           ? createAmateurRiderJersey(amateurIdentity.jersey)

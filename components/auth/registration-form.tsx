@@ -7,6 +7,7 @@ import {
   initialRegistrationState,
   type RegistrationField,
 } from "../../app/(public)/inscription/registration-state";
+import { EmailVerificationResendForm } from "./email-verification-resend-form";
 
 const registrationFields: RegistrationField[] = [
   "managerName",
@@ -182,6 +183,14 @@ export function RegistrationForm() {
               : "Créer mon compte"}
         </button>
       </form>
+
+      {registrationSucceeded ? (
+        <div className="mt-5">
+          <EmailVerificationResendForm
+            initialEmail={state.email}
+          />
+        </div>
+      ) : null}
 
       <p className="mt-4 text-center text-xs leading-5 text-[#9FB5A8]">
         En créant votre compte, vous acceptez que votre nom de directeur

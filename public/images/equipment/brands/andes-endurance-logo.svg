@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 180" role="img" aria-labelledby="title desc">
+  <title id="title">Andes Endurance</title>
+  <desc id="desc">Logo montagne vert et or</desc>
+  <rect width="480" height="180" rx="28" fill="#f7f1e4"/>
+  <g transform="translate(28 25)">
+    <circle cx="65" cy="65" r="62" fill="#173b35"/>
+    <path d="M17 93 54 36l20 29 15-21 25 49H17Z" fill="#d9a441"/>
+    <path d="m54 36 9 27 11 2-20-29Zm35 8 3 26 22 23-25-49Z" fill="#f4e9cf"/>
+    <path d="M25 101h80" stroke="#f4e9cf" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <text x="172" y="78" fill="#173b35" font-family="Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="2">ANDES</text>
+  <text x="172" y="116" fill="#8b6420" font-family="Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="5">ENDURANCE</text>
+</svg>

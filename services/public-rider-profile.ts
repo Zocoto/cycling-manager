@@ -34,6 +34,7 @@ import {
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
 
 export type RiderEquipmentSlot = EquipmentSlot;
 
@@ -55,6 +56,7 @@ export type PublicRiderProfile = {
     gameYear: number;
   } | null;
   age: number | null;
+  careerRaceDays: number;
   potentialSteps: number | null;
   ratings: RiderRatings | null;
   scoutingReport: TransferScoutingReport | null;
@@ -111,13 +113,6 @@ export type PublicRiderProfile = {
     notablePerformances: RiderNotablePerformance[];
   }>;
   specialAbilities: RiderSpecialAbility[];
-  permanentEnhancements: Array<{
-    id: string;
-    category: "special_ability" | "potential_boost" | "rating_boost";
-    itemName: string;
-    effectSummary: string;
-    appliedAt: string;
-  }>;
   equipment: Partial<Record<RiderEquipmentSlot, {
     id: string;
     name: string;
@@ -135,6 +130,17 @@ export type PublicRiderProfile = {
     signedAt: string | null;
   } | null;
   canManage: boolean;
+  archive: {
+    retirementSeasonId: string;
+    retirementSeasonName: string;
+    retirementGameYear: number;
+    retirementAge: number | null;
+    reason: "no_team" | "no_race" | "no_team_and_no_race";
+    reasonLabel: string;
+    totalVictories: number;
+    totalPoints: number;
+    bestUciRank: number | null;
+  } | null;
 };
 
 type RiderRow = {
@@ -146,6 +152,7 @@ type RiderRow = {
   avatar_profile_key: string;
   avatar_seed: number | string;
   potential_steps: number;
+  career_race_days: number;
 };
 
 type CountryRow = {
@@ -257,13 +264,6 @@ type RiderSpecialAbilityRow = {
   ability_code: string;
 };
 
-type RiderConsumableItemApplicationRow = {
-  id: string;
-  category: "special_ability" | "potential_boost" | "rating_boost";
-  item_name: string;
-  effect_summary: string;
-  applied_at: string;
-};
 
 type RewardEventRow = {
   id: string;
@@ -307,6 +307,18 @@ type EquipmentItemRow = {
   image_path: string;
   effect_summary: string;
   effect_payload: unknown;
+  acquisition_channel: "commercial" | "equipment_partner";
+};
+
+type EquipmentPartnerContractRow = {
+  id: string;
+  start_season_id: string;
+  end_season_id: string;
+};
+
+type EquipmentPartnerEffectRow = {
+  equipment_item_id: string;
+  effect_payload: unknown;
 };
 
 type SportingDirectorRow = {
@@ -343,6 +355,9 @@ export async function getPublicRiderProfile({
     return null;
   }
 
+  const archivedProfile = await getArchivedRiderProfile(riderId);
+  if (archivedProfile) return archivedProfile;
+
   const supabase = createSupabaseAdminClient();
   const { error: trainingSettlementError } = await supabase.rpc(
     "settle_due_training_sessions"
@@ -375,7 +390,7 @@ export async function getPublicRiderProfile({
   const { data: rider, error: riderError } = await supabase
     .from("riders")
     .select(
-      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps"
+      "id, country_id, first_name, last_name, status, avatar_profile_key, avatar_seed, potential_steps, career_race_days"
     )
     .eq("id", riderId)
     .maybeSingle<RiderRow>();
@@ -399,7 +414,6 @@ export async function getPublicRiderProfile({
     injuryResult,
     marketListingResult,
     nationalTitlesResult,
-    permanentEnhancementsResult,
     rewardEventsResult,
   ] = await Promise.all([
     supabase
@@ -464,12 +478,6 @@ export async function getPublicRiderProfile({
       .eq("rider_id", rider.id)
       .returns<NationalChampionshipTitleRow[]>(),
     supabase
-      .from("rider_consumable_item_applications")
-      .select("id, category, item_name, effect_summary, applied_at")
-      .eq("rider_id", rider.id)
-      .order("applied_at", { ascending: false })
-      .returns<RiderConsumableItemApplicationRow[]>(),
-    supabase
       .from("reward_events")
       .select(
         "id, team_season_id, source_reference, uci_points, description"
@@ -490,10 +498,6 @@ export async function getPublicRiderProfile({
   assertQuery(injuryResult.error, "la situation médicale du coureur");
   assertQuery(marketListingResult.error, "la présence du coureur sur le marché");
   assertQuery(nationalTitlesResult.error, "les titres nationaux du coureur");
-  assertQuery(
-    permanentEnhancementsResult.error,
-    "les améliorations permanentes du coureur"
-  );
   assertQuery(rewardEventsResult.error, "les performances notables du coureur");
 
   if (!countryResult.data) {
@@ -564,7 +568,7 @@ export async function getPublicRiderProfile({
         ? supabase
             .from("equipment_catalog_items")
             .select(
-              "id, catalog_key, name, slot_type, image_path, effect_summary, effect_payload"
+              "id, catalog_key, name, slot_type, image_path, effect_summary, effect_payload, acquisition_channel"
             )
             .in("id", equipmentItemIds)
             .eq("status", "active")
@@ -803,6 +807,41 @@ export async function getPublicRiderProfile({
     (equipmentItemsResult.data ?? []).map((item) => [item.id, item])
   );
   const equipment: PublicRiderProfile["equipment"] = {};
+  const partnerEffectByItemId = new Map<string, unknown>();
+
+  if (currentContract && activeSeason) {
+    const { data: partnerContract, error: partnerContractError } = await supabase
+      .from("equipment_partner_contracts")
+      .select("id, start_season_id, end_season_id")
+      .eq("team_id", currentContract.team_id)
+      .eq("status", "active")
+      .maybeSingle<EquipmentPartnerContractRow>();
+    assertQuery(partnerContractError, "le contrat équipementier du coureur");
+
+    const contractCoversActiveSeason =
+      partnerContract &&
+      activeSeason.game_year >=
+        getSeasonYear(seasons, partnerContract.start_season_id) &&
+      activeSeason.game_year <=
+        getSeasonYear(seasons, partnerContract.end_season_id);
+
+    if (partnerContract && contractCoversActiveSeason) {
+      const { data: partnerEffects, error: partnerEffectsError } = await supabase
+        .from("equipment_partner_item_effects")
+        .select("equipment_item_id, effect_payload")
+        .eq("contract_id", partnerContract.id)
+        .returns<EquipmentPartnerEffectRow[]>();
+      assertQuery(partnerEffectsError, "les effets R&D du coureur");
+
+      for (const effect of partnerEffects ?? []) {
+        partnerEffectByItemId.set(
+          effect.equipment_item_id,
+          effect.effect_payload,
+        );
+      }
+    }
+  }
+
 
   for (const assignment of equipmentAssignments) {
     const item = equipmentItems.get(assignment.equipment_item_id);
@@ -814,7 +853,11 @@ export async function getPublicRiderProfile({
         catalogKey: item.catalog_key,
         imagePath: item.image_path,
         effectSummary: item.effect_summary,
-        effects: normalizeEquipmentEffects(item.effect_payload),
+        effects: normalizeEquipmentEffects(
+          item.acquisition_channel === "equipment_partner"
+            ? partnerEffectByItemId.get(item.id)
+            : item.effect_payload,
+        ),
       };
     }
   }
@@ -846,6 +889,7 @@ export async function getPublicRiderProfile({
         }
       : null,
     age: currentRating?.age ?? null,
+    careerRaceDays: Number(rider.career_race_days ?? 0),
     potentialSteps: mustUseScoutingReport ? null : rider.potential_steps,
     ratings: mustUseScoutingReport ? null : exactRatings,
     scoutingReport,
@@ -878,15 +922,6 @@ export async function getPublicRiderProfile({
     })),
     history,
     specialAbilities,
-    permanentEnhancements: canManage
-      ? (permanentEnhancementsResult.data ?? []).map((enhancement) => ({
-          id: enhancement.id,
-          category: enhancement.category,
-          itemName: enhancement.item_name,
-          effectSummary: enhancement.effect_summary,
-          appliedAt: enhancement.applied_at,
-        }))
-      : [],
     equipment,
     privateContract:
       currentContract && canManage
@@ -900,6 +935,7 @@ export async function getPublicRiderProfile({
           }
         : null,
     canManage,
+    archive: null,
   };
 }
 

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  STAFF_DAILY_LEVEL_DISTRIBUTION,
   STAFF_DAILY_ROLE_DISTRIBUTION,
+  STAFF_LEVEL_RARITY_WEIGHTS,
+  STAFF_LEVEL_WEIGHT_TOTAL,
   STAFF_ROLES,
   calculateConstructionWithArchitect,
   calculateDueStaffSalary,
@@ -14,6 +15,7 @@ import {
   getPhysiotherapistRiderCapacity,
   getScoutYouthBonuses,
   getStaffCapacityForDirectorLevel,
+  selectStaffLevelFromRoll,
 } from "@/lib/game/staff";
 
 describe("staff economy", () => {
@@ -38,6 +40,13 @@ describe("staff economy", () => {
     expect(calculateStaffSigningFee("trainer", 5)).toBeGreaterThan(
       calculateStaffSigningFee("trainer", 1),
     );
+  });
+
+  it("makes five-star experts a genuine budget choice", () => {
+    expect(calculateStaffSalary("trainer", 1)).toBe(22_000);
+    expect(calculateStaffSalary("trainer", 3)).toBe(48_500);
+    expect(calculateStaffSalary("trainer", 5)).toBe(110_000);
+    expect(calculateStaffSigningFee("trainer", 5)).toBe(71_500);
   });
 
   it("uses a deliberately non-linear staff capacity curve", () => {
@@ -122,9 +131,19 @@ describe("daily staff pool", () => {
     }
   });
 
-  it("contains exactly 25 levels, including two elite profiles", () => {
-    expect(STAFF_DAILY_LEVEL_DISTRIBUTION).toHaveLength(25);
-    expect(STAFF_DAILY_LEVEL_DISTRIBUTION.filter((level) => level === 5)).toHaveLength(2);
+  it("makes every additional star rarer than the previous one", () => {
+    expect(STAFF_LEVEL_WEIGHT_TOTAL).toBe(100);
+    expect(STAFF_LEVEL_RARITY_WEIGHTS.map(({ weight }) => weight)).toEqual([
+      50, 28, 15, 6, 1,
+    ]);
+  });
+
+  it("maps the weighted rarity boundaries to the expected staff levels", () => {
+    expect(
+      [0, 49, 50, 77, 78, 92, 93, 98, 99].map(
+        selectStaffLevelFromRoll,
+      ),
+    ).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5]);
   });
 
   it("applies the requested +2 to +10 percent reputation scale", () => {

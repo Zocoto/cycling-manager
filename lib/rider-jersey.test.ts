@@ -57,11 +57,13 @@ describe("maillot contextuel du portrait", () => {
           text: "#000000",
         },
         style: "bold",
+        imagePath: "/images/sponsors/example/jersey-bold.png",
       }),
     ).toMatchObject({
       pattern: "split",
       primaryColor: "#102030",
       status: "sponsored",
+      imagePath: "/images/sponsors/example/jersey-bold.png",
     });
   });
 

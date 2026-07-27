@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 180" role="img" aria-labelledby="title desc">
+  <title id="title">Kaze Dynamics</title>
+  <desc id="desc">Logo aérodynamique bleu nuit, cyan et corail</desc>
+  <rect width="480" height="180" rx="28" fill="#f2f6f7"/>
+  <g transform="translate(26 27)">
+    <rect width="126" height="126" rx="30" fill="#101d33"/>
+    <path d="M18 43h67c17 0 25-7 29-18-1 25-12 39-37 39H18Z" fill="#23b7c9"/>
+    <path d="M18 70h52c16 0 27-5 35-16-4 23-18 36-43 36H18Z" fill="#f05a47"/>
+    <path d="M18 97h36c13 0 23-4 31-12-6 19-18 29-38 29H18Z" fill="#23b7c9"/>
+  </g>
+  <text x="174" y="78" fill="#101d33" font-family="Arial, sans-serif" font-size="38" font-weight="900" font-style="italic" letter-spacing="2">KAZE</text>
+  <text x="174" y="116" fill="#16899a" font-family="Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="5">DYNAMICS</text>
+</svg>

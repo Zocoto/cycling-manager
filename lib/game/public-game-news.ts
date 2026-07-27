@@ -48,12 +48,14 @@ export function resolvePublicGameNewsTeamJersey({
   sponsor?: {
     colors: SponsorColors;
     jerseyStyle: JerseyStyle;
+    jerseyImagePath: string;
   } | null;
 }): RiderJerseyAppearance {
   return sponsor
     ? createSponsoredRiderJersey({
         colors: sponsor.colors,
         style: sponsor.jerseyStyle,
+        imagePath: sponsor.jerseyImagePath,
       })
     : createAmateurRiderJersey(amateurJersey);
 }
@@ -102,6 +104,7 @@ export type PublicGameNewsItem = {
   title: string;
   detail: string;
   happenedAt: string;
+  significance?: "major" | "standard";
   visual?: PublicGameNewsVisual;
 };
 
@@ -159,6 +162,28 @@ export function createEmptyPublicGameNewsSnapshot(): PublicGameNewsSnapshot {
     },
     isLive: false,
   });
+}
+
+export function selectDashboardPelotonHighlights(
+  items: PublicGameNewsItem[],
+  limit = 8
+): PublicGameNewsItem[] {
+  return [...items]
+    .filter(
+      (item) =>
+        item.significance === "major" &&
+        (item.kind === "race_recap" ||
+          item.kind === "victory" ||
+          item.kind === "movement")
+    )
+    .filter((item) => Number.isFinite(new Date(item.happenedAt).getTime()))
+    .sort(
+      (first, second) =>
+        new Date(second.happenedAt).getTime() -
+          new Date(first.happenedAt).getTime() ||
+        kindPriority[first.kind] - kindPriority[second.kind]
+    )
+    .slice(0, Math.max(0, limit));
 }
 
 export function formatPublicGameNewsDate(

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 180" role="img" aria-labelledby="title desc">
+  <title id="title">Radian Raceworks</title>
+  <desc id="desc">Logo compétition violet et or</desc>
+  <rect width="480" height="180" rx="28" fill="#f6f2f9"/>
+  <g transform="translate(27 27)">
+    <circle cx="63" cy="63" r="63" fill="#301a46"/>
+    <circle cx="63" cy="63" r="38" fill="none" stroke="#a96bd6" stroke-width="12"/>
+    <path d="M54 22h25L67 51h21L47 105l12-38H38L54 22Z" fill="#f2d36b"/>
+  </g>
+  <text x="174" y="78" fill="#301a46" font-family="Arial, sans-serif" font-size="35" font-weight="900" letter-spacing="2">RADIAN</text>
+  <text x="174" y="116" fill="#8b51b4" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="4">RACEWORKS</text>
+</svg>

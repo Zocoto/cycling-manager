@@ -42,9 +42,9 @@ describe("race reconnaissance planning", () => {
     });
 
     expect(
-      candidates.filter((candidate) => candidate.available).map(
-        (candidate) => candidate.dayNumber,
-      ),
+      candidates
+        .filter((candidate) => candidate.available)
+        .map((candidate) => candidate.dayNumber),
     ).toEqual([12, 13]);
   });
 
@@ -76,10 +76,42 @@ describe("race reconnaissance planning", () => {
     });
 
     expect(
-      candidates.filter((candidate) => candidate.available).map(
-        (candidate) => candidate.dayNumber,
-      ),
+      candidates
+        .filter((candidate) => candidate.available)
+        .map((candidate) => candidate.dayNumber),
     ).toEqual([15, 16]);
+  });
+
+  it("supports a one-day express reconnaissance", () => {
+    const rider = createRider("rider-a", [
+      {
+        startDayNumber: 13,
+        endDayNumber: 13,
+        reason: "Course engagée",
+      },
+    ]);
+
+    const candidates = getRecognitionDateCandidates({
+      stage: {
+        dayNumber: 15,
+        editionStartDayNumber: 15,
+        editionEndDayNumber: 15,
+      },
+      currentDayNumber: 10,
+      seasonDays,
+      riders: [rider],
+      durationDays: 1,
+    });
+
+    expect(
+      candidates
+        .filter((candidate) => candidate.available)
+        .map((candidate) => [candidate.dayNumber, candidate.endDayNumber]),
+    ).toEqual([
+      [11, 11],
+      [12, 12],
+      [14, 14],
+    ]);
   });
 });
 

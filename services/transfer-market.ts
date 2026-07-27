@@ -12,10 +12,15 @@ import {
   calculateMinimumNextBid,
   calculateWeeklySalary,
 } from "@/lib/game/transfer-market";
+import { calculateRiderSeasonSalary } from "@/lib/game/economy";
 import {
   getRiderSportingProfile,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import {
+  isTeamRosterAtCapacity,
+  MAX_TEAM_ROSTER_SIZE,
+} from "@/lib/game/team-roster-capacity";
 import {
   createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
@@ -190,6 +195,9 @@ export type TransferMarketOverview = {
   reservedBudget: number;
   availableBudget: number;
   dataRoomLevel: number;
+  rosterSize: number;
+  rosterLimit: number;
+  rosterIsFull: boolean;
   marketDate: string;
   dailyListings: TransferMarketListing[];
   directorListings: TransferMarketListing[];
@@ -205,6 +213,9 @@ export type RiderTransferManagement = {
   freeAgentWeeklySalary: number | null;
   freeAgentBlockedReason: string | null;
   canRenew: boolean;
+  rosterSize: number;
+  rosterLimit: number;
+  rosterIsFull: boolean;
   renewalSalary: number | null;
   hasPlannedRenewal: boolean;
 };
@@ -301,6 +312,10 @@ export async function getTransferMarketOverview(
   );
   const riderIds = new Set(listings.map((listing) => listing.rider_id));
   activeContracts.forEach((contract) => riderIds.add(contract.rider_id));
+  const rosterSize = new Set(
+    activeContracts.map((contract) => contract.rider_id)
+  ).size;
+  const rosterIsFull = isTeamRosterAtCapacity(rosterSize);
 
   const freeAgentRows = freeAgentResult.data ?? [];
   (freeAgentRows ?? []).forEach((rider) => riderIds.add(rider.id));
@@ -427,6 +442,9 @@ export async function getTransferMarketOverview(
     marketDate,
     dailyListings: mappedListings.filter((listing) => listing.type === "daily"),
     directorListings: mappedListings.filter((listing) => listing.type === "director"),
+    rosterSize,
+    rosterLimit: MAX_TEAM_ROSTER_SIZE,
+    rosterIsFull,
     freeAgents,
     countries: (countriesResult.data ?? []).map((country) => ({
       name: country.name,
@@ -438,7 +456,7 @@ export async function getTransferMarketOverview(
       const listed = openListingRiderIds.has(rider.id);
       const locked = contract.transfer_locked_season_id === context.season.id;
       const endYear = seasonYears.get(contract.end_season_id) ?? currentSeasonYear;
-      const renewalSalary = rider.overall < 60 ? 0 : calculateSalaryApproximation(rider.overall);
+      const renewalSalary = calculateSalaryApproximation(rider.overall);
 
       return [{
         rider: {
@@ -471,7 +489,13 @@ export async function getRiderTransferManagement(
   const context = await loadCurrentContext(admin, authUserId);
   if (!context) return null;
 
-  const [riderResult, ratingResult, contractsResult, listingResult] = await Promise.all([
+  const [
+    riderResult,
+    ratingResult,
+    contractsResult,
+    listingResult,
+    teamContractsResult,
+  ] = await Promise.all([
     admin.from("riders").select("id, status").eq("id", riderId).maybeSingle<{ id: string; status: string }>(),
     admin
       .from("rider_season_ratings")
@@ -491,16 +515,27 @@ export async function getRiderTransferManagement(
       .eq("rider_id", riderId)
       .eq("status", "open")
       .maybeSingle<{ id: string }>(),
+    admin
+      .from("rider_contracts")
+      .select("rider_id")
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("status", "active")
+      .returns<Array<{ rider_id: string }>>(),
   ]);
   assertQuery(riderResult.error, "le statut du coureur");
   assertQuery(ratingResult.error, "le niveau du coureur");
   assertQuery(contractsResult.error, "les contrats du coureur");
   assertQuery(listingResult.error, "la disponibilité du coureur");
+  assertQuery(teamContractsResult.error, "la capacité de l’effectif");
   if (!riderResult.data || !ratingResult.data) return null;
 
   const ratings = toRatings(ratingResult.data);
   const overall = calculateOverall(ratings);
   const contracts = contractsResult.data ?? [];
+  const rosterSize = new Set(
+    (teamContractsResult.data ?? []).map((contract) => contract.rider_id)
+  ).size;
+  const rosterIsFull = isTeamRosterAtCapacity(rosterSize);
   const activeContract = contracts.find((contract) => contract.status === "active") ?? null;
   const ownsRider = activeContract?.team_id === context.teamSeason.team_id;
   const hasPlannedRenewal = contracts.some(
@@ -517,14 +552,21 @@ export async function getRiderTransferManagement(
 
   return {
     isFreeAgent,
-    canSignFreeAgent: isFreeAgent && !listingResult.data,
+    canSignFreeAgent: isFreeAgent && !listingResult.data && !rosterIsFull,
     freeAgentSalary: isFreeAgent ? salary : null,
     freeAgentWeeklySalary: isFreeAgent ? calculateWeeklySalary(salary) : null,
-    freeAgentBlockedReason: isFreeAgent && listingResult.data
-      ? "Ce coureur est encore engagé dans une enchère."
+    freeAgentBlockedReason: isFreeAgent
+      ? listingResult.data
+        ? "Ce coureur est encore engagé dans une enchère."
+        : rosterIsFull
+          ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
+          : null
       : null,
+    rosterSize,
+    rosterLimit: MAX_TEAM_ROSTER_SIZE,
+    rosterIsFull,
     canRenew,
-    renewalSalary: ownsRider ? (overall < 60 ? 0 : salary) : null,
+    renewalSalary: ownsRider ? salary : null,
     hasPlannedRenewal,
   };
 }
@@ -806,8 +848,7 @@ function calculateOverall(ratings: RiderRatings) {
 }
 
 function calculateSalaryApproximation(overall: number) {
-  const talentFactor = Math.max(0, (overall - 45) / 55);
-  return Math.round(Math.min(150_000, 2_500 + talentFactor ** 2 * 100_000) / 100) * 100;
+  return calculateRiderSeasonSalary({ overall });
 }
 
 function formatParisDate(date: Date) {

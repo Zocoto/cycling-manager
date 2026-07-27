@@ -12,6 +12,7 @@ import {
   createPublicGameNewsSnapshot,
   resolvePublicGameNewsTeamJersey,
   resolvePublicGameNewsTeamJerseyArtwork,
+  selectDashboardPelotonHighlights,
   type PublicGameNewsItem,
   type PublicGameNewsSnapshot,
   type PublicGameNewsTeamVisual,
@@ -221,6 +222,28 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   });
 }
 
+export async function getDashboardPelotonNews(): Promise<PublicGameNewsItem[]> {
+  let admin: AdminClient;
+
+  try {
+    admin = createSupabaseAdminClient();
+  } catch {
+    return [];
+  }
+
+  const results = await Promise.allSettled([
+    loadRecentPostRaceNews(admin),
+    loadRecentVictories(admin),
+    loadRecentRiderMovements(admin),
+  ]);
+
+  return selectDashboardPelotonHighlights(
+    results.flatMap((result) =>
+      result.status === "fulfilled" ? result.value.items : []
+    )
+  );
+}
+
 async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
   const [recentQuery, totalQuery] = await Promise.all([
     admin
@@ -298,6 +321,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       title: row.title,
       detail: row.detail,
       happenedAt: row.happened_at,
+      significance: "major" as const,
       ...(rider && riderName
         ? {
             visual: {
@@ -416,6 +440,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
         title: `${riderName} s’impose`,
         detail: `${teamSeason.display_name} remporte ${edition.display_name}.`,
         happenedAt: result.created_at,
+        significance: "major" as const,
         visual: {
           person: {
             kind: "rider" as const,
@@ -594,6 +619,10 @@ async function loadRecentRiderMovements(
         title: `${riderName} rejoint ${teamSeason.display_name}`,
         detail: getMovementDetail(contract.acquisition_type),
         happenedAt: contract.signed_at ?? contract.created_at,
+        significance:
+          contract.acquisition_type === "director_auction"
+            ? ("major" as const)
+            : ("standard" as const),
         visual: {
           person: {
             kind: "rider" as const,
@@ -884,6 +913,7 @@ async function loadTeamVisuals(
         sponsor: {
           colors: catalogSponsor.colors,
           jerseyStyle: selectedJersey.style,
+          jerseyImagePath: selectedJersey.imagePath,
         },
       }),
     });

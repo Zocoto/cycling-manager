@@ -30,6 +30,7 @@ export type RaceSimulatorRider = {
   countryCode: string;
   age: number;
   form: number;
+  careerRaceDays: number;
   ratings: RiderSimulationRatings;
   specialAbilities: RiderSimulationInput["specialAbilities"];
 };

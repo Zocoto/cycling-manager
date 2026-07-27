@@ -7,10 +7,16 @@ import {
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
-type SeasonRow = { id: string; name: string; current_day_number: number | null };
+type SeasonRow = {
+  id: string;
+  name: string;
+  game_year: number;
+  current_day_number: number | null;
+};
 type TeamSeasonRow = {
   id: string;
   team_id: string;
@@ -31,6 +37,7 @@ type CatalogRow = {
   image_path: string;
   effect_summary: string;
   effect_payload: unknown;
+  acquisition_channel: "commercial" | "equipment_partner";
 };
 type SupplierRow = {
   supplier_key: string;
@@ -49,6 +56,15 @@ type EquippedRow = {
   equipment_item_id: string;
 };
 type PendingRow = EquippedRow & { effective_at: string };
+type PartnerContractRow = {
+  id: string;
+  start_season_id: string;
+  end_season_id: string;
+};
+type PartnerEffectRow = {
+  equipment_item_id: string;
+  effect_payload: unknown;
+};
 
 export type TeamEquipmentCatalogItem = {
   id: string;
@@ -68,6 +84,7 @@ export type TeamEquipmentCatalogItem = {
   effectSummary: string;
   effects: EquipmentEffects;
   ownedQuantity: number;
+  channel: CatalogRow["acquisition_channel"];
   equippedQuantity: number;
   pendingQuantity: number;
   availableQuantity: number;
@@ -214,6 +231,7 @@ export async function getRiderEquipmentManagement(
 
 async function loadEquipmentContext(authUserId: string) {
   const admin = createSupabaseAdminClient();
+  const authenticated = await createSupabaseServerClient();
   const { data: director, error: directorError } = await admin
     .from("sporting_directors")
     .select("id")
@@ -235,7 +253,7 @@ async function loadEquipmentContext(authUserId: string) {
         .maybeSingle<AssignmentRow>(),
       admin
         .from("seasons")
-        .select("id, name, current_day_number")
+        .select("id, name, game_year, current_day_number")
         .eq("status", "active")
         .maybeSingle<SeasonRow>(),
     ]);
@@ -254,23 +272,26 @@ async function loadEquipmentContext(authUserId: string) {
   assertQuery(teamSeasonError, "la saison de l’équipe");
   if (!teamSeason) return null;
 
-  const { error: settlementError } = await admin.rpc(
+  const [{ error: settlementError }, { error: partnerSettlementError }] =
+    await Promise.all([admin.rpc(
     "settle_due_equipment_assignments",
     { p_team_season_id: teamSeason.id }
-  );
+  ), authenticated.rpc("sync_current_team_equipment_partner")]);
   assertQuery(settlementError, "les changements de matériel programmés");
 
+  assertQuery(partnerSettlementError, "le contrat équipementier");
   const [
     catalogResult,
     suppliersResult,
     inventoryResult,
     contractsResult,
     pendingResult,
+    partnerContractResult,
   ] = await Promise.all([
       admin
         .from("equipment_catalog_items")
         .select(
-          "id, catalog_key, name, slot_type, supplier_key, supplier_name, description, price, rarity, image_path, effect_summary, effect_payload"
+          "id, catalog_key, name, slot_type, supplier_key, supplier_name, description, price, rarity, image_path, effect_summary, effect_payload, acquisition_channel"
         )
         .eq("status", "active")
         .order("price", { ascending: true })
@@ -299,6 +320,12 @@ async function loadEquipmentContext(authUserId: string) {
         .select("rider_id, slot_type, equipment_item_id, effective_at")
         .eq("team_season_id", teamSeason.id)
         .returns<PendingRow[]>(),
+      admin
+        .from("equipment_partner_contracts")
+        .select("id, start_season_id, end_season_id")
+        .eq("team_id", teamSeason.team_id)
+        .eq("status", "active")
+        .maybeSingle<PartnerContractRow>(),
   ]);
 
   assertQuery(catalogResult.error, "le catalogue de matériel");
@@ -308,6 +335,17 @@ async function loadEquipmentContext(authUserId: string) {
   assertQuery(pendingResult.error, "les équipements programmés");
 
   const rosterRiderIds = (contractsResult.data ?? []).map((row) => row.rider_id);
+  assertQuery(partnerContractResult.error, "le partenariat matériel");
+
+  const { data: partnerEffects, error: partnerEffectsError } =
+    partnerContractResult.data
+      ? await admin
+          .from("equipment_partner_item_effects")
+          .select("equipment_item_id, effect_payload")
+          .eq("contract_id", partnerContractResult.data.id)
+          .returns<PartnerEffectRow[]>()
+      : { data: [] as PartnerEffectRow[], error: null };
+  assertQuery(partnerEffectsError, "les effets R&D du matériel");
   const { data: equipped, error: equippedError } = rosterRiderIds.length
     ? await admin
         .from("rider_equipment_assignments")
@@ -328,6 +366,12 @@ async function loadEquipmentContext(authUserId: string) {
       supplier.supplier_key,
       supplier,
     ])
+  );
+  const partnerEffectByItemId = new Map(
+    (partnerEffects ?? []).map((effect) => [
+      effect.equipment_item_id,
+      effect.effect_payload,
+    ]),
   );
   const catalog = (catalogResult.data ?? []).map((row) => {
     const ownedQuantity = inventoryByItem.get(row.id) ?? 0;
@@ -357,7 +401,12 @@ async function loadEquipmentContext(authUserId: string) {
       rarity: row.rarity,
       imagePath: row.image_path,
       effectSummary: row.effect_summary,
-      effects: normalizeEquipmentEffects(row.effect_payload),
+      effects: normalizeEquipmentEffects(
+        row.acquisition_channel === "equipment_partner"
+          ? partnerEffectByItemId.get(row.id)
+          : row.effect_payload,
+      ),
+      channel: row.acquisition_channel,
       ownedQuantity,
       equippedQuantity,
       pendingQuantity,
@@ -376,7 +425,9 @@ async function loadEquipmentContext(authUserId: string) {
     secondaryColor: supplier.secondary_color,
     accentColor: supplier.accent_color,
     referenceCount: catalog.filter(
-      (item) => item.supplierKey === supplier.supplier_key
+      (item) =>
+        item.supplierKey === supplier.supplier_key &&
+        item.channel === "commercial",
     ).length,
   })) satisfies TeamEquipmentSupplier[];
 

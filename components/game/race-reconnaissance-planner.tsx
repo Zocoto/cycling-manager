@@ -45,6 +45,15 @@ export function RaceReconnaissancePlanner({
   const [selectedStageId, setSelectedStageId] = useState("");
   const [selectedStartDayNumber, setSelectedStartDayNumber] = useState("");
   const [preparerContractId, setPreparerContractId] = useState("");
+  const selectedPreparer = useMemo(
+    () =>
+      overview.preparers.find(
+        (preparer) => preparer.contractId === preparerContractId,
+      ),
+    [overview.preparers, preparerContractId],
+  );
+  const reconnaissanceDurationDays = selectedPreparer?.durationDays ?? 2;
+  const riderCapacity = selectedPreparer?.riderCapacity ?? 3;
   const selectedRiders = useMemo(
     () =>
       overview.riders.filter((rider) => selectedRiderIds.includes(rider.id)),
@@ -74,6 +83,7 @@ export function RaceReconnaissancePlanner({
           currentDayNumber: overview.currentDayNumber,
           seasonDays: overview.seasonDays,
           riders: selectedRiders,
+          durationDays: reconnaissanceDurationDays,
         }),
       );
     }
@@ -83,6 +93,7 @@ export function RaceReconnaissancePlanner({
     overview.currentDayNumber,
     overview.seasonDays,
     overview.stages,
+    reconnaissanceDurationDays,
     selectedRiders,
   ]);
   const visibleStages = useMemo(
@@ -96,9 +107,6 @@ export function RaceReconnaissancePlanner({
   );
   const selectedStage = visibleStages.find(
     (stage) => stage.id === selectedStageId,
-  );
-  const selectedPreparer = overview.preparers.find(
-    (preparer) => preparer.contractId === preparerContractId,
   );
   const dateCandidates = selectedStage
     ? (dateCandidatesByStageId.get(selectedStage.id) ?? [])
@@ -117,6 +125,7 @@ export function RaceReconnaissancePlanner({
   const canAfford = !selectedStage || overview.balance >= selectedStage.cost;
   const canSubmit =
     selectedRiderIds.length > 0 &&
+    selectedRiderIds.length <= riderCapacity &&
     Boolean(selectedStage) &&
     Boolean(selectedDateCandidate) &&
     canAfford;
@@ -131,6 +140,7 @@ export function RaceReconnaissancePlanner({
   }, [visibleStages]);
 
   function toggleRider(riderId: string, checked: boolean) {
+    if (checked && selectedRiderIds.length >= riderCapacity) return;
     const nextRiderIds = checked
       ? [...new Set([...selectedRiderIds, riderId])]
       : selectedRiderIds.filter((id) => id !== riderId);
@@ -156,6 +166,7 @@ export function RaceReconnaissancePlanner({
       currentDayNumber: overview.currentDayNumber,
       seasonDays: overview.seasonDays,
       riders: nextRiders,
+      durationDays: reconnaissanceDurationDays,
     }).filter((candidate) => candidate.available);
     if (availableDates.length === 0) {
       setSelectedStageId("");
@@ -180,6 +191,7 @@ export function RaceReconnaissancePlanner({
           currentDayNumber: overview.currentDayNumber,
           seasonDays: overview.seasonDays,
           riders: selectedRiders,
+          durationDays: reconnaissanceDurationDays,
         }).find((candidate) => candidate.available)
       : null;
     const nextStartDayNumber = firstValidDate?.dayNumber ?? null;
@@ -206,10 +218,10 @@ export function RaceReconnaissancePlanner({
               Stage de reconnaissance
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Deux jours pour étudier une étape ou une classique. Choisissez
-              librement leur date avant la course : les coureurs mobilisés ne
-              s’entraînent pas et ne récupèrent pas les +2 points de forme
-              quotidiens pendant cette période.
+              Un ou deux jours pour étudier une étape ou une classique, selon le
+              préparateur choisi. Les coureurs mobilisés ne s’entraînent pas et
+              ne récupèrent pas les +2 points de forme quotidiens pendant cette
+              période.
             </p>
           </div>
           <div className="rounded-2xl border border-white/12 bg-white/8 px-5 py-4 text-right">
@@ -236,7 +248,7 @@ export function RaceReconnaissancePlanner({
                 </h3>
               </div>
               <span className="rounded-full bg-[#FFF2C7] px-3 py-1.5 text-xs font-black text-[#725407]">
-                {selectedRiderIds.length} sélectionné
+                {selectedRiderIds.length}/{riderCapacity} sélectionné
                 {selectedRiderIds.length > 1 ? "s" : ""}
               </span>
             </div>
@@ -248,15 +260,25 @@ export function RaceReconnaissancePlanner({
               <select
                 name="preparerContractId"
                 value={preparerContractId}
-                onChange={(event) => setPreparerContractId(event.target.value)}
+                onChange={(event) => {
+                  setPreparerContractId(event.target.value);
+                  setSelectedStartDayNumber("");
+                }}
                 className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-4 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
               >
-                <option value="">Sans préparateur · bonus +2,00</option>
+                <option value="">
+                  Sans préparateur · bonus +2,00 · 2 j · 3 coureurs
+                </option>
                 {overview.preparers.map((preparer) => (
                   <option key={preparer.contractId} value={preparer.contractId}>
                     {preparer.firstName} {preparer.lastName} · N{preparer.level}{" "}
                     · +{preparer.efficiencyPercentage}% · bonus +
-                    {formatBonus(preparer.resultingBonus)}
+                    {formatBonus(preparer.resultingBonus)} ·{" "}
+                    {preparer.durationDays} j · {preparer.riderCapacity}{" "}
+                    coureurs
+                    {preparer.nationalityAffinity
+                      ? " · affinité nationale"
+                      : ""}
                   </option>
                 ))}
               </select>
@@ -264,7 +286,14 @@ export function RaceReconnaissancePlanner({
             {overview.preparers.length === 0 ? (
               <p className="mt-2 text-xs font-bold leading-5 text-[#7A5B09]">
                 Aucun préparateur sous contrat. La reconnaissance reste possible
-                avec son bonus de base.
+                avec son bonus de base, pour 3 coureurs maximum.
+              </p>
+            ) : null}
+            {selectedRiderIds.length > riderCapacity ? (
+              <p className="mt-2 text-xs font-black leading-5 text-[#9A4940]">
+                Ce préparateur accepte {riderCapacity} coureurs maximum.
+                Retirez-en
+                {selectedRiderIds.length - riderCapacity} pour continuer.
               </p>
             ) : null}
 
@@ -294,6 +323,9 @@ export function RaceReconnaissancePlanner({
                       name="riderIds"
                       value={rider.id}
                       checked={checked}
+                      disabled={
+                        !checked && selectedRiderIds.length >= riderCapacity
+                      }
                       onChange={(event) =>
                         toggleRider(rider.id, event.target.checked)
                       }

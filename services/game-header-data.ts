@@ -23,6 +23,7 @@ type GameHeaderSnapshot = {
 export type GameHeaderData = {
   displayName: string | undefined;
   teamSponsorIdentity: TeamSponsorIdentity | null;
+  teamId: string | null;
 };
 
 export async function getGameHeaderData(
@@ -33,10 +34,26 @@ export async function getGameHeaderData(
   // session dans les pages ; l'identité est vérifiée dans la RPC via auth.uid().
   void _authUserId;
 
-  const response = await supabase.rpc("get_current_game_header_snapshot");
+  const [dailyReputation, academyTrainingSettlement, response] =
+    await Promise.all([
+      supabase.rpc("settle_current_team_staff_daily_reputation"),
+      supabase.rpc("settle_due_staff_academy_trainings"),
+      supabase.rpc("get_current_game_header_snapshot"),
+    ]);
   const data = response.data as GameHeaderSnapshot | null;
   const { error } = response;
 
+  if (dailyReputation.error) {
+    throw new Error(
+      `Impossible d’actualiser la réputation quotidienne du staff : ${dailyReputation.error.message}`
+    );
+  }
+
+  if (academyTrainingSettlement.error) {
+    throw new Error(
+      `Impossible d’actualiser les stages de l’Académie : ${academyTrainingSettlement.error.message}`,
+    );
+  }
   if (error) {
     throw new Error(
       `Impossible de charger le header de jeu : ${error.message}`
@@ -46,6 +63,7 @@ export async function getGameHeaderData(
   return {
     displayName: data?.display_name ?? undefined,
     teamSponsorIdentity: toTeamSponsorIdentity(data),
+    teamId: data?.team_id ?? null,
   };
 }
 

@@ -1,0 +1,107 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  calculateInGameTenureDays,
+  evaluateNaturalizationEligibility,
+  findContinuousProfessionalTenureStart,
+  PROFESSIONAL_NATURALIZATION_REQUIRED_DAYS,
+  YOUTH_NATURALIZATION_REQUIRED_DAYS,
+} from "./naturalization";
+
+const france = { id: "france", name: "France", code: "FR" };
+const belgium = { id: "belgium", name: "Belgique", code: "BE" };
+
+describe("naturalization", () => {
+  it("demande trois saisons complètes à un professionnel", () => {
+    expect(PROFESSIONAL_NATURALIZATION_REQUIRED_DAYS).toBe(84);
+    expect(
+      calculateInGameTenureDays({
+        startGameYear: 1,
+        startDayNumber: 1,
+        currentGameYear: 4,
+        currentDayNumber: 1,
+      }),
+    ).toBe(84);
+  });
+
+  it("demande une saison complète à un junior, même arrivé en cours de saison", () => {
+    expect(YOUTH_NATURALIZATION_REQUIRED_DAYS).toBe(28);
+    expect(
+      calculateInGameTenureDays({
+        startGameYear: 3,
+        startDayNumber: 12,
+        currentGameYear: 4,
+        currentDayNumber: 12,
+      }),
+    ).toBe(28);
+  });
+
+  it("cumule les contrats professionnels continus dans la même équipe", () => {
+    expect(
+      findContinuousProfessionalTenureStart({
+        currentContract: {
+          startGameYear: 4,
+          endGameYear: 5,
+          joinedDayNumber: 1,
+        },
+        contracts: [
+          { startGameYear: 1, endGameYear: 2, joinedDayNumber: 9 },
+          { startGameYear: 3, endGameYear: 3, joinedDayNumber: 1 },
+          { startGameYear: 4, endGameYear: 5, joinedDayNumber: 1 },
+        ],
+      }),
+    ).toEqual({ startGameYear: 1, joinedDayNumber: 9 });
+  });
+
+  it("ne reprend pas une ancienne période séparée par une saison sans contrat", () => {
+    expect(
+      findContinuousProfessionalTenureStart({
+        currentContract: {
+          startGameYear: 5,
+          endGameYear: 6,
+          joinedDayNumber: 1,
+        },
+        contracts: [
+          { startGameYear: 1, endGameYear: 2, joinedDayNumber: 1 },
+          { startGameYear: 5, endGameYear: 6, joinedDayNumber: 1 },
+        ],
+      }),
+    ).toEqual({ startGameYear: 5, joinedDayNumber: 1 });
+  });
+
+  it("bloque définitivement un professionnel champion national", () => {
+    expect(
+      evaluateNaturalizationEligibility({
+        level: "professional",
+        elapsedDays: 120,
+        currentCountry: belgium,
+        targetCountry: france,
+        hasNationalChampionshipTitle: true,
+      }),
+    ).toMatchObject({
+      eligible: false,
+      reason: "champion_locked",
+      remainingDays: 0,
+    });
+  });
+
+  it("rend le junior éligible après 28 jours et évite une naturalisation inutile", () => {
+    expect(
+      evaluateNaturalizationEligibility({
+        level: "youth",
+        elapsedDays: 28,
+        currentCountry: belgium,
+        targetCountry: france,
+      }),
+    ).toMatchObject({ eligible: true, reason: "eligible" });
+
+    expect(
+      evaluateNaturalizationEligibility({
+        level: "youth",
+        elapsedDays: 28,
+        currentCountry: france,
+        targetCountry: france,
+      }),
+    ).toMatchObject({ eligible: false, reason: "same_nationality" });
+  });
+});

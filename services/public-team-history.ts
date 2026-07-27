@@ -8,9 +8,11 @@ import {
 } from "@/lib/game/team-divisions";
 
 export type PublicTeamSeasonHistoryEntry = {
+  teamSeasonId: string;
   seasonId: string;
   seasonName: string;
   gameYear: number;
+  currentDayNumber: number | null;
   displayName: string;
   points: number;
   finalRank: number | null;
@@ -21,6 +23,7 @@ export type PublicTeamSeasonHistoryEntry = {
 
 type TeamSeasonRow = {
   season_id: string;
+  id: string;
   display_name: string;
   points: number;
   final_rank: number | null;
@@ -32,6 +35,7 @@ type SeasonRow = {
   id: string;
   name: string;
   game_year: number;
+  current_day_number: number | null;
 };
 
 export async function getPublicTeamSeasonHistory(
@@ -46,7 +50,7 @@ export async function getPublicTeamSeasonHistory(
   const supabase = createSupabaseAdminClient();
   const { data: teamSeasons, error: teamSeasonsError } = await supabase
     .from("team_seasons")
-    .select("season_id, display_name, points, final_rank, division_id, status")
+    .select("id, season_id, display_name, points, final_rank, division_id, status")
     .eq("team_id", normalizedTeamId)
     .order("created_at", { ascending: false })
     .returns<TeamSeasonRow[]>();
@@ -72,7 +76,7 @@ export async function getPublicTeamSeasonHistory(
   const [seasonsResult, divisionsResult] = await Promise.all([
     supabase
       .from("seasons")
-      .select("id, name, game_year")
+      .select("id, name, game_year, current_day_number")
       .in("id", seasonIds)
       .returns<SeasonRow[]>(),
     divisionIds.length
@@ -123,9 +127,11 @@ export async function getPublicTeamSeasonHistory(
         seasonName: season.name,
         gameYear: season.game_year,
         displayName: entry.display_name,
+        teamSeasonId: entry.id,
         points: entry.points,
         finalRank: entry.final_rank,
         divisionCode,
+        currentDayNumber: season.current_day_number,
         divisionName: getTeamDivisionLabel(divisionCode),
         status: entry.status,
       } satisfies PublicTeamSeasonHistoryEntry;

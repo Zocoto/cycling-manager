@@ -6,10 +6,12 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DataRoomConstructionCard } from "@/components/game/data-room-construction-card";
 import { GameHeader } from "@/components/game/game-header";
 import { InternationalYouthCenterMap } from "@/components/game/international-youth-center-map";
+import { StaffAcademyCard } from "@/components/game/staff-academy-card";
 import Link from "@/components/ui/app-link";
 import { INFRASTRUCTURE_UNLOCK_LEVEL } from "@/lib/game/infrastructure";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getStaffAcademyOverview } from "@/services/staff-academy";
 import {
   getTeamInfrastructureOverview,
   type InfrastructureProject,
@@ -47,11 +49,6 @@ const futureFacilities = [
       "Capacités de soin supplémentaires et synergie avec le médecin, le kiné et le nutritionniste.",
   },
   {
-    name: "Académie des métiers",
-    detail:
-      "Formation longue et payante du staff, avec un plafond conservant la rareté des experts.",
-  },
-  {
     name: "Hub logistique itinérant",
     detail:
       "Réduction future des frais de reconnaissance, de stage et de déplacement.",
@@ -76,11 +73,12 @@ export default async function InfrastructuresPage({
   } = await supabase.auth.getUser();
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
+  const headerData = await getGameHeaderData(supabase, user.id);
+  const [overview, academy] = await Promise.all([
     getTeamInfrastructureOverview(supabase, user.id),
+    getStaffAcademyOverview(supabase, user.id),
   ]);
-  if (!overview) redirect("/jeu");
+  if (!overview || !academy) redirect("/jeu");
 
   const unlockProgress = Math.min(
     100,
@@ -129,6 +127,10 @@ export default async function InfrastructuresPage({
                 <HeroMetric
                   label="Chantier"
                   value={overview.activeProject ? "En cours" : "Disponible"}
+                />
+                <HeroMetric
+                  label="Académie"
+                  value={academy.academyLevel ? `Niveau ${academy.academyLevel}` : "À construire"}
                 />
               </div>
             </div>
@@ -251,6 +253,15 @@ export default async function InfrastructuresPage({
               architects={overview.architects}
               activeProject={overview.activeProject}
               isUnlocked={overview.isUnlocked}
+              balance={overview.balance}
+              currency={overview.currency}
+            />
+
+            <StaffAcademyCard
+              academy={academy}
+              architects={overview.architects}
+              activeProject={overview.activeProject}
+              directorLevel={overview.directorLevel}
               balance={overview.balance}
               currency={overview.currency}
             />
