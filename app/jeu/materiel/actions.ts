@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  sanitizeInventoryReturnPath,
+  withPageFeedback,
+} from "@/lib/game/filtered-page-paths";
+import {
   EQUIPMENT_SLOTS,
   isEquipmentEffectFilterKey,
   type EquipmentSlot,
@@ -48,9 +52,12 @@ export async function equipRiderAction(formData: FormData) {
   const slot = readValue(formData, "slot");
   const equipmentItemId = readValue(formData, "equipmentItemId");
   const origin = readValue(formData, "origin");
+  const inventoryReturnPath = sanitizeInventoryReturnPath(
+    readValue(formData, "returnPath"),
+  );
   const errorPath =
     origin === "inventory"
-      ? "/jeu/inventaire?categorie=equipment"
+      ? inventoryReturnPath
       : isUuid(riderId)
         ? `/jeu/coureurs/${riderId}`
         : "/jeu/effectif";
@@ -80,7 +87,11 @@ export async function equipRiderAction(formData: FormData) {
   revalidatePath("/jeu/materiel");
   redirect(
     origin === "inventory"
-      ? "/jeu/inventaire?categorie=equipment&equipement=confirme"
+      ? withPageFeedback(
+          inventoryReturnPath,
+          "succes",
+          "Le matériel a bien été attribué au coureur.",
+        )
       : `/jeu/coureurs/${riderId}?equipement=confirme`,
   );
 }

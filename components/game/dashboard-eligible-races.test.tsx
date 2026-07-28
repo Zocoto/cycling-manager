@@ -69,6 +69,43 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain("Inscriptions accessibles");
     expect(markup).not.toContain("data-race-preview-trigger");
   });
+
+  it("limite l’aperçu du bureau aux trois prochaines inscriptions", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardEligibleRaces
+        calendar={createCalendar([
+          createEdition("premiere", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 11,
+          }),
+          createEdition("deuxieme", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 12,
+          }),
+          createEdition("troisieme", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 13,
+          }),
+          createEdition("quatrieme", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 14,
+          }),
+        ])}
+        reputationPoints={125}
+        riderCount={8}
+        now={new Date("2026-07-10T10:00:00.000Z")}
+      />,
+    );
+
+    expect(markup).toContain("Course premiere");
+    expect(markup).toContain("Course deuxieme");
+    expect(markup).toContain("Course troisieme");
+    expect(markup).not.toContain("Course quatrieme");
+  });
 });
 
 function createCalendar(

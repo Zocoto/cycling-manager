@@ -107,10 +107,22 @@ function hydrateLockedRiderVisualMetadata({
     const avatarSeed = current.avatarSeed ?? rider.avatarSeed;
     const nationalChampionships =
       current.nationalChampionships ?? rider.nationalChampionships;
+    const shouldHydrateTeamJersey =
+      !rider.teamJersey && current.teamJersey !== undefined;
+    const teamJersey = rider.teamJersey ?? current.teamJersey;
+    const teamPrimaryColor = shouldHydrateTeamJersey
+      ? current.teamPrimaryColor
+      : rider.teamPrimaryColor;
+    const teamSecondaryColor = shouldHydrateTeamJersey
+      ? current.teamSecondaryColor
+      : rider.teamSecondaryColor;
     if (
       avatarProfileKey === rider.avatarProfileKey &&
       avatarSeed === rider.avatarSeed &&
-      nationalChampionships === rider.nationalChampionships
+      nationalChampionships === rider.nationalChampionships &&
+      teamJersey === rider.teamJersey &&
+      teamPrimaryColor === rider.teamPrimaryColor &&
+      teamSecondaryColor === rider.teamSecondaryColor
     ) {
       return rider;
     }
@@ -119,6 +131,9 @@ function hydrateLockedRiderVisualMetadata({
       avatarProfileKey,
       avatarSeed,
       nationalChampionships,
+      teamPrimaryColor,
+      teamSecondaryColor,
+      ...(teamJersey ? { teamJersey } : {}),
     };
   };
 

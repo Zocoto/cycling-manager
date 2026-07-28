@@ -11,7 +11,11 @@ import {
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import {
+  getActiveSeasonRaceCalendar,
+  loadActiveRaceTeamSponsorVisuals,
+  type RaceTeamSponsorVisual,
+} from "@/services/race-calendar";
 
 type SeasonRow = {
   id: string;
@@ -114,7 +118,13 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
   const teamSeasons = teamSeasonsResult.data ?? [];
   const teamIds = unique(teamSeasons.map((team) => team.team_id));
 
-  const [teamsResult, contractsResult, daysResult, freeAgentsResult] = await Promise.all([
+  const [
+    teamsResult,
+    contractsResult,
+    daysResult,
+    freeAgentsResult,
+    sponsorVisuals,
+  ] = await Promise.all([
     teamIds.length > 0
       ? admin
           .from("teams")
@@ -145,6 +155,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
       .eq("status", "free_agent")
       .limit(500)
       .returns<RiderIdRow[]>(),
+    loadActiveRaceTeamSponsorVisuals(admin, teamIds),
   ]);
 
   assertQuery(teamsResult.error, "les couleurs des équipes");
@@ -164,7 +175,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
     ...freeAgentIds,
   ]);
   if (riderIds.length === 0) {
-    return buildEmptyTeams(teamSeasons, teamsResult.data ?? []);
+    return buildEmptyTeams(teamSeasons, teamsResult.data ?? [], sponsorVisuals);
   }
 
   const days = daysResult.data ?? [];
@@ -236,6 +247,7 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
   const activeTeams = teamSeasons
     .map((teamSeason) => {
       const team = teamById.get(teamSeason.team_id);
+      const sponsorVisual = sponsorVisuals.get(teamSeason.team_id);
       const teamContracts = contractsByTeamId.get(teamSeason.team_id) ?? [];
       const teamRiders = teamContracts.flatMap((contract) => {
         const rider = riderById.get(contract.rider_id);
@@ -258,14 +270,12 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
         id: teamSeason.team_id,
         name: teamSeason.display_name,
         kind: "team",
-        primaryColor: normalizeColor(
-          team?.amateur_jersey_primary_color,
-          "#176951"
-        ),
-        secondaryColor: normalizeColor(
-          team?.amateur_jersey_secondary_color,
-          "#FFFDF4"
-        ),
+        primaryColor:
+          sponsorVisual?.primaryColor ??
+          normalizeColor(team?.amateur_jersey_primary_color, "#176951"),
+        secondaryColor:
+          sponsorVisual?.secondaryColor ??
+          normalizeColor(team?.amateur_jersey_secondary_color, "#FFFDF4"),
         riders: teamRiders.sort(
           (left, right) =>
             right.form - left.form ||
@@ -316,23 +326,23 @@ export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {
 
 function buildEmptyTeams(
   teamSeasons: TeamSeasonRow[],
-  teams: TeamRow[]
+  teams: TeamRow[],
+  sponsorVisuals: Map<string, RaceTeamSponsorVisual>
 ): RaceSimulatorTeam[] {
   const teamById = new Map(teams.map((team) => [team.id, team]));
   return teamSeasons.map((teamSeason) => {
     const team = teamById.get(teamSeason.team_id);
+    const sponsorVisual = sponsorVisuals.get(teamSeason.team_id);
     return {
       id: teamSeason.team_id,
       name: teamSeason.display_name,
       kind: "team",
-      primaryColor: normalizeColor(
-        team?.amateur_jersey_primary_color,
-        "#176951"
-      ),
-      secondaryColor: normalizeColor(
-        team?.amateur_jersey_secondary_color,
-        "#FFFDF4"
-      ),
+      primaryColor:
+        sponsorVisual?.primaryColor ??
+        normalizeColor(team?.amateur_jersey_primary_color, "#176951"),
+      secondaryColor:
+        sponsorVisual?.secondaryColor ??
+        normalizeColor(team?.amateur_jersey_secondary_color, "#FFFDF4"),
       riders: [],
     };
   });

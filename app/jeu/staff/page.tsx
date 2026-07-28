@@ -19,6 +19,7 @@ import {
   isTrainerSpecialty,
   type StaffRole,
 } from "@/lib/game/staff";
+import { buildStaffMarketReturnPath } from "@/lib/game/filtered-page-paths";
 import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
@@ -94,7 +95,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
 
   const success = readQuery(query.succes);
   const errorMessage = readQuery(query.erreur);
-  const marketReturnPath = buildMarketReturnPath(filters);
+  const marketReturnPath = buildStaffMarketReturnPath(filters);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -913,18 +914,6 @@ function readFilters(
       ? specialtyValue
       : undefined,
   };
-}
-
-function buildMarketReturnPath(filters: StaffMarketFilters) {
-  const params = new URLSearchParams({ onglet: "marche" });
-  if (filters.search) params.set("recherche", filters.search);
-  if (filters.role) params.set("metier", filters.role);
-  if (filters.level) params.set("niveau", String(filters.level));
-  if (filters.countryCode) params.set("pays", filters.countryCode);
-  if (filters.trainerSpecialty) {
-    params.set("specialite", filters.trainerSpecialty);
-  }
-  return `/jeu/staff?${params.toString()}`;
 }
 
 function readTab(value: string): StaffTab {

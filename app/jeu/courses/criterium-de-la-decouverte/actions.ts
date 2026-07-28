@@ -26,6 +26,10 @@ import {
   requireAuthenticatedSportingDirectorId,
 } from "@/lib/tutorial/progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createAmateurRiderJersey,
+  createSponsoredRiderJersey,
+} from "@/lib/rider-jersey";
 import { getCurrentTeamHealthOverview } from "@/services/team-health";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
@@ -167,6 +171,16 @@ export async function registerCriteriumDiscoveryRosterAction(
     amateurIdentity?.jersey.secondaryColor ??
     "#F2C94C";
 
+  const teamJersey = sponsorIdentity
+    ? createSponsoredRiderJersey({
+        colors: sponsorIdentity.sponsor.colors,
+        style: sponsorIdentity.selectedJersey.style,
+        imagePath: sponsorIdentity.selectedJersey.imagePath,
+      })
+    : amateurIdentity
+      ? createAmateurRiderJersey(amateurIdentity.jersey)
+      : null;
+
   const playerRiders: RiderSimulationInput[] = selectedRows.map(
     ({ entry, rider, form }) => {
       const specialAbilities = abilitiesByRiderId.get(rider.rider_id) ?? [];
@@ -178,6 +192,7 @@ export async function registerCriteriumDiscoveryRosterAction(
         teamName: healthOverview.teamName,
         teamPrimaryColor,
         teamSecondaryColor,
+        ...(teamJersey ? { teamJersey } : {}),
         countryCode: rider.country_iso_alpha2,
         age: Number(rider.age),
         form: Number(form),

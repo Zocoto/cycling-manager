@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  sanitizeInventoryReturnPath,
+  withPageFeedback,
+} from "@/lib/game/filtered-page-paths";
+import {
   isAssignableInventoryCategory,
   type AssignableInventoryCategory,
 } from "@/lib/game/inventory";
@@ -19,9 +23,9 @@ export async function useInventoryItemAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const inventoryItemId = readValue(formData, "inventoryItemId");
   const category = readValue(formData, "category");
-  const returnPath = isAssignableInventoryCategory(category)
-    ? `/jeu/inventaire?categorie=${category}`
-    : "/jeu/inventaire";
+  const returnPath = sanitizeInventoryReturnPath(
+    readValue(formData, "returnPath"),
+  );
 
   if (
     !isUuid(riderId) ||
@@ -57,9 +61,7 @@ export async function useInventoryItemAction(formData: FormData) {
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/resultats");
 
-  redirect(
-    `/jeu/coureurs/${riderId}?succes=${encodeURIComponent(successMessage)}`
-  );
+  redirect(withPageFeedback(returnPath, "succes", successMessage));
 }
 
 function normalizeApplicationResult(

@@ -31,6 +31,36 @@ describe("RaceFavoritesPanel", () => {
     expect(markup).toContain('data-favorite-stars="2"');
     expect(markup).toContain('data-favorite-stars="1"');
     expect(markup.match(/data-favorite-stars="3"/g)).toHaveLength(3);
+    expect(
+      markup.match(/data-rider-preview-trigger/g),
+    ).toHaveLength(riders.length);
+    expect(markup).toContain('aria-haspopup="dialog"');
+  });
+
+  it("affiche le maillot du sponsor plutôt que de reconstruire le maillot amateur", () => {
+    const sponsoredRider: RiderSimulationInput = {
+      ...createRider(1),
+      teamPrimaryColor: "#112233",
+      teamSecondaryColor: "#F4C542",
+      teamJersey: {
+        primaryColor: "#112233",
+        secondaryColor: "#F4C542",
+        accentColor: "#FFFFFF",
+        pattern: "diagonal",
+        status: "sponsored",
+        imagePath: "/images/sponsors/test/jersey-modern.png",
+      },
+    };
+    const markup = renderToStaticMarkup(
+      <RaceFavoritesPanel
+        edition={createEdition([sponsoredRider])}
+        riders={[sponsoredRider]}
+      />,
+    );
+
+    expect(markup).toContain("/images/sponsors/test/jersey-modern.png");
+    expect(markup).toContain("#112233");
+    expect(markup).toContain("#F4C542");
   });
 
   it("explique que le pronostic attend les premiers engagés", () => {

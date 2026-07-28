@@ -3,7 +3,10 @@ import { useId } from "react";
 import type { RiderSimulationInput } from "@/lib/game/race-simulation";
 import { STAGE_RACE_JERSEY_VISUALS } from "@/lib/game/stage-race-jerseys";
 import { createRiderAvatarDesign } from "@/lib/rider-avatar";
-import { getNationalChampionPalette } from "@/lib/rider-jersey";
+import {
+  getNationalChampionPalette,
+  type RiderJerseyPattern,
+} from "@/lib/rider-jersey";
 import {
   getTeamKitPattern,
   getTeamMonogram,
@@ -20,7 +23,7 @@ export function SideRaceCyclist({
   isMoving?: boolean;
   className?: string;
 }) {
-  const kitPattern = getTeamKitPattern(rider.teamId);
+  const kitPattern = getRaceCyclistTeamKitPattern(rider);
   const monogram = getTeamMonogram(rider.teamName);
   const { skinTone, skinShadow } = getRaceCyclistSkinPalette(rider);
   const jerseyVisual = getRaceCyclistJerseyVisual(rider);
@@ -90,7 +93,7 @@ export function SideRaceCyclist({
       ) : null}
 
       <circle cx="48.5" cy="8.6" r="4.4" fill={skinTone} stroke={skinShadow} strokeWidth="0.65" />
-      <path d="M44.2 8.3c.4-4.2 3.4-5.8 6.5-4.8 2.3.7 3.4 2.4 3.5 4.1l-4.8-1Z" fill={rider.teamSecondaryColor} stroke="#071A17" strokeWidth="0.8" strokeLinejoin="round" />
+      <path d="M44.2 8.3c.4-4.2 3.4-5.8 6.5-4.8 2.3.7 3.4 2.4 3.5 4.1l-4.8-1Z" fill={jerseyVisual.secondaryColor} stroke="#071A17" strokeWidth="0.8" strokeLinejoin="round" />
       <path d="m46.5 4.5 1.2 2.2m2-2.7.2 3.1m2-1.8-.5 2" stroke="#FFFDF4" strokeOpacity="0.65" strokeWidth="0.65" strokeLinecap="round" />
       <path d="M52.7 8.4 50.8 12" stroke="#24332C" strokeWidth="0.65" />
     </svg>
@@ -104,7 +107,7 @@ export function TopRaceCyclist({
   rider: RiderSimulationInput;
   isMoving?: boolean;
 }) {
-  const kitPattern = getTeamKitPattern(rider.teamId);
+  const kitPattern = getRaceCyclistTeamKitPattern(rider);
   const monogram = getTeamMonogram(rider.teamName);
   const { skinTone, skinShadow } = getRaceCyclistSkinPalette(rider);
   const jerseyVisual = getRaceCyclistJerseyVisual(rider);
@@ -154,7 +157,7 @@ export function TopRaceCyclist({
         </text>
       ) : null}
       <ellipse cx="51" cy="17" rx="4.8" ry="4" fill={skinTone} stroke={skinShadow} strokeWidth="0.6" />
-      <path d="M48 13.4c4-1.5 7.2.1 8 3.2l-7.2.1Z" fill={rider.teamSecondaryColor} stroke="#071A17" strokeWidth="0.8" />
+      <path d="M48 13.4c4-1.5 7.2.1 8 3.2l-7.2.1Z" fill={jerseyVisual.secondaryColor} stroke="#071A17" strokeWidth="0.8" />
       <path d="m50.5 13.3.4 2.4m2.1-2.2-.2 2.3m2-.9-.5 1.3" stroke="#FFFDF4" strokeOpacity="0.65" strokeWidth="0.55" />
     </svg>
   );
@@ -165,6 +168,7 @@ export function getRaceCyclistJerseyVisual(
     RiderSimulationInput,
     | "teamPrimaryColor"
     | "teamSecondaryColor"
+    | "teamJersey"
     | "classificationJersey"
     | "activeNationalChampion"
   >
@@ -198,13 +202,31 @@ export function getRaceCyclistJerseyVisual(
   return {
     label: "Maillot d’équipe",
     shortLabel: "Équipe",
-    primaryColor: rider.teamPrimaryColor,
-    secondaryColor: rider.teamSecondaryColor,
-    accentColor: "#FFFFFF",
+    primaryColor: rider.teamJersey?.primaryColor ?? rider.teamPrimaryColor,
+    secondaryColor:
+      rider.teamJersey?.secondaryColor ?? rider.teamSecondaryColor,
+    accentColor: rider.teamJersey?.accentColor ?? "#FFFFFF",
     pattern: "team" as const,
     status: "team" as const,
     countryCode: null,
   };
+}
+
+function getRaceCyclistTeamKitPattern(
+  rider: Pick<RiderSimulationInput, "teamId" | "teamJersey">,
+): TeamKitPattern {
+  const pattern = rider.teamJersey?.pattern;
+  if (!pattern) return getTeamKitPattern(rider.teamId);
+
+  return mapRiderJerseyPatternToTeamKit(pattern);
+}
+
+function mapRiderJerseyPatternToTeamKit(
+  pattern: RiderJerseyPattern,
+): TeamKitPattern {
+  if (pattern === "diagonal" || pattern === "chevron") return pattern;
+  if (pattern === "split" || pattern === "quarters") return "halves";
+  return "center_stripe";
 }
 
 function NationalChampionRacePattern({

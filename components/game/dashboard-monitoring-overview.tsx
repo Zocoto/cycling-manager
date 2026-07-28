@@ -3,6 +3,7 @@ import { DashboardEventsCard } from "@/components/game/dashboard-events-card";
 import type { DashboardEvent } from "@/lib/game/dashboard-events";
 import {
   formatPublicGameNewsDate,
+  getPublicGameNewsTeamColors,
   type PublicGameNewsItem,
 } from "@/lib/game/public-game-news";
 import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
@@ -147,6 +148,7 @@ function PelotonHighlightsCard({ items }: { items: PublicGameNewsItem[] }) {
 
 function PelotonNewsRow({ item }: { item: PublicGameNewsItem }) {
   const presentation = getNewsPresentation(item);
+  const teamColors = getPublicGameNewsTeamColors(item);
 
   return (
     <li>
@@ -156,7 +158,16 @@ function PelotonNewsRow({ item }: { item: PublicGameNewsItem }) {
       >
         <span
           aria-hidden="true"
-          className={`mt-1 h-2.5 w-2.5 rounded-full ${presentation.dotClassName}`}
+          data-team-colors={teamColors ? "team" : undefined}
+          className={`mt-1 h-2.5 w-2.5 rounded-full ${teamColors ? "" : presentation.dotClassName}`}
+          style={
+            teamColors
+              ? {
+                  background: `linear-gradient(135deg, ${teamColors.primary} 0 55%, ${teamColors.secondary} 55% 100%)`,
+                  boxShadow: `0 0 0 1px ${teamColors.accent}`,
+                }
+              : undefined
+          }
         />
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2">

@@ -4,6 +4,7 @@ import type {
 } from "./race-profiles";
 import type { RaceProfileType } from "./race-calendar";
 import type { StageRaceJerseyType } from "./stage-race-jerseys";
+import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import {
   applyEquipmentRatingBonuses,
   type EquipmentEffects,
@@ -85,6 +86,7 @@ export type RiderSimulationInput = {
   teamName: string;
   teamPrimaryColor: string;
   teamSecondaryColor: string;
+  teamJersey?: RiderJerseyAppearance;
   avatarProfileKey?: string | null;
   avatarSeed?: number | string | null;
   nationalChampionships?: Partial<

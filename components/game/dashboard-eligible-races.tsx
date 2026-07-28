@@ -31,14 +31,14 @@ export function DashboardEligibleRaces({
         reputationPoints,
         riderCount,
         now,
-        limit: 4,
+        limit: 3,
       })
     : [];
 
   return (
     <section
       aria-labelledby="dashboard-eligible-races-title"
-      className="flex h-full min-h-72 flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#F8FBF9] text-[#082A2A] shadow-[0_16px_40px_rgba(4,25,21,0.18)]"
+      className="flex min-h-72 w-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#F8FBF9] text-[#082A2A] shadow-[0_16px_40px_rgba(4,25,21,0.18)]"
     >
       <header className="flex items-center justify-between gap-4 border-b border-[#315B3E]/10 px-5 py-4">
         <div>

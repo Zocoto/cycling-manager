@@ -29,6 +29,13 @@ describe("dashboard monitoring overview", () => {
             detail: "Une équipe change de dimension.",
             happenedAt: "2026-07-25T10:00:00.000Z",
             significance: "major",
+            teamColors: {
+              primary: "#5B1A78",
+              secondary: "#F4C542",
+              accent: "#FFFFFF",
+              background: "#5B1A78",
+              text: "#FFFFFF",
+            },
           },
           {
             id: "arrival:1",
@@ -56,6 +63,9 @@ describe("dashboard monitoring overview", () => {
     expect(markup.match(/Afficher les rangs 6 à 10/g)).toHaveLength(3);
     expect(markup).toContain("Afficher 1 autre temps fort");
     expect(markup).toContain("/jeu/sponsoring");
+    expect(markup).toContain('data-team-colors="team"');
+    expect(markup).toContain("#5B1A78");
+    expect(markup).toContain("#F4C542");
     expect(markup).toContain("/jeu/resultats/tour-des-alpes/3");
     expect(markup).toContain("votre équipe");
   });

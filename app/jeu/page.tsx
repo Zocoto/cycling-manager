@@ -837,7 +837,7 @@ function DirectorProfileCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-5 border-t border-white/10 pt-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.95fr)]">
+      <div className="mt-4 grid gap-5 border-t border-white/10 pt-4">
         <div className="grid content-start gap-4">
           <div className="grid gap-4 sm:grid-cols-2 sm:items-center">
             <SportingDirectorProgression

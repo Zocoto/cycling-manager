@@ -3,11 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  sanitizeStaffMarketReturnPath,
+  withPageFeedback,
+} from "@/lib/game/filtered-page-paths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function hireStaffMemberAction(formData: FormData) {
   const listingId = readValue(formData, "listingId");
-  const returnPath = safeReturnPath(readValue(formData, "returnPath"));
+  const returnPath = sanitizeStaffMarketReturnPath(
+    readValue(formData, "returnPath"),
+  );
 
   if (!isUuid(listingId)) {
     redirectWithMessage(
@@ -39,16 +45,10 @@ export async function hireStaffMemberAction(formData: FormData) {
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu");
   redirectWithMessage(
-    "/jeu/staff?onglet=equipe",
+    returnPath,
     "succes",
     "Le nouveau membre du staff a rejoint votre équipe.",
   );
-}
-
-function safeReturnPath(value: string) {
-  return value.startsWith("/jeu/staff") && !value.startsWith("//")
-    ? value
-    : "/jeu/staff";
 }
 
 function redirectWithMessage(
@@ -56,11 +56,7 @@ function redirectWithMessage(
   key: "succes" | "erreur",
   message: string,
 ): never {
-  redirect(
-    `${path}${path.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(
-      message.slice(0, 280),
-    )}`,
-  );
+  redirect(withPageFeedback(path, key, message));
 }
 
 function readValue(formData: FormData, key: string) {

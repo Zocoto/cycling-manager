@@ -12,6 +12,7 @@ import {
   type InventoryRiderOption,
 } from "@/components/game/inventory-equipment-form";
 import { InventoryConsumableForm } from "@/components/game/inventory-consumable-form";
+import { buildInventoryReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   INVENTORY_CATEGORY_DEFINITIONS,
   getInventoryCategory,
@@ -41,6 +42,7 @@ type InventoryPageProps = {
     categorie?: string | string[];
     erreur?: string | string[];
     equipement?: string | string[];
+    succes?: string | string[];
   }>;
 };
 
@@ -51,6 +53,7 @@ export default async function InventoryPage({
   const rawCategory = readQuery(query.categorie);
   const category = isInventoryCategory(rawCategory) ? rawCategory : null;
   const errorMessage = readQuery(query.erreur).slice(0, 300);
+  const successMessage = readQuery(query.succes).slice(0, 300);
   const equipmentConfirmed = readQuery(query.equipement) === "confirme";
   const supabase = await createSupabaseServerClient();
   const {
@@ -100,6 +103,7 @@ export default async function InventoryPage({
   const visibleItems = category
     ? overview.items.filter((item) => item.category === category)
     : overview.items;
+  const returnPath = buildInventoryReturnPath(category);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -122,20 +126,15 @@ export default async function InventoryPage({
       <section className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
-        {equipmentConfirmed ? (
+        {successMessage || equipmentConfirmed ? (
           <p className="mt-5 rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
-            Le matériel a été attribué. Vous pouvez poursuivre la gestion de
-            l’inventaire.
+            {successMessage || "Le matériel a bien été attribué au coureur."}
           </p>
         ) : null}
 
         {errorMessage ? (
           <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
             {errorMessage}
-          </p>
-        ) : equipmentConfirmed ? (
-          <p className="mt-5 rounded-2xl border border-[#176951]/25 bg-[#E7F6EF] px-5 py-4 text-sm font-bold text-[#176951]">
-            Le matériel a bien été attribué au coureur.
           </p>
         ) : null}
 
@@ -290,6 +289,7 @@ export default async function InventoryPage({
                   pendingEquipmentByRiderAndSlot={
                     pendingEquipmentByRiderAndSlot
                   }
+                  returnPath={returnPath}
                 />
               ))}
             </div>
@@ -307,11 +307,13 @@ function InventoryItemCard({
   riders,
   equipmentByRiderAndSlot,
   pendingEquipmentByRiderAndSlot,
+  returnPath,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
   equipmentByRiderAndSlot: Map<string, string>;
   pendingEquipmentByRiderAndSlot: Map<string, string>;
+  returnPath: string;
 }) {
   const category = getInventoryCategory(item.category);
 
@@ -410,6 +412,7 @@ function InventoryItemCard({
                     equipmentRiderSlotKey(rider.rider_id, item.equipmentSlot!),
                   ) ?? null,
               }))}
+              returnPath={returnPath}
             />
           </>
         ) : item.isConsumable &&
@@ -419,6 +422,7 @@ function InventoryItemCard({
             category={item.category}
             availableQuantity={item.availableQuantity}
             riders={riders}
+            returnPath={returnPath}
           />
         ) : (
           <p className="mt-5 text-xs font-bold text-[#60756E]">

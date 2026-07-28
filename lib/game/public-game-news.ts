@@ -106,8 +106,15 @@ export type PublicGameNewsItem = {
   happenedAt: string;
   href?: string;
   significance?: "major" | "standard";
+  teamColors?: PublicGameNewsTeamVisual["colors"];
   visual?: PublicGameNewsVisual;
 };
+
+export function getPublicGameNewsTeamColors(
+  item: PublicGameNewsItem,
+): PublicGameNewsTeamVisual["colors"] | null {
+  return item.visual?.team?.colors ?? item.teamColors ?? null;
+}
 
 export type PublicGameNewsTotals = {
   directors: number | null;

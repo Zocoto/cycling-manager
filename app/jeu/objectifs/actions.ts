@@ -3,13 +3,24 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  sanitizeObjectivesReturnPath,
+  withPageFeedback,
+} from "@/lib/game/filtered-page-paths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function claimGameObjectiveAction(formData: FormData) {
   const objectiveKey = readValue(formData, "objectiveKey");
+  const returnPath = sanitizeObjectivesReturnPath(
+    readValue(formData, "returnPath"),
+  );
 
   if (!/^[a-z0-9_]{3,80}$/.test(objectiveKey)) {
-    redirectWithMessage("erreur", "L’objectif transmis est invalide.");
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      "L’objectif transmis est invalide.",
+    );
   }
 
   const supabase = await createSupabaseServerClient();
@@ -27,7 +38,7 @@ export async function claimGameObjectiveAction(formData: FormData) {
   });
 
   if (error) {
-    redirectWithMessage("erreur", error.message);
+    redirectWithMessage(returnPath, "erreur", error.message);
   }
 
   revalidatePath("/jeu/objectifs");
@@ -37,18 +48,18 @@ export async function claimGameObjectiveAction(formData: FormData) {
   revalidatePath("/jeu/materiel");
 
   redirectWithMessage(
+    returnPath,
     "succes",
     "Récompense récupérée : les gains ont été ajoutés à votre carrière."
   );
 }
 
 function redirectWithMessage(
+  path: string,
   key: "succes" | "erreur",
   message: string
 ): never {
-  redirect(
-    `/jeu/objectifs?statut=completed&${key}=${encodeURIComponent(message.slice(0, 300))}#objectives-list`
-  );
+  redirect(withPageFeedback(path, key, message));
 }
 
 function readValue(formData: FormData, key: string) {

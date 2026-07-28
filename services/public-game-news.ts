@@ -836,6 +836,7 @@ async function loadRecentSponsorSignatures(
         detail: "Un nouveau sponsor principal rejoint le peloton.",
         happenedAt: contract.signed_at ?? contract.created_at,
         significance: "major" as const,
+        teamColors: sponsor.colors,
       },
     ];
   });
@@ -999,9 +1000,10 @@ async function loadTeamVisuals(
       ? SPONSORS.find((sponsor) => sponsor.id === registrySponsor.catalog_key)
       : null;
     const teamSeason = latestTeamSeasons.get(teamId);
-    const selectedJersey = catalogSponsor?.jerseys.find(
-      (jersey) => jersey.id === contract.selected_jersey_id
-    );
+    const selectedJersey =
+      catalogSponsor?.jerseys.find(
+        (jersey) => jersey.id === contract.selected_jersey_id
+      ) ?? catalogSponsor?.jerseys[0];
     if (!catalogSponsor || !selectedJersey || !teamSeason) continue;
 
     visuals.set(teamId, {

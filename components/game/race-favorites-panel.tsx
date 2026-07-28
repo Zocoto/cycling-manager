@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { buildRaceFavorites, type RaceFavorite } from "@/lib/game/race-favorites";
@@ -249,7 +249,10 @@ function FavoriteList({
               </span>
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full border border-white/30"
-                style={{ backgroundColor: favorite.rider.teamPrimaryColor }}
+                style={{
+                  background: `linear-gradient(135deg, ${favorite.rider.teamPrimaryColor} 0 55%, ${favorite.rider.teamSecondaryColor} 55% 100%)`,
+                  borderColor: favorite.rider.teamSecondaryColor,
+                }}
                 aria-hidden="true"
               />
               <span className="min-w-0 flex-1">
@@ -336,6 +339,10 @@ function getFavoriteJersey(
       countryCode: nationalChampionship.countryCode,
       championshipType,
     });
+  }
+
+  if (rider.teamJersey) {
+    return rider.teamJersey;
   }
 
   const teamPattern = getTeamKitPattern(rider.teamId);

@@ -54,6 +54,36 @@ describe("race cyclist visuals", () => {
     expect(markup).not.toContain("#E7B18C");
   });
 
+  it("priorise la palette et le motif du sponsor dans les deux vues live", () => {
+    const sponsoredRider: RiderSimulationInput = {
+      ...baseRider,
+      teamJersey: {
+        primaryColor: "#5B1A78",
+        secondaryColor: "#F4C542",
+        accentColor: "#FFFFFF",
+        pattern: "diagonal",
+        status: "sponsored",
+        imagePath: "/images/sponsors/test/jersey-modern.png",
+      },
+    };
+    const visual = getRaceCyclistJerseyVisual(sponsoredRider);
+    const markup = renderToStaticMarkup(
+      <>
+        <SideRaceCyclist rider={sponsoredRider} />
+        <TopRaceCyclist rider={sponsoredRider} />
+      </>,
+    );
+
+    expect(visual).toMatchObject({
+      status: "team",
+      primaryColor: "#5B1A78",
+      secondaryColor: "#F4C542",
+      accentColor: "#FFFFFF",
+    });
+    expect(markup).toContain("#5B1A78");
+    expect(markup).toContain("#F4C542");
+  });
+
   it("affiche le drapeau exact du champion de France dans le live", () => {
     const champion: RiderSimulationInput = {
       ...baseRider,

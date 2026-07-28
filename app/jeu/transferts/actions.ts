@@ -3,12 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  buildRiderReturnPath,
+  sanitizeTransferMarketReturnPath,
+  withPageFeedback,
+} from "@/lib/game/filtered-page-paths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function placeTransferBidAction(formData: FormData) {
   const listingId = readValue(formData, "listingId");
   const amount = Number(readValue(formData, "amount"));
-  const returnPath = safeReturnPath(readValue(formData, "returnPath"));
+  const returnPath = sanitizeTransferMarketReturnPath(
+    readValue(formData, "returnPath"),
+  );
   if (!isUuid(listingId) || !Number.isFinite(amount) || amount < 500) {
     redirectWithMessage(returnPath, "erreur", "L’offre transmise est invalide.");
   }
@@ -25,7 +32,9 @@ export async function placeTransferBidAction(formData: FormData) {
 export async function createDirectorListingAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const minimumBid = Number(readValue(formData, "minimumBid"));
-  const returnPath = "/jeu/transferts?onglet=directeurs";
+  const returnPath = sanitizeTransferMarketReturnPath(
+    readValue(formData, "returnPath"),
+  );
   if (!isUuid(riderId) || !Number.isFinite(minimumBid)) {
     redirectWithMessage(returnPath, "erreur", "La mise en vente est invalide.");
   }
@@ -41,7 +50,10 @@ export async function createDirectorListingAction(formData: FormData) {
 
 export async function signFreeAgentAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
-  const returnPath = safeReturnPath(readValue(formData, "returnPath"));
+  const returnPath = resolveTransferOrRiderReturnPath(
+    readValue(formData, "returnPath"),
+    riderId,
+  );
   if (!isUuid(riderId)) redirectWithMessage(returnPath, "erreur", "Ce coureur est invalide.");
   const supabase = await authenticatedClient();
   const { error } = await supabase.rpc("sign_current_team_free_agent", {
@@ -55,7 +67,10 @@ export async function signFreeAgentAction(formData: FormData) {
 
 export async function renewRiderContractAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
-  const returnPath = safeReturnPath(readValue(formData, "returnPath"));
+  const returnPath = isUuid(riderId)
+    ? (buildRiderReturnPath(readValue(formData, "returnPath"), riderId) ??
+      `/jeu/coureurs/${riderId}`)
+    : sanitizeTransferMarketReturnPath(readValue(formData, "returnPath"));
   if (!isUuid(riderId)) redirectWithMessage(returnPath, "erreur", "Ce coureur est invalide.");
   const supabase = await authenticatedClient();
   const { error } = await supabase.rpc("renew_current_team_rider", {
@@ -82,13 +97,14 @@ function revalidateTransferPaths() {
 }
 
 function redirectWithMessage(path: string, key: "succes" | "erreur", message: string): never {
-  redirect(`${path}${path.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(message.slice(0, 280))}`);
+  redirect(withPageFeedback(path, key, message));
 }
 
-function safeReturnPath(value: string) {
-  return value.startsWith("/jeu/") && !value.startsWith("//")
-    ? value
-    : "/jeu/transferts";
+function resolveTransferOrRiderReturnPath(value: string, riderId: string) {
+  return (
+    buildRiderReturnPath(value, riderId) ??
+    sanitizeTransferMarketReturnPath(value)
+  );
 }
 
 function readValue(formData: FormData, key: string) {

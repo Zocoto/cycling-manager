@@ -7,6 +7,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
+import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   filterGameObjectives,
   parseGameObjectiveStatusFilter,
@@ -125,6 +126,11 @@ export default async function ObjectivesPage({
   const claimedCount = objectives.filter((objective) => objective.claimedAt).length;
   const success = readQuery(query.succes);
   const errorMessage = readQuery(query.erreur);
+  const returnPath = buildObjectivesReturnPath({
+    type: selectedType,
+    status: selectedStatus,
+    group: selectedGroup,
+  });
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -221,6 +227,7 @@ export default async function ObjectivesPage({
           title="Objectifs primaires"
           description="Les quatre jalons qui installent les bases de votre carrière et débloquent rapidement vos premiers moyens."
           objectives={primaryObjectives}
+          returnPath={returnPath}
           featured
         />
 
@@ -229,6 +236,7 @@ export default async function ObjectivesPage({
           title="Objectifs secondaires"
           description="Des paliers durables dans toutes les dimensions du club. Les niveaux supérieurs offrent les objets les plus rares."
           objectives={secondaryObjectives}
+          returnPath={returnPath}
         />
 
         {visibleObjectives.length === 0 ? (
@@ -254,12 +262,14 @@ function ObjectiveSection({
   title,
   description,
   objectives,
+  returnPath,
   featured = false,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   objectives: GameObjective[];
+  returnPath: string;
   featured?: boolean;
 }) {
   const sectionId = featured
@@ -292,7 +302,12 @@ function ObjectiveSection({
         }`}
       >
         {objectives.map((objective) => (
-          <ObjectiveCard key={objective.key} objective={objective} featured={featured} />
+          <ObjectiveCard
+            key={objective.key}
+            objective={objective}
+            featured={featured}
+            returnPath={returnPath}
+          />
         ))}
       </div>
     </section>
@@ -302,9 +317,11 @@ function ObjectiveSection({
 function ObjectiveCard({
   objective,
   featured,
+  returnPath,
 }: {
   objective: GameObjective;
   featured: boolean;
+  returnPath: string;
 }) {
   const ready = objective.completed && !objective.claimedAt;
   const claimed = Boolean(objective.claimedAt);
@@ -408,6 +425,7 @@ function ObjectiveCard({
         {ready ? (
           <form action={claimGameObjectiveAction}>
             <input type="hidden" name="objectiveKey" value={objective.key} />
+            <input type="hidden" name="returnPath" value={returnPath} />
             <ObjectiveClaimButton />
           </form>
         ) : claimed ? (

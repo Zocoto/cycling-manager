@@ -8,6 +8,7 @@ type InventoryConsumableFormProps = {
   category: AssignableInventoryCategory;
   availableQuantity: number;
   riders: InventoryRiderOption[];
+  returnPath?: string;
 };
 
 export function InventoryConsumableForm({
@@ -15,6 +16,7 @@ export function InventoryConsumableForm({
   category,
   availableQuantity,
   riders,
+  returnPath,
 }: InventoryConsumableFormProps) {
   const canUse = availableQuantity > 0 && riders.length > 0;
   const selectId = `inventory-consumable-rider-${inventoryItemId}`;
@@ -26,6 +28,7 @@ export function InventoryConsumableForm({
     >
       <input type="hidden" name="inventoryItemId" value={inventoryItemId} />
       <input type="hidden" name="category" value={category} />
+      <input type="hidden" name="returnPath" value={returnPath ?? `/jeu/inventaire?categorie=${category}`} />
 
       <label
         htmlFor={selectId}

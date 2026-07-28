@@ -21,6 +21,7 @@ type InventoryEquipmentFormProps = {
   slot: EquipmentSlot;
   availableQuantity: number;
   riders: InventoryRiderOption[];
+  returnPath?: string;
 };
 
 export function InventoryEquipmentForm({
@@ -28,6 +29,7 @@ export function InventoryEquipmentForm({
   slot,
   availableQuantity,
   riders,
+  returnPath = "/jeu/inventaire?categorie=equipment",
 }: InventoryEquipmentFormProps) {
   const canEquip = availableQuantity > 0 && riders.length > 0;
 
@@ -39,6 +41,7 @@ export function InventoryEquipmentForm({
       <input type="hidden" name="equipmentItemId" value={equipmentItemId} />
       <input type="hidden" name="slot" value={slot} />
       <input type="hidden" name="origin" value="inventory" />
+      <input type="hidden" name="returnPath" value={returnPath} />
 
       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
         Coureur à équiper

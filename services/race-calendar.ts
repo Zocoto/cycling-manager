@@ -1,6 +1,11 @@
 import "server-only";
 
+import { SPONSORS } from "@/data/sponsors";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSponsoredRiderJersey,
+  type RiderJerseyAppearance,
+} from "@/lib/rider-jersey";
 import {
   getEffectiveSeasonDay,
   isRaceCategoryCode,
@@ -52,6 +57,7 @@ import {
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
 >;
+type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 type SeasonRow = {
   id: string;
@@ -208,6 +214,24 @@ type CalendarEngagedRiderRow = {
 type CalendarEngagedCountRow = {
   race_edition_id: string;
   engaged_rider_count: number;
+};
+
+type ActiveTeamSponsorContractRow = {
+  team_id: string;
+  sponsor_id: string;
+  selected_jersey_id: string | null;
+  created_at: string;
+};
+
+type SponsorRegistryRow = {
+  id: string;
+  catalog_key: string;
+};
+
+export type RaceTeamSponsorVisual = {
+  primaryColor: string;
+  secondaryColor: string;
+  jersey: RiderJerseyAppearance;
 };
 
 type ActiveSeasonCalendarLoadOptions = {
@@ -572,13 +596,18 @@ export async function getActiveSeasonRaceCalendar(
   const engagedRiderIds = unique(
     engagedRiderRows.map((rider) => rider.rider_id),
   );
-  const raceStaffEffectsPromise = loadRaceStaffEffects(
-    createSupabaseAdminClient(),
-    {
-      seasonId: season.id,
-      teamIds: unique(engagedRiderRows.map((rider) => rider.team_id)),
-      riderIds: engagedRiderIds,
-    },
+  const engagedTeamIds = unique(
+    engagedRiderRows.map((rider) => rider.team_id),
+  );
+  const raceDataAdmin = createSupabaseAdminClient();
+  const raceStaffEffectsPromise = loadRaceStaffEffects(raceDataAdmin, {
+    seasonId: season.id,
+    teamIds: engagedTeamIds,
+    riderIds: engagedRiderIds,
+  });
+  const teamSponsorVisualsPromise = loadActiveRaceTeamSponsorVisuals(
+    raceDataAdmin,
+    engagedTeamIds,
   );
   const [
     specialAbilitiesResult,
@@ -648,7 +677,10 @@ export async function getActiveSeasonRaceCalendar(
   const specialAbilitiesByRiderId = groupSpecialAbilities(
     specialAbilitiesResult.data ?? [],
   );
-  const raceStaffEffects = await raceStaffEffectsPromise;
+  const [raceStaffEffects, teamSponsorVisuals] = await Promise.all([
+    raceStaffEffectsPromise,
+    teamSponsorVisualsPromise,
+  ]);
 
   const dayRows = daysResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
@@ -875,6 +907,7 @@ export async function getActiveSeasonRaceCalendar(
     countryById,
     nationalChampionshipTitlesByRiderId,
     raceStaffEffects,
+    teamSponsorVisuals,
   );
 
   const editions = editionRows
@@ -1154,6 +1187,73 @@ export async function getRaceEngagedRiders(
   }));
 }
 
+export async function loadActiveRaceTeamSponsorVisuals(
+  admin: SupabaseAdminClient,
+  teamIds: string[],
+): Promise<Map<string, RaceTeamSponsorVisual>> {
+  if (teamIds.length === 0) return new Map();
+
+  const contractsResult = await admin
+    .from("team_sponsor_contracts")
+    .select("team_id, sponsor_id, selected_jersey_id, created_at")
+    .in("team_id", teamIds)
+    .eq("role", "principal")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .returns<ActiveTeamSponsorContractRow[]>();
+
+  if (contractsResult.error) return new Map();
+
+  const contractByTeamId = new Map<string, ActiveTeamSponsorContractRow>();
+  for (const contract of contractsResult.data ?? []) {
+    if (!contractByTeamId.has(contract.team_id)) {
+      contractByTeamId.set(contract.team_id, contract);
+    }
+  }
+
+  const sponsorIds = unique(
+    [...contractByTeamId.values()].map((contract) => contract.sponsor_id),
+  );
+  if (sponsorIds.length === 0) return new Map();
+
+  const sponsorsResult = await admin
+    .from("sponsors")
+    .select("id, catalog_key")
+    .in("id", sponsorIds)
+    .returns<SponsorRegistryRow[]>();
+
+  if (sponsorsResult.error) return new Map();
+
+  const sponsorRegistryById = new Map(
+    (sponsorsResult.data ?? []).map((sponsor) => [sponsor.id, sponsor]),
+  );
+  const visuals = new Map<string, RaceTeamSponsorVisual>();
+
+  for (const [teamId, contract] of contractByTeamId) {
+    const registrySponsor = sponsorRegistryById.get(contract.sponsor_id);
+    const sponsor = registrySponsor
+      ? SPONSORS.find((entry) => entry.id === registrySponsor.catalog_key)
+      : null;
+    const selectedJersey =
+      sponsor?.jerseys.find(
+        (jersey) => jersey.id === contract.selected_jersey_id,
+      ) ?? sponsor?.jerseys[0];
+    if (!sponsor || !selectedJersey) continue;
+
+    visuals.set(teamId, {
+      primaryColor: sponsor.colors.primary,
+      secondaryColor: sponsor.colors.secondary,
+      jersey: createSponsoredRiderJersey({
+        colors: sponsor.colors,
+        style: selectedJersey.style,
+        imagePath: selectedJersey.imagePath,
+      }),
+    });
+  }
+
+  return visuals;
+}
+
 function combineEquipmentEffectsWithStaff({
   values,
   teamStaffEffects,
@@ -1222,6 +1322,7 @@ function groupCalendarEngagedRiders(
     ActiveNationalChampionshipTitlesByDiscipline
   >,
   raceStaffEffects: RaceStaffEffects,
+  teamSponsorVisuals: Map<string, RaceTeamSponsorVisual>,
 ) {
   const ridersByEditionId = new Map<
     string,
@@ -1238,6 +1339,7 @@ function groupCalendarEngagedRiders(
       ? countryById.get(riderMetadata.country_id)
       : null;
     const teamStaffEffects = raceStaffEffects.byTeamId.get(row.team_id);
+    const teamSponsorVisual = teamSponsorVisuals.get(row.team_id);
     const equipmentEffects = combineEquipmentEffectsWithStaff({
       values: Array.isArray(row.equipment_effects) ? row.equipment_effects : [],
       teamStaffEffects,
@@ -1249,8 +1351,11 @@ function groupCalendarEngagedRiders(
       name: `${row.rider_first_name} ${row.rider_last_name}`,
       teamId: row.team_id,
       teamName: row.team_name,
-      teamPrimaryColor: row.team_primary_color,
-      teamSecondaryColor: row.team_secondary_color,
+      teamPrimaryColor:
+        teamSponsorVisual?.primaryColor ?? row.team_primary_color,
+      teamSecondaryColor:
+        teamSponsorVisual?.secondaryColor ?? row.team_secondary_color,
+      ...(teamSponsorVisual ? { teamJersey: teamSponsorVisual.jersey } : {}),
       avatarProfileKey: riderMetadata?.avatar_profile_key ?? null,
       avatarSeed: riderMetadata?.avatar_seed ?? null,
       nationalChampionships,

@@ -21,6 +21,7 @@ import {
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
+import { buildTransferMarketReturnPath } from "@/lib/game/filtered-page-paths";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
 import {
   isTransferRiderProfileFilter,
@@ -113,7 +114,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
 
   const success = readQuery(query.succes);
   const errorMessage = readQuery(query.erreur);
-  const currentPath = `/jeu/transferts?onglet=${tab}`;
+  const currentPath = buildTransferMarketReturnPath(tab, filters);
   const currentTransferTutorialRoute =
     tab === "directeurs"
       ? TRANSFER_DIRECTORS_TUTORIAL_ROUTE
@@ -242,6 +243,7 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
           <SectionHeading eyebrow="Votre effectif" title="Mettre un coureur aux enchères" detail="Fixez le prix d’appel. La vente reste ouverte 24 heures et le plus offrant remporte le coureur." compact />
           {sellable.length > 0 ? (
             <form action={createDirectorListingAction} className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px_auto] sm:items-end">
+              <input type="hidden" name="returnPath" value={returnPath} />
               <label className="text-xs font-black uppercase tracking-wider text-[#48665F]">Coureur
                 <select name="riderId" required className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 text-sm font-bold">
                   {sellable.map((candidate) => <option key={candidate.rider.id} value={candidate.rider.id}>{candidate.rider.firstName} {candidate.rider.lastName} · MOY {candidate.rider.overall}</option>)}
