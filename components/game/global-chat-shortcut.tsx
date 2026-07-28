@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Link from "@/components/ui/app-link";
+import {
+  GLOBAL_CHAT_MESSAGES_READ_EVENT,
+  GlobalChatUnreadRefreshTracker,
+} from "@/lib/game/global-chat-read-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function GlobalChatShortcut({
@@ -13,20 +17,47 @@ export function GlobalChatShortcut({
   initialHasUnread?: boolean;
 }) {
   const [hasUnread, setHasUnread] = useState(initialHasUnread);
+  const refreshTrackerRef = useRef(
+    new GlobalChatUnreadRefreshTracker(),
+  );
   const displayedUnread = chatIsOpen ? false : hasUnread;
 
   useEffect(() => {
-    if (chatIsOpen) return;
-
     let active = true;
     const supabase = createSupabaseBrowserClient();
+    const refreshTracker = refreshTrackerRef.current;
+
+    function acknowledgeReadMessages() {
+      refreshTracker.invalidate();
+      setHasUnread(false);
+    }
+
+    window.addEventListener(
+      GLOBAL_CHAT_MESSAGES_READ_EVENT,
+      acknowledgeReadMessages,
+    );
+
+    if (chatIsOpen) {
+      return () => {
+        active = false;
+        window.removeEventListener(
+          GLOBAL_CHAT_MESSAGES_READ_EVENT,
+          acknowledgeReadMessages,
+        );
+      };
+    }
 
     async function refreshUnreadState() {
+      const requestVersion = refreshTracker.beginRefresh();
       const { data, error } = await supabase.rpc(
         "has_unread_global_chat_messages",
       );
 
-      if (active && !error) {
+      if (
+        active &&
+        !error &&
+        refreshTracker.isCurrent(requestVersion)
+      ) {
         setHasUnread(data === true);
       }
     }
@@ -62,6 +93,10 @@ export function GlobalChatShortcut({
 
     return () => {
       active = false;
+      window.removeEventListener(
+        GLOBAL_CHAT_MESSAGES_READ_EVENT,
+        acknowledgeReadMessages,
+      );
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener(
         "visibilitychange",

@@ -14,6 +14,7 @@ import {
   extractGlobalChatPreviewReference,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
 } from "@/lib/game/global-chat";
+import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   GlobalChatIdentity,
@@ -58,9 +59,10 @@ export function GlobalGameChat({
       return;
     }
 
-    void supabase.rpc("mark_global_chat_messages_read", {
-      p_last_read_at: latestDisplayedMessageAt,
-    });
+    void markGlobalChatMessagesAsRead(
+      supabase,
+      latestDisplayedMessageAt,
+    );
   }, [latestDisplayedMessageAt, supabase]);
 
   useEffect(() => {
@@ -69,9 +71,10 @@ export function GlobalGameChat({
         document.visibilityState === "visible" &&
         latestDisplayedMessageAt
       ) {
-        void supabase.rpc("mark_global_chat_messages_read", {
-          p_last_read_at: latestDisplayedMessageAt,
-        });
+        void markGlobalChatMessagesAsRead(
+          supabase,
+          latestDisplayedMessageAt,
+        );
       }
     }
 
@@ -486,6 +489,22 @@ function appendUniqueMessage(
     return messages;
   }
   return [...messages, message].slice(-100);
+}
+
+async function markGlobalChatMessagesAsRead(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  latestDisplayedMessageAt: string,
+) {
+  const { error } = await supabase.rpc(
+    "mark_global_chat_messages_read",
+    {
+      p_last_read_at: latestDisplayedMessageAt,
+    },
+  );
+
+  if (!error) {
+    notifyGlobalChatMessagesRead();
+  }
 }
 
 function readRealtimeMessage(
