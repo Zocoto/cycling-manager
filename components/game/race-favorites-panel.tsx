@@ -2,7 +2,10 @@ import Link from "@/components/ui/app-link";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { buildRaceFavorites, type RaceFavorite } from "@/lib/game/race-favorites";
-import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
+import type {
+  RaceCalendarEdition,
+  RaceCalendarStage,
+} from "@/lib/game/race-calendar";
 import type { RiderSimulationInput } from "@/lib/game/race-simulation";
 import { getTeamKitPattern } from "@/lib/game/race-visuals";
 import {
@@ -17,6 +20,7 @@ type RaceFavoritesPanelProps = {
     "raceFormat" | "stages" | "engagedRiders"
   >;
   riders?: RiderSimulationInput[];
+  stage?: RaceCalendarStage;
   frozen?: boolean;
   tone?: "light" | "dark";
   className?: string;
@@ -25,12 +29,20 @@ type RaceFavoritesPanelProps = {
 export function RaceFavoritesPanel({
   edition,
   riders,
+  stage,
   frozen = false,
   tone = "light",
   className = "",
 }: RaceFavoritesPanelProps) {
+  const favoriteEdition = stage
+    ? {
+        ...edition,
+        raceFormat: "one_day" as const,
+        stages: [stage],
+      }
+    : edition;
   const favorites = buildRaceFavorites({
-    edition,
+    edition: favoriteEdition,
     riders: riders ?? edition.engagedRiders ?? [],
   });
   const podium = favorites.slice(0, 3);
@@ -64,7 +76,9 @@ export function RaceFavoritesPanel({
           >
             Pronostic d&apos;avant-course
           </p>
-          <h3 className="mt-1 text-lg font-black">Favoris de la course</h3>
+          <h3 className="mt-1 text-lg font-black">
+            {stage ? "Favoris de l’étape" : "Favoris de la course"}
+          </h3>
         </div>
         <span
           className={[
@@ -91,7 +105,7 @@ export function RaceFavoritesPanel({
                 <PodiumFavorite
                   key={favorite.rider.id}
                   favorite={favorite}
-                  edition={edition}
+                  edition={favoriteEdition}
                   tone={tone}
                 />
               ))}

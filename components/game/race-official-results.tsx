@@ -44,6 +44,9 @@ export function RaceOfficialResults({
   const stageClassification = officialResults.stages.find(
     (stage) => stage.stageId === selectedStageId
   );
+  const selectedStage = edition.stages.find(
+    (stage) => stage.id === selectedStageId,
+  );
   const availableTabs = useMemo(() => {
     const tabs: ClassificationKey[] = [];
     if (stageClassification) tabs.push("stage");
@@ -116,6 +119,7 @@ export function RaceOfficialResults({
 
       <RaceFavoritesPanel
         edition={edition}
+        stage={selectedStage}
         riders={favoriteRiders ?? edition.engagedRiders}
         frozen
         className="m-4 sm:m-6"

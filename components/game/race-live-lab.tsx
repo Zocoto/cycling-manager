@@ -85,8 +85,13 @@ export function RaceLiveLab({
     [edition, lockedSimulations, stage.id]
   );
   const favoriteRiders = useMemo(
-    () => getFrozenRaceFavoriteRiders(edition, lockedSimulations),
-    [edition, lockedSimulations]
+    () =>
+      getFrozenRaceFavoriteRiders(
+        edition,
+        lockedSimulations,
+        stage.id,
+      ),
+    [edition, lockedSimulations, stage.id]
   );
   const raceWeather =
     input.weather ?? getRaceWeather(`${edition.id}:${stage.id}:weather`);
@@ -283,6 +288,7 @@ export function RaceLiveLab({
       <div className="border-b border-white/10 px-3 py-4 sm:px-6">
         <RaceFavoritesPanel
           edition={edition}
+          stage={stage}
           riders={favoriteRiders}
           frozen
           tone="dark"

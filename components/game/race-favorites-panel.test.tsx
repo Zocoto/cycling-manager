@@ -37,6 +37,78 @@ describe("RaceFavoritesPanel", () => {
     expect(markup).toContain('aria-haspopup="dialog"');
   });
 
+  it("classe les favoris selon l’étape affichée et non selon le général du tour", () => {
+    const sprinter: RiderSimulationInput = {
+      ...createRider(1),
+      name: "Sprinteur",
+      ratings: {
+        ...createRider(1).ratings,
+        flat: 90,
+        sprint: 95,
+        acceleration: 92,
+        mountain: 45,
+        hills: 50,
+      },
+    };
+    const climber: RiderSimulationInput = {
+      ...createRider(2),
+      name: "Grimpeur",
+      ratings: {
+        ...createRider(2).ratings,
+        flat: 58,
+        sprint: 45,
+        acceleration: 58,
+        mountain: 92,
+        hills: 84,
+      },
+    };
+    const flatStage = createStage();
+    const mountainStage: RaceCalendarStage = {
+      ...createStage(),
+      id: "stage-2",
+      dayNumber: 2,
+      stageNumber: 2,
+      name: "Étape 2",
+      profileType: "mountain",
+      distanceKm: 150,
+      segments: [
+        {
+          segmentNumber: 1,
+          terrain: "flat",
+          distanceKm: 60,
+          averageGradientPct: 0,
+          surface: "asphalt",
+          prime: null,
+        },
+        {
+          segmentNumber: 2,
+          terrain: "climb",
+          distanceKm: 90,
+          averageGradientPct: 8,
+          surface: "asphalt",
+          prime: null,
+        },
+      ],
+    };
+    const edition: RaceCalendarEdition = {
+      ...createEdition([sprinter, climber]),
+      raceFormat: "stage_race",
+      stages: [flatStage, mountainStage],
+    };
+    const markup = renderToStaticMarkup(
+      <RaceFavoritesPanel
+        edition={edition}
+        stage={mountainStage}
+        riders={[sprinter, climber]}
+      />,
+    );
+
+    expect(markup).toContain("Favoris de l’étape");
+    expect(markup.indexOf("Grimpeur")).toBeLessThan(
+      markup.indexOf("Sprinteur"),
+    );
+  });
+
   it("affiche le maillot du sponsor plutôt que de reconstruire le maillot amateur", () => {
     const sponsoredRider: RiderSimulationInput = {
       ...createRider(1),

@@ -1,15 +1,34 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
+import type {
+  RaceCalendarEdition,
+  RaceCalendarStage,
+} from "@/lib/game/race-calendar";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 
 import { RaceOfficialResults } from "./race-official-results";
+
+const stage = {
+  id: "stage-1",
+  dayNumber: 1,
+  stageNumber: 1,
+  name: "Course test",
+  stageType: "road",
+  status: "completed",
+  profileType: "flat",
+  distanceKm: 150,
+  daySlot: "early",
+  departureAt: null,
+  segments: [],
+} satisfies RaceCalendarStage;
 
 const edition = {
   id: "edition-1",
   name: "Course test",
   raceFormat: "one_day",
+  engagedRiders: [],
+  stages: [stage],
 } as RaceCalendarEdition;
 
 function buildResults(

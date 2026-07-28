@@ -26,23 +26,37 @@ export function getFrozenRaceFavoriteRiders(
   edition: Pick<RaceCalendarEdition, "stages" | "engagedRiders">,
   lockedSimulations: Array<{
     stageId: string;
-    input: Pick<StageSimulationInput, "riders">;
+    input: Pick<
+      StageSimulationInput,
+      "riders" | "unavailableRiderIds"
+    >;
   }>,
+  stageId?: string,
 ) {
-  const firstStage = [...edition.stages].sort(
-    (first, second) =>
-      first.stageNumber - second.stageNumber ||
-      first.id.localeCompare(second.id),
-  )[0];
-  const frozenStartlist = firstStage
+  const targetStage = stageId
+    ? edition.stages.find((stage) => stage.id === stageId)
+    : [...edition.stages].sort(
+        (first, second) =>
+          first.stageNumber - second.stageNumber ||
+          first.id.localeCompare(second.id),
+      )[0];
+  const frozenSimulation = targetStage
     ? lockedSimulations.find(
-        (simulation) => simulation.stageId === firstStage.id,
-      )?.input.riders
+        (simulation) => simulation.stageId === targetStage.id,
+      )?.input
     : undefined;
 
-  return frozenStartlist?.length
-    ? frozenStartlist
-    : edition.engagedRiders;
+  if (!frozenSimulation) {
+    return edition.engagedRiders;
+  }
+
+  const unavailableRiderIds = new Set(
+    frozenSimulation.unavailableRiderIds ?? [],
+  );
+
+  return frozenSimulation.riders.filter(
+    (rider) => !unavailableRiderIds.has(rider.id),
+  );
 }
 
 export function buildRaceFavorites({

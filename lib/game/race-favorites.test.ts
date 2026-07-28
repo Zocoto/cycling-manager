@@ -184,6 +184,50 @@ describe("getFrozenRaceFavoriteRiders", () => {
 
     expect(riders.map((rider) => rider.id)).toEqual(["original"]);
   });
+
+  it("utilise la startlist de l’étape demandée et retire les indisponibles", () => {
+    const original = createRider("original");
+    const climber = createRider("climber", { mountain: 90 });
+    const withdrawn = createRider("withdrawn", { mountain: 95 });
+    const stageOne = createStage(
+      "flat",
+      [createSegment(1, "flat", 120)],
+      1,
+    );
+    const stageSix = createStage(
+      "mountain",
+      [createSegment(1, "climb", 152, 7)],
+      6,
+    );
+    const edition = createEdition(
+      "stage_race",
+      [stageOne, stageSix],
+      [original, climber, withdrawn],
+    );
+
+    const riders = getFrozenRaceFavoriteRiders(
+      edition,
+      [
+        {
+          stageId: stageOne.id,
+          input: { riders: [original, climber, withdrawn] },
+        },
+        {
+          stageId: stageSix.id,
+          input: {
+            riders: [original, climber, withdrawn],
+            unavailableRiderIds: [withdrawn.id],
+          },
+        },
+      ],
+      stageSix.id,
+    );
+
+    expect(riders.map((rider) => rider.id)).toEqual([
+      "original",
+      "climber",
+    ]);
+  });
 });
 
 function createEdition(

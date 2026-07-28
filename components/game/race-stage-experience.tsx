@@ -53,7 +53,8 @@ export function RaceStageExperience({
   const state = getStageLiveState(entry.stage, now);
   const favoriteRiders = getFrozenRaceFavoriteRiders(
     entry.edition,
-    lockedSimulations
+    lockedSimulations,
+    entry.stage.id,
   );
   const simulationAvailable = canSimulateRaceEdition(
     entry.edition
@@ -185,6 +186,7 @@ export function RaceStageExperience({
         <div className="px-6 pb-6 sm:px-9 sm:pb-9">
           <RaceFavoritesPanel
             edition={entry.edition}
+            stage={entry.stage}
             riders={favoriteRiders}
             frozen
             tone="dark"
