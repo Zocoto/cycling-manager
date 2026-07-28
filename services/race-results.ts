@@ -62,6 +62,7 @@ type RaceRosterRow = {
   id: string;
   race_registration_id: string;
   rider_id: string;
+  status: "selected" | "confirmed" | "withdrawn";
 };
 
 type TeamSeasonRow = {
@@ -763,9 +764,9 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
       fetchPage: async (chunk, from, to) => {
         const result = await admin
           .from("race_rosters")
-          .select("id, race_registration_id, rider_id")
+          .select("id, race_registration_id, rider_id, status")
           .in("race_registration_id", chunk)
-          .in("status", ["selected", "confirmed"])
+          .in("status", ["selected", "confirmed", "withdrawn"])
           .order("id", { ascending: true })
           .range(from, to)
           .returns<RaceRosterRow[]>();
@@ -774,8 +775,47 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
     });
   assertQuery(rosterError, "la startlist officielle");
 
+  const withdrawnRosterIds = (rosters ?? [])
+    .filter((roster) => roster.status === "withdrawn")
+    .map((roster) => roster.id);
+  const outsideTimeLimitRosterIds = new Set<string>();
+  if (withdrawnRosterIds.length > 0) {
+    const { data: outsideTimeLimitRows, error: outsideTimeLimitError } =
+      await collectChunkedPaginatedRows<
+        { race_roster_id: string },
+        { message: string },
+        string
+      >({
+        values: withdrawnRosterIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
+            .from("stage_results")
+            .select("race_roster_id")
+            .in("race_roster_id", chunk)
+            .eq("status", "outside_time_limit")
+            .order("race_roster_id", { ascending: true })
+            .range(from, to)
+            .returns<Array<{ race_roster_id: string }>>();
+          return { data: result.data, error: result.error };
+        },
+      });
+    assertQuery(
+      outsideTimeLimitError,
+      "outside-time-limit roster history",
+    );
+    for (const row of outsideTimeLimitRows ?? []) {
+      outsideTimeLimitRosterIds.add(row.race_roster_id);
+    }
+  }
+
+  const resultRosters = (rosters ?? []).filter(
+    (roster) =>
+      roster.status !== "withdrawn" ||
+      outsideTimeLimitRosterIds.has(roster.id),
+  );
+
   return new Map(
-    (rosters ?? []).flatMap((roster) => {
+    resultRosters.flatMap((roster) => {
       const registration = registrationById.get(roster.race_registration_id);
       return registration?.team_season_id
         ? [
@@ -993,14 +1033,18 @@ async function persistStageResult({
   const rows = simulation.results.map((result) => {
     const roster = requireRoster(rosterByRiderId, result.riderId);
     const finished = result.status === "finished";
+    const hasElapsedTime =
+      finished || result.status === "outside_time_limit";
     return {
       stage_id: stage.id,
       race_roster_id: roster.rosterId,
       status: result.status,
       rank: finished ? result.rank : null,
-      elapsed_time_ms: finished ? result.elapsedTimeSeconds * 1_000 : null,
+      elapsed_time_ms: hasElapsedTime
+        ? result.elapsedTimeSeconds * 1_000
+        : null,
       gap_to_winner_ms:
-        finished && Number.isFinite(winnerElapsedTimeSeconds)
+        hasElapsedTime && Number.isFinite(winnerElapsedTimeSeconds)
           ? Math.max(0, result.elapsedTimeSeconds - winnerElapsedTimeSeconds) *
             1_000
           : null,
@@ -1015,6 +1059,30 @@ async function persistStageResult({
     .from("stage_results")
     .upsert(rows, { onConflict: "stage_id,race_roster_id" });
   assertQuery(error, `l’enregistrement du classement de ${stage.name}`);
+
+  const { error: conditionSettlementError } = await admin.rpc(
+    "settle_finished_race_conditions",
+  );
+  assertQuery(
+    conditionSettlementError,
+    `condition settlement before HT withdrawal for ${stage.name}`,
+  );
+
+  if (edition.raceFormat === "stage_race") {
+    const outsideTimeLimitRosterIds = rows
+      .filter((row) => row.status === "outside_time_limit")
+      .map((row) => row.race_roster_id);
+    if (outsideTimeLimitRosterIds.length > 0) {
+      const { error: withdrawalError } = await admin
+        .from("race_rosters")
+        .update({ status: "withdrawn" })
+        .in("id", outsideTimeLimitRosterIds);
+      assertQuery(
+        withdrawalError,
+        `outside-time-limit withdrawal for ${stage.name}`,
+      );
+    }
+  }
 
   await persistStageAttackParticipants({
     admin,

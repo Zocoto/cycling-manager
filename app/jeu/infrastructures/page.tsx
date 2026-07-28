@@ -7,9 +7,17 @@ import { DataRoomConstructionCard } from "@/components/game/data-room-constructi
 import { GameHeader } from "@/components/game/game-header";
 import { InternationalYouthCenterMap } from "@/components/game/international-youth-center-map";
 import { StaffAcademyCard } from "@/components/game/staff-academy-card";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
 import { INFRASTRUCTURE_UNLOCK_LEVEL } from "@/lib/game/infrastructure";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
+  INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE,
+  INFRASTRUCTURE_TUTORIAL_KEY,
+} from "@/lib/tutorial/infrastructure";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getStaffAcademyOverview } from "@/services/staff-academy";
 import {
@@ -73,20 +81,44 @@ export default async function InfrastructuresPage({
   } = await supabase.auth.getUser();
   if (authenticationError || !user) redirect("/connexion");
 
-  const headerData = await getGameHeaderData(supabase, user.id);
-  const [overview, academy] = await Promise.all([
-    getTeamInfrastructureOverview(supabase, user.id),
-    getStaffAcademyOverview(supabase, user.id),
-  ]);
+  const [headerData, overview, academy, infrastructureTutorialProgress] =
+    await Promise.all([
+      getGameHeaderData(supabase, user.id),
+      getTeamInfrastructureOverview(supabase, user.id),
+      getStaffAcademyOverview(supabase, user.id),
+      getAuthenticatedTutorialProgress(
+        supabase,
+        INFRASTRUCTURE_TUTORIAL_KEY,
+      ).catch((error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel des infrastructures :",
+          error,
+        );
+        return null;
+      }),
+    ]);
   if (!overview || !academy) redirect("/jeu");
 
   const unlockProgress = Math.min(
     100,
     (overview.directorLevel / INFRASTRUCTURE_UNLOCK_LEVEL) * 100,
   );
+  const currentInfrastructureTutorialRoute =
+    activeTab === "international"
+      ? INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE
+      : INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {infrastructureTutorialProgress?.status === "in_progress" &&
+      infrastructureTutorialProgress.current_route ===
+        currentInfrastructureTutorialRoute &&
+      infrastructureTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={INFRASTRUCTURE_TUTORIAL_KEY}
+          currentStepKey={infrastructureTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -97,7 +129,10 @@ export default async function InfrastructuresPage({
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17_0%,#0B302B_48%,#176951_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.22)] sm:px-10 sm:py-11">
+        <header
+          data-tutorial-id="infrastructure-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17_0%,#0B302B_48%,#176951_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.22)] sm:px-10 sm:py-11"
+        >
           <div
             aria-hidden="true"
             className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.7)_1px,transparent_1px)] [background-size:32px_32px]"
@@ -107,9 +142,15 @@ export default async function InfrastructuresPage({
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
                 Direction technique · Investissements durables
               </p>
-              <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
-                Infrastructures
-              </h1>
+              <div className="mt-4 flex items-center gap-3">
+                <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+                  Infrastructures
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={INFRASTRUCTURE_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">
                 Engagez une part majeure de la trésorerie dans des bâtiments
                 qui suivent l’équipe au fil des saisons. Un seul chantier peut
@@ -134,7 +175,10 @@ export default async function InfrastructuresPage({
                 />
               </div>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+            <div
+              data-tutorial-id="infrastructure-access"
+              className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm"
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
@@ -213,21 +257,25 @@ export default async function InfrastructuresPage({
           </section>
         ) : null}
 
-        {overview.activeProject ? (
-          <ActiveProjectCard
-            project={overview.activeProject}
-            currency={overview.currency}
-          />
-        ) : (
-          <section className="mt-6 rounded-[1.5rem] border border-[#315B3E]/12 bg-white px-5 py-4">
-            <p className="text-sm font-black text-[#176951]">
-              Aucun chantier actif · une nouvelle construction peut être
-              lancée.
-            </p>
-          </section>
-        )}
+        <div data-tutorial-id="infrastructure-construction-status">
+          {overview.activeProject ? (
+            <ActiveProjectCard
+              project={overview.activeProject}
+              currency={overview.currency}
+            />
+          ) : (
+            <section className="mt-6 rounded-[1.5rem] border border-[#315B3E]/12 bg-white px-5 py-4">
+              <p className="text-sm font-black text-[#176951]">
+                Aucun chantier actif · une nouvelle construction peut être
+                lancée.
+              </p>
+            </section>
+          )}
+
+        </div>
 
         <nav
+          data-tutorial-id="infrastructure-tabs"
           aria-label="Rubriques des infrastructures"
           className="mt-7 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm sm:grid-cols-2"
         >
@@ -247,26 +295,31 @@ export default async function InfrastructuresPage({
 
         {activeTab === "batiments" ? (
           <div className="mt-7 space-y-8">
-            <DataRoomConstructionCard
-              currentLevel={overview.dataRoomLevel}
-              nextLevel={overview.dataRoomNextLevel}
-              architects={overview.architects}
-              activeProject={overview.activeProject}
-              isUnlocked={overview.isUnlocked}
-              balance={overview.balance}
-              currency={overview.currency}
-            />
+            <div data-tutorial-id="infrastructure-data-room">
+              <DataRoomConstructionCard
+                currentLevel={overview.dataRoomLevel}
+                nextLevel={overview.dataRoomNextLevel}
+                architects={overview.architects}
+                activeProject={overview.activeProject}
+                isUnlocked={overview.isUnlocked}
+                balance={overview.balance}
+                currency={overview.currency}
+              />
+            </div>
 
-            <StaffAcademyCard
-              academy={academy}
-              architects={overview.architects}
-              activeProject={overview.activeProject}
-              directorLevel={overview.directorLevel}
-              balance={overview.balance}
-              currency={overview.currency}
-            />
+            <div data-tutorial-id="infrastructure-staff-academy">
+              <StaffAcademyCard
+                academy={academy}
+                architects={overview.architects}
+                activeProject={overview.activeProject}
+                directorLevel={overview.directorLevel}
+                balance={overview.balance}
+                currency={overview.currency}
+              />
+            </div>
 
-            <section>
+
+            <section data-tutorial-id="infrastructure-roadmap">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">
                 Plan directeur
               </p>
@@ -300,7 +353,10 @@ export default async function InfrastructuresPage({
           </div>
         ) : (
           <div className="mt-7">
-            <div className="mb-5 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-5">
+            <div
+              data-tutorial-id="infrastructure-school-effect"
+              className="mb-5 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-5"
+            >
               <p className="font-black text-[#71580A]">
                 Un effet mondial, financé par les équipes
               </p>
@@ -311,14 +367,16 @@ export default async function InfrastructuresPage({
                 avec un plafond mondial de 90 %.
               </p>
             </div>
-            <InternationalYouthCenterMap
-              countries={overview.countries}
-              architects={overview.architects}
-              activeProject={overview.activeProject}
-              isUnlocked={overview.isUnlocked}
-              balance={overview.balance}
-              currency={overview.currency}
-            />
+            <div data-tutorial-id="infrastructure-school-map">
+              <InternationalYouthCenterMap
+                countries={overview.countries}
+                architects={overview.architects}
+                activeProject={overview.activeProject}
+                isUnlocked={overview.isUnlocked}
+                balance={overview.balance}
+                currency={overview.currency}
+              />
+            </div>
           </div>
         )}
 

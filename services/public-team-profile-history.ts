@@ -13,6 +13,7 @@ import {
   type TeamResultCandidate,
   type TeamSecondaryClassificationType,
 } from "@/lib/game/team-result-highlights";
+import { isGameYearCoveredBySponsorContract } from "@/lib/game/team-sponsor-history";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import {
@@ -43,7 +44,7 @@ export type PublicTeamProfileHistory = {
 type SponsorContractRow = {
   sponsor_id: string;
   start_season_id: string;
-  end_season_id: string;
+  end_season_id: string | null;
   status: string;
   created_at: string;
 };
@@ -202,7 +203,7 @@ export async function getPublicTeamProfileHistory(
         contract.end_season_id,
       ])
     ),
-  ];
+  ].filter((seasonId): seasonId is string => Boolean(seasonId));
   const registrationIds = registrations.map((registration) => registration.id);
   const editionIds = [
     ...new Set(registrations.map((registration) => registration.race_edition_id)),
@@ -690,13 +691,15 @@ function resolveHistoricalLogo(
   const matchingContract = contracts
     .filter((contract) => {
       const startYear = yearBySeasonId.get(contract.start_season_id);
-      const endYear = yearBySeasonId.get(contract.end_season_id);
-      return (
-        startYear !== undefined &&
-        endYear !== undefined &&
-        season.gameYear >= startYear &&
-        season.gameYear <= endYear
-      );
+      const endYear = contract.end_season_id
+        ? yearBySeasonId.get(contract.end_season_id)
+        : null;
+
+      return isGameYearCoveredBySponsorContract({
+        gameYear: season.gameYear,
+        startGameYear: startYear,
+        endGameYear: endYear,
+      });
     })
     .sort(
       (left, right) =>

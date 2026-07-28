@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
+import { RacePreviewLink } from "@/components/game/race-preview-link";
 import { RiderPreviewLink } from "@/components/game/rider-preview-link";
+import { getRaceQuickPreviewTargetFromHref } from "@/lib/game/race-quick-preview";
 import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
 
 type AppLinkProps = LinkProps &
@@ -40,6 +42,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         ? href.pathname
         : "";
   const riderId = getRiderIdFromProfileHref(hrefPathname);
+  const raceTarget = getRaceQuickPreviewTargetFromHref(hrefPathname);
   const linkChildren = (
     <>
       {children}
@@ -58,6 +61,20 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       >
         {linkChildren}
       </RiderPreviewLink>
+    );
+  }
+
+  if (raceTarget) {
+    return (
+      <RacePreviewLink
+        ref={ref}
+        previewTarget={raceTarget}
+        href={href}
+        scroll={scroll ?? usesAnchor}
+        {...props}
+      >
+        {linkChildren}
+      </RacePreviewLink>
     );
   }
 

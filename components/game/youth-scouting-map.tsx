@@ -7,7 +7,15 @@ import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions"
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
 import type { YouthCountry, YouthScout } from "@/services/youth-development";
 
-export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountry[]; scouts: YouthScout[] }) {
+export function YouthScoutingMap({
+  countries,
+  scouts,
+  tutorialMode = false,
+}: {
+  countries: YouthCountry[];
+  scouts: YouthScout[];
+  tutorialMode?: boolean;
+}) {
   const [search, setSearch] = useState("");
   const [selectedCountryId, setSelectedCountryId] = useState(countries.find((country) => country.code === "FR")?.id ?? countries[0]?.id ?? "");
   const filtered = useMemo(() => {
@@ -19,9 +27,15 @@ export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountr
   if (!selected) return null;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,0.7fr)]">
+    <div
+      data-tutorial-id="youth-tutorial-map"
+      className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,0.7fr)]"
+    >
       <div className="overflow-hidden rounded-[1.75rem] border border-[#315B3E]/15 bg-[#0B302B] shadow-[0_18px_45px_rgba(11,48,43,0.15)]">
-        <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          data-tutorial-id="youth-tutorial-filters"
+          className="flex flex-col gap-3 border-b border-white/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#72D4B7]">Réseau mondial</p>
             <h2 className="mt-1 text-xl font-black text-white">Choisir une zone de détection</h2>
@@ -84,7 +98,10 @@ export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountr
           <p className="mt-2 text-sm font-extrabold text-[#176951]">{selected.specialtyLabel} · {selected.secondarySpecialtyLabel}</p>
           <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">Une tendance locale, jamais une garantie : les rapports peuvent révéler d’autres profils.</p>
         </div>
-        <form action={startYouthScoutingAction} className="mt-5 space-y-4">
+        {tutorialMode ? (
+          <TutorialMissionLauncher countryName={selected.name} />
+        ) : (
+          <form action={startYouthScoutingAction} className="mt-5 space-y-4">
           <input type="hidden" name="countryId" value={selected.id} />
           <label className="block">
             <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">Scout assigné</span>
@@ -101,8 +118,72 @@ export function YouthScoutingMap({ countries, scouts }: { countries: YouthCountr
           </label>
           <MissionSubmitButton disabled={!availableScouts.length} />
           {!availableScouts.length ? <p className="text-xs font-bold text-[#B54242]">Aucun scout disponible : attendez le retour d’une mission ou recrutez-en un.</p> : null}
-        </form>
+          </form>
+        )}
       </aside>
+    </div>
+  );
+}
+
+function TutorialMissionLauncher({ countryName }: { countryName: string }) {
+  const [durationDays, setDurationDays] = useState(3);
+  const [started, setStarted] = useState(false);
+
+  return (
+    <div
+      data-tutorial-id="youth-tutorial-mission-launch"
+      className="mt-5 space-y-4"
+    >
+      <label className="block">
+        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
+          Scout assigné · simulation
+        </span>
+        <select
+          value="tutorial-scout"
+          disabled
+          className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37]"
+        >
+          <option value="tutorial-scout">Camille Moreau · Niveau 3</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
+          Durée du scouting
+        </span>
+        <select
+          value={durationDays}
+          onChange={(event) => {
+            setDurationDays(Number(event.target.value));
+            setStarted(false);
+          }}
+          className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
+        >
+          {Array.from({ length: 7 }, (_, index) => index + 1).map((day) => (
+            <option key={day} value={day}>
+              {day} jour{day > 1 ? "s" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        onClick={() => setStarted(true)}
+        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.13em] text-white transition hover:bg-[#0B302B]"
+      >
+        {started ? "Mission simulée" : "Simuler le départ"}
+      </button>
+      <p
+        aria-live="polite"
+        className={`rounded-xl px-3 py-2 text-xs font-bold ${
+          started
+            ? "bg-[#DDF3E7] text-[#176951]"
+            : "bg-[#FFF5D6] text-[#806114]"
+        }`}
+      >
+        {started
+          ? `Camille explore ${countryName} pendant ${durationDays} jour${durationDays > 1 ? "s" : ""}. Aucune donnée n’a été enregistrée.`
+          : "Scout fictif disponible : cette simulation reste sans effet sur votre staff et votre budget."}
+      </p>
     </div>
   );
 }

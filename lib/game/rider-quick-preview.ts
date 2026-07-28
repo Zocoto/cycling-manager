@@ -14,6 +14,7 @@ export type RiderQuickPreview = {
     name: string;
   } | null;
   ratings: Record<RiderRatingKey, ScoutedNumericValue> | null;
+  equipmentRatingBonuses: Partial<Record<RiderRatingKey, number>>;
   ratingVisibility: "exact" | "scouted" | "unavailable";
 };
 

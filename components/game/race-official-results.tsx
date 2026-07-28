@@ -3,7 +3,9 @@
 import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
+import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
+import type { RiderSimulationInput } from "@/lib/game/race-simulation";
 import type {
   OfficialAttackParticipant,
   OfficialRaceEditionResults,
@@ -32,10 +34,12 @@ export function RaceOfficialResults({
   edition,
   selectedStageId,
   officialResults,
+  favoriteRiders,
 }: {
   edition: RaceCalendarEdition;
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
+  favoriteRiders?: RiderSimulationInput[];
 }) {
   const stageClassification = officialResults.stages.find(
     (stage) => stage.stageId === selectedStageId
@@ -109,6 +113,13 @@ export function RaceOfficialResults({
           ) : null}
         </div>
       </header>
+
+      <RaceFavoritesPanel
+        edition={edition}
+        riders={favoriteRiders ?? edition.engagedRiders}
+        frozen
+        className="m-4 sm:m-6"
+      />
 
       <nav
         aria-label="Classements de la course"

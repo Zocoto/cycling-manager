@@ -561,7 +561,7 @@ function SimulationClassification({
                 <tr key={result.riderId} className="align-top hover:bg-[#F8FBF9]">
                 <td className="px-4 py-4 sm:px-6">
                   <span className={`grid h-9 w-9 place-items-center rounded-full text-sm font-black ${getRankClassName(result.rank)}`}>
-                    {result.rank ?? "AB"}
+                    {result.status === "outside_time_limit" ? "HT" : result.rank ?? "AB"}
                   </span>
                 </td>
                 <td className="min-w-56 px-4 py-4">
@@ -581,6 +581,8 @@ function SimulationClassification({
                 <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-[#183F37]">
                   {result.status === "did_not_finish" ? (
                     <span className="text-red-700">Abandon</span>
+                  ) : result.status === "outside_time_limit" ? (
+                    <span className="text-amber-700">Hors délais</span>
                   ) : result.rank === 1 ? (
                     formatDuration(winnerTime)
                   ) : hasSameTimeAsPrevious ? (

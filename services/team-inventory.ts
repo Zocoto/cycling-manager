@@ -35,7 +35,7 @@ export type TeamInventoryOverview = {
 };
 
 export async function getCurrentTeamInventoryOverview(
-  authUserId: string
+  authUserId: string,
 ): Promise<TeamInventoryOverview | null> {
   const equipmentOverview = await getCurrentTeamEquipmentOverview(authUserId);
   if (!equipmentOverview) return null;
@@ -45,7 +45,7 @@ export async function getCurrentTeamInventoryOverview(
     admin
       .from("inventory_catalog_items")
       .select(
-        "id, item_key, name, category, rarity, description, effect_summary, icon_key, is_consumable"
+        "id, item_key, name, category, rarity, description, effect_summary, icon_key, is_consumable",
       )
       .eq("status", "active")
       .returns<CatalogRow[]>(),
@@ -61,7 +61,7 @@ export async function getCurrentTeamInventoryOverview(
   assertQuery(inventoryResult.error, "les objets possédés");
 
   const catalogById = new Map(
-    (catalogResult.data ?? []).map((item) => [item.id, item])
+    (catalogResult.data ?? []).map((item) => [item.id, item]),
   );
   const genericItems = (inventoryResult.data ?? []).flatMap((inventory) => {
     const catalogItem = catalogById.get(inventory.inventory_item_id);
@@ -71,6 +71,7 @@ export async function getCurrentTeamInventoryOverview(
       {
         id: `item:${catalogItem.id}`,
         sourceId: catalogItem.id,
+        catalogKey: catalogItem.item_key,
         source: "item",
         category: catalogItem.category,
         name: catalogItem.name,
@@ -100,6 +101,7 @@ export async function getCurrentTeamInventoryOverview(
         ({
           id: `equipment:${item.id}`,
           sourceId: item.id,
+          catalogKey: item.catalogKey,
           source: "equipment",
           category: "equipment",
           name: item.name,
@@ -110,33 +112,26 @@ export async function getCurrentTeamInventoryOverview(
           availableQuantity: item.availableQuantity,
           equippedQuantity: item.equippedQuantity,
           pendingQuantity: item.pendingQuantity,
-          equippedRiderIds:
-            equipmentOverview.assignments
-              .filter(
-                (assignment) =>
-                  assignment.equipmentItemId === item.id,
-              )
-              .map((assignment) => assignment.riderId),
-          pendingRiderIds:
-            equipmentOverview.pendingAssignments
-              .filter(
-                (assignment) =>
-                  assignment.equipmentItemId === item.id,
-              )
-              .map((assignment) => assignment.riderId),
+          equippedRiderIds: equipmentOverview.assignments
+            .filter((assignment) => assignment.equipmentItemId === item.id)
+            .map((assignment) => assignment.riderId),
+          pendingRiderIds: equipmentOverview.pendingAssignments
+            .filter((assignment) => assignment.equipmentItemId === item.id)
+            .map((assignment) => assignment.riderId),
           iconKey: "equipment",
           imagePath: item.imagePath,
           supplierName: item.supplierName,
           equipmentSlot: item.slot,
           isConsumable: false,
           acquiredAt: null,
-        }) satisfies TeamInventoryItem
+        }) satisfies TeamInventoryItem,
     );
 
   const items = [...genericItems, ...equipmentItems].sort(
     (left, right) =>
-      Number(right.availableQuantity > 0) - Number(left.availableQuantity > 0) ||
-      left.name.localeCompare(right.name, "fr")
+      Number(right.availableQuantity > 0) -
+        Number(left.availableQuantity > 0) ||
+      left.name.localeCompare(right.name, "fr"),
   );
 
   return {
@@ -148,7 +143,7 @@ export async function getCurrentTeamInventoryOverview(
 }
 
 function equipmentRarity(
-  rarity: "common" | "performance" | "premium"
+  rarity: "common" | "performance" | "premium",
 ): InventoryRarity {
   if (rarity === "premium") return "epic";
   if (rarity === "performance") return "rare";
@@ -157,7 +152,7 @@ function equipmentRarity(
 
 function assertQuery(
   error: { message: string } | null,
-  resourceName: string
+  resourceName: string,
 ): asserts error is null {
   if (error) {
     throw new Error(`Impossible de charger ${resourceName} : ${error.message}`);

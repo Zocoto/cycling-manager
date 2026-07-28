@@ -10,6 +10,7 @@ import {
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
+import { SvgCountryFlag } from "./svg-country-flag";
 
 type RiderAvatarProps = {
   profileKey: string | null | undefined;
@@ -193,31 +194,15 @@ function NationalChampionFlagPattern({
   countryCode: string;
   clipPathId: string;
 }) {
-  const normalizedCountryCode = countryCode.trim().toLowerCase();
-
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <foreignObject
+      <SvgCountryFlag
+        countryCode={countryCode}
         x="0"
         y="64"
-        width="96"
-        height="34"
-        overflow="hidden"
-        style={{ overflow: "hidden" }}
-      >
-        <span
-          aria-hidden="true"
-          className={`fi fi-${normalizedCountryCode}`}
-          style={{
-            display: "block",
-            width: "100%",
-            height: "100%",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "100% 100%",
-          }}
-        />
-      </foreignObject>
+        width={96}
+        height={34}
+      />
       <path d="M0 66h96v8c-24 5-72 5-96 0Z" fill="#FFFFFF" opacity="0.1" />
     </g>
   );

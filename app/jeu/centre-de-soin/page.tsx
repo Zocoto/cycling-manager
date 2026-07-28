@@ -7,6 +7,8 @@ import { GameHeader } from "@/components/game/game-header";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
 import { NutritionInterventionControls } from "@/components/game/nutrition-intervention-controls";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
   FORM_CAMP_TYPES,
   NUTRITION_INTERVENTIONS,
@@ -25,6 +27,11 @@ import {
   FREE_AGENT_RIDER_JERSEY,
 } from "@/lib/rider-jersey";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  MEDICAL_CENTER_TUTORIAL_KEY,
+  MEDICAL_CENTER_TUTORIAL_ROUTES,
+} from "@/lib/tutorial/medical-center";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import {
@@ -55,6 +62,14 @@ const HEALTH_TABS = [
 
 type HealthTab = (typeof HEALTH_TABS)[number]["code"];
 
+const HEALTH_TUTORIAL_ROUTES: Record<HealthTab, string> = {
+  blessures: MEDICAL_CENTER_TUTORIAL_ROUTES.injuries,
+  forme: MEDICAL_CENTER_TUTORIAL_ROUTES.form,
+  nutrition: MEDICAL_CENTER_TUTORIAL_ROUTES.nutrition,
+  kines: MEDICAL_CENTER_TUTORIAL_ROUTES.physiotherapists,
+  staff: MEDICAL_CENTER_TUTORIAL_ROUTES.staff,
+};
+
 type HealthCenterPageProps = {
   searchParams: Promise<{
     onglet?: string | string[];
@@ -82,11 +97,22 @@ export default async function HealthCenterPage({
   if (authenticationError || !user) redirect("/connexion");
 
   await supabase.rpc("settle_current_team_finances");
-  const [headerData, overview, amateurIdentity] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
-    getCurrentTeamHealthOverview(user.id),
-    getTeamAmateurIdentityForAuthUser(user.id),
-  ]);
+  const [headerData, overview, amateurIdentity, medicalCenterTutorialProgress] =
+    await Promise.all([
+      getGameHeaderData(supabase, user.id),
+      getCurrentTeamHealthOverview(user.id),
+      getTeamAmateurIdentityForAuthUser(user.id),
+      getAuthenticatedTutorialProgress(
+        supabase,
+        MEDICAL_CENTER_TUTORIAL_KEY,
+      ).catch((error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel du centre de soins :",
+          error,
+        );
+        return null;
+      }),
+    ]);
 
   if (!overview) redirect("/jeu");
 
@@ -102,9 +128,19 @@ export default async function HealthCenterPage({
       : FREE_AGENT_RIDER_JERSEY;
   const injuredCount = overview.riders.filter((rider) => rider.injury).length;
   const campCount = overview.riders.filter((rider) => rider.formCamp).length;
+  const currentMedicalCenterTutorialRoute = HEALTH_TUTORIAL_ROUTES[activeTab];
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {medicalCenterTutorialProgress?.status === "in_progress" &&
+      medicalCenterTutorialProgress.current_route ===
+        currentMedicalCenterTutorialRoute &&
+      medicalCenterTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={MEDICAL_CENTER_TUTORIAL_KEY}
+          currentStepKey={medicalCenterTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -113,9 +149,18 @@ export default async function HealthCenterPage({
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
-        <BackToOfficeLink />
+        <div className="flex items-center justify-between gap-4">
+          <BackToOfficeLink />
+          <TutorialLaunchButton
+            tutorialKey={MEDICAL_CENTER_TUTORIAL_KEY}
+            iconOnly
+          />
+        </div>
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
+        <header
+          data-tutorial-id="medical-center-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        >
           <div
             aria-hidden="true"
             className="absolute -right-16 -top-20 h-72 w-72 rounded-full border-[42px] border-white/5"
@@ -219,12 +264,14 @@ function InjuriesPanel({
   );
 
   return (
-    <section className="mt-7">
+    <section data-tutorial-id="medical-center-injuries" className="mt-7">
       <SectionHeading
         eyebrow="Gestion des blessures"
         title="Infirmerie et convalescences"
         detail="Une blessure bloque automatiquement les inscriptions. Chaque tranche complète de 24 heures retire les points de forme prévus par le protocole."
       />
+
+      <MedicalProtocolCatalog overview={overview} />
 
       {injuredRiders.length === 0 ? (
         <div className="mt-5 rounded-[2rem] border border-[#42B99A]/20 bg-white px-6 py-12 text-center shadow-[0_16px_42px_rgba(19,60,46,0.07)]">
@@ -255,6 +302,57 @@ function InjuriesPanel({
   );
 }
 
+function MedicalProtocolCatalog({
+  overview,
+}: {
+  overview: TeamHealthOverview;
+}) {
+  return (
+    <section
+      data-tutorial-id="medical-center-protocols"
+      className="mt-5 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_40px_rgba(19,60,46,0.06)] sm:p-6"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
+            Catalogue permanent
+          </p>
+          <h3 className="mt-1 text-xl font-black text-[#183F37]">
+            Protocoles disponibles
+          </h3>
+        </div>
+        <p className="max-w-2xl text-xs font-semibold leading-5 text-[#60756E]">
+          Le gain exact est recalculé selon la blessure. Un protocole ne peut
+          être appliqué qu’une fois et lorsqu’il reste au moins 24 h de soins.
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        {overview.protocols.map((protocol) => (
+          <article
+            key={protocol.code}
+            className="rounded-2xl border border-[#315B3E]/10 bg-[#F7FAF8] p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h4 className="font-black text-[#183F37]">{protocol.name}</h4>
+              <span className="shrink-0 rounded-full bg-[#DDF3E7] px-2.5 py-1 text-[10px] font-black text-[#176951]">
+                {formatCurrency(protocol.price, overview.currency)}
+              </span>
+            </div>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+              {protocol.description}
+            </p>
+            <p className="mt-3 text-[10px] font-black uppercase tracking-wider text-[#278B70]">
+              {protocol.durationReductionPct > 0
+                ? `−${protocol.durationReductionPct} % de convalescence · `
+                : "Durée inchangée · "}
+              −{protocol.formLossPerDay} forme/jour
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
 function InjuryCard({
   rider,
   overview,
@@ -427,14 +525,33 @@ function FormPanel({
   jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
 }) {
   return (
-    <section className="mt-7">
+    <section data-tutorial-id="medical-center-form" className="mt-7">
       <SectionHeading
         eyebrow="Gestion de la forme"
         title="Repos naturel et stages ciblés"
         detail="Sans course, blessure ou stage, un coureur récupère automatiquement 2 points par jour. Un stage commence toujours le lendemain et dure de un à trois jours."
       />
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+      <div
+        role="note"
+        className="mt-5 flex items-start gap-3 rounded-2xl border border-[#D6A93A]/30 bg-[#FFF9DF] px-5 py-4 text-[#705B00]"
+      >
+        <span
+          aria-hidden="true"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#F2C94C] text-xs font-black text-[#4F4100]"
+        >
+          !
+        </span>
+        <p className="text-sm font-semibold leading-6">
+          <strong className="font-black">
+            Coureur indisponible pendant le stage.
+          </strong>{" "}
+          Il ne peut pas être engagé en course et ses entraînements sont
+          suspendus jusqu’à la fin du stage.
+        </p>
+      </div>
+
+      <div data-tutorial-id="medical-center-form-camps" className="mt-4 grid gap-5 xl:grid-cols-2">
         {overview.riders.map((rider) => (
           <FormRiderCard
             key={rider.id}
@@ -586,12 +703,60 @@ function NutritionPanel({
   });
 
   return (
-    <section className="mt-7">
+    <section data-tutorial-id="medical-center-nutrition" className="mt-7">
       <SectionHeading
         eyebrow="Nutrition"
         title="Récupération quotidienne et interventions ciblées"
         detail="Les niveaux de vos nutritionnistes se cumulent pour renforcer passivement la récupération. Chaque spécialiste peut aussi traiter un nombre limité de coureurs par jour, avec un gain et un tarif liés à son propre niveau."
       />
+      <section
+        data-tutorial-id="medical-center-nutrition-options"
+        className="mt-5 rounded-[2rem] border border-[#78A94E]/20 bg-white p-5 shadow-[0_14px_38px_rgba(19,60,46,0.06)] sm:p-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#658F42]">
+              Interventions disponibles
+            </p>
+            <h3 className="mt-1 text-xl font-black text-[#183F37]">
+              Compléments et récupération ciblée
+            </h3>
+          </div>
+          <p className="text-xs font-bold text-[#60756E]">
+            {referenceNutritionist
+              ? `Effets avec ${referenceNutritionist.firstName} ${referenceNutritionist.lastName}`
+              : "Aperçu avec un nutritionniste de niveau 1"}
+          </p>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {(Object.keys(NUTRITION_INTERVENTIONS) as NutritionInterventionCode[]).map((code) => {
+            const intervention = NUTRITION_INTERVENTIONS[code];
+            const outcome = getNutritionInterventionOutcome({
+              code,
+              nutritionistLevel: referenceNutritionist?.level ?? 1,
+            });
+            return (
+              <article
+                key={code}
+                className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF5] p-5"
+              >
+                <p className="text-sm font-black text-[#183F37]">
+                  {intervention.label}
+                </p>
+                <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+                  {intervention.description}
+                </p>
+                <p className="mt-4 text-sm font-black text-[#527633]">
+                  +{outcome.formGain} forme · {formatCurrency(outcome.price, overview.currency)}
+                </p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#809189]">
+                  Niveau {intervention.minimumNutritionistLevel} requis
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       {nutritionists.length === 0 ? (
         <div className="mt-5 rounded-[2rem] border border-[#78A94E]/20 bg-white px-6 py-12 text-center shadow-[0_16px_42px_rgba(19,60,46,0.07)]">
@@ -643,32 +808,6 @@ function NutritionPanel({
             })}
           </div>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
-            {(Object.keys(NUTRITION_INTERVENTIONS) as NutritionInterventionCode[]).map((code) => {
-              const intervention = NUTRITION_INTERVENTIONS[code];
-              const outcome = getNutritionInterventionOutcome({
-                code,
-                nutritionistLevel: referenceNutritionist?.level ?? 1,
-              });
-              return (
-                <article
-                  key={code}
-                  className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF5] p-5"
-                >
-                  <p className="text-sm font-black text-[#183F37]">{intervention.label}</p>
-                  <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-                    {intervention.description}
-                  </p>
-                  <p className="mt-4 text-sm font-black text-[#527633]">
-                    +{outcome.formGain} forme · {formatCurrency(outcome.price, overview.currency)}
-                  </p>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#809189]">
-                    Niveau {intervention.minimumNutritionistLevel} requis
-                  </p>
-                </article>
-              );
-            })}
-          </div>
 
           <div className="mt-6 grid gap-4 xl:grid-cols-2">
             {overview.riders.map((rider) => {
@@ -738,16 +877,21 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
   const nutritionists = overview.medicalStaff.filter(
     (member) => member.role === "nutritionist",
   );
+  const physiotherapists = overview.medicalStaff.filter(
+    (member) => member.role === "physiotherapist",
+  );
 
   return (
-    <section className="mt-7">
+    <section data-tutorial-id="medical-center-staff" className="mt-7">
       <SectionHeading
         eyebrow="Équipe médicale"
-        title="Des spécialistes désormais actifs dans le centre de soin"
-        detail="Le médecin raccourcit automatiquement chaque nouvelle blessure. Le nutritionniste soutient la récupération et débloque les interventions de l’onglet Nutrition."
+        title="Tous les spécialistes médicaux de l’équipe"
+        detail="Le médecin raccourcit les nouvelles blessures, le nutritionniste soutient la récupération et le kiné protège la forme des coureurs qui lui sont affectés."
       />
 
-      {doctors.length === 0 && nutritionists.length === 0 ? (
+      {doctors.length === 0 &&
+      nutritionists.length === 0 &&
+      physiotherapists.length === 0 ? (
         <div className="mt-5 rounded-[2rem] border border-[#315B3E]/12 bg-white px-6 py-12 text-center shadow-[0_16px_42px_rgba(19,60,46,0.07)]">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#DDF3E7] text-[#176951]">
             <MedicalCrossIcon className="h-8 w-8" />
@@ -756,7 +900,8 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
             Aucun spécialiste médical recruté
           </h3>
           <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-[#60756E]">
-            Recrutez un médecin, un kiné ou un nutritionniste sur le marché du staff pour activer leurs effets.
+            Recrutez un médecin, un kiné ou un nutritionniste sur le marché du
+            staff pour activer leurs effets.
           </p>
           <Link
             href="/jeu/staff"
@@ -766,7 +911,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
           </Link>
         </div>
       ) : (
-        <div className="mt-5 grid gap-6 xl:grid-cols-2">
+        <div className="mt-5 grid gap-6 xl:grid-cols-3">
           <div className="space-y-4">
             <h3 className="text-xl font-black text-[#183F37]">Médecins</h3>
             {doctors.length > 0 ? (
@@ -789,7 +934,9 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                     </span>
                   </div>
                   <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                    Ce médecin réduit de {doctor.level * 6} % la durée initiale de toute nouvelle blessure. Sa contribution se cumule avec celle des autres médecins actifs.
+                    Ce médecin réduit de {doctor.level * 6} % la durée initiale
+                    de toute nouvelle blessure. Sa contribution se cumule avec
+                    celle des autres médecins actifs.
                   </p>
                 </article>
               ))
@@ -799,39 +946,88 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-xl font-black text-[#183F37]">Nutritionnistes</h3>
+            <h3 className="text-xl font-black text-[#183F37]">
+              Nutritionnistes
+            </h3>
             {nutritionists.length > 0 ? (
               nutritionists.map((nutritionist) => (
+                <article
+                  key={nutritionist.contractId}
+                  className="rounded-[2rem] border border-[#78A94E]/20 bg-white p-6 shadow-[0_14px_38px_rgba(19,60,46,0.07)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-lg font-black text-[#183F37]">
+                        {nutritionist.firstName} {nutritionist.lastName}
+                      </p>
+                      <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#658F42]">
+                        Nutritionniste · niveau {nutritionist.level}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-xs font-black text-[#527633]">
+                      −{nutritionist.level * 5} %
+                    </span>
+                  </div>
+                  <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
+                    Réduit de {nutritionist.level * 5} % le coût des compléments,
+                    améliore leur efficacité et ajoute en moyenne +
+                    {nutritionist.level / 5} point de récupération quotidienne.
+                  </p>
+                  <Link
+                    href="/jeu/centre-de-soin?onglet=nutrition"
+                    className="mt-5 inline-flex text-sm font-black text-[#527633] hover:text-[#183F37]"
+                  >
+                    Ouvrir les interventions →
+                  </Link>
+                </article>
+              ))
+            ) : (
+              <MedicalStaffEmpty label="Aucun nutritionniste dans l’équipe." />
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-xl font-black text-[#183F37]">Kinés</h3>
+            {physiotherapists.length > 0 ? (
+              physiotherapists.map((physiotherapist) => {
+                const capacity = getPhysiotherapistRiderCapacity(
+                  physiotherapist.level,
+                );
+
+                return (
                   <article
-                    key={nutritionist.contractId}
-                    className="rounded-[2rem] border border-[#78A94E]/20 bg-white p-6 shadow-[0_14px_38px_rgba(19,60,46,0.07)]"
+                    key={physiotherapist.contractId}
+                    className="rounded-[2rem] border border-[#8B6FB6]/20 bg-white p-6 shadow-[0_14px_38px_rgba(19,60,46,0.07)]"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-lg font-black text-[#183F37]">
-                          {nutritionist.firstName} {nutritionist.lastName}
+                          {physiotherapist.firstName} {physiotherapist.lastName}
                         </p>
-                        <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#658F42]">
-                          Nutritionniste · niveau {nutritionist.level}
+                        <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#7856A4]">
+                          Kiné · niveau {physiotherapist.level}
                         </p>
                       </div>
-                      <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-xs font-black text-[#527633]">
-                        −{nutritionist.level * 5} %
+                      <span className="rounded-full bg-[#F1EAF9] px-3 py-2 text-xs font-black text-[#684390]">
+                        {physiotherapist.assignedRiderIds.length}/{capacity}
                       </span>
                     </div>
                     <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                      Réduit de {nutritionist.level * 5} % le coût des compléments qu’il applique, améliore leur efficacité et ajoute en moyenne +{nutritionist.level / 5} point de récupération quotidienne au bonus cumulé de l’équipe.
+                      Protège jusqu’à {physiotherapist.level} point
+                      {physiotherapist.level > 1 ? "s" : ""} de forme par effort
+                      ou journée de blessure pour les coureurs suivis.
                     </p>
                     <Link
-                      href="/jeu/centre-de-soin?onglet=nutrition"
-                      className="mt-5 inline-flex text-sm font-black text-[#527633] hover:text-[#183F37]"
+                      href="/jeu/centre-de-soin?onglet=kines"
+                      className="mt-5 inline-flex text-sm font-black text-[#684390] hover:text-[#183F37]"
                     >
-                      Ouvrir les interventions →
+                      Gérer les affectations →
                     </Link>
                   </article>
-                ))
+                );
+              })
             ) : (
-              <MedicalStaffEmpty label="Aucun nutritionniste dans l’équipe." />
+              <MedicalStaffEmpty label="Aucun kiné dans l’équipe." />
             )}
           </div>
         </div>
@@ -846,7 +1042,10 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
   );
 
   return (
-    <section className="mt-7">
+    <section
+      data-tutorial-id="medical-center-physiotherapists"
+      className="mt-7"
+    >
       <SectionHeading
         eyebrow="Kinés"
         title="Attribuez chaque coureur à son kiné"
@@ -854,7 +1053,10 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
       />
 
       {physiotherapists.length > 0 ? (
-        <div className="mt-5 grid gap-6 xl:grid-cols-2">
+        <div
+          data-tutorial-id="medical-center-physiotherapist-assignments"
+          className="mt-5 grid gap-6 xl:grid-cols-2"
+        >
           {physiotherapists.map((physio) => {
             const capacity = getPhysiotherapistRiderCapacity(physio.level);
             return (
@@ -863,7 +1065,11 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
                 action={assignPhysiotherapistAction}
                 className="rounded-[2rem] border border-[#8B6FB6]/20 bg-white p-6 shadow-[0_14px_38px_rgba(19,60,46,0.07)]"
               >
-                <input type="hidden" name="staffContractId" value={physio.contractId} />
+                <input
+                  type="hidden"
+                  name="staffContractId"
+                  value={physio.contractId}
+                />
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-lg font-black text-[#183F37]">
@@ -878,7 +1084,9 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
                   </span>
                 </div>
                 <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                  Jusqu’à {physio.level} point{physio.level > 1 ? "s" : ""} de forme préservé{physio.level > 1 ? "s" : ""} par effort ou journée de blessure, avec au moins 1 point de malus conservé.
+                  Jusqu’à {physio.level} point{physio.level > 1 ? "s" : ""} de
+                  forme préservé{physio.level > 1 ? "s" : ""} par effort ou
+                  journée de blessure, avec au moins 1 point de malus conservé.
                 </p>
                 <fieldset className="mt-5 grid gap-2 sm:grid-cols-2">
                   <legend className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#60756E]">
@@ -893,7 +1101,9 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
                         type="checkbox"
                         name="riderIds"
                         value={rider.id}
-                        defaultChecked={physio.assignedRiderIds.includes(rider.id)}
+                        defaultChecked={physio.assignedRiderIds.includes(
+                          rider.id,
+                        )}
                         className="h-4 w-4 accent-[#7856A4]"
                       />
                       <span className="min-w-0 truncate">
@@ -913,16 +1123,75 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
         </div>
       ) : (
         <div className="mt-5 rounded-[2rem] border border-[#8B6FB6]/20 bg-white px-6 py-12 text-center shadow-[0_16px_42px_rgba(19,60,46,0.07)]">
-          <h3 className="text-2xl font-black text-[#183F37]">Aucun kiné dans l’équipe</h3>
+          <h3 className="text-2xl font-black text-[#183F37]">
+            Aucun kiné dans l’équipe
+          </h3>
           <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-[#60756E]">
-            Recrutez un kiné pour constituer ses listes de coureurs et activer sa protection de forme.
+            Recrutez un kiné pour constituer ses listes de coureurs et activer
+            sa protection de forme.
           </p>
-          <Link href="/jeu/staff" className="mt-5 inline-flex rounded-xl bg-[#7856A4] px-5 py-3 text-sm font-black text-white hover:bg-[#5C3B80]">
+          <PhysiotherapistAssignmentPreview riders={overview.riders} />
+          <Link
+            href="/jeu/staff"
+            className="mt-5 inline-flex rounded-xl bg-[#7856A4] px-5 py-3 text-sm font-black text-white hover:bg-[#5C3B80]"
+          >
             Ouvrir le marché du staff
           </Link>
         </div>
       )}
     </section>
+  );
+}
+
+function PhysiotherapistAssignmentPreview({
+  riders,
+}: {
+  riders: TeamHealthRider[];
+}) {
+  return (
+    <article
+      data-tutorial-id="medical-center-physiotherapist-assignments"
+      className="mx-auto mt-6 max-w-3xl rounded-2xl border border-dashed border-[#8B6FB6]/35 bg-[#FAF7FD] p-5 text-left"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-black text-[#183F37]">Aperçu d’une fiche kiné</p>
+          <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#7856A4]">
+            Exemple · niveau 1
+          </p>
+        </div>
+        <span className="rounded-full bg-[#F1EAF9] px-3 py-2 text-xs font-black text-[#684390]">
+          0/4
+        </span>
+      </div>
+      <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
+        Le niveau détermine la protection de forme et la capacité de suivi. Les
+        commandes ci-dessous se débloquent dès le recrutement d’un kiné.
+      </p>
+      <fieldset disabled className="mt-5 grid gap-2 sm:grid-cols-2">
+        <legend className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#60756E]">
+          Coureurs suivis · exemple non interactif
+        </legend>
+        {riders.slice(0, 4).map((rider) => (
+          <label
+            key={rider.id}
+            className="flex items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-white px-3 py-3 text-sm font-bold text-[#183F37] opacity-75"
+          >
+            <input type="checkbox" className="h-4 w-4 accent-[#7856A4]" />
+            <span className="min-w-0 truncate">
+              {rider.firstName} {rider.lastName}
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <button
+        type="button"
+        disabled
+        className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#7856A4] px-4 text-sm font-black text-white opacity-45"
+      >
+        Enregistrer les affectations
+      </button>
+    </article>
   );
 }
 

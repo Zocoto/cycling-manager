@@ -156,6 +156,9 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain(
       "Course à venir visible"
     );
+    expect(markup).toContain(
+      "/jeu/courses/course-a-venir#inscription"
+    );
   });
 });
 

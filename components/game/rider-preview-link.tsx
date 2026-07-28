@@ -15,6 +15,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
 import type { RiderQuickPreview } from "@/lib/game/rider-quick-preview";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
@@ -421,8 +422,12 @@ function PreviewContent({
                         <span className={axis.importance === "primary" ? "text-[9px] font-black" : "text-[9px] font-bold opacity-60"}>
                           {axis.shortLabel}
                         </span>
-                        <span className="mt-0.5 text-xs font-black">
+                        <span className="mt-0.5 flex items-baseline text-xs font-black">
                           {formatScoutedNumericValue(value)}
+                          <EquipmentRatingBonus
+                            bonus={preview.equipmentRatingBonuses[axis.key]}
+                            className="text-[8px]"
+                          />
                         </span>
                       </div>
                     );

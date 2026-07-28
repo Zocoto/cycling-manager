@@ -1,10 +1,47 @@
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
+import type {
+  RiderSpecialtyProfile,
+  RiderSportingProfile,
+} from "@/lib/game/rider-profile";
 
 export const DAILY_TRANSFER_RIDER_COUNT = 5;
 export const DAILY_AUCTION_OPEN_HOUR = 9;
 export const DAILY_AUCTION_CLOSE_HOUR = 18;
 export const DIRECTOR_AUCTION_DURATION_HOURS = 24;
 export const AMATEUR_SALARY_THRESHOLD = 60;
+
+export const TRANSFER_RIDER_PROFILE_FILTERS = [
+  "Grimpeur",
+  "Puncheur",
+  "Coureur de tour",
+  "Sprinteur",
+  "Coureur de pavés",
+  "Baroudeur",
+  "Coureur équilibré",
+] as const satisfies ReadonlyArray<
+  RiderSpecialtyProfile | "Coureur équilibré"
+>;
+
+export type TransferRiderProfileFilter =
+  (typeof TRANSFER_RIDER_PROFILE_FILTERS)[number];
+
+export function isTransferRiderProfileFilter(
+  value: string
+): value is TransferRiderProfileFilter {
+  return (TRANSFER_RIDER_PROFILE_FILTERS as readonly string[]).includes(
+    value
+  );
+}
+
+export function matchesTransferRiderProfile(
+  profile: RiderSportingProfile,
+  filter?: TransferRiderProfileFilter
+) {
+  if (!filter) return true;
+  if (filter === "Coureur équilibré") return profile === filter;
+
+  return profile.split(" / ").includes(filter);
+}
 
 export function calculateTransferStartingPrice({
   overall,

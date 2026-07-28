@@ -17,7 +17,7 @@ type SprintVisualBattleRider = Pick<
 
 type SprintVisualResult = {
   riderId: string;
-  status: "finished" | "did_not_finish";
+  status: "finished" | "did_not_finish" | "outside_time_limit";
   rank: number | null;
   energyAfter: number;
 };

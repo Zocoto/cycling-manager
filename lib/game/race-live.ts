@@ -123,8 +123,30 @@ export function getStageLiveState(
   };
 }
 
-export function getRaceResultsHref(raceSlug: string) {
+export function shouldHideRaceGaps(
+  segmentNumber: number,
+  totalSegmentCount: number
+) {
+  return totalSegmentCount > 0 && segmentNumber >= totalSegmentCount;
+}
+
+export function getRaceGroupLayoutDensity(groupCount: number) {
+  return groupCount >= 4 ? "compact" : "comfortable";
+}
+
+export function getRaceResultsHref(
+  raceSlug: string,
+  stageNumber?: number,
+) {
+  if (Number.isInteger(stageNumber) && (stageNumber ?? 0) > 0) {
+    return `/jeu/resultats/${encodeURIComponent(raceSlug)}/${stageNumber}`;
+  }
+
   return `/jeu/resultats?course=${encodeURIComponent(raceSlug)}#course-live`;
+}
+
+export function getRaceRegistrationHref(raceSlug: string) {
+  return `/jeu/courses/${encodeURIComponent(raceSlug)}#inscription`;
 }
 
 export function getRaceExperienceAvailability(

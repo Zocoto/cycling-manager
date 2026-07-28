@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
   InventoryEquipmentForm,
   type InventoryRiderOption,
@@ -20,6 +22,12 @@ import {
   type TeamInventoryItem,
 } from "@/lib/game/inventory";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  EQUIPMENT_TUTORIAL_GLASSES_CATALOG_KEY,
+  EQUIPMENT_TUTORIAL_INVENTORY_ROUTE,
+  EQUIPMENT_TUTORIAL_KEY,
+} from "@/lib/tutorial/equipment";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentTeamInventoryOverview } from "@/services/team-inventory";
 
@@ -52,11 +60,21 @@ export default async function InventoryPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview, rosterResult] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
-    getCurrentTeamInventoryOverview(user.id),
-    supabase.rpc("get_current_team_roster"),
-  ]);
+  const [headerData, overview, rosterResult, equipmentTutorialProgress] =
+    await Promise.all([
+      getGameHeaderData(supabase, user.id),
+      getCurrentTeamInventoryOverview(user.id),
+      supabase.rpc("get_current_team_roster"),
+      getAuthenticatedTutorialProgress(supabase, EQUIPMENT_TUTORIAL_KEY).catch(
+        (error: unknown) => {
+          console.error(
+            "Impossible de reprendre le didacticiel du matériel :",
+            error,
+          );
+          return null;
+        },
+      ),
+    ]);
 
   if (!overview) redirect("/jeu");
 
@@ -85,6 +103,15 @@ export default async function InventoryPage({
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {equipmentTutorialProgress?.status === "in_progress" &&
+      equipmentTutorialProgress.current_route ===
+        EQUIPMENT_TUTORIAL_INVENTORY_ROUTE &&
+      equipmentTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={EQUIPMENT_TUTORIAL_KEY}
+          currentStepKey={equipmentTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -112,7 +139,10 @@ export default async function InventoryPage({
           </p>
         ) : null}
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#0B302B_58%,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
+        <header
+          data-tutorial-id="equipment-inventory-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#0B302B_58%,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        >
           <div
             aria-hidden="true"
             className="absolute -right-12 -top-20 h-72 w-72 rounded-full border-[46px] border-white/5"
@@ -122,9 +152,15 @@ export default async function InventoryPage({
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
                 Réserve de l’équipe · {overview.seasonName}
               </p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
-                Inventaire
-              </h1>
+              <div className="mt-3 flex items-center gap-3">
+                <h1 className="text-3xl font-black tracking-tight sm:text-5xl">
+                  Inventaire
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={EQUIPMENT_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Retrouvez au même endroit les objets gagnés par{" "}
                 {overview.teamName} et chaque pièce achetée dans la rubrique
@@ -149,7 +185,10 @@ export default async function InventoryPage({
           </div>
         </header>
 
-        <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7">
+        <section
+          data-tutorial-id="equipment-inventory-categories"
+          className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7"
+        >
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
@@ -277,7 +316,14 @@ function InventoryItemCard({
   const category = getInventoryCategory(item.category);
 
   return (
-    <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
+    <article
+      data-tutorial-id={
+        item.catalogKey === EQUIPMENT_TUTORIAL_GLASSES_CATALOG_KEY
+          ? "equipment-welcome-gift"
+          : undefined
+      }
+      className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]"
+    >
       {item.imagePath ? (
         <div className="relative aspect-[16/7] overflow-hidden bg-[#071A17]">
           <Image

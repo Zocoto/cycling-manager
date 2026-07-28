@@ -7,6 +7,7 @@ describe("RiderStatsRadar", () => {
   it("marks six primary ratings and seven secondary ratings", () => {
     const markup = renderToStaticMarkup(
       <RiderStatsRadar
+        equipmentBonuses={{ timeTrial: 4 }}
         ratings={{
           mountain: 70,
           hills: 70,
@@ -29,5 +30,6 @@ describe("RiderStatsRadar", () => {
     expect(markup.match(/data-rating-importance="secondary"/g)).toHaveLength(7);
     expect(markup).toContain("bg-[#3F8F5A]");
     expect(markup).toContain("bg-[#DDEDE1]");
+    expect(markup).toContain("Bonus équipement : +4");
   });
 });

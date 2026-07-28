@@ -37,6 +37,12 @@ export type TutorialStep = {
    */
   targetId?: string;
 
+  /**
+   * Cible de la page courante qui contient la route concrète
+   * (`data-tutorial-route` ou `href`) d’une prochaine étape dynamique.
+   */
+  routeTargetId?: string;
+
   title: string;
   content: string;
 

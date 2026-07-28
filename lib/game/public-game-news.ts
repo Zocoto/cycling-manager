@@ -104,6 +104,7 @@ export type PublicGameNewsItem = {
   title: string;
   detail: string;
   happenedAt: string;
+  href?: string;
   significance?: "major" | "standard";
   visual?: PublicGameNewsVisual;
 };
@@ -171,10 +172,10 @@ export function selectDashboardPelotonHighlights(
   return [...items]
     .filter(
       (item) =>
-        item.significance === "major" &&
-        (item.kind === "race_recap" ||
-          item.kind === "victory" ||
-          item.kind === "movement")
+        item.kind === "victory" ||
+        item.kind === "arrival" ||
+        item.kind === "staff" ||
+        (item.kind === "movement" && item.significance === "major")
     )
     .filter((item) => Number.isFinite(new Date(item.happenedAt).getTime()))
     .sort(

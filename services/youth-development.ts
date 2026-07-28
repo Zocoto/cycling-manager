@@ -18,12 +18,17 @@ import {
   getCountryYouthSpecialties,
   getScoutNationalityEfficiencyBonus,
   getScoutingCandidateCount,
+  getYouthScoutingReportDetailLevel,
   YOUTH_ARCHETYPE_LABELS,
   YOUTH_RATING_KEYS,
   type YouthArchetype,
   type YouthRatings,
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
+import {
+  createStandardTransferScoutingReport,
+  type TransferScoutingReport,
+} from "@/lib/game/transfer-scouting";
 import { getScoutYouthBonuses } from "@/lib/game/staff";
 import {
   getScoutTalentBonuses,
@@ -138,6 +143,9 @@ type AcademyRow = Omit<
   training_mode: YouthTrainingMode;
   automatic_since_season_id: string | null;
   automatic_since_day_number: number | null;
+  pending_training_mode: YouthTrainingMode | null;
+  pending_training_mode_after_season_id: string | null;
+  pending_training_mode_after_day_number: number | null;
   status: "active" | "recruited" | "promoted" | "free_agent";
   promotion_game_year: number | null;
   promoted_rider_id: string | null;
@@ -194,7 +202,7 @@ export type YouthCandidate = {
   potentialSteps: number;
   profileKey: string;
   avatarSeed: string;
-  ratings: YouthRatings;
+  scoutingReport: TransferScoutingReport;
   signingFee: number;
   tuitionPerSeason: number;
   status: CandidateRow["status"];
@@ -229,6 +237,8 @@ export type AcademyYouth = {
   ratings: YouthRatings;
   trainingPriority: YouthTrainingDomain;
   trainingMode: YouthTrainingMode;
+  trainingModePreference: YouthTrainingMode;
+  pendingTrainingMode: YouthTrainingMode | null;
   manualTraining: {
     currentSlot: YouthManualTrainingSlot;
     currentSlotLabel: string;
@@ -412,7 +422,14 @@ async function loadOverview(admin: AdminClient, context: Context) {
       completesDayNumber: mission.completes_day_number,
       status: mission.status,
       unread: mission.status === "completed" && !mission.report_viewed_at,
-      candidates: (candidatesByMission.get(mission.id) ?? []).map((candidate) => toCandidate(candidate, countryById.get(candidate.country_id))),
+      candidates: (candidatesByMission.get(mission.id) ?? []).map((candidate) =>
+        toCandidate(
+          candidate,
+          countryById.get(candidate.country_id),
+          scout?.level ?? 1,
+          mission.duration_days,
+        ),
+      ),
     };
   });
 
@@ -515,6 +532,9 @@ async function loadOverview(admin: AdminClient, context: Context) {
       profileKey: rider.avatar_profile_key, avatarSeed: String(rider.avatar_seed),
       sportingProfile: getRiderSportingProfile(scaleYouthRatings(ratings)), potentialSteps: rider.potential_steps,
       ratings: scaleYouthRatings(ratings), trainingPriority: rider.training_priority, trainingMode: rider.training_mode,
+      trainingModePreference:
+        rider.pending_training_mode ?? rider.training_mode,
+      pendingTrainingMode: rider.pending_training_mode,
       manualTraining: {
         currentSlot: currentManualSlot,
         currentSlotLabel: currentManualSlot === "manual_am" ? "Minuit – midi" : "Midi – minuit",
@@ -665,6 +685,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     0,
   );
   const candidates = identities.map((identity, index) => {
+    const age = clamp(15 + Math.floor(random() * 4), 15, 18);
     const archetype = chooseYouthArchetype({ ...specialties, random });
     const basePotentialSteps = clamp(Math.round(1 + scoutBonuses.potentialBonus + mission.duration_days * 0.16 + facilityLevel * 0.08 + reputation * 0.08 + nationalityBonus / 30 + random() * 1.5), 1, 8);
     const internationalCenterBonus =
@@ -676,7 +697,9 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     const potentialSteps = internationalCenterBonus.potentialSteps;
     const ratings = generateYouthRatings({
       archetype,
+      age,
       talent: potentialSteps,
+      countryReputation: reputation,
       accuracyBonus: nationalityBonus / 100,
       initialRatingBonus: scoutBonuses.initialRatingBonus,
       random,
@@ -685,7 +708,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     return {
       mission_id: mission.id, report_slot: index + 1, country_id: country.id,
       first_name: identity.first_name, last_name: identity.last_name,
-      age: clamp(15 + Math.floor(random() * 4), 15, 18), archetype, potential_steps: potentialSteps,
+      age, archetype, potential_steps: potentialSteps,
       international_center_bonus_applied: internationalCenterBonus.bonusApplied,
       international_center_bonus_percentage: internationalCenterBonus.bonusPercentage,
       avatar_profile_key: profile.avatar_profile_key, avatar_seed: identity.avatar_seed,
@@ -715,6 +738,18 @@ async function settleAcademyDailyOperations(
   context: Context,
 ) {
   await settleAcademyTransitions(admin, context);
+  const modeActivation = await admin.rpc(
+    "activate_due_youth_training_modes",
+    {
+      p_team_id: context.teamId,
+      p_current_season_id: context.seasonId,
+      p_current_day_number: context.currentDayNumber,
+    },
+  );
+  assertQuery(
+    modeActivation.error,
+    "la programmation des entraînements juniors",
+  );
   const ridersResult = await admin
     .from("youth_academy_riders")
     .select("*")
@@ -920,11 +955,45 @@ async function loadContext(admin: AdminClient, authUserId: string): Promise<Cont
   return { teamId: assignmentResult.data.team_id, teamSeasonId: teamSeasonResult.data.id, teamName: teamSeasonResult.data.display_name, currency: teamSeasonResult.data.currency, balance: toNumber(teamSeasonResult.data.cash_balance), seasonId: seasonResult.data.id, seasonName: seasonResult.data.name, gameYear: seasonResult.data.game_year, currentDayNumber: seasonResult.data.current_day_number ?? 1, registrationCountryId: teamSeasonResult.data.registration_country_id };
 }
 
-function toCandidate(row: CandidateRow, country: CountryRow | undefined): YouthCandidate {
-  const ratings = rowToRatings(row);
-  return { id: row.id, firstName: row.first_name, lastName: row.last_name, age: row.age, countryName: country?.name ?? "Pays inconnu", countryCode: country?.iso_alpha2 ?? "--", archetype: row.archetype, archetypeLabel: YOUTH_ARCHETYPE_LABELS[row.archetype], sportingProfile: getRiderSportingProfile(scaleYouthRatings(ratings)), potentialSteps: row.potential_steps, profileKey: row.avatar_profile_key, avatarSeed: String(row.avatar_seed), ratings, signingFee: toNumber(row.signing_fee), tuitionPerSeason: toNumber(row.tuition_per_season), status: row.status, internationalCenterBonusApplied: row.international_center_bonus_applied, internationalCenterBonusPercentage: row.international_center_bonus_percentage };
+function toCandidate(
+  row: CandidateRow,
+  country: CountryRow | undefined,
+  scoutLevel: number,
+  durationDays: number,
+): YouthCandidate {
+  const ratings = scaleYouthRatings(rowToRatings(row));
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    age: row.age,
+    countryName: country?.name ?? "Pays inconnu",
+    countryCode: country?.iso_alpha2 ?? "--",
+    archetype: row.archetype,
+    archetypeLabel: YOUTH_ARCHETYPE_LABELS[row.archetype],
+    sportingProfile: getRiderSportingProfile(ratings),
+    potentialSteps: row.potential_steps,
+    profileKey: row.avatar_profile_key,
+    avatarSeed: String(row.avatar_seed),
+    scoutingReport: createStandardTransferScoutingReport({
+      riderId: row.id,
+      seasonId: row.mission_id,
+      ratings,
+      potentialSteps: row.potential_steps,
+      dataRoomLevel: getYouthScoutingReportDetailLevel({
+        scoutLevel,
+        durationDays,
+      }),
+    }),
+    signingFee: toNumber(row.signing_fee),
+    tuitionPerSeason: toNumber(row.tuition_per_season),
+    status: row.status,
+    internationalCenterBonusApplied:
+      row.international_center_bonus_applied,
+    internationalCenterBonusPercentage:
+      row.international_center_bonus_percentage,
+  };
 }
-
 function rowToRatings(row: CandidateRow | AcademyRow): YouthRatings {
   return { mountain: toNumber(row.mountain), hills: toNumber(row.hills), flat: toNumber(row.flat), timeTrial: toNumber(row.time_trial), cobbles: toNumber(row.cobbles), sprint: toNumber(row.sprint), acceleration: toNumber(row.acceleration), downhill: toNumber(row.downhill), endurance: toNumber(row.endurance), resistance: toNumber(row.resistance), recovery: toNumber(row.recovery), breakaway: toNumber(row.breakaway), prologue: toNumber(row.prologue) };
 }

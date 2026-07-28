@@ -1,4 +1,8 @@
-import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
+import {
+  RIDER_RATING_AXES,
+  type RiderRatingKey,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
 
 export const EQUIPMENT_SLOTS = [
   "helmet",
@@ -46,6 +50,67 @@ export const EMPTY_EQUIPMENT_EFFECTS: EquipmentEffects = {
 
 export const EQUIPMENT_FREEZE_LEAD_MINUTES = 5;
 
+export type EquipmentEffectFilterKey =
+  | RiderRatingKey
+  | "injuryRisk"
+  | "breakawayReputation"
+  | "victoryReputation";
+
+export const EQUIPMENT_EFFECT_FILTERS: ReadonlyArray<{
+  key: EquipmentEffectFilterKey;
+  shortLabel: string;
+  label: string;
+  kind: "primary" | "secondary" | "special";
+}> = [
+  ...RIDER_RATING_AXES.map((axis) => ({
+    key: axis.key,
+    shortLabel: axis.shortLabel,
+    label: axis.label,
+    kind: axis.importance,
+  })),
+  {
+    key: "injuryRisk",
+    shortLabel: "SOIN",
+    label: "Anti-blessure",
+    kind: "special",
+  },
+  {
+    key: "breakawayReputation",
+    shortLabel: "REP",
+    label: "Réputation échappée",
+    kind: "special",
+  },
+  {
+    key: "victoryReputation",
+    shortLabel: "REP",
+    label: "Réputation victoire",
+    kind: "special",
+  },
+];
+
+export function isEquipmentEffectFilterKey(
+  value: string,
+): value is EquipmentEffectFilterKey {
+  return EQUIPMENT_EFFECT_FILTERS.some((filter) => filter.key === value);
+}
+
+export function equipmentMatchesEffect(
+  effects: EquipmentEffects,
+  effectKey: EquipmentEffectFilterKey,
+): boolean {
+  if (effectKey === "injuryRisk") {
+    return effects.injuryRiskReductionPct > 0;
+  }
+  if (effectKey === "breakawayReputation") {
+    return effects.breakawayReputationBonus > 0;
+  }
+  if (effectKey === "victoryReputation") {
+    return effects.victoryReputationBonus > 0;
+  }
+
+  return (getEquipmentRatingBonusTotals(effects)[effectKey] ?? 0) > 0;
+}
+
 export function combineEquipmentEffects(
   effects: ReadonlyArray<Partial<EquipmentEffects>>
 ): EquipmentEffects {
@@ -86,6 +151,14 @@ export function combineEquipmentEffects(
   return combined;
 }
 
+export function getEquipmentRatingBonusTotals(
+  effects: Pick<EquipmentEffects, "ratingBonuses" | "timeTrialRatingBonuses">
+): Partial<Record<RiderRatingKey, number>> {
+  return combineRatingBonuses(
+    effects.ratingBonuses,
+    effects.timeTrialRatingBonuses
+  );
+}
 export function normalizeEquipmentEffects(value: unknown): EquipmentEffects {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {

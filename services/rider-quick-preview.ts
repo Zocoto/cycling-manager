@@ -1,6 +1,10 @@
 import "server-only";
 
 import {
+  EMPTY_EQUIPMENT_EFFECTS,
+  getEquipmentRatingBonusTotals,
+} from "@/lib/game/equipment";
+import {
   resolvePublicTeamName,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
@@ -10,6 +14,7 @@ import {
   createStandardTransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
 
 type RiderRow = {
   id: string;
@@ -94,8 +99,13 @@ export async function getRiderQuickPreview({
   if (!rider) return null;
 
   const activeSeason = activeSeasonResult.data;
-  const [countryResult, ratingResult, contractResult, listingResult] =
-    await Promise.all([
+  const [
+    countryResult,
+    ratingResult,
+    contractResult,
+    listingResult,
+    equipmentEffectsByRiderId,
+  ] = await Promise.all([
       supabase
         .from("countries")
         .select("name, iso_alpha2")
@@ -125,6 +135,7 @@ export async function getRiderQuickPreview({
         .eq("status", "open")
         .limit(1)
         .maybeSingle<{ id: string }>(),
+      getRiderEquipmentEffectsByRiderId([rider.id]),
     ]);
 
   assertQuery(countryResult.error, "le pays du coureur");
@@ -188,6 +199,9 @@ export async function getRiderQuickPreview({
             potentialSteps: rider.potential_steps,
           }).ratings
       : null;
+  const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
+    equipmentEffectsByRiderId.get(rider.id) ?? EMPTY_EQUIPMENT_EFFECTS,
+  );
 
   return {
     id: rider.id,
@@ -209,6 +223,7 @@ export async function getRiderQuickPreview({
           }
         : null,
     ratings,
+    equipmentRatingBonuses,
     ratingVisibility: ratings
       ? mustUseScouting
         ? "scouted"

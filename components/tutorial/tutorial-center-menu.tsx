@@ -9,7 +9,15 @@ import {
   CRITERIUM_DISCOVERY_KEY,
   CRITERIUM_DISCOVERY_RESULTS_ROUTE,
 } from "@/lib/tutorial/criterium-discovery";
+import { EQUIPMENT_TUTORIAL_KEY } from "@/lib/tutorial/equipment";
+import { INFRASTRUCTURE_TUTORIAL_KEY } from "@/lib/tutorial/infrastructure";
+import { MEDICAL_CENTER_TUTORIAL_KEY } from "@/lib/tutorial/medical-center";
 import { getTutorialCenterEntryPresentation } from "@/lib/tutorial/tutorial-center";
+import { ROSTER_TUTORIAL_KEY } from "@/lib/tutorial/roster";
+import { TRAINING_TUTORIAL_KEY } from "@/lib/tutorial/training";
+import { STAFF_TUTORIAL_KEY } from "@/lib/tutorial/staff";
+import { TRANSFER_TUTORIAL_KEY } from "@/lib/tutorial/transfers";
+import { YOUTH_DEVELOPMENT_TUTORIAL_KEY } from "@/lib/tutorial/youth-development";
 import type { TutorialProgressRow } from "@/types/tutorial";
 
 export function TutorialCenterMenu() {
@@ -23,12 +31,50 @@ export function TutorialCenterMenu() {
 
   const baseProgress = getTutorialProgress(ONBOARDING_TUTORIAL_KEY);
   const criteriumProgress = getTutorialProgress(CRITERIUM_DISCOVERY_KEY);
+  const medicalCenterProgress = getTutorialProgress(
+    MEDICAL_CENTER_TUTORIAL_KEY,
+  );
+  const rosterProgress = getTutorialProgress(ROSTER_TUTORIAL_KEY);
+  const trainingProgress = getTutorialProgress(TRAINING_TUTORIAL_KEY);
+  const staffProgress = getTutorialProgress(STAFF_TUTORIAL_KEY);
+  const transferProgress = getTutorialProgress(TRANSFER_TUTORIAL_KEY);
+  const equipmentProgress = getTutorialProgress(EQUIPMENT_TUTORIAL_KEY);
+  const infrastructureProgress = getTutorialProgress(
+    INFRASTRUCTURE_TUTORIAL_KEY,
+  );
+  const youthDevelopmentProgress = getTutorialProgress(
+    YOUTH_DEVELOPMENT_TUTORIAL_KEY,
+  );
 
   const basePresentation = getTutorialCenterEntryPresentation(
     baseProgress?.status ?? null,
   );
   const criteriumPresentation = getTutorialCenterEntryPresentation(
     criteriumProgress?.status ?? null,
+  );
+  const medicalCenterPresentation = getTutorialCenterEntryPresentation(
+    medicalCenterProgress?.status ?? null,
+  );
+  const rosterPresentation = getTutorialCenterEntryPresentation(
+    rosterProgress?.status ?? null,
+  );
+  const trainingPresentation = getTutorialCenterEntryPresentation(
+    trainingProgress?.status ?? null,
+  );
+  const staffPresentation = getTutorialCenterEntryPresentation(
+    staffProgress?.status ?? null,
+  );
+  const transferPresentation = getTutorialCenterEntryPresentation(
+    transferProgress?.status ?? null,
+  );
+  const equipmentPresentation = getTutorialCenterEntryPresentation(
+    equipmentProgress?.status ?? null,
+  );
+  const infrastructurePresentation = getTutorialCenterEntryPresentation(
+    infrastructureProgress?.status ?? null,
+  );
+  const youthDevelopmentPresentation = getTutorialCenterEntryPresentation(
+    youthDevelopmentProgress?.status ?? null,
   );
 
   const tutorialIsActive = Boolean(activeTutorial);
@@ -92,6 +138,101 @@ export function TutorialCenterMenu() {
     }
   }
 
+  async function launchMedicalCenterTutorial() {
+    const started = await startTutorial({
+      tutorialKey: MEDICAL_CENTER_TUTORIAL_KEY,
+      launchSource: medicalCenterPresentation.launchSource,
+      restartFromBeginning: medicalCenterPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchRosterTutorial() {
+    const started = await startTutorial({
+      tutorialKey: ROSTER_TUTORIAL_KEY,
+      launchSource: rosterPresentation.launchSource,
+      restartFromBeginning: rosterPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchTrainingTutorial() {
+    const started = await startTutorial({
+      tutorialKey: TRAINING_TUTORIAL_KEY,
+      launchSource: trainingPresentation.launchSource,
+      restartFromBeginning: trainingPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchStaffTutorial() {
+    const started = await startTutorial({
+      tutorialKey: STAFF_TUTORIAL_KEY,
+      launchSource: staffPresentation.launchSource,
+      restartFromBeginning: staffPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchTransferTutorial() {
+    const started = await startTutorial({
+      tutorialKey: TRANSFER_TUTORIAL_KEY,
+      launchSource: transferPresentation.launchSource,
+      restartFromBeginning: transferPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchEquipmentTutorial() {
+    const started = await startTutorial({
+      tutorialKey: EQUIPMENT_TUTORIAL_KEY,
+      launchSource: equipmentPresentation.launchSource,
+      restartFromBeginning: equipmentPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchInfrastructureTutorial() {
+    const started = await startTutorial({
+      tutorialKey: INFRASTRUCTURE_TUTORIAL_KEY,
+      launchSource: infrastructurePresentation.launchSource,
+      restartFromBeginning: infrastructurePresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchYouthDevelopmentTutorial() {
+    const started = await startTutorial({
+      tutorialKey: YOUTH_DEVELOPMENT_TUTORIAL_KEY,
+      launchSource: youthDevelopmentPresentation.launchSource,
+      restartFromBeginning: youthDevelopmentPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
   return (
     <div ref={rootRef} className="relative shrink-0">
       <button
@@ -125,7 +266,15 @@ export function TutorialCenterMenu() {
           ?
         </span>
         {basePresentation.needsAttention ||
-        criteriumProgress?.status === "in_progress" ? (
+        criteriumProgress?.status === "in_progress" ||
+        medicalCenterProgress?.status === "in_progress" ||
+        rosterProgress?.status === "in_progress" ||
+        trainingProgress?.status === "in_progress" ||
+        staffProgress?.status === "in_progress" ||
+        transferProgress?.status === "in_progress" ||
+        equipmentProgress?.status === "in_progress" ||
+        infrastructureProgress?.status === "in_progress" ||
+        youthDevelopmentProgress?.status === "in_progress" ? (
           <span
             aria-hidden="true"
             className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#071A17] bg-[#F2C94C]"
@@ -209,6 +358,101 @@ export function TutorialCenterMenu() {
                 Terminez les deux formations essentielles pour rendre disponible
                 l’objectif « Finaliser le didacticiel ».
               </p>
+            </div>
+
+            <p className="mt-5 px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
+              Guides des rubriques
+            </p>
+
+            <div className="mt-2 grid gap-3">
+              <TutorialEntry
+                title="Gérer son effectif"
+                description="Notes, contrats, expérience, potentiel, forme, planning, historique et équipement d’un coureur."
+                progress={rosterProgress}
+                statusLabel={rosterPresentation.statusLabel}
+                actionLabel={rosterPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchRosterTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Entraînement et reconnaissance"
+                description="Seuil de forme, programmes individuels, entraîneurs, rapports de progression et préparation d’une future course."
+                progress={trainingProgress}
+                statusLabel={trainingPresentation.statusLabel}
+                actionLabel={trainingPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchTrainingTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Maîtriser le centre de soins"
+                description="Blessures, protocoles, forme, nutrition, kinés et résumé de l’équipe médicale."
+                progress={medicalCenterProgress}
+                statusLabel={medicalCenterPresentation.statusLabel}
+                actionLabel={medicalCenterPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchMedicalCenterTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Constituer son staff"
+                description="Places liées au niveau du DS, marché mondial, filtres, métiers, effets uniques et staff actif."
+                progress={staffProgress}
+                statusLabel={staffPresentation.statusLabel}
+                actionLabel={staffPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchStaffTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Maîtriser le Bureau des transferts"
+                description="Enchères quotidiennes, ventes entre DS, agents libres, scouting, budget et règles de signature."
+                progress={transferProgress}
+                statusLabel={transferPresentation.statusLabel}
+                actionLabel={transferPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchTransferTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Maîtriser le matériel"
+                description="Boutique, filtres, bonus, équipementier, inventaire et gestion individuelle des équipements."
+                progress={equipmentProgress}
+                statusLabel={equipmentPresentation.statusLabel}
+                actionLabel={equipmentPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchEquipmentTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Développer ses infrastructures"
+                description="Bâtiments disponibles, chantiers, architectes et effet partagé des écoles internationales de cyclisme."
+                progress={infrastructureProgress}
+                statusLabel={infrastructurePresentation.statusLabel}
+                actionLabel={infrastructurePresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchInfrastructureTutorial();
+                }}
+              />
+              <TutorialEntry
+                title="Former les talents de demain"
+                description="Carte mondiale, mission fictive, rapports, signature, école de cyclisme et entraînement junior."
+                progress={youthDevelopmentProgress}
+                statusLabel={youthDevelopmentPresentation.statusLabel}
+                actionLabel={youthDevelopmentPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchYouthDevelopmentTutorial();
+                }}
+              />
             </div>
           </div>
         </section>

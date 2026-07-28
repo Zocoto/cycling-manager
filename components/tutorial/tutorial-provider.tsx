@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   completeTutorialAction,
@@ -26,6 +26,10 @@ import {
   listAutoStartTutorialDefinitions,
 } from "@/lib/tutorial/catalog";
 import { selectInstantAutoStartTutorialKey } from "@/lib/tutorial/instant-start";
+import {
+  hasDynamicTutorialRouteSegment,
+  matchesTutorialRoute,
+} from "@/lib/tutorial/routes";
 import type {
   ActiveTutorial,
   StartTutorialOptions,
@@ -84,6 +88,61 @@ function findStepIndex(
   return index >= 0 ? index : 0;
 }
 
+function readTutorialTargetRoute(targetId?: string): string | null {
+  if (!targetId || typeof document === "undefined") {
+    return null;
+  }
+
+  const target = document.querySelector<HTMLElement>(
+    `[data-tutorial-id="${targetId}"]`,
+  );
+
+  if (!target) {
+    return null;
+  }
+
+  const route = target.dataset.tutorialRoute;
+
+  if (route) {
+    return route;
+  }
+
+  if (target instanceof HTMLAnchorElement) {
+    const targetUrl = new URL(target.href, window.location.origin);
+    return `${targetUrl.pathname}${targetUrl.search}`;
+  }
+
+  return null;
+}
+
+function resolveTutorialStepRoute({
+  step,
+  currentRoute,
+  savedRoute,
+}: {
+  step: ActiveTutorial["definition"]["steps"][number];
+  currentRoute: string;
+  savedRoute?: string | null;
+}): string | null {
+  const candidates = [
+    savedRoute,
+    currentRoute,
+    readTutorialTargetRoute(step.routeTargetId),
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      !hasDynamicTutorialRouteSegment(candidate) &&
+      matchesTutorialRoute(step.route, candidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  return hasDynamicTutorialRouteSegment(step.route) ? null : step.route;
+}
+
 export function TutorialProvider({
   children,
   initialProgress = [],
@@ -91,6 +150,11 @@ export function TutorialProvider({
 }: TutorialProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentRoute = useMemo(() => {
+    const query = searchParams.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  }, [pathname, searchParams]);
 
   const autoStartAttemptedRef = useRef(false);
 
@@ -128,12 +192,12 @@ export function TutorialProvider({
   }, []);
 
   const navigateToStep = useCallback(
-    (route: string) => {
-      if (pathname !== route) {
-        router.push(route);
+    (routePattern: string, resolvedRoute: string) => {
+      if (!matchesTutorialRoute(routePattern, currentRoute)) {
+        router.push(resolvedRoute);
       }
     },
-    [pathname, router],
+    [currentRoute, router],
   );
 
   const startTutorial = useCallback(
@@ -183,6 +247,19 @@ export function TutorialProvider({
           return false;
         }
 
+        const resolvedRoute = resolveTutorialStepRoute({
+          step,
+          currentRoute,
+          savedRoute: result.progress.current_route,
+        });
+
+        if (!resolvedRoute) {
+          setErrorMessage(
+            "La fiche à ouvrir pour cette étape est momentanément introuvable.",
+          );
+          return false;
+        }
+
         saveProgress(result.progress);
 
         setInstantAutoStartTutorialKey((currentKey) =>
@@ -196,7 +273,7 @@ export function TutorialProvider({
           currentStepIndex: stepIndex,
         });
 
-        navigateToStep(step.route);
+        navigateToStep(step.route, resolvedRoute);
 
         return true;
       } catch (error) {
@@ -211,7 +288,7 @@ export function TutorialProvider({
         setIsPending(false);
       }
     },
-    [navigateToStep, saveProgress],
+    [currentRoute, navigateToStep, saveProgress],
   );
 
   const updateCurrentStep = useCallback(
@@ -226,6 +303,18 @@ export function TutorialProvider({
         return false;
       }
 
+      const resolvedRoute = resolveTutorialStepRoute({
+        step,
+        currentRoute,
+      });
+
+      if (!resolvedRoute) {
+        setErrorMessage(
+          "La fiche à ouvrir pour cette étape est momentanément introuvable.",
+        );
+        return false;
+      }
+
       setIsPending(true);
       setErrorMessage(null);
 
@@ -233,7 +322,7 @@ export function TutorialProvider({
         const result = await setTutorialStepAction({
           tutorialKey: activeTutorial.definition.key,
           stepKey: step.key,
-          route: step.route,
+          route: resolvedRoute,
         });
 
         if (!result.ok) {
@@ -264,7 +353,7 @@ export function TutorialProvider({
           };
         });
 
-        navigateToStep(step.route);
+        navigateToStep(step.route, resolvedRoute);
 
         return true;
       } catch (error) {
@@ -279,7 +368,7 @@ export function TutorialProvider({
         setIsPending(false);
       }
     },
-    [activeTutorial, navigateToStep, saveProgress],
+    [activeTutorial, currentRoute, navigateToStep, saveProgress],
   );
 
   const previousStep = useCallback(async () => {
@@ -610,7 +699,7 @@ export function TutorialProvider({
     !activeTutorial &&
     Boolean(instantAutoStartDefinition) &&
     Boolean(instantAutoStartStep) &&
-    instantAutoStartStep?.route === pathname;
+    matchesTutorialRoute(instantAutoStartStep?.route ?? "", currentRoute);
 
   const currentStep =
     activeTutorial?.definition.steps[activeTutorial.currentStepIndex] ?? null;
@@ -618,7 +707,7 @@ export function TutorialProvider({
   const shouldDisplayOverlay =
     Boolean(activeTutorial) &&
     Boolean(currentStep) &&
-    currentStep?.route === pathname;
+    matchesTutorialRoute(currentStep?.route ?? "", currentRoute);
 
   const followUpDefinition = activeTutorial?.definition.followUpTutorialKey
     ? getTutorialDefinition(activeTutorial.definition.followUpTutorialKey)

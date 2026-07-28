@@ -510,7 +510,8 @@ function RidersSection() {
           </dl>
           <div className="mt-5 rounded-xl border border-[#C94F4F]/20 bg-[#FFF3F0] px-4 py-3 text-sm font-bold leading-6 text-[#8A3830]">
             Si une perte devait faire passer la forme sous 0, elle reste à 0 et
-            le coureur subit une blessure de fatigue de trois jours.
+            un coureur disponible subit une blessure de fatigue de trois jours.
+            Cette règle ne se cumule jamais avec une blessure déjà active.
           </div>
         </article>
 

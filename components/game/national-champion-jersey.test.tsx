@@ -14,9 +14,9 @@ describe("rendu du maillot de champion national", () => {
         championshipType="road"
       />,
     );
-
-    expect(markup).toContain("fi fi-bg");
-    expect(markup).toContain("foreignObject");
+    expect(markup).toContain('data-national-champion-flag="bg"');
+    expect(markup).toContain('href="/images/flags/4x3/bg.svg"');
+    expect(markup).not.toContain("foreignObject");
     expect(markup).toContain(
       "Maillot de champion national sur route de Bulgarie",
     );
@@ -34,10 +34,10 @@ describe("rendu du maillot de champion national", () => {
         })}
       />,
     );
-
-    expect(markup).toContain("fi fi-fr");
+    expect(markup).toContain('data-national-champion-flag="fr"');
+    expect(markup).toContain('href="/images/flags/4x3/fr.svg"');
     expect(markup).toContain('x="0" y="64" width="96" height="34"');
     expect(markup).toContain("contain:paint");
-    expect(markup).toContain('overflow="hidden"');
+    expect(markup).not.toContain("foreignObject");
   });
 });

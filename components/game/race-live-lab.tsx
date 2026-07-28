@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SideRaceCyclist, TopRaceCyclist } from "@/components/game/race-cyclist";
+import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import {
   FinishRoadsideInfrastructure,
   RaceSceneryBackdrop,
@@ -22,8 +23,13 @@ import {
   getVisibleFinalBattleRiderIds,
   keepPassageWinnerVisible,
 } from "@/lib/game/race-finish-visual";
+import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
-import { getStageLiveState } from "@/lib/game/race-live";
+import {
+  getRaceGroupLayoutDensity,
+  getStageLiveState,
+  shouldHideRaceGaps,
+} from "@/lib/game/race-live";
 import {
   getOfficialStageSimulationContext,
   type LockedOfficialStageSimulation,
@@ -77,6 +83,10 @@ export function RaceLiveLab({
         lockedSimulations,
       }),
     [edition, lockedSimulations, stage.id]
+  );
+  const favoriteRiders = useMemo(
+    () => getFrozenRaceFavoriteRiders(edition, lockedSimulations),
+    [edition, lockedSimulations]
   );
   const raceWeather =
     input.weather ?? getRaceWeather(`${edition.id}:${stage.id}:weather`);
@@ -270,6 +280,15 @@ export function RaceLiveLab({
         </div>
       </div>
 
+      <div className="border-b border-white/10 px-3 py-4 sm:px-6">
+        <RaceFavoritesPanel
+          edition={edition}
+          riders={favoriteRiders}
+          frozen
+          tone="dark"
+        />
+      </div>
+
       <nav
         data-tutorial-id="race-live-tabs"
         className="flex gap-1 overflow-x-auto border-b border-white/10 px-5 pt-3 sm:px-8"
@@ -384,10 +403,15 @@ export function RaceLiveLab({
           )}
 
           <div className="mt-5 space-y-5">
-            <RaceGapLine
-              groups={snapshot.groups}
-              riderById={riderById}
-            />
+            {!shouldHideRaceGaps(
+              displayedIndex + 1,
+              simulation.timeline.length
+            ) ? (
+              <RaceGapLine
+                groups={snapshot.groups}
+                riderById={riderById}
+              />
+            ) : null}
             <RaceCommentary commentary={snapshot.commentary} />
           </div>
         </div>
@@ -991,38 +1015,43 @@ function PrimePassageOverlay({
   );
 }
 
-function PrimeClassificationPopup({
+export function PrimeClassificationPopup({
   primeResult,
   riderById,
 }: {
   primeResult: RacePrimeResult;
-  riderById: Map<string, RiderSimulationInput>;
+  riderById: ReadonlyMap<
+    string,
+    Pick<RiderSimulationInput, "name" | "teamName">
+  >;
 }) {
   const isMountain = primeResult.prime.type === "mountain";
+  const [expandedOnMobile, setExpandedOnMobile] = useState(false);
 
   return (
     <aside
       role="status"
       aria-live="polite"
-      className={`absolute bottom-4 left-4 right-4 z-[60] rounded-2xl border bg-[#071A17]/95 p-4 text-white shadow-2xl backdrop-blur cm-prime-classification sm:right-auto sm:w-80 ${
+      data-mobile-prime-classification="compact"
+      className={`absolute bottom-2 right-2 z-[60] max-h-[calc(100%-1rem)] w-[min(17rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border bg-[#071A17]/95 p-2.5 text-white shadow-2xl backdrop-blur cm-prime-classification lg:bottom-4 lg:left-4 lg:right-auto lg:w-80 lg:rounded-2xl lg:p-4 ${
         isMountain ? "border-[#EF5B65]/55" : "border-[#43C892]/55"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p
-            className={`text-[9px] font-black uppercase tracking-[0.2em] ${
+            className={`hidden text-[9px] font-black uppercase tracking-[0.2em] lg:block ${
               isMountain ? "text-[#FF9EA6]" : "text-[#9BE0CA]"
             }`}
           >
             Ligne franchie · la course continue
           </p>
-          <h3 className="mt-1 text-sm font-black text-[#FFFDF4]">
+          <h3 className="truncate text-[11px] font-black text-[#FFFDF4] lg:mt-1 lg:text-sm">
             {formatPrimeLabel(primeResult)} · classement
           </h3>
         </div>
         <span
-          className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${
+          className={`hidden rounded-full px-2.5 py-1 text-[9px] font-black uppercase lg:inline-flex ${
             isMountain
               ? "bg-[#EF5B65]/15 text-[#FF9EA6]"
               : "bg-[#43C892]/15 text-[#9BE0CA]"
@@ -1030,15 +1059,44 @@ function PrimeClassificationPopup({
         >
           Points
         </span>
+        <button
+          type="button"
+          aria-expanded={expandedOnMobile}
+          aria-label={
+            expandedOnMobile
+              ? "Réduire le classement"
+              : "Afficher le top 5"
+          }
+          onClick={() => setExpandedOnMobile((current) => !current)}
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-black lg:hidden ${
+            isMountain
+              ? "border-[#EF5B65]/35 bg-[#EF5B65]/15 text-[#FF9EA6]"
+              : "border-[#43C892]/35 bg-[#43C892]/15 text-[#9BE0CA]"
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`transition-transform ${
+              expandedOnMobile ? "rotate-180" : ""
+            }`}
+          >
+            ⌄
+          </span>
+        </button>
       </div>
-      <ol className="mt-3 space-y-1.5">
-        {primeResult.classification.slice(0, 5).map((classified) => {
+      <ol className="mt-2 space-y-1 lg:mt-3 lg:space-y-1.5">
+        {primeResult.classification.slice(0, 5).map((classified, index) => {
           const rider = riderById.get(classified.riderId);
           if (!rider) return null;
           return (
             <li
               key={classified.riderId}
-              className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-white/[0.055] px-2.5 py-2 text-[10px]"
+              data-mobile-visibility={
+                index >= 3 ? "expandable" : "always"
+              }
+              className={`grid grid-cols-[1.1rem_minmax(0,1fr)_auto] items-center gap-1.5 rounded-lg bg-white/[0.055] px-2 py-1.5 text-[9px] lg:grid-cols-[1.25rem_minmax(0,1fr)_auto] lg:gap-2 lg:px-2.5 lg:py-2 lg:text-[10px] ${
+                index >= 3 && !expandedOnMobile ? "hidden lg:grid" : ""
+              }`}
             >
               <span className="font-black text-[#F2C94C]">
                 {classified.rank}
@@ -1047,7 +1105,7 @@ function PrimeClassificationPopup({
                 <span className="block truncate font-black text-white">
                   {rider.name}
                 </span>
-                <span className="block truncate font-semibold text-[#8FA99D]">
+                <span className="hidden truncate font-semibold text-[#8FA99D] lg:block">
                   {rider.teamName}
                 </span>
               </span>
@@ -1817,6 +1875,8 @@ function RaceGapLine({
   riderById: Map<string, RiderSimulationInput>;
 }) {
   const entries = buildRaceGapLine(groups);
+  const compact =
+    getRaceGroupLayoutDensity(entries.length) === "compact";
 
   return (
     <section
@@ -1857,7 +1917,11 @@ function RaceGapLine({
           {entries.map((entry, index) => (
             <li
               key={entry.group.id}
-              className="flex w-[17rem] shrink-0 snap-start flex-col pr-4 sm:w-[19rem]"
+              className={`flex shrink-0 snap-start flex-col ${
+                compact
+                  ? "w-[13rem] pr-3 sm:w-[14rem]"
+                  : "w-[17rem] pr-4 sm:w-[19rem]"
+              }`}
             >
               <div className="mb-3 flex h-10 items-center">
                 <span
@@ -1898,6 +1962,7 @@ function RaceGapLine({
                 gapToLeaderSeconds={
                   entry.gapToLeaderSeconds
                 }
+                compact={compact}
               />
             </li>
           ))}
@@ -1911,10 +1976,12 @@ function RaceGroupCard({
   group,
   riderById,
   gapToLeaderSeconds,
+  compact,
 }: {
   group: RaceGroupSnapshot;
   riderById: Map<string, RiderSimulationInput>;
   gapToLeaderSeconds: number;
+  compact: boolean;
 }) {
   const isRaceLeader =
     gapToLeaderSeconds === 0;
@@ -1926,7 +1993,9 @@ function RaceGroupCard({
           ? "en tête"
           : `à ${formatGap(gapToLeaderSeconds)} de la tête`
       }`}
-      className={`flex min-h-[15rem] flex-1 flex-col rounded-2xl border p-4 ${
+      className={`flex flex-1 flex-col rounded-2xl border ${
+        compact ? "min-h-[10.5rem] p-3" : "min-h-[15rem] p-4"
+      } ${
         isRaceLeader
           ? "border-[#F2C94C]/35 bg-[#F2C94C]/[0.065]"
           : "border-white/10 bg-white/[0.045]"
@@ -1946,7 +2015,13 @@ function RaceGroupCard({
           {groupTypeLabel(group.type)}
         </span>
       </div>
-      <ul className="mt-3 max-h-44 flex-1 space-y-1.5 overflow-y-auto pr-1 text-xs font-semibold text-[#B7CAC1]">
+      <ul
+        className={`flex-1 overflow-y-auto pr-1 font-semibold text-[#B7CAC1] ${
+          compact
+            ? "mt-2 max-h-28 space-y-1 text-[11px]"
+            : "mt-3 max-h-44 space-y-1.5 text-xs"
+        }`}
+      >
         {group.riderIds.map((id) => {
           const rider = riderById.get(id);
 
@@ -2128,15 +2203,27 @@ function Classification({
             {simulation.results.map((result, index) => {
               const rider = riderById.get(result.riderId)!;
               const abandoned = result.status === "did_not_finish";
+              const outsideTimeLimit =
+                result.status === "outside_time_limit";
               const previousResult = simulation.results[index - 1];
               const hasSameTimeAsPrevious =
                 result.status === "finished" &&
                 previousResult?.status === "finished" &&
                 result.elapsedTimeSeconds === previousResult.elapsedTimeSeconds;
               return (
-                <tr key={result.riderId} className={`${abandoned ? "bg-[#EF5B65]/[0.07]" : "bg-white/[0.025]"} text-sm font-semibold`}>
-                  <td className={`px-4 py-3 font-black ${abandoned ? "text-[#FF9EA6]" : "text-[#F2C94C]"}`}>
-                    {result.rank ?? "—"}
+                <tr key={result.riderId} className={`${
+                    abandoned
+                      ? "bg-[#EF5B65]/[0.07]"
+                      : outsideTimeLimit
+                        ? "bg-[#F2C94C]/[0.07]"
+                        : "bg-white/[0.025]"
+                  } text-sm font-semibold`}>
+                  <td className={`px-4 py-3 font-black ${
+                      abandoned
+                        ? "text-[#FF9EA6]"
+                        : "text-[#F2C94C]"
+                    }`}>
+                    {outsideTimeLimit ? "HT" : result.rank ?? "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-2">
@@ -2151,6 +2238,8 @@ function Classification({
                   <td className="px-4 py-3 text-right font-black">
                     {abandoned
                       ? "Abandon"
+                      : outsideTimeLimit
+                        ? "Hors délais"
                       : result.rank === 1
                       ? formatTime(winnerTime)
                       : hasSameTimeAsPrevious
@@ -2158,7 +2247,9 @@ function Classification({
                         : `+${formatGap(result.gapToWinnerSeconds)}`}
                   </td>
                   <td className="hidden px-4 py-3 text-right text-[#94ADA2] sm:table-cell">
-                    {result.injury
+                    {outsideTimeLimit
+                      ? "Éliminé"
+                      : result.injury
                       ? `${result.injury.label} · ${result.injury.recoveryDays} j`
                       : `${Math.round(result.energyAfter)} %`}
                   </td>

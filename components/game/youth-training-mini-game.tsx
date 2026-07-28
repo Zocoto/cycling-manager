@@ -41,6 +41,7 @@ export function YouthTrainingMiniGame({
   currentSlotCompleted,
   currentSlotScore,
   completedSlotCount,
+  demoMode = false,
 }: {
   academyRiderId: string;
   riderName: string;
@@ -51,6 +52,7 @@ export function YouthTrainingMiniGame({
   currentSlotCompleted: boolean;
   currentSlotScore: number | null;
   completedSlotCount: number;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<GamePhase>("idle");
@@ -92,6 +94,18 @@ export function YouthTrainingMiniGame({
       speedTaps: speedTapsRef.current,
     });
 
+    if (demoMode) {
+      setReport({
+        score,
+        slot: "manual_am",
+        trainingPriority: "tutorial",
+        ratingChanges: {},
+      });
+      setPhase("completed");
+      finishingRef.current = false;
+      return;
+    }
+
     try {
       const result = await completeYouthManualTrainingAction({
         attemptId,
@@ -111,7 +125,7 @@ export function YouthTrainingMiniGame({
     } finally {
       finishingRef.current = false;
     }
-  }, [activeGameType, attemptId, router]);
+  }, [activeGameType, attemptId, demoMode, router]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -164,6 +178,16 @@ export function YouthTrainingMiniGame({
     setError(null);
     setReport(null);
     resetCounters();
+
+    if (demoMode) {
+      const previewDurationSeconds = 12;
+      setAttemptId("tutorial-demo");
+      setActiveGameType(gameType);
+      setDurationSeconds(previewDurationSeconds);
+      setSecondsLeft(previewDurationSeconds);
+      setPhase("playing");
+      return;
+    }
 
     try {
       const result = await startYouthManualTrainingAction({
@@ -274,7 +298,7 @@ export function YouthTrainingMiniGame({
               Créneau manuel · {currentSlotLabel}
             </p>
             <p className="mt-1 text-xs font-bold text-[#4F4A32]">
-              {YOUTH_TRAINING_GAME_LABELS[gameType]} · 35 secondes
+              {YOUTH_TRAINING_GAME_LABELS[gameType]} · {demoMode ? "aperçu 12 s" : "35 secondes"}
             </p>
           </div>
           <button
@@ -295,7 +319,7 @@ export function YouthTrainingMiniGame({
             {error}
           </p>
         ) : null}
-        {report ? <TrainingResult report={report} /> : null}
+        {report ? <TrainingResult report={report} demoMode={demoMode} /> : null}
       </div>
 
       {phase === "playing" || phase === "submitting" ? (
@@ -303,7 +327,9 @@ export function YouthTrainingMiniGame({
           role="dialog"
           aria-modal="true"
           aria-label={`Entraînement de ${riderName}`}
-          className="fixed inset-0 z-[100] grid place-items-center bg-[#071A17]/90 p-3 backdrop-blur-sm sm:p-6"
+          className={`fixed inset-0 grid place-items-center bg-[#071A17]/90 p-3 backdrop-blur-sm sm:p-6 ${
+            demoMode ? "z-[240]" : "z-[100]"
+          }`}
         >
           <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/15 bg-[#F8FBF9] shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
             <header className="flex items-center justify-between gap-4 bg-[#0B302B] px-5 py-4 text-white sm:px-7">
@@ -458,7 +484,13 @@ function GameSurface({
   );
 }
 
-function TrainingResult({ report }: { report: CompletedReport }) {
+function TrainingResult({
+  report,
+  demoMode,
+}: {
+  report: CompletedReport;
+  demoMode: boolean;
+}) {
   const changes = Object.entries(report.ratingChanges)
     .filter(([, value]) => value > 0)
     .sort((left, right) => right[1] - left[1])
@@ -468,7 +500,7 @@ function TrainingResult({ report }: { report: CompletedReport }) {
     <div className="mt-4 rounded-xl border border-[#176951]/15 bg-white p-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#278B70]">
-          Séance enregistrée
+          {demoMode ? "Démonstration terminée" : "Séance enregistrée"}
         </p>
         <strong className="text-lg text-[#176951]">
           {report.score}/1000
@@ -485,7 +517,9 @@ function TrainingResult({ report }: { report: CompletedReport }) {
                   } +${value.toFixed(3)}`,
               )
               .join(" · ")
-          : "Consolidation, sans hausse visible"}
+          : demoMode
+            ? "Simulation terminée · aucune progression enregistrée"
+            : "Consolidation, sans hausse visible"}
       </p>
     </div>
   );

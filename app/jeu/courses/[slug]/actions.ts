@@ -63,13 +63,9 @@ export async function registerRaceRosterAction(
 
   revalidateRacePaths(slug);
   redirect(
-    `/jeu/calendrier?${
-      registrationStatus === "pending"
-        ? "wildcard=demandee"
-        : "inscription=confirmee"
-    }&course=${encodeURIComponent(
-      slug
-    )}`
+    registrationStatus === "pending"
+      ? `/jeu/calendrier?wildcard=demandee&course=${encodeURIComponent(slug)}`
+      : `/jeu/courses/${slug}?inscription=confirmee#peloton`
   );
 }
 
@@ -158,6 +154,8 @@ export async function withdrawRaceRosterAction(
 function revalidateRacePaths(slug: string) {
   revalidatePath("/jeu/calendrier");
   revalidatePath(`/jeu/courses/${slug}`);
+  revalidatePath("/jeu/resultats");
+  revalidatePath(`/jeu/resultats/${slug}`);
   revalidatePath("/jeu");
 }
 

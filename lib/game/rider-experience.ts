@@ -1,7 +1,6 @@
 export const RIDER_EXPERIENCE_SCORE_MAX = 100;
 export const RIDER_EXPERIENCE_MAX_RACE_BONUS = 1.5;
-
-const RIDER_EXPERIENCE_RACE_DAY_SCALE = 180;
+export const RIDER_EXPERIENCE_RACE_DAYS_FOR_MAX_SCORE = 500;
 
 export const RIDER_EXPERIENCE_LEVELS = [
   { minimumScore: 0, label: "Débutant" },
@@ -35,12 +34,13 @@ export function getRiderExperience(raceDays: number): RiderExperience {
 
 export function getRiderExperienceScore(raceDays: number) {
   const normalizedRaceDays = normalizeRiderRaceDays(raceDays);
-  return Math.min(
-    RIDER_EXPERIENCE_SCORE_MAX,
-    Math.round(
-      RIDER_EXPERIENCE_SCORE_MAX *
-        (1 - Math.exp(-normalizedRaceDays / RIDER_EXPERIENCE_RACE_DAY_SCALE)),
+  return round(
+    Math.min(
+      RIDER_EXPERIENCE_SCORE_MAX,
+      (normalizedRaceDays / RIDER_EXPERIENCE_RACE_DAYS_FOR_MAX_SCORE) *
+        RIDER_EXPERIENCE_SCORE_MAX,
     ),
+    1,
   );
 }
 
@@ -58,7 +58,7 @@ export function getRiderExperienceLevel(
 ): RiderExperienceLevel {
   const normalizedScore = Math.max(
     0,
-    Math.min(RIDER_EXPERIENCE_SCORE_MAX, Math.round(score)),
+    Math.min(RIDER_EXPERIENCE_SCORE_MAX, score),
   );
 
   return [...RIDER_EXPERIENCE_LEVELS]

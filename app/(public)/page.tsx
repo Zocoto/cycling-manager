@@ -42,6 +42,17 @@ const gamePillars = [
 
 const productNews = [
   {
+    category: "Mise à jour",
+    title: "Patchs 1 et 2 déployés",
+    description:
+      "Les Patchs 1 et 2 sont maintenant en production avec de nouvelles fonctionnalités, des améliorations d’interface, des équilibrages et de nombreux correctifs.",
+    dateTime: "2026-07-28",
+    dateLabel: "28 juillet 2026",
+    accent: "leader",
+    href: "https://discord.com/channels/1530228791857909891/1530867588093968544",
+    linkLabel: "Voir le détail des patchs",
+  },
+  {
     category: "Développement",
     title: "MVP déployé, pré-alpha lancée",
     description:
@@ -161,7 +172,7 @@ function ProductNews() {
         </span>
       </div>
 
-      <ol className="mt-3 grid gap-3 sm:grid-cols-2">
+      <ol className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {productNews.map((news) => (
           <li key={news.title}>
             <article className="relative h-full overflow-hidden rounded-xl border border-[#315B3E]/15 bg-white/82 p-4 shadow-[0_12px_35px_rgba(19,60,46,0.11)] backdrop-blur-sm">

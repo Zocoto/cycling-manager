@@ -13,6 +13,7 @@ import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button
 import {
   combineEquipmentEffects,
   getEquipmentCategory,
+  getEquipmentRatingBonusTotals,
   type EquipmentEffects,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
@@ -630,16 +631,12 @@ export function collectAvailableEquipment(
   );
 }
 
-function EquipmentBonusSummary({ effects }: { effects: EquipmentEffects }) {
-  const ratingBonuses = getPositiveRatingBonuses(effects.ratingBonuses).sort(
-    ([left], [right]) => ratingOrder(left) - ratingOrder(right),
-  );
-  const timeTrialRatingBonuses = getPositiveRatingBonuses(
-    effects.timeTrialRatingBonuses,
+export function EquipmentBonusSummary({ effects }: { effects: EquipmentEffects }) {
+  const ratingBonuses = getPositiveRatingBonuses(
+    getEquipmentRatingBonusTotals(effects),
   ).sort(([left], [right]) => ratingOrder(left) - ratingOrder(right));
   const hasEffects =
     ratingBonuses.length > 0 ||
-    timeTrialRatingBonuses.length > 0 ||
     effects.injuryRiskReductionPct > 0 ||
     effects.breakawayReputationBonus > 0 ||
     effects.victoryReputationBonus > 0;
@@ -657,14 +654,6 @@ function EquipmentBonusSummary({ effects }: { effects: EquipmentEffects }) {
               className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]"
             >
               {ratingLabel(key)} +{formatBonus(value)}
-            </span>
-          ))}
-          {timeTrialRatingBonuses.map(([key, value]) => (
-            <span
-              key={`tt-${key}`}
-              className="rounded-full border border-[#73BFFF]/35 bg-[#1D6FA5]/20 px-2.5 py-1 text-[10px] font-black text-[#8FD1FF]"
-            >
-              {ratingLabel(key)} +{formatBonus(value)} · CLM
             </span>
           ))}
           {effects.injuryRiskReductionPct > 0 ? (

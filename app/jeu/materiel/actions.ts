@@ -3,14 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { EQUIPMENT_SLOTS, type EquipmentSlot } from "@/lib/game/equipment";
+import {
+  EQUIPMENT_SLOTS,
+  isEquipmentEffectFilterKey,
+  type EquipmentSlot,
+} from "@/lib/game/equipment";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function purchaseEquipmentAction(formData: FormData) {
   const equipmentItemId = readValue(formData, "equipmentItemId");
   const category = readValue(formData, "category");
   const supplier = readValue(formData, "supplier");
-  const returnPath = buildMaterialPath(category, supplier);
+  const effect = readValue(formData, "effect");
+  const returnPath = buildMaterialPath(category, supplier, effect);
 
   if (!isUuid(equipmentItemId)) {
     redirectWithError(returnPath, "La référence de matériel est invalide.");
@@ -112,10 +117,11 @@ export async function unequipRiderAction(formData: FormData) {
   redirect(`/jeu/coureurs/${riderId}?equipement=retire`);
 }
 
-function buildMaterialPath(category: string, supplier: string) {
+function buildMaterialPath(category: string, supplier: string, effect: string) {
   const params = new URLSearchParams();
   if (isEquipmentSlot(category)) params.set("categorie", category);
   if (/^[a-z0-9-]{1,64}$/.test(supplier)) params.set("marque", supplier);
+  if (isEquipmentEffectFilterKey(effect)) params.set("effet", effect);
   const query = params.toString();
   return query ? `/jeu/materiel?${query}` : "/jeu/materiel";
 }

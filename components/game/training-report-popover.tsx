@@ -49,9 +49,11 @@ type ReportView = "latest" | "season";
 export function TrainingReportPopover({
   report,
   seasonReport,
+  tutorialTargetId,
 }: {
   report: RiderTrainingReport | null;
   seasonReport: RiderTrainingSeasonReport | null;
+  tutorialTargetId?: string;
 }) {
   const [activeView, setActiveView] = useState<ReportView>("latest");
   const rawId = useId();
@@ -59,14 +61,17 @@ export function TrainingReportPopover({
 
   if (!report || !seasonReport) {
     return (
-      <span className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dashed border-[#315B3E]/20 px-3 text-center text-xs font-black text-[#7B8D87]">
+      <span
+        data-tutorial-id={tutorialTargetId}
+        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dashed border-[#315B3E]/20 px-3 text-center text-xs font-black text-[#7B8D87]"
+      >
         Aucun rapport
       </span>
     );
   }
 
   return (
-    <details className="group relative">
+    <details data-tutorial-id={tutorialTargetId} className="group relative">
       <summary className="flex min-h-11 cursor-pointer list-none flex-col items-center justify-center rounded-xl border border-[#176951]/20 bg-[#EAF5F3] px-3 text-center text-xs font-black text-[#176951] transition hover:bg-[#DDF1EA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]">
         <span>Rapports</span>
         <span className="mt-0.5 text-[9px] uppercase tracking-[0.11em] text-[#60756E]">

@@ -9,6 +9,7 @@ import {
   getTeamMonogram,
   type TeamKitPattern,
 } from "@/lib/game/race-visuals";
+import { SvgCountryFlag } from "./svg-country-flag";
 
 export function SideRaceCyclist({
   rider,
@@ -218,26 +219,15 @@ function NationalChampionRacePattern({
   height: number;
 }) {
   return (
-    <foreignObject
+    <SvgCountryFlag
+      countryCode={countryCode}
       x="0"
       y="0"
       width={width}
       height={height}
-      clipPath={`url(#${clipPathId})`}
-      overflow="hidden"
-    >
-      <span
-        aria-hidden="true"
-        className={`fi fi-${countryCode.toLowerCase()}`}
-        style={{
-          display: "block",
-          width: "100%",
-          height: "100%",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-    </foreignObject>
+      clipPathId={clipPathId}
+      preserveAspectRatio="xMidYMid slice"
+    />
   );
 }
 

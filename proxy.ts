@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/jeu/:path*",
+    "/guide/:path*",
     "/connexion",
     "/inscription",
   ],

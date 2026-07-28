@@ -3,6 +3,8 @@ import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profile-view";
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
@@ -14,6 +16,7 @@ import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
+import { CompactRiderProgression } from "@/components/game/rider-progression-chart";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
@@ -21,17 +24,16 @@ import { SpecialAbilityMedallion } from "@/components/game/special-ability-medal
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { SeasonPerformancesPopover } from "@/components/game/season-performances-popover";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
+import {
+  combineEquipmentEffects,
+  getEquipmentRatingBonusTotals,
+} from "@/lib/game/equipment";
 import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import { getRiderExperience } from "@/lib/game/rider-experience";
 import {
   SPECIAL_ABILITY_CATALOG,
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
-import {
-  formatTrainingProgressMilli,
-  TRAINING_DOMAIN_LABELS,
-  isTrainingDomain,
-} from "@/lib/game/training";
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
@@ -59,6 +61,9 @@ import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
+import { getRiderProgressionHistories } from "@/services/rider-progression";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import { ROSTER_TUTORIAL_KEY } from "@/lib/tutorial/roster";
 
 export const metadata: Metadata = {
   title: "Fiche coureur",
@@ -84,6 +89,10 @@ const FREE_AGENT_JERSEY: AmateurJerseyConfig = {
   accentColor: FREE_AGENT_RIDER_JERSEY.accentColor,
 };
 
+const riderExperienceScoreFormatter = new Intl.NumberFormat("fr-FR", {
+  maximumFractionDigits: 1,
+});
+
 export default async function RiderProfilePage({
   params,
   searchParams,
@@ -100,14 +109,25 @@ export default async function RiderProfilePage({
     redirect("/connexion");
   }
 
-  const [profile, headerData, riderRanking] = await Promise.all([
-    getPublicRiderProfile({
-      riderIdentifier: identifiant,
-      viewerAuthUserId: user.id,
-    }),
-    getGameHeaderData(supabase, user.id),
-    getRiderRankingEntry(identifiant),
-  ]);
+  const [profile, headerData, riderRanking, rosterTutorialProgress] =
+    await Promise.all([
+      getPublicRiderProfile({
+        riderIdentifier: identifiant,
+        viewerAuthUserId: user.id,
+      }),
+      getGameHeaderData(supabase, user.id),
+      getRiderRankingEntry(identifiant),
+      getAuthenticatedTutorialProgress(
+        supabase,
+        ROSTER_TUTORIAL_KEY,
+      ).catch((error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel de l’effectif :",
+          error,
+        );
+        return null;
+      }),
+    ]);
 
   if (!profile) {
     notFound();
@@ -128,6 +148,7 @@ export default async function RiderProfilePage({
     transferManagement,
     riderPlanning,
     naturalizationEligibility,
+    riderProgression,
   ] = await Promise.all([
     profile.canManage
       ? getRiderEquipmentManagement(user.id, profile.id)
@@ -144,6 +165,13 @@ export default async function RiderProfilePage({
           authUserId: user.id,
           riderId: profile.id,
         })
+      : Promise.resolve(null),
+    profile.canManage && profile.activeSeason
+      ? getRiderProgressionHistories({
+          riderIds: [profile.id],
+          currentSeasonId: profile.activeSeason.id,
+          includePreviousSeasons: false,
+        }).then((histories) => histories[0] ?? null)
       : Promise.resolve(null),
   ]);
 
@@ -179,11 +207,28 @@ export default async function RiderProfilePage({
     ? getNationalChampionPalette(activeNationalTitle.countryCode)
     : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+  const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
+    combineEquipmentEffects(
+      Object.values(profile.equipment).flatMap((item) =>
+        item ? [item.effects] : [],
+      ),
+    ),
+  );
   const riderExperience = getRiderExperience(profile.careerRaceDays);
   const countryHref = `/jeu/nations/${profile.country.code.toLowerCase()}`;
+  const riderProfileRoute = `/jeu/coureurs/${identifiant}`;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {rosterTutorialProgress?.status === "in_progress" &&
+      rosterTutorialProgress.current_route === riderProfileRoute &&
+      rosterTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={ROSTER_TUTORIAL_KEY}
+          currentStepKey={rosterTutorialProgress.current_step_key}
+        />
+      ) : null}
+
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -209,12 +254,19 @@ export default async function RiderProfilePage({
             {query.erreur}
           </p>
         ) : null}
-        <p className="mb-4 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#60756E]">
-          <span aria-hidden="true">↗</span>
-          Fiche ouverte indépendamment de votre espace de jeu
-        </p>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#60756E]">
+            <span aria-hidden="true">↗</span>
+            Fiche ouverte indépendamment de votre espace de jeu
+          </p>
+          <TutorialLaunchButton
+            tutorialKey={ROSTER_TUTORIAL_KEY}
+            iconOnly
+          />
+        </div>
 
         <header
+          data-tutorial-id="rider-profile-overview"
           className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-[linear-gradient(135deg,#071A17,#176951)] text-[#FFFDF4] shadow-[0_25px_70px_rgba(19,60,46,0.2)]"
           style={
             nationalPalette
@@ -272,7 +324,9 @@ export default async function RiderProfilePage({
                   <IdentityBadge>{profile.age} ans</IdentityBadge>
                 ) : null}
                 <IdentityBadge>
-                  Expérience · {riderExperience.level} · {riderExperience.score}/100
+                  Expérience · {riderExperience.level} ·{" "}
+                  {riderExperienceScoreFormatter.format(riderExperience.score)}
+                  /100
                 </IdentityBadge>
                 <IdentityBadge>
                   Jours de course · {riderExperience.raceDays}
@@ -345,7 +399,10 @@ export default async function RiderProfilePage({
         </header>
 
         <div className="mt-7 grid gap-7 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
-          <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
+          <section
+            data-tutorial-id="rider-profile-stats"
+            className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
+          >
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
               Profil sportif
             </p>
@@ -354,7 +411,10 @@ export default async function RiderProfilePage({
             </h2>
             {profile.ratings ? (
               <div className="mt-5">
-                <RiderStatsRadar ratings={profile.ratings} />
+                <RiderStatsRadar
+                  ratings={profile.ratings}
+                  equipmentBonuses={equipmentRatingBonuses}
+                />
               </div>
             ) : profile.scoutingReport ? (
               <div className="mt-5">
@@ -363,36 +423,43 @@ export default async function RiderProfilePage({
             ) : (
               <EmptyBlock message="Aucune caractéristique n’est disponible pour ce coureur." />
             )}
+            {profile.canManage && riderProgression ? (
+              <CompactRiderProgression
+                history={riderProgression}
+                detailHref={`/jeu/entrainement?progression=1&coureur=${profile.id}`}
+              />
+            ) : null}
           </section>
 
           <aside className="space-y-5">
             {naturalizationEligibility ? (
-              <NaturalizationCard
-                eligibility={naturalizationEligibility}
-                subjectName={fullName}
-                subjectId={profile.id}
-                subjectIdField="riderId"
-                action={naturalizeProfessionalRiderAction}
-              />
+              <div data-tutorial-id="rider-profile-naturalization">
+                <NaturalizationCard
+                  eligibility={naturalizationEligibility}
+                  subjectName={fullName}
+                  subjectId={profile.id}
+                  subjectIdField="riderId"
+                  action={naturalizeProfessionalRiderAction}
+                />
+              </div>
             ) : null}
             {profile.medical ? (
               <RiderMedicalCard medical={profile.medical} />
             ) : null}
-            <RiderConditionGauges
-              form={profile.condition.form}
-              dayNumber={profile.condition.dayNumber}
-            />
-            {profile.trainingReport ? (
-              <PrivateTrainingReportCard report={profile.trainingReport} />
-            ) : (
-              <LockedTrainingCard canManage={profile.canManage} />
-            )}
-            <SpecialAbilitiesCard abilities={profile.specialAbilities} />
+            <div data-tutorial-id="rider-profile-form">
+              <RiderConditionGauges
+                form={profile.condition.form}
+                dayNumber={profile.condition.dayNumber}
+              />
+            </div>
+            <div data-tutorial-id="rider-profile-abilities">
+              <SpecialAbilitiesCard abilities={profile.specialAbilities} />
+            </div>
           </aside>
         </div>
 
         {profile.canManage && riderPlanning ? (
-          <div className="mt-7">
+          <div data-tutorial-id="rider-profile-planning" className="mt-7">
             <RiderSeasonPlanning
               planning={riderPlanning}
               jersey={riderJersey}
@@ -402,9 +469,14 @@ export default async function RiderProfilePage({
         ) : null}
 
         <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-          <CareerHistory history={profile.history} />
+          <div data-tutorial-id="rider-profile-history">
+            <CareerHistory history={profile.history} />
+          </div>
           {profile.privateContract ? (
-            <div className="space-y-5">
+            <div
+              data-tutorial-id="rider-profile-contract"
+              className="space-y-5"
+            >
               <PrivateContractCard contract={profile.privateContract} />
               {transferManagement ? (
                 <ContractRenewalCard
@@ -428,7 +500,7 @@ export default async function RiderProfilePage({
           )}
         </div>
 
-        <div className="mt-7">
+        <div data-tutorial-id="rider-profile-equipment" className="mt-7">
           <RiderEquipmentLoadout
             riderId={profile.id}
             equipment={profile.equipment}
@@ -942,133 +1014,6 @@ function CareerSummaryCard({
         Les informations contractuelles sont réservées au Directeur Sportif de
         l’équipe actuelle.
       </p>
-    </section>
-  );
-}
-
-function PrivateTrainingReportCard({
-  report,
-}: {
-  report: NonNullable<
-    Awaited<ReturnType<typeof getPublicRiderProfile>>
-  >["trainingReport"] & {};
-}) {
-  if (!report) return null;
-  const domain = isTrainingDomain(report.domain)
-    ? TRAINING_DOMAIN_LABELS[report.domain]
-    : "Programme général";
-  const changes = Object.entries(report.ratingChanges).filter(
-    ([, value]) => value !== 0,
-  );
-  const gains = Object.entries(report.progressMilli).filter(
-    ([, value]) => value > 0,
-  );
-  const isCompleted = report.status === "completed";
-
-  return (
-    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-            Compte rendu privé
-          </p>
-          <h2 className="mt-1 font-black text-[#183F37]">
-            Rapport d’entraînement J{report.dayNumber}
-          </h2>
-        </div>
-        <span className="rounded-full bg-[#FFF2C7] px-3 py-1 text-xs font-black text-[#7A5B09]">
-          {report.intensity}%
-        </span>
-      </div>
-      <p className="mt-4 text-sm font-bold text-[#48665F]">
-        {isCompleted ? (
-          <>
-            {domain} · Forme {report.formDelta > 0 ? "+" : ""}
-            {report.formDelta}
-          </>
-        ) : (
-          "Pas d’entraînement pendant la séance de 8 h"
-        )}
-      </p>
-      <p className="mt-3 rounded-xl bg-[#F3F8F5] px-4 py-3 text-xs font-bold leading-5 text-[#60756E]">
-        {isCompleted
-          ? gains.length > 0
-            ? gains
-                .map(
-                  ([stat, value]) =>
-                    `${TRAINING_STAT_LABELS[stat] ?? stat} +${formatTrainingProgressMilli(value)}`,
-                )
-                .join(" · ")
-            : "Aucun gain de statistique pendant cette séance."
-          : "Aucun gain d’entraînement n’a été crédité."}
-      </p>
-      {changes.length > 0 ? (
-        <p className="mt-2 text-xs font-bold leading-5 text-[#60756E]">
-          Notes entières :{" "}
-          {changes
-            .map(
-              ([stat, value]) =>
-                `${TRAINING_STAT_LABELS[stat] ?? stat} ${value > 0 ? "+" : ""}${value}`,
-            )
-            .join(" · ")}
-        </p>
-      ) : null}
-      <Link
-        href="/jeu/entrainement"
-        className="mt-4 inline-flex text-xs font-black uppercase tracking-wider text-[#176951]"
-      >
-        Ouvrir les entraînements →
-      </Link>
-    </section>
-  );
-}
-
-const TRAINING_STAT_LABELS: Record<string, string> = {
-  mountain: "MON",
-  hills: "VAL",
-  flat: "PLA",
-  time_trial: "CLM",
-  cobbles: "PAV",
-  sprint: "SPR",
-  acceleration: "ACC",
-  downhill: "DES",
-  endurance: "END",
-  resistance: "RES",
-  recovery: "REC",
-  breakaway: "BAR",
-  prologue: "PRO",
-};
-
-function LockedTrainingCard({ canManage }: { canManage: boolean }) {
-  return (
-    <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_34px_rgba(19,60,46,0.07)]">
-      <div className="flex items-center gap-3">
-        <span
-          className="grid h-10 w-10 place-items-center rounded-xl bg-[#EAF5F3] text-lg"
-          aria-hidden="true"
-        >
-          🔒
-        </span>
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-            Compte rendu
-          </p>
-          <h2 className="mt-1 font-black text-[#183F37]">Entraînement</h2>
-        </div>
-      </div>
-      <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-        {canManage
-          ? "Aucun rapport n’est encore disponible pour ce coureur. La première séance sera réglée à 8 h."
-          : "Le compte rendu d’entraînement est réservé au Directeur Sportif de l’équipe du coureur."}
-      </p>
-      {canManage ? (
-        <Link
-          href="/jeu/entrainement"
-          className="mt-4 inline-flex text-xs font-black uppercase tracking-wider text-[#176951]"
-        >
-          Configurer son programme →
-        </Link>
-      ) : null}
     </section>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from "./actions";
 
 import { GameHeader } from "@/components/game/game-header";
+import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
@@ -454,14 +455,16 @@ export default async function RaceProfilePage({
               </div>
 
               <aside className="space-y-5">
-                <RegistrationPanel
-                  edition={edition}
-                  context={raceUserContext}
-                  contextError={contextError}
-                  riders={rosterOptions}
-                  rosterError={rosterError}
-                  riderJersey={riderJersey}
-                />
+                <div id="inscription" className="scroll-mt-24">
+                  <RegistrationPanel
+                    edition={edition}
+                    context={raceUserContext}
+                    contextError={contextError}
+                    riders={rosterOptions}
+                    rosterError={rosterError}
+                    riderJersey={riderJersey}
+                  />
+                </div>
 
                 <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
                   <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
@@ -1034,7 +1037,10 @@ function EngagedRidersSection({
       : 24);
 
   return (
-    <section className="mt-8 rounded-2xl border border-[#315B3E]/15 bg-white p-6">
+    <section
+      id="peloton"
+      className="mt-8 scroll-mt-24 rounded-2xl border border-[#315B3E]/15 bg-white p-6"
+    >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
@@ -1050,6 +1056,12 @@ function EngagedRidersSection({
             : `${riders.length} / 200 coureurs · ${teams.size} équipes`}
         </span>
       </div>
+
+      <RaceFavoritesPanel
+        edition={edition}
+        riders={edition.engagedRiders}
+        className="mt-5"
+      />
 
       {riders.length > 0 ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">

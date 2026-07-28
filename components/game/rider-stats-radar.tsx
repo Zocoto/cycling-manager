@@ -2,18 +2,24 @@ import {
   createRadarPoints,
   RIDER_RATING_AXES,
   serializeRadarPoints,
+  type RiderRatingKey,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
+import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 
 type RiderStatsRadarProps = {
   ratings: RiderRatings;
+  equipmentBonuses?: Partial<Record<RiderRatingKey, number>>;
 };
 
 const CENTER = 150;
 const RADIUS = 92;
 
-export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
+export function RiderStatsRadar({
+  ratings,
+  equipmentBonuses = {},
+}: RiderStatsRadarProps) {
   const values = RIDER_RATING_AXES.map((axis) => ratings[axis.key]);
   const dataPoints = createRadarPoints({ values, center: CENTER, radius: RADIUS });
   const outerPoints = createRadarPoints({
@@ -114,7 +120,11 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
             key={axis.key}
             title={axis.label}
             data-rating-importance={axis.importance}
-            aria-label={`${axis.label} : ${ratings[axis.key]}`}
+            aria-label={`${axis.label} : ${ratings[axis.key]}${
+              Number(equipmentBonuses[axis.key] ?? 0) > 0
+                ? `, bonus équipement +${equipmentBonuses[axis.key]}`
+                : ""
+            }`}
             className={[
               "flex items-center justify-between gap-2 rounded-lg border px-3 py-2",
               getRiderRatingColorClasses(ratings[axis.key], axis.importance),
@@ -123,8 +133,12 @@ export function RiderStatsRadar({ ratings }: RiderStatsRadarProps) {
             <span className={axis.importance === "primary" ? "text-[11px] font-black" : "text-[11px] font-bold opacity-65"}>
               {axis.shortLabel}
             </span>
-            <span className="text-sm font-black">
+            <span className="flex items-baseline text-sm font-black">
               {ratings[axis.key]}
+              <EquipmentRatingBonus
+                bonus={equipmentBonuses[axis.key]}
+                className="text-[9px]"
+              />
             </span>
           </div>
         ))}

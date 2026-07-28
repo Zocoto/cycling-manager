@@ -207,7 +207,10 @@ export function RaceReconnaissancePlanner({
   }
 
   return (
-    <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_18px_55px_rgba(19,60,46,0.09)]">
+    <section
+      data-tutorial-id="reconnaissance-overview"
+      className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_18px_55px_rgba(19,60,46,0.09)]"
+    >
       <header className="bg-[#0B302B] px-6 py-6 text-white sm:px-8">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
@@ -237,7 +240,10 @@ export function RaceReconnaissancePlanner({
 
       <form action={bookRaceReconnaissanceAction}>
         <div className="grid gap-0 xl:grid-cols-[minmax(420px,0.82fr)_minmax(0,1.18fr)]">
-          <div className="border-b border-[#315B3E]/10 p-5 sm:p-7 xl:border-b-0 xl:border-r">
+          <div
+            data-tutorial-id="reconnaissance-rider-selection"
+            className="border-b border-[#315B3E]/10 p-5 sm:p-7 xl:border-b-0 xl:border-r"
+          >
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">
@@ -389,7 +395,10 @@ export function RaceReconnaissancePlanner({
               </p>
             ) : null}
 
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+            <div
+              data-tutorial-id="reconnaissance-course-selection"
+              className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7"
+            >
               {upcomingDays.map((day) => {
                 const dayNumber = day.dayNumber;
                 const dayStages = stagesByDay.get(dayNumber) ?? [];
@@ -453,8 +462,8 @@ export function RaceReconnaissancePlanner({
               })}
             </div>
 
-            {selectedStage ? (
-              <div className="mt-5 rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-4">
+            <div data-tutorial-id="reconnaissance-date-planning" className="mt-5">
+              {selectedStage ? (              <div className="rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-4">
                 <label className="block">
                   <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
                     Date des deux jours de préparation
@@ -490,7 +499,12 @@ export function RaceReconnaissancePlanner({
                     : `La course occupe J${selectedStage.editionStartDayNumber}–J${selectedStage.editionEndDayNumber} : toute période qui chevauche ce tour est bloquée.`}
                 </p>
               </div>
-            ) : null}
+              ) : (
+                <p className="rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-4 text-xs font-semibold leading-5 text-[#60756E]">
+                  Après avoir choisi une épreuve, la période de préparation compatible avec tous les coureurs apparaîtra ici.
+                </p>
+              )}
+            </div>
 
             {selectedRiderIds.length > 0 && visibleStages.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-5 py-5 text-sm font-semibold text-[#60756E]">
@@ -597,6 +611,7 @@ function ReconnaissanceSubmitButton({ disabled }: { disabled: boolean }) {
   return (
     <button
       type="submit"
+      data-tutorial-id="reconnaissance-validation"
       disabled={disabled || pending}
       className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#F2C94C] px-6 text-xs font-black uppercase tracking-[0.12em] text-[#173B32] transition hover:bg-[#E4B82F] disabled:cursor-not-allowed disabled:bg-[#C8D3CF] disabled:text-[#6A7B75]"
     >

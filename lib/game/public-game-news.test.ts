@@ -121,23 +121,14 @@ describe("public game news", () => {
     ]);
   });
 
-it("conserve uniquement les temps forts utiles au bureau du DS", () => {
-    const happenedAt = "2026-07-21T09:00:00.000Z";
+  it("conserve les vainqueurs et les nouvelles structurantes du bureau du DS", () => {
     const highlights = selectDashboardPelotonHighlights([
       {
-        id: "victory:1",
-        kind: "victory",
-        title: "Victoire",
+        id: "race-recap:breakaway",
+        kind: "race_recap",
+        title: "Échappée du jour",
         detail: "Détail",
-        happenedAt,
-        significance: "major",
-      },
-      {
-        id: "movement:major",
-        kind: "movement",
-        title: "Transfert entre DS",
-        detail: "Détail",
-        happenedAt: "2026-07-21T08:00:00.000Z",
+        happenedAt: "2026-07-21T11:00:00.000Z",
         significance: "major",
       },
       {
@@ -153,13 +144,46 @@ it("conserve uniquement les temps forts utiles au bureau du DS", () => {
         kind: "arrival",
         title: "Nouveau DS",
         detail: "Détail",
-        happenedAt,
+        happenedAt: "2026-07-21T09:30:00.000Z",
+      },
+      {
+        id: "staff:1",
+        kind: "staff",
+        title: "Nouveau membre du staff",
+        detail: "Détail",
+        happenedAt: "2026-07-21T09:15:00.000Z",
+      },
+      {
+        id: "victory:1",
+        kind: "victory",
+        title: "Victoire",
+        detail: "Détail",
+        happenedAt: "2026-07-21T09:00:00.000Z",
+        significance: "major",
+      },
+      {
+        id: "sponsor:1",
+        kind: "movement",
+        title: "Signature sponsor",
+        detail: "Détail",
+        happenedAt: "2026-07-21T08:30:00.000Z",
+        significance: "major",
+      },
+      {
+        id: "movement:major",
+        kind: "movement",
+        title: "Transfert entre DS",
+        detail: "Détail",
+        happenedAt: "2026-07-21T08:00:00.000Z",
         significance: "major",
       },
     ]);
 
     expect(highlights.map((item) => item.id)).toEqual([
+      "arrival:1",
+      "staff:1",
       "victory:1",
+      "sponsor:1",
       "movement:major",
     ]);
   });

@@ -9,6 +9,7 @@ import { RankingBadge } from "@/components/game/ranking-badge";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
+import { TeamSeasonResultsPopover } from "@/components/game/team-season-results-popover";
 import { DEFAULT_AMATEUR_JERSEY } from "@/lib/amateur-team";
 import type { TeamResultCandidate } from "@/lib/game/team-result-highlights";
 import {
@@ -625,33 +626,16 @@ function SeasonPalmares({
   }
 
   return (
-    <div className="min-w-[280px]">
-      {victoryCount > 0 ? (
-        <p className="mb-2 text-xs font-black uppercase tracking-wide text-[#176951]">
-          {victoryCount} victoire{victoryCount > 1 ? "s" : ""} sur la saison
-        </p>
-      ) : null}
-      <ul className="space-y-1.5">
-        {highlights.map((highlight) => (
-          <li
-            key={highlight.id}
-            className="text-xs font-semibold text-[#48665F]"
-          >
-            <Link
-              href={getTeamResultHref(highlight)}
-              className="hover:text-[#176951] hover:underline"
-            >
-              <span className="font-black">
-                {formatTeamResultTitle(highlight)}
-              </span>
-              {" · "}
-              {highlight.raceName}
-              {highlight.riderName ? ` · ${highlight.riderName}` : ""}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <TeamSeasonResultsPopover
+      victoryCount={victoryCount}
+      items={highlights.map((highlight) => ({
+        id: highlight.id,
+        href: getTeamResultHref(highlight),
+        title: formatTeamResultTitle(highlight),
+        raceName: highlight.raceName,
+        riderName: highlight.riderName,
+      }))}
+    />
   );
 }
 function getTeamResultHref(result: TeamResultCandidate): string {

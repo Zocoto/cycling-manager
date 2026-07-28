@@ -8,6 +8,9 @@ import { PotentialStars } from "@/components/game/potential-stars";
 import { RaceReconnaissancePlanner } from "@/components/game/race-reconnaissance-planner";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TrainingReportPopover } from "@/components/game/training-report-popover";
+import { TeamProgressionModal } from "@/components/game/team-progression-modal";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
   RiderTrainingPlanForm,
   TrainingThresholdForm,
@@ -37,6 +40,13 @@ import {
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
 import { getCurrentTeamRaceReconnaissanceOverview } from "@/services/team-race-reconnaissance";
+import { getRiderProgressionHistories } from "@/services/rider-progression";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import {
+  TRAINING_RECONNAISSANCE_TUTORIAL_ROUTE,
+  TRAINING_TUTORIAL_KEY,
+  TRAINING_TUTORIAL_ROUTE,
+} from "@/lib/tutorial/training";
 
 export const metadata: Metadata = {
   title: "Entraînements",
@@ -52,6 +62,8 @@ type TrainingPageProps = {
     erreur?: string;
     onglet?: string | string[];
     reconnaissance?: string;
+    progression?: string;
+    coureur?: string;
   }>;
 };
 
@@ -74,6 +86,7 @@ export default async function TrainingPage({
     amateurIdentity,
     sponsorIdentity,
     reconnaissanceOverview,
+    trainingTutorialProgress,
   ] = await Promise.all([
     getCurrentTeamTrainingOverview(user.id),
     getGameHeaderData(supabase, user.id),
@@ -82,12 +95,29 @@ export default async function TrainingPage({
     activeTab === "reconnaissance"
       ? getCurrentTeamRaceReconnaissanceOverview(user.id)
       : Promise.resolve(null),
+    getAuthenticatedTutorialProgress(supabase, TRAINING_TUTORIAL_KEY).catch(
+      (error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel de l’entraînement :",
+          error,
+        );
+        return null;
+      },
+    ),
   ]);
 
   if (!overview) redirect("/jeu");
   if (activeTab === "reconnaissance" && !reconnaissanceOverview) {
     redirect("/jeu");
   }
+
+  const progressionHistories =
+    activeTab === "training"
+      ? await getRiderProgressionHistories({
+          riderIds: overview.riders.map((rider) => rider.id),
+          currentSeasonId: overview.seasonId,
+        })
+      : [];
 
   const jersey: RiderJerseyAppearance = sponsorIdentity
     ? createSponsoredRiderJersey({
@@ -98,9 +128,21 @@ export default async function TrainingPage({
     : amateurIdentity
       ? createAmateurRiderJersey(amateurIdentity.jersey)
       : FREE_AGENT_RIDER_JERSEY;
+  const currentTrainingTutorialRoute =
+    activeTab === "reconnaissance"
+      ? TRAINING_RECONNAISSANCE_TUTORIAL_ROUTE
+      : TRAINING_TUTORIAL_ROUTE;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {trainingTutorialProgress?.status === "in_progress" &&
+      trainingTutorialProgress.current_route === currentTrainingTutorialRoute &&
+      trainingTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={TRAINING_TUTORIAL_KEY}
+          currentStepKey={trainingTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -109,7 +151,10 @@ export default async function TrainingPage({
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-11">
-        <BackToOfficeLink />
+        <div className="flex items-center justify-between gap-4">
+          <BackToOfficeLink />
+          <TutorialLaunchButton tutorialKey={TRAINING_TUTORIAL_KEY} iconOnly />
+        </div>
 
         <div className="mt-6">
           {query.erreur ? <Alert tone="error">{query.erreur}</Alert> : null}
@@ -131,7 +176,10 @@ export default async function TrainingPage({
 
         {activeTab === "training" ? (
           <>
-            <header className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9">
+            <header
+              data-tutorial-id="training-overview"
+              className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] p-6 text-white shadow-[0_22px_60px_rgba(7,26,23,0.2)] sm:p-9"
+            >
               <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.75fr)] xl:items-end">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
@@ -152,10 +200,22 @@ export default async function TrainingPage({
                         ? "Séance du jour réglée"
                         : "Modifiable jusqu’à 8 h"}
                     </span>
+                    <TeamProgressionModal
+                      riders={overview.riders.map((rider) => ({
+                        id: rider.id,
+                        firstName: rider.firstName,
+                        lastName: rider.lastName,
+                        countryCode: rider.countryCode,
+                        age: rider.age,
+                      }))}
+                      histories={progressionHistories}
+                      initiallyOpen={query.progression === "1"}
+                      initialRiderId={query.coureur}
+                    />
                   </div>
                 </div>
 
-                <div>
+                <div data-tutorial-id="training-threshold">
                   <p className="mb-3 text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
                     Seuil minimal de forme
                   </p>
@@ -170,7 +230,10 @@ export default async function TrainingPage({
               </div>
             </header>
 
-            <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
+            <section
+              data-tutorial-id="training-staff"
+              className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
+            >
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
@@ -294,7 +357,7 @@ export default async function TrainingPage({
               </div>
 
               <div className="mt-5 space-y-4">
-                {overview.riders.map((rider) => (
+                {overview.riders.map((rider, riderIndex) => (
                   <article
                     key={rider.id}
                     className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
@@ -360,11 +423,17 @@ export default async function TrainingPage({
                         initialTrainerContractId={rider.plan.trainerContractId}
                         riderCountryCode={rider.countryCode}
                         trainers={overview.trainers}
+                        tutorialTargetPrefix={
+                          riderIndex === 0 ? "training-plan" : undefined
+                        }
                       />
 
                       <TrainingReportPopover
                         report={rider.latestReport}
                         seasonReport={rider.seasonReport}
+                        tutorialTargetId={
+                          riderIndex === 0 ? "training-report" : undefined
+                        }
                       />
                     </div>
                   </article>

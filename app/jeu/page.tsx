@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
-import { DashboardWorldOverview } from "../../components/game/dashboard-world-overview";
+import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
+import { DashboardMonitoringOverview } from "../../components/game/dashboard-monitoring-overview";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
 import { RiderAvatar } from "../../components/game/rider-avatar";
@@ -555,11 +556,10 @@ export default async function GamePage() {
             </div>
           </header>
 
-          <DashboardWorldOverview
+          <DashboardMonitoringOverview
             teamId={dashboardTeamId}
             dashboardEvents={dashboardEvents}
             rankings={uciRankings}
-            calendar={raceCalendar}
             pelotonNews={pelotonNews}
           />
 
@@ -583,6 +583,8 @@ export default async function GamePage() {
               teamAmateurIdentity={teamAmateurIdentity}
               financeOverview={financeOverview}
               reputationBreakdown={reputationBreakdown}
+              calendar={raceCalendar}
+              riderCount={riderCount}
             />
 
             <div className="grid content-start gap-6">
@@ -737,6 +739,8 @@ function DirectorProfileCard({
   teamAmateurIdentity,
   financeOverview,
   reputationBreakdown,
+  calendar,
+  riderCount,
 }: {
   sportingDirector: SportingDirector | null;
   email: string | null;
@@ -747,6 +751,8 @@ function DirectorProfileCard({
   teamAmateurIdentity: TeamAmateurIdentity | null;
   financeOverview: TeamFinanceOverview | null;
   reputationBreakdown: SportingDirectorReputationBreakdown | null;
+  calendar: SeasonRaceCalendar | null;
+  riderCount: number;
 }) {
   const profileName =
     sportingDirector?.display_name ??
@@ -773,13 +779,24 @@ function DirectorProfileCard({
           </h2>
         </div>
 
-        <Link
-          href="/jeu/directeur-sportif"
-          className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/40 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-        >
-          <EditIcon />
-          Profil
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span
+            className={
+              isProfileComplete
+                ? "rounded-full bg-[#7CCF9C]/15 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[#9BE0BC]"
+                : "rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[#F2C94C]"
+            }
+          >
+            {isProfileComplete ? "Profil complété" : "Profil incomplet"}
+          </span>
+          <Link
+            href="/jeu/directeur-sportif"
+            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#F2C94C]/40 bg-[#F2C94C]/10 px-3 py-2 text-[10px] font-extrabold uppercase tracking-widest text-[#F2C94C] transition hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+          >
+            <EditIcon />
+            Profil
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
@@ -820,72 +837,63 @@ function DirectorProfileCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 border-t border-white/10 pt-4 md:grid-cols-2 md:items-center">
-        <SportingDirectorProgression
-          experiencePoints={experiencePoints}
-          compact
-        />
-        <div
-          className="md:border-l md:border-white/10 md:pl-4"
-          data-tutorial-id="dashboard-reputation"
-        >
-          <SportingDirectorReputation
-            reputationPoints={reputationPoints}
-            breakdown={reputationBreakdown}
-            compact
-          />
-        </div>
-      </div>
-
-      {financeOverview ? (
-        <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
-          <Link
-            href="/jeu/finances"
-            className="rounded-xl border border-white/12 bg-white/7 px-4 py-3 transition hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-          >
-            <span className="block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">
-              Budget disponible
-            </span>
-            <span
-              className={`mt-1 block text-xl font-black ${
-                financeOverview.balance < 0
-                  ? "text-[#FF9D8F]"
-                  : "text-[#F2C94C]"
-              }`}
+      <div className="mt-4 grid gap-5 border-t border-white/10 pt-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.95fr)]">
+        <div className="grid content-start gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 sm:items-center">
+            <SportingDirectorProgression
+              experiencePoints={experiencePoints}
+              compact
+            />
+            <div
+              className="sm:border-l sm:border-white/10 sm:pl-4"
+              data-tutorial-id="dashboard-reputation"
             >
-              {formatDashboardCurrency(
-                financeOverview.balance,
-                financeOverview.currency,
-              )}
-            </span>
-          </Link>
+              <SportingDirectorReputation
+                reputationPoints={reputationPoints}
+                breakdown={reputationBreakdown}
+                compact
+              />
+            </div>
+          </div>
 
-          <RankingBadge
-            rank={financeOverview.teamRank}
-            points={financeOverview.teamPoints}
-            label="Classement en cours"
-            dark
-          />
+          {financeOverview ? (
+            <div className="grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
+              <Link
+                href="/jeu/finances"
+                className="rounded-xl border border-white/12 bg-white/7 px-4 py-3 transition hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+              >
+                <span className="block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">
+                  Budget disponible
+                </span>
+                <span
+                  className={`mt-1 block text-xl font-black ${
+                    financeOverview.balance < 0
+                      ? "text-[#FF9D8F]"
+                      : "text-[#F2C94C]"
+                  }`}
+                >
+                  {formatDashboardCurrency(
+                    financeOverview.balance,
+                    financeOverview.currency,
+                  )}
+                </span>
+              </Link>
+
+              <RankingBadge
+                rank={financeOverview.teamRank}
+                points={financeOverview.teamPoints}
+                label="Classement en cours"
+                dark
+              />
+            </div>
+          ) : null}
         </div>
-      ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-        <span
-          className={
-            isProfileComplete
-              ? "rounded-full bg-[#7CCF9C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#9BE0BC]"
-              : "rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-[#F2C94C]"
-          }
-        >
-          {isProfileComplete ? "Profil initial complété" : "Profil incomplet"}
-        </span>
-
-        <span className="text-xs font-semibold text-[#9FB5A8]">
-          Début de carrière :{" "}
-          {sportingDirector?.created_at
-            ? formatCareerStart(sportingDirector.created_at)
-            : "Non disponible"}
-        </span>
+        <DashboardEligibleRaces
+          calendar={calendar}
+          reputationPoints={reputationPoints}
+          riderCount={riderCount}
+        />
       </div>
     </article>
   );
@@ -1716,13 +1724,6 @@ async function loadDashboardValue<T>(
   }
 }
 
-function formatCareerStart(value: string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(value));
-}
 
 function formatDashboardCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat("fr-FR", {

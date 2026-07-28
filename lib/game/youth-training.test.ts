@@ -141,6 +141,27 @@ describe("youth training", () => {
     expect(gain).toBeLessThan(1);
   });
 
+  it("continue de faire progresser un junior au-delà de 65", () => {
+    expect(
+      calculateYouthManualTrainingGain({
+        score: 1_000,
+        potentialSteps: 8,
+        currentProjectedRating: 80,
+        domain: "climber",
+        ratingKey: "mountain",
+      }),
+    ).toBeGreaterThan(0);
+    expect(
+      calculateYouthAutomaticTrainingGain({
+        age: 18,
+        potentialSteps: 8,
+        currentProjectedRating: 80,
+        domain: "climber",
+        ratingKey: "mountain",
+      }),
+    ).toBeGreaterThan(0);
+  });
+
   it("convertit les notes internes sans perdre la projection professionnelle", () => {
     expect(projectYouthRating(2)).toBe(50);
     expect(unprojectYouthRating(50)).toBe(2);

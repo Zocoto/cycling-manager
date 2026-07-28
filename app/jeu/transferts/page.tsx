@@ -13,6 +13,8 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TransferCountdown } from "@/components/game/transfer-countdown";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
@@ -20,7 +22,18 @@ import {
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
+import {
+  isTransferRiderProfileFilter,
+  TRANSFER_RIDER_PROFILE_FILTERS,
+} from "@/lib/game/transfer-market";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import {
+  TRANSFER_DAILY_TUTORIAL_ROUTE,
+  TRANSFER_DIRECTORS_TUTORIAL_ROUTE,
+  TRANSFER_FREE_AGENTS_TUTORIAL_ROUTE,
+  TRANSFER_TUTORIAL_KEY,
+} from "@/lib/tutorial/transfers";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
@@ -57,9 +70,18 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   const { data: { user }, error: authenticationError } = await supabase.auth.getUser();
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview] = await Promise.all([
+  const [headerData, overview, transferTutorialProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getTransferMarketOverview(supabase, user.id, filters),
+    getAuthenticatedTutorialProgress(supabase, TRANSFER_TUTORIAL_KEY).catch(
+      (error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel des transferts :",
+          error,
+        );
+        return null;
+      },
+    ),
   ]);
   if (!overview) redirect("/jeu");
 
@@ -92,19 +114,44 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   const success = readQuery(query.succes);
   const errorMessage = readQuery(query.erreur);
   const currentPath = `/jeu/transferts?onglet=${tab}`;
+  const currentTransferTutorialRoute =
+    tab === "directeurs"
+      ? TRANSFER_DIRECTORS_TUTORIAL_ROUTE
+      : tab === "libres"
+        ? TRANSFER_FREE_AGENTS_TUTORIAL_ROUTE
+        : TRANSFER_DAILY_TUTORIAL_ROUTE;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {transferTutorialProgress?.status === "in_progress" &&
+      transferTutorialProgress.current_route === currentTransferTutorialRoute &&
+      transferTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={TRANSFER_TUTORIAL_KEY}
+          currentStepKey={transferTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader simulatorEmail={user.email} displayName={headerData.displayName} sponsor={headerData.teamSponsorIdentity?.sponsor ?? null} maxWidth="wide" />
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
+        <header
+          data-tutorial-id="transfer-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        >
           <div aria-hidden="true" className="absolute -right-12 -top-20 h-72 w-72 rounded-full border-[42px] border-white/5" />
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">Recruter · vendre · construire</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Bureau des transferts</h1>
+              <div className="mt-3 flex items-center gap-3">
+                <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
+                  Bureau des transferts
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={TRANSFER_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Recrutez à partir d’un rapport de scouting incomplet. Votre
                 Data Room affine automatiquement les notes estimées et réduit
@@ -124,7 +171,11 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
         {success ? <Notice tone="success">{success}</Notice> : null}
         {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
 
-        <nav className="mt-7 grid gap-3 lg:grid-cols-3" aria-label="Rubriques du marché des transferts">
+        <nav
+          data-tutorial-id="transfer-tabs"
+          className="mt-7 grid gap-3 lg:grid-cols-3"
+          aria-label="Rubriques du marché des transferts"
+        >
           {tabs.map((entry) => (
             <Link
               key={entry.id}
@@ -158,15 +209,17 @@ function DailyAuctions({ listings, overview, returnPath }: {
   returnPath: string;
 }) {
   return (
-    <section className="mt-7">
-      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les cinq enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont volontairement partiels ; sans offre, le coureur rejoint les agents libres." />
-      {listings.length > 0 ? (
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
-        </div>
-      ) : (
-        <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : cinq nouveaux coureurs apparaîtront automatiquement." />
-      )}
+    <section data-tutorial-id="transfer-daily-overview" className="mt-7">
+      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les cinq enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
+      <div data-tutorial-id="transfer-daily-listings">
+        {listings.length > 0 ? (
+          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
+          </div>
+        ) : (
+          <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : cinq nouveaux coureurs apparaîtront automatiquement." />
+        )}
+      </div>
     </section>
   );
 }
@@ -182,7 +235,10 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
   return (
     <section className="mt-7 space-y-7">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-        <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
+        <article
+          data-tutorial-id="transfer-director-selling"
+          className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
+        >
           <SectionHeading eyebrow="Votre effectif" title="Mettre un coureur aux enchères" detail="Fixez le prix d’appel. La vente reste ouverte 24 heures et le plus offrant remporte le coureur." compact />
           {sellable.length > 0 ? (
             <form action={createDirectorListingAction} className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px_auto] sm:items-end">
@@ -206,7 +262,7 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
         </article>
       </div>
 
-      <div>
+      <div data-tutorial-id="transfer-director-market">
         <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture ; le transfert et les écritures financières sont ensuite automatiques." />
         {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
       </div>
@@ -225,16 +281,19 @@ function FreeAgents({ riders, countries, query, currency, rosterSize, rosterLimi
   returnPath: string;
 }) {
   return (
-    <section className="mt-7">
+    <section data-tutorial-id="transfer-free-agents-overview" className="mt-7">
       <SectionHeading eyebrow="Sans indemnité de transfert" title="Base des agents libres" detail="Le contrat couvre la saison actuelle et la suivante. Le salaire est connu, mais le niveau sportif reste soumis à la qualité du rapport de scouting." />
       {rosterIsFull ? (
         <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
           Effectif complet : {rosterSize} / {rosterLimit} coureurs. Libérez une place avant toute nouvelle signature.
         </p>
       ) : null}
-      <form className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-6">
+      <form
+        data-tutorial-id="transfer-free-agent-filters"
+        className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-6"
+      >
         <input type="hidden" name="onglet" value="libres" />
-        <FilterField label="Nom"><input name="recherche" defaultValue={readQuery(query.recherche)} placeholder="Rechercher…" className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
+        <FilterField label="Profil"><select name="profil" defaultValue={readQuery(query.profil)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Tous les profils</option>{TRANSFER_RIDER_PROFILE_FILTERS.map((profile) => <option key={profile} value={profile}>{profile}</option>)}</select></FilterField>
         <FilterField label="Nationalité"><select name="pays" defaultValue={readQuery(query.pays)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Toutes</option>{countries.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select></FilterField>
         <FilterField label="Âge min."><input name="ageMin" type="number" min="15" max="60" defaultValue={readQuery(query.ageMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
         <FilterField label="Âge max."><input name="ageMax" type="number" min="15" max="60" defaultValue={readQuery(query.ageMax)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
@@ -242,11 +301,13 @@ function FreeAgents({ riders, countries, query, currency, rosterSize, rosterLimi
         <FilterField label="Seuil estimé"><input name="statMin" type="number" min="0" max="100" defaultValue={readQuery(query.statMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
         <div className="flex gap-3 xl:col-span-6"><button className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white">Filtrer</button><Link href="/jeu/transferts?onglet=libres" className="rounded-xl border border-[#315B3E]/20 px-5 py-3 text-xs font-black uppercase tracking-wider text-[#315B3E]">Réinitialiser</Link></div>
       </form>
-      {riders.length > 0 ? (
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {riders.map((rider) => <FreeAgentCard key={rider.id} rider={rider} currency={currency} rosterIsFull={rosterIsFull} returnPath={returnPath} />)}
-        </div>
-      ) : <EmptyState title="Aucun agent libre pour ces filtres" detail="Élargissez les critères ou attendez la prochaine clôture d’enchère sans offre." />}
+      <div data-tutorial-id="transfer-free-agent-listings">
+        {riders.length > 0 ? (
+          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {riders.map((rider) => <FreeAgentCard key={rider.id} rider={rider} currency={currency} rosterIsFull={rosterIsFull} returnPath={returnPath} />)}
+          </div>
+        ) : <EmptyState title="Aucun agent libre pour ces filtres" detail="Élargissez les critères ou attendez la prochaine clôture d’enchère sans offre." />}
+      </div>
     </section>
   );
 }
@@ -303,4 +364,20 @@ function formatDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { d
 function readQuery(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] ?? "" : value ?? ""; }
 function readTab(value: string): TransferTab { return value === "directeurs" || value === "libres" ? value : "quotidiennes"; }
 function readNumber(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isFinite(parsed) && readQuery(value) !== "" ? parsed : undefined; }
-function readFilters(query: Record<string, string | string[] | undefined>): TransferMarketFilters { const rating = readQuery(query.stat); return { search: readQuery(query.recherche), country: readQuery(query.pays), minimumAge: readNumber(query.ageMin), maximumAge: readNumber(query.ageMax), rating: rating === "overall" || RIDER_RATING_AXES.some((axis) => axis.key === rating) ? rating as RiderRatingKey | "overall" : undefined, minimumRating: readNumber(query.statMin) }; }
+function readFilters(query: Record<string, string | string[] | undefined>): TransferMarketFilters {
+  const profile = readQuery(query.profil);
+  const rating = readQuery(query.stat);
+
+  return {
+    profile: isTransferRiderProfileFilter(profile) ? profile : undefined,
+    country: readQuery(query.pays),
+    minimumAge: readNumber(query.ageMin),
+    maximumAge: readNumber(query.ageMax),
+    rating:
+      rating === "overall" ||
+      RIDER_RATING_AXES.some((axis) => axis.key === rating)
+        ? (rating as RiderRatingKey | "overall")
+        : undefined,
+    minimumRating: readNumber(query.statMin),
+  };
+}

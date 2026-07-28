@@ -4,6 +4,7 @@ import Link from "@/components/ui/app-link";
 import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
+import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
 import { WheelLogo } from "@/components/ui/wheel-logo";
@@ -19,6 +20,7 @@ type GameHeaderProps = {
   maxWidth?: "standard" | "wide";
   searchQuery?: string;
   simulatorEmail?: string | null;
+  chatIsOpen?: boolean;
 };
 
 const DEFAULT_HEADER_COLORS = {
@@ -33,6 +35,7 @@ export function GameHeader({
   maxWidth = "standard",
   searchQuery = "",
   simulatorEmail = null,
+  chatIsOpen = false,
 }: GameHeaderProps) {
   const colors = sponsor?.colors ??
     DEFAULT_HEADER_COLORS;
@@ -234,30 +237,7 @@ export function GameHeader({
             <RaceSimulatorShortcut />
           ) : null}
 
-          <Link
-            href="/jeu/chat"
-            title="Ouvrir le chat général"
-            aria-label="Ouvrir le chat général"
-            className="group relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="h-[1.1rem] w-[1.1rem]"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 3.5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" />
-              <path d="M6 9h.01M10 9h.01M14 9h.01" />
-            </svg>
-            <span
-              aria-hidden="true"
-              className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border border-[#071A17] bg-[#42B99A] transition group-hover:bg-[var(--game-header-accent)]"
-            />
-          </Link>
+          <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
           <TutorialCenterMenu />
 

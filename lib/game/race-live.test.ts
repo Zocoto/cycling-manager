@@ -4,9 +4,12 @@ import {
   canSimulateRaceEdition,
   getEstimatedLiveDurationMinutes,
   getRaceExperienceAvailability,
+  getRaceGroupLayoutDensity,
+  getRaceRegistrationHref,
   getRaceResultsHref,
   getStageLiveState,
   selectRaceStageForLiveAccess,
+  shouldHideRaceGaps,
 } from "./race-live";
 
 const STAGE = {
@@ -37,6 +40,20 @@ describe("getStageLiveState", () => {
     expect(
       getStageLiveState(STAGE, new Date("2026-07-20T18:25:00.000Z"))
     ).toMatchObject({ status: "finished", progress: 1 });
+  });
+});
+
+describe("race gap presentation", () => {
+  it("switches to compact cards from four groups", () => {
+    expect(getRaceGroupLayoutDensity(3)).toBe("comfortable");
+    expect(getRaceGroupLayoutDensity(4)).toBe("compact");
+    expect(getRaceGroupLayoutDensity(9)).toBe("compact");
+  });
+
+  it("hides gaps only on the finish segment", () => {
+    expect(shouldHideRaceGaps(7, 8)).toBe(false);
+    expect(shouldHideRaceGaps(8, 8)).toBe(true);
+    expect(shouldHideRaceGaps(1, 0)).toBe(false);
   });
 });
 
@@ -96,6 +113,14 @@ describe("accès direct aux résultats et au live", () => {
     );
   });
 
+  it("cible une étape de résultats et le formulaire d’inscription", () => {
+    expect(getRaceResultsHref("tour-des-alpes", 3)).toBe(
+      "/jeu/resultats/tour-des-alpes/3",
+    );
+    expect(getRaceRegistrationHref("tour-des-alpes")).toBe(
+      "/jeu/courses/tour-des-alpes#inscription",
+    );
+  });
   it("ouvre l'étape en direct en priorité", () => {
     const now = new Date("2026-07-21T18:10:00.000Z");
 

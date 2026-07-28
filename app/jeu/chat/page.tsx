@@ -38,6 +38,7 @@ export default async function GlobalChatPage() {
         displayName={headerData.displayName}
         sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
         maxWidth="wide"
+        chatIsOpen
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">

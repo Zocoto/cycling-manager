@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
+import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import { RaceLiveLab } from "@/components/game/race-live-lab";
 import { RaceOfficialResults } from "@/components/game/race-official-results";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -25,6 +26,7 @@ import {
   getStageLiveState,
   selectRaceStageForLiveAccess,
 } from "@/lib/game/race-live";
+import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type {
   OfficialRaceEditionResults,
@@ -398,6 +400,10 @@ function SelectedRaceExperience({
   lockedSimulations: LockedOfficialStageSimulation[];
 }) {
   const state = getStageLiveState(entry.stage, now);
+  const favoriteRiders = getFrozenRaceFavoriteRiders(
+    entry.edition,
+    lockedSimulations
+  );
   const simulationAvailable = canSimulateRaceEdition(
     entry.edition
   );
@@ -491,6 +497,14 @@ function SelectedRaceExperience({
             </p>
           </div>
         </div>
+        <div className="px-6 pb-6 sm:px-9 sm:pb-9">
+          <RaceFavoritesPanel
+            edition={entry.edition}
+            riders={favoriteRiders}
+            frozen
+            tone="dark"
+          />
+        </div>
       </section>
     );
   }
@@ -534,6 +548,7 @@ function SelectedRaceExperience({
           edition={entry.edition}
           selectedStageId={entry.stage.id}
           officialResults={officialResults}
+          favoriteRiders={favoriteRiders}
         />
       ) : (
         <RaceLiveLab

@@ -53,6 +53,7 @@ export function RiderTrainingPlanForm({
   initialTrainerContractId,
   riderCountryCode,
   trainers,
+  tutorialTargetPrefix,
 }: {
   riderId: string;
   initialIntensity: number;
@@ -60,6 +61,7 @@ export function RiderTrainingPlanForm({
   initialTrainerContractId: string | null;
   riderCountryCode: string;
   trainers: TeamTrainer[];
+  tutorialTargetPrefix?: string;
 }) {
   const [intensity, setIntensity] = useState(initialIntensity);
   const [trainerContractId, setTrainerContractId] = useState(
@@ -81,10 +83,18 @@ export function RiderTrainingPlanForm({
   return (
     <form
       action={saveRiderTrainingPlanAction}
+      data-tutorial-id={
+        tutorialTargetPrefix ? `${tutorialTargetPrefix}-setup` : undefined
+      }
       className="grid min-w-0 gap-4 lg:grid-cols-[minmax(210px,1.2fr)_minmax(170px,0.9fr)_minmax(190px,1fr)_150px] lg:items-end"
     >
       <input type="hidden" name="riderId" value={riderId} />
-      <div className="min-w-0">
+      <div
+        data-tutorial-id={
+          tutorialTargetPrefix ? `${tutorialTargetPrefix}-intensity` : undefined
+        }
+        className="min-w-0"
+      >
         <div className="flex items-center justify-between gap-3">
           <span
             id={intensityLabelId}
@@ -128,10 +138,13 @@ export function RiderTrainingPlanForm({
         </span>
       </div>
 
-      <label>
+      <label
+        data-tutorial-id={
+          tutorialTargetPrefix ? `${tutorialTargetPrefix}-domain` : undefined
+        }
+      >
         <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-          Domaine
-        </span>
+          Domaine        </span>
         <select
           name="domain"
           defaultValue={initialDomain}
@@ -145,10 +158,13 @@ export function RiderTrainingPlanForm({
         </select>
       </label>
 
-      <label>
+      <label
+        data-tutorial-id={
+          tutorialTargetPrefix ? `${tutorialTargetPrefix}-trainer` : undefined
+        }
+      >
         <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-          Entraîneur assigné
-        </span>
+          Entraîneur assigné        </span>
         <select
           name="trainerContractId"
           value={trainerContractId}
@@ -195,7 +211,12 @@ export function RiderTrainingPlanForm({
         ) : null}
       </label>
 
-      <TrainingSubmitButton pendingLabel="Sauvegarde…">
+      <TrainingSubmitButton
+        pendingLabel="Sauvegarde…"
+        tutorialTargetId={
+          tutorialTargetPrefix ? `${tutorialTargetPrefix}-save` : undefined
+        }
+      >
         Enregistrer
       </TrainingSubmitButton>
     </form>
@@ -205,14 +226,17 @@ export function RiderTrainingPlanForm({
 function TrainingSubmitButton({
   children,
   pendingLabel,
+  tutorialTargetId,
 }: {
   children: React.ReactNode;
   pendingLabel: string;
+  tutorialTargetId?: string;
 }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
+      data-tutorial-id={tutorialTargetId}
       disabled={pending}
       className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] disabled:cursor-wait disabled:bg-[#B8C8C2]"
     >

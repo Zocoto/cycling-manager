@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { EMPTY_EQUIPMENT_EFFECTS, type EquipmentSlot } from "@/lib/game/equipment";
@@ -6,7 +8,10 @@ import type {
   TeamEquipmentCatalogItem,
 } from "@/services/team-equipment";
 
-import { collectAvailableEquipment } from "./rider-equipment-loadout";
+import {
+  collectAvailableEquipment,
+  EquipmentBonusSummary,
+} from "./rider-equipment-loadout";
 
 const EMPTY_BY_SLOT = {
   helmet: [],
@@ -75,5 +80,27 @@ describe("collectAvailableEquipment", () => {
         (item) => item.id,
       ),
     ).toEqual(["helmet-free", "gloves-free"]);
+  });
+  it("regroupe chaque statistique dans une seule pastille cumulée", () => {
+    const markup = renderToStaticMarkup(
+      createElement(EquipmentBonusSummary, {
+        effects: {
+          ratingBonuses: { timeTrial: 2, acceleration: 2 },
+          timeTrialRatingBonuses: {
+            timeTrial: 2,
+            acceleration: 1,
+            endurance: 1,
+          },
+          injuryRiskReductionPct: 0,
+          breakawayReputationBonus: 0,
+          victoryReputationBonus: 0,
+        },
+      }),
+    );
+
+    expect(markup.match(/CLM \+4/g)).toHaveLength(1);
+    expect(markup.match(/ACC \+3/g)).toHaveLength(1);
+    expect(markup.match(/END \+1/g)).toHaveLength(1);
+    expect(markup).not.toContain("· CLM");
   });
 });

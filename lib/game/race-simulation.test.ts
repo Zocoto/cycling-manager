@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createDemoSimulationInput } from "./race-simulation-demo";
 import {
   accumulateRaceGroupGapsFromLeader,
+  applyStageTimeLimit,
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
@@ -11,6 +12,7 @@ import {
   getFinalBattleScenario,
   getHillyClimbSelectionRating,
   getLeadingFinishGroupRiderIds,
+  getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
   isMassGroupFinish,
   reduceMechanicalIncidentTimeLoss,
@@ -52,6 +54,78 @@ describe("reduceMechanicalIncidentTimeLoss", () => {
     expect(reduceMechanicalIncidentTimeLoss(20, 35)).toBe(13);
     expect(reduceMechanicalIncidentTimeLoss(20, 120)).toBeCloseTo(4);
     expect(reduceMechanicalIncidentTimeLoss(20, -10)).toBe(20);
+  });
+});
+
+describe("stage time limit", () => {
+  it("keeps time limits generous and profile-dependent", () => {
+    expect(
+      getStageTimeLimitAllowanceSeconds({
+        winnerElapsedTimeSeconds: 10_000,
+        profileType: "flat",
+        stageType: "road",
+      })
+    ).toBe(1_200);
+    expect(
+      getStageTimeLimitAllowanceSeconds({
+        winnerElapsedTimeSeconds: 10_000,
+        profileType: "mountain",
+        stageType: "road",
+      })
+    ).toBe(2_200);
+  });
+
+  it("marks an over-limit rider HT and removes them from tour standings", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 91);
+    const simulation = simulateRaceStage(input);
+    const winner = simulation.results.find(
+      (result) => result.status === "finished" && result.rank === 1
+    )!;
+    const slowRider = simulation.results
+      .filter((result) => result.status === "finished")
+      .at(-1)!;
+    const allowanceSeconds = getStageTimeLimitAllowanceSeconds({
+      winnerElapsedTimeSeconds: winner.elapsedTimeSeconds,
+      profileType: input.profileType,
+      stageType: input.stageType,
+    });
+    const forcedSimulation = {
+      ...simulation,
+      results: simulation.results.map((result) =>
+        result.riderId === slowRider.riderId
+          ? {
+              ...result,
+              status: "finished" as const,
+              elapsedTimeSeconds:
+                winner.elapsedTimeSeconds + allowanceSeconds + 1,
+              gapToWinnerSeconds: allowanceSeconds + 1,
+            }
+          : result
+      ),
+    };
+
+    const limited = applyStageTimeLimit(forcedSimulation, input);
+    const limitedRider = limited.results.find(
+      (result) => result.riderId === slowRider.riderId
+    )!;
+
+    expect(limitedRider).toMatchObject({
+      status: "outside_time_limit",
+      rank: null,
+    });
+    expect(
+      limited.timeline.at(-1)?.groups.some(
+        (group) =>
+          group.label === "Hors délais" &&
+          group.riderIds.includes(slowRider.riderId)
+      )
+    ).toBe(true);
+    expect(
+      buildStageRaceStandings([limited]).general.some(
+        (row) => row.riderId === slowRider.riderId
+      )
+    ).toBe(false);
+    expect(limited.sprintPoints[slowRider.riderId] ?? 0).toBe(0);
   });
 });
 
@@ -377,7 +451,78 @@ describe("simulateRaceStage", () => {
     );
   });
 
-  it("lâche individuellement un coureur épuisé lorsque le peloton accélère", () => {
+  it("makes domestiques spend energy to protect their leader", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 13);
+    const leaderRatings = {
+      flat: 64,
+      hills: 58,
+      mountain: 62,
+      endurance: 66,
+      resistance: 66,
+    };
+    const protectedLeader = {
+      ...createSelectionTestRider("protected-leader", leaderRatings),
+      teamId: "protected-team",
+    };
+    const isolatedLeader = {
+      ...createSelectionTestRider("isolated-leader", leaderRatings),
+      teamId: "isolated-team",
+    };
+    const helpers = Array.from({ length: 2 }, (_, index) => ({
+      ...createSelectionTestRider(`helper-${index}`, leaderRatings),
+      teamId: "protected-team",
+      role: "domestique" as const,
+    }));
+    const fillers = Array.from({ length: 2 }, (_, index) => ({
+      ...createSelectionTestRider(`filler-${index}`, leaderRatings),
+      teamId: `filler-team-${index}`,
+    }));
+    const segments: RaceStageSegment[] = [
+      {
+        segmentNumber: 1,
+        distanceKm: 18,
+        terrain: "climb",
+        averageGradientPct: 3.5,
+        surface: "asphalt",
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 12,
+        terrain: "flat",
+        averageGradientPct: 0,
+        surface: "asphalt",
+        prime: null,
+      },
+    ];
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "leader-protection-test",
+      profileType: "hilly",
+      segments,
+      riders: [protectedLeader, isolatedLeader, ...helpers, ...fillers],
+    });
+    const resultByRiderId = new Map(
+      result.results.map((row) => [row.riderId, row])
+    );
+
+    expect(
+      resultByRiderId.get(protectedLeader.id)!.energyAfter
+    ).toBeGreaterThan(
+      resultByRiderId.get(isolatedLeader.id)!.energyAfter
+    );
+    expect(
+      Math.min(
+        ...helpers.map(
+          (helper) => resultByRiderId.get(helper.id)!.energyAfter
+        )
+      )
+    ).toBeLessThan(
+      resultByRiderId.get(protectedLeader.id)!.energyAfter
+    );
+  });
+
+  it("ne lâche pas un coureur épuisé sur une portion plate", () => {
     const baseInput = createDemoSimulationInput("sprint-littoral", 1);
     const riders = baseInput.riders.slice(0, 8).map((rider, index) => ({
       ...rider,
@@ -413,11 +558,11 @@ describe("simulateRaceStage", () => {
       group.riderIds.includes("pace-1")
     );
 
-    expect(tiredRiderGroup?.type).toBe("dropped");
+    expect(tiredRiderGroup?.type).toBe("peloton");
     expect(freshRiderGroup?.type).toBe("peloton");
   });
 
-  it("conserve les temps acquis lorsque le peloton constitué disparaît", () => {
+  it("conserve le peloton sur une étape vallonnée tant que la sélection reste supportable", () => {
     const input = createDemoSimulationInput(
       "collines-ardennes",
       32
@@ -450,7 +595,7 @@ describe("simulateRaceStage", () => {
       )
     );
 
-    expect(firstSnapshotWithoutPeloton).toBeGreaterThanOrEqual(0);
+    expect(firstSnapshotWithoutPeloton).toBe(-1);
     expect(winnerTime).toBeGreaterThan(0);
     expect(maximumGap).toBeLessThan(winnerTime);
     expect(maximumTimelineGap).toBeLessThan(3_600);
@@ -650,7 +795,9 @@ describe("simulateRaceStage", () => {
     const outcomes = Array.from({ length: 100 }, (_, index) =>
       simulateRaceStage(createDemoSimulationInput("collines-ardennes", index + 1))
     ).map((result) =>
-      result.timeline.at(-1)?.groups.some((group) => group.type === "breakaway") ?? false
+      result.timeline.at(-1)?.commentary.some((message) =>
+        message.includes("ligne avec")
+      ) ?? false
     );
 
     expect(outcomes).toContain(true);
@@ -850,19 +997,17 @@ describe("simulateRaceStage", () => {
     );
 
     expect(firstDropIndex).toBeGreaterThan(0);
-    expect(
-      result.timeline.slice(firstDropIndex).every((snapshot) =>
-        snapshot.groups
-          .filter((group) => group.type !== "dropped")
-          .every((group) =>
-            group.riderIds.every((riderId) => !weakIds.has(riderId))
-          )
-      )
-    ).toBe(true);
+    const permanentlyDroppedWeakIds = result.timeline.at(-2)!.groups
+      .filter((group) => group.label.startsWith("Groupe attardé"))
+      .flatMap((group) => group.riderIds)
+      .filter((riderId) => weakIds.has(riderId));
+    expect(permanentlyDroppedWeakIds.length).toBeGreaterThan(0);
     expect(
       Math.min(
         ...result.results
-          .filter((row) => weakIds.has(row.riderId))
+          .filter((row) =>
+            permanentlyDroppedWeakIds.includes(row.riderId)
+          )
           .map((row) => row.gapToWinnerSeconds)
       )
     ).toBeGreaterThan(120);

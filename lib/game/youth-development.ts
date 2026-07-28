@@ -25,6 +25,17 @@ export const YOUTH_RATING_KEYS = [
 export type YouthArchetype = TrainingDomain | "all_rounder";
 export type YouthRatings = RiderRatings;
 
+const YOUTH_BASE_RATING_BY_AGE: Record<number, number> = {
+  15: 1,
+  16: 1,
+  17: 1.5,
+  18: 2.6,
+};
+
+export const YOUTH_INITIAL_PROJECTED_OVERALL_MAX = 65;
+const YOUTH_INITIAL_RAW_OVERALL_MAX =
+  (YOUTH_INITIAL_PROJECTED_OVERALL_MAX - 34) / 8;
+
 export const YOUTH_ARCHETYPE_LABELS: Record<YouthArchetype, string> = {
   ...TRAINING_DOMAIN_LABELS,
   all_rounder: "Polyvalent",
@@ -167,30 +178,69 @@ export function getScoutingCandidateCount({
 
 export function generateYouthRatings({
   archetype,
+  age,
   talent,
+  countryReputation = 5,
   accuracyBonus = 0,
   initialRatingBonus = 0,
   random,
 }: {
   archetype: YouthArchetype;
+  age: number;
   talent: number;
+  countryReputation?: number;
   accuracyBonus?: number;
   initialRatingBonus?: number;
   random: () => number;
 }): YouthRatings {
   const primary = new Set(ARCHETYPE_PRIMARY_STATS[archetype]);
   const secondary = new Set(ARCHETYPE_SECONDARY_STATS[archetype]);
+  const safeAge = clamp(Math.round(age), 15, 18);
+  const safeTalent = clamp(talent, 1, 8);
+  const safeCountryReputation = clamp(countryReputation, 1, 10);
+  const baseRating = YOUTH_BASE_RATING_BY_AGE[safeAge];
+  const talentAdjustment = (safeTalent - 4.5) * 0.055;
+  const countryAdjustment = (safeCountryReputation - 5.5) * 0.025;
+  const exceptionalChance = clamp(
+    0.025 +
+      safeTalent * 0.005 +
+      safeCountryReputation * 0.0015 +
+      initialRatingBonus * 0.05,
+    0.03,
+    0.09,
+  );
+  const exceptionalBoost =
+    random() < exceptionalChance ? 0.55 + random() * 0.55 : 0;
   const ratings = Object.fromEntries(
     YOUTH_RATING_KEYS.map((key) => {
-      const base = primary.has(key)
-        ? 2.8 + talent * 0.34 + accuracyBonus + initialRatingBonus
+      const archetypeAdjustment = primary.has(key)
+        ? 0.25
         : secondary.has(key)
-          ? 2.1 +
-            talent * 0.24 +
-            accuracyBonus * 0.45 +
-            initialRatingBonus
-          : 1.15 + talent * 0.13 + initialRatingBonus;
-      return [key, roundYouthRating(base + (random() - 0.5) * 1.15)];
+          ? 0
+          : -0.32;
+      const scoutingAdjustment = primary.has(key)
+        ? accuracyBonus + initialRatingBonus
+        : secondary.has(key)
+          ? accuracyBonus * 0.45 + initialRatingBonus * 0.75
+          : initialRatingBonus * 0.35;
+      const exceptionalAdjustment = primary.has(key)
+        ? exceptionalBoost
+        : secondary.has(key)
+          ? exceptionalBoost * 0.35
+          : 0;
+
+      return [
+        key,
+        roundYouthRating(
+          baseRating +
+            archetypeAdjustment +
+            talentAdjustment +
+            countryAdjustment +
+            scoutingAdjustment +
+            exceptionalAdjustment +
+            (random() - 0.5) * 0.7,
+        ),
+      ];
     }),
   ) as YouthRatings;
 
@@ -203,7 +253,76 @@ export function generateYouthRatings({
     ratings.recovery = Math.min(ratings.recovery, 3.5);
   }
 
-  return ratings;
+  return capYouthInitialRatings(ratings);
+}
+
+export function calculateYouthProjectedOverall(ratings: YouthRatings) {
+  return (
+    YOUTH_RATING_KEYS.reduce(
+      (total, key) => total + 34 + ratings[key] * 8,
+      0,
+    ) / YOUTH_RATING_KEYS.length
+  );
+}
+
+function capYouthInitialRatings(ratings: YouthRatings): YouthRatings {
+  if (
+    calculateYouthProjectedOverall(ratings) <=
+    YOUTH_INITIAL_PROJECTED_OVERALL_MAX
+  ) {
+    return ratings;
+  }
+
+  const targetRawTotal =
+    YOUTH_INITIAL_RAW_OVERALL_MAX * YOUTH_RATING_KEYS.length;
+  const reducibleTotal = YOUTH_RATING_KEYS.reduce(
+    (total, key) => total + Math.max(0, ratings[key] - 1),
+    0,
+  );
+  const scale = Math.max(
+    0,
+    Math.min(
+      1,
+      (targetRawTotal - YOUTH_RATING_KEYS.length) /
+        Math.max(0.001, reducibleTotal),
+    ),
+  );
+  const capped = Object.fromEntries(
+    YOUTH_RATING_KEYS.map((key) => [
+      key,
+      roundYouthRating(1 + Math.max(0, ratings[key] - 1) * scale),
+    ]),
+  ) as YouthRatings;
+
+  while (
+    YOUTH_RATING_KEYS.reduce((total, key) => total + capped[key], 0) >
+    targetRawTotal
+  ) {
+    const strongestKey = [...YOUTH_RATING_KEYS]
+      .filter((key) => capped[key] > 1)
+      .sort((left, right) => capped[right] - capped[left])[0];
+    if (!strongestKey) break;
+    capped[strongestKey] = roundYouthRating(capped[strongestKey] - 0.1);
+  }
+
+  return capped;
+}
+export function getYouthScoutingReportDetailLevel({
+  scoutLevel,
+  durationDays,
+}: {
+  scoutLevel: number;
+  durationDays: number;
+}) {
+  const informationScore =
+    clamp(Math.floor(scoutLevel), 1, 5) +
+    (durationDays >= 5 ? 1 : 0) +
+    (durationDays >= 7 ? 1 : 0);
+
+  if (informationScore >= 7) return 3;
+  if (informationScore >= 5) return 2;
+  if (informationScore >= 3) return 1;
+  return 0;
 }
 
 export function calculateYouthSigningCosts({

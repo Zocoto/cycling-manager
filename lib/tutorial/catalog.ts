@@ -8,6 +8,14 @@ import {
   CRITERIUM_DISCOVERY_VERSION,
 } from "@/lib/tutorial/criterium-discovery";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
+import { medicalCenterTutorialDefinition } from "@/lib/tutorial/medical-center";
+import { rosterTutorialDefinition } from "@/lib/tutorial/roster";
+import { trainingTutorialDefinition } from "@/lib/tutorial/training";
+import { staffTutorialDefinition } from "@/lib/tutorial/staff";
+import { transferTutorialDefinition } from "@/lib/tutorial/transfers";
+import { equipmentTutorialDefinition } from "@/lib/tutorial/equipment";
+import { infrastructureTutorialDefinition } from "@/lib/tutorial/infrastructure";
+import { youthDevelopmentTutorialDefinition } from "@/lib/tutorial/youth-development";
 import type { TutorialCatalog, TutorialDefinition } from "@/types/tutorial";
 
 const TUTORIAL_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
@@ -53,6 +61,12 @@ function validateTutorialDefinition(definition: TutorialDefinition): void {
     if (step.targetId && !TUTORIAL_KEY_PATTERN.test(step.targetId)) {
       throw new Error(
         `La cible "${step.targetId}" du didacticiel "${definition.key}" est invalide.`,
+      );
+    }
+
+    if (step.routeTargetId && !TUTORIAL_KEY_PATTERN.test(step.routeTargetId)) {
+      throw new Error(
+        `La cible de navigation "${step.routeTargetId}" du didacticiel "${definition.key}" est invalide.`,
       );
     }
 
@@ -355,6 +369,14 @@ const criteriumDiscoveryTutorial = {
 export const tutorialCatalog = createTutorialCatalog([
   onboardingTutorial,
   criteriumDiscoveryTutorial,
+  medicalCenterTutorialDefinition,
+  rosterTutorialDefinition,
+  trainingTutorialDefinition,
+  staffTutorialDefinition,
+  transferTutorialDefinition,
+  equipmentTutorialDefinition,
+  infrastructureTutorialDefinition,
+  youthDevelopmentTutorialDefinition,
 ]);
 
 export function getTutorialDefinition(

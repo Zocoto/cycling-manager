@@ -6,6 +6,9 @@ import { hireStaffMemberAction } from "@/app/jeu/staff/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
+import { StaffTutorialTabSync } from "@/components/tutorial/staff-tutorial-tab-sync";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { ARCHITECT_SPECIALTY_LABELS } from "@/lib/game/infrastructure";
 import {
   STAFF_ROLES,
@@ -18,6 +21,11 @@ import {
 } from "@/lib/game/staff";
 import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import {
+  STAFF_TUTORIAL_KEY,
+  STAFF_TUTORIAL_ROUTE,
+} from "@/lib/tutorial/staff";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getTeamStaffOverview,
@@ -66,9 +74,18 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
     redirect("/connexion");
   }
 
-  const [headerData, overview] = await Promise.all([
+  const [headerData, overview, staffTutorialProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getTeamStaffOverview(supabase, user.id, filters),
+    getAuthenticatedTutorialProgress(supabase, STAFF_TUTORIAL_KEY).catch(
+      (error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel du staff :",
+          error,
+        );
+        return null;
+      },
+    ),
   ]);
 
   if (!overview) {
@@ -81,6 +98,15 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {staffTutorialProgress?.status === "in_progress" &&
+      staffTutorialProgress.current_route === STAFF_TUTORIAL_ROUTE &&
+      staffTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={STAFF_TUTORIAL_KEY}
+          currentStepKey={staffTutorialProgress.current_step_key}
+        />
+      ) : null}
+      <StaffTutorialTabSync />
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -91,7 +117,10 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
+        <header
+          data-tutorial-id="staff-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        >
           <div
             aria-hidden="true"
             className="absolute -right-16 -top-24 h-80 w-80 rounded-full border-[52px] border-white/5"
@@ -101,9 +130,15 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
                 Entraînements · Staff · Infrastructures
               </p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-                Direction du staff
-              </h1>
+              <div className="mt-3 flex items-center gap-3">
+                <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
+                  Direction du staff
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={STAFF_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Entourez {overview.teamName} de spécialistes. Chaque signature
                 occupe une place liée à votre niveau de DS et engage la
@@ -112,7 +147,10 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-4">
+            <div
+              data-tutorial-id="staff-capacity"
+              className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-4"
+            >
               <HeroMetric
                 label="Niveau DS"
                 value={String(overview.directorLevel)}
@@ -137,6 +175,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
         {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
 
         <nav
+          data-tutorial-id="staff-tabs"
           className="mt-7 grid gap-3 lg:grid-cols-2"
           aria-label="Rubriques du staff"
         >
@@ -190,7 +229,10 @@ function EmploymentMarket({
 }) {
   return (
     <section className="mt-7">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div
+        data-tutorial-id="staff-market-overview"
+        className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+      >
         <SectionHeading
           eyebrow={`Sélection du ${formatDate(overview.marketDate)}`}
           title="25 spécialistes sur le marché mondial"
@@ -208,7 +250,10 @@ function EmploymentMarket({
         </div>
       </div>
 
-      <form className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-5">
+      <form
+        data-tutorial-id="staff-market-filters"
+        className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-5"
+      >
         <input type="hidden" name="onglet" value="marche" />
         <FilterField label="Nom">
           <input
@@ -287,22 +332,24 @@ function EmploymentMarket({
         </div>
       </form>
 
-      {overview.marketListings.length > 0 ? (
-        <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {overview.marketListings.map((listing) => (
-            <StaffMarketCard
-              key={listing.id}
-              listing={listing}
-              returnPath={returnPath}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          title="Aucun profil ne correspond à ces filtres"
-          detail="Élargissez les critères pour retrouver les 25 membres du marché du jour."
-        />
-      )}
+      <div data-tutorial-id="staff-market-listings">
+        {overview.marketListings.length > 0 ? (
+          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {overview.marketListings.map((listing) => (
+              <StaffMarketCard
+                key={listing.id}
+                listing={listing}
+                returnPath={returnPath}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="Aucun profil ne correspond à ces filtres"
+            detail="Élargissez les critères pour retrouver les 25 membres du marché du jour."
+          />
+        )}
+      </div>
     </section>
   );
 }
@@ -426,7 +473,10 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
   );
 
   return (
-    <section className="mt-7 space-y-7">
+    <section
+      data-tutorial-id="staff-team-overview"
+      className="mt-7 space-y-7"
+    >
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
         <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
           <SectionHeading

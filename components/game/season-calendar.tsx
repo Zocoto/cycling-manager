@@ -4,6 +4,7 @@ import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
+import { getRaceRegistrationHref } from "@/lib/game/race-live";
 
 import {
   RACE_CATEGORY_CODES,
@@ -437,7 +438,7 @@ export function SeasonCalendar({
               return (
                 <Link
                   key={stage.id}
-                  href={`/jeu/courses/${edition.slug}`}
+                  href={getRaceRegistrationHref(edition.slug)}
                   data-registration-status={
                     registrationClosed
                       ? "closed"
@@ -720,7 +721,7 @@ function RaceCalendarList({
               <ListStatusBadge tone={status.tone}>{status.label}</ListStatusBadge>
 
               <Link
-                href={`/jeu/courses/${edition.slug}`}
+                href={getRaceRegistrationHref(edition.slug)}
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#176951] px-4 text-center text-[10px] font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951] lg:justify-self-end"
               >
                 {registration?.status === "accepted"
@@ -969,7 +970,7 @@ function DesktopCalendarWeek({
               return (
                 <Link
                   key={`${segment.edition.id}-${week.weekNumber}-${segment.startHalfDayIndex}`}
-                  href={`/jeu/courses/${segment.edition.slug}`}
+                  href={getRaceRegistrationHref(segment.edition.slug)}
                   data-registration-status={
                     registrationClosed
                       ? "closed"
@@ -1256,7 +1257,7 @@ function MobileCalendarDay({
               </div>
             ) : null}
             <Link
-              href={`/jeu/courses/${edition.slug}`}
+              href={getRaceRegistrationHref(edition.slug)}
               data-registration-status={
                 registrationClosed
                   ? "closed"

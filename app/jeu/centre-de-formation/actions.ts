@@ -80,7 +80,7 @@ export async function saveYouthTrainingSettingsAction(formData: FormData) {
   redirectWithMessage(
     "ecole",
     "succes",
-    "La programmation d’entraînement a été mise à jour.",
+    "Programmation enregistrée pour la prochaine séance et les suivantes.",
   );
 }
 

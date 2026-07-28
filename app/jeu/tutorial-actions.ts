@@ -13,7 +13,12 @@ import {
   CRITERIUM_DISCOVERY_KEY,
   getCriteriumDiscoveryRunFromMetadata,
 } from "@/lib/tutorial/criterium-discovery";
+import { EQUIPMENT_TUTORIAL_KEY } from "@/lib/tutorial/equipment";
 import { getAuthenticatedTutorialOnboardingState } from "@/lib/tutorial/onboarding-state";
+import {
+  matchesTutorialRoute,
+  resolveTutorialProgressRoute,
+} from "@/lib/tutorial/routes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   TutorialDefinition,
@@ -120,7 +125,7 @@ function requireTutorialStep(
     );
   }
 
-  if (step.route !== route) {
+  if (!matchesTutorialRoute(step.route, route)) {
     throw new Error(
       `La route « ${route} » ne correspond pas à l’étape « ${stepKey} ».`,
     );
@@ -398,6 +403,13 @@ export async function startTutorialAction(
       parsed.restartFromBeginning || isHistoricalReplay
         ? initialStep
         : getResumeStep(definition, progress);
+    const selectedRoute = resolveTutorialProgressRoute({
+      routePattern: selectedStep.route,
+      savedRoute: progress.current_route,
+      preserveSavedRoute:
+        !parsed.restartFromBeginning &&
+        progress.current_step_key === selectedStep.key,
+    });
 
     await requireTutorialStepRequirement({
       supabase,
@@ -412,7 +424,7 @@ export async function startTutorialAction(
           tutorial_version: definition.version,
           status: "in_progress",
           current_step_key: selectedStep.key,
-          current_route: selectedStep.route,
+          current_route: selectedRoute,
           started_at: now,
           completed_at: null,
           skipped_at: null,
@@ -434,8 +446,25 @@ export async function startTutorialAction(
         progress,
         definition,
         stepKey: selectedStep.key,
-        route: selectedStep.route,
+        route: selectedRoute,
       });
+    }
+
+    if (definition.key === EQUIPMENT_TUTORIAL_KEY) {
+      const { error: giftError } = await supabase.rpc(
+        "grant_equipment_tutorial_welcome_gift",
+      );
+
+      if (giftError) {
+        throw new Error(
+          "Impossible de remettre les Lunettes didactiques : " +
+            giftError.message,
+        );
+      }
+
+      progress =
+        (await getAuthenticatedTutorialProgress(supabase, definition.key)) ??
+        progress;
     }
 
     let session = await getActiveTutorialSession(supabase, progress.id);

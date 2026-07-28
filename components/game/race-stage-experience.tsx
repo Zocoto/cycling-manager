@@ -9,6 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
+import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import { RaceLiveChat } from "@/components/game/race-live-chat";
 import { RaceLiveLab } from "@/components/game/race-live-lab";
 import { RaceOfficialResults } from "@/components/game/race-official-results";
@@ -22,6 +23,7 @@ import {
   canSimulateRaceEdition,
   getStageLiveState,
 } from "@/lib/game/race-live";
+import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
@@ -49,6 +51,10 @@ export function RaceStageExperience({
 }) {
   const now = useSynchronizedRaceClock(nowIso, 15_000);
   const state = getStageLiveState(entry.stage, now);
+  const favoriteRiders = getFrozenRaceFavoriteRiders(
+    entry.edition,
+    lockedSimulations
+  );
   const simulationAvailable = canSimulateRaceEdition(
     entry.edition
   );
@@ -176,6 +182,14 @@ export function RaceStageExperience({
             </p>
           </div>
         </div>
+        <div className="px-6 pb-6 sm:px-9 sm:pb-9">
+          <RaceFavoritesPanel
+            edition={entry.edition}
+            riders={favoriteRiders}
+            frozen
+            tone="dark"
+          />
+        </div>
       </section>
     );
   }
@@ -238,6 +252,7 @@ export function RaceStageExperience({
               edition={entry.edition}
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
+              favoriteRiders={favoriteRiders}
             />
           ) : (
             <RaceLiveLab

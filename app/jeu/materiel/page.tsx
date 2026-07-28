@@ -6,13 +6,25 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button";
 import { GameHeader } from "@/components/game/game-header";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
   EQUIPMENT_CATEGORIES,
+  EQUIPMENT_EFFECT_FILTERS,
   EQUIPMENT_SLOTS,
+  equipmentMatchesEffect,
   getEquipmentCategory,
+  isEquipmentEffectFilterKey,
+  type EquipmentEffectFilterKey,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  EQUIPMENT_TUTORIAL_COMMERCIAL_ROUTE,
+  EQUIPMENT_TUTORIAL_GLASSES_CATALOG_KEY,
+  EQUIPMENT_TUTORIAL_KEY,
+} from "@/lib/tutorial/equipment";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamEquipmentOverview,
@@ -29,16 +41,23 @@ type MaterialPageProps = {
   searchParams: Promise<{
     categorie?: string | string[];
     marque?: string | string[];
+    effet?: string | string[];
     achat?: string | string[];
     erreur?: string | string[];
   }>;
 };
 
-export default async function MaterialPage({ searchParams }: MaterialPageProps) {
+export default async function MaterialPage({
+  searchParams,
+}: MaterialPageProps) {
   const query = await searchParams;
   const rawCategory = readQuery(query.categorie);
   const category = isEquipmentSlot(rawCategory) ? rawCategory : null;
   const rawSupplierKey = readQuery(query.marque);
+  const rawEffectKey = readQuery(query.effet);
+  const effectKey = isEquipmentEffectFilterKey(rawEffectKey)
+    ? rawEffectKey
+    : null;
   const success = readQuery(query.achat) === "confirme";
   const errorMessage = readQuery(query.erreur);
   const supabase = await createSupabaseServerClient();
@@ -50,43 +69,71 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
   if (authenticationError || !user) redirect("/connexion");
 
   await supabase.rpc("settle_current_team_finances");
-  const [headerData, overview] = await Promise.all([
+  const [headerData, overview, equipmentTutorialProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentTeamEquipmentOverview(user.id),
+    getAuthenticatedTutorialProgress(supabase, EQUIPMENT_TUTORIAL_KEY).catch(
+      (error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel du matériel :",
+          error,
+        );
+        return null;
+      },
+    ),
   ]);
 
   if (!overview) redirect("/jeu");
 
   const commercialCatalog = overview.catalog.filter(
-    (item) => item.channel === "commercial",
+    (item) =>
+      item.channel === "commercial" &&
+      item.catalogKey !== EQUIPMENT_TUTORIAL_GLASSES_CATALOG_KEY,
   );
   const supplierKey = overview.suppliers.some(
-    (supplier) => supplier.key === rawSupplierKey
+    (supplier) => supplier.key === rawSupplierKey,
   )
     ? rawSupplierKey
     : null;
-  const visibleItems = commercialCatalog.filter(
+  const categoryAndSupplierItems = commercialCatalog.filter(
     (item) =>
       (!category || item.slot === category) &&
-      (!supplierKey || item.supplierKey === supplierKey)
+      (!supplierKey || item.supplierKey === supplierKey),
+  );
+  const visibleItems = effectKey
+    ? categoryAndSupplierItems.filter((item) =>
+        equipmentMatchesEffect(item.effects, effectKey),
+      )
+    : categoryAndSupplierItems;
+  const activeEffect = EQUIPMENT_EFFECT_FILTERS.find(
+    (filter) => filter.key === effectKey,
   );
   const ownedReferences = overview.catalog.filter(
-    (item) => item.ownedQuantity > 0
+    (item) => item.ownedQuantity > 0,
   ).length;
   const minimumReferencesPerCategory = Math.min(
     ...EQUIPMENT_CATEGORIES.map(
       (entry) =>
-        commercialCatalog.filter((item) => item.slot === entry.slot).length
-    )
+        commercialCatalog.filter((item) => item.slot === entry.slot).length,
+    ),
   );
 
   const ownedPieces = overview.catalog.reduce(
     (total, item) => total + item.ownedQuantity,
-    0
+    0,
   );
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {equipmentTutorialProgress?.status === "in_progress" &&
+      equipmentTutorialProgress.current_route ===
+        EQUIPMENT_TUTORIAL_COMMERCIAL_ROUTE &&
+      equipmentTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={EQUIPMENT_TUTORIAL_KEY}
+          currentStepKey={equipmentTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -116,22 +163,39 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
           </Link>
         </nav>
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
-          <div aria-hidden="true" className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[44px] border-white/5" />
+        <header
+          data-tutorial-id="equipment-commercial-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        >
+          <div
+            aria-hidden="true"
+            className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[44px] border-white/5"
+          />
           <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
                 Performance · protection · image
               </p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
-                Gestion du matériel
-              </h1>
+              <div className="mt-3 flex items-center gap-3">
+                <h1 className="text-3xl font-black tracking-tight sm:text-5xl">
+                  Gestion du matériel
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={EQUIPMENT_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-                Constituez l’inventaire de {overview.teamName}, puis attribuez chaque pièce depuis la fiche du coureur. Les bonus sportifs se cumulent pendant les courses.
+                Constituez l’inventaire de {overview.teamName}, puis attribuez
+                chaque pièce depuis la fiche du coureur. Les bonus sportifs se
+                cumulent pendant les courses.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-              <HeroMetric label="Solde" value={formatCurrency(overview.balance, overview.currency)} />
+              <HeroMetric
+                label="Solde"
+                value={formatCurrency(overview.balance, overview.currency)}
+              />
               <HeroMetric label="Références" value={String(ownedReferences)} />
               <HeroMetric label="Pièces" value={String(ownedPieces)} />
             </div>
@@ -153,37 +217,58 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
           <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">Rubrique active</p>
-                <h2 className="mt-2 text-2xl font-black text-[#183F37]">Matériel commercial</h2>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+                  Rubrique active
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-[#183F37]">
+                  Matériel commercial
+                </h2>
               </div>
-              <span className="rounded-full bg-[#DDF3E7] px-4 py-2 text-xs font-black uppercase tracking-wider text-[#176951]">Catalogue ouvert</span>
+              <span className="rounded-full bg-[#DDF3E7] px-4 py-2 text-xs font-black uppercase tracking-wider text-[#176951]">
+                Catalogue ouvert
+              </span>
             </div>
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-              Chaque achat débite immédiatement la trésorerie. Une référence achetée peut être attribuée à un seul coureur par exemplaire.
+              Chaque achat débite immédiatement la trésorerie. Une référence
+              achetée peut être attribuée à un seul coureur par exemplaire.
             </p>
           </article>
 
           <article className="relative overflow-hidden rounded-[2rem] border border-[#D29F32]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
-            <span className="absolute right-5 top-5 rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">{overview.suppliers.length} marques</span>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">Marché ouvert</p>
-            <h2 className="mt-2 text-2xl font-black text-white">Plusieurs philosophies</h2>
+            <span className="absolute right-5 top-5 rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">
+              {overview.suppliers.length} marques
+            </span>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
+              Marché ouvert
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              Plusieurs philosophies
+            </h2>
             <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">
-              Comparez une offre accessible, des spécialistes techniques et des gammes premium. Le catalogue réunit{" "}
-              {commercialCatalog.length} références, avec au moins {minimumReferencesPerCategory} choix dans chaque
-              famille.
+              Comparez une offre accessible, des spécialistes techniques et des
+              gammes premium. Le catalogue réunit {commercialCatalog.length}{" "}
+              références, avec au moins {minimumReferencesPerCategory} choix
+              dans chaque famille.
             </p>
           </article>
         </section>
 
-        <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7">
+        <section
+          data-tutorial-id="equipment-commercial-brands"
+          className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7"
+        >
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">Galerie des marques</p>
-              <h2 className="mt-2 text-2xl font-black text-[#183F37]">Choisir un équipementier</h2>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+                Galerie des marques
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-[#183F37]">
+                Choisir un équipementier
+              </h2>
             </div>
             {supplierKey ? (
               <Link
-                href={buildMaterialHref(category, null)}
+                href={buildMaterialHref(category, null, effectKey)}
                 className="text-sm font-black text-[#176951] hover:text-[#0B302B]"
               >
                 Toutes les marques
@@ -203,7 +288,8 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
                   key={supplier.key}
                   href={buildMaterialHref(
                     category,
-                    isActive ? null : supplier.key
+                    isActive ? null : supplier.key,
+                    effectKey,
                   )}
                   aria-current={isActive ? "page" : undefined}
                   className={
@@ -252,68 +338,179 @@ export default async function MaterialPage({ searchParams }: MaterialPageProps) 
           </nav>
         </section>
 
-        <section className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7">
+        <section
+          data-tutorial-id="equipment-commercial-filters"
+          className="mt-7 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-7"
+        >
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">Filtres visuels</p>
-              <h2 className="mt-2 text-2xl font-black text-[#183F37]">Choisir une catégorie</h2>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+                Filtres visuels
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-[#183F37]">
+                Choisir une catégorie
+              </h2>
             </div>
             {category ? (
-              <Link href={buildMaterialHref(null, supplierKey)} className="text-sm font-black text-[#176951] hover:text-[#0B302B]">Toutes les catégories</Link>
+              <Link
+                href={buildMaterialHref(null, supplierKey, effectKey)}
+                className="text-sm font-black text-[#176951] hover:text-[#0B302B]"
+              >
+                Toutes les catégories
+              </Link>
             ) : null}
           </div>
 
-          <nav aria-label="Catégories de matériel" className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+          <nav
+            aria-label="Catégories de matériel"
+            className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8"
+          >
             {EQUIPMENT_CATEGORIES.map((entry) => (
               <Link
                 key={entry.slot}
-                href={buildMaterialHref(entry.slot, supplierKey)}
+                href={buildMaterialHref(entry.slot, supplierKey, effectKey)}
                 aria-current={category === entry.slot ? "page" : undefined}
-                className={category === entry.slot
-                  ? "group rounded-2xl border border-[#176951] bg-[#0B302B] p-3 text-center text-white shadow-lg"
-                  : "group rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] p-3 text-center text-[#315B3E] transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:bg-[#EAF5F3]"}
+                className={
+                  category === entry.slot
+                    ? "group rounded-2xl border border-[#176951] bg-[#0B302B] p-3 text-center text-white shadow-lg"
+                    : "group rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] p-3 text-center text-[#315B3E] transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:bg-[#EAF5F3]"
+                }
               >
                 <span className="mx-auto grid h-14 w-14 place-items-center rounded-xl bg-[#42B99A]/12 text-[#278B70] group-aria-[current=page]:text-[#9BE0BC]">
                   <EquipmentCategoryIcon slot={entry.slot} />
                 </span>
-                <span className="mt-2 block text-xs font-black">{entry.label}</span>
+                <span className="mt-2 block text-xs font-black">
+                  {entry.label}
+                </span>
               </Link>
             ))}
           </nav>
+          <div className="mt-7 border-t border-[#315B3E]/12 pt-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
+                  Effet recherché
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[#60756E]">
+                  Affichez uniquement les références qui augmentent la
+                  statistique ou apportent l’effet choisi.
+                </p>
+              </div>
+              {effectKey ? (
+                <Link
+                  href={buildMaterialHref(category, supplierKey, null)}
+                  className="text-sm font-black text-[#176951] hover:text-[#0B302B]"
+                >
+                  Tous les effets
+                </Link>
+              ) : null}
+            </div>
+
+            <nav
+              aria-label="Effets du matériel"
+              className="mt-4 flex flex-wrap gap-2"
+            >
+              {EQUIPMENT_EFFECT_FILTERS.map((filter) => {
+                const isActive = effectKey === filter.key;
+                const matchingCount = categoryAndSupplierItems.filter((item) =>
+                  equipmentMatchesEffect(item.effects, filter.key),
+                ).length;
+
+                return (
+                  <Link
+                    key={filter.key}
+                    href={buildMaterialHref(
+                      category,
+                      supplierKey,
+                      isActive ? null : filter.key,
+                    )}
+                    aria-current={isActive ? "page" : undefined}
+                    className={
+                      isActive
+                        ? "inline-flex items-center gap-2 rounded-xl border border-[#176951] bg-[#0B302B] px-3 py-2 text-xs font-black text-white shadow-md"
+                        : filter.kind === "primary"
+                          ? "inline-flex items-center gap-2 rounded-xl border border-[#278B70]/25 bg-[#F8FBF9] px-3 py-2 text-xs font-black text-[#183F37] transition hover:border-[#176951] hover:bg-[#EAF5F3]"
+                          : filter.kind === "secondary"
+                            ? "inline-flex items-center gap-2 rounded-xl border border-[#60756E]/15 bg-[#F4F7F5] px-3 py-2 text-xs font-bold text-[#60756E] transition hover:border-[#278B70]/45 hover:text-[#315B3E]"
+                            : "inline-flex items-center gap-2 rounded-xl border border-[#D29F32]/25 bg-[#FFF8D8] px-3 py-2 text-xs font-black text-[#8A6B16] transition hover:border-[#D29F32]/60"
+                    }
+                  >
+                    <span>{filter.shortLabel}</span>
+                    <span className="font-semibold opacity-80">
+                      {filter.label}
+                    </span>
+                    <span
+                      className={
+                        isActive
+                          ? "rounded-full bg-white/15 px-1.5 py-0.5 text-[9px] tabular-nums"
+                          : "rounded-full bg-black/6 px-1.5 py-0.5 text-[9px] tabular-nums"
+                      }
+                    >
+                      {matchingCount}
+                    </span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         </section>
 
-        <section className="mt-7">
+        <section
+          data-tutorial-id="equipment-commercial-products"
+          className="mt-7"
+        >
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-                {category ? getEquipmentCategory(category).label : "Toutes les catégories"}
-                {supplierKey ? ` · ${overview.suppliers.find((supplier) => supplier.key === supplierKey)?.name}` : ""}
+                {category
+                  ? getEquipmentCategory(category).label
+                  : "Toutes les catégories"}
+                {supplierKey
+                  ? ` · ${overview.suppliers.find((supplier) => supplier.key === supplierKey)?.name}`
+                  : ""}
+                {activeEffect ? ` · ${activeEffect.label}` : ""}
               </p>
-              <h2 className="mt-2 text-2xl font-black text-[#183F37]">{visibleItems.length} références disponibles</h2>
+              <h2 className="mt-2 text-2xl font-black text-[#183F37]">
+                {visibleItems.length} références disponibles
+              </h2>
             </div>
             <p className="max-w-xl text-right text-xs font-semibold leading-5 text-[#60756E]">
-              Les modifications faites après 12 h sont enregistrées immédiatement mais ne deviennent actives que le lendemain à midi.
+              Les changements sont immédiats, sauf de cinq minutes avant le
+              départ jusqu’à la fin de la course du coureur, période pendant
+              laquelle son équipement est figé.
             </p>
           </div>
 
           {visibleItems.length > 0 ? (
             <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {visibleItems.map((item) => (
-              <EquipmentProductCard
-                key={item.id}
-                item={item}
-                currency={overview.currency}
-                balance={overview.balance}
-                activeCategory={category}
-                activeSupplierKey={supplierKey}
-              />
+                <EquipmentProductCard
+                  key={item.id}
+                  item={item}
+                  currency={overview.currency}
+                  balance={overview.balance}
+                  activeCategory={category}
+                  activeSupplierKey={supplierKey}
+                  activeEffectKey={effectKey}
+                />
               ))}
             </div>
           ) : (
             <div className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/25 bg-white px-6 py-10 text-center">
-              <p className="text-sm font-black text-[#183F37]">Cette marque ne propose pas encore cette famille.</p>
-              <Link href={buildMaterialHref(category, null)} className="mt-3 inline-block text-sm font-black text-[#176951] hover:text-[#0B302B]">
-                Comparer toutes les marques de la catégorie
+              <p className="text-sm font-black text-[#183F37]">
+                Aucune référence ne correspond à ces filtres.
+              </p>
+              <Link
+                href={
+                  effectKey
+                    ? buildMaterialHref(category, supplierKey, null)
+                    : buildMaterialHref(category, null, null)
+                }
+                className="mt-3 inline-block text-sm font-black text-[#176951] hover:text-[#0B302B]"
+              >
+                {effectKey
+                  ? "Retirer le filtre d’effet"
+                  : "Comparer toutes les marques de la catégorie"}
               </Link>
             </div>
           )}
@@ -329,12 +526,14 @@ function EquipmentProductCard({
   balance,
   activeCategory,
   activeSupplierKey,
+  activeEffectKey,
 }: {
   item: TeamEquipmentCatalogItem;
   currency: string;
   balance: number;
   activeCategory: EquipmentSlot | null;
   activeSupplierKey: string | null;
+  activeEffectKey: EquipmentEffectFilterKey | null;
 }) {
   const cannotAfford = balance <= 0 || balance < item.price;
 
@@ -342,7 +541,13 @@ function EquipmentProductCard({
     <article className="flex overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
       <div className="flex w-full flex-col">
         <div className="relative aspect-[16/10] overflow-hidden bg-[#071A17]">
-          <Image src={item.imagePath} alt={`${item.name} par ${item.supplierName}`} fill sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw" className="object-cover transition duration-500 hover:scale-[1.03]" />
+          <Image
+            src={item.imagePath}
+            alt={`${item.name} par ${item.supplierName}`}
+            fill
+            sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw"
+            className="object-cover transition duration-500 hover:scale-[1.03]"
+          />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-5 pb-4 pt-12 text-white">
             <div className="relative mb-3 h-9 w-36 overflow-hidden rounded-lg bg-white shadow-md">
               <Image
@@ -353,34 +558,58 @@ function EquipmentProductCard({
                 className="object-contain p-1.5"
               />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">{item.supplierName}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
+              {item.supplierName}
+            </p>
             <h3 className="mt-1 text-xl font-black">{item.name}</h3>
           </div>
-          <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#176951]">{getEquipmentCategory(item.slot).shortLabel}</span>
-          <span className="absolute right-4 top-4 rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#071A17]">{rarityLabel(item.rarity)}</span>
+          <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#176951]">
+            {getEquipmentCategory(item.slot).shortLabel}
+          </span>
+          <span className="absolute right-4 top-4 rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#071A17]">
+            {rarityLabel(item.rarity)}
+          </span>
         </div>
 
         <div className="flex flex-1 flex-col p-5">
-          <p className="text-sm font-semibold leading-6 text-[#60756E]">{item.description}</p>
+          <p className="text-sm font-semibold leading-6 text-[#60756E]">
+            {item.description}
+          </p>
           <div className="mt-4 rounded-xl border border-[#42B99A]/20 bg-[#EAF5F3] px-4 py-3">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#278B70]">Effet en course</p>
-            <p className="mt-1 text-sm font-black leading-5 text-[#183F37]">{item.effectSummary}</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+              Effet en course
+            </p>
+            <p className="mt-1 text-sm font-black leading-5 text-[#183F37]">
+              {item.effectSummary}
+            </p>
           </div>
 
           <div className="mt-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-2xl font-black text-[#183F37]">{formatCurrency(item.price, currency)}</p>
-              <p className="mt-1 text-xs font-bold text-[#60756E]">Possédé : {item.ownedQuantity} · Libre : {item.availableQuantity}</p>
+              <p className="text-2xl font-black text-[#183F37]">
+                {formatCurrency(item.price, currency)}
+              </p>
+              <p className="mt-1 text-xs font-bold text-[#60756E]">
+                Possédé : {item.ownedQuantity} · Libre :{" "}
+                {item.availableQuantity}
+              </p>
             </div>
             {item.ownedQuantity > 0 ? (
-              <span className="rounded-full bg-[#DDF3E7] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">Inventaire</span>
+              <span className="rounded-full bg-[#DDF3E7] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
+                Inventaire
+              </span>
             ) : null}
           </div>
 
           <form action={purchaseEquipmentAction} className="mt-5">
             <input type="hidden" name="equipmentItemId" value={item.id} />
             <input type="hidden" name="category" value={activeCategory ?? ""} />
-            <input type="hidden" name="supplier" value={activeSupplierKey ?? ""} />
+            <input
+              type="hidden"
+              name="supplier"
+              value={activeSupplierKey ?? ""}
+            />
+            <input type="hidden" name="effect" value={activeEffectKey ?? ""} />
             <EquipmentSubmitButton mode="purchase" disabled={cannotAfford} />
           </form>
         </div>
@@ -390,7 +619,14 @@ function EquipmentProductCard({
 }
 
 function HeroMetric({ label, value }: { label: string; value: string }) {
-  return <div className="min-w-24"><p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">{label}</p><p className="mt-1 text-lg font-black text-[#F2C94C]">{value}</p></div>;
+  return (
+    <div className="min-w-24">
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-black text-[#F2C94C]">{value}</p>
+    </div>
+  );
 }
 
 function EquipmentCategoryIcon({ slot }: { slot: EquipmentSlot }) {
@@ -546,7 +782,19 @@ function EquipmentCategoryIcon({ slot }: { slot: EquipmentSlot }) {
     );
   }
 
-  return <svg viewBox="0 0 48 48" fill="none" className={common} stroke="currentColor" strokeWidth="2.7"><circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="4"/><path d="M24 7v13M24 28v13M7 24h13M28 24h13M12 12l9 9M27 27l9 9M36 12l-9 9M21 27l-9 9"/></svg>;
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      fill="none"
+      className={common}
+      stroke="currentColor"
+      strokeWidth="2.7"
+    >
+      <circle cx="24" cy="24" r="17" />
+      <circle cx="24" cy="24" r="4" />
+      <path d="M24 7v13M24 28v13M7 24h13M28 24h13M12 12l9 9M27 27l9 9M36 12l-9 9M21 27l-9 9" />
+    </svg>
+  );
 }
 
 function rarityLabel(rarity: TeamEquipmentCatalogItem["rarity"]) {
@@ -556,11 +804,15 @@ function rarityLabel(rarity: TeamEquipmentCatalogItem["rarity"]) {
 }
 
 function formatCurrency(value: number, currency: string) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function readQuery(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function isEquipmentSlot(value: string): value is EquipmentSlot {
@@ -569,11 +821,13 @@ function isEquipmentSlot(value: string): value is EquipmentSlot {
 
 function buildMaterialHref(
   category: EquipmentSlot | null,
-  supplierKey: string | null
+  supplierKey: string | null,
+  effectKey: EquipmentEffectFilterKey | null,
 ) {
   const params = new URLSearchParams();
   if (category) params.set("categorie", category);
   if (supplierKey) params.set("marque", supplierKey);
+  if (effectKey) params.set("effet", effectKey);
   const query = params.toString();
   return query ? `/jeu/materiel?${query}` : "/jeu/materiel";
 }

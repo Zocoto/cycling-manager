@@ -4,8 +4,10 @@ import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 export function TutorialLaunchButton({
   tutorialKey,
+  iconOnly = false,
 }: {
   tutorialKey: string;
+  iconOnly?: boolean;
 }) {
   const {
     activeTutorial,
@@ -29,10 +31,13 @@ export function TutorialLaunchButton({
           progress?.status === "skipped"
         ? "Revoir la visite"
         : "Visite guidée";
+  const accessibleLabel = `${label} · didacticiel de cette rubrique`;
 
   return (
     <button
       type="button"
+      aria-label={iconOnly ? accessibleLabel : undefined}
+      title={iconOnly ? accessibleLabel : undefined}
       disabled={isPending || isActive}
       onClick={() => {
         const launchSource =
@@ -50,7 +55,11 @@ export function TutorialLaunchButton({
             launchSource !== "resume",
         });
       }}
-      className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-[#278B70]/25 bg-white/75 px-4 text-xs font-black text-[#176951] shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-not-allowed disabled:opacity-55"
+      className={
+        iconOnly
+          ? "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#278B70]/25 bg-white/75 text-[#176951] shadow-[0_10px_24px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-not-allowed disabled:opacity-55"
+          : "inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-2xl border border-[#278B70]/25 bg-white/75 px-4 text-xs font-black text-[#176951] shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/45 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-not-allowed disabled:opacity-55"
+      }
     >
       <span
         aria-hidden="true"
@@ -58,7 +67,7 @@ export function TutorialLaunchButton({
       >
         ?
       </span>
-      {label}
+      {iconOnly ? null : label}
     </button>
   );
 }

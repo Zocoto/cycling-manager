@@ -12,15 +12,30 @@ import {
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
 import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
-import { YOUTH_TRAINING_DOMAINS } from "@/lib/game/youth-training";
+import type { TransferScoutingReport } from "@/lib/game/transfer-scouting";
+import {
+  YOUTH_TRAINING_DOMAINS,
+  YOUTH_TRAINING_GAME_LABELS,
+  type YouthTrainingGameType,
+} from "@/lib/game/youth-training";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import {
+  YOUTH_DEVELOPMENT_ACADEMY_ROUTE,
+  YOUTH_DEVELOPMENT_SCOUTING_ROUTE,
+  YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE,
+  YOUTH_DEVELOPMENT_TUTORIAL_KEY,
+} from "@/lib/tutorial/youth-development";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getYouthDevelopmentOverview,
@@ -36,11 +51,23 @@ export const metadata: Metadata = {
 };
 
 type Tab = "scouting" | "ecole" | "development";
-type PageProps = { searchParams: Promise<{ onglet?: string; succes?: string; erreur?: string }> };
+type PageProps = {
+  searchParams: Promise<{
+    onglet?: string;
+    succes?: string;
+    erreur?: string;
+    didacticiel?: string;
+  }>;
+};
 
 export default async function YouthDevelopmentPage({ searchParams }: PageProps) {
   const query = await searchParams;
-  const activeTab: Tab = query.onglet === "ecole" || query.onglet === "development" ? query.onglet : "scouting";
+  const activeTab: Tab =
+    query.onglet === "ecole" || query.onglet === "development"
+      ? query.onglet
+      : "scouting";
+  const tutorialDemo =
+    query.didacticiel === YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE;
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) redirect("/connexion");
@@ -48,21 +75,50 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
   let overview: YouthDevelopmentOverview | null = null;
   let loadingError: string | null = null;
   const headerPromise = getGameHeaderData(supabase, user.id);
+  const tutorialProgressPromise = getAuthenticatedTutorialProgress(
+    supabase,
+    YOUTH_DEVELOPMENT_TUTORIAL_KEY,
+  ).catch((tutorialError: unknown) => {
+    console.error(
+      "Impossible de reprendre le didacticiel du centre de formation :",
+      tutorialError,
+    );
+    return null;
+  });
   try {
     overview = await getYouthDevelopmentOverview(supabase, user.id);
   } catch (overviewError) {
     console.error("Impossible de charger le centre de formation :", overviewError);
     loadingError = overviewError instanceof Error ? overviewError.message : "Le centre de formation ne peut pas être chargé.";
   }
-  const headerData = await headerPromise;
+  const [headerData, youthDevelopmentTutorialProgress] = await Promise.all([
+    headerPromise,
+    tutorialProgressPromise,
+  ]);
+  const currentTutorialRoute = tutorialDemo
+    ? activeTab === "ecole"
+      ? YOUTH_DEVELOPMENT_ACADEMY_ROUTE
+      : YOUTH_DEVELOPMENT_SCOUTING_ROUTE
+    : null;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {youthDevelopmentTutorialProgress?.status === "in_progress" &&
+      youthDevelopmentTutorialProgress.current_route === currentTutorialRoute &&
+      youthDevelopmentTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={YOUTH_DEVELOPMENT_TUTORIAL_KEY}
+          currentStepKey={youthDevelopmentTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader simulatorEmail={user.email} displayName={headerData.displayName} sponsor={headerData.teamSponsorIdentity?.sponsor ?? null} maxWidth="wide" />
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-11">
         <BackToOfficeLink />
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(130deg,#071A17_0%,#0B302B_52%,#176951_100%)] p-7 text-white shadow-[0_24px_70px_rgba(19,60,46,0.22)] sm:p-10">
+        <header
+          data-tutorial-id="youth-development-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(130deg,#071A17_0%,#0B302B_52%,#176951_100%)] p-7 text-white shadow-[0_24px_70px_rgba(19,60,46,0.22)] sm:p-10"
+        >
           <div aria-hidden="true" className="absolute -right-20 -top-28 h-80 w-80 rounded-full border-[48px] border-[#F2C94C]/8" />
           <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
             <div>
@@ -70,17 +126,29 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
                 <p className="text-xs font-black uppercase tracking-[0.21em] text-[#9BE0CA]">Détection · apprentissage · relève</p>
                 {overview?.unreadCount ? <span className="rounded-full bg-[#C63F3F] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">{overview.unreadCount} nouveauté{overview.unreadCount > 1 ? "s" : ""}</span> : null}
               </div>
-              <h1 className="mt-4 text-4xl font-black tracking-[-0.045em] sm:text-6xl">Centre de formation</h1>
+              <div className="mt-4 flex items-center gap-3">
+                <h1 className="text-4xl font-black tracking-[-0.045em] sm:text-6xl">
+                  Centre de formation
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={YOUTH_DEVELOPMENT_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">Construisez un réseau mondial, repérez des profils bruts puis façonnez-les chaque jour avant leur passage chez les professionnels.</p>
             </div>
             {overview ? <div className="grid grid-cols-3 gap-2 sm:gap-3"><HeroMetric label="Scouts" value={String(overview.scouts.length)} /><HeroMetric label="Jeunes" value={String(overview.academy.length)} /><HeroMetric label="Jour" value={`${overview.currentDayNumber}/28`} /></div> : null}
           </div>
         </header>
 
-        <nav aria-label="Rubriques du centre de formation" className="mt-6 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm sm:grid-cols-3">
-          <TabLink tab="scouting" activeTab={activeTab} label="Scouting" detail="Carte & rapports" count={overview?.missions.filter((mission) => mission.unread).length} />
-          <TabLink tab="ecole" activeTab={activeTab} label="École de cyclisme" detail="Effectif & entraînement" count={overview?.notifications.filter((notification) => notification.unread).length} />
-          <TabLink tab="development" activeTab={activeTab} label="Development Team" detail="Projet à venir" />
+        <nav
+          data-tutorial-id="youth-development-tabs"
+          aria-label="Rubriques du centre de formation"
+          className="mt-6 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm sm:grid-cols-3"
+        >
+          <TabLink tab="scouting" activeTab={activeTab} label="Scouting" detail="Carte & rapports" count={overview?.missions.filter((mission) => mission.unread).length} tutorialDemo={tutorialDemo} />
+          <TabLink tab="ecole" activeTab={activeTab} label="École de cyclisme" detail="Effectif & entraînement" count={overview?.notifications.filter((notification) => notification.unread).length} tutorialDemo={tutorialDemo} />
+          <TabLink tab="development" activeTab={activeTab} label="Development Team" detail="Projet à venir" tutorialDemo={tutorialDemo} />
         </nav>
 
         <div className="mt-5 space-y-4">
@@ -89,15 +157,21 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
           {loadingError ? <Alert tone="error">{loadingError}</Alert> : null}
         </div>
 
-        {overview && activeTab === "scouting" ? <ScoutingTab overview={overview} /> : null}
-        {overview && activeTab === "ecole" ? <AcademyTab overview={overview} /> : null}
+        {overview && activeTab === "scouting" ? <ScoutingTab overview={overview} tutorialDemo={tutorialDemo} /> : null}
+        {overview && activeTab === "ecole" ? <AcademyTab overview={overview} tutorialDemo={tutorialDemo} /> : null}
         {activeTab === "development" ? <DevelopmentTab /> : null}
       </section>
     </main>
   );
 }
 
-function ScoutingTab({ overview }: { overview: YouthDevelopmentOverview }) {
+function ScoutingTab({
+  overview,
+  tutorialDemo,
+}: {
+  overview: YouthDevelopmentOverview;
+  tutorialDemo: boolean;
+}) {
   const activeMissions = overview.missions.filter((mission) => mission.status === "active");
   const completedMissions = overview.missions.filter((mission) => mission.status === "completed");
   return (
@@ -117,7 +191,20 @@ function ScoutingTab({ overview }: { overview: YouthDevelopmentOverview }) {
         ) : <EmptyState title="Aucun scout dans votre staff" text="Recrutez au moins un scout depuis la rubrique Staff pour lancer une mission." />}
       </section>
 
-      <section aria-label="Carte de scouting"><YouthScoutingMap countries={overview.countries} scouts={overview.scouts} /></section>
+      <section aria-label="Carte de scouting">
+        <YouthScoutingMap
+          countries={overview.countries}
+          scouts={overview.scouts}
+          tutorialMode={tutorialDemo}
+        />
+      </section>
+
+      {tutorialDemo ? (
+        <>
+          <TutorialScoutingDeadlines />
+          <TutorialScoutingReport currency={overview.currency} />
+        </>
+      ) : null}
 
       {activeMissions.length ? (
         <section><SectionHeading eyebrow="Sur le terrain" title="Missions en cours" /><div className="mt-4 grid gap-3 lg:grid-cols-2">{activeMissions.map((mission) => <ActiveMissionCard key={mission.id} mission={mission} currentDay={overview.currentDayNumber} />)}</div></section>
@@ -131,7 +218,162 @@ function ScoutingTab({ overview }: { overview: YouthDevelopmentOverview }) {
   );
 }
 
-function AcademyTab({ overview }: { overview: YouthDevelopmentOverview }) {
+const TUTORIAL_SCOUTING_REPORT: TransferScoutingReport = {
+  overall: { kind: "range", minimum: 52, maximum: 56 },
+  potential: { kind: "range", minimumSteps: 6, maximumSteps: 8 },
+  ratings: {
+    mountain: { kind: "range", minimum: 58, maximum: 64 },
+    hills: { kind: "exact", value: 61 },
+    flat: { kind: "range", minimum: 47, maximum: 53 },
+    timeTrial: { kind: "unknown" },
+    cobbles: { kind: "range", minimum: 42, maximum: 48 },
+    sprint: { kind: "exact", value: 46 },
+    acceleration: { kind: "range", minimum: 56, maximum: 61 },
+    downhill: { kind: "unknown" },
+    endurance: { kind: "range", minimum: 57, maximum: 63 },
+    resistance: { kind: "exact", value: 60 },
+    recovery: { kind: "range", minimum: 50, maximum: 56 },
+    breakaway: { kind: "range", minimum: 54, maximum: 60 },
+    prologue: { kind: "unknown" },
+  },
+};
+
+function TutorialScoutingDeadlines() {
+  return (
+    <section
+      data-tutorial-id="youth-tutorial-deadlines"
+      className="overflow-hidden rounded-[1.75rem] border border-[#F2C94C]/45 bg-[#0B302B] p-5 text-white shadow-sm sm:p-6"
+    >
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+            Exemple fictif · mission de trois jours
+          </p>
+          <h2 className="mt-2 text-2xl font-black">Départ J12 · rapport J15</h2>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
+            Le scout reste indisponible pendant toute la mission. Une mission
+            réelle dure de 1 à 7 jours, doit se terminer avant le J28 et révèle
+            entre 1 et 4 candidats.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <TutorialMetric label="Départ" value="J12" />
+          <TutorialMetric label="Durée" value="3 j" />
+          <TutorialMetric label="Retour" value="J15" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TutorialScoutingReport({ currency }: { currency: string }) {
+  return (
+    <section
+      data-tutorial-id="youth-tutorial-report"
+      className="rounded-[1.75rem] border border-[#C63F3F]/25 bg-white p-5 shadow-sm ring-2 ring-[#C63F3F]/5 sm:p-6"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
+            Rapport de démonstration · Belgique
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-[#071A17]">
+            Un talent fictif à analyser
+          </h2>
+        </div>
+        <span className="rounded-full bg-[#FFF5D6] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#806114]">
+          Aucune donnée réelle
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(230px,0.55fr)_minmax(0,1.45fr)]">
+        <div className="rounded-2xl border border-[#315B3E]/12 bg-[#FFFDF4] p-4">
+          <div className="flex items-center gap-4">
+            <RiderAvatar
+              profileKey="tutorial-youth-climber"
+              seed="centre-formation-tutorial"
+              riderId="11111111-1111-4111-8111-111111111111"
+              age={16}
+              className="h-20 w-20"
+            />
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+                16 ans · Grimpeur / Puncheur
+              </p>
+              <h3 className="mt-1 text-xl font-black text-[#071A17]">
+                Noah Vermeulen
+              </h3>
+              <p className="mt-1 text-xs font-bold text-[#278B70]">
+                Profil prometteur, informations incomplètes
+              </p>
+            </div>
+          </div>
+          <dl className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-[#EAF5F3] p-3">
+              <dt className="text-[9px] font-black uppercase text-[#60756E]">
+                Prime d’accueil
+              </dt>
+              <dd className="mt-1 font-black text-[#071A17]">
+                {formatCurrency(18_000, currency)}
+              </dd>
+            </div>
+            <div className="rounded-xl bg-[#EAF5F3] p-3">
+              <dt className="text-[9px] font-black uppercase text-[#60756E]">
+                Scolarité
+              </dt>
+              <dd className="mt-1 font-black text-[#071A17]">
+                {formatCurrency(7_500, currency)} / saison
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div>
+          <TransferScoutingReportPanel
+            report={TUTORIAL_SCOUTING_REPORT}
+            compact
+          />
+          <div
+            data-tutorial-id="youth-tutorial-signing"
+            className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#F2C94C]/45 bg-[#FFF9E7] p-4"
+          >
+            <p className="max-w-xl text-xs font-bold leading-5 text-[#756B48]">
+              La vraie signature débite la prime immédiatement puis ajoute les
+              frais de scolarité. Ici, le passage vers l’école reste simulé.
+            </p>
+            <button
+              type="button"
+              disabled
+              className="rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17] opacity-80"
+            >
+              Signer · simulation
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AcademyTab({
+  overview,
+  tutorialDemo,
+}: {
+  overview: YouthDevelopmentOverview;
+  tutorialDemo: boolean;
+}) {
+  const tutorialReferenceRider = overview.academy[0] ?? null;
+  const tutorialGameType =
+    tutorialReferenceRider?.manualTraining.gameType ?? "rhythm";
+  const tutorialPriorityLabel = tutorialReferenceRider
+    ? tutorialReferenceRider.trainingPriority === "rouleur"
+      ? "CLM / Rouleur"
+      : TRAINING_DOMAIN_LABELS[tutorialReferenceRider.trainingPriority]
+    : "Grimpeur";
+  const tutorialRiderName = tutorialReferenceRider
+    ? `${tutorialReferenceRider.firstName} ${tutorialReferenceRider.lastName}`
+    : "Noah Vermeulen";
+
   return (
     <div className="mt-7 space-y-8">
       {overview.notifications.length ? (
@@ -141,11 +383,151 @@ function AcademyTab({ overview }: { overview: YouthDevelopmentOverview }) {
         </section>
       ) : null}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <SectionHeading eyebrow="Formation quotidienne" title="École de cyclisme" description="Programmez une séance automatique à 8 h avec un bonus ×2, ou jouez les deux créneaux manuels de minuit à midi et de midi à minuit. Un créneau manuel manqué n’est pas rattrapé." />
+        <SectionHeading eyebrow="Formation quotidienne" title="École de cyclisme" description="Choisissez à tout moment le mode des prochaines séances : automatique à 8 h avec un bonus ×2, ou deux minijeux manuels de minuit à midi et de midi à minuit. Le choix reste actif jusqu’à votre prochaine modification." />
         <div className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-right"><p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">Frais annuels récurrents</p><p className="mt-1 text-2xl font-black text-[#071A17]">{formatCurrency(overview.totalTuitionPerSeason, overview.currency)}</p></div>
       </div>
+      {tutorialDemo ? (
+        <TutorialAcademyDemo
+          gameType={tutorialGameType}
+          priorityLabel={tutorialPriorityLabel}
+          riderName={tutorialRiderName}
+          automaticSelected={
+            tutorialReferenceRider?.trainingModePreference === "automatic"
+          }
+        />
+      ) : null}
       {!overview.canScheduleYouthPromotion ? <Alert tone="error">Effectif de la saison prochaine complet : {overview.nextSeasonRosterCommitments} / {overview.rosterLimit} places sont déjà engagées. Libérez une place avant de programmer une nouvelle promotion.</Alert> : null}
       {overview.academy.length ? <div className="space-y-4">{overview.academy.map((rider) => <AcademyRiderCard key={rider.id} rider={rider} gameYear={overview.gameYear} currency={overview.currency} canSchedulePromotion={overview.canScheduleYouthPromotion} rosterLimit={overview.rosterLimit} />)}</div> : <EmptyState title="Votre école est encore vide" text="Signez un jeune depuis un rapport de scouting pour commencer sa formation." />}
+    </div>
+  );
+}
+
+function TutorialAcademyDemo({
+  gameType,
+  priorityLabel,
+  riderName,
+  automaticSelected,
+}: {
+  gameType: YouthTrainingGameType;
+  priorityLabel: string;
+  riderName: string;
+  automaticSelected: boolean;
+}) {
+  return (
+    <section
+      data-tutorial-id="youth-tutorial-academy"
+      className="overflow-hidden rounded-[1.75rem] border border-[#278B70]/25 bg-white shadow-sm"
+    >
+      <header className="flex flex-wrap items-center justify-between gap-4 bg-[#0B302B] px-5 py-5 text-white sm:px-6">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0CA]">
+            École de démonstration
+          </p>
+          <h2 className="mt-1 text-2xl font-black">{riderName}</h2>
+          <p className="mt-1 text-xs font-bold text-[#D6DFD2]">
+            Aperçu adapté au profil travaillé · {priorityLabel}
+          </p>
+        </div>
+        <span className="rounded-full bg-[#F2C94C] px-3 py-2 text-[9px] font-black uppercase text-[#071A17]">
+          Simulation sans sauvegarde
+        </span>
+      </header>
+
+      <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)] sm:p-6">
+        <div
+          data-tutorial-id="youth-tutorial-training-settings"
+          className="rounded-2xl bg-[#EAF5F3] p-4"
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            Modes disponibles
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <TutorialTrainingMode
+              active={automaticSelected}
+              title="Automatique"
+              detail="Tous les matins à 8 h · efficacité junior ×2"
+            />
+            <TutorialTrainingMode
+              active={!automaticSelected}
+              title="Manuel"
+              detail="Deux créneaux · minuit–midi et midi–minuit"
+            />
+          </div>
+          <div className="mt-4 rounded-xl border border-[#315B3E]/12 bg-white p-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#60756E]">
+              Profil actuellement illustré
+            </p>
+            <p className="mt-1 font-black text-[#071A17]">{priorityLabel}</p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+              Ce profil détermine les statistiques travaillées et sélectionne
+              automatiquement le type de minijeu manuel.
+            </p>
+          </div>
+        </div>
+
+        <div
+          data-tutorial-id="youth-tutorial-minigame"
+          className="rounded-2xl border border-[#F2C94C]/35 bg-[#FFFDF4] p-4"
+        >
+          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-[#806114]">
+            {YOUTH_TRAINING_GAME_LABELS[gameType]} · aperçu interactif
+          </p>
+          <YouthTrainingMiniGame
+            academyRiderId="11111111-1111-4111-8111-111111111111"
+            riderName={riderName}
+            trainingMode="manual"
+            gameType={gameType}
+            currentSlotLabel="Créneau de démonstration"
+            currentSlotCompleted={false}
+            currentSlotScore={null}
+            completedSlotCount={0}
+            demoMode
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TutorialTrainingMode({
+  active,
+  title,
+  detail,
+}: {
+  active: boolean;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        active
+          ? "border-[#176951]/35 bg-white ring-2 ring-[#176951]/10"
+          : "border-[#315B3E]/10 bg-white/70"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <strong className="text-sm text-[#071A17]">{title}</strong>
+        {active ? (
+          <span className="rounded-full bg-[#176951] px-2 py-1 text-[8px] font-black uppercase text-white">
+            Réglage du DS
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+        {detail}
+      </p>
+    </div>
+  );
+}
+
+function TutorialMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-20 rounded-xl border border-white/15 bg-white/10 p-3">
+      <span className="block text-[8px] font-black uppercase tracking-[0.12em] text-[#9BE0CA]">
+        {label}
+      </span>
+      <strong className="mt-1 block text-lg text-white">{value}</strong>
     </div>
   );
 }
@@ -180,7 +562,7 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
                 Mode d’entraînement
                 <select
                   name="trainingMode"
-                  defaultValue={rider.trainingMode}
+                  defaultValue={rider.trainingModePreference}
                   className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]"
                 >
                   <option value="automatic">Automatique · 8 h · bonus ×2</option>
@@ -207,6 +589,19 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
             <button className="mt-3 w-full rounded-lg bg-[#176951] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white">
               Enregistrer la programmation
             </button>
+            <p className="mt-2 text-[9px] font-semibold leading-4 text-[#60756E]">
+              Le mode choisi s’applique à la prochaine journée d’entraînement,
+              puis à toutes les suivantes.
+            </p>
+            {rider.pendingTrainingMode ? (
+              <p className="mt-2 rounded-lg bg-[#FFF5D6] px-3 py-2 text-[9px] font-black text-[#806114]">
+                Bascule vers le mode{" "}
+                {rider.pendingTrainingMode === "automatic"
+                  ? "automatique"
+                  : "manuel"}{" "}
+                programmée pour la prochaine journée.
+              </p>
+            ) : null}
           </form>
           <YouthTrainingMiniGame
             academyRiderId={rider.id}
@@ -238,12 +633,87 @@ function MissionReport({ mission, currency, balance }: { mission: YouthMission; 
   );
 }
 
-function CandidateCard({ candidate, currency, balance }: { candidate: YouthCandidate; currency: string; balance: number }) {
+function CandidateCard({
+  candidate,
+  currency,
+  balance,
+}: {
+  candidate: YouthCandidate;
+  currency: string;
+  balance: number;
+}) {
   return (
     <div className="rounded-2xl border border-[#315B3E]/12 bg-[#FFFDF4] p-4">
-      <div className="flex items-start gap-4"><RiderAvatar profileKey={candidate.profileKey} seed={candidate.avatarSeed} riderId={candidate.id} age={candidate.age} className="h-16 w-16" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className={`fi fi-${candidate.countryCode.toLowerCase()} h-4 w-6 rounded`} /><span className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">{candidate.age} ans · {candidate.archetypeLabel}</span></div><h4 className="mt-1 text-lg font-black text-[#071A17]">{candidate.firstName} {candidate.lastName}</h4><p className="mt-1 text-xs font-extrabold text-[#278B70]">{candidate.sportingProfile}</p><div className="mt-2"><PotentialStars potentialSteps={candidate.potentialSteps} /></div>{candidate.internationalCenterBonusApplied ? <p className="mt-2 inline-flex rounded-full bg-[#F2C94C]/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#8A6714]">École internationale · +1★</p> : candidate.internationalCenterBonusPercentage > 0 ? <p className="mt-2 text-[9px] font-bold text-[#60756E]">Bonus mondial tenté : {candidate.internationalCenterBonusPercentage} %</p> : null}</div></div>
-      <div className="mt-4"><RatingsGrid ratings={candidate.ratings} compact /></div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#315B3E]/10 pt-4"><div><p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">Prime d’accueil</p><p className="font-black text-[#071A17]">{formatCurrency(candidate.signingFee, currency)}</p><p className="text-[9px] font-bold text-[#60756E]">+ {formatCurrency(candidate.tuitionPerSeason, currency)} / saison</p></div>{candidate.status === "spotted" ? <form action={signYouthCandidateAction}><input type="hidden" name="candidateId" value={candidate.id} /><button disabled={balance < candidate.signingFee} className="rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-[#D5D6CE]">Signer le jeune</button></form> : <span className="rounded-full bg-[#72D4B7]/15 px-3 py-2 text-[9px] font-black uppercase text-[#176951]">À l’école</span>}</div>
+      <div className="flex items-start gap-4">
+        <RiderAvatar
+          profileKey={candidate.profileKey}
+          seed={candidate.avatarSeed}
+          riderId={candidate.id}
+          age={candidate.age}
+          className="h-16 w-16"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={
+                "fi fi-" +
+                candidate.countryCode.toLowerCase() +
+                " h-4 w-6 rounded"
+              }
+            />
+            <span className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+              {candidate.age} ans · {candidate.archetypeLabel}
+            </span>
+          </div>
+          <h4 className="mt-1 text-lg font-black text-[#071A17]">
+            {candidate.firstName} {candidate.lastName}
+          </h4>
+          <p className="mt-1 text-xs font-extrabold text-[#278B70]">
+            {candidate.sportingProfile}
+          </p>
+          {candidate.internationalCenterBonusPercentage > 0 ? (
+            <p className="mt-2 inline-flex rounded-full bg-[#F2C94C]/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#8A6714]">
+              Centre international mobilisé · potentiel estimé
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <TransferScoutingReportPanel
+          report={candidate.scoutingReport}
+          compact
+        />
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#315B3E]/10 pt-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+            Prime d’accueil
+          </p>
+          <p className="font-black text-[#071A17]">
+            {formatCurrency(candidate.signingFee, currency)}
+          </p>
+          <p className="text-[9px] font-bold text-[#60756E]">
+            + {formatCurrency(candidate.tuitionPerSeason, currency)} / saison
+          </p>
+        </div>
+        {candidate.status === "spotted" ? (
+          <form action={signYouthCandidateAction}>
+            <input type="hidden" name="candidateId" value={candidate.id} />
+            <button
+              disabled={balance < candidate.signingFee}
+              className="rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-[#D5D6CE]"
+            >
+              Signer le jeune
+            </button>
+          </form>
+        ) : (
+          <span className="rounded-full bg-[#72D4B7]/15 px-3 py-2 text-[9px] font-black uppercase text-[#176951]">
+            À l’école
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -303,9 +773,52 @@ function DevelopmentTab() {
   return <section className="relative mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white px-6 py-20 text-center shadow-sm"><div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(135deg,transparent_45%,rgba(39,139,112,0.06)_45%,rgba(39,139,112,0.06)_55%,transparent_55%)] bg-[length:32px_32px]" /><div className="relative mx-auto max-w-xl"><span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F2C94C] text-3xl">⚒</span><p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-[#278B70]">Development Team</p><h2 className="mt-3 text-4xl font-black tracking-[-0.04em] text-[#071A17]">En construction</h2><p className="mt-4 text-sm font-semibold leading-7 text-[#60756E]">Cette future structure fera le lien entre l’école de cyclisme et l’équipe professionnelle. Son fonctionnement sera défini avec les infrastructures.</p></div></section>;
 }
 
-function TabLink({ tab, activeTab, label, detail, count }: { tab: Tab; activeTab: Tab; label: string; detail: string; count?: number }) {
+function TabLink({
+  tab,
+  activeTab,
+  label,
+  detail,
+  count,
+  tutorialDemo,
+}: {
+  tab: Tab;
+  activeTab: Tab;
+  label: string;
+  detail: string;
+  count?: number;
+  tutorialDemo: boolean;
+}) {
   const active = tab === activeTab;
-  return <Link href={`/jeu/centre-de-formation?onglet=${tab}`} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition ${active ? "bg-[#0B302B] text-white shadow-md" : "text-[#315B3E] hover:bg-[#EAF5F3]"}`}><span><strong className="block text-sm">{label}</strong><span className={`mt-0.5 block text-[10px] font-bold ${active ? "text-[#9BE0CA]" : "text-[#60756E]"}`}>{detail}</span></span>{count ? <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#C63F3F] px-1.5 text-[10px] font-black text-white">{count}</span> : null}</Link>;
+  const href = tutorialDemo
+    ? `/jeu/centre-de-formation?didacticiel=${YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE}&onglet=${tab}`
+    : `/jeu/centre-de-formation?onglet=${tab}`;
+
+  return (
+    <Link
+      href={href}
+      className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition ${
+        active
+          ? "bg-[#0B302B] text-white shadow-md"
+          : "text-[#315B3E] hover:bg-[#EAF5F3]"
+      }`}
+    >
+      <span>
+        <strong className="block text-sm">{label}</strong>
+        <span
+          className={`mt-0.5 block text-[10px] font-bold ${
+            active ? "text-[#9BE0CA]" : "text-[#60756E]"
+          }`}
+        >
+          {detail}
+        </span>
+      </span>
+      {count ? (
+        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#C63F3F] px-1.5 text-[10px] font-black text-white">
+          {count}
+        </span>
+      ) : null}
+    </Link>
+  );
 }
 
 function HeroMetric({ label, value }: { label: string; value: string }) { return <div className="min-w-20 rounded-2xl border border-white/15 bg-white/10 p-3 text-center backdrop-blur-sm"><span className="block text-[9px] font-black uppercase tracking-[0.15em] text-[#9BE0CA]">{label}</span><strong className="mt-1 block text-xl text-white">{value}</strong></div>; }

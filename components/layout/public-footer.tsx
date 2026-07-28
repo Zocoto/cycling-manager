@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import Link from "@/components/ui/app-link";
 
 import { appConfig } from "../../lib/app-config";
@@ -11,7 +13,7 @@ export function PublicFooter() {
       <MountainFooter />
 
       <div className="relative mx-auto max-w-375 px-5 py-10 sm:px-8">
-        <div className="grid gap-8 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.2fr_0.65fr_0.7fr_0.95fr]">
           <div>
             <div className="flex items-center gap-3">
               <WheelLogo className="h-8 w-8" />
@@ -80,6 +82,31 @@ export function PublicFooter() {
               Projet en développement actif
             </p>
           </div>
+
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#F2C94C]">
+              Nous suivre
+            </p>
+
+            <div className="mt-4 flex flex-col gap-3">
+              <SocialLink
+                href="https://discord.gg/Zq9ecPYEF"
+                label="Discord"
+                description="Rejoindre la communauté"
+                iconSrc="/images/social/discord-symbol.svg"
+                iconAlt=""
+                iconClassName="h-5 w-7"
+              />
+              <SocialLink
+                href="https://www.instagram.com/cyclostratege/"
+                label="Instagram"
+                description="@cyclostratege"
+                iconSrc="/images/social/instagram-glyph.svg"
+                iconAlt=""
+                iconClassName="h-7 w-7"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="mt-9 flex flex-col gap-3 border-t border-[#78947D]/20 pt-6 text-xs text-[#AFC0B1] sm:flex-row sm:items-center sm:justify-between">
@@ -94,6 +121,55 @@ export function PublicFooter() {
   );
 }
 
+function SocialLink({
+  href,
+  label,
+  description,
+  iconSrc,
+  iconAlt,
+  iconClassName,
+}: {
+  href: string;
+  label: string;
+  description: string;
+  iconSrc: string;
+  iconAlt: string;
+  iconClassName: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`${label} — ${description}`}
+      className="group flex min-h-14 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition hover:-translate-y-0.5 hover:border-[#7CCF9C]/45 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C]"
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/[0.08] shadow-inner">
+        <Image
+          src={iconSrc}
+          alt={iconAlt}
+          width={32}
+          height={32}
+          className={iconClassName}
+        />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-extrabold text-[#FFFDF4]">
+          {label}
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] font-semibold text-[#AFC0B1]">
+          {description}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className="text-sm font-black text-[#7CCF9C] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+      >
+        ↗
+      </span>
+    </a>
+  );
+}
 function MountainFooter() {
   return (
     <svg

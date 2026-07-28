@@ -48,6 +48,48 @@ export function GlobalGameChat({
   const viewportRef = useRef<HTMLDivElement>(null);
   const positionedRef = useRef(false);
 
+  const latestDisplayedMessageAt = messages.at(-1)?.createdAt ?? null;
+
+  useEffect(() => {
+    if (
+      document.visibilityState !== "visible" ||
+      !latestDisplayedMessageAt
+    ) {
+      return;
+    }
+
+    void supabase.rpc("mark_global_chat_messages_read", {
+      p_last_read_at: latestDisplayedMessageAt,
+    });
+  }, [latestDisplayedMessageAt, supabase]);
+
+  useEffect(() => {
+    function markVisibleMessagesAsRead() {
+      if (
+        document.visibilityState === "visible" &&
+        latestDisplayedMessageAt
+      ) {
+        void supabase.rpc("mark_global_chat_messages_read", {
+          p_last_read_at: latestDisplayedMessageAt,
+        });
+      }
+    }
+
+    window.addEventListener("focus", markVisibleMessagesAsRead);
+    document.addEventListener(
+      "visibilitychange",
+      markVisibleMessagesAsRead,
+    );
+
+    return () => {
+      window.removeEventListener("focus", markVisibleMessagesAsRead);
+      document.removeEventListener(
+        "visibilitychange",
+        markVisibleMessagesAsRead,
+      );
+    };
+  }, [latestDisplayedMessageAt, supabase]);
+
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const viewport = viewportRef.current;

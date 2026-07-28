@@ -17,6 +17,7 @@ import {
   type PublicGameNewsSnapshot,
   type PublicGameNewsTeamVisual,
 } from "@/lib/game/public-game-news";
+import { getRaceResultsHref } from "@/lib/game/race-live";
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
 import {
   STAFF_ROLE_DEFINITIONS,
@@ -36,6 +37,8 @@ type RaceResultRow = {
 type RaceEditionRow = {
   id: string;
   display_name: string;
+  races: { slug: string } | null;
+  stages: Array<{ stage_number: number }>;
 };
 
 type RaceRosterRow = {
@@ -146,6 +149,14 @@ type TeamSponsorContractRow = {
   created_at: string;
 };
 
+type DashboardSponsorContractRow = {
+  id: string;
+  team_id: string;
+  sponsor_id: string;
+  signed_at: string | null;
+  created_at: string;
+};
+
 type SponsorRegistryRow = {
   id: string;
   catalog_key: string;
@@ -232,9 +243,11 @@ export async function getDashboardPelotonNews(): Promise<PublicGameNewsItem[]> {
   }
 
   const results = await Promise.allSettled([
-    loadRecentPostRaceNews(admin),
     loadRecentVictories(admin),
+    loadRecentArrivals(admin),
     loadRecentRiderMovements(admin),
+    loadRecentStaffMovements(admin),
+    loadRecentSponsorSignatures(admin),
   ]);
 
   return selectDashboardPelotonHighlights(
@@ -275,8 +288,13 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
     rows.flatMap((row) => (row.featured_team_id ? [row.featured_team_id] : []))
   );
   const editionIds = unique(rows.map((row) => row.race_edition_id));
-  const [ridersQuery, teamSeasonsQuery, profilesByEditionId] =
-    await Promise.all([
+  const [
+    ridersQuery,
+    teamSeasonsQuery,
+    profilesByEditionId,
+    editionsQuery,
+    stagesQuery,
+  ] = await Promise.all([
       riderIds.length > 0
         ? admin
             .from("riders")
@@ -295,11 +313,25 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
             .returns<TeamSeasonRow[]>()
         : Promise.resolve({ data: [] as TeamSeasonRow[], error: null }),
       loadRaceProfiles(admin, editionIds),
+      admin
+        .from("race_editions")
+        .select("id, display_name, races (slug), stages (stage_number)")
+        .in("id", editionIds)
+        .returns<RaceEditionRow[]>(),
+      admin
+        .from("stages")
+        .select("id, race_edition_id, stage_number")
+        .in("id", unique(rows.map((row) => row.stage_id)))
+        .returns<RaceStageRow[]>(),
     ]);
   assertQuery(ridersQuery.error, "les coureurs des résumés de course");
   assertQuery(teamSeasonsQuery.error, "les équipes des résumés de course");
+  assertQuery(editionsQuery.error, "les éditions des résumés de course");
+  assertQuery(stagesQuery.error, "les étapes des résumés de course");
 
   const riderById = toMap(ridersQuery.data ?? []);
+  const editionById = toMap(editionsQuery.data ?? []);
+  const stageById = toMap(stagesQuery.data ?? []);
   const teamSeasons = teamSeasonsQuery.data ?? [];
   const teamVisualByTeamId = await loadTeamVisuals(admin, teamSeasons);
 
@@ -314,6 +346,12 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       ? `${rider.first_name} ${rider.last_name}`
       : null;
     const raceProfile = profilesByEditionId.get(row.race_edition_id);
+    const edition = editionById.get(row.race_edition_id);
+    const stage = stageById.get(row.stage_id);
+    const href =
+      edition?.races?.slug && stage
+        ? getRaceResultsHref(edition.races.slug, stage.stage_number)
+        : "/jeu/resultats";
 
     return {
       id: `race-recap:${row.id}`,
@@ -321,6 +359,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       title: row.title,
       detail: row.detail,
       happenedAt: row.happened_at,
+      href,
       significance: "major" as const,
       ...(rider && riderName
         ? {
@@ -370,7 +409,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
   const [editionsQuery, rostersQuery, profilesByEditionId] = await Promise.all([
     admin
       .from("race_editions")
-      .select("id, display_name")
+      .select("id, display_name, races (slug), stages (stage_number)")
       .in("id", editionIds)
       .returns<RaceEditionRow[]>(),
     admin
@@ -432,6 +471,13 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
 
     const riderName = `${rider.first_name} ${rider.last_name}`;
     const raceProfile = profilesByEditionId.get(result.race_edition_id);
+    const finalStageNumber = Math.max(
+      1,
+      ...edition.stages.map((stage) => stage.stage_number),
+    );
+    const href = edition.races?.slug
+      ? getRaceResultsHref(edition.races.slug, finalStageNumber)
+      : "/jeu/resultats";
 
     return [
       {
@@ -440,6 +486,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
         title: `${riderName} s’impose`,
         detail: `${teamSeason.display_name} remporte ${edition.display_name}.`,
         happenedAt: result.created_at,
+        href,
         significance: "major" as const,
         visual: {
           person: {
@@ -735,6 +782,66 @@ async function loadRecentStaffMovements(
   return { items, total: totalQuery.count ?? items.length };
 }
 
+async function loadRecentSponsorSignatures(
+  admin: AdminClient
+): Promise<LoadedNews> {
+  const contractsQuery = await admin
+    .from("team_sponsor_contracts")
+    .select("id, team_id, sponsor_id, signed_at, created_at")
+    .eq("role", "principal")
+    .in("status", ["planned", "active"])
+    .order("created_at", { ascending: false })
+    .limit(6)
+    .returns<DashboardSponsorContractRow[]>();
+  assertQuery(contractsQuery.error, "les dernières signatures de sponsors");
+
+  const contracts = contractsQuery.data ?? [];
+  if (contracts.length === 0) {
+    return { items: [], total: 0 };
+  }
+
+  const [teamSeasonsQuery, sponsorsQuery] = await Promise.all([
+    admin
+      .from("team_seasons")
+      .select("id, team_id, display_name, created_at")
+      .in("team_id", unique(contracts.map((contract) => contract.team_id)))
+      .order("created_at", { ascending: false })
+      .returns<TeamSeasonRow[]>(),
+    admin
+      .from("sponsors")
+      .select("id, catalog_key")
+      .in("id", unique(contracts.map((contract) => contract.sponsor_id)))
+      .returns<SponsorRegistryRow[]>(),
+  ]);
+  assertQuery(teamSeasonsQuery.error, "les équipes sponsorisées");
+  assertQuery(sponsorsQuery.error, "les sponsors signataires");
+
+  const teamSeasons = teamSeasonsQuery.data ?? [];
+  const teamSeasonByTeamId = latestTeamSeasonByTeamId(teamSeasons);
+  const sponsorRegistryById = toMap(sponsorsQuery.data ?? []);
+
+  const items = contracts.flatMap((contract) => {
+    const teamSeason = teamSeasonByTeamId.get(contract.team_id);
+    const registrySponsor = sponsorRegistryById.get(contract.sponsor_id);
+    const sponsor = registrySponsor
+      ? SPONSORS.find((entry) => entry.id === registrySponsor.catalog_key)
+      : null;
+    if (!teamSeason || !sponsor) return [];
+
+    return [
+      {
+        id: `sponsor:${contract.id}`,
+        kind: "movement" as const,
+        title: `${teamSeason.display_name} signe avec ${sponsor.name}`,
+        detail: "Un nouveau sponsor principal rejoint le peloton.",
+        happenedAt: contract.signed_at ?? contract.created_at,
+        significance: "major" as const,
+      },
+    ];
+  });
+
+  return { items, total: items.length };
+}
 async function loadRaceProfiles(
   admin: AdminClient,
   editionIds: string[]

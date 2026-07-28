@@ -9,7 +9,10 @@ import {
   type DashboardContractReminderRider,
   type DashboardEvent,
 } from "@/lib/game/dashboard-events";
-import { getRaceResultsHref } from "@/lib/game/race-live";
+import {
+  getRaceRegistrationHref,
+  getRaceResultsHref,
+} from "@/lib/game/race-live";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentDirectorInternationalSelections,
@@ -84,6 +87,7 @@ type RaceEditionEventRow = {
   status: string;
   races: { slug: string } | null;
   stages: Array<{
+    stage_number: number;
     status: string;
     season_days: { day_number: number } | null;
   }>;
@@ -189,6 +193,7 @@ export async function getCurrentDashboardOperationalEvents({
               status,
               races (slug),
               stages (
+                stage_number,
                 status,
                 season_days (day_number)
               )
@@ -344,7 +349,7 @@ export async function getCurrentDashboardOperationalEvents({
         title: decision.title,
         description: decision.message,
         href: decision.race_editions?.races?.slug
-          ? `/jeu/courses/${decision.race_editions.races.slug}`
+          ? getRaceRegistrationHref(decision.race_editions.races.slug)
           : "/jeu/calendrier",
         actionLabel: "Voir la course",
         badgeLabel: "Wild Card",
@@ -525,6 +530,10 @@ function buildCompletedRaceEvents(
 
     const slug = edition.races?.slug;
     if (!slug) return [];
+    const finalStageNumber = Math.max(
+      1,
+      ...edition.stages.map((stage) => stage.stage_number),
+    );
 
     return [
       {
@@ -534,7 +543,7 @@ function buildCompletedRaceEvents(
         title: `${edition.display_name} est terminée`,
         description:
           "Les résultats sont homologués. Consultez le classement, les écarts et les performances de vos coureurs.",
-        href: getRaceResultsHref(slug),
+        href: getRaceResultsHref(slug, finalStageNumber),
         actionLabel: "Voir les résultats",
         dayNumber: endDay,
         happenedAt: null,

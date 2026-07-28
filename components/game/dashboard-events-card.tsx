@@ -85,9 +85,9 @@ export function DashboardEventsCard({
   return (
     <section
       aria-labelledby="dashboard-events-title"
-      className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.13)]"
+      className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.13)]"
     >
-      <header className="flex flex-col gap-3 bg-[#0B302B] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <header className="flex min-h-[118px] flex-col gap-3 bg-[#0B302B] px-6 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#8ED9B1]">
             Fil du Directeur Sportif
@@ -112,7 +112,7 @@ export function DashboardEventsCard({
       </header>
 
       {events.length > 0 ? (
-        <div role="list" className="divide-y divide-[#315B3E]/10">
+        <div role="list" className="flex-1 divide-y divide-[#315B3E]/10">
           {eventGroups.map((eventGroup) => {
             const groupPriority = getGroupPriority(eventGroup.events);
             const style = PRIORITY_STYLES[groupPriority];
@@ -208,7 +208,7 @@ export function DashboardEventsCard({
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center px-6 py-8 text-center sm:px-8">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center sm:px-8">
           <span
             aria-hidden="true"
             className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F7F1] text-[#176951]"

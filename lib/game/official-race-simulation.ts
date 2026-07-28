@@ -27,7 +27,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-experience-v4";
+export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-selection-time-limit-v5";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -206,7 +206,7 @@ function decorateStageRaceJerseys({
 export function isUnavailableForFollowingStage(
   result: StageSimulationResult["results"][number]
 ) {
-  return result.status === "did_not_finish" || result.injury !== null;
+  return result.status !== "finished" || result.injury !== null;
 }
 
 /**

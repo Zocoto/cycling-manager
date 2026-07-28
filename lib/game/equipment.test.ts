@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   applyEquipmentRatingBonuses,
   combineEquipmentEffects,
+  equipmentMatchesEffect,
+  getEquipmentRatingBonusTotals,
+  isEquipmentEffectFilterKey,
   isEquipmentChangeFrozenForRace,
 } from "./equipment";
 import type { RiderRatings } from "./rider-profile";
@@ -46,6 +49,23 @@ describe("equipment effects", () => {
     });
   });
 
+  it("additionne les bonus généraux et contextuels dans un seul total affiché", () => {
+    expect(
+      getEquipmentRatingBonusTotals({
+        ratingBonuses: { timeTrial: 2, acceleration: 2 },
+        timeTrialRatingBonuses: {
+          timeTrial: 2,
+          acceleration: 1,
+          endurance: 1,
+        },
+      })
+    ).toEqual({
+      timeTrial: 4,
+      acceleration: 3,
+      endurance: 1,
+    });
+  });
+
   it("réserve les bonus contextuels aux chronos et prologues", () => {
     const effects = {
       ratingBonuses: {},
@@ -57,6 +77,25 @@ describe("equipment effects", () => {
       applyEquipmentRatingBonuses(ratings, effects, { isTimeTrial: true })
         .endurance
     ).toBe(82);
+  });
+
+  it("filtre le matériel sur ses gains réels, y compris en chrono", () => {
+    const effects = {
+      ratingBonuses: { mountain: 2 },
+      timeTrialRatingBonuses: { timeTrial: 3, endurance: 1 },
+      injuryRiskReductionPct: 4,
+      breakawayReputationBonus: 0,
+      victoryReputationBonus: 0.2,
+    };
+
+    expect(equipmentMatchesEffect(effects, "mountain")).toBe(true);
+    expect(equipmentMatchesEffect(effects, "timeTrial")).toBe(true);
+    expect(equipmentMatchesEffect(effects, "endurance")).toBe(true);
+    expect(equipmentMatchesEffect(effects, "injuryRisk")).toBe(true);
+    expect(equipmentMatchesEffect(effects, "breakawayReputation")).toBe(false);
+    expect(equipmentMatchesEffect(effects, "victoryReputation")).toBe(true);
+    expect(isEquipmentEffectFilterKey("timeTrial")).toBe(true);
+    expect(isEquipmentEffectFilterKey("inconnu")).toBe(false);
   });
 
   it("applique les bonus sans dépasser 100", () => {

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { EquipmentPartnerSubmitButton } from "@/components/game/equipment-partner-submit-button";
 import { GameHeader } from "@/components/game/game-header";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
 import {
@@ -14,6 +16,11 @@ import {
   EQUIPMENT_PARTNER_RND_SUCCESS_RATE,
 } from "@/lib/game/equipment-partner";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  EQUIPMENT_TUTORIAL_KEY,
+  EQUIPMENT_TUTORIAL_PARTNER_ROUTE,
+} from "@/lib/tutorial/equipment";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamEquipmentPartnerOverview,
@@ -54,20 +61,38 @@ export default async function EquipmentPartnerPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview] = await Promise.all([
+  const [headerData, overview, equipmentTutorialProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentTeamEquipmentPartnerOverview(user.id),
+    getAuthenticatedTutorialProgress(supabase, EQUIPMENT_TUTORIAL_KEY).catch(
+      (error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel du matériel :",
+          error,
+        );
+        return null;
+      },
+    ),
   ]);
   if (!overview) redirect("/jeu");
 
   const activeSupplier = overview.activeContract
-    ? overview.suppliers.find(
+    ? (overview.suppliers.find(
         (supplier) => supplier.key === overview.activeContract?.supplierKey,
-      ) ?? null
+      ) ?? null)
     : null;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {equipmentTutorialProgress?.status === "in_progress" &&
+      equipmentTutorialProgress.current_route ===
+        EQUIPMENT_TUTORIAL_PARTNER_ROUTE &&
+      equipmentTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={EQUIPMENT_TUTORIAL_KEY}
+          currentStepKey={equipmentTutorialProgress.current_step_key}
+        />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
@@ -97,7 +122,10 @@ export default async function EquipmentPartnerPage({
           </Link>
         </nav>
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10">
+        <header
+          data-tutorial-id="equipment-partner-overview"
+          className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.2)] sm:px-10 sm:py-10"
+        >
           <div
             aria-hidden="true"
             className="absolute -right-12 -top-24 h-72 w-72 rounded-full border-[46px] border-white/5"
@@ -107,9 +135,15 @@ export default async function EquipmentPartnerPage({
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
                 Partenariat technique · laboratoire R&D
               </p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
-                Équipementier
-              </h1>
+              <div className="mt-3 flex items-center gap-3">
+                <h1 className="text-3xl font-black tracking-tight sm:text-5xl">
+                  Équipementier
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={EQUIPMENT_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Recevez un vélo complet légèrement supérieur au commerce, puis
                 faites évoluer une pièce à la fois. Chaque recherche peut aussi
@@ -140,7 +174,10 @@ export default async function EquipmentPartnerPage({
           </div>
         ) : null}
 
-        <section className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section
+          data-tutorial-id="equipment-partner-rules"
+          className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        >
           <RuleCard
             eyebrow="Signature"
             title="Aucun coût"
@@ -163,14 +200,16 @@ export default async function EquipmentPartnerPage({
           />
         </section>
 
-        {overview.activeContract && activeSupplier ? (
-          <ActiveContractSection
-            overview={overview}
-            supplier={activeSupplier}
-          />
-        ) : (
-          <ContractSelectionSection overview={overview} />
-        )}
+        <div data-tutorial-id="equipment-partner-workflow">
+          {overview.activeContract && activeSupplier ? (
+            <ActiveContractSection
+              overview={overview}
+              supplier={activeSupplier}
+            />
+          ) : (
+            <ContractSelectionSection overview={overview} />
+          )}
+        </div>
 
         {overview.contractHistory.some(
           (contract) => contract.status === "completed",
@@ -231,8 +270,8 @@ function ContractSelectionSection({
               Développez d’abord la réputation de l’équipe
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-              Il faut atteindre {overview.reputationThreshold} points pour signer
-              un équipementier. Votre réputation est actuellement de{" "}
+              Il faut atteindre {overview.reputationThreshold} points pour
+              signer un équipementier. Votre réputation est actuellement de{" "}
               {formatNumber(overview.reputationPoints)}.
             </p>
             <div className="mt-5 h-2.5 max-w-xl overflow-hidden rounded-full bg-[#DDE5E0]">
@@ -241,8 +280,7 @@ function ContractSelectionSection({
                 style={{
                   width: `${Math.min(
                     100,
-                    (overview.reputationPoints /
-                      overview.reputationThreshold) *
+                    (overview.reputationPoints / overview.reputationThreshold) *
                       100,
                   )}%`,
                 }}
@@ -453,9 +491,7 @@ function ActiveContractSection({
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
             Laboratoire R&D
           </p>
-          <h2 className="mt-2 text-2xl font-black">
-            Une recherche à la fois
-          </h2>
+          <h2 className="mt-2 text-2xl font-black">Une recherche à la fois</h2>
           {overview.activeProject ? (
             <ActiveProjectCard project={overview.activeProject} />
           ) : (
@@ -704,7 +740,8 @@ function SuccessMessage({ state }: { state: string }) {
 function formatEffects(product: EquipmentPartnerProduct) {
   const values = [
     ...Object.entries(product.effects.ratingBonuses).map(
-      ([key, value]) => `${Number(value) >= 0 ? "+" : ""}${value} ${ratingLabel(key)}`,
+      ([key, value]) =>
+        `${Number(value) >= 0 ? "+" : ""}${value} ${ratingLabel(key)}`,
     ),
     ...Object.entries(product.effects.timeTrialRatingBonuses).map(
       ([key, value]) =>
@@ -762,7 +799,7 @@ function formatNumber(value: number) {
 }
 
 function readQuery(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function LockIcon() {

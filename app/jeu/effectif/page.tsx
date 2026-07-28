@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
+import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
+import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
 import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey";
 import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
@@ -33,8 +36,10 @@ import { getCurrentTeamDivisionForAuthUser } from "../../../services/team-divisi
 import {
   getRiderSportingProfile,
   type RiderRatingImportance,
+  type RiderRatingKey,
   type RiderRatings,
 } from "../../../lib/game/rider-profile";
+import { getEquipmentRatingBonusTotals } from "@/lib/game/equipment";
 import { getRiderRatingColorClasses } from "../../../lib/game/rider-rating-colors";
 import {
   getNextRosterSortDirection,
@@ -53,6 +58,12 @@ import {
 } from "../../../services/team-health";
 import { getCurrentTeamRiderSeasonPlanning } from "../../../services/rider-season-planning";
 import { getActiveNationalChampionshipTitlesForRiders } from "@/services/rider-national-championship-titles";
+import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
+import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import {
+  ROSTER_TUTORIAL_KEY,
+  ROSTER_TUTORIAL_ROUTE,
+} from "@/lib/tutorial/roster";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -265,6 +276,7 @@ export default async function TeamRosterPage({
     teamAmateurIdentity,
     teamDivision,
     healthOverview,
+    rosterTutorialProgress,
   ] = await Promise.all([
     supabase
       .rpc("get_current_team_dashboard_summary")
@@ -296,6 +308,16 @@ export default async function TeamRosterPage({
     getCurrentTeamHealthOverview(user.id).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer les indisponibilités médicales :",
+        error,
+      );
+      return null;
+    }),
+    getAuthenticatedTutorialProgress(
+      supabase,
+      ROSTER_TUTORIAL_KEY,
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de reprendre le didacticiel de l’effectif :",
         error,
       );
       return null;
@@ -348,6 +370,22 @@ export default async function TeamRosterPage({
       );
       return new Map();
     });
+  const riderEquipmentEffectsByRiderId =
+    await getRiderEquipmentEffectsByRiderId(
+      riders.map((rider) => rider.rider_id),
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de récupérer les bonus d’équipement de l’effectif :",
+        error,
+      );
+      return new Map();
+    });
+  const equipmentRatingBonusesByRiderId = new Map(
+    [...riderEquipmentEffectsByRiderId].map(([riderId, effects]) => [
+      riderId,
+      getEquipmentRatingBonusTotals(effects),
+    ]),
+  );
   const nationalChampionJerseyByRiderId = new Map(
     [...activeNationalTitlesByRiderId].map(([riderId, title]) => [
       riderId,
@@ -403,6 +441,15 @@ export default async function TeamRosterPage({
 
   return (
     <main className="min-h-screen text-[#082A2A]">
+      {rosterTutorialProgress?.status === "in_progress" &&
+      rosterTutorialProgress.current_route === ROSTER_TUTORIAL_ROUTE &&
+      rosterTutorialProgress.current_step_key ? (
+        <TutorialRouteResume
+          tutorialKey={ROSTER_TUTORIAL_KEY}
+          currentStepKey={rosterTutorialProgress.current_step_key}
+        />
+      ) : null}
+
       <GameHeader
         simulatorEmail={user.email}
         sponsor={teamSponsorIdentity?.sponsor ?? null}
@@ -413,18 +460,21 @@ export default async function TeamRosterPage({
         <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
           <BackToOfficeLink />
 
-          <header
-            data-tutorial-id="roster-overview"
-            className="mt-7 flex flex-wrap items-end justify-between gap-6"
-          >
+          <header className="mt-7 flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Gestion sportive
               </p>
 
-              <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
-                Effectif
-              </h1>
+              <div className="mt-4 flex items-center gap-3">
+                <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+                  Effectif
+                </h1>
+                <TutorialLaunchButton
+                  tutorialKey={ROSTER_TUTORIAL_KEY}
+                  iconOnly
+                />
+              </div>
 
               <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
                 Consultez les qualités, les contrats et les spécialités de vos
@@ -522,6 +572,11 @@ export default async function TeamRosterPage({
             <section
               className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
               data-tutorial-id="roster-rating-table"
+              data-tutorial-route={
+                sortedRiders[0]
+                  ? `/jeu/coureurs/${sortedRiders[0].rider_id}`
+                  : undefined
+              }
             >
               {teamSponsorIdentity ? (
                 <div
@@ -569,6 +624,11 @@ export default async function TeamRosterPage({
                             ) ?? riderJersey
                           }
                           health={healthByRiderId.get(rider.rider_id) ?? null}
+                          equipmentBonuses={
+                            equipmentRatingBonusesByRiderId.get(
+                              rider.rider_id,
+                            ) ?? {}
+                          }
                         />
                       ))}
                     </div>
@@ -685,6 +745,11 @@ export default async function TeamRosterPage({
                               ) ?? riderJersey
                             }
                             health={healthByRiderId.get(rider.rider_id) ?? null}
+                            equipmentBonuses={
+                              equipmentRatingBonusesByRiderId.get(
+                                rider.rider_id,
+                              ) ?? {}
+                            }
                           />
                         ))}
                       </tbody>
@@ -1215,10 +1280,12 @@ function RiderMobileCard({
   rider,
   jersey,
   health,
+  equipmentBonuses,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
   health: RiderRosterHealth | null;
+  equipmentBonuses: Partial<Record<RiderRatingKey, number>>;
 }) {
   const riderName = `${rider.first_name} ${rider.last_name}`.trim();
   const riderProfile = getRiderSportingProfile(toRiderRatings(rider));
@@ -1355,6 +1422,7 @@ function RiderMobileCard({
                   value={rider[column.key]}
                   label={column.fullLabel}
                   importance={column.importance}
+                  bonus={equipmentBonuses[toRiderRatingKey(column.key)]}
                 />
               </dd>
             </div>
@@ -1411,10 +1479,12 @@ function RiderTableRow({
   rider,
   jersey,
   health,
+  equipmentBonuses,
 }: {
   rider: RiderRow;
   jersey: RiderJerseyAppearance;
   health: RiderRosterHealth | null;
+  equipmentBonuses: Partial<Record<RiderRatingKey, number>>;
 }) {
   const riderName = `${rider.first_name} ${rider.last_name}`.trim();
 
@@ -1523,7 +1593,12 @@ function RiderTableRow({
             data-rating-importance={column.importance}
             className={column.importance === "primary" ? "px-1 py-4 text-center" : "bg-[#FAFBFA] px-1 py-4 text-center"}
           >
-            <RatingBadge value={value} label={column.fullLabel} importance={column.importance} />
+            <RatingBadge
+              value={value}
+              label={column.fullLabel}
+              importance={column.importance}
+              bonus={equipmentBonuses[toRiderRatingKey(column.key)]}
+            />
           </td>
         );
       })}
@@ -1603,14 +1678,16 @@ function RatingBadge({
   value,
   label,
   importance,
+  bonus,
 }: {
   value: number;
   label: string;
   importance: RiderRatingImportance;
+  bonus?: number;
 }) {
   return (
     <span
-      title={`${label} : ${value}`}
+      title={`${label} : ${value}${Number(bonus ?? 0) > 0 ? ` +${bonus} équipement` : ""}`}
       data-rating-importance={importance}
       className={[
         "inline-flex h-8 min-w-9 items-center justify-center rounded-md border px-1.5 text-xs font-black",
@@ -1618,6 +1695,7 @@ function RatingBadge({
       ].join(" ")}
     >
       {value}
+      <EquipmentRatingBonus bonus={bonus} className="text-[9px]" />
     </span>
   );
 }
@@ -1760,6 +1838,10 @@ function RosterIcon() {
       <path d="M14 14c3.5-.3 5.5 1.7 6 5" />
     </svg>
   );
+}
+
+function toRiderRatingKey(key: RatingKey): RiderRatingKey {
+  return key === "time_trial" ? "timeTrial" : key;
 }
 
 function toRiderRatings(rider: RiderRow): RiderRatings {

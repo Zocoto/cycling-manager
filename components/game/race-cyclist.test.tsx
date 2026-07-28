@@ -74,7 +74,9 @@ describe("race cyclist visuals", () => {
       secondaryColor: "#FFFFFF",
       accentColor: "#E1000F",
     });
-    expect(markup).toContain("fi-fr");
+    expect(markup).toContain('data-national-champion-flag="fr"');
+    expect(markup).toContain('href="/images/flags/4x3/fr.svg"');
+    expect(markup).not.toContain("foreignObject");
   });
 
   it("fait passer le maillot jaune devant le titre national", () => {
@@ -96,7 +98,7 @@ describe("race cyclist visuals", () => {
       shortLabel: "Maillot jaune",
       primaryColor: "#F5D547",
     });
-    expect(markup).not.toContain("fi-fr");
+    expect(markup).not.toContain("data-national-champion-flag");
   });
 
   it("dessine les pois rouges dans les deux vues du grimpeur", () => {

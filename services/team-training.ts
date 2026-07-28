@@ -158,6 +158,7 @@ export type TeamTrainingRider = {
 export type TeamTrainingOverview = {
   teamId: string;
   teamName: string;
+  seasonId: string;
   seasonName: string;
   currentDayNumber: number;
   minimumForm: number;
@@ -397,6 +398,7 @@ export async function getCurrentTeamTrainingOverview(
   return {
     teamId: teamSeason.team_id,
     teamName: teamSeason.display_name,
+    seasonId: season.id,
     seasonName: season.name,
     currentDayNumber,
     minimumForm: latestSetting?.minimum_form ?? 50,

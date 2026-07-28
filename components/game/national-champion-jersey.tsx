@@ -1,6 +1,7 @@
 import { useId } from "react";
 
 import { getNationalChampionPalette } from "@/lib/rider-jersey";
+import { SvgCountryFlag } from "./svg-country-flag";
 
 type NationalChampionJerseyProps = {
   countryCode: string;
@@ -18,7 +19,7 @@ export function NationalChampionJersey({
   const rawId = useId();
   const svgId = rawId.replace(/:/g, "");
   const jerseyClipId = `national-champion-jersey-${svgId}`;
-  const normalizedCountryCode = countryCode.trim().toLowerCase();
+
   const palette = getNationalChampionPalette(countryCode);
   const jerseyPath =
     "M88 42 55 58 22 100 55 126 72 105 72 267 188 267 188 105 205 126 238 100 205 58 172 42 153 62 107 62Z";
@@ -45,27 +46,13 @@ export function NationalChampionJersey({
       />
 
       <g clipPath={`url(#${jerseyClipId})`}>
-        <foreignObject
+        <SvgCountryFlag
+          countryCode={countryCode}
           x="0"
           y="0"
-          width="260"
-          height="300"
-          overflow="hidden"
-          style={{ overflow: "hidden" }}
-        >
-          <span
-            aria-hidden="true"
-            className={`fi fi-${normalizedCountryCode}`}
-            style={{
-              display: "block",
-              width: "100%",
-              height: "100%",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "100% 100%",
-            }}
-          />
-        </foreignObject>
+          width={260}
+          height={300}
+        />
         <path
           d="M22 100 55 58 88 42 107 62H72v43l-17 21Z"
           fill="#FFFFFF"

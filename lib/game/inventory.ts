@@ -12,13 +12,12 @@ export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number];
 export type StoredInventoryCategory = Exclude<InventoryCategory, "equipment">;
 export type InventoryRarity = "common" | "uncommon" | "rare" | "epic";
 export type AssignableInventoryCategory =
-  | "special_ability"
-  | "potential_boost"
-  | "rating_boost";
+  "special_ability" | "potential_boost" | "rating_boost";
 
 export type TeamInventoryItem = {
   id: string;
   sourceId: string;
+  catalogKey?: string | null;
   source: "item" | "equipment";
   category: InventoryCategory;
   name: string;
@@ -56,13 +55,15 @@ export const INVENTORY_CATEGORY_DEFINITIONS = [
     category: "rating_boost",
     label: "Statistiques",
     shortLabel: "Bonus de stat",
-    description: "Objets d’entraînement qui renforcent directement une statistique.",
+    description:
+      "Objets d’entraînement qui renforcent directement une statistique.",
   },
   {
     category: "equipment",
     label: "Matériel",
     shortLabel: "Matériel",
-    description: "Pièces achetées dans la boutique et attribuables aux coureurs.",
+    description:
+      "Pièces achetées dans la boutique et attribuables aux coureurs.",
   },
   {
     category: "other",
@@ -82,7 +83,7 @@ export function isInventoryCategory(value: string): value is InventoryCategory {
 }
 
 export function isAssignableInventoryCategory(
-  value: string
+  value: string,
 ): value is AssignableInventoryCategory {
   return (
     value === "special_ability" ||
@@ -93,7 +94,7 @@ export function isAssignableInventoryCategory(
 
 export function getInventoryCategory(category: InventoryCategory) {
   return INVENTORY_CATEGORY_DEFINITIONS.find(
-    (definition) => definition.category === category
+    (definition) => definition.category === category,
   )!;
 }
 
@@ -113,8 +114,9 @@ export function summarizeInventory(items: ReadonlyArray<TeamInventoryItem>) {
       totalUnits: summary.totalUnits + item.quantity,
       availableUnits: summary.availableUnits + item.availableQuantity,
       equipmentUnits:
-        summary.equipmentUnits + (item.category === "equipment" ? item.quantity : 0),
+        summary.equipmentUnits +
+        (item.category === "equipment" ? item.quantity : 0),
     }),
-    { references: 0, totalUnits: 0, availableUnits: 0, equipmentUnits: 0 }
+    { references: 0, totalUnits: 0, availableUnits: 0, equipmentUnits: 0 },
   );
 }

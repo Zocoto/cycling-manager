@@ -11,11 +11,14 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   calculateMinimumNextBid,
   calculateWeeklySalary,
+  matchesTransferRiderProfile,
+  type TransferRiderProfileFilter,
 } from "@/lib/game/transfer-market";
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
 import {
   getRiderSportingProfile,
   type RiderRatings,
+  type RiderSportingProfile,
 } from "@/lib/game/rider-profile";
 import {
   isTeamRosterAtCapacity,
@@ -120,7 +123,7 @@ export type TransferMarketRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number;
-  profileLabel: string;
+  profileLabel: RiderSportingProfile;
   salaryPerSeason: number;
   scoutingReport: TransferScoutingReport;
 };
@@ -172,11 +175,11 @@ type LoadedMarketRider = TransferRosterRider & {
   age: number;
   potentialSteps: number;
   ratings: RiderRatings;
-  profileLabel: string;
+  profileLabel: RiderSportingProfile;
 };
 
 export type TransferMarketFilters = {
-  search?: string;
+  profile?: TransferRiderProfileFilter;
   country?: string;
   minimumAge?: number;
   maximumAge?: number;
@@ -762,9 +765,10 @@ function groupBids(bids: BidRow[]) {
 }
 
 function applyFreeAgentFilters(riders: TransferMarketRider[], filters: TransferMarketFilters) {
-  const search = filters.search?.trim().toLocaleLowerCase("fr") ?? "";
   return riders
-    .filter((rider) => !search || `${rider.firstName} ${rider.lastName}`.toLocaleLowerCase("fr").includes(search))
+    .filter((rider) =>
+      matchesTransferRiderProfile(rider.profileLabel, filters.profile)
+    )
     .filter((rider) => !filters.country || rider.countryCode === filters.country)
     .filter((rider) => filters.minimumAge === undefined || rider.age >= filters.minimumAge)
     .filter((rider) => filters.maximumAge === undefined || rider.age <= filters.maximumAge)

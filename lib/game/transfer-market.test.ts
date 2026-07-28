@@ -6,6 +6,8 @@ import {
   calculateMinimumNextBid,
   calculateTransferStartingPrice,
   calculateWeeklySalary,
+  isTransferRiderProfileFilter,
+  matchesTransferRiderProfile,
 } from "./transfer-market";
 
 describe("transfer market economy", () => {
@@ -36,5 +38,35 @@ describe("transfer market economy", () => {
         reservedWinningBids: 12_000,
       })
     ).toBe(43_000);
+  });
+
+  it("reconnaît les profils proposés par le filtre", () => {
+    expect(isTransferRiderProfileFilter("Grimpeur")).toBe(true);
+    expect(isTransferRiderProfileFilter("Coureur équilibré")).toBe(true);
+    expect(isTransferRiderProfileFilter("Profil inconnu")).toBe(false);
+  });
+
+  it("inclut un profil hybride dans chacune de ses spécialités", () => {
+    expect(
+      matchesTransferRiderProfile("Grimpeur / Puncheur", "Grimpeur")
+    ).toBe(true);
+    expect(
+      matchesTransferRiderProfile("Grimpeur / Puncheur", "Puncheur")
+    ).toBe(true);
+    expect(
+      matchesTransferRiderProfile("Grimpeur / Puncheur", "Sprinteur")
+    ).toBe(false);
+  });
+
+  it("réserve le filtre équilibré aux seuls coureurs équilibrés", () => {
+    expect(
+      matchesTransferRiderProfile(
+        "Coureur équilibré",
+        "Coureur équilibré"
+      )
+    ).toBe(true);
+    expect(
+      matchesTransferRiderProfile("Grimpeur", "Coureur équilibré")
+    ).toBe(false);
   });
 });
