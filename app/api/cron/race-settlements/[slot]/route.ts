@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { settleFinishedRaceResults } from "@/services/race-results";
@@ -29,16 +30,4 @@ export async function GET(request: Request) {
     internationalSelections,
     settledAt: now.toISOString(),
   });
-}
-
-function isAuthorizedCronRequest(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim();
-  if (cronSecret) {
-    return request.headers.get("authorization") === `Bearer ${cronSecret}`;
-  }
-
-  return (
-    process.env.VERCEL === "1" &&
-    request.headers.get("user-agent") === "vercel-cron/1.0"
-  );
 }
