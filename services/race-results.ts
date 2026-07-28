@@ -1756,6 +1756,7 @@ function toPersistedGeneralInput(
     teamId: result.teamId,
     teamProfileId: result.teamProfileId,
     teamName: result.teamName,
+    rank: result.rank,
     status: result.status,
     elapsedTimeMs: result.elapsedTimeMs,
     abandonmentReason: result.abandonmentReason,

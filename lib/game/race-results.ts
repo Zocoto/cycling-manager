@@ -73,6 +73,7 @@ export type PersistedStageResultForGeneral = {
   teamId: string;
   teamProfileId?: string | null;
   teamName: string;
+  rank: number | null;
   status: OfficialResultStatus;
   elapsedTimeMs: number | null;
   abandonmentReason: string | null;
@@ -117,9 +118,14 @@ export function buildPersistedGeneralClassification(
 ): OfficialRiderResult[] {
   const identityByRiderId = new Map<
     string,
-    Omit<PersistedStageResultForGeneral, "status" | "elapsedTimeMs" | "abandonmentReason">
+    Omit<
+      PersistedStageResultForGeneral,
+      "rank" | "status" | "elapsedTimeMs" | "abandonmentReason"
+    >
   >();
   const totalTimeByRiderId = new Map<string, number>();
+  const rankSumByRiderId = new Map<string, number>();
+  const lastStageRankByRiderId = new Map<string, number>();
   const finishedStagesByRiderId = new Map<string, number>();
   const abandonedByRiderId = new Map<string, PersistedStageResultForGeneral>();
 
@@ -142,6 +148,13 @@ export function buildPersistedGeneralClassification(
           result.riderId,
           (finishedStagesByRiderId.get(result.riderId) ?? 0) + 1
         );
+        if (result.rank !== null) {
+          rankSumByRiderId.set(
+            result.riderId,
+            (rankSumByRiderId.get(result.riderId) ?? 0) + result.rank
+          );
+          lastStageRankByRiderId.set(result.riderId, result.rank);
+        }
       } else if (result.status !== "finished") {
         abandonedByRiderId.set(result.riderId, result);
       }
@@ -161,6 +174,7 @@ export function buildPersistedGeneralClassification(
     abandonedByRiderId.set(riderId, {
       ...identity,
       status: "did_not_start",
+      rank: null,
       elapsedTimeMs: null,
       abandonmentReason: null,
     });
@@ -170,7 +184,13 @@ export function buildPersistedGeneralClassification(
     .filter(([riderId]) => !abandonedByRiderId.has(riderId))
     .sort(
       (first, second) =>
-        first[1] - second[1] || first[0].localeCompare(second[0])
+        first[1] - second[1] ||
+        (rankSumByRiderId.get(first[0]) ?? Number.MAX_SAFE_INTEGER) -
+          (rankSumByRiderId.get(second[0]) ?? Number.MAX_SAFE_INTEGER) ||
+        (lastStageRankByRiderId.get(first[0]) ?? Number.MAX_SAFE_INTEGER) -
+          (lastStageRankByRiderId.get(second[0]) ??
+            Number.MAX_SAFE_INTEGER) ||
+        first[0].localeCompare(second[0])
     );
   const winnerTime = classified[0]?.[1] ?? 0;
   const general = classified.map(([riderId, elapsedTimeMs], index) => {

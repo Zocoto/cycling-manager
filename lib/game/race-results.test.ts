@@ -11,6 +11,7 @@ const coquinous = {
   riderName: "Paul Rapide",
   teamId: "team-coquinous",
   teamName: "Les Coquinous",
+  rank: 1,
   status: "finished" as const,
   abandonmentReason: null,
 };
@@ -20,11 +21,44 @@ const challengers = {
   riderName: "Jean Vaillant",
   teamId: "team-challenger",
   teamName: "Les Challengers",
+  rank: 2,
   status: "finished" as const,
   abandonmentReason: null,
 };
 
 describe("buildPersistedGeneralClassification", () => {
+  it("conserve l'ordre d'arrivee lorsque deux coureurs terminent dans le meme temps", () => {
+    const general = buildPersistedGeneralClassification([
+      [
+        { ...coquinous, elapsedTimeMs: 3_600_000 },
+        { ...challengers, elapsedTimeMs: 3_600_000 },
+      ],
+    ]);
+
+    expect(general.map((result) => result.riderId)).toEqual([
+      "rider-coquinous",
+      "rider-challenger",
+    ]);
+    expect(general.map((result) => result.rank)).toEqual([1, 2]);
+  });
+
+  it("departage un tour au cumul des places puis au rang de la derniere etape", () => {
+    const general = buildPersistedGeneralClassification([
+      [
+        { ...coquinous, rank: 3, elapsedTimeMs: 3_600_000 },
+        { ...challengers, rank: 1, elapsedTimeMs: 3_600_000 },
+      ],
+      [
+        { ...coquinous, rank: 1, elapsedTimeMs: 3_600_000 },
+        { ...challengers, rank: 3, elapsedTimeMs: 3_600_000 },
+      ],
+    ]);
+
+    expect(general.map((result) => result.riderId)).toEqual([
+      "rider-coquinous",
+      "rider-challenger",
+    ]);
+  });
   it("cumule précisément les temps des étapes", () => {
     const general = buildPersistedGeneralClassification([
       [
