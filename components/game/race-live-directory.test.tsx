@@ -6,7 +6,10 @@ import type {
   SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-import { RaceLiveDirectory } from "./race-live-directory";
+import {
+  RaceLiveDirectory,
+  isEditionInResultsScope,
+} from "./race-live-directory";
 
 describe("RaceLiveDirectory", () => {
   it("affiche le jour courant, replie le passé et masque les courses futures", () => {
@@ -46,6 +49,44 @@ describe("RaceLiveDirectory", () => {
     expect(markup).toContain("Résumé des étapes");
     expect(markup).toContain("1 étape à venir");
   });
+
+  it("sépare les courses de l’équipe des courses non courues", () => {
+    const teamEdition = createEdition({
+      id: "course-equipe",
+      name: "Course de mon équipe",
+      dayNumbers: [4],
+    });
+    const unriddenEdition = createEdition({
+      id: "course-non-courue",
+      name: "Course à suivre",
+      dayNumbers: [4],
+      registered: false,
+    });
+    const calendar = createCalendar({
+      currentDayNumber: 4,
+      editions: [teamEdition, unriddenEdition],
+    });
+
+    expect(isEditionInResultsScope(teamEdition, "team")).toBe(true);
+    expect(isEditionInResultsScope(teamEdition, "unridden")).toBe(false);
+    expect(isEditionInResultsScope(unriddenEdition, "team")).toBe(false);
+    expect(isEditionInResultsScope(unriddenEdition, "unridden")).toBe(true);
+
+    const markup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={calendar}
+        nowIso="2026-07-29T20:00:00Z"
+        initialScope="unridden"
+      />,
+    );
+
+    expect(markup).toContain("Courses non courues");
+    expect(markup).toContain("Course à suivre");
+    expect(markup).toContain(
+      'href="/jeu/resultats/course-non-courue/1"',
+    );
+    expect(markup).not.toContain("Course de mon équipe");
+  });
 });
 
 function createCalendar({
@@ -72,10 +113,12 @@ function createEdition({
   id,
   name,
   dayNumbers,
+  registered = true,
 }: {
   id: string;
   name: string;
   dayNumbers: number[];
+  registered?: boolean;
 }): RaceCalendarEdition {
   return {
     id,
@@ -99,10 +142,12 @@ function createEdition({
     maximumRosterSize: 7,
     engagedRiderCount: 5,
     engagedRiders: [],
-    currentTeamRegistration: {
-      status: "accepted",
-      rosterCount: 5,
-    },
+    currentTeamRegistration: registered
+      ? {
+          status: "accepted",
+          rosterCount: 5,
+        }
+      : null,
     stages: dayNumbers.map((dayNumber, index) => ({
       id: `${id}-stage-${index + 1}`,
       dayNumber,

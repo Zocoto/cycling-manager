@@ -21,7 +21,7 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 
-type ResultsScope = "team" | "all";
+export type ResultsScope = "team" | "unridden";
 
 type DirectoryEntry = {
   edition: RaceCalendarEdition;
@@ -36,11 +36,13 @@ type DirectoryEdition = {
 export function RaceLiveDirectory({
   calendar,
   nowIso,
+  initialScope = "team",
 }: {
   calendar: SeasonRaceCalendar;
   nowIso: string;
+  initialScope?: ResultsScope;
 }) {
-  const [scope, setScope] = useState<ResultsScope>("team");
+  const [scope, setScope] = useState<ResultsScope>(initialScope);
   const [selectedCategories, setSelectedCategories] = useState<
     RaceCategoryCode[]
   >([]);
@@ -74,12 +76,9 @@ export function RaceLiveDirectory({
         ),
     [calendar.editions],
   );
-  const scopeEntries =
-    scope === "all"
-      ? entries
-      : entries.filter(({ edition }) =>
-          isCurrentTeamRegisteredForRace(edition),
-        );
+  const scopeEntries = entries.filter(({ edition }) =>
+    isEditionInResultsScope(edition, scope),
+  );
   const visibleEntries =
     selectedCategories.length === 0
       ? scopeEntries
@@ -147,29 +146,33 @@ export function RaceLiveDirectory({
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#176951]/15 bg-[#EAF5F0] p-4">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#176951]">
-              Courses suivies
+              {scope === "team"
+                ? "Courses de votre équipe"
+                : "Courses non courues"}
             </p>
             <p className="mt-1 text-xs font-semibold text-[#688176]">
-              Vos engagements restent affichés en priorité.
+              {scope === "team"
+                ? "Retrouvez les épreuves auxquelles votre équipe participe."
+                : "Suivez en spectateur les autres directs, replays et résultats."}
             </p>
           </div>
           <div
-            className="flex flex-wrap gap-2"
+            className="grid w-full grid-cols-2 gap-2 sm:w-auto"
             aria-label="Portée des résultats et directs"
           >
-            {(["team", "all"] as const).map((value) => (
+            {(["team", "unridden"] as const).map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setScope(value)}
                 aria-pressed={scope === value}
-                className={`min-h-10 rounded-full border px-4 text-xs font-extrabold uppercase tracking-wider transition ${
+                className={`min-h-11 rounded-xl border px-3 text-xs font-extrabold uppercase leading-4 tracking-wider transition sm:rounded-full sm:px-4 ${
                   scope === value
                     ? "border-[#0B302B] bg-[#0B302B] text-white"
                     : "border-[#315B3E]/25 bg-white text-[#315B3E]"
                 }`}
               >
-                {value === "team" ? "Mon équipe" : "Toutes les courses"}
+                {value === "team" ? "Mon équipe" : "Courses non courues"}
               </button>
             ))}
           </div>
@@ -246,7 +249,7 @@ export function RaceLiveDirectory({
               hasCategoryFilter={selectedCategories.length > 0}
               onReset={() => {
                 setSelectedCategories([]);
-                if (scope === "team") setScope("all");
+                if (scope === "team") setScope("unridden");
               }}
             />
           ) : null}
@@ -582,7 +585,7 @@ function DirectoryEmptyState({
           ? "Votre équipe n’a aucune course aujourd’hui."
           : hasCategoryFilter
             ? "Aucune course du jour ne correspond à ces catégories."
-            : "Aucune course n’est programmée aujourd’hui."}
+            : "Aucune autre course n’est programmée aujourd’hui."}
       </p>
       {scope === "team" || hasCategoryFilter ? (
         <button
@@ -590,7 +593,7 @@ function DirectoryEmptyState({
           onClick={onReset}
           className="mt-4 min-h-10 rounded-full bg-[#0B302B] px-5 text-xs font-extrabold uppercase tracking-wider text-white"
         >
-          {scope === "team" ? "Voir toutes les courses" : "Réinitialiser"}
+          {scope === "team" ? "Voir les courses non courues" : "Réinitialiser"}
         </button>
       ) : null}
     </div>
@@ -649,6 +652,15 @@ function groupEntriesByEdition(entries: DirectoryEntry[]): DirectoryEdition[] {
   }
 
   return [...grouped.values()];
+}
+
+export function isEditionInResultsScope(
+  edition: RaceCalendarEdition,
+  scope: ResultsScope,
+) {
+  const isRegistered = isCurrentTeamRegisteredForRace(edition);
+
+  return scope === "team" ? isRegistered : !isRegistered;
 }
 
 function formatDistance(distanceKm: number) {
