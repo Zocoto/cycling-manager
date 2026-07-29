@@ -13,7 +13,7 @@ export default defineConfig({
     exclude: [
       ...defaultExclude,
       "**/.tmp-*/**",
-      "**/.codex-feature-*/**",
+      "**/.codex-*/**",
     ],
   },
 });

@@ -12,7 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     ".tmp-*/**",
-    ".codex-feature-*/**",
+    ".codex-*/**",
     ".pnpm-store/**",
     "artifacts/**",
     "tmp/**",
