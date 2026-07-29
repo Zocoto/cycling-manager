@@ -28,4 +28,14 @@ describe("incremental physiotherapist assignments migration", () => {
       "and existing.status = 'active'",
     );
   });
+
+  it("moves a selected rider instead of stacking physiotherapists", () => {
+    expect(migration).toContain(
+      "where staff_assignment.rider_id = any(v_rider_ids)",
+    );
+    expect(migration).toContain(
+      "staff_assignment.staff_contract_id <> v_context.contract_id",
+    );
+    expect(migration).toContain("set status = 'ended', ended_at = now()");
+  });
 });

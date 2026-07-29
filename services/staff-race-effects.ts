@@ -209,9 +209,13 @@ export async function loadRaceStaffEffects(
     if (!talentCodes.has("physio_injury_prevention")) continue;
     const affinity =
       member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1;
+    const prevention = clamp(member.level * 3 * affinity, 0, 30);
     injuryPreventionByRiderId.set(
       assignment.rider_id,
-      clamp(member.level * 3 * affinity, 0, 30),
+      Math.max(
+        injuryPreventionByRiderId.get(assignment.rider_id) ?? 0,
+        prevention,
+      ),
     );
   }
 
