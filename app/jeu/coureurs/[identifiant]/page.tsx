@@ -469,14 +469,17 @@ export default async function RiderProfilePage({
           </div>
         ) : null}
 
-        <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-          <div data-tutorial-id="rider-profile-history">
+        <div className="mt-7 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
+          <div
+            data-tutorial-id="rider-profile-history"
+            className="min-w-0"
+          >
             <CareerHistory history={profile.history} />
           </div>
           {profile.privateContract ? (
             <div
               data-tutorial-id="rider-profile-contract"
-              className="space-y-5"
+              className="min-w-0 space-y-5"
             >
               <PrivateContractCard contract={profile.privateContract} />
               {transferManagement ? (
@@ -812,7 +815,7 @@ function CareerHistory({
   }>;
 }) {
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
+    <section className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
       <div className="px-6 py-6 sm:px-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
           Carrière
@@ -823,8 +826,78 @@ function CareerHistory({
       </div>
 
       {history.length > 0 ? (
-        <div className="overflow-x-auto border-t border-[#315B3E]/10">
-          <table className="w-full min-w-[980px] border-collapse text-left">
+        <>
+          <div className="grid gap-3 border-t border-[#315B3E]/10 bg-[#F3F8F5] p-4 md:hidden">
+            {history.map((entry) => (
+              <article
+                key={`${entry.seasonId}-${entry.teamId}`}
+                className="min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-sm"
+              >
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-[#183F37]">
+                      {entry.seasonName}
+                    </p>
+                    <Link
+                      href={`/jeu/equipes/${entry.teamId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 block break-words text-sm font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
+                    >
+                      {entry.teamName} <span aria-hidden="true">↗</span>
+                    </Link>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#EAF5F0] px-3 py-1 text-xs font-black text-[#176951]">
+                    {entry.uciRank === null ? "UCI —" : `UCI #${entry.uciRank}`}
+                  </span>
+                </div>
+
+                <dl className="mt-4 grid grid-cols-2 gap-2">
+                  <MobileHistoryValue
+                    label="Victoires"
+                    value={entry.victories}
+                  />
+                  <MobileHistoryValue label="Points" value={entry.points} />
+                </dl>
+
+                <div className="mt-3 grid gap-3 border-t border-[#315B3E]/10 pt-3">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
+                      Palmarès
+                    </span>
+                    <div className="flex min-w-0 flex-wrap justify-end gap-2">
+                      {entry.nationalTitles.map((title) => (
+                        <NationalTitleFlag
+                          key={`${title.type}-${title.countryCode}`}
+                          countryCode={title.countryCode}
+                          countryName={title.countryName}
+                          discipline={title.type}
+                        />
+                      ))}
+                      {entry.nationalTitles.length === 0 ? (
+                        <span className="text-sm font-black text-[#48665F]">
+                          —
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
+                      Résultats notables
+                    </span>
+                    <SeasonPerformancesPopover
+                      seasonName={entry.seasonName}
+                      gameYear={entry.gameYear}
+                      performances={entry.notablePerformances}
+                    />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden max-w-full overflow-x-auto overscroll-x-contain border-t border-[#315B3E]/10 md:block">
+            <table className="w-full min-w-[980px] border-collapse text-left">
             <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
               <tr>
                 <th className="px-6 py-4">Saison</th>
@@ -881,8 +954,9 @@ function CareerHistory({
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </>
       ) : (
         <div className="border-t border-[#315B3E]/10 px-6 pb-6 sm:px-8">
           <EmptyBlock message="Aucune saison en club n’est encore enregistrée." />
@@ -903,6 +977,25 @@ function HistoryValue({
     <td className="px-4 py-4 text-center font-black text-[#48665F]">
       {value === null ? "—" : `${prefix}${value}`}
     </td>
+  );
+}
+
+function MobileHistoryValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | null;
+}) {
+  return (
+    <div className="rounded-xl bg-[#F3F8F5] px-3 py-2.5">
+      <dt className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
+        {label}
+      </dt>
+      <dd className="mt-1 text-base font-black text-[#183F37]">
+        {value === null ? "—" : value}
+      </dd>
+    </div>
   );
 }
 
@@ -954,15 +1047,15 @@ function PrivateContractCard({
   }
 
   return (
-    <section className="rounded-[2rem] border border-[#D6A93D]/30 bg-[#FFF8DD] p-6 shadow-[0_16px_45px_rgba(111,82,13,0.08)] sm:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <section className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#D6A93D]/30 bg-[#FFF8DD] p-6 shadow-[0_16px_45px_rgba(111,82,13,0.08)] sm:p-7">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8A6B16]">
             Données privées
           </p>
           <h2 className="mt-2 text-xl font-black text-[#3F3518]">Contrat</h2>
         </div>
-        <span className="rounded-full bg-[#F2C94C]/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#6E5715]">
+        <span className="shrink-0 rounded-full bg-[#F2C94C]/30 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#6E5715]">
           Votre coureur
         </span>
       </div>
@@ -1051,9 +1144,9 @@ function SpecialAbilitiesCard({
 
 function ContractLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-current/10 pb-3 last:border-none last:pb-0">
-      <dt className="font-semibold opacity-65">{label}</dt>
-      <dd className="text-right font-black">{value}</dd>
+    <div className="flex min-w-0 items-start justify-between gap-4 border-b border-current/10 pb-3 last:border-none last:pb-0">
+      <dt className="min-w-0 font-semibold opacity-65">{label}</dt>
+      <dd className="min-w-0 break-words text-right font-black">{value}</dd>
     </div>
   );
 }
@@ -1063,7 +1156,7 @@ function FutureActionButton({ label }: { label: string }) {
     <button
       type="button"
       disabled
-      className="min-h-11 rounded-xl border border-[#8A6B16]/20 bg-white/60 px-4 text-sm font-black text-[#7E7043] opacity-65 disabled:cursor-not-allowed"
+      className="min-h-11 w-full min-w-0 whitespace-normal rounded-xl border border-[#8A6B16]/20 bg-white/60 px-4 text-sm font-black text-[#7E7043] opacity-65 disabled:cursor-not-allowed"
     >
       {label} · bientôt
     </button>
