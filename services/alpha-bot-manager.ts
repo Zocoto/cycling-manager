@@ -6,10 +6,14 @@ import { getScoutedNumericSortValue } from "@/lib/game/transfer-scouting";
 
 import {
   ALPHA_BOT_PROFILES,
+  ALPHA_BOT_RACE_REGISTRATIONS_PER_CYCLE,
+  ALPHA_BOT_TARGET_ROSTER_SIZE,
   buildAlphaBotCycleKey,
   buildRaceRoster,
   chooseTrainingPlan,
   deterministicIndex,
+  getBotRaceRegistrationCandidates,
+  isSharedMarketItemAssignedToBot,
   type AlphaBotProfile,
   type AlphaBotSlot,
 } from "@/lib/game/alpha-bots";
@@ -190,7 +194,16 @@ async function manageStaff(context: ActionContext) {
   }
 
   const candidates = overview.marketListings
-    .filter((listing) => listing.canHire)
+    .filter(
+      (listing) =>
+        listing.canHire &&
+        isSharedMarketItemAssignedToBot({
+          botKey: context.profile.key,
+          cycleKey: context.cycleKey,
+          channel: "staff",
+          itemId: listing.id,
+        }),
+    )
     .sort(
       (left, right) =>
         right.member.level - left.member.level ||
@@ -339,37 +352,58 @@ async function manageRaceRegistration(context: ActionContext) {
   );
   if (!calendar) return null;
 
-  const edition = calendar.editions
-    .filter(
-      (candidate) =>
-        candidate.status === "registration_open" &&
-        candidate.registrationPolicy === "open" &&
-        candidate.competitionType === "standard" &&
-        !candidate.currentTeamRegistration,
-    )
-    .sort(
-      (left, right) =>
-        (left.stages[0]?.dayNumber ?? 999) -
-        (right.stages[0]?.dayNumber ?? 999),
-    )[0];
-  if (!edition) return null;
-
-  const options = await getCurrentTeamRaceRosterOptions(
-    context.gameClient,
-    edition.id,
+  const candidates = getBotRaceRegistrationCandidates(
+    calendar.editions,
+    context.now,
   );
-  const roster = buildRaceRoster(context.profile, edition, options);
-  if (roster.length < edition.minimumRosterSize) return null;
+  const registrations: Array<{ name: string; riderCount: number }> = [];
+  let lastError: Error | null = null;
 
-  const result = await context.client.rpc(
-    "save_current_team_competition_roster_with_roles",
-    {
-      p_race_edition_id: edition.id,
-      p_roster: roster,
-    },
-  );
-  assertRpc(result.error);
-  return `${roster.length} coureurs inscrits sur ${edition.name}.`;
+  for (const edition of candidates) {
+    if (
+      registrations.length >= ALPHA_BOT_RACE_REGISTRATIONS_PER_CYCLE
+    ) {
+      break;
+    }
+
+    try {
+      const options = await getCurrentTeamRaceRosterOptions(
+        context.gameClient,
+        edition.id,
+      );
+      const roster = buildRaceRoster(context.profile, edition, options);
+      if (roster.length < edition.minimumRosterSize) continue;
+
+      const result = await context.client.rpc(
+        "save_current_team_competition_roster_with_roles",
+        {
+          p_race_edition_id: edition.id,
+          p_roster: roster,
+        },
+      );
+      assertRpc(result.error);
+      registrations.push({
+        name: edition.name,
+        riderCount: roster.length,
+      });
+    } catch (error) {
+      lastError = new Error(
+        `${edition.name} : ${getErrorMessage(error)}`,
+      );
+    }
+  }
+
+  if (registrations.length > 0) {
+    const details = registrations
+      .map(
+        (registration) =>
+          `${registration.name} (${registration.riderCount} coureurs)`,
+      )
+      .join(" · ");
+    return `${registrations.length} course${registrations.length > 1 ? "s" : ""} peuplée${registrations.length > 1 ? "s" : ""} : ${details}.`;
+  }
+  if (lastError) throw lastError;
+  return null;
 }
 
 async function manageHealth(context: ActionContext) {
@@ -539,6 +573,35 @@ async function manageTransfers(context: ActionContext) {
     return null;
   }
 
+  if (overview.rosterSize < ALPHA_BOT_TARGET_ROSTER_SIZE) {
+    const freeAgent = overview.freeAgents
+      .filter(
+        (candidate) =>
+          candidate.salaryPerSeason <= overview.availableBudget &&
+          isSharedMarketItemAssignedToBot({
+            botKey: context.profile.key,
+            cycleKey: context.cycleKey,
+            channel: "free-agent",
+            itemId: candidate.id,
+          }),
+      )
+      .sort(
+        (left, right) =>
+          getScoutedNumericSortValue(right.scoutingReport.overall) -
+            getScoutedNumericSortValue(left.scoutingReport.overall) ||
+          left.salaryPerSeason - right.salaryPerSeason,
+      )[0];
+
+    if (freeAgent) {
+      const result = await context.client.rpc(
+        "sign_current_team_free_agent",
+        { p_rider_id: freeAgent.id },
+      );
+      assertRpc(result.error);
+      return `Signature de ${freeAgent.firstName} ${freeAgent.lastName} comme agent libre.`;
+    }
+  }
+
   const maximumBid = Math.min(
     overview.availableBudget * 0.15,
     250_000,
@@ -547,7 +610,13 @@ async function manageTransfers(context: ActionContext) {
     .filter(
       (candidate) =>
         !candidate.isOwnTeamLeading &&
-        candidate.minimumNextBid <= maximumBid,
+        candidate.minimumNextBid <= maximumBid &&
+        isSharedMarketItemAssignedToBot({
+          botKey: context.profile.key,
+          cycleKey: context.cycleKey,
+          channel: "transfer-listing",
+          itemId: candidate.id,
+        }),
     )
     .sort(
       (left, right) =>
