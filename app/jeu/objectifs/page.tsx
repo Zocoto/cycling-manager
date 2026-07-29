@@ -7,6 +7,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
+import { TrophyGallery } from "@/components/game/trophy-gallery";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   filterGameObjectives,
@@ -18,11 +19,12 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
+import { getSportingDirectorTrophyGallery } from "@/services/trophy-gallery";
 
 export const metadata: Metadata = {
-  title: "Objectifs de carrière",
+  title: "Récompenses & trophées",
   description:
-    "Suivez les objectifs primaires et secondaires de votre carrière de Directeur Sportif.",
+    "Suivez vos objectifs, récupérez vos récompenses et exposez les trophées de votre carrière de Directeur Sportif.",
 };
 
 type ObjectivesPageProps = {
@@ -77,6 +79,8 @@ export default async function ObjectivesPage({
   searchParams,
 }: ObjectivesPageProps) {
   const query = await searchParams;
+  const selectedTab =
+    readQuery(query.onglet) === "trophees" ? "trophees" : "objectifs";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -87,9 +91,10 @@ export default async function ObjectivesPage({
     redirect("/connexion");
   }
 
-  const [headerData, objectives] = await Promise.all([
+  const [headerData, objectives, trophyGallery] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentGameObjectives(supabase),
+    getSportingDirectorTrophyGallery(user.id),
   ]);
 
   const availableGroups = Array.from(
@@ -158,27 +163,51 @@ export default async function ObjectivesPage({
           <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
-                Feuille de route · Récompenses uniques
+                Carrière du Directeur Sportif
               </p>
               <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-                Objectifs de carrière
+                Récompenses & trophées
               </h1>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-                Chaque accomplissement est mesuré à partir de vos actions et de
-                vos résultats officiels. Une fois le palier atteint, récupérez
-                vous-même les gains annoncés : ils ne pourront être versés
-                qu’une seule fois.
+                Progressez grâce aux objectifs, puis retrouvez dans votre
+                galerie chaque victoire majeure et chaque titre UCI inscrit à
+                votre palmarès officiel.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-4 xl:grid-cols-2">
               <HeroMetric label="Terminés" value={`${completedCount}/${objectives.length}`} />
               <HeroMetric label="À récupérer" value={String(readyCount)} highlight />
               <HeroMetric label="Réclamés" value={String(claimedCount)} />
+              <HeroMetric
+                label="Trophées"
+                value={String(trophyGallery.counts.total)}
+                highlight={trophyGallery.counts.total > 0}
+              />
             </div>
           </div>
         </header>
 
+        <nav
+          aria-label="Rubriques des récompenses"
+          className="mt-7 grid rounded-2xl border border-[#315B3E]/14 bg-white p-2 shadow-[0_14px_40px_rgba(19,60,46,0.09)] sm:grid-cols-2"
+        >
+          <CareerTab
+            href="/jeu/objectifs?onglet=objectifs"
+            label="Objectifs & récompenses"
+            description="Suivre les paliers et récupérer les gains"
+            active={selectedTab === "objectifs"}
+          />
+          <CareerTab
+            href="/jeu/objectifs?onglet=trophees"
+            label="Galerie des trophées"
+            description={`${trophyGallery.counts.total} pièce${trophyGallery.counts.total > 1 ? "s" : ""} au palmarès`}
+            active={selectedTab === "trophees"}
+          />
+        </nav>
+
+        {selectedTab === "objectifs" ? (
+          <>
         {success ? <Notice tone="success">{success}</Notice> : null}
         {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
 
@@ -203,7 +232,7 @@ export default async function ObjectivesPage({
               Versement immédiat et définitif
             </span>
             <Link
-              href="/jeu/objectifs?statut=completed#objectives-list"
+              href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
             >
               Afficher et récupérer →
@@ -246,18 +275,54 @@ export default async function ObjectivesPage({
               Aucun objectif ne correspond à ces filtres.
             </p>
             <Link
-              href="/jeu/objectifs#objectives-list"
+              href="/jeu/objectifs?onglet=objectifs#objectives-list"
               className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B]"
             >
               Réinitialiser les filtres
             </Link>
           </div>
         ) : null}
+          </>
+        ) : (
+          <TrophyGallery gallery={trophyGallery} />
+        )}
       </section>
     </main>
   );
 }
 
+function CareerTab({
+  href,
+  label,
+  description,
+  active,
+}: {
+  href: string;
+  label: string;
+  description: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`rounded-xl px-5 py-4 transition ${
+        active
+          ? "bg-[#123F36] text-white shadow-[0_10px_25px_rgba(18,63,54,0.18)]"
+          : "text-[#183F37] hover:bg-[#F0F7F3]"
+      }`}
+    >
+      <span className="block text-sm font-black">{label}</span>
+      <span
+        className={`mt-1 block text-xs font-semibold ${
+          active ? "text-[#ABD5C2]" : "text-[#789087]"
+        }`}
+      >
+        {description}
+      </span>
+    </Link>
+  );
+}
 function ObjectiveSection({
   eyebrow,
   title,
