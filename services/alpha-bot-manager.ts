@@ -92,7 +92,7 @@ async function runManagerCycle(
       displayName: manager.display_name,
       status: "failed",
       actions: [],
-      error: "Profil de dÃ©cision introuvable.",
+      error: "Profil de décision introuvable.",
     };
   }
 
@@ -218,7 +218,7 @@ async function manageTraining(context: ActionContext) {
       { p_minimum_form: context.profile.minimumForm },
     );
     assertRpc(threshold.error);
-    return `Seuil minimal de forme rÃ©glÃ© Ã  ${context.profile.minimumForm} %.`;
+    return `Seuil minimal de forme réglé à ${context.profile.minimumForm} %.`;
   }
 
   const riderIndex = deterministicIndex(
@@ -253,7 +253,7 @@ async function manageTraining(context: ActionContext) {
     },
   );
   assertRpc(result.error);
-  return `Programme ${plan.domain} Ã  ${plan.intensity} % pour ${rider.firstName} ${rider.lastName}.`;
+  return `Programme ${plan.domain} à ${plan.intensity} % pour ${rider.firstName} ${rider.lastName}.`;
 }
 
 async function manageEquipment(context: ActionContext) {
@@ -307,7 +307,7 @@ async function manageEquipment(context: ActionContext) {
     p_equipment_item_id: target.id,
   });
   assertRpc(equip.error);
-  return `${target.name} Ã©quipÃ© sur ${rider.firstName} ${rider.lastName}${target.availableQuantity <= 0 ? " aprÃ¨s achat" : ""}.`;
+  return `${target.name} équipé sur ${rider.firstName} ${rider.lastName}${target.availableQuantity <= 0 ? " après achat" : ""}.`;
 }
 
 async function manageRaceRegistration(context: ActionContext) {
@@ -365,7 +365,7 @@ async function manageHealth(context: ActionContext) {
       },
     );
     assertRpc(result.error);
-    return `Protocole complet appliquÃ© Ã  ${untreated.firstName} ${untreated.lastName}.`;
+    return `Protocole complet appliqué à ${untreated.firstName} ${untreated.lastName}.`;
   }
 
   const physiotherapist = overview.medicalStaff
@@ -390,7 +390,7 @@ async function manageHealth(context: ActionContext) {
         },
       );
       assertRpc(result.error);
-      return `${protectedRiders.length} coureurs confiÃ©s au physiothÃ©rapeute.`;
+      return `${protectedRiders.length} coureurs confiés au physiothérapeute.`;
     }
   }
 
@@ -444,7 +444,7 @@ async function manageYouth(context: ActionContext) {
       { p_mission_id: unreadMission.id },
     );
     assertRpc(result.error);
-    return `Rapport de scouting consultÃ© en ${unreadMission.countryName}.`;
+    return `Rapport de scouting consulté en ${unreadMission.countryName}.`;
   }
 
   const candidate = overview.missions
@@ -465,7 +465,7 @@ async function manageYouth(context: ActionContext) {
       { p_candidate_id: candidate.id },
     );
     assertRpc(result.error);
-    return `${candidate.firstName} ${candidate.lastName} rejoint lâ€™Ã©cole de cyclisme.`;
+    return `${candidate.firstName} ${candidate.lastName} rejoint l’école de cyclisme.`;
   }
 
   const idleScout = overview.scouts.find((scout) => !scout.activeMissionId);
@@ -484,7 +484,7 @@ async function manageYouth(context: ActionContext) {
       },
     );
     assertRpc(result.error);
-    return `Mission de scouting lancÃ©e en ${country.name}.`;
+    return `Mission de scouting lancée en ${country.name}.`;
   }
 
   const academyRider = overview.academy[0];
@@ -498,7 +498,7 @@ async function manageYouth(context: ActionContext) {
       },
     );
     assertRpc(result.error);
-    return `EntraÃ®nement automatique programmÃ© pour ${academyRider.firstName} ${academyRider.lastName}.`;
+    return `Entraînement automatique programmé pour ${academyRider.firstName} ${academyRider.lastName}.`;
   }
   return null;
 }
@@ -563,7 +563,7 @@ async function manageSponsoring(context: ActionContext) {
       p_offer_id: offer.id,
     });
     assertRpc(result.error);
-    return `Offre ${offer.sponsor.name} acceptÃ©e pour la prochaine saison.`;
+    return `Offre ${offer.sponsor.name} acceptée pour la prochaine saison.`;
   }
 
   const jerseySelection =
@@ -580,7 +580,7 @@ async function manageSponsoring(context: ActionContext) {
       p_jersey_style: jersey.style,
     });
     assertRpc(result.error);
-    return `Maillot ${jersey.name} validÃ© pour ${jerseySelection.sponsor.name}.`;
+    return `Maillot ${jersey.name} validé pour ${jerseySelection.sponsor.name}.`;
   }
   return null;
 }
@@ -612,7 +612,7 @@ async function manageInfrastructure(context: ActionContext) {
     },
   );
   assertRpc(result.error);
-  return `Chantier Data Room niveau ${overview.dataRoomNextLevel.level} lancÃ©.`;
+  return `Chantier Data Room niveau ${overview.dataRoomNextLevel.level} lancé.`;
 }
 
 async function manageObjectives(context: ActionContext) {
@@ -626,7 +626,7 @@ async function manageObjectives(context: ActionContext) {
     p_objective_key: claimable.key,
   });
   assertRpc(result.error);
-  return `RÃ©compense de lâ€™objectif Â« ${claimable.title} Â» rÃ©cupÃ©rÃ©e.`;
+  return `Récompense de l’objectif « ${claimable.title} » récupérée.`;
 }
 
 async function authenticateBot(authUserId: string) {
@@ -650,7 +650,7 @@ async function authenticateBot(authUserId: string) {
   const tokenHash = linkResult.data.properties?.hashed_token;
   if (linkResult.error || !tokenHash) {
     throw new Error(
-      `Impossible dâ€™ouvrir une session de test : ${linkResult.error?.message ?? "jeton absent"}`,
+      `Impossible d’ouvrir une session de test : ${linkResult.error?.message ?? "jeton absent"}`,
     );
   }
 

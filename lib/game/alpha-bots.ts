@@ -39,7 +39,7 @@ export const ALPHA_BOT_PROFILES: readonly AlphaBotProfile[] = [
   {
     key: "elodie_martin",
     email: "alpha.manager.01@cyclostratege.fr",
-    managerName: "Ãƒâ€°lodie Martin",
+    managerName: "Élodie Martin",
     teamName: "Aurore Cyclisme",
     countryCode: "FR",
     avatarKey: "director_f_02",
@@ -90,7 +90,7 @@ export const ALPHA_BOT_PROFILES: readonly AlphaBotProfile[] = [
   {
     key: "mikkel_sorensen",
     email: "alpha.manager.04@cyclostratege.fr",
-    managerName: "Mikkel SÃƒÂ¸rensen",
+    managerName: "Mikkel Sørensen",
     teamName: "Nordkyst Racing",
     countryCode: "DK",
     avatarKey: "director_m_06",

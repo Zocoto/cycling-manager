@@ -13,13 +13,13 @@ export async function GET(
   context: { params: Promise<{ slot: string }> },
 ) {
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json({ error: "Non autorisÃ©." }, { status: 401 });
+    return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
 
   const { slot } = await context.params;
   if (!isAlphaBotSlot(slot)) {
     return NextResponse.json(
-      { error: "CrÃ©neau automatisÃ© invalide." },
+      { error: "Créneau automatisé invalide." },
       { status: 400 },
     );
   }
