@@ -258,7 +258,10 @@ async function manageTraining(context: ActionContext) {
 
 async function manageEquipment(context: ActionContext) {
   const [equipment, training] = await Promise.all([
-    getCurrentTeamEquipmentOverview(context.authUserId),
+    getCurrentTeamEquipmentOverview(
+      context.authUserId,
+      context.gameClient,
+    ),
     getCurrentTeamTrainingOverview(context.authUserId),
   ]);
   if (!equipment || !training || training.riders.length === 0) return null;
@@ -321,7 +324,8 @@ async function manageRaceRegistration(context: ActionContext) {
     .filter(
       (candidate) =>
         candidate.status === "registration_open" &&
-        candidate.registrationPolicy !== "closed" &&
+        candidate.registrationPolicy === "open" &&
+        candidate.competitionType === "standard" &&
         !candidate.currentTeamRegistration,
     )
     .sort(

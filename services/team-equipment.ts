@@ -9,6 +9,10 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type SupabaseServerClient = Awaited<
+  ReturnType<typeof createSupabaseServerClient>
+>;
+
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
 type SeasonRow = {
@@ -135,9 +139,13 @@ export type RiderEquipmentManagement = {
 };
 
 export async function getCurrentTeamEquipmentOverview(
-  authUserId: string
+  authUserId: string,
+  authenticatedClient?: SupabaseServerClient,
 ): Promise<TeamEquipmentOverview | null> {
-  const context = await loadEquipmentContext(authUserId);
+  const context = await loadEquipmentContext(
+    authUserId,
+    authenticatedClient,
+  );
 
   if (!context) return null;
 
@@ -229,9 +237,13 @@ export async function getRiderEquipmentManagement(
   };
 }
 
-async function loadEquipmentContext(authUserId: string) {
+async function loadEquipmentContext(
+  authUserId: string,
+  authenticatedClient?: SupabaseServerClient,
+) {
   const admin = createSupabaseAdminClient();
-  const authenticated = await createSupabaseServerClient();
+  const authenticated =
+    authenticatedClient ?? (await createSupabaseServerClient());
   const { data: director, error: directorError } = await admin
     .from("sporting_directors")
     .select("id")
