@@ -29,7 +29,7 @@ const edition = {
   raceFormat: "one_day",
   engagedRiders: [],
   stages: [stage],
-} as RaceCalendarEdition;
+} as unknown as RaceCalendarEdition;
 
 function buildResults(
   teamProfileId: string | null
