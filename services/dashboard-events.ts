@@ -241,6 +241,7 @@ export async function getCurrentDashboardOperationalEvents({
       )
       .eq("team_id", teamId)
       .eq("season_id", seasonId)
+      .eq("is_contract_eligible", true)
       .eq("season_days.day_number", currentDayNumber)
       .order("processed_at", { ascending: false })
       .returns<TrainingSessionRow[]>(),
