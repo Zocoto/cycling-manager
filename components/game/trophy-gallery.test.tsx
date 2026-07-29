@@ -37,7 +37,8 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("Copa Roja de las Sierras");
     expect(markup).toContain("Alix Mondial");
     expect(markup).toContain("Coupe UCI des équipes");
-    expect(markup).toContain("Critères à définir ensemble");
+    expect(markup.match(/En cours de développement/g)).toHaveLength(3);
+    expect(markup).not.toContain("Critères à définir ensemble");
     expect(markup).toContain("/jeu/resultats/ruta-de-las-sierras");
   });
 
@@ -53,7 +54,7 @@ describe("TrophyGallery", () => {
     );
 
     expect(markup).toContain("Le premier socle vous attend");
-    expect(markup).toContain("aucun critère n’est encore figé");
+    expect(markup).not.toContain("Les emplacements sont prêts");
     expect(markup).not.toContain("Récompense débloquée");
   });
 });

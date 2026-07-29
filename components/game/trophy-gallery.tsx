@@ -415,11 +415,6 @@ function LongTermChallenges() {
             Challenges longue durée
           </h2>
         </div>
-        <p className="max-w-2xl text-sm font-semibold leading-6 text-[#60756E] lg:text-right">
-          Les emplacements sont prêts, mais aucun critère n’est encore figé.
-          Nous définirons ensemble des défis ambitieux, lisibles et réellement
-          motivants sur plusieurs saisons.
-        </p>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -440,7 +435,7 @@ function LongTermChallenges() {
                 {track.description}
               </p>
               <span className="mt-2 inline-flex text-[9px] font-black uppercase tracking-[0.13em] text-[#278B70]">
-                Critères à définir ensemble
+                En cours de développement
               </span>
             </div>
           </article>
