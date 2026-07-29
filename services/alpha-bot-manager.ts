@@ -189,14 +189,33 @@ async function manageStaff(context: ActionContext) {
     return null;
   }
 
-  const candidate = overview.marketListings
+  const candidates = overview.marketListings
     .filter((listing) => listing.canHire)
     .sort(
       (left, right) =>
         right.member.level - left.member.level ||
         left.member.salaryPerSeason - right.member.salaryPerSeason,
-    )[0];
-  if (!candidate) return null;
+    );
+  if (candidates.length === 0) return null;
+
+  const preferredRole: Record<AlphaBotProfile["strategy"], string> = {
+    climber: "trainer",
+    classics: "mechanic",
+    sprinter: "nutritionist",
+    rouleur: "architect",
+    development: "scout",
+  };
+  const profileIndex = Math.max(
+    0,
+    ALPHA_BOT_PROFILES.findIndex(
+      (profile) => profile.key === context.profile.key,
+    ),
+  );
+  const candidate =
+    candidates.find(
+      (listing) =>
+        listing.member.role === preferredRole[context.profile.strategy],
+    ) ?? candidates[profileIndex % candidates.length];
 
   const result = await context.client.rpc("hire_current_team_staff", {
     p_listing_id: candidate.id,
