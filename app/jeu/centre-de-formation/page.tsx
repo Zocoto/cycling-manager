@@ -617,9 +617,6 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
       <div className="grid gap-5 p-5 xl:grid-cols-[minmax(250px,0.72fr)_minmax(0,1.35fr)_minmax(260px,0.75fr)] xl:items-center">
         <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.profileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} className="h-20 w-20" /><div className="min-w-0"><div className="flex items-center gap-2"><span className={`fi fi-${rider.countryCode.toLowerCase()} h-4 w-6 rounded`} /><span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">{rider.age} ans</span></div><h3 className="mt-2 text-xl font-black text-[#071A17]">{rider.firstName} {rider.lastName}</h3><p className="mt-1 text-xs font-extrabold text-[#278B70]">{rider.sportingProfile}</p><div className="mt-2"><PotentialStars potentialSteps={rider.potentialSteps} /></div></div></div>
         <div>
-          <p className="mb-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#60756E]">
-            Projection professionnelle /100
-          </p>
           <RatingsGrid ratings={rider.ratings} compact />
         </div>
         <div className="space-y-3">
