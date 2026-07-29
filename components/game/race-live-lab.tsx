@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SideRaceCyclist, TopRaceCyclist } from "@/components/game/race-cyclist";
-import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { SideRaceCyclist, TopRaceCyclist } from "@/components/game/race-cyclist-detailed";
 import {
-  FinishRoadsideInfrastructure,
-  RaceSceneryBackdrop,
-} from "@/components/game/race-scenery";
+  RaceDepartureFormation,
+  RaceGroupFormation,
+  RaceSupportConvoy,
+} from "@/components/game/race-group-formation";
+import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { FinishRoadsideInfrastructure } from "@/components/game/race-scenery";
+import { RaceSceneryBackdrop } from "@/components/game/race-scenery-detailed";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RaceWeatherBadge,
@@ -25,6 +28,7 @@ import {
 } from "@/lib/game/race-finish-visual";
 import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
+import { shouldShowRaceSupportCars } from "@/lib/game/race-visual-layout";
 import {
   getRaceGroupLayoutDensity,
   getStageLiveState,
@@ -576,6 +580,19 @@ function RoadScene({
       : segment.terrain === "descent"
         ? "bg-[linear-gradient(#9ACFDA_0_47%,#A7C585_47%_100%)]"
         : "bg-[linear-gradient(#8FD1DC_0_46%,#A7C585_46%_100%)]";
+  const trailingGroup = groups.at(-1) ?? null;
+  const trailingGroupIndex = Math.max(0, groups.length - 1);
+  const trailingGroupLeft = trailingGroup
+    ? getGroupScreenPosition(trailingGroup, trailingGroupIndex, groups.length)
+    : 18;
+  const convoyLeft = Math.max(6, trailingGroupLeft - 12);
+  const convoyTop =
+    roadLeftPct +
+    (roadRightPct - roadLeftPct) * (convoyLeft / 100) +
+    7;
+  const convoyRider = trailingGroup
+    ? riderById.get(trailingGroup.riderIds[0] ?? "") ?? null
+    : null;
 
   return (
     <RaceVisualViewport className={`h-72 rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
@@ -669,14 +686,15 @@ function RoadScene({
           incidents: snapshot.incidents,
           riderById,
           priorityRiderId: primeWinnerId,
+          maximumVisibleRiders: groups.length <= 3 ? 8 : 5,
         });
         return (
           <div
             key={group.id}
-            className="absolute -translate-x-1/2 -translate-y-full transition-[left,top] duration-700 ease-out"
+            className="absolute -translate-x-1/2 transition-[left,top] duration-700 ease-out"
             style={{
               left: `${left}%`,
-              top: `${roadTopPct + 9}%`,
+              top: `${roadTopPct - 7}%`,
               zIndex: 20 - groupIndex,
             }}
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
@@ -684,49 +702,39 @@ function RoadScene({
             <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
               {group.label} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
             </div>
-            <div className="flex -space-x-3">
-              {visibleRiderIds.map((riderId, riderIndex) => {
-                const rider = riderById.get(riderId)!;
-                const incidentRider = snapshot.incidents.some(
-                  (incident) => incident.riderIds.includes(riderId)
-                );
-                const primeWinner = riderId === primeWinnerId;
-                const showName =
-                  incidentRider ||
-                  primeWinner ||
-                  group.riderIds.length <= 3 ||
-                  riderIndex < 2;
-
-                return (
-                  <span key={riderId} className="relative">
-                    <SideRaceCyclist rider={rider} isMoving={isMoving} />
-                    {showName ? (
-                      <span
-                        className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[8px] font-black shadow ${
-                          primeWinner
-                            ? "bg-[#F2C94C] text-[#17261E]"
-                            : incidentRider
-                            ? "bg-[#EF5B65] text-white"
-                            : "bg-[#071A17]/88 text-white"
-                        }`}
-                      >
-                        {primeWinner
-                          ? `${primeResult?.prime.type === "mountain" ? "GPM" : "SI"} · ${getRiderShortName(rider.name)}`
-                          : getRiderShortName(rider.name)}
-                      </span>
-                    ) : null}
-                  </span>
-                );
-              })}
-              {group.riderIds.length > 5 ? (
-                <span className="relative z-10 grid h-8 w-8 place-items-center rounded-full border border-white/30 bg-[#071A17] text-[9px] font-black shadow-[-6px_0_0_rgba(7,26,23,0.72),-12px_0_0_rgba(7,26,23,0.45)]">
-                  +{group.riderIds.length - 5}
-                </span>
-              ) : null}
-            </div>
+            <RaceGroupFormation
+              group={group}
+              riderIds={visibleRiderIds}
+              riderById={riderById}
+              incidents={snapshot.incidents}
+              primeWinnerId={primeWinnerId}
+              primeResult={primeResult}
+              isMoving={isMoving}
+              compact={groups.length >= 4}
+            />
           </div>
         );
           })}
+          {
+            trailingGroup &&
+            convoyRider &&
+            shouldShowRaceSupportCars(groups.length) ? (
+              <RaceSupportConvoy
+                left={convoyLeft}
+                top={convoyTop}
+                primaryColor={
+                  convoyRider.teamJersey?.primaryColor ??
+                  convoyRider.teamPrimaryColor
+                }
+                secondaryColor={
+                  convoyRider.teamJersey?.secondaryColor ??
+                  convoyRider.teamSecondaryColor
+                }
+                isMoving={isMoving}
+                showSecondCar={groups.length <= 2}
+              />
+            ) : null
+          }
         </>
       )}
     </RaceVisualViewport>
@@ -824,7 +832,6 @@ function RaceDepartureSequence({
   const startLineRoadTop =
     roadLeftPct +
     (roadRightPct - roadLeftPct) * (startLinePosition / 100);
-  const visibleRiderIds = riderIds.slice(0, 10);
   const hasCrossedStartLine = pelotonPosition >= startLinePosition;
 
   return (
@@ -878,10 +885,10 @@ function RaceDepartureSequence({
       </div>
 
       <div
-        className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-100 ease-linear"
+        className="absolute z-20 -translate-x-1/2 transition-[left,top] duration-100 ease-linear"
         style={{
           left: `${pelotonPosition}%`,
-          top: `${pelotonRoadTop + 3}%`,
+          top: `${pelotonRoadTop - 7}%`,
         }}
         title={riderIds
           .map((riderId) => riderById.get(riderId)?.name)
@@ -891,24 +898,11 @@ function RaceDepartureSequence({
         <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-3 py-1 text-center text-[9px] font-black text-white shadow-lg backdrop-blur">
           Peloton · {riderIds.length} coureurs
         </div>
-        <div className="flex -space-x-4">
-          {visibleRiderIds.map((riderId) => {
-            const rider = riderById.get(riderId);
-            return rider ? (
-              <SideRaceCyclist
-                key={riderId}
-                rider={rider}
-                isMoving={isMoving}
-                className="h-8 w-11"
-              />
-            ) : null;
-          })}
-          {riderIds.length > visibleRiderIds.length ? (
-            <span className="relative z-20 grid h-7 w-7 place-items-center rounded-full border border-white/30 bg-[#071A17] text-[8px] font-black text-white shadow-lg">
-              +{riderIds.length - visibleRiderIds.length}
-            </span>
-          ) : null}
-        </div>
+        <RaceDepartureFormation
+          riderIds={riderIds}
+          riderById={riderById}
+          isMoving={isMoving}
+        />
       </div>
     </>
   );
@@ -1194,11 +1188,13 @@ function getVisibleRiderIds({
   incidents,
   riderById,
   priorityRiderId,
+  maximumVisibleRiders,
 }: {
   group: RaceGroupSnapshot;
   incidents: RaceIncident[];
   riderById: Map<string, RiderSimulationInput>;
   priorityRiderId: string | null;
+  maximumVisibleRiders: number;
 }) {
   const incidentRiderIds = new Set(
     incidents.flatMap((incident) => incident.riderIds)
@@ -1228,12 +1224,10 @@ function getVisibleRiderIds({
   return keepPassageWinnerVisible({
     orderedRiderIds,
     winnerRiderId: priorityRiderId,
+    maximumVisibleRiders,
   });
 }
 
-function getRiderShortName(name: string) {
-  return name.split(" ").at(-1) ?? name;
-}
 
 function getFinishRiderName(name: string) {
   const parts = name.trim().split(/\s+/);

@@ -169,6 +169,11 @@ a {
   to { transform: translate3d(-7%, 0, 0); }
 }
 
+@keyframes cm-race-scenery-detail {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-8.5%, 0, 0); }
+}
+
 @keyframes cm-bike-bob {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-1.5px) rotate(-0.6deg); }
@@ -180,6 +185,31 @@ a {
 
 @keyframes cm-bike-pedal {
   to { transform: rotate(360deg); }
+}
+
+@keyframes cm-bike-leg-front {
+  0%, 100% { transform: rotate(15deg); }
+  50% { transform: rotate(-17deg); }
+}
+
+@keyframes cm-bike-leg-back {
+  0%, 100% { transform: rotate(-16deg); }
+  50% { transform: rotate(14deg); }
+}
+
+@keyframes cm-bike-leg-top-front {
+  0%, 100% { transform: translateY(-1.4px) skewX(-4deg); }
+  50% { transform: translateY(1.4px) skewX(4deg); }
+}
+
+@keyframes cm-bike-leg-top-back {
+  0%, 100% { transform: translateY(1.4px) skewX(4deg); }
+  50% { transform: translateY(-1.4px) skewX(-4deg); }
+}
+
+@keyframes cm-support-car {
+  0%, 100% { transform: translateY(0) rotate(-0.3deg); }
+  50% { transform: translateY(-1px) rotate(0.35deg); }
 }
 
 @keyframes cm-bike-top-sway {
@@ -272,6 +302,12 @@ a {
   will-change: transform;
 }
 
+.cm-race-scenery-detail {
+  animation: cm-race-scenery-detail 4.2s linear infinite alternate;
+  contain: paint;
+  will-change: transform;
+}
+
 .cm-bike-bob {
   animation: cm-bike-bob 0.34s ease-in-out infinite;
 }
@@ -283,6 +319,45 @@ a {
 .cm-bike-pedal {
   animation: cm-bike-pedal 0.5s linear infinite;
   transform-box: view-box;
+}
+
+.cm-bike-leg-front,
+.cm-bike-leg-back {
+  animation-duration: 0.48s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform-box: view-box;
+}
+
+.cm-bike-leg-front {
+  animation-name: cm-bike-leg-front;
+}
+
+.cm-bike-leg-back {
+  animation-name: cm-bike-leg-back;
+}
+
+.cm-bike-leg-top-front,
+.cm-bike-leg-top-back {
+  animation-duration: 0.48s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.cm-bike-leg-top-front {
+  animation-name: cm-bike-leg-top-front;
+}
+
+.cm-bike-leg-top-back {
+  animation-name: cm-bike-leg-top-back;
+}
+
+.cm-support-car {
+  animation: cm-support-car 0.38s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
 }
 
 .cm-bike-top-sway {
@@ -350,9 +425,15 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .cm-race-road-flow,
   .cm-race-scenery,
+  .cm-race-scenery-detail,
   .cm-bike-bob,
   .cm-bike-wheel,
   .cm-bike-pedal,
+  .cm-bike-leg-front,
+  .cm-bike-leg-back,
+  .cm-bike-leg-top-front,
+  .cm-bike-leg-top-back,
+  .cm-support-car,
   .cm-bike-top-sway,
   .cm-crowd-wave,
   .cm-sprint-surge,
