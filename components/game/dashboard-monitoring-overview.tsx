@@ -229,7 +229,7 @@ function getNewsPresentation(item: PublicGameNewsItem) {
   if (item.kind === "arrival") {
     return {
       label: "Nouveau DS",
-      href: "/jeu/classements?vue=equipes",
+      href: item.href ?? "/jeu/classements?vue=equipes",
       dotClassName: "bg-[#42CDA8]",
     };
   }
