@@ -28,7 +28,7 @@ export type AlphaBotProfile = {
   minimumForm: number;
   trainingIntensity: number;
   jersey: {
-    pattern: "classic" | "diagonal" | "hoops" | "split" | "sash";
+    pattern: "classic" | "diagonal" | "hoops" | "split";
     primary: string;
     secondary: string;
     accent: string;
@@ -39,7 +39,7 @@ export const ALPHA_BOT_PROFILES: readonly AlphaBotProfile[] = [
   {
     key: "elodie_martin",
     email: "alpha.manager.01@cyclostratege.fr",
-    managerName: "Ã‰lodie Martin",
+    managerName: "Ãƒâ€°lodie Martin",
     teamName: "Aurore Cyclisme",
     countryCode: "FR",
     avatarKey: "director_f_02",
@@ -47,7 +47,7 @@ export const ALPHA_BOT_PROFILES: readonly AlphaBotProfile[] = [
     minimumForm: 46,
     trainingIntensity: 55,
     jersey: {
-      pattern: "sash",
+      pattern: "classic",
       primary: "#173F35",
       secondary: "#E9C46A",
       accent: "#F7F3E8",
@@ -90,7 +90,7 @@ export const ALPHA_BOT_PROFILES: readonly AlphaBotProfile[] = [
   {
     key: "mikkel_sorensen",
     email: "alpha.manager.04@cyclostratege.fr",
-    managerName: "Mikkel SÃ¸rensen",
+    managerName: "Mikkel SÃƒÂ¸rensen",
     teamName: "Nordkyst Racing",
     countryCode: "DK",
     avatarKey: "director_m_06",
