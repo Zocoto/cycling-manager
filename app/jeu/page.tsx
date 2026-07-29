@@ -587,7 +587,7 @@ export default async function GamePage() {
               riderCount={riderCount}
             />
 
-            <div className="grid content-start gap-6">
+            <div className="grid gap-6 xl:h-full xl:grid-rows-[auto_1fr]">
               <ManagementModuleCard
                 href="/jeu/sponsoring"
                 icon="sponsor"
@@ -1040,7 +1040,7 @@ function TeamRosterCard({
     <Link
       href="/jeu/effectif"
       data-tutorial-id="dashboard-roster"
-      className="group relative isolate flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
+      className="group relative isolate flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
       <span
         aria-hidden="true"

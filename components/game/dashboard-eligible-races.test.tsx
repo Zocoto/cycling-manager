@@ -43,7 +43,7 @@ describe("dashboard eligible races", () => {
         reputationPoints: 125,
         riderCount: 8,
         now: new Date("2026-07-10T10:00:00.000Z"),
-        limit: 4,
+        horizonDays: 4,
       }).map((race) => race.edition.id),
     ).toEqual(["eligible"]);
   });
@@ -68,9 +68,11 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain("/jeu/courses/eligible#inscription");
     expect(markup).toContain("Inscriptions accessibles");
     expect(markup).not.toContain("data-race-preview-trigger");
+    expect(markup).toContain("data-dashboard-race-scroll");
+    expect(markup).toContain("overflow-y-auto");
   });
 
-  it("limite l’aperçu du bureau aux trois prochaines inscriptions", () => {
+  it("affiche toutes les inscriptions éligibles des quatre prochains jours", () => {
     const markup = renderToStaticMarkup(
       <DashboardEligibleRaces
         calendar={createCalendar([
@@ -94,6 +96,11 @@ describe("dashboard eligible races", () => {
             minimumRosterSize: 6,
             startDay: 14,
           }),
+          createEdition("hors-fenetre", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 15,
+          }),
         ])}
         reputationPoints={125}
         riderCount={8}
@@ -104,7 +111,8 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain("Course premiere");
     expect(markup).toContain("Course deuxieme");
     expect(markup).toContain("Course troisieme");
-    expect(markup).not.toContain("Course quatrieme");
+    expect(markup).toContain("Course quatrieme");
+    expect(markup).not.toContain("Course hors-fenetre");
   });
 });
 
