@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260727213000_rebalance_rider_and_staff_salaries.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("salary rebalance migration", () => {
   it("applique une courbe coureur plus exigeante sans salaire professionnel nul", () => {

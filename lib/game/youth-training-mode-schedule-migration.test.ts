@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260728100000_schedule_youth_training_mode_changes.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("youth training mode schedule migration", () => {
   it("conserve le mode choisi pour la prochaine journée et les suivantes", () => {

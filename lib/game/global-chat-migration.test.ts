@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260727220000_create_global_game_chat.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("global chat migration", () => {
   it("keeps reads authenticated and writes behind the secured RPC", () => {

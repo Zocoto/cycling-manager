@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260728120000_add_global_chat_read_receipts.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("global chat read receipts migration", () => {
   it("stores one durable read receipt per sporting director", () => {

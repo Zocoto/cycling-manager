@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260729100000_dismiss_staff_with_compensation.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("staff dismissal migration", () => {
   it("sécurise et expose uniquement le RPC de licenciement attendu", () => {
