@@ -274,6 +274,7 @@ export async function getCurrentTeamTrainingOverview(
               "rider_id, season_day_id, status, intensity, domain, minimum_form, trainer_level, trainer_specialty, trainer_country_match, physiotherapist_level, form_before, form_delta, form_after, progress_milli, decline_milli, rating_changes, processed_at",
             )
             .eq("season_id", season.id)
+            .eq("is_contract_eligible", true)
             .in("rider_id", riderIds)
             .order("processed_at", { ascending: false })
             .returns<SessionRow[]>()

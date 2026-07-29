@@ -130,6 +130,7 @@ export async function getRiderProgressionHistories({
         .select("rider_id, season_id, season_day_id, rating_changes")
         .in("rider_id", uniqueRiderIds)
         .in("season_id", seasonIds)
+        .eq("is_contract_eligible", true)
         .returns<TrainingSessionRow[]>(),
       admin
         .from("rider_training_stat_progress")
