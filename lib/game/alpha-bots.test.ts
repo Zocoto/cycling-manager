@@ -112,7 +112,7 @@ describe("alpha manager bots", () => {
       wildcardClosesAt: null,
       withdrawalClosesAt: null,
       registrationPolicy: "open",
-      minimumReputation: null,
+      minimumReputation: 0,
       minimumRosterSize: 2,
       maximumRosterSize: 3,
       engagedRiderCount: 0,
@@ -144,13 +144,12 @@ describe("alpha manager bots", () => {
       edition,
       riders as never,
     );
-    expect(roster).toHaveLength(3);
+    expect(roster).toHaveLength(2);
     expect(roster[0]).toEqual({ riderId: "sprinter", role: "sprinter" });
     expect(roster[1]).toEqual({ riderId: "leadout", role: "leadout" });
-    expect(roster[2]).toEqual({ riderId: "climber", role: "free_agent" });
   });
 
-  it("ignores expired and ineligible races before choosing the next deadlines", () => {
+  it("keeps every eligible race ordered by the next registration deadlines", () => {
     const now = new Date("2026-07-29T10:00:00.000Z");
     const edition = makeEdition();
     const candidates = getBotRaceRegistrationCandidates(
@@ -162,9 +161,22 @@ describe("alpha manager bots", () => {
         },
         {
           ...edition,
+          id: "foreign-championship",
+          countryCode: "BE",
+          competitionType: "national_road",
+          registrationClosesAt: "2026-07-29T10:30:00.000Z",
+        },
+        {
+          ...edition,
           id: "championship",
           competitionType: "national_road",
           registrationClosesAt: "2026-07-29T11:00:00.000Z",
+        },
+        {
+          ...edition,
+          id: "reputation-locked",
+          minimumReputation: 100,
+          registrationClosesAt: "2026-07-29T11:15:00.000Z",
         },
         {
           ...edition,
@@ -174,6 +186,13 @@ describe("alpha manager bots", () => {
             status: "accepted",
             rosterCount: 5,
           },
+        },
+        {
+          ...edition,
+          id: "field-full",
+          fieldLimit: 20,
+          engagedRiderCount: 19,
+          registrationClosesAt: "2026-07-29T11:45:00.000Z",
         },
         {
           ...edition,
@@ -187,11 +206,53 @@ describe("alpha manager bots", () => {
         },
       ],
       now,
+      50,
+      new Set(["FR"]),
     );
 
     expect(candidates.map((candidate) => candidate.id)).toEqual([
+      "championship",
       "next",
       "later",
+    ]);
+  });
+
+  it("returns more than three candidates when all of them are eligible", () => {
+    const edition = makeEdition();
+    const candidates = getBotRaceRegistrationCandidates(
+      Array.from({ length: 6 }, (_, index) => ({
+        ...edition,
+        id: `eligible-${index + 1}`,
+        registrationClosesAt: `2026-07-29T${12 + index}:00:00.000Z`,
+      })),
+      new Date("2026-07-29T10:00:00.000Z"),
+      0,
+      new Set<string>(),
+    );
+
+    expect(candidates).toHaveLength(6);
+  });
+
+  it("uses only riders of the host country for a national championship", () => {
+    const edition: RaceCalendarEdition = {
+      ...makeEdition(),
+      competitionType: "national_road",
+      minimumRosterSize: 1,
+      maximumRosterSize: 200,
+    };
+    const roster = buildRaceRoster(
+      ALPHA_BOT_PROFILES[0],
+      edition,
+      [
+        makeRosterRider("french-1", { countryCode: "FR" }),
+        makeRosterRider("belgian", { countryCode: "BE" }),
+        makeRosterRider("french-2", { countryCode: "FR" }),
+      ] as never,
+    );
+
+    expect(roster.map((entry) => entry.riderId).sort()).toEqual([
+      "french-1",
+      "french-2",
     ]);
   });
 
@@ -236,7 +297,7 @@ function makeEdition(): RaceCalendarEdition {
     wildcardClosesAt: null,
     withdrawalClosesAt: null,
     registrationPolicy: "open",
-    minimumReputation: null,
+    minimumReputation: 0,
     minimumRosterSize: 2,
     maximumRosterSize: 3,
     engagedRiderCount: 0,
@@ -249,6 +310,7 @@ function makeEdition(): RaceCalendarEdition {
 function makeRosterRider(
   riderId: string,
   overrides: Partial<{
+    countryCode: string;
     mountain: number;
     hills: number;
     flat: number;

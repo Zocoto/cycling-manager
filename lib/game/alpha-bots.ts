@@ -9,7 +9,6 @@ import type { TeamTrainingRider } from "@/services/team-training";
 
 export const ALPHA_BOT_SLOTS = ["morning", "evening"] as const;
 export type AlphaBotSlot = (typeof ALPHA_BOT_SLOTS)[number];
-export const ALPHA_BOT_RACE_REGISTRATIONS_PER_CYCLE = 3;
 export const ALPHA_BOT_TARGET_ROSTER_SIZE = 20;
 
 export type AlphaBotStrategy =
@@ -161,11 +160,23 @@ export function buildRaceRoster(
   edition: RaceCalendarEdition,
   options: RaceRosterOption[],
 ): Array<{ riderId: string; role: RaceRole }> {
-  const available = options.filter((rider) => rider.isAvailable);
+  const available = options.filter(
+    (rider) =>
+      rider.isAvailable &&
+      (edition.competitionType === "standard" ||
+        rider.countryCode === edition.countryCode),
+  );
   if (available.length < edition.minimumRosterSize) return [];
 
   const profileType = edition.stages[0]?.profileType ?? "mixed";
-  const count = Math.min(edition.maximumRosterSize, available.length);
+  const count =
+    edition.competitionType === "standard"
+      ? Math.min(
+          Math.max(edition.minimumRosterSize, 1),
+          edition.maximumRosterSize,
+          available.length,
+        )
+      : Math.min(edition.maximumRosterSize, available.length);
   const selected = [...available]
     .sort(
       (left, right) =>
@@ -183,32 +194,73 @@ export function buildRaceRoster(
 export function getBotRaceRegistrationCandidates(
   editions: readonly RaceCalendarEdition[],
   now: Date,
+  reputationPoints: number,
+  riderCountryCodes: ReadonlySet<string>,
 ) {
   const nowTimestamp = now.getTime();
 
   return editions
     .filter((edition) => {
-      const closesAt = edition.registrationClosesAt
-        ? Date.parse(edition.registrationClosesAt)
+      const registrationStatus = edition.currentTeamRegistration?.status;
+      const closesAtValue =
+        registrationStatus === "withdrawn"
+          ? edition.withdrawalClosesAt
+          : edition.categoryCode === "elite"
+            ? edition.wildcardClosesAt
+            : edition.registrationClosesAt;
+      const closesAt = closesAtValue
+        ? Date.parse(closesAtValue)
         : Number.NaN;
+      const supportedCompetition =
+        edition.competitionType === "standard" ||
+        edition.competitionType === "national_road" ||
+        edition.competitionType === "national_time_trial";
+      const nationalityEligible =
+        edition.competitionType === "standard" ||
+        riderCountryCodes.has(edition.countryCode);
+      const reputationEligible =
+        edition.competitionType !== "standard" ||
+        (edition.minimumReputation !== null &&
+          reputationPoints >= edition.minimumReputation);
+      const registrationAvailable =
+        !registrationStatus || registrationStatus === "withdrawn";
+      const fieldHasRoom =
+        edition.fieldLimit === null ||
+        edition.fieldLimit === undefined ||
+        edition.engagedRiderCount + edition.minimumRosterSize <=
+          edition.fieldLimit;
 
       return (
         edition.status === "registration_open" &&
         edition.registrationPolicy === "open" &&
-        edition.competitionType === "standard" &&
-        !edition.currentTeamRegistration &&
+        supportedCompetition &&
+        nationalityEligible &&
+        reputationEligible &&
+        registrationAvailable &&
+        fieldHasRoom &&
         Number.isFinite(closesAt) &&
         closesAt > nowTimestamp
       );
     })
     .sort(
       (left, right) =>
-        Date.parse(left.registrationClosesAt ?? "") -
-          Date.parse(right.registrationClosesAt ?? "") ||
+        getBotRegistrationDeadline(left) -
+          getBotRegistrationDeadline(right) ||
         (left.stages[0]?.dayNumber ?? 999) -
           (right.stages[0]?.dayNumber ?? 999) ||
         left.id.localeCompare(right.id),
     );
+}
+
+function getBotRegistrationDeadline(edition: RaceCalendarEdition) {
+  const closesAt =
+    edition.currentTeamRegistration?.status === "withdrawn"
+      ? edition.withdrawalClosesAt
+      : edition.categoryCode === "elite"
+        ? edition.wildcardClosesAt
+        : edition.registrationClosesAt;
+
+  return Date.parse(closesAt ?? "");
 }
 
 export function isSharedMarketItemAssignedToBot({

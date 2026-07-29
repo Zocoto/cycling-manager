@@ -6,7 +6,6 @@ import { getScoutedNumericSortValue } from "@/lib/game/transfer-scouting";
 
 import {
   ALPHA_BOT_PROFILES,
-  ALPHA_BOT_RACE_REGISTRATIONS_PER_CYCLE,
   ALPHA_BOT_TARGET_ROSTER_SIZE,
   buildAlphaBotCycleKey,
   buildRaceRoster,
@@ -352,20 +351,30 @@ async function manageRaceRegistration(context: ActionContext) {
   );
   if (!calendar) return null;
 
+  const directorResult = await context.client
+    .from("sporting_directors")
+    .select("reputation_points")
+    .eq("auth_user_id", context.authUserId)
+    .maybeSingle<{ reputation_points: number | string }>();
+  assertRpc(directorResult.error);
+  const reputationPoints = Number(
+    directorResult.data?.reputation_points ?? 0,
+  );
+  const training = await getCurrentTeamTrainingOverview(context.authUserId);
+  const riderCountryCodes = new Set(
+    training?.riders.map((rider) => rider.countryCode) ?? [],
+  );
   const candidates = getBotRaceRegistrationCandidates(
     calendar.editions,
     context.now,
+    reputationPoints,
+    riderCountryCodes,
   );
   const registrations: Array<{ name: string; riderCount: number }> = [];
   let lastError: Error | null = null;
+  let failureCount = 0;
 
   for (const edition of candidates) {
-    if (
-      registrations.length >= ALPHA_BOT_RACE_REGISTRATIONS_PER_CYCLE
-    ) {
-      break;
-    }
-
     try {
       const options = await getCurrentTeamRaceRosterOptions(
         context.gameClient,
@@ -387,6 +396,7 @@ async function manageRaceRegistration(context: ActionContext) {
         riderCount: roster.length,
       });
     } catch (error) {
+      failureCount += 1;
       lastError = new Error(
         `${edition.name} : ${getErrorMessage(error)}`,
       );
@@ -394,13 +404,11 @@ async function manageRaceRegistration(context: ActionContext) {
   }
 
   if (registrations.length > 0) {
-    const details = registrations
-      .map(
-        (registration) =>
-          `${registration.name} (${registration.riderCount} coureurs)`,
-      )
-      .join(" · ");
-    return `${registrations.length} course${registrations.length > 1 ? "s" : ""} peuplée${registrations.length > 1 ? "s" : ""} : ${details}.`;
+    const riderCount = registrations.reduce(
+      (total, registration) => total + registration.riderCount,
+      0,
+    );
+    return `${registrations.length} course${registrations.length > 1 ? "s" : ""} peuplée${registrations.length > 1 ? "s" : ""}, ${riderCount} engagement${riderCount > 1 ? "s" : ""}${failureCount > 0 ? ` ; ${failureCount} tentative${failureCount > 1 ? "s" : ""} refusée${failureCount > 1 ? "s" : ""}` : ""}.`;
   }
   if (lastError) throw lastError;
   return null;
