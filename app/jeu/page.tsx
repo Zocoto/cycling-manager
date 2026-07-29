@@ -1316,9 +1316,9 @@ function ObjectivesShortcut({
       title={
         readyCount > 0
           ? `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`
-          : "Consulter les objectifs de carrière"
+          : `Consulter les récompenses et trophées (${totalCount} objectifs suivis)`
       }
-      className="group relative flex min-w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#A67C00]/55 bg-[#F2C94C] px-3 py-2.5 text-[#183F37] shadow-[0_12px_30px_rgba(122,91,9,0.2)] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] hover:shadow-[0_16px_34px_rgba(122,91,9,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#183F37] sm:min-w-28"
+      className="group relative flex min-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#A67C00]/55 bg-[#F2C94C] px-3 py-2.5 text-[#183F37] shadow-[0_12px_30px_rgba(122,91,9,0.2)] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] hover:shadow-[0_16px_34px_rgba(122,91,9,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#183F37] sm:min-w-32"
     >
       <span className="relative grid h-8 w-8 place-items-center rounded-lg bg-[#183F37] text-[#F2C94C] transition group-hover:bg-[#0B302B]">
         <svg
@@ -1331,9 +1331,8 @@ function ObjectivesShortcut({
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <circle cx="12" cy="12" r="8" />
-          <circle cx="12" cy="12" r="3" />
-          <path d="m15 9 5-5M17 4h3v3" />
+          <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
+          <path d="M8 6H5v2a4 4 0 0 0 4 4M16 6h3v2a4 4 0 0 1-4 4M12 13v4M9 20h6M10 17h4" />
         </svg>
         {readyCount > 0 ? (
           <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#C72F5E] px-1 text-[9px] font-black leading-none text-white">
@@ -1341,9 +1340,9 @@ function ObjectivesShortcut({
           </span>
         ) : null}
       </span>
-      <span className="text-xs font-black text-[#183F37]">Objectifs</span>
+      <span className="text-xs font-black text-[#183F37]">Récompenses</span>
       <span className="text-[9px] font-extrabold leading-none text-[#594408]">
-        {readyCount > 0 ? "À récupérer" : `${totalCount} suivis`}
+        {readyCount > 0 ? "À récupérer" : "Objectifs & trophées"}
       </span>
     </Link>
   );
