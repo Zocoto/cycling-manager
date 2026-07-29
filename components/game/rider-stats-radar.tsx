@@ -22,6 +22,19 @@ export function RiderStatsRadar({
 }: RiderStatsRadarProps) {
   const values = RIDER_RATING_AXES.map((axis) => ratings[axis.key]);
   const dataPoints = createRadarPoints({ values, center: CENTER, radius: RADIUS });
+  const normalizedEquipmentBonuses = RIDER_RATING_AXES.map((axis) =>
+    Math.max(0, Number(equipmentBonuses[axis.key] ?? 0)),
+  );
+  const hasEquipmentBonuses = normalizedEquipmentBonuses.some(
+    (bonus) => bonus > 0,
+  );
+  const equippedDataPoints = createRadarPoints({
+    values: values.map(
+      (value, index) => value + normalizedEquipmentBonuses[index],
+    ),
+    center: CENTER,
+    radius: RADIUS,
+  });
   const outerPoints = createRadarPoints({
     values: RIDER_RATING_AXES.map(() => 100),
     center: CENTER,
@@ -33,13 +46,27 @@ export function RiderStatsRadar({
       <svg
         viewBox="0 0 300 300"
         role="img"
-        aria-label="Graphique radar des caractéristiques sportives"
+        aria-label={
+          hasEquipmentBonuses
+            ? "Graphique radar des caractéristiques sportives, avec les bonus d’équipement en bleu"
+            : "Graphique radar des caractéristiques sportives"
+        }
         className="mx-auto w-full max-w-[32rem] overflow-visible"
       >
         <defs>
           <linearGradient id="rider-radar-fill" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#2FA982" stopOpacity="0.72" />
             <stop offset="1" stopColor="#176951" stopOpacity="0.4" />
+          </linearGradient>
+          <linearGradient
+            id="rider-radar-equipment-fill"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="1"
+          >
+            <stop offset="0" stopColor="#62B5FF" stopOpacity="0.58" />
+            <stop offset="1" stopColor="#2468B2" stopOpacity="0.34" />
           </linearGradient>
         </defs>
 
@@ -72,7 +99,19 @@ export function RiderStatsRadar({
           />
         ))}
 
+        {hasEquipmentBonuses ? (
+          <polygon
+            data-radar-layer="equipment"
+            points={serializeRadarPoints(equippedDataPoints)}
+            fill="url(#rider-radar-equipment-fill)"
+            stroke="#367FD3"
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+          />
+        ) : null}
+
         <polygon
+          data-radar-layer="base"
           points={serializeRadarPoints(dataPoints)}
           fill="url(#rider-radar-fill)"
           stroke="#176951"
@@ -91,6 +130,32 @@ export function RiderStatsRadar({
             strokeWidth={RIDER_RATING_AXES[index].importance === "primary" ? 1.9 : 1.2}
           />
         ))}
+
+        {hasEquipmentBonuses
+          ? equippedDataPoints.map((point, index) => {
+              const bonus = normalizedEquipmentBonuses[index];
+
+              if (bonus <= 0) {
+                return null;
+              }
+
+              const axis = RIDER_RATING_AXES[index];
+
+              return (
+                <circle
+                  key={axis.key}
+                  data-equipment-boost={axis.key}
+                  data-equipment-bonus={bonus}
+                  cx={point.x}
+                  cy={point.y}
+                  r={axis.importance === "primary" ? 3.4 : 2.7}
+                  fill="#EAF5FF"
+                  stroke="#367FD3"
+                  strokeWidth="2"
+                />
+              );
+            })
+          : null}
 
         {RIDER_RATING_AXES.map((axis, index) => {
           const angle = -Math.PI / 2 + (index * Math.PI * 2) / RIDER_RATING_AXES.length;
@@ -113,6 +178,28 @@ export function RiderStatsRadar({
           );
         })}
       </svg>
+
+      {hasEquipmentBonuses ? (
+        <div
+          className="-mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[10px] font-bold text-[#5D716B]"
+          aria-label="Légende du graphique"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-2.5 w-2.5 rounded-full border border-[#176951] bg-[#3B9A78]"
+            />
+            Stats naturelles
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="h-2.5 w-2.5 rounded-full border border-[#367FD3] bg-[#62B5FF]"
+            />
+            Avec équipement
+          </span>
+        </div>
+      ) : null}
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
         {RIDER_RATING_AXES.map((axis) => (
