@@ -748,8 +748,8 @@ export function CyclistEquipmentVisual({
         width={1152}
         height={931}
         sizes="(max-width: 640px) calc(100vw - 3rem), 672px"
-        alt="Cycliste de route avec les silhouettes de ses équipements"
-        className="h-auto w-full object-contain brightness-[0.78] saturate-[0.72] contrast-[1.04]"
+        alt="Cycliste de route avec son équipement"
+        className="h-auto w-full object-contain"
       />
       <div
         className="absolute inset-0"
@@ -770,6 +770,14 @@ export function CyclistEquipmentVisual({
             : pendingItem
               ? "pending"
               : "empty";
+          const highlightState = item
+            ? "colorized"
+            : isActive || isCompatible
+              ? "drop-preview"
+              : "none";
+          const showColorLayer = Boolean(item || isActive || isCompatible);
+          const keepTooltipVisible =
+            isActive || (isSelected && Boolean(item || pendingItem));
           const style = {
             left: definition.left,
             top: definition.top,
@@ -789,6 +797,7 @@ export function CyclistEquipmentVisual({
               draggable={isDraggable}
               data-equipment-zone={definition.slot}
               data-zone-state={state}
+              data-zone-highlight={highlightState}
               data-equipped={item ? "true" : "false"}
               data-equipment-item-name={item?.name}
               data-equipment-visual-source="base-illustration"
@@ -819,59 +828,45 @@ export function CyclistEquipmentVisual({
               }`}
               style={style}
             >
-              <span
-                className={`absolute inset-0 overflow-hidden transition duration-200 ${
-                  isActive
-                    ? "scale-110 drop-shadow-[0_0_20px_rgba(242,201,76,0.95)]"
-                    : item
-                      ? "drop-shadow-[0_0_14px_rgba(242,201,76,0.82)] group-hover/zone:brightness-110"
-                      : isCompatible
-                        ? "scale-105 drop-shadow-[0_0_16px_rgba(114,212,183,0.9)]"
-                        : pendingItem
-                          ? "opacity-90"
-                          : isSelected
-                            ? "opacity-100"
-                            : "opacity-90 group-hover/zone:opacity-100"
-                }`}
-                style={{
-                  clipPath: definition.clipPath,
-                  backgroundColor: item ? "#173D35" : "#596560",
-                  boxShadow: item
-                    ? "inset 0 0 0 2px rgba(247,218,115,0.98), inset 0 0 24px rgba(242,201,76,0.3)"
-                    : isActive || isCompatible
-                      ? "inset 0 0 0 2px rgba(155,224,188,0.98), inset 0 0 20px rgba(66,185,154,0.35)"
-                      : pendingItem
-                        ? "inset 0 0 0 2px rgba(242,201,76,0.68)"
-                        : "inset 0 0 0 2px rgba(205,216,211,0.5), inset 0 0 18px rgba(7,26,23,0.28)",
-                }}
-              >
+              {showColorLayer ? (
                 <span
-                  aria-hidden="true"
-                  className="absolute inset-0 transition duration-200"
-                  style={{
-                    ...zoneImageStyle,
-                    filter: isActive
-                      ? "saturate(1.25) brightness(1.42) contrast(1.08)"
+                  data-equipment-color-layer={definition.slot}
+                  className={`absolute inset-0 overflow-hidden transition duration-200 ${
+                    isActive
+                      ? "scale-110 drop-shadow-[0_0_18px_rgba(242,201,76,0.88)]"
                       : item
-                        ? "saturate(1.12) brightness(1.3) contrast(1.08)"
-                        : isCompatible
-                          ? "grayscale(0.25) saturate(1.1) brightness(1.08) contrast(1.08)"
-                          : pendingItem
-                            ? "grayscale(0.55) sepia(0.28) brightness(0.84) contrast(1.12)"
-                            : "grayscale(1) brightness(0.55) contrast(1.22)",
-                  }}
-                />
-                <span
-                  aria-hidden="true"
-                  className={`absolute inset-0 ${
-                    item
-                      ? "bg-[linear-gradient(145deg,rgba(255,255,255,0.24),transparent_42%,rgba(242,201,76,0.12))] mix-blend-screen"
-                      : isCompatible
-                        ? "bg-[#42B99A]/20 mix-blend-screen"
-                        : "bg-[#32433E]/20"
+                        ? "drop-shadow-[0_0_10px_rgba(66,185,154,0.72)] group-hover/zone:brightness-110"
+                        : "scale-105 drop-shadow-[0_0_14px_rgba(114,212,183,0.78)]"
                   }`}
-                />
-              </span>
+                  style={{
+                    clipPath: definition.clipPath,
+                    boxShadow: item
+                      ? "inset 0 0 0 1px rgba(155,224,188,0.78)"
+                      : "inset 0 0 0 2px rgba(155,224,188,0.9)",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 transition duration-200"
+                    style={{
+                      ...zoneImageStyle,
+                      filter: item
+                        ? "sepia(0.42) saturate(2.2) hue-rotate(105deg) brightness(1.12) contrast(1.06)"
+                        : "saturate(1.1) brightness(1.2) contrast(1.04)",
+                    }}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0"
+                    style={{
+                      backgroundColor: item
+                        ? "rgba(66, 185, 154, 0.42)"
+                        : "rgba(155, 224, 188, 0.2)",
+                      mixBlendMode: item ? "color" : "screen",
+                    }}
+                  />
+                </span>
+              ) : null}
 
               {isActive ? (
                 <span className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[#F2C94C]/55 bg-[#071A17]/95 px-2.5 py-1 text-[7px] font-black uppercase tracking-wide text-[#FFE596] shadow-xl">
@@ -884,7 +879,7 @@ export function CyclistEquipmentVisual({
                 className={`pointer-events-none absolute left-1/2 z-30 min-w-24 max-w-40 -translate-x-1/2 rounded-lg border px-2.5 py-1.5 text-center shadow-xl backdrop-blur-sm transition ${
                   isLowerZone ? "bottom-full mb-1" : "top-full mt-1"
                 } ${
-                  isSelected || isActive
+                  keepTooltipVisible
                     ? "translate-y-0 border-[#F2C94C]/40 bg-[#071A17]/95 opacity-100"
                     : "translate-y-1 border-white/10 bg-[#071A17]/92 opacity-0 group-hover/zone:translate-y-0 group-hover/zone:opacity-100 group-focus-visible/zone:translate-y-0 group-focus-visible/zone:opacity-100"
                 }`}

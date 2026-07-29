@@ -108,6 +108,25 @@ describe("collectAvailableEquipment", () => {
 });
 
 describe("CyclistEquipmentVisual", () => {
+  it("conserve le cycliste normal tant qu’aucun matériel n’est équipé", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CyclistEquipmentVisual, {
+        equipment: {},
+        pending: {},
+        compatibleDragSlot: null,
+        activeDropSlot: null,
+        selectedSlot: "helmet",
+        onSelectSlot: () => undefined,
+        onDragOverSlot: () => undefined,
+        onDropSlot: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain('alt="Cycliste de route avec son équipement"');
+    expect(markup).not.toContain("brightness-[0.78]");
+    expect(markup.match(/data-zone-highlight="none"/g)).toHaveLength(8);
+    expect(markup).not.toContain("data-equipment-color-layer");
+  });
   it("pose les pièces équipées directement sur les zones de la silhouette", () => {
     const wornHelmet = equipment("helmet-worn", "Casque porté", "helmet");
     const markup = renderToStaticMarkup(
@@ -127,6 +146,8 @@ describe("CyclistEquipmentVisual", () => {
     expect(markup.match(/data-equipment-zone=/g)).toHaveLength(8);
     expect(markup).toContain('data-equipment-zone="helmet"');
     expect(markup).toContain('data-equipped="true"');
+    expect(markup).toContain('data-zone-highlight="colorized"');
+    expect(markup).toContain('data-equipment-color-layer="helmet"');
     expect(markup).toContain("touch-manipulation");
     expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain('data-equipment-item-name="Casque porté"');
@@ -136,6 +157,8 @@ describe("CyclistEquipmentVisual", () => {
     expect(markup).toContain('data-equipment-zone="gloves"');
     expect(markup).toContain('data-equipped="false"');
     expect(markup).toContain('data-zone-state="empty"');
+    expect(markup).toContain('data-zone-highlight="none"');
+    expect(markup.match(/data-equipment-color-layer=/g)).toHaveLength(1);
     expect(markup.match(/data-equipment-visual-source=/g)).toHaveLength(8);
     expect(markup).toContain("Casque porté");
     expect(markup).not.toContain(wornHelmet.imagePath);
