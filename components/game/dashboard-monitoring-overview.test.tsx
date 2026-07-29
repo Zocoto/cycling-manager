@@ -43,7 +43,8 @@ describe("dashboard monitoring overview", () => {
             title: "Nouveau DS",
             detail: "Un manager rejoint le peloton.",
             happenedAt: "2026-07-24T10:00:00.000Z",
-            href: "/jeu/directeurs-sportifs/rafael-costa",
+            href:
+              "/jeu/directeurs-sportifs/2c7e28fd-86ce-4db7-9f2b-a8beb0d1fd98",
           },
           {
             id: "staff:1",
@@ -68,7 +69,9 @@ describe("dashboard monitoring overview", () => {
     expect(markup).toContain("#5B1A78");
     expect(markup).toContain("#F4C542");
     expect(markup).toContain("/jeu/resultats/tour-des-alpes/3");
-    expect(markup).toContain("/jeu/directeurs-sportifs/rafael-costa");
+    expect(markup).toContain(
+      "/jeu/directeurs-sportifs/2c7e28fd-86ce-4db7-9f2b-a8beb0d1fd98",
+    );
     expect(markup).toContain("votre équipe");
     expect(markup).toContain("Professionnelle");
   });

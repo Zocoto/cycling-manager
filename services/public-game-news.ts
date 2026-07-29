@@ -19,6 +19,7 @@ import {
 } from "@/lib/game/public-game-news";
 import { getRaceResultsHref } from "@/lib/game/race-live";
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
+import { getSportingDirectorProfileHref } from "@/lib/game/sporting-director-profile";
 import {
   STAFF_ROLE_DEFINITIONS,
   isStaffRole,
@@ -99,7 +100,6 @@ type TeamRow = {
 
 type SportingDirectorRow = {
   id: string;
-  username: string;
   display_name: string;
   avatar_key: string | null;
   created_at: string;
@@ -512,7 +512,7 @@ async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {
   const [recentQuery, totalQuery] = await Promise.all([
     admin
       .from("sporting_directors")
-      .select("id, username, display_name, avatar_key, created_at")
+      .select("id, display_name, avatar_key, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(6)
@@ -588,7 +588,7 @@ async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {
       title: `${director.display_name} a rejoint le peloton`,
       detail: "Un nouveau directeur sportif prend place sur la ligne de départ.",
       happenedAt: director.created_at,
-      href: `/jeu/directeurs-sportifs/${encodeURIComponent(director.username)}`,
+      href: getSportingDirectorProfileHref(director.id),
       visual: {
         person: {
           kind: "director" as const,

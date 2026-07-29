@@ -60,18 +60,22 @@ export async function getPublicSportingDirector(
   }
 
   const supabase = createSupabaseAdminClient();
-  const director =
-    (await findSportingDirector({
-      supabase,
-      column: "username",
-      identifier: normalizedIdentifier,
-    })) ??
-    (await findSportingDirector({
-      supabase,
-      column: "display_name",
-      identifier: normalizedIdentifier,
-      requireUniqueResult: true,
-    }));
+  const director = isUuid(normalizedIdentifier)
+    ? await findSportingDirectorById({
+        supabase,
+        identifier: normalizedIdentifier,
+      })
+    : (await findSportingDirector({
+        supabase,
+        column: "username",
+        identifier: normalizedIdentifier,
+      })) ??
+      (await findSportingDirector({
+        supabase,
+        column: "display_name",
+        identifier: normalizedIdentifier,
+        requireUniqueResult: true,
+      }));
 
   if (!director || !director.country_id) {
     return null;
@@ -238,6 +242,27 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
   );
+}
+
+async function findSportingDirectorById({
+  supabase,
+  identifier,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  identifier: string;
+}): Promise<SportingDirectorRow | null> {
+  const { data, error } = await supabase
+    .from("sporting_directors")
+    .select(
+      "id, country_id, username, display_name, avatar_key, reputation_points"
+    )
+    .eq("status", "active")
+    .eq("id", identifier)
+    .maybeSingle<SportingDirectorRow>();
+
+  assertDirectoryQuery(error, "le profil du Directeur Sportif");
+
+  return data;
 }
 
 async function findSportingDirector({
