@@ -392,7 +392,7 @@ function CountryDirectorLink({
         </span>
         {director.team_id ? (
           <span className="mt-2 block">
-            <TeamDivisionBadge division={director.division_code} compact />
+            <TeamDivisionBadge division={director.division_code} isProfessional={Boolean(director.is_professional)} compact />
           </span>
         ) : null}
       </span>
@@ -443,7 +443,7 @@ function CountryTeamLink({
           {team.sporting_director_name ?? "DS non attribué"}
         </span>
         <span className="mt-2 block">
-          <TeamDivisionBadge division={team.division_code} compact />
+          <TeamDivisionBadge division={team.division_code} isProfessional={Boolean(team.is_professional)} compact />
         </span>
       </span>
       <span className="text-xl font-black text-[#278B70]" aria-hidden="true">

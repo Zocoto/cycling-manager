@@ -19,6 +19,7 @@ export type GlobalSearchResult = {
   team_id: string | null;
   division_code: string | null;
   division_name: string | null;
+  is_professional: boolean | null;
   sponsor_name: string | null;
   sporting_director_username: string | null;
   sporting_director_name: string | null;

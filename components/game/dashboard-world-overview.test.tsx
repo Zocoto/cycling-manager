@@ -23,6 +23,7 @@ describe("dashboard world overview", () => {
       directorUsername: null,
       points: 1_500 - index * 50,
       division: "world" as const,
+      isProfessional: false,
       projectedDivision: "world" as const,
     }));
 
@@ -88,7 +89,8 @@ function createRankings(): UciRankings {
       directorName: null,
       directorUsername: null,
       points: 1_000 - index * 50,
-      division: "world",
+      division: index === 0 ? "amateur" : "world",
+      isProfessional: index === 0,
       projectedDivision: "world",
     })),
     riders: Array.from({ length: 10 }, (_, index) => ({

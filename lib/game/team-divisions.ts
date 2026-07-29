@@ -28,3 +28,16 @@ export function getTeamDivisionLabel(
 ): string {
   return TEAM_DIVISION_LABELS[normalizeTeamDivisionCode(value)];
 }
+
+export function getTeamSportingStatusLabel(
+  value: string | null | undefined,
+  isProfessional: boolean
+): string {
+  const code = normalizeTeamDivisionCode(value);
+
+  if (code === "amateur" && isProfessional) {
+    return "Professionnelle";
+  }
+
+  return TEAM_DIVISION_LABELS[code];
+}

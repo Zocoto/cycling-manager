@@ -361,7 +361,7 @@ function SportingDirectorResult({
         </p>
         {result.team_id ? (
           <span className="mt-2 block">
-            <TeamDivisionBadge division={result.division_code} compact />
+            <TeamDivisionBadge division={result.division_code} isProfessional={Boolean(result.is_professional)} compact />
           </span>
         ) : null}
       </div>
@@ -418,7 +418,7 @@ function TeamResult({
             "Directeur Sportif non attribué"}
         </p>
         <span className="mt-2 block">
-          <TeamDivisionBadge division={result.division_code} compact />
+          <TeamDivisionBadge division={result.division_code} isProfessional={Boolean(result.is_professional)} compact />
         </span>
       </div>
 

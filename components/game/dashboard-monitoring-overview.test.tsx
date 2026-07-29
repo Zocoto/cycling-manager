@@ -68,6 +68,7 @@ describe("dashboard monitoring overview", () => {
     expect(markup).toContain("#F4C542");
     expect(markup).toContain("/jeu/resultats/tour-des-alpes/3");
     expect(markup).toContain("votre équipe");
+    expect(markup).toContain("Professionnelle");
   });
 });
 
@@ -82,7 +83,8 @@ function createRankings(): UciRankings {
       directorName: null,
       directorUsername: null,
       points: 1_000 - index * 50,
-      division: "world",
+      division: index === 0 ? "amateur" : "world",
+      isProfessional: index === 0,
       projectedDivision: "world",
     })),
     riders: Array.from({ length: 10 }, (_, index) => ({

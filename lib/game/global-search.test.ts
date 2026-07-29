@@ -20,6 +20,7 @@ const baseResult: GlobalSearchResult = {
   team_id: null,
   division_code: null,
   division_name: null,
+  is_professional: null,
   sponsor_name: null,
   sporting_director_username: null,
   sporting_director_name: null,

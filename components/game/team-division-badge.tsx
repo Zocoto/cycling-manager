@@ -19,17 +19,38 @@ const LIGHT_DIVISION_TONES = {
 
 export function TeamDivisionBadge({
   division,
+  isProfessional = false,
   dark = false,
   compact = false,
 }: {
   division: string | null | undefined;
+  isProfessional?: boolean;
   dark?: boolean;
   compact?: boolean;
 }) {
   const code = normalizeTeamDivisionCode(division);
 
   if (code === "amateur") {
-    return null;
+    if (!isProfessional) {
+      return null;
+    }
+
+    return (
+      <span
+        className={`inline-flex w-fit items-center rounded-full border font-black uppercase ${
+          dark
+            ? "border-[#9BE0BC]/45 bg-[#42B99A]/15 text-[#9BE0BC]"
+            : "border-[#278B70]/25 bg-[#DDF3E7] text-[#176951]"
+        } ${
+          compact
+            ? "px-2 py-0.5 text-[9px] tracking-[0.11em]"
+            : "px-3 py-1.5 text-[10px] tracking-[0.14em]"
+        }`}
+        title="Sponsor principal actif pour la saison en cours"
+      >
+        Équipe professionnelle
+      </span>
+    );
   }
 
   const tone = dark ? DIVISION_TONES[code] : LIGHT_DIVISION_TONES[code];

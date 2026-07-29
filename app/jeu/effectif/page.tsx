@@ -891,7 +891,7 @@ function TeamSeasonSummary({
           {seasonName} · Jour {seasonDayNumber} / 28
         </p>
         <span className="mt-2 flex justify-end">
-          <TeamDivisionBadge division={divisionCode} compact />
+          <TeamDivisionBadge division={divisionCode} isProfessional={Boolean(sponsorIdentity)} compact />
         </span>
       </div>
     </div>
