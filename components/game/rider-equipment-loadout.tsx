@@ -61,9 +61,22 @@ type SilhouetteSlotDefinition = SlotDefinition & {
   width: string;
   height: string;
   clipPath: string;
-  imageClassName: string;
   zIndex: number;
 };
+
+type DraggedEquipment =
+  | {
+      source: "reserve";
+      slot: EquipmentSlot;
+      item: TeamEquipmentCatalogItem;
+    }
+  | {
+      source: "rider";
+      slot: EquipmentSlot;
+      item: EquipmentItem;
+    };
+
+export type EquipmentDropAction = "equip" | "replace" | "unequip";
 
 const LEFT_SLOTS: SlotDefinition[] = [
   { slot: "helmet", label: "Casque", icon: "CS" },
@@ -91,7 +104,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "18%",
     height: "20%",
     clipPath: "ellipse(46% 42% at 50% 55%)",
-    imageClassName: "object-cover scale-110",
     zIndex: 8,
   },
   {
@@ -103,7 +115,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "19%",
     height: "12%",
     clipPath: "polygon(3% 28%, 96% 13%, 91% 72%, 15% 88%)",
-    imageClassName: "object-cover scale-110",
     zIndex: 10,
   },
   {
@@ -115,7 +126,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "15%",
     height: "18%",
     clipPath: "ellipse(43% 48% at 51% 51%)",
-    imageClassName: "object-cover",
     zIndex: 7,
   },
   {
@@ -127,7 +137,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "21%",
     height: "27%",
     clipPath: "polygon(22% 0, 83% 9%, 100% 43%, 78% 100%, 12% 86%, 0 28%)",
-    imageClassName: "object-cover",
     zIndex: 5,
   },
   {
@@ -139,7 +148,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "18%",
     height: "13%",
     clipPath: "ellipse(49% 35% at 50% 52%)",
-    imageClassName: "object-cover scale-110",
     zIndex: 9,
   },
   {
@@ -151,7 +159,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "31%",
     height: "27%",
     clipPath: "polygon(49% 0, 100% 100%, 0 100%)",
-    imageClassName: "object-contain scale-110",
     zIndex: 4,
   },
   {
@@ -163,7 +170,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "26%",
     height: "32%",
     clipPath: "circle(48% at 50% 50%)",
-    imageClassName: "object-contain scale-105",
     zIndex: 3,
   },
   {
@@ -175,7 +181,6 @@ const SILHOUETTE_SLOTS: SilhouetteSlotDefinition[] = [
     width: "26%",
     height: "32%",
     clipPath: "circle(48% at 50% 50%)",
-    imageClassName: "object-contain scale-105",
     zIndex: 3,
   },
 ];
@@ -198,11 +203,12 @@ export function RiderEquipmentLoadout({
     () => collectAvailableEquipment(management, activeEquipment),
     [activeEquipment, management],
   );
-  const [draggedItem, setDraggedItem] =
-    useState<TeamEquipmentCatalogItem | null>(null);
+  const [draggedEquipment, setDraggedEquipment] =
+    useState<DraggedEquipment | null>(null);
   const [dropTargetSlot, setDropTargetSlot] = useState<EquipmentSlot | null>(
     null,
   );
+  const [isReserveDropActive, setIsReserveDropActive] = useState(false);
   const [isApplying, startApplying] = useTransition();
   const isManageable = canManage && Boolean(management);
   const [selectedSlot, setSelectedSlot] = useState<EquipmentSlot>(() => {
@@ -215,25 +221,49 @@ export function RiderEquipmentLoadout({
   const selectedDefinition =
     ALL_SLOTS.find(({ slot }) => slot === selectedSlot) ?? LEFT_SLOTS[0]!;
 
-
-  function startDragging(
+  function startDraggingAvailable(
     event: DragEvent<HTMLElement>,
     item: TeamEquipmentCatalogItem,
   ) {
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", item.id);
-    setDraggedItem(item);
+    event.dataTransfer.setData("text/plain", `reserve:${item.id}`);
+    setDraggedEquipment({ source: "reserve", slot: item.slot, item });
+  }
+
+  function startDraggingEquipped(
+    event: DragEvent<HTMLElement>,
+    slot: EquipmentSlot,
+    item: EquipmentItem,
+  ) {
+    if (!isManageable || isApplying) return;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", `rider:${item.id}`);
+    setSelectedSlot(slot);
+    setDraggedEquipment({ source: "rider", slot, item });
   }
 
   function finishDragging() {
-    setDraggedItem(null);
+    setDraggedEquipment(null);
     setDropTargetSlot(null);
+    setIsReserveDropActive(false);
   }
 
   function dropEquipment(event: DragEvent<HTMLElement>, slot: EquipmentSlot) {
     event.preventDefault();
 
-    if (!draggedItem || draggedItem.slot !== slot || isApplying) {
+    const action = resolveEquipmentDropAction({
+      source: draggedEquipment?.source ?? null,
+      draggedSlot: draggedEquipment?.slot ?? null,
+      target: slot,
+      targetOccupied: Boolean(activeEquipment[slot]),
+    });
+
+    if (
+      !draggedEquipment ||
+      draggedEquipment.source !== "reserve" ||
+      (action !== "equip" && action !== "replace") ||
+      isApplying
+    ) {
       finishDragging();
       return;
     }
@@ -241,7 +271,7 @@ export function RiderEquipmentLoadout({
     const formData = new FormData();
     formData.set("riderId", riderId);
     formData.set("slot", slot);
-    formData.set("equipmentItemId", draggedItem.id);
+    formData.set("equipmentItemId", draggedEquipment.item.id);
     formData.set("origin", "rider");
 
     finishDragging();
@@ -251,6 +281,58 @@ export function RiderEquipmentLoadout({
     });
   }
 
+  function dragOverReserve(event: DragEvent<HTMLElement>) {
+    if (isApplying) return;
+    const action = resolveEquipmentDropAction({
+      source: draggedEquipment?.source ?? null,
+      draggedSlot: draggedEquipment?.slot ?? null,
+      target: "reserve",
+      targetOccupied: false,
+    });
+    if (action !== "unequip") return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setIsReserveDropActive(true);
+  }
+
+  function leaveReserve(event: DragEvent<HTMLElement>) {
+    if (
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)
+    ) {
+      return;
+    }
+    setIsReserveDropActive(false);
+  }
+
+  function dropIntoReserve(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    const action = resolveEquipmentDropAction({
+      source: draggedEquipment?.source ?? null,
+      draggedSlot: draggedEquipment?.slot ?? null,
+      target: "reserve",
+      targetOccupied: false,
+    });
+
+    if (
+      action !== "unequip" ||
+      !draggedEquipment ||
+      draggedEquipment.source !== "rider" ||
+      isApplying
+    ) {
+      finishDragging();
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("riderId", riderId);
+    formData.set("slot", draggedEquipment.slot);
+
+    finishDragging();
+    startApplying(() => {
+      void unequipRiderAction(formData);
+    });
+  }
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-[#102D28] text-white shadow-[0_22px_55px_rgba(7,26,23,0.18)]">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-5 sm:px-8">
@@ -278,12 +360,29 @@ export function RiderEquipmentLoadout({
               <CyclistEquipmentVisual
                 equipment={activeEquipment}
                 pending={management?.pending ?? {}}
-                compatibleDragSlot={draggedItem?.slot ?? null}
+                compatibleDragSlot={
+                  draggedEquipment?.source === "reserve"
+                    ? draggedEquipment.slot
+                    : null
+                }
+                draggedItemName={
+                  draggedEquipment?.source === "reserve"
+                    ? draggedEquipment.item.name
+                    : null
+                }
                 activeDropSlot={dropTargetSlot}
                 selectedSlot={selectedSlot}
+                canDragEquipment={isManageable && !isApplying}
                 onSelectSlot={setSelectedSlot}
+                onDragStartEquipped={startDraggingEquipped}
+                onDragEndEquipped={finishDragging}
                 onDragOverSlot={(event, slot) => {
-                  if (draggedItem?.slot !== slot) return;
+                  if (
+                    draggedEquipment?.source !== "reserve" ||
+                    draggedEquipment.slot !== slot
+                  ) {
+                    return;
+                  }
                   event.preventDefault();
                   event.dataTransfer.dropEffect = "move";
                   setDropTargetSlot(slot);
@@ -291,8 +390,8 @@ export function RiderEquipmentLoadout({
                 onDropSlot={dropEquipment}
               />
               <p className="mt-1 text-center text-[10px] font-bold leading-4 text-[#9FB5A8]">
-                Cliquez ou touchez une zone pour consulter la pièce. Les
-                éléments équipés apparaissent directement sur la silhouette.
+                Chaque zone reste visible en gris. Une pièce équipée illumine
+                la partie correspondante de l’illustration originale.
               </p>
               <EquipmentBonusSummary effects={combinedEffects} />
             </div>
@@ -313,16 +412,22 @@ export function RiderEquipmentLoadout({
           <AvailableEquipmentPanel
             items={availableItems}
             isApplying={isApplying}
-            onDragStart={startDragging}
+            isDraggingEquipped={draggedEquipment?.source === "rider"}
+            isUnequipDropActive={isReserveDropActive}
+            onDragStart={startDraggingAvailable}
             onDragEnd={finishDragging}
+            onDragOver={dragOverReserve}
+            onDragLeave={leaveReserve}
+            onDrop={dropIntoReserve}
           />
         ) : null}
       </div>
 
       <p className="border-t border-white/10 bg-black/10 px-6 py-4 text-xs font-semibold leading-5 text-[#9FB5A8] sm:px-8">
-        Glissez une pièce vers la zone correspondante de la silhouette, ou
-        touchez cette zone pour l’équiper. Les bonus bleus sont ajoutés aux
-        caractéristiques de base pendant les courses compatibles.
+        Glissez une pièce libre vers son emplacement pour l’équiper ou la
+        remplacer. Glissez une pièce portée vers la réserve pour la retirer.
+        Les bonus bleus sont ajoutés aux caractéristiques de base pendant les
+        courses compatibles.
       </p>
     </section>
   );
@@ -460,33 +565,76 @@ function EquipmentSlotInspector({
 function AvailableEquipmentPanel({
   items,
   isApplying,
+  isDraggingEquipped,
+  isUnequipDropActive,
   onDragStart,
   onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   items: TeamEquipmentCatalogItem[];
   isApplying: boolean;
+  isDraggingEquipped: boolean;
+  isUnequipDropActive: boolean;
   onDragStart: (
     event: DragEvent<HTMLElement>,
     item: TeamEquipmentCatalogItem,
   ) => void;
   onDragEnd: () => void;
+  onDragOver: (event: DragEvent<HTMLElement>) => void;
+  onDragLeave: (event: DragEvent<HTMLElement>) => void;
+  onDrop: (event: DragEvent<HTMLElement>) => void;
 }) {
   return (
-    <aside className="rounded-3xl border border-white/10 bg-white/[0.055] p-4 xl:sticky xl:top-5 sm:p-5">
+    <aside
+      data-equipment-drop-zone="reserve"
+      data-drop-active={isUnequipDropActive ? "true" : "false"}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`rounded-3xl border p-4 transition duration-200 xl:sticky xl:top-5 sm:p-5 ${
+        isUnequipDropActive
+          ? "border-[#F2C94C]/80 bg-[#F2C94C]/12 shadow-[0_0_28px_rgba(242,201,76,0.2)]"
+          : isDraggingEquipped
+            ? "border-[#F2C94C]/45 bg-[#F2C94C]/[0.07]"
+            : "border-white/10 bg-white/[0.055]"
+      }`}
+    >
       <div className="border-b border-white/10 pb-4">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8FD5B6]">
           Réserve disponible
         </p>
         <h3 className="mt-2 text-lg font-black text-white">Matériels libres</h3>
         <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-          Glissez une pièce vers la silhouette. La zone compatible s’illumine
-          directement sur le coureur.
+          {isDraggingEquipped
+            ? "Déposez ici la pièce portée pour la retirer du coureur."
+            : "Glissez une pièce vers la silhouette, ou ramenez ici une pièce portée pour la déséquiper."}
         </p>
       </div>
 
+      {isDraggingEquipped ? (
+        <div
+          className={`mt-4 rounded-2xl border border-dashed px-4 py-5 text-center transition ${
+            isUnequipDropActive
+              ? "border-[#F2C94C] bg-[#F2C94C]/15 text-[#FFE596]"
+              : "border-[#F2C94C]/40 bg-black/10 text-[#D8C77F]"
+          }`}
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.14em]">
+            {isUnequipDropActive
+              ? "Relâchez pour déséquiper"
+              : "Zone de déséquipement"}
+          </p>
+          <p className="mt-1 text-[10px] font-semibold normal-case tracking-normal text-[#BFD1C6]">
+            La pièce redeviendra immédiatement disponible dans cette liste.
+          </p>
+        </div>
+      ) : null}
+
       {isApplying ? (
         <p className="mt-4 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-3 py-2 text-xs font-bold text-[#FFE596]">
-          Attribution en cours…
+          Mise à jour de l’équipement…
         </p>
       ) : null}
 
@@ -521,8 +669,7 @@ function AvailableEquipmentPanel({
                     {item.effectSummary}
                   </p>
                   <p className="mt-2 text-[9px] font-black uppercase tracking-wider text-[#F2C94C] opacity-70 transition group-hover:opacity-100">
-                    Glisser vers{" "}
-                    {getEquipmentCategory(item.slot).shortLabel.toLowerCase()} →
+                    Glisser vers {getEquipmentCategory(item.slot).shortLabel.toLowerCase()} →
                   </p>
                 </div>
               </div>
@@ -534,7 +681,7 @@ function AvailableEquipmentPanel({
           <p className="text-sm font-black text-white">Aucune pièce libre</p>
           <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9FB5A8]">
             Les objets équipés ou programmés ne sont plus affichés dans cette
-            liste.
+            liste. Une pièce déséquipée y réapparaît.
           </p>
           <Link
             href="/jeu/materiel"
@@ -547,14 +694,17 @@ function AvailableEquipmentPanel({
     </aside>
   );
 }
-
 export function CyclistEquipmentVisual({
   equipment,
   pending,
   compatibleDragSlot,
+  draggedItemName = null,
   activeDropSlot,
   selectedSlot,
+  canDragEquipment = false,
   onSelectSlot,
+  onDragStartEquipped,
+  onDragEndEquipped,
   onDragOverSlot,
   onDropSlot,
 }: {
@@ -566,9 +716,17 @@ export function CyclistEquipmentVisual({
     >
   >;
   compatibleDragSlot: EquipmentSlot | null;
+  draggedItemName?: string | null;
   activeDropSlot: EquipmentSlot | null;
   selectedSlot: EquipmentSlot;
+  canDragEquipment?: boolean;
   onSelectSlot: (slot: EquipmentSlot) => void;
+  onDragStartEquipped?: (
+    event: DragEvent<HTMLElement>,
+    slot: EquipmentSlot,
+    item: EquipmentItem,
+  ) => void;
+  onDragEndEquipped?: () => void;
   onDragOverSlot: (
     event: DragEvent<HTMLButtonElement>,
     slot: EquipmentSlot,
@@ -590,12 +748,12 @@ export function CyclistEquipmentVisual({
         width={1152}
         height={931}
         sizes="(max-width: 640px) calc(100vw - 3rem), 672px"
-        alt="Cycliste de route avec son équipement porté"
-        className="h-auto w-full object-contain"
+        alt="Cycliste de route avec les silhouettes de ses équipements"
+        className="h-auto w-full object-contain brightness-[0.78] saturate-[0.72] contrast-[1.04]"
       />
       <div
         className="absolute inset-0"
-        aria-label="Équipement porté directement sur le coureur"
+        aria-label="Emplacements d’équipement sur le coureur"
       >
         {SILHOUETTE_SLOTS.map((definition) => {
           const item = equipment[definition.slot];
@@ -603,6 +761,15 @@ export function CyclistEquipmentVisual({
           const isCompatible = compatibleDragSlot === definition.slot;
           const isActive = activeDropSlot === definition.slot;
           const isSelected = selectedSlot === definition.slot;
+          const isDraggable = Boolean(
+            item && canDragEquipment && onDragStartEquipped,
+          );
+          const isLowerZone = Number.parseFloat(definition.top) > 68;
+          const state = item
+            ? "equipped"
+            : pendingItem
+              ? "pending"
+              : "empty";
           const style = {
             left: definition.left,
             top: definition.top,
@@ -610,18 +777,25 @@ export function CyclistEquipmentVisual({
             height: definition.height,
             zIndex: definition.zIndex,
           } satisfies CSSProperties;
+          const zoneImageStyle = getSilhouetteZoneImageStyle(definition);
+          const dropLabel = item
+            ? `Remplacer ${item.name}${draggedItemName ? ` par ${draggedItemName}` : ""}`
+            : `Équiper${draggedItemName ? ` ${draggedItemName}` : ""}`;
 
           return (
             <button
               key={definition.slot}
               type="button"
+              draggable={isDraggable}
               data-equipment-zone={definition.slot}
+              data-zone-state={state}
               data-equipped={item ? "true" : "false"}
               data-equipment-item-name={item?.name}
+              data-equipment-visual-source="base-illustration"
               aria-pressed={isSelected}
               aria-label={
                 item
-                  ? `${definition.label} équipé : ${item.name}`
+                  ? `${definition.label} équipé : ${item.name}. Glissez vers la réserve pour le retirer.`
                   : pendingItem
                     ? `${definition.label} programmé : ${pendingItem.name}`
                     : `${definition.label} vide`
@@ -629,65 +803,103 @@ export function CyclistEquipmentVisual({
               title={
                 item
                   ? `${definition.label} : ${item.name}`
-                  : `${definition.label} : vide`
+                  : `${definition.label} : emplacement vide`
               }
               onClick={() => onSelectSlot(definition.slot)}
+              onDragStart={(event) => {
+                if (item) {
+                  onDragStartEquipped?.(event, definition.slot, item);
+                }
+              }}
+              onDragEnd={onDragEndEquipped}
               onDragOver={(event) => onDragOverSlot(event, definition.slot)}
               onDrop={(event) => onDropSlot(event, definition.slot)}
-              className="group/zone absolute -translate-x-1/2 -translate-y-1/2 touch-manipulation outline-none"
+              className={`group/zone absolute -translate-x-1/2 -translate-y-1/2 touch-manipulation outline-none ${
+                isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+              }`}
               style={style}
             >
               <span
                 className={`absolute inset-0 overflow-hidden transition duration-200 ${
                   isActive
-                    ? "scale-110 bg-[#F2C94C]/45 brightness-125 drop-shadow-[0_0_18px_rgba(242,201,76,0.95)]"
+                    ? "scale-110 drop-shadow-[0_0_20px_rgba(242,201,76,0.95)]"
                     : item
-                      ? "bg-[#163F34]/65 drop-shadow-[0_0_13px_rgba(242,201,76,0.8)] group-hover/zone:brightness-110"
+                      ? "drop-shadow-[0_0_14px_rgba(242,201,76,0.82)] group-hover/zone:brightness-110"
                       : isCompatible
-                        ? "scale-105 bg-[#42B99A]/50 drop-shadow-[0_0_15px_rgba(114,212,183,0.9)]"
+                        ? "scale-105 drop-shadow-[0_0_16px_rgba(114,212,183,0.9)]"
                         : pendingItem
-                          ? "bg-[#F2C94C]/12 opacity-80"
+                          ? "opacity-90"
                           : isSelected
-                            ? "bg-white/10 opacity-80"
-                            : "bg-white/[0.035] opacity-35 group-hover/zone:opacity-70"
+                            ? "opacity-100"
+                            : "opacity-90 group-hover/zone:opacity-100"
                 }`}
                 style={{
                   clipPath: definition.clipPath,
+                  backgroundColor: item ? "#173D35" : "#596560",
                   boxShadow: item
-                    ? "inset 0 0 0 2px rgba(247,218,115,0.95), inset 0 0 22px rgba(242,201,76,0.28)"
+                    ? "inset 0 0 0 2px rgba(247,218,115,0.98), inset 0 0 24px rgba(242,201,76,0.3)"
                     : isActive || isCompatible
-                      ? "inset 0 0 0 2px rgba(155,224,188,0.95)"
+                      ? "inset 0 0 0 2px rgba(155,224,188,0.98), inset 0 0 20px rgba(66,185,154,0.35)"
                       : pendingItem
-                        ? "inset 0 0 0 2px rgba(242,201,76,0.65)"
-                        : "inset 0 0 0 1px rgba(255,255,255,0.28)",
+                        ? "inset 0 0 0 2px rgba(242,201,76,0.68)"
+                        : "inset 0 0 0 2px rgba(205,216,211,0.5), inset 0 0 18px rgba(7,26,23,0.28)",
                 }}
               >
-                {item ? (
-                  <Image
-                    src={item.imagePath}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 26vw, 180px"
-                    className={`opacity-90 saturate-125 contrast-110 ${definition.imageClassName}`}
-                  />
-                ) : null}
                 <span
+                  aria-hidden="true"
+                  className="absolute inset-0 transition duration-200"
+                  style={{
+                    ...zoneImageStyle,
+                    filter: isActive
+                      ? "saturate(1.25) brightness(1.42) contrast(1.08)"
+                      : item
+                        ? "saturate(1.12) brightness(1.3) contrast(1.08)"
+                        : isCompatible
+                          ? "grayscale(0.25) saturate(1.1) brightness(1.08) contrast(1.08)"
+                          : pendingItem
+                            ? "grayscale(0.55) sepia(0.28) brightness(0.84) contrast(1.12)"
+                            : "grayscale(1) brightness(0.55) contrast(1.22)",
+                  }}
+                />
+                <span
+                  aria-hidden="true"
                   className={`absolute inset-0 ${
                     item
-                      ? "bg-[linear-gradient(145deg,rgba(255,255,255,0.2),transparent_42%,rgba(7,26,23,0.12))] mix-blend-screen"
-                      : ""
+                      ? "bg-[linear-gradient(145deg,rgba(255,255,255,0.24),transparent_42%,rgba(242,201,76,0.12))] mix-blend-screen"
+                      : isCompatible
+                        ? "bg-[#42B99A]/20 mix-blend-screen"
+                        : "bg-[#32433E]/20"
                   }`}
                 />
               </span>
+
+              {isActive ? (
+                <span className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[#F2C94C]/55 bg-[#071A17]/95 px-2.5 py-1 text-[7px] font-black uppercase tracking-wide text-[#FFE596] shadow-xl">
+                  {dropLabel}
+                </span>
+              ) : null}
+
               <span
-                className={`pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-wide shadow-lg backdrop-blur-sm transition ${
+                role="tooltip"
+                className={`pointer-events-none absolute left-1/2 z-30 min-w-24 max-w-40 -translate-x-1/2 rounded-lg border px-2.5 py-1.5 text-center shadow-xl backdrop-blur-sm transition ${
+                  isLowerZone ? "bottom-full mb-1" : "top-full mt-1"
+                } ${
                   isSelected || isActive
-                    ? "translate-y-0 border-[#F2C94C]/40 bg-[#071A17]/95 text-[#F7DA73] opacity-100"
-                    : "translate-y-1 border-white/10 bg-[#071A17]/85 text-white/80 opacity-0 group-hover/zone:translate-y-0 group-hover/zone:opacity-100 group-focus-visible/zone:translate-y-0 group-focus-visible/zone:opacity-100"
+                    ? "translate-y-0 border-[#F2C94C]/40 bg-[#071A17]/95 opacity-100"
+                    : "translate-y-1 border-white/10 bg-[#071A17]/92 opacity-0 group-hover/zone:translate-y-0 group-hover/zone:opacity-100 group-focus-visible/zone:translate-y-0 group-focus-visible/zone:opacity-100"
                 }`}
               >
-                {definition.label}
-                {item ? " · équipé" : pendingItem ? " · programmé" : " · vide"}
+                <span className="block text-[6px] font-black uppercase tracking-[0.12em] text-[#9BE0BC]">
+                  {definition.label}
+                </span>
+                <strong className="mt-0.5 block text-[8px] leading-3 text-white">
+                  {item?.name ?? pendingItem?.name ?? "Emplacement vide"}
+                </strong>
+                {item && isDraggable ? (
+                  <span className="mt-0.5 block text-[6px] font-bold leading-3 text-[#D8C77F]">
+                    Glisser vers la réserve pour retirer
+                  </span>
+                ) : null}
               </span>
             </button>
           );
@@ -701,6 +913,44 @@ export function CyclistEquipmentVisual({
   );
 }
 
+function getSilhouetteZoneImageStyle(
+  definition: Pick<
+    SilhouetteSlotDefinition,
+    "left" | "top" | "width" | "height"
+  >,
+): CSSProperties {
+  const centerX = Number.parseFloat(definition.left) / 100;
+  const centerY = Number.parseFloat(definition.top) / 100;
+  const width = Number.parseFloat(definition.width) / 100;
+  const height = Number.parseFloat(definition.height) / 100;
+  const originX = centerX - width / 2;
+  const originY = centerY - height / 2;
+
+  return {
+    backgroundImage: 'url("/illustrations/rider-equipment.png")',
+    backgroundRepeat: "no-repeat",
+    backgroundSize: `${100 / width}% ${100 / height}%`,
+    backgroundPosition: `${(originX / (1 - width)) * 100}% ${(originY / (1 - height)) * 100}%`,
+  };
+}
+
+export function resolveEquipmentDropAction({
+  source,
+  draggedSlot,
+  target,
+  targetOccupied,
+}: {
+  source: "reserve" | "rider" | null;
+  draggedSlot: EquipmentSlot | null;
+  target: EquipmentSlot | "reserve";
+  targetOccupied: boolean;
+}): EquipmentDropAction | null {
+  if (source === "rider" && target === "reserve") return "unequip";
+  if (source !== "reserve" || target === "reserve" || draggedSlot !== target) {
+    return null;
+  }
+  return targetOccupied ? "replace" : "equip";
+}
 function EquipmentThumbnail({
   item,
   fallback,

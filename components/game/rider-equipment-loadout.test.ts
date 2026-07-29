@@ -12,6 +12,7 @@ import {
   collectAvailableEquipment,
   CyclistEquipmentVisual,
   EquipmentBonusSummary,
+  resolveEquipmentDropAction,
 } from "./rider-equipment-loadout";
 
 const EMPTY_BY_SLOT = {
@@ -129,9 +130,90 @@ describe("CyclistEquipmentVisual", () => {
     expect(markup).toContain("touch-manipulation");
     expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain('data-equipment-item-name="Casque porté"');
-    expect(markup).toContain('aria-label="Casque équipé : Casque porté"');
+    expect(markup).toContain(
+      'aria-label="Casque équipé : Casque porté. Glissez vers la réserve pour le retirer."',
+    );
     expect(markup).toContain('data-equipment-zone="gloves"');
     expect(markup).toContain('data-equipped="false"');
+    expect(markup).toContain('data-zone-state="empty"');
+    expect(markup.match(/data-equipment-visual-source=/g)).toHaveLength(8);
+    expect(markup).toContain("Casque porté");
+    expect(markup).not.toContain(wornHelmet.imagePath);
     expect(markup).toContain("1/8 équipé");
+  });
+
+  it("annonce clairement le remplacement sans afficher l’image du produit", () => {
+    const wornHelmet = equipment("helmet-worn", "Casque porté", "helmet");
+    const markup = renderToStaticMarkup(
+      createElement(CyclistEquipmentVisual, {
+        equipment: { helmet: wornHelmet },
+        pending: {},
+        compatibleDragSlot: "helmet",
+        draggedItemName: "Casque neuf",
+        activeDropSlot: "helmet",
+        selectedSlot: "helmet",
+        canDragEquipment: true,
+        onSelectSlot: () => undefined,
+        onDragStartEquipped: () => undefined,
+        onDragEndEquipped: () => undefined,
+        onDragOverSlot: () => undefined,
+        onDropSlot: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain("Remplacer Casque porté par Casque neuf");
+    expect(markup).toContain('draggable="true"');
+    expect(markup).not.toContain(wornHelmet.imagePath);
+  });
+});
+
+describe("resolveEquipmentDropAction", () => {
+  it("équipe ou remplace une pièce libre déposée sur le slot compatible", () => {
+    expect(
+      resolveEquipmentDropAction({
+        source: "reserve",
+        draggedSlot: "helmet",
+        target: "helmet",
+        targetOccupied: false,
+      }),
+    ).toBe("equip");
+    expect(
+      resolveEquipmentDropAction({
+        source: "reserve",
+        draggedSlot: "helmet",
+        target: "helmet",
+        targetOccupied: true,
+      }),
+    ).toBe("replace");
+  });
+
+  it("déséquipe une pièce portée déposée dans la réserve", () => {
+    expect(
+      resolveEquipmentDropAction({
+        source: "rider",
+        draggedSlot: "gloves",
+        target: "reserve",
+        targetOccupied: false,
+      }),
+    ).toBe("unequip");
+  });
+
+  it("refuse les slots incompatibles et le déplacement d’une pièce portée entre slots", () => {
+    expect(
+      resolveEquipmentDropAction({
+        source: "reserve",
+        draggedSlot: "helmet",
+        target: "gloves",
+        targetOccupied: false,
+      }),
+    ).toBeNull();
+    expect(
+      resolveEquipmentDropAction({
+        source: "rider",
+        draggedSlot: "helmet",
+        target: "helmet",
+        targetOccupied: true,
+      }),
+    ).toBeNull();
   });
 });
