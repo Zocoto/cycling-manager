@@ -89,7 +89,7 @@ export const staffTutorialDefinition = {
       targetId: "staff-team-overview",
       title: "Pilotez les effets déjà actifs",
       content:
-        "Cet onglet rassemble la capacité utilisée, les places encore libres, la masse salariale et les spécialistes sous contrat. Les effets compatibles de plusieurs membres peuvent se cumuler ; les affinités de nationalité apportent aussi un bonus d’efficacité.\n\nPour une nouvelle équipe, cette vue peut être vide : c’est normal. Elle indique alors que votre première place est disponible et vous renvoie vers le marché de l’emploi.",
+        "Cet onglet rassemble la capacité utilisée, les places encore libres, la masse salariale et les spécialistes sous contrat. Les effets compatibles de plusieurs membres peuvent se cumuler ; les affinités de nationalité apportent aussi un bonus d’efficacité.\n\nVous pouvez licencier un membre depuis sa fiche. La rupture est immédiate et coûte le salaire restant de la saison en cours, plus une saison complète supplémentaire. Pour une nouvelle équipe, cette vue peut être vide : c’est normal.",
       placement: "top",
       highlightPadding: 8,
     },

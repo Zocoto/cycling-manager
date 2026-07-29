@@ -11,6 +11,7 @@ import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-butt
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
 import { INFRASTRUCTURE_UNLOCK_LEVEL } from "@/lib/game/infrastructure";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
@@ -78,7 +79,7 @@ export default async function InfrastructuresPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
   if (authenticationError || !user) redirect("/connexion");
 
   const [headerData, overview, academy, infrastructureTutorialProgress] =

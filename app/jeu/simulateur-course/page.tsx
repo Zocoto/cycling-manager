@@ -7,6 +7,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { RaceSimulatorWorkbench } from "@/components/game/race-simulator-workbench";
 import { canAccessRaceSimulator } from "@/lib/game/race-simulator-access";
 import type { RaceSimulatorStageOption } from "@/lib/game/race-simulator";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -25,7 +26,7 @@ export default async function RaceSimulatorPage() {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

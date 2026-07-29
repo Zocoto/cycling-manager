@@ -23,11 +23,13 @@ import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
 import { RIDER_RATING_AXES, type RiderRatingKey } from "@/lib/game/rider-profile";
 import { TRAINING_DOMAIN_LABELS } from "@/lib/game/training";
 import type { TransferScoutingReport } from "@/lib/game/transfer-scouting";
+import { isYouthScoutingMissionArchived } from "@/lib/game/youth-scouting-history";
 import {
   YOUTH_TRAINING_DOMAINS,
   YOUTH_TRAINING_GAME_LABELS,
   type YouthTrainingGameType,
 } from "@/lib/game/youth-training";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -57,6 +59,7 @@ type PageProps = {
     succes?: string;
     erreur?: string;
     didacticiel?: string;
+    rapports?: string;
   }>;
 };
 
@@ -69,7 +72,7 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
   const tutorialDemo =
     query.didacticiel === YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE;
   const supabase = await createSupabaseServerClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await getAuthenticatedUser(supabase);
   if (error || !user) redirect("/connexion");
 
   let overview: YouthDevelopmentOverview | null = null;
@@ -157,7 +160,15 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
           {loadingError ? <Alert tone="error">{loadingError}</Alert> : null}
         </div>
 
-        {overview && activeTab === "scouting" ? <ScoutingTab overview={overview} tutorialDemo={tutorialDemo} /> : null}
+        {overview && activeTab === "scouting" ? (
+          <ScoutingTab
+            overview={overview}
+            tutorialDemo={tutorialDemo}
+            showReportHistory={
+              !tutorialDemo && query.rapports === "historique"
+            }
+          />
+        ) : null}
         {overview && activeTab === "ecole" ? <AcademyTab overview={overview} tutorialDemo={tutorialDemo} /> : null}
         {activeTab === "development" ? <DevelopmentTab /> : null}
       </section>
@@ -168,12 +179,26 @@ export default async function YouthDevelopmentPage({ searchParams }: PageProps) 
 function ScoutingTab({
   overview,
   tutorialDemo,
+  showReportHistory,
 }: {
   overview: YouthDevelopmentOverview;
   tutorialDemo: boolean;
+  showReportHistory: boolean;
 }) {
   const activeMissions = overview.missions.filter((mission) => mission.status === "active");
-  const completedMissions = overview.missions.filter((mission) => mission.status === "completed");
+  const completedMissions = overview.missions.filter(
+    (mission) => mission.status === "completed",
+  );
+  const now = new Date();
+  const archivedMissions = completedMissions.filter((mission) =>
+    isYouthScoutingMissionArchived(mission, now),
+  );
+  const recentMissions = completedMissions.filter(
+    (mission) => !isYouthScoutingMissionArchived(mission, now),
+  );
+  const displayedMissions = showReportHistory
+    ? archivedMissions
+    : recentMissions;
   return (
     <div className="mt-7 space-y-8">
       <section aria-labelledby="scouts-title">
@@ -211,8 +236,63 @@ function ScoutingTab({
       ) : null}
 
       <section>
-        <SectionHeading eyebrow="Rapports de détection" title="Talents repérés" description="Les notes sont volontairement brutes et plafonnées à 6. Le potentiel et la durée de formation feront la différence." />
-        {completedMissions.length ? <div className="mt-4 space-y-5">{completedMissions.map((mission) => <MissionReport key={mission.id} mission={mission} currency={overview.currency} balance={overview.balance} />)}</div> : <EmptyState title="Aucun rapport reçu" text="Lancez une mission de 1 à 7 jours : un rapport contiendra entre 1 et 4 jeunes." />}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <SectionHeading
+            eyebrow="Rapports de détection"
+            title={
+              showReportHistory
+                ? "Historique des rapports consultés"
+                : "Talents repérés"
+            }
+            description={
+              showReportHistory
+                ? "Retrouvez les rapports consultés depuis au moins trois jours. Ils restent intégralement accessibles."
+                : "Les rapports consultés restent ici pendant trois jours, puis rejoignent automatiquement l’historique."
+            }
+          />
+          <Link
+            href={
+              showReportHistory
+                ? "/jeu/centre-de-formation?onglet=scouting"
+                : "/jeu/centre-de-formation?onglet=scouting&rapports=historique"
+            }
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#176951]/25 bg-white px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] shadow-sm transition hover:border-[#176951]/50 hover:bg-[#EAF5F3]"
+          >
+            {showReportHistory
+              ? "Revenir aux rapports récents"
+              : "Historique des rapports consultés"}
+            {!showReportHistory && archivedMissions.length > 0 ? (
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#176951] px-1.5 text-[10px] text-white">
+                {archivedMissions.length}
+              </span>
+            ) : null}
+          </Link>
+        </div>
+        {displayedMissions.length ? (
+          <div className="mt-4 space-y-5">
+            {displayedMissions.map((mission) => (
+              <MissionReport
+                key={mission.id}
+                mission={mission}
+                currency={overview.currency}
+                balance={overview.balance}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title={
+              showReportHistory
+                ? "Aucun rapport dans l’historique"
+                : "Aucun rapport récent"
+            }
+            text={
+              showReportHistory
+                ? "Un rapport rejoint cette rubrique trois jours après avoir été marqué comme consulté."
+                : "Lancez une mission de 1 à 7 jours : un rapport contiendra entre 1 et 4 jeunes."
+            }
+          />
+        )}
       </section>
     </div>
   );

@@ -16,10 +16,12 @@ export function buildNotablePerformanceLabels({
   finalRank,
   nationalChampionshipType,
   secondaryWins,
+  stageWinCount = 0,
 }: {
   finalRank: number | null;
   nationalChampionshipType: "road" | "time_trial" | null;
   secondaryWins: RiderSecondaryPerformance[];
+  stageWinCount?: number;
 }) {
   const labels: string[] = [];
 
@@ -40,6 +42,13 @@ export function buildNotablePerformanceLabels({
     labels.push(`Top 10 · ${finalRank}e`);
   } else if (finalRank !== null) {
     labels.push(`${finalRank}e place`);
+  }
+
+  const safeStageWinCount = Math.max(0, Math.floor(stageWinCount));
+  if (safeStageWinCount > 0) {
+    labels.push(
+      `${safeStageWinCount} victoire${safeStageWinCount > 1 ? "s" : ""} d'étape`,
+    );
   }
 
   const secondaryLabels: Record<RiderSecondaryPerformance, string> = {

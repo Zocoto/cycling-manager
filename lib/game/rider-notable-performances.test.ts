@@ -28,6 +28,21 @@ describe("rider notable performances", () => {
     ).toEqual(["Champion national CLM"]);
   });
 
+  it("regroupe les victoires d'etape d'un meme tour", () => {
+    expect(
+      buildNotablePerformanceLabels({
+        finalRank: 7,
+        nationalChampionshipType: null,
+        secondaryWins: ["sprint"],
+        stageWinCount: 3,
+      }),
+    ).toEqual([
+      "Top 10 · 7e",
+      "3 victoires d'étape",
+      "Classement par points",
+    ]);
+  });
+
   it("conserve les cinq performances ayant rapporté le plus de points", () => {
     const performances: RiderNotablePerformance[] = Array.from(
       { length: 7 },

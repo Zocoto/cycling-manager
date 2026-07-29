@@ -3,6 +3,8 @@ import type { Sponsor } from "@/types/sponsor";
 import { AFRICAN_SPONSORS } from "./africa";
 import { BALTIC_SPONSORS } from "./baltics";
 import { BELGIAN_SPONSORS } from "./belgium";
+import { CONFECTIONERY_SPONSORS } from "./confectionery";
+import { ENERGY_SPONSORS } from "./energy";
 import { FRENCH_SPONSORS } from "./france";
 import { GREEK_SPONSORS } from "./greece";
 import { ITALIAN_SPONSORS } from "./italy";
@@ -24,4 +26,6 @@ export const SPONSORS = [
   ...PORTUGUESE_SPONSORS,
   ...AMERICAN_SPONSORS,
   ...JAPANESE_SPONSORS,
+  ...CONFECTIONERY_SPONSORS,
+  ...ENERGY_SPONSORS,
 ] satisfies readonly Sponsor[];

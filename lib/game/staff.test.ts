@@ -7,6 +7,8 @@ import {
   STAFF_ROLES,
   calculateConstructionWithArchitect,
   calculateDueStaffSalary,
+  calculateRemainingStaffSalary,
+  calculateStaffDismissalCompensation,
   calculateStaffSalary,
   calculateStaffSigningFee,
   describeStaffEffect,
@@ -62,6 +64,15 @@ describe("staff economy", () => {
     expect(calculateDueStaffSalary(40_000, 7)).toBe(10_000);
     expect(calculateDueStaffSalary(40_000, 21)).toBe(30_000);
     expect(calculateDueStaffSalary(40_000, 28)).toBe(40_000);
+  });
+
+  it("facture le salaire restant de la saison et toute la suivante", () => {
+    expect(calculateRemainingStaffSalary(40_000, 1)).toBe(40_000);
+    expect(calculateStaffDismissalCompensation(40_000, 1)).toBe(80_000);
+    expect(calculateStaffDismissalCompensation(40_000, 7)).toBe(70_000);
+    expect(calculateStaffDismissalCompensation(40_000, 14)).toBe(60_000);
+    expect(calculateStaffDismissalCompensation(40_000, 21)).toBe(50_000);
+    expect(calculateStaffDismissalCompensation(40_000, 28)).toBe(40_000);
   });
 
   it("expands physiotherapist capacity by useful non-linear steps", () => {

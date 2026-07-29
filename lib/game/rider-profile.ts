@@ -81,6 +81,7 @@ export type RiderSpecialtyProfile =
   | "Grimpeur"
   | "Puncheur"
   | "Coureur de tour"
+  | "Rouleur"
   | "Sprinteur"
   | "Coureur de pavés"
   | "Baroudeur";
@@ -165,6 +166,13 @@ export function getRiderSportingProfile(
         !isTourRider &&
         ratings.mountain >= RIDER_PROFILE_MINIMUM_RATING,
       score: ratings.mountain,
+    },
+    {
+      label: "Rouleur",
+      qualifies:
+        !isTourRider &&
+        ratings.timeTrial >= RIDER_PROFILE_MINIMUM_RATING,
+      score: ratings.timeTrial,
     },
     {
       label: "Puncheur",

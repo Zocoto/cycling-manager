@@ -6,11 +6,16 @@ import {
   calculateMinimumNextBid,
   calculateTransferStartingPrice,
   calculateWeeklySalary,
+  DAILY_TRANSFER_RIDER_COUNT,
   isTransferRiderProfileFilter,
   matchesTransferRiderProfile,
 } from "./transfer-market";
 
 describe("transfer market economy", () => {
+  it("génère dix coureurs pour chaque marché quotidien", () => {
+    expect(DAILY_TRANSFER_RIDER_COUNT).toBe(10);
+  });
+
   it("équilibre les prix d’appel sous le plafond de niveau 65", () => {
     expect(calculateTransferStartingPrice({ overall: 45, age: 28 })).toBe(3_000);
     expect(calculateTransferStartingPrice({ overall: 65, age: 22 })).toBe(35_500);
@@ -42,6 +47,7 @@ describe("transfer market economy", () => {
 
   it("reconnaît les profils proposés par le filtre", () => {
     expect(isTransferRiderProfileFilter("Grimpeur")).toBe(true);
+    expect(isTransferRiderProfileFilter("Rouleur")).toBe(true);
     expect(isTransferRiderProfileFilter("Coureur équilibré")).toBe(true);
     expect(isTransferRiderProfileFilter("Profil inconnu")).toBe(false);
   });
@@ -56,6 +62,9 @@ describe("transfer market economy", () => {
     expect(
       matchesTransferRiderProfile("Grimpeur / Puncheur", "Sprinteur")
     ).toBe(false);
+    expect(
+      matchesTransferRiderProfile("Rouleur / Puncheur", "Rouleur")
+    ).toBe(true);
   });
 
   it("réserve le filtre équilibré aux seuls coureurs équilibrés", () => {

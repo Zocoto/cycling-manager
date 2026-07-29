@@ -17,6 +17,8 @@ import {
   STAFF_LEVEL_WEIGHT_TOTAL,
   TRAINER_SPECIALTIES,
   calculateDueStaffSalary,
+  calculateRemainingStaffSalary,
+  calculateStaffDismissalCompensation,
   calculateStaffWeeklySalary,
   describeStaffEffect,
   getStaffCapacityForDirectorLevel,
@@ -153,6 +155,8 @@ export type TeamStaffMember = {
   signingFee: number;
   currency: string;
   signedAt: string | null;
+  remainingCurrentSeasonSalary: number;
+  dismissalCompensation: number;
 };
 
 export type StaffMarketListing = {
@@ -318,6 +322,7 @@ export async function getTeamStaffOverview(
       currency: listing.currency_code,
       talents: talentsByMemberId.get(memberRow.id) ?? [],
       teamCountryId: context.teamSeason.registration_country_id,
+      currentDayNumber: context.season.current_day_number ?? 1,
     });
     if (!member || !matchesFilters(member, filters)) return [];
 
@@ -366,6 +371,7 @@ export async function getTeamStaffOverview(
         signedAt: contract.signed_at,
         talents: talentsByMemberId.get(memberRow.id) ?? [],
         teamCountryId: context.teamSeason.registration_country_id,
+        currentDayNumber: context.season.current_day_number ?? 1,
       });
       return member ? [member] : [];
     })
@@ -585,6 +591,7 @@ function toStaffMember({
   signedAt = null,
   talents,
   teamCountryId,
+  currentDayNumber,
 }: {
   member: MemberRow;
   country: CountryRow | undefined;
@@ -595,6 +602,7 @@ function toStaffMember({
   signedAt?: string | null;
   talents: MemberTalentRow[];
   teamCountryId: string;
+  currentDayNumber: number;
 }): TeamStaffMember | null {
   if (!country || !isStaffRole(member.role)) return null;
   const role = member.role;
@@ -650,6 +658,14 @@ function toStaffMember({
     signingFee,
     currency,
     signedAt,
+    remainingCurrentSeasonSalary: calculateRemainingStaffSalary(
+      salaryPerSeason,
+      currentDayNumber,
+    ),
+    dismissalCompensation: calculateStaffDismissalCompensation(
+      salaryPerSeason,
+      currentDayNumber,
+    ),
   };
 }
 

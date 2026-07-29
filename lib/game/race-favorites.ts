@@ -175,9 +175,12 @@ function getStageFavoriteScore(
     stage.stageType === "team_time_trial"
   ) {
     const terrainRating = getRouteRating(ratings, stage);
+    const terrainDifficulty = getTimeTrialTerrainDifficulty(stage);
+    const timeTrialWeight = 0.56 - terrainDifficulty * 0.1;
+    const terrainWeight = 0.18 + terrainDifficulty * 0.1;
     return (
-      ratings.timeTrial * 0.56 +
-      terrainRating * 0.18 +
+      ratings.timeTrial * timeTrialWeight +
+      terrainRating * terrainWeight +
       ratings.endurance * 0.12 +
       ratings.resistance * 0.08 +
       ratings.recovery * (forGeneralClassification ? 0.06 : 0.01) +
@@ -345,21 +348,39 @@ function getFinishRating(
 }
 
 function getGeneralClassificationStageWeight(stage: RaceCalendarStage) {
-  const profileWeight =
+  if (
     stage.stageType === "individual_time_trial" ||
     stage.stageType === "team_time_trial"
-      ? 1.3
-      : stage.stageType === "prologue"
-        ? 0.58
-        : {
-            flat: 0.7,
-            sprint: 0.66,
-            hilly: 1.18,
-            mountain: 1.55,
-            cobbles: 1.02,
-            time_trial: 1.3,
-            mixed: 1.12,
-          }[stage.profileType];
+  ) {
+    const distanceWeight = clamp(
+      Math.pow(Math.max(1, stage.distanceKm) / 35, 0.85),
+      0.4,
+      1.9,
+    );
+    const terrainWeight = 1 + getTimeTrialTerrainDifficulty(stage) * 0.35;
+
+    return 1.25 * distanceWeight * terrainWeight;
+  }
+
+  if (stage.stageType === "prologue") {
+    return (
+      0.35 *
+      clamp(Math.max(1, stage.distanceKm) / 8, 0.65, 1.35) *
+      (1 + getTimeTrialTerrainDifficulty(stage) * 0.2)
+    );
+  }
+
+  const profileWeight = {
+    // A bunch finish decides the stage winner, but usually creates almost no
+    // gap in the general classification. Selective terrain does the opposite.
+    flat: 0.16,
+    sprint: 0.12,
+    hilly: 1.32,
+    mountain: 1.75,
+    cobbles: 1.3,
+    time_trial: 1.3,
+    mixed: 1.12,
+  }[stage.profileType];
   const distanceWeight = clamp(
     Math.sqrt(Math.max(1, stage.distanceKm) / 100),
     0.55,
@@ -367,6 +388,50 @@ function getGeneralClassificationStageWeight(stage: RaceCalendarStage) {
   );
 
   return profileWeight * distanceWeight;
+}
+
+function getTimeTrialTerrainDifficulty(stage: RaceCalendarStage) {
+  const totalDistance = Math.max(
+    1,
+    stage.segments.reduce(
+      (total, segment) => total + segment.distanceKm,
+      0,
+    ),
+  );
+  const climbs = stage.segments.filter(
+    (segment) => segment.terrain === "climb",
+  );
+  const climbDistance = climbs.reduce(
+    (total, segment) => total + segment.distanceKm,
+    0,
+  );
+  const averageClimbGradient = climbDistance > 0
+    ? climbs.reduce(
+        (total, segment) =>
+          total + Math.abs(segment.averageGradientPct) * segment.distanceKm,
+        0,
+      ) / climbDistance
+    : 0;
+  const cobbleDistance = stage.segments.reduce(
+    (total, segment) =>
+      total + (segment.surface === "cobbles" ? segment.distanceKm : 0),
+    0,
+  );
+  const declaredProfileDifficulty = {
+    flat: 0,
+    sprint: 0,
+    time_trial: 0,
+    mixed: 0.18,
+    hilly: 0.32,
+    cobbles: 0.32,
+    mountain: 0.58,
+  }[stage.profileType];
+  const routeDifficulty =
+    (climbDistance / totalDistance) * 0.55 +
+    Math.max(0, averageClimbGradient - 3) * 0.055 +
+    (cobbleDistance / totalDistance) * 0.35;
+
+  return clamp(declaredProfileDifficulty + routeDifficulty, 0, 1);
 }
 
 function getRatingsAverage(ratings: RiderSimulationRatings) {

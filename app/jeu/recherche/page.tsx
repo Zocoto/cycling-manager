@@ -13,6 +13,7 @@ import {
   normalizeGlobalSearchQuery,
   type GlobalSearchResult,
 } from "@/lib/game/global-search";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { findSponsorByName } from "@/lib/sponsor-catalog";
 import { searchGameDirectory } from "@/services/global-search";
@@ -59,7 +60,7 @@ export default async function GlobalSearchPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

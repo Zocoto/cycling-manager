@@ -26,6 +26,7 @@ import {
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
 } from "@/lib/rider-jersey";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   MEDICAL_CENTER_TUTORIAL_KEY,
@@ -92,7 +93,7 @@ export default async function HealthCenterPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

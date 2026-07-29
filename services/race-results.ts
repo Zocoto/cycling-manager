@@ -3,7 +3,7 @@ import "server-only";
 import {
   calculateNationalChampionshipReward,
   calculateRaceRewardBreakdown,
-  calculateStagePrize,
+  calculateStageReward,
   type RaceRewardScope,
 } from "@/lib/game/economy";
 import type {
@@ -1296,7 +1296,7 @@ async function persistRaceClassification({
   assertQuery(error, `le classement final de ${edition.name}`);
 
   if (edition.raceFormat === "stage_race") {
-    await persistStagePrizeRewards({
+    await persistStageRewards({
       admin,
       edition,
       finalStage,
@@ -1439,7 +1439,7 @@ async function persistRaceClassification({
   }
 }
 
-async function persistStagePrizeRewards({
+async function persistStageRewards({
   admin,
   edition,
   finalStage,
@@ -1459,35 +1459,61 @@ async function persistStagePrizeRewards({
     for (const result of results) {
       if (result.status !== "finished") continue;
 
-      const cashPrize = calculateStagePrize({
+      const reward = calculateStageReward({
         tier: edition.categoryCode,
         finalRank: result.rank ?? 0,
       });
-      if (cashPrize === 0) continue;
+      if (reward.cashPrize === 0 && reward.uciPoints === 0) continue;
 
       const roster = requireRoster(rosterByRiderId, result.riderId);
       const placement =
         result.rank === 1 ? "Victoire d'étape" : `${result.rank}e place`;
-      const { error: rewardError } = await admin.rpc(
-        "apply_race_roster_competition_reward",
-        {
-          p_source_reference: `official-stage-prize:${edition.id}:stage:${stage.id}:rider:${result.riderId}:v1`,
-          p_source_type: "stage_result",
-          p_race_roster_id: roster.rosterId,
-          // Toutes les primes sont comptabilisées au jour de la dernière étape.
-          p_stage_id: finalStage.id,
-          p_reputation_points: 0,
-          p_experience_points: 0,
-          p_cash_prize: cashPrize,
-          p_uci_points: 0,
-          p_is_victory: false,
-          p_description: `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${result.riderName} · ${placement} · règlement de fin de tour`,
-        },
-      );
-      assertQuery(
-        rewardError,
-        `la prime d'étape de ${stage.name} pour ${result.riderId}`,
-      );
+      const description = `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${result.riderName} · ${placement} · règlement de fin de tour`;
+
+      if (reward.cashPrize > 0) {
+        const { error: prizeError } = await admin.rpc(
+          "apply_race_roster_competition_reward",
+          {
+            p_source_reference: `official-stage-prize:${edition.id}:stage:${stage.id}:rider:${result.riderId}:v1`,
+            p_source_type: "stage_result",
+            p_race_roster_id: roster.rosterId,
+            // Toutes les primes sont comptabilisées au jour de la dernière étape.
+            p_stage_id: finalStage.id,
+            p_reputation_points: 0,
+            p_experience_points: 0,
+            p_cash_prize: reward.cashPrize,
+            p_uci_points: 0,
+            p_is_victory: false,
+            p_description: description,
+          },
+        );
+        assertQuery(
+          prizeError,
+          `la prime d'étape de ${stage.name} pour ${result.riderId}`,
+        );
+      }
+
+      if (reward.uciPoints > 0) {
+        const { error: sportingError } = await admin.rpc(
+          "apply_race_roster_competition_reward",
+          {
+            p_source_reference: `official-stage-sporting:${edition.id}:stage:${stage.id}:rider:${result.riderId}:rank:${result.rank}:v1`,
+            p_source_type: "stage_result",
+            p_race_roster_id: roster.rosterId,
+            p_stage_id: stage.id,
+            p_reputation_points: 0,
+            p_experience_points: 0,
+            p_cash_prize: 0,
+            p_uci_points: reward.uciPoints,
+            p_is_victory: result.rank === 1,
+            p_description: description,
+          },
+        );
+        assertQuery(
+          sportingError,
+          `les points d'étape de ${stage.name} pour ${result.riderId}`,
+        );
+      }
     }
   }
 }

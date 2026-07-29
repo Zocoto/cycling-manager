@@ -7,6 +7,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { DIVISION_RULES } from "@/lib/game/economy";
 import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -35,7 +36,7 @@ export default async function UciRankingsPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

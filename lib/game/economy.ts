@@ -72,34 +72,35 @@ type RewardScale = {
 type StagePrizeRule = {
   maxRank: number;
   cashPrize: number;
+  uciPoints: number;
 };
 
 const STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
   national: [
-    { maxRank: 1, cashPrize: 600 },
-    { maxRank: 2, cashPrize: 350 },
-    { maxRank: 3, cashPrize: 200 },
-    { maxRank: 5, cashPrize: 100 },
+    { maxRank: 1, cashPrize: 600, uciPoints: 10 },
+    { maxRank: 2, cashPrize: 350, uciPoints: 6 },
+    { maxRank: 3, cashPrize: 200, uciPoints: 4 },
+    { maxRank: 5, cashPrize: 100, uciPoints: 2 },
   ],
   continental: [
-    { maxRank: 1, cashPrize: 1_800 },
-    { maxRank: 2, cashPrize: 1_000 },
-    { maxRank: 3, cashPrize: 600 },
-    { maxRank: 5, cashPrize: 250 },
+    { maxRank: 1, cashPrize: 1_800, uciPoints: 25 },
+    { maxRank: 2, cashPrize: 1_000, uciPoints: 15 },
+    { maxRank: 3, cashPrize: 600, uciPoints: 10 },
+    { maxRank: 5, cashPrize: 250, uciPoints: 5 },
   ],
   world: [
-    { maxRank: 1, cashPrize: 5_000 },
-    { maxRank: 2, cashPrize: 3_000 },
-    { maxRank: 3, cashPrize: 1_800 },
-    { maxRank: 5, cashPrize: 750 },
-    { maxRank: 10, cashPrize: 250 },
+    { maxRank: 1, cashPrize: 5_000, uciPoints: 60 },
+    { maxRank: 2, cashPrize: 3_000, uciPoints: 40 },
+    { maxRank: 3, cashPrize: 1_800, uciPoints: 25 },
+    { maxRank: 5, cashPrize: 750, uciPoints: 12 },
+    { maxRank: 10, cashPrize: 250, uciPoints: 5 },
   ],
   elite: [
-    { maxRank: 1, cashPrize: 12_000 },
-    { maxRank: 2, cashPrize: 7_000 },
-    { maxRank: 3, cashPrize: 4_000 },
-    { maxRank: 5, cashPrize: 1_800 },
-    { maxRank: 10, cashPrize: 500 },
+    { maxRank: 1, cashPrize: 12_000, uciPoints: 120 },
+    { maxRank: 2, cashPrize: 7_000, uciPoints: 80 },
+    { maxRank: 3, cashPrize: 4_000, uciPoints: 50 },
+    { maxRank: 5, cashPrize: 1_800, uciPoints: 25 },
+    { maxRank: 10, cashPrize: 500, uciPoints: 10 },
   ],
 };
 
@@ -391,21 +392,32 @@ export function calculateNationalChampionshipReward({
 }
 
 /**
- * Prime purement financière d'un classement d'étape. Elle est volontairement
- * inférieure à la récompense du classement général et ne donne ni réputation,
- * ni expérience, ni points UCI supplémentaires.
+ * Récompense d'étape, inférieure au général mais comptée au classement UCI.
  */
-export function calculateStagePrize({
+export function calculateStageReward({
   tier,
   finalRank,
-}: StagePrizeInput): number {
+}: StagePrizeInput): RaceReward {
   if (finalRank === null || !Number.isFinite(finalRank) || finalRank < 1) {
-    return 0;
+    return { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
   }
 
-  return STAGE_PRIZE_SCALES[tier].find(
+  const placement = STAGE_PRIZE_SCALES[tier].find(
     (placement) => finalRank <= placement.maxRank
-  )?.cashPrize ?? 0;
+  );
+
+  return placement
+    ? {
+        reputation: 0,
+        experience: 0,
+        cashPrize: placement.cashPrize,
+        uciPoints: placement.uciPoints,
+      }
+    : { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
+}
+
+export function calculateStagePrize(input: StagePrizeInput): number {
+  return calculateStageReward(input).cashPrize;
 }
 
 export function calculateRiderSeasonSalary({

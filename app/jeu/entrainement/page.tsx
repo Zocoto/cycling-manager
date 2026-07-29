@@ -31,6 +31,7 @@ import {
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -76,7 +77,7 @@ export default async function TrainingPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

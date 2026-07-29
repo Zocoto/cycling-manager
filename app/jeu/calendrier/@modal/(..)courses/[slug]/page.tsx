@@ -1,20 +1,15 @@
-import RaceProfilePage from "@/app/jeu/courses/[slug]/page";
+import {
+  RaceProfileContent,
+  type RaceProfilePageProps,
+} from "@/app/jeu/courses/[slug]/race-profile-content";
 import { CourseModal } from "@/components/game/course-modal";
 
-type InterceptedRaceProfilePageProps = {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{
-    inscription?: string | string[];
-    erreur?: string | string[];
-  }>;
-};
-
-export default async function InterceptedRaceProfilePage(
-  props: InterceptedRaceProfilePageProps
+export default function InterceptedRaceProfilePage(
+  props: RaceProfilePageProps,
 ) {
   return (
     <CourseModal>
-      {await RaceProfilePage(props)}
+      <RaceProfileContent {...props} />
     </CourseModal>
   );
 }

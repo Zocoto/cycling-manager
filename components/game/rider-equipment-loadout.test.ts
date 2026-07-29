@@ -10,6 +10,7 @@ import type {
 
 import {
   collectAvailableEquipment,
+  CyclistEquipmentVisual,
   EquipmentBonusSummary,
 } from "./rider-equipment-loadout";
 
@@ -102,5 +103,35 @@ describe("collectAvailableEquipment", () => {
     expect(markup.match(/ACC \+3/g)).toHaveLength(1);
     expect(markup.match(/END \+1/g)).toHaveLength(1);
     expect(markup).not.toContain("· CLM");
+  });
+});
+
+describe("CyclistEquipmentVisual", () => {
+  it("pose les pièces équipées directement sur les zones de la silhouette", () => {
+    const wornHelmet = equipment("helmet-worn", "Casque porté", "helmet");
+    const markup = renderToStaticMarkup(
+      createElement(CyclistEquipmentVisual, {
+        equipment: { helmet: wornHelmet },
+        pending: {},
+        compatibleDragSlot: null,
+        activeDropSlot: null,
+        selectedSlot: "helmet",
+        onSelectSlot: () => undefined,
+        onDragOverSlot: () => undefined,
+        onDropSlot: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain('data-equipment-layer="silhouette"');
+    expect(markup.match(/data-equipment-zone=/g)).toHaveLength(8);
+    expect(markup).toContain('data-equipment-zone="helmet"');
+    expect(markup).toContain('data-equipped="true"');
+    expect(markup).toContain("touch-manipulation");
+    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('data-equipment-item-name="Casque porté"');
+    expect(markup).toContain('aria-label="Casque équipé : Casque porté"');
+    expect(markup).toContain('data-equipment-zone="gloves"');
+    expect(markup).toContain('data-equipped="false"');
+    expect(markup).toContain("1/8 équipé");
   });
 });

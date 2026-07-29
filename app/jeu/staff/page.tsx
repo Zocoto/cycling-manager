@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { hireStaffMemberAction } from "@/app/jeu/staff/actions";
+import {
+  dismissStaffMemberAction,
+  hireStaffMemberAction,
+} from "@/app/jeu/staff/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { StaffDismissalSubmitButton } from "@/components/game/staff-dismissal-submit-button";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
 import { StaffTutorialTabSync } from "@/components/tutorial/staff-tutorial-tab-sync";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
@@ -21,6 +25,7 @@ import {
 } from "@/lib/game/staff";
 import { buildStaffMarketReturnPath } from "@/lib/game/filtered-page-paths";
 import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -69,7 +74,7 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");
@@ -536,12 +541,16 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
         <SectionHeading
           eyebrow={overview.seasonName}
           title="Les spécialistes de l’équipe"
-          detail="Le salaire saisonnier est réparti sur les jours 7, 14, 21 et 28. La prime de signature est débitée immédiatement."
+          detail="Le salaire saisonnier est réparti sur les jours 7, 14, 21 et 28. Un licenciement exige le règlement du solde de la saison et de toute la suivante."
         />
         {overview.teamStaff.length > 0 ? (
           <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {overview.teamStaff.map((member) => (
-              <TeamStaffCard key={member.contractId} member={member} />
+              <TeamStaffCard
+                key={member.contractId}
+                member={member}
+                currentBalance={overview.balance}
+              />
             ))}
           </div>
         ) : (
@@ -582,8 +591,15 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
   );
 }
 
-function TeamStaffCard({ member }: { member: TeamStaffMember }) {
+function TeamStaffCard({
+  member,
+  currentBalance,
+}: {
+  member: TeamStaffMember;
+  currentBalance: number;
+}) {
   const definition = STAFF_ROLE_DEFINITIONS[member.role];
+  const balanceAfterDismissal = currentBalance - member.dismissalCompensation;
 
   return (
     <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_38px_rgba(19,60,46,0.08)]">
@@ -633,6 +649,66 @@ function TeamStaffCard({ member }: { member: TeamStaffMember }) {
           Contrat actif depuis le {formatLongDate(member.signedAt)}
         </p>
       </div>
+      <div className="mt-4 rounded-2xl border border-[#C94848]/20 bg-[#FFF7F7] p-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#A12E2E]">
+              Indemnité de rupture
+            </p>
+            <p className="mt-1 text-lg font-black text-[#7E2424]">
+              {formatMoney(member.dismissalCompensation, member.currency)}
+            </p>
+          </div>
+          <p
+            className={`text-right text-[10px] font-black ${
+              balanceAfterDismissal < 0 ? "text-[#C94848]" : "text-[#60756E]"
+            }`}
+          >
+            Solde après rupture
+            <br />
+            {formatMoney(balanceAfterDismissal, member.currency)}
+          </p>
+        </div>
+        <div className="mt-3 grid gap-1 text-[11px] font-semibold leading-5 text-[#775959]">
+          <p>
+            Saison en cours · {formatMoney(
+              member.remainingCurrentSeasonSalary,
+              member.currency,
+            )}
+          </p>
+          <p>
+            Saison suivante · {formatMoney(
+              member.salaryPerSeason,
+              member.currency,
+            )}
+          </p>
+        </div>
+      </div>
+      {member.contractId ? (
+        <form action={dismissStaffMemberAction} className="mt-3">
+          <input type="hidden" name="contractId" value={member.contractId} />
+          <StaffDismissalSubmitButton
+            staffName={`${member.firstName} ${member.lastName}`}
+            compensationLabel={formatMoney(
+              member.dismissalCompensation,
+              member.currency,
+            )}
+            currentSeasonLabel={formatMoney(
+              member.remainingCurrentSeasonSalary,
+              member.currency,
+            )}
+            nextSeasonLabel={formatMoney(
+              member.salaryPerSeason,
+              member.currency,
+            )}
+            resultingBalanceLabel={formatMoney(
+              balanceAfterDismissal,
+              member.currency,
+            )}
+            resultingBalanceIsNegative={balanceAfterDismissal < 0}
+          />
+        </form>
+      ) : null}
     </article>
   );
 }

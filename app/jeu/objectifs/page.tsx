@@ -14,6 +14,7 @@ import {
   parseGameObjectiveTypeFilter,
   type GameObjective,
 } from "@/lib/game/objectives";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
@@ -80,7 +81,7 @@ export default async function ObjectivesPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

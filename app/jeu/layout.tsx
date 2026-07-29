@@ -1,8 +1,9 @@
 import "flag-icons/css/flag-icons.min.css";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
 
+import { GameRouteLoading } from "@/components/game/game-route-loading";
 import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
 import { TutorialProvider } from "@/components/tutorial/tutorial-provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -19,37 +20,56 @@ type TutorialBootstrap = {
   autoStartTutorialKeys: string[];
 };
 
+type SupabaseServerClient = Awaited<
+  ReturnType<typeof createSupabaseServerClient>
+>;
+
+async function synchronizeGameEntryState(
+  supabase: SupabaseServerClient,
+): Promise<void> {
+  const [dailyReputation, academyTrainingSettlement] = await Promise.all([
+    supabase.rpc("settle_current_team_staff_daily_reputation"),
+    supabase.rpc("settle_due_staff_academy_trainings"),
+  ]);
+
+  if (dailyReputation.error) {
+    console.error(
+      "Impossible d’actualiser la réputation quotidienne du staff.",
+      dailyReputation.error,
+    );
+  }
+
+  if (academyTrainingSettlement.error) {
+    console.error(
+      "Impossible d’actualiser les stages de l’Académie.",
+      academyTrainingSettlement.error,
+    );
+  }
+}
+
 async function loadTutorialBootstrap(): Promise<TutorialBootstrap> {
   try {
-    const supabase =
-      await createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
 
-    const [progress, onboardingState] =
-      await Promise.all([
-        listAuthenticatedTutorialProgress(
-          supabase,
-        ),
-        getAuthenticatedTutorialOnboardingState(
-          supabase,
-        ),
-      ]);
+    const [progress, onboardingState] = await Promise.all([
+      listAuthenticatedTutorialProgress(supabase),
+      getAuthenticatedTutorialOnboardingState(supabase),
+      synchronizeGameEntryState(supabase),
+    ]);
 
     const onboardingProgress =
       progress.find(
-        (row) =>
-          row.tutorial_key ===
-          ONBOARDING_TUTORIAL_KEY,
+        (row) => row.tutorial_key === ONBOARDING_TUTORIAL_KEY,
       ) ?? null;
 
     return {
       progress,
-      autoStartTutorialKeys:
-        shouldAutoStartOnboarding({
-          state: onboardingState,
-          progress: onboardingProgress,
-        })
-          ? [ONBOARDING_TUTORIAL_KEY]
-          : [],
+      autoStartTutorialKeys: shouldAutoStartOnboarding({
+        state: onboardingState,
+        progress: onboardingProgress,
+      })
+        ? [ONBOARDING_TUTORIAL_KEY]
+        : [],
     };
   } catch (error) {
     console.error(
@@ -64,30 +84,28 @@ async function loadTutorialBootstrap(): Promise<TutorialBootstrap> {
   }
 }
 
-export default async function GameLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+async function GameRuntime({ children }: { children: ReactNode }) {
   await connection();
+  const tutorialBootstrap = await loadTutorialBootstrap();
 
-  const tutorialBootstrap =
-    await loadTutorialBootstrap();
+  return (
+    <TutorialProvider
+      initialProgress={tutorialBootstrap.progress}
+      autoStartTutorialKeys={tutorialBootstrap.autoStartTutorialKeys}
+    >
+      {children}
+    </TutorialProvider>
+  );
+}
 
+export default function GameLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <RaceSettlementWatcher />
 
-      <TutorialProvider
-        initialProgress={
-          tutorialBootstrap.progress
-        }
-        autoStartTutorialKeys={
-          tutorialBootstrap.autoStartTutorialKeys
-        }
-      >
-        {children}
-      </TutorialProvider>
+      <Suspense fallback={<GameRouteLoading />}>
+        <GameRuntime>{children}</GameRuntime>
+      </Suspense>
     </>
   );
 }

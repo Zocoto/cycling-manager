@@ -27,6 +27,7 @@ import {
   isTransferRiderProfileFilter,
   TRANSFER_RIDER_PROFILE_FILTERS,
 } from "@/lib/game/transfer-market";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -68,7 +69,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   const tab = readTab(readQuery(query.onglet));
   const filters = readFilters(query);
   const supabase = await createSupabaseServerClient();
-  const { data: { user }, error: authenticationError } = await supabase.auth.getUser();
+  const { data: { user }, error: authenticationError } = await getAuthenticatedUser(supabase);
   if (authenticationError || !user) redirect("/connexion");
 
   const [headerData, overview, transferTutorialProgress] = await Promise.all([
@@ -211,14 +212,14 @@ function DailyAuctions({ listings, overview, returnPath }: {
 }) {
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
-      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les cinq enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
+      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les dix enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
           <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
           </div>
         ) : (
-          <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : cinq nouveaux coureurs apparaîtront automatiquement." />
+          <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : dix nouveaux coureurs apparaîtront automatiquement." />
         )}
       </div>
     </section>

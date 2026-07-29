@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { answerInternationalSelectionAction } from "./actions";
 import { GameHeader } from "@/components/game/game-header";
 import { InternationalSelectionSubmitButton } from "@/components/game/international-selection-submit-button";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -76,7 +77,7 @@ export default async function InternationalSelectionsPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

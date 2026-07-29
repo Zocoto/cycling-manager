@@ -220,6 +220,30 @@ export function calculateDueStaffSalary(
     : salary;
 }
 
+export function calculateRemainingStaffSalary(
+  salaryPerSeason: number,
+  currentDayNumber: number,
+): number {
+  const salary = Math.max(0, salaryPerSeason);
+  return roundMoney(
+    Math.max(0, salary - calculateDueStaffSalary(salary, currentDayNumber)),
+  );
+}
+
+export function calculateStaffDismissalCompensation(
+  salaryPerSeason: number,
+  currentDayNumber: number,
+): number {
+  const salary = Math.max(0, salaryPerSeason);
+  return roundMoney(
+    calculateRemainingStaffSalary(salary, currentDayNumber) + salary,
+  );
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 export function getStaffCapacityForDirectorLevel(level: number): number {
   const safeLevel = Math.max(0, Math.floor(Number.isFinite(level) ? level : 0));
   const thresholds = [1, 1, 2, 3, 5, 7, 10, 13, 17, 21, 25];

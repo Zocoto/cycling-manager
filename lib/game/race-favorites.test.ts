@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRaceFavorites,
   getFrozenRaceFavoriteRiders,
+  getRaceFavoriteScore,
 } from "@/lib/game/race-favorites";
 import type {
   RaceCalendarEdition,
@@ -156,6 +157,208 @@ describe("buildRaceFavorites", () => {
         riders: [...initialRiders, superstar],
       })[0].rider.id,
     ).toBe("superstar");
+  });
+
+  it("base le favori du general sur l'etape vallonnee qui cree les ecarts", () => {
+    const flatAllRounder = createRider("flat-all-rounder", {
+      flat: 62,
+      mountain: 48,
+      hills: 48,
+      downhill: 59,
+      cobbles: 57,
+      timeTrial: 54,
+      prologue: 52,
+      sprint: 54,
+      acceleration: 51,
+      endurance: 62,
+      resistance: 66,
+      recovery: 57,
+      breakaway: 54,
+    });
+    const puncher = createRider("puncher", {
+      flat: 55,
+      mountain: 57,
+      hills: 66,
+      downhill: 58,
+      sprint: 56,
+      acceleration: 66,
+      endurance: 58,
+      resistance: 59,
+      recovery: 58,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage("sprint", [createSegment(1, "flat", 112)], 1),
+        createStage("flat", [createSegment(1, "flat", 118)], 2),
+        createStage(
+          "hilly",
+          [
+            createSegment(1, "flat", 20),
+            createSegment(2, "climb", 10, 5.5),
+            createSegment(3, "climb", 10, 5),
+            createSegment(4, "descent", 10, -4),
+            createSegment(5, "flat", 20),
+            createSegment(6, "climb", 10, 4.5),
+            createSegment(7, "descent", 10, -4),
+            createSegment(8, "climb", 10, 4),
+            createSegment(9, "climb", 10, 3.5),
+            createSegment(10, "flat", 4),
+          ],
+          3,
+        ),
+        createStage("sprint", [createSegment(1, "flat", 130)], 4),
+      ],
+      [flatAllRounder, puncher],
+    );
+
+    const favorites = buildRaceFavorites({ edition });
+
+    expect(favorites[0].rider.id).toBe("puncher");
+  });
+
+  it("fait de l'etape de montagne la reference du classement general", () => {
+    const flatAllRounder = createRider("flat-rider", {
+      flat: 68,
+      mountain: 49,
+      hills: 55,
+      endurance: 65,
+      resistance: 66,
+      recovery: 62,
+    });
+    const climber = createRider("climber", {
+      flat: 54,
+      mountain: 72,
+      hills: 66,
+      endurance: 64,
+      resistance: 62,
+      recovery: 64,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage("sprint", [createSegment(1, "flat", 130)], 1),
+        createStage("flat", [createSegment(1, "flat", 145)], 2),
+        createStage(
+          "mountain",
+          [
+            createSegment(1, "flat", 70),
+            createSegment(2, "climb", 20, 7),
+            createSegment(3, "descent", 15, -6),
+            createSegment(4, "climb", 25, 8),
+          ],
+          3,
+        ),
+        createStage("sprint", [createSegment(1, "flat", 125)], 4),
+      ],
+      [flatAllRounder, climber],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe("climber");
+  });
+
+  it("considere les paves comme un terrain majeur pour les ecarts", () => {
+    const flatAllRounder = createRider("flat-rider", {
+      flat: 68,
+      cobbles: 48,
+      endurance: 65,
+      resistance: 66,
+      recovery: 62,
+    });
+    const cobblesSpecialist = createRider("cobbles-specialist", {
+      flat: 58,
+      cobbles: 72,
+      endurance: 63,
+      resistance: 66,
+      recovery: 61,
+    });
+    const cobblesStage = createStage(
+      "cobbles",
+      [
+        createSegment(1, "flat", 30),
+        {
+          ...createSegment(2, "flat", 70),
+          surface: "cobbles",
+        },
+        createSegment(3, "flat", 30),
+      ],
+      3,
+    );
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage("sprint", [createSegment(1, "flat", 120)], 1),
+        createStage("flat", [createSegment(1, "flat", 130)], 2),
+        cobblesStage,
+        createStage("sprint", [createSegment(1, "flat", 125)], 4),
+      ],
+      [flatAllRounder, cobblesSpecialist],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe(
+      "cobbles-specialist",
+    );
+  });
+
+  it("amplifie l'impact d'un CLM long et montagneux sur le general", () => {
+    const chronoClimber = createRider("chrono-climber", {
+      flat: 58,
+      mountain: 78,
+      hills: 74,
+      timeTrial: 78,
+      endurance: 70,
+      resistance: 68,
+      recovery: 66,
+    });
+    const ordinaryRider = createRider("ordinary-rider", {
+      flat: 60,
+      mountain: 58,
+      hills: 58,
+      timeTrial: 60,
+      endurance: 62,
+      resistance: 62,
+      recovery: 62,
+    });
+    const commonStages = [
+      createStage("sprint", [createSegment(1, "flat", 120)], 1),
+      createStage("flat", [createSegment(1, "flat", 130)], 2),
+      createStage("sprint", [createSegment(1, "flat", 125)], 3),
+    ];
+    const shortFlatTimeTrial = createStage(
+      "time_trial",
+      [createSegment(1, "flat", 12)],
+      4,
+      "individual_time_trial",
+    );
+    const longMountainTimeTrial = createStage(
+      "mountain",
+      [
+        createSegment(1, "flat", 10),
+        createSegment(2, "climb", 20, 6.5),
+        createSegment(3, "descent", 10, -5),
+        createSegment(4, "climb", 20, 7),
+      ],
+      4,
+      "individual_time_trial",
+    );
+    const shortEdition = createEdition(
+      "stage_race",
+      [...commonStages, shortFlatTimeTrial],
+      [chronoClimber, ordinaryRider],
+    );
+    const longMountainEdition = createEdition(
+      "stage_race",
+      [...commonStages, longMountainTimeTrial],
+      [chronoClimber, ordinaryRider],
+    );
+    const shortGap =
+      getRaceFavoriteScore(shortEdition, chronoClimber) -
+      getRaceFavoriteScore(shortEdition, ordinaryRider);
+    const longMountainGap =
+      getRaceFavoriteScore(longMountainEdition, chronoClimber) -
+      getRaceFavoriteScore(longMountainEdition, ordinaryRider);
+
+    expect(longMountainGap).toBeGreaterThan(shortGap + 4);
   });
 });
 

@@ -7,6 +7,7 @@ import { RaceStageNavigation } from "@/components/game/race-stage-navigation";
 import Link from "@/components/ui/app-link";
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -50,7 +51,7 @@ export default async function RaceLivePage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

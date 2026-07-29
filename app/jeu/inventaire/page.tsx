@@ -22,6 +22,7 @@ import {
   type InventoryCategory,
   type TeamInventoryItem,
 } from "@/lib/game/inventory";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   EQUIPMENT_TUTORIAL_GLASSES_CATALOG_KEY,
@@ -59,7 +60,7 @@ export default async function InventoryPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

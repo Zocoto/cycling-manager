@@ -18,6 +18,7 @@ import {
   type EquipmentEffectFilterKey,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   EQUIPMENT_TUTORIAL_COMMERCIAL_ROUTE,
@@ -64,7 +65,7 @@ export default async function MaterialPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

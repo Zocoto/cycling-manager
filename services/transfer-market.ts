@@ -11,6 +11,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   calculateMinimumNextBid,
   calculateWeeklySalary,
+  DAILY_TRANSFER_RIDER_COUNT,
   matchesTransferRiderProfile,
   type TransferRiderProfileFilter,
 } from "@/lib/game/transfer-market";
@@ -604,7 +605,10 @@ async function ensureTodayDailyMarket(admin: ReturnType<typeof createSupabaseAdm
     const code = profileByCountry.get(country.id);
     return Boolean(code && hasRiderNameLibrary(code));
   });
-  const selectedCountries = selectRandomDistinct(candidates, 5);
+  const selectedCountries = selectRandomDistinct(
+    candidates,
+    DAILY_TRANSFER_RIDER_COUNT
+  );
   const selectionsByProfile = new Map<string, CountryRow[]>();
   for (const country of selectedCountries) {
     const code = profileByCountry.get(country.id)!;
@@ -626,7 +630,7 @@ async function ensureTodayDailyMarket(admin: ReturnType<typeof createSupabaseAdm
     p_rider_identities: identities,
     p_force: false,
   });
-  assertQuery(error, "les cinq coureurs du marché quotidien");
+  assertQuery(error, "les dix coureurs du marché quotidien");
 }
 
 async function prepareCurrentTransferMarket(

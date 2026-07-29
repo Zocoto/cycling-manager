@@ -94,6 +94,7 @@ describe("rider profile radar", () => {
   it.each([
     [{ mountain: 70 }, "Grimpeur"],
     [{ hills: 70 }, "Puncheur"],
+    [{ timeTrial: 70 }, "Rouleur"],
     [{ cobbles: 70 }, "Coureur de pavés"],
     [{ sprint: 70 }, "Sprinteur"],
     [{ breakaway: 70 }, "Baroudeur"],
@@ -124,6 +125,29 @@ describe("rider profile radar", () => {
         })
       )
     ).toBe("Grimpeur");
+  });
+
+  it("uses the time trial rating before mountain and hills when it dominates", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 61,
+          hills: 62,
+          timeTrial: 65,
+        })
+      )
+    ).toBe("Rouleur / Puncheur");
+  });
+
+  it("promotes a rouleur to tour rider when mountain also reaches the threshold", () => {
+    expect(
+      getRiderSportingProfile(
+        createRatings({
+          mountain: 65,
+          timeTrial: 67,
+        })
+      )
+    ).toBe("Coureur de tour");
   });
 
   it("creates a two-profile hybrid within a four-point gap", () => {

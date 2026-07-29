@@ -8,7 +8,7 @@ type SupabaseServerClient = Awaited<
 
 export type AuthenticatedUser = {
   id: string;
-  email: string | null;
+  email: string | undefined;
 };
 
 export async function getAuthenticatedUser(
@@ -35,7 +35,7 @@ export async function getAuthenticatedUser(
         email:
           typeof claims?.email === "string"
             ? claims.email
-            : null,
+            : undefined,
       },
     },
     error: null,

@@ -245,6 +245,7 @@ type RewardEventRow = {
   id: string;
   team_season_id: string | null;
   source_reference: string;
+  source_type: "race_result" | "stage_result";
   uci_points: number;
   description: string;
 };
@@ -456,10 +457,10 @@ export async function getPublicRiderProfile({
     supabase
       .from("reward_events")
       .select(
-        "id, team_season_id, source_reference, uci_points, description"
+        "id, team_season_id, source_reference, source_type, uci_points, description"
       )
       .eq("rider_id", rider.id)
-      .eq("source_type", "race_result")
+      .in("source_type", ["race_result", "stage_result"])
       .gt("uci_points", 0)
       .returns<RewardEventRow[]>(),
   ]);
@@ -1155,6 +1156,14 @@ function buildNotablePerformancesBySeason({
     string,
     RiderNotablePerformance[]
   >();
+  const rewardsBySeasonAndEdition = new Map<
+    string,
+    {
+      teamSeason: TeamSeasonRow;
+      editionId: string | null;
+      rewards: RewardEventRow[];
+    }
+  >();
 
   for (const reward of rewards) {
     const teamSeason = reward.team_season_id
@@ -1162,11 +1171,37 @@ function buildNotablePerformancesBySeason({
       : null;
     if (!teamSeason) continue;
 
-    const parsedDescription = parseRewardDescription(reward.description);
     const editionId =
       getRaceEditionIdFromRewardReference(reward.source_reference);
+    const key = `${teamSeason.season_id}:${editionId ?? reward.id}`;
+    const group = rewardsBySeasonAndEdition.get(key) ?? {
+      teamSeason,
+      editionId,
+      rewards: [],
+    };
+    group.rewards.push(reward);
+    rewardsBySeasonAndEdition.set(key, group);
+  }
+
+  for (const {
+    teamSeason,
+    editionId,
+    rewards: groupedRewards,
+  } of rewardsBySeasonAndEdition.values()) {
+    const firstReward = groupedRewards[0];
+    if (!firstReward) continue;
+
+    const parsedDescription = parseRewardDescription(firstReward.description);
     const edition = editionId ? editionById.get(editionId) : null;
     const result = editionId ? resultByEditionId.get(editionId) : null;
+    const hasRaceReward = groupedRewards.some(
+      (reward) => reward.source_type === "race_result",
+    );
+    const stageWinCount = groupedRewards.filter(
+      (reward) => getStageRankFromRewardReference(reward.source_reference) === 1,
+    ).length;
+    if (!hasRaceReward && stageWinCount === 0) continue;
+
     const secondaryWins = editionId
       ? secondaryResults
           .filter(
@@ -1176,30 +1211,35 @@ function buildNotablePerformancesBySeason({
               ((secondary.race_roster_id !== null &&
                 performanceRosterIds.has(secondary.race_roster_id)) ||
                 (secondary.classification_type === "team" &&
-                  secondary.team_season_id === reward.team_season_id))
+                  secondary.team_season_id === firstReward.team_season_id))
           )
           .map((secondary) => secondary.classification_type)
       : [];
+    const notableFinalRank = hasRaceReward ? result?.final_rank ?? null : null;
     const labels =
-      edition || result || secondaryWins.length > 0
+      edition || result || secondaryWins.length > 0 || stageWinCount > 0
         ? buildNotablePerformanceLabels({
-            finalRank: result?.final_rank ?? null,
+            finalRank: notableFinalRank,
             nationalChampionshipType:
               getNationalChampionshipType(
                 edition?.race?.competition_type
               ),
             secondaryWins,
+            stageWinCount,
           })
         : [parsedDescription.performance];
     const performances =
       performancesBySeasonId.get(teamSeason.season_id) ?? [];
 
     performances.push({
-      raceEditionId: editionId ?? reward.id,
+      raceEditionId: editionId ?? firstReward.id,
       raceName: edition?.display_name ?? parsedDescription.raceName,
-      uciPoints: reward.uci_points,
+      uciPoints: groupedRewards.reduce(
+        (total, reward) => total + reward.uci_points,
+        0,
+      ),
       labels,
-      finalRank: result?.final_rank ?? null,
+      finalRank: notableFinalRank,
     });
     performancesBySeasonId.set(teamSeason.season_id, performances);
   }
@@ -1216,11 +1256,21 @@ function buildNotablePerformancesBySeason({
 
 function getRaceEditionIdFromRewardReference(sourceReference: string) {
   const [, editionId] = sourceReference.split(":");
-  return sourceReference.startsWith("official-race:") &&
+  return (
+    sourceReference.startsWith("official-race:") ||
+    sourceReference.startsWith("official-stage-sporting:")
+  ) &&
     editionId &&
     isUuid(editionId)
     ? editionId
     : null;
+}
+
+function getStageRankFromRewardReference(sourceReference: string) {
+  if (!sourceReference.startsWith("official-stage-sporting:")) return null;
+
+  const rank = Number(sourceReference.match(/:rank:(\d+):v\d+$/)?.[1]);
+  return Number.isInteger(rank) && rank > 0 ? rank : null;
 }
 
 function getNationalChampionshipType(

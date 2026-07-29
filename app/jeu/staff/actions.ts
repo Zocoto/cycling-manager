@@ -51,6 +51,49 @@ export async function hireStaffMemberAction(formData: FormData) {
   );
 }
 
+export async function dismissStaffMemberAction(formData: FormData) {
+  const contractId = readValue(formData, "contractId");
+  const returnPath = "/jeu/staff?onglet=equipe";
+
+  if (!isUuid(contractId)) {
+    redirectWithMessage(
+      returnPath,
+      "erreur",
+      "Le contrat de staff transmis est invalide.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc("dismiss_current_team_staff", {
+    p_contract_id: contractId,
+  });
+
+  if (error) {
+    redirectWithMessage(returnPath, "erreur", error.message);
+  }
+
+  revalidatePath("/jeu");
+  revalidatePath("/jeu/staff");
+  revalidatePath("/jeu/finances");
+  revalidatePath("/jeu/entrainement");
+  revalidatePath("/jeu/centre-de-formation");
+  revalidatePath("/jeu/centre-de-soin");
+  revalidatePath("/jeu/infrastructures");
+  redirectWithMessage(
+    returnPath,
+    "succes",
+    "Le membre du staff a été licencié et son indemnité a été débitée.",
+  );
+}
 function redirectWithMessage(
   path: string,
   key: "succes" | "erreur",

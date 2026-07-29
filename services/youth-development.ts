@@ -220,6 +220,7 @@ export type YouthMission = {
   completesDayNumber: number;
   status: MissionRow["status"];
   unread: boolean;
+  viewedAt: string | null;
   candidates: YouthCandidate[];
 };
 
@@ -422,6 +423,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
       completesDayNumber: mission.completes_day_number,
       status: mission.status,
       unread: mission.status === "completed" && !mission.report_viewed_at,
+      viewedAt: mission.report_viewed_at,
       candidates: (candidatesByMission.get(mission.id) ?? []).map((candidate) =>
         toCandidate(
           candidate,

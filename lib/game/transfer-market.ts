@@ -4,7 +4,7 @@ import type {
   RiderSportingProfile,
 } from "@/lib/game/rider-profile";
 
-export const DAILY_TRANSFER_RIDER_COUNT = 5;
+export const DAILY_TRANSFER_RIDER_COUNT = 10;
 export const DAILY_AUCTION_OPEN_HOUR = 9;
 export const DAILY_AUCTION_CLOSE_HOUR = 18;
 export const DIRECTOR_AUCTION_DURATION_HOURS = 24;
@@ -14,6 +14,7 @@ export const TRANSFER_RIDER_PROFILE_FILTERS = [
   "Grimpeur",
   "Puncheur",
   "Coureur de tour",
+  "Rouleur",
   "Sprinteur",
   "Coureur de pavés",
   "Baroudeur",

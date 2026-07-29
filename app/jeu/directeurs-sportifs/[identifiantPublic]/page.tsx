@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicSportingDirector } from "@/services/public-directory";
@@ -32,7 +33,7 @@ export default async function PublicSportingDirectorPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AmateurJerseyEditor } from "@/components/game/amateur-jersey-editor";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
@@ -20,7 +21,7 @@ export default async function JerseyEditorPage() {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

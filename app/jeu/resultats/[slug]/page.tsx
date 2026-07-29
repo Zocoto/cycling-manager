@@ -11,6 +11,7 @@ import {
   type RaceCalendarStage,
 } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
@@ -32,7 +33,7 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

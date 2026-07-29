@@ -8,6 +8,7 @@ import {
   calculateRaceRewardBreakdown,
   calculateRiderSeasonSalary,
   calculateStagePrize,
+  calculateStageReward,
   getDivisionForRank,
   selectWildcardTeams,
 } from "./economy";
@@ -42,6 +43,19 @@ describe("calculateRaceReward", () => {
     expect(reward.experience).toBe(274);
     expect(reward.cashPrize).toBe(16_750);
     expect(reward.uciPoints).toBe(275);
+  });
+
+  it("credite tous les classements annexes d'un tour", () => {
+    const reward = calculateRaceReward({
+      tier: "national",
+      scope: "tour",
+      finalRank: null,
+      secondaryClassifications: ["mountain", "sprint", "youth", "team"],
+    });
+
+    expect(reward.uciPoints).toBe(72);
+    expect(reward.cashPrize).toBe(2_800);
+    expect(reward.reputation).toBe(4);
   });
 
   it("attribue des points UCI au-delà du podium sans donner de réputation", () => {
@@ -107,6 +121,24 @@ describe("calculateStagePrize", () => {
     expect(calculateStagePrize({ tier: "continental", finalRank: 4 })).toBe(250);
     expect(calculateStagePrize({ tier: "world", finalRank: 8 })).toBe(250);
     expect(calculateStagePrize({ tier: "elite", finalRank: 2 })).toBe(7_000);
+  });
+
+  it("attribue des points UCI aux meilleures places d'etape", () => {
+    expect(calculateStageReward({ tier: "national", finalRank: 1 })).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 600,
+      uciPoints: 10,
+    });
+    expect(
+      calculateStageReward({ tier: "continental", finalRank: 2 }).uciPoints,
+    ).toBe(15);
+    expect(
+      calculateStageReward({ tier: "world", finalRank: 5 }).uciPoints,
+    ).toBe(12);
+    expect(calculateStageReward({ tier: "elite", finalRank: 1 }).uciPoints).toBe(
+      120,
+    );
   });
 
   it("ne verse rien hors du top rémunéré ou en cas d'abandon", () => {

@@ -15,6 +15,7 @@ import {
   EQUIPMENT_PARTNER_RND_DURATION_DAYS,
   EQUIPMENT_PARTNER_RND_SUCCESS_RATE,
 } from "@/lib/game/equipment-partner";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   EQUIPMENT_TUTORIAL_KEY,
@@ -57,7 +58,7 @@ export default async function EquipmentPartnerPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

@@ -1,18 +1,15 @@
-import CriteriumDiscoveryRacePage from "@/app/jeu/courses/criterium-de-la-decouverte/page";
+import {
+  CriteriumDiscoveryRaceContent,
+  type CriteriumRacePageProps,
+} from "@/app/jeu/courses/criterium-de-la-decouverte/criterium-race-content";
 import { CourseModal } from "@/components/game/course-modal";
 
-type InterceptedCriteriumDiscoveryPageProps = {
-  searchParams: Promise<{
-    erreur?: string | string[];
-  }>;
-};
-
-export default async function InterceptedCriteriumDiscoveryPage(
-  props: InterceptedCriteriumDiscoveryPageProps,
+export default function InterceptedCriteriumDiscoveryPage(
+  props: CriteriumRacePageProps,
 ) {
   return (
     <CourseModal>
-      {await CriteriumDiscoveryRacePage(props)}
+      <CriteriumDiscoveryRaceContent {...props} />
     </CourseModal>
   );
 }

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { getEditionDayRange } from "@/lib/game/race-calendar";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -55,7 +56,7 @@ export default async function NationalChampionshipsPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) redirect("/connexion");
 

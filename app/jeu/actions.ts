@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getStageLiveState } from "@/lib/game/race-live";
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
@@ -14,7 +15,7 @@ export async function settleDueOfficialRaceRewardsAction() {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (error || !user) {
     return {

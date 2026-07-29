@@ -13,6 +13,7 @@ import {
   getCriteriumDiscoveryRunFromMetadata,
 } from "@/lib/tutorial/criterium-discovery";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
@@ -40,7 +41,7 @@ export default async function RaceResultsPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

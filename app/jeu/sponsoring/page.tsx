@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
+
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
@@ -55,7 +57,7 @@ export default async function SponsoringPage({
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");
@@ -1575,13 +1577,10 @@ function getErrorMessage(error: unknown): string {
 }
 
 function getCountryName(countryCode: string): string {
-  const countryNames: Record<string, string> = {
-    BE: "Belgique",
-    ES: "Espagne",
-    FR: "France",
-  };
+  const normalizedCountryCode = countryCode.toUpperCase();
+  const countryNames = new Intl.DisplayNames(["fr"], { type: "region" });
 
-  return countryNames[countryCode.toUpperCase()] ?? countryCode.toUpperCase();
+  return countryNames.of(normalizedCountryCode) ?? normalizedCountryCode;
 }
 
 function formatMoney(value: number, currencyCode = "EUR"): string {

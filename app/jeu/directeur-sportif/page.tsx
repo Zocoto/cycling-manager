@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
+
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
 import { AmateurTeamCreationForm } from "../../../components/game/amateur-team-creation-form";
@@ -82,7 +84,7 @@ export default async function SportingDirectorProfilePage() {
   const {
     data: { user },
     error: authenticationError,
-  } = await supabase.auth.getUser();
+  } = await getAuthenticatedUser(supabase);
 
   if (authenticationError || !user) {
     redirect("/connexion");

@@ -36,7 +36,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-tabs",
       title: "Choisissez le marché adapté à votre besoin",
       content:
-        "Les enchères quotidiennes proposent cinq nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant 24 heures. Les agents libres peuvent être engagés immédiatement, sans indemnité de transfert.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
+        "Les enchères quotidiennes proposent dix nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant 24 heures. Les agents libres peuvent être engagés immédiatement, sans indemnité de transfert.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
       placement: "bottom",
       highlightPadding: 6,
     },
@@ -44,9 +44,9 @@ export const transferTutorialDefinition = {
       key: "daily-overview",
       route: TRANSFER_DAILY_TUTORIAL_ROUTE,
       targetId: "transfer-daily-overview",
-      title: "Cinq nouveaux profils chaque jour",
+      title: "Dix nouveaux profils chaque jour",
       content:
-        "La sélection quotidienne ouvre à 9 h et se clôture à 18 h. Chaque arrivage contient cinq coureurs générés pour ce marché ; ils commencent leur carrière avec 0 jour de course.\n\nLeur âge, leur profil et leur demande salariale sont connus, mais leurs statistiques et leur potentiel restent présentés sous forme d’estimations. Un talent particulièrement rare peut parfois apparaître.",
+        "La sélection quotidienne ouvre à 9 h et se clôture à 18 h. Chaque arrivage contient dix coureurs générés pour ce marché ; ils commencent leur carrière avec 0 jour de course.\n\nLeur âge, leur profil et leur demande salariale sont connus, mais leurs statistiques et leur potentiel restent présentés sous forme d’estimations. Un talent particulièrement rare peut parfois apparaître.",
       placement: "bottom",
       highlightPadding: 8,
     },
