@@ -559,7 +559,6 @@ function TutorialAcademyDemo({
             gameType={gameType}
             currentSlotLabel="Créneau de démonstration"
             currentSlotCompleted={false}
-            currentSlotScore={null}
             completedSlotCount={0}
             demoMode
           />
@@ -690,12 +689,12 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
             gameType={rider.manualTraining.gameType}
             currentSlotLabel={rider.manualTraining.currentSlotLabel}
             currentSlotCompleted={rider.manualTraining.currentSlotCompleted}
-            currentSlotScore={rider.manualTraining.currentSlotScore}
             completedSlotCount={rider.manualTraining.completedSlotCount}
           />
-          {rider.latestTrainingReport ? <div className="rounded-xl border border-[#315B3E]/10 p-3"><p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-              Rapport · jour {rider.latestTrainingReport.dayNumber} · {rider.latestTrainingReport.trainingMode === "automatic" ? "auto" : rider.latestTrainingReport.slot === "manual_am" ? "matin" : "soir"}
-            </p><p className="mt-1 text-xs font-bold text-[#176951]">{formatRatingChanges(rider.latestTrainingReport.ratingChanges)}</p></div> : null}
+          <YouthTrainingReports
+            latestReport={rider.latestTrainingReport}
+            seasonReport={rider.seasonTrainingReport}
+          />
           <p className="text-[10px] font-bold text-[#60756E]">Scolarité : {formatCurrency(rider.tuitionPerSeason, currency)} / saison</p>
           {rider.status === "recruited" ? <div className="rounded-xl bg-[#F2C94C]/20 p-3 text-xs font-black text-[#8A6B16]">Recruté · arrivée pro en {rider.promotionGameYear}</div> : rider.canRecruit ? canSchedulePromotion ? <form action={recruitYouthRiderAction}><input type="hidden" name="academyRiderId" value={rider.id} /><button className="w-full rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">Recruter pour {gameYear + 1}</button></form> : <p className="rounded-xl bg-[#FFF0EE] p-3 text-[10px] font-bold text-[#8A2F2F]">Promotion impossible · {rosterLimit} places déjà engagées.</p> : <p className="rounded-xl bg-[#F6F7F2] p-3 text-[10px] font-bold text-[#60756E]">Recrutable à partir de 17 ans.</p>}
         </div>
@@ -704,6 +703,133 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
   );
 }
 
+function YouthTrainingReports({
+  latestReport,
+  seasonReport,
+}: {
+  latestReport: AcademyYouth["latestTrainingReport"];
+  seasonReport: AcademyYouth["seasonTrainingReport"];
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white">
+      <div className="p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#278B70]">
+              Résultat du dernier entraînement
+            </p>
+            <p className="mt-1 text-[10px] font-semibold leading-4 text-[#60756E]">
+              Une seule séance, automatique ou manuelle, avec le détail des 13
+              statistiques.
+            </p>
+          </div>
+          {latestReport ? (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              <span className="rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-[#176951]">
+                J{latestReport.dayNumber}
+              </span>
+              <span className="rounded-full bg-[#173D35] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-white">
+                {formatYouthTrainingReportMode(latestReport)}
+              </span>
+              {latestReport.score !== null ? (
+                <span className="rounded-full bg-[#FFF2B9] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-[#806114]">
+                  {latestReport.score}/1000
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        {latestReport ? (
+          <div className="mt-3">
+            <p className="mb-2 text-[8px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+              Gains appliqués lors de cette séance
+            </p>
+            <YouthTrainingGainGrid changes={latestReport.ratingChanges} />
+          </div>
+        ) : (
+          <p className="mt-3 rounded-xl bg-[#F5F7F5] px-3 py-2.5 text-[10px] font-bold leading-4 text-[#60756E]">
+            Aucun entraînement enregistré pour ce junior cette saison.
+          </p>
+        )}
+      </div>
+
+      <details className="group border-t border-[#315B3E]/10 bg-[#F8FBF9]">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[9px] font-black uppercase tracking-[0.12em] text-[#176951] marker:content-none">
+          <span>Gains depuis le début de saison</span>
+          <span className="rounded-full border border-[#176951]/20 bg-white px-2.5 py-1 text-[8px] group-open:hidden">
+            Afficher
+          </span>
+          <span className="hidden rounded-full border border-[#176951]/20 bg-white px-2.5 py-1 text-[8px] group-open:inline-flex">
+            Masquer
+          </span>
+        </summary>
+        <div className="border-t border-[#315B3E]/10 px-4 pb-4 pt-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[9px] font-bold text-[#60756E]">
+              Cumul de J{seasonReport.fromDayNumber} à J{seasonReport.toDayNumber}
+            </p>
+            <p className="text-[8px] font-black uppercase tracking-[0.1em] text-[#48665F]">
+              {seasonReport.sessionCount} séance{seasonReport.sessionCount > 1 ? "s" : ""}
+              {" · "}{seasonReport.automaticSessionCount} auto
+              {" · "}{seasonReport.manualSessionCount} manuelle{seasonReport.manualSessionCount > 1 ? "s" : ""}
+            </p>
+          </div>
+          <YouthTrainingGainGrid changes={seasonReport.ratingChanges} />
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function YouthTrainingGainGrid({
+  changes,
+}: {
+  changes: Record<string, number>;
+}) {
+  return (
+    <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
+      {RIDER_RATING_AXES.map((axis) => {
+        const gain = changes[axis.key] ?? 0;
+
+        return (
+          <div
+            key={axis.key}
+            title={axis.label}
+            className={`rounded-lg border px-1 py-2 text-center ${
+              gain > 0
+                ? "border-[#278B70]/20 bg-[#E4F3EC]"
+                : "border-[#315B3E]/8 bg-[#F2F5F3]"
+            }`}
+          >
+            <span className="block text-[8px] font-black uppercase text-[#60756E]">
+              {axis.shortLabel}
+            </span>
+            <strong
+              className={`mt-0.5 block text-[10px] ${
+                gain > 0 ? "text-[#176951]" : "text-[#91A098]"
+              }`}
+            >
+              {formatYouthTrainingGain(gain)}
+            </strong>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatYouthTrainingReportMode(
+  report: NonNullable<AcademyYouth["latestTrainingReport"]>,
+) {
+  if (report.trainingMode === "automatic") return "Automatique";
+  return report.slot === "manual_am" ? "Manuel · matin" : "Manuel · soir";
+}
+
+function formatYouthTrainingGain(value: number) {
+  if (value <= 0) return "0";
+  return `+${value.toFixed(3).replace(".", ",")}`;
+}
 function MissionReport({ mission, currency, balance }: { mission: YouthMission; currency: string; balance: number }) {
   return (
     <article className={`rounded-[1.75rem] border bg-white p-5 shadow-sm sm:p-6 ${mission.unread ? "border-[#C63F3F]/45 ring-2 ring-[#C63F3F]/8" : "border-[#315B3E]/12"}`}>
@@ -906,4 +1032,3 @@ function SectionHeading({ eyebrow, title, description, id }: { eyebrow: string; 
 function EmptyState({ title, text }: { title: string; text: string }) { return <div className="mt-4 rounded-2xl border border-dashed border-[#315B3E]/25 bg-white/60 p-7 text-center"><p className="font-black text-[#071A17]">{title}</p><p className="mt-2 text-sm font-semibold text-[#60756E]">{text}</p></div>; }
 function Alert({ tone, children }: { tone: "success" | "error"; children: React.ReactNode }) { return <div className={`rounded-2xl border px-4 py-3 text-sm font-bold ${tone === "success" ? "border-[#278B70]/30 bg-[#DDF2E9] text-[#176951]" : "border-[#C63F3F]/30 bg-[#FFF0ED] text-[#A32F2F]"}`}>{children}</div>; }
 function formatCurrency(value: number, currency: string) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value); }
-function formatRatingChanges(changes: Record<string, number>) { const entries = Object.entries(changes).filter(([, value]) => value > 0).sort((left, right) => right[1] - left[1]).slice(0, 3); return entries.length ? entries.map(([key, value]) => `${RIDER_RATING_AXES.find((axis) => axis.key === key)?.shortLabel ?? key} +${value.toFixed(3)}`).join(" · ") : "Consolidation, sans hausse visible"; }

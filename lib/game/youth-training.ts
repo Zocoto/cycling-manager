@@ -20,6 +20,13 @@ export type YouthTrainingMode = "automatic" | "manual";
 export type YouthManualTrainingSlot = "manual_am" | "manual_pm";
 export type YouthTrainingGameType = "rhythm" | "reflex" | "speed";
 
+export type YouthSeasonTrainingSummary = {
+  sessionCount: number;
+  automaticSessionCount: number;
+  manualSessionCount: number;
+  ratingChanges: Record<string, number>;
+};
+
 export type YouthMiniGameScoreInput = {
   gameType: YouthTrainingGameType;
   rhythmPoints: number;
@@ -78,6 +85,39 @@ export function getYouthManualTrainingSlot(
   parisHour: number,
 ): YouthManualTrainingSlot {
   return parisHour < 12 ? "manual_am" : "manual_pm";
+}
+
+export function summarizeYouthSeasonTraining(
+  sessions: ReadonlyArray<{
+    trainingMode: YouthTrainingMode;
+    ratingChanges: Record<string, number>;
+  }>,
+): YouthSeasonTrainingSummary {
+  const ratingChanges: Record<string, number> = {};
+  let automaticSessionCount = 0;
+  let manualSessionCount = 0;
+
+  for (const session of sessions) {
+    if (session.trainingMode === "automatic") {
+      automaticSessionCount += 1;
+    } else {
+      manualSessionCount += 1;
+    }
+
+    for (const [key, value] of Object.entries(session.ratingChanges)) {
+      if (!Number.isFinite(value)) continue;
+      ratingChanges[key] = roundToThousandth(
+        (ratingChanges[key] ?? 0) + value,
+      );
+    }
+  }
+
+  return {
+    sessionCount: sessions.length,
+    automaticSessionCount,
+    manualSessionCount,
+    ratingChanges,
+  };
 }
 
 export function getYouthAutomaticFirstDay({
@@ -221,4 +261,8 @@ function clampScore(score: number) {
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function roundToThousandth(value: number) {
+  return Math.round(value * 1_000) / 1_000;
 }

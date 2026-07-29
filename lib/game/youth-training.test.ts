@@ -10,6 +10,7 @@ import {
   getYouthTrainingGameType,
   isYouthAutomaticTrainingDue,
   projectYouthRating,
+  summarizeYouthSeasonTraining,
   unprojectYouthRating,
 } from "./youth-training";
 
@@ -166,6 +167,34 @@ describe("youth training", () => {
     expect(projectYouthRating(2)).toBe(50);
     expect(unprojectYouthRating(50)).toBe(2);
     expect(projectYouthRating(unprojectYouthRating(100))).toBe(100);
+  });
+
+  it("cumule les gains de saison et distingue les séances automatiques et manuelles", () => {
+    expect(
+      summarizeYouthSeasonTraining([
+        {
+          trainingMode: "automatic",
+          ratingChanges: { mountain: 0.125, hills: 0.075 },
+        },
+        {
+          trainingMode: "manual",
+          ratingChanges: { mountain: 0.333, sprint: 0.2 },
+        },
+        {
+          trainingMode: "manual",
+          ratingChanges: { mountain: 0.222, hills: 0.1 },
+        },
+      ]),
+    ).toEqual({
+      sessionCount: 3,
+      automaticSessionCount: 1,
+      manualSessionCount: 2,
+      ratingChanges: {
+        mountain: 0.68,
+        hills: 0.175,
+        sprint: 0.2,
+      },
+    });
   });
 
   it("normalise les trois minijeux sur 1000 points", () => {

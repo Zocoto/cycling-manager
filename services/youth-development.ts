@@ -43,7 +43,9 @@ import {
   isYouthAutomaticTrainingDue,
   projectYouthRating,
   projectedGainToRawGain,
+  summarizeYouthSeasonTraining,
   type YouthManualTrainingSlot,
+  type YouthSeasonTrainingSummary,
   type YouthTrainingDomain,
   type YouthTrainingGameType,
   type YouthTrainingMode,
@@ -244,7 +246,6 @@ export type AcademyYouth = {
     currentSlot: YouthManualTrainingSlot;
     currentSlotLabel: string;
     currentSlotCompleted: boolean;
-    currentSlotScore: number | null;
     completedSlotCount: number;
     gameType: YouthTrainingGameType;
   };
@@ -260,6 +261,10 @@ export type AcademyYouth = {
     slot: "automatic" | YouthManualTrainingSlot;
     score: number | null;
   } | null;
+  seasonTrainingReport: YouthSeasonTrainingSummary & {
+    fromDayNumber: number;
+    toDayNumber: number;
+  };
 };
 
 export type YouthNotification = {
@@ -468,6 +473,8 @@ async function loadOverview(admin: AdminClient, context: Context) {
           "academy_rider_id, day_number, training_mode, slot, game_type, score, rating_changes, processed_at",
         )
         .in("academy_rider_id", academyIds)
+        .eq("season_id", context.seasonId)
+        .order("day_number", { ascending: false })
         .order("processed_at", { ascending: false })
         .returns<YouthTrainingSessionRow[]>()
     : { data: [], error: null };
@@ -481,11 +488,28 @@ async function loadOverview(admin: AdminClient, context: Context) {
     NonNullable<AcademyYouth["latestTrainingReport"]>
   >();
   const currentSessionsByRider = new Map<string, YouthTrainingSessionRow[]>();
+  const seasonSessionsByRider = new Map<
+    string,
+    Array<{
+      trainingMode: YouthTrainingMode;
+      ratingChanges: Record<string, number>;
+    }>
+  >();
   for (const session of sessionRows) {
+    const projectedRatingChanges = projectYouthRatingChanges(
+      session.rating_changes,
+    );
+    seasonSessionsByRider.set(session.academy_rider_id, [
+      ...(seasonSessionsByRider.get(session.academy_rider_id) ?? []),
+      {
+        trainingMode: session.training_mode,
+        ratingChanges: projectedRatingChanges,
+      },
+    ]);
     if (!latestByRider.has(session.academy_rider_id)) {
       latestByRider.set(session.academy_rider_id, {
         dayNumber: session.day_number,
-        ratingChanges: projectYouthRatingChanges(session.rating_changes),
+        ratingChanges: projectedRatingChanges,
         trainingMode: session.training_mode,
         slot: session.slot,
         score: session.score,
@@ -541,13 +565,19 @@ async function loadOverview(admin: AdminClient, context: Context) {
         currentSlot: currentManualSlot,
         currentSlotLabel: currentManualSlot === "manual_am" ? "Minuit – midi" : "Midi – minuit",
         currentSlotCompleted: Boolean(currentSlotSession),
-        currentSlotScore: currentSlotSession?.score ?? null,
         completedSlotCount: todaySessions.filter((session) => session.training_mode === "manual").length,
         gameType: getYouthTrainingGameType(rider.training_priority),
       }, tuitionPerSeason: toNumber(rider.tuition_per_season),
       status: rider.status, promotionGameYear: rider.promotion_game_year,
       canRecruit: rider.status === "active" && age >= 17, naturalization,
       latestTrainingReport: latestByRider.get(rider.id) ?? null,
+      seasonTrainingReport: {
+        fromDayNumber: 1,
+        toDayNumber: context.currentDayNumber,
+        ...summarizeYouthSeasonTraining(
+          seasonSessionsByRider.get(rider.id) ?? [],
+        ),
+      },
     };
   });
   const notifications = (notificationsResult.data ?? []).map((notification): YouthNotification => ({

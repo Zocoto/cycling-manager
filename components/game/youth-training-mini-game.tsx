@@ -39,7 +39,6 @@ export function YouthTrainingMiniGame({
 
   currentSlotLabel,
   currentSlotCompleted,
-  currentSlotScore,
   completedSlotCount,
   demoMode = false,
 }: {
@@ -50,7 +49,6 @@ export function YouthTrainingMiniGame({
 
   currentSlotLabel: string;
   currentSlotCompleted: boolean;
-  currentSlotScore: number | null;
   completedSlotCount: number;
   demoMode?: boolean;
 }) {
@@ -257,10 +255,10 @@ export function YouthTrainingMiniGame({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#278B70]">
-              Entraînement automatique
+              Mode actif · entraînement automatique
             </p>
             <p className="mt-1 text-xs font-bold text-[#315B3E]">
-              Séance quotidienne à 8 h · efficacité junior ×2
+              Une séance est réalisée chaque jour à 8 h avec l’efficacité junior ×2.
             </p>
           </div>
           <span className="rounded-full bg-[#176951] px-3 py-1.5 text-[9px] font-black uppercase text-white">
@@ -275,20 +273,15 @@ export function YouthTrainingMiniGame({
     return (
       <div className="rounded-2xl border border-[#72D4B7]/35 bg-[#EAF5F3] p-4">
         <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#278B70]">
-          {currentSlotLabel} · séance terminée
+          Créneau manuel déjà effectué · {currentSlotLabel}
         </p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-bold text-[#315B3E]">
-            {completedSlotCount}/2 créneaux réalisés aujourd’hui
-          </p>
-          <strong className="text-xl text-[#176951]">
-            {currentSlotScore ?? 0}/1000
-          </strong>
-        </div>
+        <p className="mt-2 text-xs font-bold leading-5 text-[#315B3E]">
+          {completedSlotCount}/2 créneaux réalisés aujourd’hui. Le résultat
+          complet du dernier entraînement est affiché ci-dessous.
+        </p>
       </div>
     );
   }
-
   return (
     <>
       <div className="rounded-2xl border border-[#F2C94C]/40 bg-[#FFF9E7] p-4">
@@ -491,6 +484,23 @@ function TrainingResult({
   report: CompletedReport;
   demoMode: boolean;
 }) {
+  if (!demoMode) {
+    return (
+      <div
+        role="status"
+        className="mt-4 rounded-xl border border-[#176951]/15 bg-white p-3"
+      >
+        <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#278B70]">
+          Entraînement enregistré
+        </p>
+        <p className="mt-2 text-xs font-bold leading-5 text-[#315B3E]">
+          Le résultat complet et les gains appliqués sont mis à jour dans le
+          rapport ci-dessous.
+        </p>
+      </div>
+    );
+  }
+
   const changes = Object.entries(report.ratingChanges)
     .filter(([, value]) => value > 0)
     .sort((left, right) => right[1] - left[1])
@@ -500,7 +510,7 @@ function TrainingResult({
     <div className="mt-4 rounded-xl border border-[#176951]/15 bg-white p-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#278B70]">
-          {demoMode ? "Démonstration terminée" : "Séance enregistrée"}
+          Démonstration terminée
         </p>
         <strong className="text-lg text-[#176951]">
           {report.score}/1000
@@ -517,9 +527,7 @@ function TrainingResult({
                   } +${value.toFixed(3)}`,
               )
               .join(" · ")
-          : demoMode
-            ? "Simulation terminée · aucune progression enregistrée"
-            : "Consolidation, sans hausse visible"}
+          : "Simulation terminée · aucune progression enregistrée"}
       </p>
     </div>
   );
