@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/app-link";
 import {
   RACE_CATEGORY_STYLE,
   getRegistrationAvailability,
@@ -6,6 +6,7 @@ import {
   type RaceCalendarEdition,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 
 const DASHBOARD_RACE_HORIZON_DAYS = 4;
 
@@ -83,7 +84,7 @@ export function DashboardEligibleRaces({
             return (
               <li key={edition.id}>
                 <Link
-                  href={`/jeu/courses/${edition.slug}#inscription`}
+                  href={getRaceRegistrationHref(edition.slug)}
                   className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-2 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]"
                 >
                   <span

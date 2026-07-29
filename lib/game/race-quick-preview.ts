@@ -2,6 +2,7 @@ import type {
   RaceFormat,
   RaceProfileType,
 } from "@/lib/game/race-calendar";
+import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
 
 export type RaceQuickPreviewStage = {
@@ -35,6 +36,8 @@ export type CobblesSummary = {
 export function getRaceQuickPreviewTargetFromHref(
   href: string,
 ): RaceQuickPreviewTarget | null {
+  if (isRaceRegistrationHref(href)) return null;
+
   const pathname = href.split(/[?#]/, 1)[0].replace(/\/+$/, "");
   const match = pathname.match(
     /^\/jeu\/(?:courses|resultats)\/([^/]+)(?:\/(\d+))?$/,

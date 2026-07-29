@@ -8,7 +8,7 @@ import {
 describe("race quick preview links", () => {
   it.each([
     [
-      "/jeu/courses/tour-des-alpes#inscription",
+      "/jeu/courses/tour-des-alpes",
       { slug: "tour-des-alpes", stageNumber: null },
     ],
     [
@@ -29,6 +29,14 @@ describe("race quick preview links", () => {
     ).toBeNull();
     expect(
       getRaceQuickPreviewTargetFromHref("/jeu/coureurs/123"),
+    ).toBeNull();
+  });
+
+  it("n'intercepte jamais un lien d'inscription", () => {
+    expect(
+      getRaceQuickPreviewTargetFromHref(
+        "/jeu/courses/tour-des-alpes#inscription",
+      ),
     ).toBeNull();
   });
 });

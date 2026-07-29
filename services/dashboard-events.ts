@@ -9,10 +9,8 @@ import {
   type DashboardContractReminderRider,
   type DashboardEvent,
 } from "@/lib/game/dashboard-events";
-import {
-  getRaceRegistrationHref,
-  getRaceResultsHref,
-} from "@/lib/game/race-live";
+import { getRaceResultsHref } from "@/lib/game/race-live";
+import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentDirectorInternationalSelections,

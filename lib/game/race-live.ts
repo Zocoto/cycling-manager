@@ -1,5 +1,7 @@
 import type { RaceCalendarStage } from "./race-calendar";
 
+export { getRaceRegistrationHref } from "./race-navigation";
+
 export const LIVE_START_HOURS_PARIS = [14, 18] as const;
 export const RACE_SIMULATION_DEMO_SLUG =
   "criterium-de-namur";
@@ -143,10 +145,6 @@ export function getRaceResultsHref(
   }
 
   return `/jeu/resultats?course=${encodeURIComponent(raceSlug)}#course-live`;
-}
-
-export function getRaceRegistrationHref(raceSlug: string) {
-  return `/jeu/courses/${encodeURIComponent(raceSlug)}#inscription`;
 }
 
 export function getRaceExperienceAvailability(

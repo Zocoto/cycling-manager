@@ -35,14 +35,14 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     typeof href === "string"
       ? href.includes("#")
       : typeof href.hash === "string" && href.hash.length > 0;
-  const hrefPathname =
+  const hrefForIntent =
     typeof href === "string"
       ? href
       : typeof href.pathname === "string"
-        ? href.pathname
+        ? `${href.pathname}${normalizeHash(href.hash)}`
         : "";
-  const riderId = getRiderIdFromProfileHref(hrefPathname);
-  const raceTarget = getRaceQuickPreviewTargetFromHref(hrefPathname);
+  const riderId = getRiderIdFromProfileHref(hrefForIntent);
+  const raceTarget = getRaceQuickPreviewTargetFromHref(hrefForIntent);
   const linkChildren = (
     <>
       {children}
@@ -101,4 +101,9 @@ function LinkPendingIndicator() {
       className={`app-link-pending-indicator ${pending ? "is-pending" : ""}`}
     />
   );
+}
+
+function normalizeHash(hash: unknown) {
+  if (typeof hash !== "string" || hash.length === 0) return "";
+  return hash.startsWith("#") ? hash : `#${hash}`;
 }

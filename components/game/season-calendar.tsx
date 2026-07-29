@@ -4,7 +4,7 @@ import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
-import { getRaceRegistrationHref } from "@/lib/game/race-live";
+import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 
 import {
   RACE_CATEGORY_CODES,

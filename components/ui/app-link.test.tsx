@@ -32,6 +32,34 @@ describe("AppLink", () => {
     expect(markup).toContain("data-race-preview-trigger");
   });
 
+  it("laisse un lien d'inscription naviguer directement", () => {
+    const markup = renderToStaticMarkup(
+      <Link href="/jeu/courses/tour-des-alpes#inscription">
+        Inscription
+      </Link>,
+    );
+
+    expect(markup).toContain(
+      'href="/jeu/courses/tour-des-alpes#inscription"',
+    );
+    expect(markup).not.toContain("data-race-preview-trigger");
+  });
+
+  it("preserve l'intention d'inscription avec un objet URL", () => {
+    const markup = renderToStaticMarkup(
+      <Link
+        href={{
+          pathname: "/jeu/courses/tour-des-alpes",
+          hash: "inscription",
+        }}
+      >
+        Inscription
+      </Link>,
+    );
+
+    expect(markup).not.toContain("data-race-preview-trigger");
+  });
+
   it("laisse les autres liens inchangés", () => {
     const markup = renderToStaticMarkup(
       <Link href="/jeu/equipes/team-1">Vélo Club</Link>,
