@@ -394,6 +394,166 @@ describe("simulateRaceStage", () => {
     expect(breakaway.averageEnergy).toBeLessThan(peloton.averageEnergy);
   });
 
+  it("preserve most of the peloton on early climbs while dropping clear non-climbers", () => {
+    const baseInput = createDemoSimulationInput("haute-montagne", 41);
+    const strongRiders = Array.from({ length: 16 }, (_, index) => ({
+      ...createSelectionTestRider(`early-strong-${index}`, {
+        hills: 68,
+        mountain: 68,
+        endurance: 67,
+        resistance: 67,
+      }),
+      form: 78,
+    }));
+    const weakRiders = Array.from({ length: 4 }, (_, index) => ({
+      ...createSelectionTestRider(`early-weak-${index}`, {
+        hills: 25,
+        mountain: 25,
+        endurance: 42,
+        resistance: 40,
+      }),
+      form: 62,
+    }));
+    const segments: RaceStageSegment[] = [
+      {
+        segmentNumber: 1,
+        distanceKm: 12,
+        terrain: "climb",
+        averageGradientPct: 8,
+        surface: "asphalt",
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 12,
+        terrain: "climb",
+        averageGradientPct: 8,
+        surface: "asphalt",
+        prime: null,
+      },
+      ...Array.from({ length: 4 }, (_, index) => ({
+        segmentNumber: index + 3,
+        distanceKm: 20,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      })),
+    ];
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "early-peloton-cohesion-test",
+      profileType: "mountain",
+      segments,
+      riders: [...strongRiders, ...weakRiders],
+    });
+    const earlySnapshot = result.timeline[1];
+    const pelotonIds =
+      earlySnapshot.groups.find((group) => group.type === "peloton")?.riderIds ?? [];
+    const droppedIds = new Set(
+      earlySnapshot.groups
+        .filter((group) => group.type === "dropped")
+        .flatMap((group) => group.riderIds)
+    );
+
+    expect(pelotonIds.length).toBeGreaterThanOrEqual(15);
+    expect(
+      weakRiders.some((rider) => droppedIds.has(rider.id))
+    ).toBe(true);
+  });
+
+  it("keeps riders in reserve for a mid-race attack on very long stages", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const riders = Array.from({ length: 24 }, (_, index) => ({
+      ...createSelectionTestRider(`long-stage-${index}`, {
+        flat: 64 + (index % 5),
+        acceleration: 66 + (index % 4),
+        endurance: 72 + (index % 6),
+        resistance: 68 + (index % 5),
+        breakaway: 70 + (index % 7),
+      }),
+      role: "free_agent" as const,
+      form: 76,
+    }));
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 10 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 22,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      })
+    );
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "danger-check-1",
+      segments,
+      riders,
+    });
+    const participants = getStageAttackParticipants(result);
+
+    expect(
+      participants.some(
+        (participant) =>
+          participant.firstSegmentNumber >= 5 &&
+          participant.firstSegmentNumber <= 7
+      )
+    ).toBe(true);
+    expect(
+      result.timeline.flatMap((snapshot) => snapshot.commentary).join(" ")
+    ).toContain("jug\u00e9 dangereux");
+  });
+
+  it("restores a limited amount of race energy on a descent", () => {
+    const baseInput = createDemoSimulationInput("haute-montagne", 19);
+    const riders = Array.from({ length: 12 }, (_, index) =>
+      createSelectionTestRider(`descent-recovery-${index}`, {
+        mountain: 65,
+        downhill: 68,
+        endurance: 65,
+        resistance: 65,
+        recovery: 66,
+      })
+    );
+    const segments: RaceStageSegment[] = [
+      {
+        segmentNumber: 1,
+        distanceKm: 20,
+        terrain: "climb",
+        averageGradientPct: 6,
+        surface: "asphalt",
+        prime: null,
+      },
+      {
+        segmentNumber: 2,
+        distanceKm: 20,
+        terrain: "descent",
+        averageGradientPct: -6,
+        surface: "asphalt",
+        prime: null,
+      },
+    ];
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "descent-energy-recovery-test",
+      profileType: "mountain",
+      segments,
+      riders,
+    });
+    const riderId = riders[0].id;
+    const energyAfterClimb = result.timeline[0].groups.find((group) =>
+      group.riderIds.includes(riderId)
+    )!.averageEnergy;
+    const energyAfterDescent = result.timeline[1].groups.find((group) =>
+      group.riderIds.includes(riderId)
+    )!.averageEnergy;
+
+    expect(energyAfterDescent).toBeGreaterThan(energyAfterClimb);
+    expect(energyAfterDescent).toBeLessThanOrEqual(riders[0].form);
+  });
+
   it("conserve l’énergie de chaque coureur sans faire ralentir le groupe par un équipier épuisé", () => {
     const baseInput = createDemoSimulationInput("sprint-littoral", 1);
     const riders = baseInput.riders.slice(0, 6).map((rider, index) => ({
