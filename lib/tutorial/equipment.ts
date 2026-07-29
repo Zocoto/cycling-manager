@@ -69,7 +69,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-overview",
       title: "L’équipementier est un partenariat d’équipe",
       content:
-        "À partir de 50 points de réputation, votre équipe peut signer gratuitement avec un équipementier. Le partenaire fournit une dotation complète légèrement supérieure au commerce, avec suffisamment d’exemplaires pour équiper tout l’effectif.\n\nCe choix complète la boutique commerciale : il ne remplace ni l’inventaire ni la gestion individuelle des coureurs.",
+        "À partir de 200 points de réputation, votre équipe peut signer gratuitement avec un équipementier. Le partenaire fournit une dotation complète légèrement supérieure au commerce, avec suffisamment d’exemplaires pour équiper tout l’effectif.\n\nCe choix complète la boutique commerciale : il ne remplace ni l’inventaire ni la gestion individuelle des coureurs.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -89,7 +89,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-workflow",
       title: "Le contenu s’adapte à votre situation",
       content:
-        "Avant 50 points de réputation, cette zone affiche votre progression vers le déblocage. Une fois le seuil atteint, elle compare les partenaires encore disponibles. Après signature, elle regroupe la dotation, le laboratoire R&D, l’historique des recherches et les éventuelles séries limitées.\n\nUne marque déjà utilisée ne pourra pas être choisie une seconde fois.",
+        "Avant 200 points de réputation, cette zone affiche votre progression vers le déblocage. Une fois le seuil atteint, elle compare les partenaires encore disponibles. Après signature, elle regroupe la dotation, le laboratoire R&D, l’historique des recherches et les éventuelles séries limitées.\n\nUne marque déjà utilisée ne pourra pas être choisie une seconde fois.",
       placement: "top",
       highlightPadding: 8,
     },

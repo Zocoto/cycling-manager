@@ -1,6 +1,6 @@
 import type { EquipmentSlot } from "@/lib/game/equipment";
 
-export const EQUIPMENT_PARTNER_REPUTATION_THRESHOLD = 50;
+export const EQUIPMENT_PARTNER_REPUTATION_THRESHOLD = 200;
 export const EQUIPMENT_PARTNER_CONTRACT_SEASONS = 2;
 export const EQUIPMENT_PARTNER_RND_DURATION_DAYS = 3;
 export const EQUIPMENT_PARTNER_RND_SUCCESS_RATE = 0.5;

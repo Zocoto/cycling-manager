@@ -10,10 +10,10 @@ import {
 } from "./equipment-partner";
 
 describe("equipment partner rules", () => {
-  it("unlocks equipment partners from 50 reputation points", () => {
-    expect(EQUIPMENT_PARTNER_REPUTATION_THRESHOLD).toBe(50);
-    expect(canSignEquipmentPartnerContract(49.99)).toBe(false);
-    expect(canSignEquipmentPartnerContract(50)).toBe(true);
+  it("reserves equipment partners for the 200-point endgame threshold", () => {
+    expect(EQUIPMENT_PARTNER_REPUTATION_THRESHOLD).toBe(200);
+    expect(canSignEquipmentPartnerContract(199.99)).toBe(false);
+    expect(canSignEquipmentPartnerContract(200)).toBe(true);
   });
 
   it("locks a contract to exactly two game seasons", () => {

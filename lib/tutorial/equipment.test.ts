@@ -45,6 +45,16 @@ describe("equipment tutorial", () => {
     }
   });
 
+  it("présente l’équipementier comme un déblocage de fin de partie", () => {
+    const partnerSteps = getTutorialDefinition(EQUIPMENT_TUTORIAL_KEY)?.steps
+      .filter((step) => step.route === EQUIPMENT_TUTORIAL_PARTNER_ROUTE)
+      .map((step) => step.content)
+      .join(" ");
+
+    expect(partnerSteps).toContain("200 points de réputation");
+    expect(partnerSteps).not.toContain("50 points de réputation");
+  });
+
   it("rend le cadeau interactif et annonce END +1 sans doublon au replay", () => {
     const giftStep = getTutorialDefinition(EQUIPMENT_TUTORIAL_KEY)?.steps.find(
       (step) => step.key === "equipment-welcome-gift",
