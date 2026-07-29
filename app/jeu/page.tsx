@@ -828,6 +828,7 @@ function DirectorProfileCard({
               <span className="mt-3 block">
                 <TeamDivisionBadge
                   division={financeOverview.divisionCode}
+                  isProfessional={Boolean(teamSponsorIdentity)}
                   dark
                   compact
                 />

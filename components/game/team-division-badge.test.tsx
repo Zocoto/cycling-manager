@@ -16,6 +16,14 @@ describe("TeamDivisionBadge", () => {
     ).toBe("");
   });
 
+  it("affiche le statut professionnel sans inventer une division", () => {
+    expect(
+      renderToStaticMarkup(
+        <TeamDivisionBadge division="amateur" isProfessional compact />
+      )
+    ).toContain("Équipe professionnelle");
+  });
+
   it.each([
     ["elite", "Division Élite"],
     ["world", "Division World"],

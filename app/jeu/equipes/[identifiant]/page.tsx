@@ -143,7 +143,7 @@ export default async function PublicTeamPage({
               </div>
 
               <div className="flex flex-col gap-3">
-                <TeamDivisionBadge division={team.division_code} dark />
+                <TeamDivisionBadge division={team.division_code} isProfessional={Boolean(sponsorIdentity)} dark />
                 <RankingBadge
                   rank={teamRanking?.rank ?? null}
                   points={teamRanking?.points ?? 0}
@@ -532,7 +532,7 @@ function TeamSeasonHistory({
                     {entry.finalRank ? `#${entry.finalRank}` : "—"}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <TeamDivisionBadge division={entry.divisionCode} compact />
+                    <TeamDivisionBadge division={entry.divisionCode} isProfessional={Boolean(entry.logo)} compact />
                   </td>
                 </tr>
               ))}

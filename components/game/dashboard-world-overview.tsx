@@ -10,7 +10,7 @@ import {
   type RaceCalendarEdition,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
-import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
+import { getTeamSportingStatusLabel } from "@/lib/game/team-divisions";
 import type {
   NationRankingEntry,
   RiderRankingEntry,
@@ -140,7 +140,10 @@ function TeamRankingNeighborhood({
                     {entry.teamName}
                   </Link>
                   <span className="mt-0.5 block truncate text-[10px] font-bold uppercase tracking-[0.08em] text-[#789087]">
-                    {TEAM_DIVISION_LABELS[entry.division]}
+                    {getTeamSportingStatusLabel(
+                      entry.division,
+                      entry.isProfessional
+                    )}
                     {isCurrent ? " · votre équipe" : ""}
                   </span>
                 </span>

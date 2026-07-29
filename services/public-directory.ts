@@ -9,9 +9,10 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { searchGameDirectory } from "@/services/global-search";
 import {
-  getTeamDivisionLabel,
+  getTeamSportingStatusLabel,
   normalizeTeamDivisionCode,
 } from "@/lib/game/team-divisions";
+import { getActivelySponsoredTeamIds } from "@/services/team-professional-status";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -113,6 +114,7 @@ export async function getPublicSportingDirector(
   let teamName: string | null = null;
   let divisionCode: string | null = null;
   let divisionName: string | null = null;
+  let isProfessional = false;
 
   if (teamId && activeSeasonResult.data) {
     const { data: teamSeason, error: teamSeasonError } = await supabase
@@ -138,7 +140,13 @@ export async function getPublicSportingDirector(
       }
 
       divisionCode = normalizeTeamDivisionCode(persistedCode);
-      divisionName = getTeamDivisionLabel(divisionCode);
+      isProfessional = (
+        await getActivelySponsoredTeamIds([teamId])
+      ).has(teamId);
+      divisionName = getTeamSportingStatusLabel(
+        divisionCode,
+        isProfessional
+      );
     }
   }
 
@@ -155,6 +163,7 @@ export async function getPublicSportingDirector(
     team_id: teamId,
     division_code: divisionCode,
     division_name: divisionName,
+    is_professional: teamId ? isProfessional : null,
     sponsor_name: null,
     sporting_director_username: null,
     sporting_director_name: null,

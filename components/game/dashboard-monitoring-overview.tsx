@@ -6,7 +6,7 @@ import {
   getPublicGameNewsTeamColors,
   type PublicGameNewsItem,
 } from "@/lib/game/public-game-news";
-import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
+import { getTeamSportingStatusLabel } from "@/lib/game/team-divisions";
 import type {
   NationRankingEntry,
   RiderRankingEntry,
@@ -403,7 +403,10 @@ function TeamLeaderRow({
           {entry.teamName}
         </Link>
         <span className="mt-0.5 block truncate text-[10px] font-semibold text-[#789087]">
-          {TEAM_DIVISION_LABELS[entry.division]}
+          {getTeamSportingStatusLabel(
+            entry.division,
+            entry.isProfessional
+          )}
           {isCurrent ? " · votre équipe" : ""}
         </span>
       </span>

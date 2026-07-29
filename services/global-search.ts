@@ -7,9 +7,10 @@ import {
 } from "@/lib/game/global-search";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
-  getTeamDivisionLabel,
+  getTeamSportingStatusLabel,
   normalizeTeamDivisionCode,
 } from "@/lib/game/team-divisions";
+import { getActivelySponsoredTeamIds } from "@/services/team-professional-status";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -145,6 +146,7 @@ async function enrichCurrentTeamDivisions(
       ...result,
       division_code: null,
       division_name: null,
+      is_professional: null,
     }));
   }
 
@@ -161,18 +163,23 @@ async function enrichCurrentTeamDivisions(
     );
   }
 
-  const { data: teamSeasons, error: teamSeasonsError } = await supabase
-    .from("team_seasons")
-    .select("team_id, division_id")
-    .eq("season_id", activeSeason.id)
-    .in("team_id", teamIds)
-    .returns<Array<{ team_id: string; division_id: string | null }>>();
+  const [teamSeasonsResult, activelySponsoredTeamIds] = await Promise.all([
+    supabase
+      .from("team_seasons")
+      .select("team_id, division_id")
+      .eq("season_id", activeSeason.id)
+      .in("team_id", teamIds)
+      .returns<Array<{ team_id: string; division_id: string | null }>>(),
+    getActivelySponsoredTeamIds(teamIds),
+  ]);
 
-  if (teamSeasonsError) {
+  if (teamSeasonsResult.error) {
     throw new Error(
-      `Impossible de charger les divisions des équipes : ${teamSeasonsError.message}`
+      `Impossible de charger les divisions des équipes : ${teamSeasonsResult.error.message}`
     );
   }
+
+  const teamSeasons = teamSeasonsResult.data ?? [];
 
   const divisionIds = [
     ...new Set(
@@ -211,14 +218,23 @@ async function enrichCurrentTeamDivisions(
 
   return results.map((result) => {
     if (!result.team_id) {
-      return { ...result, division_code: null, division_name: null };
+      return {
+        ...result,
+        division_code: null,
+        division_name: null,
+        is_professional: null,
+      };
     }
 
     const divisionCode = divisionCodeByTeamId.get(result.team_id) ?? "amateur";
     return {
       ...result,
       division_code: divisionCode,
-      division_name: getTeamDivisionLabel(divisionCode),
+      division_name: getTeamSportingStatusLabel(
+        divisionCode,
+        activelySponsoredTeamIds.has(result.team_id)
+      ),
+      is_professional: activelySponsoredTeamIds.has(result.team_id),
     };
   });
 }

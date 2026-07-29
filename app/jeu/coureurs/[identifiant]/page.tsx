@@ -729,7 +729,7 @@ function CurrentTeamCard({
         </span>
         {team ? (
           <span className="mt-2 block">
-            <TeamDivisionBadge division={team.divisionCode} dark compact />
+            <TeamDivisionBadge division={team.divisionCode} isProfessional={Boolean(sponsorIdentity)} dark compact />
           </span>
         ) : null}
         {sponsorIdentity ? (

@@ -3,6 +3,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
 import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
+import { getActivelySponsoredTeamIds } from "@/services/team-professional-status";
 
 type SeasonRow = { id: string; name: string };
 type TeamSeasonRow = {
@@ -33,6 +34,7 @@ export type TeamRankingEntry = {
   directorUsername: string | null;
   points: number;
   division: TeamDivisionCode;
+  isProfessional: boolean;
   projectedDivision: TeamDivisionCode;
 };
 
@@ -107,7 +109,13 @@ export async function getUciRankings(): Promise<UciRankings | null> {
   ];
   const riderIds = (summariesResult.data ?? []).map((summary) => summary.rider_id);
 
-  const [assignmentsResult, ridersResult, contractsResult, divisionsResult] = await Promise.all([
+  const [
+    assignmentsResult,
+    ridersResult,
+    contractsResult,
+    divisionsResult,
+    activelySponsoredTeamIds,
+  ] = await Promise.all([
     teamIds.length
       ? supabase
           .from("team_manager_assignments")
@@ -139,6 +147,7 @@ export async function getUciRankings(): Promise<UciRankings | null> {
           .in("id", divisionIds)
           .returns<DivisionRow[]>()
       : Promise.resolve({ data: [] as DivisionRow[], error: null }),
+    getActivelySponsoredTeamIds(teamIds),
   ]);
 
   assertQuery(assignmentsResult.error, "les Directeurs Sportifs classés");
@@ -205,6 +214,7 @@ export async function getUciRankings(): Promise<UciRankings | null> {
         division: normalizeTeamDivisionCode(
           team.division_id ? divisionCodeById.get(team.division_id) : null
         ),
+        isProfessional: activelySponsoredTeamIds.has(team.team_id),
         projectedDivision: getDivisionForRank(rank),
       } satisfies TeamRankingEntry;
     });
