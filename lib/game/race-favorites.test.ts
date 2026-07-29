@@ -54,6 +54,126 @@ describe("buildRaceFavorites", () => {
     expect(buildRaceFavorites({ edition })[0].rider.id).toBe("sprinter");
   });
 
+  it("fait primer les vrais sprinteurs sur les rouleurs lors du Circuit de Mazurie", () => {
+    const julioRodrigues = createRider("julio-rodrigues", {
+      mountain: 43,
+      hills: 54,
+      recovery: 55,
+      endurance: 67,
+      resistance: 68,
+      breakaway: 59,
+      downhill: 46,
+      acceleration: 65,
+      sprint: 53,
+      flat: 68,
+      cobbles: 66,
+      prologue: 54,
+      timeTrial: 48,
+    });
+    const sprinter = createRider("sprinter-mazurie", {
+      sprint: 64,
+      acceleration: 61,
+      flat: 56,
+      endurance: 55,
+      resistance: 56,
+    });
+    const edition = createEdition(
+      "one_day",
+      [
+        createStage("sprint", [
+          createSegment(1, "flat", 62),
+          createSegment(2, "flat", 62),
+          createSegment(3, "flat", 62),
+        ]),
+      ],
+      [julioRodrigues, sprinter],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe(
+      "sprinter-mazurie",
+    );
+    const scoreGap =
+      getRaceFavoriteScore(edition, sprinter) -
+      getRaceFavoriteScore(edition, julioRodrigues);
+    expect(scoreGap).toBeGreaterThan(4);
+  });
+
+  it("conserve les spécialistes de chaque profil en tête des classiques", () => {
+    const generalist = createRider("generalist", {
+      flat: 72,
+      endurance: 72,
+      resistance: 72,
+    });
+    const specialists = {
+      flat: createRider("sprinter-flat", {
+        sprint: 68,
+        acceleration: 65,
+        flat: 58,
+      }),
+      sprint: createRider("sprinter-sprint", {
+        sprint: 68,
+        acceleration: 65,
+        flat: 58,
+      }),
+      hilly: createRider("puncheur", {
+        hills: 69,
+        acceleration: 66,
+      }),
+      mountain: createRider("grimpeur", {
+        mountain: 72,
+        hills: 66,
+      }),
+      cobbles: createRider("flandrien", {
+        cobbles: 72,
+        flat: 64,
+        resistance: 66,
+      }),
+      time_trial: createRider("rouleur-chrono", {
+        timeTrial: 72,
+        flat: 64,
+      }),
+    } satisfies Record<
+      | "flat"
+      | "sprint"
+      | "hilly"
+      | "mountain"
+      | "cobbles"
+      | "time_trial",
+      RiderSimulationInput
+    >;
+    const segmentsByProfile: Record<
+      keyof typeof specialists,
+      RaceCalendarStage["segments"]
+    > = {
+      flat: [createSegment(1, "flat", 180)],
+      sprint: [createSegment(1, "flat", 180)],
+      hilly: [createSegment(1, "climb", 180, 4.5)],
+      mountain: [createSegment(1, "climb", 180, 7.5)],
+      cobbles: [
+        {
+          ...createSegment(1, "flat", 180),
+          surface: "cobbles",
+        },
+      ],
+      time_trial: [createSegment(1, "flat", 42)],
+    };
+
+    for (const profile of Object.keys(specialists) as Array<
+      keyof typeof specialists
+    >) {
+      const edition = createEdition(
+        "one_day",
+        [createStage(profile, segmentsByProfile[profile])],
+        [generalist, specialists[profile]],
+      );
+
+      expect(
+        buildRaceFavorites({ edition })[0].rider.id,
+        `profil ${profile}`,
+      ).toBe(specialists[profile].id);
+    }
+  });
+
   it("place un grimpeur devant un sprinteur lors d'une arrivée en montagne", () => {
     const sprinter = createRider("sprinter", {
       sprint: 92,

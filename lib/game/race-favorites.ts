@@ -189,8 +189,8 @@ function getStageFavoriteScore(
     );
   }
 
-  const routeRating = getRouteRating(ratings, stage);
   if (forGeneralClassification) {
+    const routeRating = getRouteRating(ratings, stage);
     return (
       routeRating * 0.72 +
       ratings.endurance * 0.1 +
@@ -201,13 +201,93 @@ function getStageFavoriteScore(
     );
   }
 
-  const finishRating = getFinishRating(ratings, stage);
   return (
-    routeRating * 0.55 +
-    finishRating * 0.38 +
-    rider.form * 0.07 +
+    getOneDayRoadFavoriteScore(ratings, stage, rider.form) +
     reconnaissanceBonus
   );
+}
+
+function getOneDayRoadFavoriteScore(
+  ratings: RiderSimulationRatings,
+  stage: RaceCalendarStage,
+  form: number,
+) {
+  // The declared profile drives selection and the finish in the race engine.
+  // Keep the pre-race prediction aligned with those decisive ratings instead
+  // of allowing secondary all-rounder ratings to outweigh the specialist.
+  if (stage.profileType === "flat") {
+    return (
+      ratings.sprint * 0.62 +
+      ratings.acceleration * 0.15 +
+      ratings.flat * 0.08 +
+      ratings.resistance * 0.05 +
+      ratings.endurance * 0.05 +
+      form * 0.05
+    );
+  }
+
+  if (stage.profileType === "sprint") {
+    return (
+      ratings.sprint * 0.68 +
+      ratings.acceleration * 0.14 +
+      ratings.flat * 0.06 +
+      ratings.resistance * 0.04 +
+      ratings.endurance * 0.03 +
+      form * 0.05
+    );
+  }
+
+  if (stage.profileType === "hilly") {
+    return (
+      ratings.hills * 0.56 +
+      ratings.acceleration * 0.14 +
+      ratings.resistance * 0.08 +
+      ratings.endurance * 0.06 +
+      ratings.mountain * 0.05 +
+      ratings.sprint * 0.04 +
+      form * 0.07
+    );
+  }
+
+  if (stage.profileType === "mountain") {
+    return (
+      ratings.mountain * 0.62 +
+      ratings.hills * 0.1 +
+      ratings.endurance * 0.08 +
+      ratings.resistance * 0.06 +
+      ratings.acceleration * 0.04 +
+      ratings.downhill * 0.03 +
+      form * 0.07
+    );
+  }
+
+  if (stage.profileType === "cobbles") {
+    return (
+      ratings.cobbles * 0.52 +
+      ratings.flat * 0.13 +
+      ratings.resistance * 0.1 +
+      ratings.endurance * 0.07 +
+      ratings.sprint * 0.06 +
+      ratings.acceleration * 0.05 +
+      form * 0.07
+    );
+  }
+
+  if (stage.profileType === "time_trial") {
+    return (
+      ratings.timeTrial * 0.56 +
+      ratings.flat * 0.12 +
+      ratings.endurance * 0.1 +
+      ratings.resistance * 0.07 +
+      ratings.prologue * 0.04 +
+      ratings.acceleration * 0.04 +
+      form * 0.07
+    );
+  }
+
+  const routeRating = getRouteRating(ratings, stage);
+  const finishRating = getFinishRating(ratings, stage);
+  return routeRating * 0.55 + finishRating * 0.38 + form * 0.07;
 }
 
 function getStageRatings(
