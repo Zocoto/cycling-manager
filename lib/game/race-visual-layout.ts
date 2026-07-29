@@ -151,6 +151,31 @@ export function getRaceGroupDisplayLabel({
     : "Groupe principal";
 }
 
+const RACE_ROAD_FORMATION_DEPTH_RATIO = 0.06;
+
+export function getRaceRoadFormationTop({
+  roadLeft,
+  roadRight,
+  roadDepth,
+  horizontalPosition,
+}: {
+  roadLeft: number;
+  roadRight: number;
+  roadDepth: number;
+  horizontalPosition: number;
+}) {
+  const clampedHorizontalPosition = Math.max(
+    0,
+    Math.min(100, horizontalPosition),
+  );
+
+  return (
+    roadLeft +
+    (roadRight - roadLeft) * (clampedHorizontalPosition / 100) +
+    roadDepth * RACE_ROAD_FORMATION_DEPTH_RATIO
+  );
+}
+
 export function getRaceRoadSlopeOffset(gradientPct: number) {
   const direction = Math.sign(gradientPct);
   const magnitude = Math.min(18, Math.abs(gradientPct));

@@ -342,21 +342,25 @@ function RaceSupportCar({
           key={wheelX}
           data-race-car-wheel="fine"
           data-race-car-wheel-animation={isMoving ? "running" : "paused"}
-          className={isMoving ? "cm-race-car-wheel" : ""}
-          style={{ transformOrigin: `${wheelX}px 57px` }}
         >
           <circle cx={wheelX} cy="57" r="10.6" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
           <circle cx={wheelX} cy="57" r="6.4" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.75" />
-          <circle cx={wheelX} cy="57" r="2" fill="#24342E" />
-          {[0, 45, 90, 135].map((angle) => (
+          <g
+            data-race-car-wheel-rotor="centered"
+            className={isMoving ? "cm-race-car-wheel" : ""}
+          >
             <path
-              key={angle}
-              d={`M${wheelX} 57h5.4`}
+              d={`M${wheelX - 5.4} 57h10.8M${wheelX} 51.6v10.8`}
               stroke="#D8E2DD"
               strokeWidth="0.55"
-              transform={`rotate(${angle} ${wheelX} 57)`}
             />
-          ))}
+            <path
+              d={`M${wheelX - 3.8} 53.2l7.6 7.6M${wheelX + 3.8} 53.2l-7.6 7.6`}
+              stroke="#D8E2DD"
+              strokeWidth="0.55"
+            />
+          </g>
+          <circle cx={wheelX} cy="57" r="2" fill="#24342E" />
         </g>
       ))}
     </svg>

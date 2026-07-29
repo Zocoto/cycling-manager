@@ -93,6 +93,9 @@ describe("race group formation", () => {
     expect(markup.match(/cm-support-car/g)).toHaveLength(2);
     expect(markup.match(/data-race-car-direction="right"/g)).toHaveLength(2);
     expect(markup.match(/cm-race-car-wheel/g)).toHaveLength(4);
+    expect(markup.match(/data-race-car-wheel-rotor="centered"/g)).toHaveLength(4);
+    expect(markup).not.toContain("transform-origin");
+    expect(markup).not.toContain("transform:rotate");
     expect(markup).toContain("#145A4A");
     expect(markup).toContain("#F2C94C");
   });

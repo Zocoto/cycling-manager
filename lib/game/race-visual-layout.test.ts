@@ -4,6 +4,7 @@ import {
   getIntermediateSprintVisualProgress,
   getRaceGroupDisplayLabel,
   getRaceGroupRiderSlots,
+  getRaceRoadFormationTop,
   getRaceRoadSlopeOffset,
   shouldShowRaceSupportCars,
 } from "./race-visual-layout";
@@ -119,6 +120,34 @@ describe("race visual layout", () => {
     expect(getRaceRoadSlopeOffset(9)).toBe(12.5);
     expect(getRaceRoadSlopeOffset(14)).toBe(14);
     expect(getRaceRoadSlopeOffset(-9)).toBe(-12.5);
+  });
+
+  it("keeps rider formations inside the road surface on every slope", () => {
+    const uphillTop = getRaceRoadFormationTop({
+      roadLeft: 68,
+      roadRight: 40,
+      roadDepth: 32,
+      horizontalPosition: 10,
+    });
+    const downhillTop = getRaceRoadFormationTop({
+      roadLeft: 40,
+      roadRight: 68,
+      roadDepth: 32,
+      horizontalPosition: 84,
+    });
+
+    expect(uphillTop).toBeGreaterThan(65);
+    expect(uphillTop).toBeLessThan(68);
+    expect(downhillTop).toBeGreaterThan(63);
+    expect(downhillTop).toBeLessThan(66);
+    expect(
+      getRaceRoadFormationTop({
+        roadLeft: 54,
+        roadRight: 54,
+        roadDepth: 32,
+        horizontalPosition: 150,
+      }),
+    ).toBeCloseTo(55.92);
   });
 
   it("keeps special formations compact when many groups are visible", () => {

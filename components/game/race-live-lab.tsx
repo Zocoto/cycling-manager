@@ -31,6 +31,7 @@ import { buildRaceGapLine } from "@/lib/game/race-gap-line";
 import {
   getIntermediateSprintVisualProgress,
   getRaceGroupDisplayLabel,
+  getRaceRoadFormationTop,
   getRaceRoadSlopeOffset,
   shouldShowRaceSupportCars,
 } from "@/lib/game/race-visual-layout";
@@ -718,10 +719,12 @@ function RoadScene({
 
           {groups.map((group, groupIndex) => {
         const left = getGroupScreenPosition(group, groupIndex, groups.length);
-        const roadTopPct =
-          roadLeftPct +
-          (roadRightPct - roadLeftPct) * (left / 100) +
-          roadDepthPct * 0.36;
+        const roadFormationTopPct = getRaceRoadFormationTop({
+          roadLeft: roadLeftPct,
+          roadRight: roadRightPct,
+          roadDepth: roadDepthPct,
+          horizontalPosition: left,
+        });
         const visibleRiderIds = getVisibleRiderIds({
           group,
           incidents: snapshot.incidents,
@@ -745,12 +748,12 @@ function RoadScene({
             className="absolute -translate-x-1/2 transition-[left,top] duration-700 ease-out"
             style={{
               left: `${left}%`,
-              top: `${roadTopPct - 7}%`,
+              top: `${roadFormationTopPct}%`,
               zIndex: 20 - groupIndex,
             }}
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
           >
-            <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
+            <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
               {displayLabel} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
             </div>
             <RaceGroupFormation
@@ -794,7 +797,7 @@ function RoadScene({
   );
 }
 
-function RoadSurfaceDefinition({
+export function RoadSurfaceDefinition({
   id,
   surface,
   compact = false,
@@ -809,21 +812,17 @@ function RoadSurfaceDefinition({
 
   return (
     <defs>
-      <linearGradient id={`${id}-asphalt-base`} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#465650" />
-        <stop offset="0.24" stopColor="#35453F" />
-        <stop offset="1" stopColor="#283530" />
-      </linearGradient>
       <pattern
         id={`${id}-asphalt`}
         width={compact ? 4.2 : 19}
         height={compact ? 3.2 : 14}
         patternUnits="userSpaceOnUse"
+        data-road-asphalt-texture="uniform"
       >
         <rect
           width={compact ? 4.2 : 19}
           height={compact ? 3.2 : 14}
-          fill={`url(#${id}-asphalt-base)`}
+          fill="#35453F"
         />
         <circle
           cx={compact ? 0.8 : 4}
@@ -904,10 +903,12 @@ function RaceDepartureSequence({
   const startLinePosition = 40;
   const pelotonPosition = 12 + progress * 72;
   const carPosition = 34 + progress * 70;
-  const pelotonRoadTop =
-    roadLeftPct +
-    (roadRightPct - roadLeftPct) * (pelotonPosition / 100) +
-    roadDepthPct * 0.36;
+  const pelotonRoadTop = getRaceRoadFormationTop({
+    roadLeft: roadLeftPct,
+    roadRight: roadRightPct,
+    roadDepth: roadDepthPct,
+    horizontalPosition: pelotonPosition,
+  });
   const carRoadTop =
     roadLeftPct +
     (roadRightPct - roadLeftPct) *
@@ -972,14 +973,14 @@ function RaceDepartureSequence({
         className="absolute z-20 -translate-x-1/2 transition-[left,top] duration-100 ease-linear"
         style={{
           left: `${pelotonPosition}%`,
-          top: `${pelotonRoadTop - 7}%`,
+          top: `${pelotonRoadTop}%`,
         }}
         title={riderIds
           .map((riderId) => riderById.get(riderId)?.name)
           .filter(Boolean)
           .join(", ")}
       >
-        <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-3 py-1 text-center text-[9px] font-black text-white shadow-lg backdrop-blur">
+        <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-3 py-1 text-center text-[9px] font-black text-white shadow-lg backdrop-blur">
           Peloton · {riderIds.length} coureurs
         </div>
         <RaceDepartureFormation
@@ -992,7 +993,7 @@ function RaceDepartureSequence({
   );
 }
 
-function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
+export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
   return (
     <svg
       viewBox="0 0 154 82"
@@ -1044,13 +1045,25 @@ function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
           key={wheelX}
           data-race-car-wheel="fine"
           data-race-car-wheel-animation={isMoving ? "running" : "paused"}
-          className={isMoving ? "cm-race-car-wheel" : ""}
-          style={{ transformOrigin: `${wheelX}px 63px` }}
         >
           <circle cx={wheelX} cy="63" r="10.5" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
           <circle cx={wheelX} cy="63" r="6.3" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.72" />
+          <g
+            data-race-car-wheel-rotor="centered"
+            className={isMoving ? "cm-race-car-wheel" : ""}
+          >
+            <path
+              d={`M${wheelX - 5} 63h10M${wheelX} 58v10`}
+              stroke="#D8E2DD"
+              strokeWidth="0.52"
+            />
+            <path
+              d={`M${wheelX - 3.55} 59.45l7.1 7.1M${wheelX + 3.55} 59.45l-7.1 7.1`}
+              stroke="#D8E2DD"
+              strokeWidth="0.52"
+            />
+          </g>
           <circle cx={wheelX} cy="63" r="2" fill="#24342E" />
-          <path d={`M${wheelX - 5} 63h10M${wheelX} 58v10`} stroke="#D8E2DD" strokeWidth="0.52" />
         </g>
       ))}
 

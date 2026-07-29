@@ -6,7 +6,35 @@ import type {
   RacePrimeResult,
 } from "@/lib/game/race-simulation";
 
-import { PrimeClassificationPopup, RaceGapLine } from "./race-live-lab";
+import {
+  PrimeClassificationPopup,
+  RaceDirectorCar,
+  RaceGapLine,
+  RoadSurfaceDefinition,
+} from "./race-live-lab";
+
+describe("race visual primitives", () => {
+  it("rotates only centered wheel rotors on the director car", () => {
+    const markup = renderToStaticMarkup(<RaceDirectorCar isMoving />);
+
+    expect(markup.match(/data-race-car-wheel="fine"/g)).toHaveLength(2);
+    expect(markup.match(/data-race-car-wheel-rotor="centered"/g)).toHaveLength(2);
+    expect(markup.match(/cm-race-car-wheel/g)).toHaveLength(2);
+    expect(markup).not.toContain("transform-origin");
+  });
+
+  it("uses one continuous asphalt tone without visible lane bands", () => {
+    const markup = renderToStaticMarkup(
+      <svg>
+        <RoadSurfaceDefinition id="road-test" surface="asphalt" />
+      </svg>,
+    );
+
+    expect(markup).toContain('data-road-asphalt-texture="uniform"');
+    expect(markup).toContain('fill="#35453F"');
+    expect(markup).not.toContain("asphalt-base");
+  });
+});
 
 describe("PrimeClassificationPopup", () => {
   it("reste compact et replié par défaut sur téléphone", () => {
