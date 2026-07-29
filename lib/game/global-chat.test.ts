@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildGlobalChatMessage,
+  extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
+  getGlobalChatHistoryStart,
+  isGlobalChatCursor,
   normalizeGlobalChatMessage,
+  splitGlobalChatMessageContent,
 } from "@/lib/game/global-chat";
 
 const TEAM_ID = "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57";
@@ -50,5 +55,57 @@ describe("global chat messages", () => {
     expect(normalizeGlobalChatMessage("  Bonjour \n à   tous  ")).toBe(
       "Bonjour à tous",
     );
+  });
+
+  it("builds and parses a cycling reaction without exposing its token", () => {
+    const message = buildGlobalChatMessage({
+      text: "Quelle attaque !",
+      reactionKey: "attack",
+    });
+    const parts = splitGlobalChatMessageContent(message);
+
+    expect(message).toBe(
+      "[cycling-reaction:attack] Quelle attaque !",
+    );
+    expect(extractGlobalChatCyclingReaction(parts[0])).toEqual({
+      key: "attack",
+      label: "Attaque",
+    });
+    expect(parts[1]).toBe(" Quelle attaque !");
+  });
+
+  it("limits visible history to the latest thirty days", () => {
+    expect(
+      getGlobalChatHistoryStart(
+        new Date("2026-07-29T12:00:00.000Z"),
+      ),
+    ).toBe("2026-06-29T12:00:00.000Z");
+  });
+
+  it("accepts only a complete timestamp and UUID pagination cursor", () => {
+    expect(
+      isGlobalChatCursor({
+        createdAt: "2026-07-29T12:00:00.000Z",
+        id: TEAM_ID,
+      }),
+    ).toBe(true);
+    expect(
+      isGlobalChatCursor({
+        createdAt: "not-a-date",
+        id: TEAM_ID,
+      }),
+    ).toBe(false);
+    expect(
+      isGlobalChatCursor({
+        createdAt: "2026-07-29 12:00:00Z",
+        id: TEAM_ID,
+      }),
+    ).toBe(false);
+    expect(
+      isGlobalChatCursor({
+        createdAt: "2026-07-29T12:00:00.000Z",
+        id: "not-an-id",
+      }),
+    ).toBe(false);
   });
 });

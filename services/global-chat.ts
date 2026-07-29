@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+  GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
+  GLOBAL_CHAT_MESSAGE_PAGE_SIZE,
+  getGlobalChatHistoryStart,
+  type GlobalChatCursor,
+} from "@/lib/game/global-chat";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -68,20 +74,25 @@ const GLOBAL_CHAT_MESSAGE_SELECT = [
   "created_at",
 ].join(", ");
 
+export type GlobalChatMessagePage = {
+  messages: GlobalChatMessage[];
+  hasMore: boolean;
+  nextCursor: GlobalChatCursor | null;
+};
+
 export async function getGlobalChatOverview(
   supabase: SupabaseServerClient,
-  limit = 80,
 ): Promise<{
   identity: GlobalChatIdentity;
   messages: GlobalChatMessage[];
+  hasMore: boolean;
+  nextCursor: GlobalChatCursor | null;
 }> {
-  const [identityResult, messagesResult] = await Promise.all([
+  const [identityResult, messagePage] = await Promise.all([
     supabase.rpc("get_current_global_chat_identity"),
-    supabase
-      .from("global_chat_messages")
-      .select(GLOBAL_CHAT_MESSAGE_SELECT)
-      .order("created_at", { ascending: false })
-      .limit(limit),
+    getGlobalChatMessagePage(supabase, {
+      limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
+    }),
   ]);
 
   if (identityResult.error) {
@@ -100,12 +111,6 @@ export async function getGlobalChatOverview(
     );
   }
 
-  if (messagesResult.error) {
-    throw new Error(
-      `Impossible de charger le chat général : ${messagesResult.error.message}`,
-    );
-  }
-
   return {
     identity: {
       sportingDirectorId: identityRow.sporting_director_id,
@@ -114,11 +119,59 @@ export async function getGlobalChatOverview(
       teamName: identityRow.team_name,
       teamHref: `/jeu/equipes/${identityRow.team_id}`,
     },
-    messages: (
-      (messagesResult.data as unknown as GlobalChatMessageRow[] | null) ?? []
-    )
-      .reverse()
-      .map(mapGlobalChatMessage),
+    ...messagePage,
+  };
+}
+
+export async function getGlobalChatMessagePage(
+  supabase: SupabaseServerClient,
+  {
+    before = null,
+    limit = GLOBAL_CHAT_MESSAGE_PAGE_SIZE,
+    now = new Date(),
+  }: {
+    before?: GlobalChatCursor | null;
+    limit?: number;
+    now?: Date;
+  } = {},
+): Promise<GlobalChatMessagePage> {
+  const pageSize = Math.min(Math.max(Math.trunc(limit), 1), 50);
+  let query = supabase
+    .from("global_chat_messages")
+    .select(GLOBAL_CHAT_MESSAGE_SELECT)
+    .gte("created_at", getGlobalChatHistoryStart(now))
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  if (before) {
+    query = query.or(
+      `created_at.lt.${before.createdAt},and(created_at.eq.${before.createdAt},id.lt.${before.id})`,
+    );
+  }
+
+  const messagesResult = await query.limit(pageSize + 1);
+  if (messagesResult.error) {
+    throw new Error(
+      `Impossible de charger le chat général : ${messagesResult.error.message}`,
+    );
+  }
+
+  const rows =
+    (messagesResult.data as unknown as GlobalChatMessageRow[] | null) ?? [];
+  const hasMore = rows.length > pageSize;
+  const selectedRows = rows.slice(0, pageSize);
+  const oldestRow = selectedRows.at(-1) ?? null;
+
+  return {
+    messages: selectedRows.reverse().map(mapGlobalChatMessage),
+    hasMore,
+    nextCursor:
+      hasMore && oldestRow
+        ? {
+            createdAt: new Date(oldestRow.created_at).toISOString(),
+            id: oldestRow.id,
+          }
+        : null,
   };
 }
 

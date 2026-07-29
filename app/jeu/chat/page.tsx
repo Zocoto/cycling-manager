@@ -73,6 +73,8 @@ export default async function GlobalChatPage() {
           <GlobalGameChat
             identity={chat.identity}
             initialMessages={chat.messages}
+            initialHasMore={chat.hasMore}
+            initialCursor={chat.nextCursor}
           />
         </div>
       </section>

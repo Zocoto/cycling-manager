@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -9,16 +10,27 @@ import {
 } from "react";
 
 import { postGlobalChatMessageAction } from "@/app/jeu/chat/actions";
+import {
+  CyclingReactionSticker,
+  GlobalChatMediaPicker,
+} from "@/components/game/global-chat-media-picker";
 import Link from "@/components/ui/app-link";
 import {
+  buildGlobalChatMessage,
+  extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
+  GLOBAL_CHAT_HISTORY_DAYS,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
+  splitGlobalChatMessageContent,
+  type GlobalChatCursor,
+  type GlobalChatCyclingReactionKey,
 } from "@/lib/game/global-chat";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   GlobalChatIdentity,
   GlobalChatMessage,
+  GlobalChatMessagePage,
   GlobalChatMessageRow,
 } from "@/services/global-chat";
 
@@ -33,23 +45,40 @@ type OnlineDirector = {
 export function GlobalGameChat({
   identity,
   initialMessages,
+  initialHasMore,
+  initialCursor,
 }: {
   identity: GlobalChatIdentity;
   initialMessages: GlobalChatMessage[];
+  initialHasMore: boolean;
+  initialCursor: GlobalChatCursor | null;
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [olderCursor, setOlderCursor] = useState(initialCursor);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [onlineDirectors, setOnlineDirectors] = useState<OnlineDirector[]>([
     identity,
   ]);
   const [draft, setDraft] = useState("");
+  const [selectedReaction, setSelectedReaction] =
+    useState<GlobalChatCyclingReactionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const viewportRef = useRef<HTMLDivElement>(null);
   const positionedRef = useRef(false);
+  const prependedScrollRef = useRef<{
+    scrollHeight: number;
+    scrollTop: number;
+  } | null>(null);
 
-  const latestDisplayedMessageAt = messages.at(-1)?.createdAt ?? null;
+  const latestDisplayedMessage = messages.at(-1) ?? null;
+  const latestDisplayedMessageAt = latestDisplayedMessage?.createdAt ?? null;
+  const latestDisplayedMessageId = latestDisplayedMessage?.id ?? null;
+  const oldestDisplayedMessageId = messages[0]?.id ?? null;
 
   useEffect(() => {
     if (
@@ -106,7 +135,17 @@ export function GlobalGameChat({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [messages.length]);
+  }, [latestDisplayedMessageId]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const previous = prependedScrollRef.current;
+    if (!viewport || !previous) return;
+
+    viewport.scrollTop =
+      viewport.scrollHeight - previous.scrollHeight + previous.scrollTop;
+    prependedScrollRef.current = null;
+  }, [oldestDisplayedMessageId]);
 
   useEffect(() => {
     const channel = supabase
@@ -155,9 +194,76 @@ export function GlobalGameChat({
     };
   }, [identity, supabase]);
 
+  const draftLimit = getGlobalChatDraftLimit(selectedReaction);
+
+  async function loadOlderMessages() {
+    if (!olderCursor || isLoadingOlder) return;
+
+    setHistoryError(null);
+    setIsLoadingOlder(true);
+    try {
+      const parameters = new URLSearchParams({
+        beforeCreatedAt: olderCursor.createdAt,
+        beforeId: olderCursor.id,
+      });
+      const response = await fetch(`/jeu/chat/messages?${parameters}`, {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      const page = (await response.json()) as GlobalChatMessagePage & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          page.error ?? "Les anciens messages n’ont pas pu être chargés.",
+        );
+      }
+
+      const viewport = viewportRef.current;
+      if (viewport) {
+        prependedScrollRef.current = {
+          scrollHeight: viewport.scrollHeight,
+          scrollTop: viewport.scrollTop,
+        };
+      }
+
+      setMessages((current) =>
+        prependUniqueMessages(current, page.messages),
+      );
+      setHasMore(page.hasMore);
+      setOlderCursor(page.nextCursor);
+    } catch (loadingError) {
+      setHistoryError(
+        loadingError instanceof Error
+          ? loadingError.message
+          : "Les anciens messages n’ont pas pu être chargés.",
+      );
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }
+
+  function appendEmoji(emoji: string) {
+    setDraft((current) => {
+      const separator = current.length > 0 && !/\s$/.test(current) ? " " : "";
+      return `${current}${separator}${emoji}`.slice(0, draftLimit);
+    });
+  }
+
+  function selectReaction(reaction: GlobalChatCyclingReactionKey) {
+    setSelectedReaction(reaction);
+    setDraft((current) =>
+      current.slice(0, getGlobalChatDraftLimit(reaction)),
+    );
+  }
+
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = draft.trim();
+    const message = buildGlobalChatMessage({
+      text: draft,
+      reactionKey: selectedReaction,
+    });
     if (!message || isPending) return;
 
     setError(null);
@@ -169,6 +275,7 @@ export function GlobalGameChat({
           appendUniqueMessage(current, savedMessage),
         );
         setDraft("");
+        setSelectedReaction(null);
       } catch (submissionError) {
         setError(
           submissionError instanceof Error
@@ -180,8 +287,8 @@ export function GlobalGameChat({
   }
 
   return (
-    <div className="grid min-h-[42rem] overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] lg:grid-cols-[minmax(0,1fr)_19rem]">
-      <section className="flex min-h-[42rem] min-w-0 flex-col bg-[#F7FBF9]">
+    <div className="grid overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)] lg:h-[46rem] lg:grid-cols-[minmax(0,1fr)_19rem]">
+      <section className="flex h-[min(42rem,calc(100dvh-6rem))] min-h-[34rem] min-w-0 flex-col bg-[#F7FBF9] lg:h-auto lg:min-h-0">
         <header className="border-b border-[#315B3E]/12 bg-white px-5 py-4 sm:px-7">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -208,6 +315,35 @@ export function GlobalGameChat({
           aria-live="polite"
           aria-relevant="additions"
         >
+          {messages.length > 0 ? (
+            <div className="flex flex-col items-center gap-2 pb-1 text-center">
+              {hasMore && olderCursor ? (
+                <button
+                  type="button"
+                  onClick={() => void loadOlderMessages()}
+                  disabled={isLoadingOlder}
+                  className="rounded-full border border-[#176951]/20 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951] shadow-sm transition hover:border-[#176951]/45 hover:bg-[#EAF7F1] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isLoadingOlder
+                    ? "Chargement…"
+                    : "Afficher les messages précédents"}
+                </button>
+              ) : (
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#789087]">
+                  Début de l’historique visible
+                </p>
+              )}
+              <p className="text-[9px] font-semibold text-[#8AA097]">
+                Historique limité aux {GLOBAL_CHAT_HISTORY_DAYS} derniers jours
+              </p>
+              {historyError ? (
+                <p role="alert" className="text-[10px] font-bold text-red-700">
+                  {historyError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           {messages.length === 0 ? <EmptyChat /> : null}
 
           {messages.map((message) => (
@@ -228,18 +364,35 @@ export function GlobalGameChat({
           <label htmlFor="global-chat-message" className="sr-only">
             Votre message
           </label>
+          {selectedReaction ? (
+            <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/15 bg-[#F3F8F6] p-2">
+              <span className="h-14 w-14 shrink-0">
+                <CyclingReactionSticker
+                  reactionKey={selectedReaction}
+                  compact
+                  decorative
+                />
+              </span>
+              <p className="min-w-0 flex-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]">
+                Réaction cycliste sélectionnée
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedReaction(null)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-[#60756E] shadow-sm hover:text-red-700"
+                aria-label="Retirer la réaction"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-end gap-2">
             <textarea
               id="global-chat-message"
               rows={2}
               value={draft}
               onChange={(event) =>
-                setDraft(
-                  event.target.value.slice(
-                    0,
-                    GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
-                  ),
-                )
+                setDraft(event.target.value.slice(0, draftLimit))
               }
               onKeyDown={(event) => {
                 if (
@@ -256,7 +409,10 @@ export function GlobalGameChat({
             />
             <button
               type="submit"
-              disabled={isPending || draft.trim().length === 0}
+              disabled={
+                isPending ||
+                (!selectedReaction && draft.trim().length === 0)
+              }
               className="grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
             >
@@ -267,13 +423,16 @@ export function GlobalGameChat({
               )}
             </button>
           </div>
-          <div className="mt-1.5 flex min-h-4 items-start justify-between gap-3">
-            <p role="alert" className="text-[10px] font-bold text-red-700">
+          <div className="mt-2 flex min-h-9 flex-wrap items-center gap-2">
+            <GlobalChatMediaPicker
+              onEmojiSelect={appendEmoji}
+              onReactionSelect={selectReaction}
+            />
+            <p role="alert" className="min-w-0 flex-1 text-[10px] font-bold text-red-700">
               {error}
             </p>
             <p className="ml-auto shrink-0 text-[9px] font-bold text-[#789087]">
-              Entrée pour envoyer · {draft.length}/
-              {GLOBAL_CHAT_MESSAGE_MAX_LENGTH}
+              Entrée pour envoyer · {draft.length}/{draftLimit}
             </p>
           </div>
         </form>
@@ -346,9 +505,9 @@ function ChatMessage({
           </time>
         </div>
 
-        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+        <div className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
           {renderMessageText(message.message, isCurrentDirector)}
-        </p>
+        </div>
 
         {message.preview ? (
           <Link
@@ -488,7 +647,27 @@ function appendUniqueMessage(
   if (messages.some((candidate) => candidate.id === message.id)) {
     return messages;
   }
-  return [...messages, message].slice(-100);
+  return [...messages, message];
+}
+
+function prependUniqueMessages(
+  messages: GlobalChatMessage[],
+  olderMessages: GlobalChatMessage[],
+) {
+  const knownIds = new Set(messages.map((message) => message.id));
+  return [
+    ...olderMessages.filter((message) => !knownIds.has(message.id)),
+    ...messages,
+  ];
+}
+
+function getGlobalChatDraftLimit(
+  reactionKey: GlobalChatCyclingReactionKey | null,
+) {
+  const reactionPrefix = reactionKey
+    ? `[cycling-reaction:${reactionKey}] `
+    : "";
+  return GLOBAL_CHAT_MESSAGE_MAX_LENGTH - reactionPrefix.length;
 }
 
 async function markGlobalChatMessagesAsRead(
@@ -621,17 +800,42 @@ function isOnlineDirector(value: unknown): value is OnlineDirector {
 }
 
 function renderMessageText(message: string, inverted: boolean) {
+  return splitGlobalChatMessageContent(message).map((content, index) => {
+    const reaction = extractGlobalChatCyclingReaction(content);
+    if (reaction) {
+      return (
+        <CyclingReactionSticker
+          key={`${reaction.key}-${index}`}
+          reactionKey={reaction.key}
+        />
+      );
+    }
+
+    return (
+      <span key={`${content}-${index}`}>
+        {renderLinkedMessageText(content, inverted, index)}
+      </span>
+    );
+  });
+}
+
+function renderLinkedMessageText(
+  message: string,
+  inverted: boolean,
+  contentIndex: number,
+) {
   const tokenPattern =
     /(https?:\/\/[^\s]+|\/jeu\/(?:equipes|coureurs)\/[0-9a-f-]{36})/gi;
   const tokens = message.split(tokenPattern);
 
   return tokens.map((token, index) => {
+    const key = `${contentIndex}-${token}-${index}`;
     const internalReference =
       extractGlobalChatPreviewReference(token);
     if (internalReference) {
       return (
         <Link
-          key={`${token}-${index}`}
+          key={key}
           href={internalReference.href}
           className={`underline decoration-2 underline-offset-2 ${
             inverted
@@ -647,7 +851,7 @@ function renderMessageText(message: string, inverted: boolean) {
     if (/^https?:\/\//i.test(token)) {
       return (
         <a
-          key={`${token}-${index}`}
+          key={key}
           href={token}
           target="_blank"
           rel="nofollow noreferrer"
