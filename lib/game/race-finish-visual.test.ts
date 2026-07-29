@@ -8,6 +8,7 @@ import {
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
   keepPassageWinnerVisible,
+  shouldWinnerCelebrate,
 } from "./race-finish-visual";
 import type { FinalBattleScenario } from "./race-simulation";
 
@@ -179,6 +180,27 @@ describe("final race visualization", () => {
         finishLinePosition,
       })
     ).toBeLessThan(finishLinePosition);
+  });
+
+  it("lève les bras sur une victoire nette mais garde le guidon au photo-finish", () => {
+    expect(
+      shouldWinnerCelebrate({
+        metersRemaining: 35,
+        isPhotoFinish: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldWinnerCelebrate({
+        metersRemaining: 36,
+        isPhotoFinish: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldWinnerCelebrate({
+        metersRemaining: 0,
+        isPhotoFinish: true,
+      }),
+    ).toBe(false);
   });
 
   it("donne neuf positions d'entrée distinctes à un groupe de neuf", () => {

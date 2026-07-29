@@ -156,19 +156,26 @@ export function SideRaceCyclist({
         pattern={pattern}
         visual={visual}
       />
-      <path d="m35 19-8 8" stroke={visual.secondaryColor} strokeWidth="2.8" strokeLinecap="round" />
+      {!celebrating ? (
+        <path
+          d="m35 19-8 8"
+          stroke={visual.secondaryColor}
+          strokeWidth="2.8"
+          strokeLinecap="round"
+        />
+      ) : null}
       {celebrating ? (
         <g data-race-victory-pose="arms-raised" className="cm-victory-arms">
           <path
-            d="m56 17 6-9 4-6M50 16 46 8 43 2"
+            d="m56 17 7-10 5-7M50 16 45 7 41 0"
             fill="none"
             stroke={skin.skinTone}
-            strokeWidth="2.35"
+            strokeWidth="2.7"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx="66" cy="2" r="1.45" fill={skin.skinTone} />
-          <circle cx="43" cy="2" r="1.45" fill={skin.skinTone} />
+          <circle cx="68" cy="0" r="1.65" fill={skin.skinTone} />
+          <circle cx="41" cy="0" r="1.65" fill={skin.skinTone} />
         </g>
       ) : (
         <>
@@ -257,15 +264,15 @@ export function TopRaceCyclist({
       {celebrating ? (
         <g data-race-victory-pose="arms-raised" className="cm-victory-arms">
           <path
-            d="M41 17 32 8 23 3M52 17 61 8 70 3"
+            d="M41 17 31 7 20 1M52 17 62 7 73 1"
             fill="none"
             stroke={skin.skinTone}
-            strokeWidth="2.25"
+            strokeWidth="2.65"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx="23" cy="3" r="1.45" fill={skin.skinTone} />
-          <circle cx="70" cy="3" r="1.45" fill={skin.skinTone} />
+          <circle cx="20" cy="1" r="1.65" fill={skin.skinTone} />
+          <circle cx="73" cy="1" r="1.65" fill={skin.skinTone} />
         </g>
       ) : null}
       <RaceJerseyOverlay

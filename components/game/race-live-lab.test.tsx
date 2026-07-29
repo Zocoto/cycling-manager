@@ -1,9 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import type { RacePrimeResult } from "@/lib/game/race-simulation";
+import type {
+  RaceGroupSnapshot,
+  RacePrimeResult,
+} from "@/lib/game/race-simulation";
 
-import { PrimeClassificationPopup } from "./race-live-lab";
+import { PrimeClassificationPopup, RaceGapLine } from "./race-live-lab";
 
 describe("PrimeClassificationPopup", () => {
   it("reste compact et replié par défaut sur téléphone", () => {
@@ -45,5 +48,35 @@ describe("PrimeClassificationPopup", () => {
       markup.match(/data-mobile-visibility="expandable"/g),
     ).toHaveLength(2);
     expect(markup).toContain("hidden lg:grid");
+  });
+});
+describe("RaceGapLine", () => {
+  it("centre la flèche de progression sur le trait entre les groupes", () => {
+    const groups: RaceGroupSnapshot[] = [
+      {
+        id: "head",
+        label: "Groupe de tête",
+        type: "breakaway",
+        riderIds: [],
+        gapToLeaderSeconds: 0,
+        averageEnergy: 62,
+      },
+      {
+        id: "chase",
+        label: "Groupe attardé",
+        type: "chase",
+        riderIds: [],
+        gapToLeaderSeconds: 95,
+        averageEnergy: 48,
+      },
+    ];
+    const markup = renderToStaticMarkup(
+      <RaceGapLine groups={groups} riderById={new Map()} />,
+    );
+
+    expect(markup).toContain('data-race-gap-arrow="on-line"');
+    expect(markup).toContain("top-1/2");
+    expect(markup).toContain("-translate-y-1/2");
+    expect(markup).toContain("Groupe de tête");
   });
 });

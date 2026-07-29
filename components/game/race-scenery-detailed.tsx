@@ -18,9 +18,42 @@ export function RaceSceneryBackdrop({
     <div
       aria-hidden="true"
       data-detailed-race-scenery={kind}
-      className={`pointer-events-none absolute inset-y-0 -left-[2%] w-[104%] overflow-hidden ${
-        isMoving ? "cm-race-scenery-unified" : ""
-      }`}
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
+      <div
+        data-race-scenery-track="right-to-left"
+        className={`absolute inset-y-0 left-0 flex w-[200%] ${
+          isMoving ? "cm-race-scenery-scroll" : ""
+        }`}
+      >
+        <DetailedSceneryPanel
+          kind={kind}
+          showSpectators={showSpectators}
+          detailId={`${detailId}-a`}
+        />
+        <DetailedSceneryPanel
+          kind={kind}
+          showSpectators={showSpectators}
+          detailId={`${detailId}-b`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DetailedSceneryPanel({
+  kind,
+  showSpectators,
+  detailId,
+}: {
+  kind: RaceSceneryKind;
+  showSpectators: boolean;
+  detailId: string;
+}) {
+  return (
+    <div
+      data-race-scenery-copy="seamless"
+      className="relative h-full w-1/2 shrink-0 overflow-hidden"
     >
       <BaseRaceSceneryBackdrop
         kind={kind}
@@ -98,7 +131,6 @@ export function RaceSceneryBackdrop({
     </div>
   );
 }
-
 function ForestDetails() {
   return (
     <>

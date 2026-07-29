@@ -147,8 +147,19 @@ export function getRaceGroupDisplayLabel({
   if (type !== "peloton" || riderCount >= 12) return fallbackLabel;
 
   return gapToLeaderSeconds <= 0
-    ? "Groupe de t?te"
+    ? "Groupe de tête"
     : "Groupe principal";
+}
+
+export function getRaceRoadSlopeOffset(gradientPct: number) {
+  const direction = Math.sign(gradientPct);
+  const magnitude = Math.min(18, Math.abs(gradientPct));
+  const emphasizedMagnitude =
+    magnitude <= 4
+      ? magnitude
+      : 4 + (magnitude - 4) * 1.7;
+
+  return direction * Math.min(14, emphasizedMagnitude);
 }
 
 export function shouldShowRaceSupportCars(groupCount: number) {

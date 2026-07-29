@@ -91,6 +91,8 @@ describe("race group formation", () => {
 
     expect(markup).toContain('data-race-support-convoy="true"');
     expect(markup.match(/cm-support-car/g)).toHaveLength(2);
+    expect(markup.match(/data-race-car-direction="right"/g)).toHaveLength(2);
+    expect(markup.match(/cm-race-car-wheel/g)).toHaveLength(4);
     expect(markup).toContain("#145A4A");
     expect(markup).toContain("#F2C94C");
   });

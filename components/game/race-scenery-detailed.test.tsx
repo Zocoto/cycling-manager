@@ -16,7 +16,11 @@ describe("detailed race scenery", () => {
       );
 
       expect(markup).toContain(`data-detailed-race-scenery="${kind}"`);
-      expect(markup).toContain("cm-race-scenery-unified");
+      expect(markup).toContain("cm-race-scenery-scroll");
+      expect(markup).toContain(
+        'data-race-scenery-track="right-to-left"',
+      );
+      expect(markup.match(/data-race-scenery-copy="seamless"/g)).toHaveLength(2);
       expect(markup).not.toContain("cm-race-scenery-detail");
       expect(markup).toContain("micro-lines");
       expect((markup.match(/<path/g) ?? []).length).toBeGreaterThan(15);

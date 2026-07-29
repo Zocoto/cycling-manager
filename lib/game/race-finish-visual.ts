@@ -348,6 +348,16 @@ export function getFinishTargetPosition({
     : finishLinePosition - 0.3 - (rank - 2) * 1.05;
 }
 
+export function shouldWinnerCelebrate({
+  metersRemaining,
+  isPhotoFinish,
+}: {
+  metersRemaining: number;
+  isPhotoFinish: boolean;
+}) {
+  return !isPhotoFinish && metersRemaining <= 35;
+}
+
 type SmallGroupFinishPositionInput = {
   riderIndex: number;
   riderCount: number;

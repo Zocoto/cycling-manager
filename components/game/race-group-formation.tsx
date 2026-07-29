@@ -285,6 +285,7 @@ function RaceSupportCar({
       role="img"
       aria-label={label}
       data-race-support-car={variant}
+      data-race-car-direction="right"
       className={`h-12 w-28 drop-shadow-xl ${
         isMoving ? "cm-support-car" : ""
       }`}
@@ -321,8 +322,9 @@ function RaceSupportCar({
       <path d="M61 39h17m17 0h16" stroke="#F3F7F5" strokeWidth="0.7" strokeLinecap="round" opacity="0.82" />
       <path d="M68 35h7m26 0h7" stroke="#18332A" strokeWidth="1.1" strokeLinecap="round" />
       <path d="M48 27h-7l-5 4h11" fill={primaryColor} stroke="#DCE8E2" strokeWidth="0.75" strokeLinejoin="round" />
-      <rect x="16" y="41" width="9" height="5" rx="2.3" fill="#FFF3B5" stroke="#EAF1ED" strokeWidth="0.55" />
-      <path d="M139 40h7v5h-8" fill="#E4545E" stroke="#F5CFD2" strokeWidth="0.55" />
+      <path d="M12 41h9v5h-8" fill="#E4545E" stroke="#F5CFD2" strokeWidth="0.55" />
+      <rect x="135" y="40" width="10" height="5" rx="2.3" fill="#FFF3B5" stroke="#EAF1ED" strokeWidth="0.55" />
+      <path d="M148 40.5h5m-5 3h6" stroke="#FFF3B5" strokeWidth="0.7" strokeLinecap="round" opacity="0.78" />
       <path d="M10 51h9m117 0h13M64 54h28" stroke="#12231D" strokeWidth="1.1" strokeLinecap="round" />
       <path d="M17 49h5m118-2h7" stroke="#E8F0EC" strokeWidth="0.55" />
 
@@ -336,7 +338,13 @@ function RaceSupportCar({
       </g>
 
       {[38, 116].map((wheelX) => (
-        <g key={wheelX} data-race-car-wheel="fine">
+        <g
+          key={wheelX}
+          data-race-car-wheel="fine"
+          data-race-car-wheel-animation={isMoving ? "running" : "paused"}
+          className={isMoving ? "cm-race-car-wheel" : ""}
+          style={{ transformOrigin: `${wheelX}px 57px` }}
+        >
           <circle cx={wheelX} cy="57" r="10.6" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
           <circle cx={wheelX} cy="57" r="6.4" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.75" />
           <circle cx={wheelX} cy="57" r="2" fill="#24342E" />

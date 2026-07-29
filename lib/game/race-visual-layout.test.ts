@@ -4,6 +4,7 @@ import {
   getIntermediateSprintVisualProgress,
   getRaceGroupDisplayLabel,
   getRaceGroupRiderSlots,
+  getRaceRoadSlopeOffset,
   shouldShowRaceSupportCars,
 } from "./race-visual-layout";
 
@@ -102,7 +103,7 @@ describe("race visual layout", () => {
         gapToLeaderSeconds: 0,
         fallbackLabel: "Peloton",
       }),
-    ).toBe("Groupe de t?te");
+    ).toBe("Groupe de tête");
     expect(
       getRaceGroupDisplayLabel({
         type: "peloton",
@@ -112,6 +113,14 @@ describe("race visual layout", () => {
       }),
     ).toBe("Peloton");
   });
+  it("accentue les forts pourcentages sans déformer les pentes ordinaires", () => {
+    expect(getRaceRoadSlopeOffset(0)).toBe(0);
+    expect(getRaceRoadSlopeOffset(4)).toBe(4);
+    expect(getRaceRoadSlopeOffset(9)).toBe(12.5);
+    expect(getRaceRoadSlopeOffset(14)).toBe(14);
+    expect(getRaceRoadSlopeOffset(-9)).toBe(-12.5);
+  });
+
   it("keeps special formations compact when many groups are visible", () => {
     const riderIds = Array.from({ length: 8 }, (_, index) => `compact-${index}`);
     const breakaway = getRaceGroupRiderSlots({

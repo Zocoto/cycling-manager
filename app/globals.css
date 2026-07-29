@@ -159,9 +159,12 @@ a {
   }
 }
 
-@keyframes cm-race-road-flow {
-  from { transform: translateX(0); }
-  to { transform: translateX(-8%); }
+@keyframes cm-race-road-marking-svg {
+  to { stroke-dashoffset: 28; }
+}
+
+@keyframes cm-race-road-marking-strip {
+  to { background-position-x: -78px; }
 }
 
 @keyframes cm-race-scenery {
@@ -173,9 +176,9 @@ a {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(-8.5%, 0, 0); }
 }
-@keyframes cm-race-scenery-unified {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1.005); }
-  50% { transform: translate3d(-1.35%, 0, 0) scale(1.005); }
+@keyframes cm-race-scenery-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
 }
 
 @keyframes cm-race-rider-weave {
@@ -232,6 +235,10 @@ a {
 @keyframes cm-support-car {
   0%, 100% { transform: translateY(0) rotate(-0.3deg); }
   50% { transform: translateY(-1px) rotate(0.35deg); }
+}
+
+@keyframes cm-race-car-wheel {
+  to { transform: rotate(360deg); }
 }
 
 @keyframes cm-bike-top-sway {
@@ -305,17 +312,18 @@ a {
   100% { transform: rotate(0deg) scale(1); }
 }
 
-@keyframes cm-finish-road-line {
-  to { stroke-dashoffset: -104; }
-}
-
 @keyframes cm-start-flag {
   0%, 100% { transform: rotate(-17deg); }
   50% { transform: rotate(18deg); }
 }
 
-.cm-race-road-flow {
-  animation: cm-race-road-flow 0.42s linear infinite;
+.cm-race-road-marking-svg {
+  animation: cm-race-road-marking-svg 0.62s linear infinite;
+}
+
+.cm-race-road-marking-strip {
+  animation: cm-race-road-marking-strip 0.68s linear infinite;
+  will-change: background-position;
 }
 
 .cm-race-scenery {
@@ -329,8 +337,8 @@ a {
   contain: paint;
   will-change: transform;
 }
-.cm-race-scenery-unified {
-  animation: cm-race-scenery-unified 8s ease-in-out infinite;
+.cm-race-scenery-scroll {
+  animation: cm-race-scenery-scroll 18s linear infinite;
   contain: paint;
   will-change: transform;
 }
@@ -422,6 +430,12 @@ a {
   transform-origin: center bottom;
 }
 
+.cm-race-car-wheel {
+  animation: cm-race-car-wheel 0.34s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .cm-bike-top-sway {
   animation: cm-bike-top-sway 0.42s ease-in-out infinite;
   transform-box: fill-box;
@@ -474,10 +488,6 @@ a {
   animation: cm-incident-crash 0.62s ease-out both;
 }
 
-.cm-finish-road-line {
-  animation: cm-finish-road-line 0.8s linear infinite;
-}
-
 .cm-start-flag {
   animation: cm-start-flag 0.48s ease-in-out infinite;
   transform-box: fill-box;
@@ -485,10 +495,11 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cm-race-road-flow,
+  .cm-race-road-marking-svg,
+  .cm-race-road-marking-strip,
   .cm-race-scenery,
   .cm-race-scenery-detail,
-  .cm-race-scenery-unified,
+  .cm-race-scenery-scroll,
   .cm-race-rider-weave,
   .cm-prime-sprint-wind-lines,
   .cm-victory-arms,
@@ -500,6 +511,7 @@ a {
   .cm-bike-leg-top-front,
   .cm-bike-leg-top-back,
   .cm-support-car,
+  .cm-race-car-wheel,
   .cm-bike-top-sway,
   .cm-crowd-wave,
   .cm-sprint-surge,
@@ -512,7 +524,6 @@ a {
   .cm-incident-wheel,
   .cm-incident-wind,
   .cm-incident-crash,
-  .cm-finish-road-line,
   .cm-start-flag {
     animation: none;
   }
