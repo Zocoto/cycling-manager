@@ -16,7 +16,9 @@ describe("detailed race scenery", () => {
       );
 
       expect(markup).toContain(`data-detailed-race-scenery="${kind}"`);
-      expect(markup).toContain("cm-race-scenery-detail");
+      expect(markup).toContain("cm-race-scenery-unified");
+      expect(markup).not.toContain("cm-race-scenery-detail");
+      expect(markup).toContain("micro-lines");
       expect((markup.match(/<path/g) ?? []).length).toBeGreaterThan(15);
     },
   );

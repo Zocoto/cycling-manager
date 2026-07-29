@@ -173,6 +173,28 @@ a {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(-8.5%, 0, 0); }
 }
+@keyframes cm-race-scenery-unified {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.005); }
+  50% { transform: translate3d(-1.35%, 0, 0) scale(1.005); }
+}
+
+@keyframes cm-race-rider-weave {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  36% { transform: translate3d(var(--cm-rider-weave-x, 1px), var(--cm-rider-weave-y, 0.8px), 0); }
+  72% { transform: translate3d(-0.55px, -0.35px, 0); }
+}
+
+@keyframes cm-prime-sprint-wind-lines {
+  from { background-position: 0 0; opacity: 0.25; }
+  50% { opacity: 0.8; }
+  to { background-position: 42px 0; opacity: 0.25; }
+}
+
+@keyframes cm-victory-arms {
+  0% { opacity: 0; transform: translateY(4px) scaleY(0.72); }
+  70% { opacity: 1; transform: translateY(-0.6px) scaleY(1.04); }
+  100% { opacity: 1; transform: translateY(0) scaleY(1); }
+}
 
 @keyframes cm-bike-bob {
   0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -307,6 +329,46 @@ a {
   contain: paint;
   will-change: transform;
 }
+.cm-race-scenery-unified {
+  animation: cm-race-scenery-unified 8s ease-in-out infinite;
+  contain: paint;
+  will-change: transform;
+}
+
+.cm-race-rider-weave {
+  animation-name: cm-race-rider-weave;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.cm-prime-sprint-contender {
+  filter: drop-shadow(0 0 5px rgba(155, 224, 202, 0.38));
+}
+
+.cm-prime-sprint-contender .cm-bike-wheel,
+.cm-prime-sprint-contender .cm-bike-pedal {
+  animation-duration: 0.28s;
+}
+
+.cm-prime-sprint-wind-lines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 8px,
+    rgba(234, 250, 245, 0.52) 8px 9px,
+    transparent 9px 17px
+  );
+  background-size: 42px 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 24%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 24%, #000 82%, transparent);
+  animation: cm-prime-sprint-wind-lines 0.7s linear infinite;
+}
+
+.cm-victory-arms {
+  animation: cm-victory-arms 0.5s cubic-bezier(0.18, 0.8, 0.22, 1) both;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
 
 .cm-bike-bob {
   animation: cm-bike-bob 0.34s ease-in-out infinite;
@@ -426,6 +488,10 @@ a {
   .cm-race-road-flow,
   .cm-race-scenery,
   .cm-race-scenery-detail,
+  .cm-race-scenery-unified,
+  .cm-race-rider-weave,
+  .cm-prime-sprint-wind-lines,
+  .cm-victory-arms,
   .cm-bike-bob,
   .cm-bike-wheel,
   .cm-bike-pedal,

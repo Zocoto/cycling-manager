@@ -69,10 +69,11 @@ describe("race group formation", () => {
       />,
     );
 
-    expect(markup).toContain('data-race-group-formation="wide"');
+    expect(markup).toContain('data-race-group-formation="peloton-front"');
+    expect(markup).toContain('data-race-rider-weave="active"');
     expect(markup.match(/translate\(/g)).toHaveLength(8);
     expect(markup).toContain("translate(-");
-    expect(markup).toContain("translate(4");
+    expect(markup).toContain("translate(62");
     expect(markup).toContain("+1");
   });
 
@@ -92,5 +93,65 @@ describe("race group formation", () => {
     expect(markup.match(/cm-support-car/g)).toHaveLength(2);
     expect(markup).toContain("#145A4A");
     expect(markup).toContain("#F2C94C");
+  });
+  it("renders a breakaway in a paceline", () => {
+    const riders = Array.from({ length: 6 }, (_, index) => buildRider(index + 1));
+    const riderIds = riders.map((rider) => rider.id);
+    const group: RaceGroupSnapshot = {
+      id: "breakaway",
+      label: "Échappée",
+      type: "breakaway",
+      riderIds,
+      gapToLeaderSeconds: 0,
+      averageEnergy: 68,
+    };
+    const markup = renderToStaticMarkup(
+      <RaceGroupFormation
+        group={group}
+        riderIds={riderIds}
+        riderById={new Map(riders.map((rider) => [rider.id, rider]))}
+        incidents={[]}
+        primeWinnerId={null}
+        primeResult={null}
+        isMoving
+        compact={false}
+      />,
+    );
+
+    expect(markup).toContain('data-race-group-formation="breakaway-line"');
+    expect(markup).toContain("translate(-");
+    expect(markup).toContain("translate(5");
+  });
+
+  it("opens the group for an intermediate sprint battle", () => {
+    const riders = Array.from({ length: 6 }, (_, index) => buildRider(index + 1));
+    const riderIds = riders.map((rider) => rider.id);
+    const group: RaceGroupSnapshot = {
+      id: "breakaway",
+      label: "Échappée",
+      type: "breakaway",
+      riderIds,
+      gapToLeaderSeconds: 0,
+      averageEnergy: 68,
+    };
+    const markup = renderToStaticMarkup(
+      <RaceGroupFormation
+        group={group}
+        riderIds={riderIds}
+        riderById={new Map(riders.map((rider) => [rider.id, rider]))}
+        incidents={[]}
+        primeWinnerId={null}
+        primeResult={null}
+        primeSprintContenderIds={riderIds.slice(0, 3)}
+        primeSprintProgress={0.5}
+        isMoving
+        compact={false}
+      />,
+    );
+
+    expect(markup).toContain('data-race-group-formation="prime-sprint"');
+    expect(markup).toContain('data-race-prime-sprint="active"');
+    expect(markup.match(/data-prime-sprint-contender=/g)).toHaveLength(3);
+    expect(markup).toContain("Sprint · 1");
   });
 });

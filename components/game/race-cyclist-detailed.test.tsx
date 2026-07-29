@@ -76,4 +76,15 @@ describe("detailed race cyclist", () => {
     expect(markup).toContain("#214E43");
     expect(markup).toContain("#E58A2B");
   });
+  it("raises both arms for the winner before the line", () => {
+    const markup = renderToStaticMarkup(
+      <>
+        <SideRaceCyclist rider={rider} celebrating />
+        <TopRaceCyclist rider={rider} celebrating />
+      </>,
+    );
+
+    expect(markup.match(/data-race-victory-pose="arms-raised"/g)).toHaveLength(2);
+    expect(markup.match(/cm-victory-arms/g)).toHaveLength(2);
+  });
 });

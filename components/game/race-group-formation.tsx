@@ -1,6 +1,9 @@
+import { useId, type CSSProperties } from "react";
+
 import { SideRaceCyclist } from "@/components/game/race-cyclist-detailed";
 import {
   getRaceGroupRiderSlots,
+  type RaceGroupVisualFormation,
 } from "@/lib/game/race-visual-layout";
 import type {
   RaceGroupSnapshot,
@@ -18,6 +21,8 @@ export function RaceGroupFormation({
   primeResult,
   isMoving,
   compact,
+  primeSprintContenderIds = [],
+  primeSprintProgress = null,
 }: {
   group: RaceGroupSnapshot;
   riderIds: string[];
@@ -27,31 +32,84 @@ export function RaceGroupFormation({
   primeResult: RacePrimeResult | null;
   isMoving: boolean;
   compact: boolean;
+  primeSprintContenderIds?: string[];
+  primeSprintProgress?: number | null;
 }) {
-  const slots = getRaceGroupRiderSlots({ riderIds, compact });
+  const groupSprintContenderIds = primeSprintContenderIds.filter((riderId) =>
+    group.riderIds.includes(riderId),
+  );
+  const isPrimeSprintBattle =
+    primeSprintProgress !== null && groupSprintContenderIds.length >= 2;
+  const formation: RaceGroupVisualFormation = isPrimeSprintBattle
+    ? "prime-sprint"
+    : group.type === "breakaway"
+      ? "breakaway-line"
+      : group.type === "peloton"
+        ? "peloton-front"
+        : "bunch";
+  const orderedRiderIds = orderFormationRiderIds({
+    riderIds,
+    riderById,
+    formation,
+    primeSprintContenderIds: groupSprintContenderIds,
+  });
+  const slots = getRaceGroupRiderSlots({
+    riderIds: orderedRiderIds,
+    compact,
+    formation,
+  });
   const incidentRiderIds = new Set(
     incidents.flatMap((incident) => incident.riderIds),
   );
 
   return (
     <div
-      data-race-group-formation={compact ? "compact" : "wide"}
+      data-race-group-formation={formation}
+      data-race-prime-sprint={isPrimeSprintBattle ? "active" : undefined}
       className={`relative overflow-visible ${
-        compact ? "h-16 w-28" : "h-20 w-44"
+        formation === "breakaway-line"
+          ? compact
+            ? "h-16 w-40"
+            : "h-20 w-60"
+          : formation === "peloton-front"
+            ? compact
+              ? "h-16 w-36"
+              : "h-20 w-52"
+            : formation === "prime-sprint"
+              ? compact
+                ? "h-20 w-40"
+                : "h-20 w-52"
+              : compact
+                ? "h-16 w-28"
+                : "h-20 w-44"
       }`}
     >
-      {riderIds.map((riderId, riderIndex) => {
+      {isPrimeSprintBattle ? (
+        <span
+          aria-hidden="true"
+          className="absolute -right-10 top-0 h-14 w-32 opacity-75 cm-prime-sprint-wind-lines"
+        />
+      ) : null}
+      {orderedRiderIds.map((riderId, riderIndex) => {
         const rider = riderById.get(riderId);
         const slot = slots[riderIndex];
         if (!rider || !slot) return null;
 
         const incidentRider = incidentRiderIds.has(riderId);
         const primeWinner = riderId === primeWinnerId;
+        const primeContenderIndex = groupSprintContenderIds.indexOf(riderId);
         const showName =
           incidentRider ||
           primeWinner ||
+          primeContenderIndex >= 0 ||
           group.riderIds.length <= 3 ||
           riderIndex < 2;
+        const weaveStyle = {
+          "--cm-rider-weave-x": `${1 + (riderIndex % 3) * 0.35}px`,
+          "--cm-rider-weave-y": `${0.7 + (riderIndex % 2) * 0.45}px`,
+          animationDelay: `${-(riderIndex % 5) * 0.43}s`,
+          animationDuration: `${2.7 + (riderIndex % 4) * 0.32}s`,
+        } as CSSProperties;
 
         return (
           <span
@@ -62,26 +120,43 @@ export function RaceGroupFormation({
               transform: `translate(${slot.offsetX}px, ${slot.offsetY}px) scale(${slot.scale})`,
             }}
           >
-            <SideRaceCyclist
-              rider={rider}
-              isMoving={isMoving}
-              className={compact ? "h-8 w-14" : "h-9 w-16"}
-            />
-            {showName ? (
-              <span
-                className={`absolute left-1/2 top-[1.95rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${
-                  primeWinner
-                    ? "bg-[#F2C94C] text-[#17261E]"
-                    : incidentRider
-                      ? "bg-[#EF5B65] text-white"
-                      : "bg-[#071A17]/88 text-white"
-                }`}
-              >
-                {primeWinner
-                  ? `${primeResult?.prime.type === "mountain" ? "GPM" : "SI"} · ${getRiderShortName(rider.name)}`
-                  : getRiderShortName(rider.name)}
-              </span>
-            ) : null}
+            <span
+              data-race-rider-weave={isMoving ? "active" : "still"}
+              data-prime-sprint-contender={
+                primeContenderIndex >= 0 ? primeContenderIndex + 1 : undefined
+              }
+              className={`relative block ${isMoving ? "cm-race-rider-weave" : ""} ${
+                isMoving && primeContenderIndex >= 0
+                  ? "cm-prime-sprint-contender"
+                  : ""
+              }`}
+              style={weaveStyle}
+            >
+              <SideRaceCyclist
+                rider={rider}
+                isMoving={isMoving}
+                className={compact ? "h-8 w-14" : "h-9 w-16"}
+              />
+              {showName ? (
+                <span
+                  className={`absolute left-1/2 top-[1.95rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${
+                    primeWinner
+                      ? "bg-[#F2C94C] text-[#17261E]"
+                      : incidentRider
+                        ? "bg-[#EF5B65] text-white"
+                        : primeContenderIndex >= 0
+                          ? "border border-[#9BE0CA]/60 bg-[#0B4A3B]/95 text-white"
+                          : "bg-[#071A17]/88 text-white"
+                  }`}
+                >
+                  {primeWinner
+                    ? `${primeResult?.prime.type === "mountain" ? "GPM" : "SI"} · ${getRiderShortName(rider.name)}`
+                    : primeContenderIndex >= 0
+                      ? `Sprint · ${getRiderShortName(rider.name)}`
+                      : getRiderShortName(rider.name)}
+                </span>
+              ) : null}
+            </span>
           </span>
         );
       })}
@@ -121,6 +196,7 @@ export function RaceSupportConvoy({
         secondaryColor={secondaryColor}
         isMoving={isMoving}
         label="Voiture sportive de l’équipe"
+        variant="team"
       />
       {showSecondCar ? (
         <div className="absolute -bottom-7 -left-12 scale-[0.82] opacity-90">
@@ -129,6 +205,7 @@ export function RaceSupportConvoy({
             secondaryColor="#F2C94C"
             isMoving={isMoving}
             label="Voiture de l’organisation"
+            variant="organization"
           />
         </div>
       ) : null}
@@ -192,56 +269,125 @@ function RaceSupportCar({
   secondaryColor,
   isMoving,
   label,
+  variant,
 }: {
   primaryColor: string;
   secondaryColor: string;
   isMoving: boolean;
   label: string;
+  variant: "team" | "organization";
 }) {
+  const visualId = `support-car-${useId().replace(/:/g, "")}`;
+
   return (
     <svg
-      viewBox="0 0 124 60"
+      viewBox="0 0 154 72"
       role="img"
       aria-label={label}
-      className={`h-11 w-[5.75rem] drop-shadow-xl ${
+      data-race-support-car={variant}
+      className={`h-12 w-28 drop-shadow-xl ${
         isMoving ? "cm-support-car" : ""
       }`}
     >
       <defs>
-        <linearGradient id="support-car-glass" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#EAF5F3" />
-          <stop offset="1" stopColor="#72918C" />
+        <linearGradient id={`${visualId}-body`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={secondaryColor} stopOpacity="0.72" />
+          <stop offset="0.22" stopColor={primaryColor} />
+          <stop offset="1" stopColor={primaryColor} />
+        </linearGradient>
+        <linearGradient id={`${visualId}-glass`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#F4FAF8" />
+          <stop offset="0.45" stopColor="#A9C5C0" />
+          <stop offset="1" stopColor="#4F6D68" />
         </linearGradient>
       </defs>
-      <ellipse cx="62" cy="54" rx="52" ry="5" fill="rgba(5,17,14,0.24)" />
-      <circle cx="30" cy="47" r="10" fill="#111916" stroke="#D7E5DE" strokeWidth="2.4" />
-      <circle cx="30" cy="47" r="4" fill="#778A81" stroke="#EEF3F0" strokeWidth="1" />
-      <circle cx="96" cy="47" r="10" fill="#111916" stroke="#D7E5DE" strokeWidth="2.4" />
-      <circle cx="96" cy="47" r="4" fill="#778A81" stroke="#EEF3F0" strokeWidth="1" />
+      <ellipse cx="78" cy="64" rx="66" ry="4.5" fill="rgba(5,17,14,0.2)" />
       <path
-        d="M7 43 17 27l25-5 13-13h34l17 20 11 5 3 13H5Z"
-        fill={primaryColor}
-        stroke="#FFFDF4"
-        strokeWidth="1.7"
+        d="M8 53 14 40q2-5 8-6l27-5 13-15q3-4 9-4h34q6 0 10 5l17 18 11 4q6 2 7 8l1 9-7 5h-14a14 14 0 0 0-27 0H52a14 14 0 0 0-27 0H12q-5-1-4-6Z"
+        fill={`url(#${visualId}-body)`}
+        stroke="#EAF1ED"
+        strokeWidth="1.05"
         strokeLinejoin="round"
       />
       <path
-        d="m46 22 12-11h28l12 18H39Z"
-        fill="url(#support-car-glass)"
+        d="m55 29 11-14q2-2 6-2h12v17Zm32-16h15q4 0 7 4l13 14H87Z"
+        fill={`url(#${visualId}-glass)`}
         stroke="#DCE8E2"
-        strokeWidth="1.4"
+        strokeWidth="0.85"
       />
-      <path d="M70 11v18M91 15l7 14" stroke="#315B3E" strokeWidth="1.25" />
-      <path d="M11 40h105M45 29l-5 18M100 30l4 15" stroke={secondaryColor} strokeWidth="2.2" />
-      <path d="M50 7h34M55 4h24" stroke="#17261E" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="58" cy="6" r="3.6" fill="#17261E" stroke="#DCE8E2" strokeWidth="1" />
-      <circle cx="76" cy="6" r="3.6" fill="#17261E" stroke="#DCE8E2" strokeWidth="1" />
-      <rect x="12" y="33" width="7" height="5" rx="2" fill="#FFF2B5" />
-      <path d="M110 34h7" stroke="#EF5B65" strokeWidth="3" strokeLinecap="round" />
-      <path d="M50 36h34" stroke="#FFFDF4" strokeWidth="1.1" opacity="0.76" />
-      <path d="M60 33h14v7H60Z" fill={secondaryColor} opacity="0.9" />
+      <path d="M86 13v18M112 21l10 10" stroke="#425E59" strokeWidth="0.75" />
+      <path d="M18 39h119" stroke={secondaryColor} strokeWidth="1.45" opacity="0.95" />
+      <path d="M55 30 50 55m37-24v25m38-24 5 18" fill="none" stroke="#142720" strokeWidth="0.65" opacity="0.62" />
+      <path d="M61 39h17m17 0h16" stroke="#F3F7F5" strokeWidth="0.7" strokeLinecap="round" opacity="0.82" />
+      <path d="M68 35h7m26 0h7" stroke="#18332A" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M48 27h-7l-5 4h11" fill={primaryColor} stroke="#DCE8E2" strokeWidth="0.75" strokeLinejoin="round" />
+      <rect x="16" y="41" width="9" height="5" rx="2.3" fill="#FFF3B5" stroke="#EAF1ED" strokeWidth="0.55" />
+      <path d="M139 40h7v5h-8" fill="#E4545E" stroke="#F5CFD2" strokeWidth="0.55" />
+      <path d="M10 51h9m117 0h13M64 54h28" stroke="#12231D" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M17 49h5m118-2h7" stroke="#E8F0EC" strokeWidth="0.55" />
+
+      <g data-race-car-roof-rack="detailed" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M58 9h57M64 6v5m43-5v5" stroke="#17261E" strokeWidth="1.35" />
+        <g transform="translate(73 -1) scale(.34)" stroke="#17261E">
+          <circle cx="0" cy="17" r="10" strokeWidth="2.4" />
+          <circle cx="43" cy="17" r="10" strokeWidth="2.4" />
+          <path d="M0 17 14 2l10 15H0L12-5l19 2 12 20M14 2h10m7-5 7-7m-3 0h10" strokeWidth="2.1" />
+        </g>
+      </g>
+
+      {[38, 116].map((wheelX) => (
+        <g key={wheelX} data-race-car-wheel="fine">
+          <circle cx={wheelX} cy="57" r="10.6" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
+          <circle cx={wheelX} cy="57" r="6.4" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.75" />
+          <circle cx={wheelX} cy="57" r="2" fill="#24342E" />
+          {[0, 45, 90, 135].map((angle) => (
+            <path
+              key={angle}
+              d={`M${wheelX} 57h5.4`}
+              stroke="#D8E2DD"
+              strokeWidth="0.55"
+              transform={`rotate(${angle} ${wheelX} 57)`}
+            />
+          ))}
+        </g>
+      ))}
     </svg>
   );
+}
+
+function orderFormationRiderIds({
+  riderIds,
+  riderById,
+  formation,
+  primeSprintContenderIds,
+}: {
+  riderIds: string[];
+  riderById: Map<string, RiderSimulationInput>;
+  formation: RaceGroupVisualFormation;
+  primeSprintContenderIds: string[];
+}) {
+  if (formation === "prime-sprint") {
+    const contenders = primeSprintContenderIds.filter((riderId) =>
+      riderIds.includes(riderId),
+    );
+    return [
+      ...contenders,
+      ...riderIds.filter((riderId) => !contenders.includes(riderId)),
+    ];
+  }
+
+  if (formation !== "peloton-front") return riderIds;
+
+  const workers = riderIds
+    .filter((riderId) => {
+      const role = riderById.get(riderId)?.role;
+      return role === "domestique" || role === "leadout";
+    })
+    .slice(0, 3);
+  return [
+    ...workers,
+    ...riderIds.filter((riderId) => !workers.includes(riderId)),
+  ];
 }
 
 function getRiderShortName(name: string) {

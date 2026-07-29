@@ -24,11 +24,14 @@ import {
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
-  keepPassageWinnerVisible,
 } from "@/lib/game/race-finish-visual";
 import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
-import { shouldShowRaceSupportCars } from "@/lib/game/race-visual-layout";
+import {
+  getIntermediateSprintVisualProgress,
+  getRaceGroupDisplayLabel,
+  shouldShowRaceSupportCars,
+} from "@/lib/game/race-visual-layout";
 import {
   getRaceGroupLayoutDensity,
   getStageLiveState,
@@ -549,6 +552,16 @@ function RoadScene({
     segmentProgress >= 0.5
       ? primeResult?.classification[0]?.riderId ?? null
       : null;
+  const primeSprintProgress = getIntermediateSprintVisualProgress({
+    primeType: primeResult?.prime.type ?? null,
+    segmentProgress,
+  });
+  const primeSprintContenderIds =
+    primeSprintProgress === null
+      ? []
+      : primeResult?.classification
+          .slice(0, 3)
+          .map((classified) => classified.riderId) ?? [];
   const visualGradient = Math.max(
     -9,
     Math.min(9, segment.averageGradientPct)
@@ -685,8 +698,18 @@ function RoadScene({
           group,
           incidents: snapshot.incidents,
           riderById,
-          priorityRiderId: primeWinnerId,
+          priorityRiderIds: primeSprintContenderIds.length > 0
+            ? primeSprintContenderIds
+            : primeWinnerId
+              ? [primeWinnerId]
+              : [],
           maximumVisibleRiders: groups.length <= 3 ? 8 : 5,
+        });
+        const displayLabel = getRaceGroupDisplayLabel({
+          type: group.type,
+          riderCount: group.riderIds.length,
+          gapToLeaderSeconds: group.gapToLeaderSeconds,
+          fallbackLabel: group.label,
         });
         return (
           <div
@@ -700,7 +723,7 @@ function RoadScene({
             title={group.riderIds.map((id) => riderById.get(id)?.name).filter(Boolean).join(", ")}
           >
             <div className="mb-2 whitespace-nowrap rounded-full bg-[#071A17]/85 px-2.5 py-1 text-center text-[10px] font-black text-white shadow-lg backdrop-blur">
-              {group.label} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
+              {displayLabel} {group.gapToLeaderSeconds > 0 ? `+${formatGap(group.gapToLeaderSeconds)}` : ""}
             </div>
             <RaceGroupFormation
               group={group}
@@ -711,6 +734,8 @@ function RoadScene({
               primeResult={primeResult}
               isMoving={isMoving}
               compact={groups.length >= 4}
+              primeSprintContenderIds={primeSprintContenderIds}
+              primeSprintProgress={primeSprintProgress}
             />
           </div>
         );
@@ -756,11 +781,43 @@ function RoadSurfaceDefinition({
 
   return (
     <defs>
-      <linearGradient id={`${id}-asphalt`} x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id={`${id}-asphalt-base`} x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stopColor="#465650" />
         <stop offset="0.24" stopColor="#35453F" />
         <stop offset="1" stopColor="#283530" />
       </linearGradient>
+      <pattern
+        id={`${id}-asphalt`}
+        width={compact ? 4.2 : 19}
+        height={compact ? 3.2 : 14}
+        patternUnits="userSpaceOnUse"
+      >
+        <rect
+          width={compact ? 4.2 : 19}
+          height={compact ? 3.2 : 14}
+          fill={`url(#${id}-asphalt-base)`}
+        />
+        <circle
+          cx={compact ? 0.8 : 4}
+          cy={compact ? 0.7 : 3}
+          r={compact ? 0.09 : 0.42}
+          fill="#D9E0DC"
+          opacity="0.17"
+        />
+        <circle
+          cx={compact ? 3.1 : 14}
+          cy={compact ? 2.2 : 10}
+          r={compact ? 0.07 : 0.3}
+          fill="#111B17"
+          opacity="0.2"
+        />
+        <path
+          d={compact ? "M1.7 2.8h.7" : "M8 8h4"}
+          stroke="#EDF2EF"
+          strokeWidth={compact ? 0.045 : 0.18}
+          opacity="0.13"
+        />
+      </pattern>
       {surface === "cobbles" ? (
         <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse">
           <rect width={width} height={height} fill="#67645C" />
@@ -911,27 +968,69 @@ function RaceDepartureSequence({
 function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
   return (
     <svg
-      viewBox="0 0 120 68"
+      viewBox="0 0 154 82"
       role="img"
       aria-label="Voiture du directeur de course agitant le drapeau de départ"
-      className={`h-16 w-28 drop-shadow-xl ${
-        isMoving ? "cm-bike-bob" : ""
+      data-race-director-car="detailed"
+      className={`h-16 w-28 overflow-visible drop-shadow-xl ${
+        isMoving ? "cm-support-car" : ""
       }`}
     >
-      <circle cx="28" cy="53" r="10" fill="#17261E" stroke="#D7E5DE" strokeWidth="3" />
-      <circle cx="91" cy="53" r="10" fill="#17261E" stroke="#D7E5DE" strokeWidth="3" />
-      <path d="M9 48 18 29h60l18 8h15l5 16H7Z" fill="#C92F3C" stroke="#FFFDF4" strokeWidth="2" strokeLinejoin="round" />
-      <path d="m35 29 12-15h30l13 23H28Z" fill="#EAF5F3" stroke="#FFFDF4" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M50 16v19M76 16l9 19" stroke="#315B3E" strokeWidth="2" />
-      <circle cx="72" cy="10" r="5" fill="#E6B18B" />
-      <path d="M71 15 83 25" stroke="#E6B18B" strokeWidth="4" strokeLinecap="round" />
-      <g transform="translate(83 25)">
-        <g className={isMoving ? "cm-start-flag" : ""}>
-          <path d="M0 0V-28" stroke="#FFFDF4" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M1-28h24l-6 8H1Z" fill="#F2C94C" stroke="#17261E" strokeWidth="1.2" strokeLinejoin="round" />
+      <defs>
+        <linearGradient id="director-car-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#F05A62" />
+          <stop offset="0.35" stopColor="#C92F3C" />
+          <stop offset="1" stopColor="#8F1F2A" />
+        </linearGradient>
+        <linearGradient id="director-car-glass" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#F4FAF8" />
+          <stop offset="1" stopColor="#66827D" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="76" cy="70" rx="66" ry="4.5" fill="rgba(5,17,14,0.22)" />
+      <path
+        d="M8 58 15 43q2-5 8-6l28-5 12-13q3-4 9-4h31q6 0 10 5l17 18 13 4q6 2 7 8l1 9-7 5h-14a14 14 0 0 0-27 0H52a14 14 0 0 0-27 0H12q-5-1-4-6Z"
+        fill="url(#director-car-body)"
+        stroke="#F7E9E7"
+        strokeWidth="1.05"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m56 32 11-13q2-2 6-2h11v16Zm31-15h14q4 0 7 4l13 13H87Z"
+        fill="url(#director-car-glass)"
+        stroke="#E3ECE8"
+        strokeWidth="0.85"
+      />
+      <path d="M86 17v17M112 24l9 10" stroke="#435E59" strokeWidth="0.72" />
+      <path d="M18 43h119" stroke="#FFFDF4" strokeWidth="1.2" opacity="0.8" />
+      <path d="M56 33 51 60m36-26v26m39-26 5 20" fill="none" stroke="#57141B" strokeWidth="0.65" opacity="0.7" />
+      <path d="M68 40h8m23 0h8" stroke="#5C1720" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M48 30h-7l-5 4h11" fill="#B52632" stroke="#E3ECE8" strokeWidth="0.7" />
+      <rect x="16" y="45" width="9" height="5" rx="2.2" fill="#FFF2B5" stroke="#FFFDF4" strokeWidth="0.5" />
+      <path d="M140 44h7v5h-8" fill="#7A101B" stroke="#F9B7BC" strokeWidth="0.5" />
+      <path d="M12 56h9m115 0h13M65 59h27" stroke="#411015" strokeWidth="1" strokeLinecap="round" />
+
+      {[38, 116].map((wheelX) => (
+        <g key={wheelX} data-race-car-wheel="fine">
+          <circle cx={wheelX} cy="63" r="10.5" fill="#101714" stroke="#26352F" strokeWidth="1.1" />
+          <circle cx={wheelX} cy="63" r="6.3" fill="#8B9A93" stroke="#E2EBE6" strokeWidth="0.72" />
+          <circle cx={wheelX} cy="63" r="2" fill="#24342E" />
+          <path d={`M${wheelX - 5} 63h10M${wheelX} 58v10`} stroke="#D8E2DD" strokeWidth="0.52" />
+        </g>
+      ))}
+
+      <g transform="translate(94 16)">
+        <circle cx="0" cy="-7" r="4" fill="#D8A17C" stroke="#9D6D50" strokeWidth="0.55" />
+        <path d="M-3-3 4 7" stroke="#D8A17C" strokeWidth="3" strokeLinecap="round" />
+        <path d="M3 4 14 12" stroke="#D8A17C" strokeWidth="2.4" strokeLinecap="round" />
+        <g transform="translate(14 12)">
+          <g className={isMoving ? "cm-start-flag" : ""}>
+            <path d="M0 0V-31" stroke="#FFFDF4" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M1-31h28l-7 9H1Z" fill="#F2C94C" stroke="#17261E" strokeWidth="0.9" strokeLinejoin="round" />
+          </g>
         </g>
       </g>
-      <text x="53" y="47" textAnchor="middle" fill="#FFFDF4" fontSize="7" fontWeight="900">
+      <text x="78" y="52" textAnchor="middle" fill="#FFFDF4" fontSize="6" fontWeight="900" letterSpacing="1">
         COURSE
       </text>
     </svg>
@@ -1187,13 +1286,13 @@ function getVisibleRiderIds({
   group,
   incidents,
   riderById,
-  priorityRiderId,
+  priorityRiderIds,
   maximumVisibleRiders,
 }: {
   group: RaceGroupSnapshot;
   incidents: RaceIncident[];
   riderById: Map<string, RiderSimulationInput>;
-  priorityRiderId: string | null;
+  priorityRiderIds: string[];
   maximumVisibleRiders: number;
 }) {
   const incidentRiderIds = new Set(
@@ -1221,13 +1320,16 @@ function getVisibleRiderIds({
         (second ? rolePriority[second.role] : 0);
       return secondScore - firstScore || firstId.localeCompare(secondId);
     });
-  return keepPassageWinnerVisible({
-    orderedRiderIds,
-    winnerRiderId: priorityRiderId,
-    maximumVisibleRiders,
-  });
+  const visiblePriorityRiderIds = priorityRiderIds.filter((riderId) =>
+    orderedRiderIds.includes(riderId),
+  );
+  return [
+    ...visiblePriorityRiderIds,
+    ...orderedRiderIds.filter(
+      (riderId) => !visiblePriorityRiderIds.includes(riderId),
+    ),
+  ].slice(0, maximumVisibleRiders);
 }
-
 
 function getFinishRiderName(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -1497,7 +1599,13 @@ function SprintLaneView({
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
-            <TopRaceCyclist rider={rider} />
+            <TopRaceCyclist
+              rider={rider}
+              celebrating={
+                result.riderId === winnerResult?.riderId &&
+                metersRemaining <= (isPhotoFinish ? 8 : 20)
+              }
+            />
             {hasFinished && result.rank !== null && result.rank <= 3 ? (
               <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[9px] font-black text-white shadow-lg">
                 {result.rank}. {rider.name.split(" ").at(-1)}
@@ -1747,7 +1855,16 @@ function FinishBattleView({
             }}
             title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
-            <SideRaceCyclist rider={rider} isMoving className="h-12 w-[4.5rem]" />
+            <SideRaceCyclist
+              rider={rider}
+              isMoving
+              celebrating={
+                result.riderId === winnerResult?.riderId &&
+                metersRemaining <=
+                  (runnerUpResult?.gapToWinnerSeconds === 0 ? 8 : 20)
+              }
+              className="h-12 w-[4.5rem]"
+            />
             <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${finalIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && hasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42 ? "border-[#B85A32]/65 bg-[#301A15]/92" : "border-white/20 bg-[#071A17]/90"}`}>
               <span className="flex items-center gap-1 text-[9px] font-black text-white">
                 <span
@@ -1985,10 +2102,16 @@ function RaceGroupCard({
 }) {
   const isRaceLeader =
     gapToLeaderSeconds === 0;
+  const displayLabel = getRaceGroupDisplayLabel({
+    type: group.type,
+    riderCount: group.riderIds.length,
+    gapToLeaderSeconds,
+    fallbackLabel: group.label,
+  });
 
   return (
     <article
-      aria-label={`${group.label}, ${
+      aria-label={`${displayLabel}, ${
         isRaceLeader
           ? "en tête"
           : `à ${formatGap(gapToLeaderSeconds)} de la tête`
@@ -2004,7 +2127,7 @@ function RaceGroupCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black text-white">
-            {group.label}
+            {displayLabel}
           </p>
           <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#759286]">
             {group.riderIds.length} coureur
@@ -2012,7 +2135,7 @@ function RaceGroupCard({
           </p>
         </div>
         <span className="rounded-full bg-white/[0.065] px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#AFC6BB]">
-          {groupTypeLabel(group.type)}
+          {groupTypeLabel(group)}
         </span>
       </div>
       <ul
@@ -2051,10 +2174,12 @@ function RaceGroupCard({
   );
 }
 
-function groupTypeLabel(
-  type: RaceGroupSnapshot["type"],
-) {
-  switch (type) {
+function groupTypeLabel(group: RaceGroupSnapshot) {
+  if (group.type === "peloton" && group.riderIds.length < 12) {
+    return "Groupe";
+  }
+
+  switch (group.type) {
     case "breakaway":
       return "Échappée";
     case "chase":
@@ -2118,7 +2243,14 @@ function LiveClassification({
                 <tr key={riderId} className="bg-white/[0.025] text-sm font-semibold">
                   <td className="px-4 py-3 font-black text-[#F2C94C]">{index + 1}</td>
                   <td className="px-4 py-3">{rider.name}</td>
-                  <td className="px-4 py-3 text-[#94ADA2]">{group.label}</td>
+                  <td className="px-4 py-3 text-[#94ADA2]">
+                    {getRaceGroupDisplayLabel({
+                      type: group.type,
+                      riderCount: group.riderIds.length,
+                      gapToLeaderSeconds: group.gapToLeaderSeconds,
+                      fallbackLabel: group.label,
+                    })}
+                  </td>
                   <td className="px-4 py-3 text-right font-black">{group.gapToLeaderSeconds ? `+${formatGap(group.gapToLeaderSeconds)}` : "Tête"}</td>
                 </tr>
               );

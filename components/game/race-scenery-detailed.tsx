@@ -18,29 +18,39 @@ export function RaceSceneryBackdrop({
     <div
       aria-hidden="true"
       data-detailed-race-scenery={kind}
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className={`pointer-events-none absolute inset-y-0 -left-[2%] w-[104%] overflow-hidden ${
+        isMoving ? "cm-race-scenery-unified" : ""
+      }`}
     >
       <BaseRaceSceneryBackdrop
         kind={kind}
-        isMoving={isMoving}
+        isMoving={false}
         showSpectators={showSpectators}
       />
       <svg
         viewBox="0 0 1000 320"
         preserveAspectRatio="none"
-        className={`absolute -left-[8%] top-0 h-full w-[116%] ${
-          isMoving ? "cm-race-scenery-detail" : ""
-        }`}
+        className="absolute -left-[8%] top-0 h-full w-[116%]"
       >
         <defs>
           <pattern
             id={`${detailId}-grain`}
-            width="5"
-            height="5"
+            width="3.2"
+            height="3.2"
             patternUnits="userSpaceOnUse"
           >
-            <circle cx="1" cy="1" r="0.42" fill="#FFFDF4" opacity="0.24" />
-            <circle cx="4" cy="3" r="0.32" fill="#071A17" opacity="0.18" />
+            <circle cx="0.55" cy="0.7" r="0.16" fill="#FFFDF4" opacity="0.28" />
+            <circle cx="2.45" cy="1.35" r="0.12" fill="#071A17" opacity="0.2" />
+            <circle cx="1.5" cy="2.7" r="0.1" fill="#FFFDF4" opacity="0.2" />
+          </pattern>
+          <pattern
+            id={`${detailId}-micro-lines`}
+            width="13"
+            height="11"
+            patternUnits="userSpaceOnUse"
+          >
+            <path d="M1 3h3.4M8 8h2.1" stroke="#FFFDF4" strokeWidth="0.16" opacity="0.22" />
+            <path d="M5 10h1.8" stroke="#071A17" strokeWidth="0.13" opacity="0.16" />
           </pattern>
           <pattern
             id={`${detailId}-tiles`}
@@ -76,7 +86,13 @@ export function RaceSceneryBackdrop({
           width="1000"
           height="235"
           fill={`url(#${detailId}-grain)`}
-          opacity="0.17"
+          opacity="0.13"
+        />
+        <rect
+          width="1000"
+          height="235"
+          fill={`url(#${detailId}-micro-lines)`}
+          opacity="0.11"
         />
       </svg>
     </div>

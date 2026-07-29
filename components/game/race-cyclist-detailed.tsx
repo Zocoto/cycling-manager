@@ -13,10 +13,12 @@ export function SideRaceCyclist({
   rider,
   isMoving = true,
   className = "h-12 w-[5.25rem]",
+  celebrating = false,
 }: {
   rider: RiderSimulationInput;
   isMoving?: boolean;
   className?: string;
+  celebrating?: boolean;
 }) {
   const visual = getRaceCyclistJerseyVisual(rider);
   const helmet = getRaceCyclistTeamHelmetPalette(rider);
@@ -155,15 +157,32 @@ export function SideRaceCyclist({
         visual={visual}
       />
       <path d="m35 19-8 8" stroke={visual.secondaryColor} strokeWidth="2.8" strokeLinecap="round" />
-      <path
-        d="m57 17 8 7 7-3"
-        fill="none"
-        stroke={skin.skinTone}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="m70 20 4-1" stroke="#17261E" strokeWidth="1.25" strokeLinecap="round" />
+      {celebrating ? (
+        <g data-race-victory-pose="arms-raised" className="cm-victory-arms">
+          <path
+            d="m56 17 6-9 4-6M50 16 46 8 43 2"
+            fill="none"
+            stroke={skin.skinTone}
+            strokeWidth="2.35"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="66" cy="2" r="1.45" fill={skin.skinTone} />
+          <circle cx="43" cy="2" r="1.45" fill={skin.skinTone} />
+        </g>
+      ) : (
+        <>
+          <path
+            d="m57 17 8 7 7-3"
+            fill="none"
+            stroke={skin.skinTone}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="m70 20 4-1" stroke="#17261E" strokeWidth="1.25" strokeLinecap="round" />
+        </>
+      )}
 
       <circle cx="62" cy="8.8" r="4.4" fill={skin.skinTone} stroke={skin.skinShadow} strokeWidth="0.65" />
       <g data-race-helmet-team-colors="true">
@@ -191,9 +210,11 @@ export function SideRaceCyclist({
 export function TopRaceCyclist({
   rider,
   isMoving = true,
+  celebrating = false,
 }: {
   rider: RiderSimulationInput;
   isMoving?: boolean;
+  celebrating?: boolean;
 }) {
   const visual = getRaceCyclistJerseyVisual(rider);
   const helmet = getRaceCyclistTeamHelmetPalette(rider);
@@ -233,6 +254,20 @@ export function TopRaceCyclist({
         <path d="m51 13 13 3m-13 13 13-3" stroke={skin.skinTone} strokeWidth="2.1" strokeLinecap="round" />
       </g>
       <ellipse cx="47" cy="21" rx="14" ry="8.7" fill={visual.primaryColor} stroke="#F4F7F5" strokeWidth="0.8" />
+      {celebrating ? (
+        <g data-race-victory-pose="arms-raised" className="cm-victory-arms">
+          <path
+            d="M41 17 32 8 23 3M52 17 61 8 70 3"
+            fill="none"
+            stroke={skin.skinTone}
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="23" cy="3" r="1.45" fill={skin.skinTone} />
+          <circle cx="70" cy="3" r="1.45" fill={skin.skinTone} />
+        </g>
+      ) : null}
       <RaceJerseyOverlay
         rider={rider}
         clipId={clipId}
