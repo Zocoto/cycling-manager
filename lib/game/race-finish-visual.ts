@@ -4,6 +4,7 @@ import type {
 } from "./race-simulation";
 
 export const FINAL_KILOMETER_DURATION_MS = 8_000;
+export const FINAL_FINISH_PASSAGE_DURATION_MS = 5_000;
 
 type SprintVisualRider = Pick<
   RiderSimulationInput,
@@ -237,35 +238,8 @@ export function getVisibleFinalBattleRiderIds(
   scenario: FinalBattleScenario,
   battleProgress: number
 ) {
-  const progress = clamp(battleProgress, 0, 1);
-  const visibleRiderIds = new Set(
-    scenario.entryLeaderIds.length > 0
-      ? scenario.entryLeaderIds
-      : scenario.contenderIds
-  );
-
-  scenario.lateJoiners.forEach((lateJoiner, index) => {
-    if (
-      progress >=
-      getLateJoinerRevealProgress(
-        lateJoiner.gapToLeaderSeconds,
-        index,
-        scenario.lateJoiners.length
-      )
-    ) {
-      visibleRiderIds.add(lateJoiner.riderId);
-    }
-  });
-
-  if (progress >= 1) {
-    scenario.contenderIds.forEach((riderId) =>
-      visibleRiderIds.add(riderId)
-    );
-  }
-
-  return scenario.contenderIds.filter((riderId) =>
-    visibleRiderIds.has(riderId)
-  );
+  void battleProgress;
+  return scenario.contenderIds;
 }
 
 export function getFinalReplayMeters({
@@ -330,6 +304,74 @@ export function getFinalReplayMeters({
   );
 }
 
+export function getFinalReplayFrame({
+  startedWithMeters,
+  startedWithPassageProgress = 0,
+  finalSegmentMeters,
+  elapsedMs,
+  playbackSpeed,
+  approachDurationMs,
+}: {
+  startedWithMeters: number;
+  startedWithPassageProgress?: number;
+  finalSegmentMeters: number;
+  elapsedMs: number;
+  playbackSpeed: number;
+  approachDurationMs: number;
+}) {
+  const metersRemaining = getFinalReplayMeters({
+    startedWithMeters,
+    finalSegmentMeters,
+    elapsedMs,
+    playbackSpeed,
+    approachDurationMs,
+  });
+  const winnerPassageDurationMs = getFinalReplayWinnerDurationMs({
+    startedWithMeters,
+    finalSegmentMeters,
+    playbackSpeed,
+    approachDurationMs,
+  });
+  const finishPassageProgress = metersRemaining > 0
+    ? 0
+    : clamp(
+        startedWithPassageProgress +
+          Math.max(0, elapsedMs - winnerPassageDurationMs) /
+            (FINAL_FINISH_PASSAGE_DURATION_MS / Math.max(0.1, playbackSpeed)),
+        0,
+        1
+      );
+
+  return {
+    metersRemaining,
+    finishPassageProgress,
+    complete: metersRemaining <= 0 && finishPassageProgress >= 1,
+  };
+}
+
+function getFinalReplayWinnerDurationMs({
+  startedWithMeters,
+  finalSegmentMeters,
+  playbackSpeed,
+  approachDurationMs,
+}: {
+  startedWithMeters: number;
+  finalSegmentMeters: number;
+  playbackSpeed: number;
+  approachDurationMs: number;
+}) {
+  const speed = Math.max(0.1, playbackSpeed);
+  const lastKilometerStart = Math.min(1_000, startedWithMeters);
+  const approachDistance = Math.max(0, startedWithMeters - lastKilometerStart);
+  const fullApproachDistance = Math.max(1, finalSegmentMeters - 1_000);
+  const currentApproachDurationMs =
+    (approachDurationMs * approachDistance) / fullApproachDistance / speed;
+  const lastKilometerDurationMs =
+    (FINAL_KILOMETER_DURATION_MS * lastKilometerStart) / 1_000 / speed;
+
+  return currentApproachDurationMs + lastKilometerDurationMs;
+}
+
 export function getFinishTargetPosition({
   rank,
   hasFinished,
@@ -355,7 +397,93 @@ export function shouldWinnerCelebrate({
   metersRemaining: number;
   isPhotoFinish: boolean;
 }) {
-  return !isPhotoFinish && metersRemaining <= 35;
+  return !isPhotoFinish && metersRemaining <= 180;
+}
+
+export function getFinalGroupEntryPosition({
+  groupGapSeconds,
+  riderIndex,
+  groupSize,
+}: {
+  groupGapSeconds: number;
+  riderIndex: number;
+  groupSize: number;
+}) {
+  const groupFront = 62 - Math.min(48, Math.max(0, groupGapSeconds) * 0.45);
+  const groupSpan = Math.min(8, Math.max(0, groupSize - 1) * 1.6);
+  const riderOffset = groupSize <= 1
+    ? 0
+    : (Math.max(0, riderIndex) / (groupSize - 1)) * groupSpan;
+
+  return clamp(groupFront - riderOffset, 9, 82);
+}
+
+export function getFinalApproachPosition({
+  rank,
+  gapToWinnerSeconds,
+  finishLinePosition,
+}: {
+  rank: number;
+  gapToWinnerSeconds: number;
+  finishLinePosition: number;
+}) {
+  if (rank <= 1) return finishLinePosition;
+
+  const officialGapSpacing = Math.min(
+    58,
+    Math.max(0, gapToWinnerSeconds) * 0.42
+  );
+  const sameTimeRankSpacing = gapToWinnerSeconds <= 0
+    ? Math.min(12, (rank - 1) * 1.2)
+    : Math.min(10, (rank - 1) * 0.35);
+
+  return clamp(
+    finishLinePosition - 1.6 - officialGapSpacing - sameTimeRankSpacing,
+    8,
+    finishLinePosition - 1
+  );
+}
+
+export function getFinishPassagePosition({
+  approachPosition,
+  rank,
+  riderCount,
+  gapToWinnerSeconds,
+  maximumGapToWinnerSeconds,
+  finishPassageProgress,
+  finishLinePosition,
+}: {
+  approachPosition: number;
+  rank: number;
+  riderCount: number;
+  gapToWinnerSeconds: number;
+  maximumGapToWinnerSeconds: number;
+  finishPassageProgress: number;
+  finishLinePosition: number;
+}) {
+  const gapProgress = maximumGapToWinnerSeconds > 0
+    ? clamp(gapToWinnerSeconds / maximumGapToWinnerSeconds, 0, 1)
+    : 0;
+  const rankProgress = riderCount > 1
+    ? clamp((rank - 1) / (riderCount - 1), 0, 1)
+    : 0;
+  const crossingAt = rank <= 1
+    ? 0
+    : clamp(0.12 + gapProgress * 0.62 + rankProgress * 0.18, 0.12, 0.88);
+  const crossingProgress = rank <= 1
+    ? clamp(finishPassageProgress / 0.08, 0, 1)
+    : clamp((finishPassageProgress - crossingAt) / 0.1, 0, 1);
+  const afterLinePosition =
+    finishLinePosition +
+    3.5 +
+    Math.min(2.5, Math.max(0, riderCount - rank) * 0.18);
+
+  return clamp(
+    approachPosition * (1 - crossingProgress) +
+      afterLinePosition * crossingProgress,
+    8,
+    92
+  );
 }
 
 type SmallGroupFinishPositionInput = {
@@ -371,6 +499,8 @@ type SmallGroupFinishPositionInput = {
   visualSeed: number;
   hasFinished: boolean;
   finishLinePosition: number;
+  entryPositionOverride?: number;
+  finishPositionOverride?: number;
 };
 
 /**
@@ -391,6 +521,8 @@ export function getSmallGroupFinishPosition({
   visualSeed,
   hasFinished,
   finishLinePosition,
+  entryPositionOverride,
+  finishPositionOverride,
 }: SmallGroupFinishPositionInput) {
   const safeRiderCount = Math.max(1, riderCount);
   const entrySlot =
@@ -401,7 +533,8 @@ export function getSmallGroupFinishPosition({
   const lateJoinerPenalty = lateJoinerGapSeconds === null
     ? 0
     : Math.min(14, 5 + lateJoinerGapSeconds * 0.28);
-  const readableEntryPosition = Math.max(9, entryPosition - lateJoinerPenalty);
+  const readableEntryPosition = entryPositionOverride ??
+    Math.max(9, entryPosition - lateJoinerPenalty);
 
   const leaderTarget = getFinishTargetPosition({
     rank: 1,
@@ -419,9 +552,10 @@ export function getSmallGroupFinishPosition({
   const droppedSpacing = droppedCount <= 1
     ? 0
     : Math.min(6.5, (droppedStart - 9) / (droppedCount - 1));
-  const finishPosition = decisiveIndex >= 0
-    ? leaderTarget - decisiveIndex * decisiveSpacing
-    : droppedStart - Math.max(0, droppedIndex) * droppedSpacing;
+  const finishPosition = finishPositionOverride ??
+    (decisiveIndex >= 0
+      ? leaderTarget - decisiveIndex * decisiveSpacing
+      : droppedStart - Math.max(0, droppedIndex) * droppedSpacing);
   const movement =
     Math.sin(finalProgress * 20 + riderIndex * 1.9 + visualSeed) *
     1.6 *
@@ -436,15 +570,6 @@ export function getSmallGroupFinishPosition({
   );
 }
 
-function getLateJoinerRevealProgress(
-  gapToLeaderSeconds: number,
-  index: number,
-  count: number
-) {
-  const gapFactor = clamp(gapToLeaderSeconds / 60, 0, 1);
-  const orderFactor = count > 1 ? index / (count - 1) : 0;
-  return clamp(0.24 + gapFactor * 0.28 + orderFactor * 0.2, 0.24, 0.78);
-}
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.max(minimum, Math.min(maximum, value));

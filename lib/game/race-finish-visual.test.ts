@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildSprintVisualBattle,
   buildSprintVisualTeams,
+  getFinalApproachPosition,
+  getFinalGroupEntryPosition,
+  getFinalReplayFrame,
   getFinalReplayMeters,
+  getFinishPassagePosition,
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
@@ -18,6 +22,20 @@ const scenario: FinalBattleScenario = {
   droppedRiderIds: ["leader-2"],
   entryLeaderIds: ["leader-1", "leader-2"],
   entryGroupLabel: "Échappée",
+  entryGroups: [
+    {
+      id: "leaders",
+      label: "Échappée",
+      gapToLeaderSeconds: 0,
+      riderIds: ["leader-1", "leader-2"],
+    },
+    {
+      id: "chasers",
+      label: "Peloton",
+      gapToLeaderSeconds: 20,
+      riderIds: ["joiner-1", "joiner-2"],
+    },
+  ],
   lateJoiners: [
     {
       riderId: "joiner-1",
@@ -128,15 +146,11 @@ describe("final race visualization", () => {
     ).toEqual(["a", "b", "c", "d", "winner"]);
   });
 
-  it("ne montre au début que le groupe de tête puis révèle les coureurs qui recollent", () => {
-    expect(getVisibleFinalBattleRiderIds(scenario, 0)).toEqual([
-      "leader-1",
-      "leader-2",
-    ]);
-    expect(getVisibleFinalBattleRiderIds(scenario, 0.5)).toContain(
-      "joiner-1"
+  it("conserve tous les groupes visibles dès l'entrée du dernier tronçon", () => {
+    expect(getVisibleFinalBattleRiderIds(scenario, 0)).toEqual(
+      scenario.contenderIds
     );
-    expect(getVisibleFinalBattleRiderIds(scenario, 1)).toEqual(
+    expect(getVisibleFinalBattleRiderIds(scenario, 0.5)).toEqual(
       scenario.contenderIds
     );
   });
@@ -155,6 +169,24 @@ describe("final race visualization", () => {
     expect(
       getFinalReplayMeters({ ...parameters, elapsedMs: 8_000 })
     ).toBe(0);
+  });
+
+  it("prolonge le replay jusqu'au passage de tous les coureurs visibles", () => {
+    const parameters = {
+      startedWithMeters: 1_000,
+      finalSegmentMeters: 10_000,
+      playbackSpeed: 1,
+      approachDurationMs: 6_000,
+    };
+
+    expect(getFinalReplayFrame({ ...parameters, elapsedMs: 8_000 })).toEqual({
+      metersRemaining: 0,
+      finishPassageProgress: 0,
+      complete: false,
+    });
+    expect(
+      getFinalReplayFrame({ ...parameters, elapsedMs: 13_000 }).complete
+    ).toBe(true);
   });
 
   it("ne fait franchir la ligne qu'au vainqueur au moment du verdict", () => {
@@ -185,13 +217,13 @@ describe("final race visualization", () => {
   it("lève les bras sur une victoire nette mais garde le guidon au photo-finish", () => {
     expect(
       shouldWinnerCelebrate({
-        metersRemaining: 35,
+        metersRemaining: 180,
         isPhotoFinish: false,
       }),
     ).toBe(true);
     expect(
       shouldWinnerCelebrate({
-        metersRemaining: 36,
+        metersRemaining: 181,
         isPhotoFinish: false,
       }),
     ).toBe(false);
@@ -201,6 +233,65 @@ describe("final race visualization", () => {
         isPhotoFinish: true,
       }),
     ).toBe(false);
+  });
+
+  it("sépare deux groupes selon l'écart réel à l'entrée du tronçon", () => {
+    const leadingGroup = Array.from({ length: 5 }, (_, riderIndex) =>
+      getFinalGroupEntryPosition({
+        groupGapSeconds: 0,
+        riderIndex,
+        groupSize: 5,
+      })
+    );
+    const chasingGroup = Array.from({ length: 3 }, (_, riderIndex) =>
+      getFinalGroupEntryPosition({
+        groupGapSeconds: 60,
+        riderIndex,
+        groupSize: 3,
+      })
+    );
+
+    expect(Math.min(...leadingGroup)).toBeGreaterThan(
+      Math.max(...chasingGroup)
+    );
+  });
+
+  it("fait franchir la ligne progressivement selon le classement et les écarts", () => {
+    const winnerApproach = getFinalApproachPosition({
+      rank: 1,
+      gapToWinnerSeconds: 0,
+      finishLinePosition: 86,
+    });
+    const runnerUpApproach = getFinalApproachPosition({
+      rank: 2,
+      gapToWinnerSeconds: 0,
+      finishLinePosition: 86,
+    });
+    const delayedApproach = getFinalApproachPosition({
+      rank: 6,
+      gapToWinnerSeconds: 60,
+      finishLinePosition: 86,
+    });
+    const position = (
+      approachPosition: number,
+      rank: number,
+      gapToWinnerSeconds: number,
+      finishPassageProgress: number
+    ) =>
+      getFinishPassagePosition({
+        approachPosition,
+        rank,
+        riderCount: 8,
+        gapToWinnerSeconds,
+        maximumGapToWinnerSeconds: 60,
+        finishPassageProgress,
+        finishLinePosition: 86,
+      });
+
+    expect(position(winnerApproach, 1, 0, 0.05)).toBeGreaterThan(86);
+    expect(position(runnerUpApproach, 2, 0, 0.05)).toBeLessThan(86);
+    expect(position(delayedApproach, 6, 60, 0.5)).toBeLessThan(86);
+    expect(position(delayedApproach, 6, 60, 1)).toBeGreaterThan(86);
   });
 
   it("donne neuf positions d'entrée distinctes à un groupe de neuf", () => {

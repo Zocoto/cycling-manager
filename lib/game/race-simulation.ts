@@ -273,12 +273,20 @@ export type StageRaceStandings = {
   }>;
 };
 
+export const FINAL_BATTLE_MAX_VISIBLE_RIDERS = 15;
+
 export type FinalBattleScenario = {
   contenderIds: string[];
   decisiveContenderIds: string[];
   droppedRiderIds: string[];
   entryLeaderIds: string[];
   entryGroupLabel: string;
+  entryGroups: Array<{
+    id: string;
+    label: string;
+    gapToLeaderSeconds: number;
+    riderIds: string[];
+  }>;
   lateJoiners: Array<{
     riderId: string;
     fromGroupLabel: string;
@@ -364,15 +372,25 @@ export function getFinalBattleScenario(
     .map((result) => result.riderId);
 
   if (!entrySnapshot || orderedFinishers.length === 0) {
-    const contenderIds = decisiveContenderIds.length > 0
-      ? decisiveContenderIds
-      : orderedFinishers.slice(0, 8).map((result) => result.riderId);
+    const contenderIds = (
+      decisiveContenderIds.length > 0
+        ? decisiveContenderIds
+        : orderedFinishers.slice(0, 8).map((result) => result.riderId)
+    ).slice(0, FINAL_BATTLE_MAX_VISIBLE_RIDERS);
     return {
       contenderIds,
       decisiveContenderIds: contenderIds,
       droppedRiderIds: [],
       entryLeaderIds: contenderIds,
       entryGroupLabel: "Groupe de tête",
+      entryGroups: [
+        {
+          id: "fallback-leading-group",
+          label: "Groupe de tête",
+          gapToLeaderSeconds: 0,
+          riderIds: contenderIds,
+        },
+      ],
       lateJoiners: [],
     };
   }
@@ -389,24 +407,71 @@ export function getFinalBattleScenario(
   const leadingGroups = eligibleEntryGroups.filter(
     (group) => group.gapToLeaderSeconds === leadingGap
   );
-  const entryLeaderSet = new Set(
-    leadingGroups
-      .flatMap((group) => group.riderIds)
-      .filter((riderId) => finisherIds.has(riderId))
+  const rankByRiderId = new Map(
+    orderedFinishers.map((result) => [result.riderId, result.rank])
   );
-  const contenderSet = new Set([
-    ...entryLeaderSet,
+  const maximumVisibleRiders = FINAL_BATTLE_MAX_VISIBLE_RIDERS;
+  const selectedEntryRiderIds: string[] = [];
+  for (const group of [...eligibleEntryGroups].sort(
+    (first, second) => first.gapToLeaderSeconds - second.gapToLeaderSeconds
+  )) {
+    const groupFinishers = group.riderIds
+      .filter((riderId) => finisherIds.has(riderId))
+      .sort(
+        (first, second) =>
+          (rankByRiderId.get(first) ?? 999) -
+          (rankByRiderId.get(second) ?? 999)
+      );
+    selectedEntryRiderIds.push(
+      ...groupFinishers.slice(
+        0,
+        Math.max(0, maximumVisibleRiders - selectedEntryRiderIds.length)
+      )
+    );
+    if (selectedEntryRiderIds.length >= maximumVisibleRiders) break;
+  }
+
+  const candidateRiderIds = new Set([
+    ...selectedEntryRiderIds,
     ...decisiveContenderIds,
   ]);
   const contenderIds = orderedFinishers
-    .filter((result) => contenderSet.has(result.riderId))
+    .filter((result) => candidateRiderIds.has(result.riderId))
+    .slice(0, maximumVisibleRiders)
     .map((result) => result.riderId);
+  const contenderSet = new Set(contenderIds);
+  const entryLeaderSet = new Set(
+    leadingGroups
+      .flatMap((group) => group.riderIds)
+      .filter((riderId) => contenderSet.has(riderId))
+  );
+  const entryGroups = [...eligibleEntryGroups]
+    .sort(
+      (first, second) =>
+        first.gapToLeaderSeconds - second.gapToLeaderSeconds
+    )
+    .map((group) => ({
+      id: group.id,
+      label: group.label,
+      gapToLeaderSeconds: Math.max(0, group.gapToLeaderSeconds - leadingGap),
+      riderIds: group.riderIds
+        .filter((riderId) => contenderSet.has(riderId))
+        .sort(
+          (first, second) =>
+            (rankByRiderId.get(first) ?? 999) -
+            (rankByRiderId.get(second) ?? 999)
+        ),
+    }))
+    .filter((group) => group.riderIds.length > 0);
   const entryLeaderIds = contenderIds.filter((riderId) =>
     entryLeaderSet.has(riderId)
   );
   const decisiveContenderSet = new Set(decisiveContenderIds);
   const lateJoiners = decisiveContenderIds
-    .filter((riderId) => !entryLeaderSet.has(riderId))
+    .filter(
+      (riderId) =>
+        contenderSet.has(riderId) && !entryLeaderSet.has(riderId)
+    )
     .map((riderId) => {
       const origin = eligibleEntryGroups.find((group) =>
         group.riderIds.includes(riderId)
@@ -422,11 +487,12 @@ export function getFinalBattleScenario(
   return {
     contenderIds,
     decisiveContenderIds,
-    droppedRiderIds: entryLeaderIds.filter(
+    droppedRiderIds: contenderIds.filter(
       (riderId) => !decisiveContenderSet.has(riderId)
     ),
     entryLeaderIds,
     entryGroupLabel: leadingGroups[0]?.label ?? "Groupe de tête",
+    entryGroups,
     lateJoiners,
   };
 }

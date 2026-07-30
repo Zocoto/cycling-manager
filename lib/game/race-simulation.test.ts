@@ -422,7 +422,7 @@ describe("simulateRaceStage", () => {
     );
 
     expect(getFinalBattleRiderIds(massFinish).length).toBeGreaterThan(10);
-    expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(10);
+    expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(15);
     expect(isMassGroupFinish(massFinish)).toBe(true);
     expect(isMassGroupFinish(selectiveFinish)).toBe(false);
   });
@@ -473,10 +473,9 @@ describe("simulateRaceStage", () => {
       createDemoSimulationInput("haute-montagne", 1)
     );
     const scenario = getFinalBattleScenario(simulation);
-    const explainedRiderIds = new Set([
-      ...scenario.entryLeaderIds,
-      ...scenario.lateJoiners.map((lateJoiner) => lateJoiner.riderId),
-    ]);
+    const explainedRiderIds = new Set(
+      scenario.entryGroups.flatMap((group) => group.riderIds)
+    );
 
     expect(explainedRiderIds).toEqual(new Set(scenario.contenderIds));
     expect(
@@ -521,6 +520,20 @@ describe("simulateRaceStage", () => {
     const scenario = getFinalBattleScenario(simulation);
 
     expect(scenario.entryLeaderIds).toEqual(entryLeaderIds);
+    expect(scenario.entryGroups).toEqual([
+      {
+        id: "final-group-of-nine",
+        label: "Groupe de 9",
+        gapToLeaderSeconds: 0,
+        riderIds: entryLeaderIds,
+      },
+      {
+        id: "winner-chasing",
+        label: "Chasse",
+        gapToLeaderSeconds: 8,
+        riderIds: [officialWinnerId],
+      },
+    ]);
     expect(scenario.contenderIds).toContain(officialWinnerId);
     expect(scenario.decisiveContenderIds).toContain(officialWinnerId);
     expect(scenario.lateJoiners).toContainEqual({

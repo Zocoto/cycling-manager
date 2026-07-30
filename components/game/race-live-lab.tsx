@@ -21,7 +21,11 @@ import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-cal
 import {
   buildSprintVisualBattle,
   buildSprintVisualTeams,
-  getFinalReplayMeters,
+  FINAL_FINISH_PASSAGE_DURATION_MS,
+  getFinalApproachPosition,
+  getFinalGroupEntryPosition,
+  getFinalReplayFrame,
+  getFinishPassagePosition,
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
@@ -117,6 +121,8 @@ export function RaceLiveLab({
     () => Math.round((stage.segments.at(-1)?.distanceKm ?? 0) * 1_000)
   );
   const finalMetersRemainingRef = useRef(finalMetersRemaining);
+  const [finishPassageProgress, setFinishPassageProgress] = useState(0);
+  const finishPassageProgressRef = useRef(0);
   const [tab, setTab] = useState<LabTab>("live");
   const clock = useSynchronizedRaceClock(nowIso, 1_000);
   const riderById = useMemo(
@@ -141,6 +147,10 @@ export function RaceLiveLab({
   useEffect(() => {
     replaySegmentProgressRef.current = replaySegmentProgress;
   }, [replaySegmentProgress]);
+
+  useEffect(() => {
+    finishPassageProgressRef.current = finishPassageProgress;
+  }, [finishPassageProgress]);
 
   useEffect(() => {
     if (mode !== "replay" || !isPlaying) return;
@@ -209,6 +219,21 @@ export function RaceLiveLab({
     mode === "live"
       ? Math.round(finalSegmentMeters * (1 - liveFinalProgress))
       : finalMetersRemaining;
+  const liveFinishPassageProgress =
+    mode === "live" && liveState.status === "finished" && liveState.endsAt
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            (clock.getTime() - Date.parse(liveState.endsAt)) /
+              FINAL_FINISH_PASSAGE_DURATION_MS
+          )
+        )
+      : 0;
+  const displayedFinishPassageProgress =
+    mode === "live"
+      ? liveFinishPassageProgress
+      : finishPassageProgress;
   const liveSegmentProgress = Math.max(
     0,
     Math.min(
@@ -236,16 +261,21 @@ export function RaceLiveLab({
 
     const startedAt = Date.now();
     const startedWithMeters = finalMetersRemainingRef.current;
+    const startedWithPassageProgress = finishPassageProgressRef.current;
     const timer = window.setInterval(() => {
-      const metersRemaining = getFinalReplayMeters({
+      const frame = getFinalReplayFrame({
         startedWithMeters,
+        startedWithPassageProgress,
         finalSegmentMeters,
         elapsedMs: Date.now() - startedAt,
         playbackSpeed,
         approachDurationMs: REPLAY_STEP_DURATION_MS,
       });
-      setFinalMetersRemaining(metersRemaining);
-      if (metersRemaining <= 0) setIsPlaying(false);
+      finalMetersRemainingRef.current = frame.metersRemaining;
+      finishPassageProgressRef.current = frame.finishPassageProgress;
+      setFinalMetersRemaining(frame.metersRemaining);
+      setFinishPassageProgress(frame.finishPassageProgress);
+      if (frame.complete) setIsPlaying(false);
     }, 100);
 
     return () => window.clearInterval(timer);
@@ -285,6 +315,7 @@ export function RaceLiveLab({
                 setActiveIndex(0);
                 setReplaySegmentProgress(0);
                 setFinalMetersRemaining(finalSegmentMeters);
+                setFinishPassageProgress(0);
                 setIsPlaying(true);
                 setTab("live");
               }}
@@ -369,6 +400,7 @@ export function RaceLiveLab({
                     setActiveIndex(segmentNumber - 1);
                     setReplaySegmentProgress(0);
                     setFinalMetersRemaining(finalSegmentMeters);
+                    setFinishPassageProgress(0);
                     setIsPlaying(false);
                   }
                 : undefined
@@ -383,10 +415,15 @@ export function RaceLiveLab({
               {mode === "replay" ? <button
                 type="button"
                 onClick={() => {
-                  if (isFinal && !isPlaying && finalMetersRemaining <= 0) {
+                  if (
+                    isFinal &&
+                    !isPlaying &&
+                    finishPassageProgress >= 1
+                  ) {
                     setActiveIndex(0);
                     setReplaySegmentProgress(0);
                     setFinalMetersRemaining(finalSegmentMeters);
+                    setFinishPassageProgress(0);
                     setIsPlaying(true);
                     return;
                   }
@@ -397,7 +434,7 @@ export function RaceLiveLab({
                 <span aria-hidden="true">{isPlaying ? "Ⅱ" : "▶"}</span>
                 {isPlaying
                   ? "Pause"
-                  : isFinal && finalMetersRemaining <= 0
+                  : isFinal && finishPassageProgress >= 1
                     ? "Revoir"
                     : "Lire la course"}
               </button> : (
@@ -428,6 +465,7 @@ export function RaceLiveLab({
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
               scenario={finalBattleScenario}
+              finishPassageProgress={displayedFinishPassageProgress}
               weather={raceWeather}
             />
           ) : isFinal && isRoad ? (
@@ -439,6 +477,7 @@ export function RaceLiveLab({
               metersRemaining={displayedFinalMeters}
               finalSegmentMeters={finalSegmentMeters}
               scenario={finalBattleScenario}
+              finishPassageProgress={displayedFinishPassageProgress}
               weather={raceWeather}
             />
           ) : (
@@ -1547,6 +1586,7 @@ function SprintLaneView({
   metersRemaining,
   finalSegmentMeters,
   scenario,
+  finishPassageProgress,
   weather,
 }: {
   simulation: StageSimulationResult;
@@ -1555,6 +1595,7 @@ function SprintLaneView({
   metersRemaining: number;
   finalSegmentMeters: number;
   scenario: ReturnType<typeof getFinalBattleScenario>;
+  finishPassageProgress: number;
   weather: RaceWeather;
 }) {
   const leadingFinishGroupRiderIds =
@@ -1575,6 +1616,10 @@ function SprintLaneView({
         (first.rank ?? 999) - (second.rank ?? 999)
     );
   const visibleFinalists = finalists;
+  const maximumGapToWinnerSeconds = Math.max(
+    0,
+    ...visibleFinalists.map((result) => result.gapToWinnerSeconds)
+  );
   const sprintTeams = buildSprintVisualTeams(
     visibleFinalists.map((result) => {
       const rider = riderById.get(result.riderId)!;
@@ -1612,7 +1657,8 @@ function SprintLaneView({
   const decisiveProgress =
     sprintProgress * sprintProgress * (3 - 2 * sprintProgress);
   const showFinishLine = metersRemaining <= FINISH_LINE_REVEAL_METERS;
-  const hasFinished = metersRemaining <= 0;
+  const winnerHasFinished = metersRemaining <= 0;
+  const raceComplete = winnerHasFinished && finishPassageProgress >= 1;
   const phaseLabel = getMassSprintPhase(metersRemaining);
   const isPhotoFinish =
     sprintBattle.dominantWinnerId === null &&
@@ -1628,7 +1674,7 @@ function SprintLaneView({
     <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
       <RoadTextureOverlay
         surface={segment.surface}
-        isMoving={!hasFinished}
+        isMoving={!raceComplete}
       />
       <FinishRoadsideInfrastructure mode="top" />
       <RaceWeatherOverlay weather={weather} />
@@ -1646,7 +1692,7 @@ function SprintLaneView({
           data-road-center-marking="classic"
           data-road-flow-direction="right-to-left"
           className={`absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.78)_0_42px,transparent_42px_78px)] [background-size:78px_3px] ${
-            !hasFinished ? "cm-race-road-marking-strip" : ""
+            !raceComplete ? "cm-race-road-marking-strip" : ""
           }`}
         />
       ) : null}
@@ -1659,12 +1705,12 @@ function SprintLaneView({
             ? `Favoris : ${favoriteNames.join(" · ")}`
             : `${battleRiderIds.length} coureurs dans le groupe de tête`}
         </p>
-        {!hasFinished && sprintBattle.dominantWinnerId ? (
+        {!winnerHasFinished && sprintBattle.dominantWinnerId ? (
           <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
             Un favori creuse nettement l’écart
           </p>
         ) : null}
-        {hasFinished && isPhotoFinish ? (
+        {winnerHasFinished && isPhotoFinish ? (
           <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
             Photo-finish · victoire au coude-à-coude
           </p>
@@ -1725,7 +1771,7 @@ function SprintLaneView({
         );
         const finishPosition = getFinishTargetPosition({
           rank: index + 1,
-          hasFinished,
+          hasFinished: false,
           finishLinePosition: 84,
         });
         const dominanceProgress = Math.max(
@@ -1739,7 +1785,7 @@ function SprintLaneView({
                 favoriteRiderSet.has(result.riderId)
               ? -dominanceProgress * Math.max(0.5, favoriteIndex * 0.45)
               : 0;
-        const left = Math.max(
+        const approachLeft = Math.max(
           14,
           Math.min(
             90,
@@ -1748,6 +1794,16 @@ function SprintLaneView({
               dominanceOffset
           )
         );
+        const left = getFinishPassagePosition({
+          approachPosition: approachLeft,
+          rank: result.rank ?? index + 1,
+          riderCount: visibleFinalists.length,
+          gapToWinnerSeconds: result.gapToWinnerSeconds,
+          maximumGapToWinnerSeconds,
+          finishPassageProgress,
+          finishLinePosition: 84,
+        });
+        const riderHasFinished = winnerHasFinished && left > 84;
         return (
           <div
             key={result.riderId}
@@ -1766,7 +1822,7 @@ function SprintLaneView({
                     : 0)
               }%`,
             }}
-            title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
+            title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
             <TopRaceCyclist
               rider={rider}
@@ -1778,12 +1834,12 @@ function SprintLaneView({
                 })
               }
             />
-            {hasFinished && result.rank !== null && result.rank <= 3 ? (
+            {riderHasFinished && result.rank !== null && result.rank <= 3 ? (
               <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[9px] font-black text-white shadow-lg">
                 {result.rank}. {rider.name.split(" ").at(-1)}
               </span>
             ) : null}
-            {!hasFinished && favoriteIndex >= 0 ? (
+            {!riderHasFinished && favoriteIndex >= 0 ? (
               <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[8px] font-black text-white/90 shadow-lg">
                 {rider.name.split(" ").at(-1)}
                 {wheelTarget
@@ -1796,7 +1852,7 @@ function SprintLaneView({
           </div>
         );
       })}
-      {hasFinished && winner ? (
+      {raceComplete && winner ? (
         <FinishVictoryBanner winner={winner} />
       ) : null}
     </RaceVisualViewport>
@@ -1811,6 +1867,7 @@ function FinishBattleView({
   metersRemaining,
   finalSegmentMeters,
   scenario,
+  finishPassageProgress,
   weather,
 }: {
   simulation: StageSimulationResult;
@@ -1820,6 +1877,7 @@ function FinishBattleView({
   metersRemaining: number;
   finalSegmentMeters: number;
   scenario: ReturnType<typeof getFinalBattleScenario>;
+  finishPassageProgress: number;
   weather: RaceWeather;
 }) {
   const battleRiderIds = scenario.contenderIds;
@@ -1842,7 +1900,7 @@ function FinishBattleView({
     isFinish: true,
   });
   const finishRoadPatternId = "finish-road-surface";
-  const battleDistance = Math.min(2_400, finalSegmentMeters);
+  const battleDistance = Math.max(1, finalSegmentMeters);
   const battleProgress = Math.max(
     0,
     Math.min(1, (battleDistance - metersRemaining) / battleDistance)
@@ -1870,7 +1928,20 @@ function FinishBattleView({
     visibleBattleRiderIds.has(result.riderId)
   );
   const showFinishLine = metersRemaining <= FINISH_LINE_REVEAL_METERS;
-  const hasFinished = metersRemaining <= 0;
+  const winnerHasFinished = metersRemaining <= 0;
+  const raceComplete = winnerHasFinished && finishPassageProgress >= 1;
+  const maximumGapToWinnerSeconds = Math.max(
+    0,
+    ...allFinalists.map((result) => result.gapToWinnerSeconds)
+  );
+  const entryGroupByRiderId = new Map(
+    scenario.entryGroups.flatMap((group) =>
+      group.riderIds.map((riderId, riderIndex) => [
+        riderId,
+        { ...group, riderIndex },
+      ] as const)
+    )
+  );
   const lateJoinerById = new Map(
     scenario.lateJoiners.map((lateJoiner) => [lateJoiner.riderId, lateJoiner])
   );
@@ -1892,6 +1963,15 @@ function FinishBattleView({
   const droppedRiderNames = scenario.droppedRiderIds
     .map((riderId) => riderById.get(riderId)?.name)
     .filter((name): name is string => Boolean(name));
+  const entrySituationText = scenario.entryGroups
+    .map((group) =>
+      `${group.label} (${group.riderIds.length})${
+        group.gapToLeaderSeconds > 0
+          ? ` à +${formatGap(group.gapToLeaderSeconds)}`
+          : " en tête"
+      }`
+    )
+    .join(" · ");
   const decisiveMovementText = [
     lateJoinerNames.length > 0
       ? `${formatRiderNames(lateJoinerNames)} revien${lateJoinerNames.length > 1 ? "nent" : "t"} depuis la chasse.`
@@ -1923,12 +2003,12 @@ function FinishBattleView({
     <div>
     <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[linear-gradient(#8BCAD7_0_45%,#91B879_45%_100%)] shadow-inner shadow-black/30">
       <div aria-hidden="true" className="absolute left-8 top-7 h-14 w-14 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
-      <RaceSceneryBackdrop kind={finishScenery} isMoving={!hasFinished} showSpectators={false} />
+      <RaceSceneryBackdrop kind={finishScenery} isMoving={!raceComplete} showSpectators={false} />
       <svg aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
         <RoadSurfaceDefinition
           id={finishRoadPatternId}
           surface={segment.surface}
-          isMoving={!hasFinished}
+          isMoving={!raceComplete}
         />
         <path
           d={`M -30 ${roadBottomLeftY} L 1030 ${roadBottomRightY} L 1030 320 L -30 320 Z`}
@@ -1965,7 +2045,7 @@ function FinishBattleView({
             strokeWidth="4"
             strokeDasharray="42 34"
             data-road-flow-direction="right-to-left"
-            className={!hasFinished ? "cm-race-road-marking-svg" : ""}
+            className={!raceComplete ? "cm-race-road-marking-svg" : ""}
           />
         ) : null}
         {[0, roadDepthY].map((depth) => (
@@ -1980,7 +2060,7 @@ function FinishBattleView({
       </svg>
       <RaceRoadsideCrowd
         show
-        isMoving={!hasFinished}
+        isMoving={!raceComplete}
         roadLeftY={roadLeftY}
         roadRightY={roadRightY}
         roadDepthY={roadDepthY}
@@ -2019,7 +2099,19 @@ function FinishBattleView({
         );
         const decisiveIndex = decisiveRiderIds.indexOf(result.riderId);
         const droppedIndex = droppedRiderIds.indexOf(result.riderId);
-        const left = getSmallGroupFinishPosition({
+        const riderRank = result.rank ?? finalIndex + 1;
+        const entryGroup = entryGroupByRiderId.get(result.riderId);
+        const entryPosition = getFinalGroupEntryPosition({
+          groupGapSeconds: entryGroup?.gapToLeaderSeconds ?? 0,
+          riderIndex: entryGroup?.riderIndex ?? finalIndex,
+          groupSize: entryGroup?.riderIds.length ?? allFinalists.length,
+        });
+        const finishApproachPosition = getFinalApproachPosition({
+          rank: riderRank,
+          gapToWinnerSeconds: result.gapToWinnerSeconds,
+          finishLinePosition: 86,
+        });
+        const approachLeft = getSmallGroupFinishPosition({
           riderIndex: finalIndex,
           riderCount: allFinalists.length,
           decisiveIndex,
@@ -2030,21 +2122,37 @@ function FinishBattleView({
           finalProgress,
           battleProgress: decisiveProgress,
           visualSeed: finishVisualSeed,
-          hasFinished,
+          hasFinished: false,
+          finishLinePosition: 86,
+          entryPositionOverride: entryPosition,
+          finishPositionOverride: finishApproachPosition,
+        });
+        const left = getFinishPassagePosition({
+          approachPosition: approachLeft,
+          rank: riderRank,
+          riderCount: allFinalists.length,
+          gapToWinnerSeconds: result.gapToWinnerSeconds,
+          maximumGapToWinnerSeconds,
+          finishPassageProgress,
           finishLinePosition: 86,
         });
+        const riderHasFinished = winnerHasFinished && left > 86;
         const roadY =
           roadLeftY +
           (roadRightY - roadLeftY) * (left / 100) +
           roadDepthY * 0.55;
-        const riderStatus = hasFinished
+        const riderStatus = riderHasFinished
           ? result.rank === 1
             ? "Vainqueur"
             : result.gapToWinnerSeconds === 0
               ? `${result.rank}. · MT`
               : `${result.rank}. · +${formatGap(result.gapToWinnerSeconds)}`
-          : lateJoiner && battleProgress < 0.58
-            ? `Revient · +${formatGap(lateJoiner.gapToLeaderSeconds)}`
+          : entryGroup &&
+              entryGroup.gapToLeaderSeconds > 0 &&
+              battleProgress < 0.35
+            ? `${entryGroup.label} · +${formatGap(entryGroup.gapToLeaderSeconds)}`
+            : lateJoiner && battleProgress < 0.58
+              ? `Revient · +${formatGap(lateJoiner.gapToLeaderSeconds)}`
             : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42
               ? "Décroché"
               : decisiveRiderSet.has(result.riderId) && battleProgress >= 0.35
@@ -2061,11 +2169,11 @@ function FinishBattleView({
               left: `${left}%`,
               top: `${(roadY / 320) * 100}%`,
             }}
-            title={`${hasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
+            title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
             <SideRaceCyclist
               rider={rider}
-              isMoving
+              isMoving={!raceComplete}
               celebrating={
                 result.riderId === winnerResult?.riderId &&
                 shouldWinnerCelebrate({
@@ -2075,7 +2183,7 @@ function FinishBattleView({
               }
               className="h-12 w-[4.5rem]"
             />
-            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${finalIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && hasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42 ? "border-[#B85A32]/65 bg-[#301A15]/92" : "border-white/20 bg-[#071A17]/90"}`}>
+            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${finalIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42 ? "border-[#B85A32]/65 bg-[#301A15]/92" : "border-white/20 bg-[#071A17]/90"}`}>
               <span className="flex items-center gap-1 text-[9px] font-black text-white">
                 <span
                   aria-hidden="true"
@@ -2093,27 +2201,29 @@ function FinishBattleView({
           </div>
         );
       })}
-      {hasFinished && winner ? (
+      {raceComplete && winner ? (
         <FinishVictoryBanner winner={winner} />
       ) : null}
     </RaceVisualViewport>
     <div className="mt-3 grid gap-2 sm:grid-cols-3">
       <FinishScenarioStep
         label="Entrée du tronçon"
-        text={`${scenario.entryGroupLabel} : ${formatRiderNames(entryLeaderNames)} ouvre${entryLeaderNames.length > 1 ? "nt" : ""} la route.`}
+        text={entrySituationText || `${scenario.entryGroupLabel} : ${formatRiderNames(entryLeaderNames)} ouvre la route.`}
         active={battleProgress === 0}
       />
       <FinishScenarioStep
         label="Mouvement décisif"
         text={decisiveMovementText || `Les attaques se font uniquement entre les ${battleRiderIds.length} coureurs déjà présents en tête.`}
-        active={battleProgress > 0 && !hasFinished}
+        active={battleProgress > 0 && !raceComplete}
       />
       <FinishScenarioStep
         label="Verdict sur la ligne"
-        text={hasFinished && winner
-          ? `Victoire de ${winner.name} pour ${winner.teamName}${runnerUp ? ` devant ${runnerUp.name}` : ""}.`
-          : "Le classement reste masqué jusqu’au franchissement de la ligne."}
-        active={hasFinished}
+        text={raceComplete && winner
+          ? `Victoire de ${winner.name} pour ${winner.teamName}${runnerUp ? ` devant ${runnerUp.name}` : ""}. Tous les coureurs du final ont franchi la ligne.`
+          : winnerHasFinished
+            ? "Le vainqueur a franchi la ligne, les autres coureurs du final arrivent à leur tour."
+            : "Le classement reste masqué jusqu'au franchissement de la ligne."}
+        active={winnerHasFinished}
       />
     </div>
     </div>
