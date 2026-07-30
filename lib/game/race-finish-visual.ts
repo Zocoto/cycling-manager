@@ -5,6 +5,7 @@ import type {
 
 export const FINAL_KILOMETER_DURATION_MS = 8_000;
 export const FINAL_FINISH_PASSAGE_DURATION_MS = 5_000;
+export const FINISH_LINE_REVEAL_METERS = 500;
 
 type SprintVisualRider = Pick<
   RiderSimulationInput,
@@ -311,6 +312,7 @@ export function getFinalReplayFrame({
   elapsedMs,
   playbackSpeed,
   approachDurationMs,
+  finishPassageDurationMs = FINAL_FINISH_PASSAGE_DURATION_MS,
 }: {
   startedWithMeters: number;
   startedWithPassageProgress?: number;
@@ -318,6 +320,7 @@ export function getFinalReplayFrame({
   elapsedMs: number;
   playbackSpeed: number;
   approachDurationMs: number;
+  finishPassageDurationMs?: number;
 }) {
   const metersRemaining = getFinalReplayMeters({
     startedWithMeters,
@@ -337,7 +340,7 @@ export function getFinalReplayFrame({
     : clamp(
         startedWithPassageProgress +
           Math.max(0, elapsedMs - winnerPassageDurationMs) /
-            (FINAL_FINISH_PASSAGE_DURATION_MS / Math.max(0.1, playbackSpeed)),
+            (finishPassageDurationMs / Math.max(0.1, playbackSpeed)),
         0,
         1
       );
@@ -398,6 +401,55 @@ export function shouldWinnerCelebrate({
   isPhotoFinish: boolean;
 }) {
   return !isPhotoFinish && metersRemaining <= 180;
+}
+
+export function getFinishPassageDurationMs(
+  maximumGapToWinnerSeconds: number
+) {
+  return Math.max(
+    FINAL_FINISH_PASSAGE_DURATION_MS,
+    (Math.max(0, maximumGapToWinnerSeconds) + 1) * 1_000
+  );
+}
+
+export function getFinalApproachDisplayPosition({
+  desiredPosition,
+  metersRemaining,
+  finishLinePosition,
+  rank,
+}: {
+  desiredPosition: number;
+  metersRemaining: number;
+  finishLinePosition: number;
+  rank: number;
+}) {
+  if (metersRemaining <= 0) {
+    return rank <= 1
+      ? finishLinePosition
+      : Math.min(desiredPosition, finishLinePosition);
+  }
+
+  const approachProgress = clamp(
+    (FINISH_LINE_REVEAL_METERS - metersRemaining) /
+      FINISH_LINE_REVEAL_METERS,
+    0,
+    1
+  );
+  const smoothApproachProgress =
+    approachProgress *
+    approachProgress *
+    (3 - 2 * approachProgress);
+  const approachStartPosition = finishLinePosition - 24;
+  const distanceSynchronizedLimit =
+    approachStartPosition +
+    (finishLinePosition - approachStartPosition) *
+      smoothApproachProgress;
+
+  return Math.min(
+    desiredPosition,
+    distanceSynchronizedLimit,
+    finishLinePosition - 0.35
+  );
 }
 
 export function getFinalGroupEntryPosition({
@@ -461,26 +513,42 @@ export function getFinishPassagePosition({
   finishPassageProgress: number;
   finishLinePosition: number;
 }) {
-  const gapProgress = maximumGapToWinnerSeconds > 0
-    ? clamp(gapToWinnerSeconds / maximumGapToWinnerSeconds, 0, 1)
-    : 0;
-  const rankProgress = riderCount > 1
-    ? clamp((rank - 1) / (riderCount - 1), 0, 1)
-    : 0;
-  const crossingAt = rank <= 1
-    ? 0
-    : clamp(0.12 + gapProgress * 0.62 + rankProgress * 0.18, 0.12, 0.88);
-  const crossingProgress = rank <= 1
-    ? clamp(finishPassageProgress / 0.08, 0, 1)
-    : clamp((finishPassageProgress - crossingAt) / 0.1, 0, 1);
+  const passageDurationSeconds =
+    getFinishPassageDurationMs(maximumGapToWinnerSeconds) / 1_000;
+  const elapsedSeconds =
+    clamp(finishPassageProgress, 0, 1) * passageDurationSeconds;
+  const visualOrderOffsetSeconds =
+    rank <= 1
+      ? 0
+      : Math.min(0.35, Math.max(0, rank - 1) * 0.025);
+  const crossingTimeSeconds =
+    Math.max(0, gapToWinnerSeconds) + visualOrderOffsetSeconds;
+  const crossingAnimationSeconds = 0.45;
+  const approachToLineProgress = crossingTimeSeconds <= 0
+    ? 1
+    : clamp(
+        (elapsedSeconds -
+          Math.max(0, crossingTimeSeconds - crossingAnimationSeconds)) /
+          Math.min(crossingAnimationSeconds, crossingTimeSeconds),
+        0,
+        1
+      );
+  const afterLineProgress = clamp(
+    (elapsedSeconds - crossingTimeSeconds) / crossingAnimationSeconds,
+    0,
+    1
+  );
   const afterLinePosition =
     finishLinePosition +
     3.5 +
     Math.min(2.5, Math.max(0, riderCount - rank) * 0.18);
+  const positionAtLine =
+    approachPosition * (1 - approachToLineProgress) +
+    finishLinePosition * approachToLineProgress;
 
   return clamp(
-    approachPosition * (1 - crossingProgress) +
-      afterLinePosition * crossingProgress,
+    positionAtLine * (1 - afterLineProgress) +
+      afterLinePosition * afterLineProgress,
     8,
     92
   );

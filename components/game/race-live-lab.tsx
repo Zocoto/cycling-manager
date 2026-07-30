@@ -21,10 +21,12 @@ import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-cal
 import {
   buildSprintVisualBattle,
   buildSprintVisualTeams,
-  FINAL_FINISH_PASSAGE_DURATION_MS,
+  FINISH_LINE_REVEAL_METERS,
+  getFinalApproachDisplayPosition,
   getFinalApproachPosition,
   getFinalGroupEntryPosition,
   getFinalReplayFrame,
+  getFinishPassageDurationMs,
   getFinishPassagePosition,
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
@@ -76,7 +78,6 @@ type LabTab = "live" | "classification" | "rules";
 type PlaybackSpeed = 1 | 2 | 4;
 
 const REPLAY_STEP_DURATION_MS = 6_000;
-const FINISH_LINE_REVEAL_METERS = 750;
 
 export function RaceLiveLab({
   edition,
@@ -206,6 +207,23 @@ export function RaceLiveLab({
     : false;
   const finalBattleScenario = getFinalBattleScenario(simulation);
   const isMassSprint = isMassGroupFinish(simulation);
+  const finalVisualRiderIds = isMassSprint
+    ? getLeadingFinishGroupRiderIds(simulation)
+    : finalBattleScenario.contenderIds;
+  const finalVisualRiderSet = new Set(finalVisualRiderIds);
+  const maximumFinalVisualGapSeconds = Math.max(
+    0,
+    ...simulation.results
+      .filter(
+        (result) =>
+          result.status === "finished" &&
+          finalVisualRiderSet.has(result.riderId)
+      )
+      .map((result) => result.gapToWinnerSeconds)
+  );
+  const finishPassageDurationMs = getFinishPassageDurationMs(
+    maximumFinalVisualGapSeconds
+  );
   const finalSegmentMeters = Math.round(finalSegment.distanceKm * 1_000);
   const liveFinalProgress = Math.max(
     0,
@@ -226,7 +244,7 @@ export function RaceLiveLab({
           Math.min(
             1,
             (clock.getTime() - Date.parse(liveState.endsAt)) /
-              FINAL_FINISH_PASSAGE_DURATION_MS
+              finishPassageDurationMs
           )
         )
       : 0;
@@ -270,6 +288,7 @@ export function RaceLiveLab({
         elapsedMs: Date.now() - startedAt,
         playbackSpeed,
         approachDurationMs: REPLAY_STEP_DURATION_MS,
+        finishPassageDurationMs,
       });
       finalMetersRemainingRef.current = frame.metersRemaining;
       finishPassageProgressRef.current = frame.finishPassageProgress;
@@ -279,7 +298,14 @@ export function RaceLiveLab({
     }, 100);
 
     return () => window.clearInterval(timer);
-  }, [finalSegmentMeters, isFinal, isPlaying, mode, playbackSpeed]);
+  }, [
+    finalSegmentMeters,
+    finishPassageDurationMs,
+    isFinal,
+    isPlaying,
+    mode,
+    playbackSpeed,
+  ]);
 
   return (
     <section
@@ -1794,8 +1820,15 @@ function SprintLaneView({
               dominanceOffset
           )
         );
+        const distanceSynchronizedApproachLeft =
+          getFinalApproachDisplayPosition({
+            desiredPosition: approachLeft,
+            metersRemaining,
+            finishLinePosition: 84,
+            rank: result.rank ?? index + 1,
+          });
         const left = getFinishPassagePosition({
-          approachPosition: approachLeft,
+          approachPosition: distanceSynchronizedApproachLeft,
           rank: result.rank ?? index + 1,
           riderCount: visibleFinalists.length,
           gapToWinnerSeconds: result.gapToWinnerSeconds,
@@ -2127,8 +2160,15 @@ function FinishBattleView({
           entryPositionOverride: entryPosition,
           finishPositionOverride: finishApproachPosition,
         });
+        const distanceSynchronizedApproachLeft =
+          getFinalApproachDisplayPosition({
+            desiredPosition: approachLeft,
+            metersRemaining,
+            finishLinePosition: 86,
+            rank: riderRank,
+          });
         const left = getFinishPassagePosition({
-          approachPosition: approachLeft,
+          approachPosition: distanceSynchronizedApproachLeft,
           rank: riderRank,
           riderCount: allFinalists.length,
           gapToWinnerSeconds: result.gapToWinnerSeconds,

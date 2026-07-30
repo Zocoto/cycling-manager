@@ -3,10 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   buildSprintVisualBattle,
   buildSprintVisualTeams,
+  FINISH_LINE_REVEAL_METERS,
+  getFinalApproachDisplayPosition,
   getFinalApproachPosition,
   getFinalGroupEntryPosition,
   getFinalReplayFrame,
   getFinalReplayMeters,
+  getFinishPassageDurationMs,
   getFinishPassagePosition,
   getFinishTargetPosition,
   getSmallGroupFinishPosition,
@@ -187,6 +190,48 @@ describe("final race visualization", () => {
     expect(
       getFinalReplayFrame({ ...parameters, elapsedMs: 13_000 }).complete
     ).toBe(true);
+    expect(
+      getFinalReplayFrame({
+        ...parameters,
+        elapsedMs: 68_000,
+        finishPassageDurationMs: 61_000,
+      }).complete
+    ).toBe(false);
+    expect(
+      getFinalReplayFrame({
+        ...parameters,
+        elapsedMs: 69_000,
+        finishPassageDurationMs: 61_000,
+      }).complete
+    ).toBe(true);
+  });
+
+  it("ne révèle la ligne qu'à 500 m et garde le vainqueur derrière jusqu'à 0 m", () => {
+    expect(FINISH_LINE_REVEAL_METERS).toBe(500);
+    expect(
+      getFinalApproachDisplayPosition({
+        desiredPosition: 90,
+        metersRemaining: 400,
+        finishLinePosition: 86,
+        rank: 1,
+      })
+    ).toBeLessThan(86);
+    expect(
+      getFinalApproachDisplayPosition({
+        desiredPosition: 90,
+        metersRemaining: 1,
+        finishLinePosition: 86,
+        rank: 1,
+      })
+    ).toBeLessThan(86);
+    expect(
+      getFinalApproachDisplayPosition({
+        desiredPosition: 90,
+        metersRemaining: 0,
+        finishLinePosition: 86,
+        rank: 1,
+      })
+    ).toBe(86);
   });
 
   it("ne fait franchir la ligne qu'au vainqueur au moment du verdict", () => {
@@ -256,7 +301,10 @@ describe("final race visualization", () => {
     );
   });
 
-  it("fait franchir la ligne progressivement selon le classement et les écarts", () => {
+  it("fait franchir la ligne à chaque coureur selon son écart officiel", () => {
+    const maximumGapToWinnerSeconds = 60;
+    const passageDurationSeconds =
+      getFinishPassageDurationMs(maximumGapToWinnerSeconds) / 1_000;
     const winnerApproach = getFinalApproachPosition({
       rank: 1,
       gapToWinnerSeconds: 0,
@@ -264,7 +312,7 @@ describe("final race visualization", () => {
     });
     const runnerUpApproach = getFinalApproachPosition({
       rank: 2,
-      gapToWinnerSeconds: 0,
+      gapToWinnerSeconds: 3,
       finishLinePosition: 86,
     });
     const delayedApproach = getFinalApproachPosition({
@@ -272,26 +320,29 @@ describe("final race visualization", () => {
       gapToWinnerSeconds: 60,
       finishLinePosition: 86,
     });
-    const position = (
+    const positionAtSecond = (
       approachPosition: number,
       rank: number,
       gapToWinnerSeconds: number,
-      finishPassageProgress: number
+      elapsedSeconds: number
     ) =>
       getFinishPassagePosition({
         approachPosition,
         rank,
         riderCount: 8,
         gapToWinnerSeconds,
-        maximumGapToWinnerSeconds: 60,
-        finishPassageProgress,
+        maximumGapToWinnerSeconds,
+        finishPassageProgress: elapsedSeconds / passageDurationSeconds,
         finishLinePosition: 86,
       });
 
-    expect(position(winnerApproach, 1, 0, 0.05)).toBeGreaterThan(86);
-    expect(position(runnerUpApproach, 2, 0, 0.05)).toBeLessThan(86);
-    expect(position(delayedApproach, 6, 60, 0.5)).toBeLessThan(86);
-    expect(position(delayedApproach, 6, 60, 1)).toBeGreaterThan(86);
+    expect(getFinishPassageDurationMs(60)).toBe(61_000);
+    expect(positionAtSecond(winnerApproach, 1, 0, 0)).toBe(86);
+    expect(positionAtSecond(winnerApproach, 1, 0, 0.1)).toBeGreaterThan(86);
+    expect(positionAtSecond(runnerUpApproach, 2, 3, 2.8)).toBeLessThan(86);
+    expect(positionAtSecond(runnerUpApproach, 2, 3, 3.2)).toBeGreaterThan(86);
+    expect(positionAtSecond(delayedApproach, 6, 60, 59.8)).toBeLessThan(86);
+    expect(positionAtSecond(delayedApproach, 6, 60, 60.4)).toBeGreaterThan(86);
   });
 
   it("donne neuf positions d'entrée distinctes à un groupe de neuf", () => {
