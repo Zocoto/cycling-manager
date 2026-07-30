@@ -5,6 +5,7 @@ type SpectatorJersey = "plain" | "polka-dot" | "yellow" | "striped";
 
 export function RaceRoadsideCrowd({
   show,
+  isMoving,
   roadLeftY,
   roadRightY,
   roadDepthY,
@@ -12,6 +13,7 @@ export function RaceRoadsideCrowd({
   palette = DEFAULT_CROWD_COLORS,
 }: {
   show: boolean;
+  isMoving: boolean;
   roadLeftY: number;
   roadRightY: number;
   roadDepthY: number;
@@ -28,14 +30,8 @@ export function RaceRoadsideCrowd({
     (x) => roadY(x) + roadDepthY < 292,
   );
 
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 1000 320"
-      preserveAspectRatio="none"
-      data-race-roadside-crowd={dense ? "climb-dense" : "roadside"}
-      className="pointer-events-none absolute inset-0 z-[8] h-full w-full overflow-hidden"
-    >
+  const renderCrowd = (copy: "a" | "b") => (
+    <g data-race-crowd-copy={copy}>
       <g data-race-crowd-layer="rear-verge" className="cm-crowd-wave">
         {Array.from({ length: rearCount }, (_, index) => {
           const x = 18 + (index * 964) / Math.max(1, rearCount - 1);
@@ -76,6 +72,22 @@ export function RaceRoadsideCrowd({
           );
         })}
       </g>
+    </g>
+  );
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 2000 320"
+      preserveAspectRatio="none"
+      data-race-roadside-crowd={dense ? "climb-dense" : "roadside"}
+      data-race-crowd-track="right-to-left"
+      className={`pointer-events-none absolute inset-y-0 left-0 z-[8] h-full w-[200%] max-w-none overflow-hidden ${
+        isMoving ? "cm-race-scenery-scroll" : ""
+      }`}
+    >
+      {renderCrowd("a")}
+      <g transform="translate(1000 0)">{renderCrowd("b")}</g>
     </svg>
   );
 }

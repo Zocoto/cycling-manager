@@ -6,6 +6,7 @@ import {
   getRaceGroupRiderSlots,
   getRaceRoadFormationTop,
   getRaceRoadSlopeOffset,
+  shouldShowRaceRoadMarkings,
   shouldShowRaceSupportCars,
 } from "./race-visual-layout";
 
@@ -120,6 +121,11 @@ describe("race visual layout", () => {
     expect(getRaceRoadSlopeOffset(9)).toBe(12.5);
     expect(getRaceRoadSlopeOffset(14)).toBe(14);
     expect(getRaceRoadSlopeOffset(-9)).toBe(-12.5);
+  });
+
+  it("retire les marquages blancs des secteurs pavés", () => {
+    expect(shouldShowRaceRoadMarkings("asphalt")).toBe(true);
+    expect(shouldShowRaceRoadMarkings("cobbles")).toBe(false);
   });
 
   it("keeps rider formations inside the road surface on every slope", () => {

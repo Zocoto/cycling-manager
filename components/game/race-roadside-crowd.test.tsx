@@ -8,6 +8,7 @@ describe("race roadside crowd", () => {
     const flat = renderToStaticMarkup(
       <RaceRoadsideCrowd
         show
+        isMoving
         roadLeftY={173}
         roadRightY={173}
         roadDepthY={102}
@@ -18,6 +19,7 @@ describe("race roadside crowd", () => {
     const climb = renderToStaticMarkup(
       <RaceRoadsideCrowd
         show
+        isMoving={false}
         roadLeftY={216}
         roadRightY={130}
         roadDepthY={102}
@@ -27,6 +29,9 @@ describe("race roadside crowd", () => {
     );
 
     expect(flat).toContain('data-race-roadside-crowd="roadside"');
+    expect(flat).toContain('data-race-crowd-track="right-to-left"');
+    expect(flat).toContain("cm-race-scenery-scroll");
+    expect(flat.match(/data-race-crowd-copy=/g)).toHaveLength(2);
     expect(flat).toContain('data-race-crowd-layer="rear-verge"');
     expect(flat).toContain('data-race-crowd-layer="foreground-grass"');
     expect(flat).toContain('data-race-spectator="down"');
@@ -38,6 +43,7 @@ describe("race roadside crowd", () => {
     expect(flat).toContain("#145A4A");
 
     expect(climb).toContain('data-race-roadside-crowd="climb-dense"');
+    expect(climb).not.toContain("cm-race-scenery-scroll");
     expect(climb).toContain('data-race-supporter-prop="smoke-flare"');
     expect((climb.match(/data-race-spectator=/g) ?? []).length).toBeGreaterThan(
       (flat.match(/data-race-spectator=/g) ?? []).length,

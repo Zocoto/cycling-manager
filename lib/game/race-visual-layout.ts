@@ -187,6 +187,12 @@ export function getRaceRoadSlopeOffset(gradientPct: number) {
   return direction * Math.min(14, emphasizedMagnitude);
 }
 
+export function shouldShowRaceRoadMarkings(
+  surface: "asphalt" | "cobbles",
+) {
+  return surface === "asphalt";
+}
+
 export function shouldShowRaceSupportCars(groupCount: number) {
   return groupCount > 0 && groupCount <= 3;
 }

@@ -10,6 +10,7 @@ import {
   PrimeClassificationPopup,
   RaceDirectorCar,
   RaceGapLine,
+  RoadTextureOverlay,
   RoadSurfaceDefinition,
 } from "./race-live-lab";
 
@@ -47,7 +48,31 @@ describe("race visual primitives", () => {
     expect(markup).toContain("#AAA08F");
     expect(markup).not.toContain('fill="#67645C"');
   });
-});
+
+  it("moves cobbles from right to left with the SVG road-marking rhythm", () => {
+    const markup = renderToStaticMarkup(
+      <svg>
+        <RoadSurfaceDefinition
+          id="moving-cobbles"
+          surface="cobbles"
+          isMoving
+        />
+      </svg>,
+    );
+
+    expect(markup).toContain('data-road-cobble-flow="right-to-left"');
+    expect(markup).toContain('dur="0.62s"');
+    expect(markup).toContain('to="-36"');
+  });
+
+  it("moves top-view cobbles with the road-marking strip rhythm", () => {
+    const markup = renderToStaticMarkup(
+      <RoadTextureOverlay surface="cobbles" isMoving />,
+    );
+
+    expect(markup).toContain("cm-race-cobble-flow-strip");
+    expect(markup).toContain('data-road-flow-direction="right-to-left"');
+  });});
 
 describe("PrimeClassificationPopup", () => {
   it("reste compact et replié par défaut sur téléphone", () => {

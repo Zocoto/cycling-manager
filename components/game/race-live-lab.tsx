@@ -34,6 +34,7 @@ import {
   getRaceGroupDisplayLabel,
   getRaceRoadFormationTop,
   getRaceRoadSlopeOffset,
+  shouldShowRaceRoadMarkings,
   shouldShowRaceSupportCars,
 } from "@/lib/game/race-visual-layout";
 import {
@@ -628,7 +629,12 @@ function RoadScene({
         preserveAspectRatio="none"
         className="absolute inset-0 h-full w-full"
       >
-        <RoadSurfaceDefinition id={roadPatternId} surface={segment.surface} compact />
+        <RoadSurfaceDefinition
+          id={roadPatternId}
+          surface={segment.surface}
+          compact
+          isMoving={isMoving}
+        />
         <path
           d={`M 0 ${roadBottomLeftPct} L 100 ${roadBottomRightPct} L 100 100 L 0 100 Z`}
           fill="#5F8658"
@@ -668,16 +674,18 @@ function RoadScene({
           data-road-bounds="parallel"
           data-road-slope-offset={roadSlopeOffset}
         />
-        <path
-          d={`M -8 ${roadMarkingLeftPct} L 108 ${roadMarkingRightPct}`}
-          fill="none"
-          stroke="rgba(255,255,255,0.72)"
-          strokeWidth="0.85"
-          strokeDasharray="8 6"
-          vectorEffect="non-scaling-stroke"
-          data-road-flow-direction="right-to-left"
-          className={isMoving ? "cm-race-road-marking-svg" : ""}
-        />
+        {shouldShowRaceRoadMarkings(segment.surface) ? (
+          <path
+            d={`M -8 ${roadMarkingLeftPct} L 108 ${roadMarkingRightPct}`}
+            fill="none"
+            stroke="rgba(255,255,255,0.72)"
+            strokeWidth="0.85"
+            strokeDasharray="8 6"
+            vectorEffect="non-scaling-stroke"
+            data-road-flow-direction="right-to-left"
+            className={isMoving ? "cm-race-road-marking-svg" : ""}
+          />
+        ) : null}
         {[0, roadDepthPct].map((depth) => (
           <path
             key={depth}
@@ -691,6 +699,7 @@ function RoadScene({
       </svg>
       <RaceRoadsideCrowd
         show={showSpectators}
+        isMoving={isMoving}
         roadLeftY={roadLeftPct * 3.2}
         roadRightY={roadRightPct * 3.2}
         roadDepthY={roadDepthPct * 3.2}
@@ -812,10 +821,12 @@ export function RoadSurfaceDefinition({
   id,
   surface,
   compact = false,
+  isMoving = false,
 }: {
   id: string;
   surface: RaceCalendarStage["segments"][number]["surface"];
   compact?: boolean;
+  isMoving?: boolean;
 }) {
   const width = compact ? 3.6 : 18;
   const height = compact ? 2.4 : 11;
@@ -858,7 +869,23 @@ export function RoadSurfaceDefinition({
             <stop offset="0.46" stopColor="#68635A" />
             <stop offset="1" stopColor="#4E4B45" />
           </linearGradient>
-          <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse" data-road-cobble-texture="volumetric-grid">
+          <pattern
+            id={id}
+            width={width}
+            height={height}
+            patternUnits="userSpaceOnUse"
+            data-road-cobble-texture="volumetric-grid"
+            data-road-cobble-flow={isMoving ? "right-to-left" : "paused"}
+          >
+            {isMoving ? (
+              <animate
+                attributeName="x"
+                from="0"
+                to={compact ? -28.8 : -36}
+                dur="0.62s"
+                repeatCount="indefinite"
+              />
+            ) : null}
             <rect width={width} height={height} fill={`url(#${id}-cobble-base)`} />
             <path
               d={`M0 ${height / 2}H${width}M${width / 2} 0v${height / 2}M${width * 0.24} ${height / 2}V${height}M${width * 0.74} ${height / 2}V${height}`}
@@ -883,10 +910,12 @@ export function RoadSurfaceDefinition({
   );
 }
 
-function RoadTextureOverlay({
+export function RoadTextureOverlay({
   surface,
+  isMoving,
 }: {
   surface: RaceCalendarStage["segments"][number]["surface"];
+  isMoving: boolean;
 }) {
   const backgroundImage =
     surface === "cobbles"
@@ -897,7 +926,14 @@ function RoadTextureOverlay({
     <div
       aria-hidden="true"
       data-road-surface={surface}
-      className="pointer-events-none absolute inset-0 opacity-75"
+      data-road-flow-direction={
+        surface === "cobbles" ? "right-to-left" : undefined
+      }
+      className={`pointer-events-none absolute inset-0 opacity-75 ${
+        surface === "cobbles" && isMoving
+          ? "cm-race-cobble-flow-strip"
+          : ""
+      }`}
       style={{
         backgroundImage,
         backgroundSize:
@@ -1555,7 +1591,10 @@ function SprintLaneView({
 
   return (
     <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
-      <RoadTextureOverlay surface={segment.surface} />
+      <RoadTextureOverlay
+        surface={segment.surface}
+        isMoving={!hasFinished}
+      />
       <FinishRoadsideInfrastructure mode="top" />
       <RaceWeatherOverlay weather={weather} />
       <div
@@ -1566,14 +1605,16 @@ function SprintLaneView({
         Arrivée
       </div>
       <FinishDistanceCounter metersRemaining={metersRemaining} />
-      <div
-        aria-hidden="true"
-        data-road-center-marking="classic"
-        data-road-flow-direction="right-to-left"
-        className={`absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.78)_0_42px,transparent_42px_78px)] [background-size:78px_3px] ${
-          !hasFinished ? "cm-race-road-marking-strip" : ""
-        }`}
-      />
+      {shouldShowRaceRoadMarkings(segment.surface) ? (
+        <div
+          aria-hidden="true"
+          data-road-center-marking="classic"
+          data-road-flow-direction="right-to-left"
+          className={`absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.78)_0_42px,transparent_42px_78px)] [background-size:78px_3px] ${
+            !hasFinished ? "cm-race-road-marking-strip" : ""
+          }`}
+        />
+      ) : null}
       <div className="absolute left-4 top-4 z-20 max-w-[55%] rounded-xl bg-[#071A17]/86 px-3 py-2 backdrop-blur">
         <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
           {phaseLabel}
@@ -1849,7 +1890,11 @@ function FinishBattleView({
       <div aria-hidden="true" className="absolute left-8 top-7 h-14 w-14 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
       <RaceSceneryBackdrop kind={finishScenery} isMoving={!hasFinished} showSpectators={false} />
       <svg aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
-        <RoadSurfaceDefinition id={finishRoadPatternId} surface={segment.surface} />
+        <RoadSurfaceDefinition
+          id={finishRoadPatternId}
+          surface={segment.surface}
+          isMoving={!hasFinished}
+        />
         <path
           d={`M -30 ${roadBottomLeftY} L 1030 ${roadBottomRightY} L 1030 320 L -30 320 Z`}
           fill="#5F8658"
@@ -1877,15 +1922,17 @@ function FinishBattleView({
           data-road-bounds="parallel"
           data-road-slope-offset={roadSlopeOffset}
         />
-        <path
-          d={`M -30 ${roadMarkingLeftY} L 1030 ${roadMarkingRightY}`}
-          fill="none"
-          stroke="rgba(255,255,255,0.72)"
-          strokeWidth="4"
-          strokeDasharray="42 34"
-          data-road-flow-direction="right-to-left"
-          className={!hasFinished ? "cm-race-road-marking-svg" : ""}
-        />
+        {shouldShowRaceRoadMarkings(segment.surface) ? (
+          <path
+            d={`M -30 ${roadMarkingLeftY} L 1030 ${roadMarkingRightY}`}
+            fill="none"
+            stroke="rgba(255,255,255,0.72)"
+            strokeWidth="4"
+            strokeDasharray="42 34"
+            data-road-flow-direction="right-to-left"
+            className={!hasFinished ? "cm-race-road-marking-svg" : ""}
+          />
+        ) : null}
         {[0, roadDepthY].map((depth) => (
           <path
             key={`edge-${depth}`}
@@ -1898,6 +1945,7 @@ function FinishBattleView({
       </svg>
       <RaceRoadsideCrowd
         show
+        isMoving={!hasFinished}
         roadLeftY={roadLeftY}
         roadRightY={roadRightY}
         roadDepthY={roadDepthY}
