@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
+import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardMonitoringOverview } from "../../components/game/dashboard-monitoring-overview";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -544,7 +545,7 @@ export default async function GamePage() {
             </div>
 
             <div className="flex w-full flex-wrap items-stretch gap-3 xl:w-auto xl:justify-self-end">
-              <InventoryShortcut
+              <DashboardInventoryShortcut
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
               />
@@ -1255,54 +1256,6 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
   );
 }
 
-function InventoryShortcut({
-  totalUnits,
-  availableUnits,
-}: {
-  totalUnits: number;
-  availableUnits: number;
-}) {
-  return (
-    <Link
-      href="/jeu/inventaire"
-      className="group min-w-0 flex-1 rounded-2xl border border-[#315B3E]/15 bg-white/75 p-3.5 shadow-[0_12px_30px_rgba(19,60,46,0.08)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] sm:min-w-64 sm:flex-none"
-    >
-      <span className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0B302B] text-[#9BE0BC]">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="h-6 w-6"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M4 8 12 4l8 4-8 4-8-4Z" />
-            <path d="m4 8 1 9 7 3 7-3 1-9M12 12v8" />
-          </svg>
-        </span>
-
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center justify-between gap-4">
-            <span className="text-sm font-black text-[#183F37]">
-              Inventaire
-            </span>
-            <span className="text-[#176951] transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
-          </span>
-          <span className="mt-1 block text-xs font-bold text-[#60756E]">
-            {formatInventoryUnits(totalUnits)} · {availableUnits} disponible
-            {availableUnits > 1 ? "s" : ""}
-          </span>
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 function ObjectivesShortcut({
   totalCount,
   readyCount,
@@ -1442,10 +1395,6 @@ function ManagementModuleCard({
       {content}
     </article>
   );
-}
-
-function formatInventoryUnits(value: number) {
-  return `${value} objet${value > 1 ? "s" : ""}`;
 }
 
 function ArrowRightIcon() {
