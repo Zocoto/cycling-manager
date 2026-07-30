@@ -529,13 +529,7 @@ export function getFinishPassagePosition({
   const crossingAnimationSeconds = 0.45;
   const approachToLineProgress = crossingTimeSeconds <= 0
     ? 1
-    : clamp(
-        (elapsedSeconds -
-          Math.max(0, crossingTimeSeconds - crossingAnimationSeconds)) /
-          Math.min(crossingAnimationSeconds, crossingTimeSeconds),
-        0,
-        1
-      );
+    : clamp(elapsedSeconds / crossingTimeSeconds, 0, 1);
   const afterLineProgress = clamp(
     (elapsedSeconds - crossingTimeSeconds) / crossingAnimationSeconds,
     0,

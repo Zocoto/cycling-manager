@@ -360,9 +360,16 @@ describe("final race visualization", () => {
     expect(getFinishPassageDurationMs(60)).toBe(61_000);
     expect(positionAtSecond(winnerApproach, 1, 0, 0)).toBe(86);
     expect(positionAtSecond(winnerApproach, 1, 0, 0.1)).toBeGreaterThan(86);
-    expect(positionAtSecond(runnerUpApproach, 2, 3, 2.8)).toBeLessThan(86);
+    const runnerUpAtStart = positionAtSecond(runnerUpApproach, 2, 3, 0);
+    const runnerUpHalfway = positionAtSecond(runnerUpApproach, 2, 3, 1.5);
+    const delayedAtStart = positionAtSecond(delayedApproach, 6, 60, 0);
+    const delayedHalfway = positionAtSecond(delayedApproach, 6, 60, 30);
+
+    expect(runnerUpHalfway).toBeGreaterThan(runnerUpAtStart);
+    expect(runnerUpHalfway).toBeLessThan(86);
     expect(positionAtSecond(runnerUpApproach, 2, 3, 3.2)).toBeGreaterThan(86);
-    expect(positionAtSecond(delayedApproach, 6, 60, 59.8)).toBeLessThan(86);
+    expect(delayedHalfway).toBeGreaterThan(delayedAtStart);
+    expect(delayedHalfway).toBeLessThan(86);
     expect(positionAtSecond(delayedApproach, 6, 60, 60.4)).toBeGreaterThan(86);
   });
 
