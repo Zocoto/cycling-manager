@@ -27,7 +27,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-selection-time-limit-v5";
+export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-large-breakaway-effort-v6";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

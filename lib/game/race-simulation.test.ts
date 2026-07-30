@@ -11,6 +11,7 @@ import {
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   getHillyClimbSelectionRating,
+  getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
@@ -57,6 +58,22 @@ describe("reduceMechanicalIncidentTimeLoss", () => {
   });
 });
 
+describe("getLargeBreakawayDynamics", () => {
+  it("active le cout double uniquement au-dela de dix echappes", () => {
+    expect(getLargeBreakawayDynamics(10)).toEqual({
+      effortMultiplier: 1,
+      pacePenalty: 0,
+    });
+    expect(getLargeBreakawayDynamics(11)).toEqual({
+      effortMultiplier: 2,
+      pacePenalty: 0.004,
+    });
+    expect(getLargeBreakawayDynamics(100)).toEqual({
+      effortMultiplier: 2,
+      pacePenalty: 0.035,
+    });
+  });
+});
 describe("stage time limit", () => {
   it("keeps time limits generous and profile-dependent", () => {
     expect(
@@ -136,6 +153,82 @@ describe("simulateRaceStage", () => {
     expect(simulateRaceStage(input)).toEqual(simulateRaceStage(input));
   });
 
+  it("double la depense des grandes echappees et de la poursuite", () => {
+    const base = createDemoSimulationInput("sprint-littoral", 12);
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 4 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 20,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      })
+    );
+    const runWithAttackers = (attackerCount: number) =>
+      simulateRaceStage({
+        ...base,
+        id: "large-breakaway-effort-test",
+        seed: "large-breakaway-effort-test",
+        profileType: "flat",
+        segments,
+        riders: Array.from({ length: 48 }, (_, index) => {
+          const isAttacker = index < attackerCount;
+          return {
+            ...createSelectionTestRider(
+              `large-breakaway-${index}`,
+              isAttacker
+                ? {
+                    flat: 78,
+                    acceleration: 88,
+                    endurance: 84,
+                    resistance: 80,
+                    breakaway: 92,
+                  }
+                : {
+                    flat: 75,
+                    acceleration: 40,
+                    endurance: 70,
+                    resistance: 70,
+                    breakaway: 20,
+                  }
+            ),
+            form: 80,
+            role: isAttacker
+              ? ("free_agent" as const)
+              : index === 47
+                ? ("domestique" as const)
+                : ("leader" as const),
+          };
+        }),
+      });
+
+    const regularSimulation = runWithAttackers(10);
+    const largeSimulation = runWithAttackers(12);
+    const regularBreakaway = regularSimulation.timeline[1]?.groups.find(
+      (group) => group.type === "breakaway"
+    );
+    const largeBreakaway = largeSimulation.timeline[1]?.groups.find(
+      (group) => group.type === "breakaway"
+    );
+
+    expect(regularBreakaway?.riderIds).toHaveLength(10);
+    expect(largeBreakaway?.riderIds).toHaveLength(12);
+    const regularChaser = regularSimulation.results.find(
+      (result) => result.riderId === "large-breakaway-47"
+    );
+    const largeBreakawayChaser = largeSimulation.results.find(
+      (result) => result.riderId === "large-breakaway-47"
+    );
+
+    expect(largeBreakaway!.averageEnergy).toBeLessThan(
+      regularBreakaway!.averageEnergy - 4
+    );
+    expect(largeBreakawayChaser!.energyAfter).toBeLessThan(
+      regularChaser!.energyAfter - 2
+    );
+  });
   it("simule un contre-la-montre avec un seul engagé (championnat national)", () => {
     const base = createDemoSimulationInput("sprint-littoral", 7);
     const result = simulateRaceStage({

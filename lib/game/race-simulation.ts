@@ -449,6 +449,27 @@ type RiderState = {
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
+export const LARGE_BREAKAWAY_RIDER_THRESHOLD = 10;
+export const LARGE_BREAKAWAY_EFFORT_MULTIPLIER = 2;
+const LARGE_BREAKAWAY_MAXIMUM_SIZE = 14;
+const LARGE_BREAKAWAY_PACE_PENALTY_PER_RIDER = 0.004;
+const LARGE_BREAKAWAY_MAXIMUM_PACE_PENALTY = 0.035;
+
+export function getLargeBreakawayDynamics(riderCount: number) {
+  const excessRiders = Math.max(
+    0,
+    Math.floor(riderCount) - LARGE_BREAKAWAY_RIDER_THRESHOLD
+  );
+
+  return {
+    effortMultiplier:
+      excessRiders > 0 ? LARGE_BREAKAWAY_EFFORT_MULTIPLIER : 1,
+    pacePenalty: Math.min(
+      LARGE_BREAKAWAY_MAXIMUM_PACE_PENALTY,
+      excessRiders * LARGE_BREAKAWAY_PACE_PENALTY_PER_RIDER
+    ),
+  };
+}
 
 export function areFinishersInSameTimeGroup(
   previousElapsedTimeSeconds: number,
@@ -955,6 +976,7 @@ function simulateRoadStage(
     const chase = getStatesInGroup(states, "chase");
     const delayed = getStatesInGroup(states, "delayed");
     const dropped = getStatesInGroup(states, "dropped");
+    const activeBreakawaySize = breakaway.length + secondaryBreakaway.length;
     const fieldPaceStates =
       peloton.length > 0
         ? peloton
@@ -1146,6 +1168,7 @@ function simulateRoadStage(
               ? Math.max(1, peloton.length)
               : Math.max(1, dropped.length),
         chasePressure,
+        frontBreakawaySize: activeBreakawaySize,
         hasBottleCarrierSupport: hasTeammateBottleCarrier(state, states),
         leaderProtectionStrength: getLeaderProtectionStrength({
           state,
@@ -1693,7 +1716,13 @@ function selectStageAttackPlan(
       const threat = getStageSuitability(rider, segments) - fieldAverage;
       return score > 63 + Math.max(0, threat * 0.7);
     });
-  const maximum = Math.max(2, Math.min(8, Math.ceil(riders.length / 4)));
+  const maximum = Math.max(
+    2,
+    Math.min(
+      LARGE_BREAKAWAY_MAXIMUM_SIZE,
+      Math.ceil(riders.length / 4)
+    )
+  );
   const selected = candidates.slice(0, maximum).map(({ rider }) => rider.id);
 
   if (selected.length === 0) {
@@ -1836,10 +1865,20 @@ function getGroupSegmentTime(
   const chaseBonus = group === "peloton" ? chasePressure * 0.055 : 0.018;
   const fatiguePenalty =
     Math.max(0, 30 - paceSettersEnergy) * 0.0035;
+  const largeBreakawayPacePenalty =
+    group === "breakaway"
+      ? getLargeBreakawayDynamics(states.length).pacePenalty
+      : 0;
   const speed = Math.max(
     8,
     getBaseSpeed(segment) *
-      (0.69 + groupRating * 0.0029 + draftingBonus + chaseBonus - fatiguePenalty + (random() - 0.5) * 0.012)
+      (0.69 +
+        groupRating * 0.0029 +
+        draftingBonus +
+        chaseBonus -
+        fatiguePenalty -
+        largeBreakawayPacePenalty +
+        (random() - 0.5) * 0.012)
   );
 
   return (segment.distanceKm / speed) * 3_600;
@@ -1883,6 +1922,7 @@ function updateRiderEnergy({
   segmentCount,
   groupSize,
   chasePressure,
+  frontBreakawaySize = 0,
   hasBottleCarrierSupport,
   leaderProtectionStrength = 0,
   protectingLeader = false,
@@ -1897,6 +1937,7 @@ function updateRiderEnergy({
   segmentCount: number;
   groupSize: number;
   chasePressure: number;
+  frontBreakawaySize?: number;
   hasBottleCarrierSupport: boolean;
   leaderProtectionStrength?: number;
   protectingLeader?: boolean;
@@ -1923,6 +1964,14 @@ function updateRiderEnergy({
     ((rider.role === "domestique" || rider.role === "leadout") &&
       segmentIndex < segmentCount - 2 &&
       chasePressure > 0.45);
+  const largeBreakawayEffortMultiplier =
+    frontBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
+    (state.group === "breakaway" ||
+      state.group === "breakaway_2" ||
+      state.group === "chase" ||
+      (state.group === "peloton" && isWorking))
+      ? LARGE_BREAKAWAY_EFFORT_MULTIPLIER
+      : 1;
   const baseGroupShelter = timeTrial
     ? 1
     : state.group === "peloton"
@@ -1987,6 +2036,7 @@ function updateRiderEnergy({
     (2.05 + terrainLoad * 1.18) *
     groupShelter *
     workFactor *
+    largeBreakawayEffortMultiplier *
     enduranceFactor *
     longEffortFactor *
     paceSustainabilityFactor *
@@ -2011,7 +2061,8 @@ function updateRiderEnergy({
         rider.ratings.downhill / 100 * 0.65 +
         rider.ratings.recovery / 100 * 0.45) *
       groupRecoveryFactor *
-      workloadRecoveryFactor;
+      workloadRecoveryFactor /
+      largeBreakawayEffortMultiplier;
 
     return clamp(
       state.energy + recoveryGain,
