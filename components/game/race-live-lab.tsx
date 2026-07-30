@@ -1835,6 +1835,7 @@ function SprintLaneView({
           maximumGapToWinnerSeconds,
           finishPassageProgress,
           finishLinePosition: 84,
+          winnerHasFinished,
         });
         const riderHasFinished = winnerHasFinished && left > 84;
         return (
@@ -2175,6 +2176,7 @@ function FinishBattleView({
           maximumGapToWinnerSeconds,
           finishPassageProgress,
           finishLinePosition: 86,
+          winnerHasFinished,
         });
         const riderHasFinished = winnerHasFinished && left > 86;
         const roadY =

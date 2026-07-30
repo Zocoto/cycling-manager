@@ -208,6 +208,26 @@ describe("final race visualization", () => {
 
   it("ne révèle la ligne qu'à 500 m et garde le vainqueur derrière jusqu'à 0 m", () => {
     expect(FINISH_LINE_REVEAL_METERS).toBe(500);
+    const approachAt425Meters = getFinalApproachDisplayPosition({
+      desiredPosition: 90,
+      metersRemaining: 425,
+      finishLinePosition: 86,
+      rank: 1,
+    });
+    const displayedPositionAt425Meters = getFinishPassagePosition({
+      approachPosition: approachAt425Meters,
+      rank: 1,
+      riderCount: 11,
+      gapToWinnerSeconds: 0,
+      maximumGapToWinnerSeconds: 60,
+      finishPassageProgress: 0,
+      finishLinePosition: 86,
+      winnerHasFinished: false,
+    });
+
+    expect(approachAt425Meters).toBeCloseTo(63.46, 1);
+    expect(displayedPositionAt425Meters).toBe(approachAt425Meters);
+    expect(displayedPositionAt425Meters).toBeLessThan(70);
     expect(
       getFinalApproachDisplayPosition({
         desiredPosition: 90,
@@ -334,6 +354,7 @@ describe("final race visualization", () => {
         maximumGapToWinnerSeconds,
         finishPassageProgress: elapsedSeconds / passageDurationSeconds,
         finishLinePosition: 86,
+        winnerHasFinished: true,
       });
 
     expect(getFinishPassageDurationMs(60)).toBe(61_000);

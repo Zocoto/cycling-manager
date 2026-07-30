@@ -504,6 +504,7 @@ export function getFinishPassagePosition({
   maximumGapToWinnerSeconds,
   finishPassageProgress,
   finishLinePosition,
+  winnerHasFinished,
 }: {
   approachPosition: number;
   rank: number;
@@ -512,7 +513,9 @@ export function getFinishPassagePosition({
   maximumGapToWinnerSeconds: number;
   finishPassageProgress: number;
   finishLinePosition: number;
+  winnerHasFinished: boolean;
 }) {
+  if (!winnerHasFinished) return approachPosition;
   const passageDurationSeconds =
     getFinishPassageDurationMs(maximumGapToWinnerSeconds) / 1_000;
   const elapsedSeconds =
