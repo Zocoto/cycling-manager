@@ -158,46 +158,23 @@ type ManagementModuleIcon =
   | "staff"
   | "infrastructure";
 
-const UNSPLASH_RENDER_PARAMS = "auto=format&fit=crop&w=600&q=38";
+const DASHBOARD_WATERMARK = "/images/peloton-header.webp";
 
-function unsplashWatermark(photoId: string): string {
-  return `https://images.unsplash.com/photo-${photoId}?${UNSPLASH_RENDER_PARAMS}`;
-}
-
-/**
- * Photographies Unsplash (licence libre, usage commercial autorisé) utilisées
- * en filigrane sur les cartes. Chaque visuel illustre le SENS de la rubrique,
- * pas nécessairement le cyclisme. Pour changer l’ambiance d’une carte, il
- * suffit de remplacer l’identifiant de la photo ci-dessous.
- */
 const MODULE_WATERMARKS: Partial<Record<ManagementModuleIcon, string>> = {
-  // Transmission et pignons : le matériel au sens propre.
-  equipment: unsplashWatermark("1562615193-cbeef074a501"),
-  // Lecture de la presse économique : budget et trésorerie.
-  finance: unsplashWatermark("1444653614773-995cb1ef9efa"),
-  // Trophées alignés : hiérarchie et palmarès.
-  ranking: unsplashWatermark("1514820720301-4c4790309f46"),
-  // Poignée de main au-dessus d’un contrat : signature d’un sponsor.
-  sponsor: unsplashWatermark("1681505531034-8d67054e07f6"),
-  // Haltères : le travail physique et la préparation.
-  training: unsplashWatermark("1586401100295-7a8096fd231a"),
-  // Mécanicien au travail : le personnel technique de l’équipe.
-  staff: unsplashWatermark("1675798227643-da319f8ee8f7"),
-  // Bâtiments en contre-plongée : les infrastructures à bâtir.
-  infrastructure: unsplashWatermark("1508385082359-f38ae991e8f2"),
-  // Salle de formation : transmission et apprentissage.
-  academy: unsplashWatermark("1431540015161-0bf868a2d407"),
-  // Séance de kinésithérapie : soins et remise en forme.
-  camp: unsplashWatermark("1540205895360-4ad4cffb3aa8"),
-  // Poignée de main : négociation et signature d’un transfert.
-  transfer: unsplashWatermark("1521791136064-7986c2920216"),
+  equipment: DASHBOARD_WATERMARK,
+  finance: DASHBOARD_WATERMARK,
+  ranking: DASHBOARD_WATERMARK,
+  sponsor: DASHBOARD_WATERMARK,
+  training: DASHBOARD_WATERMARK,
+  staff: DASHBOARD_WATERMARK,
+  infrastructure: DASHBOARD_WATERMARK,
+  academy: DASHBOARD_WATERMARK,
+  camp: DASHBOARD_WATERMARK,
+  transfer: DASHBOARD_WATERMARK,
 };
 
-/** Filigrane de la carte Effectif : le groupe de coureurs réuni. */
-const ROSTER_WATERMARK = unsplashWatermark("1713937071114-e94d5f8053a0");
-
-/** Filigrane du Centre de course : le peloton lancé en course. */
-const RACE_HUB_WATERMARK = unsplashWatermark("1517649763962-0c623066013b");
+const ROSTER_WATERMARK = DASHBOARD_WATERMARK;
+const RACE_HUB_WATERMARK = DASHBOARD_WATERMARK;
 
 /**
  * Calque photo fondu dans le vert foncé de la carte : désaturé, éclairci puis

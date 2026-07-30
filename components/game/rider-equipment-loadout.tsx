@@ -734,7 +734,7 @@ export function CyclistEquipmentVisual({
       data-equipment-layer="silhouette"
     >
       <Image
-        src="/illustrations/rider-equipment.png"
+        src="/illustrations/rider-equipment.webp"
         width={1152}
         height={931}
         sizes="(max-width: 640px) calc(100vw - 3rem), 672px"
@@ -912,7 +912,7 @@ function getSilhouetteZoneImageStyle(
   const originY = centerY - height / 2;
 
   return {
-    backgroundImage: 'url("/illustrations/rider-equipment.png")',
+    backgroundImage: 'url("/illustrations/rider-equipment.webp")',
     backgroundRepeat: "no-repeat",
     backgroundSize: `${100 / width}% ${100 / height}%`,
     backgroundPosition: `${(originX / (1 - width)) * 100}% ${(originY / (1 - height)) * 100}%`,

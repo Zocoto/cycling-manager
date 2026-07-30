@@ -29,9 +29,10 @@ type AppLinkProps = LinkProps &
  * Pass `scroll` explicitly to override either default on a per-link basis.
  */
 const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
-  { href, scroll, children, ...props },
+  { href, scroll, prefetch, children, ...props },
   ref,
 ) {
+  const resolvedPrefetch = prefetch ?? false;
   const usesAnchor =
     typeof href === "string"
       ? href.includes("#")
@@ -78,6 +79,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         ref={ref}
         riderId={riderId}
         href={href}
+        prefetch={resolvedPrefetch}
         scroll={scroll ?? usesAnchor}
         {...props}
       >
@@ -92,6 +94,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         ref={ref}
         previewTarget={raceTarget}
         href={href}
+        prefetch={resolvedPrefetch}
         scroll={scroll ?? usesAnchor}
         {...props}
       >
@@ -104,6 +107,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     <NextLink
       ref={ref}
       href={href}
+      prefetch={resolvedPrefetch}
       scroll={scroll ?? usesAnchor}
       {...props}
     >

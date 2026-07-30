@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { settleDueOfficialRaceRewardsAction } from "@/app/jeu/actions";
 
+const INITIAL_CHECK_DELAY_MS = 15_000;
 const SETTLEMENT_RETRY_DELAY_MS = 60_000;
 const IDLE_RECHECK_DELAY_MS = 15 * 60_000;
 const FINISH_GRACE_PERIOD_MS = 3_000;
@@ -54,7 +55,10 @@ export function RaceSettlementWatcher() {
       }
     }
 
-    void settleDueRewards();
+    timer = window.setTimeout(
+      () => void settleDueRewards(),
+      INITIAL_CHECK_DELAY_MS,
+    );
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") void settleDueRewards();
     };

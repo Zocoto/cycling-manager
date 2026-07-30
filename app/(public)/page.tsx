@@ -95,6 +95,7 @@ function HeroSection() {
         alt=""
         fill
         preload
+        fetchPriority="high"
         sizes="100vw"
         className="object-cover object-[68%_center]"
       />

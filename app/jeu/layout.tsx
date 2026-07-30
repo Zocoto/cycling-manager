@@ -1,7 +1,7 @@
 import "flag-icons/css/flag-icons.min.css";
 
 import { Suspense, type ReactNode } from "react";
-import { connection } from "next/server";
+import { after, connection } from "next/server";
 
 import { GameRouteLoading } from "@/components/game/game-route-loading";
 import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
@@ -51,10 +51,11 @@ async function loadTutorialBootstrap(): Promise<TutorialBootstrap> {
   try {
     const supabase = await createSupabaseServerClient();
 
+    after(() => synchronizeGameEntryState(supabase));
+
     const [progress, onboardingState] = await Promise.all([
       listAuthenticatedTutorialProgress(supabase),
       getAuthenticatedTutorialOnboardingState(supabase),
-      synchronizeGameEntryState(supabase),
     ]);
 
     const onboardingProgress =
