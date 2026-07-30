@@ -36,11 +36,13 @@ export async function searchGameDirectory(
     MAX_RESULTS_PER_CATEGORY,
     Math.max(1, Math.floor(limitPerCategory))
   );
-  const currentResults = await enrichCurrentTeamDivisions(
-    await searchCurrentDirectory(
-      supabase,
-      query,
-      normalizedLimit
+  const currentResults = await enrichSportingDirectorFrames(
+    await enrichCurrentTeamDivisions(
+      await searchCurrentDirectory(
+        supabase,
+        query,
+        normalizedLimit
+      )
     )
   );
   const historicalTeamIds = await findTeamsByHistoricalName(
@@ -69,10 +71,12 @@ export async function searchGameDirectory(
     .flat()
     .filter((result) => result.result_type === "team");
 
-  return enrichCurrentTeamDivisions(
-    limitResultsPerCategory(
-      [...currentResults, ...historicalTeams],
-      normalizedLimit
+  return enrichSportingDirectorFrames(
+    await enrichCurrentTeamDivisions(
+      limitResultsPerCategory(
+        [...currentResults, ...historicalTeams],
+        normalizedLimit
+      )
     )
   );
 }
@@ -237,6 +241,46 @@ async function enrichCurrentTeamDivisions(
       is_professional: activelySponsoredTeamIds.has(result.team_id),
     };
   });
+}
+
+async function enrichSportingDirectorFrames(
+  results: GlobalSearchResult[]
+): Promise<GlobalSearchResult[]> {
+  const directorIds = results
+    .filter((result) => result.result_type === "sporting_director")
+    .map((result) => result.entity_id);
+
+  if (directorIds.length === 0) {
+    return results.map((result) => ({
+      ...result,
+      avatar_frame_key: null,
+    }));
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("sporting_directors")
+    .select("id, avatar_frame_key")
+    .in("id", directorIds)
+    .returns<Array<{ id: string; avatar_frame_key: "alpha_tester" | null }>>();
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger les distinctions des Directeurs Sportifs : ${error.message}`
+    );
+  }
+
+  const frameByDirectorId = new Map(
+    (data ?? []).map((director) => [director.id, director.avatar_frame_key])
+  );
+
+  return results.map((result) => ({
+    ...result,
+    avatar_frame_key:
+      result.result_type === "sporting_director"
+        ? frameByDirectorId.get(result.entity_id) ?? null
+        : null,
+  }));
 }
 
 function limitResultsPerCategory(

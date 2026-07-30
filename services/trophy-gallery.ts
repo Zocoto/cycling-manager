@@ -1,10 +1,14 @@
 import "server-only";
 
 import {
+  ALPHA_TESTER_TROPHY_DEFINITION,
+  ALPHA_TESTER_TROPHY_KEY,
   buildTrophyGallery,
+  type ClaimableTrophyReward,
   type TrophyGallery,
   type TrophyRaceWin,
   type TrophyRiderUciTitle,
+  type TrophySpecialAward,
   type TrophyTeamUciTitle,
 } from "@/lib/game/trophy-gallery";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -17,6 +21,18 @@ type QueryError = { message: string };
 
 type SportingDirectorRow = {
   id: string;
+};
+
+type TrophyEntitlementRow = {
+  id: string;
+  trophy_key: string;
+  available_at: string;
+  claimed_at: string | null;
+};
+
+export type SportingDirectorTrophyRewardStatus = {
+  availableCount: number;
+  alphaTesterAvailable: boolean;
 };
 
 type AssignmentRow = {
@@ -121,45 +137,134 @@ export async function getSportingDirectorTrophyGallery(
     return EMPTY_GALLERY;
   }
 
-  const [assignmentsResult, seasonsResult] = await Promise.all([
-    collectPaginatedRows<AssignmentRow, QueryError>({
-      fetchPage: async (from, to) => {
-        const result = await admin
-          .from("team_manager_assignments")
-          .select("team_id, start_season_id, end_season_id")
-          .eq("sporting_director_id", directorResult.data!.id)
-          .eq("role", "general_manager")
-          .in("status", ["active", "completed", "terminated"])
-          .order("created_at", { ascending: true })
-          .range(from, to)
-          .returns<AssignmentRow[]>();
+  return loadSportingDirectorTrophyGallery({
+    directorId: directorResult.data.id,
+    includeClaimable: true,
+  });
+}
 
-        return { data: result.data, error: result.error };
-      },
-    }),
-    collectPaginatedRows<SeasonRow, QueryError>({
-      fetchPage: async (from, to) => {
-        const result = await admin
-          .from("seasons")
-          .select("id, game_year, name, status")
-          .order("game_year", { ascending: true })
-          .range(from, to)
-          .returns<SeasonRow[]>();
+export async function getPublicSportingDirectorTrophyGallery(
+  sportingDirectorId: string
+): Promise<TrophyGallery> {
+  const normalizedDirectorId = sportingDirectorId.trim();
 
-        return { data: result.data, error: result.error };
-      },
-    }),
-  ]);
+  if (!isUuid(normalizedDirectorId)) {
+    return EMPTY_GALLERY;
+  }
 
+  return loadSportingDirectorTrophyGallery({
+    directorId: normalizedDirectorId,
+    includeClaimable: false,
+  });
+}
+
+export async function getSportingDirectorTrophyRewardStatus(
+  authUserId: string
+): Promise<SportingDirectorTrophyRewardStatus> {
+  const normalizedAuthUserId = authUserId.trim();
+
+  if (!normalizedAuthUserId) {
+    return { availableCount: 0, alphaTesterAvailable: false };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const directorResult = await admin
+    .from("sporting_directors")
+    .select("id")
+    .eq("auth_user_id", normalizedAuthUserId)
+    .eq("status", "active")
+    .maybeSingle<SportingDirectorRow>();
+
+  assertQuery(directorResult.error, "le Directeur Sportif");
+
+  if (!directorResult.data) {
+    return { availableCount: 0, alphaTesterAvailable: false };
+  }
+
+  const rewardsResult = await admin
+    .from("sporting_director_trophies")
+    .select("trophy_key")
+    .eq("sporting_director_id", directorResult.data.id)
+    .is("claimed_at", null)
+    .returns<Array<{ trophy_key: string }>>();
+
+  assertQuery(rewardsResult.error, "les trophées à récupérer");
+
+  const rewards = rewardsResult.data ?? [];
+
+  return {
+    availableCount: rewards.length,
+    alphaTesterAvailable: rewards.some(
+      (reward) => reward.trophy_key === ALPHA_TESTER_TROPHY_KEY
+    ),
+  };
+}
+
+async function loadSportingDirectorTrophyGallery({
+  directorId,
+  includeClaimable,
+}: {
+  directorId: string;
+  includeClaimable: boolean;
+}): Promise<TrophyGallery> {
+  const admin = createSupabaseAdminClient();
+  const [entitlementsResult, assignmentsResult, seasonsResult] =
+    await Promise.all([
+      admin
+        .from("sporting_director_trophies")
+        .select("id, trophy_key, available_at, claimed_at")
+        .eq("sporting_director_id", directorId)
+        .order("available_at", { ascending: true })
+        .returns<TrophyEntitlementRow[]>(),
+      collectPaginatedRows<AssignmentRow, QueryError>({
+        fetchPage: async (from, to) => {
+          const result = await admin
+            .from("team_manager_assignments")
+            .select("team_id, start_season_id, end_season_id")
+            .eq("sporting_director_id", directorId)
+            .eq("role", "general_manager")
+            .in("status", ["active", "completed", "terminated"])
+            .order("created_at", { ascending: true })
+            .range(from, to)
+            .returns<AssignmentRow[]>();
+
+          return { data: result.data, error: result.error };
+        },
+      }),
+      collectPaginatedRows<SeasonRow, QueryError>({
+        fetchPage: async (from, to) => {
+          const result = await admin
+            .from("seasons")
+            .select("id, game_year, name, status")
+            .order("game_year", { ascending: true })
+            .range(from, to)
+            .returns<SeasonRow[]>();
+
+          return { data: result.data, error: result.error };
+        },
+      }),
+    ]);
+
+  assertQuery(entitlementsResult.error, "les distinctions de carrière");
   assertQuery(assignmentsResult.error, "l’historique des équipes");
   assertQuery(seasonsResult.error, "l’historique des saisons");
 
+  const { specialAwards, claimableTrophies } = mapSpecialTrophies({
+    entitlements: entitlementsResult.data ?? [],
+    includeClaimable,
+  });
   const assignments = assignmentsResult.data;
   const seasons = seasonsResult.data;
   const teamIds = unique(assignments.map((assignment) => assignment.team_id));
 
   if (teamIds.length === 0 || seasons.length === 0) {
-    return EMPTY_GALLERY;
+    return buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards,
+      claimableTrophies,
+    });
   }
 
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
@@ -245,7 +350,59 @@ export async function getSportingDirectorTrophyGallery(
     raceWins,
     teamUciTitles,
     riderUciTitles,
+    specialAwards,
+    claimableTrophies,
   });
+}
+
+function mapSpecialTrophies({
+  entitlements,
+  includeClaimable,
+}: {
+  entitlements: TrophyEntitlementRow[];
+  includeClaimable: boolean;
+}): {
+  specialAwards: TrophySpecialAward[];
+  claimableTrophies: ClaimableTrophyReward[];
+} {
+  const alphaTesterEntitlements = entitlements.filter(
+    (entitlement) => entitlement.trophy_key === ALPHA_TESTER_TROPHY_KEY
+  );
+
+  return {
+    specialAwards: alphaTesterEntitlements.flatMap((entitlement) =>
+      entitlement.claimed_at
+        ? [
+            {
+              id: entitlement.id,
+              trophyKey: ALPHA_TESTER_TROPHY_KEY,
+              availableAt: entitlement.available_at,
+              claimedAt: entitlement.claimed_at,
+              href: includeClaimable
+                ? "/jeu/directeur-sportif#distinction-avatar"
+                : null,
+            },
+          ]
+        : []
+    ),
+    claimableTrophies: includeClaimable
+      ? alphaTesterEntitlements.flatMap((entitlement) =>
+          entitlement.claimed_at
+            ? []
+            : [
+                {
+                  key: ALPHA_TESTER_TROPHY_KEY,
+                  availableAt: entitlement.available_at,
+                  title: ALPHA_TESTER_TROPHY_DEFINITION.title,
+                  description: ALPHA_TESTER_TROPHY_DEFINITION.description,
+                  avatarFrameKey:
+                    ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
+                  palette: ALPHA_TESTER_TROPHY_DEFINITION.palette,
+                },
+              ]
+        )
+      : [],
+  };
 }
 
 async function loadMajorRaceWins({
@@ -597,6 +754,12 @@ function coversSeason(
     endYear !== undefined &&
     seasonYear >= startYear &&
     seasonYear <= endYear
+  );
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
   );
 }
 

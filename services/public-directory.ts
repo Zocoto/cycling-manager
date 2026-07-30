@@ -29,6 +29,7 @@ type SportingDirectorRow = {
   username: string;
   display_name: string;
   avatar_key: string | null;
+  avatar_frame_key: "alpha_tester" | null;
   reputation_points: number | null;
 };
 
@@ -160,6 +161,7 @@ export async function getPublicSportingDirector(
     public_identifier: director.username,
     display_name: director.display_name,
     avatar_key: director.avatar_key,
+    avatar_frame_key: director.avatar_frame_key,
     reputation_points: director.reputation_points,
     country_code: countryResult.data.iso_alpha2,
     country_name: countryResult.data.name,
@@ -254,7 +256,7 @@ async function findSportingDirectorById({
   const { data, error } = await supabase
     .from("sporting_directors")
     .select(
-      "id, country_id, username, display_name, avatar_key, reputation_points"
+      "id, country_id, username, display_name, avatar_key, avatar_frame_key, reputation_points"
     )
     .eq("status", "active")
     .eq("id", identifier)
@@ -279,7 +281,7 @@ async function findSportingDirector({
   const { data, error } = await supabase
     .from("sporting_directors")
     .select(
-      "id, country_id, username, display_name, avatar_key, reputation_points"
+      "id, country_id, username, display_name, avatar_key, avatar_frame_key, reputation_points"
     )
     .eq("status", "active")
     .ilike(column, identifier)

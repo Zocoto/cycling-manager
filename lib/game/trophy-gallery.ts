@@ -2,7 +2,14 @@ export type TrophyKind =
   | "grand_tour"
   | "monument"
   | "uci_team"
-  | "uci_rider";
+  | "uci_rider"
+  | "special";
+
+export const ALPHA_TESTER_TROPHY_KEY = "alpha_tester";
+export const ALPHA_TESTER_AVATAR_FRAME_KEY = "alpha_tester";
+
+export type SportingDirectorAvatarFrameKey =
+  typeof ALPHA_TESTER_AVATAR_FRAME_KEY;
 
 export type TrophyPalette = {
   primary: string;
@@ -22,15 +29,28 @@ export type CareerTrophy = {
   href: string | null;
   inscription: string;
   palette: TrophyPalette;
+  description?: string | null;
+  avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
+};
+
+export type ClaimableTrophyReward = {
+  key: typeof ALPHA_TESTER_TROPHY_KEY;
+  availableAt: string;
+  title: string;
+  description: string;
+  avatarFrameKey: SportingDirectorAvatarFrameKey;
+  palette: TrophyPalette;
 };
 
 export type TrophyGallery = {
   trophies: CareerTrophy[];
+  claimableTrophies: ClaimableTrophyReward[];
   counts: {
     total: number;
     grandTours: number;
     monuments: number;
     uciTitles: number;
+    special: number;
   };
 };
 
@@ -57,11 +77,38 @@ export type TrophyRiderUciTitle = {
   riderName: string;
 };
 
+export type TrophySpecialAward = {
+  id: string;
+  trophyKey: typeof ALPHA_TESTER_TROPHY_KEY;
+  availableAt: string;
+  claimedAt: string;
+  href: string | null;
+};
+
 type BuildTrophyGalleryInput = {
   raceWins: TrophyRaceWin[];
   teamUciTitles: TrophyTeamUciTitle[];
   riderUciTitles: TrophyRiderUciTitle[];
+  specialAwards?: TrophySpecialAward[];
+  claimableTrophies?: ClaimableTrophyReward[];
 };
+
+export const ALPHA_TESTER_TROPHY_DEFINITION = {
+  key: ALPHA_TESTER_TROPHY_KEY,
+  title: "Alphatesteur",
+  competitionName: "Cyclostratège · Phase Alpha",
+  seasonName: "Phase Alpha",
+  inscription: "Pionnier du peloton numérique",
+  description:
+    "Distinction réservée aux Directeurs Sportifs qui accompagnent la phase Alpha. Son liseré numérique peut être activé ou désactivé depuis l’édition du profil DS.",
+  avatarFrameKey: ALPHA_TESTER_AVATAR_FRAME_KEY,
+  palette: {
+    primary: "#48D9C0",
+    secondary: "#D7FFF8",
+    accent: "#342A64",
+    glow: "rgba(72, 217, 192, 0.42)",
+  } satisfies TrophyPalette,
+} as const;
 
 const DEFAULT_MONUMENT_PALETTE: TrophyPalette = {
   primary: "#C78B2C",
@@ -172,6 +219,8 @@ export function buildTrophyGallery({
   raceWins,
   teamUciTitles,
   riderUciTitles,
+  specialAwards = [],
+  claimableTrophies = [],
 }: BuildTrophyGalleryInput): TrophyGallery {
   const raceTrophies = raceWins.flatMap<CareerTrophy>((win) => {
     if (win.isGrandTour) {
@@ -246,12 +295,31 @@ export function buildTrophyGallery({
     palette: UCI_RIDER_PALETTE,
   }));
 
-  const trophies = [...teamTrophies, ...riderTrophies, ...raceTrophies].sort(
-    compareTrophies
-  );
+  const specialTrophies = specialAwards.map<CareerTrophy>((award) => ({
+    id: `special:${award.id}`,
+    kind: "special",
+    title: ALPHA_TESTER_TROPHY_DEFINITION.title,
+    competitionName: ALPHA_TESTER_TROPHY_DEFINITION.competitionName,
+    seasonName: ALPHA_TESTER_TROPHY_DEFINITION.seasonName,
+    wonAt: award.claimedAt,
+    riderName: null,
+    href: award.href,
+    inscription: ALPHA_TESTER_TROPHY_DEFINITION.inscription,
+    palette: ALPHA_TESTER_TROPHY_DEFINITION.palette,
+    description: ALPHA_TESTER_TROPHY_DEFINITION.description,
+    avatarFrameKey: ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
+  }));
+
+  const trophies = [
+    ...specialTrophies,
+    ...teamTrophies,
+    ...riderTrophies,
+    ...raceTrophies,
+  ].sort(compareTrophies);
 
   return {
     trophies,
+    claimableTrophies,
     counts: {
       total: trophies.length,
       grandTours: trophies.filter((trophy) => trophy.kind === "grand_tour")
@@ -262,6 +330,7 @@ export function buildTrophyGallery({
         (trophy) =>
           trophy.kind === "uci_team" || trophy.kind === "uci_rider"
       ).length,
+      special: specialTrophies.length,
     },
   };
 }
@@ -287,6 +356,7 @@ function compareTrophies(left: CareerTrophy, right: CareerTrophy) {
 }
 
 function getTrophyWeight(kind: TrophyKind) {
+  if (kind === "special") return 500;
   if (kind === "uci_team") return 400;
   if (kind === "uci_rider") return 350;
   if (kind === "grand_tour") return 250;

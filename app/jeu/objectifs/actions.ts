@@ -8,6 +8,7 @@ import {
   withPageFeedback,
 } from "@/lib/game/filtered-page-paths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { ClaimAlphaTesterTrophyState } from "@/app/jeu/objectifs/alpha-tester-trophy-state";
 
 export async function claimGameObjectiveAction(formData: FormData) {
   const objectiveKey = readValue(formData, "objectiveKey");
@@ -54,6 +55,44 @@ export async function claimGameObjectiveAction(formData: FormData) {
   );
 }
 
+
+export async function claimAlphaTesterTrophyAction(
+  _previousState: ClaimAlphaTesterTrophyState,
+  _formData: FormData
+): Promise<ClaimAlphaTesterTrophyState> {
+  void _previousState;
+  void _formData;
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    return {
+      status: "error",
+      message: "Votre session a expiré. Reconnectez-vous pour ouvrir ce cadeau.",
+    };
+  }
+
+  const { error } = await supabase.rpc(
+    "claim_current_sporting_director_trophy",
+    { p_trophy_key: "alpha_tester" }
+  );
+
+  if (error) {
+    return {
+      status: "error",
+      message: error.message,
+    };
+  }
+
+  return {
+    status: "success",
+    message: "Le trophée Alphatesteur rejoint définitivement votre galerie.",
+  };
+}
 function redirectWithMessage(
   path: string,
   key: "succes" | "erreur",

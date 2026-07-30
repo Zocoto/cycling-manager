@@ -102,6 +102,7 @@ type SportingDirectorRow = {
   id: string;
   display_name: string;
   avatar_key: string | null;
+  avatar_frame_key: "alpha_tester" | null;
   created_at: string;
 };
 
@@ -512,7 +513,7 @@ async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {
   const [recentQuery, totalQuery] = await Promise.all([
     admin
       .from("sporting_directors")
-      .select("id, display_name, avatar_key, created_at")
+      .select("id, display_name, avatar_key, avatar_frame_key, created_at")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(6)
@@ -593,6 +594,7 @@ async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {
         person: {
           kind: "director" as const,
           avatarKey: director.avatar_key,
+          avatarFrameKey: director.avatar_frame_key,
           label: `Portrait de ${director.display_name}`,
         },
         ...(team ? { team } : {}),

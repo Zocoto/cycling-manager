@@ -1,4 +1,8 @@
 import {
+  ALPHA_TESTER_AVATAR_FRAME_KEY,
+  type SportingDirectorAvatarFrameKey,
+} from "@/lib/game/trophy-gallery";
+import {
   SPORTING_DIRECTOR_AVATARS,
   getAvatarBackground,
   getAvatarEyeColor,
@@ -17,6 +21,7 @@ type SportingDirectorAvatarProps = {
   size?: "small" | "medium" | "large" | "xlarge";
   label?: string;
   className?: string;
+  frameKey?: SportingDirectorAvatarFrameKey | null;
 };
 
 const avatarSizeClasses = {
@@ -31,6 +36,7 @@ export function SportingDirectorAvatar({
   size = "medium",
   label = "Avatar du Directeur Sportif",
   className = "",
+  frameKey = null,
 }: SportingDirectorAvatarProps) {
   const avatar = resolveSportingDirectorAvatar(avatarKey);
   const skin = getAvatarSkinTone(avatar.skinTone);
@@ -43,14 +49,18 @@ export function SportingDirectorAvatar({
     <span
       role="img"
       aria-label={label}
+      data-avatar-frame={frameKey ?? undefined}
       className={[
-        "inline-flex shrink-0 overflow-hidden rounded-full",
-        "border-2 border-white/80 shadow-md",
+        "relative inline-flex shrink-0 rounded-full",
         avatarSizeClasses[size],
         className,
       ].join(" ")}
     >
-      <svg aria-hidden="true" viewBox="0 0 120 120" className="h-full w-full">
+      {frameKey === ALPHA_TESTER_AVATAR_FRAME_KEY ? (
+        <AlphaTesterAvatarFrame />
+      ) : null}
+      <span className="relative z-10 flex h-full w-full overflow-hidden rounded-full border-2 border-white/80 shadow-md">
+        <svg aria-hidden="true" viewBox="0 0 120 120" className="h-full w-full">
         <circle cx="60" cy="60" r="60" fill={background.color} />
         <path
           d="M-8 89C19 64 33 70 53 50C75 28 90 31 128 7V-5H-8Z"
@@ -81,8 +91,32 @@ export function SportingDirectorAvatar({
         <AvatarMouth avatar={avatar} />
         <AvatarFacialHair avatar={avatar} color={hair.color} />
         <AvatarGlasses avatar={avatar} />
-      </svg>
+        </svg>
+      </span>
     </span>
+  );
+}
+
+function AlphaTesterAvatarFrame() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="absolute -inset-[4px] rounded-full bg-[conic-gradient(from_35deg,#48D9C0,#D7FFF8_20%,#342A64_43%,#48D9C0_68%,#163F3B)] opacity-90 shadow-[0_0_13px_rgba(72,217,192,0.3)]"
+      />
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 120 120"
+        className="pointer-events-none absolute -inset-[7px] z-20 h-[calc(100%+14px)] w-[calc(100%+14px)] overflow-visible"
+        fill="none"
+      >
+        <path d="M19 23h12M89 23h12M13 88h13M94 88h13" stroke="#D7FFF8" strokeWidth="1.6" opacity="0.85" />
+        <circle cx="17" cy="23" r="2.4" fill="#48D9C0" />
+        <circle cx="103" cy="23" r="2.4" fill="#D7FFF8" />
+        <circle cx="11" cy="88" r="2.4" fill="#D7FFF8" />
+        <circle cx="109" cy="88" r="2.4" fill="#48D9C0" />
+      </svg>
+    </>
   );
 }
 

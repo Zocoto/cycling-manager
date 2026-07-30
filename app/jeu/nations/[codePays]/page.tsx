@@ -378,6 +378,7 @@ function CountryDirectorLink({
     >
       <SportingDirectorAvatar
         avatarKey={director.avatar_key}
+        frameKey={director.avatar_frame_key}
         size="small"
         label={`Avatar de ${director.display_name}`}
       />

@@ -82,6 +82,7 @@ export type PublicGameNewsPersonVisual =
   | {
       kind: "director";
       avatarKey: string | null;
+      avatarFrameKey: "alpha_tester" | null;
       label: string;
     }
   | {

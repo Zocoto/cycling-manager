@@ -1,8 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { TrophyGallery } from "@/components/game/trophy-gallery";
 import { buildTrophyGallery } from "@/lib/game/trophy-gallery";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 describe("TrophyGallery", () => {
   it("renders historic trophies, their engraved winner and gallery totals", () => {
@@ -75,5 +79,35 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("text-[7px]");
     expect(markup).toContain("min-[390px]:text-[8px]");
     expect(markup).toContain("sm:text-[9px]");
+  });
+  it("renders the unopened Alphatesteur gift before adding it to the gallery", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+          claimableTrophies: [
+            {
+              key: "alpha_tester",
+              availableAt: "2026-07-30T08:00:00.000Z",
+              title: "Alphatesteur",
+              description: "Distinction Alpha",
+              avatarFrameKey: "alpha_tester",
+              palette: {
+                primary: "#48D9C0",
+                secondary: "#D7FFF8",
+                accent: "#342A64",
+                glow: "rgba(72, 217, 192, 0.42)",
+              },
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(markup).toContain("Un cadeau vous attend");
+    expect(markup).toContain("Ouvrir mon cadeau");
+    expect(markup).not.toContain("Le premier socle vous attend");
   });
 });

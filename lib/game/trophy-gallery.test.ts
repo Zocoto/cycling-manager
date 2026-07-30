@@ -36,6 +36,7 @@ describe("buildTrophyGallery", () => {
       grandTours: 1,
       monuments: 1,
       uciTitles: 0,
+      special: 0,
     });
     expect(gallery.trophies).toEqual(
       expect.arrayContaining([
@@ -110,4 +111,31 @@ describe("buildTrophyGallery", () => {
     expect(gallery.trophies).toEqual([]);
     expect(gallery.counts.total).toBe(0);
   });
-});
+
+  it("adds the claimed Alphatesteur distinction before sporting trophies", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [
+        { id: "team-s1", seasonName: "Saison 1", teamName: "Veloria" },
+      ],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "alpha-award",
+          trophyKey: "alpha_tester",
+          availableAt: "2026-07-30T08:00:00.000Z",
+          claimedAt: "2026-07-30T09:00:00.000Z",
+          href: "/jeu/directeur-sportif#distinction-avatar",
+        },
+      ],
+      claimableTrophies: [],
+    });
+
+    expect(gallery.trophies[0]).toMatchObject({
+      kind: "special",
+      title: "Alphatesteur",
+      avatarFrameKey: "alpha_tester",
+      href: "/jeu/directeur-sportif#distinction-avatar",
+    });
+    expect(gallery.counts).toMatchObject({ total: 2, special: 1 });
+  });});

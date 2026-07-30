@@ -425,6 +425,7 @@ function PersonPortrait({
     return (
       <SportingDirectorAvatar
         avatarKey={person.avatarKey}
+        frameKey={person.avatarFrameKey}
         size={size === "featured" ? "large" : "small"}
         label={person.label}
         className={

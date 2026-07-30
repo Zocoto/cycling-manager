@@ -12,6 +12,7 @@ import {
   type AmateurJerseyConfig,
 } from "../../../lib/amateur-team";
 import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
+import { ALPHA_TESTER_TROPHY_KEY } from "../../../lib/game/trophy-gallery";
 import { isSportingDirectorAvatarKey } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -45,9 +46,11 @@ const sportingDirectorProfileSchema = z.object({
     }),
 
   hideEmail: z.boolean(),
+  alphaTesterFrameEnabled: z.boolean(),
 });
 
 type CurrentSportingDirectorProfile = {
+  id: string;
   country_id: string | null;
   avatar_key: string | null;
 };
@@ -125,12 +128,16 @@ export async function updateSportingDirectorProfile(
   const hideEmail =
     getFormValue(formData, "hideEmail") === "true";
 
+  const alphaTesterFrameEnabled =
+    getFormValue(formData, "alphaTesterFrameEnabled") === "true";
+
   const validationResult =
     sportingDirectorProfileSchema.safeParse({
       displayName,
       countryId,
       avatarKey,
       hideEmail,
+      alphaTesterFrameEnabled,
     });
 
   if (!validationResult.success) {
@@ -163,7 +170,7 @@ export async function updateSportingDirectorProfile(
     error: currentProfileError,
   } = await supabase
     .from("sporting_directors")
-    .select("country_id, avatar_key")
+    .select("id, country_id, avatar_key")
     .eq("auth_user_id", user.id)
     .maybeSingle<CurrentSportingDirectorProfile>();
 
@@ -218,12 +225,38 @@ export async function updateSportingDirectorProfile(
     };
   }
 
+  if (validationResult.data.alphaTesterFrameEnabled) {
+    const { data: alphaTesterTrophy, error: alphaTesterTrophyError } =
+      await supabase
+        .from("sporting_director_trophies")
+        .select("id")
+        .eq("sporting_director_id", currentProfile.id)
+        .eq("trophy_key", ALPHA_TESTER_TROPHY_KEY)
+        .not("claimed_at", "is", null)
+        .maybeSingle<{ id: string }>();
+
+    if (alphaTesterTrophyError || !alphaTesterTrophy) {
+      return {
+        status: "error",
+        message: "Le liseré Alphatesteur n’est pas encore disponible.",
+        fieldErrors: {
+          alphaTesterFrameEnabled: [
+            "Ouvrez d’abord le trophée Alphatesteur dans votre galerie.",
+          ],
+        },
+      };
+    }
+  }
+
   const { error: updateError } = await supabase
     .from("sporting_directors")
     .update({
       display_name: validationResult.data.displayName,
       country_id: validationResult.data.countryId,
       avatar_key: validationResult.data.avatarKey,
+      avatar_frame_key: validationResult.data.alphaTesterFrameEnabled
+        ? "alpha_tester"
+        : null,
       is_email_visible:
         !validationResult.data.hideEmail,
     })
@@ -489,6 +522,9 @@ function toJerseyConfig(value: {
 function revalidateSportingDirectorPages(): void {
   revalidatePath("/jeu");
   revalidatePath("/jeu/directeur-sportif");
+  revalidatePath("/jeu/recherche");
+  revalidatePath("/jeu/nations/[codePays]", "page");
+  revalidatePath("/jeu/directeurs-sportifs/[identifiantPublic]", "page");
 }
 
 export async function deleteSportingDirectorAccount(

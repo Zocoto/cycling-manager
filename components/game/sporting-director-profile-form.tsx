@@ -17,12 +17,15 @@ type SportingDirectorProfileFormProps = {
   initialDisplayName: string;
   initialCountryId: string | null;
   initialAvatarKey: string | null;
+  initialAvatarFrameKey: "alpha_tester" | null;
+  hasAlphaTesterTrophy: boolean;
   initialIsEmailVisible: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
   "displayName",
   "avatarKey",
+  "alphaTesterFrameEnabled",
   "countryId",
   "hideEmail",
 ];
@@ -32,6 +35,8 @@ export function SportingDirectorProfileForm({
   initialDisplayName,
   initialCountryId,
   initialAvatarKey,
+  initialAvatarFrameKey,
+  hasAlphaTesterTrophy,
   initialIsEmailVisible,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
@@ -158,6 +163,8 @@ export function SportingDirectorProfileForm({
   const avatarErrors = getVisibleErrors("avatarKey");
 
   const countryErrors = getVisibleErrors("countryId");
+
+  const alphaTesterFrameErrors = getVisibleErrors("alphaTesterFrameEnabled");
 
   const hideEmailErrors = getVisibleErrors("hideEmail");
 
@@ -287,6 +294,7 @@ export function SportingDirectorProfileForm({
               {hasSelectedAvatar ? (
                 <SportingDirectorAvatar
                   avatarKey={selectedAvatarKey}
+                  frameKey={initialAvatarFrameKey}
                   size="large"
                   label="Avatar actuellement sélectionné"
                 />
@@ -417,6 +425,56 @@ export function SportingDirectorProfileForm({
           </div>
         ) : null}
 
+        {hasAlphaTesterTrophy ? (
+          <section
+            id="distinction-avatar"
+            className="scroll-mt-28 rounded-xl border border-[#5CC8B2]/35 bg-[linear-gradient(135deg,rgba(92,200,178,0.12),rgba(119,91,189,0.08))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#5B4BA5]">
+              Distinction Alphatesteur
+            </p>
+
+            <label className="mt-3 flex cursor-pointer items-start gap-4">
+              <input
+                type="checkbox"
+                name="alphaTesterFrameEnabled"
+                value="true"
+                defaultChecked={initialAvatarFrameKey === "alpha_tester"}
+                disabled={pending}
+                aria-invalid={Boolean(alphaTesterFrameErrors?.length)}
+                aria-describedby={
+                  alphaTesterFrameErrors?.length
+                    ? "alphaTesterFrameEnabled-error"
+                    : undefined
+                }
+                onChange={() => dismissFieldError("alphaTesterFrameEnabled")}
+                className="mt-1 h-5 w-5 shrink-0 cursor-pointer rounded border-[#315B3E]/30 accent-[#5B4BA5] disabled:cursor-not-allowed"
+              />
+
+              <span>
+                <span className="block text-sm font-bold text-[#183F37]">
+                  Afficher le liseré Alphatesteur
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-[#60756E]">
+                  Ce liseré numérique subtil sera visible par tous autour de votre avatar. Vous pourrez l’activer ou le désactiver ici à tout moment.
+                </span>
+              </span>
+            </label>
+
+            {alphaTesterFrameErrors?.length ? (
+              <div id="alphaTesterFrameEnabled-error">
+                {alphaTesterFrameErrors.map((error) => (
+                  <p
+                    key={error}
+                    className="mt-3 text-sm font-semibold text-[#80640C]"
+                  >
+                    {error}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
         <div className="rounded-xl border border-[#315B3E]/15 bg-[#F5F9F7] p-4 sm:p-5">
           <label className="flex cursor-pointer items-start gap-4">
             <input
@@ -530,6 +588,7 @@ export function SportingDirectorProfileForm({
 
             <SportingDirectorAvatarEditor
               avatarKey={selectedAvatarKey || null}
+              frameKey={initialAvatarFrameKey}
               onCancel={() => setIsAvatarModalOpen(false)}
               onConfirm={selectAvatar}
             />

@@ -5,11 +5,13 @@ import { notFound, redirect } from "next/navigation";
 import { GameHeader } from "@/components/game/game-header";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
+import { SportingDirectorTrophyTile } from "@/components/game/sporting-director-trophy-tile";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicSportingDirector } from "@/services/public-directory";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
+import { getPublicSportingDirectorTrophyGallery } from "@/services/trophy-gallery";
 
 export const metadata: Metadata = {
   title: "Fiche Directeur Sportif",
@@ -48,9 +50,12 @@ export default async function PublicSportingDirectorPage({
     notFound();
   }
 
-  const teamSponsorIdentity = profile.team_id
-    ? await getActiveTeamSponsorIdentity(profile.team_id)
-    : null;
+  const [teamSponsorIdentity, trophyGallery] = await Promise.all([
+    profile.team_id
+      ? getActiveTeamSponsorIdentity(profile.team_id)
+      : Promise.resolve(null),
+    getPublicSportingDirectorTrophyGallery(profile.entity_id),
+  ]);
 
   const countryHref = `/jeu/nations/${profile.country_code.toLowerCase()}`;
   const teamHref = profile.team_id
@@ -80,6 +85,7 @@ export default async function PublicSportingDirectorPage({
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
               <SportingDirectorAvatar
                 avatarKey={profile.avatar_key}
+                frameKey={profile.avatar_frame_key}
                 size="large"
                 label={`Avatar de ${profile.display_name}`}
                 className="ring-4 ring-white/10"
@@ -159,6 +165,10 @@ export default async function PublicSportingDirectorPage({
                 </p>
               </div>
             )}
+
+            <div className="lg:col-span-2">
+              <SportingDirectorTrophyTile gallery={trophyGallery} />
+            </div>
           </div>
         </div>
 

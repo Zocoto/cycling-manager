@@ -60,6 +60,10 @@ import {
   type DashboardOperationalEvents,
 } from "../../services/dashboard-events";
 import { getCurrentGameObjectives } from "../../services/game-objectives";
+import {
+  getSportingDirectorTrophyRewardStatus,
+  type SportingDirectorTrophyRewardStatus,
+} from "../../services/trophy-gallery";
 import { getDashboardPelotonNews } from "../../services/public-game-news";
 import { getActiveSeasonRaceCalendar } from "../../services/race-calendar";
 import {
@@ -78,6 +82,7 @@ type SportingDirector = {
   display_name: string;
   country_id: string | null;
   avatar_key: string | null;
+  avatar_frame_key: "alpha_tester" | null;
   reputation_points: number;
   experience_points: number;
   is_email_visible: boolean;
@@ -249,6 +254,14 @@ export default async function GamePage() {
     [] as GameObjective[],
     "Impossible de récupérer les objectifs de carrière :",
   );
+  const trophyRewardStatusPromise = loadDashboardValue(
+    getSportingDirectorTrophyRewardStatus(user.id),
+    {
+      availableCount: 0,
+      alphaTesterAvailable: false,
+    } satisfies SportingDirectorTrophyRewardStatus,
+    "Impossible de récupérer les trophées disponibles :",
+  );
   const uciRankingsPromise = loadDashboardValue(
     getUciRankings(),
     null as UciRankings | null,
@@ -278,6 +291,7 @@ export default async function GamePage() {
           display_name,
           country_id,
           avatar_key,
+          avatar_frame_key,
           reputation_points,
           experience_points,
           is_email_visible,
@@ -343,6 +357,7 @@ export default async function GamePage() {
     financeOverview,
     inventoryOverview,
     gameObjectives,
+    trophyRewardStatus,
     dashboardOperationalEvents,
     reputationBreakdown,
     uciRankings,
@@ -360,6 +375,7 @@ export default async function GamePage() {
     financeOverviewPromise,
     inventoryOverviewPromise,
     gameObjectivesPromise,
+    trophyRewardStatusPromise,
     loadDashboardValue(
       dashboardTeamSummary
         ? getCurrentDashboardOperationalEvents({
@@ -518,6 +534,7 @@ export default async function GamePage() {
     operationalEvents: dashboardOperationalEvents.events,
     transactions: financeOverview?.transactions ?? [],
     objectives: gameObjectives,
+    trophyRewardStatus,
   });
 
   return (
@@ -551,7 +568,8 @@ export default async function GamePage() {
               />
               <ObjectivesShortcut
                 totalCount={gameObjectives.length}
-                readyCount={readyObjectiveCount}
+                readyCount={readyObjectiveCount + trophyRewardStatus.availableCount}
+                trophyRewardCount={trophyRewardStatus.availableCount}
               />
               <JerseyShortcut />
             </div>
@@ -917,6 +935,7 @@ function DirectorIdentity({
       {sportingDirector?.avatar_key ? (
         <SportingDirectorAvatar
           avatarKey={sportingDirector.avatar_key}
+          frameKey={sportingDirector.avatar_frame_key}
           size="medium"
           label={`Avatar de ${profileName}`}
         />
@@ -1259,13 +1278,19 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
 function ObjectivesShortcut({
   totalCount,
   readyCount,
+  trophyRewardCount,
 }: {
   totalCount: number;
   readyCount: number;
+  trophyRewardCount: number;
 }) {
   return (
     <Link
-      href="/jeu/objectifs"
+      href={
+        trophyRewardCount > 0
+          ? "/jeu/objectifs?onglet=trophees#trophee-alpha-tester"
+          : "/jeu/objectifs"
+      }
       title={
         readyCount > 0
           ? `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`

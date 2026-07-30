@@ -1,3 +1,5 @@
+import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gift";
+import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
 import Link from "@/components/ui/app-link";
 import type {
   CareerTrophy,
@@ -9,6 +11,9 @@ export function TrophyGallery({
 }: {
   gallery: TrophyGalleryData;
 }) {
+  const specialTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "special"
+  );
   const uciTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "uci_team" || trophy.kind === "uci_rider"
   );
@@ -57,8 +62,22 @@ export function TrophyGallery({
           </div>
         </header>
 
-        {gallery.trophies.length > 0 ? (
+        {gallery.trophies.length > 0 || gallery.claimableTrophies.length > 0 ? (
           <div className="px-5 py-7 sm:px-8 sm:py-9">
+            {gallery.claimableTrophies.map((reward) => (
+              <AlphaTesterTrophyGift key={reward.key} reward={reward} />
+            ))}
+
+            {specialTrophies.length > 0 ? (
+              <TrophyShelf
+                eyebrow="Distinctions de carrière"
+                title="Pionniers de Cyclostratège"
+                description="Les distinctions spéciales racontent les étapes fondatrices de votre carrière de DS."
+                trophies={specialTrophies}
+                epic
+              />
+            ) : null}
+
             {uciTrophies.length > 0 ? (
               <TrophyShelf
                 eyebrow="Pièces maîtresses"
@@ -181,6 +200,11 @@ function TrophyCard({
         <p className="mt-2 text-sm font-bold text-[#BBD0C6]">
           {trophy.competitionName}
         </p>
+        {trophy.description ? (
+          <p className="mt-2 text-xs font-semibold leading-5 text-[#9EB8AD]">
+            {trophy.description}
+          </p>
+        ) : null}
         <div className="mt-4 border-t border-white/10 pt-3">
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#789B8C]">
             Gravure
@@ -232,6 +256,14 @@ function TrophyIllustration({
   trophy: CareerTrophy;
   epic: boolean;
 }) {
+  if (trophy.kind === "special") {
+    return (
+      <AlphaTesterTrophyMark
+        className={epic ? "h-40 w-40" : "h-36 w-36"}
+      />
+    );
+  }
+
   const isUci = trophy.kind === "uci_team" || trophy.kind === "uci_rider";
   const isMonument = trophy.kind === "monument";
 
@@ -452,6 +484,7 @@ function LongTermChallenges() {
 }
 
 function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
+  if (kind === "special") return "Distinction Alpha";
   if (kind === "grand_tour") return "Grand Tour";
   if (kind === "monument") return "Monument";
   if (kind === "uci_team") return "Champion UCI équipes";

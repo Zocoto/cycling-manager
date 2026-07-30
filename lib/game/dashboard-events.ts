@@ -40,6 +40,7 @@ export function buildDashboardEventFeed({
   operationalEvents,
   transactions,
   objectives,
+  trophyRewardStatus = { alphaTesterAvailable: false },
   limit = 10,
 }: {
   currentDayNumber: number;
@@ -47,6 +48,7 @@ export function buildDashboardEventFeed({
   operationalEvents: DashboardEvent[];
   transactions: TeamFinanceTransaction[];
   objectives: GameObjective[];
+  trophyRewardStatus?: { alphaTesterAvailable: boolean };
   limit?: number;
 }): DashboardEvent[] {
   const events = [
@@ -57,6 +59,7 @@ export function buildDashboardEventFeed({
       transactions,
     }),
     ...buildObjectiveRewardEvents(objectives, currentDayNumber, currency),
+    ...buildTrophyRewardEvents(trophyRewardStatus, currentDayNumber),
     ...buildNationalChampionshipReminders(currentDayNumber),
   ];
 
@@ -150,6 +153,30 @@ function buildObjectiveRewardEvents(
     }));
 }
 
+function buildTrophyRewardEvents(
+  status: { alphaTesterAvailable: boolean },
+  currentDayNumber: number
+): DashboardEvent[] {
+  if (!status.alphaTesterAvailable) {
+    return [];
+  }
+
+  return [
+    {
+      id: "trophy:alpha-tester",
+      category: "objective",
+      priority: "action",
+      title: "Un nouveau trophée vous attend",
+      description:
+        "Le trophée Alphatesteur est disponible dans votre galerie. Ouvrez votre cadeau pour révéler cette distinction exclusive.",
+      href: "/jeu/objectifs?onglet=trophees#trophee-alpha-tester",
+      actionLabel: "Ouvrir le cadeau",
+      badgeLabel: "Nouveau trophée",
+      dayNumber: currentDayNumber,
+      happenedAt: null,
+    },
+  ];
+}
 function buildNationalChampionshipReminders(
   currentDayNumber: number
 ): DashboardEvent[] {

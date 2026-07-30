@@ -2,6 +2,7 @@ export type SportingDirectorProfileField =
   | "displayName"
   | "countryId"
   | "avatarKey"
+  | "alphaTesterFrameEnabled"
   | "hideEmail";
 
 export type SportingDirectorProfileState = {

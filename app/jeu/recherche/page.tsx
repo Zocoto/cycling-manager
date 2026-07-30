@@ -346,6 +346,7 @@ function SportingDirectorResult({
     <ResultLink result={result}>
       <SportingDirectorAvatar
         avatarKey={result.avatar_key}
+        frameKey={result.avatar_frame_key}
         size="small"
         label={`Avatar de ${result.display_name}`}
       />

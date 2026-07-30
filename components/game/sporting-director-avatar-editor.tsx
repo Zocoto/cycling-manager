@@ -27,6 +27,7 @@ import { SportingDirectorAvatar } from "./sporting-director-avatar";
 
 type SportingDirectorAvatarEditorProps = {
   avatarKey: string | null;
+  frameKey?: "alpha_tester" | null;
   onCancel: () => void;
   onConfirm: (avatarKey: string) => void;
 };
@@ -46,6 +47,7 @@ const editorTabs: Array<{
 
 export function SportingDirectorAvatarEditor({
   avatarKey,
+  frameKey = null,
   onCancel,
   onConfirm,
 }: SportingDirectorAvatarEditorProps) {
@@ -77,6 +79,7 @@ export function SportingDirectorAvatarEditor({
             <div className="mt-4 flex justify-center">
               <SportingDirectorAvatar
                 avatarKey={previewKey}
+                frameKey={frameKey}
                 size="xlarge"
                 label="Aperçu de votre avatar personnalisé"
                 className="ring-8 ring-white/55 shadow-[0_22px_55px_rgba(19,60,46,0.22)]"

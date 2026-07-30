@@ -160,4 +160,24 @@ describe("dashboard events", () => {
       badgeLabel: "Contrat",
     });
   });
-});
+
+  it("annonce le cadeau Alphatesteur tant qu’il reste à ouvrir", () => {
+    const events = buildDashboardEventFeed({
+      currentDayNumber: 12,
+      currency: "EUR",
+      operationalEvents: [],
+      objectives: [],
+      transactions: [],
+      trophyRewardStatus: { alphaTesterAvailable: true },
+    });
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        id: "trophy:alpha-tester",
+        category: "objective",
+        priority: "action",
+        href: "/jeu/objectifs?onglet=trophees#trophee-alpha-tester",
+        actionLabel: "Ouvrir le cadeau",
+      })
+    );
+  });});

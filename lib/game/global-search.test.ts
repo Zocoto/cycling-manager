@@ -13,6 +13,7 @@ const baseResult: GlobalSearchResult = {
   public_identifier: "Paul Roue",
   display_name: "Paul Roue",
   avatar_key: null,
+  avatar_frame_key: null,
   reputation_points: 12,
   country_code: "FR",
   country_name: "France",

@@ -12,6 +12,7 @@ export type GlobalSearchResult = {
   public_identifier: string;
   display_name: string;
   avatar_key: string | null;
+  avatar_frame_key: "alpha_tester" | null;
   reputation_points: number | null;
   country_code: string;
   country_name: string;

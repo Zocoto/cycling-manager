@@ -38,6 +38,7 @@ type SportingDirectorProfile = {
   display_name: string;
   country_id: string | null;
   avatar_key: string | null;
+  avatar_frame_key: "alpha_tester" | null;
   reputation_points: number;
   is_email_visible: boolean;
   created_at: string;
@@ -101,6 +102,7 @@ export default async function SportingDirectorProfilePage() {
             display_name,
             country_id,
             avatar_key,
+            avatar_frame_key,
             reputation_points,
             is_email_visible,
             created_at
@@ -159,6 +161,25 @@ export default async function SportingDirectorProfilePage() {
 
   const sportingDirector =
     profileResult.data;
+
+  const alphaTesterTrophyResult = sportingDirector
+    ? await supabase
+        .from("sporting_director_trophies")
+        .select("id")
+        .eq("sporting_director_id", sportingDirector.id)
+        .eq("trophy_key", "alpha_tester")
+        .not("claimed_at", "is", null)
+        .maybeSingle<{ id: string }>()
+    : { data: null, error: null };
+
+  if (alphaTesterTrophyResult.error) {
+    console.error(
+      "Impossible de vérifier le trophée Alphatesteur :",
+      alphaTesterTrophyResult.error
+    );
+  }
+
+  const hasAlphaTesterTrophy = Boolean(alphaTesterTrophyResult.data);
 
   if (
     profileResult.error ||
@@ -272,6 +293,10 @@ export default async function SportingDirectorProfilePage() {
                     initialAvatarKey={
                       sportingDirector.avatar_key
                     }
+                    initialAvatarFrameKey={
+                      sportingDirector.avatar_frame_key
+                    }
+                    hasAlphaTesterTrophy={hasAlphaTesterTrophy}
                     initialIsEmailVisible={
                       sportingDirector.is_email_visible
                     }
@@ -330,6 +355,9 @@ export default async function SportingDirectorProfilePage() {
                   avatarKey={
                     sportingDirector.avatar_key
                   }
+                  avatarFrameKey={
+                    sportingDirector.avatar_frame_key
+                  }
                   reputationPoints={
                     sportingDirector.reputation_points
                   }
@@ -363,6 +391,7 @@ function ProfileSummaryCard({
   isEmailVisible,
   selectedCountry,
   avatarKey,
+  avatarFrameKey,
   reputationPoints,
   teamSponsorIdentity,
   teamAmateurIdentity,
@@ -373,6 +402,7 @@ function ProfileSummaryCard({
   isEmailVisible: boolean;
   selectedCountry: CountryOption | null;
   avatarKey: string | null;
+  avatarFrameKey: "alpha_tester" | null;
   reputationPoints: number;
   teamSponsorIdentity:
     TeamSponsorIdentity | null;
@@ -393,6 +423,7 @@ function ProfileSummaryCard({
           isEmailVisible={isEmailVisible}
           selectedCountry={selectedCountry}
           avatarKey={avatarKey}
+          avatarFrameKey={avatarFrameKey}
         />
 
         <div className="flex flex-col items-center justify-center gap-3">
@@ -425,6 +456,7 @@ function ProfileSummaryCard({
           isEmailVisible={isEmailVisible}
           selectedCountry={selectedCountry}
           avatarKey={avatarKey}
+          avatarFrameKey={avatarFrameKey}
         />
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -485,6 +517,7 @@ function SportingDirectorIdentity({
   isEmailVisible,
   selectedCountry,
   avatarKey,
+  avatarFrameKey,
 }: {
   displayName: string;
   username: string;
@@ -492,12 +525,14 @@ function SportingDirectorIdentity({
   isEmailVisible: boolean;
   selectedCountry: CountryOption | null;
   avatarKey: string | null;
+  avatarFrameKey: "alpha_tester" | null;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-5">
       {avatarKey ? (
         <SportingDirectorAvatar
           avatarKey={avatarKey}
+          frameKey={avatarFrameKey}
           size="large"
           label={`Avatar de ${displayName}`}
         />
