@@ -45,7 +45,10 @@ export function TrophyGallery({
               </p>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 rounded-2xl border border-white/12 bg-white/7 p-3 backdrop-blur-sm">
+            <div
+              data-trophy-metrics
+              className="grid grid-cols-4 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:gap-2 sm:p-3"
+            >
               <GalleryMetric label="Total" value={gallery.counts.total} />
               <GalleryMetric label="Grands Tours" value={gallery.counts.grandTours} />
               <GalleryMetric label="Monuments" value={gallery.counts.monuments} />
@@ -87,9 +90,12 @@ export function TrophyGallery({
 
 function GalleryMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-0 rounded-xl bg-black/15 px-2.5 py-3 text-center">
+    <div
+      data-trophy-metric
+      className="min-w-0 rounded-xl bg-black/15 px-1 py-3 text-center sm:px-2.5"
+    >
       <span className="block text-lg font-black text-[#F2C94C]">{value}</span>
-      <span className="mt-1 block text-[8px] font-black uppercase tracking-[0.1em] text-[#BDD1C7] sm:text-[9px]">
+      <span className="mt-1 block text-[7px] font-black uppercase leading-3 tracking-[0.04em] text-[#BDD1C7] min-[390px]:text-[8px] min-[390px]:tracking-[0.06em] sm:text-[9px] sm:tracking-[0.1em]">
         {label}
       </span>
     </div>

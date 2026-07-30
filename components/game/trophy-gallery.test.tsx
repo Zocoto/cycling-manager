@@ -57,4 +57,23 @@ describe("TrophyGallery", () => {
     expect(markup).not.toContain("Les emplacements sont prêts");
     expect(markup).not.toContain("Récompense débloquée");
   });
+
+  it("resserre les compteurs sur téléphone pour garder les libellés lisibles", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+        })}
+      />
+    );
+
+    expect(markup).toContain("data-trophy-metrics");
+    expect(markup).toContain("gap-1.5");
+    expect(markup).toContain("data-trophy-metric");
+    expect(markup).toContain("text-[7px]");
+    expect(markup).toContain("min-[390px]:text-[8px]");
+    expect(markup).toContain("sm:text-[9px]");
+  });
 });
