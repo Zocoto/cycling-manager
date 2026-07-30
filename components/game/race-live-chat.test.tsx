@@ -19,6 +19,7 @@ describe("RaceLiveChat", () => {
       {
         id: "message-1",
         stageId: "stage-1",
+        raceEditionId: "edition-1",
         sportingDirectorId: "director-2",
         authorDisplayName: "Camille Martin",
         message: "L’échappée commence à prendre le large.",
@@ -27,6 +28,7 @@ describe("RaceLiveChat", () => {
       {
         id: "message-2",
         stageId: "stage-1",
+        raceEditionId: "edition-1",
         sportingDirectorId: "director-1",
         authorDisplayName: "Alex Dupont",
         message: "Mon leader reste bien placé.",
@@ -37,6 +39,7 @@ describe("RaceLiveChat", () => {
     const markup = renderToStaticMarkup(
       <RaceLiveChat
         stageId="stage-1"
+        raceEditionId="edition-1"
         currentDirectorId="director-1"
         initialMessages={messages}
         mode="replay"
@@ -44,6 +47,7 @@ describe("RaceLiveChat", () => {
     );
 
     expect(markup).toContain('data-race-live-chat="persistent"');
+    expect(markup).toContain('data-race-chat-room="edition-1"');
     expect(markup).toContain('aria-label="Chat du replay"');
     expect(markup).toContain("Chat des Directeurs Sportifs");
     expect(markup).toContain("Camille Martin");

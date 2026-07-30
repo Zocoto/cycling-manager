@@ -14,11 +14,13 @@ import type { RaceLiveMessage } from "@/services/race-live-chat";
 
 export function RaceLiveChat({
   stageId,
+  raceEditionId,
   currentDirectorId,
   initialMessages,
   mode,
 }: {
   stageId: string;
+  raceEditionId: string;
   currentDirectorId: string;
   initialMessages: RaceLiveMessage[];
   mode: "live" | "replay";
@@ -54,14 +56,14 @@ export function RaceLiveChat({
 
   useEffect(() => {
     const channel = supabase
-      .channel(`race-live-chat:${stageId}`)
+      .channel(`race-live-chat:${raceEditionId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "race_live_messages",
-          filter: `stage_id=eq.${stageId}`,
+          filter: `race_edition_id=eq.${raceEditionId}`,
         },
         (payload: {
           new: Record<string, unknown>;
@@ -79,7 +81,7 @@ export function RaceLiveChat({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [stageId, supabase]);
+  }, [raceEditionId, supabase]);
 
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,6 +110,7 @@ export function RaceLiveChat({
   return (
     <aside
       data-race-live-chat="persistent"
+      data-race-chat-room={raceEditionId}
       aria-label={
         mode === "live"
           ? "Chat de la course en direct"
@@ -273,6 +276,7 @@ function readRealtimeMessage(
   if (
     typeof value.id !== "string" ||
     typeof value.stage_id !== "string" ||
+    typeof value.race_edition_id !== "string" ||
     typeof value.sporting_director_id !== "string" ||
     typeof value.author_display_name !== "string" ||
     typeof value.message !== "string" ||
@@ -284,6 +288,7 @@ function readRealtimeMessage(
   return {
     id: value.id,
     stageId: value.stage_id,
+    raceEditionId: value.race_edition_id,
     sportingDirectorId: value.sporting_director_id,
     authorDisplayName: value.author_display_name,
     message: value.message,

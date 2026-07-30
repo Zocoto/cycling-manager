@@ -14,6 +14,7 @@ type DirectorRow = {
 type MessageRow = {
   id: string;
   stage_id: string;
+  race_edition_id: string;
   sporting_director_id: string;
   author_display_name: string;
   message: string;
@@ -55,9 +56,9 @@ export async function postRaceLiveMessageAction(
       .maybeSingle<DirectorRow>(),
     supabase
       .from("stages")
-      .select("id")
+      .select("id, race_edition_id")
       .eq("id", stageId)
-      .maybeSingle<{ id: string }>(),
+      .maybeSingle<{ id: string; race_edition_id: string }>(),
   ]);
 
   if (directorResult.error || !directorResult.data) {
@@ -91,12 +92,13 @@ export async function postRaceLiveMessageAction(
     .from("race_live_messages")
     .insert({
       stage_id: stageId,
+      race_edition_id: stageResult.data.race_edition_id,
       sporting_director_id: directorResult.data.id,
       author_display_name: directorResult.data.display_name,
       message,
     })
     .select(
-      "id, stage_id, sporting_director_id, author_display_name, message, created_at"
+      "id, stage_id, race_edition_id, sporting_director_id, author_display_name, message, created_at"
     )
     .single<MessageRow>();
 

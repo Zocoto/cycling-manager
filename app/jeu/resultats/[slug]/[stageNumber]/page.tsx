@@ -130,7 +130,7 @@ export default async function RaceLivePage({
         .single<DirectorRow>(),
       state.status === "scheduled"
         ? Promise.resolve([])
-        : getRaceLiveMessages(supabase, stage.id).catch(
+        : getRaceLiveMessages(supabase, edition.id).catch(
             (error: unknown) => {
               console.error(
                 "Impossible de charger le chat de cette course :",
