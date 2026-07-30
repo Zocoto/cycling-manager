@@ -87,6 +87,13 @@ export function TutorialCenterMenu() {
   useEffect(() => {
     if (!open) return;
 
+    const mobileViewport = window.matchMedia("(max-width: 639px)");
+    const previousOverflow = document.documentElement.style.overflow;
+
+    if (mobileViewport.matches) {
+      document.documentElement.style.overflow = "hidden";
+    }
+
     function handlePointerDown(event: MouseEvent) {
       const target = event.target;
 
@@ -109,6 +116,7 @@ export function TutorialCenterMenu() {
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      document.documentElement.style.overflow = previousOverflow;
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -283,41 +291,65 @@ export function TutorialCenterMenu() {
       </button>
 
       {open ? (
+        <button
+          type="button"
+          aria-label="Fermer le centre des didacticiels"
+          className="fixed inset-0 z-[130] bg-[#071A17]/45 backdrop-blur-[1px] sm:hidden"
+          onClick={() => {
+            setOpen(false);
+            triggerRef.current?.focus();
+          }}
+        />
+      ) : null}
+
+      {open ? (
         <section
           id={panelId}
           role="dialog"
           aria-modal="false"
           aria-labelledby={`${panelId}-title`}
-          className="absolute right-0 top-full z-[140] mt-2 w-[min(410px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)]"
+          className="fixed inset-x-3 bottom-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[140] flex max-h-[72vh] max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-none sm:w-[min(410px,calc(100vw-24px))]"
         >
-          <header className="border-b border-[#315B3E]/10 bg-[#E9F5F0] px-5 py-4">
+          <header className="shrink-0 border-b border-[#315B3E]/10 bg-[#E9F5F0] px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
                   Bibliothèque de formation
                 </p>
                 <h2
                   id={`${panelId}-title`}
-                  className="mt-1 text-lg font-black text-[#0B302B]"
+                  className="mt-1 truncate text-base font-black text-[#0B302B] sm:text-lg"
                 >
                   Centre des didacticiels
                 </h2>
               </div>
-              <span className="rounded-full bg-[#176951] px-2.5 py-1 text-[10px] font-black text-white">
-                {completedEssentialCount} / 2 essentiels
-              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full bg-[#176951] px-2.5 py-1 text-[9px] font-black text-white sm:text-[10px]">
+                  {completedEssentialCount} / 2 essentiels
+                </span>
+                <button
+                  type="button"
+                  aria-label="Fermer le centre des didacticiels"
+                  title="Fermer"
+                  onClick={() => {
+                    setOpen(false);
+                    triggerRef.current?.focus();
+                  }}
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-[#315B3E]/15 bg-white/70 text-lg font-black leading-none text-[#315B3E] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
+                >
+                  ×
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+            <p className="mt-2 hidden text-xs font-semibold leading-5 text-[#60756E] sm:block">
               Découvrez les fondamentaux puis vivez une course dans les mêmes
               conditions d’affichage que les épreuves officielles.
             </p>
           </header>
-
-          <div className="max-h-[min(620px,calc(100vh-100px))] overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:max-h-[min(620px,calc(100vh-100px))] sm:flex-none sm:p-4">
             <p className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
               Formation essentielle
             </p>
-
             <div className="mt-2 grid gap-3">
               <TutorialEntry
                 title="Tutoriel de base"
@@ -330,7 +362,6 @@ export function TutorialCenterMenu() {
                   void launchBaseTutorial();
                 }}
               />
-
               {criteriumProgress?.status === "completed" ? (
                 <TutorialLinkEntry
                   title="Critérium de la découverte"
@@ -352,18 +383,15 @@ export function TutorialCenterMenu() {
                 />
               )}
             </div>
-
-            <div className="mt-4 rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F5F9F7] px-4 py-3">
+            <div className="mt-4 hidden rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F5F9F7] px-4 py-3 sm:block">
               <p className="text-xs font-bold leading-5 text-[#60756E]">
                 Terminez les deux formations essentielles pour rendre disponible
                 l’objectif « Finaliser le didacticiel ».
               </p>
             </div>
-
             <p className="mt-5 px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
               Guides des rubriques
             </p>
-
             <div className="mt-2 grid gap-3">
               <TutorialEntry
                 title="Gérer son effectif"
@@ -479,7 +507,7 @@ function TutorialEntry({
   onAction: () => void;
 }) {
   return (
-    <article className="rounded-xl border border-[#278B70]/20 bg-white p-4 shadow-sm">
+    <article className="rounded-xl border border-[#278B70]/20 bg-white p-3 shadow-sm sm:p-4">
       <EntryHeader
         title={title}
         description={description}
@@ -524,7 +552,7 @@ function TutorialLinkEntry({
         : "Commencer depuis le calendrier";
 
   return (
-    <article className="rounded-xl border border-[#F2C94C]/55 bg-white p-4 shadow-sm">
+    <article className="rounded-xl border border-[#F2C94C]/55 bg-white p-3 shadow-sm sm:p-4">
       <EntryHeader
         title={title}
         description={description}
@@ -553,10 +581,12 @@ function EntryHeader({
   statusLabel: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <h3 className="font-black text-[#183F37]">{title}</h3>
-        <p className="mt-1 text-xs font-semibold leading-5 text-[#60756E]">
+    <div className="flex items-start justify-between gap-2 sm:gap-3">
+      <div className="min-w-0">
+        <h3 className="text-sm font-black leading-5 text-[#183F37] sm:text-base">
+          {title}
+        </h3>
+        <p className="mt-1 hidden text-xs font-semibold leading-5 text-[#60756E] sm:block">
           {description}
         </p>
       </div>
