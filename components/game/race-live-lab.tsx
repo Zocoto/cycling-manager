@@ -298,13 +298,48 @@ export function RaceLiveLab({
       </div>
 
       <div className="border-b border-white/10 px-3 py-4 sm:px-6">
-        <RaceFavoritesPanel
-          edition={edition}
-          stage={stage}
-          riders={favoriteRiders}
-          frozen
-          tone="dark"
-        />
+        <details data-live-favorites className="group">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#102C28] px-5 py-4 text-white transition hover:bg-[#153630] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] [&::-webkit-details-marker]:hidden">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
+                Pronostic d&apos;avant-course
+              </p>
+              <h3 className="mt-1 text-lg font-black">Favoris de l&apos;étape</h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#DCECE5]">
+                Startlist officielle
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#F2C94C]">
+                <span className="group-open:hidden">Afficher la liste</span>
+                <span className="hidden group-open:inline">Masquer la liste</span>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
+                  fill="none"
+                >
+                  <path
+                    d="m5 7.5 5 5 5-5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </div>
+          </summary>
+
+          <RaceFavoritesPanel
+            edition={edition}
+            stage={stage}
+            riders={favoriteRiders}
+            frozen
+            tone="dark"
+            className="mt-3 [&>div:first-child]:hidden"
+          />
+        </details>
       </div>
 
       <nav
