@@ -7,6 +7,7 @@ import {
   chooseTrainingPlan,
   deterministicIndex,
   getBotRaceRegistrationCandidates,
+  isAlphaBotRecruitmentWindow,
   isSharedMarketItemAssignedToBot,
 } from "@/lib/game/alpha-bots";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
@@ -144,9 +145,10 @@ describe("alpha manager bots", () => {
       edition,
       riders as never,
     );
-    expect(roster).toHaveLength(2);
+    expect(roster).toHaveLength(3);
     expect(roster[0]).toEqual({ riderId: "sprinter", role: "sprinter" });
     expect(roster[1]).toEqual({ riderId: "leadout", role: "leadout" });
+    expect(roster[2]).toEqual({ riderId: "climber", role: "free_agent" });
   });
 
   it("keeps every eligible race ordered by the next registration deadlines", () => {
@@ -275,6 +277,27 @@ describe("alpha manager bots", () => {
 
       expect(owners).toHaveLength(1);
     }
+  });
+
+  it("rotates recruitment announcements across one bot per morning/evening slot", () => {
+    const cycleKeys = [
+      "2026-07-30:morning",
+      "2026-07-30:evening",
+      "2026-07-31:morning",
+      "2026-07-31:evening",
+      "2026-08-01:morning",
+    ];
+    const owners = cycleKeys.map((cycleKey) =>
+      ALPHA_BOT_PROFILES.filter((profile) =>
+        isAlphaBotRecruitmentWindow({
+          botKey: profile.key,
+          cycleKey,
+        }),
+      ),
+    );
+
+    expect(owners.every((matches) => matches.length === 1)).toBe(true);
+    expect(new Set(owners.map(([owner]) => owner.key)).size).toBe(5);
   });
 });
 

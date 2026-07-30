@@ -169,14 +169,7 @@ export function buildRaceRoster(
   if (available.length < edition.minimumRosterSize) return [];
 
   const profileType = edition.stages[0]?.profileType ?? "mixed";
-  const count =
-    edition.competitionType === "standard"
-      ? Math.min(
-          Math.max(edition.minimumRosterSize, 1),
-          edition.maximumRosterSize,
-          available.length,
-        )
-      : Math.min(edition.maximumRosterSize, available.length);
+  const count = Math.min(edition.maximumRosterSize, available.length);
   const selected = [...available]
     .sort(
       (left, right) =>
@@ -266,25 +259,42 @@ function getBotRegistrationDeadline(edition: RaceCalendarEdition) {
 export function isSharedMarketItemAssignedToBot({
   botKey,
   cycleKey,
-  channel,
-  itemId,
 }: {
   botKey: string;
   cycleKey: string;
   channel: "staff" | "free-agent" | "transfer-listing";
   itemId: string;
 }) {
+  return isAlphaBotRecruitmentWindow({ botKey, cycleKey });
+}
+
+export function isAlphaBotRecruitmentWindow({
+  botKey,
+  cycleKey,
+}: {
+  botKey: string;
+  cycleKey: string;
+}) {
   const profileIndex = ALPHA_BOT_PROFILES.findIndex(
     (profile) => profile.key === botKey,
   );
   if (profileIndex < 0) return false;
 
-  return (
-    deterministicIndex(
-      `${cycleKey}:${channel}:${itemId}`,
-      ALPHA_BOT_PROFILES.length,
-    ) === profileIndex
+  const match = cycleKey.match(
+    /^(\d{4})-(\d{2})-(\d{2}):(morning|evening)$/,
   );
+  if (!match) return false;
+
+  const [, year, month, day, slot] = match;
+  const dayIndex = Math.floor(
+    Date.UTC(Number(year), Number(month) - 1, Number(day)) / 86_400_000,
+  );
+  const slotIndex = ALPHA_BOT_SLOTS.indexOf(slot as AlphaBotSlot);
+  const ownerIndex =
+    (dayIndex * ALPHA_BOT_SLOTS.length + slotIndex) %
+    ALPHA_BOT_PROFILES.length;
+
+  return profileIndex === ownerIndex;
 }
 
 export function deterministicIndex(seed: string, length: number) {
