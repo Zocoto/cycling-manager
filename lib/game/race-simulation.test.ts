@@ -11,6 +11,7 @@ import {
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   getHillyClimbSelectionRating,
+  decideLargeBreakawayStandoff,
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
   getStageTimeLimitAllowanceSeconds,
@@ -72,6 +73,66 @@ describe("getLargeBreakawayDynamics", () => {
       effortMultiplier: 2,
       pacePenalty: 0.035,
     });
+  });
+});
+describe("decideLargeBreakawayStandoff", () => {
+  const balancedSituation = {
+    breakawaySize: 11,
+    pelotonSize: 30,
+    completedDistanceKm: 100,
+    raceProgress: 0.6,
+    gapSeconds: 120,
+    breakawayAverageEnergy: 60,
+    pelotonAverageEnergy: 60,
+    chasePressure: 0.5,
+    likelyMassSprint: false,
+    roll: 0.5,
+  };
+
+  it("ne prend aucune decision avant le seuil de distance ou avec dix echappes", () => {
+    expect(
+      decideLargeBreakawayStandoff({
+        ...balancedSituation,
+        breakawaySize: 10,
+      })
+    ).toBeNull();
+    expect(
+      decideLargeBreakawayStandoff({
+        ...balancedSituation,
+        completedDistanceKm: 59,
+      })
+    ).toBeNull();
+  });
+
+  it("fait renoncer une echappee epuisee sous forte pression", () => {
+    expect(
+      decideLargeBreakawayStandoff({
+        ...balancedSituation,
+        gapSeconds: 80,
+        breakawayAverageEnergy: 20,
+        pelotonAverageEnergy: 65,
+        chasePressure: 0.9,
+        roll: 0.1,
+      })
+    ).toBe("breakaway_gives_up");
+  });
+
+  it("fait renoncer un peloton epuise face a une echappee hors de portee", () => {
+    expect(
+      decideLargeBreakawayStandoff({
+        ...balancedSituation,
+        breakawaySize: 14,
+        gapSeconds: 300,
+        breakawayAverageEnergy: 70,
+        pelotonAverageEnergy: 20,
+        chasePressure: 0.2,
+        roll: 0.9,
+      })
+    ).toBe("peloton_gives_up");
+  });
+
+  it("maintient le bras de fer lorsque la situation reste equilibree", () => {
+    expect(decideLargeBreakawayStandoff(balancedSituation)).toBeNull();
   });
 });
 describe("stage time limit", () => {

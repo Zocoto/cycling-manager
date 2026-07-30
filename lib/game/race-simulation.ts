@@ -471,6 +471,96 @@ export function getLargeBreakawayDynamics(riderCount: number) {
   };
 }
 
+export type LargeBreakawayStandoffDecision =
+  | "peloton_gives_up"
+  | "breakaway_gives_up"
+  | null;
+
+export function decideLargeBreakawayStandoff({
+  breakawaySize,
+  pelotonSize,
+  completedDistanceKm,
+  raceProgress,
+  gapSeconds,
+  breakawayAverageEnergy,
+  pelotonAverageEnergy,
+  chasePressure,
+  likelyMassSprint,
+  roll,
+}: {
+  breakawaySize: number;
+  pelotonSize: number;
+  completedDistanceKm: number;
+  raceProgress: number;
+  gapSeconds: number;
+  breakawayAverageEnergy: number;
+  pelotonAverageEnergy: number;
+  chasePressure: number;
+  likelyMassSprint: boolean;
+  roll: number;
+}): LargeBreakawayStandoffDecision {
+  if (
+    breakawaySize <= LARGE_BREAKAWAY_RIDER_THRESHOLD ||
+    pelotonSize === 0 ||
+    completedDistanceKm < 60 ||
+    raceProgress < 0.45 ||
+    gapSeconds <= 0
+  ) {
+    return null;
+  }
+
+  const breakawayFatigue = clamp(
+    (42 - breakawayAverageEnergy) / 28,
+    0,
+    1
+  );
+  const pelotonEnergyAdvantage = clamp(
+    (pelotonAverageEnergy - breakawayAverageEnergy - 4) / 24,
+    0,
+    1
+  );
+  const catchableGap = clamp((160 - gapSeconds) / 140, 0, 1);
+  const sustainedPressure = clamp((chasePressure - 0.55) / 0.35, 0, 1);
+  const breakawayYieldChance = clamp(
+    breakawayFatigue * 0.42 +
+      pelotonEnergyAdvantage * 0.25 +
+      catchableGap * 0.18 +
+      sustainedPressure * 0.15,
+    0,
+    0.72
+  );
+
+  const pelotonFatigue = clamp((38 - pelotonAverageEnergy) / 24, 0, 1);
+  const gapOutOfReach = clamp((gapSeconds - 90) / 260, 0, 1);
+  const groupBurden = clamp(
+    (breakawaySize - LARGE_BREAKAWAY_RIDER_THRESHOLD) / 8,
+    0,
+    1
+  );
+  const breakawayEnergyAdvantage = clamp(
+    (breakawayAverageEnergy - pelotonAverageEnergy - 4) / 24,
+    0,
+    1
+  );
+  const pelotonYieldChance = clamp(
+    pelotonFatigue * 0.38 +
+      gapOutOfReach * 0.3 +
+      groupBurden * 0.18 +
+      breakawayEnergyAdvantage * 0.12 -
+      (likelyMassSprint ? 0.24 : 0),
+    0,
+    0.68
+  );
+
+  const normalizedRoll = clamp(roll, 0, 1);
+  if (normalizedRoll < breakawayYieldChance) {
+    return "breakaway_gives_up";
+  }
+  if (normalizedRoll > 1 - pelotonYieldChance) {
+    return "peloton_gives_up";
+  }
+  return null;
+}
 export function areFinishersInSameTimeGroup(
   previousElapsedTimeSeconds: number,
   elapsedTimeSeconds: number
@@ -912,6 +1002,7 @@ function simulateRoadStage(
   let breakawayWasCaught = false;
   let delayedAttackLaunched = attackPlan.delayedAttackIds.size === 0;
   let dangerousBreakawayReactionAnnounced = false;
+  let largeBreakawayDecision: LargeBreakawayStandoffDecision = null;
   const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
   let hillyClimbLoad = 0;
 
@@ -1010,18 +1101,54 @@ function simulateRoadStage(
       breakawayThreat,
       breakawayGapSeconds
     );
+    if (
+      largeBreakawayDecision === null &&
+      activeBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
+      peloton.length > 0
+    ) {
+      largeBreakawayDecision = decideLargeBreakawayStandoff({
+        breakawaySize: activeBreakawaySize,
+        pelotonSize: peloton.length,
+        completedDistanceKm,
+        raceProgress,
+        gapSeconds: breakawayGapSeconds,
+        breakawayAverageEnergy: average(
+          [...breakaway, ...secondaryBreakaway].map((state) => state.energy)
+        ),
+        pelotonAverageEnergy: average(peloton.map((state) => state.energy)),
+        chasePressure: baseChasePressure,
+        likelyMassSprint,
+        roll: random(),
+      });
+
+      if (largeBreakawayDecision === "breakaway_gives_up") {
+        commentary.push(
+          "La grande \u00e9chapp\u00e9e coupe son effort et accepte d\u2019\u00eatre reprise pour pr\u00e9server ses r\u00e9serves."
+        );
+      } else if (largeBreakawayDecision === "peloton_gives_up") {
+        commentary.push(
+          "Le peloton renonce \u00e0 la poursuite : la grande \u00e9chapp\u00e9e peut creuser son avance."
+        );
+      }
+    }
+
+    const pelotonHasGivenUp = largeBreakawayDecision === "peloton_gives_up";
+    const breakawayHasGivenUp =
+      largeBreakawayDecision === "breakaway_gives_up";
     const winningBreakawayPursuitFactor =
       breakawayHasWinningDay && raceProgress > 0.52 ? 0.5 : 1;
-    const chasePressure = clamp(
-      Math.max(
-        baseChasePressure * winningBreakawayPursuitFactor,
-        breakawayThreat >= 0.5
-          ? 0.46 + breakawayThreat * 0.34
-          : 0
-      ),
-      0,
-      1
-    );
+    const chasePressure = pelotonHasGivenUp
+      ? Math.min(0.14, baseChasePressure * 0.25)
+      : clamp(
+          Math.max(
+            baseChasePressure * winningBreakawayPursuitFactor,
+            breakawayThreat >= 0.5
+              ? 0.46 + breakawayThreat * 0.34
+              : 0
+          ),
+          0,
+          1
+        );
     const pelotonSeconds = getGroupSegmentTime(
       fieldPaceStates,
       segment,
@@ -1041,7 +1168,13 @@ function simulateRoadStage(
         : pelotonSeconds + 3 + random() * 5
       : pelotonSeconds;
 
-    if (breakaway.length > 0 && breakawayHasWinningDay && raceProgress > 0.45) {
+    if (breakaway.length > 0 && breakawayHasGivenUp) {
+      breakawaySeconds *= 1.08;
+    } else if (
+      breakaway.length > 0 &&
+      breakawayHasWinningDay &&
+      raceProgress > 0.45
+    ) {
       breakawaySeconds *= 0.955 + (1 - breakawayChaseResistance) * 0.012;
     }
 
@@ -1057,7 +1190,19 @@ function simulateRoadStage(
     } else if (breakaway.length > 0) {
       const naturalGap = breakawayGapSeconds + pelotonSeconds - breakawaySeconds;
 
-      if (raceProgress < 0.3) {
+      if (breakawayHasGivenUp) {
+        breakawayGapSeconds = clamp(
+          naturalGap - Math.max(35, breakawayGapSeconds * 0.38),
+          -30,
+          540
+        );
+      } else if (pelotonHasGivenUp) {
+        breakawayGapSeconds = clamp(
+          Math.max(naturalGap, breakawayGapSeconds + 12),
+          0,
+          540
+        );
+      } else if (raceProgress < 0.3) {
         const allowedGap = Math.min(
           breakawayTargetGapSeconds * (1 - breakawayThreat * 0.28),
           95 + segmentIndex * 58
@@ -1169,6 +1314,8 @@ function simulateRoadStage(
               : Math.max(1, dropped.length),
         chasePressure,
         frontBreakawaySize: activeBreakawaySize,
+        frontGroupIsYielding: breakawayHasGivenUp,
+        frontGroupIsUncontested: pelotonHasGivenUp,
         hasBottleCarrierSupport: hasTeammateBottleCarrier(state, states),
         leaderProtectionStrength: getLeaderProtectionStrength({
           state,
@@ -1923,6 +2070,8 @@ function updateRiderEnergy({
   groupSize,
   chasePressure,
   frontBreakawaySize = 0,
+  frontGroupIsYielding = false,
+  frontGroupIsUncontested = false,
   hasBottleCarrierSupport,
   leaderProtectionStrength = 0,
   protectingLeader = false,
@@ -1938,6 +2087,8 @@ function updateRiderEnergy({
   groupSize: number;
   chasePressure: number;
   frontBreakawaySize?: number;
+  frontGroupIsYielding?: boolean;
+  frontGroupIsUncontested?: boolean;
   hasBottleCarrierSupport: boolean;
   leaderProtectionStrength?: number;
   protectingLeader?: boolean;
@@ -1966,6 +2117,8 @@ function updateRiderEnergy({
       chasePressure > 0.45);
   const largeBreakawayEffortMultiplier =
     frontBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
+    !frontGroupIsYielding &&
+    !frontGroupIsUncontested &&
     (state.group === "breakaway" ||
       state.group === "breakaway_2" ||
       state.group === "chase" ||
@@ -1991,12 +2144,17 @@ function updateRiderEnergy({
   const groupShelter = timeTrial
     ? 1
     : 1 - (1 - baseGroupShelter) * draftingRelevance;
+  const breakawayCanSaveEnergy =
+    frontGroupIsYielding &&
+    (state.group === "breakaway" || state.group === "breakaway_2");
   const workFactor =
     state.group === "breakaway" ||
     state.group === "breakaway_2" ||
     state.group === "chase" ||
     state.group === "delayed"
-      ? 1.48
+      ? breakawayCanSaveEnergy
+        ? 0.9
+        : 1.48
       : isWorking
         ? 1.2
         : protectingLeader
