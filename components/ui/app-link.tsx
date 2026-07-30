@@ -12,6 +12,7 @@ import {
 
 import { RacePreviewLink } from "@/components/game/race-preview-link";
 import { RiderPreviewLink } from "@/components/game/rider-preview-link";
+import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { getRaceQuickPreviewTargetFromHref } from "@/lib/game/race-quick-preview";
 import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
 
@@ -43,12 +44,33 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         : "";
   const riderId = getRiderIdFromProfileHref(hrefForIntent);
   const raceTarget = getRaceQuickPreviewTargetFromHref(hrefForIntent);
+  const requiresDocumentNavigation =
+    typeof href === "string" && isRaceRegistrationHref(href);
   const linkChildren = (
     <>
       {children}
       <LinkPendingIndicator />
     </>
   );
+
+  if (requiresDocumentNavigation) {
+    /*
+     * Registration is a critical action. A native document navigation keeps
+     * it on the canonical course route and outside Next.js' client route tree.
+     * Do not replace this with next/link: intercepted/parallel calendar routes
+     * have caused fatal soft-navigation regressions on desktop and mobile.
+     */
+    return (
+      <a
+        ref={ref}
+        href={href}
+        {...toNativeAnchorProps(props)}
+        data-navigation-mode="document"
+      >
+        {children}
+      </a>
+    );
+  }
 
   if (riderId) {
     return (
@@ -106,4 +128,28 @@ function LinkPendingIndicator() {
 function normalizeHash(hash: unknown) {
   if (typeof hash !== "string" || hash.length === 0) return "";
   return hash.startsWith("#") ? hash : `#${hash}`;
+}
+
+const NEXT_LINK_ONLY_PROPS = [
+  "as",
+  "replace",
+  "shallow",
+  "passHref",
+  "prefetch",
+  "locale",
+  "legacyBehavior",
+  "onNavigate",
+  "transitionTypes",
+] as const;
+
+function toNativeAnchorProps(
+  props: Omit<AppLinkProps, "href" | "children" | "scroll">,
+) {
+  const anchorProps = { ...props } as Record<string, unknown>;
+
+  for (const prop of NEXT_LINK_ONLY_PROPS) {
+    delete anchorProps[prop];
+  }
+
+  return anchorProps as AnchorHTMLAttributes<HTMLAnchorElement>;
 }

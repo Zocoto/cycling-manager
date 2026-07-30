@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -8,12 +8,9 @@ function readProjectFile(path: string) {
 }
 
 describe("navigation vers les fiches de course", () => {
-  it("partage le même composant serveur entre la page directe et la modale du calendrier", () => {
+  it("utilise uniquement la page canonique pour une course standard", () => {
     const canonicalPage = readProjectFile(
       "app/jeu/courses/[slug]/page.tsx",
-    );
-    const interceptedPage = readProjectFile(
-      "app/jeu/calendrier/@modal/(..)courses/[slug]/page.tsx",
     );
     const content = readProjectFile(
       "app/jeu/courses/[slug]/race-profile-content.tsx",
@@ -22,14 +19,52 @@ describe("navigation vers les fiches de course", () => {
     expect(canonicalPage).toContain(
       'from "./race-profile-content"',
     );
-    expect(interceptedPage).toContain(
-      'from "@/app/jeu/courses/[slug]/race-profile-content"',
-    );
-    expect(interceptedPage).not.toContain(
-      'from "@/app/jeu/courses/[slug]/page"',
-    );
     expect(content).toContain(
       "export async function RaceProfileContent",
+    );
+    expect(content).toContain('id="inscription"');
+  });
+
+  it("interdit le retour d'une route de course interceptee sous le calendrier", () => {
+    expect(
+      existsSync(
+        join(
+          process.cwd(),
+          "app/jeu/calendrier/@modal",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        join(
+          process.cwd(),
+          "components/game/course-modal.tsx",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("force les inscriptions a quitter l'arbre de navigation client", () => {
+    const appLink = readProjectFile(
+      "components/ui/app-link.tsx",
+    );
+
+    expect(appLink).toContain(
+      "isRaceRegistrationHref",
+    );
+    expect(appLink).toContain(
+      'data-navigation-mode="document"',
+    );
+    expect(appLink).toContain("<a");
+  });
+
+  it("conserve aussi une page canonique dediee au Criterium du didacticiel", () => {
+    const canonicalPage = readProjectFile(
+      "app/jeu/courses/criterium-de-la-decouverte/page.tsx",
+    );
+
+    expect(canonicalPage).toContain(
+      'from "./criterium-race-content"',
     );
   });
 
@@ -45,24 +80,5 @@ describe("navigation vers les fiches de course", () => {
       "await getAuthenticatedUser(supabase)",
     );
     expect(content).not.toContain(".auth.getUser(");
-  });
-
-  it("applique aussi le partage de contenu au Critérium du didacticiel", () => {
-    const canonicalPage = readProjectFile(
-      "app/jeu/courses/criterium-de-la-decouverte/page.tsx",
-    );
-    const interceptedPage = readProjectFile(
-      "app/jeu/calendrier/@modal/(..)courses/criterium-de-la-decouverte/page.tsx",
-    );
-
-    expect(canonicalPage).toContain(
-      'from "./criterium-race-content"',
-    );
-    expect(interceptedPage).toContain(
-      'from "@/app/jeu/courses/criterium-de-la-decouverte/criterium-race-content"',
-    );
-    expect(interceptedPage).not.toContain(
-      'from "@/app/jeu/courses/criterium-de-la-decouverte/page"',
-    );
   });
 });

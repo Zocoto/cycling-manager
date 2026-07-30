@@ -159,6 +159,12 @@ describe("SeasonCalendar", () => {
     expect(markup).toContain(
       "/jeu/courses/course-a-venir#inscription"
     );
+    expect(markup).toContain(
+      'data-navigation-mode="document"'
+    );
+    expect(markup).not.toContain(
+      "data-race-preview-trigger"
+    );
   });
 });
 
