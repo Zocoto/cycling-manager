@@ -478,7 +478,434 @@ describe("buildRaceFavorites", () => {
       getRaceFavoriteScore(longMountainEdition, chronoClimber) -
       getRaceFavoriteScore(longMountainEdition, ordinaryRider);
 
-    expect(longMountainGap).toBeGreaterThan(shortGap + 4);
+    expect(longMountainGap).toBeGreaterThan(shortGap + 1.5);
+  });
+
+  it("corrige le classement reel de Zanzibar a partir des profils intrinseques", () => {
+    const kubat = {
+      ...createRider("kubat", {
+        mountain: 53,
+        hills: 70,
+        flat: 46,
+        timeTrial: 48,
+        cobbles: 65,
+        sprint: 68,
+        acceleration: 47,
+        downhill: 68,
+        endurance: 62,
+        resistance: 64,
+        recovery: 54,
+        breakaway: 70,
+        prologue: 58,
+      }),
+      form: 74,
+      careerRaceDays: 7,
+    } satisfies RiderSimulationInput;
+    const sylvain = createRider("sylvain", {
+      mountain: 63,
+      hills: 70,
+      acceleration: 62,
+      endurance: 58,
+      resistance: 63,
+      recovery: 55,
+    });
+    const claudiu = {
+      ...createRider("claudiu", {
+        mountain: 54,
+        hills: 70,
+        flat: 51,
+        timeTrial: 68,
+        cobbles: 59,
+        sprint: 49,
+        acceleration: 52,
+        downhill: 44,
+        endurance: 67,
+        resistance: 68,
+        recovery: 45,
+        breakaway: 52,
+        prologue: 61,
+      }),
+      form: 55,
+      careerRaceDays: 3,
+    } satisfies RiderSimulationInput;
+    const cedric = {
+      ...createRider("cedric", {
+        mountain: 62,
+        hills: 68,
+        flat: 44,
+        timeTrial: 42,
+        cobbles: 48,
+        sprint: 60,
+        acceleration: 59,
+        downhill: 56,
+        endurance: 59,
+        resistance: 51,
+        recovery: 51,
+        breakaway: 56,
+        prologue: 47,
+      }),
+      form: 100,
+    } satisfies RiderSimulationInput;
+    const leo = {
+      ...createRider("leo", {
+        mountain: 47,
+        hills: 58,
+        flat: 58,
+        timeTrial: 50,
+        cobbles: 53,
+        sprint: 48,
+        acceleration: 52,
+        downhill: 56,
+        endurance: 58,
+        resistance: 61,
+        recovery: 60,
+        breakaway: 50,
+        prologue: 48,
+      }),
+      form: 100,
+      careerRaceDays: 500,
+      localRaceBonus: 3,
+      reconnaissanceBonus: 5,
+      equipmentEffects: {
+        ratingBonuses: { hills: 50, mountain: 50 },
+        timeTrialRatingBonuses: { timeTrial: 50 },
+        injuryRiskReductionPct: 0,
+        breakawayReputationBonus: 0,
+        victoryReputationBonus: 0,
+      },
+    } satisfies RiderSimulationInput;
+    const edition = createEdition(
+      "stage_race",
+      createZanzibarStages(),
+      [leo, cedric, kubat, claudiu, sylvain],
+    );
+
+    expect(
+      buildRaceFavorites({ edition }).map((favorite) => favorite.rider.id),
+    ).toEqual([
+      "sylvain",
+      "claudiu",
+      "kubat",
+      "cedric",
+      "leo",
+    ]);
+  });
+
+  it("ignore forme equipement et bonus contextuels sur tous les pronostics", () => {
+    const baseRider = createRider("base-profile", {
+      mountain: 64,
+      hills: 72,
+      timeTrial: 68,
+      endurance: 66,
+      resistance: 65,
+      recovery: 63,
+    });
+    const boostedContext = {
+      ...baseRider,
+      id: "boosted-context",
+      name: "boosted-context",
+      form: 100,
+      careerRaceDays: 500,
+      localRaceBonus: 5,
+      reconnaissanceBonus: 8,
+      equipmentEffects: {
+        ratingBonuses: { hills: 40, mountain: 40 },
+        timeTrialRatingBonuses: { timeTrial: 40 },
+        injuryRiskReductionPct: 25,
+        breakawayReputationBonus: 5,
+        victoryReputationBonus: 5,
+      },
+    } satisfies RiderSimulationInput;
+    const lowContext = {
+      ...baseRider,
+      id: "low-context",
+      name: "low-context",
+      form: 1,
+      careerRaceDays: 0,
+      localRaceBonus: 0,
+      reconnaissanceBonus: 0,
+    } satisfies RiderSimulationInput;
+    const classic = createEdition(
+      "one_day",
+      [createStage("hilly", [createSegment(1, "climb", 180, 4.5)])],
+      [boostedContext, lowContext],
+    );
+    const tour = createEdition(
+      "stage_race",
+      [
+        createStage("sprint", [createSegment(1, "flat", 120)], 1),
+        createStage(
+          "time_trial",
+          [createSegment(1, "flat", 35)],
+          2,
+          "individual_time_trial",
+        ),
+      ],
+      [boostedContext, lowContext],
+    );
+
+    expect(getRaceFavoriteScore(classic, boostedContext)).toBe(
+      getRaceFavoriteScore(classic, lowContext),
+    );
+    expect(getRaceFavoriteScore(tour, boostedContext)).toBe(
+      getRaceFavoriteScore(tour, lowContext),
+    );
+  });
+
+  it("ne dilue pas une etape decisive avec des etapes promises au meme temps", () => {
+    const specialist = createRider("specialist", {
+      hills: 70,
+      mountain: 63,
+      flat: 44,
+      sprint: 45,
+      endurance: 64,
+      resistance: 63,
+    });
+    const flatRider = createRider("flat-rider", {
+      hills: 58,
+      mountain: 52,
+      flat: 78,
+      sprint: 76,
+      endurance: 68,
+      resistance: 69,
+    });
+    const zanzibarStages = createZanzibarStages();
+    const queenStageOnly = createEdition(
+      "stage_race",
+      [zanzibarStages[2]],
+      [specialist, flatRider],
+    );
+    const fullTour = createEdition(
+      "stage_race",
+      zanzibarStages,
+      [specialist, flatRider],
+    );
+
+    expect(getRaceFavoriteScore(fullTour, specialist)).toBeCloseTo(
+      getRaceFavoriteScore(queenStageOnly, specialist),
+      10,
+    );
+    expect(getRaceFavoriteScore(fullTour, flatRider)).toBeCloseTo(
+      getRaceFavoriteScore(queenStageOnly, flatRider),
+      10,
+    );
+    expect(buildRaceFavorites({ edition: fullTour })[0].rider.id).toBe(
+      "specialist",
+    );
+  });
+
+  it("isole la difficulte decisive d'une longue etape mixte", () => {
+    const selectiveRider = createRider("selective-rider", {
+      hills: 76,
+      mountain: 72,
+      flat: 45,
+      endurance: 66,
+      resistance: 64,
+    });
+    const flatRider = createRider("mixed-flat-rider", {
+      hills: 50,
+      mountain: 50,
+      flat: 85,
+      endurance: 70,
+      resistance: 70,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage("sprint", [createSegment(1, "flat", 120)], 1),
+        createStage(
+          "mixed",
+          [
+            createSegment(1, "flat", 100),
+            createSegment(2, "climb", 20, 7),
+          ],
+          2,
+        ),
+      ],
+      [flatRider, selectiveRider],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe(
+      "selective-rider",
+    );
+  });
+
+  it("utilise un profil GC dedie pour une etape mixte sans troncons", () => {
+    const gcRider = createRider("mixed-gc-rider", {
+      hills: 70,
+      mountain: 70,
+      cobbles: 65,
+      flat: 60,
+      endurance: 65,
+      resistance: 65,
+      sprint: 40,
+      breakaway: 40,
+      prologue: 40,
+    });
+    const irrelevantSpecialist = createRider("irrelevant-specialist", {
+      hills: 50,
+      mountain: 50,
+      cobbles: 50,
+      flat: 55,
+      endurance: 55,
+      resistance: 55,
+      sprint: 99,
+      breakaway: 99,
+      prologue: 99,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [createStage("mixed", [], 1)],
+      [irrelevantSpecialist, gcRider],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe(
+      "mixed-gc-rider",
+    );
+  });
+
+  it("pondere deux profils selectifs selon leur difficulte reelle", () => {
+    const puncher = createRider("hard-hilly-puncher", {
+      hills: 80,
+      mountain: 52,
+      acceleration: 65,
+      endurance: 65,
+      resistance: 65,
+      recovery: 60,
+    });
+    const climber = createRider("short-climb-specialist", {
+      hills: 58,
+      mountain: 78,
+      acceleration: 55,
+      downhill: 65,
+      endurance: 65,
+      resistance: 65,
+      recovery: 60,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage(
+          "hilly",
+          [
+            createSegment(1, "flat", 60),
+            createSegment(2, "climb", 60, 5),
+          ],
+          1,
+        ),
+        createStage(
+          "mountain",
+          [
+            createSegment(1, "flat", 118),
+            createSegment(2, "climb", 2, 2),
+          ],
+          2,
+        ),
+      ],
+      [climber, puncher],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe(
+      "hard-hilly-puncher",
+    );
+  });
+
+  it("n'utilise pas le sprint pour departager un tour entierement plat", () => {
+    const rouleur = createRider("flat-gc-rider", {
+      flat: 72,
+      endurance: 72,
+      resistance: 70,
+      sprint: 45,
+    });
+    const sprinter = createRider("flat-tour-sprinter", {
+      flat: 48,
+      endurance: 50,
+      resistance: 48,
+      sprint: 96,
+      acceleration: 94,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage("flat", [createSegment(1, "flat", 140)], 1),
+        createStage("sprint", [createSegment(1, "flat", 150)], 2),
+      ],
+      [sprinter, rouleur],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe("flat-gc-rider");
+  });
+
+  it("laisse l'etape reine primer sur un prologue", () => {
+    const prologueSpecialist = createRider("prologue-specialist", {
+      prologue: 92,
+      timeTrial: 82,
+      acceleration: 80,
+      hills: 48,
+      mountain: 50,
+    });
+    const gcPuncher = createRider("gc-puncher", {
+      prologue: 48,
+      timeTrial: 50,
+      hills: 76,
+      mountain: 68,
+      acceleration: 68,
+      endurance: 66,
+      resistance: 64,
+    });
+    const edition = createEdition(
+      "stage_race",
+      [
+        createStage(
+          "time_trial",
+          [createSegment(1, "flat", 7)],
+          1,
+          "prologue",
+        ),
+        createStage(
+          "hilly",
+          [
+            createSegment(1, "flat", 60),
+            createSegment(2, "climb", 60, 5),
+          ],
+          2,
+        ),
+      ],
+      [prologueSpecialist, gcPuncher],
+    );
+
+    expect(buildRaceFavorites({ edition })[0].rider.id).toBe("gc-puncher");
+  });
+
+  it("reste deterministe pour une edition sans etape", () => {
+    const rider = createRider("empty-edition-rider", {
+      hills: 72,
+      mountain: 68,
+    });
+    const contextualClone = {
+      ...rider,
+      id: "empty-edition-context",
+      name: "empty-edition-context",
+      form: 100,
+      localRaceBonus: 5,
+      equipmentEffects: {
+        ratingBonuses: { hills: 50 },
+        timeTrialRatingBonuses: { timeTrial: 50 },
+        injuryRiskReductionPct: 0,
+        breakawayReputationBonus: 0,
+        victoryReputationBonus: 0,
+      },
+    } satisfies RiderSimulationInput;
+    const edition = createEdition(
+      "stage_race",
+      [],
+      [rider, contextualClone],
+    );
+
+    expect(getRaceFavoriteScore(edition, rider)).toBe(
+      getRaceFavoriteScore(edition, contextualClone),
+    );
+    expect(Number.isFinite(getRaceFavoriteScore(edition, rider))).toBe(true);
   });
 });
 
@@ -607,6 +1034,33 @@ function createStage(
     departureAt: null,
     segments,
   };
+}
+
+function createZanzibarStages(): RaceCalendarStage[] {
+  return [
+    createStage("sprint", [createSegment(1, "flat", 112)], 1),
+    createStage("flat", [createSegment(1, "flat", 118)], 2),
+    createStage(
+      "hilly",
+      [
+        createSegment(1, "flat", 10),
+        createSegment(2, "climb", 10, 6.2),
+        createSegment(3, "climb", 10, 5.9),
+        createSegment(4, "descent", 10, -4.6),
+        createSegment(5, "flat", 10),
+        createSegment(6, "climb", 10, 5),
+        createSegment(7, "descent", 10, -3.7),
+        createSegment(8, "flat", 10),
+        createSegment(9, "climb", 10, 4.1),
+        createSegment(10, "climb", 10, 3.8),
+        createSegment(11, "descent", 10, -5.7),
+        createSegment(12, "flat", 10),
+        createSegment(13, "climb", 4, 2.9),
+      ],
+      3,
+    ),
+    createStage("sprint", [createSegment(1, "flat", 112)], 4),
+  ];
 }
 
 function createSegment(

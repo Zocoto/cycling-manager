@@ -2,11 +2,6 @@ import type {
   RaceCalendarEdition,
   RaceCalendarStage,
 } from "./race-calendar";
-import {
-  applyEquipmentRatingBonuses,
-  EMPTY_EQUIPMENT_EFFECTS,
-} from "./equipment";
-import { getRiderExperienceRaceBonus } from "./rider-experience";
 import type {
   RiderSimulationInput,
   RiderSimulationRatings,
@@ -81,8 +76,6 @@ export function buildRaceFavorites({
     .sort(
       (first, second) =>
         second.score - first.score ||
-        getRatingsAverage(second.rider.ratings) -
-          getRatingsAverage(first.rider.ratings) ||
         first.rider.name.localeCompare(second.rider.name, "fr") ||
         first.rider.id.localeCompare(second.rider.id),
     )
@@ -111,207 +104,321 @@ export function getRaceFavoriteScore(
     return getRatingsAverage(rider.ratings);
   }
 
-  const experienceBonus = getRiderExperienceRaceBonus(
-    rider.careerRaceDays ?? 0,
-  );
-  const localBonus = rider.localRaceBonus ?? 0;
-
   if (edition.raceFormat === "one_day") {
-    return (
-      getStageFavoriteScore(rider, stages[0], false) +
-      experienceBonus +
-      localBonus
-    );
+    return getOneDayFavoriteScore(rider.ratings, stages[0]);
   }
 
-  let weightedScore = 0;
-  let totalWeight = 0;
-  const stageScores: number[] = [];
-
-  for (const stage of stages) {
-    const stageScore = getStageFavoriteScore(rider, stage, true);
-    const stageWeight = getGeneralClassificationStageWeight(stage);
-    stageScores.push(stageScore);
-    weightedScore += stageScore * stageWeight;
-    totalWeight += stageWeight;
-  }
-
-  const lowestStageScore = Math.min(...stageScores);
-  const ratings = getStageRatings(rider, stages[0]);
-
-  return (
-    (weightedScore / Math.max(1, totalWeight)) * 0.86 +
-    lowestStageScore * 0.06 +
-    ratings.recovery * 0.04 +
-    rider.form * 0.04 +
-    experienceBonus +
-    localBonus
-  );
+  return getGeneralClassificationFavoriteScore(rider.ratings, stages);
 }
 
-function getStageFavoriteScore(
-  rider: RiderSimulationInput,
+function getOneDayFavoriteScore(
+  ratings: RiderSimulationRatings,
   stage: RaceCalendarStage,
-  forGeneralClassification: boolean,
 ) {
-  const ratings = getStageRatings(rider, stage);
-  const reconnaissanceBonus =
-    stage.reconnaissanceBonuses?.[rider.id] ?? rider.reconnaissanceBonus ?? 0;
-
   if (stage.stageType === "prologue") {
-    return (
-      ratings.prologue * 0.58 +
-      ratings.acceleration * 0.16 +
-      ratings.timeTrial * 0.12 +
-      ratings.flat * 0.08 +
-      ratings.resistance * 0.06 +
-      rider.form * 0.05 +
-      reconnaissanceBonus
-    );
+    return getPrologueFavoriteRating(ratings);
   }
 
-  if (
-    stage.stageType === "individual_time_trial" ||
-    stage.stageType === "team_time_trial"
-  ) {
-    const terrainRating = getRouteRating(ratings, stage);
-    const terrainDifficulty = getTimeTrialTerrainDifficulty(stage);
-    const timeTrialWeight = 0.56 - terrainDifficulty * 0.1;
-    const terrainWeight = 0.18 + terrainDifficulty * 0.1;
-    return (
-      ratings.timeTrial * timeTrialWeight +
-      terrainRating * terrainWeight +
-      ratings.endurance * 0.12 +
-      ratings.resistance * 0.08 +
-      ratings.recovery * (forGeneralClassification ? 0.06 : 0.01) +
-      rider.form * 0.05 +
-      reconnaissanceBonus
-    );
+  if (isTimeTrialStage(stage)) {
+    return getTimeTrialFavoriteRating(ratings, stage);
   }
 
-  if (forGeneralClassification) {
-    const routeRating = getRouteRating(ratings, stage);
-    return (
-      routeRating * 0.72 +
-      ratings.endurance * 0.1 +
-      ratings.resistance * 0.07 +
-      ratings.recovery * 0.07 +
-      rider.form * 0.04 +
-      reconnaissanceBonus
-    );
-  }
-
-  return (
-    getOneDayRoadFavoriteScore(ratings, stage, rider.form) +
-    reconnaissanceBonus
-  );
+  return getOneDayRoadFavoriteScore(ratings, stage);
 }
 
 function getOneDayRoadFavoriteScore(
   ratings: RiderSimulationRatings,
   stage: RaceCalendarStage,
-  form: number,
 ) {
-  // The declared profile drives selection and the finish in the race engine.
-  // Keep the pre-race prediction aligned with those decisive ratings instead
-  // of allowing secondary all-rounder ratings to outweigh the specialist.
-  if (stage.profileType === "flat") {
+  // A classic predicts the rider best suited to this course profile. Dynamic
+  // state (form, equipment or contextual bonuses) deliberately stays out.
+  if (stage.profileType === "mixed") {
+    const routeRating = getRouteRating(
+      ratings,
+      stage,
+      getRatingsAverage(ratings),
+    );
+    return routeRating * 0.65 + getFinishRating(ratings, stage) * 0.35;
+  }
+
+  return getOneDayProfileRating(ratings, stage.profileType);
+}
+
+function getOneDayProfileRating(
+  ratings: RiderSimulationRatings,
+  profileType: RaceCalendarStage["profileType"],
+) {
+  if (profileType === "flat") {
     return (
       ratings.sprint * 0.62 +
       ratings.acceleration * 0.15 +
-      ratings.flat * 0.08 +
-      ratings.resistance * 0.05 +
-      ratings.endurance * 0.05 +
-      form * 0.05
+      ratings.flat * 0.1 +
+      ratings.resistance * 0.07 +
+      ratings.endurance * 0.06
     );
   }
 
-  if (stage.profileType === "sprint") {
+  if (profileType === "sprint") {
     return (
       ratings.sprint * 0.68 +
-      ratings.acceleration * 0.14 +
-      ratings.flat * 0.06 +
-      ratings.resistance * 0.04 +
-      ratings.endurance * 0.03 +
-      form * 0.05
+      ratings.acceleration * 0.15 +
+      ratings.flat * 0.07 +
+      ratings.resistance * 0.06 +
+      ratings.endurance * 0.04
     );
+  }
+
+  if (profileType === "hilly") {
+    return (
+      ratings.hills * 0.62 +
+      ratings.acceleration * 0.13 +
+      ratings.resistance * 0.09 +
+      ratings.endurance * 0.07 +
+      ratings.mountain * 0.06 +
+      ratings.sprint * 0.03
+    );
+  }
+
+  if (profileType === "mountain") {
+    return (
+      ratings.mountain * 0.67 +
+      ratings.hills * 0.11 +
+      ratings.endurance * 0.09 +
+      ratings.resistance * 0.07 +
+      ratings.acceleration * 0.03 +
+      ratings.downhill * 0.03
+    );
+  }
+
+  if (profileType === "cobbles") {
+    return (
+      ratings.cobbles * 0.6 +
+      ratings.resistance * 0.14 +
+      ratings.endurance * 0.1 +
+      ratings.flat * 0.08 +
+      ratings.sprint * 0.04 +
+      ratings.acceleration * 0.04
+    );
+  }
+
+  if (profileType === "time_trial") {
+    return (
+      ratings.timeTrial * 0.66 +
+      ratings.endurance * 0.11 +
+      ratings.flat * 0.08 +
+      ratings.resistance * 0.07 +
+      ratings.prologue * 0.05 +
+      ratings.acceleration * 0.03
+    );
+  }
+
+  return getRatingsAverage(ratings);
+}
+
+function getGeneralClassificationFavoriteScore(
+  ratings: RiderSimulationRatings,
+  stages: RaceCalendarStage[],
+) {
+  const decisiveStages = stages
+    .map((stage) => ({
+      stage,
+      weight: getGeneralClassificationStageWeight(stage),
+    }))
+    .filter(({ weight }) => weight > 0);
+
+  if (decisiveStages.length === 0) {
+    return (
+      getFlatTourProfileRating(ratings) * 0.94 +
+      ratings.recovery * 0.06
+    );
+  }
+
+  const totalWeight = decisiveStages.reduce(
+    (total, { weight }) => total + weight,
+    0,
+  );
+  const decisiveProfileRating = decisiveStages.reduce(
+    (total, { stage, weight }) =>
+      total + getGeneralClassificationStageRating(ratings, stage) * weight,
+    0,
+  ) / totalWeight;
+
+  // Recovery is an intrinsic GC attribute, unlike form and equipment. It is
+  // counted once for the whole tour and never lets bunch stages dilute the
+  // stages on which time gaps are actually created.
+  return decisiveProfileRating * 0.94 + ratings.recovery * 0.06;
+}
+
+function getGeneralClassificationStageRating(
+  ratings: RiderSimulationRatings,
+  stage: RaceCalendarStage,
+) {
+  if (stage.stageType === "prologue") {
+    return getPrologueFavoriteRating(ratings);
+  }
+
+  if (isTimeTrialStage(stage)) {
+    return getTimeTrialFavoriteRating(ratings, stage);
   }
 
   if (stage.profileType === "hilly") {
     return (
-      ratings.hills * 0.56 +
-      ratings.acceleration * 0.14 +
-      ratings.resistance * 0.08 +
-      ratings.endurance * 0.06 +
-      ratings.mountain * 0.05 +
-      ratings.sprint * 0.04 +
-      form * 0.07
+      ratings.hills * 0.62 +
+      ratings.mountain * 0.12 +
+      ratings.endurance * 0.11 +
+      ratings.resistance * 0.1 +
+      ratings.acceleration * 0.05
     );
   }
 
   if (stage.profileType === "mountain") {
     return (
-      ratings.mountain * 0.62 +
-      ratings.hills * 0.1 +
-      ratings.endurance * 0.08 +
-      ratings.resistance * 0.06 +
-      ratings.acceleration * 0.04 +
-      ratings.downhill * 0.03 +
-      form * 0.07
+      ratings.mountain * 0.67 +
+      ratings.hills * 0.11 +
+      ratings.endurance * 0.11 +
+      ratings.resistance * 0.08 +
+      ratings.downhill * 0.03
     );
   }
 
   if (stage.profileType === "cobbles") {
     return (
-      ratings.cobbles * 0.52 +
-      ratings.flat * 0.13 +
-      ratings.resistance * 0.1 +
-      ratings.endurance * 0.07 +
-      ratings.sprint * 0.06 +
-      ratings.acceleration * 0.05 +
-      form * 0.07
+      ratings.cobbles * 0.6 +
+      ratings.resistance * 0.16 +
+      ratings.endurance * 0.12 +
+      ratings.flat * 0.08 +
+      ratings.acceleration * 0.04
     );
   }
 
-  if (stage.profileType === "time_trial") {
+  if (stage.profileType === "mixed") {
+    const routeRating = getSelectiveRoadRating(ratings, stage);
     return (
-      ratings.timeTrial * 0.56 +
-      ratings.flat * 0.12 +
-      ratings.endurance * 0.1 +
-      ratings.resistance * 0.07 +
-      ratings.prologue * 0.04 +
-      ratings.acceleration * 0.04 +
-      form * 0.07
+      routeRating * 0.8 +
+      ratings.endurance * 0.12 +
+      ratings.resistance * 0.08
     );
   }
 
-  const routeRating = getRouteRating(ratings, stage);
-  const finishRating = getFinishRating(ratings, stage);
-  return routeRating * 0.55 + finishRating * 0.38 + form * 0.07;
+  return getFlatTourProfileRating(ratings);
 }
 
-function getStageRatings(
-  rider: RiderSimulationInput,
-  stage: RaceCalendarStage,
-) {
-  const equipmentEffects =
-    rider.equipmentEffects ?? EMPTY_EQUIPMENT_EFFECTS;
-  const isTimeTrial =
-    stage.stageType === "individual_time_trial" ||
-    stage.stageType === "team_time_trial" ||
-    stage.stageType === "prologue";
-
-  return applyEquipmentRatingBonuses(
-    rider.ratings,
-    equipmentEffects,
-    { isTimeTrial },
-  );
-}
-
-function getRouteRating(
+function getTimeTrialFavoriteRating(
   ratings: RiderSimulationRatings,
   stage: RaceCalendarStage,
 ) {
+  const routeRating = getRouteRating(ratings, stage, ratings.timeTrial);
+  const terrainDifficulty = getTimeTrialTerrainDifficulty(stage);
+  const terrainWeight = 0.16 + terrainDifficulty * 0.12;
+  const timeTrialWeight = 0.66 - terrainDifficulty * 0.12;
+  return (
+    ratings.timeTrial * timeTrialWeight +
+    routeRating * terrainWeight +
+    ratings.endurance * 0.11 +
+    ratings.resistance * 0.07
+  );
+}
+
+function getPrologueFavoriteRating(ratings: RiderSimulationRatings) {
+  return (
+    ratings.prologue * 0.62 +
+    ratings.timeTrial * 0.16 +
+    ratings.acceleration * 0.14 +
+    ratings.flat * 0.05 +
+    ratings.resistance * 0.03
+  );
+}
+
+function getFlatTourProfileRating(ratings: RiderSimulationRatings) {
+  return (
+    ratings.flat * 0.5 +
+    ratings.endurance * 0.28 +
+    ratings.resistance * 0.22
+  );
+}
+
+function getSelectiveRoadRating(
+  ratings: RiderSimulationRatings,
+  stage: RaceCalendarStage,
+) {
+  const selectiveRoute = stage.segments.reduce(
+    (summary, segment) => {
+      const intensity = getSelectiveSegmentIntensity(segment);
+      if (intensity <= 0) {
+        return summary;
+      }
+
+      let segmentRating: number;
+      if (segment.surface === "cobbles") {
+        segmentRating =
+          ratings.cobbles * 0.62 +
+          ratings.flat * 0.16 +
+          ratings.resistance * 0.13 +
+          ratings.endurance * 0.09;
+      } else {
+        const gradient = Math.abs(segment.averageGradientPct);
+        const mountainWeight = clamp(
+          0.18 +
+            Math.max(0, gradient - 3) * 0.07 +
+            Math.max(0, segment.distanceKm - 5) * 0.025,
+          0.18,
+          0.82,
+        );
+        segmentRating =
+          ratings.mountain * mountainWeight +
+          ratings.hills * (1 - mountainWeight);
+      }
+
+      const weight = segment.distanceKm * intensity;
+      return {
+        rating: summary.rating + segmentRating * weight,
+        weight: summary.weight + weight,
+      };
+    },
+    { rating: 0, weight: 0 },
+  );
+
+  return selectiveRoute.weight > 0
+    ? selectiveRoute.rating / selectiveRoute.weight
+    : getMixedGeneralClassificationFallbackRating(ratings);
+}
+
+function getMixedGeneralClassificationFallbackRating(
+  ratings: RiderSimulationRatings,
+) {
+  return (
+    ratings.hills * 0.28 +
+    ratings.mountain * 0.27 +
+    ratings.cobbles * 0.17 +
+    ratings.flat * 0.1 +
+    ratings.endurance * 0.1 +
+    ratings.resistance * 0.08
+  );
+}
+
+function getSelectiveSegmentIntensity(
+  segment: RaceCalendarStage["segments"][number],
+) {
+  let intensity = segment.surface === "cobbles" ? 1.25 : 0;
+
+  if (segment.terrain === "climb") {
+    intensity += clamp(
+      0.55 +
+        Math.abs(segment.averageGradientPct) / 5 +
+        Math.max(0, segment.distanceKm - 5) * 0.025,
+      0.6,
+      2.2,
+    );
+  }
+
+  return intensity;
+}
+
+function getRoadStageSelectivityFactor(stage: RaceCalendarStage) {
+  if (stage.segments.length === 0) {
+    return 1;
+  }
+
   const totalDistance = Math.max(
     1,
     stage.segments.reduce(
@@ -319,51 +426,89 @@ function getRouteRating(
       0,
     ),
   );
+  const selectiveLoad = stage.segments.reduce(
+    (total, segment) =>
+      total + segment.distanceKm * getSelectiveSegmentIntensity(segment),
+    0,
+  );
 
-  return stage.segments.reduce((total, segment) => {
-    let segmentRating: number;
+  if (selectiveLoad <= 0) {
+    return 0;
+  }
 
-    if (segment.surface === "cobbles") {
-      segmentRating =
-        ratings.cobbles * 0.62 +
-        ratings.flat * 0.16 +
-        ratings.resistance * 0.13 +
-        ratings.endurance * 0.09;
-    } else if (segment.terrain === "climb") {
-      const gradient = Math.abs(segment.averageGradientPct);
-      const mountainWeight = clamp(
-        0.18 +
-          Math.max(0, gradient - 3) * 0.07 +
-          Math.max(0, segment.distanceKm - 5) * 0.025,
-        0.18,
-        0.82,
-      );
-      segmentRating =
-        ratings.mountain * mountainWeight +
-        ratings.hills * (1 - mountainWeight);
-    } else if (segment.terrain === "descent") {
-      segmentRating =
-        ratings.downhill * 0.5 +
-        ratings.resistance * 0.3 +
-        ratings.flat * 0.2;
-    } else {
-      segmentRating =
-        ratings.flat * 0.62 +
-        ratings.endurance * 0.23 +
-        ratings.resistance * 0.15;
-    }
+  return clamp(0.5 + (selectiveLoad / totalDistance) * 1.5, 0.5, 1.5);
+}
 
-    const selectivity =
-      segment.surface === "cobbles"
-        ? 1.28
-        : segment.terrain === "climb"
-          ? 1 + Math.abs(segment.averageGradientPct) / 18
-          : segment.terrain === "descent"
-            ? 0.62
-            : 0.82;
+function isTimeTrialStage(stage: RaceCalendarStage) {
+  return (
+    stage.stageType === "individual_time_trial" ||
+    stage.stageType === "team_time_trial" ||
+    stage.profileType === "time_trial"
+  );
+}
 
-    return total + segmentRating * segment.distanceKm * selectivity;
-  }, 0) / totalDistance;
+function getRouteRating(
+  ratings: RiderSimulationRatings,
+  stage: RaceCalendarStage,
+  fallbackRating: number,
+) {
+  if (stage.segments.length === 0) {
+    return fallbackRating;
+  }
+
+  const route = stage.segments.reduce(
+    (summary, segment) => {
+      let segmentRating: number;
+
+      if (segment.surface === "cobbles") {
+        segmentRating =
+          ratings.cobbles * 0.62 +
+          ratings.flat * 0.16 +
+          ratings.resistance * 0.13 +
+          ratings.endurance * 0.09;
+      } else if (segment.terrain === "climb") {
+        const gradient = Math.abs(segment.averageGradientPct);
+        const mountainWeight = clamp(
+          0.18 +
+            Math.max(0, gradient - 3) * 0.07 +
+            Math.max(0, segment.distanceKm - 5) * 0.025,
+          0.18,
+          0.82,
+        );
+        segmentRating =
+          ratings.mountain * mountainWeight +
+          ratings.hills * (1 - mountainWeight);
+      } else if (segment.terrain === "descent") {
+        segmentRating =
+          ratings.downhill * 0.5 +
+          ratings.resistance * 0.3 +
+          ratings.flat * 0.2;
+      } else {
+        segmentRating =
+          ratings.flat * 0.62 +
+          ratings.endurance * 0.23 +
+          ratings.resistance * 0.15;
+      }
+
+      const selectivity =
+        segment.surface === "cobbles"
+          ? 1.28
+          : segment.terrain === "climb"
+            ? 1 + Math.abs(segment.averageGradientPct) / 18
+            : segment.terrain === "descent"
+              ? 0.62
+              : 0.82;
+      const weight = segment.distanceKm * selectivity;
+
+      return {
+        rating: summary.rating + segmentRating * weight,
+        weight: summary.weight + weight,
+      };
+    },
+    { rating: 0, weight: 0 },
+  );
+
+  return route.weight > 0 ? route.rating / route.weight : fallbackRating;
 }
 
 function getFinishRating(
@@ -428,46 +573,45 @@ function getFinishRating(
 }
 
 function getGeneralClassificationStageWeight(stage: RaceCalendarStage) {
-  if (
-    stage.stageType === "individual_time_trial" ||
-    stage.stageType === "team_time_trial"
-  ) {
+  if (stage.stageType === "prologue") {
+    return (
+      0.25 *
+      clamp(Math.max(1, stage.distanceKm) / 8, 0.65, 1.35) *
+      (1 + getTimeTrialTerrainDifficulty(stage) * 0.2)
+    );
+  }
+
+  if (isTimeTrialStage(stage)) {
     const distanceWeight = clamp(
       Math.pow(Math.max(1, stage.distanceKm) / 35, 0.85),
-      0.4,
-      1.9,
+      0.3,
+      2,
     );
     const terrainWeight = 1 + getTimeTrialTerrainDifficulty(stage) * 0.35;
 
     return 1.25 * distanceWeight * terrainWeight;
   }
 
-  if (stage.stageType === "prologue") {
-    return (
-      0.35 *
-      clamp(Math.max(1, stage.distanceKm) / 8, 0.65, 1.35) *
-      (1 + getTimeTrialTerrainDifficulty(stage) * 0.2)
-    );
-  }
-
   const profileWeight = {
-    // A bunch finish decides the stage winner, but usually creates almost no
-    // gap in the general classification. Selective terrain does the opposite.
-    flat: 0.16,
-    sprint: 0.12,
-    hilly: 1.32,
-    mountain: 1.75,
+    // Bunch stages decide stage winners, not the general classification.
+    // They must not dilute the stages where the simulator creates time gaps.
+    flat: 0,
+    sprint: 0,
+    hilly: 1,
+    mountain: 1.8,
     cobbles: 1.3,
-    time_trial: 1.3,
-    mixed: 1.12,
+    time_trial: 0,
+    mixed: 0.8,
   }[stage.profileType];
   const distanceWeight = clamp(
-    Math.sqrt(Math.max(1, stage.distanceKm) / 100),
-    0.55,
-    1.45,
+    Math.sqrt(Math.max(1, stage.distanceKm) / 120),
+    0.6,
+    1.5,
   );
 
-  return profileWeight * distanceWeight;
+  return (
+    profileWeight * distanceWeight * getRoadStageSelectivityFactor(stage)
+  );
 }
 
 function getTimeTrialTerrainDifficulty(stage: RaceCalendarStage) {
