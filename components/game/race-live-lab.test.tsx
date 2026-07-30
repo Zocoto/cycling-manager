@@ -20,6 +20,7 @@ describe("race visual primitives", () => {
     expect(markup.match(/data-race-car-wheel="fine"/g)).toHaveLength(2);
     expect(markup.match(/data-race-car-wheel-rotor="centered"/g)).toHaveLength(2);
     expect(markup.match(/cm-race-car-wheel/g)).toHaveLength(2);
+    expect(markup).toContain('data-race-car-front="right"');
     expect(markup).not.toContain("transform-origin");
   });
 
@@ -33,6 +34,18 @@ describe("race visual primitives", () => {
     expect(markup).toContain('data-road-asphalt-texture="uniform"');
     expect(markup).toContain('fill="#35453F"');
     expect(markup).not.toContain("asphalt-base");
+  });
+
+  it("draws fine volumetric grey-brown cobbles", () => {
+    const markup = renderToStaticMarkup(
+      <svg>
+        <RoadSurfaceDefinition id="cobble-test" surface="cobbles" />
+      </svg>,
+    );
+    expect(markup).toContain('data-road-cobble-texture="volumetric-grid"');
+    expect(markup).toContain("cobble-test-cobble-base");
+    expect(markup).toContain("#AAA08F");
+    expect(markup).not.toContain('fill="#67645C"');
   });
 });
 

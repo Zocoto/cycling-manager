@@ -9,6 +9,7 @@ import {
   RaceSupportConvoy,
 } from "@/components/game/race-group-formation";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { RaceRoadsideCrowd } from "@/components/game/race-roadside-crowd";
 import { FinishRoadsideInfrastructure } from "@/components/game/race-scenery";
 import { RaceSceneryBackdrop } from "@/components/game/race-scenery-detailed";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -585,7 +586,9 @@ function RoadScene({
     seed: visualSeed,
     segmentNumber: segment.segmentNumber,
     scenery,
+    terrain: segment.terrain,
   });
+  const spectatorPalette = getRaceSpectatorPalette(riderById);
   const roadPatternId = `road-surface-${segment.segmentNumber}`;
   const departureProgress =
     snapshot.segmentNumber === 1 && segmentProgress < 0.46
@@ -618,7 +621,7 @@ function RoadScene({
   return (
     <RaceVisualViewport className={`h-72 rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
       <div aria-hidden="true" className="absolute left-8 top-7 h-16 w-16 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
-      <RaceSceneryBackdrop kind={scenery} isMoving={isMoving} showSpectators={showSpectators} />
+      <RaceSceneryBackdrop kind={scenery} isMoving={isMoving} showSpectators={false} />
       <svg
         aria-hidden="true"
         viewBox="0 0 100 100"
@@ -686,6 +689,14 @@ function RoadScene({
           />
         ))}
       </svg>
+      <RaceRoadsideCrowd
+        show={showSpectators}
+        roadLeftY={roadLeftPct * 3.2}
+        roadRightY={roadRightPct * 3.2}
+        roadDepthY={roadDepthPct * 3.2}
+        terrain={segment.terrain}
+        palette={spectatorPalette}
+      />
       <RaceWeatherOverlay weather={weather} />
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
         {terrainLabel(segment.terrain)} {segment.averageGradientPct ? `${segment.averageGradientPct > 0 ? "+" : ""}${segment.averageGradientPct} %` : ""} · {segment.surface === "cobbles" ? "secteur pavé · " : ""}{formatDistance(snapshot.completedDistanceKm)} km
@@ -806,9 +817,9 @@ export function RoadSurfaceDefinition({
   surface: RaceCalendarStage["segments"][number]["surface"];
   compact?: boolean;
 }) {
-  const width = compact ? 5.4 : 30;
-  const height = compact ? 3.4 : 18;
-  const strokeWidth = compact ? 0.22 : 1.15;
+  const width = compact ? 3.6 : 18;
+  const height = compact ? 2.4 : 11;
+  const strokeWidth = compact ? 0.14 : 0.72;
 
   return (
     <defs>
@@ -841,17 +852,32 @@ export function RoadSurfaceDefinition({
 
       </pattern>
       {surface === "cobbles" ? (
-        <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse">
-          <rect width={width} height={height} fill="#67645C" />
-          <path
-            d={`M0 ${height / 2}H${width}M${width / 2} 0v${height / 2}M${width * 0.25} ${height / 2}V${height}M${width * 0.76} ${height / 2}V${height}`}
-            fill="none"
-            stroke="#A49A87"
-            strokeWidth={strokeWidth}
-            opacity="0.88"
-          />
-          <path d={`M0 0H${width}M0 ${height}H${width}`} stroke="#413F3A" strokeWidth={strokeWidth * 0.75} opacity="0.8" />
-        </pattern>
+        <>
+          <linearGradient id={`${id}-cobble-base`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#7B756A" />
+            <stop offset="0.46" stopColor="#68635A" />
+            <stop offset="1" stopColor="#4E4B45" />
+          </linearGradient>
+          <pattern id={id} width={width} height={height} patternUnits="userSpaceOnUse" data-road-cobble-texture="volumetric-grid">
+            <rect width={width} height={height} fill={`url(#${id}-cobble-base)`} />
+            <path
+              d={`M0 ${height / 2}H${width}M${width / 2} 0v${height / 2}M${width * 0.24} ${height / 2}V${height}M${width * 0.74} ${height / 2}V${height}`}
+              fill="none"
+              stroke="#34322E"
+              strokeWidth={strokeWidth * 1.2}
+              opacity="0.9"
+            />
+            <path
+              d={`M0 ${height / 2 - strokeWidth}H${width}M${width / 2 - strokeWidth} 0v${height / 2}M${width * 0.24 - strokeWidth} ${height / 2}V${height}M${width * 0.74 - strokeWidth} ${height / 2}V${height}`}
+              fill="none"
+              stroke="#AAA08F"
+              strokeWidth={strokeWidth * 0.58}
+              opacity="0.78"
+            />
+            <path d={`M0 0H${width}M0 ${height}H${width}`} stroke="#393732" strokeWidth={strokeWidth} opacity="0.86" />
+            <path d={`M${width * 0.08} ${height * 0.2}h${width * 0.15}M${width * 0.58} ${height * 0.72}h${width * 0.11}`} stroke="#C2B9A8" strokeWidth={strokeWidth * 0.34} strokeLinecap="round" opacity="0.44" />
+          </pattern>
+        </>
       ) : null}
     </defs>
   );
@@ -864,7 +890,7 @@ function RoadTextureOverlay({
 }) {
   const backgroundImage =
     surface === "cobbles"
-      ? "linear-gradient(90deg,rgba(220,211,194,.28) 1px,transparent 1px),linear-gradient(0deg,rgba(220,211,194,.22) 1px,transparent 1px),linear-gradient(27deg,transparent 43%,rgba(30,29,27,.34) 44% 49%,transparent 50%)"
+      ? "linear-gradient(90deg,rgba(44,41,36,.78) 1px,transparent 1px),linear-gradient(0deg,rgba(48,45,40,.72) 1px,transparent 1px),linear-gradient(90deg,transparent 1px,rgba(198,187,167,.34) 2px,transparent 3px),linear-gradient(0deg,transparent 1px,rgba(190,181,163,.3) 2px,transparent 3px),linear-gradient(145deg,#777168,#514E48)"
       : "radial-gradient(circle at 20% 30%,rgba(255,255,255,.08) 0 1px,transparent 1.5px),linear-gradient(90deg,transparent,rgba(255,255,255,.025),transparent)";
 
   return (
@@ -876,7 +902,7 @@ function RoadTextureOverlay({
         backgroundImage,
         backgroundSize:
           surface === "cobbles"
-            ? "28px 16px, 28px 16px, 56px 32px"
+            ? "18px 11px, 18px 11px, 18px 11px, 18px 11px, 100% 100%"
             : "34px 34px, 100% 100%",
       }}
     />
@@ -1001,6 +1027,7 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
       aria-label="Voiture du directeur de course agitant le drapeau de départ"
       data-race-director-car="detailed"
       data-race-car-direction="right"
+      data-race-car-front="right"
       className={`h-16 w-28 overflow-visible drop-shadow-xl ${
         isMoving ? "cm-support-car" : ""
       }`}
@@ -1034,9 +1061,11 @@ export function RaceDirectorCar({ isMoving }: { isMoving: boolean }) {
       <path d="M18 43h119" stroke="#FFFDF4" strokeWidth="1.2" opacity="0.8" />
       <path d="M56 33 51 60m36-26v26m39-26 5 20" fill="none" stroke="#57141B" strokeWidth="0.65" opacity="0.7" />
       <path d="M68 40h8m23 0h8" stroke="#5C1720" strokeWidth="1.1" strokeLinecap="round" />
-      <path d="M48 30h-7l-5 4h11" fill="#B52632" stroke="#E3ECE8" strokeWidth="0.7" />
+      <path d="M120 31h8l6 4h-12" fill="#B52632" stroke="#E3ECE8" strokeWidth="0.7" />
       <path d="M12 45h9v5h-8" fill="#7A101B" stroke="#F9B7BC" strokeWidth="0.5" />
       <rect x="136" y="44" width="10" height="5" rx="2.2" fill="#FFF2B5" stroke="#FFFDF4" strokeWidth="0.5" />
+      <path d="M146 52h5v7h-8" fill="none" stroke="#F7E9E7" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M149 43h12" stroke="#FFF2B5" strokeWidth="1.1" strokeLinecap="round" opacity="0.42" />
       <path d="M149 44.5h5m-5 3h6" stroke="#FFF2B5" strokeWidth="0.7" strokeLinecap="round" opacity="0.8" />
       <path d="M12 56h9m115 0h13M65 59h27" stroke="#411015" strokeWidth="1" strokeLinecap="round" />
 
@@ -1412,6 +1441,7 @@ function getSmallGroupFinishPhase(metersRemaining: number) {
   if (metersRemaining > 1_000) return "Approche de la flamme rouge";
   if (metersRemaining > 500) return "Dernier kilomètre · la sélection se fait";
   if (metersRemaining > 200) return "Les accélérations se succèdent";
+
   if (metersRemaining > 50) return "Sprint pour la victoire";
   if (metersRemaining > 0) return "Roue contre roue jusqu’à la ligne";
   return "Victoire arrachée";
@@ -1422,6 +1452,21 @@ function getVisualSeedNumber(seed: string) {
     (total, character) => (total * 31 + character.charCodeAt(0)) >>> 0,
     7
   );
+}
+
+function getRaceSpectatorPalette(riderById: Map<string, RiderSimulationInput>) {
+  const colors: string[] = [];
+  for (const rider of riderById.values()) {
+    for (const color of [
+      rider.teamJersey?.primaryColor ?? rider.teamPrimaryColor,
+      rider.teamJersey?.secondaryColor ?? rider.teamSecondaryColor,
+    ]) {
+      const normalized = color.toUpperCase();
+      if (!colors.some((candidate) => candidate.toUpperCase() === normalized)) colors.push(color);
+      if (colors.length >= 12) return colors;
+    }
+  }
+  return colors;
 }
 
 function SprintLaneView({
@@ -1781,6 +1826,7 @@ function FinishBattleView({
   ]
     .filter((detail): detail is string => Boolean(detail))
     .join(" ");
+  const spectatorPalette = getRaceSpectatorPalette(riderById);
   const winnerResult = simulation.results.find(
     (result) => result.status === "finished" && result.rank === 1
   );
@@ -1850,6 +1896,14 @@ function FinishBattleView({
           />
         ))}
       </svg>
+      <RaceRoadsideCrowd
+        show
+        roadLeftY={roadLeftY}
+        roadRightY={roadRightY}
+        roadDepthY={roadDepthY}
+        terrain={segment.terrain}
+        palette={spectatorPalette}
+      />
       <RaceWeatherOverlay weather={weather} />
       <FinishRoadsideInfrastructure mode="side" roadLeftY={roadLeftY} roadRightY={roadRightY} />
       <div

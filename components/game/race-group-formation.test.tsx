@@ -90,6 +90,9 @@ describe("race group formation", () => {
     );
 
     expect(markup).toContain('data-race-support-convoy="true"');
+    expect(markup).toContain('data-race-road-anchor="wheels"');
+    expect(markup.match(/data-race-car-front="right"/g)).toHaveLength(2);
+    expect(markup).not.toContain("-bottom-7");
     expect(markup.match(/cm-support-car/g)).toHaveLength(2);
     expect(markup.match(/data-race-car-direction="right"/g)).toHaveLength(2);
     expect(markup.match(/cm-race-car-wheel/g)).toHaveLength(4);

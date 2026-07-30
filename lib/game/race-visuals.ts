@@ -73,15 +73,22 @@ export function shouldShowRaceSpectators({
   seed,
   segmentNumber,
   scenery,
+  terrain,
   isFinish = false,
 }: {
   seed: string | number;
   segmentNumber: number;
   scenery: RaceSceneryKind;
+  terrain?: "flat" | "climb" | "descent";
   isFinish?: boolean;
 }) {
-  if (isFinish || scenery === "urban" || scenery === "village") return true;
-  return (stableVisualHash(String(seed)) + segmentNumber) % 5 === 0;
+  if (
+    isFinish ||
+    terrain === "climb" ||
+    scenery === "urban" ||
+    scenery === "village"
+  ) return true;
+  return (stableVisualHash(String(seed)) + segmentNumber) % 3 === 0;
 }
 
 export function getTeamKitPattern(teamId: string): TeamKitPattern {

@@ -56,6 +56,17 @@ describe("race visual helpers", () => {
     ).toBe(true);
   });
 
+  it("always brings a denser crowd to climbs", () => {
+    expect(
+      shouldShowRaceSpectators({
+        seed: "mountain-crowd",
+        segmentNumber: 6,
+        scenery: "forest",
+        terrain: "climb",
+      }),
+    ).toBe(true);
+  });
+
   it("derives stable, recognizable team kit details", () => {
     expect(getTeamKitPattern("team-a")).toBe(getTeamKitPattern("team-a"));
     expect(getTeamMonogram("Union Cycliste des Coquinous")).toBe("UC");

@@ -26,6 +26,11 @@ export function SideRaceCyclist({
   const pattern = getRaceCyclistTeamKitPattern(rider);
   const clipId = `detailed-side-jersey-${useId().replace(/:/g, "")}`;
   const label = `${rider.name} · ${rider.teamName} · ${visual.label}`;
+  const torsoPath = celebrating
+    ? "M42 10 39 17 40 28 54 28 56 17 53 10Z"
+    : "m42 12-8 7 3 11 13-1 10-11-6-6Z";
+  const head = celebrating ? { cx: 48, cy: 4.5 } : { cx: 62, cy: 8.8 };
+
 
   return (
     <svg
@@ -39,7 +44,7 @@ export function SideRaceCyclist({
       <title>{label}</title>
       <defs>
         <clipPath id={clipId}>
-          <path d="m42 12-8 7 3 11 13-1 10-11-6-6Z" />
+          <path d={torsoPath} />
         </clipPath>
       </defs>
 
@@ -143,7 +148,8 @@ export function SideRaceCyclist({
       </g>
 
       <path
-        d="m42 12-8 7 3 11 13-1 10-11-6-6Z"
+        d={torsoPath}
+        data-race-victory-torso={celebrating ? "upright" : undefined}
         fill={visual.primaryColor}
         stroke="#F4F7F5"
         strokeWidth="0.7"
@@ -152,6 +158,7 @@ export function SideRaceCyclist({
       <RaceJerseyOverlay
         rider={rider}
         clipId={clipId}
+        celebrating={celebrating}
         mode="side"
         pattern={pattern}
         visual={visual}
@@ -165,17 +172,17 @@ export function SideRaceCyclist({
         />
       ) : null}
       {celebrating ? (
-        <g data-race-victory-pose="arms-raised" className="cm-victory-arms">
+        <g data-race-victory-pose="arms-raised" data-race-victory-torso="upright" className="cm-victory-arms">
           <path
-            d="m56 17 7-10 5-7M50 16 45 7 41 0"
+            d="M43 14 37 4 34-6M53 14 59 4 62-6"
             fill="none"
             stroke={skin.skinTone}
             strokeWidth="2.7"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx="68" cy="0" r="1.65" fill={skin.skinTone} />
-          <circle cx="41" cy="0" r="1.65" fill={skin.skinTone} />
+          <circle cx="34" cy="-6" r="1.65" fill={skin.skinTone} />
+          <circle cx="62" cy="-6" r="1.65" fill={skin.skinTone} />
         </g>
       ) : (
         <>
@@ -191,25 +198,25 @@ export function SideRaceCyclist({
         </>
       )}
 
-      <circle cx="62" cy="8.8" r="4.4" fill={skin.skinTone} stroke={skin.skinShadow} strokeWidth="0.65" />
+      <circle cx={head.cx} cy={head.cy} r="4.4" fill={skin.skinTone} stroke={skin.skinShadow} strokeWidth="0.65" />
       <g data-race-helmet-team-colors="true">
         <path
-          d="M57.6 8.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7l-5.7-1.1Z"
+          d={celebrating ? "M43.6 4.3c.2-4.1 3.2-5.8 6.5-4.9 2.5.7 3.8 2.4 3.8 4.3l-5.4-1Z" : "M57.6 8.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7l-5.7-1.1Z"}
           fill={helmet.primary}
           stroke="#071A17"
           strokeWidth="0.75"
           strokeLinejoin="round"
         />
-        <path d="m60.2 4.2 3.1 2.7 2.2-2.1" fill={helmet.secondary} />
+        <path d={celebrating ? "m46 0 2.8 2.5 2-1.9" : "m60.2 4.2 3.1 2.7 2.2-2.1"} fill={helmet.secondary} />
         <path
-          d="m60.3 4.2.9 2.1m2-2.7.2 2.8m2.2-1.7-.5 2.1"
+          d={celebrating ? "m46.1 0 .8 2m1.8-2.5.2 2.6m2-1.5-.5 2" : "m60.3 4.2.9 2.1m2-2.7.2 2.8m2.2-1.7-.5 2.1"}
           stroke={helmet.accent}
           strokeWidth="0.6"
           strokeLinecap="round"
         />
       </g>
-      <path d="m66.4 8.6-2 3.4" stroke="#263B32" strokeWidth="0.65" />
-      <path d="M63 9.3h4" stroke="#17261E" strokeWidth="0.55" />
+      <path d={celebrating ? "m51.4 4.3-2 3.4" : "m66.4 8.6-2 3.4"} stroke="#263B32" strokeWidth="0.65" />
+      <path d={celebrating ? "M49 4.8h4" : "M63 9.3h4"} stroke="#17261E" strokeWidth="0.55" />
     </svg>
   );
 }
@@ -262,7 +269,7 @@ export function TopRaceCyclist({
       </g>
       <ellipse cx="47" cy="21" rx="14" ry="8.7" fill={visual.primaryColor} stroke="#F4F7F5" strokeWidth="0.8" />
       {celebrating ? (
-        <g data-race-victory-pose="arms-raised" className="cm-victory-arms">
+        <g data-race-victory-pose="arms-raised" data-race-victory-torso="upright" className="cm-victory-arms">
           <path
             d="M41 17 31 7 20 1M52 17 62 7 73 1"
             fill="none"
@@ -338,12 +345,14 @@ function RaceJerseyOverlay({
   mode,
   pattern,
   visual,
+  celebrating = false,
 }: {
   rider: RiderSimulationInput;
   clipId: string;
   mode: "side" | "top";
   pattern: TeamKitPattern;
   visual: ReturnType<typeof getRaceCyclistJerseyVisual>;
+  celebrating?: boolean;
 }) {
   if (visual.status === "national-champion") {
     return (
@@ -363,7 +372,9 @@ function RaceJerseyOverlay({
     if (rider.classificationJersey === "mountain") {
       const dots =
         mode === "side"
-          ? [[38, 17], [45, 14], [52, 17], [42, 23], [50, 24]]
+          ? celebrating
+            ? [[43, 14], [49, 12], [53, 17], [44, 22], [50, 24]]
+            : [[38, 17], [45, 14], [52, 17], [42, 23], [50, 24]]
           : [[36, 18], [44, 15], [53, 16], [41, 23], [50, 25], [58, 22]];
       return (
         <g clipPath={`url(#${clipId})`}>
@@ -377,7 +388,7 @@ function RaceJerseyOverlay({
   }
 
   return mode === "side" ? (
-    <SidePattern pattern={pattern} color={visual.secondaryColor} />
+    <SidePattern pattern={pattern} color={visual.secondaryColor} upright={celebrating} />
   ) : (
     <TopPattern pattern={pattern} color={visual.secondaryColor} />
   );
@@ -397,7 +408,13 @@ function mapRiderJerseyPattern(pattern: RiderJerseyPattern): TeamKitPattern {
   return "center_stripe";
 }
 
-function SidePattern({ pattern, color }: { pattern: TeamKitPattern; color: string }) {
+function SidePattern({ pattern, color, upright }: { pattern: TeamKitPattern; color: string; upright: boolean }) {
+  if (upright) {
+    if (pattern === "center_stripe") return <path d="M46 10h4l1 18h-5Z" fill={color} />;
+    if (pattern === "halves") return <path d="M48 10h5l3 7-2 11h-6Z" fill={color} />;
+    if (pattern === "chevron") return <path d="m40 16 8 5 8-5v4l-8 5-8-5Z" fill={color} />;
+    return <path d="m41 14 3-3 11 13-3 3Z" fill={color} />;
+  }
   if (pattern === "center_stripe") return <path d="m43 12 5 .1 1 17-6 .3Z" fill={color} />;
   if (pattern === "halves") return <path d="m47 12 7-.2 6 6-10 11-3 .2Z" fill={color} />;
   if (pattern === "chevron") return <path d="m35 19 10 5 13-8 2 2.7-15 9-11-6Z" fill={color} />;
