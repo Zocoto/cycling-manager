@@ -335,20 +335,10 @@ export function RiderEquipmentLoadout({
   }
   return (
     <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-[#102D28] text-white shadow-[0_22px_55px_rgba(7,26,23,0.18)]">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-6 py-5 sm:px-8">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8FD5B6]">
-            Équipement
-          </p>
-          <h2 className="mt-2 text-xl font-black">Configuration du coureur</h2>
-          <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[#9FB5A8]">
-            Les pièces portées apparaissent et s’illuminent directement sur
-            le coureur et son vélo.
-          </p>
-        </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#BFD1C6]">
-          {canManage ? "Modifiable par votre équipe" : "Consultation publique"}
-        </span>
+      <div className="border-b border-white/10 px-6 py-5 sm:px-8">
+        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8FD5B6]">
+          Équipement
+        </p>
       </div>
 
       <div

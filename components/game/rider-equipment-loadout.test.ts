@@ -12,6 +12,7 @@ import {
   collectAvailableEquipment,
   CyclistEquipmentVisual,
   EquipmentBonusSummary,
+  RiderEquipmentLoadout,
   resolveEquipmentDropAction,
 } from "./rider-equipment-loadout";
 
@@ -238,5 +239,25 @@ describe("resolveEquipmentDropAction", () => {
         targetOccupied: true,
       }),
     ).toBeNull();
+  });
+});
+describe("RiderEquipmentLoadout", () => {
+  it("conserve un en-tête sobre sans les textes redondants", () => {
+    const markup = renderToStaticMarkup(
+      createElement(RiderEquipmentLoadout, {
+        riderId: "rider-test",
+        equipment: {},
+        canManage: false,
+        management: null,
+      }),
+    );
+
+    expect(markup).toContain("Équipement");
+    expect(markup).not.toContain("Configuration du coureur");
+    expect(markup).not.toContain(
+      "Les pièces portées apparaissent et s’illuminent",
+    );
+    expect(markup).not.toContain("Modifiable par votre équipe");
+    expect(markup).not.toContain("Consultation publique");
   });
 });
