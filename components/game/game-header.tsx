@@ -5,6 +5,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
+import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
 import { WheelLogo } from "@/components/ui/wheel-logo";
@@ -99,6 +100,10 @@ export function GameHeader({
             </span>
           </span>
         </Link>
+
+        <GameNavigationMenu
+          showRaceSimulator={canAccessRaceSimulator(simulatorEmail)}
+        />
 
         <form
           action="/jeu/recherche"
