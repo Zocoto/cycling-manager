@@ -80,9 +80,18 @@ export function TutorialCenterMenu() {
   const tutorialIsActive = Boolean(activeTutorial);
   const disabled = tutorialIsActive || isPending;
 
-  const completedEssentialCount = [baseProgress, criteriumProgress].filter(
-    (progress) => progress?.status === "completed",
-  ).length;
+  const completedTutorialCount = [
+    baseProgress,
+    criteriumProgress,
+    medicalCenterProgress,
+    rosterProgress,
+    trainingProgress,
+    staffProgress,
+    transferProgress,
+    equipmentProgress,
+    infrastructureProgress,
+    youthDevelopmentProgress,
+  ].filter((progress) => progress?.status === "completed").length;
 
   useEffect(() => {
     if (!open) return;
@@ -325,7 +334,7 @@ export function TutorialCenterMenu() {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-full bg-[#176951] px-2.5 py-1 text-[9px] font-black text-white sm:text-[10px]">
-                  {completedEssentialCount} / 2 essentiels
+                  {completedTutorialCount} / 10 didacticiels
                 </span>
                 <button
                   type="button"
@@ -385,8 +394,9 @@ export function TutorialCenterMenu() {
             </div>
             <div className="mt-4 hidden rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F5F9F7] px-4 py-3 sm:block">
               <p className="text-xs font-bold leading-5 text-[#60756E]">
-                Terminez les deux formations essentielles pour rendre disponible
-                l’objectif « Finaliser le didacticiel ».
+                Terminez les deux formations essentielles puis tous les guides
+                des rubriques pour obtenir l’objectif « Finaliser le
+                didacticiel ».
               </p>
             </div>
             <p className="mt-5 px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
