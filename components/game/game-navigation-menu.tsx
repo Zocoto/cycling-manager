@@ -51,6 +51,11 @@ const NAVIGATION_GROUPS = [
   },
 ] as const;
 
+const NAVIGATION_COLUMNS = [
+  [NAVIGATION_GROUPS[0], NAVIGATION_GROUPS[2]],
+  [NAVIGATION_GROUPS[1], NAVIGATION_GROUPS[3]],
+] as const;
+
 export function GameNavigationMenu({
   showRaceSimulator = false,
 }: GameNavigationMenuProps) {
@@ -97,33 +102,37 @@ export function GameNavigationMenu({
           aria-label="Navigation principale du jeu"
           className="grid max-h-[min(70vh,42rem)] gap-5 overflow-y-auto p-4 sm:grid-cols-2 sm:p-5"
         >
-          {NAVIGATION_GROUPS.map((group) => (
-            <section key={group.label}>
-              <h2 className="mb-2 text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#9BE0CA]">
-                {group.label}
-              </h2>
-              <div className="space-y-1">
-                {group.links.map(([label, href]) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
-                  >
-                    {label}
-                  </Link>
-                ))}
+          {NAVIGATION_COLUMNS.map((column, columnIndex) => (
+            <div key={columnIndex} className="space-y-5">
+              {column.map((group) => (
+                <section key={group.label}>
+                  <h2 className="mb-2 text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#9BE0CA]">
+                    {group.label}
+                  </h2>
+                  <div className="space-y-1">
+                    {group.links.map(([label, href]) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+                      >
+                        {label}
+                      </Link>
+                    ))}
 
-                {group.label === "Communauté et aide" &&
-                showRaceSimulator ? (
-                  <Link
-                    href="/jeu/simulateur-course"
-                    className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
-                  >
-                    Simulateur de course
-                  </Link>
-                ) : null}
-              </div>
-            </section>
+                    {group === NAVIGATION_GROUPS[3] &&
+                    showRaceSimulator ? (
+                      <Link
+                        href="/jeu/simulateur-course"
+                        className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+                      >
+                        Simulateur de course
+                      </Link>
+                    ) : null}
+                  </div>
+                </section>
+              ))}
+            </div>
           ))}
         </nav>
       </div>
