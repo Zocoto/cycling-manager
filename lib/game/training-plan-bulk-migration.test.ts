@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260801100000_save_training_plans_in_bulk.sql",
+    "supabase/migrations/20260801102000_save_training_plans_in_bulk.sql",
   ),
   "utf8",
 );
@@ -25,7 +25,7 @@ describe("bulk training plan migration", () => {
   it("libère les affectations avant de valider la répartition finale", () => {
     const calls = migration.match(/public\.save_current_rider_training_plan\(/g);
     expect(calls).toHaveLength(2);
-    expect(migration).toContain("v_plan.domain,\n      null");
+    expect(migration).toMatch(/v_plan\.domain,\s+null/);
     expect(migration).toContain("where plan.trainer_contract_id is not null");
   });
 });

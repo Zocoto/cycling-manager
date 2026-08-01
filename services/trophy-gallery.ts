@@ -332,7 +332,7 @@ async function loadSportingDirectorTrophyGallery({
     }),
     loadAttendanceTrophies({
       admin,
-      directorId: directorResult.data.id,
+      directorId,
       seasonById,
     }),
   ]);

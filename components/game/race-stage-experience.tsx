@@ -280,6 +280,7 @@ export function RaceStageExperience({
         <RaceLiveChat
           key={entry.stage.id}
           stageId={entry.stage.id}
+          raceEditionId={entry.edition.id}
           currentDirectorId={currentDirectorId}
           initialMessages={initialMessages}
           mode={state.status === "live" ? "live" : "replay"}
