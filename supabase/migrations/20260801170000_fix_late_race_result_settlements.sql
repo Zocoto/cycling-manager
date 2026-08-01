@@ -27,6 +27,11 @@ begin
     'public.settle_finished_race_conditions()'::regprocedure
   ) into v_definition;
 
+  -- La CLI peut envoyer ce fichier avec des fins de ligne CRLF depuis
+  -- Windows, alors que la fonction historique a été stockée avec des LF.
+  v_definition := replace(v_definition, chr(13), '');
+  v_completion_block := replace(v_completion_block, chr(13), '');
+
   if position(v_completion_block in v_definition) = 0 then
     raise exception 'Bloc de cloture sportive historique introuvable.';
   end if;

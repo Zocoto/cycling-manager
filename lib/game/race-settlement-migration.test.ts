@@ -20,6 +20,12 @@ describe("late race result settlement migration", () => {
     expect(migration).toContain(
       "'public.settle_finished_race_conditions()'::regprocedure",
     );
+    expect(migration).toContain(
+      "v_definition := replace(v_definition, chr(13), '');",
+    );
+    expect(migration).toContain(
+      "v_completion_block := replace(v_completion_block, chr(13), '');",
+    );
   });
 
   it("detects only completed editions with missing expected results", () => {
