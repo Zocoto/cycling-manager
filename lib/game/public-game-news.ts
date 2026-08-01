@@ -1,4 +1,5 @@
 import type { RaceStageSegment } from "@/lib/game/race-profiles";
+import { getEstimatedStageFinishAt } from "@/lib/game/race-live";
 import type { StaffRole } from "@/lib/game/staff";
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
@@ -110,6 +111,30 @@ export type PublicGameNewsItem = {
   teamColors?: PublicGameNewsTeamVisual["colors"];
   visual?: PublicGameNewsVisual;
 };
+
+export function resolveRaceVictoryHappenedAt({
+  resultCreatedAt,
+  stages,
+}: {
+  resultCreatedAt: string;
+  stages: Array<{
+    stageNumber: number;
+    departureAt: string | null;
+    distanceKm: number;
+  }>;
+}) {
+  const finalStage = [...stages].sort(
+    (first, second) => second.stageNumber - first.stageNumber,
+  )[0];
+  const estimatedFinishAt = finalStage
+    ? getEstimatedStageFinishAt({
+        departureAt: finalStage.departureAt,
+        distanceKm: finalStage.distanceKm,
+      })
+    : null;
+
+  return estimatedFinishAt ?? resultCreatedAt;
+}
 
 export function getPublicGameNewsTeamColors(
   item: PublicGameNewsItem,

@@ -16,6 +16,7 @@ import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
   normalizeOfficialResultGapsToLeader,
+  shouldSettleRaceEdition,
   type OfficialAttackParticipant,
   type OfficialRaceEditionResults,
   type OfficialRaceResultsDirectory,
@@ -129,13 +130,43 @@ type StageAttackParticipantRow = {
   first_segment_number: number;
 };
 
+type IncompleteCompletedEditionRow = {
+  race_edition_id: string;
+};
+
+async function loadIncompleteCompletedEditionIds({
+  admin,
+  calendar,
+}: {
+  admin: AdminClient;
+  calendar: SeasonRaceCalendar;
+}) {
+  if (!calendar.editions.some((edition) => edition.status === "completed")) {
+    return new Set<string>();
+  }
+
+  const { data, error } = await admin.rpc(
+    "get_incomplete_completed_race_edition_ids",
+    { p_season_id: calendar.seasonId },
+  );
+  assertQuery(
+    error,
+    "la detection des classements termines incomplets",
+  );
+
+  const rows =
+    (data as IncompleteCompletedEditionRow[] | null) ?? [];
+  return new Set<string>(rows.map((row) => row.race_edition_id));
+}
+
 export async function settleFinishedRaceResults(
   calendar: SeasonRaceCalendar,
   now = new Date(),
   lockedDirectory?: LockedOfficialRaceSimulationDirectory,
-  options: { repairCompletedEditions?: boolean } = {},
 ) {
   const admin = createSupabaseAdminClient();
+  const repairableCompletedEditionIds =
+    await loadIncompleteCompletedEditionIds({ admin, calendar });
   const officialSimulations =
     lockedDirectory ??
     (await ensureLockedOfficialRaceSimulations(calendar, now));
@@ -144,14 +175,12 @@ export async function settleFinishedRaceResults(
   let failedEditions = 0;
 
   for (const edition of calendar.editions) {
-    if (edition.status === "cancelled") continue;
+    if (!shouldSettleRaceEdition(edition, repairableCompletedEditionIds)) {
+      continue;
+    }
     // La fin de journée marque les éditions « completed » même si leurs
     // résultats n'ont jamais été consolidés (bug historique). Sur l'espace
     // dédié d'une course, on réévalue donc ces éditions pour les réparer.
-    if (edition.status === "completed" && !options.repairCompletedEditions) {
-      continue;
-    }
-
     // Chaque édition est consolidée indépendamment : une course en erreur ne
     // doit jamais bloquer les primes et classements de toutes les autres.
     try {

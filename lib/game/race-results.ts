@@ -90,6 +90,16 @@ export type PersistedStageRaceStandings = {
   }>;
 };
 
+export function shouldSettleRaceEdition(
+  edition: { id: string; status?: string },
+  repairableCompletedEditionIds: ReadonlySet<string>,
+) {
+  if (edition.status === "cancelled") return false;
+  if (edition.status !== "completed") return true;
+
+  return repairableCompletedEditionIds.has(edition.id);
+}
+
 export function normalizeOfficialResultGapsToLeader(
   results: OfficialRiderResult[]
 ): OfficialRiderResult[] {

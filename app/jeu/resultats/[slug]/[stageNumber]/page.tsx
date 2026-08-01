@@ -100,7 +100,6 @@ export default async function RaceLivePage({
         calendar,
         now,
         lockedSimulationDirectory,
-        { repairCompletedEditions: true },
       );
       await settleFinishedRaceConditions(supabase);
     } catch (error) {

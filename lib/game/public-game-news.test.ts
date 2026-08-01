@@ -6,11 +6,38 @@ import {
   formatPublicGameNewsTotal,
   resolvePublicGameNewsTeamJersey,
   resolvePublicGameNewsTeamJerseyArtwork,
+  resolveRaceVictoryHappenedAt,
   selectDashboardPelotonHighlights,
   type PublicGameNewsItem,
 } from "./public-game-news";
 
 describe("public game news", () => {
+  it("dates a repaired victory from the sporting finish", () => {
+    expect(
+      resolveRaceVictoryHappenedAt({
+        resultCreatedAt: "2026-08-01T09:15:38.000Z",
+        stages: [
+          {
+            stageNumber: 1,
+            departureAt: "2026-07-24T12:00:00.000Z",
+            distanceKm: 48,
+          },
+        ],
+      }),
+    ).toBe("2026-07-24T12:08:00.000Z");
+  });
+
+  it("falls back to result creation when sporting timing is unavailable", () => {
+    expect(
+      resolveRaceVictoryHappenedAt({
+        resultCreatedAt: "2026-08-01T09:15:38.000Z",
+        stages: [
+          { stageNumber: 1, departureAt: null, distanceKm: 48 },
+        ],
+      }),
+    ).toBe("2026-08-01T09:15:38.000Z");
+  });
+
   it("classe les événements du plus récent au plus ancien", () => {
     const items: PublicGameNewsItem[] = [
       {

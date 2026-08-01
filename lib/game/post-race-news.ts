@@ -2,7 +2,7 @@ import type {
   RaceCalendarEdition,
   RaceCalendarStage,
 } from "./race-calendar";
-import { getEstimatedLiveDurationMinutes } from "./race-live";
+import { getEstimatedStageFinishAt } from "./race-live";
 import {
   getStageAttackParticipants,
   type RiderSimulationInput,
@@ -188,11 +188,7 @@ function getPrimeLeader(
 }
 
 function getStageFinishTimestamp(stage: RaceCalendarStage) {
-  const departureTimestamp = stage.departureAt
-    ? new Date(stage.departureAt).getTime()
-    : Date.now();
-  const durationMs = getEstimatedLiveDurationMinutes(stage.distanceKm) * 60_000;
-  return new Date(departureTimestamp + durationMs).toISOString();
+  return getEstimatedStageFinishAt(stage) ?? new Date().toISOString();
 }
 
 function formatRiderNames(riders: RiderSimulationInput[]) {

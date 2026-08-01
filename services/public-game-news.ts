@@ -12,6 +12,7 @@ import {
   createPublicGameNewsSnapshot,
   resolvePublicGameNewsTeamJersey,
   resolvePublicGameNewsTeamJerseyArtwork,
+  resolveRaceVictoryHappenedAt,
   selectDashboardPelotonHighlights,
   type PublicGameNewsItem,
   type PublicGameNewsSnapshot,
@@ -39,7 +40,11 @@ type RaceEditionRow = {
   id: string;
   display_name: string;
   races: { slug: string } | null;
-  stages: Array<{ stage_number: number }>;
+  stages: Array<{
+    stage_number: number;
+    departure_at: string | null;
+    distance_km: number | string;
+  }>;
 };
 
 type RaceRosterRow = {
@@ -438,7 +443,9 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
   const [editionsQuery, rostersQuery, profilesByEditionId] = await Promise.all([
     admin
       .from("race_editions")
-      .select("id, display_name, races (slug), stages (stage_number)")
+      .select(
+        "id, display_name, races (slug), stages (stage_number, departure_at, distance_km)",
+      )
       .in("id", editionIds)
       .returns<RaceEditionRow[]>(),
     admin
@@ -514,7 +521,14 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
         kind: "victory" as const,
         title: `${riderName} s’impose`,
         detail: `${teamSeason.display_name} remporte ${edition.display_name}.`,
-        happenedAt: result.created_at,
+        happenedAt: resolveRaceVictoryHappenedAt({
+          resultCreatedAt: result.created_at,
+          stages: edition.stages.map((stage) => ({
+            stageNumber: stage.stage_number,
+            departureAt: stage.departure_at,
+            distanceKm: Number(stage.distance_km),
+          })),
+        }),
         href,
         significance: "major" as const,
         visual: {

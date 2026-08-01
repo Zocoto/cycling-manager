@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canSimulateRaceEdition,
   getEstimatedLiveDurationMinutes,
+  getEstimatedStageFinishAt,
   getRaceExperienceAvailability,
   getRaceGroupLayoutDensity,
   getRaceRegistrationHref,
@@ -19,6 +20,15 @@ const STAGE = {
 };
 
 describe("getStageLiveState", () => {
+  it("exposes the estimated sporting finish timestamp", () => {
+    expect(getEstimatedStageFinishAt(STAGE)).toBe(
+      "2026-07-20T18:25:00.000Z",
+    );
+    expect(
+      getEstimatedStageFinishAt({ ...STAGE, departureAt: "invalid" }),
+    ).toBeNull();
+  });
+
   it("programme une course de 150 km sur 25 minutes", () => {
     expect(getEstimatedLiveDurationMinutes(150)).toBe(25);
     expect(

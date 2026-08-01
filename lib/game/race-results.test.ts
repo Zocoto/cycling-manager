@@ -4,6 +4,7 @@ import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
   normalizeOfficialResultGapsToLeader,
+  shouldSettleRaceEdition,
 } from "./race-results";
 
 const coquinous = {
@@ -25,6 +26,35 @@ const challengers = {
   status: "finished" as const,
   abandonmentReason: null,
 };
+
+describe("race settlement selection", () => {
+  const incompleteCompletedIds = new Set(["completed-incomplete"]);
+
+  it("keeps active races and skips cancelled races", () => {
+    expect(
+      shouldSettleRaceEdition(
+        { id: "planned", status: "planned" },
+        incompleteCompletedIds,
+      ),
+    ).toBe(true);
+    expect(
+      shouldSettleRaceEdition(
+        { id: "cancelled", status: "cancelled" },
+        incompleteCompletedIds,
+      ),
+    ).toBe(false);
+  });
+
+  it("repairs only completed editions detected as incomplete", () => {
+    expect(
+      shouldSettleRaceEdition(
+        { id: "completed-incomplete", status: "completed" },
+        incompleteCompletedIds,
+      ),
+    ).toBe(true);
+    expect(shouldSettleRaceEdition({ id: "completed-healthy", status: "completed" }, incompleteCompletedIds)).toBe(false);
+  });
+});
 
 describe("buildPersistedGeneralClassification", () => {
   it("conserve l'ordre d'arrivee lorsque deux coureurs terminent dans le meme temps", () => {

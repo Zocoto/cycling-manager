@@ -40,6 +40,23 @@ export function getEstimatedLiveDurationMinutes(distanceKm: number) {
   return Math.max(8, Math.min(48, Math.round(distanceKm / 6)));
 }
 
+export function getEstimatedStageFinishAt({
+  departureAt,
+  distanceKm,
+}: {
+  departureAt: string | null;
+  distanceKm: number;
+}) {
+  if (!departureAt) return null;
+
+  if (!Number.isFinite(distanceKm) || distanceKm <= 0) return null;
+  const departureTimestamp = new Date(departureAt).getTime();
+  if (!Number.isFinite(departureTimestamp)) return null;
+
+  const durationMs = getEstimatedLiveDurationMinutes(distanceKm) * 60_000;
+  return new Date(departureTimestamp + durationMs).toISOString();
+}
+
 export function canSimulateRaceEdition({
   slug,
   engagedRiderCount,
@@ -91,7 +108,25 @@ export function getStageLiveState(
   }
 
   const startsAt = new Date(stage.departureAt);
-  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
+  const estimatedFinishAt = getEstimatedStageFinishAt(stage);
+  if (!estimatedFinishAt) {
+    return stage.status === "completed"
+      ? {
+          status: "finished",
+          startsAt: null,
+          endsAt: null,
+          durationMinutes,
+          progress: 1,
+        }
+      : {
+          status: "scheduled",
+          startsAt: null,
+          endsAt: null,
+          durationMinutes,
+          progress: 0,
+        };
+  }
+  const endsAt = new Date(estimatedFinishAt);
 
   if (stage.status === "completed" || now >= endsAt) {
     return {
