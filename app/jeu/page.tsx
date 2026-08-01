@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardMonitoringOverview } from "../../components/game/dashboard-monitoring-overview";
+import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
 import { RiderAvatar } from "../../components/game/rider-avatar";
@@ -55,6 +56,7 @@ import {
   getCurrentTeamInventoryOverview,
   type TeamInventoryOverview,
 } from "../../services/team-inventory";
+import { getSponsorObjectiveSummary } from "../../services/sponsor-objective-summary";
 import { getSportingDirectorReputationBreakdown } from "../../services/sporting-director-reputation";
 import {
   getCurrentDashboardOperationalEvents,
@@ -405,6 +407,13 @@ export default async function GamePage() {
   );
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
+  const sponsorObjectiveSummary = teamSponsorIdentity?.contractId
+    ? await loadDashboardValue(
+        getSponsorObjectiveSummary(teamSponsorIdentity.contractId),
+        { completed: 0, total: 0 },
+        "Impossible de récupérer le résumé des objectifs sponsor :",
+      )
+    : null;
 
   let raceRosterAlertCount = 0;
 
@@ -617,29 +626,34 @@ export default async function GamePage() {
             />
 
             <div className="grid gap-6 xl:h-full xl:grid-rows-[auto_1fr]">
-              <ManagementModuleCard
-                href="/jeu/sponsoring"
-                icon="sponsor"
-                tutorialId="dashboard-sponsoring"
-                title="Sponsoring"
-                status={
-                  teamSponsorIdentity
-                    ? teamSponsorIdentity.sponsor.shortName
-                    : sponsoringUnlocked
+              {teamSponsorIdentity ? (
+                <DashboardSponsorCard
+                  sponsor={teamSponsorIdentity.sponsor}
+                  jersey={teamSponsorIdentity.selectedJersey}
+                  budgetLabel={formatDashboardCurrency(
+                    teamSponsorIdentity.budgetPerSeason,
+                    teamSponsorIdentity.currencyCode,
+                  )}
+                  objectiveSummary={sponsorObjectiveSummary}
+                />
+              ) : (
+                <ManagementModuleCard
+                  href="/jeu/sponsoring"
+                  icon="sponsor"
+                  tutorialId="dashboard-sponsoring"
+                  title="Sponsoring"
+                  status={
+                    sponsoringUnlocked
                       ? "Marché débloqué"
                       : `${reputationPoints} / ${GAMEPLAY_RULES.sponsoringUnlockReputation} réputation`
-                }
-                description={
-                  teamSponsorIdentity
-                    ? `Sponsor principal : ${teamSponsorIdentity.sponsor.name}\nBudget annuel : ${formatDashboardCurrency(
-                        teamSponsorIdentity.budgetPerSeason,
-                        teamSponsorIdentity.currencyCode,
-                      )}`
-                    : sponsoringUnlocked
+                  }
+                  description={
+                    sponsoringUnlocked
                       ? "Votre réputation permet désormais de comparer les offres, budgets et objectifs proposés."
                       : `Développez votre réputation pour débloquer le marché du sponsoring. Progression : ${getSponsoringUnlockProgress(reputationPoints)} %.`
-                }
-              />
+                  }
+                />
+              )}
 
               <TeamRosterCard
                 status={

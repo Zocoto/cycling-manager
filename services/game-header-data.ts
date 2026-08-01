@@ -78,6 +78,7 @@ function toTeamSponsorIdentity(
   }
 
   return {
+    contractId: null,
     teamId: snapshot.team_id,
     teamName: snapshot.team_name,
     teamShortName: snapshot.team_short_name,

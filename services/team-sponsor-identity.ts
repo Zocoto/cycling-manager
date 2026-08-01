@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Sponsor } from "@/types/sponsor";
 
 export type TeamSponsorIdentity = {
+  contractId: string | null;
   teamId: string;
   teamName: string;
   teamShortName: string | null;
@@ -38,6 +39,7 @@ type ActiveSeasonRow = {
 };
 
 type SponsorContractRow = {
+  id: string;
   sponsor_id: string;
   selected_jersey_id: string | null;
   budget_per_season: number | string;
@@ -125,6 +127,7 @@ export async function getActiveTeamSponsorIdentity(
     .from("team_sponsor_contracts")
     .select(
       `
+        id,
         sponsor_id,
         selected_jersey_id,
         budget_per_season,
@@ -257,6 +260,7 @@ export async function getActiveTeamSponsorIdentity(
   }
 
   return {
+    contractId: contract.id,
     teamId: normalizedTeamId,
 
     teamName:
