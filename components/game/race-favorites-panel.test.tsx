@@ -32,9 +32,9 @@ describe("RaceFavoritesPanel", () => {
     expect(markup).toContain('data-favorite-stars="1"');
     expect(markup.match(/data-favorite-stars="3"/g)).toHaveLength(3);
     expect(
-      markup.match(/data-rider-preview-trigger/g),
+      markup.match(/href="\/jeu\/coureurs\//g),
     ).toHaveLength(riders.length);
-    expect(markup).toContain('aria-haspopup="dialog"');
+    expect(markup).not.toContain("data-rider-preview-trigger");
   });
 
   it("classe les favoris selon l’étape affichée et non selon le général du tour", () => {

@@ -4,32 +4,31 @@ import { describe, expect, it } from "vitest";
 import Link from "./app-link";
 
 describe("AppLink", () => {
-  it("active automatiquement l’aperçu sur une fiche coureur", () => {
+  it("diffère l’aperçu d’une fiche coureur jusqu’à l’interaction", () => {
     const markup = renderToStaticMarkup(
       <Link href="/jeu/coureurs/rider-1">Camille Rapide</Link>,
     );
 
-    expect(markup).toContain("data-rider-preview-trigger");
-    expect(markup).toContain('aria-haspopup="dialog"');
+    expect(markup).not.toContain("data-rider-preview-trigger");
   });
 
-  it("active automatiquement l’aperçu sur une course", () => {
+  it("diffère l’aperçu d’une course jusqu’à l’interaction", () => {
     const markup = renderToStaticMarkup(
       <Link href="/jeu/courses/tour-des-alpes">
         Tour des Alpes
       </Link>,
     );
 
-    expect(markup).toContain("data-race-preview-trigger");
+    expect(markup).not.toContain("data-race-preview-trigger");
     expect(markup).toContain("Tour des Alpes");
   });
 
-  it("active automatiquement l’aperçu sur une étape", () => {
+  it("diffère aussi l’aperçu d’une étape jusqu’à l’interaction", () => {
     const markup = renderToStaticMarkup(
       <Link href="/jeu/resultats/tour-des-alpes/2">Étape 2</Link>,
     );
 
-    expect(markup).toContain("data-race-preview-trigger");
+    expect(markup).not.toContain("data-race-preview-trigger");
   });
 
   it("laisse un lien d'inscription naviguer directement", () => {

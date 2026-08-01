@@ -19,30 +19,34 @@ export function DashboardMonitoringOverview({
   dashboardEvents,
   rankings,
   pelotonNews,
+  embedded = false,
 }: {
   teamId: string | null;
   dashboardEvents: DashboardEvent[];
   rankings: UciRankings | null;
   pelotonNews: PublicGameNewsItem[];
+  embedded?: boolean;
 }) {
   return (
-    <section aria-labelledby="dashboard-monitoring-title" className="mt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#278B70]">
-            Centre de monitoring
+    <section aria-label={embedded ? "Détail du monitoring" : undefined} className={embedded ? "mt-5" : "mt-8"}>
+      {!embedded ? (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#278B70]">
+              Centre de monitoring
+            </p>
+            <h2
+              id="dashboard-monitoring-title"
+              className="mt-1 text-2xl font-black tracking-[-0.025em] text-[#082A2A]"
+            >
+              L’essentiel en un coup d’œil
+            </h2>
+          </div>
+          <p className="text-xs font-bold text-[#60756E]">
+            {rankings?.seasonName ?? "Saison active"}
           </p>
-          <h2
-            id="dashboard-monitoring-title"
-            className="mt-1 text-2xl font-black tracking-[-0.025em] text-[#082A2A]"
-          >
-            L’essentiel en un coup d’œil
-          </h2>
         </div>
-        <p className="text-xs font-bold text-[#60756E]">
-          {rankings?.seasonName ?? "Saison active"}
-        </p>
-      </div>
+      ) : null}
 
       <div className="mt-5 grid items-stretch gap-6 xl:grid-cols-2">
         <div className="h-full" data-tutorial-id="dashboard-news-feed">

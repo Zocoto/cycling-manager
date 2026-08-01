@@ -24,10 +24,11 @@ import {
   type RaceQuickPreviewTarget,
 } from "@/lib/game/race-quick-preview";
 
-type RacePreviewLinkProps = LinkProps &
+export type RacePreviewLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
     previewTarget: RaceQuickPreviewTarget;
     children?: ReactNode;
+    autoOpen?: boolean;
   };
 
 type PreviewPosition = {
@@ -49,6 +50,7 @@ export const RacePreviewLink = forwardRef<
 >(function RacePreviewLink(
   {
     previewTarget,
+    autoOpen = false,
     children,
     href,
     onBlur,
@@ -67,19 +69,33 @@ export const RacePreviewLink = forwardRef<
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const lastPointerTypeRef = useRef<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [mobileLayout, setMobileLayout] = useState(false);
   const [preview, setPreview] = useState<RaceQuickPreview | null>(
     null,
   );
   const [loadState, setLoadState] = useState<
     "idle" | "loading" | "loaded" | "error"
-  >("idle");
+  >(autoOpen ? "loading" : "idle");
   const [position, setPosition] = useState<PreviewPosition>({
     left: 12,
     top: 12,
     width: 480,
   });
+
+  useEffect(() => {
+    if (!autoOpen) return;
+
+    getPreview(previewTarget.slug)
+      .then((loadedPreview) => {
+        setPreview(loadedPreview);
+        setLoadState("loaded");
+      })
+      .catch(() => {
+        previewRequests.delete(previewTarget.slug);
+        setLoadState("error");
+      });
+  }, [autoOpen, previewTarget.slug]);
 
   useLayoutEffect(() => {
     if (!open) return;

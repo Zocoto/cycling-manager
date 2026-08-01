@@ -21,10 +21,11 @@ import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import { formatScoutedNumericValue } from "@/lib/game/transfer-scouting";
 
-type RiderPreviewLinkProps = LinkProps &
+export type RiderPreviewLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
     riderId: string;
     children?: ReactNode;
+    autoOpen?: boolean;
   };
 
 type PreviewPosition = {
@@ -46,6 +47,7 @@ export const RiderPreviewLink = forwardRef<
 >(function RiderPreviewLink(
   {
     riderId,
+    autoOpen = false,
     children,
     onBlur,
     onClick,
@@ -63,17 +65,31 @@ export const RiderPreviewLink = forwardRef<
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const lastPointerTypeRef = useRef<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [mobileLayout, setMobileLayout] = useState(false);
   const [preview, setPreview] = useState<RiderQuickPreview | null>(null);
   const [loadState, setLoadState] = useState<
     "idle" | "loading" | "loaded" | "error"
-  >("idle");
+  >(autoOpen ? "loading" : "idle");
   const [position, setPosition] = useState<PreviewPosition>({
     left: 12,
     top: 12,
     width: 430,
   });
+
+  useEffect(() => {
+    if (!autoOpen) return;
+
+    getPreview(riderId)
+      .then((loadedPreview) => {
+        setPreview(loadedPreview);
+        setLoadState("loaded");
+      })
+      .catch(() => {
+        previewRequests.delete(riderId);
+        setLoadState("error");
+      });
+  }, [autoOpen, riderId]);
 
   useLayoutEffect(() => {
     if (!open) return;

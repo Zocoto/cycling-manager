@@ -7,7 +7,6 @@ import {
   GLOBAL_CHAT_MESSAGES_READ_EVENT,
   GlobalChatUnreadRefreshTracker,
 } from "@/lib/game/global-chat-read-sync";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function GlobalChatShortcut({
   chatIsOpen = false,
@@ -23,86 +22,33 @@ export function GlobalChatShortcut({
   const displayedUnread = chatIsOpen ? false : hasUnread;
 
   useEffect(() => {
-    let active = true;
-    const supabase = createSupabaseBrowserClient();
-    const refreshTracker = refreshTrackerRef.current;
-
-    function acknowledgeReadMessages() {
-      refreshTracker.invalidate();
-      setHasUnread(false);
-    }
-
-    window.addEventListener(
-      GLOBAL_CHAT_MESSAGES_READ_EVENT,
-      acknowledgeReadMessages,
-    );
-
     if (chatIsOpen) {
-      return () => {
-        active = false;
-        window.removeEventListener(
-          GLOBAL_CHAT_MESSAGES_READ_EVENT,
-          acknowledgeReadMessages,
-        );
-      };
+      return;
     }
 
-    async function refreshUnreadState() {
-      const requestVersion = refreshTracker.beginRefresh();
-      const { data, error } = await supabase.rpc(
-        "has_unread_global_chat_messages",
+    let cancelled = false;
+    let dispose: (() => void) | null = null;
+    let timeoutId: number | null = null;
+
+    function startUnreadRuntime() {
+      void import("@/components/game/global-chat-unread-runtime").then(
+        ({ subscribeToGlobalChatUnread }) => {
+          if (cancelled) return;
+          dispose = subscribeToGlobalChatUnread({
+            refreshTracker: refreshTrackerRef.current,
+            readEventName: GLOBAL_CHAT_MESSAGES_READ_EVENT,
+            onUnreadChange: setHasUnread,
+          });
+        },
       );
-
-      if (
-        active &&
-        !error &&
-        refreshTracker.isCurrent(requestVersion)
-      ) {
-        setHasUnread(data === true);
-      }
     }
 
-    function refreshWhenVisible() {
-      if (document.visibilityState === "visible") {
-        void refreshUnreadState();
-      }
-    }
-
-    void refreshUnreadState();
-
-    const channel = supabase
-      .channel("global-chat-unread-indicator")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "global_chat_messages",
-        },
-        () => {
-          void refreshUnreadState();
-        },
-      )
-      .subscribe();
-
-    window.addEventListener("focus", refreshWhenVisible);
-    document.addEventListener(
-      "visibilitychange",
-      refreshWhenVisible,
-    );
+    timeoutId = window.setTimeout(startUnreadRuntime, 2_500);
 
     return () => {
-      active = false;
-      window.removeEventListener(
-        GLOBAL_CHAT_MESSAGES_READ_EVENT,
-        acknowledgeReadMessages,
-      );
-      window.removeEventListener("focus", refreshWhenVisible);
-      document.removeEventListener(
-        "visibilitychange",
-        refreshWhenVisible,
-      );
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      dispose?.();
     };
   }, [chatIsOpen]);
 

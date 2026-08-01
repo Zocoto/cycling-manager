@@ -135,15 +135,9 @@ export async function getCurrentDashboardOperationalEvents({
 }): Promise<DashboardOperationalEvents> {
   const admin = createSupabaseAdminClient();
   const [
-    trainingSettlement,
-    infrastructureSettlement,
-    wildcardSettlement,
     youthDevelopmentAlertCount,
     internationalSelections,
   ] = await Promise.all([
-    admin.rpc("settle_due_training_sessions"),
-    admin.rpc("settle_due_infrastructure_projects"),
-    admin.rpc("settle_due_elite_wildcards"),
     getYouthDevelopmentAlertCount(authUserId, {
       settleInfrastructure: false,
     }),
@@ -154,19 +148,6 @@ export async function getCurrentDashboardOperationalEvents({
         })
       : Promise.resolve([] as InternationalChampionshipSelection[]),
   ]);
-
-  assertQuery(
-    trainingSettlement.error,
-    "la mise à jour des entraînements du bureau"
-  );
-  assertQuery(
-    infrastructureSettlement.error,
-    "la mise à jour des chantiers du bureau",
-  );
-  assertQuery(
-    wildcardSettlement.error,
-    "l'arbitrage des Wild Cards Elite"
-  );
 
   const [
     teamSeasonResult,

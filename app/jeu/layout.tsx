@@ -5,8 +5,10 @@ import { after, connection } from "next/server";
 
 import { GameRouteLoading } from "@/components/game/game-route-loading";
 import { PlayerActivityTracker } from "@/components/game/player-activity-tracker";
-import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
-import { TutorialProvider } from "@/components/tutorial/tutorial-provider";
+import {
+  TutorialProvider,
+  type TutorialProviderBootstrap,
+} from "@/components/tutorial/tutorial-provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   ONBOARDING_TUTORIAL_KEY,
@@ -14,12 +16,6 @@ import {
 } from "@/lib/tutorial/onboarding";
 import { getAuthenticatedTutorialOnboardingState } from "@/lib/tutorial/onboarding-state";
 import { listAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
-import type { TutorialProgressRow } from "@/types/tutorial";
-
-type TutorialBootstrap = {
-  progress: TutorialProgressRow[];
-  autoStartTutorialKeys: string[];
-};
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -48,7 +44,7 @@ async function synchronizeGameEntryState(
   }
 }
 
-async function loadTutorialBootstrap(): Promise<TutorialBootstrap> {
+async function loadTutorialBootstrap(): Promise<TutorialProviderBootstrap> {
   try {
     const supabase = await createSupabaseServerClient();
 
@@ -88,13 +84,10 @@ async function loadTutorialBootstrap(): Promise<TutorialBootstrap> {
 
 async function GameRuntime({ children }: { children: ReactNode }) {
   await connection();
-  const tutorialBootstrap = await loadTutorialBootstrap();
+  const tutorialBootstrapPromise = loadTutorialBootstrap();
 
   return (
-    <TutorialProvider
-      initialProgress={tutorialBootstrap.progress}
-      autoStartTutorialKeys={tutorialBootstrap.autoStartTutorialKeys}
-    >
+    <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
       {children}
     </TutorialProvider>
   );
@@ -103,7 +96,6 @@ async function GameRuntime({ children }: { children: ReactNode }) {
 export default function GameLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <RaceSettlementWatcher />
       <PlayerActivityTracker />
 
       <Suspense fallback={<GameRouteLoading />}>

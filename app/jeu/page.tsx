@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
-import { DashboardMonitoringOverview } from "../../components/game/dashboard-monitoring-overview";
+import { DashboardMonitoringPanel } from "../../components/game/dashboard-monitoring-panel";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -21,11 +21,7 @@ import {
   getSponsoringUnlockProgress,
   isSponsoringUnlocked,
 } from "../../lib/gameplay-rules";
-import { buildDashboardEventFeed } from "../../lib/game/dashboard-events";
-import type { PublicGameNewsItem } from "../../lib/game/public-game-news";
 import type { SeasonRaceCalendar } from "../../lib/game/race-calendar";
-import type { DailyRewardOverview } from "../../lib/game/daily-rewards";
-import type { GameObjective } from "../../lib/game/objectives";
 import type { SportingDirectorReputationBreakdown } from "../../lib/game/reputation-breakdown";
 import {
   createAmateurRiderJersey,
@@ -48,32 +44,15 @@ import {
   getActiveTeamSponsorIdentity,
   type TeamSponsorIdentity,
 } from "../../services/team-sponsor-identity";
-import {
-  getCurrentTeamFinanceOverview,
-  type TeamFinanceOverview,
-} from "../../services/team-finances";
-import {
-  getCurrentTeamInventoryOverview,
-  type TeamInventoryOverview,
-} from "../../services/team-inventory";
+import type { TeamFinanceOverview } from "../../services/team-finances";
+import type { TeamInventoryOverview } from "../../services/team-inventory";
 import { getSponsorObjectiveSummary } from "../../services/sponsor-objective-summary";
 import { getSportingDirectorReputationBreakdown } from "../../services/sporting-director-reputation";
 import {
-  getCurrentDashboardOperationalEvents,
-  type DashboardOperationalEvents,
-} from "../../services/dashboard-events";
-import { getCurrentGameObjectives } from "../../services/game-objectives";
-import { getCurrentDailyRewardOverview } from "../../services/daily-rewards";
-import {
-  getSportingDirectorTrophyRewardStatus,
-  type SportingDirectorTrophyRewardStatus,
-} from "../../services/trophy-gallery";
-import { getDashboardPelotonNews } from "../../services/public-game-news";
-import { getActiveSeasonRaceCalendar } from "../../services/race-calendar";
-import {
-  getUciRankings,
-  type UciRankings,
-} from "../../services/uci-rankings";
+  getCurrentDashboardFastSummary,
+  type DashboardFastSummary,
+} from "../../services/dashboard-fast-summary";
+import { getDashboardRaceCalendar } from "../../services/dashboard-race-calendar";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -208,6 +187,60 @@ function CardWatermark({
   );
 }
 
+function toTeamSummary(summary: DashboardFastSummary | null): CurrentTeamDashboardSummary | null {
+  return summary
+    ? {
+        team_id: summary.teamId,
+        team_name: summary.teamName,
+        rider_count: summary.riderCount,
+        season_id: summary.seasonId,
+        season_name: summary.seasonName,
+        season_day_number: summary.seasonDayNumber,
+      }
+    : null;
+}
+
+function toFinanceOverview(summary: DashboardFastSummary | null): TeamFinanceOverview | null {
+  return summary
+    ? {
+        teamId: summary.teamId,
+        teamName: summary.teamName,
+        seasonName: summary.seasonName,
+        currentDayNumber: summary.seasonDayNumber,
+        currency: summary.currency,
+        balance: summary.balance,
+        projectedBalance: summary.balance,
+        totalIncome: 0,
+        totalExpenses: 0,
+        canSpend: summary.balance > 0,
+        teamPoints: summary.teamPoints,
+        teamRank: summary.teamRank,
+        divisionCode: summary.divisionCode,
+        divisionName: summary.divisionCode,
+        chart: [],
+        transactions: [],
+        alerts: [],
+      }
+    : null;
+}
+
+function toInventoryOverview(summary: DashboardFastSummary | null): TeamInventoryOverview | null {
+  return summary
+    ? {
+        teamName: summary.teamName,
+        seasonName: summary.seasonName,
+        currency: summary.currency,
+        items: [],
+        summary: {
+          references: 0,
+          totalUnits: summary.inventoryTotalUnits,
+          availableUnits: summary.inventoryAvailableUnits,
+          equipmentUnits: 0,
+        },
+      }
+    : null;
+}
+
 export default async function GamePage() {
   const supabase = await createSupabaseServerClient();
 
@@ -220,50 +253,33 @@ export default async function GamePage() {
     redirect("/connexion");
   }
 
+  const fastSummaryPromise = loadDashboardValue(
+    getCurrentDashboardFastSummary(supabase),
+    null as DashboardFastSummary | null,
+    "Impossible de récupérer le résumé rapide du bureau :",
+  );
   const financeOverviewPromise = loadDashboardValue(
-    getCurrentTeamFinanceOverview(supabase, user.id),
+    fastSummaryPromise.then(toFinanceOverview),
     null as TeamFinanceOverview | null,
     "Impossible de récupérer la situation financière de l’équipe :",
   );
   const inventoryOverviewPromise = loadDashboardValue(
-    getCurrentTeamInventoryOverview(user.id),
+    fastSummaryPromise.then(toInventoryOverview),
     null as TeamInventoryOverview | null,
     "Impossible de récupérer l’inventaire de l’équipe :",
   );
-  const gameObjectivesPromise = loadDashboardValue(
-    getCurrentGameObjectives(supabase),
-    [] as GameObjective[],
-    "Impossible de récupérer les objectifs de carrière :",
-  );
-  const trophyRewardStatusPromise = loadDashboardValue(
-    getSportingDirectorTrophyRewardStatus(user.id),
-    {
-      availableCount: 0,
-      alphaTesterAvailable: false,
-    } satisfies SportingDirectorTrophyRewardStatus,
-    "Impossible de récupérer les trophées disponibles :",
-  );
-  const dailyRewardsPromise = loadDashboardValue(
-    getCurrentDailyRewardOverview(supabase),
-    null as DailyRewardOverview | null,
-    "Impossible de récupérer les récompenses quotidiennes :",
-  );
-  const uciRankingsPromise = loadDashboardValue(
-    getUciRankings(),
-    null as UciRankings | null,
-    "Impossible de récupérer les classements UCI du bureau :",
-  );
   const raceCalendarPromise = loadDashboardValue(
-    getActiveSeasonRaceCalendar(supabase, new Date(), {
-      includeEngagedRiders: false,
-    }),
+    fastSummaryPromise.then((summary) =>
+      summary
+        ? getDashboardRaceCalendar(supabase, {
+            seasonId: summary.seasonId,
+            seasonName: summary.seasonName,
+            currentDayNumber: summary.seasonDayNumber,
+          })
+        : null,
+    ),
     null as SeasonRaceCalendar | null,
     "Impossible de récupérer les prochaines courses du bureau :",
-  );
-  const pelotonNewsPromise = loadDashboardValue(
-    getDashboardPelotonNews(),
-    [] as PublicGameNewsItem[],
-    "Impossible de récupérer les temps forts du peloton :",
   );
 
   const [profileResult, countriesResult, teamSummaryResult, rosterResult] =
@@ -301,9 +317,10 @@ export default async function GamePage() {
           ascending: true,
         }),
 
-      supabase
-        .rpc("get_current_team_dashboard_summary")
-        .maybeSingle<CurrentTeamDashboardSummary>(),
+      fastSummaryPromise.then((summary) => ({
+        data: toTeamSummary(summary),
+        error: null as { code: string; message: string } | null,
+      })),
 
       supabase.rpc("get_current_team_roster"),
     ]);
@@ -337,19 +354,31 @@ export default async function GamePage() {
       };
     });
 
+  const sponsorObjectiveSummaryPromise = sponsorIdentityPromise.then(
+    ({ identity }) =>
+      identity?.contractId
+        ? loadDashboardValue(
+            getSponsorObjectiveSummary(identity.contractId),
+            { completed: 0, total: 0 },
+            "Impossible de récupérer le résumé des objectifs sponsor :",
+          )
+        : null,
+  );
+  const activeNationalTitlesPromise = loadDashboardValue(
+    getActiveNationalChampionshipTitlesForRiders(supabase, dashboardRiderIds),
+    new Map<string, ActiveNationalChampionshipTitle>(),
+    "Impossible de récupérer les maillots de champions nationaux du bureau :",
+  );
+
   const [
     sponsorIdentityResult,
     teamAmateurIdentity,
     financeOverview,
     inventoryOverview,
-    gameObjectives,
-    trophyRewardStatus,
-    dailyRewards,
-    dashboardOperationalEvents,
     reputationBreakdown,
-    uciRankings,
     raceCalendar,
-    pelotonNews,
+    activeNationalTitlesByRiderId,
+    sponsorObjectiveSummary,
   ] = await Promise.all([
     sponsorIdentityPromise,
     loadDashboardValue(
@@ -361,28 +390,6 @@ export default async function GamePage() {
     ),
     financeOverviewPromise,
     inventoryOverviewPromise,
-    gameObjectivesPromise,
-    trophyRewardStatusPromise,
-    dailyRewardsPromise,
-    loadDashboardValue(
-      dashboardTeamSummary
-        ? getCurrentDashboardOperationalEvents({
-            authUserId: user.id,
-            teamId: dashboardTeamSummary.team_id,
-            seasonId: dashboardTeamSummary.season_id,
-            currentDayNumber: dashboardTeamSummary.season_day_number,
-            riderIds: dashboardRiderIds,
-          })
-        : Promise.resolve({
-            events: [],
-            youthDevelopmentAlertCount: 0,
-          } satisfies DashboardOperationalEvents),
-      {
-        events: [],
-        youthDevelopmentAlertCount: 0,
-      } satisfies DashboardOperationalEvents,
-      "Impossible de récupérer les événements du bureau :",
-    ),
     loadDashboardValue(
       dashboardSportingDirector
         ? getSportingDirectorReputationBreakdown(
@@ -394,42 +401,33 @@ export default async function GamePage() {
       null as SportingDirectorReputationBreakdown | null,
       "Impossible de r\u00e9cup\u00e9rer le d\u00e9tail de la r\u00e9putation :",
     ),
-    uciRankingsPromise,
     raceCalendarPromise,
-    pelotonNewsPromise,
+    activeNationalTitlesPromise,
+    sponsorObjectiveSummaryPromise,
   ]);
 
-  const activeNationalTitlesByRiderId = await loadDashboardValue(
-    getActiveNationalChampionshipTitlesForRiders(supabase, dashboardRiderIds),
-    new Map<string, ActiveNationalChampionshipTitle>(),
-    "Impossible de récupérer les maillots de champions nationaux du bureau :",
-  );
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
-  const sponsorObjectiveSummary = teamSponsorIdentity?.contractId
-    ? await loadDashboardValue(
-        getSponsorObjectiveSummary(teamSponsorIdentity.contractId),
-        { completed: 0, total: 0 },
-        "Impossible de récupérer le résumé des objectifs sponsor :",
-      )
-    : null;
 
-  let raceRosterAlertCount = 0;
+  const dashboardFastSummary = await fastSummaryPromise;
+  let raceRosterAlertCount = dashboardFastSummary?.raceRosterAlertCount ?? 0;
 
-  try {
-    const alertResult = await supabase
-      .from("race_roster_notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("requires_action", true)
-      .is("read_at", null);
+  if (!dashboardFastSummary) {
+    try {
+      const alertResult = await supabase
+        .from("race_roster_notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("requires_action", true)
+        .is("read_at", null);
 
-    if (alertResult.error) throw alertResult.error;
-    raceRosterAlertCount = alertResult.count ?? 0;
-  } catch (error) {
-    console.error(
-      "Impossible de récupérer les remplacements médicaux en attente :",
-      error,
-    );
+      if (alertResult.error) throw alertResult.error;
+      raceRosterAlertCount = alertResult.count ?? 0;
+    } catch (error) {
+      console.error(
+        "Impossible de récupérer les remplacements médicaux en attente :",
+        error,
+      );
+    }
   }
 
   const sportingDirector = dashboardSportingDirector;
@@ -518,42 +516,12 @@ export default async function GamePage() {
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
-  const readyObjectiveCount = gameObjectives.filter(
-    (objective) => objective.completed && !objective.claimedAt,
-  ).length;
+  const objectiveTotalCount = dashboardFastSummary?.objectiveTotalCount ?? 0;
+  const trophyRewardCount = dashboardFastSummary?.trophyRewardCount ?? 0;
   const readyRewardCount =
-    readyObjectiveCount +
-    trophyRewardStatus.availableCount +
-    (dailyRewards?.availableToday ? 1 : 0);
-  const dailyRewardOperationalEvents = dailyRewards?.availableToday
-    ? [
-        {
-          id: `daily-reward:${dailyRewards.seasonId}:${dailyRewards.currentDayNumber}`,
-          category: "objective" as const,
-          priority: "action" as const,
-          title: "Votre cadeau quotidien vous attend",
-          description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau du jour à ouvrir.`,
-          href: "/jeu/objectifs?onglet=quotidiennes",
-          actionLabel: "Ouvrir le cadeau",
-          badgeLabel: "Quotidien",
-          dayNumber: dailyRewards.currentDayNumber,
-          happenedAt: null,
-        },
-      ]
-    : [];
-  const youthDevelopmentAlertCount =
-    dashboardOperationalEvents.youthDevelopmentAlertCount;
-  const dashboardEvents = buildDashboardEventFeed({
-    currentDayNumber: teamSummary?.season_day_number ?? 1,
-    currency: financeOverview?.currency ?? "EUR",
-    operationalEvents: [
-      ...dailyRewardOperationalEvents,
-      ...dashboardOperationalEvents.events,
-    ],
-    transactions: financeOverview?.transactions ?? [],
-    objectives: gameObjectives,
-    trophyRewardStatus,
-  });
+    (dashboardFastSummary?.objectiveReadyCount ?? 0) +
+    trophyRewardCount +
+    (dashboardFastSummary?.dailyRewardAvailable ? 1 : 0);
 
   return (
     <main className="min-h-screen text-[#082A2A]">
@@ -585,19 +553,18 @@ export default async function GamePage() {
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
               />
               <ObjectivesShortcut
-                totalCount={gameObjectives.length}
+                totalCount={objectiveTotalCount}
                 readyCount={readyRewardCount}
-                trophyRewardCount={trophyRewardStatus.availableCount}
+                trophyRewardCount={trophyRewardCount}
               />
               <JerseyShortcut />
             </div>
           </header>
 
-          <DashboardMonitoringOverview
+          <DashboardMonitoringPanel
             teamId={dashboardTeamId}
-            dashboardEvents={dashboardEvents}
-            rankings={uciRankings}
-            pelotonNews={pelotonNews}
+            seasonName={teamSummary?.season_name ?? "Saison active"}
+            actionCount={readyRewardCount + raceRosterAlertCount}
           />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}
@@ -753,7 +720,6 @@ export default async function GamePage() {
               icon="academy"
               title="Centre de formation"
               status="Scouting mondial"
-              alertCount={youthDevelopmentAlertCount}
               description="Envoyez vos scouts, signez les jeunes talents et accompagnez leur progression quotidienne jusqu’aux professionnels."
             />
 

@@ -7,11 +7,18 @@ import NextLink, {
 import {
   forwardRef,
   type AnchorHTMLAttributes,
+  type FocusEvent,
+  type PointerEvent,
   type ReactNode,
+  useState,
 } from "react";
 
-import { RacePreviewLink } from "@/components/game/race-preview-link";
-import { RiderPreviewLink } from "@/components/game/rider-preview-link";
+import {
+  loadRacePreviewLink,
+  loadRiderPreviewLink,
+  type RacePreviewLinkComponent,
+  type RiderPreviewLinkComponent,
+} from "@/components/ui/lazy-preview-links";
 import { isRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { getRaceQuickPreviewTargetFromHref } from "@/lib/game/race-quick-preview";
 import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
@@ -29,10 +36,26 @@ type AppLinkProps = LinkProps &
  * Pass `scroll` explicitly to override either default on a per-link basis.
  */
 const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
-  { href, scroll, prefetch, children, ...props },
+  {
+    href,
+    scroll,
+    prefetch,
+    children,
+    onBlur,
+    onFocus,
+    onPointerDown,
+    onPointerEnter,
+    onPointerLeave,
+    ...props
+  },
   ref,
 ) {
-  const resolvedPrefetch = prefetch ?? false;
+  const [previewIntentOpen, setPreviewIntentOpen] = useState(false);
+  const [RiderPreviewLink, setRiderPreviewLink] =
+    useState<RiderPreviewLinkComponent | null>(null);
+  const [RacePreviewLink, setRacePreviewLink] =
+    useState<RacePreviewLinkComponent | null>(null);
+  const resolvedPrefetch = prefetch ?? null;
   const usesAnchor =
     typeof href === "string"
       ? href.includes("#")
@@ -54,6 +77,52 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     </>
   );
 
+  function loadPreview() {
+    if (!riderId && !raceTarget) return;
+
+    setPreviewIntentOpen(true);
+
+    if (riderId && !RiderPreviewLink) {
+      void loadRiderPreviewLink().then(setRiderPreviewLink);
+    } else if (raceTarget && !RacePreviewLink) {
+      void loadRacePreviewLink().then(setRacePreviewLink);
+    }
+  }
+
+  function handlePointerEnter(event: PointerEvent<HTMLAnchorElement>) {
+    onPointerEnter?.(event);
+    if (event.defaultPrevented) return;
+    if (event.pointerType === "mouse") loadPreview();
+  }
+
+  function handlePointerLeave(event: PointerEvent<HTMLAnchorElement>) {
+    onPointerLeave?.(event);
+    setPreviewIntentOpen(false);
+  }
+
+  function handleFocus(event: FocusEvent<HTMLAnchorElement>) {
+    onFocus?.(event);
+    if (event.defaultPrevented) return;
+    loadPreview();
+  }
+
+  function handleBlur(event: FocusEvent<HTMLAnchorElement>) {
+    onBlur?.(event);
+    setPreviewIntentOpen(false);
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLAnchorElement>) {
+    onPointerDown?.(event);
+  }
+
+  const intentHandlers = {
+    onBlur: handleBlur,
+    onFocus: handleFocus,
+    onPointerDown: handlePointerDown,
+    onPointerEnter: handlePointerEnter,
+    onPointerLeave: handlePointerLeave,
+  };
+
   if (requiresDocumentNavigation) {
     /*
      * Registration is a critical action. A native document navigation keeps
@@ -66,6 +135,11 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
         ref={ref}
         href={href}
         {...toNativeAnchorProps(props)}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        onPointerDown={onPointerDown}
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
         data-navigation-mode="document"
       >
         {children}
@@ -73,30 +147,34 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     );
   }
 
-  if (riderId) {
+  if (riderId && RiderPreviewLink) {
     return (
       <RiderPreviewLink
         ref={ref}
         riderId={riderId}
+        autoOpen={previewIntentOpen}
         href={href}
         prefetch={resolvedPrefetch}
         scroll={scroll ?? usesAnchor}
         {...props}
+        {...intentHandlers}
       >
         {linkChildren}
       </RiderPreviewLink>
     );
   }
 
-  if (raceTarget) {
+  if (raceTarget && RacePreviewLink) {
     return (
       <RacePreviewLink
         ref={ref}
         previewTarget={raceTarget}
+        autoOpen={previewIntentOpen}
         href={href}
         prefetch={resolvedPrefetch}
         scroll={scroll ?? usesAnchor}
         {...props}
+        {...intentHandlers}
       >
         {linkChildren}
       </RacePreviewLink>
@@ -110,6 +188,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
       prefetch={resolvedPrefetch}
       scroll={scroll ?? usesAnchor}
       {...props}
+      {...intentHandlers}
     >
       {linkChildren}
     </NextLink>

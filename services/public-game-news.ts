@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { SPONSORS } from "@/data/sponsors";
 import {
   DEFAULT_AMATEUR_JERSEY,
@@ -240,7 +242,20 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   });
 }
 
+const getCachedDashboardPelotonNews = unstable_cache(
+  loadDashboardPelotonNews,
+  ["dashboard-peloton-news"],
+  {
+    revalidate: 60,
+    tags: ["dashboard-peloton-news"],
+  },
+);
+
 export async function getDashboardPelotonNews(): Promise<PublicGameNewsItem[]> {
+  return getCachedDashboardPelotonNews();
+}
+
+async function loadDashboardPelotonNews(): Promise<PublicGameNewsItem[]> {
   let admin: AdminClient;
 
   try {

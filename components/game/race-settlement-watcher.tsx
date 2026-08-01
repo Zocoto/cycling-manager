@@ -9,7 +9,11 @@ const SETTLEMENT_RETRY_DELAY_MS = 60_000;
 const IDLE_RECHECK_DELAY_MS = 15 * 60_000;
 const FINISH_GRACE_PERIOD_MS = 3_000;
 
-export function RaceSettlementWatcher() {
+export function RaceSettlementWatcher({
+  raceSlug,
+}: {
+  raceSlug?: string;
+}) {
   const inFlightRef = useRef(false);
 
   useEffect(() => {
@@ -43,7 +47,7 @@ export function RaceSettlementWatcher() {
 
       inFlightRef.current = true;
       try {
-        const settlement = await settleDueOfficialRaceRewardsAction();
+        const settlement = await settleDueOfficialRaceRewardsAction(raceSlug);
         scheduleNextCheck(settlement.nextSettlementAt);
       } catch (error) {
         console.error("Impossible de clôturer les récompenses de course :", error);
@@ -69,7 +73,7 @@ export function RaceSettlementWatcher() {
       if (timer !== null) window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [raceSlug]);
 
   return null;
 }

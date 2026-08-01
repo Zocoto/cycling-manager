@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
 import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
@@ -65,7 +67,16 @@ export type UciRankings = {
   nations: NationRankingEntry[];
 };
 
+const getCachedUciRankings = unstable_cache(loadUciRankings, ["uci-rankings"], {
+  revalidate: 60,
+  tags: ["uci-rankings"],
+});
+
 export async function getUciRankings(): Promise<UciRankings | null> {
+  return getCachedUciRankings();
+}
+
+async function loadUciRankings(): Promise<UciRankings | null> {
   const supabase = createSupabaseAdminClient();
   const { data: season, error: seasonError } = await supabase
     .from("seasons")

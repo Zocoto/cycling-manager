@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
 import {
   RaceProfileContent,
   type RaceProfilePageProps,
@@ -24,8 +25,15 @@ export async function generateMetadata({
   };
 }
 
-export default function RaceProfilePage(
+export default async function RaceProfilePage(
   props: RaceProfilePageProps,
 ) {
-  return <RaceProfileContent {...props} />;
+  const { slug } = await props.params;
+
+  return (
+    <>
+      <RaceSettlementWatcher raceSlug={slug} />
+      <RaceProfileContent {...props} />
+    </>
+  );
 }

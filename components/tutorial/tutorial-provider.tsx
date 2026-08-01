@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  Suspense,
   type ReactNode,
   createContext,
+  use,
   useCallback,
   useContext,
   useEffect,
@@ -57,10 +59,16 @@ type TutorialContextValue = {
   clearTutorialError: () => void;
 };
 
+export type TutorialProviderBootstrap = {
+  progress: TutorialProgressRow[];
+  autoStartTutorialKeys: string[];
+};
+
 type TutorialProviderProps = {
   children: ReactNode;
   initialProgress?: readonly TutorialProgressRow[];
   autoStartTutorialKeys?: readonly string[];
+  bootstrapPromise?: Promise<TutorialProviderBootstrap>;
 };
 
 const TutorialContext = createContext<TutorialContextValue | null>(null);
@@ -147,6 +155,7 @@ export function TutorialProvider({
   children,
   initialProgress = [],
   autoStartTutorialKeys = [],
+  bootstrapPromise,
 }: TutorialProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -158,10 +167,13 @@ export function TutorialProvider({
 
   const autoStartAttemptedRef = useRef(false);
 
+  const [resolvedAutoStartTutorialKeys, setResolvedAutoStartTutorialKeys] =
+    useState<readonly string[]>(autoStartTutorialKeys);
   const autoStartTutorialKeySet = useMemo(
-    () => new Set(autoStartTutorialKeys),
-    [autoStartTutorialKeys],
+    () => new Set(resolvedAutoStartTutorialKeys),
+    [resolvedAutoStartTutorialKeys],
   );
+  const [bootstrapLoaded, setBootstrapLoaded] = useState(!bootstrapPromise);
 
   const [progressByTutorialKey, setProgressByTutorialKey] = useState<
     Record<string, TutorialProgressRow>
@@ -177,12 +189,31 @@ export function TutorialProvider({
 
   const [instantAutoStartTutorialKey, setInstantAutoStartTutorialKey] =
     useState<string | null>(() =>
-      selectInstantAutoStartTutorialKey({
-        autoStartTutorialKeys,
-        progressRows: initialProgress,
-        definitions: listAutoStartTutorialDefinitions(),
-      }),
+      bootstrapPromise
+        ? null
+        : selectInstantAutoStartTutorialKey({
+            autoStartTutorialKeys,
+            progressRows: initialProgress,
+            definitions: listAutoStartTutorialDefinitions(),
+          }),
     );
+
+  const hydrateTutorialBootstrap = useCallback(
+    (bootstrap: TutorialProviderBootstrap) => {
+      setProgressByTutorialKey(createProgressMap(bootstrap.progress));
+      setResolvedAutoStartTutorialKeys(bootstrap.autoStartTutorialKeys);
+      setInstantAutoStartTutorialKey(
+        selectInstantAutoStartTutorialKey({
+          autoStartTutorialKeys: bootstrap.autoStartTutorialKeys,
+          progressRows: bootstrap.progress,
+          definitions: listAutoStartTutorialDefinitions(),
+        }),
+      );
+      autoStartAttemptedRef.current = false;
+      setBootstrapLoaded(true);
+    },
+    [],
+  );
 
   const saveProgress = useCallback((progress: TutorialProgressRow) => {
     setProgressByTutorialKey((current) => ({
@@ -614,7 +645,12 @@ export function TutorialProvider({
   }, [instantAutoStartTutorialKey, saveProgress]);
 
   useEffect(() => {
-    if (autoStartAttemptedRef.current || activeTutorial || isPending) {
+    if (
+      !bootstrapLoaded ||
+      autoStartAttemptedRef.current ||
+      activeTutorial ||
+      isPending
+    ) {
       return;
     }
 
@@ -655,6 +691,7 @@ export function TutorialProvider({
   }, [
     activeTutorial,
     autoStartTutorialKeySet,
+    bootstrapLoaded,
     isPending,
     progressByTutorialKey,
     startTutorial,
@@ -715,6 +752,15 @@ export function TutorialProvider({
 
   return (
     <TutorialContext.Provider value={contextValue}>
+      {bootstrapPromise ? (
+        <Suspense fallback={null}>
+          <TutorialBootstrapHydrator
+            bootstrapPromise={bootstrapPromise}
+            onLoaded={hydrateTutorialBootstrap}
+          />
+        </Suspense>
+      ) : null}
+
       {instantAutoStartDefinition &&
       instantAutoStartStep &&
       shouldDisplayInstantIntro ? (
@@ -773,6 +819,22 @@ export function TutorialProvider({
       ) : null}
     </TutorialContext.Provider>
   );
+}
+
+function TutorialBootstrapHydrator({
+  bootstrapPromise,
+  onLoaded,
+}: {
+  bootstrapPromise: Promise<TutorialProviderBootstrap>;
+  onLoaded: (bootstrap: TutorialProviderBootstrap) => void;
+}) {
+  const bootstrap = use(bootstrapPromise);
+
+  useEffect(() => {
+    onLoaded(bootstrap);
+  }, [bootstrap, onLoaded]);
+
+  return null;
 }
 
 export function useTutorial(): TutorialContextValue {

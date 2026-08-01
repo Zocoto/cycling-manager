@@ -14,6 +14,7 @@ import {
 const TRACKING_ENDPOINT = "/api/player-activity";
 const MONITORING_ROUTE = "/jeu/monitoring-activite";
 const MAX_BATCH_SIZE = 20;
+const FLUSH_DELAY_MS = 2_500;
 
 export function PlayerActivityTracker() {
   const pathname = usePathname();
@@ -51,7 +52,7 @@ export function PlayerActivityTracker() {
       }
 
       if (!flushTimerRef.current) {
-        flushTimerRef.current = setTimeout(flush, 650);
+        flushTimerRef.current = setTimeout(flush, FLUSH_DELAY_MS);
       }
     },
     [flush],
