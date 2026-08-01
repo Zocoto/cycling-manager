@@ -477,7 +477,7 @@ function AcademyTab({
         />
       ) : null}
       {!overview.canScheduleYouthPromotion ? <Alert tone="error">Effectif de la saison prochaine complet : {overview.nextSeasonRosterCommitments} / {overview.rosterLimit} places sont déjà engagées. Libérez une place avant de programmer une nouvelle promotion.</Alert> : null}
-      {overview.academy.length ? <div className="space-y-4">{overview.academy.map((rider) => <AcademyRiderCard key={rider.id} rider={rider} gameYear={overview.gameYear} currency={overview.currency} canSchedulePromotion={overview.canScheduleYouthPromotion} rosterLimit={overview.rosterLimit} />)}</div> : <EmptyState title="Votre école est encore vide" text="Signez un jeune depuis un rapport de scouting pour commencer sa formation." />}
+      {overview.academy.length ? <div className="space-y-3">{overview.academy.map((rider) => <AcademyRiderCard key={rider.id} rider={rider} gameYear={overview.gameYear} currency={overview.currency} canSchedulePromotion={overview.canScheduleYouthPromotion} rosterLimit={overview.rosterLimit} />)}</div> : <EmptyState title="Votre école est encore vide" text="Signez un jeune depuis un rapport de scouting pour commencer sa formation." />}
     </div>
   );
 }
@@ -613,13 +613,13 @@ function TutorialMetric({ label, value }: { label: string; value: string }) {
 
 function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, rosterLimit }: { rider: AcademyYouth; gameYear: number; currency: string; canSchedulePromotion: boolean; rosterLimit: number }) {
   return (
-    <article className="overflow-hidden rounded-[1.5rem] border border-[#315B3E]/12 bg-white shadow-sm">
-      <div className="grid gap-5 p-5 xl:grid-cols-[minmax(250px,0.72fr)_minmax(0,1.35fr)_minmax(260px,0.75fr)] xl:items-center">
-        <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.profileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} className="h-20 w-20" /><div className="min-w-0"><div className="flex items-center gap-2"><span className={`fi fi-${rider.countryCode.toLowerCase()} h-4 w-6 rounded`} /><span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">{rider.age} ans</span></div><h3 className="mt-2 text-xl font-black text-[#071A17]">{rider.firstName} {rider.lastName}</h3><p className="mt-1 text-xs font-extrabold text-[#278B70]">{rider.sportingProfile}</p><div className="mt-2"><PotentialStars potentialSteps={rider.potentialSteps} /></div></div></div>
-        <div>
+    <article data-academy-rider-card className="overflow-hidden rounded-[1.5rem] border border-[#315B3E]/12 bg-white shadow-sm">
+      <div className="grid gap-3 p-4 xl:grid-cols-2 2xl:grid-cols-4">
+        <div className="flex h-full items-center gap-3 rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3"><RiderAvatar profileKey={rider.profileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} className="h-16 w-16" /><div className="min-w-0"><div className="flex items-center gap-2"><span className={`fi fi-${rider.countryCode.toLowerCase()} h-4 w-6 rounded`} /><span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">{rider.age} ans</span></div><h3 className="mt-1 text-lg font-black text-[#071A17]">{rider.firstName} {rider.lastName}</h3><p className="mt-0.5 text-xs font-extrabold text-[#278B70]">{rider.sportingProfile}</p><div className="mt-1.5"><PotentialStars potentialSteps={rider.potentialSteps} /></div></div></div>
+        <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">
           <RatingsGrid ratings={rider.ratings} compact />
         </div>
-        <div className="space-y-3">
+        <div className="contents">
           <NaturalizationCard
             eligibility={rider.naturalization}
             subjectName={`${rider.firstName} ${rider.lastName}`}
@@ -630,10 +630,10 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
           />
           <form
             action={saveYouthTrainingSettingsAction}
-            className="rounded-2xl bg-[#EAF5F3] p-3"
+            className="h-full rounded-2xl bg-[#EAF5F3] p-3 2xl:col-span-2"
           >
             <input type="hidden" name="academyRiderId" value={rider.id} />
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-[9px] font-black uppercase tracking-[0.15em] text-[#60756E]">
                 Mode d’entraînement
                 <select
@@ -665,10 +665,7 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
             <button className="mt-3 w-full rounded-lg bg-[#176951] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white">
               Enregistrer la programmation
             </button>
-            <p className="mt-2 text-[9px] font-semibold leading-4 text-[#60756E]">
-              Le mode choisi s’applique à la prochaine journée d’entraînement,
-              puis à toutes les suivantes.
-            </p>
+            <p className="mt-2 text-[9px] font-semibold leading-4 text-[#60756E]">Appliqué dès la prochaine journée, puis conservé.</p>
             {rider.pendingTrainingMode ? (
               <p className="mt-2 rounded-lg bg-[#FFF5D6] px-3 py-2 text-[9px] font-black text-[#806114]">
                 Bascule vers le mode{" "}
@@ -692,8 +689,14 @@ function AcademyRiderCard({ rider, gameYear, currency, canSchedulePromotion, ros
             latestReport={rider.latestTrainingReport}
             seasonReport={rider.seasonTrainingReport}
           />
-          <p className="text-[10px] font-bold text-[#60756E]">Scolarité : {formatCurrency(rider.tuitionPerSeason, currency)} / saison</p>
-          {rider.status === "recruited" ? <div className="rounded-xl bg-[#F2C94C]/20 p-3 text-xs font-black text-[#8A6B16]">Recruté · arrivée pro en {rider.promotionGameYear}</div> : rider.canRecruit ? canSchedulePromotion ? <form action={recruitYouthRiderAction}><input type="hidden" name="academyRiderId" value={rider.id} /><button className="w-full rounded-xl bg-[#F2C94C] px-4 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">Recruter pour {gameYear + 1}</button></form> : <p className="rounded-xl bg-[#FFF0EE] p-3 text-[10px] font-bold text-[#8A2F2F]">Promotion impossible · {rosterLimit} places déjà engagées.</p> : <p className="rounded-xl bg-[#F6F7F2] p-3 text-[10px] font-bold text-[#60756E]">Recrutable à partir de 17 ans.</p>}
+          <div data-academy-rider-footer className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-3 py-2.5 xl:col-span-2 2xl:col-span-4">
+            <p className="text-[10px] font-bold text-[#60756E]">
+              Scolarité : <strong className="text-[#183F37]">{formatCurrency(rider.tuitionPerSeason, currency)} / saison</strong>
+            </p>
+            <div className="min-w-[220px] sm:max-w-sm sm:flex-1">
+              {rider.status === "recruited" ? <div className="rounded-xl bg-[#F2C94C]/20 px-3 py-2.5 text-xs font-black text-[#8A6B16]">Recruté · arrivée pro en {rider.promotionGameYear}</div> : rider.canRecruit ? canSchedulePromotion ? <form action={recruitYouthRiderAction}><input type="hidden" name="academyRiderId" value={rider.id} /><button className="w-full rounded-xl bg-[#F2C94C] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17]">Recruter pour la saison {gameYear + 1}</button></form> : <p className="rounded-xl bg-[#FFF0EE] px-3 py-2.5 text-[10px] font-bold text-[#8A2F2F]">Promotion impossible · {rosterLimit} places déjà engagées.</p> : <p className="rounded-xl bg-[#F6F7F2] px-3 py-2.5 text-[10px] font-bold text-[#60756E]">Recrutable à partir de 17 ans.</p>}
+            </div>
+          </div>
         </div>
       </div>
     </article>
@@ -708,7 +711,7 @@ function YouthTrainingReports({
   seasonReport: AcademyYouth["seasonTrainingReport"];
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white">
+    <section className="h-full overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white">
       <div className="p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
