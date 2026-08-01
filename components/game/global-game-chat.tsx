@@ -9,7 +9,10 @@ import {
   useTransition,
 } from "react";
 
-import { postGlobalChatMessageAction } from "@/app/jeu/chat/actions";
+import {
+  postGlobalChatMessageAction,
+  toggleGlobalChatMessageReactionAction,
+} from "@/app/jeu/chat/actions";
 import {
   CyclingReactionSticker,
   GlobalChatMediaPicker,
@@ -17,13 +20,17 @@ import {
 import Link from "@/components/ui/app-link";
 import {
   buildGlobalChatMessage,
+  expandGlobalChatEmoticons,
   extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
   GLOBAL_CHAT_HISTORY_DAYS,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
+  GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS,
+  isGlobalChatMessageReactionEmoji,
   splitGlobalChatMessageContent,
   type GlobalChatCursor,
   type GlobalChatCyclingReactionKey,
+  type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -32,6 +39,7 @@ import type {
   GlobalChatMessage,
   GlobalChatMessagePage,
   GlobalChatMessageRow,
+  GlobalChatReactionRow,
 } from "@/services/global-chat";
 
 type OnlineDirector = {
@@ -66,9 +74,15 @@ export function GlobalGameChat({
   const [draft, setDraft] = useState("");
   const [selectedReaction, setSelectedReaction] =
     useState<GlobalChatCyclingReactionKey | null>(null);
+  const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
+  const [pendingReactionKey, setPendingReactionKey] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isReactionPending, startReactionTransition] = useTransition();
   const viewportRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const positionedRef = useRef(false);
   const prependedScrollRef = useRef<{
     scrollHeight: number;
@@ -164,15 +178,54 @@ export function GlobalGameChat({
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "global_chat_messages",
         },
-        (payload: { new: Record<string, unknown> }) => {
+        (payload: {
+          eventType: string;
+          new: Record<string, unknown>;
+          old: Record<string, unknown>;
+        }) => {
+          if (payload.eventType === "DELETE") {
+            const deletedId = payload.old.id;
+            if (typeof deletedId === "string") {
+              setMessages((current) =>
+                current.filter((message) => message.id !== deletedId),
+              );
+            }
+            return;
+          }
+
           const message = readRealtimeMessage(payload.new);
           if (!message) return;
+          setMessages((current) => upsertRealtimeMessage(current, message));
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "global_chat_message_reactions",
+        },
+        (payload: {
+          eventType: string;
+          new: Record<string, unknown>;
+          old: Record<string, unknown>;
+        }) => {
+          const row = readRealtimeReaction(
+            payload.eventType === "DELETE" ? payload.old : payload.new,
+          );
+          if (!row) return;
 
-          setMessages((current) => appendUniqueMessage(current, message));
+          setMessages((current) =>
+            updateMessageReaction(
+              current,
+              row,
+              payload.eventType !== "DELETE",
+            ),
+          );
         },
       )
       .subscribe(async (status: string) => {
@@ -258,6 +311,49 @@ export function GlobalGameChat({
     );
   }
 
+  function beginReply(message: GlobalChatMessage) {
+    setReplyTo(message);
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }
+
+  function toggleMessageReaction(
+    messageId: string,
+    emoji: GlobalChatMessageReactionEmoji,
+  ) {
+    const reactionKey = `${messageId}:${emoji}`;
+    if (pendingReactionKey === reactionKey) return;
+
+    setError(null);
+    setPendingReactionKey(reactionKey);
+    startReactionTransition(async () => {
+      try {
+        const { active } = await toggleGlobalChatMessageReactionAction(
+          messageId,
+          emoji,
+        );
+        setMessages((current) =>
+          updateMessageReaction(
+            current,
+            {
+              message_id: messageId,
+              sporting_director_id: identity.sportingDirectorId,
+              emoji,
+            },
+            active,
+          ),
+        );
+      } catch (reactionError) {
+        setError(
+          reactionError instanceof Error
+            ? reactionError.message
+            : "La réaction n’a pas pu être enregistrée.",
+        );
+      } finally {
+        setPendingReactionKey(null);
+      }
+    });
+  }
+
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = buildGlobalChatMessage({
@@ -269,13 +365,16 @@ export function GlobalGameChat({
     setError(null);
     startTransition(async () => {
       try {
-        const savedMessage =
-          await postGlobalChatMessageAction(message);
+        const savedMessage = await postGlobalChatMessageAction(
+          message,
+          replyTo?.id ?? null,
+        );
         setMessages((current) =>
           appendUniqueMessage(current, savedMessage),
         );
         setDraft("");
         setSelectedReaction(null);
+        setReplyTo(null);
       } catch (submissionError) {
         setError(
           submissionError instanceof Error
@@ -353,6 +452,11 @@ export function GlobalGameChat({
               isCurrentDirector={
                 message.sportingDirectorId === identity.sportingDirectorId
               }
+              currentDirectorId={identity.sportingDirectorId}
+              pendingReactionKey={pendingReactionKey}
+              reactionsDisabled={isReactionPending}
+              onReply={beginReply}
+              onReaction={toggleMessageReaction}
             />
           ))}
         </div>
@@ -364,6 +468,29 @@ export function GlobalGameChat({
           <label htmlFor="global-chat-message" className="sr-only">
             Votre message
           </label>
+          {replyTo ? (
+            <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/20 bg-[#EAF7F1] px-3 py-2">
+              <span aria-hidden="true" className="text-lg text-[#176951]">
+                ↩
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[9px] font-black uppercase tracking-[0.12em] text-[#176951]">
+                  Réponse à {replyTo.authorDisplayName}
+                </span>
+                <span className="block truncate text-[11px] font-semibold text-[#60756E]">
+                  {getMessageExcerpt(replyTo.message)}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-[#60756E] shadow-sm hover:text-red-700"
+                aria-label="Annuler la réponse"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
           {selectedReaction ? (
             <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/15 bg-[#F3F8F6] p-2">
               <span className="h-14 w-14 shrink-0">
@@ -388,11 +515,17 @@ export function GlobalGameChat({
           ) : null}
           <div className="flex items-end gap-2">
             <textarea
+              ref={textareaRef}
               id="global-chat-message"
               rows={2}
               value={draft}
               onChange={(event) =>
-                setDraft(event.target.value.slice(0, draftLimit))
+                setDraft(
+                  expandGlobalChatEmoticons(event.target.value).slice(
+                    0,
+                    draftLimit,
+                  ),
+                )
               }
               onKeyDown={(event) => {
                 if (
@@ -449,13 +582,27 @@ export function GlobalGameChat({
 function ChatMessage({
   message,
   isCurrentDirector,
+  currentDirectorId,
+  pendingReactionKey,
+  reactionsDisabled,
+  onReply,
+  onReaction,
 }: {
   message: GlobalChatMessage;
   isCurrentDirector: boolean;
+  currentDirectorId: string;
+  pendingReactionKey: string | null;
+  reactionsDisabled: boolean;
+  onReply: (message: GlobalChatMessage) => void;
+  onReaction: (
+    messageId: string,
+    emoji: GlobalChatMessageReactionEmoji,
+  ) => void;
 }) {
   return (
     <article
-      className={`flex items-start gap-3 ${
+      id={`global-chat-message-${message.id}`}
+      className={`flex scroll-mt-4 items-start gap-3 ${
         isCurrentDirector ? "flex-row-reverse" : ""
       }`}
     >
@@ -504,6 +651,39 @@ function ChatMessage({
             {formatMessageTime(message.createdAt)}
           </time>
         </div>
+
+        {message.replyTo ? (
+          <button
+            type="button"
+            disabled={!message.replyTo.messageId}
+            onClick={() =>
+              message.replyTo?.messageId
+                ? focusChatMessage(message.replyTo.messageId)
+                : undefined
+            }
+            className={`mt-2 block w-full rounded-lg border-l-2 px-3 py-2 text-left transition ${
+              isCurrentDirector
+                ? "border-[#F2C94C] bg-black/10 hover:bg-black/15"
+                : "border-[#42B99A] bg-[#EAF7F1] hover:bg-[#DDF3E7]"
+            } disabled:cursor-default`}
+            aria-label={`Message cité de ${message.replyTo.authorDisplayName}`}
+          >
+            <span
+              className={`block text-[9px] font-black uppercase tracking-[0.1em] ${
+                isCurrentDirector ? "text-[#F7DA73]" : "text-[#176951]"
+              }`}
+            >
+              ↩ {message.replyTo.authorDisplayName}
+            </span>
+            <span
+              className={`mt-0.5 block truncate text-[11px] font-semibold ${
+                isCurrentDirector ? "text-white/70" : "text-[#60756E]"
+              }`}
+            >
+              {message.replyTo.excerpt}
+            </span>
+          </button>
+        ) : null}
 
         <div className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
           {renderMessageText(message.message, isCurrentDirector)}
@@ -560,11 +740,129 @@ function ChatMessage({
             </span>
           </Link>
         ) : null}
+
+        <ChatMessageActions
+          message={message}
+          isCurrentDirector={isCurrentDirector}
+          currentDirectorId={currentDirectorId}
+          pendingReactionKey={pendingReactionKey}
+          reactionsDisabled={reactionsDisabled}
+          onReply={onReply}
+          onReaction={onReaction}
+        />
       </div>
     </article>
   );
 }
 
+function ChatMessageActions({
+  message,
+  isCurrentDirector,
+  currentDirectorId,
+  pendingReactionKey,
+  reactionsDisabled,
+  onReply,
+  onReaction,
+}: {
+  message: GlobalChatMessage;
+  isCurrentDirector: boolean;
+  currentDirectorId: string;
+  pendingReactionKey: string | null;
+  reactionsDisabled: boolean;
+  onReply: (message: GlobalChatMessage) => void;
+  onReaction: (
+    messageId: string,
+    emoji: GlobalChatMessageReactionEmoji,
+  ) => void;
+}) {
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const actionClass = isCurrentDirector
+    ? "border-white/15 bg-white/10 text-white/75 hover:bg-white/20 hover:text-white"
+    : "border-[#176951]/15 bg-[#F3F8F6] text-[#60756E] hover:border-[#176951]/35 hover:text-[#176951]";
+
+  return (
+    <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
+      {message.reactions.map((reaction) => {
+        const isActive = reaction.sportingDirectorIds.includes(
+          currentDirectorId,
+        );
+        const reactionKey = `${message.id}:${reaction.emoji}`;
+        return (
+          <button
+            key={reaction.emoji}
+            type="button"
+            disabled={
+              reactionsDisabled && pendingReactionKey === reactionKey
+            }
+            onClick={() => onReaction(message.id, reaction.emoji)}
+            className={`inline-flex h-7 items-center gap-1 rounded-full border px-2 text-xs font-black transition ${
+              isActive
+                ? "border-[#F2C94C] bg-[#FFF4C4] text-[#493A00]"
+                : actionClass
+            } disabled:opacity-50`}
+            aria-pressed={isActive}
+            aria-label={`${reaction.emoji}, ${reaction.sportingDirectorIds.length} réaction${reaction.sportingDirectorIds.length > 1 ? "s" : ""}`}
+          >
+            <span aria-hidden="true">{reaction.emoji}</span>
+            <span>{reaction.sportingDirectorIds.length}</span>
+          </button>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={() => onReply(message)}
+        className={`inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[10px] font-black transition ${actionClass}`}
+        aria-label={`Répondre à ${message.authorDisplayName}`}
+      >
+        <span aria-hidden="true">↩</span>
+        Répondre
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsPickerOpen((current) => !current)}
+        className={`grid h-7 w-7 place-items-center rounded-full border text-sm transition ${actionClass}`}
+        aria-label="Ajouter une réaction"
+        aria-expanded={isPickerOpen}
+      >
+        ☺
+      </button>
+
+      {isPickerOpen ? (
+        <div
+          className={`absolute bottom-9 z-30 grid grid-cols-6 gap-1 rounded-xl border p-2 shadow-xl ${
+            isCurrentDirector
+              ? "right-0 border-white/15 bg-[#0B302B]"
+              : "left-0 border-[#176951]/15 bg-white"
+          }`}
+          role="group"
+          aria-label="Réactions au message"
+        >
+          {GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS.map((emoji) => {
+            const reactionKey = `${message.id}:${emoji}`;
+            return (
+              <button
+                key={emoji}
+                type="button"
+                disabled={
+                  reactionsDisabled && pendingReactionKey === reactionKey
+                }
+                onClick={() => {
+                  onReaction(message.id, emoji);
+                  setIsPickerOpen(false);
+                }}
+                className="grid h-8 w-8 place-items-center rounded-lg text-lg transition hover:bg-[#DDF3E7] disabled:opacity-50"
+                aria-label={`Réagir avec ${emoji}`}
+              >
+                {emoji}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 function OnlineDirectors({
   directors,
   currentDirectorId,
@@ -650,6 +948,88 @@ function appendUniqueMessage(
   return [...messages, message];
 }
 
+function upsertRealtimeMessage(
+  messages: GlobalChatMessage[],
+  message: GlobalChatMessage,
+) {
+  const existing = messages.find((candidate) => candidate.id === message.id);
+  if (!existing) return [...messages, message];
+
+  return messages.map((candidate) =>
+    candidate.id === message.id
+      ? { ...message, reactions: candidate.reactions }
+      : candidate,
+  );
+}
+
+function updateMessageReaction(
+  messages: GlobalChatMessage[],
+  row: GlobalChatReactionRow,
+  active: boolean,
+) {
+  return messages.map((message) => {
+    if (message.id !== row.message_id) return message;
+
+    const existing = message.reactions.find(
+      (reaction) => reaction.emoji === row.emoji,
+    );
+    if (active) {
+      if (
+        existing?.sportingDirectorIds.includes(row.sporting_director_id)
+      ) {
+        return message;
+      }
+      if (existing) {
+        return {
+          ...message,
+          reactions: message.reactions.map((reaction) =>
+            reaction.emoji === row.emoji
+              ? {
+                  ...reaction,
+                  sportingDirectorIds: [
+                    ...reaction.sportingDirectorIds,
+                    row.sporting_director_id,
+                  ],
+                }
+              : reaction,
+          ),
+        };
+      }
+      return {
+        ...message,
+        reactions: [
+          ...message.reactions,
+          {
+            emoji: row.emoji,
+            sportingDirectorIds: [row.sporting_director_id],
+          },
+        ],
+      };
+    }
+
+    if (!existing) return message;
+    const remainingDirectorIds = existing.sportingDirectorIds.filter(
+      (directorId) => directorId !== row.sporting_director_id,
+    );
+    return {
+      ...message,
+      reactions:
+        remainingDirectorIds.length > 0
+          ? message.reactions.map((reaction) =>
+              reaction.emoji === row.emoji
+                ? {
+                    ...reaction,
+                    sportingDirectorIds: remainingDirectorIds,
+                  }
+                : reaction,
+            )
+          : message.reactions.filter(
+              (reaction) => reaction.emoji !== row.emoji,
+            ),
+    };
+  });
+}
+
 function prependUniqueMessages(
   messages: GlobalChatMessage[],
   olderMessages: GlobalChatMessage[],
@@ -722,6 +1102,18 @@ function readRealtimeMessage(
       typeof value.preview_subtitle === "string"
         ? value.preview_subtitle
         : null,
+    reply_to_message_id:
+      typeof value.reply_to_message_id === "string"
+        ? value.reply_to_message_id
+        : null,
+    reply_to_author_display_name:
+      typeof value.reply_to_author_display_name === "string"
+        ? value.reply_to_author_display_name
+        : null,
+    reply_to_message_excerpt:
+      typeof value.reply_to_message_excerpt === "string"
+        ? value.reply_to_message_excerpt
+        : null,
     created_at: value.created_at,
   };
 
@@ -748,8 +1140,53 @@ function readRealtimeMessage(
                 : `/jeu/coureurs/${row.preview_entity_id}`,
           }
         : null,
+    replyTo:
+      row.reply_to_author_display_name && row.reply_to_message_excerpt
+        ? {
+            messageId: row.reply_to_message_id,
+            authorDisplayName: row.reply_to_author_display_name,
+            excerpt: row.reply_to_message_excerpt,
+          }
+        : null,
+    reactions: [],
     createdAt: row.created_at,
   };
+}
+
+function readRealtimeReaction(
+  value: Record<string, unknown>,
+): GlobalChatReactionRow | null {
+  if (
+    typeof value.message_id !== "string" ||
+    typeof value.sporting_director_id !== "string" ||
+    !isGlobalChatMessageReactionEmoji(value.emoji)
+  ) {
+    return null;
+  }
+
+  return {
+    message_id: value.message_id,
+    sporting_director_id: value.sporting_director_id,
+    emoji: value.emoji,
+  };
+}
+
+function focusChatMessage(messageId: string) {
+  document
+    .getElementById(`global-chat-message-${messageId}`)
+    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function getMessageExcerpt(message: string) {
+  const parts = splitGlobalChatMessageContent(message);
+  const excerpt = parts
+    .filter((part) => !extractGlobalChatCyclingReaction(part))
+    .join("")
+    .trim();
+  if (excerpt) return excerpt;
+  return parts.some((part) => extractGlobalChatCyclingReaction(part))
+    ? "Réaction cycliste"
+    : "Message";
 }
 
 function readOnlineDirectors(

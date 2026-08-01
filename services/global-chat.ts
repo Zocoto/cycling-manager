@@ -5,6 +5,7 @@ import {
   GLOBAL_CHAT_MESSAGE_PAGE_SIZE,
   getGlobalChatHistoryStart,
   type GlobalChatCursor,
+  type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -20,6 +21,17 @@ export type GlobalChatPreview = {
   href: string;
 };
 
+export type GlobalChatReply = {
+  messageId: string | null;
+  authorDisplayName: string;
+  excerpt: string;
+};
+
+export type GlobalChatMessageReaction = {
+  emoji: GlobalChatMessageReactionEmoji;
+  sportingDirectorIds: string[];
+};
+
 export type GlobalChatMessage = {
   id: string;
   sportingDirectorId: string;
@@ -28,6 +40,8 @@ export type GlobalChatMessage = {
   teamDisplayName: string;
   message: string;
   preview: GlobalChatPreview | null;
+  replyTo: GlobalChatReply | null;
+  reactions: GlobalChatMessageReaction[];
   createdAt: string;
 };
 
@@ -50,7 +64,17 @@ export type GlobalChatMessageRow = {
   preview_entity_id: string | null;
   preview_title: string | null;
   preview_subtitle: string | null;
+  reply_to_message_id: string | null;
+  reply_to_author_display_name: string | null;
+  reply_to_message_excerpt: string | null;
   created_at: string;
+};
+
+export type GlobalChatReactionRow = {
+  message_id: string;
+  sporting_director_id: string;
+  emoji: GlobalChatMessageReactionEmoji;
+  created_at?: string;
 };
 
 type GlobalChatIdentityRow = {
@@ -71,6 +95,9 @@ const GLOBAL_CHAT_MESSAGE_SELECT = [
   "preview_entity_id",
   "preview_title",
   "preview_subtitle",
+  "reply_to_message_id",
+  "reply_to_author_display_name",
+  "reply_to_message_excerpt",
   "created_at",
 ].join(", ");
 
@@ -161,9 +188,15 @@ export async function getGlobalChatMessagePage(
   const hasMore = rows.length > pageSize;
   const selectedRows = rows.slice(0, pageSize);
   const oldestRow = selectedRows.at(-1) ?? null;
+  const reactionsByMessageId = await getReactionsByMessageId(
+    supabase,
+    selectedRows.map((row) => row.id),
+  );
 
   return {
-    messages: selectedRows.reverse().map(mapGlobalChatMessage),
+    messages: selectedRows.reverse().map((row) =>
+      mapGlobalChatMessage(row, reactionsByMessageId.get(row.id) ?? []),
+    ),
     hasMore,
     nextCursor:
       hasMore && oldestRow
@@ -177,6 +210,7 @@ export async function getGlobalChatMessagePage(
 
 export function mapGlobalChatMessage(
   row: GlobalChatMessageRow,
+  reactions: GlobalChatMessageReaction[] = [],
 ): GlobalChatMessage {
   return {
     id: row.id,
@@ -186,7 +220,65 @@ export function mapGlobalChatMessage(
     teamDisplayName: row.team_display_name,
     message: row.message,
     preview: mapGlobalChatPreview(row),
+    replyTo: mapGlobalChatReply(row),
+    reactions,
     createdAt: row.created_at,
+  };
+}
+
+async function getReactionsByMessageId(
+  supabase: SupabaseServerClient,
+  messageIds: string[],
+) {
+  const result = new Map<string, GlobalChatMessageReaction[]>();
+  if (messageIds.length === 0) return result;
+
+  const reactionsResult = await supabase
+    .from("global_chat_message_reactions")
+    .select("message_id, sporting_director_id, emoji, created_at")
+    .in("message_id", messageIds)
+    .order("created_at", { ascending: true });
+
+  if (reactionsResult.error) {
+    throw new Error(
+      `Impossible de charger les réactions du chat : ${reactionsResult.error.message}`,
+    );
+  }
+
+  for (const row of
+    (reactionsResult.data as unknown as GlobalChatReactionRow[] | null) ?? []) {
+    const messageReactions = result.get(row.message_id) ?? [];
+    const reaction = messageReactions.find(
+      (candidate) => candidate.emoji === row.emoji,
+    );
+    if (reaction) {
+      reaction.sportingDirectorIds.push(row.sporting_director_id);
+    } else {
+      messageReactions.push({
+        emoji: row.emoji,
+        sportingDirectorIds: [row.sporting_director_id],
+      });
+    }
+    result.set(row.message_id, messageReactions);
+  }
+
+  return result;
+}
+
+function mapGlobalChatReply(
+  row: GlobalChatMessageRow,
+): GlobalChatReply | null {
+  if (
+    !row.reply_to_author_display_name ||
+    !row.reply_to_message_excerpt
+  ) {
+    return null;
+  }
+
+  return {
+    messageId: row.reply_to_message_id,
+    authorDisplayName: row.reply_to_author_display_name,
+    excerpt: row.reply_to_message_excerpt,
   };
 }
 

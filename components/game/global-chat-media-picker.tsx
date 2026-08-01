@@ -10,11 +10,22 @@ import {
 
 type PickerPanel = "emoji" | "reaction" | null;
 
-const REACTION_POSITIONS: Record<GlobalChatCyclingReactionKey, string> = {
+const LEGACY_REACTION_POSITIONS: Partial<
+  Record<GlobalChatCyclingReactionKey, string>
+> = {
   sprint: "0% 0%",
   climb: "100% 0%",
   attack: "0% 100%",
   victory: "100% 100%",
+};
+
+const CUSTOM_REACTION_SOURCES: Partial<
+  Record<GlobalChatCyclingReactionKey, string>
+> = {
+  feed_zone: "/images/chat/reactions/feed-zone-chaos.gif",
+  puncture: "/images/chat/reactions/flat-tire-shrug.gif",
+  too_early: "/images/chat/reactions/early-celebration.gif",
+  snack_attack: "/images/chat/reactions/snack-hoarder.gif",
 };
 
 export function GlobalChatMediaPicker({
@@ -30,9 +41,9 @@ export function GlobalChatMediaPicker({
     <div className="relative flex items-center gap-1.5">
       <button
         type="button"
-        onClick={() => setPanel((current) =>
-          current === "emoji" ? null : "emoji"
-        )}
+        onClick={() =>
+          setPanel((current) => (current === "emoji" ? null : "emoji"))
+        }
         className="grid h-9 w-9 place-items-center rounded-lg border border-[#315B3E]/15 bg-[#F3F8F6] text-lg transition hover:border-[#176951]/35 hover:bg-[#E4F4EC]"
         aria-label="Ajouter un émoji"
         aria-expanded={panel === "emoji"}
@@ -41,21 +52,23 @@ export function GlobalChatMediaPicker({
       </button>
       <button
         type="button"
-        onClick={() => setPanel((current) =>
-          current === "reaction" ? null : "reaction"
-        )}
+        onClick={() =>
+          setPanel((current) =>
+            current === "reaction" ? null : "reaction",
+          )
+        }
         className="h-9 rounded-lg border border-[#315B3E]/15 bg-[#F3F8F6] px-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951] transition hover:border-[#176951]/35 hover:bg-[#E4F4EC]"
-        aria-label="Ajouter une réaction cycliste animée"
+        aria-label="Ajouter un GIF cycliste"
         aria-expanded={panel === "reaction"}
       >
         GIF 🚴
       </button>
 
       {panel ? (
-        <div className="absolute bottom-12 left-0 z-30 w-[min(20rem,calc(100vw-3rem))] rounded-2xl border border-[#315B3E]/15 bg-white p-3 shadow-[0_18px_50px_rgba(7,26,23,0.2)]">
+        <div className="absolute bottom-12 left-0 z-30 w-[min(23rem,calc(100vw-3rem))] rounded-2xl border border-[#315B3E]/15 bg-white p-3 shadow-[0_18px_50px_rgba(7,26,23,0.2)]">
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#176951]">
-              {panel === "emoji" ? "Émojis" : "Réactions cyclistes"}
+              {panel === "emoji" ? "Émojis" : "GIFs cyclistes"}
             </p>
             <button
               type="button"
@@ -68,7 +81,7 @@ export function GlobalChatMediaPicker({
           </div>
 
           {panel === "emoji" ? (
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid max-h-52 grid-cols-7 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-8">
               {GLOBAL_CHAT_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -85,7 +98,7 @@ export function GlobalChatMediaPicker({
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid max-h-[24rem] grid-cols-2 gap-2 overflow-y-auto pr-1">
               {GLOBAL_CHAT_CYCLING_REACTIONS.map((reaction) => (
                 <button
                   key={reaction.key}
@@ -95,7 +108,7 @@ export function GlobalChatMediaPicker({
                     setPanel(null);
                   }}
                   className="group rounded-xl border border-[#315B3E]/12 bg-[#F7FBF9] p-2 text-left transition hover:border-[#176951]/35 hover:bg-[#EAF7F1]"
-                  aria-label={`Ajouter la réaction ${reaction.label}`}
+                  aria-label={`Ajouter le GIF ${reaction.label}`}
                 >
                   <CyclingReactionSticker
                     reactionKey={reaction.key}
@@ -127,6 +140,7 @@ export function CyclingReactionSticker({
   const reaction = GLOBAL_CHAT_CYCLING_REACTIONS.find(
     (candidate) => candidate.key === reactionKey,
   );
+  const customSource = CUSTOM_REACTION_SOURCES[reactionKey];
 
   return (
     <span
@@ -136,13 +150,28 @@ export function CyclingReactionSticker({
       data-reaction={reactionKey}
       role={decorative ? undefined : "img"}
       aria-hidden={decorative || undefined}
-      aria-label={decorative ? undefined : `Réaction cycliste : ${reaction?.label ?? reactionKey}`}
+      aria-label={
+        decorative
+          ? undefined
+          : `Réaction cycliste : ${reaction?.label ?? reactionKey}`
+      }
     >
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 bg-[url('/images/chat/cycling-reactions.webp')] bg-[length:200%_200%] bg-no-repeat"
-        style={{ backgroundPosition: REACTION_POSITIONS[reactionKey] }}
-      />
+      {customSource ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url('${customSource}')` }}
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-[url('/images/chat/cycling-reactions.webp')] bg-[length:200%_200%] bg-no-repeat"
+          style={{
+            backgroundPosition:
+              LEGACY_REACTION_POSITIONS[reactionKey] ?? "0% 0%",
+          }}
+        />
+      )}
     </span>
   );
 }

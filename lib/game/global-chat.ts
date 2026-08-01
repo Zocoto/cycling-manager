@@ -4,33 +4,82 @@ export const GLOBAL_CHAT_MESSAGE_PAGE_SIZE = 30;
 export const GLOBAL_CHAT_HISTORY_DAYS = 30;
 
 export const GLOBAL_CHAT_EMOJIS = [
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "😂",
+  "🤣",
+  "😊",
+  "😉",
+  "😍",
+  "🥰",
+  "😎",
+  "🤔",
+  "😮",
+  "😱",
+  "😢",
+  "😭",
+  "😡",
+  "😤",
+  "🙃",
+  "😅",
+  "👍",
+  "👎",
+  "👏",
+  "🙌",
+  "💪",
+  "🤝",
+  "🙏",
+  "❤️",
+  "💔",
+  "🔥",
+  "⚡",
+  "🎉",
+  "🥳",
+  "🏆",
+  "🥇",
   "🚴",
   "🚵",
   "🚲",
-  "🏆",
-  "🥇",
   "⛰️",
-  "🔥",
-  "⚡",
-  "💪",
-  "👏",
-  "🎉",
+  "🌧️",
+  "💨",
   "🚀",
+  "✅",
+  "❌",
+  "👀",
+  "🍌",
+  "🍼",
+] as const;
+
+export const GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS = [
+  "👍",
   "❤️",
   "😂",
   "😮",
-  "👍",
-  "👎",
-  "🟢",
-  "🟡",
-  "🔴",
+  "👏",
+  "🔥",
+  "😢",
+  "😡",
+  "🎉",
+  "🤝",
+  "🚴",
+  "🏆",
 ] as const;
+
+export type GlobalChatMessageReactionEmoji =
+  (typeof GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS)[number];
 
 export const GLOBAL_CHAT_CYCLING_REACTIONS = [
   { key: "sprint", label: "Sprint" },
   { key: "climb", label: "Grimpe" },
   { key: "attack", label: "Attaque" },
   { key: "victory", label: "Victoire collective" },
+  { key: "feed_zone", label: "Ravito chaotique" },
+  { key: "puncture", label: "Crevaison" },
+  { key: "too_early", label: "Célébration trop tôt" },
+  { key: "snack_attack", label: "Poches pleines" },
 ] as const;
 
 export type GlobalChatCyclingReaction =
@@ -54,15 +103,47 @@ export type GlobalChatPreviewReference = {
 const INTERNAL_ENTITY_PATH =
   /\/jeu\/(equipes|coureurs)\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?=$|[/?#\s),.;!?])/i;
 
-const GLOBAL_CHAT_REACTION_TOKEN_PATTERN =
-  /(\[cycling-reaction:(?:sprint|climb|attack|victory)\])/gi;
-const GLOBAL_CHAT_REACTION_TOKEN_EXACT =
-  /^\[cycling-reaction:(sprint|climb|attack|victory)\]$/i;
+const GLOBAL_CHAT_REACTION_KEYS =
+  "sprint|climb|attack|victory|feed_zone|puncture|too_early|snack_attack";
+const GLOBAL_CHAT_REACTION_TOKEN_PATTERN = new RegExp(
+  `(\\[cycling-reaction:(?:${GLOBAL_CHAT_REACTION_KEYS})\\])`,
+  "gi",
+);
+const GLOBAL_CHAT_REACTION_TOKEN_EXACT = new RegExp(
+  `^\\[cycling-reaction:(${GLOBAL_CHAT_REACTION_KEYS})\\]$`,
+  "i",
+);
 const GLOBAL_CHAT_CURSOR_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMOTICON_END = "(?=$|[\\s,.!?;])";
+const GLOBAL_CHAT_EMOTICON_RULES: ReadonlyArray<{
+  pattern: RegExp;
+  emoji: string;
+}> = [
+  { pattern: new RegExp(`(^|\\s):['’]\\)${EMOTICON_END}`, "g"), emoji: "😂" },
+  { pattern: new RegExp(`(^|\\s):['’]\\(${EMOTICON_END}`, "g"), emoji: "😢" },
+  { pattern: new RegExp(`(^|\\s):-?[dD]${EMOTICON_END}`, "g"), emoji: "😄" },
+  { pattern: new RegExp(`(^|\\s);-?\\)${EMOTICON_END}`, "g"), emoji: "😉" },
+  { pattern: new RegExp(`(^|\\s):-?\\)${EMOTICON_END}`, "g"), emoji: "🙂" },
+  { pattern: new RegExp(`(^|\\s):-?\\(${EMOTICON_END}`, "g"), emoji: "☹️" },
+  { pattern: new RegExp(`(^|\\s):-?[pP]${EMOTICON_END}`, "g"), emoji: "😛" },
+  { pattern: new RegExp(`(^|\\s):-?[oO]${EMOTICON_END}`, "g"), emoji: "😮" },
+  { pattern: new RegExp(`(^|\\s):\\/${EMOTICON_END}`, "g"), emoji: "😕" },
+  { pattern: new RegExp(`(^|\\s)<3${EMOTICON_END}`, "g"), emoji: "❤️" },
+  { pattern: new RegExp(`(^|\\s)[xX][dD]${EMOTICON_END}`, "g"), emoji: "😂" },
+  { pattern: new RegExp(`(^|\\s)\\^\\^${EMOTICON_END}`, "g"), emoji: "😊" },
+];
+
+export function expandGlobalChatEmoticons(value: string): string {
+  return GLOBAL_CHAT_EMOTICON_RULES.reduce(
+    (message, rule) =>
+      message.replace(rule.pattern, (_match, prefix: string) => `${prefix}${rule.emoji}`),
+    value,
+  );
+}
 
 export function normalizeGlobalChatMessage(value: string): string {
-  return value.trim().replace(/\s+/g, " ");
+  return expandGlobalChatEmoticons(value).trim().replace(/\s+/g, " ");
 }
 
 export function buildGlobalChatMessage({
@@ -94,6 +175,15 @@ export function extractGlobalChatCyclingReaction(
 
 export function splitGlobalChatMessageContent(value: string) {
   return value.split(GLOBAL_CHAT_REACTION_TOKEN_PATTERN).filter(Boolean);
+}
+
+export function isGlobalChatMessageReactionEmoji(
+  value: unknown,
+): value is GlobalChatMessageReactionEmoji {
+  return (
+    typeof value === "string" &&
+    (GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS as readonly string[]).includes(value)
+  );
 }
 
 export function getGlobalChatHistoryStart(now = new Date()) {

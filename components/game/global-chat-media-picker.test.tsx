@@ -16,7 +16,7 @@ describe("global chat media picker", () => {
     );
 
     expect(markup).toContain("Ajouter un émoji");
-    expect(markup).toContain("Ajouter une réaction cycliste animée");
+    expect(markup).toContain("Ajouter un GIF cycliste");
     expect(markup).toContain("GIF");
   });
 
@@ -28,5 +28,17 @@ describe("global chat media picker", () => {
     expect(markup).toContain('data-reaction="attack"');
     expect(markup).toContain("/images/chat/cycling-reactions.webp");
     expect(markup).toContain("Réaction cycliste : Attaque");
+  });
+
+  it("renders the new humorous reactions from real looping GIF files", () => {
+    const markup = renderToStaticMarkup(
+      <CyclingReactionSticker reactionKey="too_early" />,
+    );
+
+    expect(markup).toContain('data-reaction="too_early"');
+    expect(markup).toContain(
+      "/images/chat/reactions/early-celebration.gif",
+    );
+    expect(markup).toContain("Réaction cycliste : Célébration trop tôt");
   });
 });
