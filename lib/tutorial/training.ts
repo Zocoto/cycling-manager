@@ -91,10 +91,10 @@ export const trainingTutorialDefinition = {
       key: "training-save",
       route: TRAINING_TUTORIAL_ROUTE,
       targetId: "training-plan-save",
-      title: "Enregistrez chaque programme modifié",
+      title: "Validez tous vos changements en une fois",
       content:
-        "Modifier un curseur ou une liste ne suffit pas : cliquez sur Enregistrer pour sauvegarder le programme de ce coureur. La confirmation en haut de page précise s’il s’appliquera à la séance du jour ou à la prochaine.\n\nSans validation, l’ancien réglage continue d’être utilisé.",
-      placement: "left",
+        "Vous pouvez modifier l’intensité, le domaine ou l’entraîneur de plusieurs coureurs sans interrompre votre paramétrage. Dès qu’un réglage change, une barre de validation apparaît en bas de l’écran, indique le nombre de programmes concernés et suit votre défilement.\n\nValidez-les ensemble lorsque tout est prêt, ou utilisez Annuler pour retrouver tous les réglages initiaux. Sans validation, les anciens programmes restent actifs.",
+      placement: "top",
       highlightPadding: 6,
     },
     {
@@ -174,7 +174,7 @@ export const trainingTutorialDefinition = {
       route: TRAINING_RECONNAISSANCE_TUTORIAL_ROUTE,
       title: "Entraînement et reconnaissance maîtrisés",
       content:
-        "Vous savez désormais régler le seuil collectif, construire et enregistrer le programme individuel d’un coureur, mesurer ses résultats dans les rapports, puis organiser un stage de reconnaissance compatible avec toute une délégation.\n\nCliquez sur « Terminer » pour valider cette formation dans le Centre des didacticiels. Vous pourrez la relancer à tout moment depuis le point d’interrogation de la rubrique Entraînement.",
+        "Vous savez désormais régler le seuil collectif, préparer plusieurs programmes individuels puis les valider ensemble, mesurer leurs résultats dans les rapports, puis organiser un stage de reconnaissance compatible avec toute une délégation.\n\nCliquez sur « Terminer » pour valider cette formation dans le Centre des didacticiels. Vous pourrez la relancer à tout moment depuis le point d’interrogation de la rubrique Entraînement.",
       placement: "center",
     },
   ],

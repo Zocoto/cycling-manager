@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isTrainingDomain } from "@/lib/game/training";
+import type { TrainingPlanDraft } from "@/lib/game/training-plan-drafts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function saveTeamTrainingSettingsAction(formData: FormData) {
@@ -23,37 +24,26 @@ export async function saveTeamTrainingSettingsAction(formData: FormData) {
   redirect(`/jeu/entrainement?seuil=confirme&effet=J${Number(data)}`);
 }
 
-export async function saveRiderTrainingPlanAction(formData: FormData) {
-  const riderId = readValue(formData, "riderId");
-  const intensity = Number(readValue(formData, "intensity"));
-  const domain = readValue(formData, "domain");
-  const trainerContractId = readValue(formData, "trainerContractId") || null;
-
-  if (
-    !isUuid(riderId) ||
-    !Number.isInteger(intensity) ||
-    intensity < 0 ||
-    intensity > 100 ||
-    !isTrainingDomain(domain) ||
-    (trainerContractId !== null && !isUuid(trainerContractId))
-  ) {
-    redirectWithError("Le programme d’entraînement est invalide.");
-  }
-
+export async function saveRiderTrainingPlansAction(formData: FormData) {
+  const plans = parseTrainingPlans(readValue(formData, "plans"));
   const supabase = await requireAuthenticatedClient();
   const { data, error } = await supabase.rpc(
-    "save_current_rider_training_plan",
+    "save_current_rider_training_plans",
     {
-      p_rider_id: riderId,
-      p_intensity: intensity,
-      p_domain: domain,
-      p_trainer_contract_id: trainerContractId,
+      p_plans: plans.map((plan) => ({
+        rider_id: plan.riderId,
+        intensity: plan.intensity,
+        domain: plan.domain,
+        trainer_contract_id: plan.trainerContractId,
+      })),
     },
   );
   if (error) redirectWithError(error.message);
 
   revalidateTrainingPaths();
-  redirect(`/jeu/entrainement?programme=confirme&effet=J${Number(data)}`);
+  redirect(
+    `/jeu/entrainement?programme=confirme&nombre=${plans.length}&effet=J${Number(data)}`,
+  );
 }
 
 export async function bookRaceReconnaissanceAction(formData: FormData) {
@@ -100,6 +90,59 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
   redirect(
     "/jeu/entrainement?onglet=reconnaissance&reconnaissance=confirmee",
   );
+}
+
+function parseTrainingPlans(rawPlans: string): TrainingPlanDraft[] {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawPlans);
+  } catch {
+    redirectWithError("Les programmes d’entraînement sont invalides.");
+  }
+
+  if (!Array.isArray(payload) || payload.length === 0 || payload.length > 35) {
+    redirectWithError("Sélectionnez entre 1 et 35 programmes à modifier.");
+  }
+
+  const plans = payload.map((entry): TrainingPlanDraft => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      redirectWithError("Les programmes d’entraînement sont invalides.");
+    }
+
+    const candidate = entry as Record<string, unknown>;
+    const riderId = candidate.riderId;
+    const intensity = candidate.intensity;
+    const domain = candidate.domain;
+    const trainerContractId = candidate.trainerContractId;
+
+    if (
+      typeof riderId !== "string" ||
+      !isUuid(riderId) ||
+      !Number.isInteger(intensity) ||
+      Number(intensity) < 0 ||
+      Number(intensity) > 100 ||
+      typeof domain !== "string" ||
+      !isTrainingDomain(domain) ||
+      (trainerContractId !== null &&
+        (typeof trainerContractId !== "string" ||
+          !isUuid(trainerContractId)))
+    ) {
+      redirectWithError("Un des programmes d’entraînement est invalide.");
+    }
+
+    return {
+      riderId,
+      intensity: Number(intensity),
+      domain,
+      trainerContractId,
+    };
+  });
+
+  if (new Set(plans.map((plan) => plan.riderId)).size !== plans.length) {
+    redirectWithError("Un coureur ne peut être modifié qu’une seule fois.");
+  }
+
+  return plans;
 }
 
 async function requireAuthenticatedClient() {

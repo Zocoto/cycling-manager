@@ -47,11 +47,14 @@ describe("training tutorial page targets", () => {
     expect(trainingPage).toContain(
       'riderIndex === 0 ? "training-plan" : undefined',
     );
-    for (const suffix of ["setup", "intensity", "domain", "trainer", "save"]) {
+    for (const suffix of ["setup", "intensity", "domain", "trainer"]) {
       expect(trainingControls).toContain(
         "`${tutorialTargetPrefix}-" + suffix + "`",
       );
     }
+    expect(trainingControls).toContain(
+      'data-tutorial-id="training-plan-save"',
+    );
   });
 
   it("rend le rapport ciblable même avant la première séance", () => {

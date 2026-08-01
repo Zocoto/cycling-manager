@@ -12,7 +12,8 @@ import { TeamProgressionModal } from "@/components/game/team-progression-modal";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
-  RiderTrainingPlanForm,
+  RiderTrainingPlanFields,
+  TrainingPlansEditor,
   TrainingThresholdForm,
 } from "@/components/game/training-controls";
 
@@ -59,6 +60,7 @@ type TrainingPageProps = {
   searchParams: Promise<{
     seuil?: string;
     programme?: string;
+    nombre?: string;
     effet?: string;
     erreur?: string;
     onglet?: string | string[];
@@ -159,9 +161,17 @@ export default async function TrainingPage({
 
         <div className="mt-6">
           {query.erreur ? <Alert tone="error">{query.erreur}</Alert> : null}
-          {query.seuil || query.programme ? (
+          {query.seuil ? (
             <Alert tone="success">
-              Le réglage est enregistré et prendra effet{" "}
+              Le seuil est enregistré et prendra effet{" "}
+              {query.effet ?? "à la prochaine séance"}.
+            </Alert>
+          ) : null}
+          {query.programme ? (
+            <Alert tone="success">
+              {Number(query.nombre) > 1
+                ? `${Number(query.nombre)} programmes modifiés sont enregistrés et prendront effet`
+                : "Le programme modifié est enregistré et prendra effet"}{" "}
               {query.effet ?? "à la prochaine séance"}.
             </Alert>
           ) : null}
@@ -357,8 +367,22 @@ export default async function TrainingPage({
                 </p>
               </div>
 
-              <div className="mt-5 space-y-4">
-                {overview.riders.map((rider, riderIndex) => (
+              <TrainingPlansEditor
+                key={overview.riders
+                  .map(
+                    (rider) =>
+                      `${rider.id}:${rider.plan.intensity}:${rider.plan.domain}:${rider.plan.trainerContractId ?? ""}`,
+                  )
+                  .join("|")}
+                initialPlans={overview.riders.map((rider) => ({
+                  riderId: rider.id,
+                  intensity: rider.plan.intensity,
+                  domain: rider.plan.domain,
+                  trainerContractId: rider.plan.trainerContractId,
+                }))}
+              >
+                <div className="mt-5 space-y-4">
+                  {overview.riders.map((rider, riderIndex) => (
                   <article
                     key={rider.id}
                     className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
@@ -417,11 +441,8 @@ export default async function TrainingPage({
                         </div>
                       </div>
 
-                      <RiderTrainingPlanForm
+                      <RiderTrainingPlanFields
                         riderId={rider.id}
-                        initialIntensity={rider.plan.intensity}
-                        initialDomain={rider.plan.domain}
-                        initialTrainerContractId={rider.plan.trainerContractId}
                         riderCountryCode={rider.countryCode}
                         trainers={overview.trainers}
                         tutorialTargetPrefix={
@@ -437,9 +458,10 @@ export default async function TrainingPage({
                         }
                       />
                     </div>
-                  </article>
-                ))}
-              </div>
+                    </article>
+                  ))}
+                </div>
+              </TrainingPlansEditor>
             </section>
           </>
         ) : (

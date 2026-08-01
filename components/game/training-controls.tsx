@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useFormStatus } from "react-dom";
 
 import {
-  saveRiderTrainingPlanAction,
+  saveRiderTrainingPlansAction,
   saveTeamTrainingSettingsAction,
 } from "@/app/jeu/entrainement/actions";
 import {
@@ -13,7 +20,135 @@ import {
   getTrainingFormDelta,
   type TrainingDomain,
 } from "@/lib/game/training";
+import {
+  countTrainingPlansByTrainer,
+  getChangedTrainingPlanIds,
+  type TrainingPlanDraft,
+} from "@/lib/game/training-plan-drafts";
 import type { TeamTrainer } from "@/services/team-training";
+
+type TrainingPlanPatch = Partial<Omit<TrainingPlanDraft, "riderId">>;
+
+type TrainingPlansEditorContextValue = {
+  plansByRiderId: Record<string, TrainingPlanDraft>;
+  trainerAssignmentCounts: Record<string, number>;
+  updatePlan: (riderId: string, patch: TrainingPlanPatch) => void;
+};
+
+const TrainingPlansEditorContext =
+  createContext<TrainingPlansEditorContextValue | null>(null);
+
+export function TrainingPlansEditor({
+  initialPlans,
+  children,
+}: {
+  initialPlans: TrainingPlanDraft[];
+  children: ReactNode;
+}) {
+  const initialPlansByRiderId = useMemo(
+    () =>
+      Object.fromEntries(
+        initialPlans.map((plan) => [plan.riderId, plan]),
+      ) as Record<string, TrainingPlanDraft>,
+    [initialPlans],
+  );
+  const [plansByRiderId, setPlansByRiderId] = useState(
+    () => initialPlansByRiderId,
+  );
+  const currentPlans = useMemo(
+    () =>
+      initialPlans.map(
+        (initialPlan) => plansByRiderId[initialPlan.riderId] ?? initialPlan,
+      ),
+    [initialPlans, plansByRiderId],
+  );
+  const changedRiderIds = useMemo(
+    () => getChangedTrainingPlanIds(initialPlans, currentPlans),
+    [currentPlans, initialPlans],
+  );
+  const changedRiderIdSet = useMemo(
+    () => new Set(changedRiderIds),
+    [changedRiderIds],
+  );
+  const changedPlans = useMemo(
+    () => currentPlans.filter((plan) => changedRiderIdSet.has(plan.riderId)),
+    [changedRiderIdSet, currentPlans],
+  );
+  const trainerAssignmentCounts = useMemo(
+    () => countTrainingPlansByTrainer(currentPlans),
+    [currentPlans],
+  );
+  const updatePlan = useCallback(
+    (riderId: string, patch: TrainingPlanPatch) => {
+      setPlansByRiderId((current) => {
+        const plan = current[riderId];
+        if (!plan) return current;
+        return {
+          ...current,
+          [riderId]: { ...plan, ...patch },
+        };
+      });
+    },
+    [],
+  );
+  const editorContext = useMemo(
+    () => ({ plansByRiderId, trainerAssignmentCounts, updatePlan }),
+    [plansByRiderId, trainerAssignmentCounts, updatePlan],
+  );
+
+  return (
+    <TrainingPlansEditorContext.Provider value={editorContext}>
+      <form
+        action={saveRiderTrainingPlansAction}
+        data-tutorial-id="training-plan-save"
+      >
+        <input
+          type="hidden"
+          name="plans"
+          value={JSON.stringify(changedPlans)}
+        />
+        {children}
+
+        {changedPlans.length > 0 ? (
+          <>
+            <div aria-hidden="true" className="h-28 sm:h-24" />
+            <div className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[80] mx-auto max-w-3xl sm:inset-x-6">
+              <div className="flex flex-col gap-3 rounded-[1.35rem] border border-white/20 bg-[#0B302B]/95 p-3 text-white shadow-[0_22px_65px_rgba(7,26,23,0.38)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:p-4">
+                <div className="flex min-w-0 items-center gap-3 px-1">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F2C94C] text-sm font-black text-[#0B302B]">
+                    {changedPlans.length}
+                  </span>
+                  <div className="min-w-0" aria-live="polite">
+                    <p className="text-sm font-black">
+                      {changedPlans.length === 1
+                        ? "1 programme modifié"
+                        : `${changedPlans.length} programmes modifiés`}
+                    </p>
+                    <p className="text-[11px] font-semibold text-[#CDE2DA]">
+                      Continuez vos réglages ou validez-les en une fois.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPlansByRiderId({ ...initialPlansByRiderId })
+                    }
+                    className="min-h-11 rounded-xl px-3 text-xs font-black uppercase tracking-[0.08em] text-[#CDE2DA] transition hover:bg-white/10 hover:text-white"
+                  >
+                    Annuler
+                  </button>
+                  <TrainingPlansSubmitButton count={changedPlans.length} />
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </form>
+    </TrainingPlansEditorContext.Provider>
+  );
+}
 
 export function TrainingThresholdForm({ minimumForm }: { minimumForm: number }) {
   const [value, setValue] = useState(minimumForm);
@@ -46,27 +181,24 @@ export function TrainingThresholdForm({ minimumForm }: { minimumForm: number }) 
   );
 }
 
-export function RiderTrainingPlanForm({
+export function RiderTrainingPlanFields({
   riderId,
-  initialIntensity,
-  initialDomain,
-  initialTrainerContractId,
   riderCountryCode,
   trainers,
   tutorialTargetPrefix,
 }: {
   riderId: string;
-  initialIntensity: number;
-  initialDomain: TrainingDomain;
-  initialTrainerContractId: string | null;
   riderCountryCode: string;
   trainers: TeamTrainer[];
   tutorialTargetPrefix?: string;
 }) {
-  const [intensity, setIntensity] = useState(initialIntensity);
-  const [trainerContractId, setTrainerContractId] = useState(
-    initialTrainerContractId ?? "",
-  );
+  const editor = useTrainingPlansEditor();
+  const plan = editor.plansByRiderId[riderId];
+  if (!plan) {
+    throw new Error(`Programme d’entraînement introuvable pour ${riderId}.`);
+  }
+
+  const { intensity, domain, trainerContractId } = plan;
   const formDelta = getTrainingFormDelta(intensity);
   const selectedTrainer = trainers.find(
     (trainer) => trainer.contractId === trainerContractId,
@@ -77,18 +209,18 @@ export function RiderTrainingPlanForm({
 
   function updateIntensity(value: number) {
     if (!Number.isFinite(value)) return;
-    setIntensity(Math.min(100, Math.max(0, Math.round(value))));
+    editor.updatePlan(riderId, {
+      intensity: Math.min(100, Math.max(0, Math.round(value))),
+    });
   }
 
   return (
-    <form
-      action={saveRiderTrainingPlanAction}
+    <div
       data-tutorial-id={
         tutorialTargetPrefix ? `${tutorialTargetPrefix}-setup` : undefined
       }
-      className="grid min-w-0 gap-4 lg:grid-cols-[minmax(210px,1.2fr)_minmax(170px,0.9fr)_minmax(190px,1fr)_150px] lg:items-end"
+      className="grid min-w-0 gap-4 lg:grid-cols-[minmax(210px,1.2fr)_minmax(170px,0.9fr)_minmax(190px,1fr)] lg:items-end"
     >
-      <input type="hidden" name="riderId" value={riderId} />
       <div
         data-tutorial-id={
           tutorialTargetPrefix ? `${tutorialTargetPrefix}-intensity` : undefined
@@ -106,7 +238,7 @@ export function RiderTrainingPlanForm({
             <span className="sr-only">Saisir l’intensité d’entraînement</span>
             <input
               type="number"
-              name="intensity"
+              name={`training-intensity-${riderId}`}
               min={0}
               max={100}
               step={1}
@@ -144,15 +276,21 @@ export function RiderTrainingPlanForm({
         }
       >
         <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-          Domaine        </span>
+          Domaine
+        </span>
         <select
-          name="domain"
-          defaultValue={initialDomain}
+          name={`training-domain-${riderId}`}
+          value={domain}
+          onChange={(event) =>
+            editor.updatePlan(riderId, {
+              domain: event.target.value as TrainingDomain,
+            })
+          }
           className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
         >
-          {TRAINING_DOMAINS.map((domain) => (
-            <option key={domain} value={domain}>
-              {TRAINING_DOMAIN_LABELS[domain]}
+          {TRAINING_DOMAINS.map((trainingDomain) => (
+            <option key={trainingDomain} value={trainingDomain}>
+              {TRAINING_DOMAIN_LABELS[trainingDomain]}
             </option>
           ))}
         </select>
@@ -164,19 +302,24 @@ export function RiderTrainingPlanForm({
         }
       >
         <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
-          Entraîneur assigné        </span>
+          Entraîneur assigné
+        </span>
         <select
-          name="trainerContractId"
-          value={trainerContractId}
-          onChange={(event) => setTrainerContractId(event.target.value)}
+          name={`training-trainer-${riderId}`}
+          value={trainerContractId ?? ""}
+          onChange={(event) =>
+            editor.updatePlan(riderId, {
+              trainerContractId: event.target.value || null,
+            })
+          }
           className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/15"
         >
           <option value="">Sans entraîneur</option>
           {trainers.map((trainer) => {
-            const isCurrentTrainer =
-              trainer.contractId === initialTrainerContractId;
-            const isAtCapacity =
-              trainer.assignedRiderCount >= trainer.riderCapacity;
+            const assignedRiderCount =
+              editor.trainerAssignmentCounts[trainer.contractId] ?? 0;
+            const isCurrentTrainer = trainer.contractId === trainerContractId;
+            const isAtCapacity = assignedRiderCount >= trainer.riderCapacity;
 
             return (
               <option
@@ -184,7 +327,9 @@ export function RiderTrainingPlanForm({
                 value={trainer.contractId}
                 disabled={isAtCapacity && !isCurrentTrainer}
               >
-                {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N{trainer.level} · {trainer.specialtyLabel} · {trainer.assignedRiderCount}/{trainer.riderCapacity}
+                {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N
+                {trainer.level} · {trainer.specialtyLabel} · {assignedRiderCount}/
+                {trainer.riderCapacity}
                 {isAtCapacity ? " · Complet" : ""}
               </option>
             );
@@ -193,13 +338,16 @@ export function RiderTrainingPlanForm({
         {selectedTrainer ? (
           <span
             className={`mt-2 block text-[10px] font-black ${
-              selectedTrainer.assignedRiderCount >= selectedTrainer.riderCapacity
+              (editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0) >=
+              selectedTrainer.riderCapacity
                 ? "text-[#B54242]"
                 : "text-[#60756E]"
             }`}
           >
-            {selectedTrainer.assignedRiderCount}/{selectedTrainer.riderCapacity} coureurs suivis
-            {selectedTrainer.assignedRiderCount >= selectedTrainer.riderCapacity
+            {editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0}/
+            {selectedTrainer.riderCapacity} coureurs suivis
+            {(editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0) >=
+            selectedTrainer.riderCapacity
               ? " · quota atteint"
               : ""}
           </span>
@@ -210,37 +358,52 @@ export function RiderTrainingPlanForm({
           </span>
         ) : null}
       </label>
-
-      <TrainingSubmitButton
-        pendingLabel="Sauvegarde…"
-        tutorialTargetId={
-          tutorialTargetPrefix ? `${tutorialTargetPrefix}-save` : undefined
-        }
-      >
-        Enregistrer
-      </TrainingSubmitButton>
-    </form>
+    </div>
   );
+}
+
+function useTrainingPlansEditor() {
+  const editor = useContext(TrainingPlansEditorContext);
+  if (!editor) {
+    throw new Error(
+      "RiderTrainingPlanFields doit être rendu dans TrainingPlansEditor.",
+    );
+  }
+  return editor;
 }
 
 function TrainingSubmitButton({
   children,
   pendingLabel,
-  tutorialTargetId,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   pendingLabel: string;
-  tutorialTargetId?: string;
 }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      data-tutorial-id={tutorialTargetId}
       disabled={pending}
       className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black uppercase tracking-[0.11em] text-white transition hover:bg-[#0B302B] disabled:cursor-wait disabled:bg-[#B8C8C2]"
     >
       {pending ? pendingLabel : children}
+    </button>
+  );
+}
+
+function TrainingPlansSubmitButton({ count }: { count: number }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-4 text-center text-xs font-black uppercase tracking-[0.08em] text-[#0B302B] transition hover:bg-[#FFE071] disabled:cursor-wait disabled:bg-[#91A59D] disabled:text-white sm:min-w-56"
+    >
+      {pending
+        ? "Validation…"
+        : count === 1
+          ? "Valider la modification"
+          : "Valider les modifications"}
     </button>
   );
 }
