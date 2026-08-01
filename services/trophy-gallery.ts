@@ -8,6 +8,7 @@ import {
   type TrophyGallery,
   type TrophyRaceWin,
   type TrophyRiderUciTitle,
+  type TrophyAttendance,
   type TrophySpecialAward,
   type TrophyTeamUciTitle,
 } from "@/lib/game/trophy-gallery";
@@ -107,6 +108,11 @@ type RiderRow = {
   id: string;
   first_name: string;
   last_name: string;
+};
+
+type DailyRewardPerfectStreakRow = {
+  id: string;
+  season_id: string;
 };
 
 const EMPTY_GALLERY = buildTrophyGallery({
@@ -311,7 +317,7 @@ async function loadSportingDirectorTrophyGallery({
     })
   );
 
-  const [raceWins, riderUciTitles] = await Promise.all([
+  const [raceWins, riderUciTitles, attendanceTrophies] = await Promise.all([
     loadMajorRaceWins({
       admin,
       teamSeasonIds: managedTeamSeasonIds,
@@ -322,6 +328,11 @@ async function loadSportingDirectorTrophyGallery({
       teamIds,
       completedSeasonIds,
       assignments,
+      seasonById,
+    }),
+    loadAttendanceTrophies({
+      admin,
+      directorId: directorResult.data.id,
       seasonById,
     }),
   ]);
@@ -352,6 +363,34 @@ async function loadSportingDirectorTrophyGallery({
     riderUciTitles,
     specialAwards,
     claimableTrophies,
+    attendanceTrophies,
+  });
+}
+
+async function loadAttendanceTrophies({
+  admin,
+  directorId,
+  seasonById,
+}: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
+  directorId: string;
+  seasonById: Map<string, SeasonRow>;
+}): Promise<TrophyAttendance[]> {
+  const result = await admin
+    .from("daily_reward_claims")
+    .select("id, season_id")
+    .eq("sporting_director_id", directorId)
+    .eq("streak_day", 28)
+    .order("claimed_at", { ascending: true })
+    .returns<DailyRewardPerfectStreakRow[]>();
+
+  assertQuery(result.error, "les séries quotidiennes parfaites");
+
+  return (result.data ?? []).flatMap((claim) => {
+    const season = seasonById.get(claim.season_id);
+    return season
+      ? [{ id: claim.id, seasonName: season.name } satisfies TrophyAttendance]
+      : [];
   });
 }
 

@@ -663,7 +663,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const memberResult = await admin.from("staff_members").select("country_id, level").eq("id", contract.staff_member_id).single<{ country_id: string; level: number }>();
   assertQuery(memberResult.error, "le scout missionné");
   const scout = requireData(memberResult.data, "le scout missionné");
-  const [talentsResult, teamSeasonResult] = await Promise.all([
+  const [talentsResult, teamSeasonResult, dailyRewardBoostResult] = await Promise.all([
     admin
       .from("staff_member_talents")
       .select("talent_code")
@@ -675,9 +675,20 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       .eq("team_id", mission.team_id)
       .eq("season_id", mission.season_id)
       .maybeSingle<{ registration_country_id: string }>(),
+    admin
+      .from("daily_reward_active_effects")
+      .select("effect_payload")
+      .eq("team_id", mission.team_id)
+      .eq("season_id", mission.season_id)
+      .eq("effect_kind", "scouting_boost")
+      .eq("status", "active")
+      .lte("starts_day_number", mission.completes_day_number)
+      .gte("ends_day_number", mission.completes_day_number)
+      .returns<Array<{ effect_payload: Record<string, unknown> }>>(),
   ]);
   assertQuery(talentsResult.error, "les talents du scout");
   assertQuery(teamSeasonResult.error, "la nationalité de l’équipe");
+  assertQuery(dailyRewardBoostResult.error, "le bonus quotidien de scouting");
   const talentCodes = (talentsResult.data ?? []).flatMap((talent) =>
     isStaffTalentForRole(talent.talent_code, "scout")
       ? [talent.talent_code]
@@ -687,6 +698,16 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     scout.country_id === teamSeasonResult.data?.registration_country_id
       ? 1.1
       : 1;
+  const dailyScoutingQualityMultiplier =
+    1 +
+    Math.max(
+      0,
+      ...(dailyRewardBoostResult.data ?? []).map((effect) => {
+        const percentage = Number(effect.effect_payload.percentage);
+        return Number.isFinite(percentage) ? percentage : 0;
+      }),
+    ) /
+      100;
   if (!hasRiderNameLibrary(profile.name_profile_code)) throw new Error(`Aucune bibliothèque de noms pour ${country.name}.`);
   const random = createSeededRandom(mission.id);
   const facilityLevel = facilityResult.data?.facility_level ?? 1;
@@ -696,11 +717,11 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const scoutBonuses = {
     potentialBonus:
       (baseScoutBonuses.potentialBonus + talentBonuses.potentialBonus) *
-      nationalityAffinity,
+      nationalityAffinity * dailyScoutingQualityMultiplier,
     initialRatingBonus:
       (baseScoutBonuses.initialRatingBonus +
         talentBonuses.initialRatingBonus) *
-      nationalityAffinity,
+      nationalityAffinity * dailyScoutingQualityMultiplier,
   };
   const count =
     getScoutingCandidateCount({

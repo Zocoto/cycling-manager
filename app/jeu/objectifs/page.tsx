@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { claimGameObjectiveAction } from "@/app/jeu/objectifs/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { DailyRewardsPanel } from "@/components/game/daily-rewards-panel";
 import { GameHeader } from "@/components/game/game-header";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
@@ -19,6 +20,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
+import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
 import { getSportingDirectorTrophyGallery } from "@/services/trophy-gallery";
 
 export const metadata: Metadata = {
@@ -79,8 +81,11 @@ export default async function ObjectivesPage({
   searchParams,
 }: ObjectivesPageProps) {
   const query = await searchParams;
+  const requestedTab = readQuery(query.onglet);
   const selectedTab =
-    readQuery(query.onglet) === "trophees" ? "trophees" : "objectifs";
+    requestedTab === "trophees" || requestedTab === "quotidiennes"
+      ? requestedTab
+      : "objectifs";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -91,10 +96,11 @@ export default async function ObjectivesPage({
     redirect("/connexion");
   }
 
-  const [headerData, objectives, trophyGallery] = await Promise.all([
+  const [headerData, objectives, trophyGallery, dailyRewards] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentGameObjectives(supabase),
     getSportingDirectorTrophyGallery(user.id),
+    getCurrentDailyRewardOverview(supabase),
   ]);
 
   const availableGroups = Array.from(
@@ -194,13 +200,23 @@ export default async function ObjectivesPage({
 
         <nav
           aria-label="Rubriques des récompenses"
-          className="mt-7 grid rounded-2xl border border-[#315B3E]/14 bg-white p-2 shadow-[0_14px_40px_rgba(19,60,46,0.09)] sm:grid-cols-2"
+          className="mt-7 grid rounded-2xl border border-[#315B3E]/14 bg-white p-2 shadow-[0_14px_40px_rgba(19,60,46,0.09)] sm:grid-cols-3"
         >
           <CareerTab
             href="/jeu/objectifs?onglet=objectifs"
             label="Objectifs & récompenses"
             description="Suivre les paliers et récupérer les gains"
             active={selectedTab === "objectifs"}
+          />
+          <CareerTab
+            href="/jeu/objectifs?onglet=quotidiennes"
+            label="Récompenses quotidiennes"
+            description={
+              dailyRewards?.availableToday
+                ? `Cadeau niveau ${dailyRewards.importance} à ouvrir`
+                : `${dailyRewards?.consecutiveDays ?? 0} jour${(dailyRewards?.consecutiveDays ?? 0) > 1 ? "s" : ""} consécutif${(dailyRewards?.consecutiveDays ?? 0) > 1 ? "s" : ""}`
+            }
+            active={selectedTab === "quotidiennes"}
           />
           <CareerTab
             href="/jeu/objectifs?onglet=trophees"
@@ -290,6 +306,12 @@ export default async function ObjectivesPage({
             </Link>
           </div>
         ) : null}
+          </>
+        ) : selectedTab === "quotidiennes" ? (
+          <>
+            {success ? <Notice tone="success">{success}</Notice> : null}
+            {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
+            <DailyRewardsPanel overview={dailyRewards} />
           </>
         ) : (
           <TrophyGallery gallery={trophyGallery} />

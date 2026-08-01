@@ -3,7 +3,8 @@ export type TrophyKind =
   | "monument"
   | "uci_team"
   | "uci_rider"
-  | "special";
+  | "special"
+  | "attendance";
 
 export const ALPHA_TESTER_TROPHY_KEY = "alpha_tester";
 export const ALPHA_TESTER_AVATAR_FRAME_KEY = "alpha_tester";
@@ -51,6 +52,7 @@ export type TrophyGallery = {
     monuments: number;
     uciTitles: number;
     special: number;
+    attendance: number;
   };
 };
 
@@ -77,6 +79,11 @@ export type TrophyRiderUciTitle = {
   riderName: string;
 };
 
+export type TrophyAttendance = {
+  id: string;
+  seasonName: string;
+};
+
 export type TrophySpecialAward = {
   id: string;
   trophyKey: typeof ALPHA_TESTER_TROPHY_KEY;
@@ -91,6 +98,7 @@ type BuildTrophyGalleryInput = {
   riderUciTitles: TrophyRiderUciTitle[];
   specialAwards?: TrophySpecialAward[];
   claimableTrophies?: ClaimableTrophyReward[];
+  attendanceTrophies?: TrophyAttendance[];
 };
 
 export const ALPHA_TESTER_TROPHY_DEFINITION = {
@@ -215,12 +223,20 @@ const UCI_RIDER_PALETTE: TrophyPalette = {
   glow: "rgba(177, 128, 230, 0.48)",
 };
 
+const ATTENDANCE_PALETTE: TrophyPalette = {
+  primary: "#42B99A",
+  secondary: "#DDF8EC",
+  accent: "#0B302B",
+  glow: "rgba(66, 185, 154, 0.46)",
+};
+
 export function buildTrophyGallery({
   raceWins,
   teamUciTitles,
   riderUciTitles,
   specialAwards = [],
   claimableTrophies = [],
+  attendanceTrophies = [],
 }: BuildTrophyGalleryInput): TrophyGallery {
   const raceTrophies = raceWins.flatMap<CareerTrophy>((win) => {
     if (win.isGrandTour) {
@@ -310,8 +326,22 @@ export function buildTrophyGallery({
     avatarFrameKey: ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
   }));
 
+  const attendanceCareerTrophies = attendanceTrophies.map<CareerTrophy>((trophy) => ({
+    id: `attendance:${trophy.id}`,
+    kind: "attendance",
+    title: "Assidu·e",
+    competitionName: "28 cadeaux quotidiens",
+    seasonName: trophy.seasonName,
+    wonAt: null,
+    riderName: null,
+    href: "/jeu/objectifs?onglet=quotidiennes",
+    inscription: "Série parfaite · 28/28",
+    palette: ATTENDANCE_PALETTE,
+  }));
+
   const trophies = [
     ...specialTrophies,
+    ...attendanceCareerTrophies,
     ...teamTrophies,
     ...riderTrophies,
     ...raceTrophies,
@@ -331,6 +361,7 @@ export function buildTrophyGallery({
           trophy.kind === "uci_team" || trophy.kind === "uci_rider"
       ).length,
       special: specialTrophies.length,
+      attendance: attendanceCareerTrophies.length,
     },
   };
 }
@@ -359,6 +390,7 @@ function getTrophyWeight(kind: TrophyKind) {
   if (kind === "special") return 500;
   if (kind === "uci_team") return 400;
   if (kind === "uci_rider") return 350;
+  if (kind === "attendance") return 300;
   if (kind === "grand_tour") return 250;
   return 150;
 }

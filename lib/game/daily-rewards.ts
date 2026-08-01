@@ -1,0 +1,131 @@
+import {
+  RIDER_PRIMARY_RATING_KEYS,
+  RIDER_RATING_AXES,
+  RIDER_SECONDARY_RATING_KEYS,
+  type RiderRatingKey,
+} from "@/lib/game/rider-profile";
+
+export const DAILY_REWARD_SEASON_LENGTH = 28;
+
+export type DailyRewardEffectKind =
+  | "form_boost"
+  | "rider_experience"
+  | "rating_boost"
+  | "training_multiplier"
+  | "scouting_boost"
+  | "equipment"
+  | "special_ability"
+  | "naturalization"
+  | "wildcard";
+
+export type DailyRewardOffer = {
+  key: string;
+  name: string;
+  description: string;
+  effectSummary: string;
+  importance: number;
+  effectKind: DailyRewardEffectKind;
+  iconKey: string;
+  payload: Record<string, unknown>;
+};
+
+export type DailyRewardInventoryItem = DailyRewardOffer & {
+  id: string;
+  acquiredAt: string;
+  expiresAfterGameYear: number;
+};
+
+export type DailyRewardRider = {
+  id: string;
+  name: string;
+  countryName: string | null;
+};
+
+export type DailyRewardRace = {
+  id: string;
+  name: string;
+  firstDayNumber: number;
+};
+
+export type DailyRewardAbility = {
+  code: string;
+  name: string;
+  effectSummary: string;
+};
+
+export type DailyRewardOverview = {
+  seasonId: string;
+  seasonName: string;
+  gameYear: number;
+  currentDayNumber: number;
+  seasonLength: number;
+  claimedToday: boolean;
+  availableToday: boolean;
+  consecutiveDays: number;
+  prospectiveStreakDay: number;
+  importance: number;
+  claimedSeasonDays: number[];
+  offers: DailyRewardOffer[];
+  inventory: DailyRewardInventoryItem[];
+  riders: DailyRewardRider[];
+  eligibleRaces: DailyRewardRace[];
+  abilities: DailyRewardAbility[];
+};
+
+export const DAILY_REWARD_RATING_OPTIONS = RIDER_RATING_AXES.map((axis) => ({
+  key: axis.key,
+  databaseKey: toDatabaseRatingKey(axis.key),
+  label: axis.label,
+  shortLabel: axis.shortLabel,
+  importance: axis.importance,
+}));
+
+export function getDailyRewardImportance(streakDay: number): number {
+  if (streakDay >= 28) return 10;
+  if (streakDay === 27 || streakDay === 21) return 6;
+  if (streakDay === 25) return 5;
+  if ([14, 18, 22, 23, 24, 26].includes(streakDay)) return 4;
+  if ([7, 11, 15, 16, 17, 19, 20].includes(streakDay)) return 3;
+  if ([4, 8, 9, 10, 12, 13].includes(streakDay)) return 2;
+  return 1;
+}
+
+export function getRatingOptionsForOffer(offer: DailyRewardOffer) {
+  const scope = readString(offer.payload.statScope);
+
+  if (scope === "primary") {
+    return DAILY_REWARD_RATING_OPTIONS.filter((option) =>
+      (RIDER_PRIMARY_RATING_KEYS as readonly RiderRatingKey[]).includes(
+        option.key,
+      ),
+    );
+  }
+
+  if (scope === "secondary") {
+    return DAILY_REWARD_RATING_OPTIONS.filter((option) =>
+      (RIDER_SECONDARY_RATING_KEYS as readonly RiderRatingKey[]).includes(
+        option.key,
+      ),
+    );
+  }
+
+  return DAILY_REWARD_RATING_OPTIONS;
+}
+
+export function requiresRiderTarget(kind: DailyRewardEffectKind) {
+  return [
+    "form_boost",
+    "rider_experience",
+    "rating_boost",
+    "special_ability",
+    "naturalization",
+  ].includes(kind);
+}
+
+export function toDatabaseRatingKey(key: RiderRatingKey) {
+  return key === "timeTrial" ? "time_trial" : key;
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}

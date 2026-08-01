@@ -37,6 +37,7 @@ describe("buildTrophyGallery", () => {
       monuments: 1,
       uciTitles: 0,
       special: 0,
+      attendance: 0,
     });
     expect(gallery.trophies).toEqual(
       expect.arrayContaining([
@@ -138,4 +139,26 @@ describe("buildTrophyGallery", () => {
       href: "/jeu/directeur-sportif#distinction-avatar",
     });
     expect(gallery.counts).toMatchObject({ total: 2, special: 1 });
-  });});
+  });
+
+  it("creates an Assidu·e trophy after a perfect 28-day streak", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      attendanceTrophies: [
+        { id: "claim-day-28", seasonName: "Saison 5" },
+      ],
+    });
+
+    expect(gallery.counts.attendance).toBe(1);
+    expect(gallery.trophies[0]).toEqual(
+      expect.objectContaining({
+        id: "attendance:claim-day-28",
+        kind: "attendance",
+        title: "Assidu·e",
+        inscription: "Série parfaite · 28/28",
+      }),
+    );
+  });
+});

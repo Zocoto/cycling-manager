@@ -23,6 +23,7 @@ import {
 import { buildDashboardEventFeed } from "../../lib/game/dashboard-events";
 import type { PublicGameNewsItem } from "../../lib/game/public-game-news";
 import type { SeasonRaceCalendar } from "../../lib/game/race-calendar";
+import type { DailyRewardOverview } from "../../lib/game/daily-rewards";
 import type { GameObjective } from "../../lib/game/objectives";
 import type { SportingDirectorReputationBreakdown } from "../../lib/game/reputation-breakdown";
 import {
@@ -60,6 +61,7 @@ import {
   type DashboardOperationalEvents,
 } from "../../services/dashboard-events";
 import { getCurrentGameObjectives } from "../../services/game-objectives";
+import { getCurrentDailyRewardOverview } from "../../services/daily-rewards";
 import {
   getSportingDirectorTrophyRewardStatus,
   type SportingDirectorTrophyRewardStatus,
@@ -240,6 +242,11 @@ export default async function GamePage() {
     } satisfies SportingDirectorTrophyRewardStatus,
     "Impossible de récupérer les trophées disponibles :",
   );
+  const dailyRewardsPromise = loadDashboardValue(
+    getCurrentDailyRewardOverview(supabase),
+    null as DailyRewardOverview | null,
+    "Impossible de récupérer les récompenses quotidiennes :",
+  );
   const uciRankingsPromise = loadDashboardValue(
     getUciRankings(),
     null as UciRankings | null,
@@ -336,6 +343,7 @@ export default async function GamePage() {
     inventoryOverview,
     gameObjectives,
     trophyRewardStatus,
+    dailyRewards,
     dashboardOperationalEvents,
     reputationBreakdown,
     uciRankings,
@@ -354,6 +362,7 @@ export default async function GamePage() {
     inventoryOverviewPromise,
     gameObjectivesPromise,
     trophyRewardStatusPromise,
+    dailyRewardsPromise,
     loadDashboardValue(
       dashboardTeamSummary
         ? getCurrentDashboardOperationalEvents({
@@ -504,12 +513,35 @@ export default async function GamePage() {
   const readyObjectiveCount = gameObjectives.filter(
     (objective) => objective.completed && !objective.claimedAt,
   ).length;
+  const readyRewardCount =
+    readyObjectiveCount +
+    trophyRewardStatus.availableCount +
+    (dailyRewards?.availableToday ? 1 : 0);
+  const dailyRewardOperationalEvents = dailyRewards?.availableToday
+    ? [
+        {
+          id: `daily-reward:${dailyRewards.seasonId}:${dailyRewards.currentDayNumber}`,
+          category: "objective" as const,
+          priority: "action" as const,
+          title: "Votre cadeau quotidien vous attend",
+          description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau niveau ${dailyRewards.importance} à ouvrir.`,
+          href: "/jeu/objectifs?onglet=quotidiennes",
+          actionLabel: "Ouvrir le cadeau",
+          badgeLabel: "Quotidien",
+          dayNumber: dailyRewards.currentDayNumber,
+          happenedAt: null,
+        },
+      ]
+    : [];
   const youthDevelopmentAlertCount =
     dashboardOperationalEvents.youthDevelopmentAlertCount;
   const dashboardEvents = buildDashboardEventFeed({
     currentDayNumber: teamSummary?.season_day_number ?? 1,
     currency: financeOverview?.currency ?? "EUR",
-    operationalEvents: dashboardOperationalEvents.events,
+    operationalEvents: [
+      ...dailyRewardOperationalEvents,
+      ...dashboardOperationalEvents.events,
+    ],
     transactions: financeOverview?.transactions ?? [],
     objectives: gameObjectives,
     trophyRewardStatus,
@@ -546,7 +578,7 @@ export default async function GamePage() {
               />
               <ObjectivesShortcut
                 totalCount={gameObjectives.length}
-                readyCount={readyObjectiveCount + trophyRewardStatus.availableCount}
+                readyCount={readyRewardCount}
                 trophyRewardCount={trophyRewardStatus.availableCount}
               />
               <JerseyShortcut />

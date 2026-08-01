@@ -20,6 +20,9 @@ export function TrophyGallery({
   const raceTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "grand_tour" || trophy.kind === "monument"
   );
+  const attendanceTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "attendance"
+  );
 
   return (
     <div className="mt-8">
@@ -52,12 +55,13 @@ export function TrophyGallery({
 
             <div
               data-trophy-metrics
-              className="grid grid-cols-4 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:gap-2 sm:p-3"
+              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-5 sm:gap-2 sm:p-3"
             >
               <GalleryMetric label="Total" value={gallery.counts.total} />
               <GalleryMetric label="Grands Tours" value={gallery.counts.grandTours} />
               <GalleryMetric label="Monuments" value={gallery.counts.monuments} />
               <GalleryMetric label="Titres UCI" value={gallery.counts.uciTitles} />
+              <GalleryMetric label="Assiduité" value={gallery.counts.attendance} />
             </div>
           </div>
         </header>
@@ -74,6 +78,16 @@ export function TrophyGallery({
                 title="Pionniers de Cyclostratège"
                 description="Les distinctions spéciales racontent les étapes fondatrices de votre carrière de DS."
                 trophies={specialTrophies}
+                epic
+              />
+            ) : null}
+
+            {attendanceTrophies.length > 0 ? (
+              <TrophyShelf
+                eyebrow="Fidélité"
+                title="Assiduité parfaite"
+                description="Une saison complète sans manquer l’ouverture d’un seul cadeau."
+                trophies={attendanceTrophies}
                 epic
               />
             ) : null}
@@ -488,6 +502,7 @@ function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
   if (kind === "grand_tour") return "Grand Tour";
   if (kind === "monument") return "Monument";
   if (kind === "uci_team") return "Champion UCI équipes";
+  if (kind === "attendance") return "Assidu·e";
   return "Numéro 1 UCI";
 }
 
