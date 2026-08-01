@@ -244,6 +244,8 @@ export function GameHeader({
 
           <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
+          <CyclogazetteShortcut />
+
           <TutorialCenterMenu />
 
 
@@ -293,6 +295,24 @@ export function GameHeader({
         </div>
       </div>
     </header>
+  );
+}
+
+
+function CyclogazetteShortcut() {
+  return (
+    <Link
+      href="/jeu/gazette"
+      title="Lire La Cyclogazette"
+      aria-label="Lire La Cyclogazette"
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+    >
+      <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-[18px] w-[18px]" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 4.5h11.5v11H4.5A1.5 1.5 0 0 1 3 14V4.5Z" />
+        <path d="M14.5 7H17v7a1.5 1.5 0 0 1-1.5 1.5h-1" />
+        <path d="M5.5 7h3v3h-3zM10 7h2.5M10 9h2.5M5.5 12h7" />
+      </svg>
+    </Link>
   );
 }
 

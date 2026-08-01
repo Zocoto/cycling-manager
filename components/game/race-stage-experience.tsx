@@ -25,6 +25,7 @@ import {
 } from "@/lib/game/race-live";
 import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
+import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type { RaceLiveMessage } from "@/services/race-live-chat";
@@ -41,6 +42,7 @@ export function RaceStageExperience({
   currentDirectorId,
   initialMessages,
   lockedSimulations,
+  postRaceInterview,
 }: {
   entry: RaceStageEntry;
   nowIso: string;
@@ -48,6 +50,7 @@ export function RaceStageExperience({
   currentDirectorId: string;
   initialMessages: RaceLiveMessage[];
   lockedSimulations: LockedOfficialStageSimulation[];
+  postRaceInterview: PostRaceInterviewSnapshot | null;
 }) {
   const now = useSynchronizedRaceClock(nowIso, 15_000);
   const state = getStageLiveState(entry.stage, now);
@@ -254,6 +257,7 @@ export function RaceStageExperience({
               edition={entry.edition}
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
+              postRaceInterview={postRaceInterview}
             />
           ) : (
             <RaceLiveLab
@@ -274,9 +278,8 @@ export function RaceStageExperience({
         </div>
 
         <RaceLiveChat
-          key={entry.edition.id}
+          key={entry.stage.id}
           stageId={entry.stage.id}
-          raceEditionId={entry.edition.id}
           currentDirectorId={currentDirectorId}
           initialMessages={initialMessages}
           mode={state.status === "live" ? "live" : "replay"}

@@ -3,7 +3,9 @@
 import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
+import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
+import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type {
   OfficialAttackParticipant,
   OfficialRaceEditionResults,
@@ -32,10 +34,12 @@ export function RaceOfficialResults({
   edition,
   selectedStageId,
   officialResults,
+  postRaceInterview = null,
 }: {
   edition: RaceCalendarEdition;
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
+  postRaceInterview?: PostRaceInterviewSnapshot | null;
 }) {
   const stageClassification = officialResults.stages.find(
     (stage) => stage.stageId === selectedStageId
@@ -109,6 +113,10 @@ export function RaceOfficialResults({
           ) : null}
         </div>
       </header>
+
+      {postRaceInterview ? (
+        <PostRaceInterviewPanel initialInterview={postRaceInterview} />
+      ) : null}
 
       <nav
         aria-label="Classements de la course"

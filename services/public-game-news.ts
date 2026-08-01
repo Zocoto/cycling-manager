@@ -259,6 +259,33 @@ export async function getDashboardPelotonNews(): Promise<PublicGameNewsItem[]> {
   );
 }
 
+
+export async function getCyclogazetteNewsItems(): Promise<PublicGameNewsItem[]> {
+  let admin: AdminClient;
+
+  try {
+    admin = createSupabaseAdminClient();
+  } catch {
+    return [];
+  }
+
+  const results = await Promise.allSettled([
+    loadRecentPostRaceNews(admin),
+    loadRecentVictories(admin),
+    loadRecentArrivals(admin),
+    loadRecentRiderMovements(admin),
+    loadRecentStaffMovements(admin),
+    loadRecentSponsorSignatures(admin),
+  ]);
+
+  return results
+    .flatMap((result) => result.status === "fulfilled" ? result.value.items : [])
+    .filter((item) => Number.isFinite(new Date(item.happenedAt).getTime()))
+    .sort(
+      (first, second) =>
+        new Date(second.happenedAt).getTime() - new Date(first.happenedAt).getTime(),
+    );
+}
 async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
   const [recentQuery, totalQuery] = await Promise.all([
     admin

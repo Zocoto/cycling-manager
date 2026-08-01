@@ -20,6 +20,7 @@ import {
   settleFinishedRaceResults,
 } from "@/services/race-results";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
+import { getOrCreatePostRaceInterview } from "@/services/post-race-interviews";
 
 export const metadata: Metadata = {
   title: "Course en direct",
@@ -145,6 +146,29 @@ export default async function RaceLivePage({
     redirect("/jeu/directeur-sportif");
   }
 
+
+  const postRaceInterview =
+    state.status === "finished" && officialResults
+      ? await getOrCreatePostRaceInterview({
+          authUserId: user.id,
+          teamId: headerData.teamId,
+          editionId: edition.id,
+          raceName: edition.name,
+          stageId: stage.id,
+          stageNumber: stage.stageNumber,
+          stageName:
+            edition.raceFormat === "stage_race"
+              ? `Étape ${stage.stageNumber} · ${stage.name}`
+              : edition.name,
+          officialResults,
+        }).catch((error: unknown) => {
+          console.error(
+            "Impossible de préparer l’interview après-course :",
+            error,
+          );
+          return null;
+        })
+      : null;
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
@@ -190,6 +214,7 @@ export default async function RaceLivePage({
           currentDirectorId={directorResult.data.id}
           initialMessages={initialMessages}
           lockedSimulations={lockedSimulations}
+          postRaceInterview={postRaceInterview}
         />
       </div>
     </main>
