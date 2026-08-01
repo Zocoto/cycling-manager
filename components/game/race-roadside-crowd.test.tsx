@@ -30,6 +30,9 @@ describe("race roadside crowd", () => {
 
     expect(flat).toContain('data-race-roadside-crowd="roadside"');
     expect(flat).toContain('data-race-crowd-track="right-to-left"');
+    expect(flat).toContain('data-race-crowd-protected-corridor="full-road"');
+    expect(flat).toContain('data-race-crowd-safe-lane="upper"');
+    expect(flat).toContain('data-race-crowd-safe-lane="lower"');
     expect(flat).toContain("cm-race-scenery-scroll");
     expect(flat.match(/data-race-crowd-copy=/g)).toHaveLength(2);
     expect(flat).toContain('data-race-crowd-layer="rear-verge"');
@@ -45,6 +48,17 @@ describe("race roadside crowd", () => {
     expect(climb).toContain('data-race-roadside-crowd="climb-dense"');
     expect(climb).not.toContain("cm-race-scenery-scroll");
     expect(climb).toContain('data-race-supporter-prop="smoke-flare"');
+    expect(climb).toContain('data-race-crowd-protected-corridor="climb"');
+    expect(climb).toContain("cm-supporter-smoke");
+    expect(climb).toContain('data-race-supporter-motion="running"');
+    expect(climb).toContain('data-race-supporter-special="flag-runner"');
+    expect(climb).toContain('data-race-supporter-costume="devil"');
+    expect(climb).toContain('data-race-supporter-costume="gaul-warrior"');
+    expect(climb).toContain('data-race-supporter-costume="gaul-strongman"');
+    expect(climb).toContain('data-race-supporter-costume="druid"');
+    expect(climb).toContain('data-race-supporter-costume="horse-mask"');
+    expect(flat).not.toContain('data-race-supporter-costume="devil"');
+    expect(flat).not.toContain('data-race-supporter-motion="running"');
     expect((climb.match(/data-race-spectator=/g) ?? []).length).toBeGreaterThan(
       (flat.match(/data-race-spectator=/g) ?? []).length,
     );

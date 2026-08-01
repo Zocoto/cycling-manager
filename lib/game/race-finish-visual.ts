@@ -79,6 +79,232 @@ export function buildSprintVisualTeams(
   );
 }
 
+export type SprintVisualRosterTeam = {
+  teamId: string;
+  contenderRiderId: string;
+  leadoutRiderIds: string[];
+  riderIds: string[];
+};
+
+export type MassSprintVisualPhase =
+  | "trains"
+  | "selection"
+  | "leadout-release"
+  | "duel"
+  | "passage";
+
+export type MassSprintVisualFrame = {
+  phase: MassSprintVisualPhase;
+  position: number;
+  opacity: number;
+  verticalOffset: number;
+};
+
+export function buildSprintVisualRoster({
+  riders,
+  favoriteRiderIds,
+  maximumTeams = 10,
+}: {
+  riders: readonly SprintVisualRider[];
+  favoriteRiderIds: readonly string[];
+  maximumTeams?: number;
+}): SprintVisualRosterTeam[] {
+  const riderById = new Map(riders.map((rider) => [rider.id, rider]));
+  const selectedTeamIds = new Set<string>();
+  const roster: SprintVisualRosterTeam[] = [];
+
+  for (const contenderRiderId of favoriteRiderIds) {
+    const contender = riderById.get(contenderRiderId);
+    if (!contender || selectedTeamIds.has(contender.teamId)) continue;
+
+    const leadoutRiderIds = riders
+      .filter(
+        (rider) =>
+          rider.teamId === contender.teamId &&
+          rider.role === "leadout" &&
+          rider.id !== contenderRiderId
+      )
+      .slice(0, 2)
+      .map((rider) => rider.id);
+
+    roster.push({
+      teamId: contender.teamId,
+      contenderRiderId,
+      leadoutRiderIds,
+      riderIds: [...leadoutRiderIds, contenderRiderId],
+    });
+    selectedTeamIds.add(contender.teamId);
+    if (roster.length >= maximumTeams) break;
+  }
+
+  return roster;
+}
+
+export function getMassSprintVisualPhase(
+  metersRemaining: number
+): { phase: MassSprintVisualPhase; progress: number } {
+  if (metersRemaining > 2_000) {
+    return {
+      phase: "trains",
+      progress: clamp((5_000 - metersRemaining) / 3_000, 0, 1),
+    };
+  }
+  if (metersRemaining > 700) {
+    return {
+      phase: "selection",
+      progress: clamp((2_000 - metersRemaining) / 1_300, 0, 1),
+    };
+  }
+  if (metersRemaining > 250) {
+    return {
+      phase: "leadout-release",
+      progress: clamp((700 - metersRemaining) / 450, 0, 1),
+    };
+  }
+  if (metersRemaining > 0) {
+    return {
+      phase: "duel",
+      progress: clamp((250 - metersRemaining) / 250, 0, 1),
+    };
+  }
+  return { phase: "passage", progress: 1 };
+}
+
+export function getMassSprintFinishPosition({
+  contenderIndex,
+  gapToWinnerSeconds,
+  finishLinePosition,
+}: {
+  contenderIndex: number;
+  gapToWinnerSeconds: number;
+  finishLinePosition: number;
+}) {
+  if (contenderIndex <= 0) return finishLinePosition;
+
+  const tireToBikeSpacing = Math.min(
+    4.8,
+    0.75 + contenderIndex * 0.95
+  );
+  const officialGapSpacing = Math.min(
+    12,
+    Math.max(0, gapToWinnerSeconds) * 0.9
+  );
+
+  return finishLinePosition - tireToBikeSpacing - officialGapSpacing;
+}
+
+export function getMassSprintVisualFrame({
+  metersRemaining,
+  teamIndex,
+  teamCount,
+  memberIndex,
+  memberCount,
+  contenderIndex,
+  contenderCount,
+  isLeadout,
+  isDominantWinner,
+  finalTargetPosition,
+  visualSeed,
+}: {
+  metersRemaining: number;
+  teamIndex: number;
+  teamCount: number;
+  memberIndex: number;
+  memberCount: number;
+  contenderIndex: number;
+  contenderCount: number;
+  isLeadout: boolean;
+  isDominantWinner: boolean;
+  finalTargetPosition: number;
+  visualSeed: number;
+}): MassSprintVisualFrame {
+  const { phase, progress } = getMassSprintVisualPhase(metersRemaining);
+  const centeredTeamIndex = (Math.max(1, teamCount) - 1) / 2 - teamIndex;
+  const teamBias = centeredTeamIndex * 0.72;
+  const formationOffset = Math.max(0, memberCount - memberIndex - 1) * 3.4;
+  const favoriteBias = contenderIndex >= 0
+    ? ((Math.max(1, contenderCount) - 1) / 2 - contenderIndex) * 0.55
+    : 0;
+  const verticalOffset =
+    (memberIndex - (Math.max(1, memberCount) - 1) / 2) * 0.65;
+
+  if (phase === "trains") {
+    return {
+      phase,
+      position: 31 + progress * 8 + teamBias + formationOffset,
+      opacity: 1,
+      verticalOffset,
+    };
+  }
+
+  if (phase === "selection") {
+    return {
+      phase,
+      position:
+        39 +
+        progress * 13 +
+        teamBias * (1 - progress * 0.45) +
+        favoriteBias * progress +
+        formationOffset * (1 - progress * 0.25),
+      opacity: 1,
+      verticalOffset,
+    };
+  }
+
+  if (phase === "leadout-release") {
+    if (isLeadout) {
+      return {
+        phase,
+        position: 58 + formationOffset * 0.45 - progress * 9 + teamBias * 0.3,
+        opacity: clamp(1 - progress * 0.72, 0.28, 1),
+        verticalOffset: verticalOffset + progress * 3.2,
+      };
+    }
+    return {
+      phase,
+      position: 53 + progress * 10 + favoriteBias * (0.5 + progress * 0.5),
+      opacity: 1,
+      verticalOffset,
+    };
+  }
+
+  if (phase === "duel" && !isLeadout) {
+    const seedPhase = ((Math.abs(visualSeed) + Math.max(0, contenderIndex) * 17) % 19) / 19;
+    const suspense =
+      Math.sin((progress * 2.15 + seedPhase) * Math.PI * 2) *
+      Math.sin(progress * Math.PI) *
+      1.45;
+    const dominance = isDominantWinner
+      ? Math.sin(progress * Math.PI) * 1.8
+      : 0;
+    return {
+      phase,
+      position:
+        63 * (1 - progress) +
+        finalTargetPosition * progress +
+        suspense +
+        dominance,
+      opacity: 1,
+      verticalOffset,
+    };
+  }
+
+  if (isLeadout) {
+    return {
+      phase,
+      position: 49 - progress * 4 + teamBias * 0.2,
+      opacity: phase === "passage" ? 0 : clamp(0.28 - progress * 0.3, 0, 0.28),
+      verticalOffset: verticalOffset + 3.2,
+    };
+  }
+
+  return {
+    phase,
+    position: finalTargetPosition,
+    opacity: 1,
+    verticalOffset,
+  };
+}
 export function buildSprintVisualBattle({
   riders,
   results,
@@ -110,7 +336,7 @@ export function buildSprintVisualBattle({
         resultByRiderId.get(first.id)?.energyAfter ?? 0
       )
   );
-  const favorites = orderedCandidates.slice(0, 5);
+  const favorites = orderedCandidates.slice(0, 10);
   const winnerResult = results.find(
     (result) => result.status === "finished" && result.rank === 1
   );
@@ -119,44 +345,64 @@ export function buildSprintVisualBattle({
     : undefined;
 
   if (winner && !favorites.some((favorite) => favorite.id === winner.id)) {
-    favorites.splice(Math.min(4, favorites.length), 0, winner);
-    favorites.splice(5);
+    favorites.splice(Math.min(9, favorites.length), 0, winner);
+    favorites.splice(10);
   }
 
   const wheelTargetByRiderId: Record<string, string> = {};
   favorites.forEach((rider, index) => {
-    if (index === 0) return;
-    const riderStrength = getSprintVisualStrength(
-      rider,
-      resultByRiderId.get(rider.id)?.energyAfter ?? 0
-    );
-    const target = favorites
-      .slice(0, index)
-      .find(
-        (candidate) =>
-          candidate.teamId !== rider.teamId &&
-          getSprintVisualStrength(
-            candidate,
-            resultByRiderId.get(candidate.id)?.energyAfter ?? 0
-          ) -
-            riderStrength <=
-            10
-      );
-    if (!target) return;
-
     const hasOwnLeadout = riders.some(
       (candidate) =>
         candidate.teamId === rider.teamId &&
         candidate.role === "leadout"
     );
-    const borrowsWheel =
-      !hasOwnLeadout ||
-      getVisualHash(`${seed}:${rider.id}:wheel`) % 3 === 0;
-    if (borrowsWheel) {
+    if (hasOwnLeadout) return;
+
+    const riderStrength = getSprintVisualStrength(
+      rider,
+      resultByRiderId.get(rider.id)?.energyAfter ?? 0
+    );
+    const hasLeadout = (candidate: SprintVisualBattleRider) =>
+      riders.some(
+        (teamMate) =>
+          teamMate.teamId === candidate.teamId &&
+          teamMate.role === "leadout"
+      );
+    const previousCandidates = favorites
+      .slice(0, index)
+      .filter((candidate) => candidate.teamId !== rider.teamId);
+    const targetPool = [
+      ...previousCandidates.filter(hasLeadout),
+      ...favorites.filter(
+        (candidate) =>
+          candidate.id !== rider.id &&
+          candidate.teamId !== rider.teamId &&
+          hasLeadout(candidate)
+      ),
+      ...previousCandidates,
+    ];
+    const target = [...new Map(
+      targetPool.map((candidate) => [candidate.id, candidate])
+    ).values()].sort(
+      (first, second) =>
+        Math.abs(
+          getSprintVisualStrength(
+            first,
+            resultByRiderId.get(first.id)?.energyAfter ?? 0
+          ) - riderStrength
+        ) -
+        Math.abs(
+          getSprintVisualStrength(
+            second,
+            resultByRiderId.get(second.id)?.energyAfter ?? 0
+          ) - riderStrength
+        )
+    )[0];
+
+    if (target) {
       wheelTargetByRiderId[rider.id] = target.id;
     }
   });
-
   let dominantWinnerId: string | null = null;
   if (winner) {
     const winnerStrength = getSprintVisualStrength(

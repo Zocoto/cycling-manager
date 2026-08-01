@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildSprintVisualBattle,
+  buildSprintVisualRoster,
   buildSprintVisualTeams,
   FINISH_LINE_REVEAL_METERS,
   getFinalApproachDisplayPosition,
@@ -9,6 +10,9 @@ import {
   getFinalGroupEntryPosition,
   getFinalReplayFrame,
   getFinalReplayMeters,
+  getMassSprintFinishPosition,
+  getMassSprintVisualFrame,
+  getMassSprintVisualPhase,
   getFinishPassageDurationMs,
   getFinishPassagePosition,
   getFinishTargetPosition,
@@ -77,6 +81,128 @@ describe("final race visualization", () => {
     ]);
   });
 
+  it("limite le final aux trains des principaux sprinteurs", () => {
+    const roster = buildSprintVisualRoster({
+      maximumTeams: 5,
+      riders: [
+        { id: "domestique", teamId: "team-a", role: "domestique" },
+        { id: "leadout-a1", teamId: "team-a", role: "leadout" },
+        { id: "leadout-a2", teamId: "team-a", role: "leadout" },
+        { id: "sprinter-a", teamId: "team-a", role: "sprinter" },
+        { id: "leadout-b", teamId: "team-b", role: "leadout" },
+        { id: "sprinter-b", teamId: "team-b", role: "sprinter" },
+        { id: "sprinter-c", teamId: "team-c", role: "sprinter" },
+        { id: "sprinter-d", teamId: "team-d", role: "sprinter" },
+        { id: "sprinter-e", teamId: "team-e", role: "sprinter" },
+        { id: "sprinter-f", teamId: "team-f", role: "sprinter" },
+      ],
+      favoriteRiderIds: [
+        "sprinter-a",
+        "sprinter-b",
+        "sprinter-c",
+        "sprinter-d",
+        "sprinter-e",
+        "sprinter-f",
+      ],
+    });
+
+    expect(roster).toHaveLength(5);
+    expect(roster[0]).toEqual({
+      teamId: "team-a",
+      contenderRiderId: "sprinter-a",
+      leadoutRiderIds: ["leadout-a1", "leadout-a2"],
+      riderIds: ["leadout-a1", "leadout-a2", "sprinter-a"],
+    });
+    expect(roster.flatMap((team) => team.riderIds)).not.toContain(
+      "domestique"
+    );
+    expect(roster.flatMap((team) => team.riderIds)).not.toContain(
+      "sprinter-f"
+    );
+  });
+
+  it("enchaîne trains, sélection, relais puis duel sans remontada irréaliste", () => {
+    expect(getMassSprintVisualPhase(3_000).phase).toBe("trains");
+    expect(getMassSprintVisualPhase(1_200).phase).toBe("selection");
+    expect(getMassSprintVisualPhase(500).phase).toBe("leadout-release");
+    expect(getMassSprintVisualPhase(120).phase).toBe("duel");
+    expect(getMassSprintVisualPhase(0).phase).toBe("passage");
+
+    const common = {
+      teamIndex: 1,
+      teamCount: 4,
+      memberCount: 2,
+      contenderCount: 4,
+      isDominantWinner: false,
+      finalTargetPosition: 82,
+      visualSeed: 17,
+    };
+    const trainLeadout = getMassSprintVisualFrame({
+      ...common,
+      metersRemaining: 3_000,
+      memberIndex: 0,
+      contenderIndex: -1,
+      isLeadout: true,
+    });
+    const trainSprinter = getMassSprintVisualFrame({
+      ...common,
+      metersRemaining: 3_000,
+      memberIndex: 1,
+      contenderIndex: 1,
+      isLeadout: false,
+    });
+    const releasedLeadout = getMassSprintVisualFrame({
+      ...common,
+      metersRemaining: 300,
+      memberIndex: 0,
+      contenderIndex: -1,
+      isLeadout: true,
+    });
+    const duelSprinter = getMassSprintVisualFrame({
+      ...common,
+      metersRemaining: 120,
+      memberIndex: 1,
+      contenderIndex: 1,
+      isLeadout: false,
+    });
+
+    expect(trainLeadout.position).toBeGreaterThan(trainSprinter.position);
+    expect(releasedLeadout.opacity).toBeLessThan(1);
+    expect(duelSprinter.position).toBeGreaterThan(60);
+    expect(duelSprinter.position).toBeLessThan(84);
+    expect(
+      getMassSprintVisualFrame({
+        ...common,
+        metersRemaining: 0,
+        memberIndex: 1,
+        contenderIndex: 1,
+        isLeadout: false,
+      }).position
+    ).toBe(82);
+  });
+
+  it("calibre les écarts d'un sprint serré entre le pneu et le vélo", () => {
+    const winner = getMassSprintFinishPosition({
+      contenderIndex: 0,
+      gapToWinnerSeconds: 0,
+      finishLinePosition: 84,
+    });
+    const runnerUp = getMassSprintFinishPosition({
+      contenderIndex: 1,
+      gapToWinnerSeconds: 0,
+      finishLinePosition: 84,
+    });
+    const delayed = getMassSprintFinishPosition({
+      contenderIndex: 2,
+      gapToWinnerSeconds: 3,
+      finishLinePosition: 84,
+    });
+
+    expect(winner).toBe(84);
+    expect(winner - runnerUp).toBeGreaterThanOrEqual(0.75);
+    expect(winner - runnerUp).toBeLessThanOrEqual(4.8);
+    expect(delayed).toBeLessThan(runnerUp);
+  });
   it("nomme les favoris et permet à un sprinteur de prendre une roue adverse", () => {
     const riders = [
       createSprintVisualRider("favori-a", "team-a", 84),
@@ -105,6 +231,68 @@ describe("final race visualization", () => {
     );
   });
 
+  it("garde les dix meilleurs sprinteurs dans le final", () => {
+    const riders = Array.from({ length: 12 }, (_, index) =>
+      createSprintVisualRider(
+        "sprinter-" + (index + 1),
+        "team-" + (index + 1),
+        94 - index
+      )
+    );
+    const results = riders.map((rider, index) => ({
+      riderId: rider.id,
+      status: "finished" as const,
+      rank: index + 1,
+      energyAfter: 60,
+    }));
+
+    const battle = buildSprintVisualBattle({
+      riders,
+      results,
+      seed: "top-ten",
+    });
+
+    expect(battle.favoriteRiderIds).toHaveLength(10);
+    expect(battle.favoriteRiderIds).toContain("sprinter-1");
+    expect(battle.favoriteRiderIds).not.toContain("sprinter-12");
+  });
+
+  it("garde le sprinteur avec son poisson-pilote et accroche les isolés à un train adverse", () => {
+    const sprinterA = createSprintVisualRider("sprinter-a", "team-a", 90);
+    const leadoutA = {
+      ...createSprintVisualRider("leadout-a", "team-a", 72),
+      role: "leadout" as const,
+    };
+    const sprinterB = createSprintVisualRider("sprinter-b", "team-b", 86);
+    const sprinterC = createSprintVisualRider("sprinter-c", "team-c", 82);
+    const leadoutC = {
+      ...createSprintVisualRider("leadout-c", "team-c", 70),
+      role: "leadout" as const,
+    };
+    const riders = [
+      sprinterA,
+      leadoutA,
+      sprinterB,
+      sprinterC,
+      leadoutC,
+    ];
+    const results = riders.map((rider, index) => ({
+      riderId: rider.id,
+      status: "finished" as const,
+      rank: index + 1,
+      energyAfter: 58,
+    }));
+
+    const battle = buildSprintVisualBattle({
+      riders,
+      results,
+      seed: "foreign-train",
+    });
+
+    expect(battle.wheelTargetByRiderId["sprinter-a"]).toBeUndefined();
+    expect(battle.wheelTargetByRiderId["sprinter-c"]).toBeUndefined();
+    expect(battle.wheelTargetByRiderId["sprinter-b"]).toBe("sprinter-a");
+  });
   it("distingue une démonstration nette d'un sprint encore indécis", () => {
     const dominantRiders = [
       createSprintVisualRider("dominant", "team-a", 94, 90),

@@ -261,6 +261,16 @@ a {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-1.5px); }
 }
+@keyframes cm-supporter-run {
+  0%, 100% { transform: translate3d(-1px, 0, 0) rotate(-1deg); }
+  50% { transform: translate3d(2px, -1.5px, 0) rotate(1.5deg); }
+}
+
+@keyframes cm-supporter-smoke {
+  0% { transform: translate3d(0, 2px, 0) scale(0.84); opacity: 0.18; }
+  55% { transform: translate3d(3px, -5px, 0) scale(1.08); opacity: 0.38; }
+  100% { transform: translate3d(7px, -11px, 0) scale(1.24); opacity: 0.06; }
+}
 
 @keyframes cm-sprint-surge {
   0% { transform: translateX(-52vw) scale(0.88); }
@@ -463,6 +473,17 @@ a {
   transform-box: fill-box;
   transform-origin: center bottom;
 }
+.cm-supporter-run {
+  animation: cm-supporter-run 0.52s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.cm-supporter-smoke {
+  animation: cm-supporter-smoke 2.8s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
 
 .cm-sprint-surge {
   animation: cm-sprint-surge 1.65s cubic-bezier(0.2, 0.72, 0.24, 1) both;
@@ -531,6 +552,8 @@ a {
   .cm-race-car-wheel,
   .cm-bike-top-sway,
   .cm-crowd-wave,
+  .cm-supporter-run,
+  .cm-supporter-smoke,
   .cm-sprint-surge,
   .cm-sprint-finish-cross,
   .cm-sprint-wind,

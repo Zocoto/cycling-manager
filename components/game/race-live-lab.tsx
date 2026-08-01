@@ -20,15 +20,17 @@ import {
 import type { RaceCalendarEdition, RaceCalendarStage } from "@/lib/game/race-calendar";
 import {
   buildSprintVisualBattle,
-  buildSprintVisualTeams,
+  buildSprintVisualRoster,
   FINISH_LINE_REVEAL_METERS,
+  getMassSprintFinishPosition,
+  getMassSprintVisualFrame,
+  getMassSprintVisualPhase,
   getFinalApproachDisplayPosition,
   getFinalApproachPosition,
   getFinalGroupEntryPosition,
   getFinalReplayFrame,
   getFinishPassageDurationMs,
   getFinishPassagePosition,
-  getFinishTargetPosition,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
   shouldWinnerCelebrate,
@@ -1563,14 +1565,12 @@ function getGroupScreenPosition(
 }
 
 function getMassSprintPhase(metersRemaining: number) {
-  if (metersRemaining > 5_000) return "Placement dans les derniers kilomètres";
-  if (metersRemaining > 2_000) return "Les trains remontent le peloton";
-  if (metersRemaining > 1_000) return "Approche de la flamme rouge";
-  if (metersRemaining > 300) return "Poissons-pilotes en action";
-  if (metersRemaining > 0) return "Sprint lancé";
-  return "Ligne franchie";
+  if (metersRemaining > 2_000) return "Les trains se mettent en ordre";
+  if (metersRemaining > 700) return "Les meilleurs trains prennent l’avantage";
+  if (metersRemaining > 250) return "Les poissons-pilotes lancent leurs leaders";
+  if (metersRemaining > 0) return "Les sprinteurs se disputent la victoire";
+  return "Passages sur la ligne";
 }
-
 function getSmallGroupFinishPhase(metersRemaining: number) {
   if (metersRemaining > 3_000) return "Observation dans le groupe de tête";
   if (metersRemaining > 1_500) return "Premières attaques pour la victoire";
@@ -1631,61 +1631,77 @@ function SprintLaneView({
       ? leadingFinishGroupRiderIds
       : scenario.contenderIds;
   const battleRiderSet = new Set(battleRiderIds);
-  const finalists = simulation.results
+  const allFinalists = simulation.results
     .filter(
       (result) =>
         result.status === "finished" &&
-        battleRiderSet.has(result.riderId)
+        battleRiderSet.has(result.riderId) &&
+        riderById.has(result.riderId)
     )
     .sort(
       (first, second) =>
         (first.rank ?? 999) - (second.rank ?? 999)
     );
-  const visibleFinalists = finalists;
-  const maximumGapToWinnerSeconds = Math.max(
-    0,
-    ...visibleFinalists.map((result) => result.gapToWinnerSeconds)
-  );
-  const sprintTeams = buildSprintVisualTeams(
-    visibleFinalists.map((result) => {
+  const sprintBattle = buildSprintVisualBattle({
+    riders: allFinalists.map((result) => riderById.get(result.riderId)!),
+    results: allFinalists,
+    seed: simulation.seed,
+  });
+  const favoriteRiderSet = new Set(sprintBattle.favoriteRiderIds);
+  const orderedFavoriteRiderIds = allFinalists
+    .filter((result) => favoriteRiderSet.has(result.riderId))
+    .map((result) => result.riderId);
+  const sprintRoster = buildSprintVisualRoster({
+    riders: allFinalists.map((result) => {
       const rider = riderById.get(result.riderId)!;
       return {
         id: rider.id,
         teamId: rider.teamId,
         role: rider.role,
       };
-    })
-  );
-  const trainRiderSet = new Set(
-    sprintTeams.flatMap((team) => team.trainRiderIds)
-  );
-  const looseRiderIds = visibleFinalists
-    .map((result) => result.riderId)
-    .filter((riderId) => !trainRiderSet.has(riderId));
-  const sprintBattle = buildSprintVisualBattle({
-    riders: visibleFinalists.map((result) => riderById.get(result.riderId)!),
-    results: visibleFinalists,
-    seed: simulation.seed,
+    }),
+    favoriteRiderIds: orderedFavoriteRiderIds,
   });
-  const favoriteRiderSet = new Set(sprintBattle.favoriteRiderIds);
-  const favoriteNames = sprintBattle.favoriteRiderIds
+  const visibleRiderSet = new Set(
+    sprintRoster.flatMap((team) => team.riderIds)
+  );
+  const sprintLaneStep =
+    sprintRoster.length <= 5
+      ? 15.2
+      : 68 / Math.max(1, sprintRoster.length - 1);
+  const sprintTrainCount = sprintRoster.filter(
+    (team) => team.leadoutRiderIds.length > 0
+  ).length;
+  const leadoutCount = sprintRoster.reduce(
+    (total, team) => total + team.leadoutRiderIds.length,
+    0
+  );
+  const visibleFinalists = allFinalists.filter((result) =>
+    visibleRiderSet.has(result.riderId)
+  );
+  const contenderRiderIds = sprintRoster
+    .map((team) => team.contenderRiderId)
+    .sort(
+      (firstId, secondId) =>
+        (allFinalists.find((result) => result.riderId === firstId)?.rank ?? 999) -
+        (allFinalists.find((result) => result.riderId === secondId)?.rank ?? 999)
+    );
+  const contenderRiderSet = new Set(contenderRiderIds);
+  const contenderResults = allFinalists.filter((result) =>
+    contenderRiderSet.has(result.riderId)
+  );
+  const maximumGapToWinnerSeconds = Math.max(
+    0,
+    ...contenderResults.map((result) => result.gapToWinnerSeconds)
+  );
+  const favoriteNames = contenderRiderIds
     .map((riderId) => riderById.get(riderId)?.name.split(" ").at(-1))
     .filter((name): name is string => Boolean(name));
-  const finalProgress = Math.max(
-    0,
-    Math.min(1, 1 - metersRemaining / Math.max(1, finalSegmentMeters))
-  );
-  const revealDistance = sprintBattle.dominantWinnerId ? 650 : 180;
-  const sprintProgress = Math.max(
-    0,
-    Math.min(1, (revealDistance - metersRemaining) / revealDistance)
-  );
-  const decisiveProgress =
-    sprintProgress * sprintProgress * (3 - 2 * sprintProgress);
   const showFinishLine = metersRemaining <= FINISH_LINE_REVEAL_METERS;
   const winnerHasFinished = metersRemaining <= 0;
   const raceComplete = winnerHasFinished && finishPassageProgress >= 1;
   const phaseLabel = getMassSprintPhase(metersRemaining);
+  const visualPhase = getMassSprintVisualPhase(metersRemaining);
   const isPhotoFinish =
     sprintBattle.dominantWinnerId === null &&
     getVisualSeedNumber(simulation.seed) % 3 === 0;
@@ -1697,7 +1713,12 @@ function SprintLaneView({
     : null;
 
   return (
-    <RaceVisualViewport className="h-80 rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40">
+    <RaceVisualViewport
+      className="h-[30rem] rounded-3xl border border-white/10 bg-[#2F3B37] shadow-inner shadow-black/40"
+      data-sprint-visual-phase={visualPhase.phase}
+      data-sprint-final-segment-meters={finalSegmentMeters}
+      data-sprint-visible-riders={visibleFinalists.length}
+    >
       <RoadTextureOverlay
         surface={segment.surface}
         isMoving={!raceComplete}
@@ -1722,144 +1743,158 @@ function SprintLaneView({
           }`}
         />
       ) : null}
-      <div className="absolute left-4 top-4 z-20 max-w-[55%] rounded-xl bg-[#071A17]/86 px-3 py-2 backdrop-blur">
+      <div className="absolute left-4 top-4 z-30 max-w-[58%] rounded-xl bg-[#071A17]/88 px-3 py-2 backdrop-blur">
         <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
           {phaseLabel}
         </p>
         <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
-          {favoriteNames.length > 0
-            ? `Favoris : ${favoriteNames.join(" · ")}`
-            : `${battleRiderIds.length} coureurs dans le groupe de tête`}
+          {contenderRiderIds.length} sprinteurs · {sprintTrainCount} train{sprintTrainCount > 1 ? "s" : ""} · {leadoutCount} poisson{leadoutCount > 1 ? "s" : ""}-pilote{leadoutCount > 1 ? "s" : ""}
         </p>
-        {!winnerHasFinished && sprintBattle.dominantWinnerId ? (
-          <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
-            Un favori creuse nettement l’écart
-          </p>
-        ) : null}
-        {winnerHasFinished && isPhotoFinish ? (
-          <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-[#FFF4C4]">
-            Photo-finish · victoire au coude-à-coude
+        {favoriteNames.length > 0 ? (
+          <p className="mt-1 truncate text-[9px] font-bold text-[#FFF4C4]">
+            Sprinteurs : {favoriteNames.join(" · ")}
           </p>
         ) : null}
       </div>
-      <div aria-hidden="true" className="absolute inset-y-0 left-[16%] w-40 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)] cm-sprint-wind" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-[16%] w-40 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)] cm-sprint-wind"
+      />
 
-      {visibleFinalists.map((result, index) => {
-        const rider = riderById.get(result.riderId)!;
-        const sprintTeam = sprintTeams.find(
-          (team) => team.teamId === rider.teamId
-        )!;
-        const teamIndex = sprintTeams.indexOf(sprintTeam);
-        const trainMemberIndex = sprintTeam.trainRiderIds.indexOf(
-          result.riderId
+      {sprintRoster.map((team, teamIndex) => {
+        const contender = riderById.get(team.contenderRiderId);
+        if (!contender) return null;
+        const laneTop = 13 + teamIndex * sprintLaneStep;
+        return (
+          <div
+            key={team.teamId}
+            aria-hidden="true"
+            data-sprint-team-lane={team.teamId}
+            className="absolute left-[21%] right-[13%] z-[9] border-t border-dashed border-white/10"
+            style={{ top: `${laneTop}%` }}
+          >
+            <span
+              className="absolute -left-1 -top-2.5 max-w-24 truncate rounded bg-[#071A17]/70 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide text-white/55"
+              style={{
+                borderLeft: `3px solid ${contender.teamPrimaryColor}`,
+              }}
+            >
+              {contender.teamName}
+            </span>
+          </div>
         );
-        const looseRiderIndex = looseRiderIds.indexOf(result.riderId);
-        const isTrainMember = trainMemberIndex >= 0;
+      })}
+
+      {visibleFinalists.map((result) => {
+        const rider = riderById.get(result.riderId)!;
+        const sprintTeam = sprintRoster.find((team) =>
+          team.riderIds.includes(result.riderId)
+        )!;
+        const ownTeamIndex = sprintRoster.indexOf(sprintTeam);
+        const memberIndex = sprintTeam.riderIds.indexOf(result.riderId);
+        const isLeadout = sprintTeam.leadoutRiderIds.includes(result.riderId);
+        const contenderIndex = contenderRiderIds.indexOf(result.riderId);
         const wheelTargetRiderId =
           sprintBattle.wheelTargetByRiderId[result.riderId] ?? null;
+        const wheelTargetTeamIndex =
+          !isLeadout && wheelTargetRiderId && visualPhase.phase !== "duel"
+            ? sprintRoster.findIndex(
+                (team) => team.contenderRiderId === wheelTargetRiderId
+              )
+            : -1;
+        const lane =
+          wheelTargetTeamIndex >= 0
+            ? wheelTargetTeamIndex
+            : ownTeamIndex;
+        const wheelFollowerIndex = wheelTargetRiderId
+          ? contenderRiderIds
+              .filter(
+                (riderId) =>
+                  sprintBattle.wheelTargetByRiderId[riderId] ===
+                  wheelTargetRiderId
+              )
+              .indexOf(result.riderId)
+          : -1;
+        const wheelDraftOffset =
+          wheelTargetTeamIndex >= 0
+            ? 5.4 + Math.max(0, wheelFollowerIndex) * 4.8
+            : 0;
+        const finalTargetPosition = isLeadout
+          ? 46
+          : getMassSprintFinishPosition({
+              contenderIndex,
+              gapToWinnerSeconds: result.gapToWinnerSeconds,
+              finishLinePosition: 84,
+            });
+        const frame = getMassSprintVisualFrame({
+          metersRemaining,
+          teamIndex: ownTeamIndex,
+          teamCount: sprintRoster.length,
+          memberIndex,
+          memberCount: sprintTeam.riderIds.length,
+          contenderIndex,
+          contenderCount: contenderRiderIds.length,
+          isLeadout,
+          isDominantWinner:
+            result.riderId === sprintBattle.dominantWinnerId,
+          finalTargetPosition,
+          visualSeed: getVisualSeedNumber(
+            `${simulation.seed}:${result.riderId}`
+          ),
+        });
+        const distanceSynchronizedApproachLeft =
+          getFinalApproachDisplayPosition({
+            desiredPosition:
+              frame.position - wheelDraftOffset,
+            metersRemaining,
+            finishLinePosition: 84,
+            rank: result.rank ?? contenderIndex + 1,
+          });
+        const left = isLeadout
+          ? distanceSynchronizedApproachLeft
+          : getFinishPassagePosition({
+              approachPosition: distanceSynchronizedApproachLeft,
+              rank: result.rank ?? contenderIndex + 1,
+              riderCount: contenderRiderIds.length,
+              gapToWinnerSeconds: result.gapToWinnerSeconds,
+              maximumGapToWinnerSeconds,
+              finishPassageProgress,
+              finishLinePosition: 84,
+              winnerHasFinished,
+            });
+        const riderHasFinished =
+          !isLeadout && winnerHasFinished && left > 84;
         const wheelTarget = wheelTargetRiderId
           ? riderById.get(wheelTargetRiderId)
           : null;
-        const wheelTargetTeamIndex = wheelTarget
-          ? sprintTeams.findIndex(
-              (team) => team.teamId === wheelTarget.teamId
-            )
-          : -1;
-        const favoriteIndex = sprintBattle.favoriteRiderIds.indexOf(
-          result.riderId
-        );
-        const lane =
-          wheelTargetTeamIndex >= 0
-            ? wheelTargetTeamIndex % 6
-            : isTrainMember
-              ? teamIndex % 6
-              : (sprintTeams.length + looseRiderIndex) % 6;
-        const roleOffset =
-          rider.role === "leadout"
-            ? 5
-            : rider.role === "sprinter"
-              ? 1.5
-              : 0;
-        const trainPosition = Math.min(
-          78,
-          wheelTargetTeamIndex >= 0
-            ? 27 +
-                wheelTargetTeamIndex * 3.8 +
-                finalProgress * 31 +
-                0.5
-            : isTrainMember
-              ? 27 + teamIndex * 3.8 + finalProgress * 31 + roleOffset
-              : 22 +
-                  ((looseRiderIndex * 13 +
-                    getVisualSeedNumber(result.riderId)) %
-                    24) +
-                  finalProgress * 31
-        );
-        const finishPosition = getFinishTargetPosition({
-          rank: index + 1,
-          hasFinished: false,
-          finishLinePosition: 84,
-        });
-        const dominanceProgress = Math.max(
-          0,
-          Math.min(1, (650 - metersRemaining) / 650)
-        );
-        const dominanceOffset =
-          result.riderId === sprintBattle.dominantWinnerId
-            ? dominanceProgress * 7
-            : sprintBattle.dominantWinnerId &&
-                favoriteRiderSet.has(result.riderId)
-              ? -dominanceProgress * Math.max(0.5, favoriteIndex * 0.45)
-              : 0;
-        const approachLeft = Math.max(
-          14,
-          Math.min(
-            90,
-            trainPosition * (1 - decisiveProgress) +
-              finishPosition * decisiveProgress +
-              dominanceOffset
-          )
-        );
-        const distanceSynchronizedApproachLeft =
-          getFinalApproachDisplayPosition({
-            desiredPosition: approachLeft,
-            metersRemaining,
-            finishLinePosition: 84,
-            rank: result.rank ?? index + 1,
-          });
-        const left = getFinishPassagePosition({
-          approachPosition: distanceSynchronizedApproachLeft,
-          rank: result.rank ?? index + 1,
-          riderCount: visibleFinalists.length,
-          gapToWinnerSeconds: result.gapToWinnerSeconds,
-          maximumGapToWinnerSeconds,
-          finishPassageProgress,
-          finishLinePosition: 84,
-          winnerHasFinished,
-        });
-        const riderHasFinished = winnerHasFinished && left > 84;
+        const riderLabel = isLeadout
+          ? `PP · ${rider.name.split(" ").at(-1)}`
+          : rider.name.split(" ").at(-1);
+
         return (
           <div
             key={result.riderId}
             data-finish-rider-id={result.riderId}
             data-finish-rank={result.rank}
-            className="absolute z-20 transition-[left,top] duration-300 ease-out"
+            data-sprint-team-id={sprintTeam.teamId}
+            data-sprint-rider-role={isLeadout ? "leadout" : "sprinter"}
+            data-sprint-rider-phase={frame.phase}
+            className="absolute z-20 transition-[left,top,opacity] duration-300 ease-out"
             style={{
               left: `${left}%`,
               top: `${
-                11 +
-                lane * 13.4 +
-                (wheelTargetRiderId
-                  ? 1.2
-                  : isTrainMember
-                    ? trainMemberIndex * 1.1
-                    : 0)
+                13 +
+                lane * sprintLaneStep +
+                frame.verticalOffset +
+                (wheelTargetTeamIndex >= 0 ? 1.2 + (wheelFollowerIndex % 2) * 0.55 : 0)
               }%`,
+              opacity: frame.opacity,
             }}
             title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >
             <TopRaceCyclist
               rider={rider}
+              isMoving={!raceComplete}
               celebrating={
                 result.riderId === winnerResult?.riderId &&
                 shouldWinnerCelebrate({
@@ -1868,19 +1903,20 @@ function SprintLaneView({
                 })
               }
             />
-            {riderHasFinished && result.rank !== null && result.rank <= 3 ? (
-              <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[9px] font-black text-white shadow-lg">
-                {result.rank}. {rider.name.split(" ").at(-1)}
-              </span>
-            ) : null}
-            {!riderHasFinished && favoriteIndex >= 0 ? (
-              <span className="absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/88 px-2 py-1 text-[8px] font-black text-white/90 shadow-lg">
-                {rider.name.split(" ").at(-1)}
-                {wheelTarget
+            {frame.opacity > 0.15 ? (
+              <span
+                className={`absolute left-1/2 top-8 -translate-x-1/2 whitespace-nowrap rounded-full border px-2 py-1 text-[8px] font-black shadow-lg ${
+                  isLeadout
+                    ? "border-white/10 bg-[#071A17]/72 text-white/65"
+                    : "border-[#F2C94C]/25 bg-[#071A17]/90 text-white"
+                }`}
+              >
+                {riderHasFinished && result.rank !== null
+                  ? `${result.rank}. ${riderLabel}`
+                  : riderLabel}
+                {!isLeadout && wheelTarget && visualPhase.phase !== "duel"
                   ? ` · roue de ${wheelTarget.name.split(" ").at(-1)}`
-                  : favoriteIndex === 0
-                    ? " · favori"
-                    : ""}
+                  : ""}
               </span>
             ) : null}
           </div>
@@ -1892,7 +1928,6 @@ function SprintLaneView({
     </RaceVisualViewport>
   );
 }
-
 function FinishBattleView({
   simulation,
   riderById,
