@@ -195,7 +195,7 @@ function SponsorLogoMarkImage({
           alt={alt}
           width={80}
           height={56}
-          sizes="80px"
+          sizes="(max-width: 640px) 56px, 80px"
           className="h-full w-full object-contain"
           onError={() => {
             setHasImageError(true);

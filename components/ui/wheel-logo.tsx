@@ -30,7 +30,7 @@ export function WheelLogo({
         aria-hidden="true"
         width={72}
         height={72}
-        priority
+        sizes="48px"
         className={`block shrink-0 ${className}`}
       />
     );
@@ -44,7 +44,7 @@ export function WheelLogo({
         aria-hidden="true"
         width={72}
         height={72}
-        priority
+        sizes="48px"
         className="block h-full w-full"
       />
 

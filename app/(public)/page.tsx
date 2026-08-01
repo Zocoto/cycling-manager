@@ -254,6 +254,7 @@ function CareerSection() {
             alt="Cyclo Stratège"
             width={420}
             height={420}
+            sizes="(max-width: 640px) 220px, (max-width: 1125px) 32vw, 360px"
             className="mx-auto mt-10 h-auto w-[clamp(220px,32vw,360px)] drop-shadow-[0_28px_60px_rgba(7,26,23,0.28)]"
           />
         </div>
