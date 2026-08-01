@@ -33,6 +33,7 @@ import {
   getRaceExperienceAvailability,
   getRaceResultsHref,
 } from "@/lib/game/race-live";
+import { getStageFormCostRange } from "@/lib/game/form-management";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -1126,6 +1127,8 @@ function StageCard({
   stage: RaceCalendarEdition["stages"][number];
   showStageNumber: boolean;
 }) {
+  const formCost = getStageFormCostRange(stage);
+
   return (
     <article className="grid gap-4 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm sm:grid-cols-[90px_minmax(0,0.85fr)_minmax(240px,1.15fr)] sm:items-center sm:p-5">
       <div>
@@ -1147,6 +1150,13 @@ function StageCard({
           {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
           {formatDistance(stage.distanceKm)} km
         </p>
+        <p
+          className="mt-1 text-[11px] font-bold text-[#8A6A20]"
+          title="Le coût exact dépend de la récupération du coureur."
+        >
+          Forme estimée −{formatFormCost(formCost.minimum)} à −
+          {formatFormCost(formCost.maximum)}
+        </p>
       </div>
 
       <div>
@@ -1159,6 +1169,10 @@ function StageCard({
       </div>
     </article>
   );
+}
+
+function formatFormCost(value: number) {
+  return value.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
 }
 
 function SecondaryClassifications({

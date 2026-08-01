@@ -306,6 +306,10 @@ export async function getTeamStaffOverview(
   ).level;
   const staffCapacity = getStaffCapacityForDirectorLevel(directorLevel);
   const activeStaffCount = contracts.length;
+  const activeNutritionistCount = contracts.filter(
+    (contract) =>
+      membersById.get(contract.staff_member_id)?.role === "nutritionist",
+  ).length;
   const commonBlockReason = getCommonHireBlockReason({
     activeStaffCount,
     staffCapacity,
@@ -336,6 +340,9 @@ export async function getTeamStaffOverview(
           ? "Déjà recruté par votre équipe."
           : "Ce profil a déjà été recruté."
         : (commonBlockReason ??
+          (member.role === "nutritionist" && activeNutritionistCount >= 3
+            ? "Limite atteinte : une équipe ne peut employer que 3 nutritionnistes actifs."
+            : null) ??
           (balance < member.signingFee + dueSalary
             ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."
             : projectedBudget < member.signingFee + member.salaryPerSeason

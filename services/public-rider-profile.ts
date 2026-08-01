@@ -62,6 +62,7 @@ export type PublicRiderProfile = {
   condition: {
     form: number;
     dayNumber: number | null;
+    events: RiderFormEvent[];
   };
   medical: {
     diagnosisCode: string;
@@ -130,6 +131,13 @@ export type PublicRiderProfile = {
     totalPoints: number;
     bestUciRank: number | null;
   } | null;
+};
+
+export type RiderFormEvent = {
+  source: "daily" | "race" | "training" | "injury" | "nutrition";
+  label: string;
+  delta: number;
+  occurredAt: string;
 };
 
 type RiderRow = {
@@ -223,6 +231,40 @@ type SeasonDayRow = {
 type ConditionRow = {
   season_day_id: string;
   form: number;
+};
+
+type DailyConditionEffectRow = {
+  effect_type: string;
+  form_delta: number | string;
+  applied_at: string;
+};
+
+type StageConditionEffectRow = {
+  form_delta: number | string;
+  applied_at: string;
+};
+
+type TrainingConditionEffectRow = {
+  status: string;
+  form_delta: number | string;
+  processed_at: string;
+};
+
+type InjuryConditionEffectRow = {
+  form_delta: number | string;
+  applied_at: string;
+};
+
+type NutritionInterventionEffectRow = {
+  intervention_code: string;
+  actual_form_gain: number | string;
+  applied_at: string;
+};
+
+type DailyNutritionEffectRow = {
+  form_delta: number | string;
+  contributions: Array<{ name?: string; gain?: number | string }> | null;
+  applied_at: string;
 };
 
 type InjuryRow = {
@@ -1047,7 +1089,7 @@ async function getCurrentCondition({
   activeSeason: SeasonRow | null;
 }): Promise<PublicRiderProfile["condition"]> {
   if (!activeSeason) {
-    return { form: 75, dayNumber: null };
+    return { form: 75, dayNumber: null, events: [] };
   }
 
   const dayNumber = activeSeason.current_day_number ?? 1;
@@ -1062,15 +1104,19 @@ async function getCurrentCondition({
   assertQuery(seasonDayError, "la journée courante");
 
   if (!seasonDays || seasonDays.length === 0) {
-    return { form: 75, dayNumber };
+    return { form: 75, dayNumber, events: [] };
   }
 
-  const { data: conditions, error: conditionError } = await supabase
-    .from("rider_condition_states")
-    .select("season_day_id, form")
-    .eq("rider_id", riderId)
-    .in("season_day_id", seasonDays.map((day) => day.id))
-    .returns<ConditionRow[]>();
+  const [{ data: conditions, error: conditionError }, events] =
+    await Promise.all([
+      supabase
+        .from("rider_condition_states")
+        .select("season_day_id, form")
+        .eq("rider_id", riderId)
+        .in("season_day_id", seasonDays.map((day) => day.id))
+        .returns<ConditionRow[]>(),
+      getRecentFormEvents({ supabase, riderId }),
+    ]);
 
   assertQuery(conditionError, "la forme du coureur");
   const conditionByDayId = new Map(
@@ -1081,9 +1127,144 @@ async function getCurrentCondition({
     .find((candidate) => candidate !== undefined);
 
   return {
-    form: condition?.form ?? 75,
+    form: Number(condition?.form ?? 75),
     dayNumber,
+    events,
   };
+}
+
+async function getRecentFormEvents({
+  supabase,
+  riderId,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  riderId: string;
+}): Promise<RiderFormEvent[]> {
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1_000).toISOString();
+  const [daily, race, training, injury, intervention, nutrition] =
+    await Promise.all([
+      supabase
+        .from("rider_daily_condition_effects")
+        .select("effect_type, form_delta, applied_at")
+        .eq("rider_id", riderId)
+        .gte("applied_at", cutoff)
+        .returns<DailyConditionEffectRow[]>(),
+      supabase
+        .from("stage_rider_condition_effects")
+        .select("form_delta, applied_at")
+        .eq("rider_id", riderId)
+        .gte("applied_at", cutoff)
+        .returns<StageConditionEffectRow[]>(),
+      supabase
+        .from("rider_training_sessions")
+        .select("status, form_delta, processed_at")
+        .eq("rider_id", riderId)
+        .gte("processed_at", cutoff)
+        .returns<TrainingConditionEffectRow[]>(),
+      supabase
+        .from("rider_injury_form_effects")
+        .select("form_delta, applied_at")
+        .eq("rider_id", riderId)
+        .gte("applied_at", cutoff)
+        .returns<InjuryConditionEffectRow[]>(),
+      supabase
+        .from("rider_nutrition_interventions")
+        .select("intervention_code, actual_form_gain, applied_at")
+        .eq("rider_id", riderId)
+        .gte("applied_at", cutoff)
+        .returns<NutritionInterventionEffectRow[]>(),
+      supabase
+        .from("rider_daily_nutrition_effects")
+        .select("form_delta, contributions, applied_at")
+        .eq("rider_id", riderId)
+        .gte("applied_at", cutoff)
+        .returns<DailyNutritionEffectRow[]>(),
+    ]);
+
+  assertQuery(daily.error, "l’historique quotidien de forme");
+  assertQuery(race.error, "l’historique de forme en course");
+  assertQuery(training.error, "l’historique de forme à l’entraînement");
+  assertQuery(injury.error, "l’historique médical de forme");
+  assertQuery(intervention.error, "l’historique des compléments alimentaires");
+  assertQuery(nutrition.error, "l’historique des nutritionnistes");
+
+  return [
+    ...(daily.data ?? []).map((effect) => ({
+      source: "daily" as const,
+      label:
+        effect.effect_type === "form_camp"
+          ? "Stage de remise en forme"
+          : effect.effect_type === "training"
+            ? "Repos après entraînement léger"
+            : effect.effect_type === "rest"
+              ? "Récupération quotidienne"
+              : "Évolution quotidienne",
+      delta: Number(effect.form_delta),
+      occurredAt: effect.applied_at,
+    })),
+    ...(race.data ?? []).map((effect) => ({
+      source: "race" as const,
+      label: "Coût de l’étape ou de la classique",
+      delta: Number(effect.form_delta),
+      occurredAt: effect.applied_at,
+    })),
+    ...(training.data ?? []).map((effect) => ({
+      source: "training" as const,
+      label:
+        effect.status === "skipped_low_form"
+          ? "Entraînement remplacé par du repos"
+          : "Séance d’entraînement",
+      delta: Number(effect.form_delta),
+      occurredAt: effect.processed_at,
+    })),
+    ...(injury.data ?? []).map((effect) => ({
+      source: "injury" as const,
+      label: "Impact de la blessure",
+      delta: Number(effect.form_delta),
+      occurredAt: effect.applied_at,
+    })),
+    ...(intervention.data ?? []).map((effect) => ({
+      source: "nutrition" as const,
+      label:
+        effect.intervention_code === "recovery_snack"
+          ? "Collation de récupération"
+          : effect.intervention_code === "tailored_plan"
+            ? "Plan nutritionnel personnalisé"
+            : "Recharge haute performance",
+      delta: Number(effect.actual_form_gain),
+      occurredAt: effect.applied_at,
+    })),
+    ...(nutrition.data ?? []).map((effect) => ({
+      source: "nutrition" as const,
+      label: formatNutritionContributions(effect.contributions),
+      delta: Number(effect.form_delta),
+      occurredAt: effect.applied_at,
+    })),
+  ]
+    .filter((event) => Number.isFinite(event.delta) && event.delta !== 0)
+    .sort(
+      (left, right) =>
+        new Date(right.occurredAt).getTime() -
+        new Date(left.occurredAt).getTime(),
+    );
+}
+
+function formatNutritionContributions(
+  contributions: DailyNutritionEffectRow["contributions"],
+) {
+  const details = (contributions ?? [])
+    .filter((contribution) => contribution.name)
+    .map(
+      (contribution) =>
+        `${contribution.name} +${Number(contribution.gain ?? 0).toLocaleString(
+          "fr-FR",
+          { maximumFractionDigits: 2 },
+        )}`,
+    );
+
+  return details.length > 0
+    ? `Nutrition quotidienne · ${details.join(" · ")}`
+    : "Nutrition quotidienne de l’équipe";
 }
 
 async function viewerManagesTeam({

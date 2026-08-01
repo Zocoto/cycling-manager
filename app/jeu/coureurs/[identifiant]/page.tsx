@@ -488,6 +488,7 @@ export default async function RiderProfilePage({
               <RiderConditionGauges
                 form={profile.condition.form}
                 dayNumber={profile.condition.dayNumber}
+                events={profile.condition.events}
               />
             </div>
             <div data-tutorial-id="rider-profile-abilities">
