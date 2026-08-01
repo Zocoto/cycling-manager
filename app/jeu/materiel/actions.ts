@@ -55,12 +55,15 @@ export async function equipRiderAction(formData: FormData) {
   const inventoryReturnPath = sanitizeInventoryReturnPath(
     readValue(formData, "returnPath"),
   );
+  const teamEquipmentReturnPath = buildTeamEquipmentPath(riderId, slot);
   const errorPath =
     origin === "inventory"
       ? inventoryReturnPath
-      : isUuid(riderId)
-        ? `/jeu/coureurs/${riderId}`
-        : "/jeu/effectif";
+      : origin === "team-equipment"
+        ? teamEquipmentReturnPath
+        : isUuid(riderId)
+          ? `/jeu/coureurs/${riderId}`
+          : "/jeu/effectif";
 
   if (!isUuid(riderId) || !isUuid(equipmentItemId) || !isEquipmentSlot(slot)) {
     redirectWithError(errorPath, "La demande d’équipement est invalide.");
@@ -85,6 +88,7 @@ export async function equipRiderAction(formData: FormData) {
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/materiel/equiper");
   redirect(
     origin === "inventory"
       ? withPageFeedback(
@@ -92,16 +96,26 @@ export async function equipRiderAction(formData: FormData) {
           "succes",
           "Le matériel a bien été attribué au coureur.",
         )
-      : `/jeu/coureurs/${riderId}?equipement=confirme`,
+      : origin === "team-equipment"
+        ? withPageFeedback(
+            teamEquipmentReturnPath,
+            "succes",
+            "Le matériel a bien été attribué au coureur.",
+          )
+        : `/jeu/coureurs/${riderId}?equipement=confirme`,
   );
 }
 
 export async function unequipRiderAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const slot = readValue(formData, "slot");
-  const returnPath = isUuid(riderId)
-    ? `/jeu/coureurs/${riderId}`
-    : "/jeu/effectif";
+  const origin = readValue(formData, "origin");
+  const returnPath =
+    origin === "team-equipment"
+      ? buildTeamEquipmentPath(riderId, slot)
+      : isUuid(riderId)
+        ? `/jeu/coureurs/${riderId}`
+        : "/jeu/effectif";
 
   if (!isUuid(riderId) || !isEquipmentSlot(slot)) {
     redirectWithError(returnPath, "La demande de retrait est invalide.");
@@ -125,7 +139,24 @@ export async function unequipRiderAction(formData: FormData) {
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
-  redirect(`/jeu/coureurs/${riderId}?equipement=retire`);
+  revalidatePath("/jeu/materiel/equiper");
+  redirect(
+    origin === "team-equipment"
+      ? withPageFeedback(
+          returnPath,
+          "succes",
+          "Le matériel a bien été replacé dans la réserve.",
+        )
+      : `/jeu/coureurs/${riderId}?equipement=retire`,
+  );
+}
+
+function buildTeamEquipmentPath(riderId: string, slot: string) {
+  const params = new URLSearchParams();
+  if (isUuid(riderId)) params.set("coureur", riderId);
+  if (isEquipmentSlot(slot)) params.set("slot", slot);
+  const query = params.toString();
+  return query ? `/jeu/materiel/equiper?${query}` : "/jeu/materiel/equiper";
 }
 
 function buildMaterialPath(category: string, supplier: string, effect: string) {

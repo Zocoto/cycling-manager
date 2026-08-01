@@ -54,6 +54,13 @@ type SupplierRow = {
 };
 type InventoryRow = { equipment_item_id: string; quantity: number };
 type ContractRow = { rider_id: string };
+type RiderRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_profile_key: string | null;
+  avatar_seed: number | string | null;
+};
 type EquippedRow = {
   rider_id: string;
   slot_type: EquipmentSlot;
@@ -116,6 +123,14 @@ export type TeamEquipmentSupplier = {
   referenceCount: number;
 };
 
+export type TeamEquipmentRider = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatarProfileKey: string | null;
+  avatarSeed: number | string | null;
+};
+
 export type TeamEquipmentOverview = {
   teamId: string;
   teamSeasonId: string;
@@ -126,6 +141,7 @@ export type TeamEquipmentOverview = {
   currency: string;
   suppliers: TeamEquipmentSupplier[];
   catalog: TeamEquipmentCatalogItem[];
+  riders: TeamEquipmentRider[];
   assignments: TeamEquipmentAssignment[];
   pendingAssignments: TeamEquipmentPendingAssignment[];
 };
@@ -159,6 +175,7 @@ export async function getCurrentTeamEquipmentOverview(
     currency: context.teamSeason.currency,
     suppliers: context.suppliers,
     catalog: context.catalog,
+    riders: context.riders,
     assignments: context.equipped.map(
       (assignment) => ({
         riderId: assignment.rider_id,
@@ -358,21 +375,43 @@ async function loadEquipmentContext(
           .returns<PartnerEffectRow[]>()
       : { data: [] as PartnerEffectRow[], error: null };
   assertQuery(partnerEffectsError, "les effets R&D du matériel");
-  const { data: equipped, error: equippedError } = rosterRiderIds.length
-    ? await admin
-        .from("rider_equipment_assignments")
-        .select("rider_id, slot_type, equipment_item_id")
-        .in("rider_id", rosterRiderIds)
-        .returns<EquippedRow[]>()
-    : { data: [] as EquippedRow[], error: null };
+  const [equippedResult, ridersResult] = rosterRiderIds.length
+    ? await Promise.all([
+        admin
+          .from("rider_equipment_assignments")
+          .select("rider_id, slot_type, equipment_item_id")
+          .in("rider_id", rosterRiderIds)
+          .returns<EquippedRow[]>(),
+        admin
+          .from("riders")
+          .select(
+            "id, first_name, last_name, avatar_profile_key, avatar_seed",
+          )
+          .in("id", rosterRiderIds)
+          .order("last_name", { ascending: true })
+          .order("first_name", { ascending: true })
+          .returns<RiderRow[]>(),
+      ])
+    : [
+        { data: [] as EquippedRow[], error: null },
+        { data: [] as RiderRow[], error: null },
+      ];
 
-  assertQuery(equippedError, "les équipements attribués");
+  assertQuery(equippedResult.error, "les équipements attribués");
+  assertQuery(ridersResult.error, "les coureurs de l’effectif");
 
   const inventoryByItem = new Map(
     (inventoryResult.data ?? []).map((row) => [row.equipment_item_id, row.quantity])
   );
   const pendingRows = pendingResult.data ?? [];
-  const equippedRows = equipped ?? [];
+  const equippedRows = equippedResult.data ?? [];
+  const riders = (ridersResult.data ?? []).map((rider) => ({
+    id: rider.id,
+    firstName: rider.first_name,
+    lastName: rider.last_name,
+    avatarProfileKey: rider.avatar_profile_key,
+    avatarSeed: rider.avatar_seed,
+  })) satisfies TeamEquipmentRider[];
   const supplierByKey = new Map(
     (suppliersResult.data ?? []).map((supplier) => [
       supplier.supplier_key,
@@ -448,6 +487,7 @@ async function loadEquipmentContext(
     season,
     catalog,
     suppliers,
+    riders,
     rosterRiderIds,
     equipped: equippedRows,
     pending: pendingRows,
