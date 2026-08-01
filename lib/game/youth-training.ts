@@ -58,6 +58,8 @@ export const YOUTH_SPEED_TAPS_FOR_MAX_SCORE = 170;
 export const YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE = 0.82;
 export const YOUTH_BREAKAWAY_ENERGY_FOR_MAX_SCORE = 30;
 export const YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE = 900;
+export const YOUTH_PUNCHEUR_TARGET_MIN = 0.62;
+export const YOUTH_PUNCHEUR_TARGET_MAX = 0.9;
 export const YOUTH_RAW_RATING_MIN = 1;
 export const YOUTH_RAW_RATING_MAX = 8.25;
 export const YOUTH_RATING_PROJECTION_BASE = 34;
@@ -332,6 +334,23 @@ export function calculateYouthMiniGameScore({
       (averagePunch / YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE) * 1_000,
     ),
   );
+}
+
+export function calculateYouthPuncheurReleasePoints(charge: number) {
+  const normalizedCharge = clamp(charge, 0, 1);
+  if (
+    normalizedCharge >= YOUTH_PUNCHEUR_TARGET_MIN &&
+    normalizedCharge <= YOUTH_PUNCHEUR_TARGET_MAX
+  ) {
+    return 1_000;
+  }
+
+  const distanceFromTarget =
+    normalizedCharge < YOUTH_PUNCHEUR_TARGET_MIN
+      ? YOUTH_PUNCHEUR_TARGET_MIN - normalizedCharge
+      : normalizedCharge - YOUTH_PUNCHEUR_TARGET_MAX;
+
+  return clampScore(Math.round((1 - distanceFromTarget / 0.18) * 1_000));
 }
 
 function clampScore(score: number) {

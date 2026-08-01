@@ -28,6 +28,8 @@ function createScoreInput(
 }
 
 import {
+  YOUTH_PUNCHEUR_TARGET_MAX,
+  YOUTH_PUNCHEUR_TARGET_MIN,
   YOUTH_REFLEX_TARGET_INTERVAL_MS,
   YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE,
   YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE,
@@ -35,6 +37,7 @@ import {
   YOUTH_TRAINING_DURATION_SECONDS,
   calculateYouthAutomaticTrainingGain,
   calculateYouthMiniGameScore,
+  calculateYouthPuncheurReleasePoints,
   calculateYouthManualTrainingGain,
   getYouthAutomaticFirstDay,
   getYouthManualTrainingDivisor,
@@ -235,6 +238,17 @@ describe("youth training", () => {
         sprint: 0.2,
       },
     });
+  });
+
+  it("offre une large zone de relâchement pour le jeu Puncheur", () => {
+    expect(YOUTH_PUNCHEUR_TARGET_MIN).toBe(0.62);
+    expect(YOUTH_PUNCHEUR_TARGET_MAX).toBe(0.9);
+    expect(calculateYouthPuncheurReleasePoints(0.62)).toBe(1_000);
+    expect(calculateYouthPuncheurReleasePoints(0.78)).toBe(1_000);
+    expect(calculateYouthPuncheurReleasePoints(0.9)).toBe(1_000);
+    expect(calculateYouthPuncheurReleasePoints(0.5)).toBeGreaterThan(0);
+    expect(calculateYouthPuncheurReleasePoints(0.5)).toBeLessThan(1_000);
+    expect(calculateYouthPuncheurReleasePoints(0)).toBe(0);
   });
 
   it("normalise les six minijeux sur 1000 points", () => {

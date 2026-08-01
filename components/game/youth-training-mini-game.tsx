@@ -15,10 +15,13 @@ import {
 } from "@/app/jeu/centre-de-formation/actions";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import {
+  YOUTH_PUNCHEUR_TARGET_MAX,
+  YOUTH_PUNCHEUR_TARGET_MIN,
   YOUTH_REFLEX_TARGET_INTERVAL_MS,
   YOUTH_TRAINING_DURATION_SECONDS,
   YOUTH_TRAINING_GAME_LABELS,
   calculateYouthMiniGameScore,
+  calculateYouthPuncheurReleasePoints,
   type YouthManualTrainingSlot,
   type YouthTrainingGameType,
   type YouthTrainingMode,
@@ -43,7 +46,8 @@ type BreakawayWindowPhase = "wait" | "go" | "spent";
 
 const DEMO_DURATION_SECONDS = 12;
 const BREAKAWAY_CYCLE_MILLISECONDS = 3_800;
-const PUNCHEUR_CLIMB_MILLISECONDS = 5_000;
+const PUNCHEUR_CHARGE_MILLISECONDS = 3_400;
+const PUNCHEUR_RESET_MILLISECONDS = 900;
 
 export function YouthTrainingMiniGame({
   academyRiderId,
@@ -89,7 +93,7 @@ export function YouthTrainingMiniGame({
     useState<BreakawayWindowPhase>("wait");
   const [breakawayCycleProgress, setBreakawayCycleProgress] = useState(0);
   const [breakawayFeedback, setBreakawayFeedback] = useState("");
-  const [puncheurProgress, setPuncheurProgress] = useState(0);
+  const [showPuncheurInstructions, setShowPuncheurInstructions] = useState(false);
   const [puncheurCharge, setPuncheurCharge] = useState(0);
   const [puncheurFeedback, setPuncheurFeedback] = useState("");
 
@@ -113,11 +117,10 @@ export function YouthTrainingMiniGame({
   const breakawayActedCycleRef = useRef(-1);
   const puncheurPointsRef = useRef(0);
   const puncheurOpportunitiesRef = useRef(0);
-  const puncheurCycleRef = useRef(-1);
-  const puncheurReleasedCycleRef = useRef(-1);
-  const puncheurProgressRef = useRef(0);
   const puncheurChargeRef = useRef(0);
   const puncheurChargingRef = useRef(false);
+  const puncheurAttemptActiveRef = useRef(false);
+  const puncheurResetAtRef = useRef(0);
   const finishingRef = useRef(false);
 
   const finishGame = useCallback(async () => {
@@ -287,40 +290,33 @@ export function YouthTrainingMiniGame({
       let previousTimestamp = gameStartedAtRef.current;
       const animatePuncheur = (timestamp: number) => {
         const delta = Math.min(40, timestamp - previousTimestamp);
-        const elapsed = timestamp - gameStartedAtRef.current;
         previousTimestamp = timestamp;
-        const cycle = Math.floor(elapsed / PUNCHEUR_CLIMB_MILLISECONDS);
-        const climbProgress =
-          (elapsed % PUNCHEUR_CLIMB_MILLISECONDS) /
-          PUNCHEUR_CLIMB_MILLISECONDS;
-        if (cycle !== puncheurCycleRef.current) {
-          puncheurCycleRef.current = cycle;
-          puncheurOpportunitiesRef.current = Math.max(
-            puncheurOpportunitiesRef.current,
-            cycle + 1,
-          );
-          puncheurChargeRef.current = 0;
-          setPuncheurCharge(0);
-          setPuncheurFeedback("");
-        }
+
         if (
           puncheurChargingRef.current &&
-          puncheurReleasedCycleRef.current !== cycle
+          puncheurAttemptActiveRef.current
         ) {
-          puncheurChargeRef.current = clamp(
-            puncheurChargeRef.current + delta / 1_650,
+          const nextCharge = clamp(
+            puncheurChargeRef.current +
+              delta / PUNCHEUR_CHARGE_MILLISECONDS,
             0,
             1,
           );
-          setPuncheurCharge(puncheurChargeRef.current);
+          puncheurChargeRef.current = nextCharge;
+          setPuncheurCharge(nextCharge);
+        } else if (
+          puncheurResetAtRef.current > 0 &&
+          timestamp >= puncheurResetAtRef.current
+        ) {
+          puncheurResetAtRef.current = 0;
+          puncheurChargeRef.current = 0;
+          setPuncheurCharge(0);
         }
-        puncheurProgressRef.current = climbProgress;
-        setPuncheurProgress(climbProgress);
+
         animationFrame = window.requestAnimationFrame(animatePuncheur);
       };
       animationFrame = window.requestAnimationFrame(animatePuncheur);
     }
-
     return () => {
       window.clearTimeout(finishTimer);
       window.clearInterval(countdownTimer);
@@ -330,6 +326,24 @@ export function YouthTrainingMiniGame({
       puncheurChargingRef.current = false;
     };
   }, [activeGameType, durationSeconds, finishGame, phase]);
+
+  function prepareGame() {
+    setError(null);
+    setReport(null);
+    if (gameType === "puncheur") {
+      setActiveGameType(gameType);
+      setDurationSeconds(
+        demoMode ? DEMO_DURATION_SECONDS : YOUTH_TRAINING_DURATION_SECONDS,
+      );
+      setSecondsLeft(
+        demoMode ? DEMO_DURATION_SECONDS : YOUTH_TRAINING_DURATION_SECONDS,
+      );
+      setShowPuncheurInstructions(true);
+      return;
+    }
+
+    void startGame();
+  }
 
   async function startGame() {
     setPhase("starting");
@@ -342,6 +356,7 @@ export function YouthTrainingMiniGame({
       setActiveGameType(gameType);
       setDurationSeconds(DEMO_DURATION_SECONDS);
       setSecondsLeft(DEMO_DURATION_SECONDS);
+      setShowPuncheurInstructions(false);
       setPhase("playing");
       return;
     }
@@ -352,6 +367,7 @@ export function YouthTrainingMiniGame({
       });
       if (!result.ok) {
         setError(result.error);
+        setShowPuncheurInstructions(false);
         setPhase("error");
         return;
       }
@@ -360,12 +376,15 @@ export function YouthTrainingMiniGame({
       setActiveGameType(result.attempt.gameType);
       setDurationSeconds(result.attempt.durationSeconds);
       setSecondsLeft(result.attempt.durationSeconds);
+      setShowPuncheurInstructions(false);
       setPhase("playing");
     } catch {
       setError("Le minijeu ne peut pas être lancé pour le moment.");
+      setShowPuncheurInstructions(false);
       setPhase("error");
     }
   }
+
 
   function resetCounters() {
     rhythmPointsRef.current = 0;
@@ -386,11 +405,10 @@ export function YouthTrainingMiniGame({
     breakawayActedCycleRef.current = -1;
     puncheurPointsRef.current = 0;
     puncheurOpportunitiesRef.current = 0;
-    puncheurCycleRef.current = -1;
-    puncheurReleasedCycleRef.current = -1;
-    puncheurProgressRef.current = 0;
     puncheurChargeRef.current = 0;
     puncheurChargingRef.current = false;
+    puncheurAttemptActiveRef.current = false;
+    puncheurResetAtRef.current = 0;
     finishingRef.current = false;
     setCursorPosition(0.5);
     setSpeedExpected("left");
@@ -402,7 +420,6 @@ export function YouthTrainingMiniGame({
     setBreakawayWindowPhase("wait");
     setBreakawayCycleProgress(0);
     setBreakawayFeedback("");
-    setPuncheurProgress(0);
     setPuncheurCharge(0);
     setPuncheurFeedback("");
   }
@@ -474,27 +491,30 @@ export function YouthTrainingMiniGame({
   }
 
   function startPuncheurCharge(event: ReactPointerEvent<HTMLButtonElement>) {
+    const now = performance.now();
+    if (
+      puncheurAttemptActiveRef.current ||
+      now < puncheurResetAtRef.current
+    ) {
+      return;
+    }
+
     event.currentTarget.setPointerCapture(event.pointerId);
-    if (puncheurReleasedCycleRef.current === puncheurCycleRef.current) return;
+    puncheurAttemptActiveRef.current = true;
     puncheurChargingRef.current = true;
+    puncheurOpportunitiesRef.current += 1;
+    puncheurChargeRef.current = 0;
+    setPuncheurCharge(0);
+    setPuncheurFeedback("");
   }
 
   function releasePuncheurCharge() {
+    if (!puncheurAttemptActiveRef.current) return;
+
     puncheurChargingRef.current = false;
-    const cycle = puncheurCycleRef.current;
-    if (cycle < 0 || puncheurReleasedCycleRef.current === cycle) return;
-    puncheurReleasedCycleRef.current = cycle;
-    const timingScore = clamp(
-      1 - Math.abs(puncheurProgressRef.current - 0.84) / 0.22,
-      0,
-      1,
-    );
-    const chargeScore = clamp(
-      1 - Math.abs(puncheurChargeRef.current - 0.82) / 0.45,
-      0,
-      1,
-    );
-    const points = Math.round((timingScore * 0.7 + chargeScore * 0.3) * 1_000);
+    puncheurAttemptActiveRef.current = false;
+    const charge = puncheurChargeRef.current;
+    const points = calculateYouthPuncheurReleasePoints(charge);
     puncheurPointsRef.current += points;
     setLiveCount(
       Math.round(
@@ -503,15 +523,17 @@ export function YouthTrainingMiniGame({
       ),
     );
     setPuncheurFeedback(
-      points >= 900
-        ? "Sommet parfait !"
-        : points >= 650
-          ? "Bonne accélération"
-          : puncheurProgressRef.current < 0.7
-            ? "Effort déclenché trop tôt"
-            : "Le sommet est déjà passé",
+      charge >= YOUTH_PUNCHEUR_TARGET_MIN &&
+        charge <= YOUTH_PUNCHEUR_TARGET_MAX
+        ? "Parfait, attaque bien placée !"
+        : charge < YOUTH_PUNCHEUR_TARGET_MIN
+          ? "Un peu tôt · attendez la zone verte"
+          : "Un peu tard · relâchez dès la zone verte",
     );
+    puncheurResetAtRef.current =
+      performance.now() + PUNCHEUR_RESET_MILLISECONDS;
   }
+
 
   if (trainingMode === "automatic") {
     return (
@@ -564,7 +586,7 @@ export function YouthTrainingMiniGame({
           </div>
           <button
             type="button"
-            onClick={() => void startGame()}
+            onClick={prepareGame}
             disabled={phase === "starting" || phase === "submitting"}
             className="min-h-10 rounded-xl bg-[#F2C94C] px-4 text-[10px] font-black uppercase tracking-[0.12em] text-[#071A17] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-60"
           >
@@ -583,7 +605,7 @@ export function YouthTrainingMiniGame({
         {report ? <TrainingResult report={report} demoMode={demoMode} /> : null}
       </div>
 
-      {phase === "playing" || phase === "submitting" ? (
+      {showPuncheurInstructions || phase === "playing" || phase === "submitting" ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -592,7 +614,7 @@ export function YouthTrainingMiniGame({
             demoMode ? "z-[240]" : "z-[100]"
           }`}
         >
-          <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/15 bg-[#F8FBF9] shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+          <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-white/15 bg-[#F8FBF9] shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
             <header className="flex items-center justify-between gap-4 bg-[#0B302B] px-5 py-4 text-white sm:px-7">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#9BE0CA]">
@@ -606,7 +628,14 @@ export function YouthTrainingMiniGame({
             </header>
 
             <div className="p-5 sm:p-8">
-              {phase === "submitting" ? (
+              {showPuncheurInstructions ? (
+                <PuncheurInstructions
+                  durationSeconds={durationSeconds}
+                  isStarting={phase === "starting"}
+                  onStart={() => void startGame()}
+                  onCancel={() => setShowPuncheurInstructions(false)}
+                />
+              ) : phase === "submitting" ? (
                 <div className="grid min-h-72 place-items-center text-center">
                   <div>
                     <span className="mx-auto block h-12 w-12 animate-spin rounded-full border-4 border-[#176951]/20 border-t-[#176951]" />
@@ -628,7 +657,6 @@ export function YouthTrainingMiniGame({
                   breakawayWindowPhase={breakawayWindowPhase}
                   breakawayCycleProgress={breakawayCycleProgress}
                   breakawayFeedback={breakawayFeedback}
-                  puncheurProgress={puncheurProgress}
                   puncheurCharge={puncheurCharge}
                   puncheurFeedback={puncheurFeedback}
                   onRhythmTap={registerRhythmTap}
@@ -648,6 +676,78 @@ export function YouthTrainingMiniGame({
     </>
   );
 }
+function PuncheurInstructions({
+  durationSeconds,
+  isStarting,
+  onStart,
+  onCancel,
+}: {
+  durationSeconds: number;
+  isStarting: boolean;
+  onStart: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="mx-auto max-w-xl py-2 text-center"
+      data-youth-game-instructions="puncheur"
+    >
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+        Avant le chrono · prise en main
+      </p>
+      <h3 className="mt-2 text-2xl font-black text-[#0B302B]">
+        Maintenez, puis relâchez dans le vert
+      </h3>
+      <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-[#48665F]">
+        La jauge monte uniquement lorsque vous maintenez le bouton. Relâchez dès
+        que le curseur entre dans la large zone verte : chaque essai réussi
+        améliore votre score moyen.
+      </p>
+
+      <div className="mx-auto mt-7 max-w-md rounded-2xl border border-[#176951]/15 bg-white p-5 text-left shadow-sm">
+        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+          <span>Maintenir</span>
+          <span className="text-[#176951]">Relâcher ici</span>
+        </div>
+        <div className="relative mt-3 h-8 overflow-visible rounded-full bg-[#DDE9E3]">
+          <span
+            className="absolute inset-y-0 rounded-full bg-[#72D4B7]"
+            style={{
+              left: `${YOUTH_PUNCHEUR_TARGET_MIN * 100}%`,
+              width: `${
+                (YOUTH_PUNCHEUR_TARGET_MAX - YOUTH_PUNCHEUR_TARGET_MIN) * 100
+              }%`,
+            }}
+          />
+          <span className="absolute left-[76%] top-1/2 h-11 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0B302B] shadow-md" />
+        </div>
+        <p className="mt-4 text-center text-xs font-bold text-[#315B3E]">
+          Vous aurez {durationSeconds} secondes. La jauge repart après chaque
+          essai.
+        </p>
+      </div>
+
+      <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isStarting}
+          className="min-h-12 rounded-xl border border-[#315B3E]/15 bg-white px-5 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E] disabled:opacity-50"
+        >
+          Pas maintenant
+        </button>
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={isStarting}
+          className="min-h-12 rounded-xl bg-[#F2C94C] px-7 text-[11px] font-black uppercase tracking-[0.12em] text-[#071A17] shadow-lg transition hover:brightness-105 disabled:cursor-wait disabled:opacity-60"
+        >
+          {isStarting ? "Préparation…" : "J’ai compris · commencer"}
+        </button>
+      </div>
+    </div>
+  );
+}
 function GameSurface({
   gameType,
   cursorPosition,
@@ -660,7 +760,6 @@ function GameSurface({
   breakawayWindowPhase,
   breakawayCycleProgress,
   breakawayFeedback,
-  puncheurProgress,
   puncheurCharge,
   puncheurFeedback,
   onRhythmTap,
@@ -683,7 +782,6 @@ function GameSurface({
   breakawayWindowPhase: BreakawayWindowPhase;
   breakawayCycleProgress: number;
   breakawayFeedback: string;
-  puncheurProgress: number;
   puncheurCharge: number;
   puncheurFeedback: string;
   onRhythmTap: () => void;
@@ -912,10 +1010,14 @@ function GameSurface({
 
   return (
     <div className="min-h-72 text-center" data-youth-game="puncheur">
-      <p className="text-sm font-bold text-[#48665F]">
-        Chargez votre effort puis relâchez au passage du sommet.
+      <p className="text-base font-black text-[#0B302B]">
+        Maintenez le bouton · relâchez dans la zone verte
       </p>
-      <div className="relative mt-6 h-44 overflow-hidden rounded-[1.75rem] bg-gradient-to-b from-[#DDF2EB] to-[#8DCAB8]">
+      <p className="mt-1 text-xs font-semibold text-[#60756E]">
+        Un essai dure quelques secondes, puis la jauge repart à zéro.
+      </p>
+
+      <div className="relative mt-5 h-36 overflow-hidden rounded-[1.75rem] bg-gradient-to-b from-[#DDF2EB] to-[#8DCAB8]">
         <svg
           viewBox="0 0 600 180"
           preserveAspectRatio="none"
@@ -934,53 +1036,102 @@ function GameSurface({
             strokeLinecap="round"
           />
           <path
-            d="M438 36 C468 22 490 15 520 9"
+            d="M390 58 C438 36 480 18 540 8"
             fill="none"
-            stroke="#F2C94C"
-            strokeWidth="12"
+            stroke="#72D4B7"
+            strokeWidth="14"
             strokeLinecap="round"
-            opacity="0.9"
           />
         </svg>
-        <span className="absolute right-[8%] top-4 rounded-full bg-[#F2C94C] px-3 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#071A17]">
-          Zone sommet
+        <span className="absolute right-[7%] top-3 rounded-full bg-[#EAF7F1] px-3 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#176951] shadow-sm">
+          Zone idéale
         </span>
         <span
-          className="absolute grid h-12 w-12 -translate-x-1/2 translate-y-1/2 place-items-center rounded-full border-4 border-white bg-[#0B302B] text-[8px] font-black text-white shadow-xl"
+          className="absolute grid h-12 w-12 -translate-x-1/2 translate-y-1/2 place-items-center rounded-full border-4 border-white bg-[#0B302B] text-[8px] font-black text-white shadow-xl transition-[left,bottom] duration-75"
           style={{
-            left: `${7 + puncheurProgress * 84}%`,
-            bottom: `${12 + puncheurProgress * 68}%`,
+            left: `${7 + puncheurCharge * 84}%`,
+            bottom: `${12 + puncheurCharge * 68}%`,
           }}
         >
           VOUS
         </span>
       </div>
+
       <div className="mt-5 text-left">
         <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-          <span>Charge d’effort</span>
+          <span>Jauge d’attaque</span>
           <span>{Math.round(puncheurCharge * 100)}%</span>
         </div>
-        <div className="mt-2 h-4 overflow-hidden rounded-full bg-[#DDE9E3]">
+        <div
+          className="relative mt-2 h-9 rounded-full bg-[#DDE9E3] shadow-inner"
+          role="progressbar"
+          aria-label="Charge de l’attaque"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(puncheurCharge * 100)}
+        >
           <span
-            className="block h-full rounded-full bg-gradient-to-r from-[#72D4B7] via-[#F2C94C] to-[#E96A4B] transition-[width]"
+            className="absolute inset-y-0 rounded-full bg-[#72D4B7]"
+            style={{
+              left: `${YOUTH_PUNCHEUR_TARGET_MIN * 100}%`,
+              width: `${
+                (YOUTH_PUNCHEUR_TARGET_MAX - YOUTH_PUNCHEUR_TARGET_MIN) * 100
+              }%`,
+            }}
+          />
+          <span
+            className="absolute inset-y-1 left-0 rounded-full bg-[#176951]/35"
             style={{ width: `${puncheurCharge * 100}%` }}
           />
+          <span
+            className="absolute top-1/2 h-12 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0B302B] shadow-lg"
+            style={{ left: `${Math.max(1, puncheurCharge * 100)}%` }}
+          />
+          <span
+            className="absolute -top-5 text-[8px] font-black uppercase tracking-[0.08em] text-[#176951]"
+            style={{ left: `${YOUTH_PUNCHEUR_TARGET_MIN * 100}%` }}
+          >
+            Relâcher
+          </span>
         </div>
       </div>
+
       <button
         type="button"
         onPointerDown={onPuncheurChargeStart}
         onPointerUp={onPuncheurChargeEnd}
         onPointerCancel={onPuncheurChargeEnd}
-        className="mt-5 min-h-18 w-full touch-none rounded-2xl bg-[#176951] text-base font-black uppercase tracking-[0.12em] text-white shadow-lg transition active:scale-[0.98] active:bg-[#0B302B]"
+        aria-describedby="puncheur-feedback"
+        className="mt-7 min-h-18 w-full touch-none rounded-2xl bg-[#176951] text-base font-black uppercase tracking-[0.1em] text-white shadow-lg transition active:scale-[0.98] active:bg-[#0B302B]"
       >
-        Maintenir · puis relâcher
+        Maintenir · relâcher dans le vert
       </button>
-      <p className="mt-4 min-h-5 text-xs font-black text-[#60756E]">
-        {puncheurFeedback || "Préparez votre accélération"}
+      <p
+        id="puncheur-feedback"
+        aria-live="polite"
+        className={`mt-4 min-h-5 text-sm font-black ${
+          puncheurCharge >= YOUTH_PUNCHEUR_TARGET_MIN &&
+          puncheurCharge <= YOUTH_PUNCHEUR_TARGET_MAX
+            ? "text-[#176951]"
+            : "text-[#60756E]"
+        }`}
+      >
+        {puncheurFeedback ||
+          (puncheurCharge >= YOUTH_PUNCHEUR_TARGET_MIN &&
+          puncheurCharge <= YOUTH_PUNCHEUR_TARGET_MAX
+            ? "Relâchez maintenant !"
+            : puncheurCharge > 0
+              ? "Continuez à maintenir…"
+              : "Maintenez le bouton pour démarrer")}
       </p>
+      {puncheurFeedback ? (
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#789087]">
+          Score moyen · {liveCount}/1000
+        </p>
+      ) : null}
     </div>
   );
+
 }
 
 function TrainingResult({

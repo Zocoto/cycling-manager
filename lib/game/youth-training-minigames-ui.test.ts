@@ -22,6 +22,15 @@ describe("youth training minigame surfaces", () => {
     }
   });
 
+  it("explique le jeu Puncheur avant le chrono et matérialise la zone cible", () => {
+    expect(source).toContain('data-youth-game-instructions="puncheur"');
+    expect(source).toContain("Avant le chrono · prise en main");
+    expect(source).toContain("Maintenez, puis relâchez dans le vert");
+    expect(source).toContain("J’ai compris · commencer");
+    expect(source).toContain("YOUTH_PUNCHEUR_TARGET_MIN");
+    expect(source).toContain("PUNCHEUR_CHARGE_MILLISECONDS = 3_400");
+  });
+
   it("prévoit des interactions tactiles pour les trois nouveaux jeux", () => {
     expect(source).toContain("onTimeTrialControlStart");
     expect(source).toContain("onBreakawayAttack");
