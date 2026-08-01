@@ -217,15 +217,26 @@ function SponsorJerseyArtwork({
 }) {
   return (
     <g clipPath={`url(#${clipPathId})`}>
-      <image
-        data-sponsor-jersey-artwork="true"
-        href={imagePath}
-        x="-6"
-        y="62"
-        width="110"
-        height="138"
-        preserveAspectRatio="none"
-      />
+      <svg
+        data-avatar-jersey-viewport="upper-body"
+        x="0"
+        y="64"
+        width="96"
+        height="34"
+        viewBox="0 36 600 212.5"
+        preserveAspectRatio="xMidYMid meet"
+        overflow="hidden"
+      >
+        <image
+          data-sponsor-jersey-artwork="true"
+          href={imagePath}
+          x="0"
+          y="0"
+          width="600"
+          height="750"
+          preserveAspectRatio="xMidYMid meet"
+        />
+      </svg>
       <path
         d="M2 94C8 80 20 75 35 71M94 94C88 80 76 75 61 71"
         fill="none"
