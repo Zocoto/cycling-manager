@@ -152,7 +152,6 @@ type ManagementModuleIcon =
   | "training"
   | "calendar"
   | "result"
-  | "gazette"
   | "academy"
   | "camp"
   | "transfer"
@@ -731,14 +730,6 @@ export default async function GamePage() {
                   : "Non classée"
               }
               description="Comparez toutes les équipes, les coureurs et les nations, avec les frontières de divisions clairement identifiées."
-            />
-
-            <ManagementModuleCard
-              href="/jeu/gazette"
-              icon="gazette"
-              title="La Cyclogazette"
-              status="Édition quotidienne · 20 h"
-              description="Lisez la une du peloton : résultats du jour, mouvements du mercato et réactions des Directeurs Sportifs après l’arrivée."
             />
 
             <ManagementModuleCard
@@ -1611,13 +1602,6 @@ function ManagementModuleIcon({ icon }: { icon: ManagementModuleIcon }) {
         <path d="M5 20V10h4v10" />
         <path d="M10 20V4h4v16" />
         <path d="M15 20v-7h4v7" />
-      </>
-    ),
-
-    gazette: (
-      <>
-        <path d="M4 5h13v15H6a2 2 0 0 1-2-2V5Z" />
-        <path d="M17 8h3v10a2 2 0 0 1-2 2h-1M7 8h4v4H7zM13 8h2M13 11h2M7 15h8M7 17h6" />
       </>
     ),
 
