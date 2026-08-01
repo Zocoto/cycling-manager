@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
 import { GameRouteLoading } from "@/components/game/game-route-loading";
+import { PlayerActivityTracker } from "@/components/game/player-activity-tracker";
 import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
 import { TutorialProvider } from "@/components/tutorial/tutorial-provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -103,6 +104,7 @@ export default function GameLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <RaceSettlementWatcher />
+      <PlayerActivityTracker />
 
       <Suspense fallback={<GameRouteLoading />}>
         <GameRuntime>{children}</GameRuntime>
