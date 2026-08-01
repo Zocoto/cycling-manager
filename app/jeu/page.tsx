@@ -478,7 +478,7 @@ export default async function GamePage() {
       (left, right) =>
         getDashboardRiderAverage(right) - getDashboardRiderAverage(left),
     )
-    .slice(0, 6);
+    .slice(0, 11);
 
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({
@@ -1041,12 +1041,16 @@ function TeamRosterCard({
   nationalChampionJerseyByRiderId: ReadonlyMap<string, RiderJerseyAppearance>;
 }) {
   const leadingRider = riders[0] ?? null;
+  const supportingRiderRows = [
+    riders.slice(1, 6),
+    riders.slice(6, 11),
+  ].filter((row) => row.length > 0);
 
   return (
     <Link
       href="/jeu/effectif"
       data-tutorial-id="dashboard-roster"
-      className="group relative isolate flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
+      className="group relative isolate flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-5 text-[#FFFDF4] sm:p-6 shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
     >
       <span
         aria-hidden="true"
@@ -1096,7 +1100,7 @@ function TeamRosterCard({
                   jersey
                 }
                 label={`Portrait de ${leadingRider.first_name} ${leadingRider.last_name}`}
-                className="h-24 w-24 border-[3px] border-[#F2C94C]/80 shadow-2xl"
+                className="h-20 w-20 border-[3px] border-[#F2C94C]/80 shadow-2xl sm:h-24 sm:w-24"
               />
             </span>
 
@@ -1105,31 +1109,39 @@ function TeamRosterCard({
               {getDashboardRiderAverage(leadingRider)}
             </span>
 
-            {riders.length > 1 ? (
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-                {riders.slice(1).map((rider) => {
-                  const riderName = `${rider.first_name} ${rider.last_name}`;
+            {supportingRiderRows.length > 0 ? (
+              <div className="mt-4 flex w-full flex-col items-center gap-2 sm:mt-5 sm:gap-3">
+                {supportingRiderRows.map((row, rowIndex) => (
+                  <div
+                    key={`supporting-riders-${rowIndex}`}
+                    className="flex items-center justify-center gap-1.5 sm:gap-3"
+                  >
+                    {row.map((rider) => {
+                      const riderName = `${rider.first_name} ${rider.last_name}`;
 
-                  return (
-                    <span
-                      key={rider.rider_id}
-                      title={`${riderName} · Moyenne ${getDashboardRiderAverage(rider)}`}
-                    >
-                      <RiderAvatar
-                        profileKey={rider.avatar_profile_key}
-                        seed={rider.avatar_seed}
-                        riderId={rider.rider_id}
-                        age={rider.age}
-                        jersey={
-                          nationalChampionJerseyByRiderId.get(rider.rider_id) ??
-                          jersey
-                        }
-                        label={`Portrait de ${riderName}`}
-                        className="h-12 w-12 border-2 border-[#9BE0BC]/40 shadow-lg"
-                      />
-                    </span>
-                  );
-                })}
+                      return (
+                        <span
+                          key={rider.rider_id}
+                          title={`${riderName} · Moyenne ${getDashboardRiderAverage(rider)}`}
+                        >
+                          <RiderAvatar
+                            profileKey={rider.avatar_profile_key}
+                            seed={rider.avatar_seed}
+                            riderId={rider.rider_id}
+                            age={rider.age}
+                            jersey={
+                              nationalChampionJerseyByRiderId.get(
+                                rider.rider_id,
+                              ) ?? jersey
+                            }
+                            label={`Portrait de ${riderName}`}
+                            className="h-10 w-10 border-2 border-[#9BE0BC]/40 shadow-lg sm:h-12 sm:w-12"
+                          />
+                        </span>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             ) : null}
           </div>

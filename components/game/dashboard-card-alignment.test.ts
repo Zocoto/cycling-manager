@@ -20,4 +20,16 @@ describe("alignement des cartes principales du bureau", () => {
       'className="grid content-start gap-6"',
     );
   });
+
+  it("affiche deux rangees de cinq mini-avatars sans deborder sur mobile", () => {
+    expect(dashboardPage).toContain(".slice(0, 11)");
+    expect(dashboardPage).toContain("riders.slice(1, 6)");
+    expect(dashboardPage).toContain("riders.slice(6, 11)");
+    expect(dashboardPage).toContain(
+      'className="h-10 w-10 border-2 border-[#9BE0BC]/40 shadow-lg sm:h-12 sm:w-12"',
+    );
+    expect(dashboardPage).toContain(
+      'className="flex items-center justify-center gap-1.5 sm:gap-3"',
+    );
+  });
 });
