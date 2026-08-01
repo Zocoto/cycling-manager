@@ -57,6 +57,7 @@ describe("dashboard monitoring overview", () => {
       />,
     );
 
+    expect(markup).toContain("L’essentiel en un coup d’œil");
     expect(markup).toContain("À ne pas manquer");
     expect(markup).toContain("Temps forts");
     expect(markup).toContain(">Équipes<");

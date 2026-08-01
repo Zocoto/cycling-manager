@@ -36,7 +36,7 @@ export function DashboardMonitoringOverview({
             id="dashboard-monitoring-title"
             className="mt-1 text-2xl font-black tracking-[-0.025em] text-[#082A2A]"
           >
-            L’essentiel, sans bruit
+            L’essentiel en un coup d’œil
           </h2>
         </div>
         <p className="text-xs font-bold text-[#60756E]">
