@@ -30,6 +30,7 @@ type InventoryRow = {
 export type TeamInventoryOverview = {
   teamName: string;
   seasonName: string;
+  currency: string;
   items: TeamInventoryItem[];
   summary: ReturnType<typeof summarizeInventory>;
 };
@@ -77,6 +78,7 @@ export async function getCurrentTeamInventoryOverview(
         name: catalogItem.name,
         description: catalogItem.description,
         effectSummary: catalogItem.effect_summary,
+        resalePrice: null,
         rarity: catalogItem.rarity,
         quantity: inventory.quantity,
         availableQuantity: inventory.quantity,
@@ -95,7 +97,9 @@ export async function getCurrentTeamInventoryOverview(
   });
 
   const equipmentItems = equipmentOverview.catalog
-    .filter((item) => item.ownedQuantity > 0)
+    .filter(
+      (item) => item.channel === "commercial" && item.ownedQuantity > 0,
+    )
     .map(
       (item) =>
         ({
@@ -107,6 +111,7 @@ export async function getCurrentTeamInventoryOverview(
           name: item.name,
           description: item.description,
           effectSummary: item.effectSummary,
+          resalePrice: item.resalePrice,
           rarity: equipmentRarity(item.rarity),
           quantity: item.ownedQuantity,
           availableQuantity: item.availableQuantity,
@@ -137,6 +142,7 @@ export async function getCurrentTeamInventoryOverview(
   return {
     teamName: equipmentOverview.teamName,
     seasonName: equipmentOverview.seasonName,
+    currency: equipmentOverview.currency,
     items,
     summary: summarizeInventory(items),
   };

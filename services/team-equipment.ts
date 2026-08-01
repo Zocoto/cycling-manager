@@ -6,6 +6,7 @@ import {
   type EquipmentEffects,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
+import { calculateEquipmentResalePrice } from "@/lib/game/equipment-resale";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -69,6 +70,7 @@ type EquippedRow = {
 type PendingRow = EquippedRow & { effective_at: string };
 type PartnerContractRow = {
   id: string;
+  supplier_key: string;
   start_season_id: string;
   end_season_id: string;
 };
@@ -76,6 +78,11 @@ type PartnerEffectRow = {
   equipment_item_id: string;
   effect_payload: unknown;
 };
+type PartnerProductRow = {
+  equipment_item_id: string;
+  offer_type: "core" | "rare";
+};
+type PartnerOfferRow = { equipment_item_id: string };
 
 export type TeamEquipmentCatalogItem = {
   id: string;
@@ -90,6 +97,7 @@ export type TeamEquipmentCatalogItem = {
   supplierPositioning: string;
   description: string;
   price: number;
+  resalePrice: number;
   rarity: CatalogRow["rarity"];
   imagePath: string;
   effectSummary: string;
@@ -99,6 +107,7 @@ export type TeamEquipmentCatalogItem = {
   equippedQuantity: number;
   pendingQuantity: number;
   availableQuantity: number;
+  isUnlimited: boolean;
 };
 
 export type TeamEquipmentAssignment = {
@@ -229,7 +238,12 @@ export async function getRiderEquipmentManagement(
     EQUIPMENT_SLOTS.map((slot) => [
       slot,
       context.catalog.filter((item) => {
-        if (item.slot !== slot || item.ownedQuantity === 0) return false;
+        if (
+          item.slot !== slot ||
+          (!item.isUnlimited && item.ownedQuantity === 0)
+        ) {
+          return false;
+        }
 
         const usedByOthers = context.equipped.filter(
           (assignment) =>
@@ -242,7 +256,10 @@ export async function getRiderEquipmentManagement(
             assignment.rider_id !== riderId
         ).length;
 
-        return item.ownedQuantity > usedByOthers + reservedByOthers;
+        return (
+          item.isUnlimited ||
+          item.ownedQuantity > usedByOthers + reservedByOthers
+        );
       }),
     ])
   ) as Record<EquipmentSlot, TeamEquipmentCatalogItem[]>;
@@ -351,7 +368,7 @@ async function loadEquipmentContext(
         .returns<PendingRow[]>(),
       admin
         .from("equipment_partner_contracts")
-        .select("id, start_season_id, end_season_id")
+        .select("id, supplier_key, start_season_id, end_season_id")
         .eq("team_id", teamSeason.team_id)
         .eq("status", "active")
         .maybeSingle<PartnerContractRow>(),
@@ -366,15 +383,37 @@ async function loadEquipmentContext(
   const rosterRiderIds = (contractsResult.data ?? []).map((row) => row.rider_id);
   assertQuery(partnerContractResult.error, "le partenariat matériel");
 
-  const { data: partnerEffects, error: partnerEffectsError } =
+  const [partnerEffectsResult, partnerProductsResult, partnerOffersResult] =
     partnerContractResult.data
-      ? await admin
-          .from("equipment_partner_item_effects")
-          .select("equipment_item_id, effect_payload")
-          .eq("contract_id", partnerContractResult.data.id)
-          .returns<PartnerEffectRow[]>()
-      : { data: [] as PartnerEffectRow[], error: null };
-  assertQuery(partnerEffectsError, "les effets R&D du matériel");
+      ? await Promise.all([
+          admin
+            .from("equipment_partner_item_effects")
+            .select("equipment_item_id, effect_payload")
+            .eq("contract_id", partnerContractResult.data.id)
+            .returns<PartnerEffectRow[]>(),
+          admin
+            .from("equipment_partner_products")
+            .select("equipment_item_id, offer_type")
+            .eq("supplier_key", partnerContractResult.data.supplier_key)
+            .returns<PartnerProductRow[]>(),
+          admin
+            .from("equipment_partner_offers")
+            .select("equipment_item_id")
+            .eq("contract_id", partnerContractResult.data.id)
+            .eq("status", "claimed")
+            .returns<PartnerOfferRow[]>(),
+        ])
+      : [
+          { data: [] as PartnerEffectRow[], error: null },
+          { data: [] as PartnerProductRow[], error: null },
+          { data: [] as PartnerOfferRow[], error: null },
+        ];
+  assertQuery(partnerEffectsResult.error, "les effets R&D du matériel");
+  assertQuery(partnerProductsResult.error, "la gamme du partenaire");
+  assertQuery(
+    partnerOffersResult.error,
+    "les séries partenaires acceptées",
+  );
   const [equippedResult, ridersResult] = rosterRiderIds.length
     ? await Promise.all([
         admin
@@ -419,13 +458,27 @@ async function loadEquipmentContext(
     ])
   );
   const partnerEffectByItemId = new Map(
-    (partnerEffects ?? []).map((effect) => [
+    (partnerEffectsResult.data ?? []).map((effect) => [
       effect.equipment_item_id,
       effect.effect_payload,
     ]),
   );
+  const partnerAvailableItemIds = new Set([
+    ...(partnerProductsResult.data ?? [])
+      .filter((product) => product.offer_type === "core")
+      .map((product) => product.equipment_item_id),
+    ...(partnerOffersResult.data ?? []).map(
+      (offer) => offer.equipment_item_id,
+    ),
+  ]);
   const catalog = (catalogResult.data ?? []).map((row) => {
-    const ownedQuantity = inventoryByItem.get(row.id) ?? 0;
+    const isUnlimited =
+      row.acquisition_channel === "equipment_partner" &&
+      partnerAvailableItemIds.has(row.id);
+    const ownedQuantity =
+      row.acquisition_channel === "commercial"
+        ? inventoryByItem.get(row.id) ?? 0
+        : 0;
     const equippedQuantity = equippedRows.filter(
       (assignment) => assignment.equipment_item_id === row.id
     ).length;
@@ -433,6 +486,11 @@ async function loadEquipmentContext(
       (assignment) => assignment.equipment_item_id === row.id
     ).length;
     const supplier = supplierByKey.get(row.supplier_key);
+    const effects = normalizeEquipmentEffects(
+      row.acquisition_channel === "equipment_partner"
+        ? partnerEffectByItemId.get(row.id)
+        : row.effect_payload,
+    );
 
     return {
       id: row.id,
@@ -449,22 +507,29 @@ async function loadEquipmentContext(
       supplierPositioning: supplier?.positioning ?? "",
       description: row.description,
       price: toNumber(row.price),
+      resalePrice:
+        row.acquisition_channel === "commercial"
+          ? calculateEquipmentResalePrice({
+              purchasePrice: toNumber(row.price),
+              rarity: row.rarity,
+              effects,
+            })
+          : 0,
       rarity: row.rarity,
       imagePath: row.image_path,
       effectSummary: row.effect_summary,
-      effects: normalizeEquipmentEffects(
-        row.acquisition_channel === "equipment_partner"
-          ? partnerEffectByItemId.get(row.id)
-          : row.effect_payload,
-      ),
+      effects,
       channel: row.acquisition_channel,
       ownedQuantity,
       equippedQuantity,
       pendingQuantity,
-      availableQuantity: Math.max(
-        0,
-        ownedQuantity - equippedQuantity - pendingQuantity
-      ),
+      availableQuantity: isUnlimited
+        ? Math.max(1, rosterRiderIds.length)
+        : Math.max(
+            0,
+            ownedQuantity - equippedQuantity - pendingQuantity,
+          ),
+      isUnlimited,
     } satisfies TeamEquipmentCatalogItem;
   });
   const suppliers = (suppliersResult.data ?? []).map((supplier) => ({

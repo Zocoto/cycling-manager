@@ -73,7 +73,7 @@ export type EquipmentPartnerProduct = {
   effects: EquipmentEffects;
   offerType: ProductRow["offer_type"];
   researchRatingKey: string;
-  ownedQuantity: number;
+  isAvailable: boolean;
 };
 
 export type EquipmentPartnerSupplierOption = {
@@ -322,7 +322,7 @@ function groupProductsBySupplier(
       effects: item.effects,
       offerType: row.offer_type,
       researchRatingKey: row.research_rating_key,
-      ownedQuantity: item.ownedQuantity,
+      isAvailable: item.isUnlimited,
     });
     grouped.set(row.supplier_key, products);
   }

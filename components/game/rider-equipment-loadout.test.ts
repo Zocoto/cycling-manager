@@ -45,6 +45,7 @@ function equipment(
     supplierPositioning: "Test",
     description: name,
     price: 100,
+    resalePrice: 100,
     rarity: "common",
     imagePath: "/images/equipment/products/test.webp",
     effectSummary: "Test",
@@ -54,6 +55,7 @@ function equipment(
     equippedQuantity: 0,
     pendingQuantity: 0,
     availableQuantity: 1,
+    isUnlimited: false,
   };
 }
 

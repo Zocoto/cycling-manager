@@ -651,8 +651,14 @@ function AvailableEquipmentPanel({
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-[#42B99A]/15 px-2 py-1 text-[9px] font-black text-[#9BE0BC]">
-                      {item.availableQuantity} libre
-                      {item.availableQuantity > 1 ? "s" : ""}
+                      {item.isUnlimited ? (
+                        "Accès partenaire"
+                      ) : (
+                        <>
+                          {item.availableQuantity} libre
+                          {item.availableQuantity > 1 ? "s" : ""}
+                        </>
+                      )}
                     </span>
                   </div>
                   <p className="mt-2 text-[10px] font-semibold leading-4 text-[#9FB5A8]">
@@ -670,8 +676,8 @@ function AvailableEquipmentPanel({
         <div className="mt-4 rounded-2xl border border-dashed border-white/15 px-4 py-8 text-center">
           <p className="text-sm font-black text-white">Aucune pièce libre</p>
           <p className="mt-2 text-[11px] font-semibold leading-5 text-[#9FB5A8]">
-            Les objets équipés ou programmés ne sont plus affichés dans cette
-            liste. Une pièce déséquipée y réapparaît.
+            Les pièces achetées déjà attribuées ne sont plus affichées ici. Le
+            matériel du partenaire reste disponible sans contingent.
           </p>
           <Link
             href="/jeu/materiel"

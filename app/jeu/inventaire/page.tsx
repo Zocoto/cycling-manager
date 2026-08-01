@@ -12,6 +12,7 @@ import {
   type InventoryRiderOption,
 } from "@/components/game/inventory-equipment-form";
 import { InventoryConsumableForm } from "@/components/game/inventory-consumable-form";
+import { InventoryEquipmentSaleForm } from "@/components/game/inventory-equipment-sale-form";
 import { buildInventoryReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   INVENTORY_CATEGORY_DEFINITIONS,
@@ -291,6 +292,7 @@ export default async function InventoryPage({
                     pendingEquipmentByRiderAndSlot
                   }
                   returnPath={returnPath}
+                  currency={overview.currency}
                 />
               ))}
             </div>
@@ -309,12 +311,14 @@ function InventoryItemCard({
   equipmentByRiderAndSlot,
   pendingEquipmentByRiderAndSlot,
   returnPath,
+  currency,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
   equipmentByRiderAndSlot: Map<string, string>;
   pendingEquipmentByRiderAndSlot: Map<string, string>;
   returnPath: string;
+  currency: string;
 }) {
   const category = getInventoryCategory(item.category);
 
@@ -413,6 +417,14 @@ function InventoryItemCard({
                     equipmentRiderSlotKey(rider.rider_id, item.equipmentSlot!),
                   ) ?? null,
               }))}
+              returnPath={returnPath}
+            />
+            <InventoryEquipmentSaleForm
+              equipmentItemId={item.sourceId}
+              itemName={item.name}
+              resalePrice={item.resalePrice ?? 0}
+              availableQuantity={item.availableQuantity}
+              currency={currency}
               returnPath={returnPath}
             />
           </>

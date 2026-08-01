@@ -152,9 +152,9 @@ export default async function EquipmentPartnerPage({
                 />
               </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-                Recevez un vélo complet légèrement supérieur au commerce, puis
-                faites évoluer une pièce à la fois. Chaque recherche peut aussi
-                faire reculer le prototype.
+                Accédez sans limite de stock au vélo du partenaire pendant le
+                contrat, puis faites évoluer une pièce à la fois. Chaque recherche
+                peut aussi faire reculer le prototype.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
@@ -188,7 +188,7 @@ export default async function EquipmentPartnerPage({
           <RuleCard
             eyebrow="Signature"
             title="Aucun coût"
-            body="La signature et la dotation ne déclenchent aucune transaction financière."
+            body="Le matériel est disponible sans achat ni stock à gérer pendant toute la durée du contrat."
           />
           <RuleCard
             eyebrow="Engagement"
@@ -243,7 +243,7 @@ export default async function EquipmentPartnerPage({
                       {contract.startSeasonName} → {contract.endSeasonName}
                     </p>
                     <p className="mt-3 text-xs font-bold leading-5 text-[#936A21]">
-                      Les prototypes et leurs avancées R&D ont été retirés.
+                      L’accès aux prototypes et à leurs avancées R&D a été retiré.
                     </p>
                   </div>
                 ))}
@@ -371,7 +371,7 @@ function SupplierContractCard({
       </div>
       <div className="p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#278B70]">
-          Dotation immédiate · 35 exemplaires
+          Mise à disposition immédiate · accès illimité
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {coreProducts.map((product) => (
@@ -389,8 +389,9 @@ function SupplierContractCard({
           ))}
         </div>
         <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
-          Cadre, roues et groupe sont fournis ensemble. Les autres références de
-          la marque restent réservées aux propositions rares.
+          Cadre et roues peuvent équiper autant de coureurs que nécessaire
+          pendant le contrat. Les autres références restent réservées aux
+          propositions rares.
         </p>
         <form action={signEquipmentPartnerAction} className="mt-5">
           <input type="hidden" name="supplierKey" value={supplier.key} />
@@ -450,8 +451,8 @@ function ActiveContractSection({
             <h2 className="mt-2 text-3xl font-black">{supplier.name}</h2>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/85">
               {contract.startSeasonName} à {contract.endSeasonName}. Les
-              prototypes et toutes leurs évolutions seront retirés au terme de
-              la seconde saison.
+              références et toutes leurs évolutions R&D restent utilisables sans
+              limite de stock, puis seront retirées au terme de la seconde saison.
             </p>
           </div>
           <div className="rounded-2xl border border-white/25 bg-black/15 px-5 py-4 text-center backdrop-blur">
@@ -482,7 +483,7 @@ function ActiveContractSection({
         </div>
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {overview.activeProducts
-            .filter((product) => product.ownedQuantity > 0)
+            .filter((product) => product.isAvailable)
             .map((product) => (
               <PartnerProductCard
                 key={product.id}
@@ -585,7 +586,7 @@ function ActiveContractSection({
                   >
                     <input type="hidden" name="offerId" value={offer.id} />
                     <EquipmentPartnerSubmitButton
-                      label="Accepter la dotation"
+                      label="Activer la série"
                       pendingLabel="Acceptation…"
                       tone="green"
                     />
@@ -652,7 +653,7 @@ function PartnerProductCard({
           </p>
         </div>
         <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold text-[#60756E]">
-          <span>{product.ownedQuantity} exemplaires</span>
+          <span>Accès illimité</span>
           <span>R&D : ±1</span>
         </div>
         <form action={startEquipmentPartnerRndAction} className="mt-4">
@@ -730,11 +731,11 @@ function HeroMetric({ label, value }: { label: string; value: string }) {
 function SuccessMessage({ state }: { state: string }) {
   const messages: Record<string, string> = {
     "contrat-signe":
-      "Le contrat est signé. Le vélo complet a été ajouté à l’inventaire de l’équipe.",
+      "Le contrat est signé. Le vélo du partenaire est disponible sans limite de stock pendant le partenariat.",
     "recherche-lancee":
       "La recherche R&D est lancée. Son résultat sera révélé dans trois jours.",
     "proposition-acceptee":
-      "La série limitée a été acceptée et ajoutée à la dotation de l’équipe.",
+      "La série limitée est désormais disponible sans limite de stock pendant le partenariat.",
   };
   const message = messages[state];
   return message ? (

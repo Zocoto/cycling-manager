@@ -18,7 +18,7 @@ export const equipmentTutorialDefinition = {
   type: "contextual",
   title: "Maîtriser le matériel",
   description:
-    "Comparez le matériel commercial, découvrez les contrats équipementiers et apprenez à équiper vos coureurs depuis l’inventaire.",
+    "Comparez le matériel commercial, découvrez les contrats équipementiers et apprenez à équiper vos coureurs depuis leur fiche.",
   autoStart: false,
   replayable: true,
   steps: [
@@ -69,7 +69,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-overview",
       title: "L’équipementier est un partenariat d’équipe",
       content:
-        "À partir de 200 points de réputation, votre équipe peut signer gratuitement avec un équipementier. Le partenaire fournit une dotation complète légèrement supérieure au commerce, avec suffisamment d’exemplaires pour équiper tout l’effectif.\n\nCe choix complète la boutique commerciale : il ne remplace ni l’inventaire ni la gestion individuelle des coureurs.",
+        "Une fois le seuil de réputation atteint, votre équipe peut signer gratuitement avec un équipementier. Les cadres et roues du partenaire deviennent équipables sans contingent depuis la fiche des coureurs pendant toute la durée du contrat.\n\nCes références restent hors inventaire : elles constituent un droit d’usage temporaire, et leurs bonus suivent immédiatement les évolutions de la R&D.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -99,7 +99,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-inventory-overview",
       title: "Tout votre matériel se retrouve dans l’inventaire",
       content:
-        "L’inventaire réunit les achats commerciaux, les dotations d’équipementier et les objets gagnés. Les compteurs distinguent les exemplaires possédés, disponibles, déjà équipés ou programmés.\n\nPour vous souhaiter la bienvenue, une paire de « Lunettes didactiques » vient d’être ajoutée gratuitement à votre inventaire. Elle apporte +1 en END au coureur qui la porte.",
+        "L’inventaire réunit les achats commerciaux, les récompenses matérielles et les autres objets gagnés. Les compteurs distinguent les exemplaires possédés, disponibles, déjà équipés ou programmés.\n\nPour vous souhaiter la bienvenue, une paire de « Lunettes didactiques » vient d’être ajoutée gratuitement à votre inventaire. Elle apporte +1 en END au coureur qui la porte.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -109,7 +109,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-inventory-categories",
       title: "Isolez le matériel disponible",
       content:
-        "La catégorie Matériel affiche toutes les pièces détenues. Une fiche indique la quantité libre et le nom des coureurs qui portent déjà chaque référence.\n\nLorsqu’un exemplaire est équipé, il disparaît des disponibilités mais reste visible avec son propriétaire.",
+        "La catégorie Matériel affiche uniquement les pièces réellement détenues : achats et récompenses. Une fiche indique la quantité libre, les coureurs équipés et la valeur de reprise.\n\nLes références du partenaire ne chargent pas l’inventaire : elles restent accessibles sans contingent depuis la fiche de chaque coureur tant que le contrat est actif.",
       placement: "bottom",
       highlightPadding: 8,
     },

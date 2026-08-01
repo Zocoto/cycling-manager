@@ -23,6 +23,7 @@ export type TeamInventoryItem = {
   name: string;
   description: string;
   effectSummary: string;
+  resalePrice: number | null;
   rarity: InventoryRarity;
   quantity: number;
   availableQuantity: number;

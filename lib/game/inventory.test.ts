@@ -17,6 +17,7 @@ const baseItem: TeamInventoryItem = {
   name: "Test",
   description: "",
   effectSummary: "+1 ACC",
+  resalePrice: null,
   rarity: "common",
   quantity: 2,
   availableQuantity: 2,

@@ -19,6 +19,12 @@ type InventoryApplicationResult = {
   effectSummary?: unknown;
 };
 
+type EquipmentSaleResult = {
+  itemName?: unknown;
+  resalePrice?: unknown;
+  currency?: unknown;
+};
+
 export async function useInventoryItemAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const inventoryItemId = readValue(formData, "inventoryItemId");
@@ -62,6 +68,82 @@ export async function useInventoryItemAction(formData: FormData) {
   revalidatePath("/jeu/resultats");
 
   redirect(withPageFeedback(returnPath, "succes", successMessage));
+}
+
+export async function sellEquipmentAction(formData: FormData) {
+  const equipmentItemId = readValue(formData, "equipmentItemId");
+  const returnPath = sanitizeInventoryReturnPath(
+    readValue(formData, "returnPath"),
+  );
+
+  if (!isUuid(equipmentItemId)) {
+    redirectWithError(returnPath, "La demande de revente est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { data, error } = await supabase.rpc(
+    "sell_current_team_equipment",
+    {
+      p_equipment_item_id: equipmentItemId,
+    },
+  );
+
+  if (error) redirectWithError(returnPath, error.message);
+
+  const result = normalizeEquipmentSaleResult(data);
+
+  revalidatePath("/jeu/inventaire");
+  revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/finances");
+  revalidatePath("/jeu");
+
+  redirect(
+    withPageFeedback(
+      returnPath,
+      "succes",
+      result.itemName +
+        " a été revendu pour " +
+        formatCurrency(result.resalePrice, result.currency) +
+        ".",
+    ),
+  );
+}
+
+function normalizeEquipmentSaleResult(value: unknown) {
+  const result =
+    value && typeof value === "object"
+      ? (value as EquipmentSaleResult)
+      : {};
+  const resalePrice = Number(result.resalePrice);
+
+  return {
+    itemName:
+      typeof result.itemName === "string" && result.itemName.trim()
+        ? result.itemName.trim()
+        : "Le matériel",
+    resalePrice:
+      Number.isFinite(resalePrice) && resalePrice > 0 ? resalePrice : 0,
+    currency:
+      typeof result.currency === "string" &&
+      /^[A-Z]{3}$/.test(result.currency)
+        ? result.currency
+        : "EUR",
+  };
+}
+
+function formatCurrency(value: number, currency: string) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function normalizeApplicationResult(
