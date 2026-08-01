@@ -254,7 +254,6 @@ export function RaceStageExperience({
               edition={entry.edition}
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
-              favoriteRiders={favoriteRiders}
             />
           ) : (
             <RaceLiveLab

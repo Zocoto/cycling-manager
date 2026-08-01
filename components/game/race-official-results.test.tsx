@@ -67,6 +67,19 @@ function buildResults(
   };
 }
 
+it("n'affiche pas les favoris dans les resultats officiels", () => {
+  const markup = renderToStaticMarkup(
+    <RaceOfficialResults
+      edition={edition}
+      selectedStageId="stage-1"
+      officialResults={buildResults("team-active")}
+    />
+  );
+
+  expect(markup).not.toContain("data-race-favorites");
+  expect(markup).not.toContain("Pronostic d&#x27;avant-course");
+});
+
 describe("RaceOfficialResults", () => {
   it("affiche le nom d'une équipe supprimée sans lien persistant", () => {
     const markup = renderToStaticMarkup(
