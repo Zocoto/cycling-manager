@@ -15,6 +15,7 @@ import {
   buildCalendarWeeks,
   compareRaceDaySlots,
   getEditionDayRange,
+  getGrandTourCalendarAccent,
   getRegistrationAvailability,
   isRaceEditionAvailableToCurrentTeam,
   isRaceEditionPast,
@@ -425,6 +426,7 @@ export function SeasonCalendar({
           <div className="mt-5 grid gap-3 lg:grid-cols-2">
             {profileEntries.map(({ edition, stage }) => {
               const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+              const grandTourAccent = getGrandTourCalendarAccent(edition);
               const mountainCount = stage.segments.filter((segment) => segment.prime?.type === "mountain").length;
               const sprintCount = stage.segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length;
               const registrationClosed =
@@ -444,6 +446,7 @@ export function SeasonCalendar({
                       ? "closed"
                       : "not-closed"
                   }
+                  data-grand-tour-accent={grandTourAccent?.key}
                   title={
                     registrationClosed
                       ? `${edition.name} · Inscriptions closes`
@@ -455,6 +458,10 @@ export function SeasonCalendar({
                       registrationClosed
                         ? CLOSED_RACE_PATTERN_ON_LIGHT
                         : undefined,
+                    borderColor: grandTourAccent?.color,
+                    boxShadow: grandTourAccent
+                      ? `0 0 0 2px ${grandTourAccent.color}`
+                      : undefined,
                   }}
                 >
                   <div className="min-w-0">
@@ -628,6 +635,7 @@ function RaceCalendarList({
             0
           );
           const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+          const grandTourAccent = getGrandTourCalendarAccent(edition);
           const registration = edition.currentTeamRegistration;
           const availability = getRegistrationAvailability({
             policy: edition.registrationPolicy,
@@ -661,17 +669,21 @@ function RaceCalendarList({
                   ? "closed"
                   : "not-closed"
               }
+              data-grand-tour-accent={grandTourAccent?.key}
               title={
                 registrationClosed
                   ? `${edition.name} · Inscriptions closes`
                   : edition.name
               }
-              className="grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center"
+              className="relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center"
               style={{
                 backgroundImage:
                   registrationClosed
                     ? CLOSED_RACE_PATTERN_ON_LIGHT
                     : undefined,
+                boxShadow: grandTourAccent
+                  ? `inset 0 0 0 2px ${grandTourAccent.color}`
+                  : undefined,
               }}
             >
               <div>
@@ -945,6 +957,9 @@ function DesktopCalendarWeek({
             .filter((segment) => segment.lane < visibleLaneCount)
             .map((segment) => {
               const style = RACE_CATEGORY_STYLE[segment.edition.categoryCode];
+              const grandTourAccent = getGrandTourCalendarAccent(
+                segment.edition,
+              );
               const columnStart =
                 segment.startHalfDayIndex - week.startHalfDayIndex + 1;
               const columnEnd =
@@ -976,6 +991,7 @@ function DesktopCalendarWeek({
                       ? "closed"
                       : "not-closed"
                   }
+                  data-grand-tour-accent={grandTourAccent?.key}
                   title={`${segment.edition.name} — ${segment.edition.countryName}${stageLabel ? ` · ${stageLabel}` : ""}${registrationClosed ? " · Inscriptions closes" : ""}`}
                   className={`relative z-10 mx-1 flex min-w-0 items-center gap-2 self-center overflow-hidden border px-2 py-2 text-[10px] font-black shadow-sm transition hover:z-20 hover:-translate-y-0.5 hover:brightness-110 focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${
                     hasSeveralStages ? "pb-5" : ""
@@ -994,7 +1010,10 @@ function DesktopCalendarWeek({
                             style.foreground
                           )
                         : undefined,
-                    borderColor: style.border,
+                    borderColor: grandTourAccent?.color ?? style.border,
+                    boxShadow: grandTourAccent
+                      ? `0 0 0 2px ${grandTourAccent.color}`
+                      : undefined,
                     color: style.foreground,
                   }}
                 >
@@ -1232,6 +1251,7 @@ function MobileCalendarDay({
             RACE_CATEGORY_STYLE[
               edition.categoryCode
             ];
+          const grandTourAccent = getGrandTourCalendarAccent(edition);
           const slotConfig =
             RACE_DAY_SLOT_CONFIG[stage.daySlot];
           const startsSlot =
@@ -1263,6 +1283,7 @@ function MobileCalendarDay({
                   ? "closed"
                   : "not-closed"
               }
+              data-grand-tour-accent={grandTourAccent?.key}
               title={
                 registrationClosed
                   ? `${edition.name} · Inscriptions closes`
@@ -1270,7 +1291,10 @@ function MobileCalendarDay({
               }
               className="flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
               style={{
-                borderColor: style.border,
+                borderColor: grandTourAccent?.color ?? style.border,
+                boxShadow: grandTourAccent
+                  ? `0 0 0 2px ${grandTourAccent.color}`
+                  : undefined,
                 backgroundColor: style.background,
                 backgroundImage:
                   registrationClosed

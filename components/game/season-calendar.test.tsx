@@ -97,6 +97,79 @@ describe("SeasonCalendar", () => {
     }
   });
 
+  it("met en valeur les trois Grands Tours avec leur liseré national", () => {
+    const calendar: SeasonRaceCalendar = {
+      seasonId: "season-grand-tours",
+      seasonName: "Saison des Grands Tours",
+      gameYear: 1,
+      startsOn: "2026-08-01",
+      endsOn: "2026-08-28",
+      currentDayNumber: 1,
+      days: Array.from({ length: 28 }, (_, index) => ({
+        id: `day-${index + 1}`,
+        dayNumber: index + 1,
+        calendarDate: new Date(Date.UTC(2026, 7, 1 + index))
+          .toISOString()
+          .slice(0, 10),
+        label: null,
+      })),
+      events: [],
+      editions: [
+        createEdition({
+          id: "corsa-delle-regioni",
+          name: "Corsa delle Regioni",
+          categoryCode: "elite",
+          countryCode: "IT",
+          dayNumber: 1,
+          daySlot: "early",
+          registrationClosesAt: "2026-08-02T08:00:00Z",
+          accepted: false,
+          isGrandTour: true,
+          raceFormat: "stage_race",
+        }),
+        createEdition({
+          id: "boucle-des-provinces",
+          name: "Boucle des Provinces",
+          categoryCode: "elite",
+          countryCode: "FR",
+          dayNumber: 2,
+          daySlot: "early",
+          registrationClosesAt: "2026-08-03T08:00:00Z",
+          accepted: false,
+          isGrandTour: true,
+          raceFormat: "stage_race",
+        }),
+        createEdition({
+          id: "ruta-de-las-sierras",
+          name: "Ruta de las Sierras",
+          categoryCode: "elite",
+          countryCode: "ES",
+          dayNumber: 3,
+          daySlot: "early",
+          registrationClosesAt: "2026-08-04T08:00:00Z",
+          accepted: false,
+          isGrandTour: true,
+          raceFormat: "stage_race",
+        }),
+      ],
+    };
+
+    const markup = renderToStaticMarkup(
+      <SeasonCalendar
+        calendar={calendar}
+        reputationPoints={100}
+        nowIso="2026-08-01T07:00:00Z"
+      />,
+    );
+
+    expect(markup).toContain('data-grand-tour-accent="italy"');
+    expect(markup).toContain('data-grand-tour-accent="france"');
+    expect(markup).toContain('data-grand-tour-accent="spain"');
+    expect(markup).toContain("0 0 0 2px #F0A1BB");
+    expect(markup).toContain("0 0 0 2px #F2C94C");
+    expect(markup).toContain("0 0 0 2px #E05252");
+  });
+
   it("retire les courses révolues du calendrier", () => {
     const pastEdition = createEdition({
       id: "course-passee",
@@ -176,6 +249,9 @@ function createEdition({
   daySlot,
   registrationClosesAt,
   accepted,
+  countryCode = "FR",
+  isGrandTour = false,
+  raceFormat = "one_day",
 }: {
   id: string;
   name: string;
@@ -184,6 +260,9 @@ function createEdition({
   daySlot: "early" | "late";
   registrationClosesAt: string;
   accepted: boolean;
+  countryCode?: string;
+  isGrandTour?: boolean;
+  raceFormat?: RaceCalendarEdition["raceFormat"];
 }): RaceCalendarEdition {
   return {
     id,
@@ -191,16 +270,22 @@ function createEdition({
     slug: id,
     name,
     shortName: name,
-    countryName: "France",
-    countryCode: "FR",
+    countryName:
+      countryCode === "IT"
+        ? "Italie"
+        : countryCode === "ES"
+          ? "Espagne"
+          : "France",
+    countryCode,
     categoryCode,
     categoryName: categoryCode,
     prestigeRank:
       RACE_CATEGORY_CODES.indexOf(
         categoryCode
       ) + 1,
-    raceFormat: "one_day",
+    raceFormat,
     competitionType: "standard",
+    isGrandTour,
     registrationClosesAt,
     wildcardClosesAt: registrationClosesAt,
     withdrawalClosesAt:

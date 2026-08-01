@@ -5,6 +5,7 @@ import {
   buildCalendarWeeks,
   getEditionDayRange,
   getEffectiveSeasonDay,
+  getGrandTourCalendarAccent,
   getRaceCategoryReputationThreshold,
   getRegistrationAvailability,
   getSeasonHalfDayIndex,
@@ -16,6 +17,33 @@ import {
   isRosterSelectionValid,
   type RaceCalendarEdition,
 } from "./race-calendar";
+
+describe("getGrandTourCalendarAccent", () => {
+  it.each([
+    ["IT", "italy", "Grand Tour italien", "#F0A1BB"],
+    ["FR", "france", "Grand Tour français", "#F2C94C"],
+    ["ES", "spain", "Grand Tour espagnol", "#E05252"],
+  ] as const)(
+    "associe le Grand Tour %s a son liseré national",
+    (countryCode, key, label, color) => {
+      expect(
+        getGrandTourCalendarAccent({
+          countryCode,
+          isGrandTour: true,
+        }),
+      ).toEqual({ key, label, color });
+    },
+  );
+
+  it("ne met pas en valeur une autre course Elite", () => {
+    expect(
+      getGrandTourCalendarAccent({
+        countryCode: "FR",
+        isGrandTour: false,
+      }),
+    ).toBeNull();
+  });
+});
 
 describe("getEffectiveSeasonDay", () => {
   it("fait avancer le jour selon la date parisienne", () => {

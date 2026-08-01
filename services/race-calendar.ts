@@ -106,6 +106,7 @@ type RaceRow = {
   race_format: RaceFormat;
   slug: string;
   competition_type: RaceCompetitionType;
+  is_grand_tour: boolean;
 };
 
 type RaceCategoryRow = {
@@ -722,7 +723,8 @@ export async function getActiveSeasonRaceCalendar(
                     short_name,
                     race_format,
                     slug,
-                    competition_type
+                    competition_type,
+                    is_grand_tour
                   `,
                 )
                 .in("id", chunk)
@@ -939,6 +941,7 @@ export async function getActiveSeasonRaceCalendar(
         prestigeRank: category.prestige_rank,
         raceFormat: race.race_format,
         competitionType: race.competition_type,
+        isGrandTour: race.is_grand_tour,
         registrationClosesAt: edition.registration_closes_at,
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,

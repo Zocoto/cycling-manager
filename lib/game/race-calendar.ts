@@ -132,6 +132,7 @@ export type RaceCalendarEdition = {
   prestigeRank: number;
   raceFormat: RaceFormat;
   competitionType: RaceCompetitionType;
+  isGrandTour?: boolean;
   registrationClosesAt: string | null;
   wildcardClosesAt: string | null;
   withdrawalClosesAt: string | null;
@@ -148,6 +149,43 @@ export type RaceCalendarEdition = {
   } | null;
   stages: RaceCalendarStage[];
 };
+
+export type GrandTourCalendarAccent = {
+  key: "italy" | "france" | "spain";
+  label: string;
+  color: string;
+};
+
+const GRAND_TOUR_CALENDAR_ACCENTS: Partial<
+  Record<string, GrandTourCalendarAccent>
+> = {
+  IT: {
+    key: "italy",
+    label: "Grand Tour italien",
+    color: "#F0A1BB",
+  },
+  FR: {
+    key: "france",
+    label: "Grand Tour français",
+    color: "#F2C94C",
+  },
+  ES: {
+    key: "spain",
+    label: "Grand Tour espagnol",
+    color: "#E05252",
+  },
+};
+
+export function getGrandTourCalendarAccent(
+  edition: Pick<RaceCalendarEdition, "countryCode" | "isGrandTour">,
+): GrandTourCalendarAccent | null {
+  if (!edition.isGrandTour) return null;
+
+  return (
+    GRAND_TOUR_CALENDAR_ACCENTS[edition.countryCode.toUpperCase()] ??
+    null
+  );
+}
 
 export type SeasonCalendarDay = {
   id: string;
