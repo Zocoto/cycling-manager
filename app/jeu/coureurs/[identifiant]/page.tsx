@@ -399,7 +399,7 @@ export default async function RiderProfilePage({
           </div>
         </header>
 
-        <div className="mt-7 grid gap-7 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
           <section
             data-tutorial-id="rider-profile-stats"
             className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
@@ -444,6 +444,42 @@ export default async function RiderProfilePage({
                 />
               </div>
             ) : null}
+            {profile.privateContract ? (
+              <div
+                data-tutorial-id="rider-profile-contract"
+                className="min-w-0 space-y-5"
+              >
+                <PrivateContractCard contract={profile.privateContract} />
+                {transferManagement ? (
+                  <ContractRenewalCard
+                    riderId={profile.id}
+                    management={transferManagement}
+                  />
+                ) : null}
+              </div>
+            ) : transferManagement?.isFreeAgent ? (
+              <div
+                data-tutorial-id="rider-profile-contract"
+                className="min-w-0"
+              >
+                <FreeAgentSigningCard
+                  riderId={profile.id}
+                  management={transferManagement}
+                />
+              </div>
+            ) : (
+              <div
+                data-tutorial-id="rider-profile-contract"
+                className="min-w-0"
+              >
+                <CareerSummaryCard
+                  teamName={profile.currentTeam?.displayName ?? "Agent libre"}
+                  seasonsCount={
+                    new Set(profile.history.map((entry) => entry.seasonId)).size
+                  }
+                />
+              </div>
+            )}
             {profile.medical ? (
               <RiderMedicalCard medical={profile.medical} />
             ) : null}
@@ -460,51 +496,24 @@ export default async function RiderProfilePage({
         </div>
 
         {profile.canManage && riderPlanning ? (
-          <div data-tutorial-id="rider-profile-planning" className="mt-7">
+          <div data-tutorial-id="rider-profile-planning" className="mt-6">
             <RiderSeasonPlanning
               planning={riderPlanning}
               jersey={riderJersey}
               variant="rider"
+              showEventDetails={false}
             />
           </div>
         ) : null}
 
-        <div className="mt-7 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-          <div
-            data-tutorial-id="rider-profile-history"
-            className="min-w-0"
-          >
-            <CareerHistory history={profile.history} />
-          </div>
-          {profile.privateContract ? (
-            <div
-              data-tutorial-id="rider-profile-contract"
-              className="min-w-0 space-y-5"
-            >
-              <PrivateContractCard contract={profile.privateContract} />
-              {transferManagement ? (
-                <ContractRenewalCard
-                  riderId={profile.id}
-                  management={transferManagement}
-                />
-              ) : null}
-            </div>
-          ) : transferManagement?.isFreeAgent ? (
-            <FreeAgentSigningCard
-              riderId={profile.id}
-              management={transferManagement}
-            />
-          ) : (
-            <CareerSummaryCard
-              teamName={profile.currentTeam?.displayName ?? "Agent libre"}
-              seasonsCount={
-                new Set(profile.history.map((entry) => entry.seasonId)).size
-              }
-            />
-          )}
+        <div
+          data-tutorial-id="rider-profile-history"
+          className="mt-6 min-w-0"
+        >
+          <CareerHistory history={profile.history} />
         </div>
 
-        <div data-tutorial-id="rider-profile-equipment" className="mt-7">
+        <div data-tutorial-id="rider-profile-equipment" className="mt-6">
           <RiderEquipmentLoadout
             riderId={profile.id}
             equipment={profile.equipment}

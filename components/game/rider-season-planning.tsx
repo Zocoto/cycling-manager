@@ -33,11 +33,13 @@ export function RiderSeasonPlanning({
   jersey,
   jerseyByRiderId,
   variant = "team",
+  showEventDetails = false,
 }: {
   planning: TeamRiderSeasonPlanning;
   jersey: RiderJerseyAppearance;
   jerseyByRiderId?: ReadonlyMap<string, RiderJerseyAppearance>;
   variant?: "team" | "rider";
+  showEventDetails?: boolean;
 }) {
   const events = planning.riders.flatMap((rider) => rider.events);
   const upcomingEvents = events.filter(
@@ -101,7 +103,7 @@ export function RiderSeasonPlanning({
               </div>
             </div>
           </div>
-          {variant === "rider" && planning.riders[0] ? (
+          {variant === "rider" && showEventDetails && planning.riders[0] ? (
             <RiderEventDetails rider={planning.riders[0]} />
           ) : null}
         </>

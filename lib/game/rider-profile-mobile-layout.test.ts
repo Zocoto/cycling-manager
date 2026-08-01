@@ -9,15 +9,21 @@ const riderPage = readFileSync(
 );
 
 describe("mise en page mobile de la fiche coureur", () => {
-  it("empêche l’historique d’élargir la grille et la carte Contrat", () => {
+  it("place le contrat dans la colonne latérale et libère toute la largeur pour l’historique", () => {
     expect(riderPage).toContain(
-      'className="mt-7 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]"',
+      'className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"',
     );
     expect(riderPage).toMatch(
-      /data-tutorial-id="rider-profile-history"\s+className="min-w-0"/,
+      /data-tutorial-id="rider-profile-naturalization"[\s\S]*data-tutorial-id="rider-profile-contract"/,
     );
     expect(riderPage).toMatch(
       /data-tutorial-id="rider-profile-contract"\s+className="min-w-0 space-y-5"/,
+    );
+    expect(riderPage).toMatch(
+      /data-tutorial-id="rider-profile-history"\s+className="mt-6 min-w-0"/,
+    );
+    expect(riderPage).not.toContain(
+      "lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]",
     );
   });
 
