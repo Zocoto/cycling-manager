@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["cdg1"],
   "crons": [
-    { "path": "/api/cron/game-maintenance", "schedule": "5 * * * *" },
+    { "path": "/api/cron/game-maintenance", "schedule": "5 6 * * *" },
     { "path": "/api/cron/alpha-bots/morning", "schedule": "35 5 * * *" },
     { "path": "/api/cron/alpha-bots/evening", "schedule": "35 17 * * *" },
     { "path": "/api/cron/race-settlements/early-summer-10", "schedule": "10 12 * * *" },
