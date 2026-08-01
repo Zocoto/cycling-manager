@@ -72,7 +72,7 @@ export function GameHeader({
       />
 
       <div
-        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center justify-between gap-x-5 gap-y-3 px-5 pb-4 pt-5 sm:px-8 lg:flex-nowrap`}
+        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 pb-3 pt-3 sm:gap-x-5 sm:gap-y-3 sm:px-8 sm:pb-4 sm:pt-5 lg:flex-nowrap`}
       >
         <Link
           href="/jeu"
@@ -80,7 +80,7 @@ export function GameHeader({
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
-            <WheelLogo colors={colors} className="h-12 w-12" />
+            <WheelLogo colors={colors} className="h-10 w-10 sm:h-12 sm:w-12" />
           </span>
 
           <span className="hidden h-11 -translate-y-[3px] flex-col justify-between leading-none sm:inline-flex">
@@ -116,7 +116,7 @@ export function GameHeader({
           <div className="flex w-full items-center overflow-hidden rounded-xl border border-[#78947D]/55 bg-[#FFFDF4]/8 shadow-inner shadow-black/20 transition focus-within:border-[var(--game-header-accent)] focus-within:ring-2 focus-within:ring-[var(--game-header-accent-soft)]">
             <span
               aria-hidden="true"
-              className="ml-3 text-[#D6DFD2]"
+              className="ml-2.5 text-[#D6DFD2] sm:ml-3"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -148,13 +148,13 @@ export function GameHeader({
               defaultValue={searchQuery}
               placeholder="Rechercher un DS, une équipe, une nation…"
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-[#D6DFD2]/65"
+              className="min-w-0 flex-1 bg-transparent px-2.5 py-2 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-[#D6DFD2]/65 sm:px-3 sm:py-2.5"
             />
 
             <button
               type="submit"
               aria-label="Lancer la recherche"
-              className="m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:w-auto sm:px-3"
+              className="m-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-9 sm:w-auto sm:px-3"
             >
               <svg
                 aria-hidden="true"
@@ -181,7 +181,7 @@ export function GameHeader({
           </div>
         </form>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <Link
             href="/jeu/equipe"
             title="Ouvrir la fiche de mon équipe"
@@ -251,7 +251,7 @@ export function GameHeader({
             href="/guide"
             title="Ouvrir le guide du jeu"
             aria-label="Ouvrir le guide du jeu"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10"
           >
             <svg
               aria-hidden="true"
@@ -273,7 +273,7 @@ export function GameHeader({
               type="submit"
               title="Se déconnecter"
               aria-label="Se déconnecter"
-              className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10"
             >
               <svg
                 aria-hidden="true"
@@ -320,7 +320,7 @@ function RaceSimulatorShortcut() {
       href="/jeu/simulateur-course"
       title="Ouvrir le simulateur de course"
       aria-label="Ouvrir le simulateur de course"
-      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#72D4B7]/40 bg-[#72D4B7]/10 text-xs font-extrabold uppercase tracking-widest text-[#9BE0CA] transition hover:border-[#72D4B7] hover:bg-[#72D4B7] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7] xl:w-auto xl:gap-2 xl:px-3"
+      className="group inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#72D4B7]/40 bg-[#72D4B7]/10 text-xs font-extrabold uppercase tracking-widest text-[#9BE0CA] transition hover:border-[#72D4B7] hover:bg-[#72D4B7] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#72D4B7] sm:h-10 sm:w-10 xl:w-auto xl:gap-2 xl:px-3"
     >
       <svg
         aria-hidden="true"

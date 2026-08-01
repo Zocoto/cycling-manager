@@ -55,7 +55,7 @@ const NAVIGATION_COLUMNS = [
 export function GameNavigationMenu() {
   return (
     <details className="group relative shrink-0">
-      <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] [&::-webkit-details-marker]:hidden">
+      <summary className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-auto sm:px-3 [&::-webkit-details-marker]:hidden">
         <svg
           aria-hidden="true"
           viewBox="0 0 20 20"

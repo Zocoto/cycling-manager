@@ -116,7 +116,7 @@ export function GlobalChatShortcut({
       title={label}
       aria-label={label}
       data-chat-unread={displayedUnread ? "true" : "false"}
-      className="group relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+      className="group relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10"
     >
       <svg
         aria-hidden="true"
