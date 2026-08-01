@@ -1,9 +1,5 @@
 import Link from "@/components/ui/app-link";
 
-type GameNavigationMenuProps = {
-  showRaceSimulator?: boolean;
-};
-
 const NAVIGATION_GROUPS = [
   {
     label: "Essentiel",
@@ -56,9 +52,7 @@ const NAVIGATION_COLUMNS = [
   [NAVIGATION_GROUPS[1], NAVIGATION_GROUPS[3]],
 ] as const;
 
-export function GameNavigationMenu({
-  showRaceSimulator = false,
-}: GameNavigationMenuProps) {
+export function GameNavigationMenu() {
   return (
     <details className="group relative shrink-0">
       <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 px-3 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] [&::-webkit-details-marker]:hidden">
@@ -119,16 +113,6 @@ export function GameNavigationMenu({
                         {label}
                       </Link>
                     ))}
-
-                    {group === NAVIGATION_GROUPS[3] &&
-                    showRaceSimulator ? (
-                      <Link
-                        href="/jeu/simulateur-course"
-                        className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
-                      >
-                        Simulateur de course
-                      </Link>
-                    ) : null}
                   </div>
                 </section>
               ))}

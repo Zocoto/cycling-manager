@@ -101,9 +101,7 @@ export function GameHeader({
           </span>
         </Link>
 
-        <GameNavigationMenu
-          showRaceSimulator={canAccessRaceSimulator(simulatorEmail)}
-        />
+        <GameNavigationMenu />
 
         <form
           action="/jeu/recherche"
