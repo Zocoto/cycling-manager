@@ -5,6 +5,7 @@ import {
   evaluateNaturalizationEligibility,
   findContinuousProfessionalTenureStart,
   PROFESSIONAL_NATURALIZATION_REQUIRED_DAYS,
+  shouldDisplayNaturalizationCard,
   YOUTH_NATURALIZATION_REQUIRED_DAYS,
 } from "./naturalization";
 
@@ -103,5 +104,47 @@ describe("naturalization", () => {
         targetCountry: france,
       }),
     ).toMatchObject({ eligible: false, reason: "same_nationality" });
+  });
+
+  it("n'affiche la rubrique que si la naturalisation reste utile", () => {
+    const eligibility = evaluateNaturalizationEligibility({
+      level: "professional",
+      elapsedDays: 84,
+      currentCountry: belgium,
+      targetCountry: france,
+    });
+    const waiting = evaluateNaturalizationEligibility({
+      level: "professional",
+      elapsedDays: 42,
+      currentCountry: belgium,
+      targetCountry: france,
+    });
+    const alreadyNaturalized = evaluateNaturalizationEligibility({
+      level: "professional",
+      elapsedDays: 84,
+      currentCountry: france,
+      targetCountry: france,
+    });
+    const permanentlyLocked = evaluateNaturalizationEligibility({
+      level: "professional",
+      elapsedDays: 84,
+      currentCountry: belgium,
+      targetCountry: france,
+      hasNationalChampionshipTitle: true,
+    });
+    const unavailable = evaluateNaturalizationEligibility({
+      level: "professional",
+      elapsedDays: 84,
+      currentCountry: belgium,
+      targetCountry: france,
+      available: false,
+    });
+
+    expect(shouldDisplayNaturalizationCard(eligibility)).toBe(true);
+    expect(shouldDisplayNaturalizationCard(waiting)).toBe(true);
+    expect(shouldDisplayNaturalizationCard(alreadyNaturalized)).toBe(false);
+    expect(shouldDisplayNaturalizationCard(permanentlyLocked)).toBe(false);
+    expect(shouldDisplayNaturalizationCard(unavailable)).toBe(false);
+    expect(shouldDisplayNaturalizationCard(null)).toBe(false);
   });
 });

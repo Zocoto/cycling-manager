@@ -35,6 +35,15 @@ export type ProfessionalContractTenure = {
   joinedDayNumber: number;
 };
 
+export function shouldDisplayNaturalizationCard(
+  eligibility: NaturalizationEligibility | null | undefined,
+): eligibility is NaturalizationEligibility {
+  return (
+    eligibility?.reason === "eligible" ||
+    eligibility?.reason === "tenure_incomplete"
+  );
+}
+
 export function getNaturalizationRequiredDays(
   level: NaturalizationLevel,
 ): number {

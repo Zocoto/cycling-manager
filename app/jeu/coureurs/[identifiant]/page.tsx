@@ -30,6 +30,7 @@ import {
 } from "@/lib/game/equipment";
 import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import { getRiderExperience } from "@/lib/game/rider-experience";
+import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
 import {
   SPECIAL_ABILITY_CATALOG,
   type RiderSpecialAbility,
@@ -433,7 +434,7 @@ export default async function RiderProfilePage({
           </section>
 
           <aside className="space-y-5">
-            {naturalizationEligibility ? (
+            {shouldDisplayNaturalizationCard(naturalizationEligibility) ? (
               <div data-tutorial-id="rider-profile-naturalization">
                 <NaturalizationCard
                   eligibility={naturalizationEligibility}
