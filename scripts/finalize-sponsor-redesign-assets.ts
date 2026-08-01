@@ -3,6 +3,7 @@ import path from "node:path";
 
 import sharp from "sharp";
 
+import { AUTOMOTIVE_SPONSORS } from "../data/sponsors/automotive";
 import { CYCLING_PROJECT_SPONSORS } from "../data/sponsors/cycling-projects";
 import { POSTAL_SERVICE_SPONSORS } from "../data/sponsors/postal-services";
 import type { Sponsor } from "../types/sponsor";
@@ -31,11 +32,22 @@ const BRAND_LOCKUPS: BrandLockup[] = [
   { id: "kapuluan-post", main: "KAPULUAN", descriptor: "POST", monogram: "KP", category: "POSTAL SERVICE" },
   { id: "sahel-colis", main: "SAHEL", descriptor: "COLIS", monogram: "SC", category: "POSTAL SERVICE" },
   { id: "triglav-parcel", main: "TRIGLAV", descriptor: "PARCEL", monogram: "TP", category: "POSTAL SERVICE" },
+  { id: "eichenrad-automobil", main: "EICHENRAD", descriptor: "AUTOMOBIL", monogram: "EA", category: "AUTOMOTIVE" },
+  { id: "soramei-motors", main: "SORAMEI", descriptor: "MOTORS", monogram: "SM", category: "AUTOMOTIVE" },
+  { id: "mesa-forge-automotive", main: "MESA FORGE", descriptor: "AUTOMOTIVE", monogram: "MF", category: "AUTOMOTIVE" },
+  { id: "hanul-vector-motors", main: "HANUL VECTOR", descriptor: "MOTORS", monogram: "HV", category: "ELECTRIC MOBILITY" },
+  { id: "jade-meridian-motors", main: "JADE MERIDIAN", descriptor: "MOTORS", monogram: "JM", category: "AUTOMOTIVE" },
+  { id: "fulmine-rosso-automobili", main: "FULMINE ROSSO", descriptor: "AUTOMOBILI", monogram: "FR", category: "PERFORMANCE CARS" },
+  { id: "mistralys-automobiles", main: "MISTRALYS", descriptor: "AUTOMOBILES", monogram: "MA", category: "ELECTRIC MOBILITY" },
+  { id: "calder-wren-motorworks", main: "CALDER & WREN", descriptor: "MOTORWORKS", monogram: "CW", category: "BRITISH MOTORING" },
+  { id: "suryavaan-motors", main: "SURYAVAAN", descriptor: "MOTORS", monogram: "SY", category: "SMART MOBILITY" },
+  { id: "vereda-nova-automoveis", main: "VEREDA NOVA", descriptor: "AUTOMÓVEIS", monogram: "VN", category: "SOUTH AMERICAN MOTORS" },
 ];
 
 const sponsors = [
   ...CYCLING_PROJECT_SPONSORS,
   ...POSTAL_SERVICE_SPONSORS,
+  ...AUTOMOTIVE_SPONSORS,
 ] satisfies readonly Sponsor[];
 const lockupById = new Map(BRAND_LOCKUPS.map((lockup) => [lockup.id, lockup]));
 

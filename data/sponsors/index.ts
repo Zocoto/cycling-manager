@@ -1,6 +1,7 @@
 import type { Sponsor } from "@/types/sponsor";
 
 import { AFRICAN_SPONSORS } from "./africa";
+import { AUTOMOTIVE_SPONSORS } from "./automotive";
 import { BALTIC_SPONSORS } from "./baltics";
 import { BANKING_SPONSORS } from "./banking";
 import { BELGIAN_SPONSORS } from "./belgium";
@@ -38,4 +39,5 @@ export const SPONSORS = [
   ...SPIRITS_SPONSORS,
   ...CYCLING_PROJECT_SPONSORS,
   ...POSTAL_SERVICE_SPONSORS,
+  ...AUTOMOTIVE_SPONSORS,
 ] satisfies readonly Sponsor[];
