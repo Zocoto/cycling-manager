@@ -63,7 +63,9 @@ export async function getCurrentDailyRewardOverview(
       .map((value) => readNumber(value, 0))
       .filter((value) => value >= 1 && value <= DAILY_REWARD_SEASON_LENGTH),
     offers: readArray(raw.offers).flatMap(normalizeOffer),
-    inventory: readArray(raw.inventory).flatMap(normalizeInventoryItem),
+    inventory: readArray(raw.inventory)
+      .flatMap(normalizeInventoryItem)
+      .filter((item) => item.effectKind !== "equipment"),
     riders: readArray(raw.riders).flatMap(normalizeRider),
     eligibleRaces: readArray(raw.eligibleRaces).flatMap(normalizeRace),
     abilities: readArray(raw.abilities).flatMap(normalizeAbility),

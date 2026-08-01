@@ -532,7 +532,7 @@ export default async function GamePage() {
           category: "objective" as const,
           priority: "action" as const,
           title: "Votre cadeau quotidien vous attend",
-          description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau niveau ${dailyRewards.importance} à ouvrir.`,
+          description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau du jour à ouvrir.`,
           href: "/jeu/objectifs?onglet=quotidiennes",
           actionLabel: "Ouvrir le cadeau",
           badgeLabel: "Quotidien",

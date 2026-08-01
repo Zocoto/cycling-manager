@@ -213,7 +213,7 @@ export default async function ObjectivesPage({
             label="Récompenses quotidiennes"
             description={
               dailyRewards?.availableToday
-                ? `Cadeau niveau ${dailyRewards.importance} à ouvrir`
+                ? "Cadeau du jour à ouvrir"
                 : `${dailyRewards?.consecutiveDays ?? 0} jour${(dailyRewards?.consecutiveDays ?? 0) > 1 ? "s" : ""} consécutif${(dailyRewards?.consecutiveDays ?? 0) > 1 ? "s" : ""}`
             }
             active={selectedTab === "quotidiennes"}

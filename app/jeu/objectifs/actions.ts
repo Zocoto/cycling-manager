@@ -76,10 +76,14 @@ export async function claimDailyRewardAction(formData: FormData) {
 
   if (result.error) redirectDailyRewardError(result.error.message);
 
+  const message = readRewardResultMessage(
+    result.data,
+    "Cadeau ouvert ! Il a rejoint votre réserve.",
+  );
   revalidateDailyRewardPaths();
   redirect(
     "/jeu/objectifs?onglet=quotidiennes&succes=" +
-      encodeURIComponent("Cadeau ouvert ! Il a rejoint votre réserve."),
+      encodeURIComponent(message),
   );
 }
 
@@ -120,7 +124,10 @@ export async function redeemDailyRewardAction(formData: FormData) {
 
   if (result.error) redirectDailyRewardError(result.error.message);
 
-  const message = readRewardResultMessage(result.data);
+  const message = readRewardResultMessage(
+    result.data,
+    "Le cadeau a bien été utilisé.",
+  );
   revalidateDailyRewardPaths();
   redirect(
     "/jeu/objectifs?onglet=quotidiennes&succes=" +
@@ -145,13 +152,13 @@ function redirectDailyRewardError(message: string): never {
   );
 }
 
-function readRewardResultMessage(value: unknown) {
+function readRewardResultMessage(value: unknown, fallback: string) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const message = (value as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) return message.trim();
   }
 
-  return "Le cadeau a bien été utilisé.";
+  return fallback;
 }
 
 function readOptionalUuid(formData: FormData, key: string) {

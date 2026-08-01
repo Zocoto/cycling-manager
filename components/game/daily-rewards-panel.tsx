@@ -41,22 +41,13 @@ export function DailyRewardsPanel({
               Votre série quotidienne
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#C4D7CE]">
-              Ouvrez le cadeau chaque jour. Une journée de saison manquée
-              remet la série à zéro ; le 28e cadeau consécutif atteint le
-              niveau 10.
+              Ouvrez un cadeau chaque jour. Une journée de saison manquée
+              remet la série à zéro ; tenez jusqu’au 28e jour pour découvrir
+              la récompense finale.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
+          <div className="rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
             <Metric label="Série" value={`${overview.consecutiveDays} j`} />
-            <Metric
-              label="Prochain"
-              value={`Niv. ${overview.importance}`}
-              accent
-            />
-            <Metric
-              label="Saison"
-              value={`${overview.claimedSeasonDays.length}/28`}
-            />
           </div>
         </div>
 
@@ -69,7 +60,13 @@ export function DailyRewardsPanel({
               return (
                 <div
                   key={day}
-                  title={`J${day} · cadeau niveau ${getDailyRewardImportance(day)}`}
+                  title={
+                    claimed
+                      ? `J${day} · cadeau récupéré`
+                      : current
+                        ? `J${day} · jour actuel`
+                        : `J${day}`
+                  }
                   className={`relative flex aspect-square min-w-0 items-center justify-center rounded-lg border text-[10px] font-black sm:text-xs ${
                     claimed
                       ? "border-[#176951] bg-[#176951] text-white"
@@ -79,7 +76,8 @@ export function DailyRewardsPanel({
                   }`}
                 >
                   {claimed ? "✓" : day}
-                  {[4, 7, 14, 21, 28].includes(day) ? (
+                  {[4, 7, 14, 21, 28].includes(day) &&
+                  getDailyRewardImportance(day) > 1 ? (
                     <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#F2C94C]" />
                   ) : null}
                 </div>
@@ -89,7 +87,7 @@ export function DailyRewardsPanel({
 
           {overview.availableToday ? (
             <div className="mt-7 rounded-[1.6rem] border border-[#D6A600]/28 bg-[#FFF9DB] p-5 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8A7000]">
                     J{overview.currentDayNumber} · cadeau {overview.prospectiveStreakDay}/28
@@ -100,9 +98,6 @@ export function DailyRewardsPanel({
                       : "Votre cadeau est prêt à être ouvert"}
                   </h3>
                 </div>
-                <span className="rounded-full bg-[#F2C94C] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#4A3900]">
-                  Importance {overview.importance}/10
-                </span>
               </div>
 
               <div className={`mt-5 grid gap-4 ${overview.offers.length > 1 ? "lg:grid-cols-3" : "max-w-2xl"}`}>
@@ -164,17 +159,24 @@ export function DailyRewardsPanel({
           </p>
         </div>
 
-        {overview.inventory.length > 0 ? (
+        {overview.inventory.some((item) => item.effectKind !== "equipment") ? (
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {overview.inventory.map((item) => (
-              <InventoryRewardCard key={item.id} item={item} overview={overview} />
-            ))}
+            {overview.inventory
+              .filter((item) => item.effectKind !== "equipment")
+              .map((item) => (
+                <InventoryRewardCard
+                  key={item.id}
+                  item={item}
+                  overview={overview}
+                />
+              ))}
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-6 py-10 text-center">
             <p className="font-black text-[#183F37]">La réserve est vide.</p>
             <p className="mt-1 text-sm font-semibold text-[#60756E]">
-              Le prochain cadeau ouvert apparaîtra ici.
+              Les bonus à utiliser plus tard apparaîtront ici. Le matériel est
+              rangé directement dans l’inventaire de l’équipe.
             </p>
           </div>
         )}
@@ -199,16 +201,11 @@ function InventoryRewardCard({
 
   return (
     <article className="flex min-h-full flex-col rounded-[1.6rem] border border-[#315B3E]/12 bg-[#FBFDFC] p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
-            {getGiftCategoryLabel(item.effectKind)}
-          </p>
-          <h3 className="mt-1 text-xl font-black text-[#183F37]">{item.name}</h3>
-        </div>
-        <span className="rounded-full bg-[#FFF4B8] px-3 py-1 text-[10px] font-black text-[#715700]">
-          Niv. {item.importance}
-        </span>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+          {getGiftCategoryLabel(item.effectKind)}
+        </p>
+        <h3 className="mt-1 text-xl font-black text-[#183F37]">{item.name}</h3>
       </div>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
         {item.description}
@@ -311,20 +308,16 @@ function SelectField({
 function Metric({
   label,
   value,
-  accent = false,
 }: {
   label: string;
   value: string;
-  accent?: boolean;
 }) {
   return (
     <div className="min-w-20 rounded-xl bg-black/15 px-3 py-3">
       <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#BFD1C6]">
         {label}
       </p>
-      <p className={`mt-1 text-xl font-black ${accent ? "text-[#F2C94C]" : "text-white"}`}>
-        {value}
-      </p>
+      <p className="mt-1 text-xl font-black text-white">{value}</p>
     </div>
   );
 }
@@ -342,7 +335,6 @@ function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
 }
 
 function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
-  if (kind === "equipment") return "Ajouter à l’inventaire";
   if (kind === "training_multiplier") return "Activer pour la prochaine séance";
   if (kind === "scouting_boost") return "Activer pendant 7 jours";
   if (kind === "wildcard") return "Réserver la Wild Card";
