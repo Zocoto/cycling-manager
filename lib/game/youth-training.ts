@@ -18,7 +18,13 @@ export const YOUTH_TRAINING_DOMAINS = [
 export type YouthTrainingDomain = (typeof YOUTH_TRAINING_DOMAINS)[number];
 export type YouthTrainingMode = "automatic" | "manual";
 export type YouthManualTrainingSlot = "manual_am" | "manual_pm";
-export type YouthTrainingGameType = "rhythm" | "reflex" | "speed";
+export type YouthTrainingGameType =
+  | "rhythm"
+  | "reflex"
+  | "speed"
+  | "time_trial"
+  | "breakaway"
+  | "puncheur";
 
 export type YouthSeasonTrainingSummary = {
   sessionCount: number;
@@ -34,9 +40,24 @@ export type YouthMiniGameScoreInput = {
   reflexHits: number;
   reflexOpportunities: number;
   speedTaps: number;
+  timeTrialOptimalMilliseconds: number;
+  timeTrialElapsedMilliseconds: number;
+  breakawaySuccessfulAttacks: number;
+  breakawayOpportunities: number;
+  breakawayEnergy: number;
+  puncheurPoints: number;
+  puncheurOpportunities: number;
 };
 
-export const YOUTH_TRAINING_DURATION_SECONDS = 35;
+export const YOUTH_TRAINING_DURATION_SECONDS = 30;
+export const YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE = 22;
+export const YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE = 900;
+export const YOUTH_REFLEX_HITS_FOR_MAX_SCORE = 30;
+export const YOUTH_REFLEX_TARGET_INTERVAL_MS = 760;
+export const YOUTH_SPEED_TAPS_FOR_MAX_SCORE = 170;
+export const YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE = 0.82;
+export const YOUTH_BREAKAWAY_ENERGY_FOR_MAX_SCORE = 30;
+export const YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE = 900;
 export const YOUTH_RAW_RATING_MIN = 1;
 export const YOUTH_RAW_RATING_MAX = 8.25;
 export const YOUTH_RATING_PROJECTION_BASE = 34;
@@ -47,20 +68,23 @@ export const YOUTH_TRAINING_GAME_BY_DOMAIN: Record<
   YouthTrainingGameType
 > = {
   climber: "rhythm",
-  puncheur: "rhythm",
+  puncheur: "puncheur",
   northern_classics: "reflex",
-  breakaway: "reflex",
+  breakaway: "breakaway",
   sprinter: "speed",
-  rouleur: "speed",
+  rouleur: "time_trial",
 };
 
 export const YOUTH_TRAINING_GAME_LABELS: Record<
   YouthTrainingGameType,
   string
 > = {
-  rhythm: "Jeu d’endurance",
-  reflex: "Jeu de réflexe",
-  speed: "Jeu de vitesse",
+  rhythm: "Cadence",
+  reflex: "Tape-taupe",
+  speed: "Gauche / droite",
+  time_trial: "Zone aéro",
+  breakaway: "L’échappée",
+  puncheur: "La bosse",
 };
 
 export function isYouthTrainingDomain(
@@ -234,13 +258,29 @@ export function calculateYouthMiniGameScore({
   reflexHits,
   reflexOpportunities,
   speedTaps,
+  timeTrialOptimalMilliseconds,
+  timeTrialElapsedMilliseconds,
+  breakawaySuccessfulAttacks,
+  breakawayOpportunities,
+  breakawayEnergy,
+  puncheurPoints,
+  puncheurOpportunities,
 }: YouthMiniGameScoreInput) {
   if (gameType === "rhythm") {
     if (rhythmTaps <= 0) return 0;
     const averageAccuracy = rhythmPoints / rhythmTaps;
-    const cadenceFactor = Math.min(1, rhythmTaps / 28);
+    const accuracyFactor = Math.min(
+      1,
+      averageAccuracy / YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE,
+    );
+    const cadenceFactor = Math.min(
+      1,
+      rhythmTaps / YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE,
+    );
     return clampScore(
-      Math.round(averageAccuracy * (0.65 + cadenceFactor * 0.35)),
+      Math.round(
+        1_000 * accuracyFactor * (0.65 + cadenceFactor * 0.35),
+      ),
     );
   }
 
@@ -248,11 +288,50 @@ export function calculateYouthMiniGameScore({
     if (reflexOpportunities <= 0) return 0;
     const hitRate = reflexHits / reflexOpportunities;
     return clampScore(
-      Math.round(hitRate * 800 + Math.min(1, reflexHits / 32) * 200),
+      Math.round(
+        hitRate * 800 +
+          Math.min(1, reflexHits / YOUTH_REFLEX_HITS_FOR_MAX_SCORE) * 200,
+      ),
     );
   }
 
-  return clampScore(Math.round((speedTaps / 180) * 1_000));
+  if (gameType === "speed") {
+    return clampScore(
+      Math.round((speedTaps / YOUTH_SPEED_TAPS_FOR_MAX_SCORE) * 1_000),
+    );
+  }
+
+  if (gameType === "time_trial") {
+    if (timeTrialElapsedMilliseconds <= 0) return 0;
+    const optimalRatio =
+      timeTrialOptimalMilliseconds / timeTrialElapsedMilliseconds;
+    return clampScore(
+      Math.round(
+        (optimalRatio / YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE) *
+          1_000,
+      ),
+    );
+  }
+
+  if (gameType === "breakaway") {
+    if (breakawayOpportunities <= 0) return 0;
+    const successRate =
+      breakawaySuccessfulAttacks / breakawayOpportunities;
+    const energyFactor = Math.min(
+      1,
+      Math.max(0, breakawayEnergy) /
+        YOUTH_BREAKAWAY_ENERGY_FOR_MAX_SCORE,
+    );
+    return clampScore(Math.round(successRate * 850 + energyFactor * 150));
+  }
+
+  if (puncheurOpportunities <= 0) return 0;
+  const averagePunch = puncheurPoints / puncheurOpportunities;
+  return clampScore(
+    Math.round(
+      (averagePunch / YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE) * 1_000,
+    ),
+  );
 }
 
 function clampScore(score: number) {

@@ -128,7 +128,7 @@ export const youthDevelopmentTutorialDefinition = {
       targetId: "youth-tutorial-minigame",
       title: "Essayez le minijeu correspondant au réglage",
       content:
-        "Grimpeur et puncheur utilisent le jeu d’endurance en rythme ; classiques du Nord et baroudeur utilisent le jeu de réflexe ; sprinteur et rouleur utilisent le jeu de vitesse.\n\nL’aperçu ci-dessous reprend le réglage du premier junior de votre école, ou un exemple grimpeur si elle est vide. La vraie séance dure 35 secondes et produit un score sur 1000, ensuite transformé en progression selon le potentiel et le niveau actuel des statistiques. Cette démonstration ne sauvegarde rien.",
+        "Chaque profil dispose de son propre défi : Cadence pour les grimpeurs, La bosse pour les puncheurs, Tape-taupe pour les classiques du Nord, L’échappée pour les baroudeurs, Gauche / droite pour les sprinteurs et Zone aéro pour les rouleurs.\n\nL’aperçu ci-dessous reprend le réglage du premier junior de votre école, ou un exemple grimpeur si elle est vide. La vraie séance dure 30 secondes et produit un score sur 1000, ensuite transformé en progression selon le potentiel et le niveau actuel des statistiques. Cette démonstration ne sauvegarde rien.",
       placement: "top",
       allowTargetInteraction: true,
       highlightPadding: 8,

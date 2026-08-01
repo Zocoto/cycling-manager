@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   isYouthTrainingDomain,
   isYouthTrainingMode,
+  type YouthTrainingGameType,
 } from "@/lib/game/youth-training";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -105,7 +106,7 @@ export async function startYouthManualTrainingAction(input: {
 
   const attempt = result.data as {
     attemptId: string;
-    gameType: "rhythm" | "reflex" | "speed";
+    gameType: YouthTrainingGameType;
     slot: "manual_am" | "manual_pm";
     durationSeconds: number;
     startedAt: string;

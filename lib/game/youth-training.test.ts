@@ -1,6 +1,38 @@
 import { describe, expect, it } from "vitest";
 
+import type {
+  YouthMiniGameScoreInput,
+  YouthTrainingGameType,
+} from "./youth-training";
+
+function createScoreInput(
+  gameType: YouthTrainingGameType,
+  overrides: Partial<YouthMiniGameScoreInput> = {},
+): YouthMiniGameScoreInput {
+  return {
+    gameType,
+    rhythmPoints: 0,
+    rhythmTaps: 0,
+    reflexHits: 0,
+    reflexOpportunities: 0,
+    speedTaps: 0,
+    timeTrialOptimalMilliseconds: 0,
+    timeTrialElapsedMilliseconds: 0,
+    breakawaySuccessfulAttacks: 0,
+    breakawayOpportunities: 0,
+    breakawayEnergy: 0,
+    puncheurPoints: 0,
+    puncheurOpportunities: 0,
+    ...overrides,
+  };
+}
+
 import {
+  YOUTH_REFLEX_TARGET_INTERVAL_MS,
+  YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE,
+  YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE,
+  YOUTH_SPEED_TAPS_FOR_MAX_SCORE,
+  YOUTH_TRAINING_DURATION_SECONDS,
   calculateYouthAutomaticTrainingGain,
   calculateYouthMiniGameScore,
   calculateYouthManualTrainingGain,
@@ -17,11 +49,19 @@ import {
 describe("youth training", () => {
   it("associe chaque profil junior au bon minijeu", () => {
     expect(getYouthTrainingGameType("climber")).toBe("rhythm");
-    expect(getYouthTrainingGameType("puncheur")).toBe("rhythm");
+    expect(getYouthTrainingGameType("puncheur")).toBe("puncheur");
     expect(getYouthTrainingGameType("northern_classics")).toBe("reflex");
-    expect(getYouthTrainingGameType("breakaway")).toBe("reflex");
+    expect(getYouthTrainingGameType("breakaway")).toBe("breakaway");
     expect(getYouthTrainingGameType("sprinter")).toBe("speed");
-    expect(getYouthTrainingGameType("rouleur")).toBe("speed");
+    expect(getYouthTrainingGameType("rouleur")).toBe("time_trial");
+  });
+
+  it("applique la durée et les calibrages demandés aux jeux existants", () => {
+    expect(YOUTH_TRAINING_DURATION_SECONDS).toBe(30);
+    expect(YOUTH_SPEED_TAPS_FOR_MAX_SCORE / 30).toBeGreaterThan(180 / 35);
+    expect(YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE / 30).toBeLessThan(28 / 35);
+    expect(YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE).toBe(900);
+    expect(YOUTH_REFLEX_TARGET_INTERVAL_MS).toBeLessThan(820);
   });
 
   it("sépare les deux créneaux manuels à midi heure de Paris", () => {
@@ -197,59 +237,72 @@ describe("youth training", () => {
     });
   });
 
-  it("normalise les trois minijeux sur 1000 points", () => {
+  it("normalise les six minijeux sur 1000 points", () => {
     expect(
-      calculateYouthMiniGameScore({
-        gameType: "rhythm",
-        rhythmPoints: 28_000,
-        rhythmTaps: 28,
-        reflexHits: 0,
-        reflexOpportunities: 0,
-        speedTaps: 0,
-      }),
+      calculateYouthMiniGameScore(
+        createScoreInput("rhythm", {
+          rhythmPoints: 19_800,
+          rhythmTaps: 22,
+        }),
+      ),
     ).toBe(1_000);
     expect(
-      calculateYouthMiniGameScore({
-        gameType: "reflex",
-        rhythmPoints: 0,
-        rhythmTaps: 0,
-        reflexHits: 43,
-        reflexOpportunities: 43,
-        speedTaps: 0,
-      }),
+      calculateYouthMiniGameScore(
+        createScoreInput("reflex", {
+          reflexHits: 30,
+          reflexOpportunities: 30,
+        }),
+      ),
     ).toBe(1_000);
     expect(
-      calculateYouthMiniGameScore({
-        gameType: "speed",
-        rhythmPoints: 0,
-        rhythmTaps: 0,
-        reflexHits: 0,
-        reflexOpportunities: 0,
-        speedTaps: 180,
-      }),
+      calculateYouthMiniGameScore(
+        createScoreInput("speed", { speedTaps: 170 }),
+      ),
+    ).toBe(1_000);
+    expect(
+      calculateYouthMiniGameScore(
+        createScoreInput("time_trial", {
+          timeTrialOptimalMilliseconds: 8_200,
+          timeTrialElapsedMilliseconds: 10_000,
+        }),
+      ),
+    ).toBe(1_000);
+    expect(
+      calculateYouthMiniGameScore(
+        createScoreInput("breakaway", {
+          breakawaySuccessfulAttacks: 6,
+          breakawayOpportunities: 6,
+          breakawayEnergy: 30,
+        }),
+      ),
+    ).toBe(1_000);
+    expect(
+      calculateYouthMiniGameScore(
+        createScoreInput("puncheur", {
+          puncheurPoints: 5_400,
+          puncheurOpportunities: 6,
+        }),
+      ),
     ).toBe(1_000);
   });
 
-  it("borne les scores et ne recompense pas une partie inactive", () => {
+  it("borne les scores et ne récompense pas une partie inactive", () => {
     expect(
-      calculateYouthMiniGameScore({
-        gameType: "rhythm",
-        rhythmPoints: 0,
-        rhythmTaps: 0,
-        reflexHits: 0,
-        reflexOpportunities: 0,
-        speedTaps: 0,
-      }),
+      calculateYouthMiniGameScore(createScoreInput("rhythm")),
     ).toBe(0);
     expect(
-      calculateYouthMiniGameScore({
-        gameType: "speed",
-        rhythmPoints: 0,
-        rhythmTaps: 0,
-        reflexHits: 0,
-        reflexOpportunities: 0,
-        speedTaps: 999,
-      }),
+      calculateYouthMiniGameScore(
+        createScoreInput("speed", { speedTaps: 999 }),
+      ),
     ).toBe(1_000);
+    expect(
+      calculateYouthMiniGameScore(createScoreInput("time_trial")),
+    ).toBe(0);
+    expect(
+      calculateYouthMiniGameScore(createScoreInput("breakaway")),
+    ).toBe(0);
+    expect(
+      calculateYouthMiniGameScore(createScoreInput("puncheur")),
+    ).toBe(0);
   });
 });
