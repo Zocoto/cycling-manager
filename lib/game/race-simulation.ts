@@ -123,6 +123,10 @@ export type StageSimulationInput = {
   segments: RaceStageSegment[];
   riders: RiderSimulationInput[];
   unavailableRiderIds?: string[];
+  generalClassification?: Array<{
+    riderId: string;
+    elapsedTimeSeconds: number;
+  }>;
 };
 
 export type RaceGroupSnapshot = {
@@ -520,6 +524,23 @@ export const LARGE_BREAKAWAY_EFFORT_MULTIPLIER = 2;
 const LARGE_BREAKAWAY_MAXIMUM_SIZE = 14;
 const LARGE_BREAKAWAY_PACE_PENALTY_PER_RIDER = 0.004;
 const LARGE_BREAKAWAY_MAXIMUM_PACE_PENALTY = 0.035;
+
+type StageFavoriteTier = "major" | "medium" | "none";
+
+type StageTeamStrategy = {
+  teamId: string;
+  favoriteTier: StageFavoriteTier;
+  protectedRiderIds: Set<string>;
+};
+
+type StageStrategyContext = {
+  favoriteTierByTeamId: Map<string, StageFavoriteTier>;
+  protectedRiderIds: Set<string>;
+  controllingTeamIds: Set<string>;
+  favoriteRankByRiderId: Map<string, number>;
+  majorFavoriteCount: number;
+  outsiderFavoriteCount: number;
+};
 
 export function getLargeBreakawayDynamics(riderCount: number) {
   const excessRiders = Math.max(
@@ -1010,6 +1031,10 @@ function simulateRoadStage(
       },
     ])
   );
+  const strategyContext = buildStageStrategyContext(
+    input.riders,
+    input.segments
+  );
   const attackPlan = selectStageAttackPlan(
     input.riders,
     input.segments,
@@ -1037,6 +1062,11 @@ function simulateRoadStage(
       (segment) => segment.terrain === "climb" || segment.surface === "cobbles"
     ).length / input.segments.length;
   const likelyMassSprint = isLikelyMassSprint(input.segments);
+  const initialPelotonChaseCapacity = getPelotonChaseCapacity(
+    [...states.values()],
+    input.segments[0],
+    strategyContext.controllingTeamIds
+  );
   const breakawayQuality = average(
     breakawayRiders.map(
       (rider) =>
@@ -1048,6 +1078,7 @@ function simulateRoadStage(
   const breakawayChaseResistance = clamp(
     breakawayQuality * 0.003 +
       selectiveTerrainShare * 0.45 +
+      (1 - initialPelotonChaseCapacity) * 0.16 +
       random() * 0.35 -
       (likelyMassSprint ? 0.32 : 0.08),
     0,
@@ -1056,7 +1087,8 @@ function simulateRoadStage(
   const breakawaySuccessChance = clamp(
     0.025 +
       selectiveTerrainShare * 0.3 +
-      Math.max(0, breakawayQuality - 72) * 0.007 -
+      Math.max(0, breakawayQuality - 72) * 0.007 +
+      (1 - initialPelotonChaseCapacity) * 0.14 -
       (likelyMassSprint ? 0.035 : 0) +
       (input.weather?.isWet ? 0.04 : 0),
     0.02,
@@ -1068,6 +1100,7 @@ function simulateRoadStage(
   let breakawayWasCaught = false;
   let delayedAttackLaunched = attackPlan.delayedAttackIds.size === 0;
   let dangerousBreakawayReactionAnnounced = false;
+  let opportunisticAttackCount = 0;
   let largeBreakawayDecision: LargeBreakawayStandoffDecision = null;
   const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
   let hillyClimbLoad = 0;
@@ -1086,20 +1119,27 @@ function simulateRoadStage(
       !delayedAttackLaunched &&
       completedDistanceKm >= attackPlan.delayedAttackAtKm
     ) {
-      const delayedAttackers = [...attackPlan.delayedAttackIds]
-        .map((riderId) => states.get(riderId))
-        .filter(
-          (state): state is RiderState =>
-            Boolean(
-              state &&
-                state.group === "peloton" &&
-                state.energy >= 16
-            )
-        );
+      const hasLeadingBreakaway =
+        getStatesInGroup(states, "breakaway").length > 0;
+      const pelotonIsGrouped =
+        !hasLeadingBreakaway || breakawayGapSeconds <= 25;
+      const remainingDistanceKm =
+        totalDistanceKm - completedDistanceKm;
+      const canLaunch =
+        !attackPlan.delayedAttackRequiresGroupedPeloton ||
+        pelotonIsGrouped;
 
-      if (delayedAttackers.length > 0) {
-        const hasLeadingBreakaway =
-          getStatesInGroup(states, "breakaway").length > 0;
+      if (canLaunch) {
+        const delayedAttackers = [...attackPlan.delayedAttackIds]
+          .map((riderId) => states.get(riderId))
+          .filter(
+            (state): state is RiderState =>
+              Boolean(
+                state &&
+                  state.group === "peloton" &&
+                  state.energy >= 16
+              )
+          );
 
         for (const state of delayedAttackers) {
           state.group = hasLeadingBreakaway
@@ -1112,21 +1152,25 @@ function simulateRoadStage(
           );
         }
 
-        if (!hasLeadingBreakaway) {
-          breakawayGapSeconds = Math.max(
-            breakawayGapSeconds,
-            Math.round(14 + random() * 18)
+        if (delayedAttackers.length > 0) {
+          if (!hasLeadingBreakaway) {
+            breakawayGapSeconds = Math.max(
+              breakawayGapSeconds,
+              Math.round(14 + random() * 18)
+            );
+          }
+          commentary.push(
+            formatRiderList(delayedAttackers) +
+              " ont gardé des réserves et passent à l’attaque à " +
+              Math.round(remainingDistanceKm) +
+              " km de l’arrivée."
           );
         }
-
-        commentary.push(
-          `${formatRiderList(delayedAttackers)} ont gard\u00e9 des r\u00e9serves et passent \u00e0 l\u2019attaque apr\u00e8s ${Math.round(completedDistanceKm)} km de course.`
-        );
+        delayedAttackLaunched = true;
+      } else if (remainingDistanceKm <= 10) {
+        delayedAttackLaunched = true;
       }
-
-      delayedAttackLaunched = true;
     }
-
     const peloton = getStatesInGroup(states, "peloton");
     const breakaway = getStatesInGroup(states, "breakaway");
     const secondaryBreakaway = getStatesInGroup(states, "breakaway_2");
@@ -1158,6 +1202,8 @@ function simulateRoadStage(
       segments: input.segments,
       fieldSize: input.riders.length,
       gapSeconds: breakawayGapSeconds,
+      generalClassification: input.generalClassification,
+      isStageRace: input.isStageRace,
     });
     const baseChasePressure = getPelotonChasePressure(
       peloton,
@@ -1165,7 +1211,8 @@ function simulateRoadStage(
       raceProgress,
       breakaway.length + secondaryBreakaway.length > 0,
       breakawayThreat,
-      breakawayGapSeconds
+      breakawayGapSeconds,
+      strategyContext.controllingTeamIds
     );
     if (
       largeBreakawayDecision === null &&
@@ -1215,12 +1262,20 @@ function simulateRoadStage(
           0,
           1
         );
+    const pelotonChaseWorkers = getPelotonChaseWorkers(
+      peloton,
+      strategyContext.controllingTeamIds
+    );
+    const pelotonWorkerIds = new Set(
+      pelotonChaseWorkers.map((state) => state.rider.id)
+    );
     const pelotonSeconds = getGroupSegmentTime(
       fieldPaceStates,
       segment,
       "peloton",
       chasePressure,
-      random
+      random,
+      chasePressure >= 0.35 ? pelotonChaseWorkers : undefined
     );
     let breakawaySeconds = breakaway.length
       ? getGroupSegmentTime(breakaway, segment, "breakaway", 0.58, random)
@@ -1396,6 +1451,9 @@ function simulateRoadStage(
           segmentIndex,
           segmentCount: input.segments.length,
         }),
+        pelotonWorker:
+          state.group === "peloton" &&
+          pelotonWorkerIds.has(state.rider.id),
         profileType: input.profileType,
         hillyClimbLoad,
         groupPaceRating:
@@ -1438,13 +1496,22 @@ function simulateRoadStage(
       });
     }
 
-    maybeLaunchCounterAttack({
-      states,
-      segmentIndex,
-      breakawayGapSeconds,
-      random,
-      commentary,
-    });
+    if (
+      opportunisticAttackCount < 2 &&
+      maybeLaunchCounterAttack({
+        states,
+        segmentIndex,
+        completedDistanceKm,
+        totalDistanceKm,
+        breakawayGapSeconds,
+        chasePressure,
+        strategy: strategyContext,
+        random,
+        commentary,
+      })
+    ) {
+      opportunisticAttackCount += 1;
+    }
 
     resolveExistingChasers({
       states,
@@ -1896,39 +1963,58 @@ function buildTimedResult(
   };
 }
 
-function selectStageAttackPlan(
+export type StageAttackPlan = {
+  initialAttackIds: Set<string>;
+  delayedAttackIds: Set<string>;
+  delayedAttackAtKm: number;
+  delayedAttackRequiresGroupedPeloton: boolean;
+};
+
+export function selectStageAttackPlan(
   riders: RiderSimulationInput[],
   segments: RaceStageSegment[],
   random: () => number
-) {
+): StageAttackPlan {
+  const strategy = buildStageStrategyContext(riders, segments);
   const fieldAverage = average(
     riders.map((rider) => getStageSuitability(rider, segments))
   );
   const rankedCandidates = riders
-    .filter((rider) => rider.role !== "leader" && rider.role !== "sprinter")
+    .filter(
+      (rider) =>
+        rider.role !== "leader" &&
+        rider.role !== "sprinter" &&
+        !strategy.protectedRiderIds.has(rider.id)
+    )
     .map((rider) => {
+      const favoriteTier =
+        strategy.favoriteTierByTeamId.get(rider.teamId) ?? "none";
       const roleBonus =
         rider.role === "free_agent"
-          ? 16
+          ? 14
           : rider.role === "mountain_classification"
             ? 9
             : 0;
-      const abilityBonus = hasSpecialAbility(rider, "panache") ? 12 : 0;
+      const abilityBonus = hasSpecialAbility(rider, "panache") ? 10 : 0;
+      const favoriteTeamPenalty =
+        favoriteTier === "major" ? 21 : favoriteTier === "medium" ? 11 : 0;
       const score =
-        rider.ratings.breakaway * 0.55 +
-        rider.ratings.acceleration * 0.2 +
-        rider.ratings.endurance * 0.15 +
-        rider.form * 0.1 +
+        rider.ratings.breakaway * 0.5 +
+        rider.ratings.acceleration * 0.19 +
+        rider.ratings.endurance * 0.16 +
+        rider.form * 0.15 +
         roleBonus +
-        abilityBonus +
-        random() * 18;
-      return { rider, score };
+        abilityBonus -
+        favoriteTeamPenalty +
+        random() * 15;
+      return { rider, score, favoriteTier };
     })
     .sort((first, second) => second.score - first.score);
   const candidates = rankedCandidates.filter(({ rider, score }) => {
-      const threat = getStageSuitability(rider, segments) - fieldAverage;
-      return score > 63 + Math.max(0, threat * 0.7);
-    });
+    const stageStrength =
+      getStageSuitability(rider, segments) - fieldAverage;
+    return score > 61 + Math.max(0, stageStrength * 0.72);
+  });
   const maximum = Math.max(
     2,
     Math.min(
@@ -1936,57 +2022,310 @@ function selectStageAttackPlan(
       Math.ceil(riders.length / 4)
     )
   );
-  const selected = candidates.slice(0, maximum).map(({ rider }) => rider.id);
+  const initialAttackIds = new Set<string>();
+  const morningTeamCounts = new Map<string, number>();
 
-  if (selected.length === 0) {
-    selected.push(
-      ...rankedCandidates
-        .slice(0, Math.min(2, rankedCandidates.length))
-        .map(({ rider }) => rider.id)
+  for (const candidate of candidates) {
+    if (initialAttackIds.size >= maximum) break;
+
+    const existingTeamCount =
+      morningTeamCounts.get(candidate.rider.teamId) ?? 0;
+    const rareSecondRider =
+      existingTeamCount === 1 &&
+      candidate.favoriteTier === "none" &&
+      initialAttackIds.size >= 5 &&
+      random() < 0.06;
+    if (existingTeamCount > 0 && !rareSecondRider) continue;
+
+    const launchChance =
+      candidate.favoriteTier === "major"
+        ? 0.12
+        : candidate.favoriteTier === "medium"
+          ? 0.32
+          : candidate.rider.role === "free_agent"
+            ? 0.82
+            : 0.68;
+    if (random() > launchChance) continue;
+
+    initialAttackIds.add(candidate.rider.id);
+    morningTeamCounts.set(
+      candidate.rider.teamId,
+      existingTeamCount + 1
     );
+  }
+
+  if (initialAttackIds.size === 0 && candidates.length > 0) {
+    initialAttackIds.add(candidates[0].rider.id);
+    morningTeamCounts.set(candidates[0].rider.teamId, 1);
   }
 
   const totalDistanceKm = segments.reduce(
     (total, segment) => total + segment.distanceKm,
     0
   );
-  const delayedAttackCount =
-    totalDistanceKm >= 190 && selected.length >= 2
-      ? Math.min(
-          selected.length - 1,
-          3,
-          Math.max(1, Math.ceil((totalDistanceKm - 180) / 30))
-        )
-      : 0;
-  const delayedCandidates = selected
-    .map((riderId) => riders.find((rider) => rider.id === riderId))
-    .filter((rider): rider is RiderSimulationInput => Boolean(rider))
-    .map((rider) => ({
-      riderId: rider.id,
-      reserveScore:
-        rider.ratings.endurance * 0.48 +
-        rider.ratings.breakaway * 0.32 +
-        rider.ratings.acceleration * 0.12 +
-        rider.form * 0.08 +
-        random() * 4,
-    }))
-    .sort((first, second) => second.reserveScore - first.reserveScore)
-    .slice(0, delayedAttackCount);
-  const delayedAttackIds = new Set(
-    delayedCandidates.map(({ riderId }) => riderId)
-  );
-  const initialAttackIds = new Set(
-    selected.filter((riderId) => !delayedAttackIds.has(riderId))
-  );
+  const lateAttackWindow = getLateAttackWindow(segments, random);
+  const reserveCandidates = rankedCandidates
+    .filter(({ rider, favoriteTier, score }) => {
+      if (initialAttackIds.has(rider.id) || score < 60) return false;
+      if (rider.form < 58 || rider.ratings.acceleration < 55) return false;
+      if (favoriteTier === "major" && rider.role !== "free_agent") {
+        return false;
+      }
+      return true;
+    })
+    .map(({ rider, favoriteTier }) => {
+      const favoriteRank =
+        strategy.favoriteRankByRiderId.get(rider.id) ??
+        Number.POSITIVE_INFINITY;
+      const outsiderBonus =
+        favoriteRank > strategy.majorFavoriteCount &&
+        favoriteRank <= strategy.outsiderFavoriteCount &&
+        rider.form >= 70
+          ? 10
+          : 0;
+      return {
+        rider,
+        reserveScore:
+          rider.ratings.endurance * 0.31 +
+          rider.ratings.breakaway * 0.29 +
+          rider.ratings.acceleration * 0.24 +
+          rider.form * 0.16 +
+          (rider.role === "free_agent" ? 7 : 0) +
+          (hasSpecialAbility(rider, "panache") ? 6 : 0) +
+          outsiderBonus -
+          (favoriteTier === "major"
+            ? 18
+            : favoriteTier === "medium"
+              ? 7
+              : 0) +
+          random() * 6,
+      };
+    })
+    .filter(({ reserveScore }) => reserveScore >= 64)
+    .sort((first, second) => second.reserveScore - first.reserveScore);
+  const canPlanLateAttack =
+    totalDistanceKm >= 70 &&
+    reserveCandidates.length > 0 &&
+    random() < 0.68;
+  const delayedAttackCount = canPlanLateAttack
+    ? Math.min(
+        3,
+        reserveCandidates.length,
+        Math.max(1, Math.ceil(riders.length / 28))
+      )
+    : 0;
+  const delayedAttackIds = new Set<string>();
+  const delayedTeams = new Set<string>();
+
+  for (const { rider } of reserveCandidates) {
+    if (delayedAttackIds.size >= delayedAttackCount) break;
+    if (delayedTeams.has(rider.teamId)) continue;
+    delayedAttackIds.add(rider.id);
+    delayedTeams.add(rider.teamId);
+  }
 
   return {
     initialAttackIds,
     delayedAttackIds,
     delayedAttackAtKm:
       delayedAttackIds.size > 0
-        ? totalDistanceKm * (0.38 + random() * 0.1)
+        ? Math.max(0, totalDistanceKm - lateAttackWindow.remainingDistanceKm)
         : Number.POSITIVE_INFINITY,
+    delayedAttackRequiresGroupedPeloton:
+      delayedAttackIds.size > 0 &&
+      lateAttackWindow.requiresGroupedPeloton,
   };
+}
+
+function buildStageStrategyContext(
+  riders: RiderSimulationInput[],
+  segments: RaceStageSegment[]
+): StageStrategyContext {
+  const rankedFavorites = [...riders]
+    .map((rider) => ({
+      rider,
+      rating: getStageFavoriteRating(rider, segments),
+    }))
+    .sort(
+      (first, second) =>
+        second.rating - first.rating ||
+        first.rider.id.localeCompare(second.rider.id)
+    );
+  const favoriteRankByRiderId = new Map(
+    rankedFavorites.map(({ rider }, index) => [rider.id, index + 1])
+  );
+  const majorFavoriteCount = Math.max(
+    1,
+    Math.min(3, Math.ceil(riders.length * 0.08))
+  );
+  const mediumFavoriteCount = Math.max(
+    majorFavoriteCount,
+    Math.min(10, Math.ceil(riders.length * 0.22))
+  );
+  const outsiderFavoriteCount = Math.max(
+    mediumFavoriteCount,
+    Math.min(20, Math.ceil(riders.length * 0.42))
+  );
+  const strategies: StageTeamStrategy[] = [];
+  const protectedRiderIds = new Set(
+    riders
+      .filter(
+        (rider) =>
+          rider.role === "leader" ||
+          rider.role === "sprinter"
+      )
+      .map((rider) => rider.id)
+  );
+
+  for (const [teamId, teamRiders] of groupBy(
+    riders,
+    (rider) => rider.teamId
+  )) {
+    const rankedTeam = [...teamRiders].sort(
+      (first, second) =>
+        (favoriteRankByRiderId.get(first.id) ??
+          Number.POSITIVE_INFINITY) -
+        (favoriteRankByRiderId.get(second.id) ??
+          Number.POSITIVE_INFINITY)
+    );
+    const bestRider = rankedTeam[0];
+    const bestRank =
+      favoriteRankByRiderId.get(bestRider.id) ??
+      Number.POSITIVE_INFINITY;
+    const favoriteTier: StageFavoriteTier =
+      bestRank <= majorFavoriteCount
+        ? "major"
+        : bestRank <= mediumFavoriteCount
+          ? "medium"
+          : "none";
+    const teamProtectedIds = new Set<string>();
+
+    if (favoriteTier !== "none") {
+      teamProtectedIds.add(bestRider.id);
+      protectedRiderIds.add(bestRider.id);
+    }
+
+    strategies.push({
+      teamId,
+      favoriteTier,
+      protectedRiderIds: teamProtectedIds,
+    });
+  }
+
+  return {
+    favoriteTierByTeamId: new Map(
+      strategies.map((strategy) => [
+        strategy.teamId,
+        strategy.favoriteTier,
+      ])
+    ),
+    protectedRiderIds,
+    controllingTeamIds: new Set(
+      strategies
+        .filter((strategy) => strategy.favoriteTier !== "none")
+        .map((strategy) => strategy.teamId)
+    ),
+    favoriteRankByRiderId,
+    majorFavoriteCount,
+    outsiderFavoriteCount,
+  };
+}
+
+function getStageFavoriteRating(
+  rider: RiderSimulationInput,
+  segments: RaceStageSegment[]
+) {
+  if (isLikelyMassSprint(segments)) {
+    return (
+      rider.ratings.sprint * 0.44 +
+      rider.ratings.acceleration * 0.24 +
+      rider.ratings.flat * 0.13 +
+      rider.ratings.resistance * 0.09 +
+      rider.form * 0.1 +
+      (rider.role === "sprinter" ? 4 : 0)
+    );
+  }
+
+  return (
+    getStageSuitability(rider, segments) * 0.57 +
+    getDecisiveRoadFinishRating(rider, segments) * 0.24 +
+    rider.ratings.acceleration * 0.08 +
+    rider.ratings.resistance * 0.06 +
+    rider.form * 0.05 +
+    (rider.role === "leader" ? 2 : 0)
+  );
+}
+
+function getLateAttackWindow(
+  segments: RaceStageSegment[],
+  random: () => number
+) {
+  const climbShare =
+    segments.filter((segment) => segment.terrain === "climb").length /
+    Math.max(1, segments.length);
+  const cobbleShare =
+    segments.filter((segment) => segment.surface === "cobbles").length /
+    Math.max(1, segments.length);
+
+  if (isLikelyMassSprint(segments) && climbShare < 0.2) {
+    return {
+      remainingDistanceKm: 36 + random() * 8,
+      requiresGroupedPeloton: true,
+    };
+  }
+  if (climbShare >= 0.2) {
+    return {
+      remainingDistanceKm: 10 + random() * 10,
+      requiresGroupedPeloton: false,
+    };
+  }
+  if (cobbleShare > 0) {
+    return {
+      remainingDistanceKm: 22 + random() * 13,
+      requiresGroupedPeloton: false,
+    };
+  }
+  return {
+    remainingDistanceKm: 24 + random() * 12,
+    requiresGroupedPeloton: false,
+  };
+}
+
+export function getBreakawayGeneralClassificationThreat(
+  breakawayRiderIds: string[],
+  generalClassification:
+    | StageSimulationInput["generalClassification"]
+    | undefined
+) {
+  if (generalClassification === undefined) return 0.5;
+  if (
+    breakawayRiderIds.length === 0 ||
+    generalClassification.length === 0
+  ) {
+    return 0;
+  }
+
+  const generalTimeByRiderId = new Map(
+    generalClassification.map((entry) => [
+      entry.riderId,
+      entry.elapsedTimeSeconds,
+    ])
+  );
+  const generalLeaderTime = Math.min(
+    ...generalTimeByRiderId.values()
+  );
+  const closestGeneralGap = Math.min(
+    ...breakawayRiderIds.map((riderId) => {
+      const time = generalTimeByRiderId.get(riderId);
+      return time === undefined
+        ? Number.POSITIVE_INFINITY
+        : Math.max(0, time - generalLeaderTime);
+    })
+  );
+
+  return Number.isFinite(closestGeneralGap)
+    ? clamp((9 * 60 - closestGeneralGap) / (8 * 60), 0, 1)
+    : 0;
 }
 
 function getBreakawayThreat({
@@ -1995,12 +2334,16 @@ function getBreakawayThreat({
   segments,
   fieldSize,
   gapSeconds,
+  generalClassification,
+  isStageRace,
 }: {
   breakaway: RiderState[];
   peloton: RiderState[];
   segments: RaceStageSegment[];
   fieldSize: number;
   gapSeconds: number;
+  generalClassification?: StageSimulationInput["generalClassification"];
+  isStageRace: boolean;
 }) {
   if (breakaway.length === 0) return 0;
 
@@ -2032,39 +2375,62 @@ function getBreakawayThreat({
     1
   );
   const groupThreat = clamp(
-    breakaway.length / Math.max(3, fieldSize * 0.22),
+    breakaway.length / Math.max(3, fieldSize * 0.2),
     0,
     1
   );
-  const gapThreat = clamp((gapSeconds - 60) / 300, 0, 1);
-  const protectedRoleThreat = breakaway.some(
+  const gapThreat = clamp((gapSeconds - 45) / 285, 0, 1);
+  const generalThreat = getBreakawayGeneralClassificationThreat(
+    breakaway.map((state) => state.rider.id),
+    generalClassification
+  );  const protectedRoleThreat = breakaway.some(
     (state) =>
       state.rider.role === "leader" ||
       state.rider.role === "sprinter"
   )
-    ? 0.12
+    ? 0.1
     : 0;
 
+  if (isStageRace) {
+    return clamp(
+      suitabilityThreat * 0.34 +
+        groupThreat * 0.2 +
+        gapThreat * 0.16 +
+        generalThreat * 0.3 +
+        protectedRoleThreat,
+      0,
+      1
+    );
+  }
+
   return clamp(
-    suitabilityThreat * 0.55 +
-      groupThreat * 0.22 +
+    suitabilityThreat * 0.52 +
+      groupThreat * 0.25 +
       gapThreat * 0.18 +
       protectedRoleThreat,
     0,
     1
   );
 }
-
 function getGroupSegmentTime(
   states: RiderState[],
   segment: RaceStageSegment,
   group: "breakaway" | "peloton",
   chasePressure: number,
-  random: () => number
+  random: () => number,
+  paceSetterCandidates?: RiderState[]
 ) {
   if (states.length === 0) return 0;
   const scoringShare = group === "peloton" ? 0.42 : 0.72;
-  const paceSetters = getGroupPaceSetters(states, segment, scoringShare);
+  const paceSetterPool =
+    paceSetterCandidates && paceSetterCandidates.length > 0
+      ? paceSetterCandidates
+      : states;
+  const paceSetters = getGroupPaceSetters(
+    paceSetterPool,
+    segment,
+    paceSetterPool === states ? scoringShare : 0.72
+  );
   const groupRating = average(
     paceSetters.map((state) => getTerrainRating(state.rider, segment))
   );
@@ -2141,6 +2507,7 @@ function updateRiderEnergy({
   hasBottleCarrierSupport,
   leaderProtectionStrength = 0,
   protectingLeader = false,
+  pelotonWorker = false,
   groupPaceRating,
   profileType,
   hillyClimbLoad = 0,
@@ -2158,6 +2525,7 @@ function updateRiderEnergy({
   hasBottleCarrierSupport: boolean;
   leaderProtectionStrength?: number;
   protectingLeader?: boolean;
+  pelotonWorker?: boolean;
   groupPaceRating?: number;
   profileType?: RaceProfileType;
   hillyClimbLoad?: number;
@@ -2178,9 +2546,10 @@ function updateRiderEnergy({
     state.group === "breakaway_2" ||
     state.group === "chase" ||
     state.group === "delayed" ||
-    ((rider.role === "domestique" || rider.role === "leadout") &&
+    (pelotonWorker &&
+      (rider.role === "domestique" || rider.role === "leadout") &&
       segmentIndex < segmentCount - 2 &&
-      chasePressure > 0.45);
+      chasePressure > 0.35);
   const largeBreakawayEffortMultiplier =
     frontBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
     !frontGroupIsYielding &&
@@ -2599,39 +2968,113 @@ function dropStrugglingRiders({
 function maybeLaunchCounterAttack({
   states,
   segmentIndex,
+  completedDistanceKm,
+  totalDistanceKm,
   breakawayGapSeconds,
+  chasePressure,
+  strategy,
   random,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segmentIndex: number;
+  completedDistanceKm: number;
+  totalDistanceKm: number;
   breakawayGapSeconds: number;
+  chasePressure: number;
+  strategy: StageStrategyContext;
   random: () => number;
   commentary: string[];
 }) {
-  if (segmentIndex < 1 || segmentIndex > 3 || breakawayGapSeconds < 35) return;
-  const candidate = getStatesInGroup(states, "peloton")
-    .filter(
-      (state) =>
-        hasSpecialAbility(state.rider, "chase_potato") ||
-        (hasSpecialAbility(state.rider, "panache") && state.rider.role === "free_agent")
-    )
-    .sort(
-      (first, second) =>
-        second.rider.ratings.acceleration + second.rider.ratings.breakaway -
-        first.rider.ratings.acceleration - first.rider.ratings.breakaway
-    )[0];
-
-  if (candidate && random() > 0.46) {
-    candidate.group = "chase";
-    candidate.groupSinceSegment = segmentIndex;
-    candidate.elapsedTimeSeconds -= Math.min(18, breakawayGapSeconds * 0.18);
-    commentary.push(
-      `${candidate.rider.name} sort seul du peloton : le voilà en chasse-patate entre les deux groupes.`
-    );
+  const progress = completedDistanceKm / Math.max(1, totalDistanceKm);
+  if (
+    progress < 0.12 ||
+    progress > 0.72 ||
+    breakawayGapSeconds < 35 ||
+    breakawayGapSeconds > 210 ||
+    chasePressure > 0.58
+  ) {
+    return false;
   }
-}
 
+  const candidate = getStatesInGroup(states, "peloton")
+    .filter((state) => {
+      const rider = state.rider;
+      if (
+        strategy.protectedRiderIds.has(rider.id) ||
+        rider.role === "leader" ||
+        rider.role === "sprinter" ||
+        state.energy < 28
+      ) {
+        return false;
+      }
+      return (
+        hasSpecialAbility(rider, "chase_potato") ||
+        hasSpecialAbility(rider, "panache") ||
+        rider.role === "free_agent" ||
+        (rider.ratings.breakaway >= 66 &&
+          rider.ratings.acceleration >= 60)
+      );
+    })
+    .map((state) => {
+      const favoriteTier =
+        strategy.favoriteTierByTeamId.get(state.rider.teamId) ?? "none";
+      return {
+        state,
+        favoriteTier,
+        score:
+          state.rider.ratings.acceleration * 0.34 +
+          state.rider.ratings.breakaway * 0.36 +
+          state.rider.ratings.endurance * 0.12 +
+          state.rider.form * 0.1 +
+          state.energy * 0.08 +
+          (hasSpecialAbility(state.rider, "chase_potato") ? 8 : 0) +
+          (hasSpecialAbility(state.rider, "panache") ? 5 : 0) -
+          (favoriteTier === "major"
+            ? 16
+            : favoriteTier === "medium"
+              ? 7
+              : 0),
+      };
+    })
+    .sort((first, second) => second.score - first.score)[0];
+
+  if (!candidate) return false;
+
+  const launchChance = clamp(
+    0.08 +
+      (candidate.state.rider.role === "free_agent" ? 0.08 : 0) +
+      (hasSpecialAbility(candidate.state.rider, "chase_potato")
+        ? 0.17
+        : 0) +
+      (hasSpecialAbility(candidate.state.rider, "panache") ? 0.08 : 0) +
+      Math.max(0, candidate.state.rider.form - 72) * 0.006 -
+      (candidate.favoriteTier === "major"
+        ? 0.08
+        : candidate.favoriteTier === "medium"
+          ? 0.03
+          : 0),
+    0.05,
+    0.42
+  );
+
+  if (random() >= launchChance) return false;
+
+  candidate.state.group = "chase";
+  candidate.state.groupSinceSegment = segmentIndex;
+  candidate.state.elapsedTimeSeconds -= Math.min(
+    18,
+    breakawayGapSeconds * 0.18
+  );
+  commentary.push(
+    hasSpecialAbility(candidate.state.rider, "chase_potato")
+      ? candidate.state.rider.name +
+          " profite d’un temps mort et part seul en chasse-patate."
+      : candidate.state.rider.name +
+          " profite d’un peloton encore attentiste pour tenter de rejoindre la tête."
+  );
+  return true;
+}
 function resolveExistingChasers({
   states,
   segmentIndex,
@@ -2657,7 +3100,8 @@ function resolveExistingChasers({
       state.rider.ratings.breakaway * 0.42 +
       state.rider.ratings.acceleration * 0.34 +
       state.energy * 0.24 +
-      random() * 12;
+      (hasSpecialAbility(state.rider, "chase_potato") ? 11 : 0) +
+      random() * 10;
 
     if (
       breakawayGapSeconds > 0 &&
@@ -3995,65 +4439,127 @@ function toGroupSnapshot(
   };
 }
 
+function getPelotonChaseWorkers(
+  peloton: RiderState[],
+  controllingTeamIds: Set<string>
+) {
+  return peloton.filter(
+    (state) =>
+      controllingTeamIds.has(state.rider.teamId) &&
+      (state.rider.role === "domestique" ||
+        state.rider.role === "leadout") &&
+      state.energy >= 10
+  );
+}
+
+function getPelotonChaseCapacity(
+  peloton: RiderState[],
+  segment: RaceStageSegment,
+  controllingTeamIds: Set<string>
+) {
+  if (peloton.length === 0 || controllingTeamIds.size === 0) {
+    return 0.08;
+  }
+
+  const workers = getPelotonChaseWorkers(
+    peloton,
+    controllingTeamIds
+  );
+  if (workers.length === 0) return 0.12;
+
+  const workerStrength = average(
+    workers.map(
+      (state) =>
+        getTerrainRating(state.rider, segment) * 0.64 +
+        state.rider.ratings.endurance * 0.2 +
+        state.energy * 0.16
+    )
+  );
+  const expectedWorkers = Math.max(
+    2,
+    controllingTeamIds.size * 1.7
+  );
+  const workerCoverage = clamp(
+    workers.length / expectedWorkers,
+    0,
+    1
+  );
+  const representedTeams =
+    new Set(workers.map((state) => state.rider.teamId)).size /
+    controllingTeamIds.size;
+
+  return clamp(
+    workerCoverage * 0.42 +
+      representedTeams * 0.24 +
+      clamp((workerStrength - 48) / 30, 0, 1) * 0.34,
+    0.08,
+    1
+  );
+}
+
 function getPelotonChasePressure(
   peloton: RiderState[],
   segment: RaceStageSegment,
   progress: number,
   hasBreakaway: boolean,
   breakawayThreat: number,
-  breakawayGapSeconds: number
+  breakawayGapSeconds: number,
+  controllingTeamIds: Set<string>
 ) {
-  const sprintTeams = new Set(
-    peloton
-      .filter((state) => state.rider.role === "sprinter")
-      .map((state) => state.rider.teamId)
-  ).size;
+  const chaseCapacity = getPelotonChaseCapacity(
+    peloton,
+    segment,
+    controllingTeamIds
+  );
   const terrainFactor =
-    segment.terrain === "flat" ? 0.06 : segment.terrain === "climb" ? -0.07 : 0;
-  const breakawayUrgency = hasBreakaway ? 0 : -0.06;
+    segment.terrain === "flat"
+      ? 0.04
+      : segment.terrain === "climb"
+        ? -0.03
+        : 0;
   const gapUrgency = hasBreakaway
-    ? clamp((breakawayGapSeconds - 180) / 360, 0, 0.16)
+    ? clamp((breakawayGapSeconds - 90) / 330, 0, 0.22)
+    : 0;
+  const dangerUrgency = hasBreakaway
+    ? breakawayThreat
     : 0;
 
   if (progress < 0.3) {
     return clamp(
-      0.16 +
-        sprintTeams * 0.018 +
+      0.1 +
+        chaseCapacity * 0.2 +
         terrainFactor +
-        breakawayUrgency +
-        breakawayThreat * 0.16 +
+        dangerUrgency * 0.3 +
         gapUrgency,
-      0.08,
-      0.56
+      0.06,
+      0.62
     );
   }
 
   if (progress < 0.62) {
     return clamp(
-      0.3 +
-        sprintTeams * 0.035 +
+      0.18 +
+        chaseCapacity * 0.42 +
         terrainFactor +
-        breakawayUrgency +
-        breakawayThreat * 0.32 +
+        dangerUrgency * 0.34 +
         gapUrgency,
-      0.2,
-      0.85
+      0.12,
+      0.9
     );
   }
 
-  const finalUrgency = (progress - 0.62) * 1.2;
+  const finalUrgency = (progress - 0.62) * 0.82;
   return clamp(
-    0.52 +
-      sprintTeams * 0.075 +
+    0.31 +
+      chaseCapacity * 0.46 +
       terrainFactor +
       finalUrgency +
-      breakawayThreat * 0.3 +
+      dangerUrgency * 0.31 +
       gapUrgency,
-    0.48,
+    0.28,
     1
   );
 }
-
 function getTerrainRating(rider: RiderSimulationInput, segment: RaceStageSegment) {
   let rating: number;
 

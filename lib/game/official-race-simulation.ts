@@ -27,7 +27,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.07-large-breakaway-decisions-v7";
+export const OFFICIAL_RACE_ENGINE_VERSION = "2026.08-realistic-race-attacks-v8";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -239,12 +239,25 @@ export function simulateOfficialRaceEdition(
       first.id.localeCompare(second.id)
   );
 
-  return orderedStages.map((stage) => {
-    const input = createCalendarSimulationInput({
+  const runs: OfficialStageSimulationRun[] = [];
+
+  for (const stage of orderedStages) {
+    const standingsBeforeStage =
+      edition.raceFormat === "stage_race" && runs.length > 0
+        ? buildStageRaceStandings(
+            runs.map((run) => run.simulation)
+          )
+        : null;
+    const baseInput = createCalendarSimulationInput({
       edition,
       stage,
-      seed: `${edition.id}:${stage.id}:official`,
+      seed: edition.id + ":" + stage.id + ":official",
     });
+    const input: StageSimulationInput = {
+      ...baseInput,
+      generalClassification:
+        standingsBeforeStage?.general,
+    };
     const simulation = simulateRaceStage({
       ...input,
       unavailableRiderIds: [...unavailableRiderIds].sort(),
@@ -256,8 +269,10 @@ export function simulateOfficialRaceEdition(
       }
     }
 
-    return { stage, input, simulation };
-  });
+    runs.push({ stage, input, simulation });
+  }
+
+  return runs;
 }
 
 export function getOfficialStageSimulationContext({

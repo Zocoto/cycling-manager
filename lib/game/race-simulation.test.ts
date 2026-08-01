@@ -8,6 +8,7 @@ import {
   assignAutomaticRaceRoles,
   buildStageRaceStandings,
   getStageAttackParticipants,
+  getBreakawayGeneralClassificationThreat,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   getHillyClimbSelectionRating,
@@ -18,6 +19,7 @@ import {
   getNextHillyClimbLoad,
   isMassGroupFinish,
   reduceMechanicalIncidentTimeLoss,
+  selectStageAttackPlan,
   simulateRaceStage,
   type RiderSimulationInput,
 } from "./race-simulation";
@@ -214,10 +216,9 @@ describe("simulateRaceStage", () => {
     expect(simulateRaceStage(input)).toEqual(simulateRaceStage(input));
   });
 
-  it("double la depense des grandes echappees et de la poursuite", () => {
-    const base = createDemoSimulationInput("sprint-littoral", 12);
+  it("limite presque toujours l’échappée matinale à un coureur par équipe", () => {
     const segments: RaceStageSegment[] = Array.from(
-      { length: 4 },
+      { length: 8 },
       (_, index) => ({
         segmentNumber: index + 1,
         distanceKm: 20,
@@ -227,68 +228,149 @@ describe("simulateRaceStage", () => {
         prime: null,
       })
     );
-    const runWithAttackers = (attackerCount: number) =>
-      simulateRaceStage({
-        ...base,
-        id: "large-breakaway-effort-test",
-        seed: "large-breakaway-effort-test",
-        profileType: "flat",
-        segments,
-        riders: Array.from({ length: 48 }, (_, index) => {
-          const isAttacker = index < attackerCount;
-          return {
-            ...createSelectionTestRider(
-              `large-breakaway-${index}`,
-              isAttacker
-                ? {
-                    flat: 78,
-                    acceleration: 88,
-                    endurance: 84,
-                    resistance: 80,
-                    breakaway: 92,
-                  }
-                : {
-                    flat: 75,
-                    acceleration: 40,
-                    endurance: 70,
-                    resistance: 70,
-                    breakaway: 20,
-                  }
-            ),
-            form: 80,
-            role: isAttacker
-              ? ("free_agent" as const)
-              : index === 47
-                ? ("domestique" as const)
-                : ("leader" as const),
-          };
-        }),
-      });
+    const riders = Array.from({ length: 6 }, (_, teamIndex) => {
+      const teamId = "attack-team-" + teamIndex;
+      const common = {
+        teamId,
+        teamName: "Attack team " + teamIndex,
+      };
+      return [
+        {
+          ...createSelectionTestRider(
+            teamId + "-leader",
+            {
+              flat: 82,
+              sprint: 84,
+              acceleration: 82,
+              endurance: 78,
+            }
+          ),
+          ...common,
+          role: "sprinter" as const,
+        },
+        {
+          ...createSelectionTestRider(
+            teamId + "-attacker-a",
+            {
+              flat: 68,
+              acceleration: 80,
+              endurance: 82,
+              breakaway: 88,
+            }
+          ),
+          ...common,
+          role: "free_agent" as const,
+        },
+        {
+          ...createSelectionTestRider(
+            teamId + "-attacker-b",
+            {
+              flat: 66,
+              acceleration: 78,
+              endurance: 80,
+              breakaway: 86,
+            }
+          ),
+          ...common,
+          role: "free_agent" as const,
+        },
+      ];
+    }).flat();
+    const plan = selectStageAttackPlan(
+      riders,
+      segments,
+      () => 0.5
+    );
+    const riderById = new Map(
+      riders.map((rider) => [rider.id, rider])
+    );
+    const morningTeamCounts = new Map<string, number>();
 
-    const regularSimulation = runWithAttackers(10);
-    const largeSimulation = runWithAttackers(12);
-    const regularBreakaway = regularSimulation.timeline[1]?.groups.find(
-      (group) => group.type === "breakaway"
+    for (const riderId of plan.initialAttackIds) {
+      const teamId = riderById.get(riderId)!.teamId;
+      morningTeamCounts.set(
+        teamId,
+        (morningTeamCounts.get(teamId) ?? 0) + 1
+      );
+    }
+
+    expect(plan.initialAttackIds.size).toBeGreaterThan(0);
+    expect(Math.max(...morningTeamCounts.values())).toBe(1);
+  });
+  it("préserve les ressources d’une équipe qui possède un favori majeur", () => {
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 8 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 20,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      })
     );
-    const largeBreakaway = largeSimulation.timeline[1]?.groups.find(
-      (group) => group.type === "breakaway"
+    const favoriteTeamId = "favorite-team";
+    const favoriteSprinter = {
+      ...createSelectionTestRider("favorite-sprinter", {
+        flat: 90,
+        sprint: 96,
+        acceleration: 93,
+        resistance: 86,
+      }),
+      teamId: favoriteTeamId,
+      teamName: "Favorite team",
+      role: "sprinter" as const,
+    };
+    const favoriteAttacker = {
+      ...createSelectionTestRider("favorite-attacker", {
+        flat: 68,
+        acceleration: 86,
+        endurance: 84,
+        breakaway: 92,
+      }),
+      teamId: favoriteTeamId,
+      teamName: "Favorite team",
+      role: "free_agent" as const,
+    };
+    const opportunists = Array.from({ length: 10 }, (_, index) => ({
+      ...createSelectionTestRider("opportunist-" + index, {
+        flat: 62,
+        sprint: 48,
+        acceleration: 76 + (index % 4),
+        endurance: 78,
+        breakaway: 82 + (index % 5),
+      }),
+      role: "free_agent" as const,
+    }));
+    const plan = selectStageAttackPlan(
+      [favoriteSprinter, favoriteAttacker, ...opportunists],
+      segments,
+      () => 0.5
     );
 
-    expect(regularBreakaway?.riderIds).toHaveLength(10);
-    expect(largeBreakaway?.riderIds).toHaveLength(12);
-    const regularChaser = regularSimulation.results.find(
-      (result) => result.riderId === "large-breakaway-47"
-    );
-    const largeBreakawayChaser = largeSimulation.results.find(
-      (result) => result.riderId === "large-breakaway-47"
-    );
+    expect(plan.initialAttackIds.has(favoriteAttacker.id)).toBe(false);
+    expect(plan.initialAttackIds.size).toBeGreaterThan(0);
+  });
 
-    expect(largeBreakaway!.averageEnergy).toBeLessThan(
-      regularBreakaway!.averageEnergy - 4
-    );
-    expect(largeBreakawayChaser!.energyAfter).toBeLessThan(
-      regularChaser!.energyAfter - 2
-    );
+  it("juge un échappé proche au général plus dangereux qu’un coureur déjà loin", () => {
+    const generalClassification = [
+      { riderId: "leader", elapsedTimeSeconds: 10_000 },
+      { riderId: "close", elapsedTimeSeconds: 10_060 },
+      { riderId: "far", elapsedTimeSeconds: 10_700 },
+    ];
+
+    expect(
+      getBreakawayGeneralClassificationThreat(
+        ["close"],
+        generalClassification
+      )
+    ).toBeGreaterThan(0.9);
+    expect(
+      getBreakawayGeneralClassificationThreat(
+        ["far"],
+        generalClassification
+      )
+    ).toBe(0);
   });
   it("simule un contre-la-montre avec un seul engagé (championnat national)", () => {
     const base = createDemoSimulationInput("sprint-littoral", 7);
@@ -629,10 +711,9 @@ describe("simulateRaceStage", () => {
     ).toBe(true);
   });
 
-  it("keeps riders in reserve for a mid-race attack on very long stages", () => {
-    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+  it("place les attaques tardives à environ 40 km sur le plat", () => {
     const riders = Array.from({ length: 24 }, (_, index) => ({
-      ...createSelectionTestRider(`long-stage-${index}`, {
+      ...createSelectionTestRider("long-stage-" + index, {
         flat: 64 + (index % 5),
         acceleration: 66 + (index % 4),
         endurance: 72 + (index % 6),
@@ -653,26 +734,57 @@ describe("simulateRaceStage", () => {
         prime: null,
       })
     );
-    const result = simulateRaceStage({
-      ...baseInput,
-      id: "danger-check-1",
-      segments,
+    const plan = selectStageAttackPlan(
       riders,
-    });
-    const participants = getStageAttackParticipants(result);
+      segments,
+      () => 0.5
+    );
+    const remainingDistanceKm =
+      220 - plan.delayedAttackAtKm;
 
-    expect(
-      participants.some(
-        (participant) =>
-          participant.firstSegmentNumber >= 5 &&
-          participant.firstSegmentNumber <= 7
-      )
-    ).toBe(true);
-    expect(
-      result.timeline.flatMap((snapshot) => snapshot.commentary).join(" ")
-    ).toContain("jug\u00e9 dangereux");
+    expect(plan.delayedAttackIds.size).toBeGreaterThan(0);
+    expect(plan.delayedAttackRequiresGroupedPeloton).toBe(true);
+    expect(remainingDistanceKm).toBeGreaterThanOrEqual(36);
+    expect(remainingDistanceKm).toBeLessThanOrEqual(44);
   });
 
+  it("place les attaques tardives entre 10 et 20 km en vallons ou montagne", () => {
+    const riders = Array.from({ length: 24 }, (_, index) => ({
+      ...createSelectionTestRider("hilly-late-" + index, {
+        mountain: 62 + (index % 5),
+        hills: 68 + (index % 6),
+        acceleration: 67 + (index % 5),
+        endurance: 72 + (index % 5),
+        breakaway: 70 + (index % 7),
+      }),
+      role: "free_agent" as const,
+      form: 77,
+    }));
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 10 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 16,
+        terrain:
+          index % 3 === 0 ? ("climb" as const) : ("flat" as const),
+        averageGradientPct: index % 3 === 0 ? 6 : 0,
+        surface: "asphalt" as const,
+        prime: null,
+      })
+    );
+    const plan = selectStageAttackPlan(
+      riders,
+      segments,
+      () => 0.5
+    );
+    const remainingDistanceKm =
+      160 - plan.delayedAttackAtKm;
+
+    expect(plan.delayedAttackIds.size).toBeGreaterThan(0);
+    expect(plan.delayedAttackRequiresGroupedPeloton).toBe(false);
+    expect(remainingDistanceKm).toBeGreaterThanOrEqual(10);
+    expect(remainingDistanceKm).toBeLessThanOrEqual(20);
+  });
   it("restores a limited amount of race energy on a descent", () => {
     const baseInput = createDemoSimulationInput("haute-montagne", 19);
     const riders = Array.from({ length: 12 }, (_, index) =>
