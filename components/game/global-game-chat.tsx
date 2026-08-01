@@ -13,23 +13,18 @@ import {
   postGlobalChatMessageAction,
   toggleGlobalChatMessageReactionAction,
 } from "@/app/jeu/chat/actions";
-import {
-  CyclingReactionSticker,
-  GlobalChatMediaPicker,
-} from "@/components/game/global-chat-media-picker";
+import { GlobalChatMediaPicker } from "@/components/game/global-chat-media-picker";
 import Link from "@/components/ui/app-link";
 import {
-  buildGlobalChatMessage,
   expandGlobalChatEmoticons,
-  extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
   GLOBAL_CHAT_HISTORY_DAYS,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
   GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS,
   isGlobalChatMessageReactionEmoji,
-  splitGlobalChatMessageContent,
+  normalizeGlobalChatMessage,
+  stripGlobalChatCyclingReactionTokens,
   type GlobalChatCursor,
-  type GlobalChatCyclingReactionKey,
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
@@ -72,8 +67,7 @@ export function GlobalGameChat({
     identity,
   ]);
   const [draft, setDraft] = useState("");
-  const [selectedReaction, setSelectedReaction] =
-    useState<GlobalChatCyclingReactionKey | null>(null);
+
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
   const [pendingReactionKey, setPendingReactionKey] = useState<string | null>(
     null,
@@ -247,7 +241,7 @@ export function GlobalGameChat({
     };
   }, [identity, supabase]);
 
-  const draftLimit = getGlobalChatDraftLimit(selectedReaction);
+  const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
 
   async function loadOlderMessages() {
     if (!olderCursor || isLoadingOlder) return;
@@ -304,12 +298,6 @@ export function GlobalGameChat({
     });
   }
 
-  function selectReaction(reaction: GlobalChatCyclingReactionKey) {
-    setSelectedReaction(reaction);
-    setDraft((current) =>
-      current.slice(0, getGlobalChatDraftLimit(reaction)),
-    );
-  }
 
   function beginReply(message: GlobalChatMessage) {
     setReplyTo(message);
@@ -356,10 +344,7 @@ export function GlobalGameChat({
 
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = buildGlobalChatMessage({
-      text: draft,
-      reactionKey: selectedReaction,
-    });
+    const message = normalizeGlobalChatMessage(draft);
     if (!message || isPending) return;
 
     setError(null);
@@ -373,7 +358,6 @@ export function GlobalGameChat({
           appendUniqueMessage(current, savedMessage),
         );
         setDraft("");
-        setSelectedReaction(null);
         setReplyTo(null);
       } catch (submissionError) {
         setError(
@@ -491,28 +475,6 @@ export function GlobalGameChat({
               </button>
             </div>
           ) : null}
-          {selectedReaction ? (
-            <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/15 bg-[#F3F8F6] p-2">
-              <span className="h-14 w-14 shrink-0">
-                <CyclingReactionSticker
-                  reactionKey={selectedReaction}
-                  compact
-                  decorative
-                />
-              </span>
-              <p className="min-w-0 flex-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]">
-                Réaction cycliste sélectionnée
-              </p>
-              <button
-                type="button"
-                onClick={() => setSelectedReaction(null)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-[#60756E] shadow-sm hover:text-red-700"
-                aria-label="Retirer la réaction"
-              >
-                ×
-              </button>
-            </div>
-          ) : null}
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -542,10 +504,7 @@ export function GlobalGameChat({
             />
             <button
               type="submit"
-              disabled={
-                isPending ||
-                (!selectedReaction && draft.trim().length === 0)
-              }
+              disabled={isPending || draft.trim().length === 0}
               className="grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
             >
@@ -557,10 +516,7 @@ export function GlobalGameChat({
             </button>
           </div>
           <div className="mt-2 flex min-h-9 flex-wrap items-center gap-2">
-            <GlobalChatMediaPicker
-              onEmojiSelect={appendEmoji}
-              onReactionSelect={selectReaction}
-            />
+            <GlobalChatMediaPicker onEmojiSelect={appendEmoji} />
             <p role="alert" className="min-w-0 flex-1 text-[10px] font-bold text-red-700">
               {error}
             </p>
@@ -1041,14 +997,6 @@ function prependUniqueMessages(
   ];
 }
 
-function getGlobalChatDraftLimit(
-  reactionKey: GlobalChatCyclingReactionKey | null,
-) {
-  const reactionPrefix = reactionKey
-    ? `[cycling-reaction:${reactionKey}] `
-    : "";
-  return GLOBAL_CHAT_MESSAGE_MAX_LENGTH - reactionPrefix.length;
-}
 
 async function markGlobalChatMessagesAsRead(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
@@ -1178,16 +1126,9 @@ function focusChatMessage(messageId: string) {
 }
 
 function getMessageExcerpt(message: string) {
-  const parts = splitGlobalChatMessageContent(message);
-  const excerpt = parts
-    .filter((part) => !extractGlobalChatCyclingReaction(part))
-    .join("")
-    .trim();
-  if (excerpt) return excerpt;
-  return parts.some((part) => extractGlobalChatCyclingReaction(part))
-    ? "Réaction cycliste"
-    : "Message";
+  return stripGlobalChatCyclingReactionTokens(message) || "GIF retiré";
 }
+
 
 function readOnlineDirectors(
   presenceState: Record<string, unknown[]>,
@@ -1237,24 +1178,21 @@ function isOnlineDirector(value: unknown): value is OnlineDirector {
 }
 
 function renderMessageText(message: string, inverted: boolean) {
-  return splitGlobalChatMessageContent(message).map((content, index) => {
-    const reaction = extractGlobalChatCyclingReaction(content);
-    if (reaction) {
-      return (
-        <CyclingReactionSticker
-          key={`${reaction.key}-${index}`}
-          reactionKey={reaction.key}
-        />
-      );
-    }
+  const content = stripGlobalChatCyclingReactionTokens(message);
 
+  if (!content) {
     return (
-      <span key={`${content}-${index}`}>
-        {renderLinkedMessageText(content, inverted, index)}
+      <span
+        className={`italic ${inverted ? "text-white/60" : "text-[#789087]"}`}
+      >
+        GIF retiré
       </span>
     );
-  });
+  }
+
+  return renderLinkedMessageText(content, inverted, 0);
 }
+
 
 function renderLinkedMessageText(
   message: string,

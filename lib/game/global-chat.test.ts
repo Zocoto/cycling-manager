@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildGlobalChatMessage,
-  extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
   getGlobalChatHistoryStart,
   isGlobalChatCursor,
   normalizeGlobalChatMessage,
-  splitGlobalChatMessageContent,
+  stripGlobalChatCyclingReactionTokens,
 } from "@/lib/game/global-chat";
 
 const TEAM_ID = "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57";
@@ -57,28 +55,27 @@ describe("global chat messages", () => {
     );
   });
 
-  it("builds and parses a cycling reaction without exposing its token", () => {
-    const message = buildGlobalChatMessage({
-      text: "Quelle attaque !",
-      reactionKey: "attack",
-    });
-    const parts = splitGlobalChatMessageContent(message);
-
-    expect(message).toBe(
-      "[cycling-reaction:attack] Quelle attaque !",
-    );
-    expect(extractGlobalChatCyclingReaction(parts[0])).toEqual({
-      key: "attack",
-      label: "Attaque",
-    });
-    expect(parts[1]).toBe(" Quelle attaque !");
+  it("hides legacy cycling GIF tokens while keeping their text", () => {
+    expect(
+      stripGlobalChatCyclingReactionTokens(
+        "[cycling-reaction:attack] Quelle attaque !",
+      ),
+    ).toBe("Quelle attaque !");
+    expect(
+      stripGlobalChatCyclingReactionTokens("[cycling-reaction:too_early]"),
+    ).toBe("");
   });
 
+  it("does not allow legacy cycling GIF tokens in new messages", () => {
+    expect(
+      normalizeGlobalChatMessage(
+        "[cycling-reaction:snack_attack] Bonjour à tous",
+      ),
+    ).toBe("Bonjour à tous");
+  });
   it("limits visible history to the latest thirty days", () => {
     expect(
-      getGlobalChatHistoryStart(
-        new Date("2026-07-29T12:00:00.000Z"),
-      ),
+      getGlobalChatHistoryStart(new Date("2026-07-29T12:00:00.000Z")),
     ).toBe("2026-06-29T12:00:00.000Z");
   });
 

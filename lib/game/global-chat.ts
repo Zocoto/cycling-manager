@@ -71,22 +71,6 @@ export const GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS = [
 export type GlobalChatMessageReactionEmoji =
   (typeof GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS)[number];
 
-export const GLOBAL_CHAT_CYCLING_REACTIONS = [
-  { key: "sprint", label: "Sprint" },
-  { key: "climb", label: "Grimpe" },
-  { key: "attack", label: "Attaque" },
-  { key: "victory", label: "Victoire collective" },
-  { key: "feed_zone", label: "Ravito chaotique" },
-  { key: "puncture", label: "Crevaison" },
-  { key: "too_early", label: "Célébration trop tôt" },
-  { key: "snack_attack", label: "Poches pleines" },
-] as const;
-
-export type GlobalChatCyclingReaction =
-  (typeof GLOBAL_CHAT_CYCLING_REACTIONS)[number];
-export type GlobalChatCyclingReactionKey =
-  GlobalChatCyclingReaction["key"];
-
 export type GlobalChatCursor = {
   createdAt: string;
   id: string;
@@ -103,16 +87,7 @@ export type GlobalChatPreviewReference = {
 const INTERNAL_ENTITY_PATH =
   /\/jeu\/(equipes|coureurs)\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?=$|[/?#\s),.;!?])/i;
 
-const GLOBAL_CHAT_REACTION_KEYS =
-  "sprint|climb|attack|victory|feed_zone|puncture|too_early|snack_attack";
-const GLOBAL_CHAT_REACTION_TOKEN_PATTERN = new RegExp(
-  `(\\[cycling-reaction:(?:${GLOBAL_CHAT_REACTION_KEYS})\\])`,
-  "gi",
-);
-const GLOBAL_CHAT_REACTION_TOKEN_EXACT = new RegExp(
-  `^\\[cycling-reaction:(${GLOBAL_CHAT_REACTION_KEYS})\\]$`,
-  "i",
-);
+const GLOBAL_CHAT_REACTION_TOKEN_PATTERN = /\[cycling-reaction:[^\]]+\]/gi;
 const GLOBAL_CHAT_CURSOR_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMOTICON_END = "(?=$|[\\s,.!?;])";
@@ -137,44 +112,23 @@ const GLOBAL_CHAT_EMOTICON_RULES: ReadonlyArray<{
 export function expandGlobalChatEmoticons(value: string): string {
   return GLOBAL_CHAT_EMOTICON_RULES.reduce(
     (message, rule) =>
-      message.replace(rule.pattern, (_match, prefix: string) => `${prefix}${rule.emoji}`),
+      message.replace(
+        rule.pattern,
+        (_match, prefix: string) => `${prefix}${rule.emoji}`,
+      ),
     value,
   );
 }
 
+export function stripGlobalChatCyclingReactionTokens(value: string): string {
+  return value
+    .replace(GLOBAL_CHAT_REACTION_TOKEN_PATTERN, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function normalizeGlobalChatMessage(value: string): string {
-  return expandGlobalChatEmoticons(value).trim().replace(/\s+/g, " ");
-}
-
-export function buildGlobalChatMessage({
-  text,
-  reactionKey,
-}: {
-  text: string;
-  reactionKey: GlobalChatCyclingReactionKey | null;
-}) {
-  return normalizeGlobalChatMessage(
-    [reactionKey ? `[cycling-reaction:${reactionKey}]` : "", text]
-      .filter(Boolean)
-      .join(" "),
-  );
-}
-
-export function extractGlobalChatCyclingReaction(
-  value: string,
-): GlobalChatCyclingReaction | null {
-  const key = value.match(GLOBAL_CHAT_REACTION_TOKEN_EXACT)?.[1]
-    ?.toLowerCase() as GlobalChatCyclingReactionKey | undefined;
-
-  return (
-    GLOBAL_CHAT_CYCLING_REACTIONS.find(
-      (reaction) => reaction.key === key,
-    ) ?? null
-  );
-}
-
-export function splitGlobalChatMessageContent(value: string) {
-  return value.split(GLOBAL_CHAT_REACTION_TOKEN_PATTERN).filter(Boolean);
+  return stripGlobalChatCyclingReactionTokens(expandGlobalChatEmoticons(value));
 }
 
 export function isGlobalChatMessageReactionEmoji(
@@ -192,9 +146,7 @@ export function getGlobalChatHistoryStart(now = new Date()) {
   ).toISOString();
 }
 
-export function isGlobalChatCursor(
-  value: unknown,
-): value is GlobalChatCursor {
+export function isGlobalChatCursor(value: unknown): value is GlobalChatCursor {
   if (!value || typeof value !== "object") return false;
   const cursor = value as Record<string, unknown>;
 
