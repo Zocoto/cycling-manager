@@ -289,7 +289,7 @@ function ScoutingTab({
             text={
               showReportHistory
                 ? "Un rapport rejoint cette rubrique trois jours après avoir été marqué comme consulté."
-                : "Lancez une mission de 1 à 7 jours : un rapport contiendra entre 1 et 4 jeunes."
+                : "Lancez une mission de 3 à 7 jours : un rapport contiendra entre 1 et 4 jeunes."
             }
           />
         )}
@@ -332,7 +332,7 @@ function TutorialScoutingDeadlines() {
           <h2 className="mt-2 text-2xl font-black">Départ J12 · rapport J15</h2>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
             Le scout reste indisponible pendant toute la mission. Une mission
-            réelle dure de 1 à 7 jours, doit se terminer avant le J28 et révèle
+            réelle dure de 3 à 7 jours, doit se terminer avant le J28 et révèle
             entre 1 et 4 candidats.
           </p>
         </div>

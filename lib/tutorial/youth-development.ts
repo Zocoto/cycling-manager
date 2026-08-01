@@ -78,7 +78,7 @@ export const youthDevelopmentTutorialDefinition = {
       targetId: "youth-tutorial-deadlines",
       title: "Le délai se compte en jours de saison",
       content:
-        "Une mission dure de 1 à 7 jours complets. Lancée en J12 pour trois jours, elle livre donc son rapport en J15. Elle ne peut pas dépasser le J28 et le scout reste indisponible jusqu’au retour.\n\nUne durée plus longue améliore légèrement les chances de potentiel, mais immobilise le scout davantage. Le rapport final contient entre un et quatre jeunes.",
+        "Une mission dure de 3 à 7 jours complets. Lancée en J12 pour trois jours, elle livre donc son rapport en J15. Elle ne peut pas dépasser le J28 et le scout reste indisponible jusqu’au retour.\n\nUne durée plus longue améliore légèrement les chances de potentiel, mais immobilise le scout davantage. Le rapport final contient entre un et quatre jeunes.",
       placement: "top",
       highlightPadding: 8,
     },

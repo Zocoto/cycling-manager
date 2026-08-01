@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions";
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
+import { YOUTH_SCOUTING_DURATION_OPTIONS } from "@/lib/game/youth-scouting-duration";
 import type { YouthCountry, YouthScout } from "@/services/youth-development";
 
 export function YouthScoutingMap({
@@ -113,7 +114,7 @@ export function YouthScoutingMap({
           <label className="block">
             <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">Durée du scouting</span>
             <select name="durationDays" defaultValue="3" className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]">
-              {Array.from({ length: 7 }, (_, index) => index + 1).map((day) => <option key={day} value={day}>{day} jour{day > 1 ? "s" : ""}</option>)}
+              {YOUTH_SCOUTING_DURATION_OPTIONS.map((day) => <option key={day} value={day}>{day} jours</option>)}
             </select>
           </label>
           <MissionSubmitButton disabled={!availableScouts.length} />
@@ -158,9 +159,9 @@ function TutorialMissionLauncher({ countryName }: { countryName: string }) {
           }}
           className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
         >
-          {Array.from({ length: 7 }, (_, index) => index + 1).map((day) => (
+          {YOUTH_SCOUTING_DURATION_OPTIONS.map((day) => (
             <option key={day} value={day}>
-              {day} jour{day > 1 ? "s" : ""}
+              {day} jours
             </option>
           ))}
         </select>

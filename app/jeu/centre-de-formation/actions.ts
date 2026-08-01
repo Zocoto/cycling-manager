@@ -8,6 +8,7 @@ import {
   isYouthTrainingMode,
   type YouthTrainingGameType,
 } from "@/lib/game/youth-training";
+import { isValidYouthScoutingDuration } from "@/lib/game/youth-scouting-duration";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const CENTER_PATH = "/jeu/centre-de-formation";
@@ -16,8 +17,19 @@ export async function startYouthScoutingAction(formData: FormData) {
   const scoutContractId = readValue(formData, "scoutContractId");
   const countryId = readValue(formData, "countryId");
   const durationDays = Number(readValue(formData, "durationDays"));
-  if (!isUuid(scoutContractId) || !isUuid(countryId) || !Number.isInteger(durationDays) || durationDays < 1 || durationDays > 7) {
-    redirectWithMessage("scouting", "erreur", "Le pays, le scout ou la durée de mission est invalide.");
+  if (!isUuid(scoutContractId) || !isUuid(countryId)) {
+    redirectWithMessage(
+      "scouting",
+      "erreur",
+      "Le pays ou le scout sélectionné est invalide.",
+    );
+  }
+  if (!isValidYouthScoutingDuration(durationDays)) {
+    redirectWithMessage(
+      "scouting",
+      "erreur",
+      "La durée du scouting doit être comprise entre 3 et 7 jours.",
+    );
   }
   const supabase = await authenticatedClient();
   const result = await supabase.rpc("start_current_team_youth_scouting", {
