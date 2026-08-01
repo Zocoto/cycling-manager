@@ -10,7 +10,6 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { StaffDismissalSubmitButton } from "@/components/game/staff-dismissal-submit-button";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
-import { StaffTutorialTabSync } from "@/components/tutorial/staff-tutorial-tab-sync";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { ARCHITECT_SPECIALTY_LABELS } from "@/lib/game/infrastructure";
@@ -29,8 +28,8 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
+  isStaffTutorialRoute,
   STAFF_TUTORIAL_KEY,
-  STAFF_TUTORIAL_ROUTE,
 } from "@/lib/tutorial/staff";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
@@ -105,14 +104,13 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       {staffTutorialProgress?.status === "in_progress" &&
-      staffTutorialProgress.current_route === STAFF_TUTORIAL_ROUTE &&
+      isStaffTutorialRoute(staffTutorialProgress.current_route) &&
       staffTutorialProgress.current_step_key ? (
         <TutorialRouteResume
           tutorialKey={STAFF_TUTORIAL_KEY}
           currentStepKey={staffTutorialProgress.current_step_key}
         />
       ) : null}
-      <StaffTutorialTabSync />
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}

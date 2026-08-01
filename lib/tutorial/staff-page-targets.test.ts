@@ -31,11 +31,14 @@ describe("staff tutorial integration", () => {
     }
   });
 
-  it("propose le point d'interrogation et synchronise les deux onglets", () => {
+  it("propose le point d'interrogation et reprend les deux onglets", () => {
     expect(staffPage).toContain(
       "tutorialKey={STAFF_TUTORIAL_KEY}",
     );
-    expect(staffPage).toContain("<StaffTutorialTabSync />");
+    expect(staffPage).toContain(
+      "isStaffTutorialRoute(staffTutorialProgress.current_route)",
+    );
+    expect(staffPage).not.toContain("StaffTutorialTabSync");
   });
 
   it("ajoute le parcours au centre des didacticiels", () => {

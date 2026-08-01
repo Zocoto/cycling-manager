@@ -3,6 +3,19 @@ import type { TutorialDefinition } from "@/types/tutorial";
 export const STAFF_TUTORIAL_KEY = "staff";
 export const STAFF_TUTORIAL_VERSION = 1;
 export const STAFF_TUTORIAL_ROUTE = "/jeu/staff";
+export const STAFF_TUTORIAL_MARKET_ROUTE =
+  `${STAFF_TUTORIAL_ROUTE}?onglet=marche`;
+export const STAFF_TUTORIAL_TEAM_ROUTE =
+  `${STAFF_TUTORIAL_ROUTE}?onglet=equipe`;
+
+export function isStaffTutorialRoute(
+  route: string | null | undefined,
+): boolean {
+  return (
+    route === STAFF_TUTORIAL_ROUTE ||
+    Boolean(route?.startsWith(`${STAFF_TUTORIAL_ROUTE}?`))
+  );
+}
 
 export const STAFF_TUTORIAL_MARKET_STEP_KEYS = [
   "staff-market",
@@ -24,7 +37,7 @@ export const staffTutorialDefinition = {
   steps: [
     {
       key: "staff-overview",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-overview",
       title: "Votre équipe derrière l’équipe",
       content:
@@ -35,7 +48,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: "staff-capacity",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-capacity",
       title: "Votre niveau de DS ouvre des places",
       content:
@@ -45,7 +58,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: "staff-tabs",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-tabs",
       title: "Deux vues complémentaires",
       content:
@@ -55,7 +68,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: "staff-market",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-market-overview",
       title: "Un marché mondial partagé",
       content:
@@ -65,7 +78,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: "staff-market-filters",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-market-filters",
       title: "Isolez le spécialiste recherché",
       content:
@@ -75,7 +88,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: "staff-professions",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-market-listings",
       title: "Neuf métiers, neuf leviers de progression",
       content:
@@ -85,7 +98,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: STAFF_TUTORIAL_TEAM_STEP_KEY,
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_TEAM_ROUTE,
       targetId: "staff-team-overview",
       title: "Pilotez les effets déjà actifs",
       content:
@@ -95,7 +108,7 @@ export const staffTutorialDefinition = {
     },
     {
       key: "complete",
-      route: STAFF_TUTORIAL_ROUTE,
+      route: STAFF_TUTORIAL_TEAM_ROUTE,
       title: "Vous savez constituer votre encadrement",
       content:
         "Vous savez maintenant combien de spécialistes votre niveau autorise, comment filtrer le marché, comparer les métiers et leurs effets, puis contrôler le staff déjà recruté.\n\nCliquez sur « Terminer » pour valider ce didacticiel. Il apparaîtra comme réalisé dans le Centre des didacticiels et restera disponible depuis le point d’interrogation de la rubrique Staff.",
