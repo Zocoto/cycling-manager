@@ -44,12 +44,19 @@ export function DashboardMonitoringPanel({
 
     setErrorMessage(null);
     startTransition(async () => {
-      const result = await loadDashboardMonitoringAction();
-      if (!result.ok) {
-        setErrorMessage(result.message);
-        return;
+      try {
+        const result = await loadDashboardMonitoringAction();
+        if (!result.ok) {
+          setErrorMessage(result.message);
+          return;
+        }
+        setPayload(result.payload);
+      } catch (error) {
+        console.error("Impossible de charger le centre de monitoring :", error);
+        setErrorMessage(
+          "Le centre de monitoring n’a pas pu être chargé. Réessayez dans un instant.",
+        );
       }
-      setPayload(result.payload);
     });
   }
 
@@ -101,7 +108,10 @@ export function DashboardMonitoringPanel({
             className="border-t border-[#315B3E]/10 bg-[#F8FBF9] px-4 pb-6 sm:px-6"
           >
             {errorMessage ? (
-              <div className="mt-5 rounded-xl border border-[#D85D5D]/20 bg-[#FFF0EE] px-4 py-3 text-sm font-bold text-[#923B33]">
+              <div
+                role="alert"
+                className="mt-5 rounded-xl border border-[#D85D5D]/20 bg-[#FFF0EE] px-4 py-3 text-sm font-bold text-[#923B33]"
+              >
                 {errorMessage}
               </div>
             ) : payload ? (

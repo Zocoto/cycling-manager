@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { buildDashboardEventFeed } from "@/lib/game/dashboard-events";
 import type { DashboardMonitoringActionResult } from "@/lib/game/dashboard-monitoring";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getStageLiveState } from "@/lib/game/race-live";
@@ -103,6 +104,7 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
       (rider) => rider.rider_id,
     );
 
+    const admin = createSupabaseAdminClient();
     const [operationalEvents, transactionsResult] = await Promise.all([
       getCurrentDashboardOperationalEvents({
         authUserId: user.id,
@@ -111,7 +113,7 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
         currentDayNumber: summary.seasonDayNumber,
         riderIds,
       }),
-      supabase
+      admin
         .from("team_finance_transactions")
         .select(
           "id, day_number, amount, category, status, description, source_reference, posted_at",
