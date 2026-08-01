@@ -31,4 +31,39 @@ describe("migration de gestion de la forme", () => {
     expect(migration).toContain("if v_active_count >= 3 then");
     expect(migration).toContain("staff_contracts_nutritionist_limit");
   });
+
+  it("recrée le verrou de fatigue après le changement de type", () => {
+    const dropIndex = migration.indexOf("drop trigger if exists zz_rider_condition_fatigue_floor");
+    const alterIndex = migration.indexOf("alter column form type numeric(5, 2)");
+    const recreateIndex = migration.lastIndexOf("create trigger zz_rider_condition_fatigue_floor");
+    expect(dropIndex).toBeGreaterThan(-1);
+    expect(alterIndex).toBeGreaterThan(dropIndex);
+    expect(recreateIndex).toBeGreaterThan(alterIndex);
+  });
+
+  it("recrée la synchronisation kiné après le changement de type", () => {
+    const dropIndex = migration.indexOf(
+      "drop trigger if exists rider_condition_sync_physio_race_finish",
+    );
+    const alterIndex = migration.indexOf("alter column form type numeric(5, 2)");
+    const recreateIndex = migration.lastIndexOf(
+      "create trigger rider_condition_sync_physio_race_finish",
+    );
+    expect(dropIndex).toBeGreaterThan(-1);
+    expect(alterIndex).toBeGreaterThan(dropIndex);
+    expect(recreateIndex).toBeGreaterThan(alterIndex);
+  });
+
+  it("recrée les effets médicaux après le changement de type", () => {
+    const dropIndex = migration.indexOf(
+      "drop trigger if exists rider_condition_apply_medical_staff",
+    );
+    const alterIndex = migration.indexOf("alter column form type numeric(5, 2)");
+    const recreateIndex = migration.lastIndexOf(
+      "create trigger rider_condition_apply_medical_staff",
+    );
+    expect(dropIndex).toBeGreaterThan(-1);
+    expect(alterIndex).toBeGreaterThan(dropIndex);
+    expect(recreateIndex).toBeGreaterThan(alterIndex);
+  });
 });

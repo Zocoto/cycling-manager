@@ -1,5 +1,41 @@
 begin;
 
+drop trigger if exists zz_rider_condition_fatigue_floor
+  on public.rider_condition_states;
+drop trigger if exists rider_condition_sync_physio_race_finish
+  on public.rider_condition_states;
+drop trigger if exists rider_condition_apply_medical_staff
+  on public.rider_condition_states;
+
+drop trigger if exists stage_condition_assigned_physio_reduction
+  on public.stage_rider_condition_effects;
+
+drop trigger if exists stage_condition_detects_fatigue_injury
+  on public.stage_rider_condition_effects;
+
+drop trigger if exists rider_daily_recovery_nutritionist_bonus
+  on public.rider_daily_condition_effects;
+
+drop trigger if exists rider_daily_condition_detects_fatigue_injury
+  on public.rider_daily_condition_effects;
+
+drop trigger if exists rider_injury_form_assigned_physio_reduction
+  on public.rider_injury_form_effects;
+
+drop trigger if exists rider_injury_penalty_detects_fatigue_injury
+  on public.rider_injury_form_effects;
+
+drop trigger if exists apply_low_form_training_recovery_after_insert
+  on public.rider_training_sessions;
+
+drop trigger if exists rider_training_detects_fatigue_injury
+  on public.rider_training_sessions;
+
+drop trigger if exists label_reconnaissance_training_skip_after_insert
+  on public.rider_training_sessions;
+
+
+
 -- La forme accepte désormais les dixièmes afin de cumuler exactement les
 -- effets quotidiens de plusieurs nutritionnistes.
 alter table public.rider_condition_states
@@ -376,14 +412,9 @@ $$;
 do $migration$
 declare
   v_definition text;
-  v_old_formula text := $formula$
-      form_loss := case
-        when target_stage.race_format = 'one_day' then 10
-        else greatest(
-          5,
-          round(10 * (1 - target_roster.recovery / 200.0))::integer
-        )
-      end;$formula$;
+  v_formula_start integer;
+  v_formula_end integer;
+  v_replacement text;
 begin
   select pg_get_functiondef(
     'public.settle_finished_race_conditions()'::regprocedure
@@ -391,17 +422,30 @@ begin
   v_definition := replace(v_definition, 'previous_form integer;', 'previous_form numeric(5, 2);');
   v_definition := replace(v_definition, 'form_loss integer;', 'form_loss numeric(5, 2);');
   v_definition := replace(v_definition, 'next_form integer;', 'next_form numeric(5, 2);');
-  if position(v_old_formula in v_definition) = 0 then
-    raise exception 'Formule historique de coût de course introuvable.';
-  end if;
-  v_definition := replace(
-    v_definition,
-    v_old_formula,
-    '      form_loss := public.calculate_stage_form_cost(' || chr(10) ||
+  if position('form_loss := public.calculate_stage_form_cost(' in v_definition) = 0 then
+    v_formula_start := position('form_loss := case' in v_definition);
+    if v_formula_start = 0 then
+      raise exception 'Formule historique de coût de course introuvable.';
+    end if;
+
+    v_formula_end :=
+      v_formula_start - 1 +
+      position('end;' in substring(v_definition from v_formula_start));
+    if v_formula_end < v_formula_start then
+      raise exception 'Fin de la formule historique de coût de course introuvable.';
+    end if;
+
+    v_replacement :=
+      'form_loss := public.calculate_stage_form_cost(' || chr(10) ||
       '        target_stage.id,' || chr(10) ||
       '        target_roster.recovery' || chr(10) ||
-      '      );'
-  );
+      '      );';
+
+    v_definition :=
+      substring(v_definition from 1 for v_formula_start - 1) ||
+      v_replacement ||
+      substring(v_definition from v_formula_end + length('end;'));
+  end if;
   execute v_definition;
 
   select pg_get_functiondef(
@@ -460,6 +504,64 @@ begin
   execute v_definition;
 end;
 $migration$;
+
+create trigger zz_rider_condition_fatigue_floor
+before insert or update of form on public.rider_condition_states
+for each row execute function public.clamp_rider_form_and_lock_fatigue_injury();
+create trigger rider_condition_sync_physio_race_finish
+before insert or update of form, source on public.rider_condition_states
+for each row execute function public.sync_race_finish_form_with_physio_effect();
+create trigger rider_condition_apply_medical_staff
+before insert or update of form, source on public.rider_condition_states
+for each row execute function public.sync_medical_staff_condition_effects();
+
+create trigger stage_condition_assigned_physio_reduction
+before insert
+on public.stage_rider_condition_effects
+for each row execute function public.apply_assigned_physio_to_race_condition();
+
+create trigger stage_condition_detects_fatigue_injury
+after insert on public.stage_rider_condition_effects
+for each row
+when ((new.form_before + new.form_delta) < 0)
+execute function public.detect_stage_condition_fatigue_injury();
+
+create trigger rider_daily_condition_detects_fatigue_injury
+after insert on public.rider_daily_condition_effects
+for each row
+when ((new.form_before + new.form_delta) < 0)
+execute function public.detect_daily_condition_fatigue_injury();
+
+create trigger rider_injury_form_assigned_physio_reduction
+before insert
+on public.rider_injury_form_effects
+for each row execute function public.apply_physio_to_injury_form_effect();
+
+create trigger rider_injury_penalty_detects_fatigue_injury
+after insert on public.rider_injury_form_effects
+for each row
+when ((new.form_before + new.form_delta) < 0)
+execute function public.detect_injury_penalty_fatigue_injury();
+
+create trigger apply_low_form_training_recovery_after_insert
+after insert on public.rider_training_sessions
+for each row
+when (new.status = 'skipped_low_form')
+execute function public.apply_low_form_training_recovery_after_insert();
+
+create trigger rider_training_detects_fatigue_injury
+after insert on public.rider_training_sessions
+for each row
+when ((new.form_before + new.form_delta) < 0)
+execute function public.detect_training_fatigue_injury();
+
+create trigger label_reconnaissance_training_skip_after_insert
+after insert on public.rider_training_sessions
+for each row
+when (new.status = 'skipped_form_camp')
+execute function public.label_reconnaissance_training_skip();
+
+
 
 -- Plafond serveur : le contrôle résiste aux appels RPC directs et aux
 -- recrutements concurrents.
