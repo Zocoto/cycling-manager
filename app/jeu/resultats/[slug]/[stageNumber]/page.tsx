@@ -33,6 +33,9 @@ type RaceLivePageProps = {
     slug: string;
     stageNumber: string;
   }>;
+  searchParams: Promise<{
+    classement?: string;
+  }>;
 };
 
 type DirectorRow = {
@@ -41,8 +44,12 @@ type DirectorRow = {
 
 export default async function RaceLivePage({
   params,
+  searchParams,
 }: RaceLivePageProps) {
-  const { slug, stageNumber } = await params;
+  const [{ slug, stageNumber }, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams,
+  ]);
   const parsedStageNumber = Number.parseInt(stageNumber, 10);
   if (!Number.isInteger(parsedStageNumber)) {
     notFound();
@@ -214,6 +221,11 @@ export default async function RaceLivePage({
           initialMessages={initialMessages}
           lockedSimulations={lockedSimulations}
           postRaceInterview={postRaceInterview}
+          initialClassification={
+            resolvedSearchParams.classement === "general"
+              ? "general"
+              : undefined
+          }
         />
       </div>
     </main>
