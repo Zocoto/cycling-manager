@@ -28,16 +28,20 @@ function createScoreInput(
 }
 
 import {
+  YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE,
   YOUTH_PUNCHEUR_TARGET_MAX,
   YOUTH_PUNCHEUR_TARGET_MIN,
+  YOUTH_REFLEX_HITS_FOR_MAX_SCORE,
   YOUTH_REFLEX_TARGET_INTERVAL_MS,
   YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE,
   YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE,
   YOUTH_SPEED_TAPS_FOR_MAX_SCORE,
+  YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE,
   YOUTH_TRAINING_DURATION_SECONDS,
   calculateYouthAutomaticTrainingGain,
   calculateYouthMiniGameScore,
   calculateYouthPuncheurReleasePoints,
+  getYouthPuncheurChargeRateMultiplier,
   calculateYouthManualTrainingGain,
   getYouthAutomaticFirstDay,
   getYouthManualTrainingDivisor,
@@ -61,10 +65,13 @@ describe("youth training", () => {
 
   it("applique la durée et les calibrages demandés aux jeux existants", () => {
     expect(YOUTH_TRAINING_DURATION_SECONDS).toBe(30);
-    expect(YOUTH_SPEED_TAPS_FOR_MAX_SCORE / 30).toBeGreaterThan(180 / 35);
-    expect(YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE / 30).toBeLessThan(28 / 35);
-    expect(YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE).toBe(900);
-    expect(YOUTH_REFLEX_TARGET_INTERVAL_MS).toBeLessThan(820);
+    expect(YOUTH_SPEED_TAPS_FOR_MAX_SCORE).toBe(190);
+    expect(YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE).toBe(28);
+    expect(YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE).toBe(940);
+    expect(YOUTH_REFLEX_TARGET_INTERVAL_MS).toBe(680);
+    expect(YOUTH_REFLEX_HITS_FOR_MAX_SCORE).toBe(36);
+    expect(YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE).toBe(0.88);
+    expect(YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE).toBe(950);
   });
 
   it("sépare les deux créneaux manuels à midi heure de Paris", () => {
@@ -240,43 +247,51 @@ describe("youth training", () => {
     });
   });
 
-  it("offre une large zone de relâchement pour le jeu Puncheur", () => {
-    expect(YOUTH_PUNCHEUR_TARGET_MIN).toBe(0.62);
-    expect(YOUTH_PUNCHEUR_TARGET_MAX).toBe(0.9);
-    expect(calculateYouthPuncheurReleasePoints(0.62)).toBe(1_000);
+  it("resserre la zone de relâchement du jeu Puncheur", () => {
+    expect(YOUTH_PUNCHEUR_TARGET_MIN).toBe(0.73);
+    expect(YOUTH_PUNCHEUR_TARGET_MAX).toBe(0.84);
+    expect(calculateYouthPuncheurReleasePoints(0.73)).toBe(1_000);
     expect(calculateYouthPuncheurReleasePoints(0.78)).toBe(1_000);
-    expect(calculateYouthPuncheurReleasePoints(0.9)).toBe(1_000);
-    expect(calculateYouthPuncheurReleasePoints(0.5)).toBeGreaterThan(0);
-    expect(calculateYouthPuncheurReleasePoints(0.5)).toBeLessThan(1_000);
+    expect(calculateYouthPuncheurReleasePoints(0.84)).toBe(1_000);
+    expect(calculateYouthPuncheurReleasePoints(0.65)).toBeGreaterThan(0);
+    expect(calculateYouthPuncheurReleasePoints(0.65)).toBeLessThan(1_000);
     expect(calculateYouthPuncheurReleasePoints(0)).toBe(0);
+  });
+
+  it("accélère raisonnablement la charge du Puncheur en approchant du sommet", () => {
+    expect(getYouthPuncheurChargeRateMultiplier(0)).toBe(0.8);
+    expect(getYouthPuncheurChargeRateMultiplier(0.8)).toBeGreaterThan(
+      getYouthPuncheurChargeRateMultiplier(0.2),
+    );
+    expect(getYouthPuncheurChargeRateMultiplier(1)).toBeCloseTo(1.7);
   });
 
   it("normalise les six minijeux sur 1000 points", () => {
     expect(
       calculateYouthMiniGameScore(
         createScoreInput("rhythm", {
-          rhythmPoints: 19_800,
-          rhythmTaps: 22,
+          rhythmPoints: 26_320,
+          rhythmTaps: 28,
         }),
       ),
     ).toBe(1_000);
     expect(
       calculateYouthMiniGameScore(
         createScoreInput("reflex", {
-          reflexHits: 30,
-          reflexOpportunities: 30,
+          reflexHits: 36,
+          reflexOpportunities: 36,
         }),
       ),
     ).toBe(1_000);
     expect(
       calculateYouthMiniGameScore(
-        createScoreInput("speed", { speedTaps: 170 }),
+        createScoreInput("speed", { speedTaps: 190 }),
       ),
     ).toBe(1_000);
     expect(
       calculateYouthMiniGameScore(
         createScoreInput("time_trial", {
-          timeTrialOptimalMilliseconds: 8_200,
+          timeTrialOptimalMilliseconds: 8_800,
           timeTrialElapsedMilliseconds: 10_000,
         }),
       ),
@@ -293,7 +308,7 @@ describe("youth training", () => {
     expect(
       calculateYouthMiniGameScore(
         createScoreInput("puncheur", {
-          puncheurPoints: 5_400,
+          puncheurPoints: 5_700,
           puncheurOpportunities: 6,
         }),
       ),

@@ -22,13 +22,19 @@ describe("youth training minigame surfaces", () => {
     }
   });
 
-  it("explique le jeu Puncheur avant le chrono et matérialise la zone cible", () => {
-    expect(source).toContain('data-youth-game-instructions="puncheur"');
-    expect(source).toContain("Avant le chrono · prise en main");
-    expect(source).toContain("Maintenez, puis relâchez dans le vert");
-    expect(source).toContain("J’ai compris · commencer");
+  it("laisse le DS déclencher lui-même le chrono pour tous les jeux", () => {
+    expect(source).toContain("data-youth-game-start");
+    expect(source).toContain("Le chrono ne démarrera qu’après votre action");
+    expect(source).toContain('"Commencer"');
+    expect(source).not.toContain("PuncheurInstructions");
+    expect(source).not.toContain("data-youth-game-instructions");
+  });
+
+  it("resserre la cible du Puncheur et accélère progressivement sa jauge", () => {
     expect(source).toContain("YOUTH_PUNCHEUR_TARGET_MIN");
-    expect(source).toContain("PUNCHEUR_CHARGE_MILLISECONDS = 3_400");
+    expect(source).toContain("PUNCHEUR_BASE_CHARGE_MILLISECONDS = 4_000");
+    expect(source).toContain("getYouthPuncheurChargeRateMultiplier");
+    expect(source).toContain("select-none");
   });
 
   it("prévoit des interactions tactiles pour les trois nouveaux jeux", () => {

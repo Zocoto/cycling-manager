@@ -50,16 +50,16 @@ export type YouthMiniGameScoreInput = {
 };
 
 export const YOUTH_TRAINING_DURATION_SECONDS = 30;
-export const YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE = 22;
-export const YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE = 900;
-export const YOUTH_REFLEX_HITS_FOR_MAX_SCORE = 30;
-export const YOUTH_REFLEX_TARGET_INTERVAL_MS = 760;
-export const YOUTH_SPEED_TAPS_FOR_MAX_SCORE = 170;
-export const YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE = 0.82;
+export const YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE = 28;
+export const YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE = 940;
+export const YOUTH_REFLEX_HITS_FOR_MAX_SCORE = 36;
+export const YOUTH_REFLEX_TARGET_INTERVAL_MS = 680;
+export const YOUTH_SPEED_TAPS_FOR_MAX_SCORE = 190;
+export const YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE = 0.88;
 export const YOUTH_BREAKAWAY_ENERGY_FOR_MAX_SCORE = 30;
-export const YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE = 900;
-export const YOUTH_PUNCHEUR_TARGET_MIN = 0.62;
-export const YOUTH_PUNCHEUR_TARGET_MAX = 0.9;
+export const YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE = 950;
+export const YOUTH_PUNCHEUR_TARGET_MIN = 0.73;
+export const YOUTH_PUNCHEUR_TARGET_MAX = 0.84;
 export const YOUTH_RAW_RATING_MIN = 1;
 export const YOUTH_RAW_RATING_MAX = 8.25;
 export const YOUTH_RATING_PROJECTION_BASE = 34;
@@ -336,6 +336,10 @@ export function calculateYouthMiniGameScore({
   );
 }
 
+export function getYouthPuncheurChargeRateMultiplier(charge: number) {
+  return 0.8 + clamp(charge, 0, 1) * 0.9;
+}
+
 export function calculateYouthPuncheurReleasePoints(charge: number) {
   const normalizedCharge = clamp(charge, 0, 1);
   if (
@@ -350,7 +354,7 @@ export function calculateYouthPuncheurReleasePoints(charge: number) {
       ? YOUTH_PUNCHEUR_TARGET_MIN - normalizedCharge
       : normalizedCharge - YOUTH_PUNCHEUR_TARGET_MAX;
 
-  return clampScore(Math.round((1 - distanceFromTarget / 0.18) * 1_000));
+  return clampScore(Math.round((1 - distanceFromTarget / 0.14) * 1_000));
 }
 
 function clampScore(score: number) {
