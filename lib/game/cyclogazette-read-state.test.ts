@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260802090000_add_cyclogazette_read_receipts.sql",
+    "supabase/migrations/20260802091000_add_cyclogazette_read_receipts.sql",
   ),
   "utf8",
 ).replace(/\r\n/g, "\n");
