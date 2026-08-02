@@ -131,11 +131,20 @@ describe("CyclogazetteNewspaper", () => {
       <CyclogazetteNewspaper edition={edition} />,
     );
 
-    expect(markup).toContain("La course d’abord");
+    expect(markup).toContain("Les vainqueurs des étapes");
+    expect(markup).toContain("Vainqueur à la Une");
     expect(markup).toContain("Timo Willems règne sur le Circuit de Mazurie");
     expect(markup).toContain("Maillot vainqueur · Veloria Mobilités");
     expect(markup).toContain("Maillot de Veloria Mobilités");
+    expect(markup).toContain("Les forçats de la route");
     expect(markup).toContain("Incident de course");
+    expect(markup).not.toContain("lg:col-span-8");
+    expect(markup).not.toContain("lg:col-span-4");
+  });
+
+  it("équilibre les articles sans grande colonne latérale vide", () => {
+    const markup = renderToStaticMarkup(<CyclogazetteNewspaper edition={edition} />);
+    expect(markup.match(/flex-\[1_1_290px\]/g)?.length).toBeGreaterThanOrEqual(1);
   });
 
   it("affiche la question et permet de déplier toutes les réponses du DS", () => {
