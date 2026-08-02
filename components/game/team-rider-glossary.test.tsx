@@ -11,6 +11,9 @@ describe("TeamRiderGlossary", () => {
     );
 
     expect(markup).toContain("Glossaire des anciens coureurs");
+    expect(markup).toContain("Mémoire de l’équipe");
+    expect(markup).toContain("Consultez les départs classés");
+    expect(markup).toContain("↺");
     expect(markup).toContain('aria-haspopup="dialog"');
     expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain("1 coureur");

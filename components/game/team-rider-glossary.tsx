@@ -70,17 +70,17 @@ export function TeamRiderGlossary({
       >
         <span className="flex min-w-0 items-center gap-4">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-xl" aria-hidden="true">
-            ?
+            ↺
           </span>
           <span className="min-w-0">
             <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/65">
-              M?moire de l??quipe
+              Mémoire de l’équipe
             </span>
             <span className="mt-1 block text-lg font-black sm:text-xl">
               Glossaire des anciens coureurs
             </span>
             <span className="mt-1 hidden text-xs font-semibold text-white/70 sm:block">
-              Consultez les d?parts class?s par leur derni?re saison au club.
+              Consultez les départs classés par leur dernière saison au club.
             </span>
           </span>
         </span>
@@ -89,7 +89,7 @@ export function TeamRiderGlossary({
             {riderCount} coureur{riderCount > 1 ? "s" : ""}
           </span>
           <span className="text-2xl font-light transition group-hover:translate-x-1" aria-hidden="true">
-            ?
+            →
           </span>
         </span>
       </button>
@@ -116,7 +116,7 @@ export function TeamRiderGlossary({
             >
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/65">
-                  M?moire de l??quipe
+                  Mémoire de l’équipe
                 </p>
                 <h2
                   id="team-rider-glossary-title"
@@ -125,8 +125,8 @@ export function TeamRiderGlossary({
                   Glossaire des anciens coureurs
                 </h2>
                 <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-white/75 sm:text-sm">
-                  Chaque coureur n?appara?t qu?une fois, dans sa derni?re saison
-                  au club. L?effectif actuel reste visible sur la fiche ?quipe.
+                  Chaque coureur n’apparaît qu’une fois, dans sa dernière saison
+                  au club. L’effectif actuel reste visible sur la fiche équipe.
                 </p>
               </div>
               <button
@@ -136,7 +136,7 @@ export function TeamRiderGlossary({
                 aria-label="Fermer le glossaire des coureurs"
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-white/10 text-xl font-light transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-accent)]"
               >
-                ?
+                ×
               </button>
             </header>
 
@@ -157,7 +157,7 @@ export function TeamRiderGlossary({
                           {season.seasonName}
                         </h3>
                         <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[var(--team-primary)] shadow-sm">
-                          {season.riders.length} d?part
+                          {season.riders.length} départ
                           {season.riders.length > 1 ? "s" : ""}
                         </span>
                       </header>
@@ -168,7 +168,7 @@ export function TeamRiderGlossary({
                           const presence =
                             rider.firstGameYear === rider.lastGameYear
                               ? "Une saison au club"
-                              : `${rider.firstSeasonName} ? ${rider.lastSeasonName}`;
+                              : `${rider.firstSeasonName} → ${rider.lastSeasonName}`;
 
                           return (
                             <Link
@@ -200,7 +200,7 @@ export function TeamRiderGlossary({
                                 </span>
                                 {rider.isArchived ? (
                                   <span className="mt-1 block text-[9px] font-black uppercase tracking-wide text-[var(--team-primary)]">
-                                    Carri?re termin?e
+                                    Carrière terminée
                                   </span>
                                 ) : null}
                               </span>
@@ -208,7 +208,7 @@ export function TeamRiderGlossary({
                                 className="text-sm font-black text-[var(--team-secondary)] transition group-hover/rider:translate-x-0.5"
                                 aria-hidden="true"
                               >
-                                ?
+                                →
                               </span>
                             </Link>
                           );
@@ -223,7 +223,7 @@ export function TeamRiderGlossary({
                     Aucun ancien coureur pour le moment
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[var(--team-muted)]">
-                    Les coureurs appara?tront ici apr?s leur d?part de l??quipe.
+                    Les coureurs apparaîtront ici après leur départ de l’équipe.
                   </p>
                 </div>
               )}
