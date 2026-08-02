@@ -8,7 +8,7 @@ import type { StageSimulationResult } from "./race-simulation";
 describe("post-race news", () => {
   it("ne publie les faits marquants qu'a partir du resultat complet", () => {
     const input = createDemoSimulationInput("collines-ardennes", "news-test");
-    const [leader, abandoned] = input.riders;
+    const [leader, abandoned, caught] = input.riders;
     const stage = createStage(input.segments);
     const edition = createEdition(stage, input.riders);
     const simulation: StageSimulationResult = {
@@ -29,7 +29,15 @@ describe("post-race news", () => {
               averageEnergy: 80,
             },
           ],
-          incidents: [],
+          incidents: [
+            {
+              id: "crosswind-news",
+              type: "crosswind",
+              riderIds: [caught.id],
+              abandonedRiderIds: [],
+              label: "Bordures dans le peloton",
+            },
+          ],
           abandonments: [],
           commentary: [`${leader.name} passe à l'attaque.`],
         },
@@ -86,6 +94,25 @@ describe("post-race news", () => {
           injury: null,
           abandonment: null,
         },
+        {
+          riderId: caught.id,
+          rank: 2,
+          status: "finished",
+          elapsedTimeSeconds: 10_045,
+          gapToWinnerSeconds: 45,
+          energyAfter: 12,
+          injury: {
+            riderId: caught.id,
+            segmentNumber: 2,
+            type: "fracture",
+            diagnosisCode: "wrist_fracture",
+            label: "Fracture du poignet",
+            severity: "moderate",
+            recoveryHours: 96,
+            recoveryDays: 4,
+          },
+          abandonment: null,
+        },
       ],
       primes: [
         {
@@ -107,12 +134,21 @@ describe("post-race news", () => {
     expect(events.map((event) => event.eventKind)).toEqual([
       "breakaway",
       "incident",
+      "incident",
+      "incident",
       "classification",
     ]);
     expect(events[0]).toMatchObject({
       title: `${leader.name} va au bout de l’échappée`,
       featuredTeamId: leader.teamId,
     });
+    expect(events.map((event) => event.id)).toContain(
+      "post-race:stage-news:incident:injuries",
+    );
+    expect(events.map((event) => event.id)).toContain(
+      "post-race:stage-news:incident:crosswind",
+    );
+    expect(events.some((event) => event.title.includes("piégé"))).toBe(true);
     expect(events.every((event) => event.happenedAt === "2026-07-22T12:29:00.000Z")).toBe(true);
   });
 });

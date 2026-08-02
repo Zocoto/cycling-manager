@@ -1,4 +1,5 @@
 import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
+import type { PostRaceInterviewAnswer } from "@/lib/game/post-race-interview";
 
 export type CyclogazetteReaction = {
   interviewId: string;
@@ -11,11 +12,13 @@ export type CyclogazetteReaction = {
   question: string;
   answer: string;
   closingNote: string | null;
+  answers: PostRaceInterviewAnswer[];
 };
 
 export type CyclogazetteContent = {
   lead: PublicGameNewsItem | null;
   raceStories: PublicGameNewsItem[];
+  raceHighlights: PublicGameNewsItem[];
   mercatoStories: PublicGameNewsItem[];
   reactions: CyclogazetteReaction[];
 };
@@ -30,6 +33,23 @@ export type CyclogazetteEdition = {
   subtitle: string;
   publishedAt: string;
   content: CyclogazetteContent;
+};
+
+export type CyclogazetteArchiveEntry = {
+  id: string;
+  issueNumber: number;
+  seasonName: string;
+  dayNumber: number;
+  issueDate: string;
+  subtitle: string;
+  publishedAt: string;
+};
+
+export type CyclogazetteArchiveSeason = {
+  seasonId: string;
+  seasonName: string;
+  gameYear: number;
+  editions: CyclogazetteArchiveEntry[];
 };
 
 const PARIS_DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {

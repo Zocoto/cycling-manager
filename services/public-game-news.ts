@@ -405,6 +405,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
     return {
       id: `race-recap:${row.id}`,
       kind: "race_recap" as const,
+      raceEventKind: row.event_kind,
       title: row.title,
       detail: row.detail,
       happenedAt: row.happened_at,

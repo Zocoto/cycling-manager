@@ -1,13 +1,34 @@
 export type PostRaceInterviewQuestionCategory =
   | "result"
   | "tactics"
-  | "outlook";
+  | "outlook"
+  | "rivalry";
 
 export type PostRaceInterviewQuestion = {
   id: string;
   category: PostRaceInterviewQuestionCategory;
   text: string;
+  subjectTeamId?: string;
+  sourceInterviewId?: string;
 };
+
+export type PostRaceInterviewRivalryContext =
+  | {
+      kind: "opinion";
+      teamId: string;
+      teamName: string;
+      directorName: string;
+      riderName: string;
+      achievement: "winner" | "runner_up";
+    }
+  | {
+      kind: "rebound";
+      teamId: string;
+      teamName: string;
+      directorName: string;
+      quote: string;
+      sourceInterviewId: string;
+    };
 
 export type PostRaceInterviewAnswer = {
   questionId: string;
@@ -29,6 +50,7 @@ export type PostRaceInterviewContext = {
   divisionLabel: string | null;
   tookBreakaway: boolean;
   tookChase: boolean;
+  rivalry?: PostRaceInterviewRivalryContext | null;
 };
 
 export type PostRaceInterviewSnapshot = {
@@ -45,7 +67,12 @@ type QuestionDefinition = {
   id: string;
   category: PostRaceInterviewQuestionCategory;
   situations?: Array<"win" | "podium" | "top10" | "outside">;
-  requires?: "breakaway" | "chase" | "uci";
+  requires?:
+    | "breakaway"
+    | "chase"
+    | "uci"
+    | "rival_opinion"
+    | "rival_quote";
   text: string;
 };
 
@@ -80,6 +107,18 @@ export const POST_RACE_INTERVIEW_QUESTION_POOL: readonly QuestionDefinition[] = 
   { id: "outlook-uci-gap", category: "outlook", requires: "uci", text: "Vous occupez actuellement la {{uciRank}}e place au classement UCI. Que vous manque-t-il pour progresser ?" },
   { id: "outlook-elite", category: "outlook", text: "La montée en Élite est-elle un objectif réaliste pour {{teamName}} cette saison ?" },
   { id: "outlook-program", category: "outlook", text: "Cette performance va-t-elle modifier vos ambitions ou le programme de l’équipe pour la suite ?" },
+  { id: "rivalry-winner-team", category: "rivalry", requires: "rival_opinion", text: "{{rivalRiderName}} s’est imposé avec {{rivalTeamName}}. Quel regard portez-vous sur cette équipe et le travail de {{rivalDirectorName}} ?" },
+  { id: "rivalry-director-mentality", category: "rivalry", requires: "rival_opinion", text: "Que pensez-vous de la mentalité insufflée par {{rivalDirectorName}} à {{rivalTeamName}} ?" },
+  { id: "rivalry-respect", category: "rivalry", requires: "rival_opinion", text: "Entre {{teamName}} et {{rivalTeamName}}, parle-t-on de rivalité, de respect ou un peu des deux ?" },
+  { id: "rivalry-tactics", category: "rivalry", requires: "rival_opinion", text: "Comment jugez-vous les choix tactiques de {{rivalDirectorName}} aujourd’hui ?" },
+  { id: "rivalry-future", category: "rivalry", requires: "rival_opinion", text: "{{rivalTeamName}} vous semble-t-elle être l’une des équipes à suivre pour la suite de la saison ?" },
+  { id: "rivalry-message", category: "rivalry", requires: "rival_opinion", text: "Quel message adresseriez-vous à {{rivalDirectorName}} après cette course ?" },
+  { id: "rebound-direct", category: "rivalry", requires: "rival_quote", text: "{{rivalDirectorName}} a déclaré à votre sujet : « {{rivalQuote}} ». Qu’avez-vous à lui répondre ?" },
+  { id: "rebound-surprised", category: "rivalry", requires: "rival_quote", text: "Les propos de {{rivalDirectorName}} — « {{rivalQuote}} » — vous surprennent-ils ?" },
+  { id: "rebound-rivalry", category: "rivalry", requires: "rival_quote", text: "Après ces mots de {{rivalDirectorName}} — « {{rivalQuote}} » — la rivalité entre {{teamName}} et {{rivalTeamName}} change-t-elle de dimension ?" },
+  { id: "rebound-clarify", category: "rivalry", requires: "rival_quote", text: "{{rivalDirectorName}} affirme : « {{rivalQuote}} ». Souhaitez-vous rectifier ou nuancer ses propos ?" },
+  { id: "rebound-pressure", category: "rivalry", requires: "rival_quote", text: "La sortie de {{rivalDirectorName}} — « {{rivalQuote}} » — ajoute-t-elle une pression particulière sur votre groupe ?" },
+  { id: "rebound-next-race", category: "rivalry", requires: "rival_quote", text: "« {{rivalQuote}} » : ces propos de {{rivalDirectorName}} auront-ils une influence lors de votre prochaine confrontation ?" },
 ];
 
 export function selectPostRaceInterviewQuestions(
@@ -98,15 +137,27 @@ export function selectPostRaceInterviewQuestions(
   const outlookQuestions = eligibleQuestions(context).filter(
     (question) => question.category === "outlook",
   );
+  const rivalryQuestions = eligibleQuestions(context).filter(
+    (question) => question.category === "rivalry",
+  );
+  const closingQuestions =
+    rivalryQuestions.length > 0 ? rivalryQuestions : outlookQuestions;
 
-  return [resultQuestions, tacticalQuestions, outlookQuestions].map(
+  return [resultQuestions, tacticalQuestions, closingQuestions].map(
     (questions, index) => {
       const question = questions[seededIndex(`${seed}:${index}`, questions.length)];
-      return {
+      const selected: PostRaceInterviewQuestion = {
         id: question.id,
         category: question.category,
         text: renderQuestion(question.text, context),
       };
+      if (question.category === "rivalry" && context.rivalry) {
+        selected.subjectTeamId = context.rivalry.teamId;
+        if (context.rivalry.kind === "rebound") {
+          selected.sourceInterviewId = context.rivalry.sourceInterviewId;
+        }
+      }
+      return selected;
     },
   );
 }
@@ -116,6 +167,12 @@ function eligibleQuestions(context: PostRaceInterviewContext) {
     if (question.requires === "breakaway") return context.tookBreakaway;
     if (question.requires === "chase") return context.tookChase;
     if (question.requires === "uci") return context.uciRank !== null;
+    if (question.requires === "rival_opinion") {
+      return context.rivalry?.kind === "opinion";
+    }
+    if (question.requires === "rival_quote") {
+      return context.rivalry?.kind === "rebound";
+    }
     return true;
   });
 }
@@ -135,6 +192,11 @@ function renderQuestion(template: string, context: PostRaceInterviewContext) {
     riderName: context.riderName,
     gapLabel: context.gapLabel ?? "à quelques secondes",
     uciRank: String(context.uciRank ?? "—"),
+    rivalTeamName: context.rivalry?.teamName ?? "l’équipe rivale",
+    rivalDirectorName: context.rivalry?.directorName ?? "le DS adverse",
+    rivalRiderName:
+      context.rivalry?.kind === "opinion" ? context.rivalry.riderName : "Le vainqueur",
+    rivalQuote: context.rivalry?.kind === "rebound" ? context.rivalry.quote : "",
   };
 
   return template.replace(/{{(\w+)}}/g, (_match, key: string) => values[key] ?? "");

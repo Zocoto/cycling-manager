@@ -80,6 +80,42 @@ export function buildPostRaceNewsEvents({
     )
   );
 
+  const abandonedRiderIds = new Set(abandonedRiders.map((rider) => rider.id));
+  const injuredRiders = uniqueRiders(
+    simulation.results
+      .filter(
+        (result) => result.injury && !abandonedRiderIds.has(result.riderId),
+      )
+      .map((result) => riderById.get(result.riderId))
+      .filter((rider): rider is RiderSimulationInput => Boolean(rider)),
+  );
+  const injuredRiderIds = new Set(injuredRiders.map((rider) => rider.id));
+  const crashRiders = uniqueRiders(
+    simulation.timeline.flatMap((snapshot) =>
+      snapshot.incidents
+        .filter(
+          (incident) =>
+            incident.type === "crash_individual" || incident.type === "crash_mass",
+        )
+        .flatMap((incident) => incident.riderIds)
+        .filter(
+          (riderId) =>
+            !abandonedRiderIds.has(riderId) && !injuredRiderIds.has(riderId),
+        )
+        .map((riderId) => riderById.get(riderId))
+        .filter((rider): rider is RiderSimulationInput => Boolean(rider)),
+    ),
+  );
+  const crosswindRiders = uniqueRiders(
+    simulation.timeline.flatMap((snapshot) =>
+      snapshot.incidents
+        .filter((incident) => incident.type === "crosswind")
+        .flatMap((incident) => incident.riderIds)
+        .map((riderId) => riderById.get(riderId))
+        .filter((rider): rider is RiderSimulationInput => Boolean(rider)),
+    ),
+  );
+
   if (abandonedRiders.length > 0) {
     const featuredRider = abandonedRiders[0];
     events.push(
@@ -87,6 +123,7 @@ export function buildPostRaceNewsEvents({
         edition,
         stage,
         eventKind: "incident",
+        eventKey: "abandonments",
         title:
           abandonedRiders.length === 1
             ? `${featuredRider.name} abandonne après une chute`
@@ -95,6 +132,72 @@ export function buildPostRaceNewsEvents({
         featuredRider,
         happenedAt,
       })
+    );
+  }
+
+  if (injuredRiders.length > 0) {
+    const featuredRider = injuredRiders[0];
+    events.push(
+      createEvent({
+        edition,
+        stage,
+        eventKind: "incident",
+        eventKey: "injuries",
+        title:
+          injuredRiders.length === 1
+            ? `${featuredRider.name} rallie l’arrivée blessé`
+            : `${injuredRiders.length} coureurs terminent touchés`,
+        detail:
+          injuredRiders.length === 1
+            ? `${featuredRider.name} termine malgré une blessure sur ${stage.name}.`
+            : `${formatRiderNames(injuredRiders)} terminent malgré leurs blessures sur ${stage.name}.`,
+        featuredRider,
+        happenedAt,
+      }),
+    );
+  }
+
+  if (crashRiders.length > 0) {
+    const featuredRider = crashRiders[0];
+    events.push(
+      createEvent({
+        edition,
+        stage,
+        eventKind: "incident",
+        eventKey: "crashes",
+        title:
+          crashRiders.length === 1
+            ? `${featuredRider.name} pris dans une chute`
+            : `Une chute piège ${crashRiders.length} coureurs`,
+        detail:
+          crashRiders.length === 1
+            ? `${featuredRider.name} a perdu du temps ou de l’énergie sur ${stage.name}.`
+            : `${formatRiderNames(crashRiders)} ont perdu du temps ou de l’énergie sur ${stage.name}.`,
+        featuredRider,
+        happenedAt,
+      }),
+    );
+  }
+
+  if (crosswindRiders.length > 0) {
+    const featuredRider = crosswindRiders[0];
+    events.push(
+      createEvent({
+        edition,
+        stage,
+        eventKind: "incident",
+        eventKey: "crosswind",
+        title:
+          crosswindRiders.length === 1
+            ? `${featuredRider.name} piégé par les bordures`
+            : `${crosswindRiders.length} coureurs piégés par les bordures`,
+        detail:
+          crosswindRiders.length === 1
+            ? `${featuredRider.name} a été mis sous pression par le vent sur ${stage.name}.`
+            : `${formatRiderNames(crosswindRiders)} ont été mis sous pression par le vent sur ${stage.name}.`,
+        featuredRider,
+        happenedAt,
+      }),
     );
   }
 
@@ -138,6 +241,7 @@ function createEvent({
   edition,
   stage,
   eventKind,
+  eventKey,
   title,
   detail,
   featuredRider,
@@ -146,13 +250,14 @@ function createEvent({
   edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   eventKind: PostRaceNewsEventKind;
+  eventKey?: string;
   title: string;
   detail: string;
   featuredRider: RiderSimulationInput;
   happenedAt: string;
 }): PostRaceNewsEvent {
   return {
-    id: `post-race:${stage.id}:${eventKind}`,
+    id: `post-race:${stage.id}:${eventKind}${eventKey ? `:${eventKey}` : ""}`,
     raceEditionId: edition.id,
     stageId: stage.id,
     eventKind,

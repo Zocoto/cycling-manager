@@ -103,6 +103,7 @@ export type PublicGameNewsVisual = {
 export type PublicGameNewsItem = {
   id: string;
   kind: PublicGameNewsKind;
+  raceEventKind?: "breakaway" | "incident" | "classification";
   title: string;
   detail: string;
   happenedAt: string;
