@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
+import { TourGeneralClassificationLink } from "@/components/game/tour-general-classification-link";
 import Link from "@/components/ui/app-link";
 import {
   RACE_CATEGORY_STYLE,
@@ -69,6 +70,9 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
 
   const categoryStyle = RACE_CATEGORY_STYLE[edition.categoryCode];
   const futureStageCount = edition.stages.length - availableStages.length;
+  const latestClassifiedStage = [...availableStages]
+    .reverse()
+    .find((stage) => getStageLiveState(stage, now).status === "finished");
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -116,14 +120,22 @@ export default async function RaceTourPage({ params }: RaceTourPageProps) {
                 ses résultats, son replay et son live.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-right">
-              <span className="block text-3xl font-black">
-                {availableStages.length}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#C1D3CA]">
-                étape{availableStages.length > 1 ? "s" : ""} disponible
-                {availableStages.length > 1 ? "s" : ""}
-              </span>
+            <div className="flex min-w-56 flex-col gap-3">
+              <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-right">
+                <span className="block text-3xl font-black">
+                  {availableStages.length}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#C1D3CA]">
+                  étape{availableStages.length > 1 ? "s" : ""} disponible
+                  {availableStages.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              {latestClassifiedStage ? (
+                <TourGeneralClassificationLink
+                  editionSlug={edition.slug}
+                  stageNumber={latestClassifiedStage.stageNumber}
+                />
+              ) : null}
             </div>
           </div>
         </header>

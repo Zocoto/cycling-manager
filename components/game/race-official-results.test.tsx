@@ -86,6 +86,32 @@ it("n'affiche pas les favoris dans les resultats officiels", () => {
 });
 
 describe("RaceOfficialResults", () => {
+  it("ouvre directement le classement général demandé par la page du tour", () => {
+    const stageRaceEdition = {
+      ...edition,
+      raceFormat: "stage_race",
+    } as RaceCalendarEdition;
+    const results = buildResults("team-active");
+    results.general = [
+      {
+        ...results.stages[0].results[0],
+        riderId: "rider-general",
+        riderName: "Camille Général",
+      },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <RaceOfficialResults
+        edition={stageRaceEdition}
+        selectedStageId="stage-1"
+        officialResults={results}
+        initialClassification="general"
+      />,
+    );
+
+    expect(markup).toContain("Camille Général");
+    expect(markup).not.toContain("Camille Rapide");
+  });
   it("affiche le nom d'une équipe supprimée sans lien persistant", () => {
     const markup = renderToStaticMarkup(
       <RaceOfficialResults

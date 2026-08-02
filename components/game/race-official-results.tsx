@@ -35,11 +35,13 @@ export function RaceOfficialResults({
   selectedStageId,
   officialResults,
   postRaceInterview = null,
+  initialClassification,
 }: {
   edition: RaceCalendarEdition;
   selectedStageId: string;
   officialResults: OfficialRaceEditionResults;
   postRaceInterview?: PostRaceInterviewSnapshot | null;
+  initialClassification?: ClassificationKey;
 }) {
   const stageClassification = officialResults.stages.find(
     (stage) => stage.stageId === selectedStageId
@@ -56,7 +58,9 @@ export function RaceOfficialResults({
     return tabs;
   }, [edition.raceFormat, officialResults, stageClassification]);
   const [activeTab, setActiveTab] = useState<ClassificationKey>(
-    availableTabs[0] ?? "stage"
+    initialClassification && availableTabs.includes(initialClassification)
+      ? initialClassification
+      : availableTabs[0] ?? "stage"
   );
 
   const resolvedTab = availableTabs.includes(activeTab)

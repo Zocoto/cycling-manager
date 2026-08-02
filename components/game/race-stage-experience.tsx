@@ -43,6 +43,7 @@ export function RaceStageExperience({
   initialMessages,
   lockedSimulations,
   postRaceInterview,
+  initialClassification,
 }: {
   entry: RaceStageEntry;
   nowIso: string;
@@ -51,6 +52,7 @@ export function RaceStageExperience({
   initialMessages: RaceLiveMessage[];
   lockedSimulations: LockedOfficialStageSimulation[];
   postRaceInterview: PostRaceInterviewSnapshot | null;
+  initialClassification?: "general";
 }) {
   const now = useSynchronizedRaceClock(nowIso, 15_000);
   const state = getStageLiveState(entry.stage, now);
@@ -258,6 +260,7 @@ export function RaceStageExperience({
               selectedStageId={entry.stage.id}
               officialResults={officialResults}
               postRaceInterview={postRaceInterview}
+              initialClassification={initialClassification}
             />
           ) : (
             <RaceLiveLab
