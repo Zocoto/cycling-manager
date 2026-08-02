@@ -4,7 +4,6 @@ import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
 import { GameRouteLoading } from "@/components/game/game-route-loading";
-import { PlayerActivityTracker } from "@/components/game/player-activity-tracker";
 import {
   TutorialProvider,
   type TutorialProviderBootstrap,
@@ -96,8 +95,6 @@ async function GameRuntime({ children }: { children: ReactNode }) {
 export default function GameLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <PlayerActivityTracker />
-
       <Suspense fallback={<GameRouteLoading />}>
         <GameRuntime>{children}</GameRuntime>
       </Suspense>
