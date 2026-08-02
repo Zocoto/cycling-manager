@@ -422,11 +422,17 @@ export function describeStaffEffect({
       return [`−${percentage} % de temps perdu lors d’une avarie technique`];
     case "community_manager":
       return [`+${percentage} % sur tous les gains de réputation`];
-    case "nutritionist":
+    case "nutritionist": {
+      const supplementFormBonus = Math.floor((safeLevel - 1) / 2);
       return [
-        `−${percentage} % sur le coût des compléments alimentaires`,
-        `+${safeLevel / 5} point de reprise de forme quotidienne`,
+        `Compléments administrés : −${percentage} % sur leur coût${
+          supplementFormBonus > 0
+            ? ` et +${supplementFormBonus} point${supplementFormBonus > 1 ? "s" : ""} de forme par intervention`
+            : ""
+        }`,
+        `Récupération passive : +${(safeLevel / 5).toLocaleString("fr-FR")} point de forme par jour pour chaque coureur`,
       ];
+    }
     case "physiotherapist":
       return [
         `−${safeLevel} point${safeLevel > 1 ? "s" : ""} sur le malus de forme après une course`,

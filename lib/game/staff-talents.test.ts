@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   STAFF_TALENT_DEFINITIONS,
+  describeStaffTalent,
   getStaffTalentCodes,
   isStaffTalentForRole,
   selectInitialStaffTalent,
@@ -41,5 +42,14 @@ describe("staff talents", () => {
     expect(selectInitialStaffTalent({ role: "nutritionist", roll: 17 })).toBe(
       code,
     );
+  });
+
+  it("présente les talents du nutritionniste comme des bonus supplémentaires", () => {
+    expect(describeStaffTalent("nutrition_daily_form", 5)).toContain(
+      "supplémentaire pour chaque coureur",
+    );
+    expect(
+      describeStaffTalent("nutrition_supplement_effectiveness", 5),
+    ).toContain("supplémentaire sur chaque complément");
   });
 });

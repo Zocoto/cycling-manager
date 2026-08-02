@@ -9,6 +9,12 @@ import {
   type NutritionInterventionCode,
   type RiderInjuryDiagnosisCode,
 } from "@/lib/game/health-center";
+import {
+  STAFF_TALENT_DEFINITIONS,
+  describeStaffTalent,
+  isStaffTalentForRole,
+  type StaffTalentCode,
+} from "@/lib/game/staff-talents";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = { id: string };
@@ -94,6 +100,11 @@ type MedicalStaffMemberRow = {
   role: "doctor" | "physiotherapist" | "nutritionist";
   level: number;
 };
+type MedicalStaffTalentRow = {
+  staff_member_id: string;
+  slot_number: number;
+  talent_code: string;
+};
 type StaffRiderAssignmentRow = {
   staff_contract_id: string;
   rider_id: string;
@@ -173,6 +184,12 @@ export type TeamMedicalStaffMember = {
   role: "doctor" | "physiotherapist" | "nutritionist";
   level: number;
   assignedRiderIds: string[];
+  talents: Array<{
+    slot: number;
+    code: StaffTalentCode;
+    label: string;
+    description: string;
+  }>;
 };
 
 export type TeamNutritionIntervention = {
@@ -552,7 +569,7 @@ async function loadMedicalStaff(
 
   const memberIds = contractRows.map((contract) => contract.staff_member_id);
   const contractIds = contractRows.map((contract) => contract.id);
-  const [membersResult, assignmentsResult] = await Promise.all([
+  const [membersResult, assignmentsResult, talentsResult] = await Promise.all([
     admin
       .from("staff_members")
       .select("id, first_name, last_name, role, level")
@@ -565,9 +582,16 @@ async function loadMedicalStaff(
       .in("staff_contract_id", contractIds)
       .eq("status", "active")
       .returns<StaffRiderAssignmentRow[]>(),
+    admin
+      .from("staff_member_talents")
+      .select("staff_member_id, slot_number, talent_code")
+      .in("staff_member_id", memberIds)
+      .order("slot_number", { ascending: true })
+      .returns<MedicalStaffTalentRow[]>(),
   ]);
   assertQuery(membersResult.error, "les profils du staff médical");
   assertQuery(assignmentsResult.error, "les affectations des kinés");
+  assertQuery(talentsResult.error, "les talents du staff médical");
 
   const memberById = new Map(
     (membersResult.data ?? []).map((member) => [member.id, member]),
@@ -579,8 +603,29 @@ async function loadMedicalStaff(
     riderIdsByContract.set(assignment.staff_contract_id, riderIds);
   }
 
+  const talentsByMemberId = new Map<string, MedicalStaffTalentRow[]>();
+  for (const talent of talentsResult.data ?? []) {
+    const memberTalents = talentsByMemberId.get(talent.staff_member_id) ?? [];
+    memberTalents.push(talent);
+    talentsByMemberId.set(talent.staff_member_id, memberTalents);
+  }
+
   return contractRows.flatMap((contract) => {
     const member = memberById.get(contract.staff_member_id);
+    const talents = member
+      ? (talentsByMemberId.get(member.id) ?? []).flatMap((talent) => {
+          if (!isStaffTalentForRole(talent.talent_code, member.role)) return [];
+          const code = talent.talent_code;
+          return [
+            {
+              slot: talent.slot_number,
+              code,
+              label: STAFF_TALENT_DEFINITIONS[code].label,
+              description: describeStaffTalent(code, member.level),
+            },
+          ];
+        })
+      : [];
     return member
       ? [
           {
@@ -590,6 +635,7 @@ async function loadMedicalStaff(
             role: member.role,
             level: member.level,
             assignedRiderIds: riderIdsByContract.get(contract.id) ?? [],
+            talents,
           } satisfies TeamMedicalStaffMember,
         ]
       : [];

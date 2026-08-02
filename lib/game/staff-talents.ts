@@ -202,7 +202,7 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     role: "nutritionist",
     label: "Suivi quotidien",
     description: () =>
-      "+1 point de forme quotidien au maximum lors de la récupération",
+      "+1 point de forme quotidien supplémentaire pour chaque coureur de l’équipe",
   },
   nutrition_supplement_cost: {
     role: "nutritionist",
@@ -213,7 +213,8 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   nutrition_supplement_effectiveness: {
     role: "nutritionist",
     label: "Compléments optimisés",
-    description: () => "+1 point de forme sur les compléments administrés",
+    description: () =>
+      "+1 point de forme supplémentaire sur chaque complément administré",
   },
   nutrition_supplement_capacity: {
     role: "nutritionist",

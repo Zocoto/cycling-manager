@@ -412,11 +412,9 @@ function StaffMarketCard({
           </p>
         ) : null}
 
-        <StaffTalentBlock member={member} />
-
-        <div className="mt-4 rounded-2xl bg-[#F2F8F5] p-4">
+        <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
-            Effet niveau {member.level}
+            Compétence de base · niveau {member.level}
           </p>
           <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
             {member.effects.map((effect) => (
@@ -427,6 +425,8 @@ function StaffMarketCard({
             ))}
           </ul>
         </div>
+
+        <StaffTalentBlock member={member} />
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <PriceBlock
@@ -633,12 +633,20 @@ function TeamStaffCard({
           Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
         </p>
       ) : null}
+      <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
+        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
+          Compétence de base · niveau {member.level}
+        </p>
+        <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
+          {member.effects.map((effect) => (
+            <li key={effect} className="flex gap-2">
+              <span aria-hidden="true">◆</span>
+              <span>{effect}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
       <StaffTalentBlock member={member} />
-      <ul className="mt-4 space-y-2 text-sm font-bold leading-5 text-[#176951]">
-        {member.effects.map((effect) => (
-          <li key={effect}>◆ {effect}</li>
-        ))}
-      </ul>
       <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
         <p className="text-xs font-black text-[#183F37]">
           {formatMoney(member.salaryPerWeek, member.currency)} / semaine
@@ -715,21 +723,35 @@ function StaffTalentBlock({ member }: { member: TeamStaffMember }) {
   if (member.talents.length === 0 && !member.nationalityAffinity) return null;
 
   return (
-    <div className="mt-4 rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
-      {member.talents.map((talent) => (
-        <div key={talent.code}>
+    <div className="mt-3 space-y-3">
+      {member.talents.length > 0 ? (
+        <div className="rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
-            Talent {talent.slot}/3 · {talent.label}
+            Compétences supplémentaires · {member.talents.length}/3
           </p>
-          <p className="mt-1 text-xs font-bold leading-5 text-[#5E4A18]">
-            {talent.description}
+          <div className="mt-2 space-y-3">
+            {member.talents.map((talent) => (
+              <div key={talent.code}>
+                <p className="text-xs font-black text-[#5E4A18]">
+                  {talent.label}
+                </p>
+                <p className="mt-0.5 text-xs font-bold leading-5 text-[#6D5A27]">
+                  {talent.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {member.nationalityAffinity ? (
+        <div className="rounded-2xl border border-[#42B99A]/20 bg-[#EFF9F5] px-4 py-3">
+          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            Bonus d’affinité nationale
+          </p>
+          <p className="mt-1 text-[10px] font-black leading-5 text-[#176951]">
+            {getStaffNationalityAffinityDescription()}
           </p>
         </div>
-      ))}
-      {member.nationalityAffinity ? (
-        <p className="mt-2 text-[10px] font-black text-[#176951]">
-          Affinité nationale · {getStaffNationalityAffinityDescription()}
-        </p>
       ) : null}
     </div>
   );

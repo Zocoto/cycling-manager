@@ -173,4 +173,16 @@ describe("daily staff pool", () => {
       "+10 % sur tous les gains de réputation",
     ]);
   });
+
+  it("distingue les compléments de la récupération passive du nutritionniste", () => {
+    expect(
+      describeStaffEffect({
+        role: "nutritionist",
+        level: 5,
+      }),
+    ).toEqual([
+      "Compléments administrés : −25 % sur leur coût et +2 points de forme par intervention",
+      "Récupération passive : +1 point de forme par jour pour chaque coureur",
+    ]);
+  });
 });

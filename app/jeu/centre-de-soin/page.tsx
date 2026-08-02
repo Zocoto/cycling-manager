@@ -39,6 +39,7 @@ import {
   getCurrentTeamHealthOverview,
   type TeamHealthOverview,
   type TeamHealthRider,
+  type TeamMedicalStaffMember,
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
@@ -801,9 +802,10 @@ function NutritionPanel({
                       {used}/{capacity} aujourd’hui
                     </span>
                   </div>
-                  <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                    −{nutritionist.level * 5} % sur les compléments, jusqu’à +{Math.floor((nutritionist.level - 1) / 2)} points de forme supplémentaires et +{nutritionist.level / 5} point de récupération quotidienne moyenne.
-                  </p>
+                  <MedicalStaffBaseSkills
+                    rows={getNutritionistBaseSkillRows(nutritionist.level)}
+                  />
+                  <MedicalStaffAdditionalSkills member={nutritionist} />
                 </article>
               );
             })}
@@ -934,11 +936,15 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       −{doctor.level * 6} %
                     </span>
                   </div>
-                  <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                    Ce médecin réduit de {doctor.level * 6} % la durée initiale
-                    de toute nouvelle blessure. Sa contribution se cumule avec
-                    celle des autres médecins actifs.
-                  </p>
+                  <MedicalStaffBaseSkills
+                    rows={[
+                      {
+                        label: "Traitement des blessures",
+                        description: `−${doctor.level * 6} % sur la durée initiale de toute nouvelle blessure`,
+                      },
+                    ]}
+                  />
+                  <MedicalStaffAdditionalSkills member={doctor} />
                 </article>
               ))
             ) : (
@@ -969,11 +975,10 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       −{nutritionist.level * 5} %
                     </span>
                   </div>
-                  <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                    Réduit de {nutritionist.level * 5} % le coût des compléments,
-                    améliore leur efficacité et ajoute en moyenne +
-                    {nutritionist.level / 5} point de récupération quotidienne.
-                  </p>
+                  <MedicalStaffBaseSkills
+                    rows={getNutritionistBaseSkillRows(nutritionist.level)}
+                  />
+                  <MedicalStaffAdditionalSkills member={nutritionist} />
                   <Link
                     href="/jeu/centre-de-soin?onglet=nutrition"
                     className="mt-5 inline-flex text-sm font-black text-[#527633] hover:text-[#183F37]"
@@ -1013,11 +1018,15 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                         {physiotherapist.assignedRiderIds.length}/{capacity}
                       </span>
                     </div>
-                    <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                      Protège jusqu’à {physiotherapist.level} point
-                      {physiotherapist.level > 1 ? "s" : ""} de forme par effort
-                      ou journée de blessure pour les coureurs suivis.
-                    </p>
+                    <MedicalStaffBaseSkills
+                      rows={[
+                        {
+                          label: "Suivi des coureurs affectés",
+                          description: `Jusqu’à ${physiotherapist.level} point${physiotherapist.level > 1 ? "s" : ""} de forme protégé${physiotherapist.level > 1 ? "s" : ""} par effort ou journée de blessure`,
+                        },
+                      ]}
+                    />
+                    <MedicalStaffAdditionalSkills member={physiotherapist} />
                     <Link
                       href="/jeu/centre-de-soin?onglet=kines"
                       className="mt-5 inline-flex text-sm font-black text-[#684390] hover:text-[#183F37]"
@@ -1193,6 +1202,77 @@ function PhysiotherapistAssignmentPreview({
         Enregistrer les affectations
       </button>
     </article>
+  );
+}
+
+function getNutritionistBaseSkillRows(level: number) {
+  const supplementBonus = Math.floor((level - 1) / 2);
+  const supplementDetails = [
+    `−${level * 5} % sur le coût`,
+    supplementBonus > 0
+      ? `+${supplementBonus} point${supplementBonus > 1 ? "s" : ""} de forme par intervention`
+      : null,
+  ].filter((detail): detail is string => detail !== null);
+
+  return [
+    {
+      label: "Compléments ciblés",
+      description: supplementDetails.join(" · "),
+    },
+    {
+      label: "Récupération passive de toute l’équipe",
+      description: `+${(level / 5).toLocaleString("fr-FR")} point de forme par coureur et par jour`,
+    },
+  ];
+}
+
+function MedicalStaffBaseSkills({
+  rows,
+}: {
+  rows: Array<{ label: string; description: string }>;
+}) {
+  return (
+    <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
+        Compétence de base
+      </p>
+      <div className="mt-2 space-y-3">
+        {rows.map((row) => (
+          <div key={row.label}>
+            <p className="text-xs font-black text-[#183F37]">{row.label}</p>
+            <p className="mt-0.5 text-xs font-semibold leading-5 text-[#60756E]">
+              {row.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MedicalStaffAdditionalSkills({
+  member,
+}: {
+  member: TeamMedicalStaffMember;
+}) {
+  if (member.talents.length === 0) return null;
+
+  return (
+    <div className="mt-3 rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
+        Compétences supplémentaires · {member.talents.length}/3
+      </p>
+      <div className="mt-2 space-y-3">
+        {member.talents.map((talent) => (
+          <div key={talent.code}>
+            <p className="text-xs font-black text-[#5E4A18]">{talent.label}</p>
+            <p className="mt-0.5 text-xs font-bold leading-5 text-[#6D5A27]">
+              {talent.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
