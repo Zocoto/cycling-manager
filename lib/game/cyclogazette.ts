@@ -13,6 +13,21 @@ export type CyclogazetteReaction = {
   answer: string;
   closingNote: string | null;
   answers: PostRaceInterviewAnswer[];
+  isEditorial?: boolean;
+};
+
+export type CyclogazetteTourSummary = {
+  raceName: string;
+  stageLabel: string;
+  href: string;
+  generalLeader: string | null;
+  jerseys: Array<{ label: string; holder: string }>;
+};
+
+export type CyclogazetteCommunity = {
+  likeCount: number;
+  likedByViewer: boolean;
+  comments: Array<{ id: string; directorName: string; message: string; createdAt: string }>;
 };
 
 export type CyclogazetteContent = {
@@ -21,6 +36,7 @@ export type CyclogazetteContent = {
   raceHighlights: PublicGameNewsItem[];
   mercatoStories: PublicGameNewsItem[];
   reactions: CyclogazetteReaction[];
+  tourSummaries?: CyclogazetteTourSummary[];
 };
 
 export type CyclogazetteEdition = {
@@ -78,4 +94,11 @@ export function getParisHour(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
   const hour = PARIS_HOUR_FORMATTER.formatToParts(date).find(({ type }) => type === "hour")?.value;
   return Number(hour);
+}
+
+export function formatCyclogazetteStageLabel(raceName: string, stageName: string) {
+  const normalizedRace = raceName.trim();
+  const normalizedStage = stageName.trim();
+  if (!normalizedStage || normalizedStage === normalizedRace) return normalizedRace;
+  return `${normalizedRace} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ${normalizedStage}`;
 }

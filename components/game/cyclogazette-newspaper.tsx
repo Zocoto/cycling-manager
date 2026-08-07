@@ -6,14 +6,15 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
-import type { CyclogazetteEdition } from "@/lib/game/cyclogazette";
+import { CyclogazetteCommunityPanel } from "@/components/game/cyclogazette-community";
+import type { CyclogazetteCommunity, CyclogazetteEdition, CyclogazetteTourSummary } from "@/lib/game/cyclogazette";
 import type {
   PublicGameNewsItem,
   PublicGameNewsTeamVisual,
 } from "@/lib/game/public-game-news";
 
-export function CyclogazetteNewspaper({ edition }: { edition: CyclogazetteEdition }) {
-  const { lead, raceStories, raceHighlights, mercatoStories, reactions } =
+export function CyclogazetteNewspaper({ edition, community }: { edition: CyclogazetteEdition; community?: CyclogazetteCommunity }) {
+  const { lead, raceStories, raceHighlights, mercatoStories, reactions, tourSummaries = [] } =
     edition.content;
   const winnerStories = uniqueStories(
     [lead, ...raceStories].filter(
@@ -71,11 +72,13 @@ export function CyclogazetteNewspaper({ edition }: { edition: CyclogazetteEditio
             </section>
           ) : null}
 
+          {tourSummaries.length > 0 ? <section className="mt-7 border-t-4 border-double border-[#241F18] pt-4"><SectionTitle eyebrow="Les maillots du jour" title="Le point sur les tours" /><div className="mt-4 grid gap-4 sm:grid-cols-2">{tourSummaries.map((tour) => <TourClassificationCard key={`${tour.raceName}:${tour.stageLabel}`} tour={tour} />)}</div></section> : null}
+
           {raceHighlights.length > 0 ? (
             <section className="mt-7 border-t-4 border-double border-[#241F18] pt-4">
               <SectionTitle
-                eyebrow="Dans la course"
-                title="Les animateurs et les coups durs"
+                eyebrow="En bref"
+                title="Les faits de course"
               />
               <div className="mt-4 grid gap-x-6 sm:grid-cols-2">
                 {raceHighlights.map((item) => (
@@ -129,12 +132,7 @@ export function CyclogazetteNewspaper({ edition }: { edition: CyclogazetteEditio
                       />
                       <div>
                         <p className="text-xs font-black">{reaction.directorName}</p>
-                        <Link
-                          href={`/jeu/equipes/${reaction.teamId}`}
-                          className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#A12742] hover:underline"
-                        >
-                          {reaction.teamName}
-                        </Link>
+                        {reaction.isEditorial ? <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#A12742]">{reaction.teamName}</p> : <Link href={`/jeu/equipes/${reaction.teamId}`} className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#A12742] hover:underline">{reaction.teamName}</Link>}
                         <p className="text-[10px] text-[#695D43]">
                           après {reaction.stageName}
                         </p>
@@ -199,12 +197,19 @@ export function CyclogazetteNewspaper({ edition }: { edition: CyclogazetteEditio
         </aside>
       </div>
 
+      <aside className="mx-5 border-y-2 border-dashed border-[#806C45]/60 bg-[#E7D7B6]/55 px-5 py-4 text-center sm:mx-8"><p className="text-[8px] font-black uppercase tracking-[0.22em] text-[#695D43]">Annonce partenaire</p><p className="mt-1 font-serif text-lg font-black">{edition.issueNumber % 2 === 0 ? "Roulez plus loin : les bidons Altitude gardent le frais jusqu’au sommet." : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}</p></aside>
+      {community ? <CyclogazetteCommunityPanel editionId={edition.id} community={community} /> : null}
+
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t-4 border-double border-[#241F18] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[#695D43] sm:px-8">
         <span>La Cyclogazette · Toute l’actualité du monde de Cyclo Stratège</span>
         <span>Prochaine édition demain à 20 h</span>
       </footer>
     </article>
   );
+}
+
+function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
+  return <section className="border-2 border-[#241F18] bg-[#EFE4C8]/75 p-4"><p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A12742]">Après {tour.stageLabel}</p><Link href={tour.href} className="mt-1 block font-serif text-xl font-black hover:text-[#A12742]">{tour.raceName}</Link>{tour.generalLeader ? <p className="mt-3 border-y border-[#806C45]/35 py-2 text-sm"><span className="font-black">Maillot jaune :</span> {tour.generalLeader}</p> : null}{tour.jerseys.length > 0 ? <ul className="mt-3 space-y-1 text-xs">{tour.jerseys.map((jersey) => <li key={`${jersey.label}:${jersey.holder}`}><span className="font-black">{jersey.label} :</span> {jersey.holder}</li>)}</ul> : <p className="mt-3 text-xs italic text-[#695D43]">Les classements se précisent après cette étape.</p>}</section>;
 }
 
 function LeadStory({ item }: { item: PublicGameNewsItem }) {

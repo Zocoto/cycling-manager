@@ -4,9 +4,12 @@ import {
   getParisDateKey,
   getParisHour,
   type CyclogazetteArchiveSeason,
+  type CyclogazetteCommunity,
   type CyclogazetteContent,
   type CyclogazetteEdition,
   type CyclogazetteReaction,
+  type CyclogazetteTourSummary,
+  formatCyclogazetteStageLabel,
 } from "@/lib/game/cyclogazette";
 import type {
   PostRaceInterviewAnswer,
@@ -37,6 +40,20 @@ type InterviewRow = {
   closing_note: string | null;
   submitted_at: string | null;
 };
+
+type TourStageRow = {
+  id: string;
+  race_edition_id: string;
+  stage_number: number;
+  name: string;
+  race_editions: { display_name: string; races: { slug: string; race_format: string } | null } | null;
+};
+type TourResultRow = { race_edition_id: string; race_roster_id: string; final_rank: number | null };
+type TourSecondaryRow = { race_edition_id: string; classification_type: "mountain" | "sprint" | "youth" | "team"; race_roster_id: string | null; rank: number };
+type TourRosterRow = { id: string; rider_id: string };
+type TourRiderRow = { id: string; first_name: string; last_name: string };
+type CommunityCommentRow = { id: string; sporting_director_id: string; message: string; created_at: string };
+type CommunityDirectorRow = { id: string; display_name: string };
 
 type GazetteRow = {
   id: string;
@@ -123,9 +140,10 @@ export async function publishCyclogazetteEdition(
     };
   }
 
-  const [allNews, reactions] = await Promise.all([
+  const [allNews, submittedReactions, tourSummaries] = await Promise.all([
     getCyclogazetteNewsItems(),
     loadDailyReactions(seasonDay.calendar_date),
+    loadDailyTourSummaries(admin, seasonDay.id),
   ]);
   const dailyNews = allNews.filter(
     (item) => getParisDateKey(item.happenedAt) === seasonDay.calendar_date,
@@ -142,13 +160,14 @@ export async function publishCyclogazetteEdition(
         item.raceEventKind === "breakaway" ||
         item.raceEventKind === "incident",
     )
-    .slice(0, 8);
+    .slice(0, 2);
   const raceClassifications = raceNews.filter(
     (item) => !raceHighlights.some((highlight) => highlight.id === item.id),
   );
   const mercatoStories = dailyNews
-    .filter((item) => item.kind !== "race_recap" && item.kind !== "victory")
+    .filter((item) => item.kind !== "race_recap" && item.kind !== "victory" && item.kind !== "staff")
     .slice(0, 8);
+  const reactions = completeEditorialReactions(submittedReactions, victories[0] ?? raceClassifications[0] ?? null);
   const lead =
     victories[0] ??
     raceClassifications[0] ??
@@ -163,6 +182,7 @@ export async function publishCyclogazetteEdition(
     raceHighlights: raceHighlights.filter((item) => item.id !== lead?.id),
     mercatoStories: mercatoStories.filter((item) => item.id !== lead?.id),
     reactions,
+    tourSummaries,
   };
   const publishedAt = now.toISOString();
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
@@ -335,7 +355,7 @@ async function loadDailyReactions(issueDate: string): Promise<CyclogazetteReacti
       teamId: context.teamId,
       teamName: context.teamName,
       raceName: context.raceName,
-      stageName: context.stageName,
+      stageName: formatCyclogazetteStageLabel(context.raceName, context.stageName),
       question: excerpt.question,
       answer: excerpt.answer,
       closingNote: row.closing_note,
@@ -344,6 +364,68 @@ async function loadDailyReactions(issueDate: string): Promise<CyclogazetteReacti
   }
 
   return reactions;
+}
+
+function completeEditorialReactions(reactions: CyclogazetteReaction[], lead: PublicGameNewsItem | null) {
+  const fallbacks = [
+    { directorName: "M. Delorme", teamName: "Les suiveurs du peloton", answer: lead ? `ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â« ${lead.title} confirme que chaque seconde et chaque placement comptent. La course a parlÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©. ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»` : "ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â« La journÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e a laissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© des enseignements tactiques ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  tout le peloton. ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»" },
+    { directorName: "Claire Martin", teamName: "Le collectif des DS", answer: lead ? `ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â« Au-delÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  du vainqueur, les classements ouvrent dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  de nouvelles perspectives pour la suite. ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»` : "ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â« Les ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©quipes prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©parent dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la prochaine explication. ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â»" },
+  ];
+  return [...reactions, ...fallbacks.slice(0, Math.max(0, 2 - reactions.length)).map((fallback, index) => ({
+    interviewId: `editorial:${index}`,
+    directorName: fallback.directorName,
+    directorAvatarKey: null,
+    teamId: "",
+    teamName: fallback.teamName,
+    raceName: lead?.title ?? "La journÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e de course",
+    stageName: lead?.title ?? "Le peloton",
+    question: "Quel enseignement retenez-vous de cette journÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e ?",
+    answer: fallback.answer,
+    closingNote: null,
+    answers: [{ questionId: `editorial:${index}`, question: "Quel enseignement retenez-vous de cette journÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e ?", answer: fallback.answer }],
+    isEditorial: true,
+  }))];
+}
+
+async function loadDailyTourSummaries(admin: ReturnType<typeof createSupabaseAdminClient>, seasonDayId: string): Promise<CyclogazetteTourSummary[]> {
+  const stagesResult = await admin.from("stages").select("id, race_edition_id, stage_number, name, race_editions(display_name, races(slug, race_format))").eq("season_day_id", seasonDayId).returns<TourStageRow[]>();
+  const stages = (stagesResult.data ?? []).filter((stage) => stage.race_editions?.races?.race_format === "stage_race");
+  const editionIds = [...new Set(stages.map((stage) => stage.race_edition_id))];
+  if (editionIds.length === 0) return [];
+  const [resultsResult, secondaryResult] = await Promise.all([
+    admin.from("race_results").select("race_edition_id, race_roster_id, final_rank").in("race_edition_id", editionIds).eq("final_rank", 1).returns<TourResultRow[]>(),
+    admin.from("race_secondary_results").select("race_edition_id, classification_type, race_roster_id, rank").in("race_edition_id", editionIds).eq("rank", 1).returns<TourSecondaryRow[]>(),
+  ]);
+  const rosterIds = [...new Set([...(resultsResult.data ?? []).map((row) => row.race_roster_id), ...(secondaryResult.data ?? []).flatMap((row) => row.race_roster_id ? [row.race_roster_id] : [])])];
+  if (rosterIds.length === 0) return [];
+  const rostersResult = await admin.from("race_rosters").select("id, rider_id").in("id", rosterIds).returns<TourRosterRow[]>();
+  const riderIds = (rostersResult.data ?? []).map((row) => row.rider_id);
+  const ridersResult = riderIds.length ? await admin.from("riders").select("id, first_name, last_name").in("id", riderIds).returns<TourRiderRow[]>() : { data: [] as TourRiderRow[] };
+  const riderByRoster = new Map((rostersResult.data ?? []).map((roster) => [roster.id, (ridersResult.data ?? []).find((rider) => rider.id === roster.rider_id)]));
+  const riderName = (rosterId: string | null) => { const rider = rosterId ? riderByRoster.get(rosterId) : null; return rider ? `${rider.first_name} ${rider.last_name}` : null; };
+  const labels = { mountain: "Maillot ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  pois", sprint: "Maillot vert", youth: "Maillot blanc", team: "Classement ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©quipes" } as const;
+  return stages.map((stage) => ({
+    raceName: stage.race_editions!.display_name,
+    stageLabel: formatCyclogazetteStageLabel(stage.race_editions!.display_name, stage.name),
+    href: `/jeu/resultats/${stage.race_editions!.races!.slug}/${stage.stage_number}`,
+    generalLeader: riderName((resultsResult.data ?? []).find((row) => row.race_edition_id === stage.race_edition_id)?.race_roster_id ?? null),
+    jerseys: (secondaryResult.data ?? []).filter((row) => row.race_edition_id === stage.race_edition_id && row.race_roster_id).flatMap((row) => { const holder = riderName(row.race_roster_id); return holder ? [{ label: labels[row.classification_type], holder }] : []; }),
+  }));
+}
+
+export async function getCyclogazetteCommunity(editionId: string, authUserId: string): Promise<CyclogazetteCommunity> {
+  const admin = createSupabaseAdminClient();
+  const [directorResult, likeCountResult, commentsResult] = await Promise.all([
+    admin.from("sporting_directors").select("id").eq("auth_user_id", authUserId).eq("status", "active").maybeSingle<{ id: string }>(),
+    admin.from("cyclogazette_likes").select("edition_id", { count: "exact", head: true }).eq("edition_id", editionId),
+    admin.from("cyclogazette_comments").select("id, sporting_director_id, message, created_at").eq("edition_id", editionId).order("created_at", { ascending: false }).limit(8).returns<CommunityCommentRow[]>(),
+  ]);
+  const comments = commentsResult.data ?? [];
+  const directorsResult = comments.length ? await admin.from("sporting_directors").select("id, display_name").in("id", [...new Set(comments.map((comment) => comment.sporting_director_id))]).returns<CommunityDirectorRow[]>() : { data: [] as CommunityDirectorRow[] };
+  const names = new Map((directorsResult.data ?? []).map((director) => [director.id, director.display_name]));
+  const directorId = directorResult.data?.id ?? null;
+  const likedResult = directorId ? await admin.from("cyclogazette_likes").select("edition_id").eq("edition_id", editionId).eq("sporting_director_id", directorId).maybeSingle() : { data: null };
+  return { likeCount: likeCountResult.count ?? 0, likedByViewer: Boolean(likedResult.data), comments: comments.map((comment) => ({ id: comment.id, directorName: names.get(comment.sporting_director_id) ?? "Directeur Sportif", message: comment.message, createdAt: comment.created_at })) };
 }
 
 function deduplicateStories(items: PublicGameNewsItem[]) {
@@ -424,5 +506,6 @@ function normalizeGazetteContent(value: unknown): CyclogazetteContent {
       ? content.mercatoStories
       : [],
     reactions,
+    tourSummaries: Array.isArray(content.tourSummaries) ? content.tourSummaries : [],
   };
 }

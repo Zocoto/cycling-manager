@@ -9,6 +9,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   getCyclogazetteArchive,
+  getCyclogazetteCommunity,
   getCyclogazetteEditionById,
   getLatestCyclogazetteEdition,
 } from "@/services/cyclogazette";
@@ -46,6 +47,7 @@ export default async function CyclogazettePage({
       : Promise.resolve(null),
   ]);
   const edition = requestedEdition ?? latestEdition;
+  const community = edition ? await getCyclogazetteCommunity(edition.id, user.id) : null;
 
   return (
     <main className="min-h-screen bg-[#D9D4C8] text-[#082A2A]">
@@ -65,7 +67,7 @@ export default async function CyclogazettePage({
               currentEditionId={edition.id}
               latestEditionId={latestEdition.id}
             />
-            <CyclogazetteNewspaper edition={edition} />
+            <CyclogazetteNewspaper edition={edition} community={community ?? undefined} />
           </>
         ) : (
           <EmptyGazette />
