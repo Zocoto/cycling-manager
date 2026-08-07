@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  getDebtAmount,
+  getNextFinancialCheckpointDay,
+} from "@/lib/game/team-finance-alerts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -109,10 +113,13 @@ export default async function TeamFinancesPage() {
 
         {latestAlert ? (
           <DebtAlert
-            balance={overview.balance}
+            debtAmount={getDebtAmount(latestAlert.balance)}
             currency={overview.currency}
             message={latestAlert.message}
             penalty={latestAlert.reputationPenalty}
+            nextCheckpointDay={getNextFinancialCheckpointDay(
+              latestAlert.checkpointDayNumber
+            )}
           />
         ) : !overview.canSpend ? (
           <div className="mt-6 rounded-2xl border border-[#D29F32]/35 bg-[#FFF5D8] px-5 py-4 text-sm font-bold text-[#76530D]">
@@ -406,17 +413,19 @@ function buildRacePrizeSettlements(
 }
 
 function DebtAlert({
-  balance,
+  debtAmount,
   currency,
   message,
   penalty,
+  nextCheckpointDay,
 }: {
-  balance: number;
+  debtAmount: number;
   currency: string;
   message: string;
   penalty: number;
+  nextCheckpointDay: number | null;
 }) {
-  const gauge = Math.min(100, Math.max(8, (Math.abs(Math.min(0, balance)) / 100_000) * 100));
+  const gauge = Math.min(100, Math.max(8, (debtAmount / 100_000) * 100));
 
   return (
     <aside className="mt-6 rounded-2xl border border-[#C75E4A]/35 bg-[#FFF0EC] p-5 text-[#713329]">
@@ -426,12 +435,17 @@ function DebtAlert({
             Alerte dette
           </p>
           <p className="mt-2 font-bold leading-6">{message}</p>
+          {nextCheckpointDay ? (
+            <p className="mt-1 text-sm font-bold">
+              À rembourser avant le prochain contrôle financier à J{nextCheckpointDay}.
+            </p>
+          ) : null}
           {penalty > 0 ? (
             <p className="mt-1 text-sm font-black">Pénalité appliquée : −{penalty} réputation.</p>
           ) : null}
         </div>
         <p className="shrink-0 text-2xl font-black text-[#A44736]">
-          {formatCurrency(balance, currency)}
+          {formatCurrency(debtAmount, currency)}
         </p>
       </div>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#E9C7BF]" aria-label="Niveau d’endettement">

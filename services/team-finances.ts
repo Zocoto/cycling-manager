@@ -184,6 +184,7 @@ export async function getCurrentTeamFinanceOverview(
         "id, checkpoint_day_number, balance, severity, reputation_penalty, message"
       )
       .eq("team_season_id", teamSeason.id)
+      .is("resolved_at", null)
       .order("checkpoint_day_number", { ascending: false })
       .returns<AlertRow[]>(),
     admin
