@@ -306,6 +306,7 @@ export function buildPersistedStageRaceStandings(
     !abandonedRiderIds.has(riderId);
   const byPoints = (first: [string, number], second: [string, number]) =>
     second[1] - first[1] || first[0].localeCompare(second[0]);
+  const generalClassification = buildPersistedGeneralClassification(stageResults);
 
   return {
     mountain: [...mountainPoints.entries()]
@@ -316,19 +317,16 @@ export function buildPersistedStageRaceStandings(
       .filter(activeRider)
       .sort(byPoints)
       .map(([riderId, points]) => ({ riderId, points })),
-    youth: [...riderTimes.entries()]
+    youth: generalClassification
       .filter(
-        ([riderId]) =>
-          !abandonedRiderIds.has(riderId) &&
-          (riderAgeById.get(riderId) ?? 99) < 25
+        (result) =>
+          result.status === "finished" &&
+          result.elapsedTimeMs !== null &&
+          (riderAgeById.get(result.riderId) ?? 99) < 25,
       )
-      .sort(
-        (first, second) =>
-          first[1] - second[1] || first[0].localeCompare(second[0])
-      )
-      .map(([riderId, elapsedTimeMs]) => ({
-        riderId,
-        elapsedTimeSeconds: Math.round(elapsedTimeMs / 1_000),
+      .map((result) => ({
+        riderId: result.riderId,
+        elapsedTimeSeconds: Math.round((result.elapsedTimeMs ?? 0) / 1_000),
       })),
     teams: [...teamTimes.entries()]
       .sort(
