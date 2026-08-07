@@ -9,6 +9,7 @@ import type {
 } from "@/lib/game/post-race-interview";
 import { selectPostRaceInterviewQuestions } from "@/lib/game/post-race-interview";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
+import { isPostRaceInterviewWindowOpen } from "@/lib/game/post-race-interview-window";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getUciRankings } from "@/services/uci-rankings";
 
@@ -24,15 +25,19 @@ type AssignmentRow = { team_id: string };
 
 type PostRaceInterviewRow = {
   id: string;
+  stage_id: string;
   team_id?: string;
   sporting_director_id?: string;
   question_set: unknown;
   answers: unknown;
   closing_note: string | null;
   context: unknown;
-  status: "pending" | "submitted";
+  status: "pending" | "submitted" | "closed";
   submitted_at: string | null;
 };
+
+type StageRow = { season_day_id: string };
+type SeasonDayRow = { calendar_date: string };
 
 type RivalAssignmentRow = {
   team_id: string;
@@ -47,7 +52,7 @@ type SubmittedInterviewRow = PostRaceInterviewRow & {
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 const INTERVIEW_SELECT =
-  "id, team_id, sporting_director_id, question_set, answers, closing_note, context, status, submitted_at";
+  "id, stage_id, team_id, sporting_director_id, question_set, answers, closing_note, context, status, submitted_at";
 
 export async function getOrCreatePostRaceInterview({
   authUserId,
@@ -77,6 +82,8 @@ export async function getOrCreatePostRaceInterview({
   if (teamResults.length === 0) return null;
 
   const admin = createSupabaseAdminClient();
+  if (!(await hasOpenPostRaceInterviewWindow(admin, stageId))) return null;
+
   const [directorResult, seasonResult, rankings] = await Promise.all([
     admin
       .from("sporting_directors")
@@ -248,9 +255,15 @@ export async function submitPostRaceInterview({
   if (current.error || !current.data) {
     throw new Error("Cette interview ne vous appartient pas ou n’existe plus.");
   }
+  const questions = current.data.question_set as PostRaceInterviewQuestion[];
+  if (
+    current.data.status === "closed" ||
+    !(await hasOpenPostRaceInterviewWindow(admin, current.data.stage_id))
+  ) {
+    throw new Error("La zone mixte est fermée : l’interview est disponible uniquement le jour de la course, avant 20 h.");
+  }
   if (current.data.status === "submitted") return mapInterview(current.data);
 
-  const questions = current.data.question_set as PostRaceInterviewQuestion[];
   if (questions.length !== 3 || answers.length !== questions.length) {
     throw new Error("Les trois réponses de l’interview sont attendues.");
   }
@@ -284,8 +297,30 @@ export async function submitPostRaceInterview({
   return mapInterview(updated.data);
 }
 
+async function hasOpenPostRaceInterviewWindow(
+  admin: SupabaseAdminClient,
+  stageId: string,
+): Promise<boolean> {
+  const stage = await admin
+    .from("stages")
+    .select("season_day_id")
+    .eq("id", stageId)
+    .maybeSingle<StageRow>();
+  if (stage.error || !stage.data) return false;
+
+  const seasonDay = await admin
+    .from("season_days")
+    .select("calendar_date")
+    .eq("id", stage.data.season_day_id)
+    .maybeSingle<SeasonDayRow>();
+  if (seasonDay.error || !seasonDay.data) return false;
+
+  return isPostRaceInterviewWindowOpen(seasonDay.data.calendar_date);
+}
+
 async function loadRivalryContext(
   admin: SupabaseAdminClient,
+
   {
     stageId,
     currentTeamId,

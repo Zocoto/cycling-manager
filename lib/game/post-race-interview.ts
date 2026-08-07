@@ -55,7 +55,7 @@ export type PostRaceInterviewContext = {
 
 export type PostRaceInterviewSnapshot = {
   id: string;
-  status: "pending" | "submitted";
+  status: "pending" | "submitted" | "closed";
   questions: PostRaceInterviewQuestion[];
   answers: PostRaceInterviewAnswer[];
   closingNote: string;
