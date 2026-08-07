@@ -544,7 +544,7 @@ export async function getRiderTransferManagement(
   const ownsRider = activeContract?.team_id === context.teamSeason.team_id;
   const seasonYears = await loadSeasonYears(admin);
   const contractEndSeasonYear = Math.max(
-    ...contracts.filter((contract) => contract.team_id === context.teamSeason.team_id)
+    ...contracts.filter((contract) => contract.status === "active" && contract.team_id === context.teamSeason.team_id)
       .map((contract) => seasonYears.get(contract.end_season_id) ?? 0),
     0,
   ) || null;
