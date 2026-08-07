@@ -448,15 +448,16 @@ export default async function RiderProfilePage({
             {profile.privateContract ? (
               <div
                 data-tutorial-id="rider-profile-contract"
-                className="min-w-0 space-y-5"
-              >
-                <PrivateContractCard contract={profile.privateContract} />
-                {transferManagement ? (
+                className="min-w-0"
+              >                {transferManagement ? (
                   <ContractRenewalCard
                     riderId={profile.id}
+                    contract={profile.privateContract}
                     management={transferManagement}
                   />
-                ) : null}
+                ) : (
+                  <PrivateContractCard contract={profile.privateContract} />
+                )}
               </div>
             ) : transferManagement?.isFreeAgent ? (
               <div
@@ -642,50 +643,20 @@ function FreeAgentSigningCard({
   );
 }
 
-function ContractRenewalCard({
-  riderId,
-  management,
-}: {
+function ContractRenewalCard({ riderId, contract, management }: {
   riderId: string;
-  management: NonNullable<
-    Awaited<ReturnType<typeof getRiderTransferManagement>>
-  >;
+  contract: NonNullable<Awaited<ReturnType<typeof getPublicRiderProfile>>>["privateContract"] & {};
+  management: NonNullable<Awaited<ReturnType<typeof getRiderTransferManagement>>>;
 }) {
-  if (!management.canRenew && !management.hasPlannedRenewal) return null;
-  return (
-    <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
-      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-        Avenir contractuel
-      </p>
-      <h2 className="mt-2 text-xl font-black text-[#183F37]">Renouvellement</h2>
-      {management.hasPlannedRenewal ? (
-        <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
-          Le contrat de la saison suivante est déjà signé.
-        </p>
-      ) : (
-        <>
-          <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
-            {management.renewalSalary === 0
-              ? "Sa moyenne est inférieure à 60 : il accepte de rester amateur sans salaire."
-              : `Sa demande sera de ${formatMoney(management.renewalSalary ?? 0, "EUR")} pour la prochaine saison.`}
-          </p>
-          <form action={renewRiderContractAction} className="mt-4">
-            <input type="hidden" name="riderId" value={riderId} />
-            <input
-              type="hidden"
-              name="returnPath"
-              value={`/jeu/coureurs/${riderId}`}
-            />
-            <TransferSubmitButton pendingLabel="Renouvellement…" tone="green">
-              Renouveler
-            </TransferSubmitButton>
-          </form>
-        </>
-      )}
-    </article>
-  );
+  const endSeasonYear = management.contractEndSeasonYear;
+  const endLabel = endSeasonYear ? `Fin de S${endSeasonYear}` : contract.endSeasonName;
+  return <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#D6A93D]/30 bg-[#FFF8DD] p-6 shadow-[0_16px_45px_rgba(111,82,13,0.08)] sm:p-7">
+    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8A6B16]">Votre coureur</p>
+    <h2 className="mt-2 text-xl font-black text-[#3F3518]">Contrat</h2>
+    <div className="mt-5 rounded-xl border border-[#D6A93D]/25 bg-white/65 px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">Échéance</p><p className="mt-1 text-lg font-black text-[#3F3518]">{endLabel}</p></div>
+    {management.canRenew ? <form action={renewRiderContractAction} className="mt-4"><p className="mb-4 text-sm font-semibold leading-6 text-[#7E7043]">Prolongez d’une saison, jusqu’à fin de S{endSeasonYear! + 1}. La limite est de trois saisons glissantes.</p><input type="hidden" name="riderId" value={riderId} /><input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} /><TransferSubmitButton pendingLabel="Prolongation…" tone="green">Prolonger d’une saison</TransferSubmitButton></form> : <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">Le contrat est déjà sécurisé pour le maximum de trois saisons glissantes.</p>}
+  </article>;
 }
-
 function CurrentTeamCard({
   team,
   amateurJersey,

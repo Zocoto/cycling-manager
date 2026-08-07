@@ -221,7 +221,7 @@ export type RiderTransferManagement = {
   rosterLimit: number;
   rosterIsFull: boolean;
   renewalSalary: number | null;
-  hasPlannedRenewal: boolean;
+  contractEndSeasonYear: number | null;
 };
 
 export async function getTransferMarketOverview(
@@ -542,16 +542,17 @@ export async function getRiderTransferManagement(
   const rosterIsFull = isTeamRosterAtCapacity(rosterSize);
   const activeContract = contracts.find((contract) => contract.status === "active") ?? null;
   const ownsRider = activeContract?.team_id === context.teamSeason.team_id;
-  const hasPlannedRenewal = contracts.some(
-    (contract) => contract.status === "planned" && contract.team_id === context.teamSeason.team_id
-  );
   const seasonYears = await loadSeasonYears(admin);
+  const contractEndSeasonYear = Math.max(
+    ...contracts.filter((contract) => contract.team_id === context.teamSeason.team_id)
+      .map((contract) => seasonYears.get(contract.end_season_id) ?? 0),
+    0,
+  ) || null;
   const canRenew = Boolean(
     ownsRider && activeContract &&
-    (seasonYears.get(activeContract.end_season_id) ?? context.season.game_year) <= context.season.game_year &&
-    !hasPlannedRenewal
-  );
-  const salary = calculateSalaryApproximation(overall);
+    contractEndSeasonYear !== null &&
+    contractEndSeasonYear < context.season.game_year + 2
+  );  const salary = calculateSalaryApproximation(overall);
   const isFreeAgent = riderResult.data.status === "free_agent" && !activeContract;
 
   return {
@@ -571,7 +572,7 @@ export async function getRiderTransferManagement(
     rosterIsFull,
     canRenew,
     renewalSalary: ownsRider ? salary : null,
-    hasPlannedRenewal,
+    contractEndSeasonYear,
   };
 }
 

@@ -613,7 +613,7 @@ export default async function TeamRosterPage({
                       currentSortKey={currentSortKey}
                       currentDirection={currentSortDirection}
                     />
-                    <div className="divide-y divide-[#315B3E]/12">
+                    <div className="space-y-3 bg-[#F3F8F5] p-2 sm:p-3">
                       {sortedRiders.map((rider) => (
                         <RiderMobileCard
                           key={rider.rider_id}
@@ -1292,7 +1292,7 @@ function RiderMobileCard({
   const riderAverage = getRiderAverage(rider);
 
   return (
-    <article className="bg-white p-4 sm:p-5">
+    <article className="rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-[0_8px_20px_rgba(19,60,46,0.08)] sm:p-5">
       <div className="flex items-start gap-3">
         <Link
           href={`/jeu/coureurs/${rider.rider_id}`}
