@@ -439,8 +439,9 @@ export default async function RiderProfilePage({
             {profile.privateContract ? (
               <div
                 data-tutorial-id="rider-profile-contract"
-                className="min-w-0"
-              >                {transferManagement ? (
+                className="min-w-0 space-y-5"
+              >
+                {transferManagement ? (
                   <ContractRenewalCard
                     riderId={profile.id}
                     contract={profile.privateContract}
@@ -453,7 +454,7 @@ export default async function RiderProfilePage({
             ) : transferManagement?.isFreeAgent ? (
               <div
                 data-tutorial-id="rider-profile-contract"
-                className="min-w-0"
+                className="min-w-0 space-y-5"
               >
                 <FreeAgentSigningCard
                   riderId={profile.id}
@@ -463,7 +464,7 @@ export default async function RiderProfilePage({
             ) : (
               <div
                 data-tutorial-id="rider-profile-contract"
-                className="min-w-0"
+                className="min-w-0 space-y-5"
               >
                 <CareerSummaryCard
                   teamName={profile.currentTeam?.displayName ?? "Agent libre"}

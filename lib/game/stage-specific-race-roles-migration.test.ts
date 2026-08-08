@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260808100000_add_stage_specific_race_roles.sql"
+    "supabase/migrations/20260808160000_add_stage_specific_race_roles.sql"
   ),
   "utf8"
 );
@@ -37,7 +37,7 @@ describe("stage-specific race roles migration", () => {
       "left join public.race_roster_stage_roles as stage_role"
     );
     expect(migration).toContain("director.auth_user_id = auth.uid()");
-    expect(migration).toContain("security definer\nset search_path = ''");
+    expect(migration).toMatch(/security definer\r?\nset search_path = ''/);
   });
 
   it("locks a started or officially simulated stage", () => {

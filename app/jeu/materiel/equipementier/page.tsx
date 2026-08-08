@@ -125,7 +125,7 @@ export default async function EquipmentPartnerPage({
             href="/jeu/materiel/equiper"
             className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
           >
-            Équiper ses coureurs
+            Équiper l’équipe
           </Link>
         </nav>
 

@@ -14,7 +14,7 @@ describe("gestion groupée des équipements", () => {
   it("rend la rubrique accessible depuis toutes les pages Matériel", () => {
     for (const page of [materialPage, partnerPage, managerPage]) {
       expect(page).toContain('href="/jeu/materiel/equiper"');
-      expect(page).toContain("Équiper ses coureurs");
+      expect(page).toContain("Équiper l’équipe");
     }
 
     expect(managerPage).toContain('aria-current="page"');

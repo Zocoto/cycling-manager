@@ -77,7 +77,6 @@ export function SideRaceCyclist({
         />
       ) : jerseyVisual.status === "classification-leader" ? (
         <ClassificationRacePattern
-          jerseyType={rider.classificationJersey!}
           visual={jerseyVisual}
           clipPathId={jerseyClipId}
           mode="side"
@@ -145,7 +144,6 @@ export function TopRaceCyclist({
         />
       ) : jerseyVisual.status === "classification-leader" ? (
         <ClassificationRacePattern
-          jerseyType={rider.classificationJersey!}
           visual={jerseyVisual}
           clipPathId={jerseyClipId}
           mode="top"
@@ -259,12 +257,10 @@ function NationalChampionRacePattern({
 }
 
 function ClassificationRacePattern({
-  jerseyType,
   visual,
   clipPathId,
   mode,
 }: {
-  jerseyType: NonNullable<RiderSimulationInput["classificationJersey"]>;
   visual: ReturnType<typeof getRaceCyclistJerseyVisual>;
   clipPathId: string;
   mode: "side" | "top";

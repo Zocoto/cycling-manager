@@ -5,10 +5,10 @@ import { buildInitialEquipmentValues } from "@/components/game/team-equipment-bu
 import { describe, expect, it } from "vitest";
 
 const nutritionMigration = read(
-  "supabase/migrations/20260808120000_bulk_nutrition_and_lower_prices.sql",
+  "supabase/migrations/20260808161000_bulk_nutrition_and_lower_prices.sql",
 );
 const equipmentMigration = read(
-  "supabase/migrations/20260808121000_bulk_equipment_assignments.sql",
+  "supabase/migrations/20260808162000_bulk_equipment_assignments.sql",
 );
 const nutritionEditor = read(
   "components/game/nutrition-interventions-editor.tsx",

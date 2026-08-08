@@ -69,7 +69,6 @@ export function NationalChampionshipStageResults({
         edition={edition}
         selectedStageId={stage.id}
         officialResults={officialResults}
-        favoriteRiders={[]}
         postRaceInterview={null}
       />
     </div>

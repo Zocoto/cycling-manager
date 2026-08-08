@@ -39,6 +39,9 @@ type RaceLivePageProps = {
     slug: string;
     stageNumber: string;
   }>;
+  searchParams: Promise<{
+    classement?: string;
+  }>;
 };
 
 type DirectorRow = {
@@ -110,9 +113,11 @@ export default async function RaceLivePage({
 
   if (state.status === "finished") {
     try {
-      await settleFinishedRaceResults(calendar, now, lockedSimulationDirectory, {
-        repairCompletedEditions: true,
-      });
+      await settleFinishedRaceResults(
+        calendar,
+        now,
+        lockedSimulationDirectory,
+      );
       await settleFinishedRaceConditions(supabase);
     } catch (error) {
       console.error("Impossible de consolider cette course :", error);

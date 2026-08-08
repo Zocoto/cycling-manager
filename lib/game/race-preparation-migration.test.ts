@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260808130000_create_race_preparations.sql",
+    "supabase/migrations/20260808164000_create_race_preparations.sql",
   ),
   "utf8",
 );
@@ -29,7 +29,7 @@ describe("race preparation migration", () => {
       "create function public.save_current_team_race_preparation",
     );
     expect(migration).toContain("director.auth_user_id = auth.uid()");
-    expect(migration).toContain("security definer\nset search_path = ''");
+    expect(migration).toMatch(/security definer\r?\nset search_path = ''/);
   });
 
   it("locks past stages and validates every tactical reference", () => {

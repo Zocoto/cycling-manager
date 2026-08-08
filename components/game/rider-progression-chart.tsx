@@ -200,10 +200,7 @@ export function RiderProgressionChart({
                         strokeWidth="2"
                         opacity={isCurrent ? 1 : 0.7}
                       >
-                        <title>
-                          {season.seasonName} · J{point.dayNumber} ·{" "}
-                          {series.label} : {formatRating(value)}
-                        </title>
+                        <title>{`${season.seasonName} \u00b7 J${point.dayNumber} \u00b7 ${series.label} : ${formatRating(value)}`}</title>
                       </circle>
                     );
                   })}

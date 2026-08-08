@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
 import {

@@ -172,7 +172,12 @@ function buildIndividualStarters(
         first.label.localeCompare(second.label, "fr")
       );
     })
-    .map(({ gcRank: _gcRank, resultRank: _resultRank, ...starter }) => starter);
+    .map((starter) => ({
+      id: starter.id,
+      label: starter.label,
+      riderIds: starter.riderIds,
+      elapsedTimeSeconds: starter.elapsedTimeSeconds,
+    }));
 }
 
 function buildTeamStarters(
@@ -208,7 +213,12 @@ function buildTeamStarters(
         second.gcRank - first.gcRank ||
         first.label.localeCompare(second.label, "fr"),
     )
-    .map(({ gcRank: _gcRank, ...starter }) => starter);
+    .map((starter) => ({
+      id: starter.id,
+      label: starter.label,
+      riderIds: starter.riderIds,
+      elapsedTimeSeconds: starter.elapsedTimeSeconds,
+    }));
 }
 
 function getGeneralClassificationRankByRiderId(

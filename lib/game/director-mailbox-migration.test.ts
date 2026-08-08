@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260808130000_create_sporting_director_mailbox.sql",
+    "supabase/migrations/20260808165000_create_sporting_director_mailbox.sql",
   ),
   "utf8",
 );
