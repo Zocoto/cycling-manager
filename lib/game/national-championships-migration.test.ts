@@ -32,6 +32,8 @@ describe("refonte des championnats nationaux", () => {
       "withdraw_current_team_national_championship_rider",
     );
     expect(migration).toContain("set status = 'withdrawn'");
+    expect(migration).toContain("equipment_effects jsonb");
+    expect(migration).toContain("coalesce(equipment.effects");
   });
 
   it("programme toutes les nations et disciplines le même jour", () => {

@@ -1026,7 +1026,8 @@ returns table (
   resistance integer,
   recovery integer,
   breakaway integer,
-  prologue integer
+  prologue integer,
+  equipment_effects jsonb
 )
 language sql
 stable
@@ -1057,7 +1058,8 @@ as $$
     coalesce(rating.resistance, 50)::integer,
     coalesce(rating.recovery, 50)::integer,
     coalesce(rating.breakaway, 50)::integer,
-    coalesce(rating.prologue, 50)::integer
+    coalesce(rating.prologue, 50)::integer,
+    coalesce(equipment.effects, '[]'::jsonb)
   from public.race_editions as edition
   join public.seasons as season
     on season.id = edition.season_id
@@ -1089,6 +1091,44 @@ as $$
     order by condition_day.day_number desc
     limit 1
   ) as condition on true
+  left join lateral (
+    select jsonb_agg(resolved.effect_payload order by resolved.slot_type) as effects
+    from (
+      select
+        assignment.slot_type,
+        (
+          case
+            when item.acquisition_channel = 'commercial' then item.effect_payload
+            else partner_effect.effect_payload
+          end
+        ) || jsonb_build_object('_slotType', assignment.slot_type) as effect_payload
+      from public.rider_equipment_assignments as assignment
+      join public.equipment_catalog_items as item
+        on item.id = assignment.equipment_item_id
+       and item.status = 'active'
+      left join lateral (
+        select effect.effect_payload
+        from public.equipment_partner_item_effects as effect
+        join public.equipment_partner_contracts as contract
+          on contract.id = effect.contract_id
+         and contract.team_id = team.id
+         and contract.supplier_key = item.supplier_key
+         and contract.status = 'active'
+        join public.seasons as contract_start
+          on contract_start.id = contract.start_season_id
+        join public.seasons as contract_end
+          on contract_end.id = contract.end_season_id
+        where effect.equipment_item_id = item.id
+          and season.game_year between contract_start.game_year and contract_end.game_year
+        limit 1
+      ) as partner_effect on true
+      where assignment.rider_id = rider.id
+        and (
+          item.acquisition_channel = 'commercial'
+          or partner_effect.effect_payload is not null
+        )
+    ) as resolved
+  ) as equipment on true
   where edition.status <> 'cancelled'
   order by
     edition.id,
@@ -1125,7 +1165,8 @@ returns table (
   resistance integer,
   recovery integer,
   breakaway integer,
-  prologue integer
+  prologue integer,
+  equipment_effects jsonb
 )
 language sql
 stable
