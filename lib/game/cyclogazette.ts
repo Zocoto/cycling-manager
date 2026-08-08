@@ -24,6 +24,12 @@ export type CyclogazetteTourSummary = {
   jerseys: Array<{ label: string; holder: string }>;
 };
 
+export type CyclogazetteTourStageCandidate = {
+  raceEditionId: string;
+  stageNumber: number;
+  daySlot: "early" | "late";
+};
+
 export type CyclogazetteCommunity = {
   likeCount: number;
   likedByViewer: boolean;
@@ -81,6 +87,38 @@ const PARIS_HOUR_FORMATTER = new Intl.DateTimeFormat("fr-FR", {
   hourCycle: "h23",
 });
 
+const MOJIBAKE_PATTERN = /Ã|Â|â€|�/u;
+const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
+const WINDOWS_1252_BYTES: Readonly<Record<string, number>> = {
+  "€": 0x80,
+  "‚": 0x82,
+  "ƒ": 0x83,
+  "„": 0x84,
+  "…": 0x85,
+  "†": 0x86,
+  "‡": 0x87,
+  "ˆ": 0x88,
+  "‰": 0x89,
+  "Š": 0x8a,
+  "‹": 0x8b,
+  "Œ": 0x8c,
+  "Ž": 0x8e,
+  "‘": 0x91,
+  "’": 0x92,
+  "“": 0x93,
+  "”": 0x94,
+  "•": 0x95,
+  "–": 0x96,
+  "—": 0x97,
+  "˜": 0x98,
+  "™": 0x99,
+  "š": 0x9a,
+  "›": 0x9b,
+  "œ": 0x9c,
+  "ž": 0x9e,
+  "Ÿ": 0x9f,
+};
+
 export function getParisDateKey(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
   const parts = PARIS_DATE_FORMATTER.formatToParts(date);
@@ -100,5 +138,105 @@ export function formatCyclogazetteStageLabel(raceName: string, stageName: string
   const normalizedRace = raceName.trim();
   const normalizedStage = stageName.trim();
   if (!normalizedStage || normalizedStage === normalizedRace) return normalizedRace;
-  return `${normalizedRace} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ${normalizedStage}`;
+  return `${normalizedRace} — ${normalizedStage}`;
+}
+
+export function repairCyclogazetteText(value: string) {
+  if (!MOJIBAKE_PATTERN.test(value)) return value;
+
+  const repairedValue = repairMojibakeSegment(value);
+  if (repairedValue !== value) return repairedValue;
+
+  return value.replace(/[^\x20\t\r\n]+/gu, (segment) =>
+    MOJIBAKE_PATTERN.test(segment) ? repairMojibakeSegment(segment) : segment,
+  );
+}
+
+export function repairCyclogazetteValue<T>(value: T): T {
+  if (typeof value === "string") {
+    return repairCyclogazetteText(value) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => repairCyclogazetteValue(item)) as T;
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, repairCyclogazetteValue(item)]),
+    ) as T;
+  }
+  return value;
+}
+
+export function selectLatestCyclogazetteEveningStages<
+  T extends CyclogazetteTourStageCandidate,
+>(stages: readonly T[]) {
+  const latestStageByEdition = new Map<string, T>();
+
+  for (const stage of stages) {
+    if (stage.daySlot !== "late") continue;
+    const current = latestStageByEdition.get(stage.raceEditionId);
+    if (!current || stage.stageNumber > current.stageNumber) {
+      latestStageByEdition.set(stage.raceEditionId, stage);
+    }
+  }
+
+  return [...latestStageByEdition.values()];
+}
+
+export function selectLatestCyclogazetteTourSummaries(
+  summaries: readonly CyclogazetteTourSummary[],
+) {
+  const latestSummaryByRace = new Map<string, CyclogazetteTourSummary>();
+
+  for (const summary of summaries) {
+    const current = latestSummaryByRace.get(summary.raceName);
+    if (
+      !current ||
+      getTourSummaryStageNumber(summary) > getTourSummaryStageNumber(current)
+    ) {
+      latestSummaryByRace.set(summary.raceName, summary);
+    }
+  }
+
+  return [...latestSummaryByRace.values()];
+}
+
+function repairMojibakeSegment(value: string) {
+  let current = value;
+
+  for (let attempt = 0; attempt < 6 && MOJIBAKE_PATTERN.test(current); attempt += 1) {
+    const decoded = decodeWindows1252AsUtf8(current);
+    if (!decoded || decoded === current) break;
+    current = decoded;
+  }
+
+  return current;
+}
+
+function decodeWindows1252AsUtf8(value: string) {
+  const bytes: number[] = [];
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint === undefined) return null;
+    if (codePoint <= 0xff) {
+      bytes.push(codePoint);
+      continue;
+    }
+    const windows1252Byte = WINDOWS_1252_BYTES[character];
+    if (windows1252Byte === undefined) return null;
+    bytes.push(windows1252Byte);
+  }
+
+  try {
+    return UTF8_DECODER.decode(Uint8Array.from(bytes));
+  } catch {
+    return null;
+  }
+}
+
+function getTourSummaryStageNumber(summary: CyclogazetteTourSummary) {
+  const hrefStageNumber = summary.href.match(/\/(\d+)(?:[/?#]|$)/u)?.[1];
+  const labelStageNumber = summary.stageLabel.match(/(?:étape|stage)\s+(\d+)/iu)?.[1];
+  return Number(hrefStageNumber ?? labelStageNumber ?? 0);
 }
