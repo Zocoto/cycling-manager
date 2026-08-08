@@ -2,9 +2,9 @@ import {
   claimDailyRewardAction,
   redeemDailyRewardAction,
 } from "@/app/jeu/objectifs/actions";
+import { DailyRewardTargetFields } from "@/components/game/daily-reward-target-fields";
 import {
   getDailyRewardImportance,
-  getRatingOptionsForOffer,
   requiresRiderTarget,
   type DailyRewardInventoryItem,
   type DailyRewardOverview,
@@ -192,7 +192,6 @@ function InventoryRewardCard({
   item: DailyRewardInventoryItem;
   overview: DailyRewardOverview;
 }) {
-  const ratingOptions = getRatingOptionsForOffer(item);
   const needsRider = requiresRiderTarget(item.effectKind);
   const canUse =
     (!needsRider || overview.riders.length > 0) &&
@@ -219,38 +218,11 @@ function InventoryRewardCard({
 
       <form action={redeemDailyRewardAction} className="mt-auto space-y-3 pt-5">
         <input type="hidden" name="inventoryId" value={item.id} />
-        {needsRider ? (
-          <SelectField name="riderId" label="Coureur" required>
-            <option value="">Choisir un coureur</option>
-            {overview.riders.map((rider) => (
-              <option key={rider.id} value={rider.id}>
-                {rider.name}{rider.countryName ? ` · ${rider.countryName}` : ""}
-              </option>
-            ))}
-          </SelectField>
-        ) : null}
-
-        {item.effectKind === "rating_boost" ? (
-          <SelectField name="ratingKey" label="Statistique" required>
-            <option value="">Choisir une statistique</option>
-            {ratingOptions.map((option) => (
-              <option key={option.databaseKey} value={option.databaseKey}>
-                {option.shortLabel} · {option.label}
-              </option>
-            ))}
-          </SelectField>
-        ) : null}
-
-        {item.effectKind === "special_ability" ? (
-          <SelectField name="abilityCode" label="Capacité" required>
-            <option value="">Choisir une capacité</option>
-            {overview.abilities.map((ability) => (
-              <option key={ability.code} value={ability.code}>
-                {ability.name} · {ability.effectSummary}
-              </option>
-            ))}
-          </SelectField>
-        ) : null}
+        <DailyRewardTargetFields
+          item={item}
+          riders={overview.riders}
+          abilities={overview.abilities}
+        />
 
         {item.effectKind === "wildcard" ? (
           <SelectField name="raceEditionId" label="Course Elite hors GT" required>

@@ -17,6 +17,7 @@ type CatalogRow = {
   rarity: InventoryRarity;
   description: string;
   effect_summary: string;
+  effect_payload: Record<string, unknown>;
   icon_key: string;
   is_consumable: boolean;
 };
@@ -46,7 +47,7 @@ export async function getCurrentTeamInventoryOverview(
     admin
       .from("inventory_catalog_items")
       .select(
-        "id, item_key, name, category, rarity, description, effect_summary, icon_key, is_consumable",
+        "id, item_key, name, category, rarity, description, effect_summary, effect_payload, icon_key, is_consumable",
       )
       .eq("status", "active")
       .returns<CatalogRow[]>(),
@@ -79,6 +80,7 @@ export async function getCurrentTeamInventoryOverview(
         description: catalogItem.description,
         effectSummary: catalogItem.effect_summary,
         resalePrice: null,
+        effectPayload: catalogItem.effect_payload,
         rarity: catalogItem.rarity,
         quantity: inventory.quantity,
         availableQuantity: inventory.quantity,

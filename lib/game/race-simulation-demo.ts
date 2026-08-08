@@ -14,6 +14,8 @@ import {
   type SimulationStageType,
   type StageSimulationInput,
 } from "./race-simulation";
+import { resolveStageRaceRole } from "./stage-race-roles";
+import { getRiderRaceDuty } from "./race-strategy";
 
 export const RACE_DEMO_SCENARIOS = [
   {
@@ -89,7 +91,9 @@ export function createDemoSimulationInput(
     profileType: scenario.profileType,
     isStageRace: scenario.isStageRace,
     seed,
-    weather: getRaceWeather(`${scenario.id}:${seed}:weather`),
+    weather: getRaceWeather(`${scenario.id}:${seed}:weather`, {
+      profileType: scenario.profileType,
+    }),
     segments: buildRaceSegments({
       distanceKm: scenario.distanceKm,
       profileType: scenario.profileType,
@@ -109,6 +113,9 @@ export function createCalendarSimulationInput({
   stage: RaceCalendarStage;
   seed: string | number;
 }): StageSimulationInput {
+  const teamStrategies = Object.values(stage.teamStrategies ?? {}).sort(
+    (first, second) => first.teamId.localeCompare(second.teamId),
+  );
   const sourceRiders =
     edition.engagedRiders.length > 0
       ? edition.engagedRiders
@@ -124,6 +131,8 @@ export function createCalendarSimulationInput({
 
   const riders = sourceRiders
     .map((rider) => {
+      const teamStrategy = stage.teamStrategies?.[rider.teamId];
+      const raceDuty = getRiderRaceDuty(teamStrategy, rider.id);
       const specialAbilities = [
         ...(rider.specialAbilities ?? []),
         ...(rider.specialAbility ? [rider.specialAbility] : []),
@@ -135,6 +144,12 @@ export function createCalendarSimulationInput({
 
       return {
         ...rider,
+        role: resolveStageRaceRole({
+          riderId: rider.id,
+          generalRole: rider.role,
+          roleOverrides: stage.riderRoleOverrides,
+        }),
+        ...(raceDuty ? { raceDuty } : {}),
         specialAbility: specialAbilities[0] ?? null,
         ...(specialAbilities.length > 0 || rider.specialAbilities !== undefined
           ? { specialAbilities }
@@ -178,7 +193,10 @@ export function createCalendarSimulationInput({
     raceCountryCode: edition.countryCode,
     isStageRace: edition.raceFormat === "stage_race",
     seed,
-    weather: getRaceWeather(`${edition.id}:${stage.id}:weather`),
+    weather: getRaceWeather(`${edition.id}:${stage.id}:weather`, {
+      countryCode: edition.countryCode,
+      profileType: stage.profileType,
+    }),
     segments,
     riders: riders.map((rider) => {
       const reconnaissanceBonus =
@@ -187,6 +205,7 @@ export function createCalendarSimulationInput({
         ? { ...rider, reconnaissanceBonus }
         : rider;
     }),
+    ...(teamStrategies.length > 0 ? { teamStrategies } : {}),
   };
 }
 

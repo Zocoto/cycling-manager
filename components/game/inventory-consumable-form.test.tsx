@@ -14,7 +14,33 @@ const riders = [
     first_name: "Milan",
     last_name: "De Smet",
   },
-];
+].map((rider, index) => ({
+  ...rider,
+  id: rider.rider_id,
+  firstName: rider.first_name,
+  lastName: rider.last_name,
+  name: `${rider.first_name} ${rider.last_name}`,
+  countryName: index === 0 ? "Pays-Bas" : "Belgique",
+  form: index === 0 ? 82 : 74,
+  experienceDays: index === 0 ? 137 : 64,
+  potentialSteps: index === 0 ? 7 : 5,
+  ratings: {
+    mountain: 74,
+    hills: 71,
+    flat: 66,
+    time_trial: 62,
+    cobbles: 58,
+    sprint: 49,
+    acceleration: index === 0 ? 77 : 68,
+    downhill: 70,
+    endurance: 73,
+    resistance: 69,
+    recovery: 68,
+    breakaway: 72,
+    prologue: 61,
+  },
+  abilityCodes: index === 0 ? ["panache"] : [],
+}));
 
 describe("InventoryConsumableForm", () => {
   it("permet de choisir le bénéficiaire et annonce le caractère permanent", () => {
@@ -23,6 +49,7 @@ describe("InventoryConsumableForm", () => {
         inventoryItemId="33333333-3333-4333-8333-333333333333"
         category="rating_boost"
         availableQuantity={1}
+        effectPayload={{ ratingKey: "acceleration" }}
         riders={riders}
       />
     );
@@ -30,6 +57,7 @@ describe("InventoryConsumableForm", () => {
     expect(markup).toContain("Coureur bénéficiaire");
     expect(markup).toContain("Erik Van Dijk");
     expect(markup).toContain("Milan De Smet");
+    expect(markup).toContain("ACC 77/100");
     expect(markup).toContain("Utiliser sur ce coureur");
     expect(markup).toContain("pendant toute sa carrière");
     expect(markup).not.toMatch(/<select[^>]*\sdisabled=""/);
@@ -41,11 +69,14 @@ describe("InventoryConsumableForm", () => {
         inventoryItemId="33333333-3333-4333-8333-333333333333"
         category="special_ability"
         availableQuantity={0}
+        effectPayload={{ abilityCode: "panache" }}
         riders={riders}
       />
     );
 
     expect(markup).toMatch(/<select[^>]*\sdisabled=""/);
     expect(markup).toMatch(/<button[^>]*\sdisabled=""/);
+    expect(markup).toContain("D\u00e9j\u00e0 acquise");
+    expect(markup).toContain("Non acquise");
   });
 });

@@ -1,0 +1,108 @@
+export const DIRECTOR_MAILBOX_FILTERS = [
+  "inbox",
+  "unread",
+  "important",
+  "archived",
+] as const;
+
+export type DirectorMailboxFilter =
+  (typeof DIRECTOR_MAILBOX_FILTERS)[number];
+
+export type DirectorMessageType =
+  | "race_result"
+  | "national_championship_selection"
+  | "national_championship_result"
+  | "international_selection"
+  | "roster_alert"
+  | "wildcard"
+  | "academy"
+  | "infrastructure"
+  | "system";
+
+export type DirectorMailboxMessage = {
+  id: string;
+  type: DirectorMessageType;
+  senderName: string;
+  subject: string;
+  preview: string;
+  body: string;
+  actionHref: string | null;
+  actionLabel: string | null;
+  isImportant: boolean;
+  sentAt: string;
+  readAt: string | null;
+  archivedAt: string | null;
+};
+
+export const DIRECTOR_MESSAGE_TYPE_LABELS: Record<
+  DirectorMessageType,
+  string
+> = {
+  race_result: "Résultats",
+  national_championship_selection: "Sélection CN",
+  national_championship_result: "Résultats CN",
+  international_selection: "Sélection",
+  roster_alert: "Effectif",
+  wildcard: "Wild Card",
+  academy: "Formation",
+  infrastructure: "Infrastructures",
+  system: "Direction",
+};
+
+export function normalizeDirectorMailboxFilter(
+  value: string | string[] | undefined,
+): DirectorMailboxFilter {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return DIRECTOR_MAILBOX_FILTERS.includes(
+    candidate as DirectorMailboxFilter,
+  )
+    ? (candidate as DirectorMailboxFilter)
+    : "inbox";
+}
+
+export function filterDirectorMailboxMessages({
+  messages,
+  filter,
+  query,
+}: {
+  messages: DirectorMailboxMessage[];
+  filter: DirectorMailboxFilter;
+  query?: string | null;
+}) {
+  const searchTokens = normalizeSearchText(query ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return messages.filter((message) => {
+    const matchesFolder =
+      filter === "archived"
+        ? message.archivedAt !== null
+        : message.archivedAt === null &&
+          (filter === "inbox" ||
+            (filter === "unread" && message.readAt === null) ||
+            (filter === "important" && message.isImportant));
+
+    if (!matchesFolder) return false;
+    if (searchTokens.length === 0) return true;
+
+    const searchableText = normalizeSearchText(
+      [
+        message.senderName,
+        message.subject,
+        message.preview,
+        message.body,
+        DIRECTOR_MESSAGE_TYPE_LABELS[message.type],
+      ].join(" "),
+    );
+
+    return searchTokens.every((token) => searchableText.includes(token));
+  });
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr-FR")
+    .trim();
+}

@@ -98,14 +98,15 @@ describe("calculateRaceReward", () => {
 });
 
 describe("calculateNationalChampionshipReward", () => {
-  it("récompense le podium sans jamais attribuer de points UCI", () => {
+  it("attribue un seul point de réputation au vainqueur et aucun point UCI", () => {
     expect(calculateNationalChampionshipReward({ finalRank: 1 })).toEqual({
-      reputation: 5,
+      reputation: 1,
       experience: 125,
       cashPrize: 10_000,
       uciPoints: 0,
     });
-    expect(calculateNationalChampionshipReward({ finalRank: 3 }).uciPoints).toBe(0);
+    expect(calculateNationalChampionshipReward({ finalRank: 2 }).reputation).toBe(0);
+    expect(calculateNationalChampionshipReward({ finalRank: 3 }).reputation).toBe(0);
     expect(calculateNationalChampionshipReward({ finalRank: 8 })).toEqual({
       reputation: 0,
       experience: 0,

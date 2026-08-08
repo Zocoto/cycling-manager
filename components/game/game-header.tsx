@@ -5,6 +5,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
+import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
@@ -24,6 +25,7 @@ type GameHeaderProps = {
   simulatorEmail?: string | null;
   chatIsOpen?: boolean;
   gazetteIsOpen?: boolean;
+  mailboxIsOpen?: boolean;
 };
 
 const DEFAULT_HEADER_COLORS = {
@@ -40,6 +42,7 @@ export function GameHeader({
   simulatorEmail = null,
   chatIsOpen = false,
   gazetteIsOpen = false,
+  mailboxIsOpen = false,
 }: GameHeaderProps) {
   const colors = sponsor?.colors ??
     DEFAULT_HEADER_COLORS;
@@ -239,9 +242,13 @@ export function GameHeader({
             </Link>
           ) : null}
 
+          <RacePreparationShortcut />
+
           {canAccessRaceSimulator(simulatorEmail) ? (
             <RaceSimulatorShortcut />
           ) : null}
+
+          <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
 
           <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
@@ -296,6 +303,32 @@ export function GameHeader({
         </div>
       </div>
     </header>
+  );
+}
+
+function RacePreparationShortcut() {
+  return (
+    <Link
+      href="/jeu/preparation-course"
+      title="Ouvrir la préparation de course"
+      aria-label="Ouvrir la préparation de course"
+      className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#F2C94C]/35 bg-[#F2C94C]/10 text-[#F7DA73] transition hover:border-[#F2C94C] hover:bg-[#F2C94C] hover:text-[#071A17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] xl:w-auto xl:gap-2 xl:px-3"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+        fill="none"
+        className="h-4 w-4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M4 3.5h12v13H4zM7 7h6M7 10h3M7 13h5" />
+        <path d="m13.5 11.5 2 2 3-4" />
+      </svg>
+      <span className="hidden xl:inline">Préparation</span>
+    </Link>
   );
 }
 

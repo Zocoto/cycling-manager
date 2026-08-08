@@ -69,6 +69,59 @@ export async function registerRaceRosterAction(
   );
 }
 
+export async function saveRaceStageRolePlanAction(
+  formData: FormData
+) {
+  const editionId = readFormValue(formData, "editionId");
+  const stageId = readFormValue(formData, "stageId");
+  const slug = readFormValue(formData, "slug");
+  const submittedRoles = readSubmittedRoles(formData, "stageRoles");
+  const roles = [...submittedRoles].map(([riderId, role]) => ({
+    riderId,
+    role,
+  }));
+
+  if (
+    !isUuid(editionId) ||
+    !isUuid(stageId) ||
+    !isSlug(slug) ||
+    roles.length === 0
+  ) {
+    redirectWithError(
+      isSlug(slug) ? `/jeu/courses/${slug}` : "/jeu/calendrier",
+      "Le plan de rôles transmis est invalide."
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.rpc(
+    "save_current_team_stage_role_plan",
+    {
+      p_race_edition_id: editionId,
+      p_stage_id: stageId,
+      p_roles: roles,
+    }
+  );
+
+  if (error) {
+    redirectWithError(`/jeu/courses/${slug}`, error.message);
+  }
+
+  revalidateRacePaths(slug);
+  redirect(
+    `/jeu/courses/${slug}?inscription=roles-mis-a-jour#roles-etapes`
+  );
+}
+
 export async function withdrawEliteWildcardRequestAction(
   formData: FormData
 ) {
@@ -240,10 +293,13 @@ function isSlug(value: string) {
   );
 }
 
-function readSubmittedRoles(formData: FormData) {
+function readSubmittedRoles(
+  formData: FormData,
+  fieldName = "riderRoles"
+) {
   const roles = new Map<string, RaceRole>();
 
-  for (const value of formData.getAll("riderRoles")) {
+  for (const value of formData.getAll(fieldName)) {
     if (typeof value !== "string") continue;
     const separatorIndex = value.indexOf(":");
     if (separatorIndex === -1) continue;

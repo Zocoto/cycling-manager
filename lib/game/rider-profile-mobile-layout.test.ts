@@ -8,6 +8,19 @@ const riderPage = readFileSync(
   "utf8",
 );
 
+const deferredProgression = readFileSync(
+  join(process.cwd(), "components/game/deferred-rider-progression.tsx"),
+  "utf8",
+);
+const progressionChart = readFileSync(
+  join(process.cwd(), "components/game/rider-progression-chart.tsx"),
+  "utf8",
+);
+const riderActions = readFileSync(
+  join(process.cwd(), "app/jeu/coureurs/actions.ts"),
+  "utf8",
+);
+
 describe("mise en page mobile de la fiche coureur", () => {
   it("place le contrat dans la colonne latérale et libère toute la largeur pour l’historique", () => {
     expect(riderPage).toContain(
@@ -45,5 +58,17 @@ describe("mise en page mobile de la fiche coureur", () => {
       '<dd className="min-w-0 break-words text-right font-black">',
     );
     expect(riderPage).toContain("w-full min-w-0 whitespace-normal");
+  });
+
+  it("charge le graphe au clic sans perturber la navigation mobile", () => {
+    expect(riderPage).toContain("<DeferredRiderProgression");
+    expect(riderPage).not.toContain("getRiderProgressionHistories");
+    expect(deferredProgression).toContain("dynamic(");
+    expect(deferredProgression).toContain("Afficher le graphe");
+    expect(deferredProgression).not.toContain("fixed");
+    expect(progressionChart).toContain("touch-pan-y");
+    expect(progressionChart).toContain("overflow-x-clip");
+    expect(riderActions).toContain("supabase.auth.getUser()");
+    expect(riderActions).toContain("!profile.canManage");
   });
 });

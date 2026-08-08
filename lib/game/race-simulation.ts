@@ -6,6 +6,12 @@ import type { RaceProfileType } from "./race-calendar";
 import type { StageRaceJerseyType } from "./stage-race-jerseys";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import {
+  MAX_RACE_ATTACK_ORDERS,
+  type RaceAttackOrder,
+  type RaceTeamStrategy,
+  type RiderRaceDuty,
+} from "./race-strategy";
+import {
   applyEquipmentRatingBonuses,
   type EquipmentEffects,
 } from "./equipment";
@@ -20,9 +26,11 @@ import {
 } from "./health-center";
 import {
   applyRaceWeatherRatingAdjustments,
+  getRiderClimateProfile,
   getRaceWeatherCrashRiskBonus,
   getRaceWeather,
   type RaceWeather,
+  type RiderClimateProfile,
 } from "./race-weather";
 
 export {
@@ -101,9 +109,11 @@ export type RiderSimulationInput = {
   form: number;
   careerRaceDays?: number;
   countryCode?: string | null;
+  climateProfile?: RiderClimateProfile;
   localRaceBonus?: number;
   reconnaissanceBonus?: number;
   role: RaceRole;
+  raceDuty?: RiderRaceDuty | null;
   specialAbility?: RiderSpecialAbility | null;
   specialAbilities?: RiderSpecialAbility[];
   ratings: RiderSimulationRatings;
@@ -127,6 +137,7 @@ export type StageSimulationInput = {
     riderId: string;
     elapsedTimeSeconds: number;
   }>;
+  teamStrategies?: RaceTeamStrategy[];
 };
 
 export type RaceGroupSnapshot = {
@@ -674,7 +685,12 @@ export function reduceMechanicalIncidentTimeLoss(
 export function simulateRaceStage(
   input: StageSimulationInput
 ): StageSimulationResult {
-  const weather = input.weather ?? getRaceWeather(input.seed);
+  const weather =
+    input.weather ??
+    getRaceWeather(input.seed, {
+      countryCode: input.raceCountryCode,
+      profileType: input.profileType,
+    });
   const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
   const eligibleInput = {
     ...input,
@@ -690,9 +706,16 @@ export function simulateRaceStage(
                 input.stageType === "prologue",
             })
           : rider.ratings;
+        const climateProfile =
+          rider.climateProfile ??
+          getRiderClimateProfile({
+            riderId: rider.id,
+            countryCode: rider.countryCode,
+          });
 
         return {
           ...rider,
+          climateProfile,
           localRaceBonus:
             rider.countryCode &&
             input.raceCountryCode &&
@@ -704,6 +727,7 @@ export function simulateRaceStage(
               equipmentAdjustedRatings,
               weather,
               hasSpecialAbility(rider, "flahute"),
+              climateProfile,
             ),
             rider.reconnaissanceBonus,
           ),
@@ -1038,7 +1062,9 @@ function simulateRoadStage(
   const attackPlan = selectStageAttackPlan(
     input.riders,
     input.segments,
-    random
+    random,
+    input.generalClassification,
+    input.teamStrategies ?? [],
   );
   const plannedBreakawayIds = attackPlan.initialAttackIds;
   const totalDistanceKm = Math.max(
@@ -1968,27 +1994,52 @@ export type StageAttackPlan = {
   delayedAttackIds: Set<string>;
   delayedAttackAtKm: number;
   delayedAttackRequiresGroupedPeloton: boolean;
+  strategyAttackOrders: Array<RaceAttackOrder & { teamId: string }>;
 };
 
 export function selectStageAttackPlan(
   riders: RiderSimulationInput[],
   segments: RaceStageSegment[],
-  random: () => number
+  random: () => number,
+  generalClassification?: StageSimulationInput["generalClassification"],
+  teamStrategies: RaceTeamStrategy[] = [],
 ): StageAttackPlan {
   const strategy = buildStageStrategyContext(riders, segments);
+  const strategiesByTeamId = new Map(
+    teamStrategies.map((teamStrategy) => [teamStrategy.teamId, teamStrategy]),
+  );
+  const generalLeaderId = getGeneralClassificationLeaderId(
+    generalClassification,
+  );
+  const plannedAttackerIds = new Set(
+    teamStrategies.flatMap((teamStrategy) => teamStrategy.attackOrders.map((order) => order.riderId)),
+  );
   const fieldAverage = average(
     riders.map((rider) => getStageSuitability(rider, segments))
   );
   const rankedCandidates = riders
-    .filter(
-      (rider) =>
+    .filter((rider) => {
+      const teamStrategy = strategiesByTeamId.get(rider.teamId);
+      return (
+        rider.id !== generalLeaderId &&
         rider.role !== "leader" &&
         rider.role !== "sprinter" &&
-        !strategy.protectedRiderIds.has(rider.id)
-    )
+        !strategy.protectedRiderIds.has(rider.id) &&
+        (teamStrategy?.breakawayPolicy !== "avoid" ||
+          rider.raceDuty === "breakaway_candidate") &&
+        (!plannedAttackerIds.has(rider.id) ||
+          rider.raceDuty === "breakaway_candidate")
+      );
+    })
     .map((rider) => {
       const favoriteTier =
         strategy.favoriteTierByTeamId.get(rider.teamId) ?? "none";
+      const teamStrategy = strategiesByTeamId.get(rider.teamId);
+      const tacticalBonus =
+        (rider.raceDuty === "breakaway_candidate" ? 36 : 0) +
+        (teamStrategy?.breakawayPolicy === "target" ? 8 : 0) +
+        (teamStrategy?.objective === "breakaway" ? 8 : 0) +
+        (teamStrategy?.collectivePosture === "aggressive" ? 4 : 0);
       const roleBonus =
         rider.role === "free_agent"
           ? 14
@@ -2004,7 +2055,8 @@ export function selectStageAttackPlan(
         rider.ratings.endurance * 0.16 +
         rider.form * 0.15 +
         roleBonus +
-        abilityBonus -
+        abilityBonus +
+        tacticalBonus -
         favoriteTeamPenalty +
         random() * 15;
       return { rider, score, favoriteTier };
@@ -2013,7 +2065,10 @@ export function selectStageAttackPlan(
   const candidates = rankedCandidates.filter(({ rider, score }) => {
     const stageStrength =
       getStageSuitability(rider, segments) - fieldAverage;
-    return score > 61 + Math.max(0, stageStrength * 0.72);
+    return (
+      rider.raceDuty === "breakaway_candidate" ||
+      score > 61 + Math.max(0, stageStrength * 0.72)
+    );
   });
   const maximum = Math.max(
     2,
@@ -2024,6 +2079,15 @@ export function selectStageAttackPlan(
   );
   const initialAttackIds = new Set<string>();
   const morningTeamCounts = new Map<string, number>();
+
+  for (const candidate of candidates.filter(
+    ({ rider }) => rider.raceDuty === "breakaway_candidate",
+  )) {
+    if (initialAttackIds.size >= maximum) break;
+    if (morningTeamCounts.has(candidate.rider.teamId)) continue;
+    initialAttackIds.add(candidate.rider.id);
+    morningTeamCounts.set(candidate.rider.teamId, 1);
+  }
 
   for (const candidate of candidates) {
     if (initialAttackIds.size >= maximum) break;
@@ -2124,6 +2188,20 @@ export function selectStageAttackPlan(
     delayedTeams.add(rider.teamId);
   }
 
+  const riderById = new Map(riders.map((rider) => [rider.id, rider]));
+  const availableSegmentNumbers = new Set(
+    segments.map((segment) => segment.segmentNumber),
+  );
+  const strategyAttackOrders = teamStrategies.flatMap((teamStrategy) =>
+    teamStrategy.attackOrders
+      .filter(
+        (order) =>
+          riderById.get(order.riderId)?.teamId === teamStrategy.teamId &&
+          availableSegmentNumbers.has(order.segmentNumber),
+      )
+      .map((order) => ({ ...order, teamId: teamStrategy.teamId })),
+  );
+
   return {
     initialAttackIds,
     delayedAttackIds,
@@ -2134,6 +2212,7 @@ export function selectStageAttackPlan(
     delayedAttackRequiresGroupedPeloton:
       delayedAttackIds.size > 0 &&
       lateAttackWindow.requiresGroupedPeloton,
+    strategyAttackOrders,
   };
 }
 
@@ -2289,6 +2368,20 @@ function getLateAttackWindow(
     remainingDistanceKm: 24 + random() * 12,
     requiresGroupedPeloton: false,
   };
+}
+
+export function getGeneralClassificationLeaderId(
+  generalClassification?: StageSimulationInput["generalClassification"],
+) {
+  if (!generalClassification || generalClassification.length === 0) {
+    return null;
+  }
+
+  return [...generalClassification].sort(
+    (first, second) =>
+      first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+      first.riderId.localeCompare(second.riderId),
+  )[0]?.riderId ?? null;
 }
 
 export function getBreakawayGeneralClassificationThreat(
@@ -4926,6 +5019,53 @@ function validateSimulationInput(input: StageSimulationInput) {
     throw new Error("Chaque coureur doit posséder un identifiant unique.");
   }
   validateExplicitRoles(input.riders);
+  validateTeamStrategies(input);
+}
+function validateTeamStrategies(input: StageSimulationInput) {
+  const strategies = input.teamStrategies ?? [];
+  const ridersById = new Map(input.riders.map((rider) => [rider.id, rider]));
+  const segmentNumbers = new Set(
+    input.segments.map((segment) => segment.segmentNumber),
+  );
+
+  if (new Set(strategies.map((strategy) => strategy.teamId)).size !== strategies.length) {
+    throw new Error("Une \u00e9quipe ne peut transmettre qu\u2019une strat\u00e9gie par \u00e9tape.");
+  }
+
+  for (const strategy of strategies) {
+    const dutyRiderIds = [
+      strategy.lieutenantRiderId,
+      strategy.dangerPacerRiderId,
+      strategy.protectorRiderId,
+      strategy.breakawayRiderId,
+    ].filter((riderId): riderId is string => Boolean(riderId));
+    if (new Set(dutyRiderIds).size !== dutyRiderIds.length) {
+      throw new Error(
+        "Un m\u00eame coureur ne peut pas cumuler deux missions tactiques.",
+      );
+    }
+    if (
+      dutyRiderIds.some(
+        (riderId) => ridersById.get(riderId)?.teamId !== strategy.teamId,
+      )
+    ) {
+      throw new Error("Une mission tactique vise un coureur hors de l\u2019\u00e9quipe.");
+    }
+    if (strategy.attackOrders.length > MAX_RACE_ATTACK_ORDERS) {
+      throw new Error(
+        `Une \u00e9quipe ne peut pr\u00e9parer que ${MAX_RACE_ATTACK_ORDERS} attaques par \u00e9tape.`,
+      );
+    }
+    if (
+      strategy.attackOrders.some(
+        (order) =>
+          ridersById.get(order.riderId)?.teamId !== strategy.teamId ||
+          !segmentNumbers.has(order.segmentNumber),
+      )
+    ) {
+      throw new Error("Un ordre d\u2019attaque vise un coureur ou un tron\u00e7on invalide.");
+    }
+  }
 }
 
 function validateExplicitRoles(riders: RiderSimulationInput[]) {

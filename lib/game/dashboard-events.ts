@@ -187,29 +187,29 @@ function buildNationalChampionshipReminders(
       id: "national-championship:time-trial",
       category: "race",
       priority: "action",
-      title: "Inscriptions CN contre-la-montre",
+      title: "Sélection CN contre-la-montre",
       description:
-        "Le contre-la-montre national a lieu en J8. Vérifiez les engagements de chaque nationalité représentée dans votre effectif.",
+        "La sélection est automatique pour le contre-la-montre de J8. Vous pouvez retirer un coureur avant le départ.",
       href: "/jeu/championnats-nationaux/contre-la-montre",
-      actionLabel: "Vérifier les inscriptions",
+      actionLabel: "Gérer les retraits",
       badgeLabel: "Rappel",
       dayNumber: 8,
       happenedAt: null,
     });
   }
 
-  if (currentDayNumber >= 6 && currentDayNumber <= 9) {
+  if (currentDayNumber >= 5 && currentDayNumber <= 8) {
     reminders.push({
       id: "national-championship:road",
       category: "race",
       priority: "action",
-      title: "Inscriptions CN sur route",
+      title: "Sélection CN sur route",
       description:
-        "La course en ligne nationale a lieu en J9. Seuls les coureurs de la nationalité du championnat peuvent y participer.",
+        "La sélection est automatique pour la course en ligne de J8 à 18 h. Vous pouvez retirer un coureur avant le départ.",
       href: "/jeu/championnats-nationaux/route",
-      actionLabel: "Vérifier les inscriptions",
+      actionLabel: "Gérer les retraits",
       badgeLabel: "Rappel",
-      dayNumber: 9,
+      dayNumber: 8,
       happenedAt: null,
     });
   }

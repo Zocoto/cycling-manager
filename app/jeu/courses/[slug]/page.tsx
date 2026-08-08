@@ -29,6 +29,10 @@ export default async function RaceProfilePage(
   props: RaceProfilePageProps,
 ) {
   const { slug } = await props.params;
+  const nationalDiscipline = getNationalChampionshipDisciplineFromSlug(slug);
+  if (nationalDiscipline) {
+    redirect(`/jeu/championnats-nationaux/${nationalDiscipline}`);
+  }
 
   return (
     <>
@@ -36,4 +40,10 @@ export default async function RaceProfilePage(
       <RaceProfileContent {...props} />
     </>
   );
+}
+
+function getNationalChampionshipDisciplineFromSlug(slug: string) {
+  if (/^cn-[a-z]{2}-clm$/.test(slug)) return "contre-la-montre";
+  if (/^cn-[a-z]{2}-route$/.test(slug)) return "route";
+  return null;
 }

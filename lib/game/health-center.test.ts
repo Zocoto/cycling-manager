@@ -113,13 +113,13 @@ describe("health center rules", () => {
         code: "recovery_snack",
         nutritionistLevel: 1,
       }),
-    ).toEqual({ formGain: 3, price: 1_425, discountPct: 5, isUnlocked: true });
+    ).toEqual({ formGain: 3, price: 475, discountPct: 5, isUnlocked: true });
     expect(
       getNutritionInterventionOutcome({
         code: "tailored_plan",
         nutritionistLevel: 3,
       }),
-    ).toEqual({ formGain: 6, price: 2_975, discountPct: 15, isUnlocked: true });
+    ).toEqual({ formGain: 6, price: 1_020, discountPct: 15, isUnlocked: true });
     expect(
       getNutritionInterventionOutcome({
         code: "elite_recharge",

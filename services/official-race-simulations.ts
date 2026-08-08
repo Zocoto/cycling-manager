@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
@@ -10,6 +12,7 @@ import {
 } from "@/lib/game/official-race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
+  buildStageRaceStandings,
   simulateRaceStage,
   type StageSimulationInput,
   type StageSimulationResult,
@@ -25,6 +28,15 @@ type OfficialStageSimulationRow = {
   input_data: StageSimulationInput;
   simulation_data: StageSimulationResult;
 };
+
+type OfficialSimulationClaimRow = {
+  claim_token: string;
+  claimed_at: string;
+};
+
+const OFFICIAL_SIMULATION_CLAIM_STALE_MS = 120_000;
+const OFFICIAL_SIMULATION_POLL_ATTEMPTS = 20;
+const OFFICIAL_SIMULATION_POLL_DELAY_MS = 75;
 
 export async function ensureLockedOfficialRaceSimulations(
   calendar: SeasonRaceCalendar,
@@ -84,28 +96,49 @@ export async function ensureLockedOfficialRaceSimulations(
           break;
         }
 
-        const input = createCalendarSimulationInput({
-          edition,
-          stage,
-          seed: `${edition.id}:${stage.id}:official`,
-        });
-        const officialInput: StageSimulationInput = {
-          ...input,
-          unavailableRiderIds: [...unavailableRiderIds].sort(),
-        };
-        const simulation = simulateRaceStage(officialInput);
-        const candidate: LockedOfficialStageSimulation = {
-          stageId: stage.id,
-          raceEditionId: edition.id,
-          engineVersion: OFFICIAL_RACE_ENGINE_VERSION,
-          seed: String(officialInput.seed),
-          input: officialInput,
-          simulation,
-        };
-        lockedSimulation = await insertOrReadLockedSimulation(
-          candidate
+        const claimToken = await acquireOfficialSimulationClaim(
+          stage.id,
+          edition.id,
         );
-        lockedByStageId.set(stage.id, lockedSimulation);
+
+        if (!claimToken) {
+          lockedSimulation = await waitForLockedSimulation(stage.id);
+          if (!lockedSimulation) break;
+          lockedByStageId.set(stage.id, lockedSimulation);
+        } else {
+          try {
+            const standingsBeforeStage =
+              edition.raceFormat === "stage_race" &&
+              editionSimulations.length > 0
+                ? buildStageRaceStandings(
+                    editionSimulations.map((locked) => locked.simulation),
+                  )
+                : null;
+            const input = createCalendarSimulationInput({
+              edition,
+              stage,
+              seed: `${edition.id}:${stage.id}:official`,
+            });
+            const officialInput: StageSimulationInput = {
+              ...input,
+              generalClassification: standingsBeforeStage?.general,
+              unavailableRiderIds: [...unavailableRiderIds].sort(),
+            };
+            const simulation = simulateRaceStage(officialInput);
+            const candidate: LockedOfficialStageSimulation = {
+              stageId: stage.id,
+              raceEditionId: edition.id,
+              engineVersion: OFFICIAL_RACE_ENGINE_VERSION,
+              seed: String(officialInput.seed),
+              input: officialInput,
+              simulation,
+            };
+            lockedSimulation = await insertOrReadLockedSimulation(candidate);
+            lockedByStageId.set(stage.id, lockedSimulation);
+          } finally {
+            await releaseOfficialSimulationClaim(stage.id, claimToken);
+          }
+        }
       }
 
       editionSimulations.push(lockedSimulation);
@@ -122,6 +155,108 @@ export async function ensureLockedOfficialRaceSimulations(
   }
 
   return directory;
+}
+
+async function acquireOfficialSimulationClaim(
+  stageId: string,
+  raceEditionId: string,
+) {
+  const admin = createSupabaseAdminClient();
+  const claimToken = randomUUID();
+  const inserted = await admin
+    .from("official_stage_simulation_claims")
+    .insert({
+      stage_id: stageId,
+      race_edition_id: raceEditionId,
+      claim_token: claimToken,
+    })
+    .select("claim_token, claimed_at")
+    .single<OfficialSimulationClaimRow>();
+
+  if (!inserted.error && inserted.data) return claimToken;
+  if (inserted.error?.code !== "23505") {
+    assertQuery(inserted.error, "la réservation du calcul officiel");
+  }
+
+  const existing = await admin
+    .from("official_stage_simulation_claims")
+    .select("claim_token, claimed_at")
+    .eq("stage_id", stageId)
+    .maybeSingle<OfficialSimulationClaimRow>();
+  assertQuery(existing.error, "la réservation officielle en cours");
+  if (!existing.data) return null;
+
+  const staleBefore = new Date(
+    Date.now() - OFFICIAL_SIMULATION_CLAIM_STALE_MS,
+  ).toISOString();
+  if (
+    Date.parse(existing.data.claimed_at) >=
+    Date.now() - OFFICIAL_SIMULATION_CLAIM_STALE_MS
+  ) {
+    return null;
+  }
+
+  const takeover = await admin
+    .from("official_stage_simulation_claims")
+    .update({
+      race_edition_id: raceEditionId,
+      claim_token: claimToken,
+      claimed_at: new Date().toISOString(),
+    })
+    .eq("stage_id", stageId)
+    .eq("claim_token", existing.data.claim_token)
+    .lt("claimed_at", staleBefore)
+    .select("claim_token, claimed_at")
+    .maybeSingle<OfficialSimulationClaimRow>();
+  assertQuery(takeover.error, "la reprise d’un calcul officiel interrompu");
+  return takeover.data?.claim_token === claimToken ? claimToken : null;
+}
+
+async function waitForLockedSimulation(stageId: string) {
+  const admin = createSupabaseAdminClient();
+
+  for (
+    let attempt = 0;
+    attempt < OFFICIAL_SIMULATION_POLL_ATTEMPTS;
+    attempt += 1
+  ) {
+    const existing = await admin
+      .from("official_stage_simulations")
+      .select(
+        "stage_id, race_edition_id, engine_version, seed, input_data, simulation_data",
+      )
+      .eq("stage_id", stageId)
+      .maybeSingle<OfficialStageSimulationRow>();
+    assertQuery(existing.error, "le scénario officiel calculé en parallèle");
+    if (existing.data) return toLockedSimulation(existing.data);
+
+    if (attempt + 1 < OFFICIAL_SIMULATION_POLL_ATTEMPTS) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, OFFICIAL_SIMULATION_POLL_DELAY_MS),
+      );
+    }
+  }
+
+  return null;
+}
+
+async function releaseOfficialSimulationClaim(
+  stageId: string,
+  claimToken: string,
+) {
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from("official_stage_simulation_claims")
+    .delete()
+    .eq("stage_id", stageId)
+    .eq("claim_token", claimToken);
+
+  if (error) {
+    console.error(
+      "Impossible de libérer la réservation du calcul officiel.",
+      error,
+    );
+  }
 }
 
 async function insertOrReadLockedSimulation(

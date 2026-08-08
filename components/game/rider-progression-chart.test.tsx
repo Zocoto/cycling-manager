@@ -2,10 +2,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import {
+  ProgressionStatFilters,
   RiderProgressionChart,
   toggleProgressionStat,
 } from "@/components/game/rider-progression-chart";
 import {
+  DEFAULT_RIDER_PROGRESSION_STATS,
   createProgressionValues,
   type RiderProgressionSeason,
 } from "@/lib/game/rider-progression";
@@ -77,8 +79,46 @@ describe("RiderProgressionChart", () => {
       "average",
       "mountain",
     ]);
-    expect(
-      toggleProgressionStat(["average", "mountain"], "average"),
-    ).toEqual(["mountain"]);
+    expect(toggleProgressionStat(["average", "mountain"], "average")).toEqual([
+      "mountain",
+    ]);
+  });
+
+  it("keeps the compact graph responsive and preserves vertical touch navigation", () => {
+    const season: RiderProgressionSeason = {
+      seasonId: "current",
+      seasonName: "Saison 2027",
+      gameYear: 2027,
+      isCurrent: true,
+      points: [{ dayNumber: 0, values: createProgressionValues(ratings) }],
+    };
+
+    const markup = renderToStaticMarkup(
+      <RiderProgressionChart
+        seasons={[season]}
+        selectedStats={["mountain"]}
+        compact
+      />,
+    );
+
+    expect(markup).toContain('viewBox="0 0 640 240"');
+    expect(markup).toContain("touch-pan-y");
+    expect(markup).toContain("touch-action:pan-y");
+    expect(markup).toContain('preserveAspectRatio="xMidYMid meet"');
+  });
+
+  it("groups primary and optional statistics while keeping every series selectable", () => {
+    const markup = renderToStaticMarkup(
+      <ProgressionStatFilters
+        selectedStats={[...DEFAULT_RIDER_PROGRESSION_STATS]}
+        onChange={() => undefined}
+        compact
+      />,
+    );
+
+    expect(markup).toContain("Statistiques primaires");
+    expect(markup).toContain("Moyenne &amp; stats secondaires");
+    expect(markup).toContain('aria-label="Masquer Montagne"');
+    expect(markup).toContain('aria-label="Afficher Récupération"');
   });
 });

@@ -24,6 +24,7 @@ export type TeamInventoryItem = {
   description: string;
   effectSummary: string;
   resalePrice: number | null;
+  effectPayload?: Record<string, unknown> | null;
   rarity: InventoryRarity;
   quantity: number;
   availableQuantity: number;

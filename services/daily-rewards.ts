@@ -10,8 +10,8 @@ import {
   type DailyRewardOffer,
   type DailyRewardOverview,
   type DailyRewardRace,
-  type DailyRewardRider,
 } from "@/lib/game/daily-rewards";
+import { getCurrentTeamItemTargetRiders } from "@/services/item-target-values";
 
 type RawOverview = {
   seasonId?: unknown;
@@ -47,6 +47,7 @@ export async function getCurrentDailyRewardOverview(
   const raw = result.data as RawOverview;
   const seasonId = readString(raw.seasonId);
   if (!seasonId) return null;
+  const riders = await getCurrentTeamItemTargetRiders(supabase);
 
   return {
     seasonId,
@@ -66,7 +67,7 @@ export async function getCurrentDailyRewardOverview(
     inventory: readArray(raw.inventory)
       .flatMap(normalizeInventoryItem)
       .filter((item) => item.effectKind !== "equipment"),
-    riders: readArray(raw.riders).flatMap(normalizeRider),
+    riders,
     eligibleRaces: readArray(raw.eligibleRaces).flatMap(normalizeRace),
     abilities: readArray(raw.abilities).flatMap(normalizeAbility),
   };
@@ -110,14 +111,6 @@ function normalizeInventoryItem(value: unknown): DailyRewardInventoryItem[] {
   ];
 }
 
-function normalizeRider(value: unknown): DailyRewardRider[] {
-  if (!value || typeof value !== "object") return [];
-  const row = value as Record<string, unknown>;
-  const id = readString(row.id);
-  const name = readString(row.name);
-  if (!id || !name) return [];
-  return [{ id, name, countryName: readNullableString(row.countryName) }];
-}
 
 function normalizeRace(value: unknown): DailyRewardRace[] {
   if (!value || typeof value !== "object") return [];
@@ -169,10 +162,6 @@ function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function readNullableString(value: unknown): string | null {
-  const normalized = readString(value);
-  return normalized || null;
-}
 
 function readNumber(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);

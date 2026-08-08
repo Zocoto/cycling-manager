@@ -3,13 +3,9 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
-import { TeamEquipmentManager } from "@/components/game/team-equipment-manager";
+import { TeamEquipmentBulkEditor } from "@/components/game/team-equipment-bulk-editor";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import Link from "@/components/ui/app-link";
-import {
-  EQUIPMENT_SLOTS,
-  type EquipmentSlot,
-} from "@/lib/game/equipment";
 import {
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
@@ -21,16 +17,15 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentTeamEquipmentOverview } from "@/services/team-equipment";
 
 export const metadata: Metadata = {
-  title: "Équiper ses coureurs",
+  title: "Équiper l’équipe",
   description:
-    "Gérez les équipements de tous les coureurs de votre équipe depuis une seule vue.",
+    "Attribuez le matériel de tous les coureurs depuis une seule vue et une seule validation.",
 };
 
 type TeamEquipmentPageProps = {
   searchParams: Promise<{
-    coureur?: string | string[];
-    slot?: string | string[];
-    succes?: string | string[];
+    affectations?: string | string[];
+    nombre?: string | string[];
     erreur?: string | string[];
   }>;
 };
@@ -49,20 +44,13 @@ export default async function TeamEquipmentPage({
 
   const [headerData, overview] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getCurrentTeamEquipmentOverview(user.id),
+    getCurrentTeamEquipmentOverview(user.id, supabase),
   ]);
 
   if (!overview) redirect("/jeu");
 
-  const requestedRiderId = readQuery(query.coureur);
-  const initialRiderId = overview.riders.some(
-    (rider) => rider.id === requestedRiderId,
-  )
-    ? requestedRiderId
-    : null;
-  const requestedSlot = readQuery(query.slot);
-  const initialSlot = isEquipmentSlot(requestedSlot) ? requestedSlot : null;
-  const successMessage = readQuery(query.succes);
+  const success = readQuery(query.affectations) === "confirmees";
+  const changedCount = Math.max(0, Number(readQuery(query.nombre)) || 0);
   const errorMessage = readQuery(query.erreur);
   const riderJersey = headerData.teamSponsorIdentity
     ? createSponsoredRiderJersey({
@@ -105,7 +93,7 @@ export default async function TeamEquipmentPage({
             aria-current="page"
             className="shrink-0 rounded-xl bg-[#0B302B] px-4 py-3 text-[10px] font-black uppercase tracking-wider text-white sm:px-5 sm:text-xs"
           >
-            Équiper ses coureurs
+            Équiper l’équipe
           </Link>
         </nav>
 
@@ -121,7 +109,7 @@ export default async function TeamEquipmentPage({
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-                  Équiper ses coureurs
+                  Équiper l’équipe
                 </h1>
                 <TutorialLaunchButton
                   tutorialKey={EQUIPMENT_TUTORIAL_KEY}
@@ -129,8 +117,7 @@ export default async function TeamEquipmentPage({
                 />
               </div>
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-                Consultez tout l’effectif, repérez les emplacements libres et
-                attribuez les pièces sans ouvrir chaque fiche coureur.
+                Choisissez les pièces de chaque coureur, contrôlez le stock projeté, puis appliquez tous les changements d’un coup.
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -144,26 +131,23 @@ export default async function TeamEquipmentPage({
           </div>
         </header>
 
-        {successMessage ? (
+        {success ? (
           <div className="mt-4 rounded-2xl border border-[#42B99A]/35 bg-[#EAF8F2] px-5 py-4 text-sm font-black text-[#176951]">
-            {successMessage}
+            {changedCount} affectation{changedCount > 1 ? "s" : ""} de matériel enregistrée{changedCount > 1 ? "s" : ""} en une seule fois.
           </div>
         ) : null}
         {errorMessage ? (
           <div className="mt-4 rounded-2xl border border-[#EF5B65]/35 bg-[#FFF0F1] px-5 py-4 text-sm font-black text-[#A5313A]">
-            {errorMessage}
+            {errorMessage.slice(0, 300)}
           </div>
         ) : null}
 
-        <TeamEquipmentManager
-          teamName={overview.teamName}
+        <TeamEquipmentBulkEditor
           riders={overview.riders}
           catalog={overview.catalog}
           assignments={overview.assignments}
           pendingAssignments={overview.pendingAssignments}
           jersey={riderJersey}
-          initialRiderId={initialRiderId}
-          initialSlot={initialSlot}
         />
       </section>
     </main>
@@ -172,8 +156,4 @@ export default async function TeamEquipmentPage({
 
 function readQuery(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
-
-function isEquipmentSlot(value: string): value is EquipmentSlot {
-  return EQUIPMENT_SLOTS.includes(value as EquipmentSlot);
 }

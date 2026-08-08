@@ -1,10 +1,11 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
+import { syncNationalChampionshipRegistrations } from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { settleFinishedRaceResults } from "@/services/race-results";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   if (!isAuthorizedCronRequest(request)) {
@@ -12,8 +13,11 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const internationalSelections =
-    await processDueInternationalChampionshipSelections(now);
+  const [internationalSelections, nationalChampionshipEntries] =
+    await Promise.all([
+      processDueInternationalChampionshipSelections(now),
+      syncNationalChampionshipRegistrations(now),
+    ]);
   const admin = createSupabaseAdminClient();
   const calendar = await getActiveSeasonRaceCalendar(admin, now);
   if (!calendar) {
@@ -21,6 +25,7 @@ export async function GET(request: Request) {
       processedStages: 0,
       completedEditions: 0,
       internationalSelections,
+      nationalChampionshipEntries,
     });
   }
 
@@ -28,6 +33,7 @@ export async function GET(request: Request) {
   return Response.json({
     ...settlement,
     internationalSelections,
+    nationalChampionshipEntries,
     settledAt: now.toISOString(),
   });
 }

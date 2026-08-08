@@ -10,6 +10,7 @@ import {
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RaceWithdrawButton } from "@/components/game/race-withdraw-button";
@@ -349,6 +350,12 @@ export async function RaceProfileContent({
               </div>
             ) : null}
 
+            {successMessage === "roles-mis-a-jour" ? (
+              <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
+                Les rôles de cette étape ont bien été mis à jour.
+              </div>
+            ) : null}
+
             {errorMessage ? (
               <div className="mb-6 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-bold text-red-900">
                 {errorMessage.slice(0, 300)}
@@ -446,6 +453,7 @@ export async function RaceProfileContent({
                     rosterError={rosterError}
                     riderJersey={riderJersey}
                   />
+                  <RaceRewardDetails edition={edition} className="mt-3" />
                 </div>
 
                 <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
@@ -667,6 +675,14 @@ function RegistrationPanel({
             ))}
           </ul>
         ) : null}
+
+        <Link
+          href={`/jeu/preparation-course?course=${edition.slug}`}
+          className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-4 py-3 text-xs font-black text-[#F7DA73] transition hover:border-[#F2C94C] hover:bg-[#F2C94C]/20"
+        >
+          <span>Définir les rôles et la stratégie de course</span>
+          <span aria-hidden="true">→</span>
+        </Link>
 
         {raceExperience ? (
           <RaceExperienceLink

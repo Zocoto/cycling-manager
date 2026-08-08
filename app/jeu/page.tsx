@@ -130,6 +130,7 @@ type ManagementModuleIcon =
   | "sponsor"
   | "training"
   | "calendar"
+  | "strategy"
   | "result"
   | "academy"
   | "camp"
@@ -1194,6 +1195,15 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
           : "Saison ouverte",
     },
     {
+      href: "/jeu/preparation-course",
+      icon: "strategy" as const,
+      eyebrow: "Décider",
+      title: "Préparation de course",
+      description:
+        "Ajustez les rôles, confiez les missions et préparez les mouvements de vos coureurs.",
+      status: "Plan figé au départ",
+    },
+    {
       href: "/jeu/resultats",
       icon: "result" as const,
       eyebrow: "Vivre",
@@ -1222,20 +1232,26 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
             Planifier puis vibrer
           </h2>
         </div>
+        <Link
+          href="/jeu/championnats-nationaux/route"
+          className="relative z-10 rounded-full border border-[#7CCF9C]/40 bg-[#7CCF9C]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#B9E9CD] transition hover:border-[#7CCF9C] hover:bg-[#7CCF9C] hover:text-[#07302A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C]"
+        >
+          Championnats nationaux
+        </Link>
       </header>
 
-      <div className="grid md:grid-cols-2">
+      <div className="grid md:grid-cols-3">
         {entries.map((entry, index) => (
           <Link
             key={entry.href}
             href={entry.href}
             className={`group relative grid min-h-48 grid-cols-[auto_minmax(0,1fr)] gap-4 p-6 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:p-7 ${
-              index === 1
+              index > 0
                 ? "border-t border-white/10 md:border-l md:border-t-0"
                 : ""
             }`}
           >
-            {index === 1 ? (
+            {index > 0 ? (
               <span
                 aria-hidden="true"
                 className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b"
@@ -1560,6 +1576,15 @@ function ManagementModuleIcon({ icon }: { icon: ManagementModuleIcon }) {
         <path d="M7 3v4M17 3v4M3 10h18" />
 
         <path d="M8 14h3M13 14h3M8 17h3" />
+      </>
+    ),
+
+    strategy: (
+      <>
+        <path d="M4 5h16M7 5v14M17 5v14M4 19h16" />
+        <circle cx="7" cy="10" r="2" />
+        <circle cx="17" cy="14" r="2" />
+        <path d="M9 10h4l2 4" />
       </>
     ),
 

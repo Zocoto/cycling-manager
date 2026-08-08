@@ -31,6 +31,9 @@ const stage = {
 const edition = {
   id: "edition-1",
   name: "Course test",
+  categoryCode: "continental",
+  categoryName: "Continentale",
+  competitionType: "standard",
   raceFormat: "one_day",
   engagedRiders: [],
   stages: [stage],
@@ -135,5 +138,22 @@ describe("RaceOfficialResults", () => {
     );
 
     expect(markup).toContain('href="/jeu/equipes/team-active"');
+  });
+
+  it("presente les dotations sans deployer leur detail par defaut", () => {
+    const markup = renderToStaticMarkup(
+      <RaceOfficialResults
+        edition={edition}
+        selectedStageId="stage-1"
+        officialResults={buildResults("team-active")}
+      />
+    );
+
+    expect(markup).toContain("Dotations");
+    expect(markup).toContain("Victoire");
+    expect(markup).toContain("4\u202f000 \u20ac");
+    expect(markup).toContain("60 pts UCI");
+    expect(markup).toContain("<details");
+    expect(markup).not.toContain("<details open");
   });
 });

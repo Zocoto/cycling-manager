@@ -2,11 +2,18 @@ import { useInventoryItemAction } from "@/app/jeu/inventaire/actions";
 import { InventoryUseSubmitButton } from "@/components/game/inventory-use-submit-button";
 import type { InventoryRiderOption } from "@/components/game/inventory-equipment-form";
 import type { AssignableInventoryCategory } from "@/lib/game/inventory";
+import {
+  formatItemTargetValue,
+  readItemAbilityCode,
+  readItemTargetRatingKey,
+  type ItemTargetValueContext,
+} from "@/lib/game/item-target-values";
 
 type InventoryConsumableFormProps = {
   inventoryItemId: string;
   category: AssignableInventoryCategory;
   availableQuantity: number;
+  effectPayload?: Record<string, unknown>;
   riders: InventoryRiderOption[];
   returnPath?: string;
 };
@@ -15,11 +22,13 @@ export function InventoryConsumableForm({
   inventoryItemId,
   category,
   availableQuantity,
+  effectPayload = {},
   riders,
   returnPath,
 }: InventoryConsumableFormProps) {
   const canUse = availableQuantity > 0 && riders.length > 0;
   const selectId = `inventory-consumable-rider-${inventoryItemId}`;
+  const targetContext = getInventoryTargetContext(category, effectPayload);
 
   return (
     <form
@@ -50,8 +59,8 @@ export function InventoryConsumableForm({
             : "Aucun coureur dans l’effectif"}
         </option>
         {riders.map((rider) => (
-          <option key={rider.rider_id} value={rider.rider_id}>
-            {rider.first_name} {rider.last_name}
+          <option key={rider.id} value={rider.id}>
+            {rider.name} {"\u00b7"} {formatItemTargetValue(rider, targetContext)}
           </option>
         ))}
       </select>
@@ -66,4 +75,23 @@ export function InventoryConsumableForm({
       </div>
     </form>
   );
+}
+
+function getInventoryTargetContext(
+  category: AssignableInventoryCategory,
+  effectPayload: Record<string, unknown>
+): ItemTargetValueContext {
+  if (category === "special_ability") {
+    return {
+      kind: "ability",
+      abilityCode: readItemAbilityCode(effectPayload.abilityCode),
+    };
+  }
+  if (category === "rating_boost") {
+    return {
+      kind: "rating",
+      ratingKey: readItemTargetRatingKey(effectPayload.ratingKey),
+    };
+  }
+  return { kind: "potential" };
 }

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyRaceWeatherRatingAdjustments,
+  getRaceClimatePerformanceAdjustment,
+  getRaceCrosswindIncidentRisk,
+  getRiderClimateProfile,
   getRaceWeather,
   getRaceWeatherCrashRiskBonus,
 } from "./race-weather";
@@ -34,6 +37,7 @@ describe("race weather", () => {
     const counts = {
       clear: 0,
       cloudy: 0,
+      wind: 0,
       rain: 0,
       storm: 0,
       snow: 0,
@@ -43,12 +47,15 @@ describe("race weather", () => {
       counts[getRaceWeather(`weather-sample-${index}`).condition] += 1;
     }
 
-    expect(counts.clear).toBeGreaterThan(6_000);
-    expect(counts.clear).toBeLessThan(6_400);
-    expect(counts.cloudy).toBeGreaterThan(2_300);
-    expect(counts.cloudy).toBeLessThan(2_700);
-    expect(counts.rain).toBeGreaterThan(850);
-    expect(counts.rain).toBeLessThan(1_150);
+    expect(counts.clear).toBeGreaterThan(5_200);
+    expect(counts.clear).toBeLessThan(5_600);
+    expect(counts.cloudy).toBeGreaterThan(2_000);
+    expect(counts.cloudy).toBeLessThan(2_400);
+    expect(counts.wind).toBeGreaterThan(1_100);
+    expect(counts.wind).toBeLessThan(1_300);
+    expect(counts.wind).toBeGreaterThan(counts.rain);
+    expect(counts.rain).toBeGreaterThan(800);
+    expect(counts.rain).toBeLessThan(1_100);
     expect(counts.storm).toBeGreaterThan(140);
     expect(counts.storm).toBeLessThan(260);
     expect(counts.snow).toBeGreaterThan(60);
@@ -121,4 +128,76 @@ describe("race weather", () => {
       getRaceWeatherCrashRiskBonus(storm)
     );
   });
+  it("derives a Danish rider's cold strength and heat weakness", () => {
+    const climateProfile = getRiderClimateProfile({
+      riderId: "danish-climber",
+      countryCode: "DK",
+    });
+    const baseWeather = getRaceWeather("danish-climate");
+    const hotWeather = {
+      ...baseWeather,
+      condition: "clear" as const,
+      temperatureC: 40,
+      rainIntensity: "none" as const,
+      isWet: false,
+    };
+    const coldWeather = {
+      ...baseWeather,
+      condition: "clear" as const,
+      temperatureC: 3,
+      rainIntensity: "none" as const,
+      isWet: false,
+    };
+
+    expect(climateProfile).toEqual({
+      strength: "cold",
+      weakness: "heat",
+    });
+    expect(
+      getRaceClimatePerformanceAdjustment(climateProfile, hotWeather)
+    ).toBe(-1.25);
+    expect(
+      getRaceClimatePerformanceAdjustment(climateProfile, coldWeather)
+    ).toBe(1.5);
+    expect(
+      applyRaceWeatherRatingAdjustments(
+        ratings,
+        hotWeather,
+        false,
+        climateProfile
+      ).mountain
+    ).toBeLessThan(ratings.mountain);
+    expect(
+      applyRaceWeatherRatingAdjustments(
+        ratings,
+        coldWeather,
+        false,
+        climateProfile
+      ).mountain
+    ).toBeGreaterThan(ratings.mountain);
+  });
+
+  it("only allows bordures in strong lateral wind on flat terrain", () => {
+    const baseWeather = getRaceWeather("crosswind-risk");
+    const windyWeather = {
+      ...baseWeather,
+      condition: "wind" as const,
+      windDirection: "crosswind" as const,
+      windSpeedKph: 38,
+      windIntensity: "gale" as const,
+      rainIntensity: "none" as const,
+      isWet: false,
+    };
+    const clearWeather = {
+      ...windyWeather,
+      condition: "clear" as const,
+    };
+
+    expect(
+      getRaceCrosswindIncidentRisk(windyWeather, true)
+    ).toBeGreaterThan(0);
+    expect(getRaceCrosswindIncidentRisk(windyWeather, false)).toBe(0);
+    expect(getRaceCrosswindIncidentRisk(clearWeather, true)).toBe(0);
+  });
+
 });

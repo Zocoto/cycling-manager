@@ -49,7 +49,7 @@ type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type RosterContext = {
   rosterId: string;
   riderId: string;
-  teamSeasonId: string;
+  teamSeasonId: string | null;
 };
 
 type RaceRegistrationRow = {
@@ -846,18 +846,21 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
   return new Map(
     resultRosters.flatMap((roster) => {
       const registration = registrationById.get(roster.race_registration_id);
-      return registration?.team_season_id
-        ? [
-            [
-              roster.rider_id,
-              {
-                rosterId: roster.id,
-                riderId: roster.rider_id,
-                teamSeasonId: registration.team_season_id,
-              },
-            ] as const,
-          ]
-        : [];
+      if (
+        !registration ||
+        (!registration.team_season_id && !registration.historical_team_name)
+      ) {
+        return [];
+      }
+
+      return [[
+        roster.rider_id,
+        {
+          rosterId: roster.id,
+          riderId: roster.rider_id,
+          teamSeasonId: registration.team_season_id,
+        },
+      ] as const];
     }),
   );
 }
@@ -1199,7 +1202,9 @@ async function persistSecondaryClassifications({
   const teamSeasonByTeamId = new Map<string, string>();
   for (const rider of edition.engagedRiders) {
     const context = rosterByRiderId.get(rider.id);
-    if (context) teamSeasonByTeamId.set(rider.teamId, context.teamSeasonId);
+    if (context?.teamSeasonId) {
+      teamSeasonByTeamId.set(rider.teamId, context.teamSeasonId);
+    }
   }
 
   const rows = [
@@ -1393,6 +1398,10 @@ async function persistRaceClassification({
     }
 
     const roster = requireRoster(rosterByRiderId, result.riderId);
+    if (!roster.teamSeasonId) {
+      continue;
+    }
+
     const placement =
       result.rank === 1
         ? "Victoire"
@@ -1445,6 +1454,8 @@ async function persistRaceClassification({
     if (!attacked && !won) continue;
 
     const roster = requireRoster(rosterByRiderId, riderId);
+    if (!roster.teamSeasonId) continue;
+
     const reason =
       attacked && won
         ? "échappée et victoire"

@@ -1,17 +1,9 @@
 import { equipRiderAction } from "@/app/jeu/materiel/actions";
 import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button";
 import type { EquipmentSlot } from "@/lib/game/equipment";
+import type { ItemTargetRider } from "@/lib/game/item-target-values";
 
-export type InventoryRiderOption = {
-  rider_id: string;
-  first_name: string;
-  last_name: string;
-  mountain?: number;
-  hills?: number;
-  flat?: number;
-  time_trial?: number;
-  cobbles?: number;
-  sprint?: number;
+export type InventoryRiderOption = ItemTargetRider & {
   currentEquipmentName?: string | null;
   pendingEquipmentName?: string | null;
 };
@@ -64,11 +56,11 @@ export function InventoryEquipmentForm({
               const occupied = Boolean(rider.currentEquipmentName);
 
               return (
-                <label key={rider.rider_id} className="block cursor-pointer">
+                <label key={rider.id} className="block cursor-pointer">
                   <input
                     type="radio"
                     name="riderId"
-                    value={rider.rider_id}
+                    value={rider.id}
                     required
                     className="peer sr-only"
                   />
@@ -80,7 +72,7 @@ export function InventoryEquipmentForm({
                     }
                   >
                     <span className="block text-sm font-black text-[#183F37]">
-                      {rider.first_name} {rider.last_name}
+                      {rider.name}
                     </span>
                     <span className="mt-0.5 block text-[10px] font-bold tabular-nums text-[#60756E]">
                       {formatRiderRatings(rider)}
@@ -128,12 +120,12 @@ export function formatRiderRatings(
   rider: InventoryRiderOption,
 ): string {
   const ratings = [
-    ["MON", rider.mountain],
-    ["VAL", rider.hills],
-    ["PLA", rider.flat],
-    ["CLM", rider.time_trial],
-    ["PAV", rider.cobbles],
-    ["SPR", rider.sprint],
+    ["MON", rider.ratings.mountain],
+    ["VAL", rider.ratings.hills],
+    ["PLA", rider.ratings.flat],
+    ["CLM", rider.ratings.time_trial],
+    ["PAV", rider.ratings.cobbles],
+    ["SPR", rider.ratings.sprint],
   ].filter(
     (entry): entry is [string, number] =>
       typeof entry[1] === "number",

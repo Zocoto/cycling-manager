@@ -26,6 +26,15 @@ import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
 } from "@/lib/game/special-abilities";
+import type { RaceRole } from "@/lib/game/race-simulation";
+import type {
+  RaceAttackOrder,
+  RaceBreakawayPolicy,
+  RaceChasePolicy,
+  RaceCollectivePosture,
+  RaceStrategyObjective,
+  RaceTeamStrategy,
+} from "@/lib/game/race-strategy";
 import {
   combineEquipmentEffects,
   normalizeEquipmentEffects,
@@ -158,6 +167,26 @@ type StageReconnaissanceRow = {
 type StageReconnaissanceRiderRow = {
   reconnaissance_id: string;
   rider_id: string;
+};
+
+type StageRoleOverrideRow = {
+  stage_id: string;
+  rider_id: string;
+  race_role: RaceRole;
+};
+
+type StageStrategyRow = {
+  stage_id: string;
+  team_id: string;
+  objective: RaceStrategyObjective;
+  collective_posture: RaceCollectivePosture;
+  breakaway_policy: RaceBreakawayPolicy;
+  chase_policy: RaceChasePolicy;
+  lieutenant_rider_id: string | null;
+  danger_pacer_rider_id: string | null;
+  protector_rider_id: string | null;
+  breakaway_rider_id: string | null;
+  attack_orders: RaceAttackOrder[];
 };
 
 type CountryRow = {
@@ -314,6 +343,58 @@ export type RaceRosterOption = {
     startDay: number;
     endDay: number;
   } | null;
+};
+
+export type RaceStageRolePlanRider = {
+  riderId: string;
+  generalRole: RaceRole;
+  stageRoles: Record<string, RaceRole>;
+};
+
+export type RacePreparationRider = RaceStageRolePlanRider & {
+  firstName: string;
+  lastName: string;
+};
+
+export type RaceStagePreparationPlan = RaceTeamStrategy & {
+  updatedAt: string | null;
+};
+
+export type RacePreparationEditionPlan = {
+  editionId: string;
+  registrationId: string;
+  teamId: string;
+  riders: RacePreparationRider[];
+  stages: Record<string, RaceStagePreparationPlan>;
+};
+
+type RaceStageRolePlanRow = {
+  rider_id: string;
+  stage_id: string;
+  general_role: RaceRole;
+  stage_role: RaceRole | null;
+};
+
+type RacePreparationRow = {
+  race_edition_id: string;
+  race_registration_id: string;
+  team_id: string;
+  stage_id: string;
+  rider_id: string;
+  rider_first_name: string;
+  rider_last_name: string;
+  general_role: RaceRole;
+  stage_role: RaceRole | null;
+  objective: RaceStrategyObjective;
+  collective_posture: RaceCollectivePosture;
+  breakaway_policy: RaceBreakawayPolicy;
+  chase_policy: RaceChasePolicy;
+  lieutenant_rider_id: string | null;
+  danger_pacer_rider_id: string | null;
+  protector_rider_id: string | null;
+  breakaway_rider_id: string | null;
+  attack_orders: RaceAttackOrder[];
+  strategy_updated_at: string | null;
 };
 
 type RaceRosterOptionRow = {
@@ -788,7 +869,12 @@ export async function getActiveSeasonRaceCalendar(
   const stageRows = stagesResult.data ?? [];
   const stageIds = stageRows.map((stage) => stage.id);
   const admin = createSupabaseAdminClient();
-  const [segmentsResult, reconnaissanceResult] = await Promise.all([
+  const [
+    segmentsResult,
+    reconnaissanceResult,
+    stageRoleOverridesResult,
+    stageStrategiesResult,
+  ] = await Promise.all([
     loadStageSegments(supabase, stageIds),
     stageIds.length > 0
       ? collectChunkedPaginatedRows<
@@ -810,12 +896,74 @@ export async function getActiveSeasonRaceCalendar(
           },
         })
       : Promise.resolve(emptyResult<StageReconnaissanceRow>()),
+    stageIds.length > 0 && includeEngagedRiders
+      ? collectChunkedPaginatedRows<
+          StageRoleOverrideRow,
+          { message: string },
+          string
+        >({
+          values: stageIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("race_roster_stage_roles")
+              .select("stage_id, rider_id, race_role")
+              .in("stage_id", chunk)
+              .order("stage_id", { ascending: true })
+              .order("rider_id", { ascending: true })
+              .range(from, to)
+              .returns<StageRoleOverrideRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
+      : Promise.resolve(emptyResult<StageRoleOverrideRow>()),
+    stageIds.length > 0 && includeEngagedRiders
+      ? collectChunkedPaginatedRows<
+          StageStrategyRow,
+          { message: string },
+          string
+        >({
+          values: stageIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("race_stage_strategies")
+              .select(
+                `
+                  stage_id,
+                  team_id,
+                  objective,
+                  collective_posture,
+                  breakaway_policy,
+                  chase_policy,
+                  lieutenant_rider_id,
+                  danger_pacer_rider_id,
+                  protector_rider_id,
+                  breakaway_rider_id,
+                  attack_orders
+                `,
+              )
+              .in("stage_id", chunk)
+              .order("stage_id", { ascending: true })
+              .order("team_id", { ascending: true })
+              .range(from, to)
+              .returns<StageStrategyRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
+      : Promise.resolve(emptyResult<StageStrategyRow>()),
   ]);
 
   assertQuerySucceeded(segmentsResult.error, "les profils tronçonnés");
   assertQuerySucceeded(
     reconnaissanceResult.error,
     "les reconnaissances de course",
+  );
+  assertQuerySucceeded(
+    stageRoleOverridesResult.error,
+    "les rôles tactiques par étape",
+  );
+  assertQuerySucceeded(
+    stageStrategiesResult.error,
+    "les stratégies de course par étape",
   );
 
   const segmentRows = segmentsResult.data ?? [];
@@ -852,6 +1000,12 @@ export async function getActiveSeasonRaceCalendar(
   const reconnaissanceBonusesByStageId = groupReconnaissanceBonuses(
     reconnaissanceRows,
     reconnaissanceRidersResult.data ?? [],
+  );
+  const riderRoleOverridesByStageId = groupStageRoleOverrides(
+    stageRoleOverridesResult.data ?? [],
+  );
+  const teamStrategiesByStageId = groupStageStrategies(
+    stageStrategiesResult.data ?? [],
   );
 
   const raceRows = racesResult.data ?? [];
@@ -971,6 +1125,16 @@ export async function getActiveSeasonRaceCalendar(
           : null,
         stages: (stagesByEditionId.get(edition.id) ?? []).map((stage) => ({
           ...stage,
+          ...(riderRoleOverridesByStageId.has(stage.id)
+            ? {
+                riderRoleOverrides: riderRoleOverridesByStageId.get(stage.id),
+              }
+            : {}),
+          ...(teamStrategiesByStageId.has(stage.id)
+            ? {
+                teamStrategies: teamStrategiesByStageId.get(stage.id),
+              }
+            : {}),
           segments: removeOneDayRaceMountainPrimes(
             stage.segments,
             race.race_format,
@@ -1151,6 +1315,107 @@ export async function getCurrentTeamRaceRosterOptions(
           }
         : null,
   }));
+}
+
+export async function getCurrentTeamStageRolePlan(
+  supabase: SupabaseServerClient,
+  raceEditionId: string,
+): Promise<RaceStageRolePlanRider[]> {
+  const { data, error } = await supabase.rpc(
+    "get_current_team_stage_role_plan",
+    { p_race_edition_id: raceEditionId },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger les rôles par étape : ${error.message}`,
+    );
+  }
+
+  const planByRiderId = new Map<string, RaceStageRolePlanRider>();
+
+  for (const row of (data as RaceStageRolePlanRow[] | null) ?? []) {
+    const riderPlan = planByRiderId.get(row.rider_id) ?? {
+      riderId: row.rider_id,
+      generalRole: row.general_role,
+      stageRoles: {},
+    };
+
+    if (row.stage_role) {
+      riderPlan.stageRoles[row.stage_id] = row.stage_role;
+    }
+
+    planByRiderId.set(row.rider_id, riderPlan);
+  }
+
+  return [...planByRiderId.values()];
+}
+
+export async function getCurrentTeamRacePreparation(
+  supabase: SupabaseServerClient,
+): Promise<RacePreparationEditionPlan[]> {
+  const { data, error } = await supabase.rpc(
+    "get_current_team_race_preparation",
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de charger la préparation des courses : ${error.message}`,
+    );
+  }
+
+  const editionsById = new Map<string, RacePreparationEditionPlan>();
+  const ridersByEditionId = new Map<
+    string,
+    Map<string, RacePreparationRider>
+  >();
+
+  for (const row of (data as RacePreparationRow[] | null) ?? []) {
+    const editionPlan = editionsById.get(row.race_edition_id) ?? {
+      editionId: row.race_edition_id,
+      registrationId: row.race_registration_id,
+      teamId: row.team_id,
+      riders: [],
+      stages: {},
+    };
+    const ridersById = ridersByEditionId.get(row.race_edition_id) ?? new Map();
+    const riderPlan = ridersById.get(row.rider_id) ?? {
+      riderId: row.rider_id,
+      firstName: row.rider_first_name,
+      lastName: row.rider_last_name,
+      generalRole: row.general_role,
+      stageRoles: {},
+    };
+
+    if (row.stage_role) {
+      riderPlan.stageRoles[row.stage_id] = row.stage_role;
+    }
+    ridersById.set(row.rider_id, riderPlan);
+    ridersByEditionId.set(row.race_edition_id, ridersById);
+
+    editionPlan.stages[row.stage_id] ??= {
+      teamId: row.team_id,
+      objective: row.objective,
+      collectivePosture: row.collective_posture,
+      breakawayPolicy: row.breakaway_policy,
+      chasePolicy: row.chase_policy,
+      lieutenantRiderId: row.lieutenant_rider_id,
+      dangerPacerRiderId: row.danger_pacer_rider_id,
+      protectorRiderId: row.protector_rider_id,
+      breakawayRiderId: row.breakaway_rider_id,
+      attackOrders: row.attack_orders,
+      updatedAt: row.strategy_updated_at,
+    };
+    editionsById.set(row.race_edition_id, editionPlan);
+  }
+
+  for (const [editionId, editionPlan] of editionsById) {
+    editionPlan.riders = [
+      ...(ridersByEditionId.get(editionId)?.values() ?? []),
+    ];
+  }
+
+  return [...editionsById.values()];
 }
 
 export async function getRaceEngagedRiders(
@@ -1507,6 +1772,44 @@ function groupReconnaissanceBonuses(
   }
 
   return bonusesByStageId;
+}
+
+function groupStageRoleOverrides(rows: StageRoleOverrideRow[]) {
+  const rolesByStageId = new Map<string, Record<string, RaceRole>>();
+
+  for (const row of rows) {
+    const stageRoles = rolesByStageId.get(row.stage_id) ?? {};
+    stageRoles[row.rider_id] = row.race_role;
+    rolesByStageId.set(row.stage_id, stageRoles);
+  }
+
+  return rolesByStageId;
+}
+
+function groupStageStrategies(rows: StageStrategyRow[]) {
+  const strategiesByStageId = new Map<
+    string,
+    Record<string, RaceTeamStrategy>
+  >();
+
+  for (const row of rows) {
+    const stageStrategies = strategiesByStageId.get(row.stage_id) ?? {};
+    stageStrategies[row.team_id] = {
+      teamId: row.team_id,
+      objective: row.objective,
+      collectivePosture: row.collective_posture,
+      breakawayPolicy: row.breakaway_policy,
+      chasePolicy: row.chase_policy,
+      lieutenantRiderId: row.lieutenant_rider_id,
+      dangerPacerRiderId: row.danger_pacer_rider_id,
+      protectorRiderId: row.protector_rider_id,
+      breakawayRiderId: row.breakaway_rider_id,
+      attackOrders: row.attack_orders,
+    };
+    strategiesByStageId.set(row.stage_id, stageStrategies);
+  }
+
+  return strategiesByStageId;
 }
 
 async function loadStageSegments(

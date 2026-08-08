@@ -33,6 +33,7 @@ import {
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentTeamInventoryOverview } from "@/services/team-inventory";
+import { getCurrentTeamItemTargetRiders } from "@/services/item-target-values";
 
 export const metadata: Metadata = {
   title: "Inventaire de l’équipe",
@@ -69,7 +70,12 @@ export default async function InventoryPage({
     await Promise.all([
       getGameHeaderData(supabase, user.id),
       getCurrentTeamInventoryOverview(user.id),
-      supabase.rpc("get_current_team_roster"),
+      getCurrentTeamItemTargetRiders(supabase)
+        .then((data) => ({ data, error: null }))
+        .catch((error: unknown) => ({
+          data: [] as InventoryRiderOption[],
+          error,
+        })),
       getAuthenticatedTutorialProgress(supabase, EQUIPMENT_TUTORIAL_KEY).catch(
         (error: unknown) => {
           console.error(
@@ -92,8 +98,8 @@ export default async function InventoryPage({
 
   const riders = ((rosterResult.data ?? []) as InventoryRiderOption[]).sort(
     (left, right) =>
-      left.last_name.localeCompare(right.last_name, "fr") ||
-      left.first_name.localeCompare(right.first_name, "fr"),
+      left.lastName.localeCompare(right.lastName, "fr") ||
+      left.firstName.localeCompare(right.firstName, "fr"),
   );
 
   const equipmentByRiderAndSlot = buildEquipmentByRiderAndSlot(overview.items);
@@ -410,11 +416,11 @@ function InventoryItemCard({
                 ...rider,
                 currentEquipmentName:
                   equipmentByRiderAndSlot.get(
-                    equipmentRiderSlotKey(rider.rider_id, item.equipmentSlot!),
+                    equipmentRiderSlotKey(rider.id, item.equipmentSlot!),
                   ) ?? null,
                 pendingEquipmentName:
                   pendingEquipmentByRiderAndSlot.get(
-                    equipmentRiderSlotKey(rider.rider_id, item.equipmentSlot!),
+                    equipmentRiderSlotKey(rider.id, item.equipmentSlot!),
                   ) ?? null,
               }))}
               returnPath={returnPath}
@@ -434,6 +440,7 @@ function InventoryItemCard({
             inventoryItemId={item.sourceId}
             category={item.category}
             availableQuantity={item.availableQuantity}
+            effectPayload={item.effectPayload}
             riders={riders}
             returnPath={returnPath}
           />
@@ -456,8 +463,8 @@ function EquipmentOwnerSummary({
 }) {
   const riderNameById = new Map(
     riders.map((rider) => [
-      rider.rider_id,
-      `${rider.first_name} ${rider.last_name}`,
+      rider.id,
+      rider.name,
     ]),
   );
   const equippedNames = item.equippedRiderIds

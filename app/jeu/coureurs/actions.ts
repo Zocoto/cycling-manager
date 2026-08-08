@@ -4,6 +4,51 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { RiderProgressionHistory } from "@/lib/game/rider-progression";
+import { getPublicRiderProfile } from "@/services/public-rider-profile";
+import { getRiderProgressionHistories } from "@/services/rider-progression";
+
+export async function loadRiderProgressionAction(
+  riderId: string,
+): Promise<RiderProgressionHistory | null> {
+  if (!isUuid(riderId)) {
+    throw new Error("Le coureur transmis est invalide.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    throw new Error(
+      "Votre session a expiré. Rechargez la page pour continuer.",
+    );
+  }
+
+  const profile = await getPublicRiderProfile({
+    riderIdentifier: riderId,
+    viewerAuthUserId: user.id,
+  });
+
+  if (
+    !profile ||
+    profile.archive ||
+    !profile.canManage ||
+    !profile.activeSeason
+  ) {
+    return null;
+  }
+
+  const histories = await getRiderProgressionHistories({
+    riderIds: [profile.id],
+    currentSeasonId: profile.activeSeason.id,
+    includePreviousSeasons: false,
+  });
+
+  return histories[0] ?? { riderId: profile.id, seasons: [] };
+}
 
 export async function naturalizeProfessionalRiderAction(
   formData: FormData,

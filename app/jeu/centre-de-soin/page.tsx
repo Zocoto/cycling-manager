@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
-import { NutritionInterventionControls } from "@/components/game/nutrition-intervention-controls";
+import {
+  NutritionInterventionFields,
+  NutritionInterventionsEditor,
+} from "@/components/game/nutrition-interventions-editor";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -43,7 +46,6 @@ import {
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
-  applyNutritionInterventionAction,
   assignPhysiotherapistAction,
   bookFormCampAction,
 } from "./actions";
@@ -210,7 +212,7 @@ export default async function HealthCenterPage({
         ) : null}
         {readQuery(query.nutrition) === "confirmee" ? (
           <SuccessMessage>
-            L’intervention nutritionnelle est enregistrée : la forme du coureur et la trésorerie ont été mises à jour.
+            Les compléments sont enregistrés : la forme des coureurs et la trésorerie ont été mises à jour en une seule fois.
           </SuccessMessage>
         ) : null}
         {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
@@ -812,61 +814,69 @@ function NutritionPanel({
           </div>
 
 
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
-            {overview.riders.map((rider) => {
-              const applied = overview.nutritionInterventionsToday.find(
-                (intervention) => intervention.riderId === rider.id,
-              );
-              const disabled = Boolean(
-                applied || !availableNutritionist || rider.form >= 100,
-              );
-              return (
-                <form
-                  key={rider.id}
-                  action={applyNutritionInterventionAction}
-                  className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.06)]"
-                >
-                  <input type="hidden" name="riderId" value={rider.id} />
-                  <div className="flex items-center gap-4">
-                    <RiderAvatar
-                      profileKey={rider.avatarProfileKey}
-                      seed={rider.avatarSeed}
-                      riderId={rider.id}
-                      age={rider.age}
-                      jersey={jersey}
-                      label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-                      className="h-14 w-14"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-black text-[#183F37]">
-                        {rider.firstName} {rider.lastName}
-                      </p>
-                      <p className="mt-1 text-xs font-bold text-[#60756E]">
-                        Forme actuelle · {rider.form}/100
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633]">
-                      {applied ? `+${applied.formGain}` : `${rider.form} %`}
-                    </span>
-                  </div>
+          <NutritionInterventionsEditor
+            riderIds={overview.riders
+              .filter(
+                (rider) =>
+                  !overview.nutritionInterventionsToday.some(
+                    (intervention) => intervention.riderId === rider.id,
+                  ),
+              )
+              .map((rider) => rider.id)}
+            nutritionists={nutritionistOptions}
+            balance={overview.balance}
+            currency={overview.currency}
+          >
+            <div className="mt-6 grid gap-4 xl:grid-cols-2">
+              {overview.riders.map((rider) => {
+                const applied = overview.nutritionInterventionsToday.find(
+                  (intervention) => intervention.riderId === rider.id,
+                );
 
-                  {applied ? (
-                    <p className="mt-4 rounded-xl bg-[#EEF7E8] px-4 py-3 text-sm font-bold text-[#527633]">
-                      {applied.label} appliquée aujourd’hui · {applied.formBefore} → {applied.formAfter} de forme.
-                    </p>
-                  ) : (
-                    <NutritionInterventionControls
-                      nutritionists={nutritionistOptions}
-                      riderForm={rider.form}
-                      balance={overview.balance}
-                      currency={overview.currency}
-                      disabled={disabled}
-                    />
-                  )}
-                </form>
-              );
-            })}
-          </div>
+                return (
+                  <article
+                    key={rider.id}
+                    className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.06)]"
+                  >
+                    <div className="flex items-center gap-4">
+                      <RiderAvatar
+                        profileKey={rider.avatarProfileKey}
+                        seed={rider.avatarSeed}
+                        riderId={rider.id}
+                        age={rider.age}
+                        jersey={jersey}
+                        label={`Portrait de ${rider.firstName} ${rider.lastName}`}
+                        className="h-14 w-14"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-black text-[#183F37]">
+                          {rider.firstName} {rider.lastName}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-[#60756E]">
+                          Forme actuelle · {rider.form}/100
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-[#EEF7E8] px-3 py-2 text-sm font-black text-[#527633]">
+                        {applied ? `+${applied.formGain}` : `${rider.form} %`}
+                      </span>
+                    </div>
+
+                    {applied ? (
+                      <p className="mt-4 rounded-xl bg-[#EEF7E8] px-4 py-3 text-sm font-bold text-[#527633]">
+                        {applied.label} appliquée aujourd’hui · {applied.formBefore} → {applied.formAfter} de forme.
+                      </p>
+                    ) : (
+                      <NutritionInterventionFields
+                        riderId={rider.id}
+                        riderForm={rider.form}
+                        currency={overview.currency}
+                      />
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </NutritionInterventionsEditor>
         </>
       )}
     </section>

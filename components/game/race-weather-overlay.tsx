@@ -12,6 +12,7 @@ export function RaceWeatherBadge({
   const palette = {
     clear: "border-[#FFE79A]/30 bg-[#FFE79A]/10 text-[#FFF4C7]",
     cloudy: "border-white/20 bg-white/10 text-[#E6EFEC]",
+    wind: "border-[#B8E4DF]/35 bg-[#6FAFA8]/15 text-[#E0FAF7]",
     rain: "border-[#9DD7E5]/35 bg-[#7BB8C8]/15 text-[#D8F4FA]",
     storm: "border-[#B6B4E5]/40 bg-[#4E4A78]/25 text-[#ECEBFF]",
     snow: "border-white/40 bg-white/15 text-white",
@@ -51,6 +52,24 @@ export function RaceWeatherOverlay({
       </div>
     );
   }
+  if (weather.condition === "wind") {
+    return (
+      <div
+        aria-label={`${getRaceWeatherLabel(weather)}, ${getRaceWindLabel(weather.windDirection)} \u00e0 ${weather.windSpeedKph} kilom\u00e8tres par heure`}
+        className="pointer-events-none absolute inset-0 z-[12] overflow-hidden"
+      >
+        <div
+          aria-hidden="true"
+          className="cm-incident-wind absolute -inset-[15%] opacity-25"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(110deg, transparent 0 38px, rgba(225, 244, 242, 0.55) 39px 41px, transparent 42px 78px)",
+          }}
+        />
+      </div>
+    );
+  }
+
 
   if (weather.condition === "snow") {
     return (

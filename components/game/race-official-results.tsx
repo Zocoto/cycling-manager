@@ -4,6 +4,7 @@ import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
 import { PostRaceInterviewPanel } from "@/components/game/post-race-interview-panel";
+import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type {
@@ -116,6 +117,12 @@ export function RaceOfficialResults({
             </div>
           ) : null}
         </div>
+        <RaceRewardDetails
+          edition={edition}
+          tone="dark"
+          compact
+          className="mt-5"
+        />
       </header>
 
       {postRaceInterview ? (

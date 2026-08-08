@@ -9,8 +9,6 @@ import {
   type DashboardContractReminderRider,
   type DashboardEvent,
 } from "@/lib/game/dashboard-events";
-import { getRaceResultsHref } from "@/lib/game/race-live";
-import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentDirectorInternationalSelections,
@@ -51,52 +49,6 @@ type ScoutingMissionRow = {
   id: string;
   report_ready_at: string | null;
   countries: { name: string } | null;
-};
-
-type YouthNotificationRow = {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-};
-
-type InfrastructureNotificationRow = {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-};
-
-type EliteWildcardDecisionRow = {
-  id: string;
-  decision: "accepted" | "rejected";
-  title: string;
-  message: string;
-  decided_at: string;
-  race_editions: {
-    display_name: string;
-    races: { slug: string } | null;
-  } | null;
-};
-
-type RaceEditionEventRow = {
-  id: string;
-  display_name: string;
-  status: string;
-  races: { slug: string } | null;
-  stages: Array<{
-    stage_number: number;
-    status: string;
-    season_days: { day_number: number } | null;
-  }>;
-};
-
-type TeamSeasonEventRow = {
-  id: string;
-  race_registrations: Array<{
-    status: string;
-    race_editions: RaceEditionEventRow | null;
-  }>;
 };
 
 type SeasonContractEventRow = {
@@ -150,39 +102,12 @@ export async function getCurrentDashboardOperationalEvents({
   ]);
 
   const [
-    teamSeasonResult,
     injuriesResult,
     trainingResult,
     scoutingResult,
-    youthNotificationsResult,
-    infrastructureNotificationsResult,
     contractSeasonsResult,
     riderContractsResult,
   ] = await Promise.all([
-    admin
-      .from("team_seasons")
-      .select(
-        `
-          id,
-          race_registrations (
-            status,
-            race_editions (
-              id,
-              display_name,
-              status,
-              races (slug),
-              stages (
-                stage_number,
-                status,
-                season_days (day_number)
-              )
-            )
-          )
-        `
-      )
-      .eq("team_id", teamId)
-      .eq("season_id", seasonId)
-      .maybeSingle<TeamSeasonEventRow>(),
     riderIds.length > 0
       ? admin
           .from("rider_injuries")
@@ -232,22 +157,6 @@ export async function getCurrentDashboardOperationalEvents({
       .is("report_viewed_at", null)
       .order("report_ready_at", { ascending: false })
       .returns<ScoutingMissionRow[]>(),
-    admin
-      .from("youth_development_notifications")
-      .select("id, title, message, created_at")
-      .eq("team_id", teamId)
-      .is("read_at", null)
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .returns<YouthNotificationRow[]>(),
-    admin
-      .from("infrastructure_notifications")
-      .select("id, title, message, created_at")
-      .eq("team_id", teamId)
-      .is("read_at", null)
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .returns<InfrastructureNotificationRow[]>(),
     currentDayNumber >= 21
       ? admin
           .from("seasons")
@@ -272,44 +181,13 @@ export async function getCurrentDashboardOperationalEvents({
         }),
   ]);
 
-  assertQuery(teamSeasonResult.error, "les courses de l’équipe");
   assertQuery(injuriesResult.error, "les blessures du bureau");
   assertQuery(trainingResult.error, "la séance d’entraînement du jour");
   assertQuery(scoutingResult.error, "les rapports de scouting");
-  assertQuery(
-    youthNotificationsResult.error,
-    "les notifications du centre de formation"
-  );
-  assertQuery(
-    infrastructureNotificationsResult.error,
-    "les notifications des infrastructures",
-  );
   assertQuery(contractSeasonsResult.error, "les saisons des contrats");
   assertQuery(riderContractsResult.error, "les contrats de l’effectif");
 
-  const wildcardDecisionsResult = teamSeasonResult.data
-    ? await admin
-        .from("elite_wildcard_decisions")
-        .select(
-          `
-            id,
-            decision,
-            title,
-            message,
-            decided_at,
-            race_editions (
-              display_name,
-              races (slug)
-            )
-          `
-        )
-        .eq("team_season_id", teamSeasonResult.data.id)
-        .order("decided_at", { ascending: false })
-        .limit(5)
-        .returns<EliteWildcardDecisionRow[]>()
-    : { data: [] as EliteWildcardDecisionRow[], error: null };
 
-  assertQuery(wildcardDecisionsResult.error, "les r\u00e9ponses de Wild Card");
 
   const contractReminderRiders = buildContractReminderRiders({
     riderIds,
@@ -322,24 +200,6 @@ export async function getCurrentDashboardOperationalEvents({
     events: [
       ...buildInternationalSelectionEvents(internationalSelections),
       ...buildInjuryEvents(injuriesResult.data ?? [], currentDayNumber),
-      ...(wildcardDecisionsResult.data ?? []).map((decision) => ({
-        id: `elite-wildcard:${decision.id}`,
-        category: "race" as const,
-        priority: "update" as const,
-        title: decision.title,
-        description: decision.message,
-        href: decision.race_editions?.races?.slug
-          ? getRaceRegistrationHref(decision.race_editions.races.slug)
-          : "/jeu/calendrier",
-        actionLabel: "Voir la course",
-        badgeLabel: "Wild Card",
-        dayNumber: currentDayNumber,
-        happenedAt: decision.decided_at,
-      })),
-      ...buildCompletedRaceEvents(
-        teamSeasonResult.data?.race_registrations ?? [],
-        currentDayNumber
-      ),
       ...buildTrainingEvents(trainingResult.data ?? [], currentDayNumber, seasonId),
       ...(scoutingResult.data ?? []).map((mission) => ({
         id: `scouting:${mission.id}`,
@@ -354,30 +214,6 @@ export async function getCurrentDashboardOperationalEvents({
         dayNumber: currentDayNumber,
         happenedAt: mission.report_ready_at,
       })),
-      ...(youthNotificationsResult.data ?? []).map((notification) => ({
-        id: `academy:${notification.id}`,
-        category: "academy" as const,
-        priority: "action" as const,
-        title: notification.title,
-        description: notification.message,
-        href: "/jeu/centre-de-formation",
-        actionLabel: "Voir le centre",
-        dayNumber: currentDayNumber,
-        happenedAt: notification.created_at,
-      })),
-      ...(infrastructureNotificationsResult.data ?? []).map(
-        (notification) => ({
-          id: `infrastructure:${notification.id}`,
-          category: "infrastructure" as const,
-          priority: "update" as const,
-          title: notification.title,
-          description: notification.message,
-          href: "/jeu/infrastructures",
-          actionLabel: "Voir les infrastructures",
-          dayNumber: currentDayNumber,
-          happenedAt: notification.created_at,
-        }),
-      ),
       ...buildContractRenewalReminderEvents({
         currentDayNumber,
         riders: contractReminderRiders,
@@ -487,48 +323,6 @@ function buildInjuryEvents(
       dayNumber: currentDayNumber,
       happenedAt: injury.started_at,
     };
-  });
-}
-
-function buildCompletedRaceEvents(
-  registrations: TeamSeasonEventRow["race_registrations"],
-  currentDayNumber: number
-): DashboardEvent[] {
-  return registrations.flatMap((registration) => {
-    const edition = registration.race_editions;
-    if (registration.status !== "accepted" || edition?.status !== "completed") {
-      return [];
-    }
-
-    const endDay = Math.max(
-      0,
-      ...edition.stages.map((stage) => stage.season_days?.day_number ?? 0)
-    );
-    if (endDay < Math.max(1, currentDayNumber - 2) || endDay > currentDayNumber) {
-      return [];
-    }
-
-    const slug = edition.races?.slug;
-    if (!slug) return [];
-    const finalStageNumber = Math.max(
-      1,
-      ...edition.stages.map((stage) => stage.stage_number),
-    );
-
-    return [
-      {
-        id: `race-finished:${edition.id}`,
-        category: "race" as const,
-        priority: "update" as const,
-        title: `${edition.display_name} est terminée`,
-        description:
-          "Les résultats sont homologués. Consultez le classement, les écarts et les performances de vos coureurs.",
-        href: getRaceResultsHref(slug, finalStageNumber),
-        actionLabel: "Voir les résultats",
-        dayNumber: endDay,
-        happenedAt: null,
-      },
-    ];
   });
 }
 

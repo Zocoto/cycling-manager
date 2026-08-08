@@ -50,6 +50,37 @@ describe("createCalendarSimulationInput", () => {
     );
   });
 
+  it("applique le rôle propre à l'étape sans modifier le rôle général", () => {
+    const riders = [
+      { ...createRider("rider-a", "team-a"), role: "domestique" as const },
+      { ...createRider("rider-b", "team-a"), role: "leader" as const },
+    ];
+    const edition = createEdition({
+      slug: "tour-roles-par-etape",
+      riders,
+    });
+    edition.raceFormat = "stage_race";
+    edition.stages[0].riderRoleOverrides = {
+      "rider-a": "sprinter",
+      "rider-b": "leadout",
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "roles-stage-1",
+    });
+
+    expect(input.riders.map((rider) => [rider.id, rider.role])).toEqual([
+      ["rider-a", "sprinter"],
+      ["rider-b", "leadout"],
+    ]);
+    expect(riders.map((rider) => rider.role)).toEqual([
+      "domestique",
+      "leader",
+    ]);
+  });
+
   it("ecarte les GPM herites du live d'une course d'un jour", () => {
     const edition = createEdition({
       slug: "classique-avec-gpm",
@@ -193,6 +224,14 @@ describe("createCalendarSimulationInput", () => {
       stages: [firstStage, secondStage],
     };
     const runs = simulateOfficialRaceEdition(edition);
+    const generalBeforeSecondStage = buildStageRaceStandings([
+      runs[0].simulation,
+    ]).general;
+
+    expect(runs[0].input.generalClassification).toBeUndefined();
+    expect(runs[1].input.generalClassification).toEqual(
+      generalBeforeSecondStage
+    );
     const firstStageSimulation = {
       ...runs[0].simulation,
       mountainPoints: {

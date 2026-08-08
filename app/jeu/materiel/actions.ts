@@ -47,6 +47,95 @@ export async function purchaseEquipmentAction(formData: FormData) {
   );
 }
 
+export async function saveTeamEquipmentAssignmentsAction(formData: FormData) {
+  const rawAssignments = readValue(formData, "assignments");
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(rawAssignments);
+  } catch {
+    redirectWithError(
+      "/jeu/materiel/equiper",
+      "Les affectations de matériel sont invalides.",
+    );
+  }
+
+  if (!Array.isArray(payload) || payload.length < 1 || payload.length > 280) {
+    redirectWithError(
+      "/jeu/materiel/equiper",
+      "Sélectionnez entre 1 et 280 emplacements à modifier.",
+    );
+  }
+
+  const assignments = payload.map((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      redirectWithError(
+        "/jeu/materiel/equiper",
+        "Une affectation de matériel est invalide.",
+      );
+    }
+
+    const candidate = entry as Record<string, unknown>;
+    const riderId = candidate.riderId;
+    const slot = candidate.slot;
+    const equipmentItemId = candidate.equipmentItemId;
+
+    if (
+      typeof riderId !== "string" ||
+      !isUuid(riderId) ||
+      typeof slot !== "string" ||
+      !isEquipmentSlot(slot) ||
+      (equipmentItemId !== null &&
+        (typeof equipmentItemId !== "string" ||
+          !isUuid(equipmentItemId)))
+    ) {
+      redirectWithError(
+        "/jeu/materiel/equiper",
+        "Une affectation de matériel est invalide.",
+      );
+    }
+
+    return { riderId, slot, equipmentItemId };
+  });
+  const assignmentKeys = assignments.map(
+    (assignment) => `${assignment.riderId}:${assignment.slot}`,
+  );
+
+  if (new Set(assignmentKeys).size !== assignmentKeys.length) {
+    redirectWithError(
+      "/jeu/materiel/equiper",
+      "Un emplacement ne peut être modifié qu’une seule fois.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc(
+    "save_current_team_equipment_assignments",
+    { p_assignments: assignments },
+  );
+
+  if (error) redirectWithError("/jeu/materiel/equiper", error.message);
+
+  for (const riderId of new Set(
+    assignments.map((assignment) => assignment.riderId),
+  )) {
+    revalidatePath(`/jeu/coureurs/${riderId}`);
+  }
+  revalidatePath("/jeu/inventaire");
+  revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/materiel/equiper");
+  redirect(
+    `/jeu/materiel/equiper?affectations=confirmees&nombre=${assignments.length}`,
+  );
+}
+
 export async function equipRiderAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const slot = readValue(formData, "slot");

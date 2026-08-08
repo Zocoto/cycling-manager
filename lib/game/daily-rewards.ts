@@ -4,6 +4,7 @@ import {
   RIDER_SECONDARY_RATING_KEYS,
   type RiderRatingKey,
 } from "@/lib/game/rider-profile";
+import type { ItemTargetRider } from "@/lib/game/item-target-values";
 
 export const DAILY_REWARD_SEASON_LENGTH = 28;
 
@@ -35,11 +36,7 @@ export type DailyRewardInventoryItem = DailyRewardOffer & {
   expiresAfterGameYear: number;
 };
 
-export type DailyRewardRider = {
-  id: string;
-  name: string;
-  countryName: string | null;
-};
+export type DailyRewardRider = ItemTargetRider;
 
 export type DailyRewardRace = {
   id: string;

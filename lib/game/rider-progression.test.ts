@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_RIDER_PROGRESSION_STATS,
   createProgressionValues,
   getProgressionChartBounds,
   RIDER_PROGRESSION_SERIES,
   type RiderProgressionSeason,
 } from "@/lib/game/rider-progression";
+import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 
 describe("rider progression", () => {
   it("adds the general average to the thirteen rider ratings", () => {
@@ -40,6 +42,16 @@ describe("rider progression", () => {
       shortLabel: "MOY",
       label: "Moyenne générale",
     });
+  });
+
+  it("shows every primary rating by default", () => {
+    const primaryRatings = RIDER_RATING_AXES.filter(
+      (axis) => axis.importance === "primary",
+    ).map((axis) => axis.key);
+
+    expect(DEFAULT_RIDER_PROGRESSION_STATS).toEqual(primaryRatings);
+    expect(DEFAULT_RIDER_PROGRESSION_STATS).toHaveLength(6);
+    expect(DEFAULT_RIDER_PROGRESSION_STATS).not.toContain("average");
   });
 
   it("keeps a readable vertical range around flat progressions", () => {

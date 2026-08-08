@@ -95,6 +95,80 @@ export async function assignPhysiotherapistAction(formData: FormData) {
   redirect("/jeu/centre-de-soin?onglet=kines&affectation=confirmee");
 }
 
+export async function applyNutritionInterventionsAction(formData: FormData) {
+  const rawInterventions = readValue(formData, "interventions");
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(rawInterventions);
+  } catch {
+    redirectWithError("nutrition", "Les compléments sélectionnés sont invalides.");
+  }
+
+  if (!Array.isArray(payload) || payload.length < 1 || payload.length > 35) {
+    redirectWithError(
+      "nutrition",
+      "Sélectionnez entre 1 et 35 compléments à appliquer.",
+    );
+  }
+
+  const interventions = payload.map((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      redirectWithError(
+        "nutrition",
+        "Une intervention nutritionnelle est invalide.",
+      );
+    }
+
+    const candidate = entry as Record<string, unknown>;
+    const riderId = candidate.riderId;
+    const nutritionistContractId = candidate.nutritionistContractId;
+    const interventionCode = candidate.interventionCode;
+
+    if (
+      typeof riderId !== "string" ||
+      !isUuid(riderId) ||
+      typeof nutritionistContractId !== "string" ||
+      !isUuid(nutritionistContractId) ||
+      typeof interventionCode !== "string" ||
+      !isNutritionIntervention(interventionCode)
+    ) {
+      redirectWithError(
+        "nutrition",
+        "Une intervention nutritionnelle est invalide.",
+      );
+    }
+
+    return { riderId, nutritionistContractId, interventionCode };
+  });
+
+  if (
+    new Set(interventions.map((intervention) => intervention.riderId)).size !==
+    interventions.length
+  ) {
+    redirectWithError(
+      "nutrition",
+      "Un coureur ne peut recevoir qu’un complément par jour.",
+    );
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "apply_current_team_nutrition_interventions",
+    {
+      p_interventions: interventions,
+    },
+  );
+
+  if (error) redirectWithError("nutrition", error.message);
+
+  revalidateHealthPaths();
+  revalidatePath("/jeu/entrainement");
+  redirect(
+    `/jeu/centre-de-soin?onglet=nutrition&nutrition=confirmee&nombre=${interventions.length}`,
+  );
+}
+
 export async function applyNutritionInterventionAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const nutritionistContractId = readValue(

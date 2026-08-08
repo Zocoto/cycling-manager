@@ -7,6 +7,7 @@ import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
 import { RaceLiveLab } from "@/components/game/race-live-lab";
 import { RaceOfficialResults } from "@/components/game/race-official-results";
+import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_CATEGORY_CODES,
@@ -342,6 +343,11 @@ function RaceDirectoryCard({
             : `${edition.engagedRiderCount} engagé${edition.engagedRiderCount > 1 ? "s" : ""}`}
         </span>
       </header>
+      <RaceRewardDetails
+        edition={edition}
+        compact
+        className="mx-3 my-2 shadow-none"
+      />
       <div className="divide-y divide-[#315B3E]/10">
         {stages.map((stage) => {
           const state = getStageLiveState(stage, now);

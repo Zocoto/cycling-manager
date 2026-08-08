@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { NationalChampionshipResultsDirectory } from "@/components/game/national-championship-results-directory";
 import { RaceLiveDirectory } from "@/components/game/race-live-directory";
 import Link from "@/components/ui/app-link";
 import { selectRaceStageForLiveAccess } from "@/lib/game/race-live";
@@ -16,12 +17,16 @@ import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import {
+  getCurrentTeamNationalChampionshipCountryCodes,
+  syncNationalChampionshipRegistrations,
+} from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
   description:
-    "Rejoignez les directs et les replays de Cyclostratège.",
+    "Consultez les résultats, directs et replays de Cyclostratège.",
 };
 
 type RaceResultsPageProps = {
@@ -34,78 +39,65 @@ export default async function RaceResultsPage({
   searchParams,
 }: RaceResultsPageProps) {
   const resolvedSearchParams = await searchParams;
-  const initialRaceSlug = readSingleSearchParam(
-    resolvedSearchParams.course
-  );
+  const initialRaceSlug = readSingleSearchParam(resolvedSearchParams.course);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error: authenticationError,
   } = await getAuthenticatedUser(supabase);
 
-  if (authenticationError || !user) {
-    redirect("/connexion");
-  }
+  if (authenticationError || !user) redirect("/connexion");
 
   const now = new Date();
-  const [
-    headerData,
-    calendarResult,
-    criteriumProgress,
-  ] = await Promise.all([
+  await syncNationalChampionshipRegistrations(now).catch((error: unknown) => {
+    console.error("Impossible de synchroniser les sélections CN :", error);
+  });
+
+  const [headerData, calendarResult, criteriumProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {
       includeEngagedRiders: false,
     })
       .then((calendar) => ({ calendar, error: null }))
-      .catch((error: unknown) => ({
-        calendar: null,
-        error,
-      })),
-    getAuthenticatedTutorialProgress(
-      supabase,
-      CRITERIUM_DISCOVERY_KEY,
-    ),
+      .catch((error: unknown) => ({ calendar: null, error })),
+    getAuthenticatedTutorialProgress(supabase, CRITERIUM_DISCOVERY_KEY),
   ]);
 
   if (calendarResult.error) {
     console.error(
-      "Impossible de charger le calendrier pour Résultats / Live :",
-      calendarResult.error
+      "Impossible de charger le calendrier pour Résultats / Live :",
+      calendarResult.error,
     );
   }
 
-  const criteriumRun =
-    getCriteriumDiscoveryRunFromMetadata(
-      criteriumProgress?.metadata,
-    );
+  const criteriumRun = getCriteriumDiscoveryRunFromMetadata(
+    criteriumProgress?.metadata,
+  );
   const calendar =
     calendarResult.calendar && criteriumRun
       ? {
           ...calendarResult.calendar,
-          editions:
-            appendCriteriumDiscoveryEdition({
-              editions:
-                calendarResult.calendar.editions,
-              edition: criteriumRun.edition,
-            }),
+          editions: appendCriteriumDiscoveryEdition({
+            editions: calendarResult.calendar.editions,
+            edition: criteriumRun.edition,
+          }),
         }
       : calendarResult.calendar;
 
-  if (
-    initialRaceSlug ===
-      CRITERIUM_DISCOVERY_SLUG &&
-    criteriumRun
-  ) {
-    redirect(
-      CRITERIUM_DISCOVERY_RESULTS_ROUTE,
-    );
+  if (initialRaceSlug === CRITERIUM_DISCOVERY_SLUG && criteriumRun) {
+    redirect(CRITERIUM_DISCOVERY_RESULTS_ROUTE);
   }
 
   if (initialRaceSlug && calendar) {
     const edition = calendar.editions.find(
-      (candidate) => candidate.slug === initialRaceSlug
+      (candidate) => candidate.slug === initialRaceSlug,
     );
+    if (edition?.competitionType === "national_road") {
+      redirect("/jeu/championnats-nationaux/route");
+    }
+    if (edition?.competitionType === "national_time_trial") {
+      redirect("/jeu/championnats-nationaux/contre-la-montre");
+    }
     if (edition?.raceFormat === "stage_race") {
       redirect(`/jeu/resultats/${edition.slug}`);
     }
@@ -113,26 +105,35 @@ export default async function RaceResultsPage({
     const stage = edition
       ? selectRaceStageForLiveAccess(edition.stages, now)
       : null;
-
-    if (
-      edition &&
-      stage &&
-      stage.dayNumber <= calendar.currentDayNumber
-    ) {
-      redirect(
-        `/jeu/resultats/${edition.slug}/${stage.stageNumber}`
-      );
+    if (edition && stage && stage.dayNumber <= calendar.currentDayNumber) {
+      redirect(`/jeu/resultats/${edition.slug}/${stage.stageNumber}`);
     }
   }
+
+  const nationalCountryCodes = calendar
+    ? await getCurrentTeamNationalChampionshipCountryCodes({
+        authUserId: user.id,
+        seasonId: calendar.seasonId,
+      }).catch((error: unknown) => {
+        console.error("Impossible de charger les nations CN du DS :", error);
+        return [];
+      })
+    : [];
+  const standardCalendar = calendar
+    ? {
+        ...calendar,
+        editions: calendar.editions.filter(
+          (edition) => edition.competitionType === "standard",
+        ),
+      }
+    : null;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={
-          headerData.teamSponsorIdentity?.sponsor ?? null
-        }
+        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
         maxWidth="wide"
       />
 
@@ -146,7 +147,9 @@ export default async function RaceResultsPage({
               Vivez chaque course de la saison.
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-[#48665F]">
-              Le répertoire reste léger : le moteur de course, la startlist, les résultats et le chat ne sont chargés qu’après l’ouverture d’une épreuve.
+              Les courses ordinaires proposent direct et replay. Les championnats
+              nationaux sont simulés sans rendu graphique et regroupés par
+              discipline.
             </p>
           </header>
 
@@ -159,11 +162,17 @@ export default async function RaceResultsPage({
         </div>
 
         <div className="mt-8">
-          {calendar ? (
-            <RaceLiveDirectory
-              calendar={calendar}
-              nowIso={now.toISOString()}
-            />
+          {calendar && standardCalendar ? (
+            <>
+              <NationalChampionshipResultsDirectory
+                calendar={calendar}
+                countryCodes={nationalCountryCodes}
+              />
+              <RaceLiveDirectory
+                calendar={standardCalendar}
+                nowIso={now.toISOString()}
+              />
+            </>
           ) : (
             <div className="rounded-2xl border border-red-300 bg-red-50 px-6 py-8 text-center font-bold text-red-900">
               Le calendrier des courses ne peut pas être chargé pour le moment.
@@ -175,10 +184,6 @@ export default async function RaceResultsPage({
   );
 }
 
-function readSingleSearchParam(
-  value: string | string[] | undefined
-) {
-  return Array.isArray(value)
-    ? value[0] ?? null
-    : value ?? null;
+function readSingleSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }

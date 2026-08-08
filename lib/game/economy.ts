@@ -375,9 +375,9 @@ export function calculateNationalChampionshipReward({
   }
 
   const placement = [
-    { maxRank: 1, reputation: 5, experience: 125, cashPrize: 10_000 },
-    { maxRank: 2, reputation: 2, experience: 75, cashPrize: 5_000 },
-    { maxRank: 3, reputation: 1, experience: 45, cashPrize: 2_500 },
+    { maxRank: 1, reputation: 1, experience: 125, cashPrize: 10_000 },
+    { maxRank: 2, reputation: 0, experience: 75, cashPrize: 5_000 },
+    { maxRank: 3, reputation: 0, experience: 45, cashPrize: 2_500 },
     { maxRank: 5, reputation: 0, experience: 25, cashPrize: 1_000 },
   ].find((rule) => finalRank <= rule.maxRank);
 

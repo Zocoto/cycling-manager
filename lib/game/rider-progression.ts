@@ -48,25 +48,27 @@ export const RIDER_PROGRESSION_SERIES = [
     shortLabel: "MOY",
     label: "Moyenne générale",
     color: "#D6A900",
+    importance: "summary",
   },
   ...RIDER_RATING_AXES.map((axis) => ({
     key: axis.key,
     shortLabel: axis.shortLabel,
     label: axis.label,
     color: STAT_COLORS[axis.key],
+    importance: axis.importance,
   })),
 ] as const satisfies ReadonlyArray<{
   key: RiderProgressionStatKey;
   shortLabel: string;
   label: string;
   color: string;
+  importance: "summary" | "primary" | "secondary";
 }>;
 
-export const DEFAULT_RIDER_PROGRESSION_STATS = [
-  "average",
-  "mountain",
-  "hills",
-] as const satisfies ReadonlyArray<RiderProgressionStatKey>;
+export const DEFAULT_RIDER_PROGRESSION_STATS: ReadonlyArray<RiderProgressionStatKey> =
+  RIDER_RATING_AXES.filter((axis) => axis.importance === "primary").map(
+    (axis) => axis.key,
+  );
 
 export function createProgressionValues(
   ratings: RiderRatings,

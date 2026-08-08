@@ -16,7 +16,7 @@ import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RankingBadge } from "@/components/game/ranking-badge";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
-import { CompactRiderProgression } from "@/components/game/rider-progression-chart";
+import { DeferredRiderProgression } from "@/components/game/deferred-rider-progression";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TeamJerseyPreview } from "@/components/game/team-jersey-preview";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
@@ -63,7 +63,6 @@ import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
-import { getRiderProgressionHistories } from "@/services/rider-progression";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { ROSTER_TUTORIAL_KEY } from "@/lib/tutorial/roster";
 
@@ -150,7 +149,6 @@ export default async function RiderProfilePage({
     transferManagement,
     riderPlanning,
     naturalizationEligibility,
-    riderProgression,
   ] = await Promise.all([
     profile.canManage
       ? getRiderEquipmentManagement(user.id, profile.id)
@@ -167,13 +165,6 @@ export default async function RiderProfilePage({
           authUserId: user.id,
           riderId: profile.id,
         })
-      : Promise.resolve(null),
-    profile.canManage && profile.activeSeason
-      ? getRiderProgressionHistories({
-          riderIds: [profile.id],
-          currentSeasonId: profile.activeSeason.id,
-          includePreviousSeasons: false,
-        }).then((histories) => histories[0] ?? null)
       : Promise.resolve(null),
   ]);
 
@@ -425,9 +416,9 @@ export default async function RiderProfilePage({
             ) : (
               <EmptyBlock message="Aucune caractéristique n’est disponible pour ce coureur." />
             )}
-            {profile.canManage && riderProgression ? (
-              <CompactRiderProgression
-                history={riderProgression}
+            {profile.canManage && profile.activeSeason ? (
+              <DeferredRiderProgression
+                riderId={profile.id}
                 detailHref={`/jeu/entrainement?progression=1&coureur=${profile.id}`}
               />
             ) : null}

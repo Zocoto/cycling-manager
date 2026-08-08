@@ -31,7 +31,33 @@ const riders = [
     sprint: 75,
     currentEquipmentName: null,
   },
-];
+].map((rider, index) => ({
+  ...rider,
+  id: rider.rider_id,
+  firstName: rider.first_name,
+  lastName: rider.last_name,
+  name: `${rider.first_name} ${rider.last_name}`,
+  countryName: index === 0 ? "Pays-Bas" : "Belgique",
+  form: index === 0 ? 82 : 74,
+  experienceDays: index === 0 ? 137 : 64,
+  potentialSteps: index === 0 ? 7 : 5,
+  ratings: {
+    mountain: rider.mountain,
+    hills: rider.hills,
+    flat: rider.flat,
+    time_trial: rider.time_trial,
+    cobbles: rider.cobbles,
+    sprint: rider.sprint,
+    acceleration: 70,
+    downhill: 70,
+    endurance: 70,
+    resistance: 70,
+    recovery: 70,
+    breakaway: 70,
+    prologue: 70,
+  },
+  abilityCodes: index === 0 ? ["panache"] : [],
+}));
 
 describe("InventoryEquipmentForm", () => {
   it("affiche les notes et l’équipement actuel de chaque coureur", () => {
