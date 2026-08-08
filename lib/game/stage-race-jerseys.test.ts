@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assignStageRaceJerseys,
+  getStageRaceJerseyVisuals,
   STAGE_RACE_JERSEY_VISUALS,
 } from "./stage-race-jerseys";
 
@@ -31,5 +32,23 @@ describe("stage race jerseys", () => {
       pattern: "polka-dots",
     });
     expect(STAGE_RACE_JERSEY_VISUALS.youth.primaryColor).toBe("#FFFFFF");
+  });
+
+  it("adapte les maillots distinctifs aux trois grands tours", () => {
+    expect(
+      getStageRaceJerseyVisuals({ countryCode: "FR", isGrandTour: true })
+        .general.shortLabel,
+    ).toBe("Maillot jaune");
+    expect(
+      getStageRaceJerseyVisuals({ countryCode: "ES", isGrandTour: true })
+        .general.shortLabel,
+    ).toBe("Maillot rouge");
+    const italy = getStageRaceJerseyVisuals({
+      countryCode: "IT",
+      isGrandTour: true,
+    });
+    expect(italy.general.shortLabel).toBe("Maillot rose");
+    expect(italy.sprint.shortLabel).toBe("Maillot cyclamen");
+    expect(italy.mountain.shortLabel).toBe("Maillot bleu");
   });
 });

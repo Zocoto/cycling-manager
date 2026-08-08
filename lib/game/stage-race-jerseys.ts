@@ -66,6 +66,74 @@ export const STAGE_RACE_JERSEY_VISUALS: Record<
   },
 };
 
+const GRAND_TOUR_JERSEY_VISUALS: Record<
+  "FR" | "ES" | "IT",
+  Record<StageRaceJerseyType, StageRaceJerseyVisual>
+> = {
+  FR: STAGE_RACE_JERSEY_VISUALS,
+  ES: {
+    general: {
+      label: "Leader du classement général",
+      shortLabel: "Maillot rouge",
+      primaryColor: "#D71920",
+      secondaryColor: "#EF5358",
+      accentColor: "#FFFDF7",
+      pattern: "solid",
+    },
+    sprint: {
+      ...STAGE_RACE_JERSEY_VISUALS.sprint,
+      shortLabel: "Maillot vert",
+    },
+    mountain: {
+      ...STAGE_RACE_JERSEY_VISUALS.mountain,
+      shortLabel: "Maillot à pois bleus",
+      accentColor: "#2878C8",
+    },
+    youth: STAGE_RACE_JERSEY_VISUALS.youth,
+  },
+  IT: {
+    general: {
+      label: "Leader du classement général",
+      shortLabel: "Maillot rose",
+      primaryColor: "#F2A1B8",
+      secondaryColor: "#F7C5D2",
+      accentColor: "#67233B",
+      pattern: "solid",
+    },
+    sprint: {
+      label: "Leader du classement par points",
+      shortLabel: "Maillot cyclamen",
+      primaryColor: "#B43A86",
+      secondaryColor: "#D56CAC",
+      accentColor: "#FFF7FC",
+      pattern: "solid",
+    },
+    mountain: {
+      label: "Leader du classement de la montagne",
+      shortLabel: "Maillot bleu",
+      primaryColor: "#2C77C7",
+      secondaryColor: "#65A4E2",
+      accentColor: "#F5FAFF",
+      pattern: "solid",
+    },
+    youth: STAGE_RACE_JERSEY_VISUALS.youth,
+  },
+};
+
+export function getStageRaceJerseyVisuals({
+  countryCode,
+  isGrandTour,
+}: {
+  countryCode: string;
+  isGrandTour?: boolean;
+}) {
+  if (!isGrandTour) return STAGE_RACE_JERSEY_VISUALS;
+  const code = countryCode.toUpperCase();
+  return code === "FR" || code === "ES" || code === "IT"
+    ? GRAND_TOUR_JERSEY_VISUALS[code]
+    : STAGE_RACE_JERSEY_VISUALS;
+}
+
 /**
  * Respecte la priorité des maillots distinctifs. Quand un même coureur mène
  * plusieurs classements, le maillot suivant est porté par le premier coureur

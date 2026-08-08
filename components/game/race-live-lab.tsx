@@ -9,7 +9,9 @@ import {
   RaceSupportConvoy,
 } from "@/components/game/race-group-formation";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { RaceRoadChalk } from "@/components/game/race-road-chalk";
 import { RaceRoadsideCrowd } from "@/components/game/race-roadside-crowd";
+import { RaceTimeTrialScene } from "@/components/game/race-time-trial-scene";
 import { FinishRoadsideInfrastructure } from "@/components/game/race-scenery";
 import { RaceSceneryBackdrop } from "@/components/game/race-scenery-detailed";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -35,7 +37,10 @@ import {
   getVisibleFinalBattleRiderIds,
   shouldWinnerCelebrate,
 } from "@/lib/game/race-finish-visual";
-import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
+import {
+  buildRaceFavorites,
+  getFrozenRaceFavoriteRiders,
+} from "@/lib/game/race-favorites";
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
 import {
   getIntermediateSprintVisualProgress,
@@ -56,6 +61,7 @@ import {
 } from "@/lib/game/official-race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import {
+  buildStageRaceStandings,
   getFinalBattleScenario,
   getLeadingFinishGroupRiderIds,
   isMassGroupFinish,
@@ -69,6 +75,7 @@ import {
 } from "@/lib/game/race-simulation";
 import {
   getRaceSceneryKind,
+  getTeamMonogram,
   shouldShowRaceSpectators,
 } from "@/lib/game/race-visuals";
 import {
@@ -112,6 +119,56 @@ export function RaceLiveLab({
       ),
     [edition, lockedSimulations, stage.id]
   );
+  const chalkFavoriteNames = useMemo(
+    () =>
+      buildRaceFavorites({
+        edition: {
+          raceFormat: "one_day",
+          stages: [stage],
+          engagedRiders: favoriteRiders,
+        },
+        riders: favoriteRiders,
+        limit: 3,
+      }).map(
+        (favorite) =>
+          favorite.rider.name.trim().split(/\s+/).at(-1) ??
+          favorite.rider.name,
+      ),
+    [favoriteRiders, stage],
+  );
+  const timeTrialInput = useMemo(() => {
+    if (
+      input.generalClassification ||
+      edition.raceFormat !== "stage_race"
+    ) {
+      return input;
+    }
+    const orderedStages = [...edition.stages].sort(
+      (first, second) =>
+        first.stageNumber - second.stageNumber ||
+        first.id.localeCompare(second.id),
+    );
+    const selectedIndex = orderedStages.findIndex(
+      (candidate) => candidate.id === stage.id,
+    );
+    if (selectedIndex <= 0) return input;
+    const lockedByStageId = new Map(
+      lockedSimulations.map((locked) => [locked.stageId, locked]),
+    );
+    const previousSimulations = orderedStages
+      .slice(0, selectedIndex)
+      .map((candidate) => lockedByStageId.get(candidate.id)?.simulation)
+      .filter(
+        (candidate): candidate is StageSimulationResult =>
+          candidate !== undefined,
+      );
+    if (previousSimulations.length === 0) return input;
+    return {
+      ...input,
+      generalClassification:
+        buildStageRaceStandings(previousSimulations).general,
+    };
+  }, [edition.raceFormat, edition.stages, input, lockedSimulations, stage.id]);
   const raceWeather =
     input.weather ?? getRaceWeather(`${edition.id}:${stage.id}:weather`);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -485,7 +542,18 @@ export function RaceLiveLab({
             </p>
           </div>
 
-          {isFinal && isRoad && isMassSprint ? (
+          {!isRoad ? (
+            <RaceTimeTrialScene
+              input={timeTrialInput}
+              simulation={simulation}
+              riderById={riderById}
+              displayedIndex={displayedIndex}
+              segmentProgress={displayedSegmentProgress}
+              isMoving={mode === "live" || isPlaying}
+              weather={raceWeather}
+              favoriteNames={chalkFavoriteNames}
+            />
+          ) : isFinal && isMassSprint ? (
             <SprintLaneView
               simulation={simulation}
               riderById={riderById}
@@ -496,7 +564,7 @@ export function RaceLiveLab({
               finishPassageProgress={displayedFinishPassageProgress}
               weather={raceWeather}
             />
-          ) : isFinal && isRoad ? (
+          ) : isFinal ? (
             <FinishBattleView
               simulation={simulation}
               riderById={riderById}
@@ -519,6 +587,7 @@ export function RaceLiveLab({
               previousPrimeResult={previousPrimeResult}
               visualSeed={simulation.seed}
               weather={raceWeather}
+              favoriteNames={chalkFavoriteNames}
             />
           )}
 
@@ -643,6 +712,7 @@ function RoadScene({
   previousPrimeResult,
   visualSeed,
   weather,
+  favoriteNames,
 }: {
   snapshot: StageSimulationResult["timeline"][number];
   riderById: Map<string, RiderSimulationInput>;
@@ -653,6 +723,7 @@ function RoadScene({
   previousPrimeResult: RacePrimeResult | null;
   visualSeed: string | number;
   weather: RaceWeather;
+  favoriteNames: readonly string[];
 }) {
   const groups = snapshot.groups.slice(0, 6);
   const primeWinnerId =
@@ -691,7 +762,7 @@ function RoadScene({
     scenery,
     terrain: segment.terrain,
   });
-  const spectatorPalette = getRaceSpectatorPalette(riderById);
+  const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
   const roadPatternId = `road-surface-${segment.segmentNumber}`;
   const departureProgress =
     snapshot.segmentNumber === 1 && segmentProgress < 0.46
@@ -788,6 +859,13 @@ function RoadScene({
             className={isMoving ? "cm-race-road-marking-svg" : ""}
           />
         ) : null}
+        <RaceRoadChalk
+          show={segment.terrain === "climb"}
+          favoriteNames={favoriteNames}
+          roadLeft={roadLeftPct}
+          roadRight={roadRightPct}
+          roadDepth={roadDepthPct}
+        />
         {[0, roadDepthPct].map((depth) => (
           <path
             key={depth}
@@ -806,7 +884,7 @@ function RoadScene({
         roadRightY={roadRightPct * 3.2}
         roadDepthY={roadDepthPct * 3.2}
         terrain={segment.terrain}
-        palette={spectatorPalette}
+        teamPalettes={spectatorTeamPalettes}
       />
       <RaceWeatherOverlay weather={weather} />
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
@@ -1590,19 +1668,24 @@ function getVisualSeedNumber(seed: string) {
   );
 }
 
-function getRaceSpectatorPalette(riderById: Map<string, RiderSimulationInput>) {
-  const colors: string[] = [];
+function getRaceSpectatorTeamPalettes(
+  riderById: Map<string, RiderSimulationInput>,
+) {
+  const teamPalettes = new Map<
+    string,
+    { teamId: string; primaryColor: string; secondaryColor: string }
+  >();
   for (const rider of riderById.values()) {
-    for (const color of [
-      rider.teamJersey?.primaryColor ?? rider.teamPrimaryColor,
-      rider.teamJersey?.secondaryColor ?? rider.teamSecondaryColor,
-    ]) {
-      const normalized = color.toUpperCase();
-      if (!colors.some((candidate) => candidate.toUpperCase() === normalized)) colors.push(color);
-      if (colors.length >= 12) return colors;
-    }
+    if (teamPalettes.has(rider.teamId)) continue;
+    teamPalettes.set(rider.teamId, {
+      teamId: rider.teamId,
+      primaryColor:
+        rider.teamJersey?.primaryColor ?? rider.teamPrimaryColor,
+      secondaryColor:
+        rider.teamJersey?.secondaryColor ?? rider.teamSecondaryColor,
+    });
   }
-  return colors;
+  return [...teamPalettes.values()].slice(0, 12);
 }
 
 function SprintLaneView({
@@ -2051,7 +2134,7 @@ function FinishBattleView({
   ]
     .filter((detail): detail is string => Boolean(detail))
     .join(" ");
-  const spectatorPalette = getRaceSpectatorPalette(riderById);
+  const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
   const winnerResult = simulation.results.find(
     (result) => result.status === "finished" && result.rank === 1
   );
@@ -2134,7 +2217,7 @@ function FinishBattleView({
         roadRightY={roadRightY}
         roadDepthY={roadDepthY}
         terrain={segment.terrain}
-        palette={spectatorPalette}
+        teamPalettes={spectatorTeamPalettes}
       />
       <RaceWeatherOverlay weather={weather} />
       <FinishRoadsideInfrastructure mode="side" roadLeftY={roadLeftY} roadRightY={roadRightY} />
@@ -2551,7 +2634,11 @@ function RaceGroupCard({
           }
 
           return (
-            <li key={id} className="flex items-center gap-2">
+            <li
+              key={id}
+              className="flex items-center gap-2"
+              title={`${rider.name} · ${rider.teamName}`}
+            >
               <span
                 aria-hidden="true"
                 className="h-2.5 w-2.5 shrink-0 rounded-full border"
@@ -2560,7 +2647,13 @@ function RaceGroupCard({
                   borderColor: rider.teamSecondaryColor,
                 }}
               />
-              <span className="truncate">{rider.name}</span>
+              <span className="min-w-0 truncate">{rider.name}</span>
+              <span
+                className="shrink-0 text-[9px] font-black uppercase text-[#78978A]"
+                title={rider.teamName}
+              >
+                {getTeamMonogram(rider.teamName)}
+              </span>
               <span className="ml-auto text-[9px] font-black uppercase text-[#6F8C80]">
                 {RACE_ROLE_LABELS[rider.role]}
               </span>

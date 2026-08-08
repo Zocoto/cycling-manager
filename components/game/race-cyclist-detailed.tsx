@@ -14,11 +14,15 @@ export function SideRaceCyclist({
   isMoving = true,
   className = "h-12 w-[5.25rem]",
   celebrating = false,
+  timeTrial = false,
+  rearDiscWheel = false,
 }: {
   rider: RiderSimulationInput;
   isMoving?: boolean;
   className?: string;
   celebrating?: boolean;
+  timeTrial?: boolean;
+  rearDiscWheel?: boolean;
 }) {
   const visual = getRaceCyclistJerseyVisual(rider);
   const helmet = getRaceCyclistTeamHelmetPalette(rider);
@@ -48,7 +52,7 @@ export function SideRaceCyclist({
         </clipPath>
       </defs>
 
-      <DetailedSideWheel cx={18} moving={isMoving} />
+      <DetailedSideWheel cx={18} moving={isMoving} disc={rearDiscWheel} />
       <DetailedSideWheel cx={72} moving={isMoving} />
 
       <g
@@ -199,9 +203,12 @@ export function SideRaceCyclist({
       )}
 
       <circle cx={head.cx} cy={head.cy} r="4.4" fill={skin.skinTone} stroke={skin.skinShadow} strokeWidth="0.65" />
-      <g data-race-helmet-team-colors="true">
+      <g
+        data-race-helmet-team-colors="true"
+        data-race-time-trial-helmet={timeTrial ? "aero" : undefined}
+      >
         <path
-          d={celebrating ? "M43.6 4.3c.2-4.1 3.2-5.8 6.5-4.9 2.5.7 3.8 2.4 3.8 4.3l-5.4-1Z" : "M57.6 8.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7l-5.7-1.1Z"}
+          d={celebrating ? "M43.6 4.3c.2-4.1 3.2-5.8 6.5-4.9 2.5.7 3.8 2.4 3.8 4.3l-5.4-1Z" : timeTrial ? "M52 7.1 58 4.2c2.5-2 6.3-1.8 8.8.2 1.7 1.3 2.4 2.7 2.3 4.1l-6.2-1.2-5.3 1.5Z" : "M57.6 8.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7l-5.7-1.1Z"}
           fill={helmet.primary}
           stroke="#071A17"
           strokeWidth="0.75"
@@ -317,7 +324,15 @@ export function getRaceCyclistTeamHelmetPalette(
   };
 }
 
-function DetailedSideWheel({ cx, moving }: { cx: number; moving: boolean }) {
+function DetailedSideWheel({
+  cx,
+  moving,
+  disc = false,
+}: {
+  cx: number;
+  moving: boolean;
+  disc?: boolean;
+}) {
   const spokes = Array.from({ length: 10 }, (_, index) => {
     const angle = (Math.PI * 2 * index) / 10;
     return {
@@ -327,11 +342,17 @@ function DetailedSideWheel({ cx, moving }: { cx: number; moving: boolean }) {
   });
 
   return (
-    <g>
+    <g data-race-wheel={disc ? "rear-disc" : "spoked"}>
       <circle cx={cx} cy="42" r="11.7" fill="rgba(7,26,23,0.12)" stroke="#0E1814" strokeWidth="2.3" />
-      <circle className={moving ? "cm-bike-wheel" : ""} cx={cx} cy="42" r="10.4" fill="none" stroke="#DCE8E2" strokeWidth="0.8" strokeDasharray="2.4 1.6" />
+      <circle className={moving ? "cm-bike-wheel" : ""} cx={cx} cy="42" r="10.4" fill={disc ? "#26322D" : "none"} stroke="#DCE8E2" strokeWidth="0.8" strokeDasharray={disc ? undefined : "2.4 1.6"} />
       <circle cx={cx} cy="42" r="1.35" fill="#EEF3F0" stroke="#65766E" strokeWidth="0.5" />
-      {spokes.map(({ x, y }, index) => (
+      {disc ? (
+        <path
+          d={`M${cx} 42 ${cx + 8.8} 36.7`}
+          stroke="#65766E"
+          strokeWidth="0.7"
+        />
+      ) : spokes.map(({ x, y }, index) => (
         <path key={index} d={`M${cx} 42 ${x} ${y}`} stroke="#C8D4CE" strokeOpacity="0.68" strokeWidth="0.38" />
       ))}
       <path d={`M${cx - 2.8} 32.3h5.6M${cx - 2.8} 51.7h5.6`} stroke="#9BAAA3" strokeWidth="0.55" />

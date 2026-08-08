@@ -8,6 +8,7 @@ import { removeOneDayRaceMountainPrimes } from "./race-profiles";
 import {
   assignStageRaceJerseys,
   getStageRaceJerseyByRiderId,
+  getStageRaceJerseyVisuals,
 } from "./stage-race-jerseys";
 import {
   buildStageRaceStandings,
@@ -158,16 +159,19 @@ function hydrateLockedRiderVisualMetadata({
 }
 
 function decorateStageRaceJerseys({
+  edition,
   stage,
   input,
   simulation,
   standingsBeforeStage,
 }: {
+  edition: Pick<RaceCalendarEdition, "countryCode" | "isGrandTour">;
   stage: RaceCalendarStage;
   input: StageSimulationInput;
   simulation: StageSimulationResult;
   standingsBeforeStage: StageRaceStandings | null;
 }) {
+  const jerseyVisuals = getStageRaceJerseyVisuals(edition);
   const classificationJerseyByRiderId =
     getStageRaceJerseyByRiderId(
       assignStageRaceJerseys(standingsBeforeStage)
@@ -182,12 +186,17 @@ function decorateStageRaceJerseys({
   ) => {
     const classificationJersey =
       classificationJerseyByRiderId.get(rider.id) ?? null;
+    const classificationJerseyVisual = classificationJersey
+      ? jerseyVisuals[classificationJersey]
+      : null;
     const activeNationalChampion =
       rider.nationalChampionships?.[
         nationalChampionshipDiscipline
       ] ?? null;
     if (
       classificationJersey === (rider.classificationJersey ?? null) &&
+      classificationJerseyVisual ===
+        (rider.classificationJerseyVisual ?? null) &&
       activeNationalChampion === (rider.activeNationalChampion ?? null)
     ) {
       return rider;
@@ -195,6 +204,7 @@ function decorateStageRaceJerseys({
     return {
       ...rider,
       classificationJersey,
+      classificationJerseyVisual,
       activeNationalChampion,
     };
   };
@@ -352,6 +362,7 @@ export function getOfficialStageSimulationContext({
 
     const decoratedLockedSimulationData =
       decorateStageRaceJerseys({
+        edition,
         stage,
         input: hydratedLockedSimulationData.input,
         simulation: hydratedLockedSimulationData.simulation,
@@ -392,6 +403,7 @@ export function getOfficialStageSimulationContext({
         )
       : null;
   const decoratedSelectedRun = decorateStageRaceJerseys({
+    edition,
     stage: selectedRun.stage,
     input: selectedRun.input,
     simulation: selectedRun.simulation,

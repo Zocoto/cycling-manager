@@ -63,4 +63,30 @@ describe("race roadside crowd", () => {
       (flat.match(/data-race-spectator=/g) ?? []).length,
     );
   });
+
+  it("dresses regular supporters in the engaged teams' paired colors", () => {
+    const markup = renderToStaticMarkup(
+      <RaceRoadsideCrowd
+        show
+        isMoving
+        roadLeftY={173}
+        roadRightY={173}
+        roadDepthY={102}
+        terrain="flat"
+        teamPalettes={[
+          {
+            teamId: "veloria",
+            primaryColor: "#123A68",
+            secondaryColor: "#F3D35B",
+          },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain('data-race-supporter-team="veloria"');
+    expect(markup).toContain("#123A68");
+    expect(markup).toContain("#F3D35B");
+    expect(markup).not.toContain('data-race-spectator-jersey="yellow"');
+    expect(markup).not.toContain('data-race-spectator-jersey="polka-dot"');
+  });
 });

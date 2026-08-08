@@ -76,6 +76,20 @@ describe("detailed race cyclist", () => {
     expect(markup).toContain("#214E43");
     expect(markup).toContain("#E58A2B");
   });
+
+  it("uses an aero helmet and an optional rear disc wheel in time trials", () => {
+    const markup = renderToStaticMarkup(
+      <SideRaceCyclist
+        rider={rider}
+        timeTrial
+        rearDiscWheel
+      />,
+    );
+
+    expect(markup).toContain('data-race-time-trial-helmet="aero"');
+    expect(markup).toContain('data-race-wheel="rear-disc"');
+    expect(markup).toContain('data-race-wheel="spoked"');
+  });
   it("raises both arms for the winner before the line", () => {
     const markup = renderToStaticMarkup(
       <>

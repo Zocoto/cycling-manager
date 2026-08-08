@@ -14,6 +14,12 @@ type SpecialSupporter =
   | "runner"
   | "flag-runner";
 
+export type RaceSupporterTeamPalette = {
+  teamId: string;
+  primaryColor: string;
+  secondaryColor: string;
+};
+
 export function RaceRoadsideCrowd({
   show,
   isMoving,
@@ -22,6 +28,7 @@ export function RaceRoadsideCrowd({
   roadDepthY,
   terrain,
   palette = DEFAULT_CROWD_COLORS,
+  teamPalettes = [],
 }: {
   show: boolean;
   isMoving: boolean;
@@ -30,11 +37,19 @@ export function RaceRoadsideCrowd({
   roadDepthY: number;
   terrain: "flat" | "climb" | "descent";
   palette?: readonly string[];
+  teamPalettes?: readonly RaceSupporterTeamPalette[];
 }) {
   const clipId = useId().replace(/:/g, "");
   if (!show) return null;
 
   const colors = palette.length ? palette : DEFAULT_CROWD_COLORS;
+  const supporterPalettes = teamPalettes.length
+    ? teamPalettes
+    : colors.map((color, index) => ({
+        teamId: `fallback-${index}`,
+        primaryColor: color,
+        secondaryColor: colors[(index + 2) % colors.length],
+      }));
   const dense = terrain === "climb";
   const rearCount = dense ? 36 : 19;
   const roadY = (x: number) => roadLeftY + (roadRightY - roadLeftY) * (x / 1000);
@@ -59,6 +74,9 @@ export function RaceRoadsideCrowd({
           const variant = getSpectatorVariant(index);
           const special = dense ? getClimbSupporter(index) : null;
           const runsAlongside = special === "runner" || special === "flag-runner";
+          const supporterPalette =
+            supporterPalettes[index % supporterPalettes.length];
+          const teamJersey = teamPalettes.length > 0 && special === null;
           return (
             <Spectator
               key={`rear-${index}`}
@@ -68,12 +86,13 @@ export function RaceRoadsideCrowd({
                   ? upperSafeBoundary(x) - (runsAlongside ? 0.5 : 1.5)
                   : roadY(x) - 3 - (index % 3) * 1.2
               }
-              color={colors[index % colors.length]}
-              accentColor={colors[(index + 2) % colors.length]}
+              color={supporterPalette.primaryColor}
+              accentColor={supporterPalette.secondaryColor}
+              teamId={teamPalettes.length > 0 ? supporterPalette.teamId : undefined}
               scale={dense ? 0.65 : 0.58}
               opacity={0.92}
               armPose={variant.armPose}
-              jersey={variant.jersey}
+              jersey={teamJersey && variant.jersey !== "striped" ? "plain" : variant.jersey}
               special={special}
               holdsFlag={
                 special === "flag-runner" ||
@@ -93,17 +112,20 @@ export function RaceRoadsideCrowd({
       >
         {foregroundX.map((x, index) => {
           const variant = getSpectatorVariant(index + 31);
+          const supporterPalette =
+            supporterPalettes[(index + 1) % supporterPalettes.length];
           return (
             <Spectator
               key={`foreground-${x}`}
               x={x}
               y={dense ? lowerSafeBoundary(x) + 43 : 318 - (index % 2) * 2}
-              color={colors[(index + 1) % colors.length]}
-              accentColor={colors[(index + 3) % colors.length]}
+              color={supporterPalette.primaryColor}
+              accentColor={supporterPalette.secondaryColor}
+              teamId={teamPalettes.length > 0 ? supporterPalette.teamId : undefined}
               scale={dense ? 0.58 : 0.54}
               opacity={0.84}
               armPose={variant.armPose}
-              jersey={variant.jersey}
+              jersey={teamPalettes.length > 0 && variant.jersey !== "striped" ? "plain" : variant.jersey}
               special={dense && index === 2 ? "runner" : null}
               holdsFlag={index === 1 || index === foregroundX.length - 2}
               flagCountry={COUNTRY_FLAGS[(index + 2) % COUNTRY_FLAGS.length]}
@@ -182,6 +204,7 @@ function getSpectatorVariant(index: number): { armPose: SpectatorArmPose; jersey
 function Spectator({
   x,
   y,
+  teamId,
   color,
   accentColor,
   scale,
@@ -195,6 +218,7 @@ function Spectator({
 }: {
   x: number;
   y: number;
+  teamId?: string;
   color: string;
   accentColor: string;
   scale: number;
@@ -226,6 +250,7 @@ function Spectator({
       opacity={opacity}
       data-race-spectator={armPose}
       data-race-spectator-jersey={jersey}
+      data-race-supporter-team={teamId}
       data-race-supporter-special={special ?? "regular"}
       data-race-supporter-motion={running ? "running" : "stationary"}
     >

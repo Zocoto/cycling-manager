@@ -78,6 +78,7 @@ export function SideRaceCyclist({
       ) : jerseyVisual.status === "classification-leader" ? (
         <ClassificationRacePattern
           jerseyType={rider.classificationJersey!}
+          visual={jerseyVisual}
           clipPathId={jerseyClipId}
           mode="side"
         />
@@ -145,6 +146,7 @@ export function TopRaceCyclist({
       ) : jerseyVisual.status === "classification-leader" ? (
         <ClassificationRacePattern
           jerseyType={rider.classificationJersey!}
+          visual={jerseyVisual}
           clipPathId={jerseyClipId}
           mode="top"
         />
@@ -170,11 +172,14 @@ export function getRaceCyclistJerseyVisual(
     | "teamSecondaryColor"
     | "teamJersey"
     | "classificationJersey"
+    | "classificationJerseyVisual"
     | "activeNationalChampion"
   >
 ) {
   if (rider.classificationJersey) {
-    const visual = STAGE_RACE_JERSEY_VISUALS[rider.classificationJersey];
+    const visual =
+      rider.classificationJerseyVisual ??
+      STAGE_RACE_JERSEY_VISUALS[rider.classificationJersey];
     return {
       ...visual,
       status: "classification-leader" as const,
@@ -255,14 +260,15 @@ function NationalChampionRacePattern({
 
 function ClassificationRacePattern({
   jerseyType,
+  visual,
   clipPathId,
   mode,
 }: {
   jerseyType: NonNullable<RiderSimulationInput["classificationJersey"]>;
+  visual: ReturnType<typeof getRaceCyclistJerseyVisual>;
   clipPathId: string;
   mode: "side" | "top";
 }) {
-  const visual = STAGE_RACE_JERSEY_VISUALS[jerseyType];
   if (visual.pattern === "polka-dots") {
     const dots =
       mode === "side"

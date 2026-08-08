@@ -3,7 +3,10 @@ import type {
   RaceStageSegment,
 } from "./race-profiles";
 import type { RaceProfileType } from "./race-calendar";
-import type { StageRaceJerseyType } from "./stage-race-jerseys";
+import type {
+  StageRaceJerseyType,
+  StageRaceJerseyVisual,
+} from "./stage-race-jerseys";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import {
   MAX_RACE_ATTACK_ORDERS,
@@ -105,6 +108,7 @@ export type RiderSimulationInput = {
   >;
   activeNationalChampion?: RiderNationalChampionship | null;
   classificationJersey?: StageRaceJerseyType | null;
+  classificationJerseyVisual?: StageRaceJerseyVisual | null;
   age: number;
   form: number;
   careerRaceDays?: number;
@@ -1846,7 +1850,7 @@ function simulateIndividualTimeTrial(
     timeline.push({
       segmentNumber: segment.segmentNumber,
       completedDistanceKm: round(completedDistanceKm, 1),
-      groups: ordered.slice(0, 10).map((state, index) => ({
+      groups: ordered.slice(0, 20).map((state, index) => ({
         id: `chrono-${state.rider.id}`,
         label: index === 0 ? "Meilleur temps provisoire" : `Chrono n°${index + 1}`,
         type: "time_trial",
