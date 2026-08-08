@@ -30,6 +30,7 @@ import {
 import {
   applyRaceWeatherRatingAdjustments,
   getRiderClimateProfile,
+  getRaceCrosswindIncidentRisk,
   getRaceWeatherCrashRiskBonus,
   getRaceWeather,
   type RaceWeather,
@@ -1070,6 +1071,8 @@ function simulateRoadStage(
     input.generalClassification,
     input.teamStrategies ?? [],
   );
+  const generalClassificationLeaderId =
+    getGeneralClassificationLeaderId(input.generalClassification);
   const plannedBreakawayIds = attackPlan.initialAttackIds;
   const totalDistanceKm = Math.max(
     1,
@@ -1138,6 +1141,27 @@ function simulateRoadStage(
   input.segments.forEach((segment, segmentIndex) => {
     const commentary: string[] = [];
     const incidents: RaceIncident[] = [];
+    const strategyAttackLaunched = attemptPlannedStrategyAttacks({
+      orders: attackPlan.strategyAttackOrders.filter(
+        (order) => order.segmentNumber === segment.segmentNumber,
+      ),
+      states,
+      segment,
+      segmentIndex,
+      segmentCount: input.segments.length,
+      completedDistanceKm,
+      totalDistanceKm,
+      teamStrategies: input.teamStrategies ?? [],
+      generalClassification: input.generalClassification,
+      random,
+      commentary,
+    });
+    if (
+      strategyAttackLaunched &&
+      getStatesInGroup(states, "breakaway").length > 0
+    ) {
+      breakawayGapSeconds = Math.max(7, breakawayGapSeconds);
+    }
     const raceProgress = clamp(completedDistanceKm / totalDistanceKm, 0, 1);
     const segmentEndProgress = clamp(
       (completedDistanceKm + segment.distanceKm) / totalDistanceKm,
@@ -1244,6 +1268,13 @@ function simulateRoadStage(
       breakawayGapSeconds,
       strategyContext.controllingTeamIds
     );
+    const strategyChaseModifier = getStrategyChaseModifier({
+      states,
+      teamStrategies: input.teamStrategies ?? [],
+      breakawayThreat,
+      raceProgress,
+      generalClassificationLeaderId,
+    });
     if (
       largeBreakawayDecision === null &&
       activeBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
@@ -1288,7 +1319,7 @@ function simulateRoadStage(
             breakawayThreat >= 0.5
               ? 0.46 + breakawayThreat * 0.34
               : 0
-          ),
+          ) + strategyChaseModifier,
           0,
           1
         );
@@ -1586,6 +1617,7 @@ function simulateRoadStage(
       segmentIndex,
       segmentCount: input.segments.length,
       weather: input.weather ?? getRaceWeather(input.seed),
+      protectedRiderId: generalClassificationLeaderId,
       random,
     });
     if (incident) {
@@ -2220,6 +2252,194 @@ export function selectStageAttackPlan(
   };
 }
 
+function attemptPlannedStrategyAttacks({
+  orders,
+  states,
+  segment,
+  segmentIndex,
+  segmentCount,
+  completedDistanceKm,
+  totalDistanceKm,
+  teamStrategies,
+  generalClassification,
+  random,
+  commentary,
+}: {
+  orders: Array<RaceAttackOrder & { teamId: string }>;
+  states: Map<string, RiderState>;
+  segment: RaceStageSegment;
+  segmentIndex: number;
+  segmentCount: number;
+  completedDistanceKm: number;
+  totalDistanceKm: number;
+  teamStrategies: RaceTeamStrategy[];
+  generalClassification?: StageSimulationInput["generalClassification"];
+  random: () => number;
+  commentary: string[];
+}) {
+  if (orders.length === 0) return false;
+
+  const strategiesByTeamId = new Map(
+    teamStrategies.map((strategy) => [strategy.teamId, strategy]),
+  );
+  const successfulAttackers: RiderState[] = [];
+  let strongestIntensity: RaceAttackOrder["intensity"] = "measured";
+
+  for (const order of orders) {
+    const state = states.get(order.riderId);
+    if (
+      !state ||
+      state.rider.teamId !== order.teamId ||
+      (state.group !== "peloton" && state.group !== "delayed") ||
+      state.energy < getPlannedAttackMinimumEnergy(order.intensity) ||
+      !isPlannedAttackConditionMet({
+        order,
+        state,
+        states,
+        segmentIndex,
+        segmentCount,
+        generalClassification,
+      })
+    ) {
+      continue;
+    }
+
+    const strategy = strategiesByTeamId.get(order.teamId);
+    const postureModifier =
+      strategy?.collectivePosture === "aggressive"
+        ? 0.08
+        : strategy?.collectivePosture === "conservative"
+          ? -0.07
+          : 0;
+    const intensityChance = {
+      measured: 0.78,
+      strong: 0.67,
+      all_in: 0.56,
+    }[order.intensity];
+    const executionChance = clamp(
+      intensityChance +
+        postureModifier +
+        (state.rider.ratings.acceleration - 68) * 0.004 +
+        (state.rider.form - 65) * 0.002,
+      0.28,
+      0.92,
+    );
+
+    if (random() >= executionChance) continue;
+
+    successfulAttackers.push(state);
+    if (
+      order.intensity === "all_in" ||
+      (order.intensity === "strong" && strongestIntensity === "measured")
+    ) {
+      strongestIntensity = order.intensity;
+    }
+    state.energy = Math.max(
+      0,
+      state.energy -
+        ({ measured: 2.2, strong: 3.8, all_in: 5.8 }[order.intensity] +
+          random() * 1.2),
+    );
+  }
+
+  if (successfulAttackers.length === 0) return false;
+
+  const hasLeadingBreakaway = getStatesInGroup(states, "breakaway").length > 0;
+  const initiativeSeconds =
+    ({ measured: 8, strong: 13, all_in: 18 }[strongestIntensity] ?? 8) +
+    random() * 12;
+
+  for (const state of successfulAttackers) {
+    state.group = hasLeadingBreakaway ? "chase" : "breakaway";
+    state.groupSinceSegment = segmentIndex;
+    state.elapsedTimeSeconds -= initiativeSeconds;
+  }
+
+  const remainingDistanceKm = Math.max(
+    0,
+    totalDistanceKm - completedDistanceKm,
+  );
+  commentary.push(
+    formatRiderList(successfulAttackers) +
+      " déclenchent l’attaque préparée sur le tronçon " +
+      segment.segmentNumber +
+      ", à " +
+      Math.round(remainingDistanceKm) +
+      " km de l’arrivée.",
+  );
+
+  return true;
+}
+
+function getPlannedAttackMinimumEnergy(
+  intensity: RaceAttackOrder["intensity"],
+) {
+  return { measured: 18, strong: 28, all_in: 40 }[intensity];
+}
+
+function isPlannedAttackConditionMet({
+  order,
+  state,
+  states,
+  segmentIndex,
+  segmentCount,
+  generalClassification,
+}: {
+  order: RaceAttackOrder;
+  state: RiderState;
+  states: Map<string, RiderState>;
+  segmentIndex: number;
+  segmentCount: number;
+  generalClassification?: StageSimulationInput["generalClassification"];
+}) {
+  if (order.condition === "always") return true;
+  if (order.condition === "high_energy") return state.energy >= 58;
+  if (order.condition === "leader_isolated") {
+    return [...states.values()].some((candidate) => {
+      if (
+        candidate.rider.teamId === state.rider.teamId ||
+        candidate.rider.role !== "leader" ||
+        candidate.group !== state.group
+      ) {
+        return false;
+      }
+
+      const helpers = [...states.values()].filter(
+        (helper) =>
+          helper.rider.teamId === candidate.rider.teamId &&
+          helper.rider.id !== candidate.rider.id &&
+          helper.group === candidate.group &&
+          (helper.rider.role === "domestique" ||
+            helper.rider.role === "leadout" ||
+            helper.rider.raceDuty === "protector" ||
+            helper.rider.raceDuty === "lieutenant"),
+      );
+      return helpers.length <= 1;
+    });
+  }
+
+  if (!generalClassification || generalClassification.length === 0) {
+    return segmentIndex >= Math.floor(segmentCount * 0.68);
+  }
+
+  const generalTimes = new Map(
+    generalClassification.map((entry) => [
+      entry.riderId,
+      entry.elapsedTimeSeconds,
+    ]),
+  );
+  const leaderTime = Math.min(...generalTimes.values());
+  const bestTeamTime = Math.min(
+    ...[...states.values()]
+      .filter((candidate) => candidate.rider.teamId === state.rider.teamId)
+      .map(
+        (candidate) =>
+          generalTimes.get(candidate.rider.id) ?? Number.POSITIVE_INFINITY,
+      ),
+  );
+  return bestTeamTime - leaderTime >= 20;
+}
+
 function buildStageStrategyContext(
   riders: RiderSimulationInput[],
   segments: RaceStageSegment[]
@@ -2646,7 +2866,11 @@ function updateRiderEnergy({
     (pelotonWorker &&
       (rider.role === "domestique" || rider.role === "leadout") &&
       segmentIndex < segmentCount - 2 &&
-      chasePressure > 0.35);
+      chasePressure > 0.35) ||
+    (rider.raceDuty === "danger_pacer" && chasePressure > 0.34) ||
+    ((rider.raceDuty === "protector" ||
+      rider.raceDuty === "lieutenant") &&
+      protectingLeader);
   const largeBreakawayEffortMultiplier =
     frontBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
     !frontGroupIsYielding &&
@@ -2804,7 +3028,9 @@ function getLeaderProtectionStrength({
       teammate.group === state.group &&
       teammate.energy >= 12 &&
       (teammate.rider.role === "domestique" ||
-        teammate.rider.role === "leadout")
+        teammate.rider.role === "leadout" ||
+        teammate.rider.raceDuty === "protector" ||
+        teammate.rider.raceDuty === "lieutenant")
   );
   if (helpers.length === 0) return 0;
 
@@ -2827,7 +3053,12 @@ function getLeaderProtectionStrength({
       (helper) =>
         helper.energy * 0.55 +
         helper.rider.ratings.endurance * 0.25 +
-        helper.rider.ratings.resistance * 0.2
+        helper.rider.ratings.resistance * 0.2 +
+        (helper.rider.raceDuty === "protector"
+          ? 12
+          : helper.rider.raceDuty === "lieutenant"
+            ? 7
+            : 0)
     )
   );
 
@@ -2838,7 +3069,7 @@ function getLeaderProtectionStrength({
       terrainRelevance *
       progressRelevance,
     0,
-    0.2
+    0.27
   );
 }
 
@@ -2855,7 +3086,9 @@ function isProtectingTeamLeader({
 }) {
   if (
     state.rider.role !== "domestique" &&
-    state.rider.role !== "leadout"
+    state.rider.role !== "leadout" &&
+    state.rider.raceDuty !== "protector" &&
+    state.rider.raceDuty !== "lieutenant"
   ) {
     return false;
   }
@@ -3382,6 +3615,7 @@ function maybeCreateRaceIncident({
   segmentIndex,
   segmentCount,
   weather,
+  protectedRiderId,
   random,
 }: {
   states: Map<string, RiderState>;
@@ -3389,6 +3623,7 @@ function maybeCreateRaceIncident({
   segmentIndex: number;
   segmentCount: number;
   weather: RaceWeather;
+  protectedRiderId: string | null;
   random: () => number;
 }): {
   incident: RaceIncident;
@@ -3419,16 +3654,11 @@ function maybeCreateRaceIncident({
     punctureThreshold + 0.045 + rainCrashRisk;
   const massCrashThreshold =
     individualCrashThreshold + 0.028 + rainCrashRisk * 0.55;
-  const crosswindRisk =
-    weather.windDirection === "crosswind"
-      ? 0.03 + Math.max(0, weather.windSpeedKph - 16) * 0.0025
-      : 0;
-  const crosswindThreshold =
-    massCrashThreshold +
-    (segment.terrain === "flat" ? 0.065 : 0.018) +
-    (segment.terrain === "flat"
-      ? crosswindRisk
-      : crosswindRisk * 0.35);
+  const crosswindRisk = getRaceCrosswindIncidentRisk(
+    weather,
+    segment.terrain === "flat",
+  );
+  const crosswindThreshold = massCrashThreshold + crosswindRisk;
 
   let type: RaceIncidentType;
   if (incidentRoll < punctureThreshold) {
@@ -3470,19 +3700,39 @@ function maybeCreateRaceIncident({
         : 2 + Math.floor(random() * 4)
     );
 
+    const holdingScoreByRiderId = new Map(
+      candidates.map((state) => [
+        state.rider.id,
+        type === "crosswind"
+          ? getCrosswindHoldingScore(
+              state,
+              candidates,
+              protectedRiderId,
+            ) + random() * 7
+          : state.rider.ratings.flat * 0.55 +
+            state.rider.ratings.resistance * 0.45 +
+            getDesignatedProtectionBonus(state, candidates) +
+            random() * 10,
+      ]),
+    );
     affected = [...candidates]
-      .sort((first, second) => {
-        const firstHolding =
-          first.rider.ratings.flat * 0.55 +
-          first.rider.ratings.resistance * 0.45 +
-          random() * 10;
-        const secondHolding =
-          second.rider.ratings.flat * 0.55 +
-          second.rider.ratings.resistance * 0.45 +
-          random() * 10;
-        return firstHolding - secondHolding;
-      })
+      .sort(
+        (first, second) =>
+          (holdingScoreByRiderId.get(first.rider.id) ?? 0) -
+          (holdingScoreByRiderId.get(second.rider.id) ?? 0),
+      )
       .slice(0, affectedCount);
+  } else if (type === "crash_individual") {
+    affected = [
+      activeStates
+        .map((state) => ({
+          state,
+          exposure:
+            random() * 20 -
+            getDesignatedProtectionBonus(state, activeStates),
+        }))
+        .sort((first, second) => second.exposure - first.exposure)[0].state,
+    ];
   } else {
     affected = [
       activeStates[
@@ -3611,6 +3861,63 @@ function maybeCreateRaceIncident({
           )} ${injuries.length > 1 ? "terminent" : "termine"} malgré une blessure diagnostiquée.`
         : details[type].commentary,
   };
+}
+
+function getDesignatedProtectionBonus(
+  state: RiderState,
+  activeStates: RiderState[],
+) {
+  if (state.rider.role !== "leader") return 0;
+
+  return activeStates.reduce((bonus, teammate) => {
+    if (
+      teammate.rider.teamId !== state.rider.teamId ||
+      teammate.rider.id === state.rider.id ||
+      teammate.group !== state.group ||
+      teammate.energy < 12
+    ) {
+      return bonus;
+    }
+    if (teammate.rider.raceDuty === "protector") return bonus + 22;
+    if (teammate.rider.raceDuty === "lieutenant") return bonus + 8;
+    return bonus;
+  }, 0);
+}
+
+function getCrosswindHoldingScore(
+  state: RiderState,
+  peloton: RiderState[],
+  protectedRiderId: string | null,
+) {
+  const isProtectedLeader =
+    state.rider.role === "leader" ||
+    state.rider.id === protectedRiderId;
+  const protectorCount = isProtectedLeader
+    ? peloton.filter(
+        (teammate) =>
+          teammate.rider.id !== state.rider.id &&
+          teammate.rider.teamId === state.rider.teamId &&
+          teammate.energy >= 12 &&
+          (teammate.rider.role === "domestique" ||
+            teammate.rider.role === "leadout" ||
+            teammate.rider.raceDuty === "protector" ||
+            teammate.rider.raceDuty === "lieutenant"),
+      ).length
+    : 0;
+  const protectionBonus = Math.min(
+    18,
+    protectorCount * 2.5 + getDesignatedProtectionBonus(state, peloton),
+  );
+  const isolationPenalty =
+    isProtectedLeader && protectorCount === 0 ? 3 : 0;
+
+  return (
+    state.rider.ratings.flat * 0.5 +
+    state.rider.ratings.resistance * 0.3 +
+    state.energy * 0.12 +
+    protectionBonus -
+    isolationPenalty
+  );
 }
 
 function maybeCreateCrashMedicalResult(
@@ -4534,6 +4841,88 @@ function toGroupSnapshot(
     gapToLeaderSeconds,
     averageEnergy: round(average(states.map((state) => state.energy)), 1),
   };
+}
+
+function getStrategyChaseModifier({
+  states,
+  teamStrategies,
+  breakawayThreat,
+  raceProgress,
+  generalClassificationLeaderId,
+}: {
+  states: Map<string, RiderState>;
+  teamStrategies: RaceTeamStrategy[];
+  breakawayThreat: number;
+  raceProgress: number;
+  generalClassificationLeaderId: string | null;
+}) {
+  if (teamStrategies.length === 0) return 0;
+
+  const generalLeaderTeamId = generalClassificationLeaderId
+    ? states.get(generalClassificationLeaderId)?.rider.teamId
+    : null;
+  const modifiers = teamStrategies.map((strategy) => {
+    const activeTeamStates = [...states.values()].filter(
+      (state) =>
+        state.rider.teamId === strategy.teamId &&
+        state.group === "peloton" &&
+        state.energy >= 12,
+    );
+    if (activeTeamStates.length === 0) return 0;
+
+    const dangerPacerIsAvailable = activeTeamStates.some(
+      (state) => state.rider.id === strategy.dangerPacerRiderId,
+    );
+    const teamLeaderIsPresent = activeTeamStates.some(
+      (state) => state.rider.role === "leader",
+    );
+    let modifier =
+      strategy.collectivePosture === "aggressive"
+        ? 0.035
+        : strategy.collectivePosture === "conservative"
+          ? -0.035
+          : 0;
+
+    if (strategy.chasePolicy === "never") {
+      modifier -= 0.08;
+    } else if (strategy.chasePolicy === "always") {
+      modifier += 0.11;
+    } else if (
+      strategy.chasePolicy === "dangerous_breakaway" &&
+      breakawayThreat >= 0.35
+    ) {
+      modifier += 0.08;
+    } else if (
+      strategy.chasePolicy === "protect_lead" &&
+      breakawayThreat >= 0.3 &&
+      (generalLeaderTeamId === strategy.teamId || teamLeaderIsPresent)
+    ) {
+      modifier += 0.09;
+    }
+
+    if (
+      dangerPacerIsAvailable &&
+      strategy.chasePolicy !== "never" &&
+      breakawayThreat >= 0.32
+    ) {
+      modifier += 0.07;
+    }
+    if (strategy.objective === "sprint" && raceProgress >= 0.48) {
+      modifier += 0.055;
+    } else if (
+      strategy.objective === "general_classification" &&
+      breakawayThreat >= 0.42
+    ) {
+      modifier += 0.04;
+    } else if (strategy.objective === "breakaway") {
+      modifier -= 0.035;
+    }
+
+    return modifier;
+  });
+  const strongestPositive = Math.max(0, ...modifiers);
+  const strongestNegative = Math.min(0, ...modifiers);
+  return clamp(strongestPositive + strongestNegative, -0.1, 0.24);
 }
 
 function getPelotonChaseWorkers(

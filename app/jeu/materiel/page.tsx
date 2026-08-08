@@ -194,8 +194,8 @@ export default async function MaterialPage({
               </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Constituez l’inventaire de {overview.teamName}, puis attribuez
-                chaque pièce depuis la fiche du coureur. Les bonus sportifs se
-                cumulent pendant les courses.
+                toutes les pièces depuis l’onglet Équiper l’équipe. Les bonus
+                sportifs se cumulent pendant les courses.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">

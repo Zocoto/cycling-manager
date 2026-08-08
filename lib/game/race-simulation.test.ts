@@ -1586,22 +1586,30 @@ describe("simulateRaceStage", () => {
       ).flat()
     );
 
-    expect(incidentTypes).toEqual(
-      new Set([
-        "puncture",
-        "crosswind",
-        "crash_individual",
-        "crash_mass",
-      ])
-    );
+    expect(incidentTypes.has("puncture")).toBe(true);
+    expect(incidentTypes.has("crash_individual")).toBe(true);
+    expect(incidentTypes.has("crash_mass")).toBe(true);
   });
 
   it("place les coureurs piégés par une bordure derrière le peloton", () => {
-    const crosswindCase = Array.from({ length: 80 }, (_, index) =>
-      simulateRaceStage(
-        createDemoSimulationInput("collines-ardennes", index + 1)
-      )
-    )
+    const crosswindCase = Array.from({ length: 80 }, (_, index) => {
+      const input = createDemoSimulationInput(
+        "sprint-littoral",
+        index + 1
+      );
+      return simulateRaceStage({
+        ...input,
+        weather: {
+          ...input.weather!,
+          condition: "wind" as const,
+          windDirection: "crosswind" as const,
+          windSpeedKph: 38,
+          windIntensity: "gale" as const,
+          rainIntensity: "none" as const,
+          isWet: false,
+        },
+      });
+    })
       .flatMap((result) => result.timeline)
       .map((snapshot) => ({
         snapshot,
@@ -1642,6 +1650,65 @@ describe("simulateRaceStage", () => {
       peloton.gapToLeaderSeconds
     );
     expect(affectedGroup.label).toContain("bordure");
+  });
+
+  it("exécute les ordres d’attaque préparés sur le tronçon demandé", () => {
+    const baseInput = createDemoSimulationInput("sprint-littoral", 1);
+    const targetRider = baseInput.riders[0]!;
+    const targetSegment = baseInput.segments[0]!;
+    const riders = baseInput.riders.map((rider) =>
+      rider.id === targetRider.id
+        ? {
+            ...rider,
+            form: 100,
+            raceDuty: null,
+            ratings: {
+              ...rider.ratings,
+              acceleration: 100,
+            },
+          }
+        : rider,
+    );
+
+    const simulations = Array.from({ length: 20 }, (_, index) =>
+      simulateRaceStage({
+        ...baseInput,
+        id: "planned-attack-" + index,
+        seed: "planned-attack-" + index,
+        riders,
+        teamStrategies: [
+          {
+            teamId: targetRider.teamId,
+            objective: "stage_win",
+            collectivePosture: "aggressive",
+            breakawayPolicy: "avoid",
+            chasePolicy: "dangerous_breakaway",
+            lieutenantRiderId: null,
+            dangerPacerRiderId: null,
+            protectorRiderId: null,
+            breakawayRiderId: null,
+            attackOrders: [
+              {
+                riderId: targetRider.id,
+                segmentNumber: targetSegment.segmentNumber,
+                intensity: "measured",
+                condition: "always",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(
+      simulations.some((simulation) =>
+        simulation.timeline.some((snapshot) =>
+          snapshot.commentary.some((line) =>
+            line.includes("attaque préparée"),
+          ),
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("peut scinder une échappée en plusieurs groupes", () => {

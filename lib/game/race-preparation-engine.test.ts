@@ -24,7 +24,7 @@ describe("race preparation engine", () => {
         breakaway: 74 + index,
       }),
     );
-    const input = createDemoSimulationInput("classique-ardennaise", 11);
+    const input = createDemoSimulationInput("collines-ardennes", 11);
     const targetSegment = input.segments.at(-2)!;
     const attackOrder = {
       riderId: plannedAttacker.id,
