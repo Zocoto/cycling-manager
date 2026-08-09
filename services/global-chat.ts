@@ -254,9 +254,11 @@ async function getReactionsByMessageId(
     .order("created_at", { ascending: true });
 
   if (reactionsResult.error) {
-    throw new Error(
-      `Impossible de charger les réactions du chat : ${reactionsResult.error.message}`,
+    console.error(
+      "Global chat reactions unavailable; continuing without reactions.",
+      reactionsResult.error,
     );
+    return result;
   }
 
   for (const row of (reactionsResult.data as unknown as
