@@ -177,8 +177,6 @@ export function GameHeader({
                 </HeaderMenuLink>
               ) : null}
 
-              <RacePreparationShortcut />
-
               {canAccessRaceSimulator(simulatorEmail) ? (
                 <RaceSimulatorShortcut />
               ) : null}
@@ -386,30 +384,6 @@ function HeaderIconMenuItem({
         </span>
       </span>
     </div>
-  );
-}
-
-function RacePreparationShortcut() {
-  return (
-    <HeaderMenuLink
-      href="/jeu/preparation-course"
-      label="Préparation"
-      description="Plans de course"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="h-5 w-5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 3.5h12v13H4zM7 7h6M7 10h3M7 13h5" />
-        <path d="m13.5 11.5 2 2 3-4" />
-      </svg>
-    </HeaderMenuLink>
   );
 }
 

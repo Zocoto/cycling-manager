@@ -34,8 +34,8 @@ describe("race preparation navigation", () => {
     expect(resultsIndex).toBeGreaterThan(preparationIndex);
   });
 
-  it("is reachable from the game header and a registered race", () => {
-    expect(header).toContain('href="/jeu/preparation-course"');
+  it("reste accessible depuis une course inscrite sans encombrer le header", () => {
+    expect(header).not.toContain('href="/jeu/preparation-course"');
     expect(raceProfile).toContain(
       "`/jeu/preparation-course?course=${edition.slug}`",
     );
