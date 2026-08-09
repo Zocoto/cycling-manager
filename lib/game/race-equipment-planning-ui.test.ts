@@ -7,7 +7,7 @@ const planner = read("components/game/race-equipment-planner.tsx");
 const racePage = read("app/jeu/courses/[slug]/race-profile-content.tsx");
 const actions = read("app/jeu/courses/[slug]/actions.ts");
 const migration = read(
-  "supabase/migrations/20260809100000_plan_race_stage_equipment.sql",
+  "supabase/migrations/20260809101000_plan_race_stage_equipment.sql",
 );
 
 describe("planification du matériel de course", () => {
@@ -23,16 +23,16 @@ describe("planification du matériel de course", () => {
   });
 
   it("enregistre le plan par RPC et le transmet à la simulation", () => {
-    expect(actions).toContain(
-      '"save_current_team_race_equipment_plan"',
-    );
+    expect(actions).toContain('"save_current_team_race_equipment_plan"');
     expect(migration).toContain(
       "create table public.race_stage_equipment_assignments",
     );
     expect(migration).toContain(
       "public.get_active_calendar_stage_equipment_effects",
     );
-    expect(migration).toContain("stage.departure_at > now() + interval '5 minutes'");
+    expect(migration).toContain(
+      "stage.departure_at > now() + interval '5 minutes'",
+    );
   });
 
   it("ne modifie jamais les affectations permanentes", () => {

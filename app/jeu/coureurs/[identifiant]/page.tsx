@@ -440,11 +440,17 @@ export default async function RiderProfilePage({
                 className="min-w-0 space-y-5"
               >
                 {transferManagement ? (
-                  <ContractRenewalCard
-                    riderId={profile.id}
-                    contract={profile.privateContract}
-                    management={transferManagement}
-                  />
+                  <>
+                    <ContractRenewalCard
+                      riderId={profile.id}
+                      contract={profile.privateContract}
+                      management={transferManagement}
+                    />
+                    <RiderDismissalCard
+                      riderId={profile.id}
+                      management={transferManagement}
+                    />
+                  </>
                 ) : (
                   <PrivateContractCard contract={profile.privateContract} />
                 )}
@@ -470,6 +476,16 @@ export default async function RiderProfilePage({
                     new Set(profile.history.map((entry) => entry.seasonId)).size
                   }
                 />
+                {transferManagement ? (
+                  <DirectTransferOfferCard
+                    riderId={profile.id}
+                    teamName={
+                      profile.currentTeam?.displayName ??
+                      "l'\u00e9quipe actuelle"
+                    }
+                    management={transferManagement}
+                  />
+                ) : null}
               </div>
             )}
             {profile.medical ? (
@@ -499,54 +515,8 @@ export default async function RiderProfilePage({
           </div>
         ) : null}
 
-        <div className="mt-7 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-          <div data-tutorial-id="rider-profile-history" className="min-w-0">
-            <CareerHistory history={profile.history} />
-          </div>
-          {profile.privateContract ? (
-            <div
-              data-tutorial-id="rider-profile-contract"
-              className="min-w-0 space-y-5"
-            >
-              <PrivateContractCard contract={profile.privateContract} />
-              {transferManagement ? (
-                <>
-                  <ContractRenewalCard
-                    riderId={profile.id}
-                    contract={profile.privateContract}
-                    management={transferManagement}
-                  />
-                  <RiderDismissalCard
-                    riderId={profile.id}
-                    management={transferManagement}
-                  />
-                </>
-              ) : null}
-            </div>
-          ) : transferManagement?.isFreeAgent ? (
-            <FreeAgentSigningCard
-              riderId={profile.id}
-              management={transferManagement}
-            />
-          ) : (
-            <div className="min-w-0 space-y-5">
-              <CareerSummaryCard
-                teamName={profile.currentTeam?.displayName ?? "Agent libre"}
-                seasonsCount={
-                  new Set(profile.history.map((entry) => entry.seasonId)).size
-                }
-              />
-              {transferManagement ? (
-                <DirectTransferOfferCard
-                  riderId={profile.id}
-                  teamName={
-                    profile.currentTeam?.displayName ?? "l'équipe actuelle"
-                  }
-                  management={transferManagement}
-                />
-              ) : null}
-            </div>
-          )}
+        <div data-tutorial-id="rider-profile-history" className="mt-6 min-w-0">
+          <CareerHistory history={profile.history} />
         </div>
 
         <div data-tutorial-id="rider-profile-equipment" className="mt-6">
@@ -699,6 +669,14 @@ function ContractRenewalCard({
         Votre coureur
       </p>
       <h2 className="mt-2 text-xl font-black text-[#3F3518]">Contrat</h2>
+      <dl className="mt-5 space-y-3 text-sm">
+        <ContractLine
+          label="Salaire annuel"
+          value={formatMoney(contract.salaryPerSeason, contract.currencyCode)}
+        />
+        <ContractLine label={"D\u00e9but"} value={contract.startSeasonName} />
+        <ContractLine label="Statut" value="Actif" />
+      </dl>
       <div className="mt-5 rounded-xl border border-[#D6A93D]/25 bg-white/65 px-4 py-3">
         <p className="text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
           Échéance

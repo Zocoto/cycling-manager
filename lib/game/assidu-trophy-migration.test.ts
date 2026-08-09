@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260809100000_create_assidu_attendance_trophy.sql",
+    "supabase/migrations/20260809102000_create_assidu_attendance_trophy.sql",
   ),
   "utf8",
 );
@@ -28,12 +28,8 @@ describe("Assidu attendance trophy", () => {
     expect(migration).toContain(
       "create table public.sporting_director_daily_attendance",
     );
-    expect(migration).toContain(
-      "unique (sporting_director_id, season_day_id)",
-    );
-    expect(migration).toContain(
-      "record_current_sporting_director_attendance",
-    );
+    expect(migration).toContain("unique (sporting_director_id, season_day_id)");
+    expect(migration).toContain("record_current_sporting_director_attendance");
     expect(migration).toContain(
       "on conflict (sporting_director_id, season_day_id) do nothing",
     );

@@ -6,16 +6,14 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260809150000_notify_completed_scouting_reports.sql",
+    "supabase/migrations/20260809151000_notify_completed_scouting_reports.sql",
   ),
   "utf8",
 );
 
 describe("completed scouting report mailbox notifications", () => {
   it("publishes one mailbox message when a report becomes ready", () => {
-    expect(migration).toContain(
-      "public.sync_director_scouting_report_message",
-    );
+    expect(migration).toContain("public.sync_director_scouting_report_message");
     expect(migration).toContain(
       "youth_scouting_missions_sync_director_mailbox",
     );
@@ -25,9 +23,7 @@ describe("completed scouting report mailbox notifications", () => {
   });
 
   it("links directly to scouting and includes useful report context", () => {
-    expect(migration).toContain(
-      "'/jeu/centre-de-formation?onglet=scouting'",
-    );
+    expect(migration).toContain("'/jeu/centre-de-formation?onglet=scouting'");
     expect(migration).toContain("'Ouvrir le rapport'");
     expect(migration).toContain("candidate_summary.candidate_count");
     expect(migration).toContain("country.name");

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const initialMigration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260808130000_create_race_preparations.sql",
+    "supabase/migrations/20260808164000_create_race_preparations.sql",
   ),
   "utf8",
 );
@@ -37,7 +37,9 @@ describe("race preparation stage id conflict fix", () => {
       "'on conflict on constraint race_stage_strategies_pkey'",
     );
     expect(fixMigration).toContain("execute replace(");
-    expect(fixMigration).not.toMatch(/delete\s+from\s+public\.race_stage_strategies/i);
+    expect(fixMigration).not.toMatch(
+      /delete\s+from\s+public\.race_stage_strategies/i,
+    );
   });
 
   it("is idempotent when the function is already corrected", () => {
