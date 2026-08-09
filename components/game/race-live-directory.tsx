@@ -96,7 +96,6 @@ export function RaceLiveDirectory({
       stage.dayNumber < calendar.currentDayNumber &&
       !currentEditionIds.has(edition.id),
   );
-  const currentEditions = groupEntriesByEdition(currentDayEntries);
   const pastEditions = groupEntriesByEdition(pastEntries).reverse();
   const liveCount = currentDayEntries.filter(
     ({ stage }) => getStageLiveState(stage, now).status === "live",
@@ -233,17 +232,15 @@ export function RaceLiveDirectory({
 
       <div className="p-4 sm:p-6">
         <div className="grid gap-3 lg:grid-cols-2">
-          {currentEditions.map(({ edition, stages }) => (
-            <DirectoryCard
-              key={edition.id}
+          {currentDayEntries.map(({ edition, stage }) => (
+            <StageDirectoryCard
+              key={stage.id}
               edition={edition}
-              stages={stages}
-              currentDayNumber={calendar.currentDayNumber}
+              stage={stage}
               now={now}
-              period="today"
             />
           ))}
-          {currentEditions.length === 0 ? (
+          {currentDayEntries.length === 0 ? (
             <DirectoryEmptyState
               scope={scope}
               hasCategoryFilter={selectedCategories.length > 0}
@@ -294,6 +291,76 @@ export function RaceLiveDirectory({
         </details>
       ) : null}
     </section>
+  );
+}
+
+function StageDirectoryCard({
+  edition,
+  stage,
+  now,
+}: {
+  edition: RaceCalendarEdition;
+  stage: RaceCalendarStage;
+  now: Date;
+}) {
+  const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+  const state = getStageLiveState(stage, now);
+  const isStageRace = edition.raceFormat === "stage_race";
+
+  return (
+    <article
+      data-race-period="today"
+      data-race-format={isStageRace ? "stage-race" : "one-day"}
+      data-stage-number={stage.stageNumber}
+      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] shadow-sm"
+    >
+      <div className="flex items-center gap-3 border-b border-[#315B3E]/10 bg-white px-4 py-3">
+        <span
+          className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
+          style={{
+            backgroundColor: style.background,
+            color: style.foreground,
+          }}
+        >
+          {style.shortLabel}
+        </span>
+        <span
+          className={"fi fi-" + edition.countryCode.toLowerCase() + " rounded shadow-sm"}
+          aria-label={edition.countryName}
+        />
+        <h3 className="min-w-0 flex-1 truncate text-sm font-black text-[#0B302B]">
+          {edition.name}
+        </h3>
+        <LiveStateBadge
+          status={state.status}
+          simulationAvailable={canSimulateRaceEdition(edition)}
+          scheduledLabel={RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
+        />
+      </div>
+      <Link
+        href={"/jeu/resultats/" + edition.slug + "/" + stage.stageNumber}
+        prefetch={false}
+        className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-white sm:grid-cols-[minmax(140px,0.72fr)_minmax(180px,1.28fr)] sm:items-center"
+      >
+        <span className="min-w-0">
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
+            J{stage.dayNumber} {"\u00B7"} {RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
+          </span>
+          <span className="mt-1 block truncate text-xs font-black text-[#0B302B]">
+            {isStageRace
+              ? "E" + stage.stageNumber + " \u00B7 " + stage.name
+              : RACE_PROFILE_LABELS[stage.profileType]}
+          </span>
+          <span className="mt-1 block text-[10px] font-semibold text-[#789087]">
+            {isStageRace
+              ? RACE_PROFILE_LABELS[stage.profileType] + " \u00B7 "
+              : null}
+            {formatDistance(stage.distanceKm)} km {"\u00B7"} {state.durationMinutes} min de live
+          </span>
+        </span>
+        <RaceStageProfile segments={stage.segments} compact />
+      </Link>
+    </article>
   );
 }
 

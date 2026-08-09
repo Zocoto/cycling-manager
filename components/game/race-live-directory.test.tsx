@@ -45,9 +45,42 @@ describe("RaceLiveDirectory", () => {
     expect(markup).toContain("Courses passées");
     expect(markup).toContain("Classique passée");
     expect(markup).not.toContain("Course de demain");
-    expect(markup).toContain('href="/jeu/resultats/tour-en-cours"');
-    expect(markup).toContain("Résumé des étapes");
-    expect(markup).toContain("1 étape à venir");
+    expect(markup).toContain('href="/jeu/resultats/tour-en-cours/2"');
+    expect(markup).not.toContain("Résumé des étapes");
+  });
+
+  it("affiche séparément toutes les étapes d'un même tour disputées le même jour", () => {
+    const tour = createEdition({
+      id: "ruta-de-las-sierras",
+      name: "Ruta de las Sierras",
+      dayNumbers: [4, 4],
+    });
+    tour.stages[0].daySlot = "early";
+    tour.stages[0].departureAt = "2026-07-29T12:00:00.000Z";
+    tour.stages[1].daySlot = "late";
+    tour.stages[1].departureAt = "2026-07-29T16:00:00.000Z";
+
+    const markup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={createCalendar({
+          currentDayNumber: 4,
+          editions: [tour],
+        })}
+        nowIso="2026-07-29T18:00:00.000Z"
+      />,
+    );
+
+    expect(markup).toContain('data-stage-number="1"');
+    expect(markup).toContain('data-stage-number="2"');
+    expect(markup).toContain(
+      'href="/jeu/resultats/ruta-de-las-sierras/1"',
+    );
+    expect(markup).toContain(
+      'href="/jeu/resultats/ruta-de-las-sierras/2"',
+    );
+    expect(markup).toContain("E1 · Étape 1");
+    expect(markup).toContain("E2 · Étape 2");
+    expect(markup).toContain("2 replays aujourd’hui");
   });
 
   it("sépare les courses de l’équipe des courses non courues", () => {
