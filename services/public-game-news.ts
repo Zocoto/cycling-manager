@@ -183,6 +183,13 @@ type PostRaceNewsRow = {
   happened_at: string;
 };
 
+type CyclogazetteNewsRow = {
+  id: string;
+  issue_number: number;
+  subtitle: string;
+  published_at: string;
+};
+
 type LoadedNews = {
   items: PublicGameNewsItem[];
   total: number | null;
@@ -204,42 +211,61 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   }
 
   const results = await Promise.allSettled([
-    loadRecentPostRaceNews(admin),
     loadRecentVictories(admin),
-    loadRecentArrivals(admin),
-    loadRecentRiderMovements(admin),
-    loadRecentStaffMovements(admin),
+    loadRecentCyclogazettePublications(admin),
   ]);
   const successfulLoads = results.flatMap((result) =>
-    result.status === "fulfilled" ? [result.value] : []
+    result.status === "fulfilled" ? [result.value] : [],
   );
 
   if (successfulLoads.length === 0) {
     return createEmptyPublicGameNewsSnapshot();
   }
 
-  const [postRaceNews, victories, arrivals, riderMovements, staffMovements] =
-    results.map((result) =>
-      result.status === "fulfilled"
-        ? result.value
-        : ({ items: [], total: null } satisfies LoadedNews)
-    );
+  const [victories, gazettes] = results.map((result) =>
+    result.status === "fulfilled"
+      ? result.value
+      : ({ items: [], total: null } satisfies LoadedNews),
+  );
 
   return createPublicGameNewsSnapshot({
-    items: [
-      ...postRaceNews.items,
-      ...victories.items,
-      ...arrivals.items,
-      ...riderMovements.items,
-      ...staffMovements.items,
-    ],
+    items: [...victories.items, ...gazettes.items],
     totals: {
-      directors: arrivals.total,
       victories: victories.total,
-      movements: sumKnownTotals(riderMovements.total, staffMovements.total),
+      gazettes: gazettes.total,
     },
     isLive: true,
   });
+}
+
+async function loadRecentCyclogazettePublications(
+  admin: AdminClient,
+): Promise<LoadedNews> {
+  const [recentQuery, totalQuery] = await Promise.all([
+    admin
+      .from("cyclogazette_editions")
+      .select("id, issue_number, subtitle, published_at")
+      .order("published_at", { ascending: false })
+      .limit(4)
+      .returns<CyclogazetteNewsRow[]>(),
+    admin
+      .from("cyclogazette_editions")
+      .select("id", { count: "exact", head: true }),
+  ]);
+  assertQuery(recentQuery.error, "les publications de La Cyclogazette");
+  assertQuery(totalQuery.error, "le total des publications de La Cyclogazette");
+
+  const items = (recentQuery.data ?? []).map((edition) => ({
+    id: `gazette:${edition.id}`,
+    kind: "gazette" as const,
+    title: `La Cyclogazette n°${edition.issue_number} est publiée`,
+    detail: edition.subtitle,
+    happenedAt: edition.published_at,
+    href: `/jeu/gazette?edition=${edition.id}`,
+    significance: "major" as const,
+  }));
+
+  return { items, total: totalQuery.count ?? items.length };
 }
 
 const getCachedDashboardPelotonNews = unstable_cache(
@@ -1151,13 +1177,6 @@ function getMovementDetail(
     return "Transfert conclu entre deux directeurs sportifs.";
   }
   return "Recrutement conclu sur le marché quotidien.";
-}
-
-function sumKnownTotals(...values: Array<number | null>): number | null {
-  const knownValues = values.filter((value): value is number => value !== null);
-  return knownValues.length > 0
-    ? knownValues.reduce((total, value) => total + value, 0)
-    : null;
 }
 
 function unique(values: string[]): string[] {

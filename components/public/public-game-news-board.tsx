@@ -25,19 +25,9 @@ const emptyNews = [
     detail: "Chaque victoire officielle sera célébrée ici.",
   },
   {
-    kind: "arrival" as const,
-    title: "Le peloton attend ses prochains directeurs",
-    detail: "Les nouvelles carrières apparaîtront dans ce fil.",
-  },
-  {
-    kind: "movement" as const,
-    title: "Le marché est encore calme",
-    detail: "Transferts et recrutements seront relayés en direct.",
-  },
-  {
-    kind: "staff" as const,
-    title: "Les cellules sportives se préparent",
-    detail: "Les prochaines signatures de staff apparaîtront ici.",
+    kind: "gazette" as const,
+    title: "La rédaction prépare son prochain numéro",
+    detail: "La Cyclogazette est publiée chaque soir à 20 h.",
   },
 ];
 
@@ -71,17 +61,17 @@ export function PublicGameNewsBoard({
                 ) : null}
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#42B99A]" />
               </span>
-              Peloton en direct
+              Résultats en direct
             </div>
 
             <h2 className="mt-4 text-3xl font-black tracking-[-0.035em] text-[#082A2A] sm:text-5xl">
-              Le jeu s’écrit
+              La course s’écrit
               <span className="text-[#42A884]"> sous vos yeux.</span>
             </h2>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#536B64] sm:text-lg">
-              Victoires, nouveaux directeurs, transferts et recrutements de
-              staff : suivez les derniers échos du peloton en un coup d’œil.
+              Retrouvez les vainqueurs des courses officielles et la publication
+              quotidienne de La Cyclogazette, sans bruit autour des résultats.
             </p>
           </div>
 
@@ -104,10 +94,10 @@ export function PublicGameNewsBoard({
               </span>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-                  Tableau de course
+                  Résultats et éditions
                 </p>
                 <p className="mt-0.5 text-sm text-[#BFD1C6]">
-                  Les derniers temps forts de la communauté
+                  L’essentiel sportif de Cyclo Stratège
                 </p>
               </div>
             </div>
@@ -147,21 +137,16 @@ export function PublicGameNewsBoard({
             </div>
           </div>
 
-          <div className="relative grid border-t border-white/10 sm:grid-cols-3">
-            <NewsStat
-              value={formatPublicGameNewsTotal(snapshot.totals.directors)}
-              label="Directeurs actifs"
-              detail="sur la ligne de départ"
-            />
+          <div className="relative grid border-t border-white/10 sm:grid-cols-2">
             <NewsStat
               value={formatPublicGameNewsTotal(snapshot.totals.victories)}
               label="Victoires officielles"
               detail="déjà inscrites au palmarès"
             />
             <NewsStat
-              value={formatPublicGameNewsTotal(snapshot.totals.movements)}
-              label="Mouvements signés"
-              detail="coureurs et membres du staff"
+              value={formatPublicGameNewsTotal(snapshot.totals.gazettes)}
+              label="Gazettes publiées"
+              detail="une nouvelle édition chaque soir"
               isLast
             />
           </div>
@@ -598,12 +583,14 @@ function NewsBadge({
     kind === "race_recap"
       ? "Après-course"
       : kind === "victory"
-      ? "Victoire"
-      : kind === "arrival"
-        ? "Nouveau DS"
-        : kind === "staff"
-          ? "Recrutement staff"
-          : "Transfert";
+        ? "Victoire"
+        : kind === "gazette"
+          ? "La Cyclogazette"
+          : kind === "arrival"
+            ? "Nouveau DS"
+            : kind === "staff"
+              ? "Recrutement staff"
+              : "Transfert";
 
   return (
     <span
@@ -614,11 +601,13 @@ function NewsBadge({
           ? "bg-[#D94F4F] text-white"
           : kind === "victory"
             ? "bg-[#F2C94C] text-[#082A2A]"
-          : kind === "arrival"
-            ? "bg-[#42CDA8]/15 text-[#8DE3C9]"
-            : kind === "staff"
-              ? "bg-[#D49BFF]/15 text-[#E1C2FA]"
-              : "bg-[#8AB8F8]/15 text-[#B9D4FA]"
+            : kind === "gazette"
+              ? "bg-[#EFE4C8] text-[#6B1F2A]"
+              : kind === "arrival"
+                ? "bg-[#42CDA8]/15 text-[#8DE3C9]"
+                : kind === "staff"
+                  ? "bg-[#D49BFF]/15 text-[#E1C2FA]"
+                  : "bg-[#8AB8F8]/15 text-[#B9D4FA]"
       }`}
     >
       {label}
@@ -692,6 +681,23 @@ function NewsIcon({
         <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
         <path d="M8 6H4v1a5 5 0 0 0 5 5M16 6h4v1a5 5 0 0 1-5 5" />
         <path d="M12 13v5M8 21h8M9 18h6" />
+      </svg>
+    );
+  }
+
+  if (kind === "gazette") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4Z" />
+        <path d="M18 8h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-1" />
+        <path d="M8 8h7M8 12h7M8 16h4" />
       </svg>
     );
   }

@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
-import { DashboardMonitoringPanel } from "../../components/game/dashboard-monitoring-panel";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -561,12 +560,6 @@ export default async function GamePage() {
               <JerseyShortcut />
             </div>
           </header>
-
-          <DashboardMonitoringPanel
-            teamId={dashboardTeamId}
-            seasonName={teamSummary?.season_name ?? "Saison active"}
-            actionCount={readyRewardCount + raceRosterAlertCount}
-          />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}
 

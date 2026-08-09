@@ -38,86 +38,28 @@ describe("public game news", () => {
     ).toBe("2026-08-01T09:15:38.000Z");
   });
 
-  it("classe les événements du plus récent au plus ancien", () => {
-    const items: PublicGameNewsItem[] = [
-      {
-        id: "arrival:1",
-        kind: "arrival",
-        title: "Arrivée",
-        detail: "Détail",
-        happenedAt: "2026-07-20T09:00:00.000Z",
-      },
-      {
-        id: "victory:1",
-        kind: "victory",
-        title: "Victoire",
-        detail: "Détail",
-        happenedAt: "2026-07-21T09:00:00.000Z",
-      },
-      {
-        id: "movement:1",
-        kind: "movement",
-        title: "Mouvement",
-        detail: "Détail",
-        happenedAt: "2026-07-21T08:00:00.000Z",
-      },
-    ];
-
-    const snapshot = createPublicGameNewsSnapshot({
-      items,
-      totals: { directors: 1, victories: 1, movements: 1 },
-      isLive: true,
-    });
-
-    expect(snapshot.items.map((item) => item.id)).toEqual([
-      "victory:1",
-      "movement:1",
-      "arrival:1",
-    ]);
-  });
-
-  it("écarte les dates invalides et limite le tableau à sept événements", () => {
-    const items: PublicGameNewsItem[] = Array.from({ length: 9 }, (_, index) => ({
-      id: `arrival:${index}`,
-      kind: "arrival",
-      title: "Arrivée",
-      detail: "Détail",
-      happenedAt: new Date(Date.UTC(2026, 6, index + 1)).toISOString(),
-    }));
-    items.push({
-      id: "invalid",
-      kind: "victory",
-      title: "Invalide",
-      detail: "Détail",
-      happenedAt: "pas-une-date",
-    });
-
-    const snapshot = createPublicGameNewsSnapshot({
-      items,
-      totals: { directors: 9, victories: 0, movements: 0 },
-      isLive: true,
-    });
-
-    expect(snapshot.items).toHaveLength(7);
-    expect(snapshot.items[0]?.id).toBe("arrival:8");
-    expect(snapshot.items.some((item) => item.id === "invalid")).toBe(false);
-  });
-
-  it("place les recrutements de staff entre les transferts et les arrivées de DS", () => {
+  it("ne conserve dans le fil public que les victoires et les Gazettes", () => {
     const happenedAt = "2026-07-21T09:00:00.000Z";
     const snapshot = createPublicGameNewsSnapshot({
       items: [
         {
           id: "race-recap:1",
           kind: "race_recap",
-          title: "Après-course",
+          title: "Chute",
           detail: "Détail",
           happenedAt,
         },
         {
           id: "arrival:1",
           kind: "arrival",
-          title: "Arrivée",
+          title: "Nouveau DS",
+          detail: "Détail",
+          happenedAt,
+        },
+        {
+          id: "movement:1",
+          kind: "movement",
+          title: "Transfert",
           detail: "Détail",
           happenedAt,
         },
@@ -129,23 +71,55 @@ describe("public game news", () => {
           happenedAt,
         },
         {
-          id: "movement:1",
-          kind: "movement",
-          title: "Transfert",
+          id: "victory:1",
+          kind: "victory",
+          title: "Victoire",
+          detail: "Détail",
+          happenedAt,
+        },
+        {
+          id: "gazette:1",
+          kind: "gazette",
+          title: "La Cyclogazette est publiée",
           detail: "Détail",
           happenedAt,
         },
       ],
-      totals: { directors: 1, victories: 0, movements: 2 },
+      totals: { victories: 1, gazettes: 1 },
       isLive: true,
     });
 
     expect(snapshot.items.map((item) => item.id)).toEqual([
-      "race-recap:1",
-      "movement:1",
-      "staff:1",
-      "arrival:1",
+      "victory:1",
+      "gazette:1",
     ]);
+  });
+
+  it("écarte les dates invalides et limite le tableau à sept annonces", () => {
+    const items: PublicGameNewsItem[] = Array.from({ length: 9 }, (_, index) => ({
+      id: `victory:${index}`,
+      kind: "victory",
+      title: "Victoire",
+      detail: "Détail",
+      happenedAt: new Date(Date.UTC(2026, 6, index + 1)).toISOString(),
+    }));
+    items.push({
+      id: "invalid",
+      kind: "gazette",
+      title: "Invalide",
+      detail: "Détail",
+      happenedAt: "pas-une-date",
+    });
+
+    const snapshot = createPublicGameNewsSnapshot({
+      items,
+      totals: { victories: 9, gazettes: 0 },
+      isLive: true,
+    });
+
+    expect(snapshot.items).toHaveLength(7);
+    expect(snapshot.items[0]?.id).toBe("victory:8");
+    expect(snapshot.items.some((item) => item.id === "invalid")).toBe(false);
   });
 
   it("conserve les vainqueurs et les nouvelles structurantes du bureau du DS", () => {

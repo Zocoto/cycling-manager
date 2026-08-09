@@ -12,6 +12,7 @@ import type { JerseyStyle, SponsorColors } from "@/types/sponsor";
 export type PublicGameNewsKind =
   | "race_recap"
   | "victory"
+  | "gazette"
   | "arrival"
   | "movement"
   | "staff";
@@ -144,9 +145,8 @@ export function getPublicGameNewsTeamColors(
 }
 
 export type PublicGameNewsTotals = {
-  directors: number | null;
   victories: number | null;
-  movements: number | null;
+  gazettes: number | null;
 };
 
 export type PublicGameNewsSnapshot = {
@@ -156,12 +156,17 @@ export type PublicGameNewsSnapshot = {
 };
 
 const kindPriority: Record<PublicGameNewsKind, number> = {
-  race_recap: 0,
-  victory: 1,
-  movement: 2,
-  staff: 3,
-  arrival: 4,
+  victory: 0,
+  gazette: 1,
+  race_recap: 2,
+  movement: 3,
+  staff: 4,
+  arrival: 5,
 };
+
+export function isPublicPelotonAnnouncement(item: PublicGameNewsItem) {
+  return item.kind === "victory" || item.kind === "gazette";
+}
 
 export function createPublicGameNewsSnapshot({
   items,
@@ -174,6 +179,7 @@ export function createPublicGameNewsSnapshot({
 }): PublicGameNewsSnapshot {
   return {
     items: [...items]
+      .filter(isPublicPelotonAnnouncement)
       .filter((item) => Number.isFinite(new Date(item.happenedAt).getTime()))
       .sort(
         (first, second) =>
@@ -191,9 +197,8 @@ export function createEmptyPublicGameNewsSnapshot(): PublicGameNewsSnapshot {
   return createPublicGameNewsSnapshot({
     items: [],
     totals: {
-      directors: null,
       victories: null,
-      movements: null,
+      gazettes: null,
     },
     isLive: false,
   });

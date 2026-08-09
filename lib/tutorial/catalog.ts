@@ -119,10 +119,10 @@ const onboardingTutorial = {
     {
       key: "news-feed",
       route: "/jeu",
-      targetId: "dashboard-news-feed",
-      title: "Suivez la vie de votre équipe",
+      targetId: "dashboard-overview",
+      title: "Gardez un œil sur vos notifications",
       content:
-        "Le fil d’actualité rassemble les événements importants de votre carrière : résultats de courses, blessures, retours de scouting, entraînements, finances, contrats et décisions à traiter.\n\nConsultez-le régulièrement pour adapter vos choix sportifs et financiers.",
+        "Les alertes qui réclament votre attention sont regroupées dans la boîte mail du Directeur Sportif, accessible depuis l’enveloppe en haut de l’écran.\n\nVous y retrouverez notamment les blessures, fins de scouting, inscriptions aux championnats et situations financières à régulariser.",
       placement: "bottom",
     },
     {
