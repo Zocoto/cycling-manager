@@ -24,6 +24,33 @@ export type NutritionistInterventionOption = {
   remainingCapacity: number;
 };
 
+export function canReserveNutritionistForDraft({
+  nutritionist,
+  interventionCode,
+  usage,
+  currentNutritionistContractId,
+  hasCurrentIntervention,
+}: {
+  nutritionist: NutritionistInterventionOption;
+  interventionCode: NutritionInterventionCode;
+  usage: number;
+  currentNutritionistContractId: string | null;
+  hasCurrentIntervention: boolean;
+}) {
+  if (
+    nutritionist.level <
+    NUTRITION_INTERVENTIONS[interventionCode].minimumNutritionistLevel
+  ) {
+    return false;
+  }
+
+  const keepsCurrentReservation =
+    hasCurrentIntervention &&
+    nutritionist.contractId === currentNutritionistContractId;
+
+  return keepsCurrentReservation || usage < nutritionist.remainingCapacity;
+}
+
 type NutritionInterventionDraft = {
   riderId: string;
   nutritionistContractId: string | null;
@@ -136,10 +163,40 @@ export function NutritionInterventionsEditor({
       setDraftsByRiderId((current) => {
         const draft = current[riderId];
         if (!draft) return current;
-        return { ...current, [riderId]: { ...draft, ...patch } };
+        const nextDraft = { ...draft, ...patch };
+
+        if (
+          nextDraft.interventionCode &&
+          nextDraft.nutritionistContractId
+        ) {
+          const nutritionist = nutritionists.find(
+            (option) =>
+              option.contractId === nextDraft.nutritionistContractId,
+          );
+          if (!nutritionist) return current;
+
+          const usage = Object.values(current).filter(
+            (candidate) =>
+              Boolean(candidate.interventionCode) &&
+              candidate.nutritionistContractId === nutritionist.contractId,
+          ).length;
+          if (
+            !canReserveNutritionistForDraft({
+              nutritionist,
+              interventionCode: nextDraft.interventionCode,
+              usage,
+              currentNutritionistContractId: draft.nutritionistContractId,
+              hasCurrentIntervention: Boolean(draft.interventionCode),
+            })
+          ) {
+            return current;
+          }
+        }
+
+        return { ...current, [riderId]: nextDraft };
       });
     },
-    [],
+    [nutritionists],
   );
   const context = useMemo(
     () => ({
@@ -235,6 +292,20 @@ export function NutritionInterventionFields({
   const actualFormGain = outcome
     ? Math.min(outcome.formGain, Math.max(0, 100 - riderForm))
     : 0;
+  const canSelectIntervention = (code: NutritionInterventionCode) =>
+    editor.nutritionists.some((nutritionist) =>
+      canReserveNutritionistForDraft({
+        nutritionist,
+        interventionCode: code,
+        usage:
+          editor.usageByNutritionist[nutritionist.contractId] ?? 0,
+        currentNutritionistContractId: draft.nutritionistContractId,
+        hasCurrentIntervention: Boolean(draft.interventionCode),
+      }),
+    );
+  const hasAvailableIntervention = INTERVENTION_CODES.some(
+    canSelectIntervention,
+  );
 
   function selectIntervention(code: NutritionInterventionCode | null) {
     if (!code) {
@@ -245,23 +316,22 @@ export function NutritionInterventionFields({
       return;
     }
 
-    const currentIsCompatible =
-      selectedNutritionist &&
-      selectedNutritionist.level >=
-        NUTRITION_INTERVENTIONS[code].minimumNutritionistLevel;
-    const nutritionist = currentIsCompatible
-      ? selectedNutritionist
-      : editor.nutritionists.find(
-          (option) =>
-            option.level >=
-              NUTRITION_INTERVENTIONS[code].minimumNutritionistLevel &&
-            (editor.usageByNutritionist[option.contractId] ?? 0) <
-              option.remainingCapacity,
-        ) ?? null;
+    const nutritionist =
+      editor.nutritionists.find((option) =>
+        canReserveNutritionistForDraft({
+          nutritionist: option,
+          interventionCode: code,
+          usage: editor.usageByNutritionist[option.contractId] ?? 0,
+          currentNutritionistContractId: draft.nutritionistContractId,
+          hasCurrentIntervention: Boolean(draft.interventionCode),
+        }),
+      ) ?? null;
+
+    if (!nutritionist) return;
 
     editor.updateDraft(riderId, {
       interventionCode: code,
-      nutritionistContractId: nutritionist?.contractId ?? null,
+      nutritionistContractId: nutritionist.contractId,
     });
   }
 
@@ -274,7 +344,7 @@ export function NutritionInterventionFields({
         <select
           name={`nutrition-intervention-${riderId}`}
           value={draft.interventionCode ?? ""}
-          disabled={riderForm >= 100}
+          disabled={riderForm >= 100 || !hasAvailableIntervention}
           onChange={(event) =>
             selectIntervention(
               (event.target.value || null) as NutritionInterventionCode | null,
@@ -283,11 +353,15 @@ export function NutritionInterventionFields({
           className="min-h-11 min-w-0 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E] disabled:cursor-not-allowed disabled:bg-[#F4F7F5] disabled:text-[#809189]"
         >
           <option value="">Aucun complément</option>
-          {INTERVENTION_CODES.map((code) => (
-            <option key={code} value={code}>
-              {NUTRITION_INTERVENTIONS[code].label}
-            </option>
-          ))}
+          {INTERVENTION_CODES.map((code) => {
+            const isAvailable = canSelectIntervention(code);
+            return (
+              <option key={code} value={code} disabled={!isAvailable}>
+                {NUTRITION_INTERVENTIONS[code].label}
+                {isAvailable ? "" : " · contingent épuisé"}
+              </option>
+            );
+          })}
         </select>
       </label>
 
@@ -299,32 +373,66 @@ export function NutritionInterventionFields({
           name={`nutritionist-${riderId}`}
           value={draft.nutritionistContractId ?? ""}
           disabled={!draft.interventionCode}
-          onChange={(event) =>
+          onChange={(event) => {
+            const nextContractId = event.target.value || null;
+            if (!nextContractId) {
+              editor.updateDraft(riderId, {
+                nutritionistContractId: null,
+              });
+              return;
+            }
+
+            const nutritionist = editor.nutritionists.find(
+              (option) => option.contractId === nextContractId,
+            );
+            if (
+              !nutritionist ||
+              !draft.interventionCode ||
+              !canReserveNutritionistForDraft({
+                nutritionist,
+                interventionCode: draft.interventionCode,
+                usage:
+                  editor.usageByNutritionist[nutritionist.contractId] ?? 0,
+                currentNutritionistContractId:
+                  draft.nutritionistContractId,
+                hasCurrentIntervention: Boolean(draft.interventionCode),
+              })
+            ) {
+              return;
+            }
+
             editor.updateDraft(riderId, {
-              nutritionistContractId: event.target.value || null,
-            })
-          }
+              nutritionistContractId: nextContractId,
+            });
+          }}
           className="min-h-11 min-w-0 rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#78A94E] disabled:cursor-not-allowed disabled:bg-[#F4F7F5] disabled:text-[#809189]"
         >
           <option value="">Choisir un nutritionniste</option>
           {editor.nutritionists.map((nutritionist) => {
             const usage =
               editor.usageByNutritionist[nutritionist.contractId] ?? 0;
-            const isCurrent =
-              nutritionist.contractId === draft.nutritionistContractId;
             const isLocked = draft.interventionCode
               ? nutritionist.level <
                 NUTRITION_INTERVENTIONS[draft.interventionCode]
                   .minimumNutritionistLevel
               : false;
-            const isFull =
-              usage >= nutritionist.remainingCapacity && !isCurrent;
+            const canReserve = draft.interventionCode
+              ? canReserveNutritionistForDraft({
+                  nutritionist,
+                  interventionCode: draft.interventionCode,
+                  usage,
+                  currentNutritionistContractId:
+                    draft.nutritionistContractId,
+                  hasCurrentIntervention: Boolean(draft.interventionCode),
+                })
+              : false;
+            const isFull = !isLocked && !canReserve;
 
             return (
               <option
                 key={nutritionist.contractId}
                 value={nutritionist.contractId}
-                disabled={isLocked || isFull}
+                disabled={!canReserve}
               >
                 {nutritionist.name} · niv. {nutritionist.level} · {usage}/
                 {nutritionist.remainingCapacity} nouvelles places
@@ -347,6 +455,8 @@ export function NutritionInterventionFields({
           </>
         ) : riderForm >= 100 ? (
           "Forme déjà au maximum"
+        ) : !hasAvailableIntervention ? (
+          "Contingent des nutritionnistes épuisé"
         ) : (
           "Aucun coût programmé"
         )}

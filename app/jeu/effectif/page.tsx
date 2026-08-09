@@ -13,6 +13,7 @@ import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-pr
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { RiderAvatar } from "../../../components/game/rider-avatar";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
+import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { PotentialStars } from "../../../components/game/potential-stars";
 import { TeamDivisionBadge } from "../../../components/game/team-division-badge";
 import {
@@ -57,6 +58,7 @@ import {
   type RiderMedicalInjury,
 } from "../../../services/team-health";
 import { getCurrentTeamRiderSeasonPlanning } from "../../../services/rider-season-planning";
+import { getTeamContractManagementOverview } from "@/services/team-contract-management";
 import { getActiveNationalChampionshipTitlesForRiders } from "@/services/rider-national-championship-titles";
 import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
@@ -223,12 +225,15 @@ export default async function TeamRosterPage({
     sort?: string | string[];
     direction?: string | string[];
     vue?: string | string[];
+    succes?: string | string[];
+    erreur?: string | string[];
   }>;
 }) {
   const rosterQuery = await searchParams;
+  const requestedView = getFirstSearchParam(rosterQuery.vue);
   const activeView =
-    getFirstSearchParam(rosterQuery.vue) === "planning"
-      ? "planning"
+    requestedView === "planning" || requestedView === "contrats"
+      ? requestedView
       : "statistiques";
   const currentSortKey = parseRosterSortKey(
     getFirstSearchParam(rosterQuery.sort),
@@ -272,6 +277,7 @@ export default async function TeamRosterPage({
     teamSummaryResult,
     rosterResult,
     planningOverview,
+    contractOverview,
     sponsorIdentityResult,
     teamAmateurIdentity,
     teamDivision,
@@ -292,6 +298,17 @@ export default async function TeamRosterPage({
           );
           return null;
         })
+      : Promise.resolve(null),
+    activeView === "contrats"
+      ? getTeamContractManagementOverview(user.id).catch(
+          (error: unknown) => {
+            console.error(
+              "Impossible de récupérer la gestion contractuelle de l’effectif :",
+              error,
+            );
+            return null;
+          },
+        )
       : Promise.resolve(null),
     sponsorIdentityPromise,
     getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
@@ -507,6 +524,17 @@ export default async function TeamRosterPage({
 
           <RosterViewTabs activeView={activeView} />
 
+          {getFirstSearchParam(rosterQuery.succes) ? (
+            <p className="mt-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
+              {getFirstSearchParam(rosterQuery.succes)}
+            </p>
+          ) : null}
+          {getFirstSearchParam(rosterQuery.erreur) ? (
+            <p className="mt-5 rounded-2xl border border-[#C94F4F]/25 bg-[#FFF0EE] px-5 py-4 text-sm font-bold text-[#8A2F2F]">
+              {getFirstSearchParam(rosterQuery.erreur)}
+            </p>
+          ) : null}
+
           <section
             className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
             data-tutorial-id="roster-overview"
@@ -566,6 +594,18 @@ export default async function TeamRosterPage({
                 />
               ) : (
                 <PlanningUnavailable />
+              )}
+            </div>
+          ) : activeView === "contrats" ? (
+            <div className="mt-6">
+              {contractOverview ? (
+                <TeamContractManagement
+                  overview={contractOverview}
+                  jersey={riderJersey}
+                  jerseyByRiderId={nationalChampionJerseyByRiderId}
+                />
+              ) : (
+                <ContractManagementUnavailable />
               )}
             </div>
           ) : (
@@ -777,12 +817,12 @@ export default async function TeamRosterPage({
 function RosterViewTabs({
   activeView,
 }: {
-  activeView: "statistiques" | "planning";
+  activeView: "statistiques" | "planning" | "contrats";
 }) {
   return (
     <nav
       aria-label="Vues de l’effectif"
-      className="mt-8 grid gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm sm:grid-cols-2"
+      className="mt-8 grid gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm sm:grid-cols-3"
     >
       <Link
         href="/jeu/effectif?vue=statistiques"
@@ -798,14 +838,14 @@ function RosterViewTabs({
             activeView === "statistiques" ? "text-white" : "text-[#183F37]"
           }`}
         >
-          Statistiques & contrats
+          Effectif
         </strong>
         <span
           className={`mt-1 block text-xs font-semibold ${
             activeView === "statistiques" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
-          Notes, potentiel, salaire et échéance
+          Notes, profils, forme et potentiel
         </span>
       </Link>
       <Link
@@ -832,6 +872,30 @@ function RosterViewTabs({
           Courses, stages, reconnaissances et blessures
         </span>
       </Link>
+      <Link
+        href="/jeu/effectif?vue=contrats"
+        aria-current={activeView === "contrats" ? "page" : undefined}
+        className={`rounded-xl px-5 py-4 transition ${
+          activeView === "contrats"
+            ? "bg-[#0B302B] text-white shadow-md"
+            : "text-[#315B3E] hover:bg-[#F3F8F6]"
+        }`}
+      >
+        <strong
+          className={`block text-sm font-black ${
+            activeView === "contrats" ? "text-white" : "text-[#183F37]"
+          }`}
+        >
+          Contrats
+        </strong>
+        <span
+          className={`mt-1 block text-xs font-semibold ${
+            activeView === "contrats" ? "text-[#BFD1C6]" : "text-[#60756E]"
+          }`}
+        >
+          Échéances et prolongation groupée
+        </span>
+      </Link>
     </nav>
   );
 }
@@ -843,8 +907,20 @@ function PlanningUnavailable() {
         Le planning est momentanément indisponible
       </p>
       <p className="mt-2 text-sm font-semibold text-[#7A5555]">
-        Les données de l’effectif restent accessibles dans la vue Statistiques &
-        contrats.
+        Les données de l’effectif restent accessibles dans la vue Effectif.
+      </p>
+    </section>
+  );
+}
+
+function ContractManagementUnavailable() {
+  return (
+    <section className="rounded-[2rem] border border-[#C94F4F]/20 bg-[#FFF0EE] p-7">
+      <p className="text-lg font-black text-[#8A2F2F]">
+        La gestion contractuelle est momentanément indisponible
+      </p>
+      <p className="mt-2 text-sm font-semibold text-[#7A5555]">
+        Réessayez dans quelques instants. Aucun contrat n’a été modifié.
       </p>
     </section>
   );

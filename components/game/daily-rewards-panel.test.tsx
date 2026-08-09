@@ -5,18 +5,17 @@ import { DailyRewardsPanel } from "@/components/game/daily-rewards-panel";
 import type { DailyRewardOverview } from "@/lib/game/daily-rewards";
 
 describe("DailyRewardsPanel", () => {
-  it("keeps the streak visible without exposing reward levels", () => {
+  it("shows the extended cycle and its next reward level", () => {
     const markup = renderToStaticMarkup(
       <DailyRewardsPanel overview={createOverview()} />,
     );
 
-    expect(markup).toContain("Série");
-    expect(markup).toContain("3 j");
-    expect(markup).not.toContain(">Prochain<");
-    expect(markup).not.toContain(">Saison<");
-    expect(markup).not.toContain("Niv.");
-    expect(markup).not.toContain("Importance");
-    expect(markup).not.toContain("cadeau niveau");
+    expect(markup).toContain("Cycle");
+    expect(markup).toContain("4/40");
+    expect(markup).toContain(">Prochain<");
+    expect(markup).toContain(">Saison<");
+    expect(markup).toContain("Niv. 8");
+    expect(markup).toContain("cadeau de niveau 10");
   });
 
   it("never offers equipment redemption from the rewards reserve", () => {

@@ -66,12 +66,12 @@ describe("global chat messages", () => {
     ).toBe("");
   });
 
-  it("does not allow legacy cycling GIF tokens in new messages", () => {
+  it("preserves supported cycling GIF tokens in new messages", () => {
     expect(
       normalizeGlobalChatMessage(
         "[cycling-reaction:snack_attack] Bonjour à tous",
       ),
-    ).toBe("Bonjour à tous");
+    ).toBe("[cycling-reaction:snack_attack] Bonjour à tous");
   });
   it("limits visible history to the latest thirty days", () => {
     expect(

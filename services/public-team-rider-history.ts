@@ -6,6 +6,7 @@ type ContractRow = {
   rider_id: string;
   start_season_id: string;
   end_season_id: string;
+  left_season_id: string | null;
   status: string;
 };
 
@@ -66,7 +67,7 @@ export async function getPublicTeamRiderHistory(
   const admin = createSupabaseAdminClient();
   const contractsResult = await admin
     .from("rider_contracts")
-    .select("rider_id, start_season_id, end_season_id, status")
+    .select("rider_id, start_season_id, end_season_id, left_season_id, status")
     .eq("team_id", teamId)
     .in("status", ["active", "completed", "terminated"])
     .returns<ContractRow[]>();
@@ -81,6 +82,7 @@ export async function getPublicTeamRiderHistory(
       contracts.flatMap((contract) => [
         contract.start_season_id,
         contract.end_season_id,
+        ...(contract.left_season_id ? [contract.left_season_id] : []),
       ]),
     ),
   ];
@@ -165,7 +167,9 @@ export async function getPublicTeamRiderHistory(
 
       for (const contract of riderContracts) {
         const start = seasonById.get(contract.start_season_id);
-        const end = seasonById.get(contract.end_season_id);
+        const end = seasonById.get(
+          contract.left_season_id ?? contract.end_season_id,
+        );
         if (!start || !end) continue;
         for (let year = start.game_year; year <= end.game_year; year += 1) {
           coveredYears.set(
@@ -174,7 +178,11 @@ export async function getPublicTeamRiderHistory(
               ? start
               : year === end.game_year
                 ? end
-                : { id: `${rider.id}-${year}`, name: `Saison ${year}`, game_year: year },
+                : {
+                    id: `${rider.id}-${year}`,
+                    name: `Saison ${year}`,
+                    game_year: year,
+                  },
           );
         }
       }
@@ -196,13 +204,16 @@ export async function getPublicTeamRiderHistory(
           countryCode: country.iso_alpha2,
           avatarProfileKey: rider.avatar_profile_key,
           avatarSeed: rider.avatar_seed,
-          age: archive?.retirement_age ?? activeAgeByRiderId.get(rider.id) ?? null,
+          age:
+            archive?.retirement_age ?? activeAgeByRiderId.get(rider.id) ?? null,
           firstSeasonName: firstSeason.name,
           firstGameYear: firstSeason.game_year,
           lastSeasonName: lastSeason.name,
           lastGameYear: lastSeason.game_year,
           seasonsCount: seasons.length,
-          isCurrent: riderContracts.some((contract) => contract.status === "active"),
+          isCurrent: riderContracts.some(
+            (contract) => contract.status === "active",
+          ),
           isArchived: Boolean(archive) || rider.status === "retired",
           retirementSeasonName: archive?.retirement_season_name ?? null,
         },

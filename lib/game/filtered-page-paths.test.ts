@@ -29,6 +29,17 @@ describe("filtered page return paths", () => {
     expect(sanitizeTransferMarketReturnPath(`${path}&succes=ancien`)).toBe(path);
   });
 
+  it("conserve l'onglet des offres directes sans paramètres parasites", () => {
+    expect(buildTransferMarketReturnPath("offres")).toBe(
+      "/jeu/transferts?onglet=offres",
+    );
+    expect(
+      sanitizeTransferMarketReturnPath(
+        "/jeu/transferts?onglet=offres&profil=Grimpeur&erreur=ancienne",
+      ),
+    ).toBe("/jeu/transferts?onglet=offres");
+  });
+
   it("ne transporte aucun filtre vers une autre page", () => {
     expect(
       sanitizeTransferMarketReturnPath(

@@ -41,6 +41,29 @@ type ArchiveSeasonRow = {
   notable_performances: unknown;
 };
 
+type ContractHistoryRow = {
+  team_id: string;
+  start_season_id: string;
+  left_season_id: string | null;
+  joined_day_number: number;
+  left_day_number: number | null;
+  transfer_fee: number | string | null;
+  currency_code: string;
+};
+
+type ArchivedTeamSeasonRow = {
+  id: string;
+  team_id: string;
+  season_id: string;
+};
+
+type ArchivedRewardRow = {
+  team_season_id: string | null;
+  source_reference: string;
+  uci_points: number;
+  description: string;
+};
+
 export async function getArchivedRiderProfile(
   riderId: string,
 ): Promise<PublicRiderProfile | null> {
@@ -57,33 +80,140 @@ export async function getArchivedRiderProfile(
   const archive = archiveResult.data;
   if (!archive) return null;
 
-  const seasonsResult = await admin
-    .from("rider_history_archive_seasons")
-    .select(
-      "season_id, season_name, game_year, team_id, team_name, victories, points, uci_rank, national_titles, notable_performances",
-    )
-    .eq("rider_id", riderId)
-    .order("game_year", { ascending: false })
-    .returns<ArchiveSeasonRow[]>();
+  const [seasonsResult, contractsResult] = await Promise.all([
+    admin
+      .from("rider_history_archive_seasons")
+      .select(
+        "season_id, season_name, game_year, team_id, team_name, victories, points, uci_rank, national_titles, notable_performances",
+      )
+      .eq("rider_id", riderId)
+      .order("game_year", { ascending: false })
+      .returns<ArchiveSeasonRow[]>(),
+    admin
+      .from("rider_contracts")
+      .select(
+        "team_id, start_season_id, left_season_id, joined_day_number, left_day_number, transfer_fee, currency_code",
+      )
+      .eq("rider_id", riderId)
+      .returns<ContractHistoryRow[]>(),
+  ]);
   assertQuery(seasonsResult.error, "l’historique archivé du coureur");
 
   const reason = isRiderArchiveReason(archive.retirement_reason)
     ? archive.retirement_reason
     : "no_team_and_no_race";
-  const history = (seasonsResult.data ?? []).map((season) => ({
-    seasonId: season.season_id,
-    seasonName: season.season_name,
-    gameYear: season.game_year,
-    teamId: season.team_id,
-    teamName: season.team_name,
-    victories: season.victories,
-    points: season.points,
-    uciRank: season.uci_rank,
-    nationalTitles: parseNationalTitles(season.national_titles),
-    notablePerformances: parseNotablePerformances(
-      season.notable_performances,
-    ),
-  }));
+  assertQuery(contractsResult.error, "les mouvements archivés du coureur");
+
+  const archivedSeasons = seasonsResult.data ?? [];
+  const teamIds = [...new Set(archivedSeasons.map((season) => season.team_id))];
+  const seasonIds = [
+    ...new Set(archivedSeasons.map((season) => season.season_id)),
+  ];
+  const teamSeasonsResult =
+    teamIds.length > 0 && seasonIds.length > 0
+      ? await admin
+          .from("team_seasons")
+          .select("id, team_id, season_id")
+          .in("team_id", teamIds)
+          .in("season_id", seasonIds)
+          .returns<ArchivedTeamSeasonRow[]>()
+      : { data: [] as ArchivedTeamSeasonRow[], error: null };
+  assertQuery(
+    teamSeasonsResult.error,
+    "les équipes saisonnières du coureur archivé",
+  );
+
+  const archivedTeamSeasons = teamSeasonsResult.data ?? [];
+  const rewardResult = archivedTeamSeasons.length
+    ? await admin
+        .from("reward_events")
+        .select("team_season_id, source_reference, uci_points, description")
+        .eq("rider_id", riderId)
+        .in(
+          "team_season_id",
+          archivedTeamSeasons.map((season) => season.id),
+        )
+        .in("source_type", ["race_result", "stage_result"])
+        .returns<ArchivedRewardRow[]>()
+    : { data: [] as ArchivedRewardRow[], error: null };
+  assertQuery(rewardResult.error, "le palmarès archivé par équipe");
+
+  const teamSeasonById = new Map(
+    archivedTeamSeasons.map((season) => [season.id, season]),
+  );
+  const teamCountBySeasonId = new Map<string, Set<string>>();
+  for (const season of archivedSeasons) {
+    const teams =
+      teamCountBySeasonId.get(season.season_id) ?? new Set<string>();
+    teams.add(season.team_id);
+    teamCountBySeasonId.set(season.season_id, teams);
+  }
+  const achievementsBySeasonTeam = new Map<
+    string,
+    { points: number; victoryReferences: Set<string> }
+  >();
+  for (const reward of rewardResult.data ?? []) {
+    const teamSeason = reward.team_season_id
+      ? teamSeasonById.get(reward.team_season_id)
+      : null;
+    if (!teamSeason) continue;
+    const key = `${teamSeason.season_id}:${teamSeason.team_id}`;
+    const achievements = achievementsBySeasonTeam.get(key) ?? {
+      points: 0,
+      victoryReferences: new Set<string>(),
+    };
+    achievements.points += Number(reward.uci_points);
+    if (
+      /:rank:1(?::|$)/.test(reward.source_reference) ||
+      /(?:victoire|1(?:er|e) place)/i.test(reward.description)
+    ) {
+      achievements.victoryReferences.add(reward.source_reference);
+    }
+    achievementsBySeasonTeam.set(key, achievements);
+  }
+
+  const history = archivedSeasons.map((season) => {
+    const startingContract = (contractsResult.data ?? []).find(
+      (contract) =>
+        contract.team_id === season.team_id &&
+        contract.start_season_id === season.season_id,
+    );
+    const leavingContract = (contractsResult.data ?? []).find(
+      (contract) =>
+        contract.team_id === season.team_id &&
+        contract.left_season_id === season.season_id,
+    );
+    const hasSeveralTeams =
+      (teamCountBySeasonId.get(season.season_id)?.size ?? 0) > 1;
+    const achievements = achievementsBySeasonTeam.get(
+      `${season.season_id}:${season.team_id}`,
+    );
+
+    return {
+      seasonId: season.season_id,
+      seasonName: season.season_name,
+      gameYear: season.game_year,
+      teamId: season.team_id,
+      teamName: season.team_name,
+      transferFee:
+        startingContract?.transfer_fee !== null &&
+        startingContract?.transfer_fee !== undefined
+          ? Number(startingContract.transfer_fee)
+          : null,
+      currencyCode: startingContract?.currency_code ?? "EUR",
+      joinedDayNumber: startingContract?.joined_day_number ?? null,
+      leftDayNumber: leavingContract?.left_day_number ?? null,
+      victories: hasSeveralTeams
+        ? (achievements?.victoryReferences.size ?? 0)
+        : season.victories,
+      points: hasSeveralTeams ? (achievements?.points ?? 0) : season.points,
+      uciRank: season.uci_rank,
+      nationalTitles: parseNationalTitles(season.national_titles),
+      notablePerformances: parseNotablePerformances(
+        season.notable_performances,
+      ),
+    };
+  });
 
   return {
     id: archive.rider_id,
@@ -165,8 +295,7 @@ function parseNotablePerformances(value: unknown): RiderNotablePerformance[] {
       typeof candidate.uciPoints !== "number" ||
       !Array.isArray(candidate.labels) ||
       !candidate.labels.every((label) => typeof label === "string") ||
-      (candidate.finalRank !== null &&
-        typeof candidate.finalRank !== "number")
+      (candidate.finalRank !== null && typeof candidate.finalRank !== "number")
     ) {
       return [];
     }

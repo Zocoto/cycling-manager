@@ -40,6 +40,51 @@ const gamePillars = [
   },
 ] as const;
 
+const featuredProductNews = {
+  category: "Mise à jour",
+  title: "Patch #3 : la Cyclogazette prend la route",
+  description:
+    "Un nouveau rendez-vous quotidien, des actions groupées et de nombreuses améliorations du moteur de course, de l’interface et des entraînements.",
+  dateTime: "2026-08-01",
+  dateLabel: "1er août 2026",
+  sections: [
+    {
+      label: "Nouveautés",
+      icon: "🆕",
+      items: [
+        "Création de la Cyclogazette, éditée chaque jour à 20 h : elle résume les principaux mouvements de la journée et relaie les déclarations des directeurs sportifs en zone mixte dans une nouvelle rubrique des résultats.",
+        "Mise en place des récompenses quotidiennes.",
+        "Gestion groupée des équipements depuis l’onglet Matériel.",
+      ],
+    },
+    {
+      label: "Améliorations",
+      icon: "✨",
+      items: [
+        "Ajustement du moteur de course pour des échappées plus réalistes : groupes moins nombreux et davantage de tentatives lorsque le peloton est encore groupé à 80 km de l’arrivée.",
+        "Paramétrage groupé des entraînements.",
+        "Meilleure mise en avant des grands tours et des Monuments dans le calendrier.",
+        "Retrait des favoris de la page de résultats, où ils n’étaient plus utiles.",
+        "Optimisation et ajout de nouveaux mini-jeux d’entraînement pour les juniors.",
+        "Amélioration du rendu des lives, avec les foules dans les ascensions et les sprints massifs.",
+        "Optimisations d’interface sur les fiches coureurs, équipes et juniors, ainsi que sur le bandeau supérieur mobile.",
+        "Possibilité de revendre le matériel.",
+        "Améliorations du chat.",
+        "Rééquilibrage de la gestion de la forme.",
+      ],
+    },
+    {
+      label: "Corrections",
+      icon: "🔧",
+      items: [
+        "Retrait du simulateur du menu des membres, cet outil étant réservé aux tests du moteur de simulation.",
+        "Réduction du temps minimal de scouting à 3 jours.",
+        "Correction de la problématique des WC.",
+      ],
+    },
+  ],
+} as const;
+
 const productNews = [
   {
     category: "Mise à jour",
@@ -121,8 +166,8 @@ function HeroSection() {
       />
 
       <div className="relative mx-auto flex min-h-150 max-w-7xl items-center px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
-        <div className="max-w-2xl">
-          <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
+        <div className="w-full max-w-5xl">
+          <h1 className="max-w-2xl text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
             Prenez la tête
             <span className="mt-2 block text-[#42B99A]">du peloton.</span>
           </h1>
@@ -159,7 +204,7 @@ function HeroSection() {
 
 function ProductNews() {
   return (
-    <section className="mt-8 max-w-2xl" aria-labelledby="product-news-title">
+    <section className="mt-8 w-full max-w-5xl" aria-labelledby="product-news-title">
       <div className="flex items-center gap-3">
         <h2
           id="product-news-title"
@@ -173,7 +218,15 @@ function ProductNews() {
         </span>
       </div>
 
-      <ol className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3">
+        <FeaturedProductNews />
+      </div>
+
+      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.18em] text-[#56766D]">
+        Précédemment
+      </p>
+
+      <ol className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {productNews.map((news) => (
           <li key={news.title}>
             <article className="relative h-full overflow-hidden rounded-xl border border-[#315B3E]/15 bg-white/82 p-4 shadow-[0_12px_35px_rgba(19,60,46,0.11)] backdrop-blur-sm">
@@ -222,6 +275,84 @@ function ProductNews() {
         ))}
       </ol>
     </section>
+  );
+}
+
+function FeaturedProductNews() {
+  return (
+    <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/90 shadow-[0_20px_55px_rgba(19,60,46,0.16)] backdrop-blur-sm">
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 z-10 w-1.5 bg-[#F2C94C]"
+      />
+
+      <header className="relative overflow-hidden bg-linear-to-r from-[#F8F5E8] via-white to-[#E7F5EF] px-5 py-5 sm:px-7 sm:py-6">
+        <span
+          aria-hidden="true"
+          className="absolute -right-12 -top-20 h-52 w-52 rounded-full border-[32px] border-[#42CDA8]/10"
+        />
+
+        <div className="relative flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+            {featuredProductNews.category}
+          </span>
+          <span aria-hidden="true" className="text-[#78947D]">
+            ·
+          </span>
+          <time
+            dateTime={featuredProductNews.dateTime}
+            className="text-[11px] font-semibold text-[#6A7E77]"
+          >
+            {featuredProductNews.dateLabel}
+          </time>
+          <span className="ml-auto rounded-full bg-[#082A2A] px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.14em] text-[#F7D65E]">
+            Dernière news
+          </span>
+        </div>
+
+        <h3 className="relative mt-3 max-w-3xl text-2xl font-black leading-tight tracking-[-0.025em] text-[#082A2A] sm:text-3xl">
+          {featuredProductNews.title}
+        </h3>
+        <p className="relative mt-2 max-w-3xl text-sm leading-6 text-[#536B64] sm:text-base">
+          {featuredProductNews.description}
+        </p>
+      </header>
+
+      <div className="relative grid gap-px border-t border-[#315B3E]/15 bg-[#315B3E]/10 md:grid-cols-3">
+        {featuredProductNews.sections.map((section, sectionIndex) => (
+          <section
+            key={section.label}
+            className="bg-white/[0.88] px-5 py-5 sm:px-6 sm:py-6"
+            aria-labelledby={`patch-3-section-${sectionIndex}`}
+          >
+            <h4
+              id={`patch-3-section-${sectionIndex}`}
+              className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#173C2E]"
+            >
+              <span aria-hidden="true" className="text-base">
+                {section.icon}
+              </span>
+              {section.label}
+            </h4>
+
+            <ul className="mt-4 space-y-2.5">
+              {section.items.map((item) => (
+                <li
+                  key={item}
+                  className="grid grid-cols-[auto_1fr] gap-2 text-[13px] leading-5 text-[#536B64]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mt-2 h-1.5 w-1.5 rounded-full bg-[#42A884]"
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </article>
   );
 }
 

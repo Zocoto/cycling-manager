@@ -3,9 +3,7 @@ import "server-only";
 import {
   calculateInGameTenureDays,
   evaluateNaturalizationEligibility,
-  findContinuousProfessionalTenureStart,
   type NaturalizationEligibility,
-  type ProfessionalContractTenure,
 } from "@/lib/game/naturalization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -15,16 +13,16 @@ type CountryRow = {
   iso_alpha2: string;
 };
 
-type ContractRow = {
-  start_season_id: string;
-  end_season_id: string;
-  joined_day_number: number;
-};
-
 type SeasonRow = {
   id: string;
   game_year: number;
   current_day_number: number | null;
+};
+
+type CountryProgressRow = {
+  accumulated_days: number;
+  active_since_season_id: string | null;
+  active_since_day_number: number | null;
 };
 
 export async function getProfessionalRiderNaturalizationEligibility({
@@ -59,7 +57,7 @@ export async function getProfessionalRiderNaturalizationEligibility({
     .eq("role", "general_manager")
     .eq("status", "active")
     .maybeSingle<{ team_id: string }>();
-  assertQuery(assignmentResult.error, "l’équipe du Directeur Sportif");
+  assertQuery(assignmentResult.error, "l'équipe du Directeur Sportif");
   if (!assignmentResult.data) return null;
 
   const teamId = assignmentResult.data.team_id;
@@ -73,11 +71,11 @@ export async function getProfessionalRiderNaturalizationEligibility({
         .maybeSingle<{ country_id: string }>(),
       admin
         .from("rider_contracts")
-        .select("start_season_id, end_season_id, joined_day_number")
+        .select("id")
         .eq("rider_id", riderId)
         .eq("team_id", teamId)
         .eq("status", "active")
-        .maybeSingle<ContractRow>(),
+        .maybeSingle<{ id: string }>(),
       admin
         .from("team_seasons")
         .select("registration_country_id")
@@ -91,81 +89,54 @@ export async function getProfessionalRiderNaturalizationEligibility({
     ]);
   assertQuery(riderResult.error, "le coureur");
   assertQuery(contractResult.error, "le contrat actuel du coureur");
-  assertQuery(teamSeasonResult.error, "la nationalité actuelle de l’équipe");
+  assertQuery(teamSeasonResult.error, "la nationalité actuelle de l'équipe");
   assertQuery(titleResult.error, "le palmarès national du coureur");
   if (!riderResult.data || !contractResult.data || !teamSeasonResult.data) {
     return null;
   }
 
-  const contractsResult = await admin
-    .from("rider_contracts")
-    .select("start_season_id, end_season_id, joined_day_number")
+  const targetCountryId = teamSeasonResult.data.registration_country_id;
+  const progressResult = await admin
+    .from("rider_naturalization_country_progress")
+    .select("accumulated_days, active_since_season_id, active_since_day_number")
     .eq("rider_id", riderId)
-    .eq("team_id", teamId)
-    .in("status", ["active", "completed"])
-    .returns<ContractRow[]>();
-  assertQuery(contractsResult.error, "l’ancienneté du coureur dans l’équipe");
+    .eq("country_id", targetCountryId)
+    .maybeSingle<CountryProgressRow>();
+  assertQuery(
+    progressResult.error,
+    "la progression de naturalisation du coureur",
+  );
 
-  const seasonIds = [
-    ...new Set(
-      (contractsResult.data ?? []).flatMap((contract) => [
-        contract.start_season_id,
-        contract.end_season_id,
-      ]),
-    ),
-  ];
-  const seasonsResult = seasonIds.length
-    ? await admin
+  let elapsedDays = progressResult.data?.accumulated_days ?? 0;
+  if (
+    progressResult.data?.active_since_season_id &&
+    progressResult.data.active_since_day_number !== null
+  ) {
+    let progressStartSeason: SeasonRow | null = seasonResult.data;
+    if (progressResult.data.active_since_season_id !== seasonResult.data.id) {
+      const progressSeasonResult = await admin
         .from("seasons")
         .select("id, game_year, current_day_number")
-        .in("id", seasonIds)
-        .returns<SeasonRow[]>()
-    : { data: [] as SeasonRow[], error: null };
-  assertQuery(seasonsResult.error, "les saisons contractuelles du coureur");
-  const gameYearBySeasonId = new Map(
-    (seasonsResult.data ?? []).map((season) => [season.id, season.game_year]),
-  );
+        .eq("id", progressResult.data.active_since_season_id)
+        .maybeSingle<SeasonRow>();
+      assertQuery(
+        progressSeasonResult.error,
+        "le début de la progression de naturalisation",
+      );
+      progressStartSeason = progressSeasonResult.data;
+    }
 
-  const contracts = (contractsResult.data ?? []).flatMap(
-    (contract): ProfessionalContractTenure[] => {
-      const startGameYear = gameYearBySeasonId.get(contract.start_season_id);
-      const endGameYear = gameYearBySeasonId.get(contract.end_season_id);
-      return startGameYear === undefined || endGameYear === undefined
-        ? []
-        : [
-            {
-              startGameYear,
-              endGameYear,
-              joinedDayNumber: contract.joined_day_number,
-            },
-          ];
-    },
-  );
-  const currentContract = contracts.find(
-    (contract) =>
-      contract.startGameYear ===
-        gameYearBySeasonId.get(contractResult.data!.start_season_id) &&
-      contract.endGameYear ===
-        gameYearBySeasonId.get(contractResult.data!.end_season_id) &&
-      contract.joinedDayNumber === contractResult.data!.joined_day_number,
-  );
-  if (!currentContract) return null;
+    if (progressStartSeason) {
+      elapsedDays += calculateInGameTenureDays({
+        startGameYear: progressStartSeason.game_year,
+        startDayNumber: progressResult.data.active_since_day_number,
+        currentGameYear: seasonResult.data.game_year,
+        currentDayNumber: seasonResult.data.current_day_number ?? 1,
+      });
+    }
+  }
 
-  const tenureStart = findContinuousProfessionalTenureStart({
-    currentContract,
-    contracts,
-  });
-  const elapsedDays = calculateInGameTenureDays({
-    startGameYear: tenureStart.startGameYear,
-    startDayNumber: tenureStart.joinedDayNumber,
-    currentGameYear: seasonResult.data.game_year,
-    currentDayNumber: seasonResult.data.current_day_number ?? 1,
-  });
-
-  const countryIds = [
-    riderResult.data.country_id,
-    teamSeasonResult.data.registration_country_id,
-  ];
+  const countryIds = [riderResult.data.country_id, targetCountryId];
   const countriesResult = await admin
     .from("countries")
     .select("id, name, iso_alpha2")
@@ -176,9 +147,7 @@ export async function getProfessionalRiderNaturalizationEligibility({
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
   const currentCountry = countryById.get(riderResult.data.country_id);
-  const targetCountry = countryById.get(
-    teamSeasonResult.data.registration_country_id,
-  );
+  const targetCountry = countryById.get(targetCountryId);
   if (!currentCountry || !targetCountry) return null;
 
   return evaluateNaturalizationEligibility({
@@ -198,10 +167,7 @@ function toCountry(country: CountryRow) {
   };
 }
 
-function assertQuery(
-  error: { message: string } | null,
-  label: string,
-): void {
+function assertQuery(error: { message: string } | null, label: string): void {
   if (error) {
     throw new Error(`Impossible de charger ${label} : ${error.message}`);
   }

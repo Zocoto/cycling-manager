@@ -45,6 +45,12 @@ describe("RaceLiveChat", () => {
         mode="replay"
       />,
     );
+    expect(markup).toContain("h-[26rem]");
+    expect(markup).toContain("sm:h-[32rem]");
+    expect(markup).toContain('aria-label="Messages du chat de course"');
+    expect(markup).toContain("overflow-y-scroll");
+    expect(markup).toContain("[scrollbar-gutter:stable]");
+    expect(markup).toContain('tabindex="0"');
 
     expect(markup).toContain('data-race-live-chat="persistent"');
     expect(markup).toContain('data-race-chat-room="edition-1"');

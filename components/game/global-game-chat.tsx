@@ -9,22 +9,28 @@ import {
   useTransition,
 } from "react";
 
+import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
+import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
+import { postGlobalChatMessageAction } from "@/app/jeu/chat/actions";
 import {
-  postGlobalChatMessageAction,
-  toggleGlobalChatMessageReactionAction,
-} from "@/app/jeu/chat/actions";
-import { GlobalChatMediaPicker } from "@/components/game/global-chat-media-picker";
+  CyclingReactionSticker,
+  GlobalChatMediaPicker,
+} from "@/components/game/global-chat-media-picker";
 import Link from "@/components/ui/app-link";
 import {
+  buildGlobalChatMessage,
   expandGlobalChatEmoticons,
+  extractGlobalChatCyclingReaction,
   extractGlobalChatPreviewReference,
   GLOBAL_CHAT_HISTORY_DAYS,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
   GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS,
   isGlobalChatMessageReactionEmoji,
   normalizeGlobalChatMessage,
+  splitGlobalChatMessageContent,
   stripGlobalChatCyclingReactionTokens,
   type GlobalChatCursor,
+  type GlobalChatCyclingReactionKey,
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
@@ -59,6 +65,12 @@ export function GlobalGameChat({
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [messages, setMessages] =
     useState<GlobalChatMessage[]>(initialMessages);
+  const {
+    pendingReactionKey,
+    isReactionPending,
+    reactionError,
+    toggleMessageReaction,
+  } = useGlobalChatReactions({ supabase, identity, setMessages });
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [olderCursor, setOlderCursor] = useState(initialCursor);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -69,12 +81,10 @@ export function GlobalGameChat({
   const [draft, setDraft] = useState("");
 
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
-  const [pendingReactionKey, setPendingReactionKey] = useState<string | null>(
-    null,
-  );
+  const [selectedReaction, setSelectedReaction] =
+    useState<GlobalChatCyclingReactionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [isReactionPending, startReactionTransition] = useTransition();
   const viewportRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const positionedRef = useRef(false);
@@ -89,37 +99,22 @@ export function GlobalGameChat({
   const oldestDisplayedMessageId = messages[0]?.id ?? null;
 
   useEffect(() => {
-    if (
-      document.visibilityState !== "visible" ||
-      !latestDisplayedMessageAt
-    ) {
+    if (document.visibilityState !== "visible" || !latestDisplayedMessageAt) {
       return;
     }
 
-    void markGlobalChatMessagesAsRead(
-      supabase,
-      latestDisplayedMessageAt,
-    );
+    void markGlobalChatMessagesAsRead(supabase, latestDisplayedMessageAt);
   }, [latestDisplayedMessageAt, supabase]);
 
   useEffect(() => {
     function markVisibleMessagesAsRead() {
-      if (
-        document.visibilityState === "visible" &&
-        latestDisplayedMessageAt
-      ) {
-        void markGlobalChatMessagesAsRead(
-          supabase,
-          latestDisplayedMessageAt,
-        );
+      if (document.visibilityState === "visible" && latestDisplayedMessageAt) {
+        void markGlobalChatMessagesAsRead(supabase, latestDisplayedMessageAt);
       }
     }
 
     window.addEventListener("focus", markVisibleMessagesAsRead);
-    document.addEventListener(
-      "visibilitychange",
-      markVisibleMessagesAsRead,
-    );
+    document.addEventListener("visibilitychange", markVisibleMessagesAsRead);
 
     return () => {
       window.removeEventListener("focus", markVisibleMessagesAsRead);
@@ -196,32 +191,6 @@ export function GlobalGameChat({
           setMessages((current) => upsertRealtimeMessage(current, message));
         },
       )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "global_chat_message_reactions",
-        },
-        (payload: {
-          eventType: string;
-          new: Record<string, unknown>;
-          old: Record<string, unknown>;
-        }) => {
-          const row = readRealtimeReaction(
-            payload.eventType === "DELETE" ? payload.old : payload.new,
-          );
-          if (!row) return;
-
-          setMessages((current) =>
-            updateMessageReaction(
-              current,
-              row,
-              payload.eventType !== "DELETE",
-            ),
-          );
-        },
-      )
       .subscribe(async (status: string) => {
         if (status !== "SUBSCRIBED") return;
 
@@ -241,7 +210,7 @@ export function GlobalGameChat({
     };
   }, [identity, supabase]);
 
-  const draftLimit = GLOBAL_CHAT_MESSAGE_MAX_LENGTH;
+  const draftLimit = getGlobalChatDraftLimit(selectedReaction);
 
   async function loadOlderMessages() {
     if (!olderCursor || isLoadingOlder) return;
@@ -275,9 +244,7 @@ export function GlobalGameChat({
         };
       }
 
-      setMessages((current) =>
-        prependUniqueMessages(current, page.messages),
-      );
+      setMessages((current) => prependUniqueMessages(current, page.messages));
       setHasMore(page.hasMore);
       setOlderCursor(page.nextCursor);
     } catch (loadingError) {
@@ -298,53 +265,22 @@ export function GlobalGameChat({
     });
   }
 
+  function selectReaction(reaction: GlobalChatCyclingReactionKey) {
+    setSelectedReaction(reaction);
+    setDraft((current) => current.slice(0, getGlobalChatDraftLimit(reaction)));
+  }
 
   function beginReply(message: GlobalChatMessage) {
     setReplyTo(message);
     window.requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
-  function toggleMessageReaction(
-    messageId: string,
-    emoji: GlobalChatMessageReactionEmoji,
-  ) {
-    const reactionKey = `${messageId}:${emoji}`;
-    if (pendingReactionKey === reactionKey) return;
-
-    setError(null);
-    setPendingReactionKey(reactionKey);
-    startReactionTransition(async () => {
-      try {
-        const { active } = await toggleGlobalChatMessageReactionAction(
-          messageId,
-          emoji,
-        );
-        setMessages((current) =>
-          updateMessageReaction(
-            current,
-            {
-              message_id: messageId,
-              sporting_director_id: identity.sportingDirectorId,
-              emoji,
-            },
-            active,
-          ),
-        );
-      } catch (reactionError) {
-        setError(
-          reactionError instanceof Error
-            ? reactionError.message
-            : "La réaction n’a pas pu être enregistrée.",
-        );
-      } finally {
-        setPendingReactionKey(null);
-      }
-    });
-  }
-
   function submitMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = normalizeGlobalChatMessage(draft);
+    const message = buildGlobalChatMessage({
+      text: draft,
+      reactionKey: selectedReaction,
+    });
     if (!message || isPending) return;
 
     setError(null);
@@ -354,11 +290,10 @@ export function GlobalGameChat({
           message,
           replyTo?.id ?? null,
         );
-        setMessages((current) =>
-          appendUniqueMessage(current, savedMessage),
-        );
+        setMessages((current) => appendUniqueMessage(current, savedMessage));
         setDraft("");
         setReplyTo(null);
+        setSelectedReaction(null);
       } catch (submissionError) {
         setError(
           submissionError instanceof Error
@@ -475,6 +410,28 @@ export function GlobalGameChat({
               </button>
             </div>
           ) : null}
+          {selectedReaction ? (
+            <div className="mb-2 flex items-center gap-3 rounded-xl border border-[#176951]/15 bg-[#F3F8F6] p-2">
+              <span className="h-14 w-14 shrink-0">
+                <CyclingReactionSticker
+                  reactionKey={selectedReaction}
+                  compact
+                  decorative
+                />
+              </span>
+              <p className="min-w-0 flex-1 text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]">
+                Réaction cycliste sélectionnée
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedReaction(null)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-sm font-black text-[#60756E] shadow-sm hover:text-red-700"
+                aria-label="Retirer la réaction"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -504,7 +461,9 @@ export function GlobalGameChat({
             />
             <button
               type="submit"
-              disabled={isPending || draft.trim().length === 0}
+              disabled={
+                isPending || (!selectedReaction && draft.trim().length === 0)
+              }
               className="grid h-[3.25rem] w-[3.25rem] shrink-0 place-items-center rounded-xl bg-[#F2C94C] text-[#17261E] transition hover:bg-[#F7DA73] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Envoyer le message"
             >
@@ -516,9 +475,15 @@ export function GlobalGameChat({
             </button>
           </div>
           <div className="mt-2 flex min-h-9 flex-wrap items-center gap-2">
-            <GlobalChatMediaPicker onEmojiSelect={appendEmoji} />
-            <p role="alert" className="min-w-0 flex-1 text-[10px] font-bold text-red-700">
-              {error}
+            <GlobalChatMediaPicker
+              onEmojiSelect={appendEmoji}
+              onReactionSelect={selectReaction}
+            />
+            <p
+              role="alert"
+              className="min-w-0 flex-1 text-[10px] font-bold text-red-700"
+            >
+              {error ?? reactionError}
             </p>
             <p className="ml-auto shrink-0 text-[9px] font-bold text-[#789087]">
               Entrée pour envoyer · {draft.length}/{draftLimit}
@@ -550,10 +515,9 @@ function ChatMessage({
   pendingReactionKey: string | null;
   reactionsDisabled: boolean;
   onReply: (message: GlobalChatMessage) => void;
-  onReaction: (
-    messageId: string,
-    emoji: GlobalChatMessageReactionEmoji,
-  ) => void;
+  onReaction: React.ComponentProps<
+    typeof GlobalChatMessageReactions
+  >["onReaction"];
 }) {
   return (
     <article
@@ -661,11 +625,7 @@ function ChatMessage({
                   : "bg-[#DDF3E7] text-[#176951]"
               }`}
             >
-              {message.preview.type === "team" ? (
-                <TeamIcon />
-              ) : (
-                <RiderIcon />
-              )}
+              {message.preview.type === "team" ? <TeamIcon /> : <RiderIcon />}
             </span>
             <span className="min-w-0 flex-1">
               <span
@@ -696,8 +656,7 @@ function ChatMessage({
             </span>
           </Link>
         ) : null}
-
-        <ChatMessageActions
+        <GlobalChatMessageReactions
           message={message}
           isCurrentDirector={isCurrentDirector}
           currentDirectorId={currentDirectorId}
@@ -739,17 +698,14 @@ function ChatMessageActions({
   return (
     <div className="relative mt-2.5 flex flex-wrap items-center gap-1.5">
       {message.reactions.map((reaction) => {
-        const isActive = reaction.sportingDirectorIds.includes(
-          currentDirectorId,
-        );
+        const isActive =
+          reaction.sportingDirectorIds.includes(currentDirectorId);
         const reactionKey = `${message.id}:${reaction.emoji}`;
         return (
           <button
             key={reaction.emoji}
             type="button"
-            disabled={
-              reactionsDisabled && pendingReactionKey === reactionKey
-            }
+            disabled={reactionsDisabled && pendingReactionKey === reactionKey}
             onClick={() => onReaction(message.id, reaction.emoji)}
             className={`inline-flex h-7 items-center gap-1 rounded-full border px-2 text-xs font-black transition ${
               isActive
@@ -840,8 +796,7 @@ function OnlineDirectors({
 
       <div className="grid max-h-72 gap-1 overflow-y-auto p-3 lg:max-h-[35rem]">
         {directors.map((director) => {
-          const isCurrent =
-            director.sportingDirectorId === currentDirectorId;
+          const isCurrent = director.sportingDirectorId === currentDirectorId;
           return (
             <Link
               key={director.sportingDirectorId}
@@ -930,9 +885,7 @@ function updateMessageReaction(
       (reaction) => reaction.emoji === row.emoji,
     );
     if (active) {
-      if (
-        existing?.sportingDirectorIds.includes(row.sporting_director_id)
-      ) {
+      if (existing?.sportingDirectorIds.includes(row.sporting_director_id)) {
         return message;
       }
       if (existing) {
@@ -997,17 +950,22 @@ function prependUniqueMessages(
   ];
 }
 
+function getGlobalChatDraftLimit(
+  reactionKey: GlobalChatCyclingReactionKey | null,
+) {
+  const reactionPrefix = reactionKey
+    ? `[cycling-reaction:${reactionKey}] `
+    : "";
+  return GLOBAL_CHAT_MESSAGE_MAX_LENGTH - reactionPrefix.length;
+}
 
 async function markGlobalChatMessagesAsRead(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
   latestDisplayedMessageAt: string,
 ) {
-  const { error } = await supabase.rpc(
-    "mark_global_chat_messages_read",
-    {
-      p_last_read_at: latestDisplayedMessageAt,
-    },
-  );
+  const { error } = await supabase.rpc("mark_global_chat_messages_read", {
+    p_last_read_at: latestDisplayedMessageAt,
+  });
 
   if (!error) {
     notifyGlobalChatMessagesRead();
@@ -1043,9 +1001,7 @@ function readRealtimeMessage(
         ? value.preview_entity_id
         : null,
     preview_title:
-      typeof value.preview_title === "string"
-        ? value.preview_title
-        : null,
+      typeof value.preview_title === "string" ? value.preview_title : null,
     preview_subtitle:
       typeof value.preview_subtitle === "string"
         ? value.preview_subtitle
@@ -1115,6 +1071,15 @@ function readRealtimeReaction(
   return {
     message_id: value.message_id,
     sporting_director_id: value.sporting_director_id,
+    reactor_display_name:
+      typeof value.reactor_display_name === "string"
+        ? value.reactor_display_name
+        : null,
+    team_id: typeof value.team_id === "string" ? value.team_id : null,
+    team_display_name:
+      typeof value.team_display_name === "string"
+        ? value.team_display_name
+        : null,
     emoji: value.emoji,
   };
 }
@@ -1129,7 +1094,6 @@ function getMessageExcerpt(message: string) {
   return stripGlobalChatCyclingReactionTokens(message) || "GIF retiré";
 }
 
-
 function readOnlineDirectors(
   presenceState: Record<string, unknown[]>,
   fallbackIdentity: GlobalChatIdentity,
@@ -1143,20 +1107,13 @@ function readOnlineDirectors(
     }
   }
 
-  byDirectorId.set(
-    fallbackIdentity.sportingDirectorId,
-    fallbackIdentity,
-  );
+  byDirectorId.set(fallbackIdentity.sportingDirectorId, fallbackIdentity);
 
   return [...byDirectorId.values()].sort((left, right) => {
-    if (
-      left.sportingDirectorId === fallbackIdentity.sportingDirectorId
-    ) {
+    if (left.sportingDirectorId === fallbackIdentity.sportingDirectorId) {
       return -1;
     }
-    if (
-      right.sportingDirectorId === fallbackIdentity.sportingDirectorId
-    ) {
+    if (right.sportingDirectorId === fallbackIdentity.sportingDirectorId) {
       return 1;
     }
     return left.displayName.localeCompare(right.displayName, "fr");
@@ -1178,21 +1135,24 @@ function isOnlineDirector(value: unknown): value is OnlineDirector {
 }
 
 function renderMessageText(message: string, inverted: boolean) {
-  const content = stripGlobalChatCyclingReactionTokens(message);
+  return splitGlobalChatMessageContent(message).map((content, index) => {
+    const reaction = extractGlobalChatCyclingReaction(content);
+    if (reaction) {
+      return (
+        <CyclingReactionSticker
+          key={`${reaction.key}-${index}`}
+          reactionKey={reaction.key}
+        />
+      );
+    }
 
-  if (!content) {
     return (
-      <span
-        className={`italic ${inverted ? "text-white/60" : "text-[#789087]"}`}
-      >
-        GIF retiré
+      <span key={`${content}-${index}`}>
+        {renderLinkedMessageText(content, inverted, index)}
       </span>
     );
-  }
-
-  return renderLinkedMessageText(content, inverted, 0);
+  });
 }
-
 
 function renderLinkedMessageText(
   message: string,
@@ -1205,8 +1165,7 @@ function renderLinkedMessageText(
 
   return tokens.map((token, index) => {
     const key = `${contentIndex}-${token}-${index}`;
-    const internalReference =
-      extractGlobalChatPreviewReference(token);
+    const internalReference = extractGlobalChatPreviewReference(token);
     if (internalReference) {
       return (
         <Link

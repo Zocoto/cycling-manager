@@ -20,6 +20,9 @@ describe("SpecialAbilityMedallion", () => {
     expect(markup).toContain("réduit ensuite de 30 %");
     expect(markup).toContain("#20272C");
     expect(markup).toContain("M20 5c4 0 6 2 6 5");
+    expect(markup).toContain('<button type="button"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain("max-sm:fixed");
   });
 
   it("rend le médaillon bleu pétrole et la règle de Premier de la classe", () => {

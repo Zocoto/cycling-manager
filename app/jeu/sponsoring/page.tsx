@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { GameHeader } from "../../../components/game/game-header";
 import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
@@ -421,9 +422,9 @@ function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
             Offre ouverte
           </span>
 
-          <CountryFlag
-            isoAlpha2={sponsor.countryCode}
-            countryName={getCountryName(sponsor.countryCode)}
+          <SponsorCountryBadge
+            countryCode={sponsor.countryCode}
+            primaryColor={sponsor.colors.primary}
           />
         </div>
 

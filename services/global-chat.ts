@@ -27,9 +27,17 @@ export type GlobalChatReply = {
   excerpt: string;
 };
 
+export type GlobalChatReactionMember = {
+  sportingDirectorId: string;
+  displayName: string;
+  teamId: string;
+  teamDisplayName: string;
+};
+
 export type GlobalChatMessageReaction = {
   emoji: GlobalChatMessageReactionEmoji;
   sportingDirectorIds: string[];
+  members: GlobalChatReactionMember[];
 };
 
 export type GlobalChatMessage = {
@@ -73,6 +81,9 @@ export type GlobalChatMessageRow = {
 export type GlobalChatReactionRow = {
   message_id: string;
   sporting_director_id: string;
+  reactor_display_name: string | null;
+  team_id: string | null;
+  team_display_name: string | null;
   emoji: GlobalChatMessageReactionEmoji;
   created_at?: string;
 };
@@ -128,9 +139,8 @@ export async function getGlobalChatOverview(
     );
   }
 
-  const identityRow = (
-    (identityResult.data as GlobalChatIdentityRow[] | null) ?? []
-  )[0];
+  const identityRow = ((identityResult.data as
+    GlobalChatIdentityRow[] | null) ?? [])[0];
 
   if (!identityRow) {
     throw new Error(
@@ -194,9 +204,11 @@ export async function getGlobalChatMessagePage(
   );
 
   return {
-    messages: selectedRows.reverse().map((row) =>
-      mapGlobalChatMessage(row, reactionsByMessageId.get(row.id) ?? []),
-    ),
+    messages: selectedRows
+      .reverse()
+      .map((row) =>
+        mapGlobalChatMessage(row, reactionsByMessageId.get(row.id) ?? []),
+      ),
     hasMore,
     nextCursor:
       hasMore && oldestRow
@@ -235,7 +247,9 @@ async function getReactionsByMessageId(
 
   const reactionsResult = await supabase
     .from("global_chat_message_reactions")
-    .select("message_id, sporting_director_id, emoji, created_at")
+    .select(
+      "message_id, sporting_director_id, reactor_display_name, team_id, team_display_name, emoji, created_at",
+    )
     .in("message_id", messageIds)
     .order("created_at", { ascending: true });
 
@@ -245,18 +259,23 @@ async function getReactionsByMessageId(
     );
   }
 
-  for (const row of
-    (reactionsResult.data as unknown as GlobalChatReactionRow[] | null) ?? []) {
+  for (const row of (reactionsResult.data as unknown as
+    GlobalChatReactionRow[] | null) ?? []) {
+    const member = mapGlobalChatReactionMember(row);
+    if (!member) continue;
+
     const messageReactions = result.get(row.message_id) ?? [];
     const reaction = messageReactions.find(
       (candidate) => candidate.emoji === row.emoji,
     );
     if (reaction) {
       reaction.sportingDirectorIds.push(row.sporting_director_id);
+      reaction.members.push(member);
     } else {
       messageReactions.push({
         emoji: row.emoji,
         sportingDirectorIds: [row.sporting_director_id],
+        members: [member],
       });
     }
     result.set(row.message_id, messageReactions);
@@ -265,13 +284,8 @@ async function getReactionsByMessageId(
   return result;
 }
 
-function mapGlobalChatReply(
-  row: GlobalChatMessageRow,
-): GlobalChatReply | null {
-  if (
-    !row.reply_to_author_display_name ||
-    !row.reply_to_message_excerpt
-  ) {
+function mapGlobalChatReply(row: GlobalChatMessageRow): GlobalChatReply | null {
+  if (!row.reply_to_author_display_name || !row.reply_to_message_excerpt) {
     return null;
   }
 
@@ -279,6 +293,21 @@ function mapGlobalChatReply(
     messageId: row.reply_to_message_id,
     authorDisplayName: row.reply_to_author_display_name,
     excerpt: row.reply_to_message_excerpt,
+  };
+}
+
+function mapGlobalChatReactionMember(
+  row: GlobalChatReactionRow,
+): GlobalChatReactionMember | null {
+  if (!row.reactor_display_name || !row.team_id || !row.team_display_name) {
+    return null;
+  }
+
+  return {
+    sportingDirectorId: row.sporting_director_id,
+    displayName: row.reactor_display_name,
+    teamId: row.team_id,
+    teamDisplayName: row.team_display_name,
   };
 }
 

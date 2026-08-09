@@ -65,21 +65,22 @@ function Gauge({
   return (
     <div>
       <div className="flex items-end justify-between gap-3">
-        <span className="flex items-center gap-2 text-sm font-extrabold text-[#48665F]">
+        <div className="flex items-center gap-2 text-sm font-extrabold text-[#48665F]">
           {label}
-          <span className="group/form-tooltip relative inline-flex">
-            <button
-              type="button"
-              className="grid size-5 place-items-center rounded-full border border-[#176951]/25 bg-[#EAF5F3] text-[11px] font-black text-[#176951] outline-none focus-visible:ring-2 focus-visible:ring-[#2FA982]"
+          <details
+            data-form-history-tooltip="touchable"
+            className="group/form-tooltip relative inline-flex"
+          >
+            <summary
+              className="grid size-5 cursor-pointer list-none place-items-center rounded-full border border-[#176951]/25 bg-[#EAF5F3] text-[11px] font-black text-[#176951] outline-none focus-visible:ring-2 focus-visible:ring-[#2FA982] [&::-webkit-details-marker]:hidden"
               aria-label="Détail des variations de forme sur 48 heures"
-              aria-describedby="form-history-tooltip"
             >
               ?
-            </button>
+            </summary>
             <span
               id="form-history-tooltip"
               role="tooltip"
-              className="invisible absolute bottom-full left-0 z-30 mb-2 w-[min(19rem,calc(100vw-3rem))] translate-y-1 rounded-xl bg-[#0B302B] p-3 text-left text-white opacity-0 shadow-xl transition group-hover/form-tooltip:visible group-hover/form-tooltip:translate-y-0 group-hover/form-tooltip:opacity-100 group-focus-within/form-tooltip:visible group-focus-within/form-tooltip:translate-y-0 group-focus-within/form-tooltip:opacity-100"
+              className="invisible absolute bottom-full left-0 z-30 mb-2 max-h-[min(22rem,calc(100dvh-2rem))] w-[min(19rem,calc(100vw-3rem))] translate-y-1 overflow-y-auto overscroll-contain rounded-xl bg-[#0B302B] p-3 text-left text-white opacity-0 shadow-xl transition group-open/form-tooltip:visible group-open/form-tooltip:translate-y-0 group-open/form-tooltip:opacity-100 group-hover/form-tooltip:visible group-hover/form-tooltip:translate-y-0 group-hover/form-tooltip:opacity-100"
             >
               <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-[#9EDCCB]">
                 Variations sur 48 h
@@ -119,8 +120,8 @@ function Gauge({
                 </span>
               )}
             </span>
-          </span>
-        </span>
+          </details>
+        </div>
         <span className="text-lg font-black text-[#183F37]">
           {formatFormValue(normalizedValue)}%
         </span>

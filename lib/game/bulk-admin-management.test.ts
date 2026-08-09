@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { buildInitialEquipmentValues } from "@/components/game/team-equipment-bulk-editor";
+import { canReserveNutritionistForDraft } from "@/components/game/nutrition-interventions-editor";
 import { describe, expect, it } from "vitest";
 
 const nutritionMigration = read(
@@ -46,6 +47,43 @@ describe("administration groupée de la nutrition", () => {
     expect(nutritionEditor).toContain("Nutritionniste");
     expect(nutritionEditor).toContain("fixed inset-x-3 bottom-");
     expect(nutritionEditor).toContain("Valider les compléments");
+  });
+
+  it("réserve immédiatement le contingent pendant la saisie groupée", () => {
+    const nutritionist = {
+      contractId: "nutritionist-1",
+      name: "Camille Martin",
+      level: 3,
+      remainingCapacity: 2,
+    };
+
+    expect(
+      canReserveNutritionistForDraft({
+        nutritionist,
+        interventionCode: "recovery_snack",
+        usage: 1,
+        currentNutritionistContractId: null,
+        hasCurrentIntervention: false,
+      }),
+    ).toBe(true);
+    expect(
+      canReserveNutritionistForDraft({
+        nutritionist,
+        interventionCode: "recovery_snack",
+        usage: 2,
+        currentNutritionistContractId: null,
+        hasCurrentIntervention: false,
+      }),
+    ).toBe(false);
+    expect(
+      canReserveNutritionistForDraft({
+        nutritionist,
+        interventionCode: "tailored_plan",
+        usage: 2,
+        currentNutritionistContractId: nutritionist.contractId,
+        hasCurrentIntervention: true,
+      }),
+    ).toBe(true);
   });
 });
 

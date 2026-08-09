@@ -82,6 +82,103 @@ export async function renewRiderContractAction(formData: FormData) {
   redirectWithMessage(returnPath, "succes", "Le contrat est renouvelé pour la saison suivante.");
 }
 
+export async function submitDirectTransferOfferAction(formData: FormData) {
+  const riderId = readValue(formData, "riderId");
+  const amount = Number(readValue(formData, "amount"));
+  const returnPath = isUuid(riderId)
+    ? (buildRiderReturnPath(readValue(formData, "returnPath"), riderId) ??
+      `/jeu/coureurs/${riderId}`)
+    : "/jeu/transferts?onglet=offres";
+  if (
+    !isUuid(riderId) ||
+    !Number.isFinite(amount) ||
+    amount < 500 ||
+    amount > 100_000_000
+  ) {
+    redirectWithMessage(returnPath, "erreur", "Le montant de l'offre est invalide.");
+  }
+
+  const supabase = await authenticatedClient();
+  const { error } = await supabase.rpc("submit_direct_transfer_offer", {
+    p_rider_id: riderId,
+    p_amount: amount,
+  });
+  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+
+  revalidateTransferPaths();
+  revalidatePath(`/jeu/coureurs/${riderId}`);
+  revalidatePath("/jeu/messagerie");
+  redirectWithMessage(
+    returnPath,
+    "succes",
+    "Votre offre a été transmise au Directeur Sportif de l'équipe concernée.",
+  );
+}
+
+export async function respondToDirectTransferOfferAction(formData: FormData) {
+  const offerId = readValue(formData, "offerId");
+  const riderId = readValue(formData, "riderId");
+  const decision = readValue(formData, "decision");
+  const returnPath = sanitizeTransferMarketReturnPath(
+    readValue(formData, "returnPath") || "/jeu/transferts?onglet=offres",
+  );
+  if (!isUuid(offerId) || !["accept", "reject"].includes(decision)) {
+    redirectWithMessage(returnPath, "erreur", "La réponse à l'offre est invalide.");
+  }
+
+  const supabase = await authenticatedClient();
+  const { error } = await supabase.rpc("respond_to_direct_transfer_offer", {
+    p_offer_id: offerId,
+    p_accept: decision === "accept",
+  });
+  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+
+  revalidateTransferPaths();
+  revalidatePath("/jeu/messagerie");
+  if (isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
+  redirectWithMessage(
+    returnPath,
+    "succes",
+    decision === "accept"
+      ? "L'offre est acceptée : le transfert et les écritures financières sont enregistrés."
+      : "L'offre a été refusée et le Directeur Sportif demandeur a été prévenu.",
+  );
+}
+
+export async function dismissRiderAction(formData: FormData) {
+  const riderId = readValue(formData, "riderId");
+  const returnPath = isUuid(riderId)
+    ? (buildRiderReturnPath(readValue(formData, "returnPath"), riderId) ??
+      `/jeu/coureurs/${riderId}`)
+    : "/jeu/effectif";
+  if (!isUuid(riderId)) {
+    redirectWithMessage(returnPath, "erreur", "Ce coureur est invalide.");
+  }
+
+  const supabase = await authenticatedClient();
+  const { data, error } = await supabase.rpc("dismiss_current_team_rider", {
+    p_rider_id: riderId,
+  });
+  if (error) redirectWithMessage(returnPath, "erreur", error.message);
+
+  const result = data && typeof data === "object" ? data : null;
+  const compensation = result && "compensation" in result
+    ? Number(result.compensation)
+    : 0;
+  const currency = result && "currency" in result && typeof result.currency === "string"
+    ? result.currency
+    : "EUR";
+
+  revalidateTransferPaths();
+  revalidatePath(`/jeu/coureurs/${riderId}`);
+  revalidatePath("/jeu/messagerie");
+  redirectWithMessage(
+    returnPath,
+    "succes",
+    `Le contrat a été rompu. ${formatMoney(compensation, currency)} ont été réglés immédiatement.`,
+  );
+}
+
 async function authenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -94,6 +191,14 @@ function revalidateTransferPaths() {
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu");
+}
+
+function formatMoney(value: number, currency: string) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(value) ? value : 0);
 }
 
 function redirectWithMessage(path: string, key: "succes" | "erreur", message: string): never {

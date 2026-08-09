@@ -45,6 +45,64 @@ describe("isYouthScoutingMissionArchived", () => {
     ).toBe(true);
   });
 
+  it("archive immédiatement un rapport dont tous les jeunes sont recrutés", () => {
+    expect(
+      isYouthScoutingMissionArchived(
+        {
+          status: "completed",
+          viewedAt: null,
+          candidates: [
+            { status: "signed" },
+            { status: "signed" },
+          ],
+        },
+        NOW,
+      ),
+    ).toBe(true);
+  });
+
+  it("n’archive pas immédiatement un rapport partiellement recruté", () => {
+    expect(
+      isYouthScoutingMissionArchived(
+        {
+          status: "completed",
+          viewedAt: null,
+          candidates: [
+            { status: "signed" },
+            { status: "spotted" },
+          ],
+        },
+        NOW,
+      ),
+    ).toBe(false);
+  });
+
+  it("ne considère pas un rapport vide comme entièrement recruté", () => {
+    expect(
+      isYouthScoutingMissionArchived(
+        {
+          status: "completed",
+          viewedAt: null,
+          candidates: [],
+        },
+        NOW,
+      ),
+    ).toBe(false);
+  });
+
+  it("n’archive pas une mission active même si tous ses jeunes sont recrutés", () => {
+    expect(
+      isYouthScoutingMissionArchived(
+        {
+          status: "active",
+          viewedAt: null,
+          candidates: [{ status: "signed" }],
+        },
+        NOW,
+      ),
+    ).toBe(false);
+  });
+
   it("n’archive jamais une mission qui n’est pas terminée", () => {
     expect(
       isYouthScoutingMissionArchived(

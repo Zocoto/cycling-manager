@@ -116,7 +116,7 @@ export function RaceLiveChat({
           ? "Chat de la course en direct"
           : "Chat du replay"
       }
-      className="flex min-h-[32rem] flex-col overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-white shadow-[0_24px_70px_rgba(7,26,23,0.22)] xl:sticky xl:top-4 xl:h-[min(48rem,calc(100vh_-_2rem))] xl:min-h-[38rem]"
+      className="flex h-[26rem] min-h-0 flex-col overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-[#071A17] text-white shadow-[0_24px_70px_rgba(7,26,23,0.22)] sm:h-[32rem] xl:sticky xl:top-4 xl:h-[min(48rem,calc(100vh_-_2rem))] xl:min-h-[38rem]"
     >
       <header className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(66,185,154,0.28),transparent_58%)] px-5 py-5">
         <div className="flex items-start justify-between gap-3">
@@ -149,9 +149,11 @@ export function RaceLiveChat({
 
       <div
         ref={messagesViewportRef}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#0B2521] px-4 py-4"
+        className="min-h-0 flex-1 space-y-3 overflow-y-scroll overscroll-contain bg-[#0B2521] px-4 py-4 [scrollbar-color:#72D4B7_#0B2521] [scrollbar-gutter:stable] [scrollbar-width:thin]"
+        aria-label="Messages du chat de course"
         aria-live="polite"
         aria-relevant="additions"
+        tabIndex={0}
       >
         {messages.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#72D4B7]/30 bg-[#72D4B7]/5 px-4 py-8 text-center">

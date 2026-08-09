@@ -56,8 +56,10 @@ import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getRiderTransferManagement } from "@/services/transfer-market";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import {
+  dismissRiderAction,
   renewRiderContractAction,
   signFreeAgentAction,
+  submitDirectTransferOfferAction,
 } from "@/app/jeu/transferts/actions";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
@@ -118,16 +120,15 @@ export default async function RiderProfilePage({
       }),
       getGameHeaderData(supabase, user.id),
       getRiderRankingEntry(identifiant),
-      getAuthenticatedTutorialProgress(
-        supabase,
-        ROSTER_TUTORIAL_KEY,
-      ).catch((error: unknown) => {
-        console.error(
-          "Impossible de reprendre le didacticiel de l’effectif :",
-          error,
-        );
-        return null;
-      }),
+      getAuthenticatedTutorialProgress(supabase, ROSTER_TUTORIAL_KEY).catch(
+        (error: unknown) => {
+          console.error(
+            "Impossible de reprendre le didacticiel de l’effectif :",
+            error,
+          );
+          return null;
+        },
+      ),
     ]);
 
   if (!profile) {
@@ -252,10 +253,7 @@ export default async function RiderProfilePage({
             <span aria-hidden="true">↗</span>
             Fiche ouverte indépendamment de votre espace de jeu
           </p>
-          <TutorialLaunchButton
-            tutorialKey={ROSTER_TUTORIAL_KEY}
-            iconOnly
-          />
+          <TutorialLaunchButton tutorialKey={ROSTER_TUTORIAL_KEY} iconOnly />
         </div>
 
         <header
@@ -501,11 +499,54 @@ export default async function RiderProfilePage({
           </div>
         ) : null}
 
-        <div
-          data-tutorial-id="rider-profile-history"
-          className="mt-6 min-w-0"
-        >
-          <CareerHistory history={profile.history} />
+        <div className="mt-7 grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
+          <div data-tutorial-id="rider-profile-history" className="min-w-0">
+            <CareerHistory history={profile.history} />
+          </div>
+          {profile.privateContract ? (
+            <div
+              data-tutorial-id="rider-profile-contract"
+              className="min-w-0 space-y-5"
+            >
+              <PrivateContractCard contract={profile.privateContract} />
+              {transferManagement ? (
+                <>
+                  <ContractRenewalCard
+                    riderId={profile.id}
+                    contract={profile.privateContract}
+                    management={transferManagement}
+                  />
+                  <RiderDismissalCard
+                    riderId={profile.id}
+                    management={transferManagement}
+                  />
+                </>
+              ) : null}
+            </div>
+          ) : transferManagement?.isFreeAgent ? (
+            <FreeAgentSigningCard
+              riderId={profile.id}
+              management={transferManagement}
+            />
+          ) : (
+            <div className="min-w-0 space-y-5">
+              <CareerSummaryCard
+                teamName={profile.currentTeam?.displayName ?? "Agent libre"}
+                seasonsCount={
+                  new Set(profile.history.map((entry) => entry.seasonId)).size
+                }
+              />
+              {transferManagement ? (
+                <DirectTransferOfferCard
+                  riderId={profile.id}
+                  teamName={
+                    profile.currentTeam?.displayName ?? "l'équipe actuelle"
+                  }
+                  management={transferManagement}
+                />
+              ) : null}
+            </div>
+          )}
         </div>
 
         <div data-tutorial-id="rider-profile-equipment" className="mt-6">
@@ -635,19 +676,233 @@ function FreeAgentSigningCard({
   );
 }
 
-function ContractRenewalCard({ riderId, contract, management }: {
+function ContractRenewalCard({
+  riderId,
+  contract,
+  management,
+}: {
   riderId: string;
-  contract: NonNullable<Awaited<ReturnType<typeof getPublicRiderProfile>>>["privateContract"] & {};
-  management: NonNullable<Awaited<ReturnType<typeof getRiderTransferManagement>>>;
+  contract: NonNullable<
+    Awaited<ReturnType<typeof getPublicRiderProfile>>
+  >["privateContract"] & {};
+  management: NonNullable<
+    Awaited<ReturnType<typeof getRiderTransferManagement>>
+  >;
 }) {
   const endSeasonYear = management.contractEndSeasonYear;
-  const endLabel = endSeasonYear ? `Fin de S${endSeasonYear}` : contract.endSeasonName;
-  return <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#D6A93D]/30 bg-[#FFF8DD] p-6 shadow-[0_16px_45px_rgba(111,82,13,0.08)] sm:p-7">
-    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8A6B16]">Votre coureur</p>
-    <h2 className="mt-2 text-xl font-black text-[#3F3518]">Contrat</h2>
-    <div className="mt-5 rounded-xl border border-[#D6A93D]/25 bg-white/65 px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">Échéance</p><p className="mt-1 text-lg font-black text-[#3F3518]">{endLabel}</p></div>
-    {management.canRenew ? <form action={renewRiderContractAction} className="mt-4"><p className="mb-4 text-sm font-semibold leading-6 text-[#7E7043]">Prolongez d’une saison, jusqu’à fin de S{endSeasonYear! + 1}. La limite est de trois saisons glissantes.</p><input type="hidden" name="riderId" value={riderId} /><input type="hidden" name="returnPath" value={`/jeu/coureurs/${riderId}`} /><TransferSubmitButton pendingLabel="Prolongation…" tone="green">Prolonger d’une saison</TransferSubmitButton></form> : <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">Le contrat est déjà sécurisé pour le maximum de trois saisons glissantes.</p>}
-  </article>;
+  const endLabel = endSeasonYear
+    ? `Fin de S${endSeasonYear}`
+    : contract.endSeasonName;
+  return (
+    <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#D6A93D]/30 bg-[#FFF8DD] p-6 shadow-[0_16px_45px_rgba(111,82,13,0.08)] sm:p-7">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8A6B16]">
+        Votre coureur
+      </p>
+      <h2 className="mt-2 text-xl font-black text-[#3F3518]">Contrat</h2>
+      <div className="mt-5 rounded-xl border border-[#D6A93D]/25 bg-white/65 px-4 py-3">
+        <p className="text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
+          Échéance
+        </p>
+        <p className="mt-1 text-lg font-black text-[#3F3518]">{endLabel}</p>
+      </div>
+      {management.canRenew ? (
+        <form action={renewRiderContractAction} className="mt-4">
+          <p className="mb-4 text-sm font-semibold leading-6 text-[#7E7043]">
+            Prolongez d’une saison, jusqu’à fin de S{endSeasonYear! + 1}. La
+            limite est de trois saisons glissantes.
+          </p>
+          <input type="hidden" name="riderId" value={riderId} />
+          <input
+            type="hidden"
+            name="returnPath"
+            value={`/jeu/coureurs/${riderId}`}
+          />
+          <TransferSubmitButton pendingLabel="Prolongation…" tone="green">
+            Prolonger d’une saison
+          </TransferSubmitButton>
+        </form>
+      ) : (
+        <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
+          Le contrat est déjà sécurisé pour le maximum de trois saisons
+          glissantes.
+        </p>
+      )}
+    </article>
+  );
+}
+
+function RiderDismissalCard({
+  riderId,
+  management,
+}: {
+  riderId: string;
+  management: NonNullable<
+    Awaited<ReturnType<typeof getRiderTransferManagement>>
+  >;
+}) {
+  if (!management.canDismiss || management.dismissalCost === null) return null;
+  const canAfford = management.dismissalCost <= management.cashBalance;
+
+  return (
+    <article className="rounded-[2rem] border border-[#C94F4F]/25 bg-[#FFF6F3] p-6 shadow-[0_16px_45px_rgba(111,38,38,0.08)]">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#B54242]">
+        Rupture du contrat
+      </p>
+      <h2 className="mt-2 text-xl font-black text-[#702E2E]">
+        Licencier le coureur
+      </h2>
+      <p className="mt-3 text-sm font-semibold leading-6 text-[#7F5D58]">
+        Tous les salaires restant jusqu’à l’échéance, y compris les saisons déjà
+        signées, sont réglés immédiatement. Le coureur devient agent libre.
+      </p>
+      <div className="mt-4 rounded-xl border border-[#C94F4F]/15 bg-white px-4 py-3">
+        <p className="text-[10px] font-black uppercase tracking-wider text-[#9D6767]">
+          Solde contractuel
+        </p>
+        <p className="mt-1 text-xl font-black text-[#B54242]">
+          {formatMoney(management.dismissalCost, management.dismissalCurrency)}
+        </p>
+      </div>
+      <form action={dismissRiderAction} className="mt-4 space-y-4">
+        <input type="hidden" name="riderId" value={riderId} />
+        <input
+          type="hidden"
+          name="returnPath"
+          value={`/jeu/coureurs/${riderId}`}
+        />
+        <label className="flex items-start gap-3 rounded-xl bg-[#FBE4DF] px-4 py-3 text-xs font-bold leading-5 text-[#702E2E]">
+          <input
+            type="checkbox"
+            required
+            disabled={!canAfford}
+            className="mt-0.5 h-4 w-4 accent-[#B54242]"
+          />
+          Je confirme la rupture définitive du contrat et le paiement immédiat.
+        </label>
+        {!canAfford ? (
+          <p className="text-xs font-bold text-[#B54242]">
+            La trésorerie disponible ne couvre pas ce solde.
+          </p>
+        ) : null}
+        <TransferSubmitButton
+          pendingLabel="Licenciement…"
+          tone="dark"
+          disabled={!canAfford}
+        >
+          Régler et licencier
+        </TransferSubmitButton>
+      </form>
+    </article>
+  );
+}
+
+function DirectTransferOfferCard({
+  riderId,
+  teamName,
+  management,
+}: {
+  riderId: string;
+  teamName: string;
+  management: NonNullable<
+    Awaited<ReturnType<typeof getRiderTransferManagement>>
+  >;
+}) {
+  if (
+    management.directOfferSalary === null &&
+    management.pendingDirectOfferAmount === null
+  ) {
+    return null;
+  }
+
+  const maximumOffer = Math.max(
+    500,
+    Math.floor(
+      (management.availableBudget - (management.directOfferSalary ?? 0)) / 100,
+    ) * 100,
+  );
+  const defaultOffer = Math.min(10_000, maximumOffer);
+
+  return (
+    <article className="rounded-[2rem] border border-[#F2C94C]/30 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.16)] sm:p-7">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#F2C94C]">
+        Négociation directe
+      </p>
+      <h2 className="mt-2 text-2xl font-black">Faire une offre</h2>
+      <p className="mt-3 text-sm font-semibold leading-6 text-[#BFD1C6]">
+        Proposez une indemnité à {teamName}. Son Directeur Sportif recevra un
+        courrier et pourra accepter ou refuser. En cas d’accord, le contrat
+        couvre la fin de la saison en cours.
+      </p>
+
+      {management.pendingDirectOfferAmount !== null ? (
+        <div className="mt-5 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/10 px-4 py-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#FFE596]">
+            Offre en attente
+          </p>
+          <p className="mt-1 text-xl font-black text-[#F2C94C]">
+            {formatMoney(
+              management.pendingDirectOfferAmount,
+              management.currency,
+            )}
+          </p>
+          <p className="mt-2 text-xs font-bold text-[#D6DFD2]">
+            Vous serez prévenu par courrier dès que le DS adverse aura répondu.
+          </p>
+        </div>
+      ) : management.canMakeDirectOffer ? (
+        <form action={submitDirectTransferOfferAction} className="mt-5">
+          <input type="hidden" name="riderId" value={riderId} />
+          <input
+            type="hidden"
+            name="returnPath"
+            value={`/jeu/coureurs/${riderId}`}
+          />
+          <label className="block text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">
+            Montant proposé
+            <input
+              name="amount"
+              type="number"
+              min="500"
+              max={Math.min(100_000_000, maximumOffer)}
+              step="100"
+              required
+              defaultValue={defaultOffer}
+              className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-white px-4 text-base font-black text-[#183F37]"
+            />
+          </label>
+          <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-bold text-[#BFD1C6]">
+            <p>
+              Budget disponible
+              <br />
+              <strong className="text-white">
+                {formatMoney(management.availableBudget, management.currency)}
+              </strong>
+            </p>
+            <p>
+              Salaire réservé
+              <br />
+              <strong className="text-white">
+                {formatMoney(
+                  management.directOfferSalary ?? 0,
+                  management.currency,
+                )}
+              </strong>
+            </p>
+          </div>
+          <div className="mt-5">
+            <TransferSubmitButton pendingLabel="Envoi de l’offre…">
+              Transmettre l’offre
+            </TransferSubmitButton>
+          </div>
+        </form>
+      ) : (
+        <p className="mt-5 rounded-xl bg-[#F2C94C]/10 px-4 py-3 text-xs font-bold text-[#FFE596]">
+          {management.directOfferBlockedReason ??
+            "Ce coureur n’est pas disponible pour une négociation directe."}
+        </p>
+      )}
+    </article>
+  );
 }
 function CurrentTeamCard({
   team,
@@ -706,7 +961,12 @@ function CurrentTeamCard({
         </span>
         {team ? (
           <span className="mt-2 block">
-            <TeamDivisionBadge division={team.divisionCode} isProfessional={Boolean(sponsorIdentity)} dark compact />
+            <TeamDivisionBadge
+              division={team.divisionCode}
+              isProfessional={Boolean(sponsorIdentity)}
+              dark
+              compact
+            />
           </span>
         ) : null}
         {sponsorIdentity ? (
@@ -777,6 +1037,10 @@ function CareerHistory({
     gameYear: number;
     teamId: string;
     teamName: string;
+    transferFee: number | null;
+    currencyCode: string;
+    joinedDayNumber: number | null;
+    leftDayNumber: number | null;
     victories: number | null;
     points: number | null;
     uciRank: number | null;
@@ -820,6 +1084,11 @@ function CareerHistory({
                     >
                       {entry.teamName} <span aria-hidden="true">↗</span>
                     </Link>
+                    {formatCareerMovement(entry) ? (
+                      <p className="mt-1 text-xs font-bold text-[#60756E]">
+                        {formatCareerMovement(entry)}
+                      </p>
+                    ) : null}
                   </div>
                   <span className="shrink-0 rounded-full bg-[#EAF5F0] px-3 py-1 text-xs font-black text-[#176951]">
                     {entry.uciRank === null ? "UCI —" : `UCI #${entry.uciRank}`}
@@ -872,62 +1141,67 @@ function CareerHistory({
 
           <div className="hidden max-w-full overflow-x-auto overscroll-x-contain border-t border-[#315B3E]/10 md:block">
             <table className="w-full min-w-[980px] border-collapse text-left">
-            <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
-              <tr>
-                <th className="px-6 py-4">Saison</th>
-                <th className="px-5 py-4">Équipe</th>
-                <th className="px-4 py-4 text-center">Victoires</th>
-                <th className="px-4 py-4 text-center">Points</th>
-                <th className="px-4 py-4 text-center">Palmarès</th>
-                <th className="px-5 py-4 text-center">Résultats notables</th>
-                <th className="px-6 py-4 text-center">Classement UCI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((entry) => (
-                <tr
-                  key={`${entry.seasonId}-${entry.teamId}`}
-                  className="border-t border-[#315B3E]/10 text-sm"
-                >
-                  <td className="px-6 py-4 font-black text-[#183F37]">
-                    {entry.seasonName}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Link
-                      href={`/jeu/equipes/${entry.teamId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
-                    >
-                      {entry.teamName} <span aria-hidden="true">↗</span>
-                    </Link>
-                  </td>
-                  <HistoryValue value={entry.victories} />
-                  <HistoryValue value={entry.points} />
-                  <td className="px-4 py-4">
-                    <div className="flex justify-center gap-2">
-                      {entry.nationalTitles.map((title) => (
-                        <NationalTitleFlag
-                          key={`${title.type}-${title.countryCode}`}
-                          countryCode={title.countryCode}
-                          countryName={title.countryName}
-                          discipline={title.type}
-                        />
-                      ))}
-                      {entry.nationalTitles.length === 0 ? "—" : null}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <SeasonPerformancesPopover
-                      seasonName={entry.seasonName}
-                      gameYear={entry.gameYear}
-                      performances={entry.notablePerformances}
-                    />
-                  </td>
-                  <HistoryValue value={entry.uciRank} prefix="#" />
+              <thead className="bg-[#F3F8F5] text-xs font-extrabold uppercase tracking-[0.12em] text-[#60756E]">
+                <tr>
+                  <th className="px-6 py-4">Saison</th>
+                  <th className="px-5 py-4">Équipe</th>
+                  <th className="px-4 py-4 text-center">Victoires</th>
+                  <th className="px-4 py-4 text-center">Points</th>
+                  <th className="px-4 py-4 text-center">Palmarès</th>
+                  <th className="px-5 py-4 text-center">Résultats notables</th>
+                  <th className="px-6 py-4 text-center">Classement UCI</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {history.map((entry) => (
+                  <tr
+                    key={`${entry.seasonId}-${entry.teamId}`}
+                    className="border-t border-[#315B3E]/10 text-sm"
+                  >
+                    <td className="px-6 py-4 font-black text-[#183F37]">
+                      {entry.seasonName}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Link
+                        href={`/jeu/equipes/${entry.teamId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
+                      >
+                        {entry.teamName} <span aria-hidden="true">↗</span>
+                      </Link>
+                      {formatCareerMovement(entry) ? (
+                        <p className="mt-1 text-xs font-bold text-[#60756E]">
+                          {formatCareerMovement(entry)}
+                        </p>
+                      ) : null}
+                    </td>
+                    <HistoryValue value={entry.victories} />
+                    <HistoryValue value={entry.points} />
+                    <td className="px-4 py-4">
+                      <div className="flex justify-center gap-2">
+                        {entry.nationalTitles.map((title) => (
+                          <NationalTitleFlag
+                            key={`${title.type}-${title.countryCode}`}
+                            countryCode={title.countryCode}
+                            countryName={title.countryName}
+                            discipline={title.type}
+                          />
+                        ))}
+                        {entry.nationalTitles.length === 0 ? "—" : null}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <SeasonPerformancesPopover
+                        seasonName={entry.seasonName}
+                        gameYear={entry.gameYear}
+                        performances={entry.notablePerformances}
+                      />
+                    </td>
+                    <HistoryValue value={entry.uciRank} prefix="#" />
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </>
@@ -952,6 +1226,27 @@ function HistoryValue({
       {value === null ? "—" : `${prefix}${value}`}
     </td>
   );
+}
+
+function formatCareerMovement(entry: {
+  transferFee: number | null;
+  currencyCode: string;
+  joinedDayNumber: number | null;
+  leftDayNumber: number | null;
+}) {
+  const details: string[] = [];
+  if (entry.transferFee !== null) {
+    details.push(
+      `Transfert ${formatMoney(entry.transferFee, entry.currencyCode)}`,
+    );
+  }
+  if ((entry.joinedDayNumber ?? 1) > 1) {
+    details.push(`arrivée J${entry.joinedDayNumber}`);
+  }
+  if (entry.leftDayNumber !== null) {
+    details.push(`départ J${entry.leftDayNumber}`);
+  }
+  return details.join(" · ");
 }
 
 function MobileHistoryValue({

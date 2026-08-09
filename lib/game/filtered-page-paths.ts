@@ -25,7 +25,11 @@ import {
 
 const LOCAL_ORIGIN = "https://cycling-manager.local";
 
-export type TransferMarketTab = "quotidiennes" | "directeurs" | "libres";
+export type TransferMarketTab =
+  | "quotidiennes"
+  | "directeurs"
+  | "libres"
+  | "offres";
 
 export type TransferMarketReturnFilters = {
   profile?: TransferRiderProfileFilter;
@@ -198,7 +202,7 @@ function readLocalPageUrl(value: string, pathname: string) {
 }
 
 function readTransferTab(value: string | null): TransferMarketTab {
-  return value === "directeurs" || value === "libres"
+  return value === "directeurs" || value === "libres" || value === "offres"
     ? value
     : "quotidiennes";
 }

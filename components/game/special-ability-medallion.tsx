@@ -1,6 +1,8 @@
-import type {
-  SpecialAbilityDefinition,
-} from "@/lib/game/special-abilities";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+import type { SpecialAbilityDefinition } from "@/lib/game/special-abilities";
 
 const UNLOCKED_TONES: Record<SpecialAbilityDefinition["tone"], string> = {
   silver: "border-[#BFC7CA] bg-[linear-gradient(145deg,#F8FAFA,#9DA9AD)] text-[#26383A] shadow-[#768387]/25",
@@ -22,17 +24,48 @@ export function SpecialAbilityMedallion({
   ability: SpecialAbilityDefinition;
   unlocked: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const tooltipId = `ability-${ability.code}`;
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (!buttonRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
+  }, [isOpen]);
+
   return (
-    <span
-      className="group relative inline-flex"
-      tabIndex={0}
+    <button
+      ref={buttonRef}
+      type="button"
+      className="group relative inline-flex cursor-help rounded-full border-0 bg-transparent p-0 text-inherit"
+      aria-label={`${ability.name}${unlocked ? " débloquée" : " non débloquée"}`}
       aria-describedby={tooltipId}
+      aria-controls={tooltipId}
+      aria-expanded={isOpen}
+      onClick={() => setIsOpen((open) => !open)}
+      onBlur={() => setIsOpen(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setIsOpen(false);
+          event.currentTarget.blur();
+        }
+      }}
     >
       <span
-        aria-label={`${ability.name}${unlocked ? " débloquée" : " non débloquée"}`}
+        aria-hidden="true"
         className={`grid h-12 w-12 place-items-center rounded-full border-2 shadow-lg transition group-hover:-translate-y-0.5 group-focus-visible:-translate-y-0.5 ${
+          isOpen
+            ? "-translate-y-0.5 ring-2 ring-[#082A2A]/25 ring-offset-2"
+            : ""
+        } ${
           unlocked
             ? UNLOCKED_TONES[ability.tone]
             : "border-[#AEBBB6] bg-[#DCE3E0] text-[#7C8C86] grayscale opacity-55 shadow-black/10"
@@ -43,7 +76,11 @@ export function SpecialAbilityMedallion({
       <span
         id={tooltipId}
         role="tooltip"
-        className="pointer-events-none absolute bottom-[calc(100%+0.65rem)] left-1/2 z-30 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-[#071A17] px-3 py-2.5 text-left text-xs leading-5 text-[#D6DFD2] opacity-0 shadow-2xl transition group-hover:opacity-100 group-focus-visible:opacity-100"
+        className={`pointer-events-none absolute bottom-[calc(100%+0.65rem)] left-1/2 z-50 w-64 -translate-x-1/2 rounded-xl border border-white/10 bg-[#071A17] px-3 py-2.5 text-left text-xs leading-5 text-[#D6DFD2] shadow-2xl transition max-sm:fixed max-sm:inset-x-4 max-sm:bottom-4 max-sm:left-auto max-sm:w-auto max-sm:translate-x-0 ${
+          isOpen
+            ? "visible opacity-100"
+            : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-visible:visible group-focus-visible:opacity-100"
+        }`}
       >
         <strong className="block font-black text-[#F2C94C]">{ability.name}</strong>
         <span className="mt-0.5 block">{ability.effect}</span>
@@ -51,7 +88,7 @@ export function SpecialAbilityMedallion({
           <span className="mt-1 block font-bold text-[#9FB5A8]">Non débloquée</span>
         ) : null}
       </span>
-    </span>
+    </button>
   );
 }
 

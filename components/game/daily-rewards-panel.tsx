@@ -4,7 +4,7 @@ import {
 } from "@/app/jeu/objectifs/actions";
 import { DailyRewardTargetFields } from "@/components/game/daily-reward-target-fields";
 import {
-  getDailyRewardImportance,
+  DAILY_REWARD_CYCLE_LENGTH,
   requiresRiderTarget,
   type DailyRewardInventoryItem,
   type DailyRewardOverview,
@@ -29,6 +29,13 @@ export function DailyRewardsPanel({
     );
   }
 
+  const displayedCycleDay = overview.availableToday
+    ? overview.prospectiveStreakDay
+    : overview.consecutiveDays;
+  const claimedCycleDay = overview.claimedToday
+    ? overview.consecutiveDays
+    : Math.max(0, overview.prospectiveStreakDay - 1);
+
   return (
     <div className="mt-8 space-y-7">
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_20px_60px_rgba(19,60,46,0.11)]">
@@ -41,13 +48,25 @@ export function DailyRewardsPanel({
               Votre série quotidienne
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#C4D7CE]">
-              Ouvrez un cadeau chaque jour. Une journée de saison manquée
-              remet la série à zéro ; tenez jusqu’au 28e jour pour découvrir
-              la récompense finale.
+              Le cycle de 40 cadeaux continue d’une saison à l’autre. Une
+              journée de jeu manquée le remet au jour 1 ; après le cadeau de
+              niveau 10, un nouveau cycle démarre.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
-            <Metric label="Série" value={`${overview.consecutiveDays} j`} />
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
+            <Metric
+              label="Cycle"
+              value={`${displayedCycleDay}/${DAILY_REWARD_CYCLE_LENGTH}`}
+            />
+            <Metric
+              label="Prochain"
+              value={`Niv. ${overview.importance}`}
+              accent
+            />
+            <Metric
+              label="Saison"
+              value={`${overview.claimedSeasonDays.length}/${overview.seasonLength}`}
+            />
           </div>
         </div>
 
@@ -60,13 +79,13 @@ export function DailyRewardsPanel({
               return (
                 <div
                   key={day}
-                  title={
+                  title={`J${day} · ${
                     claimed
-                      ? `J${day} · cadeau récupéré`
+                      ? "cadeau récupéré"
                       : current
-                        ? `J${day} · jour actuel`
-                        : `J${day}`
-                  }
+                        ? "jour actuel"
+                        : "jour de saison"
+                  }`}
                   className={`relative flex aspect-square min-w-0 items-center justify-center rounded-lg border text-[10px] font-black sm:text-xs ${
                     claimed
                       ? "border-[#176951] bg-[#176951] text-white"
@@ -76,10 +95,37 @@ export function DailyRewardsPanel({
                   }`}
                 >
                   {claimed ? "✓" : day}
-                  {[4, 7, 14, 21, 28].includes(day) &&
-                  getDailyRewardImportance(day) > 1 ? (
-                    <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#F2C94C]" />
-                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              { day: 28, importance: 7 },
+              { day: 32, importance: 8 },
+              { day: 36, importance: 9 },
+              { day: 40, importance: 10 },
+            ].map((milestone) => {
+              const reached = claimedCycleDay >= milestone.day;
+              const next = overview.prospectiveStreakDay === milestone.day;
+              return (
+                <div
+                  key={milestone.day}
+                  className={`rounded-xl border px-3 py-2 text-center ${
+                    reached
+                      ? "border-[#176951] bg-[#EAF5F3] text-[#176951]"
+                      : next
+                        ? "border-[#D6A600] bg-[#FFF9DB] text-[#715700]"
+                        : "border-[#315B3E]/12 bg-[#F7FAF8] text-[#789087]"
+                  }`}
+                >
+                  <p className="text-xs font-black">
+                    Niv. {milestone.importance}
+                  </p>
+                  <p className="text-[10px] font-bold">
+                    Cadeau {milestone.day}
+                  </p>
                 </div>
               );
             })}
@@ -90,7 +136,8 @@ export function DailyRewardsPanel({
               <div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8A7000]">
-                    J{overview.currentDayNumber} · cadeau {overview.prospectiveStreakDay}/28
+                    J{overview.currentDayNumber} · cadeau{" "}
+                    {overview.prospectiveStreakDay}/{DAILY_REWARD_CYCLE_LENGTH}
                   </p>
                   <h3 className="mt-1 text-2xl font-black text-[#403200]">
                     {overview.offers.length > 1
@@ -100,7 +147,9 @@ export function DailyRewardsPanel({
                 </div>
               </div>
 
-              <div className={`mt-5 grid gap-4 ${overview.offers.length > 1 ? "lg:grid-cols-3" : "max-w-2xl"}`}>
+              <div
+                className={`mt-5 grid gap-4 ${overview.offers.length > 1 ? "lg:grid-cols-3" : "max-w-2xl"}`}
+              >
                 {overview.offers.map((offer) => (
                   <form
                     key={offer.key}
@@ -124,7 +173,9 @@ export function DailyRewardsPanel({
                       type="submit"
                       className="mt-auto min-h-11 rounded-xl bg-[#176951] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B]"
                     >
-                      {overview.offers.length > 1 ? "Choisir ce cadeau" : "Ouvrir le cadeau"}
+                      {overview.offers.length > 1
+                        ? "Choisir ce cadeau"
+                        : "Ouvrir le cadeau"}
                     </button>
                   </form>
                 ))}
@@ -225,7 +276,11 @@ function InventoryRewardCard({
         />
 
         {item.effectKind === "wildcard" ? (
-          <SelectField name="raceEditionId" label="Course Elite hors GT" required>
+          <SelectField
+            name="raceEditionId"
+            label="Course Elite hors GT"
+            required
+          >
             <option value="">Choisir une course</option>
             {overview.eligibleRaces.map((race) => (
               <option key={race.id} value={race.id}>
@@ -280,16 +335,22 @@ function SelectField({
 function Metric({
   label,
   value,
+  accent = false,
 }: {
   label: string;
   value: string;
+  accent?: boolean;
 }) {
   return (
     <div className="min-w-20 rounded-xl bg-black/15 px-3 py-3">
       <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#BFD1C6]">
         {label}
       </p>
-      <p className="mt-1 text-xl font-black text-white">{value}</p>
+      <p
+        className={`mt-1 text-xl font-black ${accent ? "text-[#F2C94C]" : "text-white"}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

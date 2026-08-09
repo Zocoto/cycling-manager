@@ -7,12 +7,8 @@ function readSource(path: string) {
 }
 
 const gameHeader = readSource("components/game/game-header.tsx");
-const navigationMenu = readSource(
-  "components/game/game-navigation-menu.tsx",
-);
-const globalChat = readSource(
-  "components/game/global-chat-shortcut.tsx",
-);
+const navigationMenu = readSource("components/game/game-navigation-menu.tsx");
+const globalChat = readSource("components/game/global-chat-shortcut.tsx");
 const tutorialCenter = readSource(
   "components/tutorial/tutorial-center-menu.tsx",
 );
@@ -20,39 +16,34 @@ const tutorialCenter = readSource(
 describe("bandeau du jeu sur mobile", () => {
   it("garde le logo, le menu et les raccourcis sur une ligne compacte", () => {
     expect(gameHeader).toContain(
-      "gap-x-2 gap-y-2 px-3 pb-3 pt-3 sm:gap-x-5",
+      "items-center gap-3 px-3 py-3 sm:px-8 sm:py-4",
     );
+    expect(gameHeader).toContain('className="h-10 w-10 sm:h-12 sm:w-12"');
     expect(gameHeader).toContain(
-      'className="h-10 w-10 sm:h-12 sm:w-12"',
+      'className="ml-auto flex shrink-0 items-center gap-2"',
     );
-    expect(gameHeader).toContain(
-      'className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2"',
-    );
-    expect(navigationMenu).toContain(
-      "inline-flex h-9 w-9 cursor-pointer",
-    );
+    expect(navigationMenu).toContain("inline-flex h-9 w-9 cursor-pointer");
   });
 
-  it("compacte tous les raccourcis sans modifier leur taille hors mobile", () => {
-    expect(gameHeader).toContain(
-      "group inline-flex h-9 w-9 shrink-0",
-    );
-    expect(gameHeader.match(/sm:h-10 sm:w-10/g)).toHaveLength(3);
+  it("garde les communications visibles et range le reste dans le menu compact", () => {
+    const mailboxPosition = gameHeader.indexOf("<DirectorMailboxShortcut");
+    const chatPosition = gameHeader.indexOf("<GlobalChatShortcut");
+    const menuPosition = gameHeader.indexOf("<GameHeaderActionsMenu>");
+
+    expect(mailboxPosition).toBeGreaterThan(0);
+    expect(chatPosition).toBeGreaterThan(mailboxPosition);
+    expect(menuPosition).toBeGreaterThan(chatPosition);
     expect(globalChat).toContain("h-9 w-9 shrink-0");
     expect(globalChat).toContain("sm:h-10 sm:w-10");
-    expect(tutorialCenter).toContain("h-9 w-9 shrink-0");
-    expect(tutorialCenter).toContain("sm:h-10 sm:w-10");
+    expect(tutorialCenter).toContain("TutorialCenterMenu");
   });
 
-  it("conserve la recherche sur la seule seconde ligne", () => {
+  it("affiche la recherche sur desktop et dans le menu sur mobile", () => {
+    expect(gameHeader).toContain('id="game-global-search-desktop"');
     expect(gameHeader).toContain(
-      'className="order-3 flex w-full min-w-0 items-center lg:order-none',
+      'className="hidden min-w-0 max-w-xl flex-1 md:flex"',
     );
-    expect(gameHeader).toContain(
-      "bg-transparent px-2.5 py-2 text-sm",
-    );
-    expect(gameHeader).toContain(
-      "m-1 inline-flex h-8 w-8 shrink-0",
-    );
+    expect(gameHeader).toContain('id="game-global-search-mobile"');
+    expect(gameHeader).toContain('className="mb-4 flex md:hidden"');
   });
 });

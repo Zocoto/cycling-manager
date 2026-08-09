@@ -1,3 +1,4 @@
+import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "@/components/game/sponsor-logo";
 import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
@@ -243,9 +244,15 @@ function FutureSponsorOfferCard({
               : "Offre saison suivante"}
           </span>
 
-          <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
-            {targetSeasonName}
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <SponsorCountryBadge
+              countryCode={sponsor.countryCode}
+              primaryColor={sponsor.colors.primary}
+            />
+            <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
+              {targetSeasonName}
+            </span>
+          </div>
         </div>
 
         <div

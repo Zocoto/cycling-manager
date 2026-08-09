@@ -7,6 +7,7 @@ import {
 import type { ItemTargetRider } from "@/lib/game/item-target-values";
 
 export const DAILY_REWARD_SEASON_LENGTH = 28;
+export const DAILY_REWARD_CYCLE_LENGTH = 40;
 
 export type DailyRewardEffectKind =
   | "form_boost"
@@ -78,13 +79,25 @@ export const DAILY_REWARD_RATING_OPTIONS = RIDER_RATING_AXES.map((axis) => ({
 }));
 
 export function getDailyRewardImportance(streakDay: number): number {
-  if (streakDay >= 28) return 10;
-  if (streakDay === 27 || streakDay === 21) return 6;
-  if (streakDay === 25) return 5;
-  if ([14, 18, 22, 23, 24, 26].includes(streakDay)) return 4;
-  if ([7, 11, 15, 16, 17, 19, 20].includes(streakDay)) return 3;
-  if ([4, 8, 9, 10, 12, 13].includes(streakDay)) return 2;
+  const cycleDay =
+    ((Math.max(1, streakDay) - 1) % DAILY_REWARD_CYCLE_LENGTH) + 1;
+
+  if (cycleDay === 40) return 10;
+  if (cycleDay === 36) return 9;
+  if (cycleDay === 32) return 8;
+  if (cycleDay === 28) return 7;
+  if ([21, 27, 31, 35, 39].includes(cycleDay)) return 6;
+  if ([25, 30, 34, 38].includes(cycleDay)) return 5;
+  if ([14, 18, 22, 23, 24, 26, 29, 33, 37].includes(cycleDay)) return 4;
+  if ([7, 11, 15, 16, 17, 19, 20].includes(cycleDay)) return 3;
+  if ([4, 8, 9, 10, 12, 13].includes(cycleDay)) return 2;
   return 1;
+}
+
+export function getNextDailyRewardCycleDay(currentCycleDay: number): number {
+  if (currentCycleDay >= DAILY_REWARD_CYCLE_LENGTH) return 1;
+  if (currentCycleDay < 1) return 1;
+  return currentCycleDay + 1;
 }
 
 export function getRatingOptionsForOffer(offer: DailyRewardOffer) {

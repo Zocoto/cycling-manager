@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   createDirectorListingAction,
   placeTransferBidAction,
+  respondToDirectTransferOfferAction,
   signFreeAgentAction,
 } from "@/app/jeu/transferts/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
@@ -41,6 +42,7 @@ import { getTeamAmateurIdentity } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import {
   getTransferMarketOverview,
+  type DirectTransferOffer,
   type TransferMarketFilters,
   type TransferMarketListing,
   type TransferMarketRider,
@@ -52,7 +54,7 @@ export const metadata: Metadata = {
   description: "Enchérissez, vendez et signez les coureurs de votre équipe.",
 };
 
-type TransferTab = "quotidiennes" | "directeurs" | "libres";
+type TransferTab = "quotidiennes" | "directeurs" | "libres" | "offres";
 
 type TransferPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -62,6 +64,7 @@ const tabs: Array<{ id: TransferTab; label: string; detail: string }> = [
   { id: "quotidiennes", label: "Enchères quotidiennes", detail: "5 nouveaux talents · 9 h à 18 h" },
   { id: "directeurs", label: "Enchères des DS", detail: "Ventes entre équipes · 24 h" },
   { id: "libres", label: "Agents libres", detail: "Signature sans indemnité" },
+  { id: "offres", label: "Offres reçues", detail: "Négociations directes · historique" },
 ];
 
 export default async function TransferMarketPage({ searchParams }: TransferPageProps) {
@@ -74,7 +77,9 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
 
   const [headerData, overview, transferTutorialProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getTransferMarketOverview(supabase, user.id, filters),
+    getTransferMarketOverview(supabase, user.id, filters, {
+      includeDirectOffers: tab === "offres",
+    }),
     getAuthenticatedTutorialProgress(supabase, TRANSFER_TUTORIAL_KEY).catch(
       (error: unknown) => {
         console.error(
@@ -175,7 +180,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
 
         <nav
           data-tutorial-id="transfer-tabs"
-          className="mt-7 grid gap-3 lg:grid-cols-3"
+          className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
           aria-label="Rubriques du marché des transferts"
         >
           {tabs.map((entry) => (
@@ -197,8 +202,10 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
           <DailyAuctions listings={overview.dailyListings} overview={overview} returnPath={currentPath} />
         ) : tab === "directeurs" ? (
           <DirectorAuctions listings={overview.directorListings} roster={overview.roster} overview={overview} jerseys={jerseys} returnPath={currentPath} />
-        ) : (
+        ) : tab === "libres" ? (
           <FreeAgents riders={overview.freeAgents} countries={overview.countries} query={query} currency={overview.currency} rosterSize={overview.rosterSize} rosterLimit={overview.rosterLimit} rosterIsFull={overview.rosterIsFull} returnPath={currentPath} />
+        ) : (
+          <ReceivedDirectOffers offers={overview.directOffers} returnPath={currentPath} />
         )}
       </section>
     </main>
@@ -268,6 +275,154 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
       <div data-tutorial-id="transfer-director-market">
         <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture ; le transfert et les écritures financières sont ensuite automatiques." />
         {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
+      </div>
+    </section>
+  );
+}
+
+function ReceivedDirectOffers({ offers, returnPath }: {
+  offers: DirectTransferOffer[];
+  returnPath: string;
+}) {
+  const pendingOffers = offers.filter((offer) => offer.status === "pending");
+  const history = offers.filter((offer) => offer.status !== "pending");
+
+  return (
+    <section className="mt-7 space-y-8">
+      <div>
+        <SectionHeading
+          eyebrow="Décisions en attente"
+          title="Offres reçues"
+          detail="Chaque réponse est définitive. Une acceptation crédite immédiatement votre équipe, libère le coureur de son contrat actuel et l’engage avec l’acheteur jusqu’à la fin de la saison."
+        />
+        {pendingOffers.length > 0 ? (
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            {pendingOffers.map((offer) => (
+              <article
+                key={offer.id}
+                className="overflow-hidden rounded-[2rem] border border-[#F2C94C]/30 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]"
+              >
+                <header className="bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-5 text-white">
+                  <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
+                    Proposition de {offer.buyerTeamName}
+                  </p>
+                  <Link
+                    href={`/jeu/coureurs/${offer.rider.id}`}
+                    className="mt-2 block text-2xl font-black transition hover:text-[#F2C94C]"
+                  >
+                    {offer.rider.firstName} {offer.rider.lastName} ↗
+                  </Link>
+                  <p className="mt-1 text-xs font-bold text-[#D6DFD2]">
+                    Reçue le {formatDateTime(offer.createdAt)}
+                  </p>
+                </header>
+                <div className="p-6">
+                  <div className="grid grid-cols-2 gap-3">
+                    <PriceBlock
+                      label="Indemnité versée"
+                      value={formatMoney(offer.amount, offer.currency)}
+                    />
+                    <PriceBlock
+                      label="Salaire du futur contrat"
+                      value={formatMoney(offer.salaryPerSeason, offer.currency)}
+                    />
+                  </div>
+                  <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
+                    En acceptant, votre équipe reçoit l’indemnité et l’acheteur
+                    prend immédiatement en charge le coureur. Les équipements,
+                    inscriptions et stages sont nettoyés automatiquement.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <form action={respondToDirectTransferOfferAction}>
+                      <input type="hidden" name="offerId" value={offer.id} />
+                      <input type="hidden" name="riderId" value={offer.rider.id} />
+                      <input type="hidden" name="decision" value="accept" />
+                      <input type="hidden" name="returnPath" value={returnPath} />
+                      <TransferSubmitButton pendingLabel="Acceptation…" tone="green">
+                        Accepter l’offre
+                      </TransferSubmitButton>
+                    </form>
+                    <form action={respondToDirectTransferOfferAction}>
+                      <input type="hidden" name="offerId" value={offer.id} />
+                      <input type="hidden" name="riderId" value={offer.rider.id} />
+                      <input type="hidden" name="decision" value="reject" />
+                      <input type="hidden" name="returnPath" value={returnPath} />
+                      <TransferSubmitButton pendingLabel="Refus…" tone="dark">
+                        Refuser
+                      </TransferSubmitButton>
+                    </form>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="Aucune réponse à donner"
+            detail="Les futures propositions reçues depuis une fiche coureur apparaîtront ici et dans votre boîte mail."
+          />
+        )}
+      </div>
+
+      <div>
+        <SectionHeading
+          eyebrow="Archive de la saison"
+          title="Historique des offres"
+          detail="Les propositions acceptées, refusées ou devenues caduques restent consultables pendant toute la saison."
+        />
+        {history.length > 0 ? (
+          <div className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_12px_35px_rgba(19,60,46,0.07)]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left">
+                <thead className="bg-[#F3F8F6] text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+                  <tr>
+                    <th className="px-5 py-3">Coureur</th>
+                    <th className="px-4 py-3">Équipe demandeuse</th>
+                    <th className="px-4 py-3 text-right">Montant</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-5 py-3 text-right">Décision</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#315B3E]/10">
+                  {history.map((offer) => {
+                    const status = getDirectOfferStatus(offer.status);
+                    return (
+                      <tr key={offer.id} className="hover:bg-[#F7FBF9]">
+                        <td className="px-5 py-4">
+                          <Link
+                            href={`/jeu/coureurs/${offer.rider.id}`}
+                            className="font-black text-[#183F37] hover:text-[#176951]"
+                          >
+                            {offer.rider.firstName} {offer.rider.lastName}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-bold text-[#48665F]">
+                          {offer.buyerTeamName}
+                        </td>
+                        <td className="px-4 py-4 text-right text-sm font-black text-[#183F37]">
+                          {formatMoney(offer.amount, offer.currency)}
+                        </td>
+                        <td className="px-4 py-4 text-xs font-bold text-[#60756E]">
+                          {formatDateTime(offer.respondedAt ?? offer.createdAt)}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <span className={`rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-wider ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            title="Aucun historique pour le moment"
+            detail="Les réponses de la saison seront archivées ici."
+          />
+        )}
       </div>
     </section>
   );
@@ -364,8 +519,15 @@ function FilterField({ label, children }: { label: string; children: React.React
 
 function formatMoney(value: number, currency: string) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(`${value}T12:00:00Z`)); }
+function formatDateTime(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }).format(new Date(value)); }
+function getDirectOfferStatus(status: DirectTransferOffer["status"]) {
+  if (status === "accepted") return { label: "Acceptée", className: "bg-[#DDF3E7] text-[#176951]" };
+  if (status === "rejected") return { label: "Refusée", className: "bg-[#FFF0EE] text-[#8A2F2F]" };
+  if (status === "cancelled") return { label: "Caduque", className: "bg-[#EEF1EF] text-[#60756E]" };
+  return { label: "En attente", className: "bg-[#FFF4D6] text-[#8A6516]" };
+}
 function readQuery(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] ?? "" : value ?? ""; }
-function readTab(value: string): TransferTab { return value === "directeurs" || value === "libres" ? value : "quotidiennes"; }
+function readTab(value: string): TransferTab { return value === "directeurs" || value === "libres" || value === "offres" ? value : "quotidiennes"; }
 function readNumber(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isFinite(parsed) && readQuery(value) !== "" ? parsed : undefined; }
 function readFilters(query: Record<string, string | string[] | undefined>): TransferMarketFilters {
   const profile = readQuery(query.profil);

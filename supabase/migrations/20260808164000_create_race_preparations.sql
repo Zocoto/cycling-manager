@@ -659,7 +659,7 @@ begin
     v_attack_orders,
     clock_timestamp()
   )
-  on conflict (race_registration_id, stage_id)
+  on conflict on constraint race_stage_strategies_pkey
   do update set
     team_id = excluded.team_id,
     objective = excluded.objective,
