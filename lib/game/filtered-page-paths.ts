@@ -73,7 +73,6 @@ export function sanitizeTransferMarketReturnPath(value: string) {
 }
 
 export type StaffMarketReturnFilters = {
-  search?: string;
   role?: StaffRole;
   level?: number;
   countryCode?: string;
@@ -84,7 +83,6 @@ export function buildStaffMarketReturnPath(
   filters: StaffMarketReturnFilters = {},
 ) {
   const params = new URLSearchParams({ onglet: "marche" });
-  setOptionalParam(params, "recherche", normalizeSearch(filters.search));
   setOptionalParam(params, "metier", filters.role);
   setOptionalNumber(params, "niveau", filters.level, 1, 5);
   setOptionalParam(
@@ -104,7 +102,6 @@ export function sanitizeStaffMarketReturnPath(value: string) {
   const specialty = url.searchParams.get("specialite");
 
   return buildStaffMarketReturnPath({
-    search: normalizeSearch(url.searchParams.get("recherche")),
     role: role && isStaffRole(role) ? role : undefined,
     level: readBoundedNumber(url.searchParams.get("niveau"), 1, 5),
     countryCode: normalizeCountryCode(url.searchParams.get("pays")),
@@ -221,11 +218,6 @@ function normalizeRating(value: string | null | undefined) {
 function normalizeCountryCode(value: string | null | undefined) {
   const normalized = value?.trim().toUpperCase();
   return normalized && /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
-}
-
-function normalizeSearch(value: string | null | undefined) {
-  const normalized = value?.trim().slice(0, 80);
-  return normalized || undefined;
 }
 
 function readBoundedNumber(

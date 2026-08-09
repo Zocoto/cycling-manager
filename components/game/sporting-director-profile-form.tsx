@@ -19,6 +19,7 @@ type SportingDirectorProfileFormProps = {
   initialAvatarKey: string | null;
   initialAvatarFrameKey: "alpha_tester" | null;
   hasAlphaTesterTrophy: boolean;
+  hasAssiduTrophy: boolean;
   initialIsEmailVisible: boolean;
 };
 
@@ -37,6 +38,7 @@ export function SportingDirectorProfileForm({
   initialAvatarKey,
   initialAvatarFrameKey,
   hasAlphaTesterTrophy,
+  hasAssiduTrophy,
   initialIsEmailVisible,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
@@ -475,6 +477,25 @@ export function SportingDirectorProfileForm({
             ) : null}
           </section>
         ) : null}
+
+        {hasAssiduTrophy ? (
+          <section
+            id="assidu-avatar-accessory"
+            className="scroll-mt-28 rounded-xl border border-[#D7A928]/40 bg-[linear-gradient(135deg,rgba(255,242,184,0.48),rgba(221,245,240,0.55))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#80640C]">
+              Distinction Assidu
+            </p>
+            <h3 className="mt-2 text-base font-black text-[#173F37]">
+              Lunettes Premier de la classe débloquées
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#48665F]">
+              Ouvrez l’éditeur d’avatar, puis l’onglet Style, pour ajouter ou
+              retirer cette paire exclusive à tout moment.
+            </p>
+          </section>
+        ) : null}
+
         <div className="rounded-xl border border-[#315B3E]/15 bg-[#F5F9F7] p-4 sm:p-5">
           <label className="flex cursor-pointer items-start gap-4">
             <input
@@ -589,6 +610,7 @@ export function SportingDirectorProfileForm({
             <SportingDirectorAvatarEditor
               avatarKey={selectedAvatarKey || null}
               frameKey={initialAvatarFrameKey}
+              hasAssiduTrophy={hasAssiduTrophy}
               onCancel={() => setIsAvatarModalOpen(false)}
               onConfirm={selectAvatar}
             />

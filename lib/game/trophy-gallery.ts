@@ -82,6 +82,7 @@ export type TrophyRiderUciTitle = {
 export type TrophyAttendance = {
   id: string;
   seasonName: string;
+  awardedAt: string;
 };
 
 export type TrophySpecialAward = {
@@ -224,10 +225,10 @@ const UCI_RIDER_PALETTE: TrophyPalette = {
 };
 
 const ATTENDANCE_PALETTE: TrophyPalette = {
-  primary: "#42B99A",
-  secondary: "#DDF8EC",
-  accent: "#0B302B",
-  glow: "rgba(66, 185, 154, 0.46)",
+  primary: "#D7A928",
+  secondary: "#FFF2B8",
+  accent: "#173F37",
+  glow: "rgba(215, 169, 40, 0.46)",
 };
 
 export function buildTrophyGallery({
@@ -329,14 +330,16 @@ export function buildTrophyGallery({
   const attendanceCareerTrophies = attendanceTrophies.map<CareerTrophy>((trophy) => ({
     id: `attendance:${trophy.id}`,
     kind: "attendance",
-    title: "Assidu·e",
-    competitionName: "28 cadeaux quotidiens",
+    title: "Assidu",
+    competitionName: "Présence parfaite",
     seasonName: trophy.seasonName,
-    wonAt: null,
+    wonAt: trophy.awardedAt,
     riderName: null,
-    href: "/jeu/objectifs?onglet=quotidiennes",
-    inscription: "Série parfaite · 28/28",
+    href: "/jeu/directeur-sportif#assidu-avatar-accessory",
+    inscription: "Tous les jours · Saison complète",
     palette: ATTENDANCE_PALETTE,
+    description:
+      "Décerné après une saison entière sans manquer un seul jour de connexion. Débloque les lunettes Premier de la classe dans l’éditeur d’avatar.",
   }));
 
   const trophies = [

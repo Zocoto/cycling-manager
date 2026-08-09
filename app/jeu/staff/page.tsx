@@ -239,7 +239,7 @@ function EmploymentMarket({
       >
         <SectionHeading
           eyebrow={`Sélection du ${formatDate(overview.marketDate)}`}
-          title="25 spécialistes sur le marché mondial"
+          title="Spécialistes disponibles sur le marché mondial"
           detail="Le pool est identique pour tous les joueurs. Une signature est définitive : dès qu’un DS recrute un profil, celui-ci n’est plus disponible pour les autres équipes."
         />
         <div className="grid shrink-0 grid-cols-2 gap-3">
@@ -256,17 +256,9 @@ function EmploymentMarket({
 
       <form
         data-tutorial-id="staff-market-filters"
-        className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-5"
+        className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-4"
       >
         <input type="hidden" name="onglet" value="marche" />
-        <FilterField label="Nom">
-          <input
-            name="recherche"
-            defaultValue={readQuery(query.recherche)}
-            placeholder="Rechercher…"
-            className={filterClassName}
-          />
-        </FilterField>
         <FilterField label="Métier">
           <select
             name="metier"
@@ -323,7 +315,7 @@ function EmploymentMarket({
             ))}
           </select>
         </FilterField>
-        <div className="flex flex-wrap gap-3 xl:col-span-5">
+        <div className="flex flex-wrap gap-3 xl:col-span-4">
           <button className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white">
             Filtrer
           </button>
@@ -349,8 +341,8 @@ function EmploymentMarket({
           </div>
         ) : (
           <EmptyState
-            title="Aucun profil ne correspond à ces filtres"
-            detail="Élargissez les critères pour retrouver les 25 membres du marché du jour."
+            title="Aucun profil disponible avec ces filtres"
+            detail="Modifiez les critères ou revenez après le renouvellement quotidien du marché."
           />
         )}
       </div>
@@ -440,27 +432,15 @@ function StaffMarketCard({
           />
         </div>
 
-        {listing.status === "available" ? (
-          <form action={hireStaffMemberAction} className="mt-4">
-            <input type="hidden" name="listingId" value={listing.id} />
-            <input type="hidden" name="returnPath" value={returnPath} />
-            <StaffSubmitButton disabled={!listing.canHire}>
-              Recruter
-            </StaffSubmitButton>
-          </form>
-        ) : (
-          <p
-            className={
-              listing.hiredByCurrentTeam
-                ? "mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-[#176951]"
-                : "mt-4 rounded-xl bg-[#EEF1F0] px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-[#60756E]"
-            }
-          >
-            {listing.hiredByCurrentTeam ? "Dans votre staff" : "Déjà recruté"}
-          </p>
-        )}
+        <form action={hireStaffMemberAction} className="mt-4">
+          <input type="hidden" name="listingId" value={listing.id} />
+          <input type="hidden" name="returnPath" value={returnPath} />
+          <StaffSubmitButton disabled={!listing.canHire}>
+            Recruter
+          </StaffSubmitButton>
+        </form>
 
-        {listing.hireBlockedReason && !listing.hiredByCurrentTeam ? (
+        {listing.hireBlockedReason ? (
           <p className="mt-3 text-xs font-semibold leading-5 text-[#8A5A23]">
             {listing.hireBlockedReason}
           </p>
@@ -539,7 +519,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
         <SectionHeading
           eyebrow={overview.seasonName}
           title="Les spécialistes de l’équipe"
-          detail="Le salaire saisonnier est réparti sur les jours 7, 14, 21 et 28. Un licenciement exige le règlement du solde de la saison et de toute la suivante."
+          detail="Le salaire saisonnier est réparti sur les jours 7, 14, 21 et 28. Un licenciement règle uniquement les échéances restant dans la saison en cours."
         />
         {overview.teamStaff.length > 0 ? (
           <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -682,12 +662,6 @@ function TeamStaffCard({
               member.currency,
             )}
           </p>
-          <p>
-            Saison suivante · {formatMoney(
-              member.salaryPerSeason,
-              member.currency,
-            )}
-          </p>
         </div>
       </div>
       {member.contractId ? (
@@ -701,10 +675,6 @@ function TeamStaffCard({
             )}
             currentSeasonLabel={formatMoney(
               member.remainingCurrentSeasonSalary,
-              member.currency,
-            )}
-            nextSeasonLabel={formatMoney(
-              member.salaryPerSeason,
               member.currency,
             )}
             resultingBalanceLabel={formatMoney(
@@ -997,7 +967,6 @@ function readFilters(
   const specialtyValue = readQuery(query.specialite);
 
   return {
-    search: readQuery(query.recherche) || undefined,
     role: isStaffRole(roleValue) ? roleValue : undefined,
     level:
       Number.isInteger(levelValue) && levelValue >= 1 && levelValue <= 5

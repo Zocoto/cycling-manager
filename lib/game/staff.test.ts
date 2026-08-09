@@ -66,13 +66,13 @@ describe("staff economy", () => {
     expect(calculateDueStaffSalary(40_000, 28)).toBe(40_000);
   });
 
-  it("facture le salaire restant de la saison et toute la suivante", () => {
+  it("facture uniquement les échéances restantes de la saison en cours", () => {
     expect(calculateRemainingStaffSalary(40_000, 1)).toBe(40_000);
-    expect(calculateStaffDismissalCompensation(40_000, 1)).toBe(80_000);
-    expect(calculateStaffDismissalCompensation(40_000, 7)).toBe(70_000);
-    expect(calculateStaffDismissalCompensation(40_000, 14)).toBe(60_000);
-    expect(calculateStaffDismissalCompensation(40_000, 21)).toBe(50_000);
-    expect(calculateStaffDismissalCompensation(40_000, 28)).toBe(40_000);
+    expect(calculateStaffDismissalCompensation(40_000, 1)).toBe(40_000);
+    expect(calculateStaffDismissalCompensation(40_000, 7)).toBe(30_000);
+    expect(calculateStaffDismissalCompensation(40_000, 14)).toBe(20_000);
+    expect(calculateStaffDismissalCompensation(40_000, 21)).toBe(10_000);
+    expect(calculateStaffDismissalCompensation(40_000, 28)).toBe(0);
   });
 
   it("expands physiotherapist capacity by useful non-linear steps", () => {

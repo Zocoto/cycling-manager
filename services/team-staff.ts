@@ -123,7 +123,6 @@ type ContractRow = {
 type FinanceRow = { amount: number | string };
 
 export type StaffMarketFilters = {
-  search?: string;
   role?: StaffRole;
   level?: number;
   countryCode?: string;
@@ -162,9 +161,6 @@ export type TeamStaffMember = {
 export type StaffMarketListing = {
   id: string;
   slot: number;
-  status: ListingRow["status"];
-  hiredTeamId: string | null;
-  hiredByCurrentTeam: boolean;
   member: TeamStaffMember;
   canHire: boolean;
   hireBlockedReason: string | null;
@@ -255,10 +251,13 @@ export async function getTeamStaffOverview(
 
   assertQuery(listingsError, "les profils du marché du staff");
   const listings = listingRows ?? [];
+  const availableListings = listings.filter(
+    (listing) => listing.status === "available",
+  );
   const contracts = contractsResult.data ?? [];
   const memberIds = [
     ...new Set([
-      ...listings.map((listing) => listing.staff_member_id),
+      ...availableListings.map((listing) => listing.staff_member_id),
       ...contracts.map((contract) => contract.staff_member_id),
     ]),
   ];
@@ -315,7 +314,7 @@ export async function getTeamStaffOverview(
     staffCapacity,
   });
 
-  const marketListings = listings.flatMap((listing) => {
+  const marketListings = availableListings.flatMap((listing) => {
     const memberRow = membersById.get(listing.staff_member_id);
     if (!memberRow) return [];
     const member = toStaffMember({
@@ -335,28 +334,20 @@ export async function getTeamStaffOverview(
       context.season.current_day_number ?? 1,
     );
     const hireBlockedReason =
-      listing.status !== "available"
-        ? listing.hired_team_id === context.teamSeason.team_id
-          ? "Déjà recruté par votre équipe."
-          : "Ce profil a déjà été recruté."
-        : (commonBlockReason ??
-          (member.role === "nutritionist" && activeNutritionistCount >= 3
-            ? "Limite atteinte : une équipe ne peut employer que 3 nutritionnistes actifs."
-            : null) ??
-          (balance < member.signingFee + dueSalary
-            ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."
-            : projectedBudget < member.signingFee + member.salaryPerSeason
-              ? "Budget projeté insuffisant pour couvrir la signature et la saison de salaire."
-              : null));
+      commonBlockReason ??
+      (member.role === "nutritionist" && activeNutritionistCount >= 3
+        ? "Limite atteinte : une équipe ne peut employer que 3 nutritionnistes actifs."
+        : null) ??
+      (balance < member.signingFee + dueSalary
+        ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."
+        : projectedBudget < member.signingFee + member.salaryPerSeason
+          ? "Budget projeté insuffisant pour couvrir la signature et la saison de salaire."
+          : null);
 
     return [
       {
         id: listing.id,
         slot: listing.daily_slot,
-        status: listing.status,
-        hiredTeamId: listing.hired_team_id,
-        hiredByCurrentTeam:
-          listing.hired_team_id === context.teamSeason.team_id,
         member,
         canHire: hireBlockedReason === null,
         hireBlockedReason,
@@ -677,13 +668,6 @@ function toStaffMember({
 }
 
 function matchesFilters(member: TeamStaffMember, filters: StaffMarketFilters) {
-  const search = normalizeSearch(filters.search ?? "");
-  if (
-    search &&
-    !normalizeSearch(`${member.firstName} ${member.lastName}`).includes(search)
-  ) {
-    return false;
-  }
   if (filters.role && member.role !== filters.role) return false;
   if (filters.level && member.level !== filters.level) return false;
   if (
@@ -712,14 +696,6 @@ function getCommonHireBlockReason({
     return `Capacité atteinte : ${staffCapacity} membre${staffCapacity > 1 ? "s" : ""} au niveau actuel du DS.`;
   }
   return null;
-}
-
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLocaleLowerCase("fr");
 }
 
 function formatParisDate(date: Date) {

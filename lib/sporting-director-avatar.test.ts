@@ -9,7 +9,8 @@ import {
   AVATAR_EYE_SHAPES,
   AVATAR_FACE_SHAPES,
   AVATAR_FACIAL_HAIR_STYLES,
-  AVATAR_GLASSES_STYLES,
+  getAvailableAvatarGlassesStyles,
+  ASSIDU_AVATAR_GLASSES_KEY,
   AVATAR_HAIR_COLORS,
   AVATAR_HAIR_STYLES,
   AVATAR_MOUTH_SHAPES,
@@ -60,6 +61,30 @@ describe("sporting director avatar editor", () => {
       decodeCustomSportingDirectorAvatar(key)!
     )).toBe(key);
   });
+  it("round-trips the Assidu glasses in a custom avatar key", () => {
+    const key = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      glasses: ASSIDU_AVATAR_GLASSES_KEY,
+    });
+
+    expect(decodeCustomSportingDirectorAvatar(key)?.glasses).toBe(
+      ASSIDU_AVATAR_GLASSES_KEY,
+    );
+  });
+
+
+  it("only exposes Premier de la classe after the Assidu trophy", () => {
+    expect(
+      getAvailableAvatarGlassesStyles(false).some(
+        ({ key }) => key === ASSIDU_AVATAR_GLASSES_KEY,
+      ),
+    ).toBe(false);
+    expect(
+      getAvailableAvatarGlassesStyles(true).some(
+        ({ key }) => key === ASSIDU_AVATAR_GLASSES_KEY,
+      ),
+    ).toBe(true);
+  });
 
   it("rejects malformed or unknown custom options", () => {
     const validKey = encodeSportingDirectorAvatar(
@@ -93,7 +118,7 @@ describe("sporting director avatar editor", () => {
       earShape: AVATAR_EAR_SHAPES.at(-1)?.key,
       cheekStyle: AVATAR_CHEEK_STYLES.at(-1)?.key,
       facialHair: AVATAR_FACIAL_HAIR_STYLES.at(-1)?.key,
-      glasses: AVATAR_GLASSES_STYLES.at(-1)?.key,
+      glasses: "cat-eye",
       outfit: AVATAR_OUTFITS.at(-1)?.key,
       background: AVATAR_BACKGROUNDS.at(-1)?.key,
     });

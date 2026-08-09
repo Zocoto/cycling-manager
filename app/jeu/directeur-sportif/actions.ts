@@ -13,7 +13,11 @@ import {
 } from "../../../lib/amateur-team";
 import { generateInitialRiderIdentities } from "../../../lib/rider-names/generate-rider-identities";
 import { ALPHA_TESTER_TROPHY_KEY } from "../../../lib/game/trophy-gallery";
-import { isSportingDirectorAvatarKey } from "../../../lib/sporting-director-avatar";
+import {
+  ASSIDU_AVATAR_GLASSES_KEY,
+  decodeCustomSportingDirectorAvatar,
+  isSportingDirectorAvatarKey,
+} from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { AmateurTeamCreationState } from "./amateur-team-state";
@@ -223,6 +227,31 @@ export async function updateSportingDirectorProfile(
         ],
       },
     };
+  }
+
+  const avatarConfig = decodeCustomSportingDirectorAvatar(
+    validationResult.data.avatarKey,
+  );
+
+  if (avatarConfig?.glasses === ASSIDU_AVATAR_GLASSES_KEY) {
+    const { data: assiduTrophy, error: assiduTrophyError } = await supabase
+      .from("sporting_director_attendance_trophies")
+      .select("id")
+      .eq("sporting_director_id", currentProfile.id)
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+
+    if (assiduTrophyError || !assiduTrophy) {
+      return {
+        status: "error",
+        message: "Les lunettes Premier de la classe ne sont pas encore disponibles.",
+        fieldErrors: {
+          avatarKey: [
+            "Terminez une saison en vous connectant chaque jour pour débloquer cet accessoire.",
+          ],
+        },
+      };
+    }
   }
 
   if (validationResult.data.alphaTesterFrameEnabled) {

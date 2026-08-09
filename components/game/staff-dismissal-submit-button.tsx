@@ -6,14 +6,12 @@ export function StaffDismissalSubmitButton({
   staffName,
   compensationLabel,
   currentSeasonLabel,
-  nextSeasonLabel,
   resultingBalanceLabel,
   resultingBalanceIsNegative,
 }: {
   staffName: string;
   compensationLabel: string;
   currentSeasonLabel: string;
-  nextSeasonLabel: string;
   resultingBalanceLabel: string;
   resultingBalanceIsNegative: boolean;
 }) {
@@ -26,7 +24,6 @@ export function StaffDismissalSubmitButton({
         "",
         `Indemnité immédiate : ${compensationLabel}`,
         `• Solde de la saison en cours : ${currentSeasonLabel}`,
-        `• Saison suivante : ${nextSeasonLabel}`,
         `• Trésorerie après licenciement : ${resultingBalanceLabel}`,
         "",
         resultingBalanceIsNegative

@@ -162,24 +162,43 @@ export default async function SportingDirectorProfilePage() {
   const sportingDirector =
     profileResult.data;
 
-  const alphaTesterTrophyResult = sportingDirector
-    ? await supabase
-        .from("sporting_director_trophies")
-        .select("id")
-        .eq("sporting_director_id", sportingDirector.id)
-        .eq("trophy_key", "alpha_tester")
-        .not("claimed_at", "is", null)
-        .maybeSingle<{ id: string }>()
-    : { data: null, error: null };
+  const [alphaTesterTrophyResult, assiduTrophyResult] = sportingDirector
+    ? await Promise.all([
+        supabase
+          .from("sporting_director_trophies")
+          .select("id")
+          .eq("sporting_director_id", sportingDirector.id)
+          .eq("trophy_key", "alpha_tester")
+          .not("claimed_at", "is", null)
+          .maybeSingle<{ id: string }>(),
+        supabase
+          .from("sporting_director_attendance_trophies")
+          .select("id")
+          .eq("sporting_director_id", sportingDirector.id)
+          .limit(1)
+          .maybeSingle<{ id: string }>(),
+      ])
+    : [
+        { data: null, error: null },
+        { data: null, error: null },
+      ];
 
   if (alphaTesterTrophyResult.error) {
     console.error(
       "Impossible de vérifier le trophée Alphatesteur :",
-      alphaTesterTrophyResult.error
+      alphaTesterTrophyResult.error,
+    );
+  }
+
+  if (assiduTrophyResult.error) {
+    console.error(
+      "Impossible de vérifier le trophée Assidu :",
+      assiduTrophyResult.error,
     );
   }
 
   const hasAlphaTesterTrophy = Boolean(alphaTesterTrophyResult.data);
+  const hasAssiduTrophy = Boolean(assiduTrophyResult.data);
 
   if (
     profileResult.error ||
@@ -297,6 +316,7 @@ export default async function SportingDirectorProfilePage() {
                       sportingDirector.avatar_frame_key
                     }
                     hasAlphaTesterTrophy={hasAlphaTesterTrophy}
+                    hasAssiduTrophy={hasAssiduTrophy}
                     initialIsEmailVisible={
                       sportingDirector.is_email_visible
                     }

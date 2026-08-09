@@ -141,23 +141,28 @@ describe("buildTrophyGallery", () => {
     expect(gallery.counts).toMatchObject({ total: 2, special: 1 });
   });
 
-  it("creates an Assidu·e trophy after a perfect 28-day streak", () => {
+  it("creates an Assidu trophy after a perfect season of attendance", () => {
     const gallery = buildTrophyGallery({
       raceWins: [],
       teamUciTitles: [],
       riderUciTitles: [],
       attendanceTrophies: [
-        { id: "claim-day-28", seasonName: "Saison 5" },
+        {
+          id: "attendance-season-5",
+          seasonName: "Saison 5",
+          awardedAt: "2026-08-09T20:00:00.000Z",
+        },
       ],
     });
 
     expect(gallery.counts.attendance).toBe(1);
     expect(gallery.trophies[0]).toEqual(
       expect.objectContaining({
-        id: "attendance:claim-day-28",
+        id: "attendance:attendance-season-5",
         kind: "attendance",
-        title: "Assidu·e",
-        inscription: "Série parfaite · 28/28",
+        title: "Assidu",
+        inscription: "Tous les jours · Saison complète",
+        wonAt: "2026-08-09T20:00:00.000Z",
       }),
     );
   });

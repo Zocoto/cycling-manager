@@ -55,7 +55,6 @@ describe("filtered page return paths", () => {
 
   it("conserve les filtres du staff après un recrutement", () => {
     const path = buildStaffMarketReturnPath({
-      search: "  Martin  ",
       role: "trainer",
       level: 4,
       countryCode: "be",
@@ -63,9 +62,13 @@ describe("filtered page return paths", () => {
     });
 
     expect(path).toBe(
-      "/jeu/staff?onglet=marche&recherche=Martin&metier=trainer&niveau=4&pays=BE&specialite=mountain",
+      "/jeu/staff?onglet=marche&metier=trainer&niveau=4&pays=BE&specialite=mountain",
     );
-    expect(sanitizeStaffMarketReturnPath(`${path}&erreur=ancienne`)).toBe(path);
+    expect(
+      sanitizeStaffMarketReturnPath(
+        `${path}&recherche=Martin&erreur=ancienne`,
+      ),
+    ).toBe(path);
   });
 
   it("conserve les filtres des objectifs et leur ancre", () => {

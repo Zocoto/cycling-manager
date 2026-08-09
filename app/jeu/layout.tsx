@@ -23,9 +23,10 @@ type SupabaseServerClient = Awaited<
 async function synchronizeGameEntryState(
   supabase: SupabaseServerClient,
 ): Promise<void> {
-  const [dailyReputation, academyTrainingSettlement] = await Promise.all([
+  const [dailyReputation, academyTrainingSettlement, attendance] = await Promise.all([
     supabase.rpc("settle_current_team_staff_daily_reputation"),
     supabase.rpc("settle_due_staff_academy_trainings"),
+    supabase.rpc("record_current_sporting_director_attendance"),
   ]);
 
   if (dailyReputation.error) {
@@ -39,6 +40,13 @@ async function synchronizeGameEntryState(
     console.error(
       "Impossible d’actualiser les stages de l’Académie.",
       academyTrainingSettlement.error,
+    );
+  }
+
+  if (attendance.error) {
+    console.error(
+      "Impossible d’enregistrer la présence quotidienne du Directeur Sportif.",
+      attendance.error,
     );
   }
 }

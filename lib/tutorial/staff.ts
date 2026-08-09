@@ -82,7 +82,7 @@ export const staffTutorialDefinition = {
       targetId: "staff-market-filters",
       title: "Isolez le spécialiste recherché",
       content:
-        "Les filtres permettent de rechercher un nom, un métier, un niveau, une nationalité ou une spécialité d’entraîneur. Combinez-les pour éviter de parcourir tout le marché et utilisez « Réinitialiser » pour retrouver les 25 profils du jour.\n\nLe niveau va de 1 à 5 : plus il est élevé, plus l’effet est puissant, mais plus le salaire et la prime de signature augmentent.",
+        "Les filtres permettent d’isoler un métier, un niveau, une nationalité ou une spécialité d’entraîneur. Les noms ne sont révélés que tant que le profil reste disponible, et un profil recruté disparaît immédiatement du marché. Combinez les critères et utilisez « Réinitialiser » pour retrouver tous les profils encore disponibles du jour.\n\nLe niveau va de 1 à 5 : plus il est élevé, plus l’effet est puissant, mais plus le salaire et la prime de signature augmentent.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -102,7 +102,7 @@ export const staffTutorialDefinition = {
       targetId: "staff-team-overview",
       title: "Pilotez les effets déjà actifs",
       content:
-        "Cet onglet rassemble la capacité utilisée, les places encore libres, la masse salariale et les spécialistes sous contrat. Les effets compatibles de plusieurs membres peuvent se cumuler ; les affinités de nationalité apportent aussi un bonus d’efficacité.\n\nVous pouvez licencier un membre depuis sa fiche. La rupture est immédiate et coûte le salaire restant de la saison en cours, plus une saison complète supplémentaire. Pour une nouvelle équipe, cette vue peut être vide : c’est normal.",
+        "Cet onglet rassemble la capacité utilisée, les places encore libres, la masse salariale et les spécialistes sous contrat. Les effets compatibles de plusieurs membres peuvent se cumuler ; les affinités de nationalité apportent aussi un bonus d’efficacité.\n\nVous pouvez licencier un membre depuis sa fiche. La rupture est immédiate et coûte uniquement les échéances salariales restant à régler pendant la saison en cours. Pour une nouvelle équipe, cette vue peut être vide : c’est normal.",
       placement: "top",
       highlightPadding: 8,
     },

@@ -124,13 +124,26 @@ export const AVATAR_FACIAL_HAIR_STYLES = [
   { key: "full", label: "Barbe fournie" },
 ] as const;
 
-export const AVATAR_GLASSES_STYLES = [
+export const ASSIDU_AVATAR_GLASSES_KEY = "honor-roll";
+
+const STANDARD_AVATAR_GLASSES_STYLES = [
   { key: "none", label: "Sans lunettes" },
   { key: "round", label: "Rondes" },
   { key: "square", label: "Carrées" },
   { key: "aviator", label: "Aviateur" },
   { key: "cat-eye", label: "Papillon" },
 ] as const;
+
+export const AVATAR_GLASSES_STYLES = [
+  ...STANDARD_AVATAR_GLASSES_STYLES,
+  { key: ASSIDU_AVATAR_GLASSES_KEY, label: "Premier de la classe" },
+] as const;
+
+export function getAvailableAvatarGlassesStyles(hasAssiduTrophy: boolean) {
+  return hasAssiduTrophy
+    ? AVATAR_GLASSES_STYLES
+    : STANDARD_AVATAR_GLASSES_STYLES;
+}
 
 export const AVATAR_OUTFITS = [
   { key: "forest", label: "Vert équipe", jacket: "#176951", shirt: "#FFFDF4" },
@@ -328,7 +341,7 @@ export function createRandomSportingDirectorAvatar(
     earShape: randomKey(AVATAR_EAR_SHAPES, random),
     cheekStyle: randomKey(AVATAR_CHEEK_STYLES, random),
     facialHair: randomKey(AVATAR_FACIAL_HAIR_STYLES, random),
-    glasses: randomKey(AVATAR_GLASSES_STYLES, random),
+    glasses: randomKey(STANDARD_AVATAR_GLASSES_STYLES, random),
     outfit: randomKey(AVATAR_OUTFITS, random),
     background: randomKey(AVATAR_BACKGROUNDS, random),
   };

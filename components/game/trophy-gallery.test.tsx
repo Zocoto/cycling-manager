@@ -110,4 +110,29 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("Ouvrir mon cadeau");
     expect(markup).not.toContain("Le premier socle vous attend");
   });
+
+  it("renders the academic Assidu trophy skin and its avatar reward", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+          attendanceTrophies: [
+            {
+              id: "attendance-season-3",
+              seasonName: "Saison 3",
+              awardedAt: "2026-08-09T20:00:00.000Z",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain("Assiduité parfaite");
+    expect(markup).toContain("Présence parfaite");
+    expect(markup).toContain("data-assidu-trophy");
+    expect(markup).toContain("lunettes Premier de la classe");
+    expect(markup).not.toContain("28 cadeaux quotidiens");
+  });
 });

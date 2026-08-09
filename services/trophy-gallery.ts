@@ -110,9 +110,10 @@ type RiderRow = {
   last_name: string;
 };
 
-type DailyRewardPerfectStreakRow = {
+type AttendanceTrophyRow = {
   id: string;
   season_id: string;
+  awarded_at: string;
 };
 
 const EMPTY_GALLERY = buildTrophyGallery({
@@ -262,6 +263,12 @@ async function loadSportingDirectorTrophyGallery({
   const assignments = assignmentsResult.data;
   const seasons = seasonsResult.data;
   const teamIds = unique(assignments.map((assignment) => assignment.team_id));
+  const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const attendanceTrophies = await loadAttendanceTrophies({
+    admin,
+    directorId,
+    seasonById,
+  });
 
   if (teamIds.length === 0 || seasons.length === 0) {
     return buildTrophyGallery({
@@ -270,10 +277,10 @@ async function loadSportingDirectorTrophyGallery({
       riderUciTitles: [],
       specialAwards,
       claimableTrophies,
+      attendanceTrophies,
     });
   }
 
-  const seasonById = new Map(seasons.map((season) => [season.id, season]));
   const teamSeasonsResult = await collectChunkedPaginatedRows<
     TeamSeasonRow,
     QueryError,
@@ -317,7 +324,7 @@ async function loadSportingDirectorTrophyGallery({
     })
   );
 
-  const [raceWins, riderUciTitles, attendanceTrophies] = await Promise.all([
+  const [raceWins, riderUciTitles] = await Promise.all([
     loadMajorRaceWins({
       admin,
       teamSeasonIds: managedTeamSeasonIds,
@@ -328,11 +335,6 @@ async function loadSportingDirectorTrophyGallery({
       teamIds,
       completedSeasonIds,
       assignments,
-      seasonById,
-    }),
-    loadAttendanceTrophies({
-      admin,
-      directorId,
       seasonById,
     }),
   ]);
@@ -377,19 +379,18 @@ async function loadAttendanceTrophies({
   seasonById: Map<string, SeasonRow>;
 }): Promise<TrophyAttendance[]> {
   const result = await admin
-    .from("daily_reward_claims")
-    .select("id, season_id")
+    .from("sporting_director_attendance_trophies")
+    .select("id, season_id, awarded_at")
     .eq("sporting_director_id", directorId)
-    .eq("streak_day", 28)
-    .order("claimed_at", { ascending: true })
-    .returns<DailyRewardPerfectStreakRow[]>();
+    .order("awarded_at", { ascending: true })
+    .returns<AttendanceTrophyRow[]>();
 
-  assertQuery(result.error, "les séries quotidiennes parfaites");
+  assertQuery(result.error, "les trophées d’assiduité");
 
-  return (result.data ?? []).flatMap((claim) => {
-    const season = seasonById.get(claim.season_id);
+  return (result.data ?? []).flatMap((trophy) => {
+    const season = seasonById.get(trophy.season_id);
     return season
-      ? [{ id: claim.id, seasonName: season.name } satisfies TrophyAttendance]
+      ? [{ id: trophy.id, seasonName: season.name, awardedAt: trophy.awarded_at } satisfies TrophyAttendance]
       : [];
   });
 }

@@ -11,7 +11,6 @@ import {
   AVATAR_EYE_SHAPES,
   AVATAR_FACE_SHAPES,
   AVATAR_FACIAL_HAIR_STYLES,
-  AVATAR_GLASSES_STYLES,
   AVATAR_HAIR_COLORS,
   AVATAR_HAIR_STYLES,
   AVATAR_MOUTH_SHAPES,
@@ -20,6 +19,7 @@ import {
   AVATAR_SKIN_TONES,
   createRandomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
+  getAvailableAvatarGlassesStyles,
   resolveSportingDirectorAvatar,
   type SportingDirectorAvatarConfig,
 } from "@/lib/sporting-director-avatar";
@@ -28,6 +28,7 @@ import { SportingDirectorAvatar } from "./sporting-director-avatar";
 type SportingDirectorAvatarEditorProps = {
   avatarKey: string | null;
   frameKey?: "alpha_tester" | null;
+  hasAssiduTrophy?: boolean;
   onCancel: () => void;
   onConfirm: (avatarKey: string) => void;
 };
@@ -48,6 +49,7 @@ const editorTabs: Array<{
 export function SportingDirectorAvatarEditor({
   avatarKey,
   frameKey = null,
+  hasAssiduTrophy = false,
   onCancel,
   onConfirm,
 }: SportingDirectorAvatarEditorProps) {
@@ -56,6 +58,7 @@ export function SportingDirectorAvatarEditor({
     useState<SportingDirectorAvatarConfig>(initialConfig);
   const [activeTab, setActiveTab] = useState<EditorTab>("face");
   const previewKey = encodeSportingDirectorAvatar(config);
+  const availableGlassesStyles = getAvailableAvatarGlassesStyles(hasAssiduTrophy);
 
   function updateField<K extends keyof SportingDirectorAvatarConfig>(
     field: K,
@@ -189,7 +192,18 @@ export function SportingDirectorAvatarEditor({
 
             {activeTab === "style" ? (
               <>
-                <AvatarChoiceGroup title="Lunettes" field="glasses" value={config.glasses} options={AVATAR_GLASSES_STYLES} onSelect={updateField} />
+                <AvatarChoiceGroup
+                  title="Lunettes"
+                  description={
+                    hasAssiduTrophy
+                      ? "Votre trophée Assidu débloque les lunettes Premier de la classe."
+                      : undefined
+                  }
+                  field="glasses"
+                  value={config.glasses}
+                  options={availableGlassesStyles}
+                  onSelect={updateField}
+                />
                 <AvatarChoiceGroup title="Tenue" field="outfit" value={config.outfit} options={AVATAR_OUTFITS} onSelect={updateField} swatches />
                 <AvatarChoiceGroup title="Fond du portrait" field="background" value={config.background} options={AVATAR_BACKGROUNDS} onSelect={updateField} swatches />
               </>

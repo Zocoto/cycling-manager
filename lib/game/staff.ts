@@ -234,10 +234,7 @@ export function calculateStaffDismissalCompensation(
   salaryPerSeason: number,
   currentDayNumber: number,
 ): number {
-  const salary = Math.max(0, salaryPerSeason);
-  return roundMoney(
-    calculateRemainingStaffSalary(salary, currentDayNumber) + salary,
-  );
+  return calculateRemainingStaffSalary(salaryPerSeason, currentDayNumber);
 }
 
 function roundMoney(value: number) {
