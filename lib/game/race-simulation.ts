@@ -123,6 +123,7 @@ export type RiderSimulationInput = {
   specialAbilities?: RiderSpecialAbility[];
   ratings: RiderSimulationRatings;
   equipmentEffects?: EquipmentEffects;
+  equipmentEffectsByStageId?: Record<string, EquipmentEffects>;
   mechanicalIncidentTimeReductionPct?: number;
 };
 

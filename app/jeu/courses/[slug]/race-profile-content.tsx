@@ -10,6 +10,7 @@ import {
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -49,6 +50,10 @@ import {
   type RacePastWinner,
   type RaceRosterOption,
 } from "@/services/race-calendar";
+import {
+  getRaceEquipmentPlanningData,
+  type RaceEquipmentPlanningData,
+} from "@/services/race-equipment-planning";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
 
@@ -59,6 +64,8 @@ export type RaceProfilePageProps = {
   searchParams: Promise<{
     inscription?: string | string[];
     erreur?: string | string[];
+    materiel?: string | string[];
+    stage?: string | string[];
   }>;
 };
 
@@ -66,15 +73,16 @@ export async function RaceProfileContent({
   params,
   searchParams,
 }: RaceProfilePageProps) {
-  const [{ slug }, resolvedSearchParams] =
-    await Promise.all([params, searchParams]);
+  const [{ slug }, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams,
+  ]);
 
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     notFound();
   }
 
-  const supabase =
-    await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error: authenticationError,
@@ -89,34 +97,29 @@ export async function RaceProfileContent({
     getActiveSeasonRaceCalendar(supabase),
   ]);
   const edition = calendar?.editions.find(
-    (candidate) => candidate.slug === slug
+    (candidate) => candidate.slug === slug,
   );
 
   if (!calendar || !edition) {
     notFound();
   }
 
-  const [teamSponsorIdentity, teamAmateurIdentity] =
-    await Promise.all([
-      getActiveTeamSponsorIdentityForAuthUser(user.id).catch(
-        (error: unknown) => {
-          console.error(
-            "Impossible de charger le maillot sponsor pour les portraits :",
-            error
-          );
-          return null;
-        }
-      ),
-      getTeamAmateurIdentityForAuthUser(user.id).catch(
-        (error: unknown) => {
-          console.error(
-            "Impossible de charger le maillot amateur pour les portraits :",
-            error
-          );
-          return null;
-        }
-      ),
-    ]);
+  const [teamSponsorIdentity, teamAmateurIdentity] = await Promise.all([
+    getActiveTeamSponsorIdentityForAuthUser(user.id).catch((error: unknown) => {
+      console.error(
+        "Impossible de charger le maillot sponsor pour les portraits :",
+        error,
+      );
+      return null;
+    }),
+    getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
+      console.error(
+        "Impossible de charger le maillot amateur pour les portraits :",
+        error,
+      );
+      return null;
+    }),
+  ]);
 
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({
@@ -140,19 +143,12 @@ export async function RaceProfileContent({
   let winnersError = false;
   let rosterError: string | null = null;
   let engagedRidersError = false;
+  let equipmentPlanning: RaceEquipmentPlanningData | null = null;
+  let equipmentPlanningError: string | null = null;
 
-  const [
-    contextResult,
-    winnersResult,
-    rosterResult,
-    engagedRidersResult,
-  ] =
+  const [contextResult, winnersResult, rosterResult, engagedRidersResult] =
     await Promise.all([
-      getCurrentRaceUserContext(
-        supabase,
-        user.id,
-        edition.id
-      )
+      getCurrentRaceUserContext(supabase, user.id, edition.id)
         .then((context) => ({
           context,
           error: null,
@@ -161,10 +157,7 @@ export async function RaceProfileContent({
           context: null,
           error,
         })),
-      getRacePastWinners(
-        supabase,
-        edition.raceId
-      )
+      getRacePastWinners(supabase, edition.raceId)
         .then((winners) => ({
           winners,
           error: null,
@@ -173,10 +166,7 @@ export async function RaceProfileContent({
           winners: [] as RacePastWinner[],
           error,
         })),
-      getCurrentTeamRaceRosterOptions(
-        supabase,
-        edition.id
-      )
+      getCurrentTeamRaceRosterOptions(supabase, edition.id)
         .then((riders) => ({ riders, error: null }))
         .catch((error: unknown) => ({
           riders: [] as RaceRosterOption[],
@@ -197,10 +187,9 @@ export async function RaceProfileContent({
   if (contextResult.error) {
     console.error(
       "Impossible de charger le contexte d'inscription de la course :",
-      contextResult.error
+      contextResult.error,
     );
-    contextError =
-      "Votre situation d’inscription n’a pas pu être vérifiée.";
+    contextError = "Votre situation d’inscription n’a pas pu être vérifiée.";
   }
 
   pastWinners = winnersResult.winners;
@@ -208,7 +197,7 @@ export async function RaceProfileContent({
   if (winnersResult.error) {
     console.error(
       "Impossible de charger le palmarès de la course :",
-      winnersResult.error
+      winnersResult.error,
     );
     winnersError = true;
   }
@@ -216,46 +205,72 @@ export async function RaceProfileContent({
   rosterOptions = rosterResult.riders;
   if (edition.competitionType !== "standard") {
     rosterOptions = rosterOptions.filter(
-      (rider) => rider.countryCode === edition.countryCode
+      (rider) => rider.countryCode === edition.countryCode,
     );
   }
   if (rosterResult.error) {
     console.error(
       "Impossible de charger l'effectif pour l'inscription :",
-      rosterResult.error
+      rosterResult.error,
     );
-    rosterError =
-      "Votre effectif n’a pas pu être chargé pour le moment.";
+    rosterError = "Votre effectif n’a pas pu être chargé pour le moment.";
   }
 
   engagedRiders = engagedRidersResult.riders;
   if (engagedRidersResult.error) {
     console.error(
       "Impossible de charger les coureurs engagés :",
-      engagedRidersResult.error
+      engagedRidersResult.error,
     );
     engagedRidersError = true;
   }
 
+  const selectedRiderIds = rosterOptions
+    .filter((rider) => rider.isSelected)
+    .map((rider) => rider.riderId);
+  if (
+    raceUserContext.registration?.status === "accepted" &&
+    raceUserContext.registration.rosterCount >= edition.minimumRosterSize &&
+    selectedRiderIds.length > 0
+  ) {
+    try {
+      equipmentPlanning = await getRaceEquipmentPlanningData({
+        authUserId: user.id,
+        edition,
+        riderIds: selectedRiderIds,
+        authenticatedClient: supabase,
+      });
+    } catch (error) {
+      console.error(
+        "Impossible de charger la planification du matériel de course :",
+        error,
+      );
+      equipmentPlanningError =
+        "La planification du matériel est momentanément indisponible.";
+    }
+  }
+
   const successMessage = readSingleSearchParam(
-    resolvedSearchParams.inscription
+    resolvedSearchParams.inscription,
   );
-  const errorMessage = readSingleSearchParam(
-    resolvedSearchParams.erreur
+  const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
+  const equipmentSaveStatus = readSingleSearchParam(
+    resolvedSearchParams.materiel,
   );
-  const style =
-    RACE_CATEGORY_STYLE[edition.categoryCode];
-  const { startDay, endDay } =
-    getEditionDayRange(edition);
+  const savedEquipmentStageId = readSingleSearchParam(
+    resolvedSearchParams.stage,
+  );
+  const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+  const { startDay, endDay } = getEditionDayRange(edition);
   const startDate = calendar.days.find(
-    (day) => day.dayNumber === startDay
+    (day) => day.dayNumber === startDay,
   )?.calendarDate;
   const endDate = calendar.days.find(
-    (day) => day.dayNumber === endDay
+    (day) => day.dayNumber === endDay,
   )?.calendarDate;
   const totalDistance = edition.stages.reduce(
     (total, stage) => total + stage.distanceKm,
-    0
+    0,
   );
 
   return (
@@ -263,10 +278,7 @@ export async function RaceProfileContent({
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
-        sponsor={
-          headerData.teamSponsorIdentity
-            ?.sponsor ?? null
-        }
+        sponsor={headerData.teamSponsorIdentity?.sponsor ?? null}
         maxWidth="wide"
       />
 
@@ -309,8 +321,7 @@ export async function RaceProfileContent({
                       {style.label}
                     </span>
                     <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]">
-                      {edition.raceFormat ===
-                      "stage_race"
+                      {edition.raceFormat === "stage_race"
                         ? "Course à étapes"
                         : "Course d’un jour"}
                     </span>
@@ -321,9 +332,7 @@ export async function RaceProfileContent({
                   </h1>
                   <p className="mt-3 text-sm font-bold text-white/80 sm:text-base">
                     {edition.countryName} · J{startDay}
-                    {endDay > startDay
-                      ? ` à J${endDay}`
-                      : ""}
+                    {endDay > startDay ? ` à J${endDay}` : ""}
                   </p>
                 </div>
               </div>
@@ -331,9 +340,7 @@ export async function RaceProfileContent({
               <div className="grid min-w-56 grid-cols-2 gap-3 rounded-2xl border border-white/20 bg-black/15 p-4 backdrop-blur">
                 <RaceHeroStat
                   label="Étapes"
-                  value={String(
-                    edition.stages.length
-                  )}
+                  value={String(edition.stages.length)}
                 />
                 <RaceHeroStat
                   label="Distance"
@@ -369,8 +376,7 @@ export async function RaceProfileContent({
                     Parcours
                   </p>
                   <h2 className="mt-2 text-2xl font-black text-[#0B302B]">
-                    {edition.raceFormat ===
-                    "stage_race"
+                    {edition.raceFormat === "stage_race"
                       ? `${edition.stages.length} étapes au programme`
                       : "Le profil de la course"}
                   </h2>
@@ -380,10 +386,7 @@ export async function RaceProfileContent({
                       <StageCard
                         key={stage.id}
                         stage={stage}
-                        showStageNumber={
-                          edition.raceFormat ===
-                          "stage_race"
-                        }
+                        showStageNumber={edition.raceFormat === "stage_race"}
                       />
                     ))}
                   </div>
@@ -414,17 +417,18 @@ export async function RaceProfileContent({
                               {winner.finalRank}
                             </span>
                             <div>
-                            <Link
-                              href={`/jeu/coureurs/${winner.riderId}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-black text-[#0B302B] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#176951]"
-                            >
-                              {winner.riderName} <span aria-hidden="true">↗</span>
-                            </Link>
-                            <p className="mt-1 text-xs font-semibold text-[#688176]">
-                              {winner.teamName}
-                            </p>
+                              <Link
+                                href={`/jeu/coureurs/${winner.riderId}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-black text-[#0B302B] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#176951]"
+                              >
+                                {winner.riderName}{" "}
+                                <span aria-hidden="true">↗</span>
+                              </Link>
+                              <p className="mt-1 text-xs font-semibold text-[#688176]">
+                                {winner.teamName}
+                              </p>
                             </div>
                           </div>
                           <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
@@ -452,6 +456,10 @@ export async function RaceProfileContent({
                     riders={rosterOptions}
                     rosterError={rosterError}
                     riderJersey={riderJersey}
+                    equipmentPlanning={equipmentPlanning}
+                    equipmentPlanningError={equipmentPlanningError}
+                    equipmentSaveStatus={equipmentSaveStatus}
+                    savedEquipmentStageId={savedEquipmentStageId}
                   />
                   <RaceRewardDetails edition={edition} className="mt-3" />
                 </div>
@@ -463,17 +471,11 @@ export async function RaceProfileContent({
                   <dl className="mt-5 space-y-4">
                     <DefinitionRow
                       label="Dates"
-                      value={formatDateRange(
-                        startDate,
-                        endDate
-                      )}
+                      value={formatDateRange(startDate, endDate)}
                     />
                     <DefinitionRow
                       label="Première étape"
-                      value={formatDeparture(
-                        edition.stages[0]
-                          ?.departureAt
-                      )}
+                      value={formatDeparture(edition.stages[0]?.departureAt)}
                     />
                     <DefinitionRow
                       label="Créneau"
@@ -484,20 +486,17 @@ export async function RaceProfileContent({
                       value={formatDeparture(
                         edition.categoryCode === "elite"
                           ? edition.wildcardClosesAt
-                          : edition.registrationClosesAt
+                          : edition.registrationClosesAt,
                       )}
                     />
                     <DefinitionRow
                       label="Retrait possible jusqu’au"
-                      value={formatDeparture(
-                        edition.withdrawalClosesAt
-                      )}
+                      value={formatDeparture(edition.withdrawalClosesAt)}
                     />
                     <DefinitionRow
                       label="Réputation minimale"
                       value={
-                        edition.minimumReputation ===
-                        null
+                        edition.minimumReputation === null
                           ? "À définir"
                           : `${edition.minimumReputation} pts`
                       }
@@ -505,11 +504,8 @@ export async function RaceProfileContent({
                   </dl>
                 </section>
 
-                {edition.raceFormat ===
-                "stage_race" ? (
-                  <SecondaryClassifications
-                    edition={edition}
-                  />
+                {edition.raceFormat === "stage_race" ? (
+                  <SecondaryClassifications edition={edition} />
                 ) : null}
               </aside>
             </div>
@@ -527,6 +523,10 @@ function RegistrationPanel({
   riders,
   rosterError,
   riderJersey,
+  equipmentPlanning,
+  equipmentPlanningError,
+  equipmentSaveStatus,
+  savedEquipmentStageId,
 }: {
   edition: RaceCalendarEdition;
   context: CurrentRaceUserContext;
@@ -534,11 +534,14 @@ function RegistrationPanel({
   riders: RaceRosterOption[];
   rosterError: string | null;
   riderJersey: RiderJerseyAppearance;
+  equipmentPlanning: RaceEquipmentPlanningData | null;
+  equipmentPlanningError: string | null;
+  equipmentSaveStatus: string | null;
+  savedEquipmentStageId: string | null;
 }) {
   const registration = context.registration;
   const isEliteRace =
-    edition.competitionType === "standard" &&
-    edition.categoryCode === "elite";
+    edition.competitionType === "standard" && edition.categoryCode === "elite";
   const isEliteTeam = context.divisionCode === "elite";
   const isWildcardRequest = isEliteRace && !isEliteTeam;
   const registrationDeadline = isEliteRace
@@ -551,30 +554,21 @@ function RegistrationPanel({
     registration?.status === "accepted" &&
     registration.rosterCount >= edition.minimumRosterSize;
   const withdrawalClosesAt =
-    registration?.withdrawalClosesAt ??
-    edition.withdrawalClosesAt;
+    registration?.withdrawalClosesAt ?? edition.withdrawalClosesAt;
   const canWithdraw =
-    hasConfirmedRoster &&
-    isBeforeRegistrationDeadline(
-      withdrawalClosesAt
-    );
+    hasConfirmedRoster && isBeforeRegistrationDeadline(withdrawalClosesAt);
   const canReactivate =
     registration?.status !== "withdrawn" ||
-    isBeforeRegistrationDeadline(
-      withdrawalClosesAt
-    );
-  const availability =
-    getRegistrationAvailability({
-      policy: edition.registrationPolicy,
-      closesAt: registrationDeadline,
-      minimumReputation:
-        edition.minimumReputation,
-      reputationPoints:
-        context.reputationPoints,
-    });
+    isBeforeRegistrationDeadline(withdrawalClosesAt);
+  const availability = getRegistrationAvailability({
+    policy: edition.registrationPolicy,
+    closesAt: registrationDeadline,
+    minimumReputation: edition.minimumReputation,
+    reputationPoints: context.reputationPoints,
+  });
   const missingReputation = Math.max(
     (edition.minimumReputation ?? 0) - context.reputationPoints,
-    0
+    0,
   );
   const raceExperience = getRaceExperienceAvailability(edition.stages);
 
@@ -588,22 +582,19 @@ function RegistrationPanel({
           Votre start-list est incomplète
         </h2>
         <p className="mt-3 text-sm leading-6 text-[#F4D7D9]">
-          Un coureur blessé a été retiré automatiquement. Il reste {registration.rosterCount} engagé{registration.rosterCount > 1 ? "s" : ""}, alors que cette course en exige au moins {edition.minimumRosterSize}. Les coureurs encore valides restent verrouillés ; ajoutez un remplaçant avant le départ.
+          Un coureur blessé a été retiré automatiquement. Il reste{" "}
+          {registration.rosterCount} engagé
+          {registration.rosterCount > 1 ? "s" : ""}, alors que cette course en
+          exige au moins {edition.minimumRosterSize}. Les coureurs encore
+          valides restent verrouillés ; ajoutez un remplaçant avant le départ.
         </p>
 
         {contextError ? (
-          <RegistrationNotice tone="error">
-            {contextError}
-          </RegistrationNotice>
+          <RegistrationNotice tone="error">{contextError}</RegistrationNotice>
         ) : rosterError ? (
-          <RegistrationNotice tone="error">
-            {rosterError}
-          </RegistrationNotice>
+          <RegistrationNotice tone="error">{rosterError}</RegistrationNotice>
         ) : riders.length > 0 ? (
-          <form
-            action={replaceInjuredRaceRosterAction}
-            className="mt-5"
-          >
+          <form action={replaceInjuredRaceRosterAction} className="mt-5">
             <input type="hidden" name="editionId" value={edition.id} />
             <input type="hidden" name="slug" value={edition.slug} />
             <RaceRosterSelector
@@ -626,54 +617,101 @@ function RegistrationPanel({
   }
 
   if (hasConfirmedRoster) {
-    const selectedRiders = riders.filter(
-      (rider) => rider.isSelected
-    );
+    const selectedRiders = riders.filter((rider) => rider.isSelected);
 
     return (
       <section className="rounded-2xl border border-emerald-400/35 bg-[#0B302B] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.2)]">
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
           Inscription
         </p>
-        <h2 className="mt-3 text-xl font-black">
-          Équipe inscrite
-        </h2>
+        <h2 className="mt-3 text-xl font-black">Équipe inscrite</h2>
         <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
-          Votre participation est acceptée avec {registration.rosterCount} coureur{registration.rosterCount > 1 ? "s" : ""}. La composition est désormais verrouillée.
+          Votre participation est acceptée avec {registration.rosterCount}{" "}
+          coureur{registration.rosterCount > 1 ? "s" : ""}. La composition est
+          désormais verrouillée.
         </p>
         <span className="mt-5 inline-flex rounded-full bg-emerald-400/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#9BE0BC]">
-          Acceptée · {registration.rosterCount} engagé{registration.rosterCount > 1 ? "s" : ""}
+          Acceptée · {registration.rosterCount} engagé
+          {registration.rosterCount > 1 ? "s" : ""}
         </span>
 
         {selectedRiders.length > 0 ? (
-          <ul className="mt-4 space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 text-xs font-bold text-[#D6DFD2]">
-            {selectedRiders.map((rider) => (
-              <li
-                key={rider.riderId}
-                className="flex items-center"
-              >
-                <Link
-                  href={`/jeu/coureurs/${rider.riderId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 rounded-lg transition hover:text-[#9BE0BC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9BE0BC]"
-                >
-                  <RiderAvatar
-                    profileKey={rider.avatarProfileKey}
-                    seed={rider.avatarSeed}
-                    riderId={rider.riderId}
-                    age={rider.age}
-                    jersey={riderJersey}
-                    label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
-                    className="h-9 w-9"
-                  />
-                  <span>
-                    {rider.firstName} {rider.lastName} <span aria-hidden="true">↗</span>
+          <details className="group mt-4 rounded-xl border border-white/10 bg-white/5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-black text-[#D6DFD2]">
+              <span>Composition verrouillée</span>
+              <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-[#9BE0BC]">
+                {selectedRiders.length} coureurs
+              </span>
+            </summary>
+            <ul className="space-y-2 border-t border-white/10 px-4 py-3 text-xs font-bold text-[#D6DFD2]">
+              {selectedRiders.map((rider) => (
+                <li key={rider.riderId} className="flex items-center">
+                  <Link
+                    href={`/jeu/coureurs/${rider.riderId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 rounded-lg transition hover:text-[#9BE0BC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9BE0BC]"
+                  >
+                    <RiderAvatar
+                      profileKey={rider.avatarProfileKey}
+                      seed={rider.avatarSeed}
+                      riderId={rider.riderId}
+                      age={rider.age}
+                      jersey={riderJersey}
+                      label={`Portrait généré de ${rider.firstName} ${rider.lastName}`}
+                      className="h-9 w-9"
+                    />
+                    <span>
+                      {rider.firstName} {rider.lastName}{" "}
+                      <span aria-hidden="true">↗</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+
+        {equipmentPlanning ? (
+          <details
+            id="preparation"
+            open={equipmentSaveStatus !== null}
+            className="group mt-4 scroll-mt-24 rounded-xl border border-[#9BE0BC]/25 bg-white/5"
+          >
+            <summary className="cursor-pointer list-none px-4 py-3">
+              <span className="flex items-center justify-between gap-3">
+                <span>
+                  <span className="block text-xs font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
+                    Préparation matériel
                   </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  <span className="mt-1 block text-xs font-semibold text-[#D6DFD2]">
+                    Un montage par étape, sans toucher à la fiche coureur
+                  </span>
+                </span>
+                <span className="rounded-full bg-[#62BFA7] px-2.5 py-1 text-[10px] font-black uppercase text-[#082A2A]">
+                  Configurer
+                </span>
+              </span>
+            </summary>
+            <div className="border-t border-white/10 p-3">
+              <RaceEquipmentPlanner
+                editionId={edition.id}
+                slug={edition.slug}
+                isStageRace={edition.raceFormat === "stage_race"}
+                riders={selectedRiders}
+                jersey={riderJersey}
+                planning={equipmentPlanning}
+                savedStageId={savedEquipmentStageId}
+                saveStatus={equipmentSaveStatus}
+              />
+            </div>
+          </details>
+        ) : equipmentPlanningError ? (
+          <div className="mt-4">
+            <RegistrationNotice tone="warning">
+              {equipmentPlanningError}
+            </RegistrationNotice>
+          </div>
         ) : null}
 
         <Link
@@ -693,21 +731,14 @@ function RegistrationPanel({
 
         {canWithdraw ? (
           <form action={withdrawRaceRosterAction}>
-            <input
-              type="hidden"
-              name="editionId"
-              value={edition.id}
-            />
-            <input
-              type="hidden"
-              name="slug"
-              value={edition.slug}
-            />
+            <input type="hidden" name="editionId" value={edition.id} />
+            <input type="hidden" name="slug" value={edition.slug} />
             <RaceWithdrawButton />
           </form>
         ) : (
           <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
-            La startlist est figée : cette inscription ne peut plus être retirée.
+            La startlist est figée : cette inscription ne peut plus être
+            retirée.
           </p>
         )}
       </section>
@@ -717,7 +748,7 @@ function RegistrationPanel({
   if (registration?.status === "pending") {
     const selectedRiders = riders.filter((rider) => rider.isSelected);
     const canWithdrawRequest = isBeforeRegistrationDeadline(
-      edition.wildcardClosesAt
+      edition.wildcardClosesAt,
     );
 
     return (
@@ -770,8 +801,8 @@ function RegistrationPanel({
         <div className="mt-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#E7E1C8]">
           L&apos;arbitrage tient compte de la nationalit&eacute; de
           l&apos;&eacute;quipe, de celle du sponsor principal, de la
-          r&eacute;putation et du meilleur coureur align&eacute; pour le
-          profil de la course.
+          r&eacute;putation et du meilleur coureur align&eacute; pour le profil
+          de la course.
         </div>
 
         {canWithdrawRequest ? (
@@ -819,14 +850,12 @@ function RegistrationPanel({
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
           Course Elite
         </p>
-        <h2 className="mt-3 text-xl font-black">
-          Demander une Wild Card
-        </h2>
+        <h2 className="mt-3 text-xl font-black">Demander une Wild Card</h2>
         <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
           Proposez {edition.minimumRosterSize} &agrave;{" "}
-          {edition.maximumRosterSize} coureurs. Leur agenda sera
-          bloqu&eacute; jusqu&apos;&agrave; l&apos;arbitrage &agrave; J-1.
-          La nationalit&eacute; de l&apos;&eacute;quipe, celle du sponsor
+          {edition.maximumRosterSize} coureurs. Leur agenda sera bloqu&eacute;
+          jusqu&apos;&agrave; l&apos;arbitrage &agrave; J-1. La
+          nationalit&eacute; de l&apos;&eacute;quipe, celle du sponsor
           principal, la r&eacute;putation et le meilleur coureur adapt&eacute;
           au profil sont pris en compte.
         </p>
@@ -841,13 +870,9 @@ function RegistrationPanel({
         </div>
 
         {contextError ? (
-          <RegistrationNotice tone="error">
-            {contextError}
-          </RegistrationNotice>
+          <RegistrationNotice tone="error">{contextError}</RegistrationNotice>
         ) : rosterError ? (
-          <RegistrationNotice tone="error">
-            {rosterError}
-          </RegistrationNotice>
+          <RegistrationNotice tone="error">{rosterError}</RegistrationNotice>
         ) : !canReactivate ? (
           <RegistrationNotice tone="warning">
             Cette demande retir&eacute;e ne peut plus &ecirc;tre
@@ -874,8 +899,8 @@ function RegistrationPanel({
           </form>
         ) : (
           <RegistrationNotice tone="warning">
-            Les demandes de Wild Card ferment 24 heures avant le
-            d&eacute;part afin de permettre l&apos;arbitrage.
+            Les demandes de Wild Card ferment 24 heures avant le d&eacute;part
+            afin de permettre l&apos;arbitrage.
           </RegistrationNotice>
         )}
       </section>
@@ -902,10 +927,7 @@ function RegistrationPanel({
       </p>
 
       {raceExperience ? (
-        <RaceExperienceLink
-          slug={edition.slug}
-          availability={raceExperience}
-        />
+        <RaceExperienceLink slug={edition.slug} availability={raceExperience} />
       ) : null}
 
       <div className="mt-5 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
@@ -918,32 +940,18 @@ function RegistrationPanel({
       </div>
 
       {contextError ? (
-        <RegistrationNotice tone="error">
-          {contextError}
-        </RegistrationNotice>
+        <RegistrationNotice tone="error">{contextError}</RegistrationNotice>
       ) : rosterError ? (
-        <RegistrationNotice tone="error">
-          {rosterError}
-        </RegistrationNotice>
+        <RegistrationNotice tone="error">{rosterError}</RegistrationNotice>
       ) : !canReactivate ? (
         <RegistrationNotice tone="warning">
-          Votre retrait est définitif pour cette course : la startlist du créneau est déjà figée.
+          Votre retrait est définitif pour cette course : la startlist du
+          créneau est déjà figée.
         </RegistrationNotice>
       ) : availability === "open" ? (
-        <form
-          action={registerRaceRosterAction}
-          className="mt-5"
-        >
-          <input
-            type="hidden"
-            name="editionId"
-            value={edition.id}
-          />
-          <input
-            type="hidden"
-            name="slug"
-            value={edition.slug}
-          />
+        <form action={registerRaceRosterAction} className="mt-5">
+          <input type="hidden" name="editionId" value={edition.id} />
+          <input type="hidden" name="slug" value={edition.slug} />
           {riders.length > 0 ? (
             <RaceRosterSelector
               riders={riders}
@@ -960,10 +968,14 @@ function RegistrationPanel({
         </form>
       ) : availability === "closed" ? (
         <RegistrationNotice tone="warning">
-          Les inscriptions sont fermées : le gel du créneau ({RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"].registrationCutoffHour} h) est dépassé.
+          Les inscriptions sont fermées : le gel du créneau (
+          {
+            RACE_DAY_SLOT_CONFIG[edition.stages[0]?.daySlot ?? "late"]
+              .registrationCutoffHour
+          }{" "}
+          h) est dépassé.
         </RegistrationNotice>
-      ) : availability ===
-        "reputation_locked" ? (
+      ) : availability === "reputation_locked" ? (
         <RegistrationNotice tone="warning">
           Cette course {edition.categoryName} nécessite au minimum{" "}
           <strong>{edition.minimumReputation} points de réputation</strong>.
@@ -972,7 +984,8 @@ function RegistrationPanel({
         </RegistrationNotice>
       ) : (
         <RegistrationNotice tone="neutral">
-          Les paliers de réputation de cette catégorie seront bientôt annoncés. L’inscription reste verrouillée jusque-là.
+          Les paliers de réputation de cette catégorie seront bientôt annoncés.
+          L’inscription reste verrouillée jusque-là.
         </RegistrationNotice>
       )}
     </section>
@@ -1063,44 +1076,42 @@ function EngagedRidersSection({
 
       {riders.length > 0 ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {[...teams.entries()].map(
-            ([teamId, team]) => (
-              <article
-                key={teamId}
-                className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4"
+          {[...teams.entries()].map(([teamId, team]) => (
+            <article
+              key={teamId}
+              className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4"
+            >
+              <Link
+                href={`/jeu/equipes/${teamId}`}
+                className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
               >
-                <Link
-                  href={`/jeu/equipes/${teamId}`}
-                  className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
-                >
-                  {team.teamName}
-                </Link>
-                <ul className="mt-3 space-y-2">
-                  {team.riders.map((rider) => (
-                    <li
-                      key={rider.riderId}
-                      className="text-sm font-semibold text-[#557064]"
+                {team.teamName}
+              </Link>
+              <ul className="mt-3 space-y-2">
+                {team.riders.map((rider) => (
+                  <li
+                    key={rider.riderId}
+                    className="text-sm font-semibold text-[#557064]"
+                  >
+                    <Link
+                      href={`/jeu/coureurs/${rider.riderId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 rounded transition hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
                     >
-                      <Link
-                        href={`/jeu/coureurs/${rider.riderId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 rounded transition hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
-                      >
-                        <span
-                          className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
-                          role="img"
-                          aria-label={`Drapeau ${rider.countryCode}`}
-                        />
-                        {rider.riderName}
-                        <span aria-hidden="true">↗</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            )
-          )}
+                      <span
+                        className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
+                        role="img"
+                        aria-label={`Drapeau ${rider.countryCode}`}
+                      />
+                      {rider.riderName}
+                      <span aria-hidden="true">↗</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
         </div>
       ) : (
         <p className="mt-4 rounded-xl border border-dashed border-[#315B3E]/25 bg-[#F6FAF7] px-5 py-5 text-sm font-semibold leading-6 text-[#688176]">
@@ -1152,16 +1163,12 @@ function StageCard({
           J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].shortLabel}
         </p>
         <p className="mt-1 font-black text-[#0B302B]">
-          {showStageNumber
-            ? `Étape ${stage.stageNumber}`
-            : "Classique"}
+          {showStageNumber ? `Étape ${stage.stageNumber}` : "Classique"}
         </p>
       </div>
 
       <div className="min-w-0">
-        <h3 className="truncate font-black text-[#0B302B]">
-          {stage.name}
-        </h3>
+        <h3 className="truncate font-black text-[#0B302B]">{stage.name}</h3>
         <p className="mt-1 text-sm font-semibold text-[#688176]">
           {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
           {formatDistance(stage.distanceKm)} km
@@ -1196,12 +1203,18 @@ function SecondaryClassifications({
 }: {
   edition: RaceCalendarEdition;
 }) {
-  const hasMountain = edition.raceFormat === "stage_race" && edition.stages.some(
-    (stage) => stage.segments.some((segment) => segment.prime?.type === "mountain")
-  );
-  const hasSprint = edition.raceFormat === "stage_race" && edition.stages.some(
-    (stage) => stage.segments.some((segment) => segment.prime?.type === "intermediate_sprint")
-  );
+  const hasMountain =
+    edition.raceFormat === "stage_race" &&
+    edition.stages.some((stage) =>
+      stage.segments.some((segment) => segment.prime?.type === "mountain"),
+    );
+  const hasSprint =
+    edition.raceFormat === "stage_race" &&
+    edition.stages.some((stage) =>
+      stage.segments.some(
+        (segment) => segment.prime?.type === "intermediate_sprint",
+      ),
+    );
 
   return (
     <section className="rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-6">
@@ -1213,13 +1226,11 @@ function SecondaryClassifications({
           label="Grand Prix de la montagne"
           isPresent={hasMountain}
         />
-        <ClassificationRow
-          label="Grand Prix du sprint"
-          isPresent={hasSprint}
-        />
+        <ClassificationRow label="Grand Prix du sprint" isPresent={hasSprint} />
       </div>
       <p className="mt-4 text-xs font-semibold leading-5 text-[#688176]">
-        Les barèmes et résultats détaillés seront activés avec le moteur de simulation.
+        Les barèmes et résultats détaillés seront activés avec le moteur de
+        simulation.
       </p>
     </section>
   );
@@ -1234,9 +1245,7 @@ function ClassificationRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-[#315B3E]/10 bg-white px-4 py-3">
-      <span className="text-sm font-bold text-[#315B3E]">
-        {label}
-      </span>
+      <span className="text-sm font-bold text-[#315B3E]">{label}</span>
       <span
         className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
           isPresent
@@ -1250,40 +1259,22 @@ function ClassificationRow({
   );
 }
 
-function DefinitionRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function DefinitionRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-[#315B3E]/10 pb-4 last:border-none last:pb-0">
-      <dt className="text-sm font-semibold text-[#688176]">
-        {label}
-      </dt>
-      <dd className="text-right text-sm font-black text-[#0B302B]">
-        {value}
-      </dd>
+      <dt className="text-sm font-semibold text-[#688176]">{label}</dt>
+      <dd className="text-right text-sm font-black text-[#0B302B]">{value}</dd>
     </div>
   );
 }
 
-function RaceHeroStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function RaceHeroStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[10px] font-extrabold uppercase tracking-wider text-white/65">
         {label}
       </p>
-      <p className="mt-1 text-lg font-black">
-        {value}
-      </p>
+      <p className="mt-1 text-lg font-black">{value}</p>
     </div>
   );
 }
@@ -1296,36 +1287,29 @@ function formatDistance(value: number) {
 
 function formatDateRange(
   startDate: string | undefined,
-  endDate: string | undefined
+  endDate: string | undefined,
 ) {
   if (!startDate) {
     return "Non renseignées";
   }
 
-  const formatter = new Intl.DateTimeFormat(
-    "fr-FR",
-    {
-      day: "numeric",
-      month: "short",
-      timeZone: "UTC",
-    }
-  );
-  const formattedStart = formatter.format(
-    new Date(`${startDate}T00:00:00Z`)
-  );
+  const formatter = new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+  const formattedStart = formatter.format(new Date(`${startDate}T00:00:00Z`));
 
   if (!endDate || endDate === startDate) {
     return formattedStart;
   }
 
   return `${formattedStart} – ${formatter.format(
-    new Date(`${endDate}T00:00:00Z`)
+    new Date(`${endDate}T00:00:00Z`),
   )}`;
 }
 
-function formatDeparture(
-  value: string | null | undefined
-) {
+function formatDeparture(value: string | null | undefined) {
   if (!value) {
     return "Non renseignée";
   }
@@ -1339,10 +1323,6 @@ function formatDeparture(
   }).format(new Date(value));
 }
 
-function readSingleSearchParam(
-  value: string | string[] | undefined
-) {
-  return Array.isArray(value)
-    ? value[0] ?? null
-    : value ?? null;
+function readSingleSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
 }

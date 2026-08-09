@@ -34,6 +34,8 @@ describe("youth training minigame surfaces", () => {
     expect(source).toContain("YOUTH_PUNCHEUR_TARGET_MIN");
     expect(source).toContain("PUNCHEUR_BASE_CHARGE_MILLISECONDS = 4_000");
     expect(source).toContain("getYouthPuncheurChargeRateMultiplier");
+    expect(source).toContain("YOUTH_PUNCHEUR_HITS_FOR_MAX_SCORE");
+    expect(source).toContain("puncheurHitsRef.current");
     expect(source).toContain("select-none");
   });
 
@@ -42,5 +44,28 @@ describe("youth training minigame surfaces", () => {
     expect(source).toContain("onBreakawayAttack");
     expect(source).toContain("onPuncheurChargeStart");
     expect(source).toContain("touch-none");
+  });
+
+  it("démarre le Grimpeur au bord et varie Pavés et Baroudeur", () => {
+    expect(source).toContain("getYouthRhythmCursorPosition(0)");
+    expect(source).toContain("scheduleTarget(YOUTH_REFLEX_INITIAL_DELAY_MS)");
+    expect(source).toContain(
+      "scheduleTarget(getYouthReflexTargetInterval(Math.random()))",
+    );
+    expect(source).toContain("BREAKAWAY_CYCLE_MILLISECONDS = 3_000");
+    expect(source).toContain(
+      "breakawayWindowStart={breakawayWindowStart}",
+    );
+  });
+
+  it("accentue l’instabilité du CLM", () => {
+    expect(source).toContain("getYouthTimeTrialWindDrift(elapsed)");
+  });
+
+  it("allège le chemin tactile du Sprint pour limiter les freezes", () => {
+    expect(source).toContain("event.preventDefault();");
+    expect(source).toContain("touch-none select-none");
+    expect(source).toContain("transition-colors duration-75");
+    expect(source).not.toContain("active:scale-95");
   });
 });

@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  RACE_EQUIPMENT_EMPTY,
+  RACE_EQUIPMENT_INHERIT,
+  parseRaceEquipmentPlanEntry,
+} from "@/lib/game/race-equipment-planning";
 import { RACE_ROLES, type RaceRole } from "@/lib/game/race-simulation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -201,6 +206,75 @@ export async function withdrawRaceRosterAction(
     `/jeu/calendrier?desinscription=confirmee&course=${encodeURIComponent(
       slug
     )}`
+  );
+}
+
+export async function saveRaceEquipmentPlanAction(formData: FormData) {
+  const editionId = readFormValue(formData, "editionId");
+  const stageId = readFormValue(formData, "stageId");
+  const slug = readFormValue(formData, "slug");
+  const applyToTour = readFormValue(formData, "applyToTour") === "true";
+  const entries = formData
+    .getAll("loadouts")
+    .map(parseRaceEquipmentPlanEntry);
+
+  if (
+    !isUuid(editionId) ||
+    !isUuid(stageId) ||
+    !isSlug(slug) ||
+    entries.length === 0 ||
+    entries.some((entry) => entry === null)
+  ) {
+    redirectWithError(
+      `/jeu/courses/${slug || ""}`,
+      "Le montage de course envoyé est invalide.",
+    );
+  }
+
+  const loadouts = entries.map((entry) => {
+    if (!entry) throw new Error("Entrée de matériel invalide.");
+    if (entry.selection === RACE_EQUIPMENT_INHERIT) {
+      return { riderId: entry.riderId, slot: entry.slot, mode: "inherit" };
+    }
+    if (entry.selection === RACE_EQUIPMENT_EMPTY) {
+      return { riderId: entry.riderId, slot: entry.slot, mode: "empty" };
+    }
+    return {
+      riderId: entry.riderId,
+      slot: entry.slot,
+      mode: "item",
+      equipmentItemId: entry.selection,
+    };
+  });
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc(
+    "save_current_team_race_equipment_plan",
+    {
+      p_race_edition_id: editionId,
+      p_stage_id: stageId,
+      p_loadouts: loadouts,
+      p_apply_to_tour: applyToTour,
+    },
+  );
+
+  if (error) {
+    redirectWithError(
+      `/jeu/courses/${slug}?materiel=erreur&stage=${stageId}`,
+      error.message,
+    );
+  }
+
+  revalidateRacePaths(slug);
+  redirect(
+    `/jeu/courses/${slug}?materiel=${applyToTour ? "tour" : "enregistre"}&stage=${stageId}#preparation`,
   );
 }
 

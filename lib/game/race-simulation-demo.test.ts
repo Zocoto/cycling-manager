@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  RaceCalendarEdition,
-  RaceCalendarStage,
-} from "./race-calendar";
-import {
-  createCalendarSimulationInput,
-} from "./race-simulation-demo";
+import type { RaceCalendarEdition, RaceCalendarStage } from "./race-calendar";
+import { createCalendarSimulationInput } from "./race-simulation-demo";
 import {
   getOfficialStageSimulationContext,
   isUnavailableForFollowingStage,
@@ -46,7 +41,7 @@ describe("createCalendarSimulationInput", () => {
       "rider-c",
     ]);
     expect(new Set(input.riders.map((rider) => rider.teamId))).toEqual(
-      new Set(["team-a", "team-b"])
+      new Set(["team-a", "team-b"]),
     );
   });
 
@@ -75,10 +70,33 @@ describe("createCalendarSimulationInput", () => {
       ["rider-a", "sprinter"],
       ["rider-b", "leadout"],
     ]);
-    expect(riders.map((rider) => rider.role)).toEqual([
-      "domestique",
-      "leader",
-    ]);
+    expect(riders.map((rider) => rider.role)).toEqual(["domestique", "leader"]);
+  });
+
+  it("utilise le montage propre à l'étape sans l'exposer au moteur", () => {
+    const rider = createRider("rider-a", "team-a");
+    const edition = createEdition({
+      slug: "tour-materiel",
+      riders: [rider],
+    });
+    const permanentEffects = createEquipmentEffects(1);
+    const stageEffects = createEquipmentEffects(4);
+    edition.engagedRiders[0] = {
+      ...rider,
+      equipmentEffects: permanentEffects,
+      equipmentEffectsByStageId: {
+        [edition.stages[0].id]: stageEffects,
+      },
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "montage-etape",
+    });
+
+    expect(input.riders[0].equipmentEffects).toEqual(stageEffects);
+    expect(input.riders[0]).not.toHaveProperty("equipmentEffectsByStageId");
   });
 
   it("ecarte les GPM herites du live d'une course d'un jour", () => {
@@ -108,9 +126,7 @@ describe("createCalendarSimulationInput", () => {
     });
 
     expect(input.segments[0].prime).toBeNull();
-    expect(
-      edition.stages[0].segments[0].prime
-    ).not.toBeNull();
+    expect(edition.stages[0].segments[0].prime).not.toBeNull();
   });
 
   it("refuse une course ordinaire sans startlist", () => {
@@ -124,7 +140,7 @@ describe("createCalendarSimulationInput", () => {
         edition,
         stage: edition.stages[0],
         seed: "official",
-      })
+      }),
     ).toThrow("sans startlist enregistrée");
   });
 
@@ -142,7 +158,7 @@ describe("createCalendarSimulationInput", () => {
 
     expect(input.riders).toHaveLength(24);
     expect(input.riders.every((rider) => !rider.id.startsWith("rider-"))).toBe(
-      true
+      true,
     );
   });
 
@@ -162,9 +178,9 @@ describe("createCalendarSimulationInput", () => {
     });
 
     expect(
-      simulateOfficialRaceEdition(firstSpectatorEdition)[0].simulation
+      simulateOfficialRaceEdition(firstSpectatorEdition)[0].simulation,
     ).toEqual(
-      simulateOfficialRaceEdition(secondSpectatorEdition)[0].simulation
+      simulateOfficialRaceEdition(secondSpectatorEdition)[0].simulation,
     );
   });
 
@@ -230,7 +246,7 @@ describe("createCalendarSimulationInput", () => {
 
     expect(runs[0].input.generalClassification).toBeUndefined();
     expect(runs[1].input.generalClassification).toEqual(
-      generalBeforeSecondStage
+      generalBeforeSecondStage,
     );
     const firstStageSimulation = {
       ...runs[0].simulation,
@@ -292,10 +308,11 @@ describe("createCalendarSimulationInput", () => {
         expectedJerseyByRiderId.get(rider.id) ?? null,
       );
     }
+    expect(secondContext.simulation.resolvedRiders.length).toBeGreaterThan(0);
     expect(
-      secondContext.simulation.resolvedRiders.some(
+      secondContext.simulation.resolvedRiders.every(
         (rider) =>
-          !rider.classificationJersey &&
+          rider.classificationJersey &&
           rider.activeNationalChampion?.countryCode === "FR",
       ),
     ).toBe(true);
@@ -394,32 +411,28 @@ describe("createCalendarSimulationInput", () => {
       mountainPoints: { "rider-a": 2 },
     };
 
-    const context =
-      getOfficialStageSimulationContext({
-        edition,
-        stageId: run.stage.id,
-        lockedSimulations: [
-          {
-            stageId: run.stage.id,
-            raceEditionId: edition.id,
-            engineVersion: "test",
-            seed: String(run.input.seed),
-            input: lockedInput,
-            simulation: lockedSimulation,
-          },
-        ],
-      });
+    const context = getOfficialStageSimulationContext({
+      edition,
+      stageId: run.stage.id,
+      lockedSimulations: [
+        {
+          stageId: run.stage.id,
+          raceEditionId: edition.id,
+          engineVersion: "test",
+          seed: String(run.input.seed),
+          input: lockedInput,
+          simulation: lockedSimulation,
+        },
+      ],
+    });
 
     expect(
       context.input.segments.some(
-        (segment) =>
-          segment.prime?.type === "mountain"
-      )
+        (segment) => segment.prime?.type === "mountain",
+      ),
     ).toBe(false);
     expect(context.simulation.primes).toEqual([]);
-    expect(
-      context.simulation.mountainPoints
-    ).toEqual({});
+    expect(context.simulation.mountainPoints).toEqual({});
     expect(lockedSimulation.primes).toHaveLength(1);
   });
 
@@ -431,7 +444,8 @@ describe("createCalendarSimulationInput", () => {
         createRider("rider-b", "team-b"),
       ],
     });
-    const result = simulateOfficialRaceEdition(edition)[0].simulation.results[0];
+    const result =
+      simulateOfficialRaceEdition(edition)[0].simulation.results[0];
 
     expect(
       isUnavailableForFollowingStage({
@@ -447,7 +461,7 @@ describe("createCalendarSimulationInput", () => {
           recoveryHours: 96,
           recoveryDays: 4,
         },
-      })
+      }),
     ).toBe(true);
   });
 });
@@ -498,6 +512,16 @@ function createEdition({
     engagedRiders: riders,
     currentTeamRegistration: null,
     stages: [stage],
+  };
+}
+
+function createEquipmentEffects(mountainBonus: number) {
+  return {
+    ratingBonuses: { mountain: mountainBonus },
+    timeTrialRatingBonuses: {},
+    injuryRiskReductionPct: 0,
+    breakawayReputationBonus: 0,
+    victoryReputationBonus: 0,
   };
 }
 

@@ -46,6 +46,7 @@ export type YouthMiniGameScoreInput = {
   breakawayOpportunities: number;
   breakawayEnergy: number;
   puncheurPoints: number;
+  puncheurHits: number;
   puncheurOpportunities: number;
 };
 
@@ -53,11 +54,14 @@ export const YOUTH_TRAINING_DURATION_SECONDS = 30;
 export const YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE = 28;
 export const YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE = 940;
 export const YOUTH_REFLEX_HITS_FOR_MAX_SCORE = 36;
-export const YOUTH_REFLEX_TARGET_INTERVAL_MS = 680;
+export const YOUTH_REFLEX_INITIAL_DELAY_MS = 950;
+export const YOUTH_REFLEX_TARGET_INTERVAL_MIN_MS = 520;
+export const YOUTH_REFLEX_TARGET_INTERVAL_MAX_MS = 880;
 export const YOUTH_SPEED_TAPS_FOR_MAX_SCORE = 190;
 export const YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE = 0.88;
 export const YOUTH_BREAKAWAY_ENERGY_FOR_MAX_SCORE = 30;
-export const YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE = 950;
+export const YOUTH_BREAKAWAY_WINDOW_WIDTH = 0.2;
+export const YOUTH_PUNCHEUR_HITS_FOR_MAX_SCORE = 7;
 export const YOUTH_PUNCHEUR_TARGET_MIN = 0.73;
 export const YOUTH_PUNCHEUR_TARGET_MAX = 0.84;
 export const YOUTH_RAW_RATING_MIN = 1;
@@ -111,6 +115,56 @@ export function getYouthManualTrainingSlot(
   parisHour: number,
 ): YouthManualTrainingSlot {
   return parisHour < 12 ? "manual_am" : "manual_pm";
+}
+
+export function getYouthRhythmCursorPosition(elapsedMilliseconds: number) {
+  const elapsed = Math.max(0, elapsedMilliseconds);
+  const rhythmPhase =
+    elapsed / 350 -
+    Math.PI / 2 +
+    Math.sin(elapsed / 2_300) * 2;
+  const normalizedPosition = (Math.sin(rhythmPhase) + 1) / 2;
+  return 0.02 + normalizedPosition * 0.96;
+}
+
+export function getYouthReflexTargetInterval(randomValue: number) {
+  const normalizedRandom = clamp(randomValue, 0, 1);
+  return Math.round(
+    YOUTH_REFLEX_TARGET_INTERVAL_MIN_MS +
+      normalizedRandom *
+        (YOUTH_REFLEX_TARGET_INTERVAL_MAX_MS -
+          YOUTH_REFLEX_TARGET_INTERVAL_MIN_MS),
+  );
+}
+
+const YOUTH_BREAKAWAY_WINDOW_STARTS = [
+  0.16,
+  0.52,
+  0.29,
+  0.67,
+  0.41,
+  0.22,
+] as const;
+
+export function getYouthBreakawayWindowStart(
+  cycle: number,
+  patternOffset = 0,
+) {
+  const normalizedCycle = Math.max(0, Math.floor(cycle));
+  const normalizedOffset = Math.max(0, Math.floor(patternOffset));
+  return YOUTH_BREAKAWAY_WINDOW_STARTS[
+    (normalizedCycle + normalizedOffset) %
+      YOUTH_BREAKAWAY_WINDOW_STARTS.length
+  ];
+}
+
+export function getYouthTimeTrialWindDrift(elapsedMilliseconds: number) {
+  const elapsed = Math.max(0, elapsedMilliseconds);
+  return (
+    Math.sin(elapsed / 310) * 0.00009 +
+    Math.sin(elapsed / 790 + 1.35) * 0.00007 +
+    Math.sin(elapsed / 2_100 + 0.4) * 0.000045
+  );
 }
 
 export function summarizeYouthSeasonTraining(
@@ -266,6 +320,7 @@ export function calculateYouthMiniGameScore({
   breakawayOpportunities,
   breakawayEnergy,
   puncheurPoints,
+  puncheurHits,
   puncheurOpportunities,
 }: YouthMiniGameScoreInput) {
   if (gameType === "rhythm") {
@@ -328,16 +383,22 @@ export function calculateYouthMiniGameScore({
   }
 
   if (puncheurOpportunities <= 0) return 0;
-  const averagePunch = puncheurPoints / puncheurOpportunities;
+  const hitFactor = Math.min(
+    1,
+    Math.max(0, puncheurHits) / YOUTH_PUNCHEUR_HITS_FOR_MAX_SCORE,
+  );
+  const accuracyFactor = Math.min(
+    1,
+    Math.max(0, puncheurPoints) / (puncheurOpportunities * 1_000),
+  );
   return clampScore(
-    Math.round(
-      (averagePunch / YOUTH_PUNCHEUR_ACCURACY_FOR_MAX_SCORE) * 1_000,
-    ),
+    Math.round((hitFactor * 0.85 + accuracyFactor * 0.15) * 1_000),
   );
 }
 
 export function getYouthPuncheurChargeRateMultiplier(charge: number) {
-  return 0.8 + clamp(charge, 0, 1) * 0.9;
+  const normalizedCharge = clamp(charge, 0, 1);
+  return 0.7 + normalizedCharge ** 2 * 1.9;
 }
 
 export function calculateYouthPuncheurReleasePoints(charge: number) {

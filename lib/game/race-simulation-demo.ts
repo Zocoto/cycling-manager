@@ -73,12 +73,11 @@ export const RACE_DEMO_SCENARIOS = [
   isStageRace: boolean;
 }>;
 
-export type RaceDemoScenarioId =
-  (typeof RACE_DEMO_SCENARIOS)[number]["id"];
+export type RaceDemoScenarioId = (typeof RACE_DEMO_SCENARIOS)[number]["id"];
 
 export function createDemoSimulationInput(
   scenarioId: RaceDemoScenarioId,
-  seed: string | number
+  seed: string | number,
 ): StageSimulationInput {
   const scenario =
     RACE_DEMO_SCENARIOS.find((candidate) => candidate.id === scenarioId) ??
@@ -125,25 +124,26 @@ export function createCalendarSimulationInput({
 
   if (sourceRiders.length === 0) {
     throw new Error(
-      `La course ${edition.name} ne peut pas être simulée sans startlist enregistrée.`
+      `La course ${edition.name} ne peut pas être simulée sans startlist enregistrée.`,
     );
   }
 
   const riders = sourceRiders
     .map((rider) => {
+      const { equipmentEffectsByStageId, ...baseRider } = rider;
       const teamStrategy = stage.teamStrategies?.[rider.teamId];
       const raceDuty = getRiderRaceDuty(teamStrategy, rider.id);
       const specialAbilities = [
         ...(rider.specialAbilities ?? []),
         ...(rider.specialAbility ? [rider.specialAbility] : []),
       ]
-        .filter((ability, index, abilities) =>
-          abilities.indexOf(ability) === index
+        .filter(
+          (ability, index, abilities) => abilities.indexOf(ability) === index,
         )
         .sort();
 
       return {
-        ...rider,
+        ...baseRider,
         role: resolveStageRaceRole({
           riderId: rider.id,
           generalRole: rider.role,
@@ -155,32 +155,30 @@ export function createCalendarSimulationInput({
           ? { specialAbilities }
           : {}),
         ratings: { ...rider.ratings },
+        ...(equipmentEffectsByStageId?.[stage.id]
+          ? { equipmentEffects: equipmentEffectsByStageId[stage.id] }
+          : {}),
       };
     })
     .sort(
       (first, second) =>
         first.teamId.localeCompare(second.teamId) ||
-        first.id.localeCompare(second.id)
+        first.id.localeCompare(second.id),
     );
 
-  const segments =
-    removeOneDayRaceMountainPrimes(
-      stage.segments.length > 0
-        ? [...stage.segments].sort(
-            (first, second) =>
-              first.segmentNumber -
-              second.segmentNumber
-          )
-        : buildRaceSegments({
-            distanceKm: stage.distanceKm,
-            profileType: stage.profileType,
-            seed: `${stage.id}:fallback-profile`,
-            includeTourPrimes:
-              edition.raceFormat ===
-              "stage_race",
-          }),
-      edition.raceFormat
-    );
+  const segments = removeOneDayRaceMountainPrimes(
+    stage.segments.length > 0
+      ? [...stage.segments].sort(
+          (first, second) => first.segmentNumber - second.segmentNumber,
+        )
+      : buildRaceSegments({
+          distanceKm: stage.distanceKm,
+          profileType: stage.profileType,
+          seed: `${stage.id}:fallback-profile`,
+          includeTourPrimes: edition.raceFormat === "stage_race",
+        }),
+    edition.raceFormat,
+  );
 
   return {
     id: stage.id,
@@ -199,8 +197,7 @@ export function createCalendarSimulationInput({
     }),
     segments,
     riders: riders.map((rider) => {
-      const reconnaissanceBonus =
-        stage.reconnaissanceBonuses?.[rider.id] ?? 0;
+      const reconnaissanceBonus = stage.reconnaissanceBonuses?.[rider.id] ?? 0;
       return reconnaissanceBonus > 0
         ? { ...rider, reconnaissanceBonus }
         : rider;
@@ -215,28 +212,56 @@ const TEAMS = [
     name: "Veloria Mobilités",
     primary: "#1E9E78",
     secondary: "#F2C94C",
-    names: ["Luc Moreau", "Émile Laurent", "Noé Garnier", "Bastien Roy", "Sacha Perrin", "Léo Chevalier"],
+    names: [
+      "Luc Moreau",
+      "Émile Laurent",
+      "Noé Garnier",
+      "Bastien Roy",
+      "Sacha Perrin",
+      "Léo Chevalier",
+    ],
   },
   {
     id: "nordika",
     name: "Nordika Glass",
     primary: "#2457C5",
     secondary: "#E7F2FF",
-    names: ["Mats Lindberg", "Jonas Dahl", "Erik Nyström", "Oskar Lund", "Nils Berg", "Axel Holm"],
+    names: [
+      "Mats Lindberg",
+      "Jonas Dahl",
+      "Erik Nyström",
+      "Oskar Lund",
+      "Nils Berg",
+      "Axel Holm",
+    ],
   },
   {
     id: "sol-del-sur",
     name: "Sol del Sur",
     primary: "#D85635",
     secondary: "#FFD15C",
-    names: ["Iker Lozano", "Mateo Ruiz", "Hugo Vidal", "Álvaro León", "Diego Mena", "Sergio Rey"],
+    names: [
+      "Iker Lozano",
+      "Mateo Ruiz",
+      "Hugo Vidal",
+      "Álvaro León",
+      "Diego Mena",
+      "Sergio Rey",
+    ],
   },
   {
     id: "lumen",
     name: "Lumen Energy",
     primary: "#7C4DCE",
     secondary: "#E8D9FF",
-    names: ["Marco Belli", "Luca Serra", "Enzo Riva", "Paolo Conti", "Dario Greco", "Nico Sala"],
+    names: [
+      "Marco Belli",
+      "Luca Serra",
+      "Enzo Riva",
+      "Paolo Conti",
+      "Dario Greco",
+      "Nico Sala",
+    ],
   },
 ] as const;
 
@@ -244,32 +269,69 @@ const ARCHETYPES = [
   {
     role: "leader",
     ability: "giclette",
-    ratings: rating({ mountain: 83, hills: 81, acceleration: 79, recovery: 82, sprint: 67 }),
+    ratings: rating({
+      mountain: 83,
+      hills: 81,
+      acceleration: 79,
+      recovery: 82,
+      sprint: 67,
+    }),
   },
   {
     role: "sprinter",
     ability: "flahute",
-    ratings: rating({ flat: 80, sprint: 87, acceleration: 84, resistance: 80, mountain: 58 }),
+    ratings: rating({
+      flat: 80,
+      sprint: 87,
+      acceleration: 84,
+      resistance: 80,
+      mountain: 58,
+    }),
   },
   {
     role: "leadout",
     ability: "locomotive",
-    ratings: rating({ flat: 84, sprint: 76, acceleration: 78, endurance: 83, timeTrial: 79 }),
+    ratings: rating({
+      flat: 84,
+      sprint: 76,
+      acceleration: 78,
+      endurance: 83,
+      timeTrial: 79,
+    }),
   },
   {
     role: "free_agent",
     ability: "panache",
-    ratings: rating({ hills: 79, breakaway: 86, acceleration: 81, endurance: 80, sprint: 72 }),
+    ratings: rating({
+      hills: 79,
+      breakaway: 86,
+      acceleration: 81,
+      endurance: 80,
+      sprint: 72,
+    }),
   },
   {
     role: "domestique",
     ability: "bottle_carrier",
-    ratings: rating({ flat: 78, mountain: 75, endurance: 85, resistance: 79, recovery: 81 }),
+    ratings: rating({
+      flat: 78,
+      mountain: 75,
+      endurance: 85,
+      resistance: 79,
+      recovery: 81,
+    }),
   },
   {
     role: "mountain_classification",
     ability: "chase_potato",
-    ratings: rating({ mountain: 85, hills: 78, breakaway: 82, acceleration: 76, recovery: 80, sprint: 60 }),
+    ratings: rating({
+      mountain: 85,
+      hills: 78,
+      breakaway: 82,
+      acceleration: 76,
+      recovery: 80,
+      sprint: 60,
+    }),
   },
 ] as const;
 
@@ -291,14 +353,14 @@ const DEMO_RIDERS: RiderSimulationInput[] = TEAMS.flatMap((team, teamIndex) =>
         Object.entries(archetype.ratings).map(([key, value]) => [
           key,
           Math.round(Math.min(92, Math.max(50, value + ratingShift))),
-        ])
+        ]),
       ) as RiderSimulationRatings,
     } satisfies RiderSimulationInput;
-  })
+  }),
 );
 
 function rating(
-  overrides: Partial<RiderSimulationRatings>
+  overrides: Partial<RiderSimulationRatings>,
 ): RiderSimulationRatings {
   return {
     flat: 70,

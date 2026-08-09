@@ -241,6 +241,14 @@ type CalendarEngagedRiderRow = {
   equipment_effects: unknown;
 };
 
+type CalendarStageEquipmentEffectsRow = {
+  race_edition_id: string;
+  stage_id: string;
+  rider_id: string;
+  team_id: string;
+  equipment_effects: unknown;
+};
+
 type CalendarEngagedCountRow = {
   race_edition_id: string;
   engaged_rider_count: number;
@@ -642,6 +650,25 @@ export async function getActiveSeasonRaceCalendar(
         },
       })
     : null;
+  const stageEquipmentEffectsResult =
+    includeEngagedRiders && editionIds.length > 0
+      ? await collectPaginatedRows<
+          CalendarStageEquipmentEffectsRow,
+          { message: string }
+        >({
+          fetchPage: async (from, to) => {
+            const result = await supabase
+              .rpc("get_active_calendar_stage_equipment_effects", {
+                p_race_edition_ids: editionIds,
+              })
+              .range(from, to);
+            return {
+              data: result.data as CalendarStageEquipmentEffectsRow[] | null,
+              error: result.error,
+            };
+          },
+        })
+      : null;
   const engagedCountsResult = includeEngagedRiders
     ? null
     : await collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
@@ -662,6 +689,12 @@ export async function getActiveSeasonRaceCalendar(
     );
   }
 
+  if (stageEquipmentEffectsResult?.error) {
+    throw new Error(
+      `Impossible de charger les montages par étape : ${stageEquipmentEffectsResult.error.message}`,
+    );
+  }
+
   if (engagedCountsResult?.error) {
     throw new Error(
       `Impossible de charger le nombre de coureurs engagés : ${engagedCountsResult.error.message}`,
@@ -670,6 +703,9 @@ export async function getActiveSeasonRaceCalendar(
 
   const engagedRiderRows =
     (engagedRidersResult?.data as CalendarEngagedRiderRow[] | null) ?? [];
+  const stageEquipmentEffectRows =
+    (stageEquipmentEffectsResult?.data as
+      | CalendarStageEquipmentEffectsRow[] | null) ?? [];
   const engagedCountByEditionId = new Map(
     ((engagedCountsResult?.data as CalendarEngagedCountRow[] | null) ?? []).map(
       (row) => [row.race_edition_id, row.engaged_rider_count],
@@ -1058,6 +1094,7 @@ export async function getActiveSeasonRaceCalendar(
   );
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
+    stageEquipmentEffectRows,
     specialAbilitiesByRiderId,
     new Map(riderCountryRows.map((rider) => [rider.id, rider])),
     countryById,
@@ -1582,6 +1619,7 @@ function scaleEquipmentEffect(
 
 function groupCalendarEngagedRiders(
   rows: CalendarEngagedRiderRow[],
+  stageEquipmentRows: CalendarStageEquipmentEffectsRow[],
   specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>,
   riderMetadataById: Map<string, RiderCountryRow>,
   countryById: Map<string, CountryRow>,
@@ -1596,6 +1634,24 @@ function groupCalendarEngagedRiders(
     string,
     RaceCalendarEdition["engagedRiders"]
   >();
+  const equipmentByEditionRider = new Map<
+    string,
+    Record<string, EquipmentEffects>
+  >();
+
+  for (const row of stageEquipmentRows) {
+    const key = row.race_edition_id + ":" + row.rider_id;
+    const byStage = equipmentByEditionRider.get(key) ?? {};
+    byStage[row.stage_id] = combineEquipmentEffectsWithStaff({
+      values: Array.isArray(row.equipment_effects)
+        ? row.equipment_effects
+        : [],
+      teamStaffEffects: raceStaffEffects.byTeamId.get(row.team_id),
+      injuryPreventionPercentage:
+        raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
+    });
+    equipmentByEditionRider.set(key, byStage);
+  }
 
   for (const row of rows) {
     const riders = ridersByEditionId.get(row.race_edition_id) ?? [];
@@ -1614,6 +1670,9 @@ function groupCalendarEngagedRiders(
       injuryPreventionPercentage:
         raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
     });
+    const equipmentEffectsByStageId = equipmentByEditionRider.get(
+      row.race_edition_id + ":" + row.rider_id,
+    );
     riders.push({
       id: row.rider_id,
       name: `${row.rider_first_name} ${row.rider_last_name}`,
@@ -1635,6 +1694,9 @@ function groupCalendarEngagedRiders(
       specialAbility: specialAbilities[0] ?? null,
       specialAbilities,
       equipmentEffects,
+      ...(equipmentEffectsByStageId
+        ? { equipmentEffectsByStageId }
+        : {}),
       mechanicalIncidentTimeReductionPct:
         teamStaffEffects?.incidentTimeReductionPercentage ?? 0,
       ratings: {

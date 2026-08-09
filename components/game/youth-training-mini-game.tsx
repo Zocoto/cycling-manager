@@ -15,14 +15,20 @@ import {
 } from "@/app/jeu/centre-de-formation/actions";
 import { RIDER_RATING_AXES } from "@/lib/game/rider-profile";
 import {
+  YOUTH_BREAKAWAY_WINDOW_WIDTH,
+  YOUTH_PUNCHEUR_HITS_FOR_MAX_SCORE,
   YOUTH_PUNCHEUR_TARGET_MAX,
   YOUTH_PUNCHEUR_TARGET_MIN,
-  YOUTH_REFLEX_TARGET_INTERVAL_MS,
+  YOUTH_REFLEX_INITIAL_DELAY_MS,
   YOUTH_TRAINING_DURATION_SECONDS,
   YOUTH_TRAINING_GAME_LABELS,
   calculateYouthMiniGameScore,
   calculateYouthPuncheurReleasePoints,
+  getYouthBreakawayWindowStart,
   getYouthPuncheurChargeRateMultiplier,
+  getYouthReflexTargetInterval,
+  getYouthRhythmCursorPosition,
+  getYouthTimeTrialWindDrift,
   type YouthManualTrainingSlot,
   type YouthTrainingGameType,
   type YouthTrainingMode,
@@ -46,9 +52,11 @@ type GamePhase =
 type BreakawayWindowPhase = "wait" | "go" | "spent";
 
 const DEMO_DURATION_SECONDS = 12;
-const BREAKAWAY_CYCLE_MILLISECONDS = 3_800;
+const BREAKAWAY_CYCLE_MILLISECONDS = 3_000;
+const BREAKAWAY_HIT_ENERGY_COST = 6;
+const BREAKAWAY_MISS_ENERGY_COST = 14;
 const PUNCHEUR_BASE_CHARGE_MILLISECONDS = 4_000;
-const PUNCHEUR_RESET_MILLISECONDS = 900;
+const PUNCHEUR_RESET_MILLISECONDS = 550;
 
 export function YouthTrainingMiniGame({
   academyRiderId,
@@ -82,7 +90,9 @@ export function YouthTrainingMiniGame({
   );
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<CompletedReport | null>(null);
-  const [cursorPosition, setCursorPosition] = useState(0.5);
+  const [cursorPosition, setCursorPosition] = useState(
+    getYouthRhythmCursorPosition(0),
+  );
   const [reflexTarget, setReflexTarget] = useState<number | null>(null);
   const [liveCount, setLiveCount] = useState(0);
   const [speedExpected, setSpeedExpected] =
@@ -93,16 +103,20 @@ export function YouthTrainingMiniGame({
   const [breakawayWindowPhase, setBreakawayWindowPhase] =
     useState<BreakawayWindowPhase>("wait");
   const [breakawayCycleProgress, setBreakawayCycleProgress] = useState(0);
+  const [breakawayWindowStart, setBreakawayWindowStart] = useState(
+    getYouthBreakawayWindowStart(0),
+  );
   const [breakawayFeedback, setBreakawayFeedback] = useState("");
   const [showGameStart, setShowGameStart] = useState(false);
   const [puncheurCharge, setPuncheurCharge] = useState(0);
   const [puncheurFeedback, setPuncheurFeedback] = useState("");
 
   const gameStartedAtRef = useRef(0);
-  const cursorPositionRef = useRef(0.5);
+  const cursorPositionRef = useRef(getYouthRhythmCursorPosition(0));
   const rhythmPointsRef = useRef(0);
   const rhythmTapsRef = useRef(0);
   const lastRhythmTapRef = useRef(0);
+  const reflexTargetRef = useRef<number | null>(null);
   const reflexHitsRef = useRef(0);
   const reflexOpportunitiesRef = useRef(0);
   const speedTapsRef = useRef(0);
@@ -116,7 +130,12 @@ export function YouthTrainingMiniGame({
   const breakawayEnergyRef = useRef(100);
   const breakawayCycleRef = useRef(-1);
   const breakawayActedCycleRef = useRef(-1);
+  const breakawayWindowStartRef = useRef(
+    getYouthBreakawayWindowStart(0),
+  );
+  const breakawayPatternOffsetRef = useRef(0);
   const puncheurPointsRef = useRef(0);
+  const puncheurHitsRef = useRef(0);
   const puncheurOpportunitiesRef = useRef(0);
   const puncheurChargeRef = useRef(0);
   const puncheurChargingRef = useRef(false);
@@ -145,6 +164,7 @@ export function YouthTrainingMiniGame({
       breakawayOpportunities: breakawayOpportunitiesRef.current,
       breakawayEnergy: breakawayEnergyRef.current,
       puncheurPoints: puncheurPointsRef.current,
+      puncheurHits: puncheurHitsRef.current,
       puncheurOpportunities: puncheurOpportunitiesRef.current,
     });
 
@@ -200,8 +220,7 @@ export function YouthTrainingMiniGame({
     if (activeGameType === "rhythm") {
       const animateRhythm = (timestamp: number) => {
         const elapsed = timestamp - gameStartedAtRef.current;
-        const rhythmPhase = elapsed / 350 + Math.sin(elapsed / 2_300) * 2;
-        const position = (Math.sin(rhythmPhase) + 1) / 2;
+        const position = getYouthRhythmCursorPosition(elapsed);
         cursorPositionRef.current = position;
         setCursorPosition(position);
         animationFrame = window.requestAnimationFrame(animateRhythm);
@@ -210,15 +229,25 @@ export function YouthTrainingMiniGame({
     }
 
     if (activeGameType === "reflex") {
+      let previousTarget: number | null = null;
       const spawnTarget = () => {
+        const randomTarget = Math.floor(Math.random() * 9);
+        const nextTarget =
+          randomTarget === previousTarget
+            ? (randomTarget + 1 + Math.floor(Math.random() * 8)) % 9
+            : randomTarget;
+        previousTarget = nextTarget;
+        reflexTargetRef.current = nextTarget;
         reflexOpportunitiesRef.current += 1;
-        setReflexTarget(Math.floor(Math.random() * 9));
+        setReflexTarget(nextTarget);
       };
-      spawnTarget();
-      reflexTimer = window.setInterval(
-        spawnTarget,
-        YOUTH_REFLEX_TARGET_INTERVAL_MS,
-      );
+      const scheduleTarget = (delay: number): void => {
+        reflexTimer = window.setTimeout(() => {
+          spawnTarget();
+          scheduleTarget(getYouthReflexTargetInterval(Math.random()));
+        }, delay);
+      };
+      scheduleTarget(YOUTH_REFLEX_INITIAL_DELAY_MS);
     }
 
     if (activeGameType === "time_trial") {
@@ -227,10 +256,7 @@ export function YouthTrainingMiniGame({
         const delta = Math.min(40, timestamp - previousTimestamp);
         const elapsed = timestamp - gameStartedAtRef.current;
         previousTimestamp = timestamp;
-        const wind =
-          Math.sin(elapsed / 710) * 0.000055 +
-          Math.sin(elapsed / 1_930) * 0.000025 +
-          0.000012;
+        const wind = getYouthTimeTrialWindDrift(elapsed);
         const nextPosition = clamp(
           timeTrialPositionRef.current +
             timeTrialControlRef.current * delta * 0.0002 +
@@ -267,13 +293,22 @@ export function YouthTrainingMiniGame({
           BREAKAWAY_CYCLE_MILLISECONDS;
         if (cycle !== breakawayCycleRef.current) {
           breakawayCycleRef.current = cycle;
+          const nextWindowStart = getYouthBreakawayWindowStart(
+            cycle,
+            breakawayPatternOffsetRef.current,
+          );
+          breakawayWindowStartRef.current = nextWindowStart;
+          setBreakawayWindowStart(nextWindowStart);
           breakawayOpportunitiesRef.current = Math.max(
             breakawayOpportunitiesRef.current,
             cycle + 1,
           );
           setBreakawayFeedback("");
         }
-        const favorable = cycleProgress >= 0.4 && cycleProgress <= 0.61;
+        const windowStart = breakawayWindowStartRef.current;
+        const favorable =
+          cycleProgress >= windowStart &&
+          cycleProgress <= windowStart + YOUTH_BREAKAWAY_WINDOW_WIDTH;
         setBreakawayCycleProgress(cycleProgress);
         setBreakawayWindowPhase(
           breakawayActedCycleRef.current === cycle
@@ -325,7 +360,7 @@ export function YouthTrainingMiniGame({
       window.clearTimeout(finishTimer);
       window.clearInterval(countdownTimer);
       if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      if (reflexTimer) window.clearInterval(reflexTimer);
+      if (reflexTimer) window.clearTimeout(reflexTimer);
       timeTrialControlRef.current = 0;
       puncheurChargingRef.current = false;
     };
@@ -388,9 +423,18 @@ export function YouthTrainingMiniGame({
 
 
   function resetCounters() {
+    const initialRhythmPosition = getYouthRhythmCursorPosition(0);
+    const nextBreakawayPatternOffset = Math.floor(Math.random() * 1_000);
+    const initialBreakawayWindowStart = getYouthBreakawayWindowStart(
+      0,
+      nextBreakawayPatternOffset,
+    );
+
     rhythmPointsRef.current = 0;
     rhythmTapsRef.current = 0;
     lastRhythmTapRef.current = 0;
+    cursorPositionRef.current = initialRhythmPosition;
+    reflexTargetRef.current = null;
     reflexHitsRef.current = 0;
     reflexOpportunitiesRef.current = 0;
     speedTapsRef.current = 0;
@@ -404,6 +448,9 @@ export function YouthTrainingMiniGame({
     breakawayEnergyRef.current = 100;
     breakawayCycleRef.current = -1;
     breakawayActedCycleRef.current = -1;
+    breakawayPatternOffsetRef.current = nextBreakawayPatternOffset;
+    breakawayWindowStartRef.current = initialBreakawayWindowStart;
+    puncheurHitsRef.current = 0;
     puncheurPointsRef.current = 0;
     puncheurOpportunitiesRef.current = 0;
     puncheurChargeRef.current = 0;
@@ -411,7 +458,7 @@ export function YouthTrainingMiniGame({
     puncheurAttemptActiveRef.current = false;
     puncheurResetAtRef.current = 0;
     finishingRef.current = false;
-    setCursorPosition(0.5);
+    setCursorPosition(initialRhythmPosition);
     setSpeedExpected("left");
     setLiveCount(0);
     setReflexTarget(null);
@@ -420,6 +467,7 @@ export function YouthTrainingMiniGame({
     setBreakawayEnergy(100);
     setBreakawayWindowPhase("wait");
     setBreakawayCycleProgress(0);
+    setBreakawayWindowStart(initialBreakawayWindowStart);
     setBreakawayFeedback("");
     setPuncheurCharge(0);
     setPuncheurFeedback("");
@@ -437,13 +485,18 @@ export function YouthTrainingMiniGame({
   }
 
   function registerReflexHit(index: number) {
-    if (index !== reflexTarget) return;
+    if (index !== reflexTargetRef.current) return;
+    reflexTargetRef.current = null;
     reflexHitsRef.current += 1;
     setLiveCount(reflexHitsRef.current);
     setReflexTarget(null);
   }
 
-  function registerSpeedTap(side: "left" | "right") {
+  function registerSpeedTap(
+    side: "left" | "right",
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) {
+    event.preventDefault();
     if (speedExpectedRef.current !== side) return;
     speedTapsRef.current += 1;
     const nextSide = side === "left" ? "right" : "left";
@@ -473,8 +526,13 @@ export function YouthTrainingMiniGame({
     const cycleProgress =
       (elapsed % BREAKAWAY_CYCLE_MILLISECONDS) /
       BREAKAWAY_CYCLE_MILLISECONDS;
-    const favorable = cycleProgress >= 0.4 && cycleProgress <= 0.61;
-    const energyCost = favorable ? 8 : 14;
+    const windowStart = breakawayWindowStartRef.current;
+    const favorable =
+      cycleProgress >= windowStart &&
+      cycleProgress <= windowStart + YOUTH_BREAKAWAY_WINDOW_WIDTH;
+    const energyCost = favorable
+      ? BREAKAWAY_HIT_ENERGY_COST
+      : BREAKAWAY_MISS_ENERGY_COST;
     const nextEnergy = Math.max(0, breakawayEnergyRef.current - energyCost);
     breakawayEnergyRef.current = nextEnergy;
     setBreakawayEnergy(nextEnergy);
@@ -485,7 +543,7 @@ export function YouthTrainingMiniGame({
       setBreakawayFeedback("Écart creusé !");
     } else {
       setBreakawayFeedback(
-        cycleProgress < 0.34 ? "Parti trop tôt" : "Fenêtre manquée",
+        cycleProgress < windowStart ? "Parti trop tôt" : "Fenêtre manquée",
       );
     }
     setBreakawayWindowPhase("spent");
@@ -516,13 +574,12 @@ export function YouthTrainingMiniGame({
     puncheurAttemptActiveRef.current = false;
     const charge = puncheurChargeRef.current;
     const points = calculateYouthPuncheurReleasePoints(charge);
+    const isHit =
+      charge >= YOUTH_PUNCHEUR_TARGET_MIN &&
+      charge <= YOUTH_PUNCHEUR_TARGET_MAX;
     puncheurPointsRef.current += points;
-    setLiveCount(
-      Math.round(
-        puncheurPointsRef.current /
-          Math.max(1, puncheurOpportunitiesRef.current),
-      ),
-    );
+    if (isHit) puncheurHitsRef.current += 1;
+    setLiveCount(puncheurHitsRef.current);
     setPuncheurFeedback(
       charge >= YOUTH_PUNCHEUR_TARGET_MIN &&
         charge <= YOUTH_PUNCHEUR_TARGET_MAX
@@ -661,6 +718,7 @@ export function YouthTrainingMiniGame({
                   breakawayEnergy={breakawayEnergy}
                   breakawayWindowPhase={breakawayWindowPhase}
                   breakawayCycleProgress={breakawayCycleProgress}
+                  breakawayWindowStart={breakawayWindowStart}
                   breakawayFeedback={breakawayFeedback}
                   puncheurCharge={puncheurCharge}
                   puncheurFeedback={puncheurFeedback}
@@ -740,6 +798,7 @@ function GameSurface({
   breakawayEnergy,
   breakawayWindowPhase,
   breakawayCycleProgress,
+  breakawayWindowStart,
   breakawayFeedback,
   puncheurCharge,
   puncheurFeedback,
@@ -762,12 +821,16 @@ function GameSurface({
   breakawayEnergy: number;
   breakawayWindowPhase: BreakawayWindowPhase;
   breakawayCycleProgress: number;
+  breakawayWindowStart: number;
   breakawayFeedback: string;
   puncheurCharge: number;
   puncheurFeedback: string;
   onRhythmTap: () => void;
   onReflexHit: (index: number) => void;
-  onSpeedTap: (side: "left" | "right") => void;
+  onSpeedTap: (
+    side: "left" | "right",
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => void;
   onTimeTrialControlStart: (
     direction: -1 | 1,
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -853,8 +916,10 @@ function GameSurface({
             <button
               key={side}
               type="button"
-              onPointerDown={() => onSpeedTap(side)}
-              className={`min-h-44 touch-manipulation rounded-[2rem] border-4 text-4xl font-black transition active:scale-95 ${
+              onPointerDown={(event) => onSpeedTap(side, event)}
+              onContextMenu={(event) => event.preventDefault()}
+              aria-pressed={speedExpected === side}
+              className={`min-h-44 touch-none select-none rounded-[2rem] border-4 text-4xl font-black transition-colors duration-75 ${
                 speedExpected === side
                   ? "border-[#F2C94C] bg-[#176951] text-white shadow-xl"
                   : "border-[#315B3E]/10 bg-[#EAF5F0] text-[#789087]"
@@ -957,7 +1022,13 @@ function GameSurface({
             />
           </div>
           <div className="relative mt-8 h-16 rounded-full border border-white/10 bg-[#071F1B]">
-            <span className="absolute inset-y-2 left-[40%] w-[21%] rounded-full bg-[#F2C94C]/20 ring-1 ring-[#F2C94C]/50" />
+            <span
+              className="absolute inset-y-2 rounded-full bg-[#F2C94C]/20 ring-1 ring-[#F2C94C]/50"
+              style={{
+                left: `${8 + breakawayWindowStart * 84}%`,
+                width: `${YOUTH_BREAKAWAY_WINDOW_WIDTH * 84}%`,
+              }}
+            />
             <span className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 px-3 py-2 text-[9px] font-black uppercase text-[#B8CEC7]">
               Peloton
             </span>
@@ -1108,7 +1179,7 @@ function GameSurface({
       </p>
       {puncheurFeedback ? (
         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#789087]">
-          Score moyen · {liveCount}/1000
+          HIT réussis · {liveCount}/{YOUTH_PUNCHEUR_HITS_FOR_MAX_SCORE}
         </p>
       ) : null}
     </div>
