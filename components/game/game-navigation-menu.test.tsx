@@ -13,6 +13,13 @@ describe("GameNavigationMenu", () => {
     expect(markup).not.toContain("Simulateur de course");
   });
 
+  it("conserve un accès permanent au parrainage dans le menu principal", () => {
+    const markup = renderToStaticMarkup(<GameNavigationMenu />);
+
+    expect(markup).toContain('href="/jeu/parrainage"');
+    expect(markup).toContain('href="/jeu/parrainage">Parrainage');
+  });
+
   it("conserve le raccourci privilégié dans le bandeau supérieur", () => {
     const headerSource = readFileSync(
       resolve(process.cwd(), "components/game/game-header.tsx"),

@@ -42,6 +42,7 @@ const NAVIGATION_GROUPS = [
     links: [
       ["Chat du peloton", "/jeu/chat"],
       ["Recherche globale", "/jeu/recherche"],
+      ["Parrainage", "/jeu/parrainage"],
       ["Guide du jeu", "/guide"],
     ],
   },
