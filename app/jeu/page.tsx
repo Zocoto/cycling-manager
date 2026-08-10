@@ -1201,7 +1201,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
     {
       href: "/jeu/calendrier",
       icon: "calendar" as const,
-      eyebrow: "Préparer",
+      eyebrow: "S’enregistrer",
       title: "Inscriptions & calendrier",
       description:
         "Choisissez vos courses, filtrez les catégories et composez les équipes engagées.",
@@ -1213,10 +1213,10 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
     {
       href: "/jeu/preparation-course",
       icon: "strategy" as const,
-      eyebrow: "Décider",
+      eyebrow: "Préparer",
       title: "Préparation de course",
       description:
-        "Ajustez les rôles, confiez les missions et préparez les mouvements de vos coureurs.",
+        "Ajustez le matériel et les rôles, confiez les missions et préparez les mouvements de vos coureurs.",
       status: "Plan figé au départ",
     },
     {

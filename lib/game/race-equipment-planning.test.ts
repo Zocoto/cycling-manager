@@ -37,16 +37,12 @@ describe("planification du matériel de course", () => {
       ),
     ).toMatchObject({ selection: RACE_EQUIPMENT_INHERIT });
     expect(
-      parseRaceEquipmentPlanEntry(
-        `${RIDER_ID}|frame|${RACE_EQUIPMENT_EMPTY}`,
-      ),
+      parseRaceEquipmentPlanEntry(`${RIDER_ID}|frame|${RACE_EQUIPMENT_EMPTY}`),
     ).toMatchObject({ selection: RACE_EQUIPMENT_EMPTY });
   });
 
   it("rejette les identifiants, emplacements et valeurs forgés", () => {
-    expect(
-      parseRaceEquipmentPlanEntry(`rider|helmet|${ITEM_ID}`),
-    ).toBeNull();
+    expect(parseRaceEquipmentPlanEntry(`rider|helmet|${ITEM_ID}`)).toBeNull();
     expect(
       parseRaceEquipmentPlanEntry(`${RIDER_ID}|moteur|${ITEM_ID}`),
     ).toBeNull();
@@ -54,9 +50,7 @@ describe("planification du matériel de course", () => {
       parseRaceEquipmentPlanEntry(`${RIDER_ID}|helmet|inconnu`),
     ).toBeNull();
     expect(
-      parseRaceEquipmentPlanEntry(
-        `${RIDER_ID}|helmet|${ITEM_ID}|surplus`,
-      ),
+      parseRaceEquipmentPlanEntry(`${RIDER_ID}|helmet|${ITEM_ID}|surplus`),
     ).toBeNull();
   });
 

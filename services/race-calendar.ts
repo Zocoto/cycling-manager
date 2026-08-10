@@ -22,6 +22,7 @@ import {
   type SeasonCalendarEvent,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import type { RiderRatings } from "@/lib/game/rider-profile";
 import {
   isRiderSpecialAbility,
   type RiderSpecialAbility,
@@ -362,6 +363,7 @@ export type RaceStageRolePlanRider = {
 export type RacePreparationRider = RaceStageRolePlanRider & {
   firstName: string;
   lastName: string;
+  ratings: RiderRatings;
 };
 
 export type RaceStagePreparationPlan = RaceTeamStrategy & {
@@ -391,6 +393,19 @@ type RacePreparationRow = {
   rider_id: string;
   rider_first_name: string;
   rider_last_name: string;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
   general_role: RaceRole;
   stage_role: RaceRole | null;
   objective: RaceStrategyObjective;
@@ -1420,6 +1435,21 @@ export async function getCurrentTeamRacePreparation(
       riderId: row.rider_id,
       firstName: row.rider_first_name,
       lastName: row.rider_last_name,
+      ratings: {
+        mountain: Number(row.mountain),
+        hills: Number(row.hills),
+        flat: Number(row.flat),
+        timeTrial: Number(row.time_trial),
+        cobbles: Number(row.cobbles),
+        sprint: Number(row.sprint),
+        acceleration: Number(row.acceleration),
+        downhill: Number(row.downhill),
+        endurance: Number(row.endurance),
+        resistance: Number(row.resistance),
+        recovery: Number(row.recovery),
+        breakaway: Number(row.breakaway),
+        prologue: Number(row.prologue),
+      },
       generalRole: row.general_role,
       stageRoles: {},
     };

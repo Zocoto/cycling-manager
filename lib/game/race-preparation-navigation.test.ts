@@ -12,10 +12,7 @@ const header = readFileSync(
   "utf8",
 );
 const raceProfile = readFileSync(
-  resolve(
-    process.cwd(),
-    "app/jeu/courses/[slug]/race-profile-content.tsx",
-  ),
+  resolve(process.cwd(), "app/jeu/courses/[slug]/race-profile-content.tsx"),
   "utf8",
 );
 const preparationPage = readFileSync(
@@ -32,6 +29,9 @@ describe("race preparation navigation", () => {
     expect(registrationIndex).toBeGreaterThan(-1);
     expect(preparationIndex).toBeGreaterThan(registrationIndex);
     expect(resultsIndex).toBeGreaterThan(preparationIndex);
+    expect(dashboard).toContain('eyebrow: "S’enregistrer"');
+    expect(dashboard).toContain('eyebrow: "Préparer"');
+    expect(dashboard).toContain('eyebrow: "Vivre"');
   });
 
   it("reste accessible depuis une course inscrite sans encombrer le header", () => {
@@ -44,7 +44,9 @@ describe("race preparation navigation", () => {
 
   it("loads lightweight calendar data and the preparation batch in parallel", () => {
     expect(preparationPage).toContain("includeEngagedRiders: false");
-    expect(preparationPage).toContain("getCurrentTeamRacePreparation(supabase)");
+    expect(preparationPage).toContain(
+      "getCurrentTeamRacePreparation(supabase)",
+    );
     expect(preparationPage).toContain("Promise.all");
   });
 });

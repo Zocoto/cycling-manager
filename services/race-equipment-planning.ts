@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   getCurrentTeamEquipmentOverview,
   type TeamEquipmentCatalogItem,
+  type TeamEquipmentOverview,
 } from "@/services/team-equipment";
 
 type SupabaseServerClient = Awaited<
@@ -23,14 +24,10 @@ type PlannedAssignmentRow = {
 
 export type RaceEquipmentPlannerItem = Pick<
   TeamEquipmentCatalogItem,
-  | "id"
-  | "name"
-  | "slot"
-  | "supplierName"
-  | "effectSummary"
-  | "ownedQuantity"
-  | "isUnlimited"
->;
+  "id" | "name" | "slot" | "supplierName" | "effectSummary" | "ownedQuantity"
+> & {
+  isUnlimited: boolean;
+};
 
 export type RaceEquipmentPlanningData = {
   teamSeasonId: string;
@@ -69,14 +66,44 @@ export async function getRaceEquipmentPlanningData({
   authenticatedClient: SupabaseServerClient;
   now?: Date;
 }): Promise<RaceEquipmentPlanningData | null> {
+  const planningByEditionId = await getRaceEquipmentPlanningDataBatch({
+    authUserId,
+    entries: [{ edition, riderIds }],
+    authenticatedClient,
+    now,
+  });
+
+  return planningByEditionId.get(edition.id) ?? null;
+}
+
+export async function getRaceEquipmentPlanningDataBatch({
+  authUserId,
+  entries,
+  authenticatedClient,
+  now = new Date(),
+}: {
+  authUserId: string;
+  entries: readonly {
+    edition: RaceCalendarEdition;
+    riderIds: readonly string[];
+  }[];
+  authenticatedClient: SupabaseServerClient;
+  now?: Date;
+}): Promise<Map<string, RaceEquipmentPlanningData | null>> {
+  if (entries.length === 0) return new Map();
+
   const equipment = await getCurrentTeamEquipmentOverview(
     authUserId,
     authenticatedClient,
   );
-  if (!equipment) return null;
+  if (!equipment) {
+    return new Map(entries.map(({ edition }) => [edition.id, null]));
+  }
 
-  const normalizedRiderIds = new Set(riderIds);
-  const stageIds = edition.stages.map((stage) => stage.id);
+  const stageIds = entries.flatMap(({ edition }) =>
+    edition.stages.map((stage) => stage.id),
+  );
+  const editionIds = entries.map(({ edition }) => edition.id);
   const admin = createSupabaseAdminClient();
   const plannedResult =
     stageIds.length > 0
@@ -84,7 +111,7 @@ export async function getRaceEquipmentPlanningData({
           .from("race_stage_equipment_assignments")
           .select("stage_id, rider_id, slot_type, equipment_item_id")
           .eq("team_season_id", equipment.teamSeasonId)
-          .eq("race_edition_id", edition.id)
+          .in("race_edition_id", editionIds)
           .in("stage_id", stageIds)
           .returns<PlannedAssignmentRow[]>()
       : { data: [] as PlannedAssignmentRow[], error: null };
@@ -95,7 +122,37 @@ export async function getRaceEquipmentPlanningData({
     );
   }
 
-  const plannedAssignments = (plannedResult.data ?? [])
+  return new Map(
+    entries.map(({ edition, riderIds }) => [
+      edition.id,
+      buildRaceEquipmentPlanningData({
+        edition,
+        riderIds,
+        equipment,
+        plannedRows: plannedResult.data ?? [],
+        now,
+      }),
+    ]),
+  );
+}
+
+function buildRaceEquipmentPlanningData({
+  edition,
+  riderIds,
+  equipment,
+  plannedRows,
+  now,
+}: {
+  edition: RaceCalendarEdition;
+  riderIds: readonly string[];
+  equipment: TeamEquipmentOverview;
+  plannedRows: PlannedAssignmentRow[];
+  now: Date;
+}): RaceEquipmentPlanningData {
+  const normalizedRiderIds = new Set(riderIds);
+  const stageIds = new Set(edition.stages.map((stage) => stage.id));
+  const plannedAssignments = plannedRows
+    .filter((assignment) => stageIds.has(assignment.stage_id))
     .filter((assignment) => normalizedRiderIds.has(assignment.rider_id))
     .map((assignment) => ({
       stageId: assignment.stage_id,
@@ -132,10 +189,7 @@ export async function getRaceEquipmentPlanningData({
       })),
     catalog: equipment.catalog
       .filter(
-        (item) =>
-          item.isUnlimited ||
-          item.ownedQuantity > 0 ||
-          referencedItemIds.has(item.id),
+        (item) => item.ownedQuantity > 0 || referencedItemIds.has(item.id),
       )
       .map((item) => ({
         id: item.id,
@@ -144,7 +198,7 @@ export async function getRaceEquipmentPlanningData({
         supplierName: item.supplierName,
         effectSummary: item.effectSummary,
         ownedQuantity: item.ownedQuantity,
-        isUnlimited: item.isUnlimited,
+        isUnlimited: false,
       })),
     permanentAssignments: equipment.assignments.filter((assignment) =>
       normalizedRiderIds.has(assignment.riderId),

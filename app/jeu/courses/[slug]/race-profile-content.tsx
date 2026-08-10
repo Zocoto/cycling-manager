@@ -34,6 +34,7 @@ import {
 import {
   getRaceExperienceAvailability,
   getRaceResultsHref,
+  getStageLiveState,
 } from "@/lib/game/race-live";
 import { getStageFormCostRange } from "@/lib/game/form-management";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -547,9 +548,17 @@ function RegistrationPanel({
   const registrationDeadline = isEliteRace
     ? edition.wildcardClosesAt
     : edition.registrationClosesAt;
+  const raceStageStatuses = edition.stages.map(
+    (stage) => getStageLiveState(stage).status,
+  );
+  const hasScheduledStage = raceStageStatuses.includes("scheduled");
+  const isRaceFinished = raceStageStatuses.every(
+    (status) => status === "finished" || status === "cancelled",
+  );
   const needsMedicalReplacement =
     registration?.status === "accepted" &&
-    registration.rosterCount < edition.minimumRosterSize;
+    registration.rosterCount < edition.minimumRosterSize &&
+    hasScheduledStage;
   const hasConfirmedRoster =
     registration?.status === "accepted" &&
     registration.rosterCount >= edition.minimumRosterSize;
@@ -571,6 +580,29 @@ function RegistrationPanel({
     0,
   );
   const raceExperience = getRaceExperienceAvailability(edition.stages);
+
+  if (isRaceFinished) {
+    return (
+      <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#66877C]">
+          Inscription archivée
+        </p>
+        <h2 className="mt-3 text-xl font-black text-[#0B302B]">
+          Course terminée
+        </h2>
+        <p className="mt-3 text-sm font-semibold leading-6 text-[#66877C]">
+          Cette inscription n’est plus active et aucune modification de la
+          composition ou de la préparation n’est possible.
+        </p>
+        {raceExperience ? (
+          <RaceExperienceLink
+            slug={edition.slug}
+            availability={raceExperience}
+          />
+        ) : null}
+      </section>
+    );
+  }
 
   if (needsMedicalReplacement) {
     return (
@@ -714,13 +746,15 @@ function RegistrationPanel({
           </div>
         ) : null}
 
-        <Link
-          href={`/jeu/preparation-course?course=${edition.slug}`}
-          className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-4 py-3 text-xs font-black text-[#F7DA73] transition hover:border-[#F2C94C] hover:bg-[#F2C94C]/20"
-        >
-          <span>Définir les rôles et la stratégie de course</span>
-          <span aria-hidden="true">→</span>
-        </Link>
+        {hasScheduledStage ? (
+          <Link
+            href={`/jeu/preparation-course?course=${edition.slug}`}
+            className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#F2C94C]/35 bg-[#F2C94C]/12 px-4 py-3 text-xs font-black text-[#F7DA73] transition hover:border-[#F2C94C] hover:bg-[#F2C94C]/20"
+          >
+            <span>Préparer les rôles, la stratégie et le matériel</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
 
         {raceExperience ? (
           <RaceExperienceLink

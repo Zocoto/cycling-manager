@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 
 import { RACE_ROLES, type RaceRole } from "@/lib/game/race-simulation";
 import {
+  RACE_EQUIPMENT_EMPTY,
+  RACE_EQUIPMENT_INHERIT,
+  parseRaceEquipmentPlanEntry,
+} from "@/lib/game/race-equipment-planning";
+import {
   MAX_RACE_ATTACK_ORDERS,
   RACE_ATTACK_CONDITIONS,
   RACE_ATTACK_INTENSITIES,
@@ -36,10 +41,7 @@ export async function saveRacePreparationAction(formData: FormData) {
     "dangerPacerRiderId",
   );
   const protectorRiderId = readOptionalRiderId(formData, "protectorRiderId");
-  const breakawayRiderId = readOptionalRiderId(
-    formData,
-    "breakawayRiderId",
-  );
+  const breakawayRiderId = readOptionalRiderId(formData, "breakawayRiderId");
   const attackOrders = readAttackOrders(formData);
 
   if (
@@ -89,25 +91,22 @@ export async function saveRacePreparationAction(formData: FormData) {
     redirect("/connexion");
   }
 
-  const { error } = await supabase.rpc(
-    "save_current_team_race_preparation",
-    {
-      p_race_edition_id: editionId,
-      p_stage_id: stageId,
-      p_roles: roles,
-      p_strategy: {
-        objective,
-        collectivePosture,
-        breakawayPolicy,
-        chasePolicy,
-        lieutenantRiderId,
-        dangerPacerRiderId,
-        protectorRiderId,
-        breakawayRiderId,
-        attackOrders,
-      },
+  const { error } = await supabase.rpc("save_current_team_race_preparation", {
+    p_race_edition_id: editionId,
+    p_stage_id: stageId,
+    p_roles: roles,
+    p_strategy: {
+      objective,
+      collectivePosture,
+      breakawayPolicy,
+      chasePolicy,
+      lieutenantRiderId,
+      dangerPacerRiderId,
+      protectorRiderId,
+      breakawayRiderId,
+      attackOrders,
     },
-  );
+  });
 
   if (error) {
     redirectWithError(
@@ -122,6 +121,78 @@ export async function saveRacePreparationAction(formData: FormData) {
   revalidatePath("/jeu");
   redirect(
     `/jeu/preparation-course?course=${encodeURIComponent(slug)}&etape=${stageNumber}&enregistrement=confirme#etape-${stageId}`,
+  );
+}
+
+export async function saveRaceEquipmentPlanAction(formData: FormData) {
+  const editionId = readFormValue(formData, "editionId");
+  const stageId = readFormValue(formData, "stageId");
+  const slug = readFormValue(formData, "slug");
+  const applyToTour = readFormValue(formData, "applyToTour") === "true";
+  const entries = formData.getAll("loadouts").map(parseRaceEquipmentPlanEntry);
+
+  if (
+    !isUuid(editionId) ||
+    !isUuid(stageId) ||
+    !isSlug(slug) ||
+    entries.length === 0 ||
+    entries.some((entry) => entry === null)
+  ) {
+    redirectWithError(
+      "/jeu/preparation-course",
+      "Le montage de course envoyé est invalide.",
+    );
+  }
+
+  const loadouts = entries.map((entry) => {
+    if (!entry) throw new Error("Entrée de matériel invalide.");
+    if (entry.selection === RACE_EQUIPMENT_INHERIT) {
+      return { riderId: entry.riderId, slot: entry.slot, mode: "inherit" };
+    }
+    if (entry.selection === RACE_EQUIPMENT_EMPTY) {
+      return { riderId: entry.riderId, slot: entry.slot, mode: "empty" };
+    }
+    return {
+      riderId: entry.riderId,
+      slot: entry.slot,
+      mode: "item",
+      equipmentItemId: entry.selection,
+    };
+  });
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc(
+    "save_current_team_race_equipment_plan",
+    {
+      p_race_edition_id: editionId,
+      p_stage_id: stageId,
+      p_loadouts: loadouts,
+      p_apply_to_tour: applyToTour,
+    },
+  );
+
+  if (error) {
+    redirectWithError(
+      `/jeu/preparation-course?course=${encodeURIComponent(slug)}&materiel=erreur&stage=${stageId}`,
+      error.message,
+    );
+  }
+
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/preparation-course");
+  revalidatePath(`/jeu/courses/${slug}`);
+  revalidatePath("/jeu/resultats");
+  revalidatePath(`/jeu/resultats/${slug}`);
+  revalidatePath("/jeu");
+  redirect(
+    `/jeu/preparation-course?course=${encodeURIComponent(slug)}&materiel=${applyToTour ? "tour" : "enregistre"}&stage=${stageId}#materiel-${editionId}`,
   );
 }
 
@@ -161,7 +232,8 @@ function readAttackOrders(formData: FormData): RaceAttackOrder[] | null {
   for (const entry of entries) {
     if (!entry || typeof entry !== "object") return null;
     const candidate = entry as Record<string, unknown>;
-    const riderId = typeof candidate.riderId === "string" ? candidate.riderId : "";
+    const riderId =
+      typeof candidate.riderId === "string" ? candidate.riderId : "";
     const segmentNumber = Number(candidate.segmentNumber);
     const intensity =
       typeof candidate.intensity === "string" ? candidate.intensity : "";

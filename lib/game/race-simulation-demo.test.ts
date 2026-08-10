@@ -99,6 +99,32 @@ describe("createCalendarSimulationInput", () => {
     expect(input.riders[0]).not.toHaveProperty("equipmentEffectsByStageId");
   });
 
+  it("utilise le montage propre à l'étape sans l'exposer au moteur", () => {
+    const rider = createRider("rider-a", "team-a");
+    const edition = createEdition({
+      slug: "tour-materiel",
+      riders: [rider],
+    });
+    const permanentEffects = createEquipmentEffects(1);
+    const stageEffects = createEquipmentEffects(4);
+    edition.engagedRiders[0] = {
+      ...rider,
+      equipmentEffects: permanentEffects,
+      equipmentEffectsByStageId: {
+        [edition.stages[0].id]: stageEffects,
+      },
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "montage-etape",
+    });
+
+    expect(input.riders[0].equipmentEffects).toEqual(stageEffects);
+    expect(input.riders[0]).not.toHaveProperty("equipmentEffectsByStageId");
+  });
+
   it("ecarte les GPM herites du live d'une course d'un jour", () => {
     const edition = createEdition({
       slug: "classique-avec-gpm",

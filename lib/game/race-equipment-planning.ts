@@ -1,15 +1,10 @@
-import {
-  EQUIPMENT_SLOTS,
-  type EquipmentSlot,
-} from "@/lib/game/equipment";
+import { EQUIPMENT_SLOTS, type EquipmentSlot } from "@/lib/game/equipment";
 
 export const RACE_EQUIPMENT_INHERIT = "inherit";
 export const RACE_EQUIPMENT_EMPTY = "empty";
 
 export type RaceEquipmentPlanSelection =
-  | typeof RACE_EQUIPMENT_INHERIT
-  | typeof RACE_EQUIPMENT_EMPTY
-  | string;
+  typeof RACE_EQUIPMENT_INHERIT | typeof RACE_EQUIPMENT_EMPTY | string;
 
 export type RaceEquipmentPlanEntry = {
   riderId: string;
@@ -17,9 +12,7 @@ export type RaceEquipmentPlanEntry = {
   selection: RaceEquipmentPlanSelection;
 };
 
-export function serializeRaceEquipmentPlanEntry(
-  entry: RaceEquipmentPlanEntry,
-) {
+export function serializeRaceEquipmentPlanEntry(entry: RaceEquipmentPlanEntry) {
   return `${entry.riderId}|${entry.slot}|${entry.selection}`;
 }
 
@@ -89,8 +82,7 @@ export function isRaceEquipmentStageEditable({
   const departureTime = Date.parse(departureAt);
   if (!Number.isFinite(departureTime)) return false;
   return (
-    departureTime >
-    now.getTime() + Math.max(0, freezeLeadMinutes) * 60_000
+    departureTime > now.getTime() + Math.max(0, freezeLeadMinutes) * 60_000
   );
 }
 
@@ -105,8 +97,8 @@ export function getRaceEquipmentPlanKey(
 function isUuid(value: string | undefined): value is string {
   return Boolean(
     value &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        value,
-      ),
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    ),
   );
 }

@@ -4,11 +4,18 @@ import { useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 
-import type {
-  RaceCalendarStage,
-  RaceFormat,
-} from "@/lib/game/race-calendar";
+import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
+import type { RaceCalendarStage, RaceFormat } from "@/lib/game/race-calendar";
+import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
+import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { isTimeTrialPreparationStage } from "@/lib/game/race-preparation";
+import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
+import {
+  RIDER_RATING_AXES,
+  type RiderRatingKey,
+  type RiderRatings,
+} from "@/lib/game/rider-profile";
 import {
   RACE_ROLES,
   RACE_ROLE_LABELS,
@@ -34,6 +41,7 @@ import {
   type RaceCollectivePosture,
   type RaceStrategyObjective,
 } from "@/lib/game/race-strategy";
+import type { RaceEquipmentPlanningData } from "@/services/race-equipment-planning";
 import type {
   RacePreparationEditionPlan,
   RacePreparationRider,
@@ -46,9 +54,12 @@ export type RacePreparationWorkspaceEdition = {
   name: string;
   shortName: string | null;
   countryCode: string;
+  categoryCode: RaceCategoryCode;
+  categoryName: string;
   raceFormat: RaceFormat;
   stages: RaceCalendarStage[];
   plan: RacePreparationEditionPlan;
+  equipmentPlanning: RaceEquipmentPlanningData | null;
 };
 
 type RacePreparationWorkspaceProps = {
@@ -56,29 +67,67 @@ type RacePreparationWorkspaceProps = {
   editions: RacePreparationWorkspaceEdition[];
   nowIso: string;
   initialSlug?: string;
+  equipmentError: boolean;
+  equipmentSaveStatus?: string;
+  savedEquipmentStageId?: string;
 };
+
+const RACE_PREPARATION_RATING_ORDER: RiderRatingKey[] = [
+  "mountain",
+  "hills",
+  "flat",
+  "timeTrial",
+  "cobbles",
+  "sprint",
+  "acceleration",
+  "downhill",
+  "endurance",
+  "resistance",
+  "recovery",
+  "breakaway",
+  "prologue",
+];
+const RACE_PREPARATION_RATING_AXES = RACE_PREPARATION_RATING_ORDER.map((key) =>
+  RIDER_RATING_AXES.find((axis) => axis.key === key)!,
+);
+
+const RACE_MENU_DATE_FORMATTER = new Intl.DateTimeFormat("fr-FR", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "Europe/Paris",
+});
 
 export function RacePreparationWorkspace({
   action,
   editions,
   nowIso,
   initialSlug,
+  equipmentError,
+  equipmentSaveStatus,
+  savedEquipmentStageId,
 }: RacePreparationWorkspaceProps) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
-  const firstEditableEdition = editions.find((edition) =>
+  const orderedEditions = useMemo(
+    () => [...editions].sort(compareRacePreparationEditionsByDate),
+    [editions],
+  );
+  const firstEditableEdition = orderedEditions.find((edition) =>
     edition.stages.some(
-      (stage) => getStageLiveState(stage, now).status === "scheduled",
+      (stage) =>
+        getStageLiveState(stage, now).status === "scheduled" &&
+        !isTimeTrialPreparationStage(stage),
     ),
   );
   const initialEdition =
-    editions.find((edition) => edition.slug === initialSlug) ??
+    orderedEditions.find((edition) => edition.slug === initialSlug) ??
     firstEditableEdition ??
-    editions[0];
+    orderedEditions[0];
   const [selectedEditionId, setSelectedEditionId] = useState(
     initialEdition?.id ?? "",
   );
   const selectedEdition =
-    editions.find((edition) => edition.id === selectedEditionId) ?? editions[0];
+    orderedEditions.find((edition) => edition.id === selectedEditionId) ??
+    orderedEditions[0];
 
   if (!selectedEdition) return null;
 
@@ -86,7 +135,9 @@ export function RacePreparationWorkspace({
     (first, second) => first.stageNumber - second.stageNumber,
   );
   const nextEditableStageId = orderedStages.find(
-    (stage) => getStageLiveState(stage, now).status === "scheduled",
+    (stage) =>
+      getStageLiveState(stage, now).status === "scheduled" &&
+      !isTimeTrialPreparationStage(stage),
   )?.id;
 
   return (
@@ -96,11 +147,20 @@ export function RacePreparationWorkspace({
           Courses engagées
         </p>
         <div className="mt-3 space-y-2" role="list">
-          {editions.map((edition) => {
+          {orderedEditions.map((edition) => {
             const isSelected = edition.id === selectedEdition.id;
             const editableCount = edition.stages.filter(
-              (stage) => getStageLiveState(stage, now).status === "scheduled",
+              (stage) =>
+                getStageLiveState(stage, now).status === "scheduled" &&
+                !isTimeTrialPreparationStage(stage),
             ).length;
+            const hasScheduledTimeTrial = edition.stages.some(
+              (stage) =>
+                getStageLiveState(stage, now).status === "scheduled" &&
+                isTimeTrialPreparationStage(stage),
+            );
+            const categoryStyle = RACE_CATEGORY_STYLE[edition.categoryCode];
+            const dateRange = formatRaceEditionDates(edition.stages);
 
             return (
               <button
@@ -116,10 +176,27 @@ export function RacePreparationWorkspace({
                 <span className="block text-sm font-black">
                   {edition.shortName ?? edition.name}
                 </span>
+                <span className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-black tabular-nums text-[#315B3E]">
+                    {dateRange}
+                  </span>
+                  <span
+                    className="rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wide"
+                    style={{
+                      backgroundColor: categoryStyle.background,
+                      borderColor: categoryStyle.border,
+                      color: categoryStyle.foreground,
+                    }}
+                  >
+                    {edition.categoryName}
+                  </span>
+                </span>
                 <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-[#66877C]">
                   {editableCount > 0
                     ? `${editableCount} étape${editableCount > 1 ? "s" : ""} à préparer`
-                    : "Plan verrouillé"}
+                    : hasScheduledTimeTrial
+                      ? "Chrono · pas de planif"
+                      : "Plan verrouillé"}
                 </span>
               </button>
             );
@@ -151,6 +228,41 @@ export function RacePreparationWorkspace({
         </header>
 
         <div className="mt-5 space-y-4">
+          <section
+            id={`materiel-${selectedEdition.id}`}
+            className="scroll-mt-5 rounded-3xl bg-[#0B302B] p-5 text-white shadow-[0_18px_45px_rgba(7,26,23,0.16)] sm:p-7"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
+              Préparation matériel
+            </p>
+            <h3 className="mt-2 text-xl font-black">
+              Un montage adapté à chaque étape
+            </h3>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
+              Ajustez le vélo et la tenue des coureurs engagés sans modifier
+              leur équipement permanent.
+            </p>
+
+            {selectedEdition.equipmentPlanning ? (
+              <RaceEquipmentPlanner
+                key={selectedEdition.id}
+                editionId={selectedEdition.id}
+                slug={selectedEdition.slug}
+                isStageRace={selectedEdition.raceFormat === "stage_race"}
+                riders={selectedEdition.plan.riders}
+                planning={selectedEdition.equipmentPlanning}
+                savedStageId={savedEquipmentStageId ?? null}
+                saveStatus={equipmentSaveStatus ?? null}
+              />
+            ) : (
+              <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
+                {equipmentError
+                  ? "Le matériel n’a pas pu être chargé. Les rôles et stratégies restent disponibles ci-dessous."
+                  : "Aucun inventaire matériel n’est disponible pour cette équipe."}
+              </p>
+            )}
+          </section>
+
           {orderedStages.map((stage) => (
             <StagePreparationForm
               key={`${selectedEdition.id}:${stage.id}`}
@@ -160,7 +272,10 @@ export function RacePreparationWorkspace({
               riders={selectedEdition.plan.riders}
               strategy={selectedEdition.plan.stages[stage.id]}
               now={now}
-              initiallyOpen={stage.id === nextEditableStageId}
+              initiallyOpen={
+                stage.id === nextEditableStageId ||
+                (!nextEditableStageId && stage.id === orderedStages[0]?.id)
+              }
             />
           ))}
         </div>
@@ -199,8 +314,9 @@ function StagePreparationForm({
   );
   const [collectivePosture, setCollectivePosture] =
     useState<RaceCollectivePosture>(strategy.collectivePosture);
-  const [breakawayPolicy, setBreakawayPolicy] =
-    useState<RaceBreakawayPolicy>(strategy.breakawayPolicy);
+  const [breakawayPolicy, setBreakawayPolicy] = useState<RaceBreakawayPolicy>(
+    strategy.breakawayPolicy,
+  );
   const [chasePolicy, setChasePolicy] = useState<RaceChasePolicy>(
     strategy.chasePolicy,
   );
@@ -215,9 +331,11 @@ function StagePreparationForm({
   );
   const [isOpen, setIsOpen] = useState(initiallyOpen);
   const liveState = getStageLiveState(stage, now);
-  const isEditable = liveState.status === "scheduled";
+  const isTimeTrial = isTimeTrialPreparationStage(stage);
+  const isEditable = liveState.status === "scheduled" && !isTimeTrial;
   const hasUniqueRoles = (["leader", "sprinter"] as const).every(
-    (role) => Object.values(roles).filter((value) => value === role).length <= 1,
+    (role) =>
+      Object.values(roles).filter((value) => value === role).length <= 1,
   );
   const assignedMissionIds = Object.values(missions).filter(Boolean);
   const unavailableMissionIds = [
@@ -247,6 +365,17 @@ function StagePreparationForm({
     missionsUseTeammates &&
     attacksAreValid;
 
+  if (isTimeTrial) {
+    return (
+      <TimeTrialPreparationNotice
+        edition={edition}
+        stage={stage}
+        isOpen={isOpen}
+        onToggle={setIsOpen}
+      />
+    );
+  }
+
   return (
     <details
       id={`etape-${stage.id}`}
@@ -265,7 +394,8 @@ function StagePreparationForm({
             {stage.name}
           </span>
           <span className="mt-1 block text-xs font-semibold text-[#66877C]">
-            {stage.distanceKm} km · {formatProfile(stage.profileType)} · {formatStageDeparture(stage.departureAt)}
+            {stage.distanceKm} km · {formatProfile(stage.profileType)} ·{" "}
+            {formatStageDeparture(stage.departureAt)}
           </span>
         </span>
         <span
@@ -319,6 +449,7 @@ function StagePreparationForm({
                     <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide text-[#789487]">
                       Général · {RACE_ROLE_LABELS[rider.generalRole]}
                     </span>
+                    <RiderRatingsGrid ratings={rider.ratings} />
                     <select
                       name="stageRoles"
                       value={`${rider.riderId}:${role}`}
@@ -332,7 +463,7 @@ function StagePreparationForm({
                           [rider.riderId]: nextRole,
                         }));
                       }}
-                      className="mt-2 min-h-10 w-full rounded-xl border border-[#315B3E]/18 bg-white px-2 text-xs font-bold text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF] disabled:text-[#66877C]"
+                      className="mt-3 min-h-10 w-full rounded-xl border border-[#315B3E]/18 bg-white px-2 text-xs font-bold text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF] disabled:text-[#66877C]"
                     >
                       {RACE_ROLES.map((candidateRole) => {
                         const isUniqueRole =
@@ -374,7 +505,9 @@ function StagePreparationForm({
                 label="Objectif prioritaire"
                 value={objective}
                 disabled={!isEditable}
-                onChange={(value) => setObjective(value as RaceStrategyObjective)}
+                onChange={(value) =>
+                  setObjective(value as RaceStrategyObjective)
+                }
                 options={RACE_STRATEGY_OBJECTIVES.map((value) => ({
                   value,
                   label: RACE_STRATEGY_OBJECTIVE_LABELS[value],
@@ -534,7 +667,9 @@ function StagePreparationForm({
                         type="button"
                         onClick={() =>
                           setAttackOrders((current) =>
-                            current.filter((_, candidateIndex) => candidateIndex !== index),
+                            current.filter(
+                              (_, candidateIndex) => candidateIndex !== index,
+                            ),
                           )
                         }
                         className="text-[10px] font-black uppercase text-[#9B4A35] hover:underline"
@@ -623,6 +758,107 @@ function StagePreparationForm({
       </form>
     </details>
   );
+}
+
+function TimeTrialPreparationNotice({
+  edition,
+  stage,
+  isOpen,
+  onToggle,
+}: {
+  edition: RacePreparationWorkspaceEdition;
+  stage: RaceCalendarStage;
+  isOpen: boolean;
+  onToggle: (open: boolean) => void;
+}) {
+  return (
+    <details
+      id={`etape-${stage.id}`}
+      open={isOpen}
+      onToggle={(event) => onToggle(event.currentTarget.open)}
+      className="scroll-mt-5 overflow-hidden rounded-3xl border border-[#315B3E]/15 bg-white shadow-[0_18px_45px_rgba(19,60,46,0.1)]"
+    >
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-7">
+        <span className="min-w-0">
+          <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
+            {edition.raceFormat === "stage_race"
+              ? `Étape ${stage.stageNumber}`
+              : "Course"}
+          </span>
+          <span className="mt-1 block truncate text-lg font-black text-[#0B302B]">
+            {stage.name}
+          </span>
+          <span className="mt-1 block text-xs font-semibold text-[#66877C]">
+            {stage.distanceKm} km · {formatProfile(stage.profileType)} ·{" "}
+            {formatStageDeparture(stage.departureAt)}
+          </span>
+        </span>
+        <span className="rounded-full bg-[#315B3E]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#4E6B62]">
+          Chrono · pas de planif
+        </span>
+      </summary>
+
+      <div className="border-t border-[#315B3E]/12 p-5 sm:p-7">
+        <div className="flex items-start gap-4 rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#176951] text-white">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-6 w-6"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="13" r="7" />
+              <path d="M12 10v3.5l2.5 1.5M9 3h6M12 6V3" />
+            </svg>
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
+              Format spécifique
+            </p>
+            <h3 className="mt-1 text-lg font-black text-[#0B302B]">
+              Chrono : pas de planification
+            </h3>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#55736A]">
+              Les rôles, missions collectives et attaques préparées d’une course
+              en ligne ne s’appliquent pas à cette épreuve. Une console dédiée
+              aux contre-la-montre pourra être ajoutée ultérieurement.
+            </p>
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function RiderRatingsGrid({ ratings }: { ratings: RiderRatings }) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-1" aria-label="Notes du coureur">
+      {RACE_PREPARATION_RATING_AXES.map((axis) => {
+        const rating = ratings[axis.key];
+        return (
+          <span
+            key={axis.key}
+            title={axis.label}
+            className={`inline-flex min-w-[2.85rem] items-center justify-between gap-1 rounded-md px-1.5 py-1 text-[9px] font-black ${getRatingTone(rating)}`}
+          >
+            <span className="opacity-70">{axis.shortLabel}</span>
+            <span>{rating}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function getRatingTone(rating: number) {
+  if (rating >= 80) return "bg-[#F2C94C]/25 text-[#725A08]";
+  if (rating >= 70) return "bg-[#278B70]/14 text-[#176951]";
+  if (rating < 60) return "bg-[#C8574A]/10 text-[#934137]";
+  return "bg-[#315B3E]/8 text-[#4E6B62]";
 }
 
 function SectionTitle({
@@ -782,6 +1018,31 @@ function updateAttackOrder(
       candidateIndex === index ? { ...order, ...update } : order,
     ),
   );
+}
+
+function formatRaceEditionDates(stages: RaceCalendarStage[]) {
+  const orderedStages = [...stages].sort(
+    (first, second) =>
+      first.dayNumber - second.dayNumber ||
+      first.stageNumber - second.stageNumber,
+  );
+  const firstStage = orderedStages[0];
+  const lastStage = orderedStages[orderedStages.length - 1];
+
+  if (!firstStage || !lastStage) return "Date à confirmer";
+
+  const firstDate = formatRaceMenuDate(firstStage);
+  const lastDate = formatRaceMenuDate(lastStage);
+  return firstDate === lastDate ? firstDate : `${firstDate} → ${lastDate}`;
+}
+
+function formatRaceMenuDate(stage: RaceCalendarStage) {
+  if (!stage.departureAt) return `J${stage.dayNumber}`;
+
+  const departure = new Date(stage.departureAt);
+  return Number.isNaN(departure.getTime())
+    ? `J${stage.dayNumber}`
+    : RACE_MENU_DATE_FORMATTER.format(departure);
 }
 
 function formatStageDeparture(value: string | null) {

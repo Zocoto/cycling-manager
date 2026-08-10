@@ -12,6 +12,7 @@ import { getStageLiveState } from "@/lib/game/race-live";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getRaceEquipmentPlanningDataBatch } from "@/services/race-equipment-planning";
 import {
   getActiveSeasonRaceCalendar,
   getCurrentTeamRacePreparation,
@@ -20,7 +21,7 @@ import {
 export const metadata: Metadata = {
   title: "Préparation de course",
   description:
-    "Définissez les rôles, missions et stratégies de votre équipe avant chaque course.",
+    "Définissez le matériel, les rôles, les missions et les stratégies de votre équipe avant chaque course.",
 };
 
 type RacePreparationPageProps = {
@@ -29,6 +30,8 @@ type RacePreparationPageProps = {
     etape?: string | string[];
     enregistrement?: string | string[];
     erreur?: string | string[];
+    materiel?: string | string[];
+    stage?: string | string[];
   }>;
 };
 
@@ -75,26 +78,53 @@ export default async function RacePreparationPage({
   const plansByEditionId = new Map(
     preparationResult.preparations.map((plan) => [plan.editionId, plan]),
   );
+  const preparableCalendarEditions =
+    calendarResult.calendar?.editions.filter(
+      (edition) =>
+        plansByEditionId.has(edition.id) &&
+        edition.stages.some(
+          (stage) => getStageLiveState(stage, now).status === "scheduled",
+        ),
+    ) ?? [];
+  const equipmentPlanningResult = await getRaceEquipmentPlanningDataBatch({
+    authUserId: user.id,
+    entries: preparableCalendarEditions.map((edition) => ({
+      edition,
+      riderIds: plansByEditionId
+        .get(edition.id)!
+        .riders.map((rider) => rider.riderId),
+    })),
+    authenticatedClient: supabase,
+    now,
+  })
+    .then((planningByEditionId) => ({ planningByEditionId, error: null }))
+    .catch((error: unknown) => ({
+      planningByEditionId: new Map(),
+      error,
+    }));
+
+  if (equipmentPlanningResult.error) {
+    console.error(
+      "Impossible de charger les montages de course :",
+      equipmentPlanningResult.error,
+    );
+  }
+
   const editions: RacePreparationWorkspaceEdition[] =
-    calendarResult.calendar?.editions
-      .filter(
-        (edition) =>
-          plansByEditionId.has(edition.id) &&
-          edition.stages.some((stage) => {
-            const status = getStageLiveState(stage, now).status;
-            return status === "scheduled" || status === "live";
-          }),
-      )
-      .map((edition) => ({
-        id: edition.id,
-        slug: edition.slug,
-        name: edition.name,
-        shortName: edition.shortName,
-        countryCode: edition.countryCode,
-        raceFormat: edition.raceFormat,
-        stages: edition.stages,
-        plan: plansByEditionId.get(edition.id)!,
-      })) ?? [];
+    preparableCalendarEditions.map((edition) => ({
+      id: edition.id,
+      slug: edition.slug,
+      name: edition.name,
+      shortName: edition.shortName,
+      countryCode: edition.countryCode,
+      categoryCode: edition.categoryCode,
+      categoryName: edition.categoryName,
+      raceFormat: edition.raceFormat,
+      stages: edition.stages,
+      plan: plansByEditionId.get(edition.id)!,
+      equipmentPlanning:
+        equipmentPlanningResult.planningByEditionId.get(edition.id) ?? null,
+    }));
   const requestedError = readSingleSearchParam(resolvedSearchParams.erreur);
   const saved =
     readSingleSearchParam(resolvedSearchParams.enregistrement) === "confirme";
@@ -124,9 +154,9 @@ export default async function RacePreparationPage({
               Préparation de course
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-[#D6DFD2] sm:text-base">
-              Redéfinissez les rôles, confiez des missions précises et préparez
-              jusqu’à deux offensives par étape. Une fois le départ donné, le
-              plan est figé dans le scénario officiel.
+              Redéfinissez les rôles, confiez des missions précises, préparez le
+              matériel et jusqu’à deux offensives par étape. Une fois le départ
+              donné, le plan est figé dans le scénario officiel.
             </p>
           </div>
         </header>
@@ -172,6 +202,13 @@ export default async function RacePreparationPage({
               editions={editions}
               nowIso={now.toISOString()}
               initialSlug={readSingleSearchParam(resolvedSearchParams.course)}
+              equipmentError={Boolean(equipmentPlanningResult.error)}
+              equipmentSaveStatus={readSingleSearchParam(
+                resolvedSearchParams.materiel,
+              )}
+              savedEquipmentStageId={readSingleSearchParam(
+                resolvedSearchParams.stage,
+              )}
             />
           ) : (
             <EmptyState

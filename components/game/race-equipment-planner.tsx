@@ -3,12 +3,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
-import { saveRaceEquipmentPlanAction } from "@/app/jeu/courses/[slug]/actions";
-import { RiderAvatar } from "@/components/game/rider-avatar";
-import {
-  EQUIPMENT_CATEGORIES,
-  type EquipmentSlot,
-} from "@/lib/game/equipment";
+import { saveRaceEquipmentPlanAction } from "@/app/jeu/preparation-course/actions";
+import { EQUIPMENT_CATEGORIES, type EquipmentSlot } from "@/lib/game/equipment";
 import {
   RACE_EQUIPMENT_EMPTY,
   RACE_EQUIPMENT_INHERIT,
@@ -19,9 +15,13 @@ import {
   type RaceEquipmentPlanSelection,
 } from "@/lib/game/race-equipment-planning";
 import { RACE_PROFILE_LABELS } from "@/lib/game/race-calendar";
-import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type { RaceEquipmentPlanningData } from "@/services/race-equipment-planning";
-import type { RaceRosterOption } from "@/services/race-calendar";
+
+export type RaceEquipmentPlannerRider = {
+  riderId: string;
+  firstName: string;
+  lastName: string;
+};
 
 const WEAR_SLOTS = [
   "helmet",
@@ -44,7 +44,6 @@ export function RaceEquipmentPlanner({
   slug,
   isStageRace,
   riders,
-  jersey,
   planning,
   savedStageId,
   saveStatus,
@@ -52,8 +51,7 @@ export function RaceEquipmentPlanner({
   editionId: string;
   slug: string;
   isStageRace: boolean;
-  riders: RaceRosterOption[];
-  jersey: RiderJerseyAppearance;
+  riders: RaceEquipmentPlannerRider[];
   planning: RaceEquipmentPlanningData;
   savedStageId: string | null;
   saveStatus: string | null;
@@ -63,8 +61,8 @@ export function RaceEquipmentPlanner({
   const initialStageId = planning.stages.some(
     (stage) => stage.id === savedStageId,
   )
-    ? savedStageId ?? firstEditable?.id ?? ""
-    : firstEditable?.id ?? "";
+    ? (savedStageId ?? firstEditable?.id ?? "")
+    : (firstEditable?.id ?? "");
   const [selectedStageId, setSelectedStageId] = useState(initialStageId);
   const [selectedRiderId, setSelectedRiderId] = useState(
     riders[0]?.riderId ?? "",
@@ -177,20 +175,12 @@ export function RaceEquipmentPlanner({
       </label>
 
       <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
-        <RiderAvatar
-          profileKey={selectedRider.avatarProfileKey}
-          seed={selectedRider.avatarSeed}
-          riderId={selectedRider.riderId}
-          age={selectedRider.age}
-          jersey={jersey}
-          label={
-            "Portrait généré de " +
-            selectedRider.firstName +
-            " " +
-            selectedRider.lastName
-          }
-          className="h-11 w-11"
-        />
+        <span
+          aria-hidden="true"
+          className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-[#176951] text-xs font-black text-white"
+        >
+          {getRiderInitials(selectedRider)}
+        </span>
         <label className="min-w-0 text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
           Coureur
           <select
@@ -228,9 +218,7 @@ export function RaceEquipmentPlanner({
         {slots.map((slot) => {
           const permanentId =
             permanentByKey.get(selectedRiderId + ":" + slot) ?? null;
-          const permanentItem = permanentId
-            ? itemById.get(permanentId)
-            : null;
+          const permanentItem = permanentId ? itemById.get(permanentId) : null;
           const selection = getSelection(
             selections,
             selectedStageId,
@@ -453,7 +441,7 @@ function getInventoryConflicts({
   permanentByKey,
 }: {
   stageId: string;
-  riders: RaceRosterOption[];
+  riders: RaceEquipmentPlannerRider[];
   planning: RaceEquipmentPlanningData;
   selections: ReadonlyMap<string, RaceEquipmentPlanSelection>;
   permanentByKey: ReadonlyMap<string, string>;
@@ -462,14 +450,8 @@ function getInventoryConflicts({
   for (const rider of riders) {
     for (const slot of ALL_SLOTS) {
       const itemId = resolvePlannedEquipmentItemId({
-        permanentItemId:
-          permanentByKey.get(rider.riderId + ":" + slot) ?? null,
-        selection: getSelection(
-          selections,
-          stageId,
-          rider.riderId,
-          slot,
-        ),
+        permanentItemId: permanentByKey.get(rider.riderId + ":" + slot) ?? null,
+        selection: getSelection(selections, stageId, rider.riderId, slot),
       });
       if (itemId) {
         usageByItemId.set(itemId, (usageByItemId.get(itemId) ?? 0) + 1);
@@ -483,10 +465,13 @@ function getInventoryConflicts({
       ? [
           {
             itemId: item.id,
-            label:
-              item.name + " (" + used + "/" + item.ownedQuantity + ")",
+            label: item.name + " (" + used + "/" + item.ownedQuantity + ")",
           },
         ]
       : [];
   });
+}
+
+function getRiderInitials(rider: RaceEquipmentPlannerRider) {
+  return `${rider.firstName.charAt(0)}${rider.lastName.charAt(0)}`.toUpperCase();
 }
