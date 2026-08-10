@@ -11,6 +11,7 @@ import type {
   FanClubLiveData,
   FanClubPilotRace,
 } from "@/lib/game/fan-club-pilot";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentDashboardFastSummary } from "@/services/dashboard-fast-summary";
 
@@ -143,6 +144,7 @@ export async function getFanClubLiveData({
 }): Promise<FanClubLiveData | null> {
   const summary = await getCurrentDashboardFastSummary(supabase);
   if (!summary) return null;
+  const admin = createSupabaseAdminClient();
 
   const [
     rosterResult,
@@ -152,24 +154,24 @@ export async function getFanClubLiveData({
     currentTeamSeasonResult,
   ] = await Promise.all([
     supabase.rpc("get_current_team_roster_with_potential"),
-    supabase
+    admin
       .from("rider_contracts")
       .select("rider_id, start_season_id, end_season_id")
       .eq("team_id", summary.teamId)
       .eq("status", "active")
       .returns<ContractRow[]>(),
-    supabase
+    admin
       .from("seasons")
       .select("id, game_year, status, current_day_number")
       .order("game_year", { ascending: true })
       .returns<SeasonRow[]>(),
-    supabase
+    admin
       .from("sporting_directors")
       .select("reputation_points, country_id")
       .eq("auth_user_id", authUserId)
       .eq("status", "active")
       .maybeSingle<DirectorRow>(),
-    supabase
+    admin
       .from("team_seasons")
       .select("id, team_id, season_id, registration_country_id")
       .eq("id", summary.teamSeasonId)
@@ -200,7 +202,7 @@ export async function getFanClubLiveData({
       directorReputation: Number(directorResult.data?.reputation_points ?? 0),
     });
   }
-  const ratingHistoryResult = await supabase
+  const ratingHistoryResult = await admin
     .from("rider_season_ratings")
     .select("rider_id, season_id")
     .in("rider_id", riderIds)
@@ -208,12 +210,12 @@ export async function getFanClubLiveData({
   assertQuery(ratingHistoryResult.error, "l’ancienneté des coureurs");
 
   const [raceRostersResult, upcomingRegistrationsResult] = await Promise.all([
-    supabase
+    admin
       .from("race_rosters")
       .select("id, rider_id, race_registration_id")
       .in("rider_id", riderIds)
       .returns<RaceRosterRow[]>(),
-    supabase
+    admin
       .from("race_registrations")
       .select("id, race_edition_id, team_season_id")
       .eq("team_season_id", summary.teamSeasonId)
@@ -232,7 +234,7 @@ export async function getFanClubLiveData({
   const [raceResultsResult, stageResultsResult, attacksResult, registrationsResult] =
     await Promise.all([
       raceRosterIds.length > 0
-        ? supabase
+        ? admin
             .from("race_results")
             .select("id, race_edition_id, race_roster_id, final_rank")
             .in("race_roster_id", raceRosterIds)
@@ -241,7 +243,7 @@ export async function getFanClubLiveData({
             .returns<RaceResultRow[]>()
         : emptyResult<RaceResultRow>(),
       raceRosterIds.length > 0
-        ? supabase
+        ? admin
             .from("stage_results")
             .select("id, stage_id, race_roster_id, rank")
             .in("race_roster_id", raceRosterIds)
@@ -250,7 +252,7 @@ export async function getFanClubLiveData({
             .returns<StageResultRow[]>()
         : emptyResult<StageResultRow>(),
       raceRosterIds.length > 0
-        ? supabase
+        ? admin
             .from("stage_attack_participants")
             .select("stage_id, race_roster_id, participation_type")
             .in("race_roster_id", raceRosterIds)
@@ -258,7 +260,7 @@ export async function getFanClubLiveData({
             .returns<AttackRow[]>()
         : emptyResult<AttackRow>(),
       registrationIds.length > 0
-        ? supabase
+        ? admin
             .from("race_registrations")
             .select("id, race_edition_id, team_season_id")
             .in("id", registrationIds)
@@ -284,7 +286,7 @@ export async function getFanClubLiveData({
 
   const seedStagesResult =
     stageIds.length > 0
-      ? await supabase
+      ? await admin
           .from("stages")
           .select(
             "id, race_edition_id, season_day_id, stage_number, name, distance_km",
@@ -306,7 +308,7 @@ export async function getFanClubLiveData({
 
   const editionsResult =
     editionIds.length > 0
-      ? await supabase
+      ? await admin
           .from("race_editions")
           .select(
             "id, race_id, season_id, race_category_id, display_name, status",
@@ -326,7 +328,7 @@ export async function getFanClubLiveData({
   const [allStagesResult, categoriesResult, racesResult, teamSeasonsResult] =
     await Promise.all([
       editionIds.length > 0
-        ? supabase
+        ? admin
             .from("stages")
             .select(
               "id, race_edition_id, season_day_id, stage_number, name, distance_km",
@@ -335,21 +337,21 @@ export async function getFanClubLiveData({
             .returns<StageRow[]>()
         : emptyResult<StageRow>(),
       categoryIds.length > 0
-        ? supabase
+        ? admin
             .from("race_categories")
             .select("id, prestige_rank")
             .in("id", categoryIds)
             .returns<CategoryRow[]>()
         : emptyResult<CategoryRow>(),
       raceIds.length > 0
-        ? supabase
+        ? admin
             .from("races")
             .select("id, race_format")
             .in("id", raceIds)
             .returns<RaceRow[]>()
         : emptyResult<RaceRow>(),
       teamSeasonIds.length > 0
-        ? supabase
+        ? admin
             .from("team_seasons")
             .select("id, team_id, season_id, registration_country_id")
             .in("id", teamSeasonIds)
@@ -366,7 +368,7 @@ export async function getFanClubLiveData({
   const seasonDayIds = [...new Set(allStages.map((row) => row.season_day_id))];
   const seasonDaysResult =
     seasonDayIds.length > 0
-      ? await supabase
+      ? await admin
           .from("season_days")
           .select("id, day_number")
           .in("id", seasonDayIds)
