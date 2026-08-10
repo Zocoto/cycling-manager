@@ -10,7 +10,6 @@ import {
 
 import { GameHeader } from "@/components/game/game-header";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
-import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceRosterSelector } from "@/components/game/race-roster-selector";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -51,10 +50,6 @@ import {
   type RacePastWinner,
   type RaceRosterOption,
 } from "@/services/race-calendar";
-import {
-  getRaceEquipmentPlanningData,
-  type RaceEquipmentPlanningData,
-} from "@/services/race-equipment-planning";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
 
@@ -65,8 +60,6 @@ export type RaceProfilePageProps = {
   searchParams: Promise<{
     inscription?: string | string[];
     erreur?: string | string[];
-    materiel?: string | string[];
-    stage?: string | string[];
   }>;
 };
 
@@ -144,8 +137,6 @@ export async function RaceProfileContent({
   let winnersError = false;
   let rosterError: string | null = null;
   let engagedRidersError = false;
-  let equipmentPlanning: RaceEquipmentPlanningData | null = null;
-  let equipmentPlanningError: string | null = null;
 
   const [contextResult, winnersResult, rosterResult, engagedRidersResult] =
     await Promise.all([
@@ -226,41 +217,10 @@ export async function RaceProfileContent({
     engagedRidersError = true;
   }
 
-  const selectedRiderIds = rosterOptions
-    .filter((rider) => rider.isSelected)
-    .map((rider) => rider.riderId);
-  if (
-    raceUserContext.registration?.status === "accepted" &&
-    raceUserContext.registration.rosterCount >= edition.minimumRosterSize &&
-    selectedRiderIds.length > 0
-  ) {
-    try {
-      equipmentPlanning = await getRaceEquipmentPlanningData({
-        authUserId: user.id,
-        edition,
-        riderIds: selectedRiderIds,
-        authenticatedClient: supabase,
-      });
-    } catch (error) {
-      console.error(
-        "Impossible de charger la planification du matériel de course :",
-        error,
-      );
-      equipmentPlanningError =
-        "La planification du matériel est momentanément indisponible.";
-    }
-  }
-
   const successMessage = readSingleSearchParam(
     resolvedSearchParams.inscription,
   );
   const errorMessage = readSingleSearchParam(resolvedSearchParams.erreur);
-  const equipmentSaveStatus = readSingleSearchParam(
-    resolvedSearchParams.materiel,
-  );
-  const savedEquipmentStageId = readSingleSearchParam(
-    resolvedSearchParams.stage,
-  );
   const style = RACE_CATEGORY_STYLE[edition.categoryCode];
   const { startDay, endDay } = getEditionDayRange(edition);
   const startDate = calendar.days.find(
@@ -457,10 +417,6 @@ export async function RaceProfileContent({
                     riders={rosterOptions}
                     rosterError={rosterError}
                     riderJersey={riderJersey}
-                    equipmentPlanning={equipmentPlanning}
-                    equipmentPlanningError={equipmentPlanningError}
-                    equipmentSaveStatus={equipmentSaveStatus}
-                    savedEquipmentStageId={savedEquipmentStageId}
                   />
                   <RaceRewardDetails edition={edition} className="mt-3" />
                 </div>
@@ -524,10 +480,6 @@ function RegistrationPanel({
   riders,
   rosterError,
   riderJersey,
-  equipmentPlanning,
-  equipmentPlanningError,
-  equipmentSaveStatus,
-  savedEquipmentStageId,
 }: {
   edition: RaceCalendarEdition;
   context: CurrentRaceUserContext;
@@ -535,10 +487,6 @@ function RegistrationPanel({
   riders: RaceRosterOption[];
   rosterError: string | null;
   riderJersey: RiderJerseyAppearance;
-  equipmentPlanning: RaceEquipmentPlanningData | null;
-  equipmentPlanningError: string | null;
-  equipmentSaveStatus: string | null;
-  savedEquipmentStageId: string | null;
 }) {
   const registration = context.registration;
   const isEliteRace =
@@ -702,48 +650,6 @@ function RegistrationPanel({
               ))}
             </ul>
           </details>
-        ) : null}
-
-        {equipmentPlanning ? (
-          <details
-            id="preparation"
-            open={equipmentSaveStatus !== null}
-            className="group mt-4 scroll-mt-24 rounded-xl border border-[#9BE0BC]/25 bg-white/5"
-          >
-            <summary className="cursor-pointer list-none px-4 py-3">
-              <span className="flex items-center justify-between gap-3">
-                <span>
-                  <span className="block text-xs font-black uppercase tracking-[0.14em] text-[#9BE0BC]">
-                    Préparation matériel
-                  </span>
-                  <span className="mt-1 block text-xs font-semibold text-[#D6DFD2]">
-                    Un montage par étape, sans toucher à la fiche coureur
-                  </span>
-                </span>
-                <span className="rounded-full bg-[#62BFA7] px-2.5 py-1 text-[10px] font-black uppercase text-[#082A2A]">
-                  Configurer
-                </span>
-              </span>
-            </summary>
-            <div className="border-t border-white/10 p-3">
-              <RaceEquipmentPlanner
-                editionId={edition.id}
-                slug={edition.slug}
-                isStageRace={edition.raceFormat === "stage_race"}
-                riders={selectedRiders}
-                jersey={riderJersey}
-                planning={equipmentPlanning}
-                savedStageId={savedEquipmentStageId}
-                saveStatus={equipmentSaveStatus}
-              />
-            </div>
-          </details>
-        ) : equipmentPlanningError ? (
-          <div className="mt-4">
-            <RegistrationNotice tone="warning">
-              {equipmentPlanningError}
-            </RegistrationNotice>
-          </div>
         ) : null}
 
         {hasScheduledStage ? (

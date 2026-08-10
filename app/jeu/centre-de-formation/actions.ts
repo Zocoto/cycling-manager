@@ -207,14 +207,6 @@ export async function naturalizeYouthRiderAction(formData: FormData) {
   );
 }
 
-export async function markYouthNotificationsReadAction() {
-  const supabase = await authenticatedClient();
-  const result = await supabase.rpc("mark_current_youth_notifications_read");
-  if (result.error) redirectWithMessage("ecole", "erreur", result.error.message);
-  revalidateCenter();
-  redirectWithMessage("ecole", "succes", "Les notifications ont été marquées comme lues.");
-}
-
 function readCountryName(data: unknown) {
   if (
     data &&

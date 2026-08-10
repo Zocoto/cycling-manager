@@ -3,7 +3,6 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import {
-  markYouthNotificationsReadAction,
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
   recruitYouthRiderAction,
@@ -572,47 +571,14 @@ function AcademyTab({
   const tutorialRiderName = tutorialReferenceRider
     ? `${tutorialReferenceRider.firstName} ${tutorialReferenceRider.lastName}`
     : "Noah Vermeulen";
+  const nextSeasonPromotions = overview.academy.filter(
+    (rider) =>
+      rider.status === "recruited" &&
+      rider.promotionGameYear === overview.gameYear + 1,
+  );
 
   return (
     <div className="mt-7 space-y-8">
-      {overview.notifications.length ? (
-        <section className="rounded-[1.5rem] border border-[#C63F3F]/25 bg-[#FFF7F5] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#B54242]">
-                Suivi administratif
-              </p>
-              <h2 className="mt-1 text-xl font-black text-[#071A17]">
-                Notifications de l’école
-              </h2>
-            </div>
-            {overview.notifications.some(
-              (notification) => notification.unread,
-            ) ? (
-              <form action={markYouthNotificationsReadAction}>
-                <button className="rounded-xl border border-[#B54242]/30 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#B54242]">
-                  Tout marquer comme lu
-                </button>
-              </form>
-            ) : null}
-          </div>
-          <div className="mt-4 grid gap-2">
-            {overview.notifications.slice(0, 6).map((notification) => (
-              <div
-                key={notification.id}
-                className={`rounded-xl border p-3 ${notification.unread ? "border-[#C63F3F]/25 bg-white" : "border-[#315B3E]/10 bg-white/60"}`}
-              >
-                <p className="text-sm font-black text-[#071A17]">
-                  {notification.title}
-                </p>
-                <p className="mt-1 text-xs font-semibold text-[#60756E]">
-                  {notification.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <SectionHeading
           eyebrow="Formation quotidienne"
@@ -628,6 +594,12 @@ function AcademyTab({
           </p>
         </div>
       </div>
+      {nextSeasonPromotions.length ? (
+        <NextSeasonPromotions
+          riders={nextSeasonPromotions}
+          gameYear={overview.gameYear + 1}
+        />
+      ) : null}
       {tutorialDemo ? (
         <TutorialAcademyDemo
           gameType={tutorialGameType}
@@ -674,6 +646,43 @@ function AcademyTab({
         />
       )}
     </div>
+  );
+}
+
+function NextSeasonPromotions({
+  riders,
+  gameYear,
+}: {
+  riders: AcademyYouth[];
+  gameYear: number;
+}) {
+  return (
+    <section className="rounded-[1.5rem] border border-[#D6A93D]/30 bg-[#FFF9E5] p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#806114]">
+            Passage en équipe première
+          </p>
+          <h2 className="mt-1 text-lg font-black text-[#183F37]">
+            Saison {gameYear}
+          </h2>
+        </div>
+        <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#071A17]">
+          {riders.length} futur{riders.length > 1 ? "s" : ""} pro
+          {riders.length > 1 ? "s" : ""}
+        </span>
+      </div>
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {riders.map((rider) => (
+          <li
+            key={rider.id}
+            className="rounded-full border border-[#D6A93D]/25 bg-white px-3 py-2 text-xs font-black text-[#183F37]"
+          >
+            {rider.firstName} {rider.lastName}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -895,7 +904,7 @@ function AcademyRiderCard({
             <div className="min-w-[220px] sm:max-w-sm sm:flex-1">
               {rider.status === "recruited" ? (
                 <div className="rounded-xl bg-[#F2C94C]/20 px-3 py-2.5 text-xs font-black text-[#8A6B16]">
-                  Recruté · arrivée pro en {rider.promotionGameYear}
+                  Passage pro la saison prochaine · {rider.promotionGameYear}
                 </div>
               ) : rider.canRecruit ? (
                 canSchedulePromotion ? (
