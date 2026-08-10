@@ -971,7 +971,8 @@ function GameSurface({
               }
               onPointerUp={() => onTimeTrialControlEnd(direction)}
               onPointerCancel={() => onTimeTrialControlEnd(direction)}
-              className="min-h-16 touch-none rounded-2xl border-2 border-[#176951]/20 bg-[#EAF5F0] text-sm font-black uppercase tracking-[0.1em] text-[#176951] transition active:scale-[0.98] active:bg-[#176951] active:text-white"
+              onContextMenu={(event) => event.preventDefault()}
+              className="min-h-16 touch-none select-none [-webkit-touch-callout:none] rounded-2xl border-2 border-[#176951]/20 bg-[#EAF5F0] text-sm font-black uppercase tracking-[0.1em] text-[#176951] transition active:scale-[0.98] active:bg-[#176951] active:text-white"
             >
               {label}
             </button>
