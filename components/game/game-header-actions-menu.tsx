@@ -40,8 +40,14 @@ export function GameHeaderActionsMenu({ children }: { children: ReactNode }) {
       <button
         ref={triggerRef}
         type="button"
-        title="Ouvrir les autres raccourcis"
-        aria-label={open ? "Fermer le menu du jeu" : "Ouvrir le menu du jeu"}
+        title={
+          open
+            ? "Fermer les raccourcis rapides"
+            : "Ouvrir les raccourcis rapides"
+        }
+        aria-label={
+          open ? "Fermer les raccourcis du jeu" : "Ouvrir les raccourcis du jeu"
+        }
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={panelId}
@@ -58,10 +64,13 @@ export function GameHeaderActionsMenu({ children }: { children: ReactNode }) {
           fill="none"
           className="h-5 w-5"
           stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
         >
-          <path d="M4 5h12M4 10h12M4 15h12" />
+          <rect x="3.5" y="3.5" width="5" height="5" rx="1.2" />
+          <rect x="11.5" y="3.5" width="5" height="5" rx="1.2" />
+          <rect x="3.5" y="11.5" width="5" height="5" rx="1.2" />
+          <rect x="11.5" y="11.5" width="5" height="5" rx="1.2" />
         </svg>
       </button>
 
@@ -71,10 +80,7 @@ export function GameHeaderActionsMenu({ children }: { children: ReactNode }) {
           role="dialog"
           aria-label="Raccourcis du jeu"
           onClickCapture={(event) => {
-            if (
-              event.target instanceof Element &&
-              event.target.closest("a")
-            ) {
+            if (event.target instanceof Element && event.target.closest("a")) {
               setOpen(false);
             }
           }}
@@ -83,14 +89,14 @@ export function GameHeaderActionsMenu({ children }: { children: ReactNode }) {
           <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--game-header-accent)]">
-                Navigation
+                Raccourcis
               </p>
-              <p className="mt-0.5 text-sm font-extrabold">Menu rapide</p>
+              <p className="mt-0.5 text-sm font-extrabold">Accès rapides</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Fermer le menu du jeu"
+              aria-label="Fermer les raccourcis du jeu"
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)]"
             >
               <svg
