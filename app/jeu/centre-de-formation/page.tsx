@@ -217,11 +217,6 @@ export default async function YouthDevelopmentPage({
             activeTab={activeTab}
             label="École de cyclisme"
             detail="Effectif & entraînement"
-            count={
-              overview?.notifications.filter(
-                (notification) => notification.unread,
-              ).length
-            }
             tutorialDemo={tutorialDemo}
           />
           <TabLink
