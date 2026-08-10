@@ -13,7 +13,7 @@ const actions = read("app/jeu/preparation-course/actions.ts");
 const calendarService = read("services/race-calendar.ts");
 const simulationAdapter = read("lib/game/race-simulation-demo.ts");
 const migration = read(
-  "supabase/migrations/20260809170000_plan_race_stage_equipment.sql",
+  "supabase/migrations/20260809101000_plan_race_stage_equipment.sql",
 );
 
 describe("planification du matériel de course", () => {
