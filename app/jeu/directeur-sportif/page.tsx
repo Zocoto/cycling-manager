@@ -16,7 +16,9 @@ import { SportingDirectorProfileForm } from "../../../components/game/sporting-d
 import { SportingDirectorReputation } from "../../../components/game/sporting-director-reputation";
 import { TeamJerseyPreview } from "../../../components/game/team-jersey-preview";
 import { DEFAULT_AMATEUR_JERSEY } from "../../../lib/amateur-team";
+import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { getCurrentReferralOverview } from "../../../services/referrals";
 import {
   getTeamAmateurIdentityForAuthUser,
   type TeamAmateurIdentity,
@@ -91,7 +93,7 @@ export default async function SportingDirectorProfilePage() {
     redirect("/connexion");
   }
 
-  const [profileResult, countriesResult] =
+  const [profileResult, countriesResult, referralOverview] =
     await Promise.all([
       supabase
         .from("sporting_directors")
@@ -124,6 +126,9 @@ export default async function SportingDirectorProfilePage() {
         .order("name", {
           ascending: true,
         }),
+      getCurrentReferralOverview(supabase, getPublicSiteUrl() ?? "").catch(
+        () => null,
+      ),
     ]);
 
   let teamSponsorIdentity:
@@ -319,6 +324,9 @@ export default async function SportingDirectorProfilePage() {
                     hasAssiduTrophy={hasAssiduTrophy}
                     initialIsEmailVisible={
                       sportingDirector.is_email_visible
+                    }
+                    patronOutfitUnlocked={
+                      referralOverview?.patronOutfitUnlocked ?? false
                     }
                   />
                 </div>

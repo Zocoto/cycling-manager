@@ -1,6 +1,11 @@
 import "server-only";
 
 import {
+  getUnlockedReferralTrophies,
+  type ReferralTrophyMilestone,
+} from "@/lib/game/referrals";
+
+import {
   ALPHA_TESTER_TROPHY_DEFINITION,
   ALPHA_TESTER_TROPHY_KEY,
   buildTrophyGallery,
@@ -264,11 +269,14 @@ async function loadSportingDirectorTrophyGallery({
   const seasons = seasonsResult.data;
   const teamIds = unique(assignments.map((assignment) => assignment.team_id));
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
-  const attendanceTrophies = await loadAttendanceTrophies({
-    admin,
-    directorId,
-    seasonById,
-  });
+  const [attendanceTrophies, referralTrophies] = await Promise.all([
+    loadAttendanceTrophies({
+      admin,
+      directorId,
+      seasonById,
+    }),
+    loadReferralTrophies({ admin, directorId }),
+  ]);
 
   if (teamIds.length === 0 || seasons.length === 0) {
     return buildTrophyGallery({
@@ -278,6 +286,7 @@ async function loadSportingDirectorTrophyGallery({
       specialAwards,
       claimableTrophies,
       attendanceTrophies,
+      referralTrophies,
     });
   }
 
@@ -366,7 +375,26 @@ async function loadSportingDirectorTrophyGallery({
     specialAwards,
     claimableTrophies,
     attendanceTrophies,
+    referralTrophies,
   });
+}
+
+async function loadReferralTrophies({
+  admin,
+  directorId,
+}: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
+  directorId: string;
+}): Promise<ReferralTrophyMilestone[]> {
+  const result = await admin
+    .from("sporting_director_referrals")
+    .select("id", { count: "exact", head: true })
+    .eq("referrer_director_id", directorId)
+    .eq("status", "qualified");
+
+  assertQuery(result.error, "les trophées de parrainage");
+
+  return getUnlockedReferralTrophies(result.count ?? 0);
 }
 
 async function loadAttendanceTrophies({

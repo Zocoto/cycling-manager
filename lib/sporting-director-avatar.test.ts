@@ -119,9 +119,10 @@ describe("sporting director avatar editor", () => {
       cheekStyle: AVATAR_CHEEK_STYLES.at(-1)?.key,
       facialHair: AVATAR_FACIAL_HAIR_STYLES.at(-1)?.key,
       glasses: "cat-eye",
-      outfit: AVATAR_OUTFITS.at(-1)?.key,
+      outfit: AVATAR_OUTFITS.find(({ key }) => key === "violet")?.key,
       background: AVATAR_BACKGROUNDS.at(-1)?.key,
     });
     expect(isSportingDirectorAvatarKey(key)).toBe(true);
+    expect(avatar.outfit).not.toBe("patron");
   });
 });

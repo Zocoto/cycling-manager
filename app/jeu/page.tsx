@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
+import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
 import { DashboardSponsorCard } from "../../components/game/dashboard-sponsor-card";
 import { GameHeader } from "../../components/game/game-header";
 import { RankingBadge } from "../../components/game/ranking-badge";
@@ -573,6 +574,8 @@ export default async function GamePage() {
               <JerseyShortcut />
             </div>
           </header>
+
+          <DashboardReferralInvite />
 
           {!sportingDirector ? <ProfileErrorMessage /> : null}
 

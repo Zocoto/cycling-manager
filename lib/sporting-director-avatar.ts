@@ -154,7 +154,12 @@ export const AVATAR_OUTFITS = [
   { key: "teal", label: "Sarcelle", jacket: "#14736A", shirt: "#F2C94C" },
   { key: "rust", label: "Terracotta", jacket: "#A85F3C", shirt: "#FFF8E5" },
   { key: "violet", label: "Prune", jacket: "#62445F", shirt: "#F7F3E8" },
+  { key: "patron", label: "Tenue du Parrain", jacket: "#171514", shirt: "#FFFDF4" },
 ] as const;
+
+const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
+  ({ key }) => key !== "patron"
+) as readonly (typeof AVATAR_OUTFITS)[number][];
 
 export const AVATAR_BACKGROUNDS = [
   { key: "mint", label: "Menthe", color: "#DDF3EC", accent: "#8ACBB7" },
@@ -342,7 +347,7 @@ export function createRandomSportingDirectorAvatar(
     cheekStyle: randomKey(AVATAR_CHEEK_STYLES, random),
     facialHair: randomKey(AVATAR_FACIAL_HAIR_STYLES, random),
     glasses: randomKey(STANDARD_AVATAR_GLASSES_STYLES, random),
-    outfit: randomKey(AVATAR_OUTFITS, random),
+    outfit: randomKey(RANDOM_AVATAR_OUTFITS, random),
     background: randomKey(AVATAR_BACKGROUNDS, random),
   };
 }

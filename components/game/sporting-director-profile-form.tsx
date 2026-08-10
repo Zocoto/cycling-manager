@@ -21,6 +21,7 @@ type SportingDirectorProfileFormProps = {
   hasAlphaTesterTrophy: boolean;
   hasAssiduTrophy: boolean;
   initialIsEmailVisible: boolean;
+  patronOutfitUnlocked?: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -40,6 +41,7 @@ export function SportingDirectorProfileForm({
   hasAlphaTesterTrophy,
   hasAssiduTrophy,
   initialIsEmailVisible,
+  patronOutfitUnlocked = false,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -613,6 +615,7 @@ export function SportingDirectorProfileForm({
               hasAssiduTrophy={hasAssiduTrophy}
               onCancel={() => setIsAvatarModalOpen(false)}
               onConfirm={selectAvatar}
+              patronOutfitUnlocked={patronOutfitUnlocked}
             />
           </div>
         </div>

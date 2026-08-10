@@ -14,9 +14,15 @@ const registrationFields: RegistrationField[] = [
   "email",
   "password",
   "passwordConfirmation",
+  "referralCode",
 ];
 
-export function RegistrationForm() {
+type RegistrationFormProps = {
+  referralCode?: string;
+  referrerName?: string;
+};
+
+export function RegistrationForm({ referralCode, referrerName }: RegistrationFormProps) {
   const [state, formAction, pending] = useActionState(
     registerAccount,
     initialRegistrationState
@@ -117,6 +123,33 @@ export function RegistrationForm() {
         onSubmit={() => setDismissedFields([])}
         className="space-y-5"
       >
+        {referralCode && referrerName ? (
+          <div className="rounded-xl border border-[#7CCF9C]/35 bg-[#7CCF9C]/10 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#F2C94C] font-black text-[#071A17]"
+              >
+                P
+              </span>
+              <div>
+                <p className="text-sm font-extrabold text-[#FFFDF4]">
+                  Invitation de {referrerName}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[#BFD1C6]">
+                  Votre parrainage sera validé après votre premier Critérium de la découverte.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <input
+          type="hidden"
+          name="referralCode"
+          value={referralCode ?? ""}
+        />
+
         <FormField
           id="managerName"
           label="Nom du directeur sportif"

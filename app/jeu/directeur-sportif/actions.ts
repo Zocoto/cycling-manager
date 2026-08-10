@@ -209,6 +209,38 @@ export async function updateSportingDirectorProfile(
     };
   }
 
+  const selectedAvatar = decodeCustomSportingDirectorAvatar(
+    validationResult.data.avatarKey,
+  );
+
+  if (selectedAvatar?.outfit === "patron") {
+    const referralCountResult = await supabase
+      .from("sporting_director_referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("referrer_director_id", currentProfile.id)
+      .eq("status", "qualified");
+
+    if (referralCountResult.error) {
+      return {
+        status: "error",
+        message: "Le déblocage de cette tenue n’a pas pu être vérifié.",
+        fieldErrors: {},
+      };
+    }
+
+    if ((referralCountResult.count ?? 0) < 5) {
+      return {
+        status: "error",
+        message: "La tenue du Parrain nécessite 5 filleuls qualifiés.",
+        fieldErrors: {
+          avatarKey: [
+            "Terminez le palier « Le Parrain » avant de choisir cette tenue.",
+          ],
+        },
+      };
+    }
+  }
+
   const { data: selectedCountry, error: countryError } =
     await supabase
       .from("countries")

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 
 import { RegistrationForm } from "../../../components/auth/registration-form";
+import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { getPublicReferralInvitation } from "../../../services/referrals";
 
 export const metadata: Metadata = {
   title: "Inscription",
@@ -15,7 +17,20 @@ const benefits = [
   "Conservez durablement votre progression et vos résultats.",
 ] as const;
 
-export default function RegistrationPage() {
+export default async function RegistrationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ parrain?: string | string[] }>;
+}) {
+  const rawReferralCode = (await searchParams).parrain;
+  const referralCode = Array.isArray(rawReferralCode)
+    ? rawReferralCode[0]
+    : rawReferralCode;
+  const supabase = await createSupabaseServerClient();
+  const invitation = referralCode
+    ? await getPublicReferralInvitation(supabase, referralCode)
+    : null;
+
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
       <div
@@ -108,7 +123,10 @@ export default function RegistrationPage() {
             </div>
 
             <div className="mt-7">
-              <RegistrationForm />
+              <RegistrationForm
+                referralCode={invitation?.code}
+                referrerName={invitation?.referrerName}
+              />
             </div>
 
             <div className="mt-7 border-t border-white/10 pt-6 text-center">

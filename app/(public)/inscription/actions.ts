@@ -26,6 +26,13 @@ const registrationSchema = z
       .max(72, "Le mot de passe ne peut pas dépasser 72 caractères."),
 
     passwordConfirmation: z.string(),
+
+    referralCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^DS-[A-F0-9]{12}$/, "Le lien de parrainage est invalide.")
+      .or(z.literal("")),
   })
   .refine(
     ({ password, passwordConfirmation }) =>
@@ -55,11 +62,14 @@ export async function registerAccount(
     "passwordConfirmation"
   );
 
+  const referralCode = getFormValue(formData, "referralCode");
+
   const validationResult = registrationSchema.safeParse({
     managerName,
     email,
     password,
     passwordConfirmation,
+    referralCode,
   });
 
   if (!validationResult.success) {
@@ -94,6 +104,7 @@ export async function registerAccount(
       emailRedirectTo: `${siteUrl}/inscription/confirmer`,
       data: {
         manager_name: validationResult.data.managerName,
+        referral_code: validationResult.data.referralCode || null,
       },
     },
   });

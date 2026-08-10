@@ -215,6 +215,28 @@ export function GameHeader({
                 </svg>
               </HeaderMenuLink>
 
+              <HeaderMenuLink
+                href="/jeu/parrainage"
+                label="Parrainage"
+                description="Objets niv. 5 à 7"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  className="h-5 w-5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="6.5" cy="7" r="2.5" />
+                  <circle cx="14" cy="8" r="2" />
+                  <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
+                  <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
+                </svg>
+              </HeaderMenuLink>
+
               <form action={logoutAccount} className="min-w-0">
                 <button
                   type="submit"

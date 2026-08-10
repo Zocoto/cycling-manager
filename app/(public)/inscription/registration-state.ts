@@ -2,7 +2,8 @@ export type RegistrationField =
   | "managerName"
   | "email"
   | "password"
-  | "passwordConfirmation";
+  | "passwordConfirmation"
+  | "referralCode";
 
 export type RegistrationState = {
   status: "idle" | "error" | "success";

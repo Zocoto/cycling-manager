@@ -23,6 +23,9 @@ export function TrophyGallery({
   const attendanceTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "attendance"
   );
+  const referralTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "referral"
+  );
 
   return (
     <div className="mt-8">
@@ -55,13 +58,14 @@ export function TrophyGallery({
 
             <div
               data-trophy-metrics
-              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-5 sm:gap-2 sm:p-3"
+              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-6 sm:gap-2 sm:p-3"
             >
               <GalleryMetric label="Total" value={gallery.counts.total} />
               <GalleryMetric label="Grands Tours" value={gallery.counts.grandTours} />
               <GalleryMetric label="Monuments" value={gallery.counts.monuments} />
               <GalleryMetric label="Titres UCI" value={gallery.counts.uciTitles} />
               <GalleryMetric label="Assiduité" value={gallery.counts.attendance} />
+              <GalleryMetric label="Parrain" value={gallery.counts.referrals} />
             </div>
           </div>
         </header>
@@ -78,6 +82,16 @@ export function TrophyGallery({
                 title="Pionniers de Cyclostratège"
                 description="Les distinctions spéciales racontent les étapes fondatrices de votre carrière de DS."
                 trophies={specialTrophies}
+                epic
+              />
+            ) : null}
+
+            {referralTrophies.length > 0 ? (
+              <TrophyShelf
+                eyebrow="Transmission"
+                title="Cercle des Parrains"
+                description="Chaque rang distingue les Directeurs Sportifs qui font grandir le peloton."
+                trophies={referralTrophies}
                 epic
               />
             ) : null}
@@ -602,6 +616,7 @@ function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
   if (kind === "monument") return "Monument";
   if (kind === "uci_team") return "Champion UCI équipes";
   if (kind === "attendance") return "Assidu";
+  if (kind === "referral") return "Parrain";
   return "Numéro 1 UCI";
 }
 

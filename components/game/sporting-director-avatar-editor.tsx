@@ -31,6 +31,7 @@ type SportingDirectorAvatarEditorProps = {
   hasAssiduTrophy?: boolean;
   onCancel: () => void;
   onConfirm: (avatarKey: string) => void;
+  patronOutfitUnlocked?: boolean;
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -52,6 +53,7 @@ export function SportingDirectorAvatarEditor({
   hasAssiduTrophy = false,
   onCancel,
   onConfirm,
+  patronOutfitUnlocked = false,
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -204,7 +206,18 @@ export function SportingDirectorAvatarEditor({
                   options={availableGlassesStyles}
                   onSelect={updateField}
                 />
-                <AvatarChoiceGroup title="Tenue" field="outfit" value={config.outfit} options={AVATAR_OUTFITS} onSelect={updateField} swatches />
+                <AvatarChoiceGroup
+                  title="Tenue"
+                  description={patronOutfitUnlocked
+                    ? "La tenue du Parrain est débloquée grâce à vos filleuls."
+                    : "La tenue du Parrain se débloque avec 5 filleuls qualifiés."}
+                  field="outfit"
+                  value={config.outfit}
+                  options={AVATAR_OUTFITS}
+                  onSelect={updateField}
+                  disabledKeys={patronOutfitUnlocked ? [] : ["patron"]}
+                  swatches
+                />
                 <AvatarChoiceGroup title="Fond du portrait" field="background" value={config.background} options={AVATAR_BACKGROUNDS} onSelect={updateField} swatches />
               </>
             ) : null}
@@ -251,6 +264,7 @@ type AvatarChoiceGroupProps<K extends keyof SportingDirectorAvatarConfig> = {
     value: SportingDirectorAvatarConfig[Field]
   ) => void;
   swatches?: boolean;
+  disabledKeys?: readonly string[];
 };
 
 function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
@@ -261,6 +275,7 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
   options,
   onSelect,
   swatches = false,
+  disabledKeys = [],
 }: AvatarChoiceGroupProps<K>) {
   return (
     <fieldset>
@@ -276,12 +291,14 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
         {options.map((option) => {
           const isSelected = option.key === value;
           const swatchColor = option.color ?? option.jacket;
+          const isDisabled = disabledKeys.includes(option.key);
 
           return (
             <button
               key={option.key}
               type="button"
               aria-pressed={isSelected}
+              disabled={isDisabled}
               onClick={() =>
                 onSelect(
                   field,
@@ -291,6 +308,7 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
               className={[
                 "relative flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-bold transition",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-1",
+                isDisabled ? "cursor-not-allowed border-[#315B3E]/10 bg-[#F2F5F3] text-[#8A9B95] opacity-70" : "",
                 isSelected
                   ? "border-[#278B70] bg-[#DFF4EC] text-[#0E5141] shadow-sm"
                   : "border-[#315B3E]/15 bg-white text-[#48665F] hover:border-[#42B99A] hover:bg-[#F3FAF7]",
@@ -306,6 +324,9 @@ function AvatarChoiceGroup<K extends keyof SportingDirectorAvatarConfig>({
               <span className="min-w-0 leading-4">{option.label}</span>
               {isSelected ? (
                 <span aria-hidden="true" className="ml-auto text-sm font-black text-[#278B70]">✓</span>
+              ) : null}
+              {isDisabled ? (
+                <span aria-hidden="true" className="ml-auto text-sm">🔒</span>
               ) : null}
             </button>
           );

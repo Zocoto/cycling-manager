@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getUnlockedReferralTrophies } from "@/lib/game/referrals";
 import { buildTrophyGallery } from "@/lib/game/trophy-gallery";
 
 describe("buildTrophyGallery", () => {
@@ -38,6 +39,7 @@ describe("buildTrophyGallery", () => {
       uciTitles: 0,
       special: 0,
       attendance: 0,
+      referrals: 0,
     });
     expect(gallery.trophies).toEqual(
       expect.arrayContaining([
@@ -165,5 +167,20 @@ describe("buildTrophyGallery", () => {
         wonAt: "2026-08-09T20:00:00.000Z",
       }),
     );
+  });
+
+  it("expose les rangs de parrainage dans la galerie", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      referralTrophies: getUnlockedReferralTrophies(5),
+    });
+
+    expect(gallery.counts.referrals).toBe(2);
+    expect(gallery.trophies.filter((trophy) => trophy.kind === "referral"))
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ title: "Le Parrain", href: "/jeu/parrainage" }),
+      ]));
   });
 });

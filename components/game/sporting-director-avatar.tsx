@@ -82,6 +82,8 @@ export function SportingDirectorAvatar({
         />
         <path d="M51 67H69V85C66 91 54 91 51 85Z" fill={skin.shadow} />
 
+        {avatar.outfit === "patron" ? <AvatarPatronOutfit /> : null}
+
         <AvatarEars avatar={avatar} skin={skin.color} shadow={skin.shadow} />
         <AvatarFace avatar={avatar} skin={skin.color} />
         <AvatarCheeks avatar={avatar} blush={skin.blush} shadow={skin.shadow} />
@@ -118,6 +120,21 @@ function AlphaTesterAvatarFrame() {
         <circle cx="109" cy="88" r="2.4" fill="#48D9C0" />
       </svg>
     </>
+  );
+}
+
+function AvatarPatronOutfit() {
+  return (
+    <g>
+      <path d="M39 84L57 106L44 114L29 91Z" fill="#292624" />
+      <path d="M81 84L63 106L76 114L91 91Z" fill="#292624" />
+      <path d="M55 86L60 91L65 86L63 96L60 101L57 96Z" fill="#171514" />
+      <path d="M58 99H62L64 118H56Z" fill="#171514" />
+      <circle cx="84" cy="94" r="3.6" fill="#A61B32" />
+      <circle cx="80.8" cy="92.2" r="2.2" fill="#C62A3D" />
+      <circle cx="85.8" cy="90.8" r="2" fill="#8D1428" />
+      <path d="M83 97l-2 8" stroke="#2C7A4B" strokeWidth="1.4" />
+    </g>
   );
 }
 

@@ -1,10 +1,13 @@
+import type { ReferralTrophyMilestone } from "@/lib/game/referrals";
+
 export type TrophyKind =
   | "grand_tour"
   | "monument"
   | "uci_team"
   | "uci_rider"
   | "special"
-  | "attendance";
+  | "attendance"
+  | "referral";
 
 export const ALPHA_TESTER_TROPHY_KEY = "alpha_tester";
 export const ALPHA_TESTER_AVATAR_FRAME_KEY = "alpha_tester";
@@ -53,6 +56,7 @@ export type TrophyGallery = {
     uciTitles: number;
     special: number;
     attendance: number;
+    referrals: number;
   };
 };
 
@@ -100,6 +104,7 @@ type BuildTrophyGalleryInput = {
   specialAwards?: TrophySpecialAward[];
   claimableTrophies?: ClaimableTrophyReward[];
   attendanceTrophies?: TrophyAttendance[];
+  referralTrophies?: ReferralTrophyMilestone[];
 };
 
 export const ALPHA_TESTER_TROPHY_DEFINITION = {
@@ -238,6 +243,7 @@ export function buildTrophyGallery({
   specialAwards = [],
   claimableTrophies = [],
   attendanceTrophies = [],
+  referralTrophies = [],
 }: BuildTrophyGalleryInput): TrophyGallery {
   const raceTrophies = raceWins.flatMap<CareerTrophy>((win) => {
     if (win.isGrandTour) {
@@ -342,8 +348,22 @@ export function buildTrophyGallery({
       "Décerné après une saison entière sans manquer un seul jour de connexion. Débloque les lunettes Premier de la classe dans l’éditeur d’avatar.",
   }));
 
+  const referralCareerTrophies = referralTrophies.map((trophy) => ({
+    id: `referral:${trophy.count}`,
+    kind: "referral" as const,
+    title: trophy.title,
+    competitionName: "Programme de parrainage",
+    seasonName: "Carrière",
+    wonAt: null,
+    riderName: null,
+    href: "/jeu/parrainage",
+    inscription: trophy.inscription,
+    palette: trophy.palette,
+  }));
+
   const trophies = [
     ...specialTrophies,
+    ...referralCareerTrophies,
     ...attendanceCareerTrophies,
     ...teamTrophies,
     ...riderTrophies,
@@ -365,6 +385,7 @@ export function buildTrophyGallery({
       ).length,
       special: specialTrophies.length,
       attendance: attendanceCareerTrophies.length,
+      referrals: trophies.filter((trophy) => trophy.kind === "referral").length,
     },
   };
 }
@@ -394,6 +415,7 @@ function getTrophyWeight(kind: TrophyKind) {
   if (kind === "uci_team") return 400;
   if (kind === "uci_rider") return 350;
   if (kind === "attendance") return 300;
+  if (kind === "referral") return 325;
   if (kind === "grand_tour") return 250;
   return 150;
 }
