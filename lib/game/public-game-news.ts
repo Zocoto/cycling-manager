@@ -145,6 +145,7 @@ export function getPublicGameNewsTeamColors(
 }
 
 export type PublicGameNewsTotals = {
+  directors: number | null;
   victories: number | null;
   gazettes: number | null;
 };
@@ -197,6 +198,7 @@ export function createEmptyPublicGameNewsSnapshot(): PublicGameNewsSnapshot {
   return createPublicGameNewsSnapshot({
     items: [],
     totals: {
+      directors: null,
       victories: null,
       gazettes: null,
     },

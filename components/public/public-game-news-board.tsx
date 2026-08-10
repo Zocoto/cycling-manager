@@ -137,7 +137,12 @@ export function PublicGameNewsBoard({
             </div>
           </div>
 
-          <div className="relative grid border-t border-white/10 sm:grid-cols-2">
+          <div className="relative grid border-t border-white/10 sm:grid-cols-3">
+            <NewsStat
+              value={formatPublicGameNewsTotal(snapshot.totals.directors)}
+              label="Directeurs actifs"
+              detail="sur la ligne de départ"
+            />
             <NewsStat
               value={formatPublicGameNewsTotal(snapshot.totals.victories)}
               label="Victoires officielles"

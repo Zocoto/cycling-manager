@@ -213,6 +213,7 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   const results = await Promise.allSettled([
     loadRecentVictories(admin),
     loadRecentCyclogazettePublications(admin),
+    loadRecentArrivals(admin),
   ]);
   const successfulLoads = results.flatMap((result) =>
     result.status === "fulfilled" ? [result.value] : [],
@@ -222,7 +223,7 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
     return createEmptyPublicGameNewsSnapshot();
   }
 
-  const [victories, gazettes] = results.map((result) =>
+  const [victories, gazettes, arrivals] = results.map((result) =>
     result.status === "fulfilled"
       ? result.value
       : ({ items: [], total: null } satisfies LoadedNews),
@@ -231,6 +232,7 @@ export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   return createPublicGameNewsSnapshot({
     items: [...victories.items, ...gazettes.items],
     totals: {
+      directors: arrivals.total,
       victories: victories.total,
       gazettes: gazettes.total,
     },
