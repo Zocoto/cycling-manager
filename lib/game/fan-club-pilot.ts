@@ -20,6 +20,7 @@ export type FanClubPilotRider = {
   initials: string;
   role: string;
   country: string;
+  careerSeasons: number;
   seasonsAtClub: number;
   popularity: number;
   trend: number;
@@ -33,6 +34,27 @@ export type FanClubPilotRider = {
   }>;
   departureImpact: string;
   history: ReadonlyArray<FanClubPopularityHistoryEntry>;
+};
+
+export type FanClubSupporterBreakdown = {
+  foundation: number;
+  reputation: number;
+  riders: number;
+  recentResults: number;
+  headquartersBonus: number;
+};
+
+export type FanClubLiveData = {
+  teamName: string;
+  supporterCount: number;
+  supporterTrend: number;
+  fervor: number;
+  popularityIndex: number;
+  recentResultsMultiplier: number;
+  sportingResultCount: number;
+  riders: ReadonlyArray<FanClubPilotRider>;
+  races: ReadonlyArray<FanClubPilotRace>;
+  supporterBreakdown: FanClubSupporterBreakdown;
 };
 
 export type FanClubCarModel = {
@@ -114,6 +136,7 @@ export const FAN_CLUB_PILOT_RIDERS: ReadonlyArray<FanClubPilotRider> = [
     initials: "MD",
     role: "Puncheur",
     country: "France",
+    careerSeasons: 4,
     seasonsAtClub: 4,
     popularity: 68,
     trend: 3,
@@ -175,6 +198,7 @@ export const FAN_CLUB_PILOT_RIDERS: ReadonlyArray<FanClubPilotRider> = [
     initials: "JB",
     role: "Grimpeur",
     country: "Danemark",
+    careerSeasons: 2,
     seasonsAtClub: 2,
     popularity: 52,
     trend: 4,
@@ -227,6 +251,7 @@ export const FAN_CLUB_PILOT_RIDERS: ReadonlyArray<FanClubPilotRider> = [
     initials: "DA",
     role: "Sprinteur",
     country: "Colombie",
+    careerSeasons: 3,
     seasonsAtClub: 3,
     popularity: 47,
     trend: -2,
@@ -279,6 +304,7 @@ export const FAN_CLUB_PILOT_RIDERS: ReadonlyArray<FanClubPilotRider> = [
     initials: "LM",
     role: "Rouleur",
     country: "France",
+    careerSeasons: 1,
     seasonsAtClub: 1,
     popularity: 28,
     trend: 1,
@@ -352,8 +378,8 @@ export const FAN_CLUB_CAR_MODELS: ReadonlyArray<FanClubCarModel> = [
 ];
 
 export const FAN_CLUB_INITIAL_FLEET: Readonly<Record<string, number>> = {
-  regional: 2,
-  "grand-tourisme": 1,
+  regional: 0,
+  "grand-tourisme": 0,
   "double-etage": 0,
 };
 
@@ -450,7 +476,7 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
 ];
 
 export const FAN_CLUB_INITIAL_STOCK: Readonly<Record<string, number>> = {
-  "team-jersey": 180,
+  "team-jersey": 0,
   bottle: 0,
   pennant: 0,
   cap: 0,
@@ -458,7 +484,7 @@ export const FAN_CLUB_INITIAL_STOCK: Readonly<Record<string, number>> = {
 };
 
 export const FAN_CLUB_INITIAL_AVERAGE_COST: Readonly<Record<string, number>> = {
-  "team-jersey": 36.5,
+  "team-jersey": 0,
   bottle: 0,
   pennant: 0,
   cap: 0,

@@ -7,20 +7,16 @@ import {
   calculateFanClubTripPreview,
   estimateDailyProductSales,
   FAN_CLUB_CAR_MODELS,
-  FAN_CLUB_FERVOR,
   FAN_CLUB_FLEET_CAPACITY_BY_HEADQUARTERS_LEVEL,
   FAN_CLUB_INITIAL_AVERAGE_COST,
   FAN_CLUB_INITIAL_FLEET,
   FAN_CLUB_INITIAL_STOCK,
-  FAN_CLUB_PILOT_RACES,
-  FAN_CLUB_PILOT_RIDERS,
-  FAN_CLUB_POPULARITY_INDEX,
   FAN_CLUB_PRODUCTS,
   FAN_CLUB_SHOP_LEVELS,
-  FAN_CLUB_SUPPORTER_COUNT,
   getCurrentWholesalePrice,
   getPopularityMaturityCap,
   getWholesaleTrendPercent,
+  type FanClubLiveData,
   type FanClubPilotRider,
   type FanClubPilotTab,
 } from "@/lib/game/fan-club-pilot";
@@ -51,9 +47,11 @@ const decimalEuroFormatter = new Intl.NumberFormat("fr-FR", {
 export function FanClubPilot({
   headquartersLevel = 1,
   shopLevel = 1,
+  data,
 }: {
   headquartersLevel: number;
   shopLevel: number;
+  data: FanClubLiveData;
 }) {
   const [activeTab, setActiveTab] = useState<FanClubPilotTab>("overview");
   const tabs: ReadonlyArray<{
@@ -101,6 +99,7 @@ export function FanClubPilot({
         {activeTab === "overview" ? (
           <PilotPanel tab="overview">
             <OverviewPanel
+              data={data}
               onNavigate={setActiveTab}
               shopLevel={shopLevel}
             />
@@ -108,17 +107,27 @@ export function FanClubPilot({
         ) : null}
         {activeTab === "riders" ? (
           <PilotPanel tab="riders">
-            <RidersPanel />
+            <RidersPanel riders={data.riders} />
           </PilotPanel>
         ) : null}
         {activeTab === "travel" ? (
           <PilotPanel tab="travel">
-            <TravelPanel headquartersLevel={headquartersLevel} />
+            <TravelPanel
+              headquartersLevel={headquartersLevel}
+              supporterCount={data.supporterCount}
+              races={data.races}
+            />
           </PilotPanel>
         ) : null}
         {activeTab === "store" && shopLevel > 0 ? (
           <PilotPanel tab="store">
-            <StorePanel shopLevel={shopLevel} />
+            <StorePanel
+              shopLevel={shopLevel}
+              supporterCount={data.supporterCount}
+              fervor={data.fervor}
+              popularityIndex={data.popularityIndex}
+              recentResultsMultiplier={data.recentResultsMultiplier}
+            />
           </PilotPanel>
         ) : null}
       </div>
@@ -145,9 +154,11 @@ function PilotPanel({
 }
 
 function OverviewPanel({
+  data,
   onNavigate,
   shopLevel,
 }: {
+  data: FanClubLiveData;
   onNavigate: (tab: FanClubPilotTab) => void;
   shopLevel: number;
 }) {
@@ -175,7 +186,7 @@ function OverviewPanel({
                 </tr>
               </thead>
               <tbody>
-                {FAN_CLUB_PILOT_RIDERS.slice(0, 3).map((rider) => (
+                {data.riders.slice(0, 3).map((rider) => (
                   <tr
                     key={rider.id}
                     className="border-b border-[#315B3E]/10 last:border-0"
@@ -200,7 +211,7 @@ function OverviewPanel({
                     </td>
                     <td className="px-2 py-4 font-black text-[#536B63]">
                       {getPopularityMaturityCap(
-                        rider.seasonsAtClub,
+                        rider.careerSeasons,
                         rider.phenomenalSeason,
                       )}
                     </td>
@@ -233,20 +244,59 @@ function OverviewPanel({
       </div>
 
       <div className="space-y-6">
-        <DecisionCard
-          eyebrow="Prochaine course · J+3"
-          title="Grand Prix des Flandres"
-          description="Choisissez les cars de votre parc et envoyez jusqu’à 40 % de vos supporters disponibles."
-          buttonLabel="Gérer le déplacement"
-          onClick={() => onNavigate("travel")}
-        />
+        <PilotSurface>
+          <SectionHeading
+            eyebrow="Calcul en direct"
+            title="Origine des supporters"
+            detail="L’audience est recalculée depuis la réputation du DS, la popularité de l’effectif et les résultats obtenus avec cette équipe."
+          />
+          <dl className="mt-5 divide-y divide-[#315B3E]/10 text-sm">
+            <AudienceLine
+              label="Socle du Fan Club"
+              value={data.supporterBreakdown.foundation}
+            />
+            <AudienceLine
+              label="Réputation de l’équipe"
+              value={data.supporterBreakdown.reputation}
+            />
+            <AudienceLine
+              label="Popularité des coureurs"
+              value={data.supporterBreakdown.riders}
+            />
+            <AudienceLine
+              label="Résultats de la saison"
+              value={data.supporterBreakdown.recentResults}
+            />
+            <AudienceLine
+              label="Bonus du Siège"
+              value={data.supporterBreakdown.headquartersBonus}
+            />
+          </dl>
+        </PilotSurface>
+        {data.races[0] ? (
+          <DecisionCard
+            eyebrow={`Prochaine course · ${data.races[0].timing}`}
+            title={data.races[0].name}
+            description="Choisissez les cars de votre parc et envoyez jusqu’à 40 % de vos supporters disponibles."
+            buttonLabel="Gérer le déplacement"
+            onClick={() => onNavigate("travel")}
+          />
+        ) : (
+          <PilotSurface>
+            <SectionHeading
+              eyebrow="Calendrier de l’équipe"
+              title="Aucun déplacement programmé"
+              detail="Une course apparaîtra ici dès que l’inscription de votre équipe sera acceptée."
+            />
+          </PilotSurface>
+        )}
         {shopLevel > 0 ? (
           <DecisionCard
             eyebrow={`Boutique niveau ${shopLevel}`}
-          title="180 maillots en stock"
-          description="Fixez librement le prix de vente et surveillez le rythme d’écoulement quotidien."
-          buttonLabel="Ouvrir le magasin"
-          onClick={() => onNavigate("store")}
+            title="Stock à constituer"
+            description="Fixez librement le prix de vente et surveillez le rythme d’écoulement quotidien."
+            buttonLabel="Ouvrir le magasin"
+            onClick={() => onNavigate("store")}
           />
         ) : null}
       </div>
@@ -254,16 +304,25 @@ function OverviewPanel({
   );
 }
 
-function RidersPanel() {
+function RidersPanel({
+  riders,
+}: {
+  riders: ReadonlyArray<FanClubPilotRider>;
+}) {
   const [selectedRiderId, setSelectedRiderId] = useState(
-    FAN_CLUB_PILOT_RIDERS[0].id,
+    riders[0]?.id ?? "",
   );
   const selectedRider =
-    FAN_CLUB_PILOT_RIDERS.find(
-      (rider) => rider.id === selectedRiderId,
-    ) ?? FAN_CLUB_PILOT_RIDERS[0];
+    riders.find((rider) => rider.id === selectedRiderId) ?? riders[0];
+  if (!selectedRider) {
+    return (
+      <PilotSurface>
+        <SectionHeading eyebrow="Effectif" title="Aucun coureur actif" />
+      </PilotSurface>
+    );
+  }
   const maturityCap = getPopularityMaturityCap(
-    selectedRider.seasonsAtClub,
+    selectedRider.careerSeasons,
     selectedRider.phenomenalSeason,
   );
 
@@ -276,7 +335,7 @@ function RidersPanel() {
           detail="Le score ne mesure pas seulement les résultats : la fidélité, le panache et l’histoire du coureur comptent durablement."
         />
         <div className="mt-5 divide-y divide-[#315B3E]/10">
-          {FAN_CLUB_PILOT_RIDERS.map((rider) => {
+          {riders.map((rider) => {
             const selected = rider.id === selectedRider.id;
             return (
               <button
@@ -319,8 +378,9 @@ function RidersPanel() {
                   {selectedRider.name}
                 </h2>
                 <p className="mt-1 text-xs font-bold text-[#6F817A]">
-                  {selectedRider.seasonsAtClub} saison
-                  {selectedRider.seasonsAtClub > 1 ? "s" : ""} au club ·{" "}
+                  {selectedRider.careerSeasons} saison
+                  {selectedRider.careerSeasons > 1 ? "s" : ""} en carrière ·{" "}
+                  {selectedRider.seasonsAtClub} au club ·{" "}
                   {selectedRider.country}
                 </p>
               </div>
@@ -404,7 +464,15 @@ function RidersPanel() {
   );
 }
 
-function TravelPanel({ headquartersLevel }: { headquartersLevel: number }) {
+function TravelPanel({
+  headquartersLevel,
+  supporterCount,
+  races,
+}: {
+  headquartersLevel: number;
+  supporterCount: number;
+  races: FanClubLiveData["races"];
+}) {
   const [fleet, setFleet] = useState<Record<string, number>>(
     () =>
       Object.fromEntries(
@@ -416,7 +484,7 @@ function TravelPanel({ headquartersLevel }: { headquartersLevel: number }) {
         ]),
       ) as Record<string, number>,
   );
-  const [raceId, setRaceId] = useState(FAN_CLUB_PILOT_RACES[0].id);
+  const [raceId, setRaceId] = useState(races[0]?.id ?? "");
   const [modelId, setModelId] = useState("regional");
   const [requestedCars, setRequestedCars] = useState(1);
   const [fleetStatus, setFleetStatus] = useState("");
@@ -431,8 +499,7 @@ function TravelPanel({ headquartersLevel }: { headquartersLevel: number }) {
     0,
   );
   const selectedRace =
-    FAN_CLUB_PILOT_RACES.find((race) => race.id === raceId) ??
-    FAN_CLUB_PILOT_RACES[0];
+    races.find((race) => race.id === raceId) ?? races[0] ?? null;
   const selectedModel =
     FAN_CLUB_CAR_MODELS.find((model) => model.id === modelId) ??
     FAN_CLUB_CAR_MODELS[0];
@@ -441,8 +508,8 @@ function TravelPanel({ headquartersLevel }: { headquartersLevel: number }) {
     model: selectedModel,
     requestedCars,
     ownedCars: ownedSelectedModel,
-    supporterCount: FAN_CLUB_SUPPORTER_COUNT,
-    distanceKm: selectedRace.distanceKm,
+    supporterCount,
+    distanceKm: selectedRace?.distanceKm ?? 0,
   });
 
   function purchaseCar(modelIdToBuy: string) {
@@ -590,7 +657,7 @@ function TravelPanel({ headquartersLevel }: { headquartersLevel: number }) {
                 setRaceId(value);
                 setTripStatus("");
               }}
-              options={FAN_CLUB_PILOT_RACES.map((race) => ({
+              options={races.map((race) => ({
                 value: race.id,
                 label: `${race.name} · ${race.timing}`,
               }))}
@@ -692,7 +759,19 @@ function TravelPanel({ headquartersLevel }: { headquartersLevel: number }) {
   );
 }
 
-function StorePanel({ shopLevel }: { shopLevel: number }) {
+function StorePanel({
+  shopLevel,
+  supporterCount,
+  fervor,
+  popularityIndex,
+  recentResultsMultiplier,
+}: {
+  shopLevel: number;
+  supporterCount: number;
+  fervor: number;
+  popularityIndex: number;
+  recentResultsMultiplier: number;
+}) {
   const [stock, setStock] = useState<Record<string, number>>({
     ...FAN_CLUB_INITIAL_STOCK,
   });
@@ -737,10 +816,10 @@ function StorePanel({ shopLevel }: { shopLevel: number }) {
     return estimateDailyProductSales({
       product,
       salePrice: salePrices[product.id] ?? product.suggestedSalePrice,
-      supporterCount: FAN_CLUB_SUPPORTER_COUNT,
-      fervor: FAN_CLUB_FERVOR,
-      popularityIndex: FAN_CLUB_POPULARITY_INDEX,
-      recentResultsMultiplier: 1.05,
+      supporterCount,
+      fervor,
+      popularityIndex,
+      recentResultsMultiplier,
     });
   }
 
@@ -1222,6 +1301,17 @@ function RuleMetric({ label, value }: { label: string; value: string }) {
     </article>
   );
 }
+function AudienceLine({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <dt className="font-bold text-[#60736C]">{label}</dt>
+      <dd className="font-black text-[#176951]">
+        +{value.toLocaleString("fr-FR")}
+      </dd>
+    </div>
+  );
+}
+
 
 function DecisionCard({
   eyebrow,

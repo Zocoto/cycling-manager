@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FanClubPilot } from "@/components/game/fan-club-pilot";
 import { GameHeader } from "@/components/game/game-header";
-import { FAN_CLUB_PILOT_METRICS } from "@/lib/game/fan-club-pilot";
+import { getFanClubLiveData } from "@/services/fan-club-data";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTeamFanClubBuildings } from "@/services/fan-club-buildings";
@@ -36,6 +36,34 @@ export default async function FanClubPilotPage() {
   if (buildings.headquartersLevel < 1) {
     redirect("/jeu");
   }
+  const liveData = await getFanClubLiveData({
+    supabase,
+    authUserId: user.id,
+    headquartersLevel: buildings.headquartersLevel,
+  });
+  if (!liveData) {
+    redirect("/jeu");
+  }
+  const metrics = [
+    {
+      label: "Supporters",
+      value: liveData.supporterCount.toLocaleString("fr-FR"),
+      detail: "40 % mobilisables par déplacement",
+    },
+    {
+      label: "Ferveur",
+      value: `${liveData.fervor} / 100`,
+      detail:
+        liveData.supporterTrend > 0
+          ? `+${liveData.supporterTrend.toLocaleString("fr-FR")} liés aux résultats`
+          : "Audience stable cette saison",
+    },
+    {
+      label: "Popularité de l’effectif",
+      value: `${liveData.popularityIndex} / 100`,
+      detail: `${liveData.sportingResultCount} résultat(s) analysé(s)`,
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -55,9 +83,9 @@ export default async function FanClubPilotPage() {
               Pilote en conditions réelles
             </p>
             <p className="mt-1 leading-6">
-              Les bâtiments sont lus depuis votre équipe. Les supporters,
-              achats, ventes et effets sportifs restent simulés pendant cette
-              phase d’épreuve.
+              Effectif, résultats, popularités et supporters sont calculés
+              depuis votre équipe. Les achats, ventes et effets sportifs
+              restent locaux au pilote pendant cette phase d’épreuve.
             </p>
           </div>
           <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-[#513A0B]">
@@ -77,7 +105,7 @@ export default async function FanClubPilotPage() {
                 Communauté · Fidélité · Rayonnement
               </p>
               <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
-                Fan Club
+                Fan Club de {liveData.teamName}
               </h1>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">
                 Développez la communauté, valorisez les figures du club,
@@ -86,7 +114,7 @@ export default async function FanClubPilotPage() {
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {FAN_CLUB_PILOT_METRICS.map((metric) => (
+                {metrics.map((metric) => (
                   <article
                     key={metric.label}
                     className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur-sm"
@@ -128,6 +156,7 @@ export default async function FanClubPilotPage() {
         <FanClubPilot
           headquartersLevel={buildings.headquartersLevel}
           shopLevel={buildings.shopLevel}
+          data={liveData}
         />
       </section>
     </main>
