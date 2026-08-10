@@ -82,7 +82,7 @@ export function DirectorMailboxShortcut({
       aria-label={label}
       aria-current={mailboxIsOpen ? "page" : undefined}
       data-mailbox-unread={unreadCount > 0 ? "true" : "false"}
-      className={`group relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] ${
+      className={`group relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10 ${
         mailboxIsOpen || unreadCount > 0
           ? "border-[var(--game-header-accent)] bg-[var(--game-header-accent-soft)] text-[var(--game-header-accent)]"
           : "border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)]"

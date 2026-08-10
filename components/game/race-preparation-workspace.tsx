@@ -321,9 +321,9 @@ function StagePreparationForm({
     strategy.chasePolicy,
   );
   const [missions, setMissions] = useState({
-    lieutenantRiderId: strategy.lieutenantRiderId ?? "",
+    lieutenantRiderId:
+      strategy.lieutenantRiderId ?? strategy.protectorRiderId ?? "",
     dangerPacerRiderId: strategy.dangerPacerRiderId ?? "",
-    protectorRiderId: strategy.protectorRiderId ?? "",
     breakawayRiderId: strategy.breakawayRiderId ?? "",
   });
   const [attackOrders, setAttackOrders] = useState<RaceAttackOrder[]>(
@@ -558,12 +558,13 @@ function StagePreparationForm({
           <SectionTitle
             eyebrow="Missions"
             title="Responsabilités individuelles"
-            description="Une mission par équipier : lieutenant, protection, poursuite ou présence dans l’échappée."
+            description="Une mission par équipier : le lieutenant protège le leader, le rouleur mène la poursuite et le candidat vise l’échappée."
           />
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
             <MissionSelect
               name="lieutenantRiderId"
               label="Lieutenant de course"
+              hint="Protège le leader et l’accompagne dans les moments décisifs."
               value={missions.lieutenantRiderId}
               riders={riders}
               unavailableIds={unavailableMissionIds}
@@ -572,20 +573,6 @@ function StagePreparationForm({
                 setMissions((current) => ({
                   ...current,
                   lieutenantRiderId: value,
-                }))
-              }
-            />
-            <MissionSelect
-              name="protectorRiderId"
-              label="Protecteur du leader"
-              value={missions.protectorRiderId}
-              riders={riders}
-              unavailableIds={unavailableMissionIds}
-              disabled={!isEditable}
-              onChange={(value) =>
-                setMissions((current) => ({
-                  ...current,
-                  protectorRiderId: value,
                 }))
               }
             />
@@ -921,6 +908,7 @@ function StrategySelect({
 function MissionSelect({
   name,
   label,
+  hint,
   value,
   riders,
   unavailableIds,
@@ -929,6 +917,7 @@ function MissionSelect({
 }: {
   name: string;
   label: string;
+  hint?: string;
   value: string;
   riders: RacePreparationRider[];
   unavailableIds: string[];
@@ -937,7 +926,12 @@ function MissionSelect({
 }) {
   return (
     <label className="rounded-2xl border border-[#315B3E]/12 bg-white p-3 text-xs font-black text-[#315B3E]">
-      {label}
+      <span className="block">{label}</span>
+      {hint ? (
+        <span className="mt-1 block text-[10px] font-semibold leading-4 text-[#66877C]">
+          {hint}
+        </span>
+      ) : null}
       <select
         name={name}
         value={value}

@@ -3058,7 +3058,7 @@ function getLeaderProtectionStrength({
         (helper.rider.raceDuty === "protector"
           ? 12
           : helper.rider.raceDuty === "lieutenant"
-            ? 7
+            ? 12
             : 0)
     )
   );
@@ -3880,7 +3880,7 @@ function getDesignatedProtectionBonus(
       return bonus;
     }
     if (teammate.rider.raceDuty === "protector") return bonus + 22;
-    if (teammate.rider.raceDuty === "lieutenant") return bonus + 8;
+    if (teammate.rider.raceDuty === "lieutenant") return bonus + 22;
     return bonus;
   }, 0);
 }

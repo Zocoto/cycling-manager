@@ -4,7 +4,7 @@ import Link from "@/components/ui/app-link";
 import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
-import { GameHeaderActionsMenu } from "@/components/game/game-header-actions-menu";
+import { GameHeaderSearchToggle } from "@/components/game/game-header-search-toggle";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
@@ -72,7 +72,7 @@ export function GameHeader({
       />
 
       <div
-        className={`mx-auto flex ${maxWidthClassName} items-center gap-3 px-3 py-3 sm:px-8 sm:py-4 lg:gap-5`}
+        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
       >
         <Link
           href="/jeu"
@@ -103,25 +103,7 @@ export function GameHeader({
 
         <GameNavigationMenu />
 
-        <GameHeaderSearch
-          id="game-global-search-desktop"
-          searchQuery={searchQuery}
-          className="hidden min-w-0 max-w-xl flex-1 md:flex"
-        />
-
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
-
-          <GlobalChatShortcut chatIsOpen={chatIsOpen} />
-
-          <GameHeaderActionsMenu>
-            <GameHeaderSearch
-              id="game-global-search-mobile"
-              searchQuery={searchQuery}
-              className="mb-4 flex md:hidden"
-            />
-
-            <div className="grid grid-cols-2 gap-2">
+        <div className="order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px border-t border-white/10 pt-2 sm:gap-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
               <HeaderMenuLink
                 href="/jeu/equipe"
                 label={sponsor?.shortName ?? "Mon équipe"}
@@ -135,7 +117,7 @@ export function GameHeader({
                     primaryColor={sponsor.colors.primary}
                     backgroundColor={sponsor.colors.background}
                     textColor={sponsor.colors.text}
-                    className="h-8 w-11 rounded-lg p-0.5"
+                    className="h-6 w-7 rounded-md p-0.5"
                   />
                 ) : (
                   <svg
@@ -176,6 +158,10 @@ export function GameHeader({
                   </svg>
                 </HeaderMenuLink>
               ) : null}
+
+              <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
+
+              <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
               {canAccessRaceSimulator(simulatorEmail) ? (
                 <RaceSimulatorShortcut />
@@ -237,12 +223,14 @@ export function GameHeader({
                 </svg>
               </HeaderMenuLink>
 
-              <form action={logoutAccount} className="min-w-0">
+              <form action={logoutAccount} className="shrink-0">
                 <button
                   type="submit"
-                  className="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-xl border border-[#EF5B65]/25 bg-[#EF5B65]/8 p-3 text-left text-[#F6C2C6] transition hover:border-[#EF5B65]/60 hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65]"
+                  title="Se déconnecter"
+                  aria-label="Se déconnecter"
+                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#F6C2C6] transition hover:border-[#EF5B65] hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65] sm:h-10 sm:w-10"
                 >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-black/15">
+                  <span className="contents">
                     <svg
                       aria-hidden="true"
                       viewBox="0 0 20 20"
@@ -257,18 +245,16 @@ export function GameHeader({
                       <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
                     </svg>
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-xs font-extrabold">
-                      Déconnexion
-                    </span>
-                    <span className="mt-0.5 block text-[10px] font-semibold text-[#F6C2C6]/65">
-                      Quitter la partie
-                    </span>
-                  </span>
                 </button>
               </form>
-            </div>
-          </GameHeaderActionsMenu>
+
+              <GameHeaderSearchToggle>
+                <GameHeaderSearch
+                  id="game-global-search"
+                  searchQuery={searchQuery}
+                  className="flex"
+                />
+              </GameHeaderSearchToggle>
         </div>
       </div>
     </header>
@@ -372,41 +358,23 @@ function HeaderMenuLink({
   return (
     <Link
       href={href}
-      className="flex min-h-16 min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3 transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+      title={`${label} · ${description}`}
+      aria-label={label}
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[var(--game-header-accent)] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10"
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-black/15 text-[var(--game-header-accent)]">
-        {children}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-xs font-extrabold">{label}</span>
-        <span className="mt-0.5 block text-[10px] font-semibold text-[#D6DFD2]/60">
-          {description}
-        </span>
-      </span>
+      {children}
     </Link>
   );
 }
 
 function HeaderIconMenuItem({
-  label,
-  description,
   children,
 }: {
   label: string;
   description: string;
   children: ReactNode;
 }) {
-  return (
-    <div className="flex min-h-16 min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3">
-      {children}
-      <span className="min-w-0">
-        <span className="block truncate text-xs font-extrabold">{label}</span>
-        <span className="mt-0.5 block text-[10px] font-semibold text-[#D6DFD2]/60">
-          {description}
-        </span>
-      </span>
-    </div>
-  );
+  return <>{children}</>;
 }
 
 function RaceSimulatorShortcut() {

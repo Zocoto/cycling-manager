@@ -12,38 +12,40 @@ const globalChat = readSource("components/game/global-chat-shortcut.tsx");
 const tutorialCenter = readSource(
   "components/tutorial/tutorial-center-menu.tsx",
 );
+const searchToggle = readSource(
+  "components/game/game-header-search-toggle.tsx",
+);
 
 describe("bandeau du jeu sur mobile", () => {
-  it("garde le logo, le menu et les raccourcis sur une ligne compacte", () => {
+  it("garde le logo, le menu et une barre d’icônes compacte", () => {
     expect(gameHeader).toContain(
-      "items-center gap-3 px-3 py-3 sm:px-8 sm:py-4",
+      "flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3",
     );
     expect(gameHeader).toContain('className="h-10 w-10 sm:h-12 sm:w-12"');
     expect(gameHeader).toContain(
-      'className="ml-auto flex shrink-0 items-center gap-2"',
+      "order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px",
     );
     expect(navigationMenu).toContain("inline-flex h-9 w-9 cursor-pointer");
   });
 
-  it("garde les communications visibles et range le reste dans le menu compact", () => {
+  it("affiche les communications et les autres raccourcis sans second menu", () => {
     const mailboxPosition = gameHeader.indexOf("<DirectorMailboxShortcut");
     const chatPosition = gameHeader.indexOf("<GlobalChatShortcut");
-    const menuPosition = gameHeader.indexOf("<GameHeaderActionsMenu>");
 
     expect(mailboxPosition).toBeGreaterThan(0);
     expect(chatPosition).toBeGreaterThan(mailboxPosition);
-    expect(menuPosition).toBeGreaterThan(chatPosition);
-    expect(globalChat).toContain("h-9 w-9 shrink-0");
+    expect(gameHeader).toContain("<CyclogazetteShortcut");
+    expect(gameHeader).toContain("<TutorialCenterMenu");
+    expect(gameHeader).not.toContain("GameHeaderActionsMenu");
+    expect(globalChat).toContain("h-8 w-8 shrink-0");
     expect(globalChat).toContain("sm:h-10 sm:w-10");
     expect(tutorialCenter).toContain("TutorialCenterMenu");
   });
 
-  it("affiche la recherche sur desktop et dans le menu sur mobile", () => {
-    expect(gameHeader).toContain('id="game-global-search-desktop"');
-    expect(gameHeader).toContain(
-      'className="hidden min-w-0 max-w-xl flex-1 md:flex"',
-    );
-    expect(gameHeader).toContain('id="game-global-search-mobile"');
-    expect(gameHeader).toContain('className="mb-4 flex md:hidden"');
+  it("ouvre la barre de recherche depuis la loupe", () => {
+    expect(gameHeader).toContain("<GameHeaderSearchToggle");
+    expect(searchToggle).toContain('title="Rechercher"');
+    expect(searchToggle).toContain('aria-haspopup="dialog"');
+    expect(gameHeader).toContain('placeholder="Rechercher un DS');
   });
 });

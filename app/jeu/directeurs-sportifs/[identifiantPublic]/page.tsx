@@ -98,9 +98,6 @@ export default async function PublicSportingDirectorPage({
                 <h1 className="mt-2 truncate text-3xl font-black sm:text-4xl">
                   {profile.display_name}
                 </h1>
-                <p className="mt-2 font-semibold text-[#F2C94C]">
-                  @{profile.public_identifier}
-                </p>
               </div>
 
               <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-left sm:text-right">

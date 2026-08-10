@@ -76,6 +76,34 @@ describe("race preparation engine", () => {
       }),
     ).toThrow("cumuler deux missions tactiques");
   });
+
+  it("gives the lieutenant the full former leader-protection effect", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 19);
+    const helper = input.riders[0];
+
+    const lieutenantResult = simulateRaceStage({
+      ...input,
+      teamStrategies: [
+        {
+          teamId: helper.teamId,
+          ...DEFAULT_RACE_TEAM_STRATEGY,
+          lieutenantRiderId: helper.id,
+        },
+      ],
+    });
+    const legacyProtectorResult = simulateRaceStage({
+      ...input,
+      teamStrategies: [
+        {
+          teamId: helper.teamId,
+          ...DEFAULT_RACE_TEAM_STRATEGY,
+          protectorRiderId: helper.id,
+        },
+      ],
+    });
+
+    expect(lieutenantResult).toEqual(legacyProtectorResult);
+  });
 });
 
 function createRider(

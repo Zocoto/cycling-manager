@@ -7,31 +7,49 @@ const headerSource = readFileSync(
   join(process.cwd(), "components/game/game-header.tsx"),
   "utf8",
 );
+const searchToggleSource = readFileSync(
+  join(process.cwd(), "components/game/game-header-search-toggle.tsx"),
+  "utf8",
+);
 
 describe("game header responsive layout", () => {
-  it("keeps the primary mobile header on one non-wrapping row", () => {
+  it("keeps every shortcut visible in a compact wrapping strip", () => {
     expect(headerSource).toContain(
-      "items-center gap-3 px-3 py-3 sm:px-8 sm:py-4",
+      "flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3",
     );
-    expect(headerSource).not.toContain("flex-wrap items-center justify-between");
+    expect(headerSource).toContain(
+      "order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px",
+    );
+    expect(headerSource).toContain("lg:flex-nowrap");
   });
 
-  it("keeps only communication shortcuts beside the compact menu", () => {
+  it("renders the shortcuts directly without a secondary actions menu", () => {
+    const teamPosition = headerSource.indexOf('href="/jeu/equipe"');
+    const profilePosition = headerSource.indexOf(
+      'href="/jeu/directeur-sportif"',
+    );
     const mailboxPosition = headerSource.indexOf("<DirectorMailboxShortcut");
     const chatPosition = headerSource.indexOf("<GlobalChatShortcut");
-    const menuPosition = headerSource.indexOf("<GameHeaderActionsMenu>");
+    const gazettePosition = headerSource.indexOf("<CyclogazetteShortcut");
+    const tutorialPosition = headerSource.indexOf("<TutorialCenterMenu");
+    const searchPosition = headerSource.indexOf("<GameHeaderSearchToggle");
 
-    expect(mailboxPosition).toBeGreaterThan(0);
+    expect(teamPosition).toBeGreaterThan(0);
+    expect(profilePosition).toBeGreaterThan(teamPosition);
+    expect(mailboxPosition).toBeGreaterThan(profilePosition);
     expect(chatPosition).toBeGreaterThan(mailboxPosition);
-    expect(menuPosition).toBeGreaterThan(chatPosition);
+    expect(gazettePosition).toBeGreaterThan(chatPosition);
+    expect(tutorialPosition).toBeGreaterThan(gazettePosition);
+    expect(searchPosition).toBeGreaterThan(tutorialPosition);
+    expect(headerSource).not.toContain("GameHeaderActionsMenu");
   });
 
-  it("moves mobile search into the compact actions menu", () => {
-    expect(headerSource).toContain('id="game-global-search-desktop"');
+  it("opens the global search from a single magnifying-glass button", () => {
     expect(headerSource).toContain(
-      'className="hidden min-w-0 max-w-xl flex-1 md:flex"',
+      "<GameHeaderSearchToggle>",
     );
-    expect(headerSource).toContain('id="game-global-search-mobile"');
-    expect(headerSource).toContain('className="mb-4 flex md:hidden"');
+    expect(searchToggleSource).toContain('aria-label={open ? "Fermer la recherche" : "Ouvrir la recherche"}');
+    expect(headerSource).toContain('role="search"');
+    expect(searchToggleSource).toContain('querySelector("input")?.focus()');
   });
 });
