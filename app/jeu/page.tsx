@@ -52,6 +52,10 @@ import {
   type DashboardFastSummary,
 } from "../../services/dashboard-fast-summary";
 import { getDashboardRaceCalendar } from "../../services/dashboard-race-calendar";
+import {
+  getTeamFanClubBuildings,
+  type TeamFanClubBuildings,
+} from "../../services/fan-club-buildings";
 
 export const metadata: Metadata = {
   title: "Bureau du Directeur Sportif",
@@ -139,7 +143,8 @@ type ManagementModuleIcon =
   | "equipment"
   | "jersey"
   | "staff"
-  | "infrastructure";
+  | "infrastructure"
+  | "fanclub";
 
 const DASHBOARD_WATERMARK = "/images/peloton-header.webp";
 
@@ -379,6 +384,7 @@ export default async function GamePage() {
     raceCalendar,
     activeNationalTitlesByRiderId,
     sponsorObjectiveSummary,
+    fanClubBuildings,
   ] = await Promise.all([
     sponsorIdentityPromise,
     loadDashboardValue(
@@ -404,6 +410,13 @@ export default async function GamePage() {
     raceCalendarPromise,
     activeNationalTitlesPromise,
     sponsorObjectiveSummaryPromise,
+    loadDashboardValue(
+      dashboardTeamId
+        ? getTeamFanClubBuildings(supabase, dashboardTeamId)
+        : Promise.resolve({ headquartersLevel: 0, shopLevel: 0 }),
+      { headquartersLevel: 0, shopLevel: 0 } satisfies TeamFanClubBuildings,
+      "Impossible de récupérer les bâtiments du Fan Club :",
+    ),
   ]);
 
   const teamSponsorIdentity = sponsorIdentityResult.identity;
@@ -724,6 +737,16 @@ export default async function GamePage() {
               status="Débloquées au niveau 10"
               description="Investissez des fonds très importants dans des bâtiments capables de soutenir durablement les entraînements, les soins et la gestion de l’équipe."
             />
+
+            {fanClubBuildings.headquartersLevel > 0 ? (
+              <ManagementModuleCard
+                href="/jeu/fan-club"
+                icon="fanclub"
+                title="Fan Club"
+                status={`Pilote · Siège niveau ${fanClubBuildings.headquartersLevel}`}
+                description="Gérez la popularité des coureurs, les déplacements de supporters et, si elle est construite, la boutique officielle."
+              />
+            ) : null}
           </section>
         </div>
       </section>
@@ -1661,6 +1684,14 @@ function ManagementModuleIcon({ icon }: { icon: ManagementModuleIcon }) {
       <>
         <path d="M3 21h18M5 21V9l7-5 7 5v12" />
         <path d="M9 21v-6h6v6M8 11h2M14 11h2" />
+      </>
+    ),
+
+    fanclub: (
+      <>
+        <path d="M4 14V6l12-3v14L4 14Z" />
+        <path d="M8 15v4a2 2 0 0 1-4 0v-5" />
+        <path d="M17 8.5c2 .8 3 2 3 3.5s-1 2.7-3 3.5" />
       </>
     ),
   };
