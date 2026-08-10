@@ -8,6 +8,7 @@ import {
   isYouthTrainingMode,
   type YouthTrainingGameType,
 } from "@/lib/game/youth-training";
+import type { YouthTrainingSettingsValue } from "@/lib/game/youth-training-bulk";
 import { isValidYouthScoutingDuration } from "@/lib/game/youth-scouting-duration";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -59,41 +60,35 @@ export async function signYouthCandidateAction(formData: FormData) {
   const result = await supabase.rpc("sign_current_team_youth_candidate", { p_candidate_id: candidateId });
   if (result.error) redirectWithMessage("scouting", "erreur", result.error.message);
   revalidateCenter();
-  redirectWithMessage("ecole", "succes", "Le jeune rejoint votre école de cyclisme.");
+  redirectWithMessage("scouting", "succes", "Le jeune rejoint votre école de cyclisme.");
 }
 
-export async function saveYouthTrainingSettingsAction(formData: FormData) {
-  const academyRiderId = readValue(formData, "academyRiderId");
-  const trainingPriority = readValue(formData, "trainingPriority");
-  const trainingMode = readValue(formData, "trainingMode");
-  if (
-    !isUuid(academyRiderId) ||
-    !isYouthTrainingDomain(trainingPriority) ||
-    !isYouthTrainingMode(trainingMode)
-  ) {
+export async function saveYouthTrainingSettingsBulkAction(formData: FormData) {
+  const settings = readYouthTrainingSettings(formData);
+  if (!settings?.length) {
     redirectWithMessage(
       "ecole",
       "erreur",
-      "La programmation d’entraînement junior est invalide.",
+      "Les modifications d’entraînement junior sont invalides.",
     );
   }
+
   const supabase = await authenticatedClient();
   const result = await supabase.rpc(
-    "save_current_youth_training_settings",
-    {
-      p_academy_rider_id: academyRiderId,
-      p_training_priority: trainingPriority,
-      p_training_mode: trainingMode,
-    },
+    "save_current_youth_training_settings_bulk",
+    { p_changes: settings },
   );
   if (result.error) {
     redirectWithMessage("ecole", "erreur", result.error.message);
   }
+
+  const savedCount = Number(result.data ?? settings.length);
+  const safeCount = Number.isInteger(savedCount) ? savedCount : settings.length;
   revalidateCenter();
   redirectWithMessage(
     "ecole",
     "succes",
-    "Programmation enregistrée pour la prochaine séance et les suivantes.",
+    `${safeCount} programmation${safeCount > 1 ? "s" : ""} enregistrée${safeCount > 1 ? "s" : ""} pour les prochaines séances.`,
   );
 }
 
@@ -211,6 +206,7 @@ export async function naturalizeYouthRiderAction(formData: FormData) {
     `Naturalisation validée : le junior représente désormais ${readCountryName(result.data)}.`,
   );
 }
+
 export async function markYouthNotificationsReadAction() {
   const supabase = await authenticatedClient();
   const result = await supabase.rpc("mark_current_youth_notifications_read");
@@ -250,6 +246,57 @@ function redirectWithMessage(tab: "scouting" | "ecole", key: "succes" | "erreur"
 function readValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function readYouthTrainingSettings(
+  formData: FormData,
+): YouthTrainingSettingsValue[] | null {
+  const serialized = readValue(formData, "settings");
+  if (!serialized || serialized.length > 20_000) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 100) {
+    return null;
+  }
+
+  const seenRiderIds = new Set<string>();
+  const settings: YouthTrainingSettingsValue[] = [];
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== "object") return null;
+
+    const academyRiderId =
+      "academyRiderId" in entry && typeof entry.academyRiderId === "string"
+        ? entry.academyRiderId.trim()
+        : "";
+    const trainingPriority =
+      "trainingPriority" in entry && typeof entry.trainingPriority === "string"
+        ? entry.trainingPriority.trim()
+        : "";
+    const trainingMode =
+      "trainingMode" in entry && typeof entry.trainingMode === "string"
+        ? entry.trainingMode.trim()
+        : "";
+
+    if (
+      !isUuid(academyRiderId) ||
+      seenRiderIds.has(academyRiderId) ||
+      !isYouthTrainingDomain(trainingPriority) ||
+      !isYouthTrainingMode(trainingMode)
+    ) {
+      return null;
+    }
+
+    seenRiderIds.add(academyRiderId);
+    settings.push({ academyRiderId, trainingPriority, trainingMode });
+  }
+
+  return settings;
 }
 
 function isUuid(value: string) {

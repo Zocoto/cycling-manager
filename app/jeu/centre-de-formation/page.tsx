@@ -7,7 +7,6 @@ import {
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
   recruitYouthRiderAction,
-  saveYouthTrainingSettingsAction,
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
@@ -21,6 +20,10 @@ import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
 import {
+  YouthTrainingBulkEditor,
+  YouthTrainingSettingsFields,
+} from "@/components/game/youth-training-bulk-editor";
+import {
   RIDER_RATING_AXES,
   type RiderRatingKey,
 } from "@/lib/game/rider-profile";
@@ -31,7 +34,6 @@ import {
   isYouthScoutingMissionArchived,
 } from "@/lib/game/youth-scouting-history";
 import {
-  YOUTH_TRAINING_DOMAINS,
   YOUTH_TRAINING_GAME_LABELS,
   type YouthTrainingGameType,
 } from "@/lib/game/youth-training";
@@ -645,18 +647,26 @@ function AcademyTab({
         </Alert>
       ) : null}
       {overview.academy.length ? (
-        <div className="space-y-3">
-          {overview.academy.map((rider) => (
-            <AcademyRiderCard
-              key={rider.id}
-              rider={rider}
-              gameYear={overview.gameYear}
-              currency={overview.currency}
-              canSchedulePromotion={overview.canScheduleYouthPromotion}
-              rosterLimit={overview.rosterLimit}
-            />
-          ))}
-        </div>
+        <YouthTrainingBulkEditor
+          initialSettings={overview.academy.map((rider) => ({
+            academyRiderId: rider.id,
+            trainingPriority: rider.trainingPriority,
+            trainingMode: rider.trainingModePreference,
+          }))}
+        >
+          <div className="space-y-3">
+            {overview.academy.map((rider) => (
+              <AcademyRiderCard
+                key={rider.id}
+                rider={rider}
+                gameYear={overview.gameYear}
+                currency={overview.currency}
+                canSchedulePromotion={overview.canScheduleYouthPromotion}
+                rosterLimit={overview.rosterLimit}
+              />
+            ))}
+          </div>
+        </YouthTrainingBulkEditor>
       ) : (
         <EmptyState
           title="Votre école est encore vide"
@@ -855,58 +865,10 @@ function AcademyRiderCard({
             action={naturalizeYouthRiderAction}
             compact
           />
-          <form
-            action={saveYouthTrainingSettingsAction}
-            className="h-full rounded-2xl bg-[#EAF5F3] p-3 2xl:col-span-2"
-          >
-            <input type="hidden" name="academyRiderId" value={rider.id} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-[9px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-                Mode d’entraînement
-                <select
-                  name="trainingMode"
-                  defaultValue={rider.trainingModePreference}
-                  className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]"
-                >
-                  <option value="automatic">
-                    Automatique · 8 h · bonus ×2
-                  </option>
-                  <option value="manual">Manuel · 2 minijeux / jour</option>
-                </select>
-              </label>
-              <label className="text-[9px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-                Profil travaillé
-                <select
-                  name="trainingPriority"
-                  defaultValue={rider.trainingPriority}
-                  className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]"
-                >
-                  {YOUTH_TRAINING_DOMAINS.map((domain) => (
-                    <option key={domain} value={domain}>
-                      {domain === "rouleur"
-                        ? "CLM / Rouleur"
-                        : TRAINING_DOMAIN_LABELS[domain]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <button className="mt-3 w-full rounded-lg bg-[#176951] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white">
-              Enregistrer la programmation
-            </button>
-            <p className="mt-2 text-[9px] font-semibold leading-4 text-[#60756E]">
-              Appliqué dès la prochaine journée, puis conservé.
-            </p>
-            {rider.pendingTrainingMode ? (
-              <p className="mt-2 rounded-lg bg-[#FFF5D6] px-3 py-2 text-[9px] font-black text-[#806114]">
-                Bascule vers le mode{" "}
-                {rider.pendingTrainingMode === "automatic"
-                  ? "automatique"
-                  : "manuel"}{" "}
-                programmée pour la prochaine journée.
-              </p>
-            ) : null}
-          </form>
+          <YouthTrainingSettingsFields
+            academyRiderId={rider.id}
+            pendingTrainingMode={rider.pendingTrainingMode}
+          />
           <YouthTrainingMiniGame
             academyRiderId={rider.id}
             riderName={`${rider.firstName} ${rider.lastName}`}

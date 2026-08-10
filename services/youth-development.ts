@@ -288,7 +288,6 @@ export type YouthDevelopmentOverview = {
   scouts: YouthScout[];
   missions: YouthMission[];
   academy: AcademyYouth[];
-  notifications: YouthNotification[];
   unreadCount: number;
   nextSeasonRosterCommitments: number;
   rosterLimit: number;
@@ -341,33 +340,24 @@ export async function getYouthDevelopmentAlertCount(
   await settleDueScoutingMissions(admin, context);
   await settleAcademyDailyOperations(admin, context);
 
-  const [missions, notifications] = await Promise.all([
-    admin
-      .from("youth_scouting_missions")
-      .select("id", { count: "exact", head: true })
-      .eq("team_id", context.teamId)
-      .eq("status", "completed")
-      .is("report_viewed_at", null),
-    admin
-      .from("youth_development_notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("team_id", context.teamId)
-      .is("read_at", null),
-  ]);
+  const missions = await admin
+    .from("youth_scouting_missions")
+    .select("id", { count: "exact", head: true })
+    .eq("team_id", context.teamId)
+    .eq("status", "completed")
+    .is("report_viewed_at", null);
   assertQuery(missions.error, "les nouveaux rapports de scouting");
-  assertQuery(notifications.error, "les notifications du centre");
-  return (missions.count ?? 0) + (notifications.count ?? 0);
+  return missions.count ?? 0;
 }
 
 async function loadOverview(admin: AdminClient, context: Context) {
-  const [countriesResult, facilitiesResult, contractsResult, missionsResult, academyResult, notificationsResult, rosterCapacityResult] =
+  const [countriesResult, facilitiesResult, contractsResult, missionsResult, academyResult, rosterCapacityResult] =
     await Promise.all([
       admin.from("countries").select("id, name, iso_alpha2, is_active").eq("is_active", true).order("name").returns<CountryRow[]>(),
       admin.from("country_cycling_development").select("country_id, facility_level").returns<Array<{ country_id: string; facility_level: number }>>(),
       admin.from("staff_contracts").select("id, staff_member_id").eq("team_id", context.teamId).eq("status", "active").returns<Array<{ id: string; staff_member_id: string }>>(),
       admin.from("youth_scouting_missions").select("*").eq("team_id", context.teamId).order("created_at", { ascending: false }).returns<MissionRow[]>(),
       admin.from("youth_academy_riders").select("*").eq("team_id", context.teamId).in("status", ["active", "recruited"]).order("signed_at", { ascending: true }).returns<AcademyRow[]>(),
-      admin.from("youth_development_notifications").select("id, notification_type, title, message, read_at, created_at").eq("team_id", context.teamId).order("created_at", { ascending: false }).limit(20).returns<Array<{ id: string; notification_type: YouthNotification["type"]; title: string; message: string; read_at: string | null; created_at: string }>>(),
       admin.rpc("get_team_roster_commitment_count", {
         p_team_id: context.teamId,
         p_game_year: context.gameYear + 1,
@@ -376,7 +366,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
   for (const [result, label] of [
     [countriesResult, "les pays"], [facilitiesResult, "les installations"],
     [contractsResult, "les contrats du staff"], [missionsResult, "les missions"],
-    [academyResult, "l’école de cyclisme"], [notificationsResult, "les notifications"],
+    [academyResult, "l’école de cyclisme"],
     [rosterCapacityResult, "la capacité du prochain effectif"],
   ] as const) assertQuery(result.error, label);
 
@@ -580,17 +570,13 @@ async function loadOverview(admin: AdminClient, context: Context) {
       },
     };
   });
-  const notifications = (notificationsResult.data ?? []).map((notification): YouthNotification => ({
-    id: notification.id, type: notification.notification_type, title: notification.title,
-    message: notification.message, unread: !notification.read_at, createdAt: notification.created_at,
-  }));
-  const unreadCount = missions.filter((mission) => mission.unread).length + notifications.filter((notification) => notification.unread).length;
+  const unreadCount = missions.filter((mission) => mission.unread).length;
 
   return {
     teamId: context.teamId, teamName: context.teamName, seasonName: context.seasonName,
     gameYear: context.gameYear, currentDayNumber: context.currentDayNumber,
     balance: context.balance, currency: context.currency, countries: countriesDto,
-    scouts, missions, academy, notifications, unreadCount,
+    scouts, missions, academy, unreadCount,
     nextSeasonRosterCommitments,
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
     canScheduleYouthPromotion,
