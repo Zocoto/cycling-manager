@@ -11,6 +11,7 @@ import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
+import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
 import { RiderEquipmentLoadout } from "@/components/game/rider-equipment-loadout";
 import { RiderSeasonPlanning } from "@/components/game/rider-season-planning";
 import { PotentialStars } from "@/components/game/potential-stars";
@@ -30,6 +31,7 @@ import {
 } from "@/lib/game/equipment";
 import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import { getRiderExperience } from "@/lib/game/rider-experience";
+import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
 import {
   SPECIAL_ABILITY_CATALOG,
@@ -209,6 +211,10 @@ export default async function RiderProfilePage({
     ),
   );
   const riderExperience = getRiderExperience(profile.careerRaceDays);
+  const riderClimateProfile = getRiderClimateProfile({
+    riderId: profile.id,
+    countryCode: profile.country.code,
+  });
   const countryHref = `/jeu/nations/${profile.country.code.toLowerCase()}`;
   const riderProfileRoute = `/jeu/coureurs/${identifiant}`;
 
@@ -498,6 +504,7 @@ export default async function RiderProfilePage({
                 events={profile.condition.events}
               />
             </div>
+            <RiderClimateProfileCard profile={riderClimateProfile} />
             <div data-tutorial-id="rider-profile-abilities">
               <SpecialAbilitiesCard abilities={profile.specialAbilities} />
             </div>
