@@ -58,22 +58,15 @@ export function sanitizeOfficialStageSimulationForRaceFormat({
     return { input, simulation };
   }
 
-  const segments =
-    removeOneDayRaceMountainPrimes(
-      input.segments,
-      raceFormat
-    );
+  const segments = removeOneDayRaceMountainPrimes(input.segments, raceFormat);
   const primes = simulation.primes.filter(
-    (prime) => prime.prime.type !== "mountain"
+    (prime) => prime.prime.type !== "mountain",
   );
   const sanitizedInput =
-    segments === input.segments
-      ? input
-      : { ...input, segments };
+    segments === input.segments ? input : { ...input, segments };
   const sanitizedSimulation =
     primes.length === simulation.primes.length &&
-    Object.keys(simulation.mountainPoints)
-      .length === 0
+    Object.keys(simulation.mountainPoints).length === 0
       ? simulation
       : {
           ...simulation,
@@ -97,15 +90,12 @@ function hydrateLockedRiderVisualMetadata({
   simulation: StageSimulationResult;
 }) {
   const metadataByRiderId = new Map(
-    edition.engagedRiders.map((rider) => [rider.id, rider])
+    edition.engagedRiders.map((rider) => [rider.id, rider]),
   );
-  const hydrateRider = (
-    rider: StageSimulationInput["riders"][number]
-  ) => {
+  const hydrateRider = (rider: StageSimulationInput["riders"][number]) => {
     const current = metadataByRiderId.get(rider.id);
     if (!current) return rider;
-    const avatarProfileKey =
-      current.avatarProfileKey ?? rider.avatarProfileKey;
+    const avatarProfileKey = current.avatarProfileKey ?? rider.avatarProfileKey;
     const avatarSeed = current.avatarSeed ?? rider.avatarSeed;
     const nationalChampionships =
       current.nationalChampionships ?? rider.nationalChampionships;
@@ -140,19 +130,16 @@ function hydrateLockedRiderVisualMetadata({
   };
 
   const hydratedInputRiders = input.riders.map(hydrateRider);
-  const hydratedResolvedRiders =
-    simulation.resolvedRiders.map(hydrateRider);
+  const hydratedResolvedRiders = simulation.resolvedRiders.map(hydrateRider);
   const inputChanged = hydratedInputRiders.some(
-    (rider, index) => rider !== input.riders[index]
+    (rider, index) => rider !== input.riders[index],
   );
   const simulationChanged = hydratedResolvedRiders.some(
-    (rider, index) => rider !== simulation.resolvedRiders[index]
+    (rider, index) => rider !== simulation.resolvedRiders[index],
   );
 
   return {
-    input: inputChanged
-      ? { ...input, riders: hydratedInputRiders }
-      : input,
+    input: inputChanged ? { ...input, riders: hydratedInputRiders } : input,
     simulation: simulationChanged
       ? { ...simulation, resolvedRiders: hydratedResolvedRiders }
       : simulation,
@@ -173,27 +160,24 @@ function decorateStageRaceJerseys({
   standingsBeforeStage: StageRaceStandings | null;
 }) {
   const jerseyVisuals = getStageRaceJerseyVisuals(edition);
-  const classificationJerseyByRiderId =
-    getStageRaceJerseyByRiderId(
-      assignStageRaceJerseys(standingsBeforeStage)
-    );
+  const classificationJerseyByRiderId = getStageRaceJerseyByRiderId(
+    assignStageRaceJerseys(standingsBeforeStage),
+  );
   const nationalChampionshipDiscipline =
     stage.stageType === "individual_time_trial" ||
     stage.stageType === "prologue"
       ? "time_trial"
       : "road";
-  const decorateRider = (
-    rider: StageSimulationInput["riders"][number]
-  ) => {
+  const decorateRider = (rider: StageSimulationInput["riders"][number]) => {
     const classificationJersey =
       classificationJerseyByRiderId.get(rider.id) ?? null;
     const classificationJerseyVisual = classificationJersey
       ? jerseyVisuals[classificationJersey]
       : null;
     const activeNationalChampion =
-      rider.nationalChampionships?.[
-        nationalChampionshipDiscipline
-      ] ?? null;
+      rider.nationalChampionships?.[nationalChampionshipDiscipline] ?? null;
+    const activeContinentalChampion =
+      rider.continentalChampionships?.[nationalChampionshipDiscipline] ?? null;
     const activeWorldChampion =
       rider.worldChampionships?.[nationalChampionshipDiscipline] ?? null;
     if (
@@ -201,7 +185,8 @@ function decorateStageRaceJerseys({
       classificationJerseyVisual ===
         (rider.classificationJerseyVisual ?? null) &&
       activeNationalChampion === (rider.activeNationalChampion ?? null) &&
-      activeWorldChampion === (rider.activeWorldChampion ?? null)
+      activeWorldChampion === (rider.activeWorldChampion ?? null) &&
+      activeContinentalChampion === (rider.activeContinentalChampion ?? null)
     ) {
       return rider;
     }
@@ -211,22 +196,20 @@ function decorateStageRaceJerseys({
       classificationJerseyVisual,
       activeNationalChampion,
       activeWorldChampion,
+      activeContinentalChampion,
     };
   };
   const decoratedInputRiders = input.riders.map(decorateRider);
-  const decoratedResolvedRiders =
-    simulation.resolvedRiders.map(decorateRider);
+  const decoratedResolvedRiders = simulation.resolvedRiders.map(decorateRider);
   const inputChanged = decoratedInputRiders.some(
-    (rider, index) => rider !== input.riders[index]
+    (rider, index) => rider !== input.riders[index],
   );
   const simulationChanged = decoratedResolvedRiders.some(
-    (rider, index) => rider !== simulation.resolvedRiders[index]
+    (rider, index) => rider !== simulation.resolvedRiders[index],
   );
 
   return {
-    input: inputChanged
-      ? { ...input, riders: decoratedInputRiders }
-      : input,
+    input: inputChanged ? { ...input, riders: decoratedInputRiders } : input,
     simulation: simulationChanged
       ? { ...simulation, resolvedRiders: decoratedResolvedRiders }
       : simulation,
@@ -234,7 +217,7 @@ function decorateStageRaceJerseys({
 }
 
 export function isUnavailableForFollowingStage(
-  result: StageSimulationResult["results"][number]
+  result: StageSimulationResult["results"][number],
 ) {
   return result.status !== "finished" || result.injury !== null;
 }
@@ -245,13 +228,13 @@ export function isUnavailableForFollowingStage(
  * liste des partants des étapes suivantes et tous les tirages restent alignés.
  */
 export function simulateOfficialRaceEdition(
-  edition: RaceCalendarEdition
+  edition: RaceCalendarEdition,
 ): OfficialStageSimulationRun[] {
   const unavailableRiderIds = new Set<string>();
   const orderedStages = [...edition.stages].sort(
     (first, second) =>
       first.stageNumber - second.stageNumber ||
-      first.id.localeCompare(second.id)
+      first.id.localeCompare(second.id),
   );
 
   const runs: OfficialStageSimulationRun[] = [];
@@ -259,9 +242,7 @@ export function simulateOfficialRaceEdition(
   for (const stage of orderedStages) {
     const standingsBeforeStage =
       edition.raceFormat === "stage_race" && runs.length > 0
-        ? buildStageRaceStandings(
-            runs.map((run) => run.simulation)
-          )
+        ? buildStageRaceStandings(runs.map((run) => run.simulation))
         : null;
     const baseInput = createCalendarSimulationInput({
       edition,
@@ -273,8 +254,7 @@ export function simulateOfficialRaceEdition(
     );
     const input: StageSimulationInput = {
       ...baseInput,
-      generalClassification:
-        standingsBeforeStage?.general,
+      generalClassification: standingsBeforeStage?.general,
       ...(Object.keys(mountainObjectiveRiderIds).length > 0
         ? { mountainObjectiveRiderIds }
         : {}),
@@ -306,10 +286,7 @@ export function getOfficialStageSimulationContext({
   lockedSimulations?: LockedOfficialStageSimulation[];
 }): OfficialStageSimulationContext {
   const lockedByStageId = new Map(
-    lockedSimulations.map((simulation) => [
-      simulation.stageId,
-      simulation,
-    ])
+    lockedSimulations.map((simulation) => [simulation.stageId, simulation]),
   );
   const selectedLockedSimulation = lockedByStageId.get(stageId);
 
@@ -317,42 +294,37 @@ export function getOfficialStageSimulationContext({
     const orderedStages = [...edition.stages].sort(
       (first, second) =>
         first.stageNumber - second.stageNumber ||
-        first.id.localeCompare(second.id)
+        first.id.localeCompare(second.id),
     );
     const selectedIndex = orderedStages.findIndex(
-      (stage) => stage.id === stageId
+      (stage) => stage.id === stageId,
     );
     const stage = orderedStages[selectedIndex];
     if (!stage) {
       throw new Error(
-        `L'étape ${stageId} n'appartient pas à l'édition ${edition.id}.`
+        `L'étape ${stageId} n'appartient pas à l'édition ${edition.id}.`,
       );
     }
     const simulationsThroughStage = orderedStages
       .slice(0, selectedIndex + 1)
       .map((candidateStage) => lockedByStageId.get(candidateStage.id))
       .filter(
-        (
-          simulation
-        ): simulation is LockedOfficialStageSimulation =>
-          simulation !== undefined
+        (simulation): simulation is LockedOfficialStageSimulation =>
+          simulation !== undefined,
       );
     const simulationsBeforeStage = orderedStages
       .slice(0, selectedIndex)
       .map((candidateStage) => lockedByStageId.get(candidateStage.id))
       .filter(
-        (
-          simulation
-        ): simulation is LockedOfficialStageSimulation =>
-          simulation !== undefined
+        (simulation): simulation is LockedOfficialStageSimulation =>
+          simulation !== undefined,
       );
     const standingsBeforeStage =
-      edition.raceFormat === "stage_race" &&
-      simulationsBeforeStage.length > 0
+      edition.raceFormat === "stage_race" && simulationsBeforeStage.length > 0
         ? buildStageRaceStandings(
             simulationsBeforeStage.map(
-              (lockedSimulation) => lockedSimulation.simulation
-            )
+              (lockedSimulation) => lockedSimulation.simulation,
+            ),
           )
         : null;
 
@@ -360,25 +332,22 @@ export function getOfficialStageSimulationContext({
       sanitizeOfficialStageSimulationForRaceFormat({
         raceFormat: edition.raceFormat,
         input: selectedLockedSimulation.input,
-        simulation:
-          selectedLockedSimulation.simulation,
+        simulation: selectedLockedSimulation.simulation,
       });
 
-    const hydratedLockedSimulationData =
-      hydrateLockedRiderVisualMetadata({
-        edition,
-        input: sanitizedLockedSimulationData.input,
-        simulation: sanitizedLockedSimulationData.simulation,
-      });
+    const hydratedLockedSimulationData = hydrateLockedRiderVisualMetadata({
+      edition,
+      input: sanitizedLockedSimulationData.input,
+      simulation: sanitizedLockedSimulationData.simulation,
+    });
 
-    const decoratedLockedSimulationData =
-      decorateStageRaceJerseys({
-        edition,
-        stage,
-        input: hydratedLockedSimulationData.input,
-        simulation: hydratedLockedSimulationData.simulation,
-        standingsBeforeStage,
-      });
+    const decoratedLockedSimulationData = decorateStageRaceJerseys({
+      edition,
+      stage,
+      input: hydratedLockedSimulationData.input,
+      simulation: hydratedLockedSimulationData.simulation,
+      standingsBeforeStage,
+    });
 
     return {
       stage,
@@ -388,8 +357,8 @@ export function getOfficialStageSimulationContext({
         edition.raceFormat === "stage_race"
           ? buildStageRaceStandings(
               simulationsThroughStage.map(
-                (lockedSimulation) => lockedSimulation.simulation
-              )
+                (lockedSimulation) => lockedSimulation.simulation,
+              ),
             )
           : null,
     };
@@ -400,7 +369,7 @@ export function getOfficialStageSimulationContext({
 
   if (selectedIndex < 0) {
     throw new Error(
-      `L'étape ${stageId} n'appartient pas à l'édition ${edition.id}.`
+      `L'étape ${stageId} n'appartient pas à l'édition ${edition.id}.`,
     );
   }
 
@@ -408,9 +377,7 @@ export function getOfficialStageSimulationContext({
   const standingsBeforeStage =
     edition.raceFormat === "stage_race" && selectedIndex > 0
       ? buildStageRaceStandings(
-          runs
-            .slice(0, selectedIndex)
-            .map((run) => run.simulation)
+          runs.slice(0, selectedIndex).map((run) => run.simulation),
         )
       : null;
   const decoratedSelectedRun = decorateStageRaceJerseys({
@@ -428,9 +395,7 @@ export function getOfficialStageSimulationContext({
     standings:
       edition.raceFormat === "stage_race"
         ? buildStageRaceStandings(
-            runs
-              .slice(0, selectedIndex + 1)
-              .map((run) => run.simulation)
+            runs.slice(0, selectedIndex + 1).map((run) => run.simulation),
           )
         : null,
   };

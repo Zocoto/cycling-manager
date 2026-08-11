@@ -8,6 +8,11 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profile-view";
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
+import { ContinentalChampionJersey } from "@/components/game/continental-champion-jersey";
+import {
+  ContinentalMark,
+  ContinentalTitleBadge,
+} from "@/components/game/continental-title-badge";
 import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
 import { WorldChampionJersey } from "@/components/game/world-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
@@ -40,6 +45,8 @@ import {
 } from "@/lib/game/special-abilities";
 import {
   createAmateurRiderJersey,
+  CONTINENTAL_CHAMPION_PALETTES,
+  createContinentalChampionRiderJersey,
   createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
   createWorldChampionRiderJersey,
@@ -179,19 +186,33 @@ export default async function RiderProfilePage({
         getActiveTeamSponsorIdentity(profile.currentTeam.id),
       ])
     : [null, null];
+  const activeWorldTitles = profile.worldTitles.filter(
+    (title) => title.isActive,
+  );
+  const activeContinentalTitles = profile.continentalTitles.filter(
+    (title) => title.isActive,
+  );
+  const activeNationalTitles = profile.nationalTitles.filter(
+    (title) => title.isActive,
+  );
+
   const activeWorldTitle =
-    profile.worldTitles.find(
+    activeWorldTitles.find(
       (title) => title.isActive && title.type === "road",
     ) ??
-    profile.worldTitles.find(
+    activeWorldTitles.find(
       (title) => title.isActive && title.type === "time_trial",
     ) ??
     null;
+  const activeContinentalTitle =
+    activeContinentalTitles.find((title) => title.type === "road") ??
+    activeContinentalTitles.find((title) => title.type === "time_trial") ??
+    null;
   const activeNationalTitle =
-    profile.nationalTitles.find(
+    activeNationalTitles.find(
       (title) => title.isActive && title.type === "road",
     ) ??
-    profile.nationalTitles.find(
+    activeNationalTitles.find(
       (title) => title.isActive && title.type === "time_trial",
     ) ??
     null;
@@ -199,23 +220,43 @@ export default async function RiderProfilePage({
     ? createWorldChampionRiderJersey({
         championshipType: activeWorldTitle.type,
       })
-    : activeNationalTitle
-      ? createNationalChampionRiderJersey({
-          countryCode: activeNationalTitle.countryCode,
-          championshipType: activeNationalTitle.type,
+    : activeContinentalTitle
+      ? createContinentalChampionRiderJersey({
+          continentCode: activeContinentalTitle.continentCode,
+          championshipType: activeContinentalTitle.type,
         })
-      : sponsorIdentity
-        ? createSponsoredRiderJersey({
-            colors: sponsorIdentity.sponsor.colors,
-            style: sponsorIdentity.selectedJersey.style,
-            imagePath: sponsorIdentity.selectedJersey.imagePath,
+      : activeNationalTitle
+        ? createNationalChampionRiderJersey({
+            countryCode: activeNationalTitle.countryCode,
+            championshipType: activeNationalTitle.type,
           })
-        : amateurIdentity
-          ? createAmateurRiderJersey(amateurIdentity.jersey)
-          : FREE_AGENT_RIDER_JERSEY;
-  const nationalPalette = !activeWorldTitle && activeNationalTitle
-    ? getNationalChampionPalette(activeNationalTitle.countryCode)
-    : null;
+        : sponsorIdentity
+          ? createSponsoredRiderJersey({
+              colors: sponsorIdentity.sponsor.colors,
+              style: sponsorIdentity.selectedJersey.style,
+              imagePath: sponsorIdentity.selectedJersey.imagePath,
+            })
+          : amateurIdentity
+            ? createAmateurRiderJersey(amateurIdentity.jersey)
+            : FREE_AGENT_RIDER_JERSEY;
+  const nationalPalette =
+    !activeWorldTitle && activeContinentalTitle
+      ? {
+          ...CONTINENTAL_CHAMPION_PALETTES[
+            activeContinentalTitle.continentCode
+          ],
+          dominantColors: [
+            CONTINENTAL_CHAMPION_PALETTES[activeContinentalTitle.continentCode]
+              .primary,
+            CONTINENTAL_CHAMPION_PALETTES[activeContinentalTitle.continentCode]
+              .secondary,
+            CONTINENTAL_CHAMPION_PALETTES[activeContinentalTitle.continentCode]
+              .accent,
+          ],
+        }
+      : !activeWorldTitle && activeNationalTitle
+        ? getNationalChampionPalette(activeNationalTitle.countryCode)
+        : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
   const equipmentRatingBonuses = getEquipmentRatingBonusTotals(
     combineEquipmentEffects(
@@ -300,7 +341,11 @@ export default async function RiderProfilePage({
             </div>
           ) : nationalPalette ? (
             <div
-              aria-label={`Couleurs nationales de ${activeNationalTitle?.countryName ?? profile.country.name}`}
+              aria-label={
+                activeContinentalTitle
+                  ? `Couleurs continentales de ${activeContinentalTitle.continentName}`
+                  : `Couleurs nationales de ${activeNationalTitle?.countryName ?? profile.country.name}`
+              }
               className="grid h-2"
               style={{
                 gridTemplateColumns: `repeat(${new Set(nationalPalette.dominantColors).size}, minmax(0, 1fr))`,
@@ -326,6 +371,14 @@ export default async function RiderProfilePage({
                 <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
                   <RainbowMark />
                   CM {activeWorldTitle.type === "road" ? "Route" : "CLM"}
+                </span>
+              ) : activeContinentalTitle ? (
+                <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
+                  <ContinentalMark
+                    continentCode={activeContinentalTitle.continentCode}
+                  />
+                  CC {activeContinentalTitle.continentName}{" "}
+                  {activeContinentalTitle.type === "road" ? "Route" : "CLM"}
                 </span>
               ) : activeNationalTitle ? (
                 <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
@@ -383,6 +436,17 @@ export default async function RiderProfilePage({
                       {title.type === "road" ? "route" : "CLM"}
                     </IdentityBadge>
                   ))}
+                {profile.continentalTitles
+                  .filter((title) => title.isActive)
+                  .map((title) => (
+                    <IdentityBadge
+                      key={`continental-${title.continentCode}-${title.type}`}
+                    >
+                      <ContinentalMark continentCode={title.continentCode} />
+                      Champion {title.continentName}{" "}
+                      {title.type === "road" ? "route" : "CLM"}
+                    </IdentityBadge>
+                  ))}
                 {profile.nationalTitles
                   .filter((title) => title.isActive)
                   .map((title) => (
@@ -428,8 +492,9 @@ export default async function RiderProfilePage({
                 amateurJersey={amateurIdentity?.jersey ?? FREE_AGENT_JERSEY}
                 amateurTeamName={amateurIdentity?.amateurName ?? null}
                 sponsorIdentity={sponsorIdentity}
-                activeNationalTitle={activeNationalTitle}
-                activeWorldTitle={activeWorldTitle}
+                activeNationalTitles={activeNationalTitles}
+                activeContinentalTitles={activeContinentalTitles}
+                activeWorldTitles={activeWorldTitles}
               />
             </div>
           </div>
@@ -934,8 +999,9 @@ function CurrentTeamCard({
   amateurJersey,
   amateurTeamName,
   sponsorIdentity,
-  activeNationalTitle,
-  activeWorldTitle,
+  activeNationalTitles,
+  activeContinentalTitles,
+  activeWorldTitles,
 }: {
   team: {
     id: string;
@@ -947,36 +1013,55 @@ function CurrentTeamCard({
   amateurJersey: AmateurJerseyConfig;
   amateurTeamName: string | null;
   sponsorIdentity: Awaited<ReturnType<typeof getActiveTeamSponsorIdentity>>;
-  activeNationalTitle: PublicRiderProfile["nationalTitles"][number] | null;
-  activeWorldTitle: PublicRiderProfile["worldTitles"][number] | null;
+  activeNationalTitles: PublicRiderProfile["nationalTitles"];
+  activeContinentalTitles: PublicRiderProfile["continentalTitles"];
+  activeWorldTitles: PublicRiderProfile["worldTitles"];
 }) {
   const content = (
     <>
-      <span className="flex shrink-0 items-end gap-1.5">
-        {activeWorldTitle ? (
-          <span className="text-center">
+      <span className="flex max-w-full shrink-0 flex-wrap items-end gap-1.5">
+        {activeWorldTitles.map((title) => (
+          <span key={`world-${title.type}`} className="text-center">
             <WorldChampionJersey
-              championshipType={activeWorldTitle.type}
+              championshipType={title.type}
               className="h-24 w-20 drop-shadow-xl"
             />
             <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
-              Maillot CM
+              CM {title.type === "road" ? "Route" : "CLM"}
             </span>
           </span>
-        ) : null}
-        {activeNationalTitle ? (
-          <span className="text-center">
+        ))}
+        {activeContinentalTitles.map((title) => (
+          <span
+            key={`continental-${title.continentCode}-${title.type}`}
+            className="text-center"
+          >
+            <ContinentalChampionJersey
+              continentCode={title.continentCode}
+              championshipType={title.type}
+              className="h-24 w-20 drop-shadow-xl"
+            />
+            <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
+              CC {title.type === "road" ? "Route" : "CLM"}
+            </span>
+          </span>
+        ))}
+        {activeNationalTitles.map((title) => (
+          <span
+            key={`national-${title.countryCode}-${title.type}`}
+            className="text-center"
+          >
             <NationalChampionJersey
-              countryCode={activeNationalTitle.countryCode}
-              countryName={activeNationalTitle.countryName}
-              championshipType={activeNationalTitle.type}
+              countryCode={title.countryCode}
+              countryName={title.countryName}
+              championshipType={title.type}
               className="h-24 w-20 drop-shadow-xl"
             />
             <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
-              Maillot CN
+              CN {title.type === "road" ? "Route" : "CLM"}
             </span>
           </span>
-        ) : null}
+        ))}
         <span className="text-center">
           <TeamJerseyPreview
             amateurJersey={amateurJersey}
@@ -1090,6 +1175,11 @@ function CareerHistory({
     worldTitles: Array<{
       type: "road" | "time_trial";
     }>;
+    continentalTitles: Array<{
+      type: "road" | "time_trial";
+      continentCode: PublicRiderProfile["continentalTitles"][number]["continentCode"];
+      continentName: string;
+    }>;
     notablePerformances: RiderNotablePerformance[];
   }>;
 }) {
@@ -1164,8 +1254,17 @@ function CareerHistory({
                           discipline={title.type}
                         />
                       ))}
+                      {entry.continentalTitles.map((title) => (
+                        <ContinentalTitleBadge
+                          key={`continental-${title.continentCode}-${title.type}`}
+                          continentCode={title.continentCode}
+                          continentName={title.continentName}
+                          discipline={title.type}
+                        />
+                      ))}
                       {entry.nationalTitles.length === 0 &&
-                      entry.worldTitles.length === 0 ? (
+                      entry.worldTitles.length === 0 &&
+                      entry.continentalTitles.length === 0 ? (
                         <span className="text-sm font-black text-[#48665F]">
                           —
                         </span>
@@ -1242,10 +1341,18 @@ function CareerHistory({
                             discipline={title.type}
                           />
                         ))}
-                        {entry.worldTitles.length === 0 ? (
-                          <>
-                        {entry.nationalTitles.length === 0 ? "—" : null}
-                          </>
+                        {entry.continentalTitles.map((title) => (
+                          <ContinentalTitleBadge
+                            key={`continental-${title.continentCode}-${title.type}`}
+                            continentCode={title.continentCode}
+                            continentName={title.continentName}
+                            discipline={title.type}
+                          />
+                        ))}
+                        {entry.nationalTitles.length === 0 &&
+                        entry.worldTitles.length === 0 &&
+                        entry.continentalTitles.length === 0 ? (
+                          <>{entry.nationalTitles.length === 0 ? "—" : null}</>
                         ) : null}
                       </div>
                     </td>
@@ -1342,7 +1449,6 @@ function RainbowMark() {
     </span>
   );
 }
-
 
 function WorldTitleBadge({
   discipline,

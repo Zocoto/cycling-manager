@@ -1,7 +1,10 @@
 import Link from "@/components/ui/app-link";
 import { GameHeader } from "@/components/game/game-header";
 import { RiderAvatar } from "@/components/game/rider-avatar";
-import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
+import {
+  CONTINENTAL_CHAMPION_PALETTES,
+  FREE_AGENT_RIDER_JERSEY,
+} from "@/lib/rider-jersey";
 import type { GameHeaderData } from "@/services/game-header-data";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 
@@ -17,9 +20,8 @@ export function ArchivedRiderProfileView({
   if (!profile.archive) return null;
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-  const seasonsCount = new Set(
-    profile.history.map((entry) => entry.seasonId),
-  ).size;
+  const seasonsCount = new Set(profile.history.map((entry) => entry.seasonId))
+    .size;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -88,7 +90,10 @@ export function ArchivedRiderProfileView({
           </div>
 
           <dl className="grid border-t border-white/10 bg-black/10 sm:grid-cols-4">
-            <ArchiveMetric label="Saisons en équipe" value={String(seasonsCount)} />
+            <ArchiveMetric
+              label="Saisons en équipe"
+              value={String(seasonsCount)}
+            />
             <ArchiveMetric
               label="Victoires"
               value={String(profile.archive.totalVictories)}
@@ -151,7 +156,8 @@ export function ArchivedRiderProfileView({
                   </dl>
 
                   {entry.nationalTitles.length ||
-                  entry.worldTitles.length ? (
+                  entry.worldTitles.length ||
+                  entry.continentalTitles.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {entry.nationalTitles.map((title) => (
                         <span
@@ -172,6 +178,20 @@ export function ArchivedRiderProfileView({
                           {title.type === "time_trial" ? "CLM" : "route"}
                         </span>
                       ))}
+                      {entry.continentalTitles.map((title) => {
+                        const palette =
+                          CONTINENTAL_CHAMPION_PALETTES[title.continentCode];
+                        return (
+                          <span
+                            key={`continental-${title.continentCode}-${title.type}`}
+                            className="rounded-full px-3 py-1 text-[10px] font-black text-white shadow-sm"
+                            style={{ backgroundColor: palette.secondary }}
+                          >
+                            Champion {title.continentName}{" "}
+                            {title.type === "time_trial" ? "CLM" : "route"}
+                          </span>
+                        );
+                      })}
                     </div>
                   ) : null}
 
@@ -181,17 +201,19 @@ export function ArchivedRiderProfileView({
                         Résultats notables
                       </p>
                       <ul className="mt-2 space-y-2">
-                        {entry.notablePerformances.slice(0, 4).map((performance) => (
-                          <li
-                            key={performance.raceEditionId}
-                            className="text-xs font-semibold leading-5 text-[#48665F]"
-                          >
-                            <strong className="text-[#183F37]">
-                              {performance.raceName}
-                            </strong>{" "}
-                            · {performance.labels.join(" · ")}
-                          </li>
-                        ))}
+                        {entry.notablePerformances
+                          .slice(0, 4)
+                          .map((performance) => (
+                            <li
+                              key={performance.raceEditionId}
+                              className="text-xs font-semibold leading-5 text-[#48665F]"
+                            >
+                              <strong className="text-[#183F37]">
+                                {performance.raceName}
+                              </strong>{" "}
+                              · {performance.labels.join(" · ")}
+                            </li>
+                          ))}
                       </ul>
                     </div>
                   ) : null}

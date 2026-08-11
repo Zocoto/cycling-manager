@@ -19,6 +19,7 @@ import { TeamDivisionBadge } from "../../../components/game/team-division-badge"
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
+  createContinentalChampionRiderJersey,
   createWorldChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
@@ -64,6 +65,7 @@ import {
   getActiveNationalChampionshipTitlesForRiders,
   getActiveWorldChampionshipTitlesForRiders,
 } from "@/services/rider-national-championship-titles";
+import { getActiveContinentalChampionshipTitlesForRiders } from "@/services/rider-continental-championship-titles";
 import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -304,15 +306,13 @@ export default async function TeamRosterPage({
         })
       : Promise.resolve(null),
     activeView === "contrats"
-      ? getTeamContractManagementOverview(user.id).catch(
-          (error: unknown) => {
-            console.error(
-              "Impossible de récupérer la gestion contractuelle de l’effectif :",
-              error,
-            );
-            return null;
-          },
-        )
+      ? getTeamContractManagementOverview(user.id).catch((error: unknown) => {
+          console.error(
+            "Impossible de récupérer la gestion contractuelle de l’effectif :",
+            error,
+          );
+          return null;
+        })
       : Promise.resolve(null),
     sponsorIdentityPromise,
     getTeamAmateurIdentityForAuthUser(user.id).catch((error: unknown) => {
@@ -333,16 +333,15 @@ export default async function TeamRosterPage({
       );
       return null;
     }),
-    getAuthenticatedTutorialProgress(
-      supabase,
-      ROSTER_TUTORIAL_KEY,
-    ).catch((error: unknown) => {
-      console.error(
-        "Impossible de reprendre le didacticiel de l’effectif :",
-        error,
-      );
-      return null;
-    }),
+    getAuthenticatedTutorialProgress(supabase, ROSTER_TUTORIAL_KEY).catch(
+      (error: unknown) => {
+        console.error(
+          "Impossible de reprendre le didacticiel de l’effectif :",
+          error,
+        );
+        return null;
+      },
+    ),
   ]);
 
   const teamSponsorIdentity = sponsorIdentityResult.identity;
@@ -391,6 +390,17 @@ export default async function TeamRosterPage({
       );
       return new Map();
     });
+  const activeContinentalTitlesByRiderId =
+    await getActiveContinentalChampionshipTitlesForRiders(
+      supabase,
+      riders.map((rider) => rider.rider_id),
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de recuperer les maillots de champions continentaux de l'effectif :",
+        error,
+      );
+      return new Map();
+    });
   const activeWorldTitlesByRiderId =
     await getActiveWorldChampionshipTitlesForRiders(
       supabase,
@@ -427,6 +437,15 @@ export default async function TeamRosterPage({
       }),
     ]),
   );
+  for (const [riderId, title] of activeContinentalTitlesByRiderId) {
+    nationalChampionJerseyByRiderId.set(
+      riderId,
+      createContinentalChampionRiderJersey({
+        continentCode: title.continentCode,
+        championshipType: title.championshipType,
+      }),
+    );
+  }
   for (const [riderId, title] of activeWorldTitlesByRiderId) {
     nationalChampionJerseyByRiderId.set(
       riderId,
@@ -990,7 +1009,11 @@ function TeamSeasonSummary({
           {seasonName} · Jour {seasonDayNumber} / 28
         </p>
         <span className="mt-2 flex justify-end">
-          <TeamDivisionBadge division={divisionCode} isProfessional={Boolean(sponsorIdentity)} compact />
+          <TeamDivisionBadge
+            division={divisionCode}
+            isProfessional={Boolean(sponsorIdentity)}
+            compact
+          />
         </span>
       </div>
     </div>
@@ -1690,7 +1713,11 @@ function RiderTableRow({
           <td
             key={column.key}
             data-rating-importance={column.importance}
-            className={column.importance === "primary" ? "px-1 py-4 text-center" : "bg-[#FAFBFA] px-1 py-4 text-center"}
+            className={
+              column.importance === "primary"
+                ? "px-1 py-4 text-center"
+                : "bg-[#FAFBFA] px-1 py-4 text-center"
+            }
           >
             <RatingBadge
               value={value}

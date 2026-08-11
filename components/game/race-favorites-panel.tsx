@@ -1,7 +1,10 @@
 import Link from "@/components/ui/app-link";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
-import { buildRaceFavorites, type RaceFavorite } from "@/lib/game/race-favorites";
+import {
+  buildRaceFavorites,
+  type RaceFavorite,
+} from "@/lib/game/race-favorites";
 import type {
   RaceCalendarEdition,
   RaceCalendarStage,
@@ -10,16 +13,14 @@ import type { RiderSimulationInput } from "@/lib/game/race-simulation";
 import { getTeamKitPattern } from "@/lib/game/race-visuals";
 import {
   createAmateurRiderJersey,
+  createContinentalChampionRiderJersey,
   createWorldChampionRiderJersey,
   createNationalChampionRiderJersey,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 
 type RaceFavoritesPanelProps = {
-  edition: Pick<
-    RaceCalendarEdition,
-    "raceFormat" | "stages" | "engagedRiders"
-  >;
+  edition: Pick<RaceCalendarEdition, "raceFormat" | "stages" | "engagedRiders">;
   riders?: RiderSimulationInput[];
   stage?: RaceCalendarStage;
   frozen?: boolean;
@@ -96,11 +97,7 @@ export function RaceFavoritesPanel({
       {favorites.length > 0 ? (
         <div className="p-5">
           <div>
-            <TierHeading
-              label="Principaux favoris"
-              stars={3}
-              tone={tone}
-            />
+            <TierHeading label="Principaux favoris" stars={3} tone={tone} />
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               {podium.map((favorite) => (
                 <PodiumFavorite
@@ -346,15 +343,22 @@ function getFavoriteJersey(
     firstStage?.stageType === "prologue"
       ? "time_trial"
       : "road";
-  const worldChampionship =
-    rider.worldChampionships?.[championshipType];
+  const worldChampionship = rider.worldChampionships?.[championshipType];
 
   if (worldChampionship) {
     return createWorldChampionRiderJersey({ championshipType });
   }
+  const continentalChampionship =
+    rider.continentalChampionships?.[championshipType];
 
-  const nationalChampionship =
-    rider.nationalChampionships?.[championshipType];
+  if (continentalChampionship) {
+    return createContinentalChampionRiderJersey({
+      continentCode: continentalChampionship.continentCode,
+      championshipType,
+    });
+  }
+
+  const nationalChampionship = rider.nationalChampionships?.[championshipType];
 
   if (nationalChampionship) {
     return createNationalChampionRiderJersey({
