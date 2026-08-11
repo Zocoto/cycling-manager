@@ -11,6 +11,14 @@ const migration = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 
+const optionalArchitectMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260811110000_allow_infrastructure_without_architect.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
+
 describe("constructible team buildings migration", () => {
   it("allows all three buildings through projects and completed levels", () => {
     for (const code of [
@@ -48,6 +56,18 @@ describe("constructible team buildings migration", () => {
     );
     expect(migration).toMatch(
       /p_infrastructure_code = 'club_shop'[\s\S]+infrastructure_code = 'fan_club_headquarters'/,
+    );
+  });
+
+  it("keeps the architect optional and applies no bonus without one", () => {
+    expect(migration).toContain(
+      "p_architect_contract_id uuid default null",
+    );
+    expect(migration).toContain(
+      "if p_architect_contract_id is not null then",
+    );
+    expect(optionalArchitectMigration).toContain(
+      "when p_contract_id is null then 0",
     );
   });
 

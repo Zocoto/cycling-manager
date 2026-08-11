@@ -151,7 +151,7 @@ export function StaffAcademyCard({
               </p>
               <label className="mt-4 block">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-                  Architecte
+                  Architecte (optionnel)
                 </span>
                 <select
                   name="architectContractId"

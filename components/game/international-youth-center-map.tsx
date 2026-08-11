@@ -283,7 +283,7 @@ export function InternationalYouthCenterMap({
             </div>
             <label className="block">
               <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-                Architecte du chantier
+                Architecte du chantier (optionnel)
               </span>
               <select
                 name="architectContractId"
