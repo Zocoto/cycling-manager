@@ -1,8 +1,12 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
   TEAM_INFRASTRUCTURE_DEFINITIONS,
   applyInternationalCenterPotentialBonus,
+  getTeamInfrastructureCodesByStartingCost,
   getInternationalCenterBonusPercentage,
   isTeamInfrastructureCode,
   getScoutingVisibilityForDataRoom,
@@ -61,6 +65,30 @@ describe("recruitment Data Room", () => {
 });
 
 describe("team infrastructure buildings", () => {
+  it("classe les bâtiments du prix d’entrée le plus bas au plus élevé", () => {
+    expect(getTeamInfrastructureCodesByStartingCost()).toEqual([
+      "training_center",
+      "club_shop",
+      "fan_club_headquarters",
+      "recruitment_data_room",
+      "staff_academy",
+    ]);
+  });
+
+  it("associe chaque bâtiment actif à une illustration WebP livrée", () => {
+    for (const definition of Object.values(
+      TEAM_INFRASTRUCTURE_DEFINITIONS,
+    )) {
+      expect(definition.illustration.src).toMatch(
+        /^\/images\/infrastructure\/.+\.webp$/,
+      );
+      expect(definition.illustration.alt.length).toBeGreaterThan(20);
+      expect(
+        existsSync(join(process.cwd(), "public", definition.illustration.src)),
+      ).toBe(true);
+    }
+  });
+
   it("starts the training center at 100,000 euros and raises prices progressively", () => {
     const levels = TEAM_INFRASTRUCTURE_DEFINITIONS.training_center.levels;
 

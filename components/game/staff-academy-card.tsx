@@ -6,6 +6,7 @@ import {
   startInfrastructureProjectAction,
   startStaffAcademyTrainingAction,
 } from "@/app/jeu/infrastructures/actions";
+import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
 import { InfrastructureSubmitButton } from "@/components/game/infrastructure-submit-button";
 import { StaffAcademySubmitButton } from "@/components/game/staff-academy-submit-button";
 import {
@@ -13,7 +14,10 @@ import {
   STAFF_ACADEMY_MAX_TALENT_LINES,
   STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL,
 } from "@/lib/game/staff-academy";
-import { getTeamInfrastructureLevelDefinition } from "@/lib/game/infrastructure";
+import {
+  TEAM_INFRASTRUCTURE_DEFINITIONS,
+  getTeamInfrastructureLevelDefinition,
+} from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
 import type { StaffAcademyOverview } from "@/services/staff-academy";
 import type {
@@ -76,35 +80,13 @@ export function StaffAcademyCard({
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_18px_50px_rgba(19,60,46,0.1)]">
-      <div className="relative overflow-hidden bg-[linear-gradient(135deg,#102A27_0%,#15483C_60%,#278B70_100%)] px-6 py-6 text-white sm:px-8">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-[0.07] [background-image:repeating-linear-gradient(135deg,#fff_0,#fff_1px,transparent_1px,transparent_18px)]"
-        />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-              Staff · Formation de haut niveau
-            </p>
-            <h2 className="mt-2 text-3xl font-black">
-              Académie des métiers
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Développez durablement un membre du staff sans l’écarter de ses
-              fonctions. Son étoile ou son nouveau bonus s’active uniquement à
-              la fin du stage.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black">
-              Niveau {academy.academyLevel}/5
-            </span>
-            <span className="rounded-full border border-[#F2C94C]/35 bg-[#F2C94C]/15 px-4 py-2 text-xs font-black text-[#FFE897]">
-              {academy.activeTrainingCount}/{academy.capacity} stage(s)
-            </span>
-          </div>
-        </div>
-      </div>
+      <InfrastructureBuildingHero
+        definition={TEAM_INFRASTRUCTURE_DEFINITIONS.staff_academy}
+        currency={currency}
+        levelLabel={`Niveau ${academy.academyLevel}/5`}
+        secondaryLabel={`${academy.activeTrainingCount}/${academy.capacity} stage(s)`}
+        description="Développez durablement un membre du staff sans l’écarter de ses fonctions. Son étoile ou son nouveau bonus s’active uniquement à la fin du stage."
+      />
 
       <div className="p-6 sm:p-8">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

@@ -39,6 +39,10 @@ export type TeamInfrastructureDefinition = {
   name: string;
   domain: string;
   summary: string;
+  illustration: {
+    src: string;
+    alt: string;
+  };
   levels: readonly InfrastructureLevelDefinition[];
 };
 
@@ -52,6 +56,10 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     domain: "Scouting · Transferts",
     summary:
       "Réduit progressivement l’incertitude des rapports présentés sur le marché des transferts.",
+    illustration: {
+      src: "/images/infrastructure/recruitment-data-room.webp",
+      alt: "Data Room moderne d’une équipe cycliste au crépuscule",
+    },
     levels: [
       {
         level: 1,
@@ -82,6 +90,10 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     domain: "Staff · Formation avancée",
     summary:
       "Développe durablement les étoiles et les domaines d’expertise du staff.",
+    illustration: {
+      src: "/images/infrastructure/staff-academy.webp",
+      alt: "Académie des métiers moderne au cœur d’un campus cycliste",
+    },
     levels: STAFF_ACADEMY_LEVELS.map((definition) => ({
       level: definition.level,
       cost: definition.cost,
@@ -95,6 +107,10 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     domain: "Performance · Effectif professionnel",
     summary:
       "Améliore durablement la progression gagnée par tous les coureurs professionnels à chaque séance.",
+    illustration: {
+      src: "/images/infrastructure/training-center.webp",
+      alt: "Centre d’entraînement contemporain pour coureurs professionnels",
+    },
     levels: [
       {
         level: 1,
@@ -134,6 +150,10 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     domain: "Supporters · Popularité",
     summary:
       "Débloque le Fan Club, augmente son audience et agrandit progressivement le parc de cars.",
+    illustration: {
+      src: "/images/infrastructure/fan-club-headquarters.webp",
+      alt: "Siège social accueillant du Fan Club d’une équipe cycliste",
+    },
     levels: [
       {
         level: 1,
@@ -173,6 +193,10 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     domain: "Supporters · Merchandising",
     summary:
       "Développe les ventes du Fan Club en augmentant le stock et le nombre de produits disponibles.",
+    illustration: {
+      src: "/images/infrastructure/club-shop.webp",
+      alt: "Boutique contemporaine d’un club cycliste",
+    },
     levels: [
       {
         level: 1,
@@ -207,6 +231,26 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     ],
   },
 };
+
+export function getTeamInfrastructureCodesByStartingCost() {
+  return (Object.keys(TEAM_INFRASTRUCTURE_DEFINITIONS) as TeamInfrastructureCode[])
+    .sort((left, right) => {
+      const leftCost =
+        TEAM_INFRASTRUCTURE_DEFINITIONS[left].levels[0]?.cost ??
+        Number.POSITIVE_INFINITY;
+      const rightCost =
+        TEAM_INFRASTRUCTURE_DEFINITIONS[right].levels[0]?.cost ??
+        Number.POSITIVE_INFINITY;
+
+      return (
+        leftCost - rightCost ||
+        TEAM_INFRASTRUCTURE_DEFINITIONS[left].name.localeCompare(
+          TEAM_INFRASTRUCTURE_DEFINITIONS[right].name,
+          "fr",
+        )
+      );
+    });
+}
 
 export const INTERNATIONAL_CENTER_LEVELS = [
   {
