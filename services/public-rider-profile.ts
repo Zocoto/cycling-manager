@@ -86,6 +86,12 @@ export type PublicRiderProfile = {
     countryCode: string;
     isActive: boolean;
   }>;
+  worldTitles: Array<{
+    type: "road" | "time_trial";
+    seasonId: string;
+    seasonName: string;
+    isActive: boolean;
+  }>;
   history: Array<{
     seasonId: string;
     seasonName: string;
@@ -103,6 +109,9 @@ export type PublicRiderProfile = {
       type: "road" | "time_trial";
       countryName: string;
       countryCode: string;
+    }>;
+    worldTitles: Array<{
+      type: "road" | "time_trial";
     }>;
     notablePerformances: RiderNotablePerformance[];
   }>;
@@ -218,7 +227,8 @@ type NationalChampionshipTitleRow = {
   country_id: string;
   season_id: string;
   race_edition_id: string;
-  championship_type: "road" | "time_trial";
+  championship_type:
+    | "road" | "time_trial" | "world_road" | "world_time_trial";
   relinquished_at: string | null;
 };
 
@@ -917,11 +927,36 @@ export async function getPublicRiderProfile({
                   ? titleTeamId === contract.team_id
                   : !hasSeveralTeams;
               })
-              .map((title) => ({
-                type: title.championship_type,
-                countryName: countryResult.data!.name,
-                countryCode: countryResult.data!.iso_alpha2,
-              })),
+              .flatMap((title) =>
+                title.championship_type === "road" ||
+                title.championship_type === "time_trial"
+                  ? [{
+                      type: title.championship_type,
+                      countryName: countryResult.data!.name,
+                      countryCode: countryResult.data!.iso_alpha2,
+                    }]
+                  : [],
+              ),
+            worldTitles: nationalTitleRows
+              .filter((title) => {
+                if (title.season_id !== season.id) return false;
+                const titleTeamId = titleTeamIdByEditionId.get(
+                  title.race_edition_id,
+                );
+                return titleTeamId
+                  ? titleTeamId === contract.team_id
+                  : !hasSeveralTeams;
+              })
+              .flatMap((title) =>
+                title.championship_type === "world_road" ||
+                title.championship_type === "world_time_trial"
+                  ? [{
+                      type: title.championship_type === "world_time_trial"
+                        ? "time_trial" as const
+                        : "road" as const,
+                    }]
+                  : [],
+              ),
             notablePerformances:
               notablePerformancesBySeasonTeam.get(
                 historyTeamKey(season.id, contract.team_id),
@@ -1052,14 +1087,34 @@ export async function getPublicRiderProfile({
         }
       : null,
     currentTeam,
-    nationalTitles: nationalTitleRows.map((title) => ({
-      type: title.championship_type,
-      seasonId: title.season_id,
-      seasonName: seasonById.get(title.season_id)?.name ?? "Saison inconnue",
-      countryName: countryResult.data!.name,
-      countryCode: countryResult.data!.iso_alpha2,
-      isActive: title.relinquished_at === null,
-    })),
+    nationalTitles: nationalTitleRows.flatMap((title) =>
+      title.championship_type === "road" ||
+      title.championship_type === "time_trial"
+        ? [{
+            type: title.championship_type,
+            seasonId: title.season_id,
+            seasonName:
+              seasonById.get(title.season_id)?.name ?? "Saison inconnue",
+            countryName: countryResult.data!.name,
+            countryCode: countryResult.data!.iso_alpha2,
+            isActive: title.relinquished_at === null,
+          }]
+        : [],
+    ),
+    worldTitles: nationalTitleRows.flatMap((title) =>
+      title.championship_type === "world_road" ||
+      title.championship_type === "world_time_trial"
+        ? [{
+            type: title.championship_type === "world_time_trial"
+              ? "time_trial" as const
+              : "road" as const,
+            seasonId: title.season_id,
+            seasonName:
+              seasonById.get(title.season_id)?.name ?? "Saison inconnue",
+            isActive: title.relinquished_at === null,
+          }]
+        : [],
+    ),
     history,
     specialAbilities,
     equipment,

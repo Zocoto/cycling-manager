@@ -68,7 +68,10 @@ export function SideRaceCyclist({
         strokeWidth="0.75"
         strokeLinejoin="round"
       />
-      {jerseyVisual.status === "national-champion" ? (
+      {jerseyVisual.status === "world-champion" ? (
+        <WorldChampionRacePattern clipPathId={jerseyClipId} mode="side" />
+      ) : jerseyVisual.status === "national-champion" ||
+        jerseyVisual.status === "national-team" ? (
         <NationalChampionRacePattern
           countryCode={jerseyVisual.countryCode!}
           clipPathId={jerseyClipId}
@@ -135,7 +138,10 @@ export function TopRaceCyclist({
       <path d="M31 11 23 7m8 16-8 4" stroke={skinTone} strokeWidth="2.3" strokeLinecap="round" />
       <path d="M40 10 52 12m-12 12 12-2" stroke={skinTone} strokeWidth="2.2" strokeLinecap="round" />
       <ellipse cx="37" cy="17" rx="13" ry="8.2" fill={jerseyVisual.primaryColor} stroke="#F4F7F5" strokeWidth="0.85" />
-      {jerseyVisual.status === "national-champion" ? (
+      {jerseyVisual.status === "world-champion" ? (
+        <WorldChampionRacePattern clipPathId={jerseyClipId} mode="top" />
+      ) : jerseyVisual.status === "national-champion" ||
+        jerseyVisual.status === "national-team" ? (
         <NationalChampionRacePattern
           countryCode={jerseyVisual.countryCode!}
           clipPathId={jerseyClipId}
@@ -172,6 +178,7 @@ export function getRaceCyclistJerseyVisual(
     | "classificationJersey"
     | "classificationJerseyVisual"
     | "activeNationalChampion"
+    | "activeWorldChampion"
   >
 ) {
   if (rider.classificationJersey) {
@@ -184,6 +191,23 @@ export function getRaceCyclistJerseyVisual(
       countryCode: null,
     };
   }
+  if (rider.activeWorldChampion) {
+    return {
+      label: `Champion du monde ${
+        rider.activeWorldChampion.championshipType === "road"
+          ? "sur route"
+          : "du contre-la-montre"
+      }`,
+      shortLabel: "Champion du monde",
+      primaryColor: "#FFFFFF",
+      secondaryColor: "#E32636",
+      accentColor: "#2166B1",
+      pattern: "rainbow-hoops" as const,
+      status: "world-champion" as const,
+      countryCode: null,
+    };
+  }
+
 
   if (rider.activeNationalChampion) {
     const palette = getNationalChampionPalette(
@@ -199,6 +223,22 @@ export function getRaceCyclistJerseyVisual(
       status: "national-champion" as const,
       countryCode:
         rider.activeNationalChampion.countryCode.toUpperCase(),
+    };
+  }
+
+  if (
+    rider.teamJersey?.status === "national-team" &&
+    rider.teamJersey.countryCode
+  ) {
+    return {
+      label: "Maillot de s?lection nationale",
+      shortLabel: "S?lection nationale",
+      primaryColor: rider.teamJersey.primaryColor,
+      secondaryColor: rider.teamJersey.secondaryColor,
+      accentColor: rider.teamJersey.accentColor,
+      pattern: "national-flag" as const,
+      status: "national-team" as const,
+      countryCode: rider.teamJersey.countryCode,
     };
   }
 
@@ -253,6 +293,31 @@ function NationalChampionRacePattern({
       clipPathId={clipPathId}
       preserveAspectRatio="xMidYMid slice"
     />
+  );
+}
+
+function WorldChampionRacePattern({
+  clipPathId,
+  mode,
+}: {
+  clipPathId: string;
+  mode: "side" | "top";
+}) {
+  const colors = ["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"];
+
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      {colors.map((color, index) => (
+        <rect
+          key={color}
+          x="0"
+          y={(mode === "side" ? 11.5 : 9.5) + index * 3}
+          width="90"
+          height="3"
+          fill={color}
+        />
+      ))}
+    </g>
   );
 }
 

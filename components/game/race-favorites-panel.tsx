@@ -10,6 +10,7 @@ import type { RiderSimulationInput } from "@/lib/game/race-simulation";
 import { getTeamKitPattern } from "@/lib/game/race-visuals";
 import {
   createAmateurRiderJersey,
+  createWorldChampionRiderJersey,
   createNationalChampionRiderJersey,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
@@ -345,6 +346,13 @@ function getFavoriteJersey(
     firstStage?.stageType === "prologue"
       ? "time_trial"
       : "road";
+  const worldChampionship =
+    rider.worldChampionships?.[championshipType];
+
+  if (worldChampionship) {
+    return createWorldChampionRiderJersey({ championshipType });
+  }
+
   const nationalChampionship =
     rider.nationalChampionships?.[championshipType];
 

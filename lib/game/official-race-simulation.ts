@@ -194,11 +194,14 @@ function decorateStageRaceJerseys({
       rider.nationalChampionships?.[
         nationalChampionshipDiscipline
       ] ?? null;
+    const activeWorldChampion =
+      rider.worldChampionships?.[nationalChampionshipDiscipline] ?? null;
     if (
       classificationJersey === (rider.classificationJersey ?? null) &&
       classificationJerseyVisual ===
         (rider.classificationJerseyVisual ?? null) &&
-      activeNationalChampion === (rider.activeNationalChampion ?? null)
+      activeNationalChampion === (rider.activeNationalChampion ?? null) &&
+      activeWorldChampion === (rider.activeWorldChampion ?? null)
     ) {
       return rider;
     }
@@ -207,6 +210,7 @@ function decorateStageRaceJerseys({
       classificationJersey,
       classificationJerseyVisual,
       activeNationalChampion,
+      activeWorldChampion,
     };
   };
   const decoratedInputRiders = input.riders.map(decorateRider);

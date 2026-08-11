@@ -26,6 +26,7 @@ import type { SportingDirectorReputationBreakdown } from "../../lib/game/reputat
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
+  createWorldChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
@@ -35,6 +36,8 @@ import { getAuthenticatedUser } from "../../lib/supabase/authenticated-user";
 import {
   getActiveNationalChampionshipTitlesForRiders,
   type ActiveNationalChampionshipTitle,
+  getActiveWorldChampionshipTitlesForRiders,
+  type ActiveWorldChampionshipTitle,
 } from "@/services/rider-national-championship-titles";
 import {
   getTeamAmateurIdentity,
@@ -376,6 +379,11 @@ export default async function GamePage() {
     "Impossible de récupérer les maillots de champions nationaux du bureau :",
   );
 
+  const activeWorldTitlesPromise = loadDashboardValue(
+    getActiveWorldChampionshipTitlesForRiders(supabase, dashboardRiderIds),
+    new Map<string, ActiveWorldChampionshipTitle>(),
+    "Impossible de recuperer les maillots de champions du monde du bureau :",
+  );
   const [
     sponsorIdentityResult,
     teamAmateurIdentity,
@@ -384,6 +392,7 @@ export default async function GamePage() {
     reputationBreakdown,
     raceCalendar,
     activeNationalTitlesByRiderId,
+    activeWorldTitlesByRiderId,
     sponsorObjectiveSummary,
     fanClubBuildings,
   ] = await Promise.all([
@@ -410,6 +419,7 @@ export default async function GamePage() {
     ),
     raceCalendarPromise,
     activeNationalTitlesPromise,
+    activeWorldTitlesPromise,
     sponsorObjectiveSummaryPromise,
     loadDashboardValue(
       dashboardTeamId
@@ -527,6 +537,14 @@ export default async function GamePage() {
       }),
     ]),
   );
+  for (const [riderId, title] of activeWorldTitlesByRiderId) {
+    nationalChampionJerseyByRiderId.set(
+      riderId,
+      createWorldChampionRiderJersey({
+        championshipType: title.championshipType,
+      }),
+    );
+  }
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);

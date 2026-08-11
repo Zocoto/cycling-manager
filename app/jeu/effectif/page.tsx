@@ -19,6 +19,7 @@ import { TeamDivisionBadge } from "../../../components/game/team-division-badge"
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
+  createWorldChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
@@ -59,7 +60,10 @@ import {
 } from "../../../services/team-health";
 import { getCurrentTeamRiderSeasonPlanning } from "../../../services/rider-season-planning";
 import { getTeamContractManagementOverview } from "@/services/team-contract-management";
-import { getActiveNationalChampionshipTitlesForRiders } from "@/services/rider-national-championship-titles";
+import {
+  getActiveNationalChampionshipTitlesForRiders,
+  getActiveWorldChampionshipTitlesForRiders,
+} from "@/services/rider-national-championship-titles";
 import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -387,6 +391,17 @@ export default async function TeamRosterPage({
       );
       return new Map();
     });
+  const activeWorldTitlesByRiderId =
+    await getActiveWorldChampionshipTitlesForRiders(
+      supabase,
+      riders.map((rider) => rider.rider_id),
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de recuperer les maillots de champions du monde de l''effectif :",
+        error,
+      );
+      return new Map();
+    });
   const riderEquipmentEffectsByRiderId =
     await getRiderEquipmentEffectsByRiderId(
       riders.map((rider) => rider.rider_id),
@@ -412,6 +427,14 @@ export default async function TeamRosterPage({
       }),
     ]),
   );
+  for (const [riderId, title] of activeWorldTitlesByRiderId) {
+    nationalChampionJerseyByRiderId.set(
+      riderId,
+      createWorldChampionRiderJersey({
+        championshipType: title.championshipType,
+      }),
+    );
+  }
   const sortedRiders = currentSortKey
     ? sortRosterItems({
         items: riders,

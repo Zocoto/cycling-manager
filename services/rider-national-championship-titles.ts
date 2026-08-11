@@ -19,6 +19,25 @@ export type ActiveNationalChampionshipTitlesByDiscipline = Partial<
     ActiveNationalChampionshipTitle
   >
 >;
+export type ActiveWorldChampionshipTitle = {
+  riderId: string;
+  countryCode: string;
+  countryName: string;
+  championshipType: "road" | "time_trial";
+};
+
+export type ActiveWorldChampionshipTitlesByDiscipline = Partial<
+  Record<
+    ActiveWorldChampionshipTitle["championshipType"],
+    ActiveWorldChampionshipTitle
+  >
+>;
+
+type WorldChampionshipTitleRow = {
+  rider_id: string;
+  championship_type: "world_road" | "world_time_trial";
+};
+
 
 type NationalChampionshipTitleRow = {
   rider_id: string;
@@ -63,6 +82,7 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
     .from("rider_national_championship_titles")
     .select("rider_id, country_id, championship_type")
     .in("rider_id", uniqueRiderIds)
+    .in("championship_type", ["road", "time_trial"])
     .is("relinquished_at", null)
     .returns<NationalChampionshipTitleRow[]>();
 
@@ -113,4 +133,64 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
   }
 
   return titleByRiderId;
+}
+export async function getActiveWorldChampionshipTitlesByDisciplineForRiders(
+  supabase: SupabaseServerClient,
+  riderIds: readonly string[],
+): Promise<Map<string, ActiveWorldChampionshipTitlesByDiscipline>> {
+  const uniqueRiderIds = [...new Set(riderIds.filter(Boolean))];
+  if (uniqueRiderIds.length === 0) return new Map();
+
+  const titlesResult = await supabase
+    .from("rider_national_championship_titles")
+    .select("rider_id, championship_type")
+    .in("rider_id", uniqueRiderIds)
+    .in("championship_type", ["world_road", "world_time_trial"])
+    .is("relinquished_at", null)
+    .returns<WorldChampionshipTitleRow[]>();
+
+  if (titlesResult.error) {
+    throw new Error(
+      `Impossible de recuperer les maillots de champions du monde : ${titlesResult.error.message}`,
+    );
+  }
+
+  const worldTitlesByRiderId = new Map<
+    string,
+    ActiveWorldChampionshipTitlesByDiscipline
+  >();
+
+  for (const title of titlesResult.data ?? []) {
+    const championshipType =
+      title.championship_type === "world_time_trial"
+        ? "time_trial"
+        : "road";
+    const currentTitles = worldTitlesByRiderId.get(title.rider_id) ?? {};
+    currentTitles[championshipType] = {
+      riderId: title.rider_id,
+      countryCode: "",
+      countryName: "Monde",
+      championshipType,
+    };
+    worldTitlesByRiderId.set(title.rider_id, currentTitles);
+  }
+
+  return worldTitlesByRiderId;
+}
+
+export async function getActiveWorldChampionshipTitlesForRiders(
+  supabase: SupabaseServerClient,
+  riderIds: readonly string[],
+): Promise<Map<string, ActiveWorldChampionshipTitle>> {
+  const titlesByDiscipline =
+    await getActiveWorldChampionshipTitlesByDisciplineForRiders(
+      supabase,
+      riderIds,
+    );
+  return new Map(
+    [...titlesByDiscipline.entries()].flatMap(([riderId, titles]) => {
+      const preferred = titles.road ?? titles.time_trial;
+      return preferred ? [[riderId, preferred] as const] : [];
+    }),
+  );
 }

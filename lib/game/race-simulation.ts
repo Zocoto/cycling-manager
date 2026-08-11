@@ -90,6 +90,10 @@ export type RiderNationalChampionship = {
   countryCode: string;
   championshipType: "road" | "time_trial";
 };
+export type RiderWorldChampionship = {
+  championshipType: "road" | "time_trial";
+};
+
 
 export type RiderSimulationInput = {
   id: string;
@@ -108,6 +112,13 @@ export type RiderSimulationInput = {
     >
   >;
   activeNationalChampion?: RiderNationalChampionship | null;
+  worldChampionships?: Partial<
+    Record<
+      RiderWorldChampionship["championshipType"],
+      RiderWorldChampionship
+    >
+  >;
+  activeWorldChampion?: RiderWorldChampionship | null;
   classificationJersey?: StageRaceJerseyType | null;
   classificationJerseyVisual?: StageRaceJerseyVisual | null;
   age: number;

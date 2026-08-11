@@ -9,6 +9,7 @@ import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profi
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { NationalChampionJersey } from "@/components/game/national-champion-jersey";
+import { WorldChampionJersey } from "@/components/game/world-champion-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderConditionGauges } from "@/components/game/rider-condition-gauges";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
@@ -41,6 +42,7 @@ import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
+  createWorldChampionRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   getNationalChampionPalette,
 } from "@/lib/rider-jersey";
@@ -177,6 +179,14 @@ export default async function RiderProfilePage({
         getActiveTeamSponsorIdentity(profile.currentTeam.id),
       ])
     : [null, null];
+  const activeWorldTitle =
+    profile.worldTitles.find(
+      (title) => title.isActive && title.type === "road",
+    ) ??
+    profile.worldTitles.find(
+      (title) => title.isActive && title.type === "time_trial",
+    ) ??
+    null;
   const activeNationalTitle =
     profile.nationalTitles.find(
       (title) => title.isActive && title.type === "road",
@@ -185,21 +195,25 @@ export default async function RiderProfilePage({
       (title) => title.isActive && title.type === "time_trial",
     ) ??
     null;
-  const riderJersey = activeNationalTitle
-    ? createNationalChampionRiderJersey({
-        countryCode: activeNationalTitle.countryCode,
-        championshipType: activeNationalTitle.type,
+  const riderJersey = activeWorldTitle
+    ? createWorldChampionRiderJersey({
+        championshipType: activeWorldTitle.type,
       })
-    : sponsorIdentity
-      ? createSponsoredRiderJersey({
-          colors: sponsorIdentity.sponsor.colors,
-          style: sponsorIdentity.selectedJersey.style,
-          imagePath: sponsorIdentity.selectedJersey.imagePath,
+    : activeNationalTitle
+      ? createNationalChampionRiderJersey({
+          countryCode: activeNationalTitle.countryCode,
+          championshipType: activeNationalTitle.type,
         })
-      : amateurIdentity
-        ? createAmateurRiderJersey(amateurIdentity.jersey)
-        : FREE_AGENT_RIDER_JERSEY;
-  const nationalPalette = activeNationalTitle
+      : sponsorIdentity
+        ? createSponsoredRiderJersey({
+            colors: sponsorIdentity.sponsor.colors,
+            style: sponsorIdentity.selectedJersey.style,
+            imagePath: sponsorIdentity.selectedJersey.imagePath,
+          })
+        : amateurIdentity
+          ? createAmateurRiderJersey(amateurIdentity.jersey)
+          : FREE_AGENT_RIDER_JERSEY;
+  const nationalPalette = !activeWorldTitle && activeNationalTitle
     ? getNationalChampionPalette(activeNationalTitle.countryCode)
     : null;
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
@@ -273,7 +287,18 @@ export default async function RiderProfilePage({
               : undefined
           }
         >
-          {nationalPalette ? (
+          {activeWorldTitle ? (
+            <div
+              aria-label="Bandes du champion du monde"
+              className="grid h-2 grid-cols-5"
+            >
+              {["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"].map(
+                (color) => (
+                  <span key={color} style={{ backgroundColor: color }} />
+                ),
+              )}
+            </div>
+          ) : nationalPalette ? (
             <div
               aria-label={`Couleurs nationales de ${activeNationalTitle?.countryName ?? profile.country.name}`}
               className="grid h-2"
@@ -297,7 +322,12 @@ export default async function RiderProfilePage({
                 label={`Portrait généré de ${fullName}`}
                 className="h-48 w-48 rounded-[2rem] border-white/25 shadow-2xl sm:h-56 sm:w-56"
               />
-              {activeNationalTitle ? (
+              {activeWorldTitle ? (
+                <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
+                  <RainbowMark />
+                  CM {activeWorldTitle.type === "road" ? "Route" : "CLM"}
+                </span>
+              ) : activeNationalTitle ? (
                 <span className="absolute -bottom-3 -right-3 flex items-center gap-2 rounded-xl border-2 border-white/70 bg-[#071A17] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl">
                   <span
                     className={`fi fi-${activeNationalTitle.countryCode.toLowerCase()} rounded-sm`}
@@ -344,6 +374,15 @@ export default async function RiderProfilePage({
                 <IdentityBadge>
                   {profile.activeSeason?.name ?? "Hors saison"}
                 </IdentityBadge>
+                {profile.worldTitles
+                  .filter((title) => title.isActive)
+                  .map((title) => (
+                    <IdentityBadge key={`world-${title.type}`}>
+                      <RainbowMark />
+                      Champion du monde{" "}
+                      {title.type === "road" ? "route" : "CLM"}
+                    </IdentityBadge>
+                  ))}
                 {profile.nationalTitles
                   .filter((title) => title.isActive)
                   .map((title) => (
@@ -390,6 +429,7 @@ export default async function RiderProfilePage({
                 amateurTeamName={amateurIdentity?.amateurName ?? null}
                 sponsorIdentity={sponsorIdentity}
                 activeNationalTitle={activeNationalTitle}
+                activeWorldTitle={activeWorldTitle}
               />
             </div>
           </div>
@@ -895,6 +935,7 @@ function CurrentTeamCard({
   amateurTeamName,
   sponsorIdentity,
   activeNationalTitle,
+  activeWorldTitle,
 }: {
   team: {
     id: string;
@@ -907,10 +948,22 @@ function CurrentTeamCard({
   amateurTeamName: string | null;
   sponsorIdentity: Awaited<ReturnType<typeof getActiveTeamSponsorIdentity>>;
   activeNationalTitle: PublicRiderProfile["nationalTitles"][number] | null;
+  activeWorldTitle: PublicRiderProfile["worldTitles"][number] | null;
 }) {
   const content = (
     <>
       <span className="flex shrink-0 items-end gap-1.5">
+        {activeWorldTitle ? (
+          <span className="text-center">
+            <WorldChampionJersey
+              championshipType={activeWorldTitle.type}
+              className="h-24 w-20 drop-shadow-xl"
+            />
+            <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
+              Maillot CM
+            </span>
+          </span>
+        ) : null}
         {activeNationalTitle ? (
           <span className="text-center">
             <NationalChampionJersey
@@ -1034,6 +1087,9 @@ function CareerHistory({
       countryName: string;
       countryCode: string;
     }>;
+    worldTitles: Array<{
+      type: "road" | "time_trial";
+    }>;
     notablePerformances: RiderNotablePerformance[];
   }>;
 }) {
@@ -1102,7 +1158,14 @@ function CareerHistory({
                           discipline={title.type}
                         />
                       ))}
-                      {entry.nationalTitles.length === 0 ? (
+                      {entry.worldTitles.map((title) => (
+                        <WorldTitleBadge
+                          key={`world-${title.type}`}
+                          discipline={title.type}
+                        />
+                      ))}
+                      {entry.nationalTitles.length === 0 &&
+                      entry.worldTitles.length === 0 ? (
                         <span className="text-sm font-black text-[#48665F]">
                           —
                         </span>
@@ -1173,7 +1236,17 @@ function CareerHistory({
                             discipline={title.type}
                           />
                         ))}
+                        {entry.worldTitles.map((title) => (
+                          <WorldTitleBadge
+                            key={`world-${title.type}`}
+                            discipline={title.type}
+                          />
+                        ))}
+                        {entry.worldTitles.length === 0 ? (
+                          <>
                         {entry.nationalTitles.length === 0 ? "—" : null}
+                          </>
+                        ) : null}
                       </div>
                     </td>
                     <td className="px-5 py-4 text-center">
@@ -1250,6 +1323,64 @@ function MobileHistoryValue({
         {value === null ? "—" : value}
       </dd>
     </div>
+  );
+}
+function RainbowMark() {
+  const colors = ["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"];
+  return (
+    <span
+      aria-hidden="true"
+      className="mr-1 inline-flex h-3 w-5 overflow-hidden rounded-sm border border-white/30"
+    >
+      {colors.map((color) => (
+        <span
+          key={color}
+          className="min-w-0 flex-1"
+          style={{ backgroundColor: color }}
+        />
+      ))}
+    </span>
+  );
+}
+
+
+function WorldTitleBadge({
+  discipline,
+}: {
+  discipline: "road" | "time_trial";
+}) {
+  const title =
+    discipline === "time_trial"
+      ? "Champion du monde du contre-la-montre"
+      : "Champion du monde sur route";
+  const colors = ["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"];
+
+  return (
+    <span
+      className="relative inline-flex h-7 w-10 flex-col overflow-hidden rounded-md border border-[#315B3E]/20 bg-white shadow-sm"
+      title={title}
+      aria-label={title}
+    >
+      {colors.map((color) => (
+        <span
+          key={color}
+          aria-hidden="true"
+          className="min-h-0 flex-1"
+          style={{ backgroundColor: color }}
+        />
+      ))}
+      {discipline === "time_trial" ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 grid place-items-center bg-white/15 text-lg font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]"
+        >
+          <span className="relative h-4 w-4 rounded-full border-2 border-white">
+            <span className="absolute left-1/2 top-[2px] h-[5px] w-[2px] -translate-x-1/2 bg-white" />
+            <span className="absolute left-1/2 top-1/2 h-[2px] w-[5px] -translate-y-1/2 bg-white" />
+          </span>
+        </span>
+      ) : null}
+    </span>
   );
 }
 

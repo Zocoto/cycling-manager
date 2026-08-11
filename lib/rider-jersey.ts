@@ -22,7 +22,13 @@ export type RiderJerseyAppearance = {
   secondaryColor: string;
   accentColor: string;
   pattern: RiderJerseyPattern;
-  status: "amateur" | "free-agent" | "sponsored" | "national-champion";
+  status:
+    | "amateur"
+    | "free-agent"
+    | "sponsored"
+    | "national-team"
+    | "national-champion"
+    | "world-champion";
   imagePath?: string;
   countryCode?: string;
   championshipType?: "road" | "time_trial";
@@ -118,6 +124,36 @@ export function createNationalChampionRiderJersey({
     pattern: palette.pattern,
     status: "national-champion",
     countryCode: countryCode.toUpperCase(),
+    championshipType,
+  };
+}
+
+export function createNationalTeamRiderJersey(
+  countryCode: string,
+): RiderJerseyAppearance {
+  const palette = getNationalChampionPalette(countryCode);
+
+  return {
+    primaryColor: palette.primary,
+    secondaryColor: palette.secondary,
+    accentColor: palette.accent,
+    pattern: "solid",
+    status: "national-team",
+    countryCode: countryCode.toUpperCase(),
+  };
+}
+
+export function createWorldChampionRiderJersey({
+  championshipType,
+}: {
+  championshipType: "road" | "time_trial";
+}): RiderJerseyAppearance {
+  return {
+    primaryColor: "#FFFFFF",
+    secondaryColor: "#E32636",
+    accentColor: "#2166B1",
+    pattern: "hoops",
+    status: "world-champion",
     championshipType,
   };
 }

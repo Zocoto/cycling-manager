@@ -91,8 +91,11 @@ export function RiderAvatar({
       <circle cx="84" cy="36" r="21" fill="#315B3E" opacity="0.035" />
 
       <path d={shouldersPath} fill={resolvedJersey.primaryColor} />
-      {resolvedJersey.status === "national-champion" &&
-      resolvedJersey.countryCode ? (
+      {resolvedJersey.status === "world-champion" ? (
+        <WorldChampionAvatarPattern clipPathId={shoulderClipId} />
+      ) : (resolvedJersey.status === "national-champion" ||
+          resolvedJersey.status === "national-team") &&
+        resolvedJersey.countryCode ? (
         <NationalChampionFlagPattern
           countryCode={resolvedJersey.countryCode}
           clipPathId={shoulderClipId}
@@ -207,6 +210,29 @@ function NationalChampionFlagPattern({
     </g>
   );
 }
+function WorldChampionAvatarPattern({
+  clipPathId,
+}: {
+  clipPathId: string;
+}) {
+  const colors = ["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"];
+
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      {colors.map((color, index) => (
+        <rect
+          key={color}
+          x="0"
+          y={68 + index * 5}
+          width="96"
+          height="5"
+          fill={color}
+        />
+      ))}
+    </g>
+  );
+}
+
 
 function SponsorJerseyArtwork({
   imagePath,

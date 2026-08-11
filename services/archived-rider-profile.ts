@@ -209,6 +209,7 @@ export async function getArchivedRiderProfile(
       points: hasSeveralTeams ? (achievements?.points ?? 0) : season.points,
       uciRank: season.uci_rank,
       nationalTitles: parseNationalTitles(season.national_titles),
+      worldTitles: parseWorldTitles(season.national_titles),
       notablePerformances: parseNotablePerformances(
         season.notable_performances,
       ),
@@ -245,6 +246,14 @@ export async function getArchivedRiderProfile(
       })),
     ),
     history,
+    worldTitles: history.flatMap((season) =>
+      season.worldTitles.map((title) => ({
+        ...title,
+        seasonId: season.seasonId,
+        seasonName: season.seasonName,
+        isActive: false,
+      })),
+    ),
     specialAbilities: [],
     equipment: {},
     privateContract: null,
@@ -281,6 +290,25 @@ function parseNationalTitles(
       return [];
     }
     return [{ type, countryName, countryCode }];
+  });
+}
+
+function parseWorldTitles(
+  value: unknown,
+): PublicRiderProfile["history"][number]["worldTitles"] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap<
+    PublicRiderProfile["history"][number]["worldTitles"][number]
+  >((candidate) => {
+    if (!isRecord(candidate)) return [];
+    if (candidate.type === "world_road") {
+      return [{ type: "road" as const }];
+    }
+    if (candidate.type === "world_time_trial") {
+      return [{ type: "time_trial" as const }];
+    }
+    return [];
   });
 }
 

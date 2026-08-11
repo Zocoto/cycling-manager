@@ -150,7 +150,8 @@ export function ArchivedRiderProfileView({
                     <HistoryMetric label="Points" value={entry.points ?? 0} />
                   </dl>
 
-                  {entry.nationalTitles.length ? (
+                  {entry.nationalTitles.length ||
+                  entry.worldTitles.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {entry.nationalTitles.map((title) => (
                         <span
@@ -160,6 +161,15 @@ export function ArchivedRiderProfileView({
                           {title.type === "time_trial"
                             ? "Champion national CLM"
                             : "Champion national"}
+                        </span>
+                      ))}
+                      {entry.worldTitles.map((title) => (
+                        <span
+                          key={`world-${title.type}`}
+                          className="rounded-full bg-[linear-gradient(90deg,#2166B1,#E32636,#111111,#F2C94C,#16834A)] px-3 py-1 text-[10px] font-black text-white shadow-sm"
+                        >
+                          Champion du monde{" "}
+                          {title.type === "time_trial" ? "CLM" : "route"}
                         </span>
                       ))}
                     </div>

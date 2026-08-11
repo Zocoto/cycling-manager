@@ -375,7 +375,26 @@ function RaceJerseyOverlay({
   visual: ReturnType<typeof getRaceCyclistJerseyVisual>;
   celebrating?: boolean;
 }) {
-  if (visual.status === "national-champion") {
+  if (visual.status === "world-champion") {
+    const colors = ["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"];
+    return (
+      <g clipPath={`url(#${clipId})`}>
+        {colors.map((color, index) => (
+          <rect
+            key={color}
+            x="0"
+            y={(mode === "side" ? 11 : 9) + index * 3.4}
+            width="90"
+            height="3.4"
+            fill={color}
+          />
+        ))}
+      </g>
+    );
+  }
+
+  if (visual.status === "national-champion" ||
+      visual.status === "national-team") {
     return (
       <SvgCountryFlag
         countryCode={visual.countryCode!}
