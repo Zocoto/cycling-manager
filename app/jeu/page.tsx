@@ -746,7 +746,7 @@ export default async function GamePage() {
                 href="/jeu/fan-club"
                 icon="fanclub"
                 title="Fan Club"
-                status={`Pilote · Siège niveau ${fanClubBuildings.headquartersLevel}`}
+                status={`Actif · Siège niveau ${fanClubBuildings.headquartersLevel}`}
                 description="Gérez la popularité des coureurs, les déplacements de supporters et, si elle est construite, la boutique officielle."
               />
             ) : null}
