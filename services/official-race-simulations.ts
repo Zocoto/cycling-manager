@@ -13,6 +13,7 @@ import {
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
   buildStageRaceStandings,
+  getMountainObjectiveRiderIdsByTeam,
   simulateRaceStage,
   type StageSimulationInput,
   type StageSimulationResult,
@@ -119,10 +120,17 @@ export async function ensureLockedOfficialRaceSimulations(
               stage,
               seed: `${edition.id}:${stage.id}:official`,
             });
+            const mountainObjectiveRiderIds =
+              getMountainObjectiveRiderIdsByTeam(
+                editionSimulations.at(-1)?.simulation.resolvedRiders ?? [],
+              );
             const officialInput: StageSimulationInput = {
               ...input,
               generalClassification: standingsBeforeStage?.general,
               unavailableRiderIds: [...unavailableRiderIds].sort(),
+              ...(Object.keys(mountainObjectiveRiderIds).length > 0
+                ? { mountainObjectiveRiderIds }
+                : {}),
             };
             const simulation = simulateRaceStage(officialInput);
             const candidate: LockedOfficialStageSimulation = {

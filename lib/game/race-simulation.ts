@@ -119,6 +119,7 @@ export type RiderSimulationInput = {
   reconnaissanceBonus?: number;
   role: RaceRole;
   raceDuty?: RiderRaceDuty | null;
+  mountainPointsTarget?: boolean;
   specialAbility?: RiderSpecialAbility | null;
   specialAbilities?: RiderSpecialAbility[];
   ratings: RiderSimulationRatings;
@@ -143,6 +144,7 @@ export type StageSimulationInput = {
     riderId: string;
     elapsedTimeSeconds: number;
   }>;
+  mountainObjectiveRiderIds?: Record<string, string>;
   teamStrategies?: RaceTeamStrategy[];
 };
 
@@ -746,7 +748,13 @@ export function simulateRaceStage(
     eligibleInput.segments,
     eligibleInput.profileType
   );
-  const normalizedInput = { ...eligibleInput, riders: resolvedRiders };
+  const normalizedInput = {
+    ...eligibleInput,
+    riders: assignRaceObjectiveDuties({
+      ...eligibleInput,
+      riders: resolvedRiders,
+    }),
+  };
 
   let simulation: StageSimulationResult;
 
@@ -1044,6 +1052,139 @@ export function assignAutomaticRaceRoles(
   return resolved;
 }
 
+export function assignRaceObjectiveDuties(
+  input: StageSimulationInput,
+): RiderSimulationInput[] {
+  const riders = input.riders.map((rider) => {
+    const resolved = { ...rider };
+    delete resolved.mountainPointsTarget;
+    return resolved;
+  });
+  const ridersByTeamId = groupBy(riders, (rider) => rider.teamId);
+  const strategiesByTeamId = new Map(
+    (input.teamStrategies ?? []).map((strategy) => [strategy.teamId, strategy]),
+  );
+  const hasMountainPrime =
+    input.isStageRace &&
+    input.segments.some((segment) => segment.prime?.type === "mountain");
+  const stageWinMode = getStageWinObjectiveMode(input.segments);
+
+  for (const [teamId, teamRiders] of ridersByTeamId) {
+    const strategy = strategiesByTeamId.get(teamId);
+    if (!strategy) continue;
+
+    if (strategy.objective === "mountain_points" && input.isStageRace) {
+      const carriedRiderId = input.mountainObjectiveRiderIds?.[teamId];
+      const target =
+        findObjectiveCandidate(teamRiders, carriedRiderId) ??
+        findObjectiveCandidate(teamRiders, strategy.breakawayRiderId) ??
+        rankObjectiveCandidates(teamRiders, getMountainObjectiveScore, true)[0];
+
+      if (target) {
+        target.mountainPointsTarget = true;
+        if (hasMountainPrime) target.raceDuty = "breakaway_candidate";
+      }
+      continue;
+    }
+
+    if (
+      strategy.objective === "stage_win" &&
+      (stageWinMode === "breakaway" ||
+        strategy.breakawayPolicy === "target" ||
+        strategy.breakawayRiderId !== null)
+    ) {
+      const target =
+        findObjectiveCandidate(teamRiders, strategy.breakawayRiderId) ??
+        rankObjectiveCandidates(teamRiders, (rider) =>
+          getStageWinBreakawayScore(rider, input.segments),
+        )[0];
+      if (target) target.raceDuty = "breakaway_candidate";
+    }
+  }
+
+  return riders;
+}
+
+export function getMountainObjectiveRiderIdsByTeam(
+  riders: RiderSimulationInput[],
+) {
+  return Object.fromEntries(
+    riders
+      .filter((rider) => rider.mountainPointsTarget)
+      .sort(
+        (first, second) =>
+          first.teamId.localeCompare(second.teamId) ||
+          first.id.localeCompare(second.id),
+      )
+      .map((rider) => [rider.teamId, rider.id]),
+  );
+}
+
+export function getStageWinObjectiveMode(
+  segments: RaceStageSegment[],
+): "sprint" | "breakaway" {
+  return isLikelyMassSprint(segments) ? "sprint" : "breakaway";
+}
+
+function findObjectiveCandidate(
+  riders: RiderSimulationInput[],
+  riderId: string | null | undefined,
+) {
+  if (!riderId) return null;
+  const rider = riders.find((candidate) => candidate.id === riderId) ?? null;
+  return rider && isAvailableObjectiveCandidate(rider) ? rider : null;
+}
+
+function rankObjectiveCandidates(
+  riders: RiderSimulationInput[],
+  score: (rider: RiderSimulationInput) => number,
+  preferMountainRole = false,
+) {
+  const candidates = riders.filter(isAvailableObjectiveCandidate);
+  const roleCandidates = preferMountainRole
+    ? candidates.filter((rider) => rider.role === "mountain_classification")
+    : [];
+  const rankedPool = roleCandidates.length > 0 ? roleCandidates : candidates;
+  return [...rankedPool].sort(
+    (first, second) =>
+      score(second) - score(first) || first.id.localeCompare(second.id),
+  );
+}
+
+function isAvailableObjectiveCandidate(rider: RiderSimulationInput) {
+  return (
+    rider.role !== "leader" &&
+    rider.role !== "sprinter" &&
+    (rider.raceDuty === undefined ||
+      rider.raceDuty === null ||
+      rider.raceDuty === "breakaway_candidate")
+  );
+}
+
+function getMountainObjectiveScore(rider: RiderSimulationInput) {
+  return (
+    rider.ratings.mountain * 0.32 +
+    rider.ratings.breakaway * 0.24 +
+    rider.ratings.hills * 0.16 +
+    rider.ratings.acceleration * 0.12 +
+    rider.ratings.endurance * 0.1 +
+    rider.form * 0.06
+  );
+}
+
+function getStageWinBreakawayScore(
+  rider: RiderSimulationInput,
+  segments: RaceStageSegment[],
+) {
+  return (
+    getStageSuitability(rider, segments) * 0.4 +
+    getDecisiveRoadFinishRating(rider, segments) * 0.2 +
+    rider.ratings.breakaway * 0.18 +
+    rider.ratings.acceleration * 0.12 +
+    rider.ratings.endurance * 0.1
+  );
+}
+
 function simulateRoadStage(
   input: StageSimulationInput
 ): StageSimulationResult {
@@ -1096,10 +1237,15 @@ function simulateRoadStage(
       (segment) => segment.terrain === "climb" || segment.surface === "cobbles"
     ).length / input.segments.length;
   const likelyMassSprint = isLikelyMassSprint(input.segments);
+  const controllingTeamIds = getRaceObjectiveControllingTeamIds({
+    baseControllingTeamIds: strategyContext.controllingTeamIds,
+    teamStrategies: input.teamStrategies ?? [],
+    likelyMassSprint,
+  });
   const initialPelotonChaseCapacity = getPelotonChaseCapacity(
     [...states.values()],
     input.segments[0],
-    strategyContext.controllingTeamIds
+    controllingTeamIds
   );
   const breakawayQuality = average(
     breakawayRiders.map(
@@ -1267,7 +1413,7 @@ function simulateRoadStage(
       breakaway.length + secondaryBreakaway.length > 0,
       breakawayThreat,
       breakawayGapSeconds,
-      strategyContext.controllingTeamIds
+      controllingTeamIds
     );
     const strategyChaseModifier = getStrategyChaseModifier({
       states,
@@ -1275,6 +1421,7 @@ function simulateRoadStage(
       breakawayThreat,
       raceProgress,
       generalClassificationLeaderId,
+      likelyMassSprint,
     });
     if (
       largeBreakawayDecision === null &&
@@ -1326,7 +1473,7 @@ function simulateRoadStage(
         );
     const pelotonChaseWorkers = getPelotonChaseWorkers(
       peloton,
-      strategyContext.controllingTeamIds
+      controllingTeamIds
     );
     const pelotonWorkerIds = new Set(
       pelotonChaseWorkers.map((state) => state.rider.id)
@@ -2061,7 +2208,8 @@ export function selectStageAttackPlan(
         rider.id !== generalLeaderId &&
         rider.role !== "leader" &&
         rider.role !== "sprinter" &&
-        !strategy.protectedRiderIds.has(rider.id) &&
+        (!strategy.protectedRiderIds.has(rider.id) ||
+          rider.raceDuty === "breakaway_candidate") &&
         (teamStrategy?.breakawayPolicy !== "avoid" ||
           rider.raceDuty === "breakaway_candidate") &&
         (!plannedAttackerIds.has(rider.id) ||
@@ -4193,6 +4341,8 @@ function getPrimeScore(
         : state.rider.role === "leader"
           ? -4
           : 0;
+  const objectiveBonus =
+    prime.type === "mountain" && state.rider.mountainPointsTarget ? 18 : 0;
   return (
     (prime.type === "mountain"
       ? getTerrainRating(state.rider, segment) * 0.68 +
@@ -4203,6 +4353,7 @@ function getPrimeScore(
         getRaceDayBonus(state.rider)) +
     state.energy * 0.12 +
     roleBonus +
+    objectiveBonus +
     random() * SCORE_NOISE
   );
 }
@@ -4844,18 +4995,62 @@ function toGroupSnapshot(
   };
 }
 
+export function getRaceObjectiveControllingTeamIds({
+  baseControllingTeamIds,
+  teamStrategies,
+  likelyMassSprint,
+}: {
+  baseControllingTeamIds: Set<string>;
+  teamStrategies: RaceTeamStrategy[];
+  likelyMassSprint: boolean;
+}) {
+  const controllingTeamIds = new Set(baseControllingTeamIds);
+
+  for (const strategy of teamStrategies) {
+    if (
+      strategy.objective === "stage_win" &&
+      !stageWinTargetsBreakaway(strategy, likelyMassSprint)
+    ) {
+      controllingTeamIds.add(strategy.teamId);
+      continue;
+    }
+    if (
+      strategy.objective === "mountain_points" ||
+      (strategy.objective === "stage_win" &&
+        stageWinTargetsBreakaway(strategy, likelyMassSprint))
+    ) {
+      controllingTeamIds.delete(strategy.teamId);
+    }
+  }
+
+  return controllingTeamIds;
+}
+
+function stageWinTargetsBreakaway(
+  strategy: RaceTeamStrategy,
+  likelyMassSprint: boolean,
+) {
+  return (
+    !likelyMassSprint ||
+    strategy.breakawayPolicy === "target" ||
+    strategy.breakawayRiderId !== null
+  );
+}
+
 function getStrategyChaseModifier({
   states,
   teamStrategies,
   breakawayThreat,
   raceProgress,
   generalClassificationLeaderId,
+  likelyMassSprint,
 }: {
   states: Map<string, RiderState>;
   teamStrategies: RaceTeamStrategy[];
   breakawayThreat: number;
   raceProgress: number;
   generalClassificationLeaderId: string | null;
+  likelyMassSprint: boolean;
 }) {
   if (teamStrategies.length === 0) return 0;
 
@@ -4876,6 +5071,21 @@ function getStrategyChaseModifier({
     );
     const teamLeaderIsPresent = activeTeamStates.some(
       (state) => state.rider.role === "leader",
+    );
+    const teamRiderIsAhead = [...states.values()].some(
+      (state) =>
+        state.rider.teamId === strategy.teamId &&
+        (state.group === "breakaway" ||
+          state.group === "breakaway_2" ||
+          state.group === "chase"),
+    );
+    const mountainTargetIsAhead = [...states.values()].some(
+      (state) =>
+        state.rider.teamId === strategy.teamId &&
+        state.rider.mountainPointsTarget &&
+        (state.group === "breakaway" ||
+          state.group === "breakaway_2" ||
+          state.group === "chase"),
     );
     let modifier =
       strategy.collectivePosture === "aggressive"
@@ -4908,7 +5118,21 @@ function getStrategyChaseModifier({
     ) {
       modifier += 0.07;
     }
-    if (strategy.objective === "sprint" && raceProgress >= 0.48) {
+    if (
+      strategy.objective === "stage_win" &&
+      !stageWinTargetsBreakaway(strategy, likelyMassSprint) &&
+      raceProgress >= 0.4
+    ) {
+      modifier += 0.075;
+    } else if (
+      strategy.objective === "stage_win" &&
+      stageWinTargetsBreakaway(strategy, likelyMassSprint) &&
+      teamRiderIsAhead
+    ) {
+      modifier -= 0.1;
+    } else if (strategy.objective === "mountain_points") {
+      modifier -= mountainTargetIsAhead ? 0.1 : 0.035;
+    } else if (strategy.objective === "sprint" && raceProgress >= 0.48) {
       modifier += 0.055;
     } else if (
       strategy.objective === "general_classification" &&

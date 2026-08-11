@@ -12,6 +12,7 @@ import {
 } from "./stage-race-jerseys";
 import {
   buildStageRaceStandings,
+  getMountainObjectiveRiderIdsByTeam,
   simulateRaceStage,
   type StageRaceStandings,
   type StageSimulationInput,
@@ -28,7 +29,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.08-race-preparation-attacks-v9";
+export const OFFICIAL_RACE_ENGINE_VERSION = "2026.08-race-objectives-v10";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -263,10 +264,16 @@ export function simulateOfficialRaceEdition(
       stage,
       seed: edition.id + ":" + stage.id + ":official",
     });
+    const mountainObjectiveRiderIds = getMountainObjectiveRiderIdsByTeam(
+      runs.at(-1)?.simulation.resolvedRiders ?? [],
+    );
     const input: StageSimulationInput = {
       ...baseInput,
       generalClassification:
         standingsBeforeStage?.general,
+      ...(Object.keys(mountainObjectiveRiderIds).length > 0
+        ? { mountainObjectiveRiderIds }
+        : {}),
     };
     const simulation = simulateRaceStage({
       ...input,
