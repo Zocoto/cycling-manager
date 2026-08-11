@@ -28,7 +28,7 @@ describe("agencement compact des juniors", () => {
   it("reduit la hauteur des informations principales", () => {
     expect(academyPage).toContain('className="h-16 w-16"');
     expect(academyPage).toContain(
-      'className="grid gap-3 sm:grid-cols-2"',
+      'className="contents"',
     );
     expect(academyPage).toContain("data-academy-rider-footer");
   });
