@@ -119,11 +119,13 @@ export default async function RaceResultsPage({
         return [];
       })
     : [];
-  const standardCalendar = calendar
+  const spectatorCalendar = calendar
     ? {
         ...calendar,
         editions: calendar.editions.filter(
-          (edition) => edition.competitionType === "standard",
+          (edition) =>
+            edition.competitionType === "standard" ||
+            edition.competitionType === "world_championship",
         ),
       }
     : null;
@@ -162,14 +164,14 @@ export default async function RaceResultsPage({
         </div>
 
         <div className="mt-8">
-          {calendar && standardCalendar ? (
+          {calendar && spectatorCalendar ? (
             <>
               <NationalChampionshipResultsDirectory
                 calendar={calendar}
                 countryCodes={nationalCountryCodes}
               />
               <RaceLiveDirectory
-                calendar={standardCalendar}
+                calendar={spectatorCalendar}
                 nowIso={now.toISOString()}
               />
             </>
