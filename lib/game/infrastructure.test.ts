@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  TEAM_INFRASTRUCTURE_DEFINITIONS,
   applyInternationalCenterPotentialBonus,
   getInternationalCenterBonusPercentage,
+  isTeamInfrastructureCode,
   getScoutingVisibilityForDataRoom,
 } from "@/lib/game/infrastructure";
 
@@ -48,11 +50,40 @@ describe("recruitment Data Room", () => {
       exactRatingCount: 5,
       rangeRatingCount: 8,
       potentialCanBeUnknown: false,
+
     });
     expect(getScoutingVisibilityForDataRoom(3)).toMatchObject({
       exactRatingCount: 7,
       rangeRatingCount: 6,
       maximumRangeSpread: 1,
     });
+  });
+});
+
+describe("team infrastructure buildings", () => {
+  it("starts the training center at 100,000 euros and raises prices progressively", () => {
+    const levels = TEAM_INFRASTRUCTURE_DEFINITIONS.training_center.levels;
+
+    expect(levels.map((level) => level.cost)).toEqual([
+      100_000,
+      250_000,
+      500_000,
+      900_000,
+      1_500_000,
+    ]);
+    expect(levels.map((level) => level.cost)).toEqual(
+      [...levels].map((level) => level.cost).sort((left, right) => left - right),
+    );
+    expect(levels.at(-1)?.effect).toContain("+10 %");
+  });
+
+  it("registers the training center and both fan club buildings", () => {
+    expect(isTeamInfrastructureCode("training_center")).toBe(true);
+    expect(isTeamInfrastructureCode("fan_club_headquarters")).toBe(true);
+    expect(isTeamInfrastructureCode("club_shop")).toBe(true);
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.fan_club_headquarters.levels,
+    ).toHaveLength(5);
+    expect(TEAM_INFRASTRUCTURE_DEFINITIONS.club_shop.levels).toHaveLength(5);
   });
 });
