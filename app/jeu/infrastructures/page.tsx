@@ -5,12 +5,17 @@ import { markInfrastructureNotificationsReadAction } from "@/app/jeu/infrastruct
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DataRoomConstructionCard } from "@/components/game/data-room-construction-card";
 import { GameHeader } from "@/components/game/game-header";
+import { InfrastructureBuildingCard } from "@/components/game/infrastructure-building-card";
 import { InternationalYouthCenterMap } from "@/components/game/international-youth-center-map";
 import { StaffAcademyCard } from "@/components/game/staff-academy-card";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
-import { INFRASTRUCTURE_UNLOCK_LEVEL } from "@/lib/game/infrastructure";
+import {
+  INFRASTRUCTURE_UNLOCK_LEVEL,
+  TEAM_INFRASTRUCTURE_DEFINITIONS,
+  getTeamInfrastructureLevelDefinition,
+} from "@/lib/game/infrastructure";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -284,7 +289,7 @@ export default async function InfrastructuresPage({
             tab="batiments"
             activeTab={activeTab}
             label="Bâtiments de l’équipe"
-            detail="Data Room et futurs pôles techniques"
+            detail="Performance, Fan Club, recrutement et staff"
           />
           <TabLink
             tab="international"
@@ -296,6 +301,55 @@ export default async function InfrastructuresPage({
 
         {activeTab === "batiments" ? (
           <div className="mt-7 space-y-8">
+            <section>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">
+                Performance et communauté
+              </p>
+              <h2 className="mt-2 text-3xl font-black text-[#183F37]">
+                Les bâtiments structurants du club
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
+                Le Centre d’entraînement est volontairement accessible dès son
+                premier niveau. Le siège et la boutique développent ensuite
+                toute l’activité du Fan Club.
+              </p>
+              <div className="mt-5 grid items-start gap-5 xl:grid-cols-3">
+                {(
+                  [
+                    "training_center",
+                    "fan_club_headquarters",
+                    "club_shop",
+                  ] as const
+                ).map((code) => {
+                  const definition = TEAM_INFRASTRUCTURE_DEFINITIONS[code];
+                  const currentLevel = overview.infrastructureLevels[code];
+                  return (
+                    <InfrastructureBuildingCard
+                      key={code}
+                      definition={definition}
+                      currentLevel={currentLevel}
+                      nextLevel={getTeamInfrastructureLevelDefinition(
+                        code,
+                        currentLevel + 1,
+                      )}
+                      architects={overview.architects}
+                      activeProject={overview.activeProject}
+                      isUnlocked={overview.isUnlocked}
+                      balance={overview.balance}
+                      currency={overview.currency}
+                      prerequisiteMessage={
+                        code === "club_shop" &&
+                        overview.infrastructureLevels
+                          .fan_club_headquarters < 1
+                          ? "Construisez d’abord le siège social du Fan Club."
+                          : null
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
             <div data-tutorial-id="infrastructure-data-room">
               <DataRoomConstructionCard
                 currentLevel={overview.dataRoomLevel}

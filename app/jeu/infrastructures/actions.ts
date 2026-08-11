@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { isTeamInfrastructureCode } from "@/lib/game/infrastructure";
 import { isStaffAcademyImprovementType } from "@/lib/game/staff-academy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -21,9 +22,8 @@ export async function startInfrastructureProjectAction(formData: FormData) {
       : "batiments";
 
   if (
-    infrastructureCode !== "recruitment_data_room" &&
-    infrastructureCode !== "staff_academy" &&
-    infrastructureCode !== "international_youth_center"
+    infrastructureCode !== "international_youth_center" &&
+    !isTeamInfrastructureCode(infrastructureCode)
   ) {
     redirectWithMessage(tab, "erreur", "Le chantier transmis est invalide.");
   }

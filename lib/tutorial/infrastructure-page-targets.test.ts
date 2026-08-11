@@ -36,6 +36,16 @@ describe("infrastructure tutorial integration", () => {
       expect(infrastructurePage).toContain(`data-tutorial-id="${targetId}"`);
     }
   });
+  it("affiche les bâtiments de performance et du Fan Club", () => {
+    expect(infrastructurePage).toContain('"training_center"');
+    expect(infrastructurePage).toContain('"fan_club_headquarters"');
+    expect(infrastructurePage).toContain('"club_shop"');
+    expect(infrastructurePage).toContain("<InfrastructureBuildingCard");
+    expect(infrastructurePage).toContain(
+      "Construisez d’abord le siège social du Fan Club.",
+    );
+  });
+
 
   it("propose le point d’interrogation et reprend le parcours en cours", () => {
     expect(infrastructurePage).toContain(

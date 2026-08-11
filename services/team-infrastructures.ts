@@ -133,6 +133,7 @@ export type TeamInfrastructureOverview = {
   isUnlocked: boolean;
   balance: number;
   currency: string;
+  infrastructureLevels: Record<TeamInfrastructureCode, number>;
   dataRoomLevel: number;
   dataRoomNextLevel: ReturnType<
     typeof getTeamInfrastructureLevelDefinition
@@ -388,11 +389,20 @@ export async function getTeamInfrastructureOverview(
   const projects = (projectsResult.data ?? []).map((project) =>
     toProject(project, currentGameDay, countryById),
   );
-  const dataRoomLevel =
+  const getInfrastructureLevel = (code: TeamInfrastructureCode) =>
     (infrastructureResult.data ?? []).find(
       (infrastructure) =>
-        infrastructure.infrastructure_code === "recruitment_data_room",
+        infrastructure.infrastructure_code === code,
     )?.level ?? 0;
+  const infrastructureLevels: Record<TeamInfrastructureCode, number> = {
+    recruitment_data_room: getInfrastructureLevel("recruitment_data_room"),
+    staff_academy: getInfrastructureLevel("staff_academy"),
+    training_center: getInfrastructureLevel("training_center"),
+    fan_club_headquarters: getInfrastructureLevel("fan_club_headquarters"),
+    club_shop: getInfrastructureLevel("club_shop"),
+  };
+  const dataRoomLevel =
+    infrastructureLevels.recruitment_data_room;
   const directorLevel = calculateSportingDirectorProgression(
     context.experiencePoints,
   ).level;
@@ -407,6 +417,7 @@ export async function getTeamInfrastructureOverview(
     isUnlocked: directorLevel >= INFRASTRUCTURE_UNLOCK_LEVEL,
     balance: context.balance,
     currency: context.currency,
+    infrastructureLevels,
     dataRoomLevel,
     dataRoomNextLevel: getTeamInfrastructureLevelDefinition(
       TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room.code,
