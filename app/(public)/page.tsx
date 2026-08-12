@@ -42,6 +42,20 @@ const gamePillars = [
 
 const productNews = [
   {
+    category: "Mise \u00e0 jour",
+    title: "Le Patch 4 d\u00e9veloppe vos infrastructures",
+    description:
+      "Le centre d\u2019entra\u00eenement s\u2019\u00e9toffe et sept installations sp\u00e9cialis\u00e9es ouvrent de nouvelles possibilit\u00e9s pour pr\u00e9parer, r\u00e9cup\u00e9rer, rechercher et faire rayonner votre \u00e9quipe.",
+    dateTime: "2026-08-12",
+    dateLabel: "12 ao\u00fbt 2026",
+    accent: "leader",
+    href: "/nouveautes#patch-4",
+    linkLabel: "Voir le d\u00e9tail du Patch 4",
+    image: "/images/infrastructure/training-center.webp",
+    imageAlt: "Le centre d\u2019entra\u00eenement de l\u2019\u00e9quipe",
+    patchNumber: 4,
+  },
+  {
     category: "Mise à jour",
     title: "Le Patch 3 est déployé",
     description:
@@ -182,7 +196,7 @@ function ProductNews() {
           className="absolute -right-18 -top-24 h-72 w-72 rounded-full border-[50px] border-[#42CDA8]/10"
         />
 
-        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_13rem] lg:items-end">
+        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-stretch">
           <div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-xs font-black uppercase tracking-[0.18em] text-[#8DE3C9]">
@@ -206,33 +220,44 @@ function ProductNews() {
               {featuredNews.description}
             </p>
 
-            <a
+            <Link
               href={featuredNews.href}
-              target="_blank"
-              rel="noreferrer"
               className="mt-6 inline-flex items-center gap-2 rounded-md bg-[#F2C94C] px-4 py-2.5 text-xs font-black uppercase tracking-[0.1em] text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
             >
               {featuredNews.linkLabel}
               <span aria-hidden="true">↗</span>
-            </a>
+            </Link>
           </div>
 
-          <div className="hidden justify-self-end rounded-2xl border border-[#8DE3C9]/20 bg-white/[0.06] px-7 py-5 text-right lg:block">
-            <span className="block text-xs font-black uppercase tracking-[0.2em] text-[#8DE3C9]">
-              Patch
-            </span>
-            <strong className="mt-1 block text-6xl font-black leading-none text-[#F2C94C]">
-              #3
-            </strong>
-            <span className="mt-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#D6DFD2]">
-              Disponible
-            </span>
+          <div className="relative min-h-56 overflow-hidden rounded-2xl border border-[#8DE3C9]/25 bg-white/[0.06] shadow-xl">
+            <Image
+              src={featuredNews.image}
+              alt={featuredNews.imageAlt}
+              fill
+              sizes="(min-width: 1024px) 18rem, 100vw"
+              className="object-cover"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 bg-linear-to-t from-[#071A17] via-[#071A17]/20 to-transparent"
+            />
+            <div className="absolute inset-x-0 bottom-0 p-5 text-right">
+              <span className="block text-xs font-black uppercase tracking-[0.2em] text-[#8DE3C9]">
+                Patch
+              </span>
+              <strong className="mt-1 block text-5xl font-black leading-none text-[#F2C94C]">
+                #{featuredNews.patchNumber}
+              </strong>
+              <span className="mt-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#D6DFD2]">
+                Disponible
+              </span>
+            </div>
           </div>
         </div>
       </article>
 
       <ol className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {historicalNews.map((news) => (
+        {historicalNews.slice(0, 4).map((news) => (
           <li key={news.title}>
             <article className="relative flex h-full flex-col overflow-hidden rounded-xl border border-[#315B3E]/15 bg-white/88 p-5 shadow-[0_12px_35px_rgba(19,60,46,0.11)] backdrop-blur-sm">
               <span
