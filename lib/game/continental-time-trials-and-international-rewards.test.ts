@@ -12,6 +12,14 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const s1RewardBackfill = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260812100000_backfill_s1_international_championship_rewards.sql",
+  ),
+  "utf8",
+);
+
 const resultsPage = readFileSync(
   join(process.cwd(), "app/jeu/resultats/page.tsx"),
   "utf8",
@@ -119,5 +127,15 @@ describe("CLM continentaux S2 et gains internationaux", () => {
     expect(settlementService).toContain(
       "calculateInternationalChampionshipReward",
     );
+  });
+
+  it("regularise la S1 sans doubler les gains deja verses ni les victoires", () => {
+    expect(s1RewardBackfill).toContain("season.game_year = 1");
+    expect(s1RewardBackfill).toContain(
+      "v_result.target_cash - v_existing_cash",
+    );
+    expect(s1RewardBackfill).toContain("v_result.target_uci - v_existing_uci");
+    expect(s1RewardBackfill).toContain("s1-international-reward-adjustment:");
+    expect(s1RewardBackfill).toContain("v_delta_uci,\n        false,");
   });
 });
