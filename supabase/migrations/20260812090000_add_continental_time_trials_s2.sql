@@ -483,8 +483,10 @@ update public.season_events as event
 set
   title = 'Championnats continentaux - CLM & course en ligne',
   description = 'A partir de la S2, le CLM continental se dispute a 14 h, puis la course en ligne a 18 h. Les 20 meilleures nations du continent selectionnent huit coureurs specialises selon le profil.'
-from public.seasons as season
-where season.id = event.season_id
+from public.season_days as day
+join public.seasons as season
+  on season.id = day.season_id
+where day.id = event.season_day_id
   and season.game_year >= 2
   and event.event_type = 'continental_championships';
 
