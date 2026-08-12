@@ -9,6 +9,10 @@ import {
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import {
+  DevelopmentTeamPanel,
+  type DevelopmentTeamView,
+} from "@/components/game/development-team-panel";
 import { GameHeader } from "@/components/game/game-header";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -47,6 +51,10 @@ import {
 } from "@/lib/tutorial/youth-development";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
+  getDevelopmentTeamOverview,
+  type DevelopmentTeamOverview,
+} from "@/services/development-team";
+import {
   getYouthDevelopmentOverview,
   type AcademyYouth,
   type YouthCandidate,
@@ -68,6 +76,7 @@ type PageProps = {
     erreur?: string;
     didacticiel?: string;
     rapports?: string;
+    dev?: string;
   }>;
 };
 
@@ -79,6 +88,12 @@ export default async function YouthDevelopmentPage({
     query.onglet === "ecole" || query.onglet === "development"
       ? query.onglet
       : "scouting";
+  const activeDevelopmentView: DevelopmentTeamView =
+    query.dev === "calendrier" ||
+    query.dev === "resultats" ||
+    query.dev === "maillot"
+      ? query.dev
+      : "effectif";
   const tutorialDemo =
     query.didacticiel === YOUTH_DEVELOPMENT_TUTORIAL_DEMO_VALUE;
   const supabase = await createSupabaseServerClient();
@@ -89,6 +104,7 @@ export default async function YouthDevelopmentPage({
   if (error || !user) redirect("/connexion");
 
   let overview: YouthDevelopmentOverview | null = null;
+  let developmentOverview: DevelopmentTeamOverview | null = null;
   let loadingError: string | null = null;
   const headerPromise = getGameHeaderData(supabase, user.id);
   const tutorialProgressPromise = getAuthenticatedTutorialProgress(
@@ -112,6 +128,20 @@ export default async function YouthDevelopmentPage({
       overviewError instanceof Error
         ? overviewError.message
         : "Le centre de formation ne peut pas être chargé.";
+  }
+  if (activeTab === "development") {
+    try {
+      developmentOverview = await getDevelopmentTeamOverview(user.id);
+    } catch (developmentError) {
+      console.error(
+        "Impossible de charger la Development Team :",
+        developmentError,
+      );
+      loadingError =
+        developmentError instanceof Error
+          ? developmentError.message
+          : "La Development Team ne peut pas être chargée.";
+    }
   }
   const [headerData, youthDevelopmentTutorialProgress] = await Promise.all([
     headerPromise,
@@ -223,7 +253,7 @@ export default async function YouthDevelopmentPage({
             tab="development"
             activeTab={activeTab}
             label="Development Team"
-            detail="Projet à venir"
+            detail="Effectif & courses juniors"
             tutorialDemo={tutorialDemo}
           />
         </nav>
@@ -244,7 +274,12 @@ export default async function YouthDevelopmentPage({
         {overview && activeTab === "ecole" ? (
           <AcademyTab overview={overview} tutorialDemo={tutorialDemo} />
         ) : null}
-        {activeTab === "development" ? <DevelopmentTab /> : null}
+        {activeTab === "development" && developmentOverview ? (
+          <DevelopmentTeamPanel
+            overview={developmentOverview}
+            activeView={activeDevelopmentView}
+          />
+        ) : null}
       </section>
     </main>
   );
@@ -1289,33 +1324,6 @@ function ActiveMissionCard({
         />
       </div>
     </article>
-  );
-}
-
-function DevelopmentTab() {
-  return (
-    <section className="relative mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white px-6 py-20 text-center shadow-sm">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(135deg,transparent_45%,rgba(39,139,112,0.06)_45%,rgba(39,139,112,0.06)_55%,transparent_55%)] bg-[length:32px_32px]"
-      />
-      <div className="relative mx-auto max-w-xl">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F2C94C] text-3xl">
-          ⚒
-        </span>
-        <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-[#278B70]">
-          Development Team
-        </p>
-        <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] text-[#071A17]">
-          En construction
-        </h2>
-        <p className="mt-4 text-sm font-semibold leading-7 text-[#60756E]">
-          Cette future structure fera le lien entre l’école de cyclisme et
-          l’équipe professionnelle. Son fonctionnement sera défini avec les
-          infrastructures.
-        </p>
-      </div>
-    </section>
   );
 }
 

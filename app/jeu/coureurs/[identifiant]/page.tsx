@@ -29,7 +29,6 @@ import {
   combineEquipmentEffects,
   getEquipmentRatingBonusTotals,
 } from "@/lib/game/equipment";
-import type { RiderNotablePerformance } from "@/lib/game/rider-notable-performances";
 import { getRiderExperience } from "@/lib/game/rider-experience";
 import { getRiderClimateProfile } from "@/lib/game/race-weather";
 import { shouldDisplayNaturalizationCard } from "@/lib/game/naturalization";
@@ -1016,26 +1015,7 @@ function CurrentTeamCard({
 function CareerHistory({
   history,
 }: {
-  history: Array<{
-    seasonId: string;
-    seasonName: string;
-    gameYear: number;
-    teamId: string;
-    teamName: string;
-    transferFee: number | null;
-    currencyCode: string;
-    joinedDayNumber: number | null;
-    leftDayNumber: number | null;
-    victories: number | null;
-    points: number | null;
-    uciRank: number | null;
-    nationalTitles: Array<{
-      type: "road" | "time_trial";
-      countryName: string;
-      countryCode: string;
-    }>;
-    notablePerformances: RiderNotablePerformance[];
-  }>;
+  history: PublicRiderProfile["history"];
 }) {
   return (
     <section className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
@@ -1053,14 +1033,21 @@ function CareerHistory({
           <div className="grid gap-3 border-t border-[#315B3E]/10 bg-[#F3F8F5] p-4 md:hidden">
             {history.map((entry) => (
               <article
-                key={`${entry.seasonId}-${entry.teamId}`}
+                key={`${entry.careerLevel}-${entry.seasonId}-${entry.teamId}`}
                 className="min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-sm"
               >
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-[#183F37]">
-                      {entry.seasonName}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-black text-[#183F37]">
+                        {entry.seasonName}
+                      </p>
+                      {entry.careerLevel === "junior" ? (
+                        <span className="rounded-full bg-[#FFF3C4] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#7A5A00]">
+                          Année junior
+                        </span>
+                      ) : null}
+                    </div>
                     <Link
                       href={`/jeu/equipes/${entry.teamId}`}
                       target="_blank"
@@ -1076,7 +1063,11 @@ function CareerHistory({
                     ) : null}
                   </div>
                   <span className="shrink-0 rounded-full bg-[#EAF5F0] px-3 py-1 text-xs font-black text-[#176951]">
-                    {entry.uciRank === null ? "UCI —" : `UCI #${entry.uciRank}`}
+                    {entry.careerLevel === "junior"
+                      ? `${entry.juniorRaceCount ?? 0} courses`
+                      : entry.uciRank === null
+                        ? "UCI —"
+                        : `UCI #${entry.uciRank}`}
                   </span>
                 </div>
 
@@ -1086,6 +1077,12 @@ function CareerHistory({
                     value={entry.victories}
                   />
                   <MobileHistoryValue label="Points" value={entry.points} />
+                  {entry.careerLevel === "junior" ? (
+                    <MobileHistoryValue
+                      label="Podiums juniors"
+                      value={entry.juniorPodiums}
+                    />
+                  ) : null}
                 </dl>
 
                 <div className="mt-3 grid gap-3 border-t border-[#315B3E]/10 pt-3">
@@ -1140,11 +1137,16 @@ function CareerHistory({
               <tbody>
                 {history.map((entry) => (
                   <tr
-                    key={`${entry.seasonId}-${entry.teamId}`}
+                    key={`${entry.careerLevel}-${entry.seasonId}-${entry.teamId}`}
                     className="border-t border-[#315B3E]/10 text-sm"
                   >
                     <td className="px-6 py-4 font-black text-[#183F37]">
-                      {entry.seasonName}
+                      <span className="block">{entry.seasonName}</span>
+                      {entry.careerLevel === "junior" ? (
+                        <span className="mt-1 inline-flex rounded-full bg-[#FFF3C4] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#7A5A00]">
+                          Année junior
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-5 py-4">
                       <Link
@@ -1183,7 +1185,13 @@ function CareerHistory({
                         performances={entry.notablePerformances}
                       />
                     </td>
-                    <HistoryValue value={entry.uciRank} prefix="#" />
+                    {entry.careerLevel === "junior" ? (
+                      <td className="px-6 py-4 text-center font-black text-[#176951]">
+                        Junior · {entry.juniorRaceCount ?? 0} courses
+                      </td>
+                    ) : (
+                      <HistoryValue value={entry.uciRank} prefix="#" />
+                    )}
                   </tr>
                 ))}
               </tbody>
