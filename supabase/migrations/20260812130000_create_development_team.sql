@@ -507,8 +507,7 @@ declare
 begin
   if v_auth_user_id is null then raise exception 'Vous devez être authentifié.'; end if;
 
-  select development_team, coalesce(season.current_day_number, 1)
-  into v_development_team, v_day_number
+  select development_team.* into v_development_team
   from public.development_teams as development_team
   join public.seasons as season on season.id = development_team.season_id
   where season.status = 'active'
@@ -519,6 +518,10 @@ begin
   if v_development_team.id is null then
     raise exception 'Constituez d’abord votre Development Team.';
   end if;
+
+  select coalesce(current_day_number, 1) into v_day_number
+  from public.seasons
+  where id = v_development_team.season_id;
 
   select * into v_edition
   from public.development_race_editions

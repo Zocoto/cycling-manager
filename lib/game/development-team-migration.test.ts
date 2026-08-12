@@ -62,7 +62,10 @@ describe("Development Team migration", () => {
 
   it("valide les inscriptions côté serveur et les règle avant l’intersaison", () => {
     expect(registrationFix).toContain(
-      "select development_team, coalesce(season.current_day_number, 1)",
+      "select development_team.* into v_development_team",
+    );
+    expect(registrationFix).toContain(
+      "select coalesce(current_day_number, 1) into v_day_number",
     );
     expect(registrationFix).toContain(
       "v_day_number >= v_edition.start_day_number",
