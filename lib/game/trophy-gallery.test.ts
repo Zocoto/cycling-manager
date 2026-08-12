@@ -36,6 +36,7 @@ describe("buildTrophyGallery", () => {
       total: 2,
       grandTours: 1,
       monuments: 1,
+      championships: 0,
       uciTitles: 0,
       special: 0,
       attendance: 0,
@@ -45,13 +46,15 @@ describe("buildTrophyGallery", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: "grand-tour:result-pink",
-          title: "Trofeo Rosa delle Regioni",
+          title: "Corsa delle Regioni",
+          competitionName: "Trofeo Rosa delle Regioni · 1re place au général",
           inscription: "Gianni Rosa",
           palette: expect.objectContaining({ primary: "#E45A96" }),
         }),
         expect.objectContaining({
           id: "monument:result-monument",
-          title: "Couronne d’Émeraude",
+          title: "Couronne des Ardennes",
+          competitionName: "Couronne d’Émeraude · 1re place",
           palette: expect.objectContaining({ primary: "#278B70" }),
         }),
       ])
@@ -113,6 +116,51 @@ describe("buildTrophyGallery", () => {
 
     expect(gallery.trophies).toEqual([]);
     expect(gallery.counts.total).toBe(0);
+  });
+
+  it("adds world and continental titles to the sporting director record", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [
+        {
+          id: "world-road",
+          raceSlug: "championnats-du-monde-en-ligne",
+          raceName: "Championnats du monde en ligne",
+          seasonName: "Saison 2",
+          wonAt: "2026-08-11T18:00:00.000Z",
+          riderName: "Claudia Marković",
+          isGrandTour: false,
+          isMonument: false,
+          competitionType: "world_championship",
+        },
+        {
+          id: "continental-tt",
+          raceSlug: "championnats-europe-clm",
+          raceName: "Championnats d’Europe CLM",
+          seasonName: "Saison 2",
+          wonAt: "2026-08-07T14:00:00.000Z",
+          riderName: "Claudia Marković",
+          isGrandTour: false,
+          isMonument: false,
+          competitionType: "continental_championship",
+        },
+      ],
+      teamUciTitles: [],
+      riderUciTitles: [],
+    });
+
+    expect(gallery.counts.championships).toBe(2);
+    expect(gallery.trophies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "world_championship",
+          title: "Championnats du monde en ligne",
+        }),
+        expect.objectContaining({
+          kind: "continental_championship",
+          title: "Championnats d’Europe CLM",
+        }),
+      ])
+    );
   });
 
   it("adds the claimed Alphatesteur distinction before sporting trophies", () => {

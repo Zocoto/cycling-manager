@@ -20,6 +20,11 @@ export function TrophyGallery({
   const raceTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "grand_tour" || trophy.kind === "monument"
   );
+  const championshipTrophies = gallery.trophies.filter(
+    (trophy) =>
+      trophy.kind === "world_championship" ||
+      trophy.kind === "continental_championship"
+  );
   const attendanceTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "attendance"
   );
@@ -58,11 +63,12 @@ export function TrophyGallery({
 
             <div
               data-trophy-metrics
-              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-6 sm:gap-2 sm:p-3"
+              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-7"
             >
               <GalleryMetric label="Total" value={gallery.counts.total} />
               <GalleryMetric label="Grands Tours" value={gallery.counts.grandTours} />
               <GalleryMetric label="Monuments" value={gallery.counts.monuments} />
+              <GalleryMetric label="CM & CC" value={gallery.counts.championships} />
               <GalleryMetric label="Titres UCI" value={gallery.counts.uciTitles} />
               <GalleryMetric label="Assiduité" value={gallery.counts.attendance} />
               <GalleryMetric label="Parrain" value={gallery.counts.referrals} />
@@ -112,6 +118,16 @@ export function TrophyGallery({
                 title="Sommets mondiaux"
                 description="Les titres UCI occupent la place d’honneur du musée."
                 trophies={uciTrophies}
+                epic
+              />
+            ) : null}
+
+            {championshipTrophies.length > 0 ? (
+              <TrophyShelf
+                eyebrow="Maillots suprêmes"
+                title="Championnats du monde & continentaux"
+                description="Chaque titre en ligne ou contre-la-montre reste associé au DS, à son équipe et au coureur vainqueur."
+                trophies={championshipTrophies}
                 epic
               />
             ) : null}
@@ -540,8 +556,9 @@ function EmptyTrophyRoom() {
       </div>
       <h3 className="mt-5 text-2xl font-black">Le premier socle vous attend</h3>
       <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#AFC3BA]">
-        Remportez un Grand Tour, un Monument ou terminez une saison au sommet
-        d’un classement UCI : le trophée apparaîtra ici automatiquement.
+        Remportez un championnat, un Grand Tour, un Monument ou terminez une
+        saison au sommet d’un classement UCI : le trophée apparaîtra ici
+        automatiquement.
       </p>
       <Link
         href="/jeu/calendrier"
@@ -614,6 +631,8 @@ function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
   if (kind === "special") return "Distinction Alpha";
   if (kind === "grand_tour") return "Grand Tour";
   if (kind === "monument") return "Monument";
+  if (kind === "world_championship") return "Champion du monde";
+  if (kind === "continental_championship") return "Champion continental";
   if (kind === "uci_team") return "Champion UCI équipes";
   if (kind === "attendance") return "Assidu";
   if (kind === "referral") return "Parrain";

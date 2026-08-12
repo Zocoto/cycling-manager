@@ -14,8 +14,8 @@ import Link from "@/components/ui/app-link";
 export type TeamSeasonResultPopoverItem = {
   id: string;
   href: string;
-  title: string;
   raceName: string;
+  resultLabel: string;
   riderName: string | null;
 };
 
@@ -225,10 +225,10 @@ export function TeamSeasonResultsPopover({
                       </span>
                       <span className="min-w-0">
                         <span className="block text-xs font-black text-white">
-                          {item.title}
+                          {item.raceName}
                         </span>
                         <span className="mt-1 block truncate text-[11px] font-semibold text-[#C7D9D0]">
-                          {item.raceName}
+                          {item.resultLabel}
                           {item.riderName ? ` · ${item.riderName}` : ""}
                         </span>
                       </span>
@@ -244,7 +244,7 @@ export function TeamSeasonResultsPopover({
               </ul>
 
               <p className="border-t border-white/10 px-4 py-2.5 text-[9px] font-semibold text-[#8FA99D]">
-                Sélection des principaux résultats de la saison.
+                Jusqu’à 20 résultats majeurs, classés par importance.
               </p>
             </div>,
             document.body

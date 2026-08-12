@@ -22,6 +22,17 @@ describe("TrophyGallery", () => {
           isGrandTour: true,
           isMonument: false,
         },
+        {
+          id: "world-win",
+          raceSlug: "championnats-du-monde-clm",
+          raceName: "Championnats du monde CLM",
+          seasonName: "Saison 4",
+          wonAt: "2026-08-11T14:00:00.000Z",
+          riderName: "Alix Mondial",
+          isGrandTour: false,
+          isMonument: false,
+          competitionType: "world_championship",
+        },
       ],
       teamUciTitles: [
         { id: "uci-team", seasonName: "Saison 3", teamName: "Veloria" },
@@ -38,7 +49,11 @@ describe("TrophyGallery", () => {
     const markup = renderToStaticMarkup(<TrophyGallery gallery={gallery} />);
 
     expect(markup).toContain("Galerie des trophées");
+    expect(markup).toContain("Ruta de las Sierras");
     expect(markup).toContain("Copa Roja de las Sierras");
+    expect(markup).toContain("Championnats du monde &amp; continentaux");
+    expect(markup).toContain("Championnats du monde CLM");
+    expect(markup).toContain("CM &amp; CC");
     expect(markup).toContain("Alix Mondial");
     expect(markup).toContain("Coupe UCI des équipes");
     expect(markup.match(/En cours de développement/g)).toHaveLength(3);

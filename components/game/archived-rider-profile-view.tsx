@@ -215,6 +215,37 @@ export function ArchivedRiderProfileView({
                             </li>
                           ))}
                       </ul>
+                      {entry.notablePerformances.length > 4 ? (
+                        <details className="group mt-3 rounded-xl border border-[#315B3E]/10 bg-white">
+                          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-[11px] font-black text-[#176951] marker:hidden">
+                            <span>
+                              Voir les {entry.notablePerformances.length - 4}{" "}
+                              autres résultats
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="transition group-open:rotate-180"
+                            >
+                              ⌄
+                            </span>
+                          </summary>
+                          <ul className="space-y-2 border-t border-[#315B3E]/10 px-3 py-3">
+                            {entry.notablePerformances
+                              .slice(4)
+                              .map((performance) => (
+                                <li
+                                  key={performance.raceEditionId}
+                                  className="text-xs font-semibold leading-5 text-[#48665F]"
+                                >
+                                  <strong className="text-[#183F37]">
+                                    {performance.raceName}
+                                  </strong>{" "}
+                                  · {performance.labels.join(" · ")}
+                                </li>
+                              ))}
+                          </ul>
+                        </details>
+                      ) : null}
                     </div>
                   ) : null}
                 </article>

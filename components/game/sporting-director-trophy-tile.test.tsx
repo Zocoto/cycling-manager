@@ -59,4 +59,28 @@ describe("SportingDirectorTrophyTile", () => {
     expect(markup).toContain("Aucun trophée exposé");
     expect(markup).not.toContain("Cadeau privé");
   });
+
+  it("keeps additional distinctions in a subtle expandable detail", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: Array.from({ length: 6 }, (_, index) => ({
+        id: `tour-win-${index + 1}`,
+        raceSlug: "ruta-de-las-sierras",
+        raceName: "Ruta de las Sierras",
+        seasonName: `Saison ${index + 1}`,
+        wonAt: null,
+        riderName: `Coureur ${index + 1}`,
+        isGrandTour: true,
+        isMonument: false,
+      })),
+      teamUciTitles: [],
+      riderUciTitles: [],
+    });
+
+    const markup = renderToStaticMarkup(
+      <SportingDirectorTrophyTile gallery={gallery} />
+    );
+
+    expect(markup).toContain("<details");
+    expect(markup).toContain("Voir les 2 autres distinctions");
+  });
 });

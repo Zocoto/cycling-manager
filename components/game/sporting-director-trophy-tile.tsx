@@ -7,6 +7,7 @@ export function SportingDirectorTrophyTile({
   gallery: TrophyGallery;
 }) {
   const visibleTrophies = gallery.trophies.slice(0, 4);
+  const hiddenTrophies = gallery.trophies.slice(4);
 
   return (
     <section className="rounded-2xl border border-[#315B3E]/12 bg-[linear-gradient(135deg,#F8FBF9,#F2F0FB)] p-5 shadow-[0_8px_24px_rgba(19,60,46,0.06)] sm:p-6">
@@ -36,13 +37,27 @@ export function SportingDirectorTrophyTile({
         </div>
       )}
 
-      {gallery.counts.total > visibleTrophies.length ? (
-        <p className="mt-4 text-xs font-bold text-[#60756E]">
-          + {gallery.counts.total - visibleTrophies.length} autre
-          {gallery.counts.total - visibleTrophies.length > 1 ? "s" : ""}{" "}
-          distinction
-          {gallery.counts.total - visibleTrophies.length > 1 ? "s" : ""}
-        </p>
+      {hiddenTrophies.length > 0 ? (
+        <details className="group mt-4 rounded-xl border border-[#315B3E]/10 bg-white/55">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 text-xs font-black text-[#176951] marker:hidden">
+            <span>
+              Voir les {hiddenTrophies.length} autre
+              {hiddenTrophies.length > 1 ? "s" : ""} distinction
+              {hiddenTrophies.length > 1 ? "s" : ""}
+            </span>
+            <span
+              aria-hidden="true"
+              className="text-base transition group-open:rotate-180"
+            >
+              ⌄
+            </span>
+          </summary>
+          <div className="grid gap-3 border-t border-[#315B3E]/10 p-3 sm:grid-cols-2">
+            {hiddenTrophies.map((trophy) => (
+              <PublicTrophy key={trophy.id} trophy={trophy} />
+            ))}
+          </div>
+        </details>
       ) : null}
     </section>
   );

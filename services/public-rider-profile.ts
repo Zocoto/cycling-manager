@@ -335,6 +335,7 @@ type PerformanceEditionRow = {
   display_name: string;
   race: {
     competition_type: string;
+    race_format: "one_day" | "stage_race";
   } | null;
 };
 
@@ -646,7 +647,7 @@ export async function getPublicRiderProfile({
     performanceEditionIds.length > 0
       ? supabase
           .from("race_editions")
-          .select("id, display_name, race:races(competition_type)")
+          .select("id, display_name, race:races(competition_type, race_format)")
           .in("id", performanceEditionIds)
           .returns<PerformanceEditionRow[]>()
       : Promise.resolve({
@@ -1666,6 +1667,7 @@ function buildNotablePerformancesBySeason({
             ),
             secondaryWins,
             stageWinCount,
+            raceFormat: edition?.race?.race_format ?? null,
           })
         : [parsedDescription.performance];
     const teamKey = historyTeamKey(teamSeason.season_id, teamSeason.team_id);
