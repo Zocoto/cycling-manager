@@ -356,7 +356,7 @@ export default async function RiderProfilePage({
               ))}
             </div>
           ) : null}
-          <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[auto_minmax(0,1fr)_360px] lg:items-center">
+          <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center xl:grid-cols-[auto_minmax(0,1fr)_minmax(360px,400px)]">
             <div className="relative w-fit">
               <RiderAvatar
                 profileKey={profile.avatarProfileKey}
@@ -479,7 +479,7 @@ export default async function RiderProfilePage({
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 lg:col-span-2 xl:col-span-1">
               <RankingBadge
                 rank={riderRanking?.rank ?? null}
                 points={riderRanking?.points ?? 0}
@@ -1017,103 +1017,125 @@ function CurrentTeamCard({
   activeContinentalTitles: PublicRiderProfile["continentalTitles"];
   activeWorldTitles: PublicRiderProfile["worldTitles"];
 }) {
+  const hasChampionTitles =
+    activeWorldTitles.length +
+      activeContinentalTitles.length +
+      activeNationalTitles.length >
+    0;
+
   const content = (
-    <>
-      <span className="flex max-w-full shrink-0 flex-wrap items-end gap-1.5">
-        {activeWorldTitles.map((title) => (
-          <span key={`world-${title.type}`} className="text-center">
-            <WorldChampionJersey
-              championshipType={title.type}
-              className="h-24 w-20 drop-shadow-xl"
-            />
-            <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
-              CM {title.type === "road" ? "Route" : "CLM"}
-            </span>
+    <span className="block min-w-0">
+      {hasChampionTitles ? (
+        <span className="block">
+          <span className="block text-[9px] font-extrabold uppercase tracking-[0.17em] text-[#9BE0BC]">
+            Maillots de champion
           </span>
-        ))}
-        {activeContinentalTitles.map((title) => (
           <span
-            key={`continental-${title.continentCode}-${title.type}`}
-            className="text-center"
+            data-champion-jerseys
+            className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-x-1.5 gap-y-3"
           >
-            <ContinentalChampionJersey
-              continentCode={title.continentCode}
-              championshipType={title.type}
-              className="h-24 w-20 drop-shadow-xl"
-            />
-            <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
-              CC {title.type === "road" ? "Route" : "CLM"}
-            </span>
+            {activeWorldTitles.map((title) => (
+              <span key={`world-${title.type}`} className="min-w-0 text-center">
+                <WorldChampionJersey
+                  championshipType={title.type}
+                  className="mx-auto h-24 w-20 drop-shadow-xl"
+                />
+                <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
+                  CM {title.type === "road" ? "Route" : "CLM"}
+                </span>
+              </span>
+            ))}
+            {activeContinentalTitles.map((title) => (
+              <span
+                key={`continental-${title.continentCode}-${title.type}`}
+                className="min-w-0 text-center"
+              >
+                <ContinentalChampionJersey
+                  continentCode={title.continentCode}
+                  championshipType={title.type}
+                  className="mx-auto h-24 w-20 drop-shadow-xl"
+                />
+                <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
+                  CC {title.type === "road" ? "Route" : "CLM"}
+                </span>
+              </span>
+            ))}
+            {activeNationalTitles.map((title) => (
+              <span
+                key={`national-${title.countryCode}-${title.type}`}
+                className="min-w-0 text-center"
+              >
+                <NationalChampionJersey
+                  countryCode={title.countryCode}
+                  countryName={title.countryName}
+                  championshipType={title.type}
+                  className="mx-auto h-24 w-20 drop-shadow-xl"
+                />
+                <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
+                  CN {title.type === "road" ? "Route" : "CLM"}
+                </span>
+              </span>
+            ))}
           </span>
-        ))}
-        {activeNationalTitles.map((title) => (
-          <span
-            key={`national-${title.countryCode}-${title.type}`}
-            className="text-center"
-          >
-            <NationalChampionJersey
-              countryCode={title.countryCode}
-              countryName={title.countryName}
-              championshipType={title.type}
-              className="h-24 w-20 drop-shadow-xl"
-            />
-            <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#F2C94C]">
-              CN {title.type === "road" ? "Route" : "CLM"}
-            </span>
-          </span>
-        ))}
-        <span className="text-center">
+        </span>
+      ) : null}
+
+      <span
+        data-current-team-identity
+        className="mt-4 grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] items-center gap-3 border-t border-white/10 pt-4 first:mt-0 first:border-t-0 first:pt-0"
+      >
+        <span className="min-w-0 text-center">
           <TeamJerseyPreview
             amateurJersey={amateurJersey}
             amateurTeamName={amateurTeamName}
             sponsor={sponsorIdentity?.sponsor ?? null}
             sponsorJersey={sponsorIdentity?.selectedJersey ?? null}
-            className="h-24 w-20 drop-shadow-xl"
+            className="mx-auto h-24 w-20 drop-shadow-xl"
           />
           <span className="mt-1 block text-[8px] font-black uppercase tracking-wider text-[#BFD1C6]">
             Maillot équipe
           </span>
         </span>
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#9BE0BC]">
-          Équipe actuelle
-        </span>
-        <span className="mt-2 block text-lg font-black text-white">
-          {team?.displayName ?? "Agent libre"}
-        </span>
-        {team ? (
-          <span className="mt-2 block">
-            <TeamDivisionBadge
-              division={team.divisionCode}
-              isProfessional={Boolean(sponsorIdentity)}
-              dark
-              compact
-            />
+        <span className="min-w-0 pr-5">
+          <span className="block text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#9BE0BC]">
+            Équipe actuelle
           </span>
-        ) : null}
-        {sponsorIdentity ? (
-          <span className="mt-2 flex items-center gap-2">
-            <SponsorLogoMark
-              src={sponsorIdentity.sponsor.logoPath}
-              alt={`Logo de ${sponsorIdentity.sponsor.name}`}
-              sponsorName={sponsorIdentity.sponsor.name}
-              primaryColor={sponsorIdentity.sponsor.colors.primary}
-              backgroundColor={sponsorIdentity.sponsor.colors.background}
-              textColor={sponsorIdentity.sponsor.colors.text}
-              className="h-8 w-12 rounded-lg p-1"
-            />
-            <span className="text-xs font-semibold text-[#BFD1C6]">
-              {sponsorIdentity.sponsor.name}
+          <span className="mt-2 block break-words text-lg font-black leading-tight text-white">
+            {team?.displayName ?? "Agent libre"}
+          </span>
+          {team ? (
+            <span className="mt-2 block">
+              <TeamDivisionBadge
+                division={team.divisionCode}
+                isProfessional={Boolean(sponsorIdentity)}
+                dark
+                compact
+              />
             </span>
-          </span>
-        ) : (
-          <span className="mt-1 block text-xs font-semibold text-[#BFD1C6]">
-            {team ? "Structure amateur" : "Maillot neutre"}
-          </span>
-        )}
+          ) : null}
+          {sponsorIdentity ? (
+            <span className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+              <SponsorLogoMark
+                src={sponsorIdentity.sponsor.logoPath}
+                alt={`Logo de ${sponsorIdentity.sponsor.name}`}
+                sponsorName={sponsorIdentity.sponsor.name}
+                primaryColor={sponsorIdentity.sponsor.colors.primary}
+                backgroundColor={sponsorIdentity.sponsor.colors.background}
+                textColor={sponsorIdentity.sponsor.colors.text}
+                className="h-8 w-12 shrink-0 rounded-lg p-1"
+              />
+              <span className="min-w-0 break-words text-xs font-semibold text-[#BFD1C6]">
+                {sponsorIdentity.sponsor.name}
+              </span>
+            </span>
+          ) : (
+            <span className="mt-1 block text-xs font-semibold text-[#BFD1C6]">
+              {team ? "Structure amateur" : "Maillot neutre"}
+            </span>
+          )}
+        </span>
       </span>
-    </>
+    </span>
   );
 
   return team ? (
@@ -1121,24 +1143,24 @@ function CurrentTeamCard({
       href={`/jeu/equipes/${team.id}`}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 p-4 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+      className="relative block min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-white/10 p-4 pr-10 transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
     >
       {content}
       <span
-        className="ml-auto self-start text-sm font-black text-[#9BE0BC]"
+        className="absolute right-4 top-4 text-sm font-black text-[#9BE0BC]"
         aria-hidden="true"
       >
         ↗
       </span>
     </Link>
   ) : (
-    <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 p-4">
+    <div className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-2xl border border-white/15 bg-white/10 p-4">
       <AmateurTeamJersey
         jersey={FREE_AGENT_JERSEY}
         teamName="Agent libre"
-        className="h-28 w-24 shrink-0 opacity-80 drop-shadow-xl"
+        className="h-24 w-20 shrink-0 opacity-80 drop-shadow-xl"
       />
-      <span>
+      <span className="min-w-0">
         <span className="block text-[10px] font-extrabold uppercase tracking-[0.17em] text-[#9BE0BC]">
           Équipe actuelle
         </span>
