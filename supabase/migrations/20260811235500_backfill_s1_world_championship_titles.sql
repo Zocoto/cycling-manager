@@ -1,4 +1,5 @@
 begin;
+
 -- Les Mondiaux S1 restent strictement inchanges. On deduit uniquement les
 -- titres route et CLM des resultats officiels deja enregistres.
 with world_winners as (
@@ -77,6 +78,7 @@ do update set
   season_id = excluded.season_id,
   won_at = excluded.won_at,
   relinquished_at = excluded.relinquished_at;
+
 -- Le meme mecanisme s'applique aux prochaines saisons. Il ne simule rien :
 -- il reagit uniquement a l'enregistrement d'un vainqueur officiel.
 create or replace function public.assign_world_championship_title()
@@ -168,4 +170,5 @@ begin
   return new;
 end;
 $$;
+
 commit;

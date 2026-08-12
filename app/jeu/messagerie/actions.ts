@@ -1,13 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const messageIdSchema = z.string().uuid();
-const skipAutomaticReadCookie = "director_mailbox_skip_read";
 
 export async function markAllDirectorMessagesReadAction() {
   const supabase = await createSupabaseServerClient();
@@ -38,14 +36,6 @@ export async function markDirectorMessageUnreadAction(formData: FormData) {
     );
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set(skipAutomaticReadCookie, messageId, {
-    path: "/jeu/messagerie",
-    maxAge: 60,
-    httpOnly: false,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
   revalidateMailbox();
 }
 

@@ -43,7 +43,7 @@ describe("rider notable performances", () => {
     ]);
   });
 
-  it("conserve les cinq performances ayant rapporté le plus de points", () => {
+  it("conserve jusqu’à vingt performances ayant rapporté le plus de points", () => {
     const performances: RiderNotablePerformance[] = Array.from(
       { length: 7 },
       (_, index) => ({
@@ -59,7 +59,18 @@ describe("rider notable performances", () => {
       shortlistNotablePerformances(performances).map(
         (performance) => performance.uciPoints
       )
-    ).toEqual([60, 50, 40, 30, 20]);
+    ).toEqual([60, 50, 40, 30, 20, 10, 0]);
+  });
+
+  it("précise la victoire au général pour une course par étapes", () => {
+    expect(
+      buildNotablePerformanceLabels({
+        finalRank: 1,
+        nationalChampionshipType: null,
+        secondaryWins: [],
+        raceFormat: "stage_race",
+      })
+    ).toEqual(["1re place au général"]);
   });
 
   it("produit le libellé compact demandé pour la saison", () => {

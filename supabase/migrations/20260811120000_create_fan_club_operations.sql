@@ -1,6 +1,7 @@
 -- Fan Club production operations: fleet, trips, shop inventory and daily sales.
 
 begin;
+
 create table public.fan_club_profiles (
   team_id uuid primary key references public.teams(id) on delete cascade,
   supporter_count integer not null default 0 check (supporter_count >= 0),
@@ -10,6 +11,7 @@ create table public.fan_club_profiles (
   last_settled_game_day integer,
   updated_at timestamptz not null default now()
 );
+
 create table public.fan_club_fleet (
   team_id uuid not null references public.teams(id) on delete cascade,
   model_code text not null,
@@ -20,6 +22,7 @@ create table public.fan_club_fleet (
     model_code in ('regional', 'grand-tourisme', 'double-etage')
   )
 );
+
 create table public.fan_club_trip_allocations (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
@@ -35,8 +38,10 @@ create table public.fan_club_trip_allocations (
   ),
   constraint fan_club_trip_unique unique (team_id, race_edition_id, model_code)
 );
+
 create index fan_club_trip_team_created_idx
   on public.fan_club_trip_allocations (team_id, created_at desc);
+
 create table public.fan_club_shop_inventory (
   team_id uuid not null references public.teams(id) on delete cascade,
   product_code text not null,
@@ -49,6 +54,7 @@ create table public.fan_club_shop_inventory (
     product_code in ('team-jersey', 'bottle', 'pennant', 'cap', 'supporter-balloon')
   )
 );
+
 create table public.fan_club_shop_sales (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
@@ -70,13 +76,16 @@ create table public.fan_club_shop_sales (
     product_code
   )
 );
+
 create index fan_club_sales_team_created_idx
   on public.fan_club_shop_sales (team_id, created_at desc);
+
 alter table public.fan_club_profiles enable row level security;
 alter table public.fan_club_fleet enable row level security;
 alter table public.fan_club_trip_allocations enable row level security;
 alter table public.fan_club_shop_inventory enable row level security;
 alter table public.fan_club_shop_sales enable row level security;
+
 create or replace function public.current_fan_club_team_id()
 returns uuid
 language sql
@@ -94,28 +103,36 @@ as $$
     and director.status = 'active'
   limit 1
 $$;
+
 revoke all on function public.current_fan_club_team_id() from public, anon;
 grant execute on function public.current_fan_club_team_id() to authenticated;
+
 create policy fan_club_profiles_select_own
 on public.fan_club_profiles for select to authenticated
 using (team_id = public.current_fan_club_team_id());
+
 create policy fan_club_fleet_select_own
 on public.fan_club_fleet for select to authenticated
 using (team_id = public.current_fan_club_team_id());
+
 create policy fan_club_trips_select_own
 on public.fan_club_trip_allocations for select to authenticated
 using (team_id = public.current_fan_club_team_id());
+
 create policy fan_club_inventory_select_own
 on public.fan_club_shop_inventory for select to authenticated
 using (team_id = public.current_fan_club_team_id());
+
 create policy fan_club_sales_select_own
 on public.fan_club_shop_sales for select to authenticated
 using (team_id = public.current_fan_club_team_id());
+
 grant select on table public.fan_club_profiles to authenticated;
 grant select on table public.fan_club_fleet to authenticated;
 grant select on table public.fan_club_trip_allocations to authenticated;
 grant select on table public.fan_club_shop_inventory to authenticated;
 grant select on table public.fan_club_shop_sales to authenticated;
+
 create or replace function public.purchase_current_team_fan_club_car(
   p_model_code text
 )
@@ -191,6 +208,7 @@ begin
   return v_quantity;
 end;
 $$;
+
 create or replace function public.sell_current_team_fan_club_car(
   p_model_code text
 )
@@ -259,6 +277,7 @@ begin
   return v_quantity;
 end;
 $$;
+
 create or replace function public.charter_current_team_fan_club_cars(
   p_race_edition_id uuid,
   p_model_code text,
@@ -363,6 +382,7 @@ begin
   return v_total;
 end;
 $$;
+
 create or replace function public.purchase_current_team_fan_club_stock(
   p_product_code text,
   p_quantity integer
@@ -457,6 +477,7 @@ begin
   return v_new_quantity;
 end;
 $$;
+
 create or replace function public.set_current_team_fan_club_sale_price(
   p_product_code text,
   p_sale_price numeric
@@ -494,6 +515,7 @@ begin
   return round(p_sale_price, 2);
 end;
 $$;
+
 create or replace function public.settle_current_team_fan_club_sales()
 returns integer
 language plpgsql
@@ -602,6 +624,7 @@ begin
   return v_total_units;
 end;
 $$;
+
 revoke all on function public.purchase_current_team_fan_club_car(text) from public, anon;
 revoke all on function public.sell_current_team_fan_club_car(text) from public, anon;
 revoke all on function public.charter_current_team_fan_club_cars(uuid, text, integer) from public, anon;
@@ -614,4 +637,5 @@ grant execute on function public.charter_current_team_fan_club_cars(uuid, text, 
 grant execute on function public.purchase_current_team_fan_club_stock(text, integer) to authenticated;
 grant execute on function public.set_current_team_fan_club_sale_price(text, numeric) to authenticated;
 grant execute on function public.settle_current_team_fan_club_sales() to authenticated;
+
 commit;

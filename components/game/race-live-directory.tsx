@@ -59,6 +59,7 @@ export function RaceLiveDirectory({
         .filter(
           (edition) =>
             edition.competitionType === "standard" ||
+            edition.competitionType === "world_championship" ||
             edition.engagedRiderCount > 0,
         )
         .flatMap((edition) =>
@@ -151,7 +152,7 @@ export function RaceLiveDirectory({
             </p>
             <p className="mt-1 text-xs font-semibold text-[#688176]">
               {scope === "team"
-                ? "Retrouvez les épreuves auxquelles votre équipe participe."
+                ? "Retrouvez les épreuves auxquelles votre équipe participe et les Mondiaux diffusés à tous."
                 : "Suivez en spectateur les autres directs, replays et résultats."}
             </p>
           </div>
@@ -725,6 +726,10 @@ export function isEditionInResultsScope(
   edition: RaceCalendarEdition,
   scope: ResultsScope,
 ) {
+  if (edition.competitionType === "world_championship") {
+    return true;
+  }
+
   const isRegistered = isCurrentTeamRegisteredForRace(edition);
 
   return scope === "team" ? isRegistered : !isRegistered;

@@ -1,11 +1,14 @@
 begin;
+
 -- Les CLM continentaux n'existent qu'a partir de la S2. La S1 et ses
 -- resultats restent donc strictement inchanges.
 alter function public.ensure_international_championship_editions(uuid)
 rename to ensure_international_championship_editions_pre_cc_tt_s2;
+
 revoke all
 on function public.ensure_international_championship_editions_pre_cc_tt_s2(uuid)
 from public, anon, authenticated;
+
 create or replace function public.ensure_continental_time_trial_championships_s2(
   p_season_id uuid
 )
@@ -250,12 +253,15 @@ begin
   end loop;
 end;
 $$;
+
 revoke all
 on function public.ensure_continental_time_trial_championships_s2(uuid)
 from public, anon, authenticated;
+
 grant execute
 on function public.ensure_continental_time_trial_championships_s2(uuid)
 to service_role;
+
 create or replace function public.ensure_international_championship_editions(
   p_season_id uuid
 )
@@ -271,12 +277,15 @@ begin
   perform public.ensure_continental_time_trial_championships_s2(p_season_id);
 end;
 $$;
+
 revoke all
 on function public.ensure_international_championship_editions(uuid)
 from public, anon, authenticated;
+
 grant execute
 on function public.ensure_international_championship_editions(uuid)
 to service_role;
+
 -- Le CLM de 14 h et la course en ligne de 18 h sont deux creneaux du meme
 -- championnat. Un coureur peut disputer les deux sans faux conflit.
 create or replace function public.enforce_pending_race_roster_conflicts()
@@ -359,6 +368,7 @@ begin
   return new;
 end;
 $$;
+
 create or replace function public.prioritize_international_championship_rider(
   p_nation_selection_id uuid,
   p_rider_id uuid
@@ -445,12 +455,15 @@ begin
   end if;
 end;
 $$;
+
 revoke all
 on function public.prioritize_international_championship_rider(uuid, uuid)
 from public, anon, authenticated;
+
 grant execute
 on function public.prioritize_international_championship_rider(uuid, uuid)
 to service_role;
+
 do $$
 declare
   v_season_id uuid;
@@ -465,6 +478,7 @@ begin
   end loop;
 end;
 $$;
+
 update public.season_events as event
 set
   title = 'Championnats continentaux - CLM & course en ligne',
@@ -475,4 +489,5 @@ join public.seasons as season
 where day.id = event.season_day_id
   and season.game_year >= 2
   and event.event_type = 'continental_championships';
+
 commit;

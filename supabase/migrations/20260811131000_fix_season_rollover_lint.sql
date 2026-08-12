@@ -1,5 +1,4 @@
 begin;
-
 -- A FOR integer loop owns its iterator. Remove the redundant declaration from
 -- the function installed immediately before this migration.
 do $$
@@ -24,7 +23,5 @@ begin
   execute v_clean_definition;
 end;
 $$;
-
 notify pgrst, 'reload schema';
-
 commit;

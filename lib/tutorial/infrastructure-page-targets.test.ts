@@ -37,10 +37,15 @@ describe("infrastructure tutorial integration", () => {
     }
   });
   it("affiche les bâtiments de performance et du Fan Club", () => {
-    expect(infrastructurePage).toContain('"training_center"');
-    expect(infrastructurePage).toContain('"fan_club_headquarters"');
-    expect(infrastructurePage).toContain('"club_shop"');
+    expect(infrastructurePage).toContain(
+      "getTeamInfrastructureCodesByStartingCost",
+    );
+    expect(infrastructurePage).toContain(
+      'data-building-order="starting-cost-ascending"',
+    );
     expect(infrastructurePage).toContain("<InfrastructureBuildingCard");
+    expect(infrastructurePage).toContain("<DataRoomConstructionCard");
+    expect(infrastructurePage).toContain("<StaffAcademyCard");
     expect(infrastructurePage).toContain(
       "Construisez d’abord le siège social du Fan Club.",
     );

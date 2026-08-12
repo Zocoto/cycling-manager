@@ -1,5 +1,4 @@
 begin;
-
 -- A season rollover is a single, durable settlement.  The primary key makes a
 -- retry harmless and gives operations a compact audit trail.
 create table if not exists public.season_rollover_settlements (
@@ -17,9 +16,7 @@ create table if not exists public.season_rollover_settlements (
     and carried_team_count >= 0
   )
 );
-
 alter table public.season_rollover_settlements enable row level security;
-
 -- Financial closure must run after sponsor objectives (aaa) and before the
 -- existing aaa_team_season_sponsor_objective_closure trigger, specifically,
 -- target team row is copied by the division trigger.
@@ -28,7 +25,6 @@ drop trigger if exists bbb_team_season_financial_closure on public.team_seasons;
 create trigger bbb_team_season_financial_closure
 after update of status on public.team_seasons
 for each row execute function public.close_team_finances_when_season_completes();
-
 -- Future sponsor preparation can pre-create a team_seasons row.  Updating only
 -- its division used to discard the closing balance and debt/sponsor state.
 create or replace function public.assign_next_season_team_division(
@@ -106,7 +102,6 @@ begin
     spent_budget = 0;
 end;
 $$;
-
 -- A contract with a not-yet-created end season must still be bounded by its
 -- duration.  Previously a NULL end season scheduled payments forever.
 create or replace function public.sync_sponsor_installments(
@@ -180,7 +175,6 @@ begin
   end loop;
 end;
 $$;
-
 create or replace function public.get_season_rollover_readiness(
   p_source_season_id uuid
 )
@@ -241,7 +235,6 @@ as $$
   from source
   left join target on true;
 $$;
-
 create or replace function public.rollover_game_season(
   p_source_season_id uuid,
   p_force boolean default false
@@ -838,7 +831,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.settle_due_season_rollovers()
 returns jsonb
 language plpgsql
@@ -863,10 +855,8 @@ begin
   return v_results;
 end;
 $$;
-
 revoke all on table public.season_rollover_settlements from public, anon, authenticated;
 grant select, insert, update on table public.season_rollover_settlements to service_role;
-
 revoke all on function public.get_season_rollover_readiness(uuid)
   from public, anon, authenticated;
 revoke all on function public.rollover_game_season(uuid, boolean)
@@ -876,14 +866,11 @@ revoke all on function public.settle_due_season_rollovers()
 grant execute on function public.get_season_rollover_readiness(uuid) to service_role;
 grant execute on function public.rollover_game_season(uuid, boolean) to service_role;
 grant execute on function public.settle_due_season_rollovers() to service_role;
-
 comment on table public.season_rollover_settlements is
   'Journal idempotent des bascules atomiques entre deux saisons du jeu.';
 comment on function public.rollover_game_season(uuid, boolean) is
   'Clot une saison et active la suivante dans une transaction avec controles finaux.';
 comment on function public.settle_due_season_rollovers() is
   'Bascule les saisons actives dont le jour 28 est termine dans le fuseau Europe/Paris.';
-
 notify pgrst, 'reload schema';
-
 commit;

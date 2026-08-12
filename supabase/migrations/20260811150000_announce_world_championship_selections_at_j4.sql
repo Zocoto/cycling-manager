@@ -1,4 +1,5 @@
 begin;
+
 -- Les convocations mondiales deviennent officielles quatre jours avant le
 -- depart. Les championnats continentaux conservent leur moteur historique.
 create or replace function public.prepare_upcoming_world_championship_selections(
@@ -220,19 +221,24 @@ begin
   return v_created;
 end;
 $$;
+
 revoke all
 on function public.prepare_upcoming_world_championship_selections(timestamptz)
 from public, anon, authenticated;
+
 grant execute
 on function public.prepare_upcoming_world_championship_selections(timestamptz)
 to service_role;
+
 -- Une fois les huit coureurs CLM annonces, leur convocation ne doit plus
 -- changer silencieusement si une note d'entrainement evolue avant le depart.
 alter function public.rerank_world_time_trial_selection(uuid)
 rename to rerank_world_time_trial_selection_unfrozen;
+
 revoke all
 on function public.rerank_world_time_trial_selection_unfrozen(uuid)
 from public, anon, authenticated;
+
 create or replace function public.rerank_world_time_trial_selection(
   p_nation_selection_id uuid
 )
@@ -256,19 +262,24 @@ begin
   );
 end;
 $$;
+
 revoke all
 on function public.rerank_world_time_trial_selection(uuid)
 from public, anon, authenticated;
+
 grant execute
 on function public.rerank_world_time_trial_selection(uuid)
 to service_role;
+
 -- Le moteur existant continue de finaliser les selections et de traiter les
 -- championnats continentaux. Le pre-traitement J-4 ne concerne que les CM.
 alter function public.process_due_international_championship_selections(timestamptz)
 rename to process_due_international_selections_j4_base;
+
 revoke all
 on function public.process_due_international_selections_j4_base(timestamptz)
 from public, anon, authenticated;
+
 create or replace function public.process_due_international_championship_selections(
   p_now timestamptz default now()
 )
@@ -297,16 +308,22 @@ begin
     coalesce(v_result.finalized_nation_selections, 0);
 end;
 $$;
+
 revoke all
 on function public.process_due_international_championship_selections(timestamptz)
 from public, anon, authenticated;
+
 grant execute
 on function public.process_due_international_championship_selections(timestamptz)
 to service_role;
+
 comment on table public.international_championship_nation_selections is
   'Top 20 des nations fige a J-4 pour les Mondiaux et a H-24 pour les championnats continentaux.';
+
 update public.season_events
 set description = 'Le CLM mondial se dispute a 14 h, puis la course en ligne a 18 h. Les 20 meilleures nations selectionnent automatiquement huit coureurs et les DS concernes sont avertis quatre jours avant.'
 where event_type = 'world_championships';
+
 notify pgrst, 'reload schema';
+
 commit;

@@ -1,4 +1,5 @@
 begin;
+
 -- Regularisation non destructive des CM et CC de S1. Le moteur avait deja
 -- verse le bareme CN : on credite uniquement l'ecart avec la nouvelle grille.
 do $$
@@ -179,4 +180,5 @@ begin
     v_adjusted_count;
 end;
 $$;
+
 commit;

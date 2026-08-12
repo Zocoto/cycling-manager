@@ -1,11 +1,14 @@
 begin;
+
 -- Les Mondiaux accueillent les 30 meilleures nations UCI. La contrainte
 -- historique limitait physiquement le classement a 20.
 alter table public.international_championship_nation_selections
   drop constraint if exists international_nation_selection_rank_range;
+
 alter table public.international_championship_nation_selections
   add constraint international_nation_selection_rank_range
   check (nation_rank between 1 and 30);
+
 -- Les deux epreuves mondiales sont programmees le meme jour dans le jeu.
 -- Elles constituent deux creneaux distincts : un coureur peut donc disputer
 -- le CLM a 14 h puis la course en ligne a 18 h.
@@ -79,6 +82,7 @@ begin
   return new;
 end;
 $$;
+
 -- Les Mondiaux sont prioritaires sur les courses ordinaires du meme jour,
 -- mais le CLM ne doit pas retirer le coureur de la course en ligne (et
 -- reciproquement).
@@ -185,9 +189,11 @@ begin
     );
 end;
 $$;
+
 revoke all
 on function public.prioritize_international_championship_rider_base(uuid, uuid)
 from public, anon, authenticated;
+
 -- La priorisation doit preceder l'insertion dans la startlist. L'ancien ordre
 -- tentait d'abord l'insertion et declenchait la contrainte de chevauchement,
 -- annulant toute la transaction de selection.
@@ -385,12 +391,15 @@ begin
   end if;
 end;
 $$;
+
 revoke all
 on function public.sync_international_championship_lineup(uuid)
 from public, anon, authenticated;
+
 grant execute
 on function public.sync_international_championship_lineup(uuid)
 to service_role;
+
 -- Le CLM de 48 km privilegie une combinaison de CLM, endurance et plat,
 -- completee par le prologue, la resistance et la recuperation. Les points UCI
 -- ne servent plus a choisir les titulaires d'une nation pour cette epreuve.
@@ -493,12 +502,15 @@ begin
   return true;
 end;
 $$;
+
 revoke all
 on function public.rerank_world_time_trial_selection(uuid)
 from public, anon, authenticated;
+
 grant execute
 on function public.rerank_world_time_trial_selection(uuid)
 to service_role;
+
 -- Cree les selections manquantes individuellement. L'ancien moteur annulait
 -- toute la transaction au premier coureur deja engage et ignorait les pays
 -- sans points courants, ce qui laissait les deux courses completement vides.
@@ -790,22 +802,29 @@ begin
   return v_created;
 end;
 $$;
+
 revoke all
 on function public.prepare_upcoming_world_championship_selections(timestamptz)
 from public, anon, authenticated;
+
 grant execute
 on function public.prepare_upcoming_world_championship_selections(timestamptz)
 to service_role;
+
 comment on table public.international_championship_nation_selections is
   'Top 30 des nations UCI fige a J-4 pour les Mondiaux et top 20 a H-24 pour les championnats continentaux.';
+
 update public.season_events
 set description = 'Le CLM mondial se dispute a 14 h, puis la course en ligne a 18 h. Les 30 meilleures nations UCI selectionnent automatiquement huit coureurs ; le CLM privilegie les specialistes du chrono.'
 where event_type = 'world_championships';
+
 -- Repare immediatement la saison active, y compris le CLM de 14 h deja passe.
 do $$
 begin
   perform public.process_due_international_championship_selections(now());
 end;
 $$;
+
 notify pgrst, 'reload schema';
+
 commit;

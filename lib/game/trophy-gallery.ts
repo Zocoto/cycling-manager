@@ -3,6 +3,8 @@ import type { ReferralTrophyMilestone } from "@/lib/game/referrals";
 export type TrophyKind =
   | "grand_tour"
   | "monument"
+  | "world_championship"
+  | "continental_championship"
   | "uci_team"
   | "uci_rider"
   | "special"
@@ -53,6 +55,7 @@ export type TrophyGallery = {
     total: number;
     grandTours: number;
     monuments: number;
+    championships: number;
     uciTitles: number;
     special: number;
     attendance: number;
@@ -69,6 +72,10 @@ export type TrophyRaceWin = {
   riderName: string;
   isGrandTour: boolean;
   isMonument: boolean;
+  competitionType?:
+    | "standard"
+    | "world_championship"
+    | "continental_championship";
 };
 
 export type TrophyTeamUciTitle = {
@@ -129,6 +136,20 @@ const DEFAULT_MONUMENT_PALETTE: TrophyPalette = {
   secondary: "#FFE0A0",
   accent: "#183F37",
   glow: "rgba(242, 201, 76, 0.34)",
+};
+
+const WORLD_CHAMPIONSHIP_PALETTE: TrophyPalette = {
+  primary: "#F4D44D",
+  secondary: "#F8FBFF",
+  accent: "#205DA8",
+  glow: "rgba(244, 212, 77, 0.42)",
+};
+
+const CONTINENTAL_CHAMPIONSHIP_PALETTE: TrophyPalette = {
+  primary: "#58C59B",
+  secondary: "#E8FFF6",
+  accent: "#174F78",
+  glow: "rgba(88, 197, 155, 0.4)",
 };
 
 const GRAND_TOUR_IDENTITIES: Record<
@@ -246,6 +267,40 @@ export function buildTrophyGallery({
   referralTrophies = [],
 }: BuildTrophyGalleryInput): TrophyGallery {
   const raceTrophies = raceWins.flatMap<CareerTrophy>((win) => {
+    if (win.competitionType === "world_championship") {
+      return [
+        {
+          id: `world-championship:${win.id}`,
+          kind: "world_championship" as const,
+          title: win.raceName,
+          competitionName: "Championnat du monde · 1re place",
+          seasonName: win.seasonName,
+          wonAt: win.wonAt,
+          riderName: win.riderName,
+          href: `/jeu/resultats/${encodeURIComponent(win.raceSlug)}`,
+          inscription: win.riderName,
+          palette: WORLD_CHAMPIONSHIP_PALETTE,
+        },
+      ];
+    }
+
+    if (win.competitionType === "continental_championship") {
+      return [
+        {
+          id: `continental-championship:${win.id}`,
+          kind: "continental_championship" as const,
+          title: win.raceName,
+          competitionName: "Championnat continental · 1re place",
+          seasonName: win.seasonName,
+          wonAt: win.wonAt,
+          riderName: win.riderName,
+          href: `/jeu/resultats/${encodeURIComponent(win.raceSlug)}`,
+          inscription: win.riderName,
+          palette: CONTINENTAL_CHAMPIONSHIP_PALETTE,
+        },
+      ];
+    }
+
     if (win.isGrandTour) {
       const identity =
         GRAND_TOUR_IDENTITIES[win.raceSlug] ??
@@ -255,8 +310,8 @@ export function buildTrophyGallery({
         {
           id: `grand-tour:${win.id}`,
           kind: "grand_tour" as const,
-          title: identity.title,
-          competitionName: win.raceName,
+          title: win.raceName,
+          competitionName: `${identity.title} · 1re place au général`,
           seasonName: win.seasonName,
           wonAt: win.wonAt,
           riderName: win.riderName,
@@ -277,8 +332,8 @@ export function buildTrophyGallery({
         {
           id: `monument:${win.id}`,
           kind: "monument" as const,
-          title: identity.title,
-          competitionName: win.raceName,
+          title: win.raceName,
+          competitionName: `${identity.title} · 1re place`,
           seasonName: win.seasonName,
           wonAt: win.wonAt,
           riderName: win.riderName,
@@ -379,6 +434,11 @@ export function buildTrophyGallery({
         .length,
       monuments: trophies.filter((trophy) => trophy.kind === "monument")
         .length,
+      championships: trophies.filter(
+        (trophy) =>
+          trophy.kind === "world_championship" ||
+          trophy.kind === "continental_championship"
+      ).length,
       uciTitles: trophies.filter(
         (trophy) =>
           trophy.kind === "uci_team" || trophy.kind === "uci_rider"
@@ -413,7 +473,9 @@ function compareTrophies(left: CareerTrophy, right: CareerTrophy) {
 function getTrophyWeight(kind: TrophyKind) {
   if (kind === "special") return 500;
   if (kind === "uci_team") return 400;
+  if (kind === "world_championship") return 380;
   if (kind === "uci_rider") return 350;
+  if (kind === "continental_championship") return 330;
   if (kind === "attendance") return 300;
   if (kind === "referral") return 325;
   if (kind === "grand_tour") return 250;

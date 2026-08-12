@@ -1,7 +1,10 @@
 import Link from "@/components/ui/app-link";
 import { GameHeader } from "@/components/game/game-header";
 import { RiderAvatar } from "@/components/game/rider-avatar";
-import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
+import {
+  CONTINENTAL_CHAMPION_PALETTES,
+  FREE_AGENT_RIDER_JERSEY,
+} from "@/lib/rider-jersey";
 import type { GameHeaderData } from "@/services/game-header-data";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 
@@ -17,9 +20,8 @@ export function ArchivedRiderProfileView({
   if (!profile.archive) return null;
 
   const fullName = `${profile.firstName} ${profile.lastName}`.trim();
-  const seasonsCount = new Set(
-    profile.history.map((entry) => entry.seasonId),
-  ).size;
+  const seasonsCount = new Set(profile.history.map((entry) => entry.seasonId))
+    .size;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -88,7 +90,10 @@ export function ArchivedRiderProfileView({
           </div>
 
           <dl className="grid border-t border-white/10 bg-black/10 sm:grid-cols-4">
-            <ArchiveMetric label="Saisons en équipe" value={String(seasonsCount)} />
+            <ArchiveMetric
+              label="Saisons en équipe"
+              value={String(seasonsCount)}
+            />
             <ArchiveMetric
               label="Victoires"
               value={String(profile.archive.totalVictories)}
@@ -150,7 +155,9 @@ export function ArchivedRiderProfileView({
                     <HistoryMetric label="Points" value={entry.points ?? 0} />
                   </dl>
 
-                  {entry.nationalTitles.length ? (
+                  {entry.nationalTitles.length ||
+                  entry.worldTitles.length ||
+                  entry.continentalTitles.length ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {entry.nationalTitles.map((title) => (
                         <span
@@ -162,6 +169,29 @@ export function ArchivedRiderProfileView({
                             : "Champion national"}
                         </span>
                       ))}
+                      {entry.worldTitles.map((title) => (
+                        <span
+                          key={`world-${title.type}`}
+                          className="rounded-full bg-[linear-gradient(90deg,#2166B1,#E32636,#111111,#F2C94C,#16834A)] px-3 py-1 text-[10px] font-black text-white shadow-sm"
+                        >
+                          Champion du monde{" "}
+                          {title.type === "time_trial" ? "CLM" : "route"}
+                        </span>
+                      ))}
+                      {entry.continentalTitles.map((title) => {
+                        const palette =
+                          CONTINENTAL_CHAMPION_PALETTES[title.continentCode];
+                        return (
+                          <span
+                            key={`continental-${title.continentCode}-${title.type}`}
+                            className="rounded-full px-3 py-1 text-[10px] font-black text-white shadow-sm"
+                            style={{ backgroundColor: palette.secondary }}
+                          >
+                            Champion {title.continentName}{" "}
+                            {title.type === "time_trial" ? "CLM" : "route"}
+                          </span>
+                        );
+                      })}
                     </div>
                   ) : null}
 
@@ -171,18 +201,51 @@ export function ArchivedRiderProfileView({
                         Résultats notables
                       </p>
                       <ul className="mt-2 space-y-2">
-                        {entry.notablePerformances.slice(0, 4).map((performance) => (
-                          <li
-                            key={performance.raceEditionId}
-                            className="text-xs font-semibold leading-5 text-[#48665F]"
-                          >
-                            <strong className="text-[#183F37]">
-                              {performance.raceName}
-                            </strong>{" "}
-                            · {performance.labels.join(" · ")}
-                          </li>
-                        ))}
+                        {entry.notablePerformances
+                          .slice(0, 4)
+                          .map((performance) => (
+                            <li
+                              key={performance.raceEditionId}
+                              className="text-xs font-semibold leading-5 text-[#48665F]"
+                            >
+                              <strong className="text-[#183F37]">
+                                {performance.raceName}
+                              </strong>{" "}
+                              · {performance.labels.join(" · ")}
+                            </li>
+                          ))}
                       </ul>
+                      {entry.notablePerformances.length > 4 ? (
+                        <details className="group mt-3 rounded-xl border border-[#315B3E]/10 bg-white">
+                          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-[11px] font-black text-[#176951] marker:hidden">
+                            <span>
+                              Voir les {entry.notablePerformances.length - 4}{" "}
+                              autres résultats
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="transition group-open:rotate-180"
+                            >
+                              ⌄
+                            </span>
+                          </summary>
+                          <ul className="space-y-2 border-t border-[#315B3E]/10 px-3 py-3">
+                            {entry.notablePerformances
+                              .slice(4)
+                              .map((performance) => (
+                                <li
+                                  key={performance.raceEditionId}
+                                  className="text-xs font-semibold leading-5 text-[#48665F]"
+                                >
+                                  <strong className="text-[#183F37]">
+                                    {performance.raceName}
+                                  </strong>{" "}
+                                  · {performance.labels.join(" · ")}
+                                </li>
+                              ))}
+                          </ul>
+                        </details>
+                      ) : null}
                     </div>
                   ) : null}
                 </article>

@@ -1,9 +1,7 @@
 begin;
-
 -- This routine calls sync_active_season_day() and depends on now(); STABLE was
 -- both inaccurate and rejected by plpgsql_check.
 alter function public.get_training_effective_day_number(uuid) volatile;
-
 create or replace function public.settle_team_fan_club_sales_for_day(
   p_team_season_id uuid,
   p_day_number integer
@@ -139,7 +137,6 @@ begin
   return v_total_units;
 end;
 $$;
-
 create or replace function public.settle_fan_club_when_team_season_completes()
 returns trigger
 language plpgsql
@@ -153,23 +150,18 @@ begin
   return new;
 end;
 $$;
-
 drop trigger if exists aab_team_season_fan_club_sales_closure
   on public.team_seasons;
 create trigger aab_team_season_fan_club_sales_closure
 after update of status on public.team_seasons
 for each row execute function public.settle_fan_club_when_team_season_completes();
-
 revoke all on function public.settle_team_fan_club_sales_for_day(uuid, integer)
   from public, anon, authenticated;
 revoke all on function public.settle_fan_club_when_team_season_completes()
   from public, anon, authenticated;
 grant execute on function public.settle_team_fan_club_sales_for_day(uuid, integer)
   to service_role;
-
 comment on function public.settle_team_fan_club_sales_for_day(uuid, integer) is
   'Regle les ventes fan-club differees d une equipe avant sa cloture financiere.';
-
 notify pgrst, 'reload schema';
-
 commit;

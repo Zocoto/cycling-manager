@@ -3,13 +3,17 @@
 import { useState } from "react";
 
 import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/actions";
+import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
 import { InfrastructureSubmitButton } from "@/components/game/infrastructure-submit-button";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
 import type {
   InfrastructureArchitect,
   InfrastructureProject,
 } from "@/services/team-infrastructures";
-import type { InfrastructureLevelDefinition } from "@/lib/game/infrastructure";
+import {
+  TEAM_INFRASTRUCTURE_DEFINITIONS,
+  type InfrastructureLevelDefinition,
+} from "@/lib/game/infrastructure";
 
 export function DataRoomConstructionCard({
   currentLevel,
@@ -53,25 +57,12 @@ export function DataRoomConstructionCard({
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_18px_50px_rgba(19,60,46,0.1)]">
-      <div className="bg-[#0B302B] px-6 py-6 text-white sm:px-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-              Scouting · Transferts
-            </p>
-            <h2 className="mt-2 text-3xl font-black">
-              Data Room du recrutement
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#BFD1C6]">
-              Le bâtiment affine automatiquement tous les rapports incomplets
-              du marché, sans révéler totalement les coureurs.
-            </p>
-          </div>
-          <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black">
-            Niveau actuel · {currentLevel}/3
-          </span>
-        </div>
-      </div>
+      <InfrastructureBuildingHero
+        definition={TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room}
+        currency={currency}
+        levelLabel={`Niveau actuel · ${currentLevel}/3`}
+        description="Le bâtiment affine automatiquement tous les rapports incomplets du marché, sans révéler totalement les coureurs."
+      />
 
       <div className="p-6 sm:p-8">
         <div className="grid gap-3 md:grid-cols-3">
@@ -120,7 +111,7 @@ export function DataRoomConstructionCard({
               </p>
               <label className="mt-5 block">
                 <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-                  Architecte
+                  Architecte (optionnel)
                 </span>
                 <select
                   name="architectContractId"

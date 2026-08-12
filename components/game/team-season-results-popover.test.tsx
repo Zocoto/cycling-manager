@@ -12,15 +12,15 @@ describe("TeamSeasonResultsPopover", () => {
           {
             id: "result-1",
             href: "/jeu/resultats/classique-des-ardennes",
-            title: "Victoire",
             raceName: "Classique des Ardennes",
+            resultLabel: "1re place",
             riderName: "Samir Hidayat",
           },
           {
             id: "result-2",
             href: "/jeu/resultats/tour-du-nord/3",
-            title: "Victoire d’étape",
             raceName: "Tour du Nord",
+            resultLabel: "1re place · Étape 3",
             riderName: "Luc Bernard",
           },
         ]}

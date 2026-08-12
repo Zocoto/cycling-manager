@@ -14,6 +14,7 @@ import Link from "@/components/ui/app-link";
 import {
   INFRASTRUCTURE_UNLOCK_LEVEL,
   TEAM_INFRASTRUCTURE_DEFINITIONS,
+  getTeamInfrastructureCodesByStartingCost,
   getTeamInfrastructureLevelDefinition,
 } from "@/lib/game/infrastructure";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -73,6 +74,9 @@ const futureFacilities = [
       "Entretien du matériel et amélioration de l’efficacité des mécaniciens.",
   },
 ];
+
+const infrastructureCodesByStartingCost =
+  getTeamInfrastructureCodesByStartingCost();
 
 export default async function InfrastructuresPage({
   searchParams,
@@ -309,70 +313,90 @@ export default async function InfrastructuresPage({
                 Les bâtiments structurants du club
               </h2>
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-                Le Centre d’entraînement est volontairement accessible dès son
-                premier niveau. Le siège et la boutique développent ensuite
-                toute l’activité du Fan Club.
+                Les bâtiments sont classés par prix d’entrée : des premiers
+                équipements accessibles jusqu’aux pôles experts réservés aux
+                structures les plus solides.
               </p>
-              <div className="mt-5 grid items-start gap-5 xl:grid-cols-3">
-                {(
-                  [
-                    "training_center",
-                    "fan_club_headquarters",
-                    "club_shop",
-                  ] as const
-                ).map((code) => {
+              <div
+                className="mt-5 space-y-5"
+                data-building-order="starting-cost-ascending"
+              >
+                {infrastructureCodesByStartingCost.map((code) => {
                   const definition = TEAM_INFRASTRUCTURE_DEFINITIONS[code];
                   const currentLevel = overview.infrastructureLevels[code];
+
+                  if (code === "recruitment_data_room") {
+                    return (
+                      <div
+                        key={code}
+                        data-building-code={code}
+                        data-starting-cost={definition.levels[0]?.cost}
+                        data-tutorial-id="infrastructure-data-room"
+                      >
+                        <DataRoomConstructionCard
+                          currentLevel={overview.dataRoomLevel}
+                          nextLevel={overview.dataRoomNextLevel}
+                          architects={overview.architects}
+                          activeProject={overview.activeProject}
+                          isUnlocked={overview.isUnlocked}
+                          balance={overview.balance}
+                          currency={overview.currency}
+                        />
+                      </div>
+                    );
+                  }
+
+                  if (code === "staff_academy") {
+                    return (
+                      <div
+                        key={code}
+                        data-building-code={code}
+                        data-starting-cost={definition.levels[0]?.cost}
+                        data-tutorial-id="infrastructure-staff-academy"
+                      >
+                        <StaffAcademyCard
+                          academy={academy}
+                          architects={overview.architects}
+                          activeProject={overview.activeProject}
+                          directorLevel={overview.directorLevel}
+                          balance={overview.balance}
+                          currency={overview.currency}
+                        />
+                      </div>
+                    );
+                  }
+
                   return (
-                    <InfrastructureBuildingCard
+                    <div
                       key={code}
-                      definition={definition}
-                      currentLevel={currentLevel}
-                      nextLevel={getTeamInfrastructureLevelDefinition(
-                        code,
-                        currentLevel + 1,
-                      )}
-                      architects={overview.architects}
-                      activeProject={overview.activeProject}
-                      isUnlocked={overview.isUnlocked}
-                      balance={overview.balance}
-                      currency={overview.currency}
-                      prerequisiteMessage={
-                        code === "club_shop" &&
-                        overview.infrastructureLevels
-                          .fan_club_headquarters < 1
-                          ? "Construisez d’abord le siège social du Fan Club."
-                          : null
-                      }
-                    />
+                      data-building-code={code}
+                      data-starting-cost={definition.levels[0]?.cost}
+                    >
+                      <InfrastructureBuildingCard
+                        definition={definition}
+                        currentLevel={currentLevel}
+                        nextLevel={getTeamInfrastructureLevelDefinition(
+                          code,
+                          currentLevel + 1,
+                        )}
+                        architects={overview.architects}
+                        activeProject={overview.activeProject}
+                        isUnlocked={overview.isUnlocked}
+                        balance={overview.balance}
+                        currency={overview.currency}
+                        prerequisiteMessage={
+                          code === "club_shop" &&
+                          overview.infrastructureLevels
+                            .fan_club_headquarters < 1
+                            ? "Construisez d’abord le siège social du Fan Club."
+                            : null
+                        }
+                      />
+                    </div>
                   );
                 })}
               </div>
             </section>
-
-            <div data-tutorial-id="infrastructure-data-room">
-              <DataRoomConstructionCard
-                currentLevel={overview.dataRoomLevel}
-                nextLevel={overview.dataRoomNextLevel}
-                architects={overview.architects}
-                activeProject={overview.activeProject}
-                isUnlocked={overview.isUnlocked}
-                balance={overview.balance}
-                currency={overview.currency}
-              />
-            </div>
-
-            <div data-tutorial-id="infrastructure-staff-academy">
-              <StaffAcademyCard
-                academy={academy}
-                architects={overview.architects}
-                activeProject={overview.activeProject}
-                directorLevel={overview.directorLevel}
-                balance={overview.balance}
-                currency={overview.currency}
-              />
-            </div>
-
 
             <section data-tutorial-id="infrastructure-roadmap">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">

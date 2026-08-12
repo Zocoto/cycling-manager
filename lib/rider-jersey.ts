@@ -17,14 +17,25 @@ export type RiderJerseyPattern =
   | "wave"
   | "pinstripes";
 
+export type ContinentalChampionshipCode =
+  "africa" | "america" | "asia" | "europe" | "oceania";
+
 export type RiderJerseyAppearance = {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
   pattern: RiderJerseyPattern;
-  status: "amateur" | "free-agent" | "sponsored" | "national-champion";
+  status:
+    | "amateur"
+    | "free-agent"
+    | "sponsored"
+    | "national-team"
+    | "national-champion"
+    | "continental-champion"
+    | "world-champion";
   imagePath?: string;
   countryCode?: string;
+  continentCode?: ContinentalChampionshipCode;
   championshipType?: "road" | "time_trial";
 };
 
@@ -34,6 +45,55 @@ export type NationalChampionPalette = {
   accent: string;
   pattern: RiderJerseyPattern;
   dominantColors: readonly [string, string, string];
+};
+
+export type ContinentalChampionPalette = {
+  name: string;
+  shortName: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+};
+
+export const CONTINENTAL_CHAMPION_PALETTES: Record<
+  ContinentalChampionshipCode,
+  ContinentalChampionPalette
+> = {
+  africa: {
+    name: "Afrique",
+    shortName: "Afrique",
+    primary: "#FFFFFF",
+    secondary: "#16834A",
+    accent: "#F2C94C",
+  },
+  america: {
+    name: "Am\u00e9rique",
+    shortName: "Am\u00e9rique",
+    primary: "#FFFFFF",
+    secondary: "#174A8B",
+    accent: "#D64045",
+  },
+  asia: {
+    name: "Asie",
+    shortName: "Asie",
+    primary: "#FFFFFF",
+    secondary: "#C62828",
+    accent: "#F2C94C",
+  },
+  europe: {
+    name: "Europe",
+    shortName: "Europe",
+    primary: "#FFFFFF",
+    secondary: "#003399",
+    accent: "#FFCC00",
+  },
+  oceania: {
+    name: "Oc\u00e9anie",
+    shortName: "Oc\u00e9anie",
+    primary: "#FFFFFF",
+    secondary: "#007C91",
+    accent: "#0B3158",
+  },
 };
 
 const DEFAULT_NATIONAL_CHAMPION_COLORS = [
@@ -118,6 +178,56 @@ export function createNationalChampionRiderJersey({
     pattern: palette.pattern,
     status: "national-champion",
     countryCode: countryCode.toUpperCase(),
+    championshipType,
+  };
+}
+
+export function createNationalTeamRiderJersey(
+  countryCode: string,
+): RiderJerseyAppearance {
+  const palette = getNationalChampionPalette(countryCode);
+
+  return {
+    primaryColor: palette.primary,
+    secondaryColor: palette.secondary,
+    accentColor: palette.accent,
+    pattern: "solid",
+    status: "national-team",
+    countryCode: countryCode.toUpperCase(),
+  };
+}
+
+export function createWorldChampionRiderJersey({
+  championshipType,
+}: {
+  championshipType: "road" | "time_trial";
+}): RiderJerseyAppearance {
+  return {
+    primaryColor: "#FFFFFF",
+    secondaryColor: "#E32636",
+    accentColor: "#2166B1",
+    pattern: "hoops",
+    status: "world-champion",
+    championshipType,
+  };
+}
+
+export function createContinentalChampionRiderJersey({
+  continentCode,
+  championshipType,
+}: {
+  continentCode: ContinentalChampionshipCode;
+  championshipType: "road" | "time_trial";
+}): RiderJerseyAppearance {
+  const palette = CONTINENTAL_CHAMPION_PALETTES[continentCode];
+
+  return {
+    primaryColor: palette.primary,
+    secondaryColor: palette.secondary,
+    accentColor: palette.accent,
+    pattern: "hoops",
+    status: "continental-champion",
+    continentCode,
     championshipType,
   };
 }

@@ -99,6 +99,26 @@ export function filterDirectorMailboxMessages({
   });
 }
 
+export function getDirectorMessageIdToMarkReadOnNavigation({
+  currentMessageId,
+  currentMessageReadAt,
+  targetMessageId,
+}: {
+  currentMessageId: string | null;
+  currentMessageReadAt: string | null;
+  targetMessageId: string;
+}) {
+  if (
+    currentMessageId === null ||
+    currentMessageReadAt !== null ||
+    currentMessageId === targetMessageId
+  ) {
+    return null;
+  }
+
+  return currentMessageId;
+}
+
 function normalizeSearchText(value: string) {
   return value
     .normalize("NFD")

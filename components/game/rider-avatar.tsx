@@ -11,6 +11,7 @@ import {
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import { SvgCountryFlag } from "./svg-country-flag";
+import { ContinentalChampionPattern } from "./continental-champion-pattern";
 
 type RiderAvatarProps = {
   profileKey: string | null | undefined;
@@ -80,108 +81,121 @@ export function RiderAvatar({
         viewBox="0 0 96 96"
         className="block h-full w-full overflow-hidden"
       >
-      <defs>
-        <clipPath id={shoulderClipId}>
-          <path d={shouldersPath} />
-        </clipPath>
-      </defs>
+        <defs>
+          <clipPath id={shoulderClipId}>
+            <path d={shouldersPath} />
+          </clipPath>
+        </defs>
 
-      <rect width="96" height="96" fill={design.backgroundColor} />
-      <circle cx="18" cy="17" r="15" fill="#FFFFFF" opacity="0.18" />
-      <circle cx="84" cy="36" r="21" fill="#315B3E" opacity="0.035" />
+        <rect width="96" height="96" fill={design.backgroundColor} />
+        <circle cx="18" cy="17" r="15" fill="#FFFFFF" opacity="0.18" />
+        <circle cx="84" cy="36" r="21" fill="#315B3E" opacity="0.035" />
 
-      <path d={shouldersPath} fill={resolvedJersey.primaryColor} />
-      {resolvedJersey.status === "national-champion" &&
-      resolvedJersey.countryCode ? (
-        <NationalChampionFlagPattern
-          countryCode={resolvedJersey.countryCode}
-          clipPathId={shoulderClipId}
-        />
-      ) : (
-        <>
-          <JerseyPattern jersey={resolvedJersey} clipPathId={shoulderClipId} />
-          {resolvedJersey.status === "sponsored" &&
-          resolvedJersey.imagePath ? (
-            <SponsorJerseyArtwork
-              imagePath={resolvedJersey.imagePath}
+        <path d={shouldersPath} fill={resolvedJersey.primaryColor} />
+        {resolvedJersey.status === "world-champion" ? (
+          <WorldChampionAvatarPattern clipPathId={shoulderClipId} />
+        ) : resolvedJersey.status === "continental-champion" &&
+          resolvedJersey.continentCode ? (
+          <ContinentalChampionPattern
+            continentCode={resolvedJersey.continentCode}
+            clipPathId={shoulderClipId}
+            width={96}
+            height={96}
+          />
+        ) : (resolvedJersey.status === "national-champion" ||
+            resolvedJersey.status === "national-team") &&
+          resolvedJersey.countryCode ? (
+          <NationalChampionFlagPattern
+            countryCode={resolvedJersey.countryCode}
+            clipPathId={shoulderClipId}
+          />
+        ) : (
+          <>
+            <JerseyPattern
+              jersey={resolvedJersey}
               clipPathId={shoulderClipId}
             />
-          ) : null}
-        </>
-      )}
+            {resolvedJersey.status === "sponsored" &&
+            resolvedJersey.imagePath ? (
+              <SponsorJerseyArtwork
+                imagePath={resolvedJersey.imagePath}
+                clipPathId={shoulderClipId}
+              />
+            ) : null}
+          </>
+        )}
 
-      <path
-        d={`M ${centerX - design.neckWidth / 2} 60 L ${centerX - design.neckWidth / 2 - 0.8} 75 Q 48 82 ${centerX + design.neckWidth / 2 + 0.8} 75 L ${centerX + design.neckWidth / 2} 60 Z`}
-        fill={design.skinShadow}
-      />
-      <path
-        d={`M ${centerX - design.neckWidth / 2 + 1.5} 60 L ${centerX - design.neckWidth / 2 + 1.2} 73 Q 48 78 ${centerX + design.neckWidth / 2 - 1.2} 73 L ${centerX + design.neckWidth / 2 - 1.5} 60 Z`}
-        fill={design.skinTone}
-      />
+        <path
+          d={`M ${centerX - design.neckWidth / 2} 60 L ${centerX - design.neckWidth / 2 - 0.8} 75 Q 48 82 ${centerX + design.neckWidth / 2 + 0.8} 75 L ${centerX + design.neckWidth / 2} 60 Z`}
+          fill={design.skinShadow}
+        />
+        <path
+          d={`M ${centerX - design.neckWidth / 2 + 1.5} 60 L ${centerX - design.neckWidth / 2 + 1.2} 73 Q 48 78 ${centerX + design.neckWidth / 2 - 1.2} 73 L ${centerX + design.neckWidth / 2 - 1.5} 60 Z`}
+          fill={design.skinTone}
+        />
 
-      {resolvedJersey.status !== "sponsored" ||
-      !resolvedJersey.imagePath ? (
-        <>
-          <path
-            d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"
-            fill={resolvedJersey.secondaryColor}
-          />
-          <path
-            d="M 39 70 Q 48 77 57 70"
-            fill="none"
-            stroke={resolvedJersey.accentColor}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </>
-      ) : null}
+        {resolvedJersey.status !== "sponsored" || !resolvedJersey.imagePath ? (
+          <>
+            <path
+              d="M 37 70 Q 48 79 59 70 L 62 73 Q 48 86 34 73 Z"
+              fill={resolvedJersey.secondaryColor}
+            />
+            <path
+              d="M 39 70 Q 48 77 57 70"
+              fill="none"
+              stroke={resolvedJersey.accentColor}
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </>
+        ) : null}
 
-      <Ears design={design} centerX={centerX} y={earY} />
+        <Ears design={design} centerX={centerX} y={earY} />
 
-      <path
-        d={facePath}
-        fill={design.skinTone}
-        stroke={design.skinShadow}
-        strokeWidth="0.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d={`M ${centerX - cheekboneHalfWidth + 1.5} ${faceTop + 31} Q ${centerX - jawHalfWidth} ${faceBottom - 5} ${centerX - chinHalfWidth} ${faceBottom - 1.2}`}
-        fill="none"
-        stroke={design.skinHighlight}
-        strokeWidth="0.9"
-        opacity="0.34"
-      />
-      <path
-        d={`M ${centerX + cheekboneHalfWidth - 1.5} ${faceTop + 31} Q ${centerX + jawHalfWidth} ${faceBottom - 5} ${centerX + chinHalfWidth} ${faceBottom - 1.2}`}
-        fill="none"
-        stroke={design.skinShadow}
-        strokeWidth="0.8"
-        opacity="0.25"
-      />
-
-      <Hair design={design} faceTop={faceTop} />
-      <Brows design={design} leftEyeX={leftEyeX} rightEyeX={rightEyeX} />
-      <Eye design={design} x={leftEyeX} y={leftEyeY} direction={-1} />
-      <Eye design={design} x={rightEyeX} y={rightEyeY} direction={1} />
-      <Nose design={design} layout={featureLayout} />
-      <FaceMarks design={design} />
-      <FacialHair design={design} faceBottom={faceBottom} />
-      <Mouth design={design} layout={featureLayout} />
-
-      {design.ageLineOpacity > 0 ? (
-        <g
+        <path
+          d={facePath}
+          fill={design.skinTone}
+          stroke={design.skinShadow}
+          strokeWidth="0.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d={`M ${centerX - cheekboneHalfWidth + 1.5} ${faceTop + 31} Q ${centerX - jawHalfWidth} ${faceBottom - 5} ${centerX - chinHalfWidth} ${faceBottom - 1.2}`}
+          fill="none"
+          stroke={design.skinHighlight}
+          strokeWidth="0.9"
+          opacity="0.34"
+        />
+        <path
+          d={`M ${centerX + cheekboneHalfWidth - 1.5} ${faceTop + 31} Q ${centerX + jawHalfWidth} ${faceBottom - 5} ${centerX + chinHalfWidth} ${faceBottom - 1.2}`}
           fill="none"
           stroke={design.skinShadow}
-          strokeWidth="0.55"
-          strokeLinecap="round"
-          opacity={design.ageLineOpacity}
-        >
-          <path d="M 36 48 q 3 1 5 0" />
-          <path d="M 55 48 q 3 1 5 0" />
-          <path d="M 42 61 q 6 2 12 0" />
-        </g>
-      ) : null}
+          strokeWidth="0.8"
+          opacity="0.25"
+        />
+
+        <Hair design={design} faceTop={faceTop} />
+        <Brows design={design} leftEyeX={leftEyeX} rightEyeX={rightEyeX} />
+        <Eye design={design} x={leftEyeX} y={leftEyeY} direction={-1} />
+        <Eye design={design} x={rightEyeX} y={rightEyeY} direction={1} />
+        <Nose design={design} layout={featureLayout} />
+        <FaceMarks design={design} />
+        <FacialHair design={design} faceBottom={faceBottom} />
+        <Mouth design={design} layout={featureLayout} />
+
+        {design.ageLineOpacity > 0 ? (
+          <g
+            fill="none"
+            stroke={design.skinShadow}
+            strokeWidth="0.55"
+            strokeLinecap="round"
+            opacity={design.ageLineOpacity}
+          >
+            <path d="M 36 48 q 3 1 5 0" />
+            <path d="M 55 48 q 3 1 5 0" />
+            <path d="M 42 61 q 6 2 12 0" />
+          </g>
+        ) : null}
       </svg>
     </span>
   );
@@ -204,6 +218,24 @@ function NationalChampionFlagPattern({
         height={34}
       />
       <path d="M0 66h96v8c-24 5-72 5-96 0Z" fill="#FFFFFF" opacity="0.1" />
+    </g>
+  );
+}
+function WorldChampionAvatarPattern({ clipPathId }: { clipPathId: string }) {
+  const colors = ["#2166B1", "#E32636", "#111111", "#F2C94C", "#16834A"];
+
+  return (
+    <g clipPath={`url(#${clipPathId})`}>
+      {colors.map((color, index) => (
+        <rect
+          key={color}
+          x="0"
+          y={68 + index * 5}
+          width="96"
+          height="5"
+          fill={color}
+        />
+      ))}
     </g>
   );
 }

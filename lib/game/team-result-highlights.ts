@@ -31,6 +31,8 @@ export type TeamResultCandidate = {
   classificationType: TeamSecondaryClassificationType | null;
 };
 
+export const SEASON_TEAM_PALMARES_LIMIT = 20;
+
 export function isMajorTeamResult(result: TeamResultCandidate): boolean {
   const isChampionship = result.competitionType !== "standard";
 
@@ -57,7 +59,7 @@ export function isMajorTeamResult(result: TeamResultCandidate): boolean {
 
 export function selectSeasonTeamPalmares(
   candidates: TeamResultCandidate[],
-  limit = 5
+  limit = SEASON_TEAM_PALMARES_LIMIT
 ): TeamResultCandidate[] {
   return candidates
     .filter(isMajorTeamResult)

@@ -8,11 +8,12 @@ import {
   restoreDirectorMessageAction,
 } from "@/app/jeu/messagerie/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
-import { DirectorMailboxReadMarker } from "@/components/game/director-mailbox-read-marker";
+import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
 import { GameHeader } from "@/components/game/game-header";
 import Link from "@/components/ui/app-link";
 import {
   DIRECTOR_MESSAGE_TYPE_LABELS,
+  getDirectorMessageIdToMarkReadOnNavigation,
   normalizeDirectorMailboxFilter,
   type DirectorMailboxFilter,
   type DirectorMailboxMessage,
@@ -183,6 +184,14 @@ export default async function DirectorMailboxPage({
                     key={message.id}
                     message={message}
                     active={mailbox.selectedMessage?.id === message.id}
+                    messageToMarkReadId={getDirectorMessageIdToMarkReadOnNavigation(
+                      {
+                        currentMessageId: mailbox.selectedMessage?.id ?? null,
+                        currentMessageReadAt:
+                          mailbox.selectedMessage?.readAt ?? null,
+                        targetMessageId: message.id,
+                      },
+                    )}
                     filter={filter}
                     query={query}
                   />
@@ -227,20 +236,23 @@ export default async function DirectorMailboxPage({
 function MessageListItem({
   message,
   active,
+  messageToMarkReadId,
   filter,
   query,
 }: {
   message: DirectorMailboxMessage;
   active: boolean;
+  messageToMarkReadId: string | null;
   filter: DirectorMailboxFilter;
   query: string;
 }) {
   const unread = message.readAt === null;
 
   return (
-    <Link
+    <DirectorMailboxMessageLink
       href={buildMailboxHref({ filter, query, messageId: message.id })}
-      aria-current={active ? "true" : undefined}
+      active={active}
+      messageToMarkReadId={messageToMarkReadId}
       className={`relative block border-b border-[#176951]/10 px-4 py-4 transition ${
         active
           ? "bg-[#E2F3EE] shadow-[inset_4px_0_0_#278B70]"
@@ -279,18 +291,13 @@ function MessageListItem({
       {unread ? (
         <span className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#278B70]" />
       ) : null}
-    </Link>
+    </DirectorMailboxMessageLink>
   );
 }
 
 function MessageReader({ message }: { message: DirectorMailboxMessage }) {
   return (
     <article className="p-5 sm:p-8 xl:p-10">
-      <DirectorMailboxReadMarker
-        messageId={message.id}
-        unread={message.readAt === null}
-      />
-
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#176951]/12 pb-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

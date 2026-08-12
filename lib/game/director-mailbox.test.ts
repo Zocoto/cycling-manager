@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   filterDirectorMailboxMessages,
+  getDirectorMessageIdToMarkReadOnNavigation,
   normalizeDirectorMailboxFilter,
   type DirectorMailboxMessage,
 } from "@/lib/game/director-mailbox";
@@ -91,5 +92,33 @@ describe("boîte mail du directeur sportif", () => {
         query: "resultats ALPES",
       }).map((message) => message.id),
     ).toEqual(["race"]);
+  });
+
+  it("marque le mail quitté, pas celui qui vient d'être ouvert", () => {
+    expect(
+      getDirectorMessageIdToMarkReadOnNavigation({
+        currentMessageId: "premier-mail",
+        currentMessageReadAt: null,
+        targetMessageId: "deuxieme-mail",
+      }),
+    ).toBe("premier-mail");
+
+    expect(
+      getDirectorMessageIdToMarkReadOnNavigation({
+        currentMessageId: "deuxieme-mail",
+        currentMessageReadAt: null,
+        targetMessageId: "deuxieme-mail",
+      }),
+    ).toBeNull();
+  });
+
+  it("ne réécrit pas un mail déjà lu lors du changement", () => {
+    expect(
+      getDirectorMessageIdToMarkReadOnNavigation({
+        currentMessageId: "mail-lu",
+        currentMessageReadAt: "2026-08-11T08:00:00.000Z",
+        targetMessageId: "autre-mail",
+      }),
+    ).toBeNull();
   });
 });

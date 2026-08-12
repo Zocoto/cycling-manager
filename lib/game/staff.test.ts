@@ -120,6 +120,20 @@ describe("staff economy", () => {
     });
   });
 
+  it("keeps the standard quote when no architect is assigned", () => {
+    expect(
+      calculateConstructionWithArchitect({
+        baseCost: 100_000,
+        baseDurationDays: 20,
+      }),
+    ).toEqual({
+      cost: 100_000,
+      durationDays: 20,
+      costReductionPercentage: 0,
+      durationReductionPercentage: 0,
+    });
+  });
+
   it("improves youth potential and initial ratings with scout level", () => {
     expect(getScoutYouthBonuses(1)).toEqual({
       scoutingEfficiencyPercentage: 5,

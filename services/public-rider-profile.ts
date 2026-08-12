@@ -32,6 +32,9 @@ import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
+import type { ContinentalChampionshipCode } from "@/lib/rider-jersey";
+import { parseContinentalChampionshipTitleType } from "@/services/rider-continental-championship-titles";
+
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
 
@@ -86,6 +89,20 @@ export type PublicRiderProfile = {
     countryCode: string;
     isActive: boolean;
   }>;
+  worldTitles: Array<{
+    type: "road" | "time_trial";
+    seasonId: string;
+    seasonName: string;
+    isActive: boolean;
+  }>;
+  continentalTitles: Array<{
+    type: "road" | "time_trial";
+    continentCode: ContinentalChampionshipCode;
+    continentName: string;
+    seasonId: string;
+    seasonName: string;
+    isActive: boolean;
+  }>;
   history: Array<{
     seasonId: string;
     seasonName: string;
@@ -103,6 +120,14 @@ export type PublicRiderProfile = {
       type: "road" | "time_trial";
       countryName: string;
       countryCode: string;
+    }>;
+    worldTitles: Array<{
+      type: "road" | "time_trial";
+    }>;
+    continentalTitles: Array<{
+      type: "road" | "time_trial";
+      continentCode: ContinentalChampionshipCode;
+      continentName: string;
     }>;
     notablePerformances: RiderNotablePerformance[];
     careerLevel: "professional" | "junior";
@@ -221,7 +246,7 @@ type NationalChampionshipTitleRow = {
   country_id: string;
   season_id: string;
   race_edition_id: string;
-  championship_type: "road" | "time_trial";
+  championship_type: string;
   relinquished_at: string | null;
 };
 
@@ -313,6 +338,7 @@ type PerformanceEditionRow = {
   display_name: string;
   race: {
     competition_type: string;
+    race_format: "one_day" | "stage_race";
   } | null;
 };
 
@@ -624,7 +650,7 @@ export async function getPublicRiderProfile({
     performanceEditionIds.length > 0
       ? supabase
           .from("race_editions")
-          .select("id, display_name, race:races(competition_type)")
+          .select("id, display_name, race:races(competition_type, race_format)")
           .in("id", performanceEditionIds)
           .returns<PerformanceEditionRow[]>()
       : Promise.resolve({
@@ -920,11 +946,65 @@ export async function getPublicRiderProfile({
                   ? titleTeamId === contract.team_id
                   : !hasSeveralTeams;
               })
-              .map((title) => ({
-                type: title.championship_type,
-                countryName: countryResult.data!.name,
-                countryCode: countryResult.data!.iso_alpha2,
-              })),
+              .flatMap((title) =>
+                title.championship_type === "road" ||
+                title.championship_type === "time_trial"
+                  ? [
+                      {
+                        type: title.championship_type as "road" | "time_trial",
+                        countryName: countryResult.data!.name,
+                        countryCode: countryResult.data!.iso_alpha2,
+                      },
+                    ]
+                  : [],
+              ),
+            worldTitles: nationalTitleRows
+              .filter((title) => {
+                if (title.season_id !== season.id) return false;
+                const titleTeamId = titleTeamIdByEditionId.get(
+                  title.race_edition_id,
+                );
+                return titleTeamId
+                  ? titleTeamId === contract.team_id
+                  : !hasSeveralTeams;
+              })
+              .flatMap((title) =>
+                title.championship_type === "world_road" ||
+                title.championship_type === "world_time_trial"
+                  ? [
+                      {
+                        type:
+                          title.championship_type === "world_time_trial"
+                            ? ("time_trial" as const)
+                            : ("road" as const),
+                      },
+                    ]
+                  : [],
+              ),
+            continentalTitles: nationalTitleRows
+              .filter((title) => {
+                if (title.season_id !== season.id) return false;
+                const titleTeamId = titleTeamIdByEditionId.get(
+                  title.race_edition_id,
+                );
+                return titleTeamId
+                  ? titleTeamId === contract.team_id
+                  : !hasSeveralTeams;
+              })
+              .flatMap((title) => {
+                const parsed = parseContinentalChampionshipTitleType(
+                  title.championship_type,
+                );
+                return parsed
+                  ? [
+                      {
+                        type: parsed.championshipType,
+                        continentCode: parsed.continentCode,
+                        continentName: parsed.continentName,
+                      },
+                    ]
+                  : [];
+              }),
             notablePerformances:
               notablePerformancesBySeasonTeam.get(
                 historyTeamKey(season.id, contract.team_id),
@@ -1073,14 +1153,57 @@ export async function getPublicRiderProfile({
         }
       : null,
     currentTeam,
-    nationalTitles: nationalTitleRows.map((title) => ({
-      type: title.championship_type,
-      seasonId: title.season_id,
-      seasonName: seasonById.get(title.season_id)?.name ?? "Saison inconnue",
-      countryName: countryResult.data!.name,
-      countryCode: countryResult.data!.iso_alpha2,
-      isActive: title.relinquished_at === null,
-    })),
+    nationalTitles: nationalTitleRows.flatMap((title) =>
+      title.championship_type === "road" ||
+      title.championship_type === "time_trial"
+        ? [
+            {
+              type: title.championship_type as "road" | "time_trial",
+              seasonId: title.season_id,
+              seasonName:
+                seasonById.get(title.season_id)?.name ?? "Saison inconnue",
+              countryName: countryResult.data!.name,
+              countryCode: countryResult.data!.iso_alpha2,
+              isActive: title.relinquished_at === null,
+            },
+          ]
+        : [],
+    ),
+    worldTitles: nationalTitleRows.flatMap((title) =>
+      title.championship_type === "world_road" ||
+      title.championship_type === "world_time_trial"
+        ? [
+            {
+              type:
+                title.championship_type === "world_time_trial"
+                  ? ("time_trial" as const)
+                  : ("road" as const),
+              seasonId: title.season_id,
+              seasonName:
+                seasonById.get(title.season_id)?.name ?? "Saison inconnue",
+              isActive: title.relinquished_at === null,
+            },
+          ]
+        : [],
+    ),
+    continentalTitles: nationalTitleRows.flatMap((title) => {
+      const parsed = parseContinentalChampionshipTitleType(
+        title.championship_type,
+      );
+      return parsed
+        ? [
+            {
+              type: parsed.championshipType,
+              continentCode: parsed.continentCode,
+              continentName: parsed.continentName,
+              seasonId: title.season_id,
+              seasonName:
+                seasonById.get(title.season_id)?.name ?? "Saison inconnue",
+              isActive: title.relinquished_at === null,
+            },
+          ]
+        : [];
+    }),
     history,
     specialAbilities,
     equipment,
@@ -1183,6 +1306,8 @@ async function getJuniorDevelopmentHistory({
         points: null,
         uciRank: null,
         nationalTitles: [],
+        worldTitles: [],
+        continentalTitles: [],
         notablePerformances: [],
         careerLevel: "junior" as const,
         juniorRaceCount: teamResults.length,
@@ -1657,6 +1782,7 @@ function buildNotablePerformancesBySeason({
             ),
             secondaryWins,
             stageWinCount,
+            raceFormat: edition?.race?.race_format ?? null,
           })
         : [parsedDescription.performance];
     const teamKey = historyTeamKey(teamSeason.season_id, teamSeason.team_id);

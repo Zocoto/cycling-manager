@@ -94,6 +94,7 @@ type RaceRow = {
   slug: string;
   is_monument: boolean;
   is_grand_tour: boolean;
+  competition_type: string;
 };
 
 type RiderSummaryRow = {
@@ -596,7 +597,7 @@ async function loadMajorRaceWins({
       fetchPage: async (chunk, from, to) => {
         const result = await admin
           .from("races")
-          .select("id, slug, is_monument, is_grand_tour")
+          .select("id, slug, is_monument, is_grand_tour, competition_type")
           .in("id", chunk)
           .order("id", { ascending: true })
           .range(from, to)
@@ -639,12 +640,19 @@ async function loadMajorRaceWins({
     const roster = rosterById.get(result.race_roster_id);
     const rider = roster ? riderById.get(roster.rider_id) : null;
     const season = edition ? seasonById.get(edition.season_id) : null;
+    const competitionType =
+      race?.competition_type === "world_championship" ||
+      race?.competition_type === "continental_championship"
+        ? race.competition_type
+        : "standard";
 
     if (
       !edition ||
       edition.status !== "completed" ||
       !race ||
-      (!race.is_grand_tour && !race.is_monument) ||
+      (!race.is_grand_tour &&
+        !race.is_monument &&
+        competitionType === "standard") ||
       !rider ||
       !season
     ) {
@@ -661,6 +669,7 @@ async function loadMajorRaceWins({
         riderName: `${rider.first_name} ${rider.last_name}`.trim(),
         isGrandTour: race.is_grand_tour,
         isMonument: race.is_monument,
+        competitionType,
       } satisfies TrophyRaceWin,
     ];
   });

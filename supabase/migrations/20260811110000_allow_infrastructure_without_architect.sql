@@ -35,5 +35,6 @@ as $$
     )::integer
   end;
 $$;
+
 comment on function public.get_architect_adjusted_reduction(uuid, integer, text)
 is 'Calcule le bonus optionnel d architecte ; retourne zero sans architecte.';

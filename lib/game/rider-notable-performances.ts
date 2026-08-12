@@ -17,11 +17,13 @@ export function buildNotablePerformanceLabels({
   nationalChampionshipType,
   secondaryWins,
   stageWinCount = 0,
+  raceFormat = null,
 }: {
   finalRank: number | null;
   nationalChampionshipType: "road" | "time_trial" | null;
   secondaryWins: RiderSecondaryPerformance[];
   stageWinCount?: number;
+  raceFormat?: "one_day" | "stage_race" | null;
 }) {
   const labels: string[] = [];
 
@@ -33,9 +35,15 @@ export function buildNotablePerformanceLabels({
   ) {
     labels.push("Champion national CLM");
   } else if (finalRank === 1) {
-    labels.push("Victoire");
+    labels.push(
+      raceFormat === "stage_race"
+        ? "1re place au général"
+        : "1re place"
+    );
   } else if (finalRank !== null && finalRank <= 3) {
-    labels.push(`${finalRank}e place`);
+    labels.push(
+      `${finalRank}e place${raceFormat === "stage_race" ? " au général" : ""}`
+    );
   } else if (finalRank !== null && finalRank <= 5) {
     labels.push(`Top 5 · ${finalRank}e`);
   } else if (finalRank !== null && finalRank <= 10) {
@@ -68,7 +76,7 @@ export function buildNotablePerformanceLabels({
 
 export function shortlistNotablePerformances(
   performances: RiderNotablePerformance[],
-  limit = 5
+  limit = 20
 ) {
   return [...performances]
     .sort(

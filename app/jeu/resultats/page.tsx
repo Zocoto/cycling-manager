@@ -25,8 +25,7 @@ import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
 export const metadata: Metadata = {
   title: "Résultats / Live",
-  description:
-    "Consultez les résultats, directs et replays de Cyclostratège.",
+  description: "Consultez les résultats, directs et replays de Cyclostratège.",
 };
 
 type RaceResultsPageProps = {
@@ -119,11 +118,14 @@ export default async function RaceResultsPage({
         return [];
       })
     : [];
-  const standardCalendar = calendar
+  const spectatorCalendar = calendar
     ? {
         ...calendar,
         editions: calendar.editions.filter(
-          (edition) => edition.competitionType === "standard",
+          (edition) =>
+            edition.competitionType === "standard" ||
+            edition.competitionType === "world_championship" ||
+            edition.competitionType === "continental_championship",
         ),
       }
     : null;
@@ -147,9 +149,9 @@ export default async function RaceResultsPage({
               Vivez chaque course de la saison.
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-[#48665F]">
-              Les courses ordinaires proposent direct et replay. Les championnats
-              nationaux sont simulés sans rendu graphique et regroupés par
-              discipline.
+              Les courses ordinaires proposent direct et replay. Les
+              championnats nationaux sont simulés sans rendu graphique et
+              regroupés par discipline.
             </p>
           </header>
 
@@ -162,14 +164,14 @@ export default async function RaceResultsPage({
         </div>
 
         <div className="mt-8">
-          {calendar && standardCalendar ? (
+          {calendar && spectatorCalendar ? (
             <>
               <NationalChampionshipResultsDirectory
                 calendar={calendar}
                 countryCodes={nationalCountryCodes}
               />
               <RaceLiveDirectory
-                calendar={standardCalendar}
+                calendar={spectatorCalendar}
                 nowIso={now.toISOString()}
               />
             </>
@@ -185,5 +187,5 @@ export default async function RaceResultsPage({
 }
 
 function readSingleSearchParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
 }

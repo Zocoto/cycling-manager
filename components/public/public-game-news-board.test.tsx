@@ -24,7 +24,7 @@ describe("PublicGameNewsBoard", () => {
               happenedAt: "2026-08-09T18:00:00.000Z",
             },
           ],
-          totals: { victories: 12, gazettes: 42 },
+          totals: { directors: 37, victories: 12, gazettes: 42 },
           isLive: true,
         }}
       />,
@@ -32,6 +32,8 @@ describe("PublicGameNewsBoard", () => {
 
     expect(markup).toContain("Résultats en direct");
     expect(markup).toContain("La Cyclogazette n°42 est publiée");
+    expect(markup).toContain("Directeurs actifs");
+    expect(markup).toContain(">37<");
     expect(markup).toContain("Gazettes publiées");
     expect(markup).not.toContain("Nouveau DS");
     expect(markup).not.toContain("Bordures");

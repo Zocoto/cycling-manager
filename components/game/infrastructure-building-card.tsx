@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/actions";
+import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
 import { InfrastructureSubmitButton } from "@/components/game/infrastructure-submit-button";
 import type {
   InfrastructureLevelDefinition,
@@ -63,27 +64,18 @@ export function InfrastructureBuildingCard({
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#315B3E]/15 bg-white shadow-[0_16px_44px_rgba(19,60,46,0.09)]">
-      <div className="bg-[linear-gradient(135deg,#0B302B,#176951)] px-5 py-5 text-white sm:px-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#F2C94C]">
-              {definition.domain}
-            </p>
-            <h2 className="mt-2 text-2xl font-black">{definition.name}</h2>
-          </div>
-          <span className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black">
-            {currentLevel > 0
-              ? "Niveau " + currentLevel + "/" + maximumLevel
-              : "À construire"}
-          </span>
-        </div>
-        <p className="mt-3 text-sm font-semibold leading-6 text-[#CFE0D8]">
-          {definition.summary}
-        </p>
-      </div>
+      <InfrastructureBuildingHero
+        definition={definition}
+        currency={currency}
+        levelLabel={
+          currentLevel > 0
+            ? "Niveau " + currentLevel + "/" + maximumLevel
+            : "À construire"
+        }
+      />
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <div className="grid gap-2 sm:grid-cols-5 xl:grid-cols-1 2xl:grid-cols-5">
+      <div className="grid flex-1 gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(330px,0.55fr)]">
+        <div className="grid content-start gap-2 sm:grid-cols-2 2xl:grid-cols-3">
           {definition.levels.map((level) => (
             <div
               key={level.level}
@@ -107,7 +99,7 @@ export function InfrastructureBuildingCard({
         {nextLevel && quote ? (
           <form
             action={startInfrastructureProjectAction}
-            className="mt-5 flex flex-1 flex-col border-t border-[#315B3E]/10 pt-5"
+            className="flex flex-1 flex-col border-t border-[#315B3E]/10 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"
           >
             <input
               type="hidden"
@@ -123,7 +115,7 @@ export function InfrastructureBuildingCard({
 
             <label className="mt-4 block">
               <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#60756E]">
-                Architecte
+                Architecte (optionnel)
               </span>
               <select
                 name="architectContractId"
@@ -180,7 +172,7 @@ export function InfrastructureBuildingCard({
             </div>
           </form>
         ) : (
-          <p className="mt-5 rounded-2xl bg-[#E5F4ED] p-4 text-sm font-black text-[#176951]">
+          <p className="h-fit rounded-2xl bg-[#E5F4ED] p-4 text-sm font-black text-[#176951]">
             {definition.name} a atteint son niveau maximal.
           </p>
         )}

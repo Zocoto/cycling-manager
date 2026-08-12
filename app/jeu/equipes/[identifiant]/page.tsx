@@ -515,11 +515,11 @@ function RecentTeamResults({
                 {result.rank === 1 ? "1" : result.rank}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-black text-[var(--team-ink)]">
-                  {formatTeamResultTitle(result)}
+                <span className="block text-base font-black text-[var(--team-ink)]">
+                  {result.raceName}
                 </span>
                 <span className="mt-1 block truncate text-sm font-semibold text-[var(--team-muted)]">
-                  {formatTeamResultContext(result)}
+                  {formatTeamResultDetail(result)}
                 </span>
                 <span className="mt-1 block text-xs font-semibold text-[var(--team-muted)]">
                   {result.riderName ?? "Classement par équipes"} ·{" "}
@@ -567,8 +567,8 @@ function SeasonPalmares({
       items={highlights.map((highlight) => ({
         id: highlight.id,
         href: getTeamResultHref(highlight),
-        title: formatTeamResultTitle(highlight),
         raceName: highlight.raceName,
+        resultLabel: formatTeamResultDetail(highlight),
         riderName: highlight.riderName,
       }))}
     />
@@ -580,38 +580,39 @@ function getTeamResultHref(result: TeamResultCandidate): string {
     : `/jeu/resultats/${result.raceSlug}`;
 }
 
-function formatTeamResultTitle(result: TeamResultCandidate): string {
+function formatTeamResultDetail(result: TeamResultCandidate): string {
+  const place = formatTeamResultPlace(result.rank);
+
   if (result.kind === "classification" && result.classificationType) {
     const labels: Record<
       NonNullable<TeamResultCandidate["classificationType"]>,
       string
     > = {
-      mountain: "Classement de la montagne remporté",
-      sprint: "Classement par points remporté",
-      youth: "Classement des jeunes remporté",
-      team: "Classement par équipes remporté",
+      mountain: "classement de la montagne",
+      sprint: "classement par points",
+      youth: "classement des jeunes",
+      team: "classement par équipes",
     };
 
-    return labels[result.classificationType];
+    return `${place} · ${labels[result.classificationType]}`;
   }
 
   if (result.kind === "stage") {
-    return "Victoire d’étape";
+    const stageLabel = result.stageNumber
+      ? `Étape ${result.stageNumber}`
+      : "Étape";
+    return result.stageName
+      ? `${place} · ${stageLabel} · ${result.stageName}`
+      : `${place} · ${stageLabel}`;
   }
 
-  if (result.rank === 1) return "Victoire";
-  return `${result.rank}e place`;
+  return result.raceFormat === "stage_race"
+    ? `${place} au général`
+    : place;
 }
 
-function formatTeamResultContext(result: TeamResultCandidate): string {
-  if (result.kind !== "stage") return result.raceName;
-
-  const stageLabel = result.stageNumber
-    ? `Étape ${result.stageNumber}`
-    : "Étape";
-  return result.stageName
-    ? `${result.raceName} · ${stageLabel} · ${result.stageName}`
-    : `${result.raceName} · ${stageLabel}`;
+function formatTeamResultPlace(rank: number): string {
+  return rank === 1 ? "1re place" : `${rank}e place`;
 }
 
 function formatResultDate(value: string): string {

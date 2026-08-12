@@ -26,6 +26,8 @@ import type { SportingDirectorReputationBreakdown } from "../../lib/game/reputat
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
+  createContinentalChampionRiderJersey,
+  createWorldChampionRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
@@ -35,7 +37,13 @@ import { getAuthenticatedUser } from "../../lib/supabase/authenticated-user";
 import {
   getActiveNationalChampionshipTitlesForRiders,
   type ActiveNationalChampionshipTitle,
+  getActiveWorldChampionshipTitlesForRiders,
+  type ActiveWorldChampionshipTitle,
 } from "@/services/rider-national-championship-titles";
+import {
+  getActiveContinentalChampionshipTitlesForRiders,
+  type ActiveContinentalChampionshipTitle,
+} from "@/services/rider-continental-championship-titles";
 import {
   getTeamAmateurIdentity,
   type TeamAmateurIdentity,
@@ -193,7 +201,9 @@ function CardWatermark({
   );
 }
 
-function toTeamSummary(summary: DashboardFastSummary | null): CurrentTeamDashboardSummary | null {
+function toTeamSummary(
+  summary: DashboardFastSummary | null,
+): CurrentTeamDashboardSummary | null {
   return summary
     ? {
         team_id: summary.teamId,
@@ -206,7 +216,9 @@ function toTeamSummary(summary: DashboardFastSummary | null): CurrentTeamDashboa
     : null;
 }
 
-function toFinanceOverview(summary: DashboardFastSummary | null): TeamFinanceOverview | null {
+function toFinanceOverview(
+  summary: DashboardFastSummary | null,
+): TeamFinanceOverview | null {
   return summary
     ? {
         teamId: summary.teamId,
@@ -230,7 +242,9 @@ function toFinanceOverview(summary: DashboardFastSummary | null): TeamFinanceOve
     : null;
 }
 
-function toInventoryOverview(summary: DashboardFastSummary | null): TeamInventoryOverview | null {
+function toInventoryOverview(
+  summary: DashboardFastSummary | null,
+): TeamInventoryOverview | null {
   return summary
     ? {
         teamName: summary.teamName,
@@ -376,6 +390,20 @@ export default async function GamePage() {
     "Impossible de récupérer les maillots de champions nationaux du bureau :",
   );
 
+  const activeContinentalTitlesPromise = loadDashboardValue(
+    getActiveContinentalChampionshipTitlesForRiders(
+      supabase,
+      dashboardRiderIds,
+    ),
+    new Map<string, ActiveContinentalChampionshipTitle>(),
+    "Impossible de recuperer les maillots de champions continentaux du bureau :",
+  );
+
+  const activeWorldTitlesPromise = loadDashboardValue(
+    getActiveWorldChampionshipTitlesForRiders(supabase, dashboardRiderIds),
+    new Map<string, ActiveWorldChampionshipTitle>(),
+    "Impossible de recuperer les maillots de champions du monde du bureau :",
+  );
   const [
     sponsorIdentityResult,
     teamAmateurIdentity,
@@ -384,6 +412,8 @@ export default async function GamePage() {
     reputationBreakdown,
     raceCalendar,
     activeNationalTitlesByRiderId,
+    activeContinentalTitlesByRiderId,
+    activeWorldTitlesByRiderId,
     sponsorObjectiveSummary,
     fanClubBuildings,
   ] = await Promise.all([
@@ -410,6 +440,8 @@ export default async function GamePage() {
     ),
     raceCalendarPromise,
     activeNationalTitlesPromise,
+    activeContinentalTitlesPromise,
+    activeWorldTitlesPromise,
     sponsorObjectiveSummaryPromise,
     loadDashboardValue(
       dashboardTeamId
@@ -527,6 +559,23 @@ export default async function GamePage() {
       }),
     ]),
   );
+  for (const [riderId, title] of activeContinentalTitlesByRiderId) {
+    nationalChampionJerseyByRiderId.set(
+      riderId,
+      createContinentalChampionRiderJersey({
+        continentCode: title.continentCode,
+        championshipType: title.championshipType,
+      }),
+    );
+  }
+  for (const [riderId, title] of activeWorldTitlesByRiderId) {
+    nationalChampionJerseyByRiderId.set(
+      riderId,
+      createWorldChampionRiderJersey({
+        championshipType: title.championshipType,
+      }),
+    );
+  }
 
   const reputationPoints = sportingDirector?.reputation_points ?? 0;
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
@@ -746,7 +795,7 @@ export default async function GamePage() {
                 href="/jeu/fan-club"
                 icon="fanclub"
                 title="Fan Club"
-                status={`Pilote · Siège niveau ${fanClubBuildings.headquartersLevel}`}
+                status={`Actif · Siège niveau ${fanClubBuildings.headquartersLevel}`}
                 description="Gérez la popularité des coureurs, les déplacements de supporters et, si elle est construite, la boutique officielle."
               />
             ) : null}
@@ -802,9 +851,7 @@ function DirectorProfileCard({
             Directeur Sportif
           </p>
 
-          <h2 className="mt-1 text-lg font-black text-white">
-            Vos repères
-          </h2>
+          <h2 className="mt-1 text-lg font-black text-white">Vos repères</h2>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1064,10 +1111,9 @@ function TeamRosterCard({
   nationalChampionJerseyByRiderId: ReadonlyMap<string, RiderJerseyAppearance>;
 }) {
   const leadingRider = riders[0] ?? null;
-  const supportingRiderRows = [
-    riders.slice(1, 6),
-    riders.slice(6, 11),
-  ].filter((row) => row.length > 0);
+  const supportingRiderRows = [riders.slice(1, 6), riders.slice(6, 11)].filter(
+    (row) => row.length > 0,
+  );
 
   return (
     <Link
@@ -1750,7 +1796,6 @@ async function loadDashboardValue<T>(
     return fallback;
   }
 }
-
 
 function formatDashboardCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat("fr-FR", {

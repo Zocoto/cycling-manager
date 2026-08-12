@@ -3,6 +3,7 @@ import "server-only";
 import { SPONSORS } from "@/data/sponsors";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  createNationalTeamRiderJersey,
   createSponsoredRiderJersey,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
@@ -61,8 +62,14 @@ import {
 } from "@/services/staff-race-effects";
 import {
   getActiveNationalChampionshipTitlesByDisciplineForRiders,
+  getActiveWorldChampionshipTitlesByDisciplineForRiders,
+  type ActiveWorldChampionshipTitlesByDiscipline,
   type ActiveNationalChampionshipTitlesByDiscipline,
 } from "@/services/rider-national-championship-titles";
+import {
+  getActiveContinentalChampionshipTitlesByDisciplineForRiders,
+  type ActiveContinentalChampionshipTitlesByDiscipline,
+} from "@/services/rider-continental-championship-titles";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
@@ -720,7 +727,7 @@ export async function getActiveSeasonRaceCalendar(
     (engagedRidersResult?.data as CalendarEngagedRiderRow[] | null) ?? [];
   const stageEquipmentEffectRows =
     (stageEquipmentEffectsResult?.data as
-      | CalendarStageEquipmentEffectsRow[] | null) ?? [];
+      CalendarStageEquipmentEffectsRow[] | null) ?? [];
   const engagedCountByEditionId = new Map(
     ((engagedCountsResult?.data as CalendarEngagedCountRow[] | null) ?? []).map(
       (row) => [row.race_edition_id, row.engaged_rider_count],
@@ -729,9 +736,7 @@ export async function getActiveSeasonRaceCalendar(
   const engagedRiderIds = unique(
     engagedRiderRows.map((rider) => rider.rider_id),
   );
-  const engagedTeamIds = unique(
-    engagedRiderRows.map((rider) => rider.team_id),
-  );
+  const engagedTeamIds = unique(engagedRiderRows.map((rider) => rider.team_id));
   const raceDataAdmin = createSupabaseAdminClient();
   const raceStaffEffectsPromise = loadRaceStaffEffects(raceDataAdmin, {
     seasonId: season.id,
@@ -746,6 +751,8 @@ export async function getActiveSeasonRaceCalendar(
     specialAbilitiesResult,
     riderCountriesResult,
     nationalChampionshipTitlesByRiderId,
+    worldChampionshipTitlesByRiderId,
+    continentalChampionshipTitlesByRiderId,
   ] =
     engagedRiderIds.length > 0
       ? await Promise.all([
@@ -776,7 +783,9 @@ export async function getActiveSeasonRaceCalendar(
             fetchPage: async (chunk, from, to) => {
               const result = await createSupabaseAdminClient()
                 .from("riders")
-                .select("id, country_id, avatar_profile_key, avatar_seed, career_race_days")
+                .select(
+                  "id, country_id, avatar_profile_key, avatar_seed, career_race_days",
+                )
                 .in("id", chunk)
                 .order("id", { ascending: true })
                 .range(from, to)
@@ -788,14 +797,21 @@ export async function getActiveSeasonRaceCalendar(
             supabase,
             engagedRiderIds,
           ),
+          getActiveWorldChampionshipTitlesByDisciplineForRiders(
+            supabase,
+            engagedRiderIds,
+          ),
+          getActiveContinentalChampionshipTitlesByDisciplineForRiders(
+            supabase,
+            engagedRiderIds,
+          ),
         ])
       : [
           emptyResult<RiderSpecialAbilityRow>(),
           emptyResult<RiderCountryRow>(),
-          new Map<
-            string,
-            ActiveNationalChampionshipTitlesByDiscipline
-          >(),
+          new Map<string, ActiveNationalChampionshipTitlesByDiscipline>(),
+          new Map<string, ActiveWorldChampionshipTitlesByDiscipline>(),
+          new Map<string, ActiveContinentalChampionshipTitlesByDiscipline>(),
         ];
 
   assertQuerySucceeded(
@@ -1107,12 +1123,28 @@ export async function getActiveSeasonRaceCalendar(
       (registration) => [registration.race_edition_id, registration],
     ),
   );
+  const nationalInternationalEditionIds = new Set(
+    season.game_year >= 2
+      ? editionRows
+          .filter(
+            (edition) =>
+              raceById.get(edition.race_id)?.competition_type ===
+                "world_championship" ||
+              raceById.get(edition.race_id)?.competition_type ===
+                "continental_championship",
+          )
+          .map((edition) => edition.id)
+      : [],
+  );
   const engagedRidersByEditionId = groupCalendarEngagedRiders(
     engagedRiderRows,
     stageEquipmentEffectRows,
     specialAbilitiesByRiderId,
     new Map(riderCountryRows.map((rider) => [rider.id, rider])),
     countryById,
+    worldChampionshipTitlesByRiderId,
+    continentalChampionshipTitlesByRiderId,
+    nationalInternationalEditionIds,
     nationalChampionshipTitlesByRiderId,
     raceStaffEffects,
     teamSponsorVisuals,
@@ -1177,12 +1209,18 @@ export async function getActiveSeasonRaceCalendar(
           : null,
         stages: (stagesByEditionId.get(edition.id) ?? []).map((stage) => ({
           ...stage,
-          ...(riderRoleOverridesByStageId.has(stage.id)
+          ...((season.game_year < 2 ||
+            (race.competition_type !== "world_championship" &&
+              race.competition_type !== "continental_championship")) &&
+          riderRoleOverridesByStageId.has(stage.id)
             ? {
                 riderRoleOverrides: riderRoleOverridesByStageId.get(stage.id),
               }
             : {}),
-          ...(teamStrategiesByStageId.has(stage.id)
+          ...((season.game_year < 2 ||
+            (race.competition_type !== "world_championship" &&
+              race.competition_type !== "continental_championship")) &&
+          teamStrategiesByStageId.has(stage.id)
             ? {
                 teamStrategies: teamStrategiesByStageId.get(stage.id),
               }
@@ -1616,10 +1654,7 @@ function combineEquipmentEffectsWithStaff({
   const combined = combineEquipmentEffects(adjustedEffects);
   combined.injuryRiskReductionPct = Math.min(
     45,
-    Math.max(
-      0,
-      combined.injuryRiskReductionPct + injuryPreventionPercentage,
-    ),
+    Math.max(0, combined.injuryRiskReductionPct + injuryPreventionPercentage),
   );
   return combined;
 }
@@ -1641,8 +1676,7 @@ function scaleEquipmentEffect(
     ratingBonuses: scaleRatings(effect.ratingBonuses),
     timeTrialRatingBonuses: scaleRatings(effect.timeTrialRatingBonuses),
     injuryRiskReductionPct: effect.injuryRiskReductionPct * multiplier,
-    breakawayReputationBonus:
-      effect.breakawayReputationBonus * multiplier,
+    breakawayReputationBonus: effect.breakawayReputationBonus * multiplier,
     victoryReputationBonus: effect.victoryReputationBonus * multiplier,
   };
 }
@@ -1653,6 +1687,15 @@ function groupCalendarEngagedRiders(
   specialAbilitiesByRiderId: Map<string, RiderSpecialAbility[]>,
   riderMetadataById: Map<string, RiderCountryRow>,
   countryById: Map<string, CountryRow>,
+  worldChampionshipTitlesByRiderId: Map<
+    string,
+    ActiveWorldChampionshipTitlesByDiscipline
+  >,
+  continentalChampionshipTitlesByRiderId: Map<
+    string,
+    ActiveContinentalChampionshipTitlesByDiscipline
+  >,
+  nationalInternationalEditionIds: ReadonlySet<string>,
   nationalChampionshipTitlesByRiderId: Map<
     string,
     ActiveNationalChampionshipTitlesByDiscipline
@@ -1672,13 +1715,17 @@ function groupCalendarEngagedRiders(
   for (const row of stageEquipmentRows) {
     const key = row.race_edition_id + ":" + row.rider_id;
     const byStage = equipmentByEditionRider.get(key) ?? {};
+    const usesNationalWorldModel = nationalInternationalEditionIds.has(
+      row.race_edition_id,
+    );
     byStage[row.stage_id] = combineEquipmentEffectsWithStaff({
-      values: Array.isArray(row.equipment_effects)
-        ? row.equipment_effects
-        : [],
-      teamStaffEffects: raceStaffEffects.byTeamId.get(row.team_id),
-      injuryPreventionPercentage:
-        raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
+      values: Array.isArray(row.equipment_effects) ? row.equipment_effects : [],
+      teamStaffEffects: usesNationalWorldModel
+        ? undefined
+        : raceStaffEffects.byTeamId.get(row.team_id),
+      injuryPreventionPercentage: usesNationalWorldModel
+        ? 0
+        : (raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0),
     });
     equipmentByEditionRider.set(key, byStage);
   }
@@ -1687,18 +1734,37 @@ function groupCalendarEngagedRiders(
     const riders = ridersByEditionId.get(row.race_edition_id) ?? [];
     const specialAbilities = specialAbilitiesByRiderId.get(row.rider_id) ?? [];
     const riderMetadata = riderMetadataById.get(row.rider_id);
-    const nationalChampionships =
-      nationalChampionshipTitlesByRiderId.get(row.rider_id);
+    const usesNationalWorldModel = nationalInternationalEditionIds.has(
+      row.race_edition_id,
+    );
+    const nationalChampionships = nationalChampionshipTitlesByRiderId.get(
+      row.rider_id,
+    );
+    const worldChampionships = worldChampionshipTitlesByRiderId.get(
+      row.rider_id,
+    );
+    const continentalChampionships = continentalChampionshipTitlesByRiderId.get(
+      row.rider_id,
+    );
     const riderCountry = riderMetadata
       ? countryById.get(riderMetadata.country_id)
       : null;
-    const teamStaffEffects = raceStaffEffects.byTeamId.get(row.team_id);
-    const teamSponsorVisual = teamSponsorVisuals.get(row.team_id);
+    const nationalTeamJersey =
+      usesNationalWorldModel && riderCountry
+        ? createNationalTeamRiderJersey(riderCountry.iso_alpha2)
+        : null;
+    const teamStaffEffects = usesNationalWorldModel
+      ? undefined
+      : raceStaffEffects.byTeamId.get(row.team_id);
+    const teamSponsorVisual = usesNationalWorldModel
+      ? undefined
+      : teamSponsorVisuals.get(row.team_id);
     const equipmentEffects = combineEquipmentEffectsWithStaff({
       values: Array.isArray(row.equipment_effects) ? row.equipment_effects : [],
       teamStaffEffects,
-      injuryPreventionPercentage:
-        raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0,
+      injuryPreventionPercentage: usesNationalWorldModel
+        ? 0
+        : (raceStaffEffects.injuryPreventionByRiderId.get(row.rider_id) ?? 0),
     });
     const equipmentEffectsByStageId = equipmentByEditionRider.get(
       row.race_edition_id + ":" + row.rider_id,
@@ -1706,27 +1772,41 @@ function groupCalendarEngagedRiders(
     riders.push({
       id: row.rider_id,
       name: `${row.rider_first_name} ${row.rider_last_name}`,
-      teamId: row.team_id,
-      teamName: row.team_name,
+      teamId:
+        usesNationalWorldModel && riderMetadata
+          ? riderMetadata.country_id
+          : row.team_id,
+      teamName:
+        usesNationalWorldModel && riderCountry
+          ? riderCountry.name
+          : row.team_name,
       teamPrimaryColor:
-        teamSponsorVisual?.primaryColor ?? row.team_primary_color,
+        nationalTeamJersey?.primaryColor ??
+        teamSponsorVisual?.primaryColor ??
+        row.team_primary_color,
       teamSecondaryColor:
-        teamSponsorVisual?.secondaryColor ?? row.team_secondary_color,
-      ...(teamSponsorVisual ? { teamJersey: teamSponsorVisual.jersey } : {}),
+        nationalTeamJersey?.secondaryColor ??
+        teamSponsorVisual?.secondaryColor ??
+        row.team_secondary_color,
+      ...(nationalTeamJersey
+        ? { teamJersey: nationalTeamJersey }
+        : teamSponsorVisual
+          ? { teamJersey: teamSponsorVisual.jersey }
+          : {}),
       avatarProfileKey: riderMetadata?.avatar_profile_key ?? null,
       avatarSeed: riderMetadata?.avatar_seed ?? null,
       nationalChampionships,
+      worldChampionships,
+      continentalChampionships,
       age: Number(row.age),
       form: Number(row.form),
       careerRaceDays: Number(riderMetadata?.career_race_days ?? 0),
       countryCode: riderCountry?.iso_alpha2 ?? null,
-      role: row.race_role,
+      role: usesNationalWorldModel ? "auto" : row.race_role,
       specialAbility: specialAbilities[0] ?? null,
       specialAbilities,
       equipmentEffects,
-      ...(equipmentEffectsByStageId
-        ? { equipmentEffectsByStageId }
-        : {}),
+      ...(equipmentEffectsByStageId ? { equipmentEffectsByStageId } : {}),
       mechanicalIncidentTimeReductionPct:
         teamStaffEffects?.incidentTimeReductionPercentage ?? 0,
       ratings: {

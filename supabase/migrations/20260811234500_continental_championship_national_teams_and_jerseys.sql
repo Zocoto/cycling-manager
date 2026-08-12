@@ -1,4 +1,5 @@
 begin;
+
 -- ============================================================
 -- TITRES CONTINENTAUX
 -- Les résultats S1 restent strictement inchangés : on en déduit seulement
@@ -7,6 +8,7 @@ begin;
 
 alter table public.rider_national_championship_titles
 drop constraint if exists rider_national_titles_type_allowed;
+
 alter table public.rider_national_championship_titles
 add constraint rider_national_titles_type_allowed
 check (
@@ -27,6 +29,7 @@ check (
     'continental_oceania_time_trial'
   )
 );
+
 -- Backfill non destructif : aucune startlist, simulation ou ligne de résultat
 -- n'est modifiée. Seul le vainqueur déjà classé de chaque CC reçoit son titre.
 with continental_winners as (
@@ -104,6 +107,7 @@ do update set
   season_id = excluded.season_id,
   won_at = excluded.won_at,
   relinquished_at = excluded.relinquished_at;
+
 create unique index if not exists
   rider_continental_titles_one_active_per_continent_discipline_idx
 on public.rider_national_championship_titles (championship_type)
@@ -120,6 +124,7 @@ where relinquished_at is null
     'continental_oceania_road',
     'continental_oceania_time_trial'
   );
+
 create or replace function public.assign_continental_championship_title()
 returns trigger
 language plpgsql
@@ -220,13 +225,16 @@ begin
   return new;
 end;
 $$;
+
 drop trigger if exists assign_continental_championship_title
 on public.race_results;
+
 create trigger assign_continental_championship_title
 after insert or update of status, final_rank
 on public.race_results
 for each row
 execute function public.assign_continental_championship_title();
+
 -- ============================================================
 -- SÉLECTIONS NATIONALES CC À PARTIR DE LA S2
 -- Le moteur historique continue de finaliser les sélections à H-24. Cette
@@ -510,12 +518,15 @@ begin
   return v_created;
 end;
 $$;
+
 revoke all
 on function public.prepare_upcoming_continental_championship_selections_s2(timestamptz)
 from public, anon, authenticated;
+
 grant execute
 on function public.prepare_upcoming_continental_championship_selections_s2(timestamptz)
 to service_role;
+
 create or replace function public.process_due_international_championship_selections(
   p_now timestamptz default now()
 )
@@ -549,15 +560,20 @@ begin
     coalesce(v_result.finalized_nation_selections, 0);
 end;
 $$;
+
 revoke all
 on function public.process_due_international_championship_selections(timestamptz)
 from public, anon, authenticated;
+
 grant execute
 on function public.process_due_international_championship_selections(timestamptz)
 to service_role;
+
 comment on table public.international_championship_nation_selections is
   'Top 30 mondial figé à J-4 ; top 20 par continent figé à H-24. À partir de la S2, les CC utilisent des sélections nationales spécialisées selon le profil.';
+
 update public.season_events
 set description = 'Les 20 meilleures nations de chaque continent sélectionnent huit coureurs à H-24. Dès la S2, les sélections sont spécialisées selon le profil et courent sous leurs couleurs nationales.'
 where event_type = 'continental_championships';
+
 commit;

@@ -1,8 +1,10 @@
 begin;
+
 -- Les Mondiaux de S1 restent figés. Le nouveau cycle de titres commence
 -- exclusivement avec les éditions de S2 et suivantes.
 alter table public.rider_national_championship_titles
 drop constraint if exists rider_national_titles_type_allowed;
+
 alter table public.rider_national_championship_titles
 add constraint rider_national_titles_type_allowed
 check (
@@ -13,11 +15,13 @@ check (
     'world_time_trial'
   )
 );
+
 create unique index if not exists
   rider_world_titles_one_active_per_discipline_idx
 on public.rider_national_championship_titles (championship_type)
 where relinquished_at is null
   and championship_type in ('world_road', 'world_time_trial');
+
 create or replace function public.assign_world_championship_title()
 returns trigger
 language plpgsql
@@ -111,11 +115,14 @@ begin
   return new;
 end;
 $$;
+
 drop trigger if exists assign_world_championship_title
 on public.race_results;
+
 create trigger assign_world_championship_title
 after insert or update of status, final_rank
 on public.race_results
 for each row
 execute function public.assign_world_championship_title();
+
 commit;

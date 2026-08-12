@@ -85,7 +85,7 @@ describe("public game news", () => {
           happenedAt,
         },
       ],
-      totals: { victories: 1, gazettes: 1 },
+      totals: { directors: 24, victories: 1, gazettes: 1 },
       isLive: true,
     });
 
@@ -113,7 +113,7 @@ describe("public game news", () => {
 
     const snapshot = createPublicGameNewsSnapshot({
       items,
-      totals: { victories: 9, gazettes: 0 },
+      totals: { directors: 24, victories: 9, gazettes: 0 },
       isLive: true,
     });
 
