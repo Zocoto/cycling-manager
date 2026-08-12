@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  calculateInternationalChampionshipReward,
   calculateNationalChampionshipReward,
   calculateRaceRewardBreakdown,
   calculateStageReward,
@@ -149,13 +150,9 @@ async function loadIncompleteCompletedEditionIds({
     "get_incomplete_completed_race_edition_ids",
     { p_season_id: calendar.seasonId },
   );
-  assertQuery(
-    error,
-    "la detection des classements termines incomplets",
-  );
+  assertQuery(error, "la detection des classements termines incomplets");
 
-  const rows =
-    (data as IncompleteCompletedEditionRow[] | null) ?? [];
+  const rows = (data as IncompleteCompletedEditionRow[] | null) ?? [];
   return new Set<string>(rows.map((row) => row.race_edition_id));
 }
 
@@ -165,8 +162,9 @@ export async function settleFinishedRaceResults(
   lockedDirectory?: LockedOfficialRaceSimulationDirectory,
 ) {
   const admin = createSupabaseAdminClient();
-  const repairableCompletedEditionIds =
-    await loadIncompleteCompletedEditionIds({ admin, calendar });
+  const repairableCompletedEditionIds = await loadIncompleteCompletedEditionIds(
+    { admin, calendar },
+  );
   const officialSimulations =
     lockedDirectory ??
     (await ensureLockedOfficialRaceSimulations(calendar, now));
@@ -828,10 +826,7 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
           return { data: result.data, error: result.error };
         },
       });
-    assertQuery(
-      outsideTimeLimitError,
-      "outside-time-limit roster history",
-    );
+    assertQuery(outsideTimeLimitError, "outside-time-limit roster history");
     for (const row of outsideTimeLimitRows ?? []) {
       outsideTimeLimitRosterIds.add(row.race_roster_id);
     }
@@ -839,8 +834,7 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
 
   const resultRosters = (rosters ?? []).filter(
     (roster) =>
-      roster.status !== "withdrawn" ||
-      outsideTimeLimitRosterIds.has(roster.id),
+      roster.status !== "withdrawn" || outsideTimeLimitRosterIds.has(roster.id),
   );
 
   return new Map(
@@ -853,14 +847,16 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
         return [];
       }
 
-      return [[
-        roster.rider_id,
-        {
-          rosterId: roster.id,
-          riderId: roster.rider_id,
-          teamSeasonId: registration.team_season_id,
-        },
-      ] as const];
+      return [
+        [
+          roster.rider_id,
+          {
+            rosterId: roster.id,
+            riderId: roster.rider_id,
+            teamSeasonId: registration.team_season_id,
+          },
+        ] as const,
+      ];
     }),
   );
 }
@@ -1065,8 +1061,7 @@ async function persistStageResult({
   const rows = simulation.results.map((result) => {
     const roster = requireRoster(rosterByRiderId, result.riderId);
     const finished = result.status === "finished";
-    const hasElapsedTime =
-      finished || result.status === "outside_time_limit";
+    const hasElapsedTime = finished || result.status === "outside_time_limit";
     return {
       stage_id: stage.id,
       race_roster_id: roster.rosterId,
@@ -1387,7 +1382,13 @@ async function persistRaceClassification({
         : null;
     const reward =
       rewardBreakdown?.total ??
-      calculateNationalChampionshipReward({ finalRank: result.rank });
+      (edition.competitionType === "continental_championship" ||
+      edition.competitionType === "world_championship"
+        ? calculateInternationalChampionshipReward({
+            competitionType: edition.competitionType,
+            finalRank: result.rank,
+          })
+        : calculateNationalChampionshipReward({ finalRank: result.rank }));
     if (
       reward.reputation === 0 &&
       reward.experience === 0 &&

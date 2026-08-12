@@ -2,11 +2,7 @@ export type RaceTier = "national" | "continental" | "world" | "elite";
 
 export type RaceRewardScope = "one_day" | "tour" | "grand_tour";
 
-export type SecondaryClassification =
-  | "mountain"
-  | "sprint"
-  | "youth"
-  | "team";
+export type SecondaryClassification = "mountain" | "sprint" | "youth" | "team";
 
 export type RaceRewardInput = {
   tier: RaceTier;
@@ -47,6 +43,11 @@ export type StagePrizeInput = {
 };
 
 export type NationalChampionshipRewardInput = {
+  finalRank: number | null;
+};
+
+export type InternationalChampionshipRewardInput = {
+  competitionType: "continental_championship" | "world_championship";
   finalRank: number | null;
 };
 
@@ -264,7 +265,8 @@ export const DIVISION_RULES = [
 
 export const ELITE_RACE_BASE_WILDCARD_PLACES = 4;
 
-export type TeamDivisionCode = (typeof DIVISION_RULES)[number]["code"] | "amateur";
+export type TeamDivisionCode =
+  (typeof DIVISION_RULES)[number]["code"] | "amateur";
 
 export type FinanceLedgerEntry = {
   dayNumber: number;
@@ -295,7 +297,7 @@ export function calculateRaceReward(input: RaceRewardInput): RaceReward {
 }
 
 export function calculateRaceRewardBreakdown(
-  input: RaceRewardInput
+  input: RaceRewardInput,
 ): RaceRewardBreakdown {
   const scale = REWARD_SCALES[input.tier][input.scope];
   const placement = findPlacement(scale.placements, input.finalRank);
@@ -304,11 +306,11 @@ export function calculateRaceRewardBreakdown(
   ];
   const mountainPrimeCount = Math.max(
     0,
-    Math.floor(input.mountainPrimesWon ?? 0)
+    Math.floor(input.mountainPrimesWon ?? 0),
   );
   const intermediateSprintCount = Math.max(
     0,
-    Math.floor(input.intermediateSprintsWon ?? 0)
+    Math.floor(input.intermediateSprintsWon ?? 0),
   );
   const components: RaceRewardComponent[] = [];
 
@@ -358,7 +360,7 @@ export function calculateRaceRewardBreakdown(
         cashPrize: total.cashPrize + component.cashPrize,
         uciPoints: total.uciPoints + component.uciPoints,
       }),
-      { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 }
+      { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 },
     ),
   };
 }
@@ -392,6 +394,111 @@ export function calculateNationalChampionshipReward({
 }
 
 /**
+ * Les championnats continentaux et mondiaux ont un bareme de prestige dedie,
+ * identique pour la course en ligne et le contre-la-montre.
+ */
+export function calculateInternationalChampionshipReward({
+  competitionType,
+  finalRank,
+}: InternationalChampionshipRewardInput): RaceReward {
+  if (finalRank === null || !Number.isFinite(finalRank) || finalRank < 1) {
+    return { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
+  }
+
+  const scales: Record<
+    InternationalChampionshipRewardInput["competitionType"],
+    PlacementRule[]
+  > = {
+    continental_championship: [
+      {
+        maxRank: 1,
+        reputation: 2,
+        experience: 250,
+        cashPrize: 20_000,
+        uciPoints: 250,
+      },
+      {
+        maxRank: 2,
+        reputation: 1,
+        experience: 150,
+        cashPrize: 10_000,
+        uciPoints: 150,
+      },
+      {
+        maxRank: 3,
+        reputation: 0,
+        experience: 90,
+        cashPrize: 5_000,
+        uciPoints: 100,
+      },
+      {
+        maxRank: 5,
+        reputation: 0,
+        experience: 50,
+        cashPrize: 2_000,
+        uciPoints: 60,
+      },
+      {
+        maxRank: 10,
+        reputation: 0,
+        experience: 25,
+        cashPrize: 0,
+        uciPoints: 25,
+      },
+    ],
+    world_championship: [
+      {
+        maxRank: 1,
+        reputation: 5,
+        experience: 625,
+        cashPrize: 50_000,
+        uciPoints: 600,
+      },
+      {
+        maxRank: 2,
+        reputation: 3,
+        experience: 375,
+        cashPrize: 25_000,
+        uciPoints: 475,
+      },
+      {
+        maxRank: 3,
+        reputation: 2,
+        experience: 225,
+        cashPrize: 12_500,
+        uciPoints: 400,
+      },
+      {
+        maxRank: 5,
+        reputation: 1,
+        experience: 125,
+        cashPrize: 5_000,
+        uciPoints: 325,
+      },
+      {
+        maxRank: 10,
+        reputation: 0,
+        experience: 60,
+        cashPrize: 2_000,
+        uciPoints: 200,
+      },
+    ],
+  };
+  const placement = scales[competitionType].find(
+    (rule) => finalRank <= rule.maxRank,
+  );
+
+  return placement
+    ? {
+        reputation: placement.reputation,
+        experience: placement.experience,
+        cashPrize: placement.cashPrize,
+        uciPoints: placement.uciPoints,
+      }
+    : { reputation: 0, experience: 0, cashPrize: 0, uciPoints: 0 };
+}
+
+/**
  * Récompense d'étape, inférieure au général mais comptée au classement UCI.
  */
 export function calculateStageReward({
@@ -403,7 +510,7 @@ export function calculateStageReward({
   }
 
   const placement = STAGE_PRIZE_SCALES[tier].find(
-    (placement) => finalRank <= placement.maxRank
+    (placement) => finalRank <= placement.maxRank,
   );
 
   return placement
@@ -438,17 +545,23 @@ export function calculateRiderSeasonSalary({
   const safeOverall = clamp(overall, 0, 100);
   const talentFactor = Math.max(0, (safeOverall - 45) / 55);
   const talentSalary = 6_000 + talentFactor ** 2.15 * 240_000;
-  const pedigreeBonus = Math.min(90_000, Math.max(0, previousSeasonUciPoints) * 50)
-    + Math.min(50_000, Math.max(0, majorWins) * 10_000);
+  const pedigreeBonus =
+    Math.min(90_000, Math.max(0, previousSeasonUciPoints) * 50) +
+    Math.min(50_000, Math.max(0, majorWins) * 10_000);
 
-  return Math.round(clamp(talentSalary + pedigreeBonus, 6_000, 400_000) / 100) * 100;
+  return (
+    Math.round(clamp(talentSalary + pedigreeBonus, 6_000, 400_000) / 100) * 100
+  );
 }
 
 export function getDivisionForRank(rank: number): TeamDivisionCode {
   const safeRank = Math.max(1, Math.floor(rank));
-  return DIVISION_RULES.find(
-    (division) => safeRank >= division.minimumRank && safeRank <= division.maximumRank
-  )?.code ?? "amateur";
+  return (
+    DIVISION_RULES.find(
+      (division) =>
+        safeRank >= division.minimumRank && safeRank <= division.maximumRank,
+    )?.code ?? "amateur"
+  );
 }
 
 export function calculateDebtReputationPenalty(balance: number): number {
@@ -498,7 +611,7 @@ export function buildFinanceProjection({
 
 export function selectWildcardTeams(
   candidates: WildcardCandidate[],
-  availablePlaces = ELITE_RACE_BASE_WILDCARD_PLACES
+  availablePlaces = ELITE_RACE_BASE_WILDCARD_PLACES,
 ): WildcardCandidate[] {
   const places = Math.max(0, Math.floor(availablePlaces));
 
@@ -506,34 +619,36 @@ export function selectWildcardTeams(
     .filter((candidate) => {
       const division = getDivisionForRank(candidate.rankingPosition);
 
-      return candidate.requested
-        && !candidate.alreadyInvited
-        && division !== "elite";
+      return (
+        candidate.requested && !candidate.alreadyInvited && division !== "elite"
+      );
     })
     .sort(
       (left, right) =>
-        calculateWildcardSelectionScore(right)
-        - calculateWildcardSelectionScore(left)
-        || right.leaderProfileFit - left.leaderProfileFit
-        || right.uciPoints - left.uciPoints
-        || left.rankingPosition - right.rankingPosition
-        || left.teamId.localeCompare(right.teamId)
+        calculateWildcardSelectionScore(right) -
+          calculateWildcardSelectionScore(left) ||
+        right.leaderProfileFit - left.leaderProfileFit ||
+        right.uciPoints - left.uciPoints ||
+        left.rankingPosition - right.rankingPosition ||
+        left.teamId.localeCompare(right.teamId),
     )
     .slice(0, places);
 }
 
 export function calculateWildcardSelectionScore(
-  candidate: WildcardCandidate
+  candidate: WildcardCandidate,
 ): number {
   const reputation = Math.min(
     1_000,
-    Math.max(0, candidate.reputationPoints ?? 0)
+    Math.max(0, candidate.reputationPoints ?? 0),
   );
 
-  return (candidate.teamCountryMatchesRace ? 250 : 0)
-    + (candidate.sponsorCountryMatchesRace ? 150 : 0)
-    + reputation * 0.25
-    + candidate.leaderProfileFit * 5;
+  return (
+    (candidate.teamCountryMatchesRace ? 250 : 0) +
+    (candidate.sponsorCountryMatchesRace ? 150 : 0) +
+    reputation * 0.25 +
+    candidate.leaderProfileFit * 5
+  );
 }
 
 function createScale({
@@ -553,7 +668,7 @@ function createScale({
         experience,
         cashPrize,
         uciPoints,
-      })
+      }),
     ),
     secondaryReputation: secondary[0],
     secondaryExperience: secondary[1],
@@ -567,7 +682,7 @@ function createScale({
 
 function findPlacement(
   placements: PlacementRule[],
-  finalRank: number | null
+  finalRank: number | null,
 ): PlacementRule | null {
   if (finalRank === null || !Number.isFinite(finalRank) || finalRank < 1) {
     return null;
