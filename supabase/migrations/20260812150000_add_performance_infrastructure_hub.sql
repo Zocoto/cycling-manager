@@ -357,7 +357,7 @@ begin
 end; $$;
 
 do $migration$ declare v_definition text; begin
-  select pg_get_functiondef('public.get_current_team_race_roster_options(uuid)'::regprocedure) into v_definition;
+  select pg_get_functiondef('public.get_current_team_race_roster_options_before_reconnaissance(uuid)'::regprocedure) into v_definition;
   if position('when ''premium'' then ''Stage de forme premium''' in v_definition)=0 then
     raise exception 'Le libellé des indisponibilités a changé : migration des préparations interrompue.';
   end if;
