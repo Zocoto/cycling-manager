@@ -80,4 +80,19 @@ describe("Fan Club de production", () => {
     expect(source).not.toContain("Traçabilité");
     expect(source).not.toContain("Paliers proposés");
   });
+
+  it("présente les articles comme des produits en vitrine", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "components/game/fan-club.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("En vitrine");
+    expect(source).toContain("StoreProductVisual");
+    expect(source).toContain('productId === "team-jersey"');
+    expect(source).toContain('productId === "bottle"');
+    expect(source).toContain('productId === "pennant"');
+    expect(source).toContain('productId === "cap"');
+    expect(source).toContain("Prix en boutique");
+  });
 });

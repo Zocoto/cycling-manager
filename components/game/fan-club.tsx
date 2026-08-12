@@ -533,57 +533,60 @@ function StorePanel({
           />
           <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[#176951] px-4 text-sm font-black text-white transition hover:bg-[#0B5541]">Acheter du stock</button>
         </div>
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[840px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#315B3E]/12 text-xs font-black uppercase tracking-[0.1em] text-[#6F817A]">
-                <th className="px-2 py-3">Article</th><th className="px-2 py-3">Stock restant</th><th className="px-2 py-3">Prix choisi</th><th className="px-2 py-3">Marge / unité</th><th className="px-2 py-3">Prévision aléatoire</th><th className="px-2 py-3">Demande</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => {
-                const inventory = inventoryByProduct.get(product.id);
-                const stock = inventory?.quantity ?? 0;
-                const price = prices[product.id] ?? product.suggestedSalePrice;
-                const averageCost = inventory?.averageUnitCost ?? 0;
-                const forecast = estimateDailyProductSalesForecast({
-                  product,
-                  salePrice: price,
-                  supporterCount: data.supporterCount,
-                  fervor: data.fervor,
-                  popularityIndex: data.popularityIndex,
-                  recentResultsMultiplier: data.recentResultsMultiplier,
-                });
-                return (
-                  <tr key={product.id} className="border-b border-[#315B3E]/10 last:border-0">
-                    <td className="px-2 py-4 font-black text-[#183F37]">{product.name}</td>
-                    <td className="px-2 py-4 font-black text-[#9A7000]">{stock}</td>
-                    <td className="px-2 py-4">
-                      <div className="flex items-center gap-2">
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          {products.map((product) => {
+            const inventory = inventoryByProduct.get(product.id);
+            const stock = inventory?.quantity ?? 0;
+            const price = prices[product.id] ?? product.suggestedSalePrice;
+            const averageCost = inventory?.averageUnitCost ?? 0;
+            const forecast = estimateDailyProductSalesForecast({
+              product,
+              salePrice: price,
+              supporterCount: data.supporterCount,
+              fervor: data.fervor,
+              popularityIndex: data.popularityIndex,
+              recentResultsMultiplier: data.recentResultsMultiplier,
+            });
+            return (
+              <article key={product.id} className="group overflow-hidden rounded-[1.35rem] border border-[#315B3E]/15 bg-[#FFFEFA] shadow-[0_12px_30px_rgba(19,60,46,0.08)] transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:shadow-[0_18px_38px_rgba(19,60,46,0.13)]">
+                <div aria-hidden="true" className="h-2 bg-[repeating-linear-gradient(90deg,#176951_0_28px,#FFF7DD_28px_56px,#F2C94C_56px_84px,#FFF7DD_84px_112px)]" />
+                <div className="p-4 sm:p-5">
+                  <div className="flex items-start gap-4">
+                    <StoreProductVisual productId={product.id} />
+                    <div className="min-w-0 flex-1">
+                      <span className="inline-flex rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.13em] text-[#176951]">En vitrine</span>
+                      <h3 className="mt-2 text-lg font-black text-[#183F37]">{product.name}</h3>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-[#6A7D76]">{product.description}</p>
+                    </div>
+                  </div>
+                  <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <StoreMetric label="Stock restant" value={String(stock)} tone="gold" />
+                    <StoreMetric label="Marge / unité" value={decimalEuroFormatter.format(price - averageCost)} tone={price - averageCost >= 0 ? "green" : "red"} />
+                    <StoreMetric label="Ventes prévues" value={[Math.min(stock, forecast.low), " à ", Math.min(stock, forecast.high), " / jour"].join("")} />
+                  </dl>
+                  <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[#315B3E]/10 bg-[#F4F8F5] p-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#60736C]">Prix en boutique</span>
+                      <span className="mt-2 flex items-center gap-2">
                         <input
-                          aria-label={`Prix de vente de ${product.name}`}
+                          aria-label={"Prix de vente de " + product.name}
                           type="number" min={0.5} max={999} step={0.5} value={price}
                           onChange={(event) => setPrices((current) => ({ ...current, [product.id]: Math.max(0.5, Number(event.target.value)) }))}
-                          className="w-24 rounded-lg border border-[#315B3E]/20 bg-[#F6FAF7] px-3 py-2 font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/25"
+                          className="min-h-10 w-24 rounded-xl border border-[#315B3E]/20 bg-white px-3 font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/25"
                         />
                         <button
                           type="button" disabled={isPending || price === inventory?.salePrice}
                           onClick={() => execute(() => updateFanClubSalePriceAction({ productId: product.id, salePrice: price }))}
-                          className="min-h-9 rounded-lg bg-[#176951] px-3 text-xs font-black text-white disabled:opacity-40"
+                          className="min-h-10 rounded-xl bg-[#176951] px-3 text-xs font-black text-white transition hover:bg-[#0B5541] disabled:opacity-40"
                         >Valider</button>
-                      </div>
-                    </td>
-                    <td className={[
-                      "px-2 py-4 font-black",
-                      price - averageCost >= 0 ? "text-[#176951]" : "text-[#B34A42]",
-                    ].join(" ")}>{decimalEuroFormatter.format(price - averageCost)}</td>
-                    <td className="px-2 py-4 font-black text-[#536B63]">{Math.min(stock, forecast.low)} à {Math.min(stock, forecast.high)} / jour</td>
-                    <td className="px-2 py-4"><DemandBadge assessment={forecast.assessment} /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </span>
+                    </div>
+                    <div className="text-right"><span className="mb-1 block text-[9px] font-black uppercase tracking-[0.12em] text-[#71837C]">Demande</span><DemandBadge assessment={forecast.assessment} /></div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#EAF5F3] px-4 py-3 text-sm font-bold text-[#536B63]">
           <span>Stock total : <strong className="text-[#176951]">{totalStock} / {level.capacity}</strong></span>
@@ -611,6 +614,7 @@ function StorePanel({
                     product.id === selectedProduct.id ? "border-[#D29F32] bg-[#FFF5D8] ring-2 ring-[#F2C94C]/35" : "border-[#315B3E]/15 bg-[#F8FBF9] hover:border-[#278B70]/35",
                   ].join(" ")}
                 >
+                  <StoreProductVisual productId={product.id} compact />
                   <span className="block font-black text-[#183F37]">{product.name}</span>
                   <span className="mt-3 block text-lg font-black text-[#9A7000]">{decimalEuroFormatter.format(getCurrentWholesalePrice(product))}</span>
                   <span className={[
@@ -681,6 +685,43 @@ function TripCard({ trip }: { trip: FanClubTripAllocation }) {
       </div>
       <p className="mt-3 text-sm font-black text-[#9A7000]">{euroFormatter.format(trip.tripCost)}</p>
     </article>
+  );
+}
+
+function StoreProductVisual({ productId, compact = false }: { productId: string; compact?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={[
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-[#D8C88E]/55 bg-[radial-gradient(circle_at_70%_18%,#FFF4C7_0_12%,transparent_13%),linear-gradient(145deg,#FFF9E7,#E4F2EA)] shadow-inner",
+        compact ? "mb-3 h-14 w-14" : "h-20 w-20",
+      ].join(" ")}
+    >
+      <span className="absolute bottom-2 left-2 right-2 h-1.5 rounded-full bg-[#C8AC62]/45" />
+      <svg viewBox="0 0 48 48" className={compact ? "h-10 w-10" : "h-14 w-14"} fill="none" stroke="#123F36" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {productId === "team-jersey" ? (
+          <><path d="m16 8 5-3c.8 2 1.8 3 3 3s2.2-1 3-3l5 3 7 8-6 5-3-4v24H18V17l-3 4-6-5 7-8Z" fill="#176951" /><path d="M18 22h12M18 27h12" stroke="#F2C94C" /><path d="M21 5c.5 2 1.5 3 3 3s2.5-1 3-3" /></>
+        ) : productId === "bottle" ? (
+          <><path d="M20 6h8v6l3 4v24H17V16l3-4V6Z" fill="#F9FBF5" /><path d="M20 12h8M17 22h14M17 31h14" /><path d="M19 22h10v9H19z" fill="#176951" stroke="none" /><path d="m21 29 6-5" stroke="#F2C94C" /></>
+        ) : productId === "pennant" ? (
+          <><path d="M13 6v36" /><path d="M14 9h25L28 20l11 11H14V9Z" fill="#176951" /><path d="m19 14 14 12M19 26l14-12" stroke="#F2C94C" /></>
+        ) : productId === "cap" ? (
+          <><path d="M11 27c0-10 5-16 13-16 7 0 12 5 13 14l-26 2Z" fill="#176951" /><path d="M11 27c9-3 20-3 29 1-4 5-11 6-18 3l-11-4Z" fill="#F2C94C" /><path d="M19 13c1 4 1 8 0 12" /></>
+        ) : (
+          <><path d="M24 7c8 0 14 7 14 16 0 8-5 14-12 15l-2 4-2-4C15 37 10 31 10 23 10 14 16 7 24 7Z" fill="#F2C94C" /><path d="M22 38c-2 3 3 3 1 6" /><path d="m18 17 12 12M30 17 18 29" stroke="#176951" /></>
+        )}
+      </svg>
+    </span>
+  );
+}
+
+function StoreMetric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "gold" | "green" | "red" }) {
+  const toneClass = tone === "gold" ? "text-[#9A7000]" : tone === "green" ? "text-[#176951]" : tone === "red" ? "text-[#B34A42]" : "text-[#536B63]";
+  return (
+    <div className="rounded-xl border border-[#315B3E]/10 bg-white px-3 py-2.5">
+      <dt className="text-[9px] font-black uppercase tracking-[0.1em] text-[#7B8B85]">{label}</dt>
+      <dd className={["mt-1 text-sm font-black", toneClass].join(" ")}>{value}</dd>
+    </div>
   );
 }
 

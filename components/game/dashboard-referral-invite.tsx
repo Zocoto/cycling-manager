@@ -44,7 +44,7 @@ export function DashboardReferralInvite() {
           </span>
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Nouveau · Parrainage</p>
-            <h2 className="mt-1 text-xl font-black">Invitez des amis, gagnez des objets niveau 5 à 7</h2>
+            <h2 className="mt-1 text-xl font-black">Invitez vos amis et recevez des cadeaux exclusifs</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">Votre lien personnel est prêt. Débloquez aussi le trophée et la tenue spéciale « Le Parrain » pour votre avatar.</p>
           </div>
         </div>
