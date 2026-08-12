@@ -17,7 +17,10 @@ import { getCurrentDashboardOperationalEvents } from "@/services/dashboard-event
 import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
 import { getCurrentGameObjectives } from "@/services/game-objectives";
 import { getDashboardPelotonNews } from "@/services/public-game-news";
-import type { FinanceCategory, TeamFinanceTransaction } from "@/services/team-finances";
+import type {
+  FinanceCategory,
+  TeamFinanceTransaction,
+} from "@/services/team-finances";
 import { getSportingDirectorTrophyRewardStatus } from "@/services/trophy-gallery";
 import { getUciRankings } from "@/services/uci-rankings";
 
@@ -81,21 +84,33 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
     } = await getAuthenticatedUser(supabase);
 
     if (error || !user) {
-      return { ok: false, message: "Votre session a expiré. Reconnectez-vous." };
+      return {
+        ok: false,
+        message: "Votre session a expiré. Reconnectez-vous.",
+      };
     }
 
-    const [summary, objectives, trophyRewardStatus, dailyRewards, rankings, pelotonNews] =
-      await Promise.all([
-        getCurrentDashboardFastSummary(supabase),
-        getCurrentGameObjectives(supabase),
-        getSportingDirectorTrophyRewardStatus(user.id),
-        getCurrentDailyRewardOverview(supabase),
-        getUciRankings(),
-        getDashboardPelotonNews(),
-      ]);
+    const [
+      summary,
+      objectives,
+      trophyRewardStatus,
+      dailyRewards,
+      rankings,
+      pelotonNews,
+    ] = await Promise.all([
+      getCurrentDashboardFastSummary(supabase),
+      getCurrentGameObjectives(supabase),
+      getSportingDirectorTrophyRewardStatus(user.id),
+      getCurrentDailyRewardOverview(supabase),
+      getUciRankings(),
+      getDashboardPelotonNews(),
+    ]);
 
     if (!summary) {
-      return { ok: false, message: "Le bureau de votre équipe est indisponible." };
+      return {
+        ok: false,
+        message: "Le bureau de votre équipe est indisponible.",
+      };
     }
 
     const rosterResult = await supabase.rpc("get_current_team_roster");
@@ -127,31 +142,32 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
 
     if (transactionsResult.error) throw transactionsResult.error;
 
-    const transactions: TeamFinanceTransaction[] = (transactionsResult.data ?? []).map(
-      (transaction) => ({
-        id: transaction.id,
-        dayNumber: transaction.day_number,
-        amount: Number(transaction.amount),
-        category: transaction.category,
-        status: transaction.status,
-        description: transaction.description,
-        sourceReference: transaction.source_reference,
-        postedAt: transaction.posted_at,
-      }),
-    );
+    const transactions: TeamFinanceTransaction[] = (
+      transactionsResult.data ?? []
+    ).map((transaction) => ({
+      id: transaction.id,
+      dayNumber: transaction.day_number,
+      amount: Number(transaction.amount),
+      category: transaction.category,
+      status: transaction.status,
+      description: transaction.description,
+      sourceReference: transaction.source_reference,
+      postedAt: transaction.posted_at,
+    }));
 
     const dailyRewardEvents = dailyRewards?.availableToday
-      ? [{
-          id: `daily-reward:${dailyRewards.seasonId}:${dailyRewards.currentDayNumber}`,
-          category: "objective" as const,
-          priority: "action" as const,
-          title: "Votre cadeau quotidien vous attend",
-          description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau du jour à ouvrir.`,
-          href: "/jeu/objectifs?onglet=quotidiennes",
-          actionLabel: "Ouvrir le cadeau",
-          badgeLabel: "Quotidien",
-          dayNumber: dailyRewards.currentDayNumber,
-          happenedAt: null,
+      ? [
+          {
+            id: `daily-reward:${dailyRewards.seasonId}:${dailyRewards.currentDayNumber}`,
+            category: "objective" as const,
+            priority: "action" as const,
+            title: "Votre cadeau quotidien vous attend",
+            description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau du jour à ouvrir.`,
+            href: "/jeu/objectifs?onglet=quotidiennes",
+            actionLabel: "Ouvrir le cadeau",
+            badgeLabel: "Quotidien",
+            dayNumber: dailyRewards.currentDayNumber,
+            happenedAt: null,
           },
         ]
       : [];
@@ -164,7 +180,10 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
         dashboardEvents: buildDashboardEventFeed({
           currentDayNumber: summary.seasonDayNumber,
           currency: summary.currency,
-          operationalEvents: [...dailyRewardEvents, ...operationalEvents.events],
+          operationalEvents: [
+            ...dailyRewardEvents,
+            ...operationalEvents.events,
+          ],
           transactions,
           objectives,
           trophyRewardStatus,
@@ -177,7 +196,8 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
     console.error("Impossible de charger le monitoring détaillé :", error);
     return {
       ok: false,
-      message: "Le monitoring détaillé n’a pas pu être chargé. Réessayez dans un instant.",
+      message:
+        "Le monitoring détaillé n’a pas pu être chargé. Réessayez dans un instant.",
     };
   }
 }
@@ -190,7 +210,7 @@ function getNextSettlementAt(calendar: SeasonRaceCalendar, now: Date) {
     }
 
     const finalStage = [...edition.stages].sort(
-      (left, right) => right.stageNumber - left.stageNumber
+      (left, right) => right.stageNumber - left.stageNumber,
     )[0];
     if (!finalStage) return [];
     const state = getStageLiveState(finalStage, now);
@@ -205,6 +225,53 @@ function getNextSettlementAt(calendar: SeasonRaceCalendar, now: Date) {
   return nextTimestamp ? new Date(nextTimestamp).toISOString() : null;
 }
 
+export type HiddenSwitchbackDiscoveryResult = {
+  ok: boolean;
+  message: string;
+};
+
+export async function discoverHiddenSwitchbackAction(): Promise<HiddenSwitchbackDiscoveryResult> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await getAuthenticatedUser(supabase);
+
+  if (authenticationError || !user) {
+    return {
+      ok: false,
+      message:
+        "La borne s’est effacée : reconnectez-vous pour reprendre la piste.",
+    };
+  }
+
+  const { data, error } = await supabase.rpc(
+    "discover_current_sporting_director_easter_egg",
+  );
+
+  if (error) {
+    return {
+      ok: false,
+      message: "Le virage résiste encore. Réessayez dans un instant.",
+    };
+  }
+
+  const newlyUnlocked = Boolean(
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    (data as { newlyUnlocked?: unknown }).newlyUnlocked,
+  );
+
+  revalidatePath("/jeu/objectifs");
+
+  return {
+    ok: true,
+    message: newlyUnlocked
+      ? "Virage secret découvert ! Le trophée « Le Virage caché » rejoint votre galerie."
+      : "Vous connaissiez déjà ce virage. Son trophée est toujours dans votre galerie.",
+  };
+}
 export async function logoutAccount(): Promise<void> {
   const supabase = await createSupabaseServerClient();
 

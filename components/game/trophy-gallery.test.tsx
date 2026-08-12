@@ -8,6 +8,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
+vi.mock("@/app/jeu/actions", () => ({
+  discoverHiddenSwitchbackAction: vi.fn(async () => ({
+    ok: true,
+    message: "Registre ouvert",
+  })),
+}));
+
 describe("TrophyGallery", () => {
   it("renders historic trophies, their engraved winner and gallery totals", () => {
     const gallery = buildTrophyGallery({
@@ -59,6 +66,7 @@ describe("TrophyGallery", () => {
     expect(markup.match(/En cours de développement/g)).toHaveLength(3);
     expect(markup).not.toContain("Critères à définir ensemble");
     expect(markup).toContain("/jeu/resultats/ruta-de-las-sierras");
+    expect(markup).toContain("Registre des graveurs");
   });
 
   it("shows an explanatory empty room without granting challenge trophies", () => {
@@ -69,7 +77,7 @@ describe("TrophyGallery", () => {
           teamUciTitles: [],
           riderUciTitles: [],
         })}
-      />
+      />,
     );
 
     expect(markup).toContain("Le premier socle vous attend");
@@ -85,7 +93,7 @@ describe("TrophyGallery", () => {
           teamUciTitles: [],
           riderUciTitles: [],
         })}
-      />
+      />,
     );
 
     expect(markup).toContain("data-trophy-metrics");
@@ -118,7 +126,7 @@ describe("TrophyGallery", () => {
             },
           ],
         })}
-      />
+      />,
     );
 
     expect(markup).toContain("Un cadeau vous attend");

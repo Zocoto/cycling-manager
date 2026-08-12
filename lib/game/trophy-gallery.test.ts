@@ -39,6 +39,7 @@ describe("buildTrophyGallery", () => {
       championships: 0,
       uciTitles: 0,
       special: 0,
+      achievements: 0,
       attendance: 0,
       referrals: 0,
     });
@@ -57,7 +58,7 @@ describe("buildTrophyGallery", () => {
           competitionName: "Couronne d’Émeraude · 1re place",
           palette: expect.objectContaining({ primary: "#278B70" }),
         }),
-      ])
+      ]),
     );
   });
 
@@ -159,7 +160,7 @@ describe("buildTrophyGallery", () => {
           kind: "continental_championship",
           title: "Championnats d’Europe CLM",
         }),
-      ])
+      ]),
     );
   });
 
@@ -226,9 +227,43 @@ describe("buildTrophyGallery", () => {
     });
 
     expect(gallery.counts.referrals).toBe(2);
-    expect(gallery.trophies.filter((trophy) => trophy.kind === "referral"))
-      .toEqual(expect.arrayContaining([
-        expect.objectContaining({ title: "Le Parrain", href: "/jeu/parrainage" }),
-      ]));
+    expect(
+      gallery.trophies.filter((trophy) => trophy.kind === "referral"),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Le Parrain",
+          href: "/jeu/parrainage",
+        }),
+      ]),
+    );
+  });
+  it("adds difficult objective trophies with their dedicated artwork", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "atlas-award",
+          trophyKey: "atlas_peloton",
+          availableAt: "2026-08-12T12:00:00.000Z",
+          claimedAt: "2026-08-12T12:00:00.000Z",
+          href: "/jeu/objectifs?onglet=objectifs&groupe=diversity",
+        },
+      ],
+    });
+
+    expect(gallery.counts).toMatchObject({
+      total: 1,
+      special: 0,
+      achievements: 1,
+    });
+    expect(gallery.trophies[0]).toMatchObject({
+      kind: "achievement",
+      title: "Atlas du peloton",
+      imagePath: "/images/objective-trophies/atlas-du-peloton.webp",
+      visualVariant: "astrolabe",
+    });
   });
 });
