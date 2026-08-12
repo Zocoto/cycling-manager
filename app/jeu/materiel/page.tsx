@@ -163,6 +163,12 @@ export default async function MaterialPage({
             Équipementier
           </Link>
           <Link
+            href="/jeu/materiel/laboratoire"
+            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
+          >
+            Labo R&D
+          </Link>
+          <Link
             href="/jeu/materiel/equiper"
             className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
           >

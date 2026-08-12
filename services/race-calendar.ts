@@ -249,6 +249,14 @@ type CalendarEngagedRiderRow = {
   equipment_effects: unknown;
 };
 
+type RiderPerformancePreparationRow = {
+  rider_id: string;
+  preparation_type: "indoor_track" | "wind_tunnel";
+  bonus_start_game_day: number;
+  bonus_end_game_day: number;
+  rating_bonus: number;
+};
+
 type CalendarStageEquipmentEffectsRow = {
   race_edition_id: string;
   stage_id: string;
@@ -747,12 +755,18 @@ export async function getActiveSeasonRaceCalendar(
     raceDataAdmin,
     engagedTeamIds,
   );
+  const localRaceCountriesPromise = loadWelcomeCenterLocalRaceCountries(
+    raceDataAdmin,
+    engagedTeamIds,
+    engagedRiderIds,
+  );
   const [
     specialAbilitiesResult,
     riderCountriesResult,
     nationalChampionshipTitlesByRiderId,
     worldChampionshipTitlesByRiderId,
     continentalChampionshipTitlesByRiderId,
+    performancePreparationsResult,
   ] =
     engagedRiderIds.length > 0
       ? await Promise.all([
@@ -805,6 +819,26 @@ export async function getActiveSeasonRaceCalendar(
             supabase,
             engagedRiderIds,
           ),
+          collectChunkedPaginatedRows<
+            RiderPerformancePreparationRow,
+            { message: string },
+            string
+          >({
+            values: engagedRiderIds,
+            fetchPage: async (chunk, from, to) => {
+              const result = await raceDataAdmin
+                .from("rider_performance_preparations")
+                .select(
+                  "rider_id, preparation_type, bonus_start_game_day, bonus_end_game_day, rating_bonus",
+                )
+                .in("rider_id", chunk)
+                .neq("status", "cancelled")
+                .order("rider_id", { ascending: true })
+                .range(from, to)
+                .returns<RiderPerformancePreparationRow[]>();
+              return { data: result.data, error: result.error };
+            },
+          }),
         ])
       : [
           emptyResult<RiderSpecialAbilityRow>(),
@@ -812,6 +846,7 @@ export async function getActiveSeasonRaceCalendar(
           new Map<string, ActiveNationalChampionshipTitlesByDiscipline>(),
           new Map<string, ActiveWorldChampionshipTitlesByDiscipline>(),
           new Map<string, ActiveContinentalChampionshipTitlesByDiscipline>(),
+          emptyResult<RiderPerformancePreparationRow>(),
         ];
 
   assertQuerySucceeded(
@@ -822,14 +857,20 @@ export async function getActiveSeasonRaceCalendar(
     riderCountriesResult.error,
     "les nationalités des coureurs engagés",
   );
+  assertQuerySucceeded(
+    performancePreparationsResult.error,
+    "les bonus de préparation des coureurs engagés",
+  );
 
   const specialAbilitiesByRiderId = groupSpecialAbilities(
     specialAbilitiesResult.data ?? [],
   );
-  const [raceStaffEffects, teamSponsorVisuals] = await Promise.all([
-    raceStaffEffectsPromise,
-    teamSponsorVisualsPromise,
-  ]);
+  const [raceStaffEffects, teamSponsorVisuals, welcomeCenterLocalRaceContext] =
+    await Promise.all([
+      raceStaffEffectsPromise,
+      teamSponsorVisualsPromise,
+      localRaceCountriesPromise,
+    ]);
 
   const dayRows = daysResult.data ?? [];
   const dayIds = dayRows.map((day) => day.id);
@@ -1117,6 +1158,7 @@ export async function getActiveSeasonRaceCalendar(
     dayById,
     segmentRows,
     reconnaissanceBonusesByStageId,
+    season.game_year,
   );
   const registrationByEditionId = new Map(
     ((registrationsResult.data as CalendarRegistrationRow[] | null) ?? []).map(
@@ -1146,8 +1188,10 @@ export async function getActiveSeasonRaceCalendar(
     continentalChampionshipTitlesByRiderId,
     nationalInternationalEditionIds,
     nationalChampionshipTitlesByRiderId,
+    performancePreparationsResult.data ?? [],
     raceStaffEffects,
     teamSponsorVisuals,
+    welcomeCenterLocalRaceContext,
   );
 
   const editions = editionRows
@@ -1681,6 +1725,89 @@ function scaleEquipmentEffect(
   };
 }
 
+type WelcomeCenterLocalRaceContext = {
+  eligibleTeamIds: Set<string>;
+  adjacentRaceCountryCodesByRiderId: Map<string, string[]>;
+};
+
+async function loadWelcomeCenterLocalRaceCountries(
+  admin: SupabaseAdminClient,
+  teamIds: string[],
+  riderIds: string[],
+): Promise<WelcomeCenterLocalRaceContext> {
+  const result: WelcomeCenterLocalRaceContext = {
+    eligibleTeamIds: new Set(),
+    adjacentRaceCountryCodesByRiderId: new Map(),
+  };
+  if (!teamIds.length || !riderIds.length) return result;
+  const [facilitiesResult, ridersResult] = await Promise.all([
+    admin
+      .from("team_infrastructures")
+      .select("team_id")
+      .in("team_id", teamIds)
+      .eq("infrastructure_code", "international_welcome_center")
+      .gte("level", 3)
+      .returns<Array<{ team_id: string }>>(),
+    admin
+      .from("riders")
+      .select("id,country_id")
+      .in("id", riderIds)
+      .returns<Array<{ id: string; country_id: string }>>(),
+  ]);
+  assertQuerySucceeded(
+    facilitiesResult.error,
+    "les Centres d’accueil internationaux",
+  );
+  assertQuerySucceeded(ridersResult.error, "les nationalités des coureurs");
+  result.eligibleTeamIds = new Set(
+    (facilitiesResult.data ?? []).map((row) => row.team_id),
+  );
+  if (!result.eligibleTeamIds.size) return result;
+
+  const countryIds = unique(
+    (ridersResult.data ?? []).map((row) => row.country_id),
+  );
+  if (!countryIds.length) return result;
+  const adjacencyResult = await admin
+    .from("country_adjacencies")
+    .select("country_id,adjacent_country_id")
+    .in("country_id", countryIds)
+    .returns<Array<{ country_id: string; adjacent_country_id: string }>>();
+  assertQuerySucceeded(adjacencyResult.error, "les pays adjacents");
+  const adjacentIds = unique(
+    (adjacencyResult.data ?? []).map((row) => row.adjacent_country_id),
+  );
+  const countriesResult = adjacentIds.length
+    ? await admin
+        .from("countries")
+        .select("id,iso_alpha2")
+        .in("id", adjacentIds)
+        .returns<Array<{ id: string; iso_alpha2: string }>>()
+    : emptyResult<{ id: string; iso_alpha2: string }>();
+  assertQuerySucceeded(countriesResult.error, "les codes des pays adjacents");
+  const codeById = new Map(
+    (countriesResult.data ?? []).map((country) => [
+      country.id,
+      country.iso_alpha2,
+    ]),
+  );
+  const adjacentByCountryId = new Map<string, string[]>();
+  for (const adjacency of adjacencyResult.data ?? []) {
+    const code = codeById.get(adjacency.adjacent_country_id);
+    if (!code) continue;
+    const codes = adjacentByCountryId.get(adjacency.country_id) ?? [];
+    if (!codes.includes(code)) codes.push(code);
+    adjacentByCountryId.set(adjacency.country_id, codes);
+  }
+  for (const rider of ridersResult.data ?? []) {
+    result.adjacentRaceCountryCodesByRiderId.set(
+      rider.id,
+      adjacentByCountryId.get(rider.country_id) ?? [],
+    );
+  }
+  return result;
+}
+
 function groupCalendarEngagedRiders(
   rows: CalendarEngagedRiderRow[],
   stageEquipmentRows: CalendarStageEquipmentEffectsRow[],
@@ -1700,13 +1827,25 @@ function groupCalendarEngagedRiders(
     string,
     ActiveNationalChampionshipTitlesByDiscipline
   >,
+  performancePreparationRows: RiderPerformancePreparationRow[],
   raceStaffEffects: RaceStaffEffects,
   teamSponsorVisuals: Map<string, RaceTeamSponsorVisual>,
+  welcomeCenterLocalRaceContext: WelcomeCenterLocalRaceContext,
 ) {
   const ridersByEditionId = new Map<
     string,
     RaceCalendarEdition["engagedRiders"]
   >();
+  const preparationsByRiderId = new Map<
+    string,
+    RiderPerformancePreparationRow[]
+  >();
+  for (const preparation of performancePreparationRows) {
+    const riderPreparations =
+      preparationsByRiderId.get(preparation.rider_id) ?? [];
+    riderPreparations.push(preparation);
+    preparationsByRiderId.set(preparation.rider_id, riderPreparations);
+  }
   const equipmentByEditionRider = new Map<
     string,
     Record<string, EquipmentEffects>
@@ -1802,9 +1941,27 @@ function groupCalendarEngagedRiders(
       form: Number(row.form),
       careerRaceDays: Number(riderMetadata?.career_race_days ?? 0),
       countryCode: riderCountry?.iso_alpha2 ?? null,
+      ...(usesNationalWorldModel
+        ? {}
+        : {
+            localRaceCountryCodes:
+              welcomeCenterLocalRaceContext.eligibleTeamIds.has(row.team_id)
+                ? (welcomeCenterLocalRaceContext.adjacentRaceCountryCodesByRiderId.get(
+                    row.rider_id,
+                  ) ?? [])
+                : [],
+          }),
       role: usesNationalWorldModel ? "auto" : row.race_role,
       specialAbility: specialAbilities[0] ?? null,
       specialAbilities,
+      performancePreparations: (
+        preparationsByRiderId.get(row.rider_id) ?? []
+      ).map((preparation) => ({
+        type: preparation.preparation_type,
+        bonusStartGameDay: Number(preparation.bonus_start_game_day),
+        bonusEndGameDay: Number(preparation.bonus_end_game_day),
+        ratingBonus: Number(preparation.rating_bonus),
+      })),
       equipmentEffects,
       ...(equipmentEffectsByStageId ? { equipmentEffectsByStageId } : {}),
       mechanicalIncidentTimeReductionPct:
@@ -1849,6 +2006,7 @@ function groupStages(
   dayById: Map<string, SeasonDayRow>,
   segmentRows: StageSegmentRow[],
   reconnaissanceBonusesByStageId: Map<string, Record<string, number>>,
+  gameYear: number,
 ) {
   const stagesByEditionId = new Map<string, RaceCalendarStage[]>();
   const segmentsByStageId = new Map<string, StageSegmentRow[]>();
@@ -1899,6 +2057,7 @@ function groupStages(
     const stage: RaceCalendarStage = {
       id: row.id,
       dayNumber: day.day_number,
+      gameDayIndex: gameYear * 28 + day.day_number - 1,
       stageNumber: row.stage_number,
       name: row.name,
       stageType: row.stage_type,

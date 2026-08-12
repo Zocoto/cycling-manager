@@ -27,10 +27,7 @@ import { getStaffNationalityAffinityDescription } from "@/lib/game/staff-talents
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
-import {
-  isStaffTutorialRoute,
-  STAFF_TUTORIAL_KEY,
-} from "@/lib/tutorial/staff";
+import { isStaffTutorialRoute, STAFF_TUTORIAL_KEY } from "@/lib/tutorial/staff";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getTeamStaffOverview,
@@ -457,10 +454,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
   );
 
   return (
-    <section
-      data-tutorial-id="staff-team-overview"
-      className="mt-7 space-y-7"
-    >
+    <section data-tutorial-id="staff-team-overview" className="mt-7 space-y-7">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
         <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
           <SectionHeading
@@ -657,10 +651,8 @@ function TeamStaffCard({
         </div>
         <div className="mt-3 grid gap-1 text-[11px] font-semibold leading-5 text-[#775959]">
           <p>
-            Saison en cours · {formatMoney(
-              member.remainingCurrentSeasonSalary,
-              member.currency,
-            )}
+            Saison en cours ·{" "}
+            {formatMoney(member.remainingCurrentSeasonSalary, member.currency)}
           </p>
         </div>
       </div>
@@ -778,6 +770,12 @@ function StaffRoleIcon({ role }: { role: StaffRole }) {
     architect: (
       <>
         <path d="M4 21 12 3l8 18M7 15h10M9 10h6" />
+      </>
+    ),
+    research_engineer: (
+      <>
+        <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" />
+        <path d="M8 15h8M10 18h4" />
       </>
     ),
   };

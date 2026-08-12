@@ -45,19 +45,45 @@ type InterviewRow = {
   submitted_at: string | null;
 };
 
+type MediaArticleRow = {
+  id: string;
+  title: string;
+  body: string;
+  team_name: string;
+  sponsor_name: string | null;
+  building_level: number;
+};
+
 type TourStageRow = {
   id: string;
   race_edition_id: string;
   stage_number: number;
   day_slot: "early" | "late";
   name: string;
-  race_editions: { display_name: string; races: { slug: string; race_format: string } | null } | null;
+  race_editions: {
+    display_name: string;
+    races: { slug: string; race_format: string } | null;
+  } | null;
 };
-type TourResultRow = { race_edition_id: string; race_roster_id: string; final_rank: number | null };
-type TourSecondaryRow = { race_edition_id: string; classification_type: "mountain" | "sprint" | "youth" | "team"; race_roster_id: string | null; rank: number };
+type TourResultRow = {
+  race_edition_id: string;
+  race_roster_id: string;
+  final_rank: number | null;
+};
+type TourSecondaryRow = {
+  race_edition_id: string;
+  classification_type: "mountain" | "sprint" | "youth" | "team";
+  race_roster_id: string | null;
+  rank: number;
+};
 type TourRosterRow = { id: string; rider_id: string };
 type TourRiderRow = { id: string; first_name: string; last_name: string };
-type CommunityCommentRow = { id: string; sporting_director_id: string; message: string; created_at: string };
+type CommunityCommentRow = {
+  id: string;
+  sporting_director_id: string;
+  message: string;
+  created_at: string;
+};
 type CommunityDirectorRow = { id: string; display_name: string };
 
 type GazetteRow = {
@@ -84,7 +110,8 @@ type GazetteArchiveRow = {
 
 type ArchiveSeasonRow = Pick<SeasonRow, "id" | "name" | "game_year">;
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type CyclogazettePublicationResult = {
   status: "published" | "already-published" | "skipped";
@@ -112,7 +139,11 @@ export async function publishCyclogazetteEdition(
     .maybeSingle<SeasonRow>();
 
   if (seasonResult.error || !seasonResult.data) {
-    return { status: "skipped", reason: "Aucune saison active.", edition: null };
+    return {
+      status: "skipped",
+      reason: "Aucune saison active.",
+      edition: null,
+    };
   }
 
   const season = seasonResult.data;
@@ -125,18 +156,26 @@ export async function publishCyclogazetteEdition(
     .maybeSingle<SeasonDayRow>();
 
   if (dayResult.error || !dayResult.data) {
-    return { status: "skipped", reason: "Journée de saison introuvable.", edition: null };
+    return {
+      status: "skipped",
+      reason: "Journée de saison introuvable.",
+      edition: null,
+    };
   }
   const seasonDay = dayResult.data;
 
   const existing = await admin
     .from("cyclogazette_editions")
-    .select("id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)")
+    .select(
+      "id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)",
+    )
     .eq("season_day_id", seasonDay.id)
     .maybeSingle<GazetteRow>();
 
   if (existing.error) {
-    throw new Error(`Impossible de consulter La Cyclogazette : ${existing.error.message}`);
+    throw new Error(
+      `Impossible de consulter La Cyclogazette : ${existing.error.message}`,
+    );
   }
   if (existing.data) {
     return {
@@ -145,11 +184,34 @@ export async function publishCyclogazetteEdition(
     };
   }
 
-  const [allNews, submittedReactions, tourSummaries] = await Promise.all([
-    getCyclogazetteNewsItems(),
-    loadDailyReactions(seasonDay.calendar_date),
-    loadDailyTourSummaries(admin, seasonDay.id),
-  ]);
+  const [allNews, submittedReactions, tourSummaries, mediaArticlesResult] =
+    await Promise.all([
+      getCyclogazetteNewsItems(),
+      loadDailyReactions(seasonDay.calendar_date),
+      loadDailyTourSummaries(admin, seasonDay.id),
+      admin
+        .from("media_center_articles")
+        .select("id,title,body,team_name,sponsor_name,building_level")
+        .eq("season_id", season.id)
+        .eq("status", "queued")
+        .lte("day_number", dayNumber)
+        .order("created_at", { ascending: true })
+        .limit(8)
+        .returns<MediaArticleRow[]>(),
+    ]);
+  if (mediaArticlesResult.error) {
+    throw new Error(
+      `Impossible de charger les tribunes du Média Center : ${mediaArticlesResult.error.message}`,
+    );
+  }
+  const mediaArticles = (mediaArticlesResult.data ?? []).map((article) => ({
+    id: article.id,
+    title: article.title,
+    body: article.body,
+    teamName: article.team_name,
+    sponsorName: article.sponsor_name,
+    buildingLevel: Number(article.building_level),
+  }));
   const dailyNews = allNews.filter(
     (item) => getParisDateKey(item.happenedAt) === seasonDay.calendar_date,
   );
@@ -162,17 +224,24 @@ export async function publishCyclogazetteEdition(
   const raceHighlights = raceNews
     .filter(
       (item) =>
-        item.raceEventKind === "breakaway" ||
-        item.raceEventKind === "incident",
+        item.raceEventKind === "breakaway" || item.raceEventKind === "incident",
     )
     .slice(0, 2);
   const raceClassifications = raceNews.filter(
     (item) => !raceHighlights.some((highlight) => highlight.id === item.id),
   );
   const mercatoStories = dailyNews
-    .filter((item) => item.kind !== "race_recap" && item.kind !== "victory" && item.kind !== "staff")
+    .filter(
+      (item) =>
+        item.kind !== "race_recap" &&
+        item.kind !== "victory" &&
+        item.kind !== "staff",
+    )
     .slice(0, 8);
-  const reactions = completeEditorialReactions(submittedReactions, victories[0] ?? raceClassifications[0] ?? null);
+  const reactions = completeEditorialReactions(
+    submittedReactions,
+    victories[0] ?? raceClassifications[0] ?? null,
+  );
   const lead =
     victories[0] ??
     raceClassifications[0] ??
@@ -188,6 +257,7 @@ export async function publishCyclogazetteEdition(
     mercatoStories: mercatoStories.filter((item) => item.id !== lead?.id),
     reactions,
     tourSummaries,
+    mediaArticles,
   };
   const publishedAt = now.toISOString();
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
@@ -206,11 +276,30 @@ export async function publishCyclogazetteEdition(
       published_at: publishedAt,
       updated_at: publishedAt,
     })
-    .select("id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)")
+    .select(
+      "id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)",
+    )
     .single<GazetteRow>();
 
   if (inserted.error || !inserted.data) {
-    throw new Error(`Impossible de publier La Cyclogazette : ${inserted.error?.message ?? "erreur inconnue"}`);
+    throw new Error(
+      `Impossible de publier La Cyclogazette : ${inserted.error?.message ?? "erreur inconnue"}`,
+    );
+  }
+  if (mediaArticles.length > 0) {
+    const mediaUpdate = await admin
+      .from("media_center_articles")
+      .update({ status: "published", published_edition_id: inserted.data.id })
+      .in(
+        "id",
+        mediaArticles.map((article) => article.id),
+      );
+    if (mediaUpdate.error) {
+      console.error(
+        "Tribunes publiées mais statut non synchronisé :",
+        mediaUpdate.error,
+      );
+    }
   }
 
   return {
@@ -223,15 +312,22 @@ export async function getLatestCyclogazetteEdition(
   now = new Date(),
 ): Promise<CyclogazetteEdition | null> {
   if (getParisHour(now) >= 20) {
-    await publishCyclogazetteEdition(now, { force: true }).catch((error: unknown) => {
-      console.error("Publication de rattrapage de La Cyclogazette impossible :", error);
-    });
+    await publishCyclogazetteEdition(now, { force: true }).catch(
+      (error: unknown) => {
+        console.error(
+          "Publication de rattrapage de La Cyclogazette impossible :",
+          error,
+        );
+      },
+    );
   }
 
   const admin = createSupabaseAdminClient();
   const result = await admin
     .from("cyclogazette_editions")
-    .select("id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)")
+    .select(
+      "id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)",
+    )
     .order("published_at", { ascending: false })
     .limit(1)
     .maybeSingle<GazetteRow>();
@@ -242,7 +338,10 @@ export async function getLatestCyclogazetteEdition(
     .select("name")
     .eq("id", result.data.season_id)
     .maybeSingle<{ name: string }>();
-  return mapGazetteEdition(result.data, seasonResult.data?.name ?? "Saison en cours");
+  return mapGazetteEdition(
+    result.data,
+    seasonResult.data?.name ?? "Saison en cours",
+  );
 }
 
 export async function getCyclogazetteEditionById(
@@ -253,7 +352,9 @@ export async function getCyclogazetteEditionById(
   const admin = createSupabaseAdminClient();
   const result = await admin
     .from("cyclogazette_editions")
-    .select("id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)")
+    .select(
+      "id, season_id, issue_number, title, subtitle, issue_date, content, published_at, season_days(day_number)",
+    )
     .eq("id", editionId)
     .maybeSingle<GazetteRow>();
 
@@ -276,7 +377,9 @@ export async function getCyclogazetteArchive(): Promise<
   const admin = createSupabaseAdminClient();
   const editionsResult = await admin
     .from("cyclogazette_editions")
-    .select("id, season_id, issue_number, subtitle, issue_date, published_at, season_days(day_number)")
+    .select(
+      "id, season_id, issue_number, subtitle, issue_date, published_at, season_days(day_number)",
+    )
     .order("published_at", { ascending: false })
     .returns<GazetteArchiveRow[]>();
 
@@ -322,11 +425,15 @@ export async function getCyclogazetteArchive(): Promise<
   );
 }
 
-async function loadDailyReactions(issueDate: string): Promise<CyclogazetteReaction[]> {
+async function loadDailyReactions(
+  issueDate: string,
+): Promise<CyclogazetteReaction[]> {
   const admin = createSupabaseAdminClient();
   const result = await admin
     .from("post_race_interviews")
-    .select("id, sporting_director_id, context, answers, closing_note, submitted_at")
+    .select(
+      "id, sporting_director_id, context, answers, closing_note, submitted_at",
+    )
     .eq("status", "submitted")
     .order("submitted_at", { ascending: false })
     .limit(120)
@@ -360,7 +467,10 @@ async function loadDailyReactions(issueDate: string): Promise<CyclogazetteReacti
       teamId: context.teamId,
       teamName: context.teamName,
       raceName: context.raceName,
-      stageName: formatCyclogazetteStageLabel(context.raceName, context.stageName),
+      stageName: formatCyclogazetteStageLabel(
+        context.raceName,
+        context.stageName,
+      ),
       question: excerpt.question,
       answer: excerpt.answer,
       closingNote: row.closing_note,
@@ -371,7 +481,10 @@ async function loadDailyReactions(issueDate: string): Promise<CyclogazetteReacti
   return reactions;
 }
 
-function completeEditorialReactions(reactions: CyclogazetteReaction[], lead: PublicGameNewsItem | null) {
+function completeEditorialReactions(
+  reactions: CyclogazetteReaction[],
+  lead: PublicGameNewsItem | null,
+) {
   const fallbacks = [
     {
       directorName: "M. Delorme",
@@ -495,33 +608,90 @@ async function loadDailyTourSummaries(
 
   return stages.map((stage) => ({
     raceName: stage.race_editions!.display_name,
-    stageLabel: formatCyclogazetteStageLabel(stage.race_editions!.display_name, stage.name),
+    stageLabel: formatCyclogazetteStageLabel(
+      stage.race_editions!.display_name,
+      stage.name,
+    ),
     href: `/jeu/resultats/${stage.race_editions!.races!.slug}/${stage.stage_number}`,
     generalLeader: riderName(
-      (resultsResult.data ?? []).find((row) => row.race_edition_id === stage.race_edition_id)?.race_roster_id ?? null,
+      (resultsResult.data ?? []).find(
+        (row) => row.race_edition_id === stage.race_edition_id,
+      )?.race_roster_id ?? null,
     ),
     jerseys: (secondaryResult.data ?? [])
-      .filter((row) => row.race_edition_id === stage.race_edition_id && row.race_roster_id)
+      .filter(
+        (row) =>
+          row.race_edition_id === stage.race_edition_id && row.race_roster_id,
+      )
       .flatMap((row) => {
         const holder = riderName(row.race_roster_id);
-        return holder ? [{ label: labels[row.classification_type], holder }] : [];
+        return holder
+          ? [{ label: labels[row.classification_type], holder }]
+          : [];
       }),
   }));
 }
 
-export async function getCyclogazetteCommunity(editionId: string, authUserId: string): Promise<CyclogazetteCommunity> {
+export async function getCyclogazetteCommunity(
+  editionId: string,
+  authUserId: string,
+): Promise<CyclogazetteCommunity> {
   const admin = createSupabaseAdminClient();
   const [directorResult, likeCountResult, commentsResult] = await Promise.all([
-    admin.from("sporting_directors").select("id").eq("auth_user_id", authUserId).eq("status", "active").maybeSingle<{ id: string }>(),
-    admin.from("cyclogazette_likes").select("edition_id", { count: "exact", head: true }).eq("edition_id", editionId),
-    admin.from("cyclogazette_comments").select("id, sporting_director_id, message, created_at").eq("edition_id", editionId).order("created_at", { ascending: false }).limit(8).returns<CommunityCommentRow[]>(),
+    admin
+      .from("sporting_directors")
+      .select("id")
+      .eq("auth_user_id", authUserId)
+      .eq("status", "active")
+      .maybeSingle<{ id: string }>(),
+    admin
+      .from("cyclogazette_likes")
+      .select("edition_id", { count: "exact", head: true })
+      .eq("edition_id", editionId),
+    admin
+      .from("cyclogazette_comments")
+      .select("id, sporting_director_id, message, created_at")
+      .eq("edition_id", editionId)
+      .order("created_at", { ascending: false })
+      .limit(8)
+      .returns<CommunityCommentRow[]>(),
   ]);
   const comments = commentsResult.data ?? [];
-  const directorsResult = comments.length ? await admin.from("sporting_directors").select("id, display_name").in("id", [...new Set(comments.map((comment) => comment.sporting_director_id))]).returns<CommunityDirectorRow[]>() : { data: [] as CommunityDirectorRow[] };
-  const names = new Map((directorsResult.data ?? []).map((director) => [director.id, director.display_name]));
+  const directorsResult = comments.length
+    ? await admin
+        .from("sporting_directors")
+        .select("id, display_name")
+        .in("id", [
+          ...new Set(comments.map((comment) => comment.sporting_director_id)),
+        ])
+        .returns<CommunityDirectorRow[]>()
+    : { data: [] as CommunityDirectorRow[] };
+  const names = new Map(
+    (directorsResult.data ?? []).map((director) => [
+      director.id,
+      director.display_name,
+    ]),
+  );
   const directorId = directorResult.data?.id ?? null;
-  const likedResult = directorId ? await admin.from("cyclogazette_likes").select("edition_id").eq("edition_id", editionId).eq("sporting_director_id", directorId).maybeSingle() : { data: null };
-  return { likeCount: likeCountResult.count ?? 0, likedByViewer: Boolean(likedResult.data), comments: comments.map((comment) => ({ id: comment.id, directorName: names.get(comment.sporting_director_id) ?? "Directeur Sportif", message: comment.message, createdAt: comment.created_at })) };
+  const likedResult = directorId
+    ? await admin
+        .from("cyclogazette_likes")
+        .select("edition_id")
+        .eq("edition_id", editionId)
+        .eq("sporting_director_id", directorId)
+        .maybeSingle()
+    : { data: null };
+  return {
+    likeCount: likeCountResult.count ?? 0,
+    likedByViewer: Boolean(likedResult.data),
+    comments: comments.map((comment) => ({
+      id: comment.id,
+      directorName:
+        names.get(comment.sporting_director_id) ?? "Directeur Sportif",
+      message: comment.message,
+      createdAt: comment.created_at,
+    })),
+  };
 }
 
 function deduplicateStories(items: PublicGameNewsItem[]) {
@@ -542,7 +712,8 @@ function createSubtitle(content: CyclogazetteContent, dayNumber: number) {
     return content.lead.title;
   }
   if (content.mercatoStories.length > 0) return "Le mercato anime le peloton";
-  if (content.reactions.length > 0) return "Les directeurs sportifs prennent la parole";
+  if (content.reactions.length > 0)
+    return "Les directeurs sportifs prennent la parole";
   return `L’essentiel du peloton au jour ${dayNumber}`;
 }
 
@@ -556,7 +727,10 @@ function selectReactionExcerpt(answers: PostRaceInterviewAnswer[]) {
   );
 }
 
-function mapGazetteEdition(row: GazetteRow, seasonName: string): CyclogazetteEdition {
+function mapGazetteEdition(
+  row: GazetteRow,
+  seasonName: string,
+): CyclogazetteEdition {
   return {
     id: row.id,
     issueNumber: row.issue_number,
@@ -571,28 +745,46 @@ function mapGazetteEdition(row: GazetteRow, seasonName: string): CyclogazetteEdi
 }
 
 function normalizeGazetteContent(value: unknown): CyclogazetteContent {
-  const content = repairCyclogazetteValue(value ?? {}) as Partial<CyclogazetteContent>;
-  const raceStories = Array.isArray(content.raceStories) ? content.raceStories : [];
-  const raceHighlights = Array.isArray(content.raceHighlights) ? content.raceHighlights : [];
+  const content = repairCyclogazetteValue(
+    value ?? {},
+  ) as Partial<CyclogazetteContent>;
+  const raceStories = Array.isArray(content.raceStories)
+    ? content.raceStories
+    : [];
+  const raceHighlights = Array.isArray(content.raceHighlights)
+    ? content.raceHighlights
+    : [];
   const reactions = Array.isArray(content.reactions)
     ? content.reactions.map((reaction) => ({
         ...reaction,
         answers:
           Array.isArray(reaction.answers) && reaction.answers.length > 0
             ? reaction.answers
-            : [{ questionId: `archive:${reaction.interviewId}`, question: reaction.question, answer: reaction.answer }],
+            : [
+                {
+                  questionId: `archive:${reaction.interviewId}`,
+                  question: reaction.question,
+                  answer: reaction.answer,
+                },
+              ],
       }))
     : [];
   const tourSummaries = Array.isArray(content.tourSummaries)
     ? selectLatestCyclogazetteTourSummaries(content.tourSummaries)
+    : [];
+  const mediaArticles = Array.isArray(content.mediaArticles)
+    ? content.mediaArticles
     : [];
 
   return {
     lead: content.lead ?? null,
     raceStories,
     raceHighlights,
-    mercatoStories: Array.isArray(content.mercatoStories) ? content.mercatoStories : [],
+    mercatoStories: Array.isArray(content.mercatoStories)
+      ? content.mercatoStories
+      : [],
     reactions,
     tourSummaries,
+    mediaArticles,
   };
 }

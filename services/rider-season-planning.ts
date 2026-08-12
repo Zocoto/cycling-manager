@@ -91,7 +91,12 @@ type StageRow = {
 type CampRow = {
   id: string;
   rider_id: string;
-  camp_type: "classic" | "premium" | "reconnaissance";
+  camp_type:
+    | "classic"
+    | "premium"
+    | "reconnaissance"
+    | "indoor_preparation"
+    | "wind_tunnel_preparation";
   start_day_number: number;
   end_day_number: number;
   form_gain_per_day: number;
@@ -133,10 +138,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
     admin.rpc("settle_current_race_reconnaissances"),
   ]);
   assertQuery(healthSettlement.error, "l’état de santé des coureurs");
-  assertQuery(
-    reconnaissanceSettlement.error,
-    "les reconnaissances de course",
-  );
+  assertQuery(reconnaissanceSettlement.error, "les reconnaissances de course");
 
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
@@ -311,10 +313,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
     ]);
   assertQuery(countriesResult.error, "les nationalités");
   assertQuery(rostersResult.error, "les sélections de course");
-  assertQuery(
-    participantsResult.error,
-    "les participants aux reconnaissances",
-  );
+  assertQuery(participantsResult.error, "les participants aux reconnaissances");
 
   const days = daysResult.data ?? [];
   const currentDayNumber = context.season.current_day_number ?? 1;
@@ -323,22 +322,14 @@ export async function getCurrentTeamRiderSeasonPlanning({
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
   const ageByRiderId = new Map(
-    (ratingsResult.data ?? []).map((rating) => [
-      rating.rider_id,
-      rating.age,
-    ]),
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
   );
-  const editionById = new Map(
-    editions.map((edition) => [edition.id, edition]),
-  );
+  const editionById = new Map(editions.map((edition) => [edition.id, edition]));
   const raceById = new Map(
     (racesResult.data ?? []).map((race) => [race.id, race]),
   );
   const categoryById = new Map(
-    (categoriesResult.data ?? []).map((category) => [
-      category.id,
-      category,
-    ]),
+    (categoriesResult.data ?? []).map((category) => [category.id, category]),
   );
   const stageById = new Map(
     (stagesResult.data ?? []).map((stage) => [stage.id, stage]),
@@ -361,9 +352,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
   );
 
   for (const roster of rostersResult.data ?? []) {
-    const registration = registrationById.get(
-      roster.race_registration_id,
-    );
+    const registration = registrationById.get(roster.race_registration_id);
     const edition = registration
       ? editionById.get(registration.race_edition_id)
       : null;
@@ -411,13 +400,25 @@ export async function getCurrentTeamRiderSeasonPlanning({
 
   for (const camp of campsResult.data ?? []) {
     if (camp.camp_type === "reconnaissance") continue;
-    const definition = FORM_CAMP_TYPES[camp.camp_type];
+    const isPerformancePreparation =
+      camp.camp_type === "indoor_preparation" ||
+      camp.camp_type === "wind_tunnel_preparation";
+    const definition =
+      camp.camp_type === "classic" || camp.camp_type === "premium"
+        ? FORM_CAMP_TYPES[camp.camp_type]
+        : null;
     addEvent(eventsByRiderId, camp.rider_id, {
       id: `form-camp:${camp.id}`,
       riderId: camp.rider_id,
       type: "form_camp",
-      title: definition.label,
-      detail: `Remise en forme · +${camp.form_gain_per_day} points par jour`,
+      title: isPerformancePreparation
+        ? camp.camp_type === "indoor_preparation"
+          ? "Préparation · Piste indoor"
+          : "Préparation · Soufflerie"
+        : definition!.label,
+      detail: isPerformancePreparation
+        ? "Préparation de performance · entraînement suspendu"
+        : `Remise en forme · +${camp.form_gain_per_day} points par jour`,
       startDay: camp.start_day_number,
       endDay: camp.end_day_number,
       status: getRiderPlanningEventStatus({
@@ -425,7 +426,9 @@ export async function getCurrentTeamRiderSeasonPlanning({
         endDay: camp.end_day_number,
         currentDayNumber,
       }),
-      href: "/jeu/centre-de-soin?onglet=forme",
+      href: isPerformancePreparation
+        ? "/jeu/entrainement?onglet=preparation"
+        : "/jeu/centre-de-soin?onglet=forme",
       raceCategoryCode: null,
     });
   }
@@ -581,14 +584,12 @@ function getInjuryDayRange(injury: InjuryRow, days: DayRow[]) {
   const startedOn = toParisDate(injury.started_at);
   const recoversOn = toParisDate(injury.expected_recovery_at);
   const overlappingDays = days.filter(
-    (day) =>
-      day.calendar_date >= startedOn && day.calendar_date <= recoversOn,
+    (day) => day.calendar_date >= startedOn && day.calendar_date <= recoversOn,
   );
   if (overlappingDays.length === 0) return null;
   return {
     startDay: overlappingDays[0]?.day_number ?? 1,
-    endDay:
-      overlappingDays[overlappingDays.length - 1]?.day_number ?? 28,
+    endDay: overlappingDays[overlappingDays.length - 1]?.day_number ?? 28,
   };
 }
 
@@ -611,9 +612,8 @@ function toParisDate(timestamp: string) {
 
 function getInjuryLabel(code: string) {
   if (code in RIDER_INJURY_DIAGNOSES) {
-    return RIDER_INJURY_DIAGNOSES[
-      code as keyof typeof RIDER_INJURY_DIAGNOSES
-    ].label;
+    return RIDER_INJURY_DIAGNOSES[code as keyof typeof RIDER_INJURY_DIAGNOSES]
+      .label;
   }
   const legacyLabels: Record<string, string> = {
     legacy_fracture: "Fracture",
@@ -624,9 +624,7 @@ function getInjuryLabel(code: string) {
   return legacyLabels[code] ?? "Indisponibilité médicale";
 }
 
-function toRaceCategoryCode(
-  code: string | undefined,
-): RaceCategoryCode | null {
+function toRaceCategoryCode(code: string | undefined): RaceCategoryCode | null {
   return code && isRaceCategoryCode(code) ? code : null;
 }
 

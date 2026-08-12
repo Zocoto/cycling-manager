@@ -41,9 +41,7 @@ type CenterRow = {
 type ProjectRow = {
   id: string;
   team_id: string;
-  infrastructure_code:
-    | TeamInfrastructureCode
-    | "international_youth_center";
+  infrastructure_code: TeamInfrastructureCode | "international_youth_center";
   country_id: string | null;
   target_level: number;
   architect_specialty: string | null;
@@ -135,9 +133,7 @@ export type TeamInfrastructureOverview = {
   currency: string;
   infrastructureLevels: Record<TeamInfrastructureCode, number>;
   dataRoomLevel: number;
-  dataRoomNextLevel: ReturnType<
-    typeof getTeamInfrastructureLevelDefinition
-  >;
+  dataRoomNextLevel: ReturnType<typeof getTeamInfrastructureLevelDefinition>;
   architects: InfrastructureArchitect[];
   activeProject: InfrastructureProject | null;
   recentProjects: InfrastructureProject[];
@@ -211,9 +207,7 @@ export async function getTeamInfrastructureOverview(
       .select("team_id, sporting_director_id")
       .eq("role", "general_manager")
       .eq("status", "active")
-      .returns<
-        Array<{ team_id: string; sporting_director_id: string }>
-      >(),
+      .returns<Array<{ team_id: string; sporting_director_id: string }>>(),
     admin
       .from("infrastructure_notifications")
       .select("id, title, message, read_at, created_at")
@@ -249,9 +243,7 @@ export async function getTeamInfrastructureOverview(
   const membersResult = memberIds.length
     ? await admin
         .from("staff_members")
-        .select(
-          "id, first_name, last_name, role, level, architect_specialty",
-        )
+        .select("id, first_name, last_name, role, level, architect_specialty")
         .in("id", memberIds)
         .eq("role", "architect")
         .returns<
@@ -293,15 +285,10 @@ export async function getTeamInfrastructureOverview(
       const member = memberById.get(contract.staff_member_id);
       if (!member) return [];
       const rawSpecialty = member.architect_specialty ?? "";
-      const specialty: ArchitectSpecialty = isArchitectSpecialty(
-        rawSpecialty,
-      )
+      const specialty: ArchitectSpecialty = isArchitectSpecialty(rawSpecialty)
         ? rawSpecialty
         : "balanced";
-      const bonuses = getArchitectConstructionBonuses(
-        member.level,
-        specialty,
-      );
+      const bonuses = getArchitectConstructionBonuses(member.level, specialty);
       return [
         {
           contractId: contract.id,
@@ -326,10 +313,7 @@ export async function getTeamInfrastructureOverview(
     ]),
   );
   const directorById = new Map(
-    (directorsResult.data ?? []).map((director) => [
-      director.id,
-      director,
-    ]),
+    (directorsResult.data ?? []).map((director) => [director.id, director]),
   );
   const directorByTeamId = new Map(
     (assignmentsResult.data ?? []).flatMap((assignment) => {
@@ -353,8 +337,7 @@ export async function getTeamInfrastructureOverview(
             id: center.id,
             qualityLevel: center.quality_level,
             teamId: center.team_id,
-            teamName:
-              teamNameById.get(center.team_id) ?? "Équipe cycliste",
+            teamName: teamNameById.get(center.team_id) ?? "Équipe cycliste",
             directorName: director?.display_name ?? "Directeur Sportif",
             directorIdentifier: director?.username ?? null,
             completedAt: center.completed_at,
@@ -384,25 +367,31 @@ export async function getTeamInfrastructureOverview(
     },
   );
 
-  const currentGameDay =
-    context.gameYear * 28 + context.currentDayNumber - 1;
+  const currentGameDay = context.gameYear * 28 + context.currentDayNumber - 1;
   const projects = (projectsResult.data ?? []).map((project) =>
     toProject(project, currentGameDay, countryById),
   );
   const getInfrastructureLevel = (code: TeamInfrastructureCode) =>
     (infrastructureResult.data ?? []).find(
-      (infrastructure) =>
-        infrastructure.infrastructure_code === code,
+      (infrastructure) => infrastructure.infrastructure_code === code,
     )?.level ?? 0;
   const infrastructureLevels: Record<TeamInfrastructureCode, number> = {
     recruitment_data_room: getInfrastructureLevel("recruitment_data_room"),
     staff_academy: getInfrastructureLevel("staff_academy"),
     training_center: getInfrastructureLevel("training_center"),
+    indoor_track: getInfrastructureLevel("indoor_track"),
+    cryotherapy_center: getInfrastructureLevel("cryotherapy_center"),
+    wind_tunnel: getInfrastructureLevel("wind_tunnel"),
+    research_lab: getInfrastructureLevel("research_lab"),
+    international_welcome_center: getInfrastructureLevel(
+      "international_welcome_center",
+    ),
+    weather_center: getInfrastructureLevel("weather_center"),
+    media_center: getInfrastructureLevel("media_center"),
     fan_club_headquarters: getInfrastructureLevel("fan_club_headquarters"),
     club_shop: getInfrastructureLevel("club_shop"),
   };
-  const dataRoomLevel =
-    infrastructureLevels.recruitment_data_room;
+  const dataRoomLevel = infrastructureLevels.recruitment_data_room;
   const directorLevel = calculateSportingDirectorProgression(
     context.experiencePoints,
   ).level;
@@ -426,9 +415,7 @@ export async function getTeamInfrastructureOverview(
     architects,
     activeProject:
       projects.find((project) => project.status === "active") ?? null,
-    recentProjects: projects.filter(
-      (project) => project.status !== "active",
-    ),
+    recentProjects: projects.filter((project) => project.status !== "active"),
     countries,
     notifications: (notificationsResult.data ?? []).map((notification) => ({
       id: notification.id,
@@ -525,11 +512,8 @@ function toProject(
   currentGameDay: number,
   countryById: Map<string, CountryRow>,
 ): InfrastructureProject {
-  const completionGameYear = Math.floor(
-    project.completes_game_day_index / 28,
-  );
-  const completionDayNumber =
-    (project.completes_game_day_index % 28) + 1;
+  const completionGameYear = Math.floor(project.completes_game_day_index / 28);
+  const completionDayNumber = (project.completes_game_day_index % 28) + 1;
   const specialty =
     project.architect_specialty &&
     isArchitectSpecialty(project.architect_specialty)
@@ -543,24 +527,20 @@ function toProject(
         ? "École de cyclisme internationale"
         : TEAM_INFRASTRUCTURE_DEFINITIONS[project.infrastructure_code].name,
     countryName: project.country_id
-      ? countryById.get(project.country_id)?.name ?? "Pays"
+      ? (countryById.get(project.country_id)?.name ?? "Pays")
       : null,
     targetLevel: project.target_level,
     finalCost: toNumber(project.final_cost),
     finalDurationDays: project.final_duration_days,
     costReductionPercentage: project.cost_reduction_percentage,
-    durationReductionPercentage:
-      project.duration_reduction_percentage,
+    durationReductionPercentage: project.duration_reduction_percentage,
     architectSpecialtyLabel: specialty
       ? ARCHITECT_SPECIALTY_LABELS[specialty]
       : null,
     startedDayNumber: project.started_day_number,
     remainingDays:
       project.status === "active"
-        ? Math.max(
-            0,
-            project.completes_game_day_index - currentGameDay,
-          )
+        ? Math.max(0, project.completes_game_day_index - currentGameDay)
         : 0,
     completionGameYear,
     completionDayNumber,

@@ -23,16 +23,19 @@ describe("infrastructure tutorial", () => {
 
     expect(routes?.[0]).toBe(INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE);
     expect(routes).toContain(INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE);
-    expect(routes?.findIndex((route) => route === INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE))
-      .toBeGreaterThan(
-        routes?.findLastIndex(
-          (route) => route === INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
-        ) ?? -1,
-      );
+    expect(
+      routes?.findIndex(
+        (route) => route === INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE,
+      ),
+    ).toBeGreaterThan(
+      routes?.findLastIndex(
+        (route) => route === INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
+      ) ?? -1,
+    );
     expect(definition?.steps.at(-1)?.key).toBe("complete");
   });
 
-  it("explique les infrastructures actives et la feuille de route", () => {
+  it("explique les infrastructures actives et les Ã©coles", () => {
     const definition = getTutorialDefinition(INFRASTRUCTURE_TUTORIAL_KEY);
     const stepKeys = new Set(definition?.steps.map((step) => step.key));
 
@@ -40,7 +43,6 @@ describe("infrastructure tutorial", () => {
       "construction-rules",
       "recruitment-data-room",
       "staff-academy",
-      "future-facilities",
       "international-school-effect",
       "international-school-map",
     ]) {
@@ -49,8 +51,8 @@ describe("infrastructure tutorial", () => {
   });
 
   it("précise l’effet partagé, plafonné et non rétroactif des écoles", () => {
-    const content = getTutorialDefinition(INFRASTRUCTURE_TUTORIAL_KEY)?.steps
-      .map((step) => step.content)
+    const content = getTutorialDefinition(INFRASTRUCTURE_TUTORIAL_KEY)
+      ?.steps.map((step) => step.content)
       .join(" ");
 
     expect(content).toContain("10 points de probabilité");

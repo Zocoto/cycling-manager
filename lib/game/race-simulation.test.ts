@@ -47,8 +47,8 @@ describe("accumulateRaceGroupGapsFromLeader", () => {
 
     expect(
       accumulateRaceGroupGapsFromLeader(groups).map(
-        (group) => group.gapToLeaderSeconds
-      )
+        (group) => group.gapToLeaderSeconds,
+      ),
     ).toEqual([0, 8, 10, 10]);
   });
 });
@@ -96,13 +96,13 @@ describe("decideLargeBreakawayStandoff", () => {
       decideLargeBreakawayStandoff({
         ...balancedSituation,
         breakawaySize: 10,
-      })
+      }),
     ).toBeNull();
     expect(
       decideLargeBreakawayStandoff({
         ...balancedSituation,
         completedDistanceKm: 59,
-      })
+      }),
     ).toBeNull();
   });
 
@@ -115,7 +115,7 @@ describe("decideLargeBreakawayStandoff", () => {
         pelotonAverageEnergy: 65,
         chasePressure: 0.9,
         roll: 0.1,
-      })
+      }),
     ).toBe("breakaway_gives_up");
   });
 
@@ -129,7 +129,7 @@ describe("decideLargeBreakawayStandoff", () => {
         pelotonAverageEnergy: 20,
         chasePressure: 0.2,
         roll: 0.9,
-      })
+      }),
     ).toBe("peloton_gives_up");
   });
 
@@ -144,14 +144,14 @@ describe("stage time limit", () => {
         winnerElapsedTimeSeconds: 10_000,
         profileType: "flat",
         stageType: "road",
-      })
+      }),
     ).toBe(1_200);
     expect(
       getStageTimeLimitAllowanceSeconds({
         winnerElapsedTimeSeconds: 10_000,
         profileType: "mountain",
         stageType: "road",
-      })
+      }),
     ).toBe(2_200);
   });
 
@@ -159,7 +159,7 @@ describe("stage time limit", () => {
     const input = createDemoSimulationInput("sprint-littoral", 91);
     const simulation = simulateRaceStage(input);
     const winner = simulation.results.find(
-      (result) => result.status === "finished" && result.rank === 1
+      (result) => result.status === "finished" && result.rank === 1,
     )!;
     const slowRider = simulation.results
       .filter((result) => result.status === "finished")
@@ -180,13 +180,13 @@ describe("stage time limit", () => {
                 winner.elapsedTimeSeconds + allowanceSeconds + 1,
               gapToWinnerSeconds: allowanceSeconds + 1,
             }
-          : result
+          : result,
       ),
     };
 
     const limited = applyStageTimeLimit(forcedSimulation, input);
     const limitedRider = limited.results.find(
-      (result) => result.riderId === slowRider.riderId
+      (result) => result.riderId === slowRider.riderId,
     )!;
 
     expect(limitedRider).toMatchObject({
@@ -194,16 +194,18 @@ describe("stage time limit", () => {
       rank: null,
     });
     expect(
-      limited.timeline.at(-1)?.groups.some(
-        (group) =>
-          group.label === "Hors délais" &&
-          group.riderIds.includes(slowRider.riderId)
-      )
+      limited.timeline
+        .at(-1)
+        ?.groups.some(
+          (group) =>
+            group.label === "Hors délais" &&
+            group.riderIds.includes(slowRider.riderId),
+        ),
     ).toBe(true);
     expect(
       buildStageRaceStandings([limited]).general.some(
-        (row) => row.riderId === slowRider.riderId
-      )
+        (row) => row.riderId === slowRider.riderId,
+      ),
     ).toBe(false);
     expect(limited.sprintPoints[slowRider.riderId] ?? 0).toBe(0);
   });
@@ -226,7 +228,7 @@ describe("simulateRaceStage", () => {
         averageGradientPct: 0,
         surface: "asphalt" as const,
         prime: null,
-      })
+      }),
     );
     const riders = Array.from({ length: 6 }, (_, teamIndex) => {
       const teamId = "attack-team-" + teamIndex;
@@ -236,62 +238,44 @@ describe("simulateRaceStage", () => {
       };
       return [
         {
-          ...createSelectionTestRider(
-            teamId + "-leader",
-            {
-              flat: 82,
-              sprint: 84,
-              acceleration: 82,
-              endurance: 78,
-            }
-          ),
+          ...createSelectionTestRider(teamId + "-leader", {
+            flat: 82,
+            sprint: 84,
+            acceleration: 82,
+            endurance: 78,
+          }),
           ...common,
           role: "sprinter" as const,
         },
         {
-          ...createSelectionTestRider(
-            teamId + "-attacker-a",
-            {
-              flat: 68,
-              acceleration: 80,
-              endurance: 82,
-              breakaway: 88,
-            }
-          ),
+          ...createSelectionTestRider(teamId + "-attacker-a", {
+            flat: 68,
+            acceleration: 80,
+            endurance: 82,
+            breakaway: 88,
+          }),
           ...common,
           role: "free_agent" as const,
         },
         {
-          ...createSelectionTestRider(
-            teamId + "-attacker-b",
-            {
-              flat: 66,
-              acceleration: 78,
-              endurance: 80,
-              breakaway: 86,
-            }
-          ),
+          ...createSelectionTestRider(teamId + "-attacker-b", {
+            flat: 66,
+            acceleration: 78,
+            endurance: 80,
+            breakaway: 86,
+          }),
           ...common,
           role: "free_agent" as const,
         },
       ];
     }).flat();
-    const plan = selectStageAttackPlan(
-      riders,
-      segments,
-      () => 0.5
-    );
-    const riderById = new Map(
-      riders.map((rider) => [rider.id, rider])
-    );
+    const plan = selectStageAttackPlan(riders, segments, () => 0.5);
+    const riderById = new Map(riders.map((rider) => [rider.id, rider]));
     const morningTeamCounts = new Map<string, number>();
 
     for (const riderId of plan.initialAttackIds) {
       const teamId = riderById.get(riderId)!.teamId;
-      morningTeamCounts.set(
-        teamId,
-        (morningTeamCounts.get(teamId) ?? 0) + 1
-      );
+      morningTeamCounts.set(teamId, (morningTeamCounts.get(teamId) ?? 0) + 1);
     }
 
     expect(plan.initialAttackIds.size).toBeGreaterThan(0);
@@ -307,7 +291,7 @@ describe("simulateRaceStage", () => {
         averageGradientPct: 0,
         surface: "asphalt" as const,
         prime: null,
-      })
+      }),
     );
     const favoriteTeamId = "favorite-team";
     const favoriteSprinter = {
@@ -345,7 +329,7 @@ describe("simulateRaceStage", () => {
     const plan = selectStageAttackPlan(
       [favoriteSprinter, favoriteAttacker, ...opportunists],
       segments,
-      () => 0.5
+      () => 0.5,
     );
 
     expect(plan.initialAttackIds.has(favoriteAttacker.id)).toBe(false);
@@ -360,16 +344,10 @@ describe("simulateRaceStage", () => {
     ];
 
     expect(
-      getBreakawayGeneralClassificationThreat(
-        ["close"],
-        generalClassification
-      )
+      getBreakawayGeneralClassificationThreat(["close"], generalClassification),
     ).toBeGreaterThan(0.9);
     expect(
-      getBreakawayGeneralClassificationThreat(
-        ["far"],
-        generalClassification
-      )
+      getBreakawayGeneralClassificationThreat(["far"], generalClassification),
     ).toBe(0);
   });
   it("simule un contre-la-montre avec un seul engagé (championnat national)", () => {
@@ -399,9 +377,9 @@ describe("simulateRaceStage", () => {
   it("refuse une simulation sans aucun coureur", () => {
     const base = createDemoSimulationInput("sprint-littoral", 7);
 
-    expect(() =>
-      simulateRaceStage({ ...base, riders: [] })
-    ).toThrowError("Une simulation requiert au moins un coureur.");
+    expect(() => simulateRaceStage({ ...base, riders: [] })).toThrowError(
+      "Une simulation requiert au moins un coureur.",
+    );
   });
 
   it("produit un classement complet avec des rangs uniques", () => {
@@ -410,15 +388,15 @@ describe("simulateRaceStage", () => {
 
     expect(result.results).toHaveLength(input.riders.length);
     const finishers = result.results.filter(
-      (item) => item.status === "finished"
+      (item) => item.status === "finished",
     );
     expect(finishers.map((item) => item.rank)).toEqual(
-      Array.from({ length: finishers.length }, (_, index) => index + 1)
+      Array.from({ length: finishers.length }, (_, index) => index + 1),
     );
     expect(
       result.results
         .filter((item) => item.status === "did_not_finish")
-        .every((item) => item.rank === null)
+        .every((item) => item.rank === null),
     ).toBe(true);
     expect(result.results[0].gapToWinnerSeconds).toBe(0);
     expect(result.timeline).toHaveLength(input.segments.length);
@@ -432,24 +410,23 @@ describe("simulateRaceStage", () => {
     ] as const) {
       for (let seed = 1; seed <= 20; seed += 1) {
         const simulation = simulateRaceStage(
-          createDemoSimulationInput(profile, seed)
+          createDemoSimulationInput(profile, seed),
         );
         const finishers = simulation.results.filter(
-          (result) => result.status === "finished"
+          (result) => result.status === "finished",
         );
         const winnerTime = finishers[0].elapsedTimeSeconds;
 
         finishers.forEach((result, index) => {
           const previous = finishers[index - 1];
           expect(result.gapToWinnerSeconds).toBe(
-            result.elapsedTimeSeconds - winnerTime
+            result.elapsedTimeSeconds - winnerTime,
           );
           expect(result.gapToWinnerSeconds).toBeGreaterThanOrEqual(
-            previous?.gapToWinnerSeconds ?? 0
+            previous?.gapToWinnerSeconds ?? 0,
           );
           expect(
-            result.gapToWinnerSeconds === 0 ||
-              result.gapToWinnerSeconds > 3
+            result.gapToWinnerSeconds === 0 || result.gapToWinnerSeconds > 3,
           ).toBe(true);
         });
       }
@@ -458,28 +435,26 @@ describe("simulateRaceStage", () => {
 
   it("commence avec un peloton groupé avant de laisser partir l’échappée", () => {
     const result = simulateRaceStage(
-      createDemoSimulationInput("collines-ardennes", 7)
+      createDemoSimulationInput("collines-ardennes", 7),
     );
 
+    expect(result.timeline[0].groups.map((group) => group.type)).toEqual([
+      "peloton",
+    ]);
     expect(
-      result.timeline[0].groups.map((group) => group.type)
-    ).toEqual(["peloton"]);
-    expect(
-      result.timeline[1].groups.some(
-        (group) => group.type === "breakaway"
-      )
+      result.timeline[1].groups.some((group) => group.type === "breakaway"),
     ).toBe(true);
-    expect(result.timeline[1].commentary.join(" ")).toContain(
-      "attaque"
-    );
+    expect(result.timeline[1].commentary.join(" ")).toContain("attaque");
   });
 
   it("restitue une seule fois chaque attaquant avec son premier tronçon", () => {
     const result = simulateRaceStage(
-      createDemoSimulationInput("collines-ardennes", 7)
+      createDemoSimulationInput("collines-ardennes", 7),
     );
     const participants = getStageAttackParticipants(result);
-    const participantIds = participants.map((participant) => participant.riderId);
+    const participantIds = participants.map(
+      (participant) => participant.riderId,
+    );
 
     expect(participants.length).toBeGreaterThan(0);
     expect(new Set(participantIds).size).toBe(participantIds.length);
@@ -488,8 +463,8 @@ describe("simulateRaceStage", () => {
         snapshot.groups.some(
           (group) =>
             (group.type === "breakaway" || group.type === "chase") &&
-            group.riderIds.includes(participant.riderId)
-        )
+            group.riderIds.includes(participant.riderId),
+        ),
       );
       expect(participant.firstSegmentNumber).toBe(firstSnapshot?.segmentNumber);
     }
@@ -497,25 +472,27 @@ describe("simulateRaceStage", () => {
 
   it("détermine le format du final avec la taille du groupe qui joue la victoire", () => {
     const massFinish = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 3)
+      createDemoSimulationInput("sprint-littoral", 3),
     );
     const selectiveFinish = simulateRaceStage(
-      createDemoSimulationInput("haute-montagne", 1)
+      createDemoSimulationInput("haute-montagne", 1),
     );
 
     expect(getFinalBattleRiderIds(massFinish).length).toBeGreaterThan(10);
-    expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(15);
+    expect(getFinalBattleRiderIds(selectiveFinish).length).toBeLessThanOrEqual(
+      15,
+    );
     expect(isMassGroupFinish(massFinish)).toBe(true);
     expect(isMassGroupFinish(selectiveFinish)).toBe(false);
   });
 
   it("conserve la vue latérale si une attaque mène encore à l'entrée du dernier tronçon", () => {
     const simulation = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 3)
+      createDemoSimulationInput("sprint-littoral", 3),
     );
     const entrySnapshot = simulation.timeline.at(-2)!;
     const leadingGap = Math.min(
-      ...entrySnapshot.groups.map((group) => group.gapToLeaderSeconds)
+      ...entrySnapshot.groups.map((group) => group.gapToLeaderSeconds),
     );
     for (const group of entrySnapshot.groups) {
       if (group.gapToLeaderSeconds === leadingGap) {
@@ -528,12 +505,12 @@ describe("simulateRaceStage", () => {
 
   it("conserve la vue latérale lorsque seuls cinq coureurs jouent encore la victoire", () => {
     const simulation = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 3)
+      createDemoSimulationInput("sprint-littoral", 3),
     );
     const finalSnapshot = simulation.timeline.at(-1)!;
     const leadingRiderIds = getLeadingFinishGroupRiderIds(simulation);
     const leadingGroup = finalSnapshot.groups.find(
-      (group) => group.gapToLeaderSeconds === 0
+      (group) => group.gapToLeaderSeconds === 0,
     )!;
 
     finalSnapshot.groups = [
@@ -541,9 +518,7 @@ describe("simulateRaceStage", () => {
         ...leadingGroup,
         riderIds: leadingRiderIds.slice(0, 5),
       },
-      ...finalSnapshot.groups.filter(
-        (group) => group.gapToLeaderSeconds > 0
-      ),
+      ...finalSnapshot.groups.filter((group) => group.gapToLeaderSeconds > 0),
     ];
 
     expect(getLeadingFinishGroupRiderIds(simulation)).toHaveLength(5);
@@ -552,29 +527,27 @@ describe("simulateRaceStage", () => {
 
   it("explique l’origine de chaque coureur présent dans un final sélectif", () => {
     const simulation = simulateRaceStage(
-      createDemoSimulationInput("haute-montagne", 1)
+      createDemoSimulationInput("haute-montagne", 1),
     );
     const scenario = getFinalBattleScenario(simulation);
     const explainedRiderIds = new Set(
-      scenario.entryGroups.flatMap((group) => group.riderIds)
+      scenario.entryGroups.flatMap((group) => group.riderIds),
     );
 
     expect(explainedRiderIds).toEqual(new Set(scenario.contenderIds));
     expect(
       scenario.lateJoiners.every(
-        (lateJoiner) => lateJoiner.fromGroupLabel.length > 0
-      )
+        (lateJoiner) => lateJoiner.fromGroupLabel.length > 0,
+      ),
     ).toBe(true);
   });
 
   it("conserve le groupe de neuf et révèle le futur vainqueur s'il revient de la chasse", () => {
     const simulation = simulateRaceStage(
-      createDemoSimulationInput("haute-montagne", 1)
+      createDemoSimulationInput("haute-montagne", 1),
     );
     const rankedFinisherIds = simulation.results
-      .filter(
-        (result) => result.status === "finished" && result.rank !== null
-      )
+      .filter((result) => result.status === "finished" && result.rank !== null)
       .sort((first, second) => first.rank! - second.rank!)
       .map((result) => result.riderId);
     const officialWinnerId = rankedFinisherIds[0];
@@ -627,19 +600,23 @@ describe("simulateRaceStage", () => {
 
   it("fait payer davantage d’énergie à une petite échappée", () => {
     const result = simulateRaceStage(
-      createDemoSimulationInput("collines-ardennes", 7)
+      createDemoSimulationInput("collines-ardennes", 7),
     );
     const comparableSnapshot = result.timeline
       .slice(2)
       .find(
         (snapshot) =>
           snapshot.groups.some((group) => group.type === "breakaway") &&
-          snapshot.groups.some((group) => group.type === "peloton")
+          snapshot.groups.some((group) => group.type === "peloton"),
       );
 
     expect(comparableSnapshot).toBeDefined();
-    const breakaway = comparableSnapshot!.groups.find((group) => group.type === "breakaway")!;
-    const peloton = comparableSnapshot!.groups.find((group) => group.type === "peloton")!;
+    const breakaway = comparableSnapshot!.groups.find(
+      (group) => group.type === "breakaway",
+    )!;
+    const peloton = comparableSnapshot!.groups.find(
+      (group) => group.type === "peloton",
+    )!;
     expect(breakaway.averageEnergy).toBeLessThan(peloton.averageEnergy);
   });
 
@@ -698,17 +675,16 @@ describe("simulateRaceStage", () => {
     });
     const earlySnapshot = result.timeline[1];
     const pelotonIds =
-      earlySnapshot.groups.find((group) => group.type === "peloton")?.riderIds ?? [];
+      earlySnapshot.groups.find((group) => group.type === "peloton")
+        ?.riderIds ?? [];
     const droppedIds = new Set(
       earlySnapshot.groups
         .filter((group) => group.type === "dropped")
-        .flatMap((group) => group.riderIds)
+        .flatMap((group) => group.riderIds),
     );
 
     expect(pelotonIds.length).toBeGreaterThanOrEqual(15);
-    expect(
-      weakRiders.some((rider) => droppedIds.has(rider.id))
-    ).toBe(true);
+    expect(weakRiders.some((rider) => droppedIds.has(rider.id))).toBe(true);
   });
 
   it("place les attaques tardives à environ 40 km sur le plat", () => {
@@ -732,15 +708,10 @@ describe("simulateRaceStage", () => {
         averageGradientPct: 0,
         surface: "asphalt" as const,
         prime: null,
-      })
+      }),
     );
-    const plan = selectStageAttackPlan(
-      riders,
-      segments,
-      () => 0.5
-    );
-    const remainingDistanceKm =
-      220 - plan.delayedAttackAtKm;
+    const plan = selectStageAttackPlan(riders, segments, () => 0.5);
+    const remainingDistanceKm = 220 - plan.delayedAttackAtKm;
 
     expect(plan.delayedAttackIds.size).toBeGreaterThan(0);
     expect(plan.delayedAttackRequiresGroupedPeloton).toBe(true);
@@ -765,20 +736,14 @@ describe("simulateRaceStage", () => {
       (_, index) => ({
         segmentNumber: index + 1,
         distanceKm: 16,
-        terrain:
-          index % 3 === 0 ? ("climb" as const) : ("flat" as const),
+        terrain: index % 3 === 0 ? ("climb" as const) : ("flat" as const),
         averageGradientPct: index % 3 === 0 ? 6 : 0,
         surface: "asphalt" as const,
         prime: null,
-      })
+      }),
     );
-    const plan = selectStageAttackPlan(
-      riders,
-      segments,
-      () => 0.5
-    );
-    const remainingDistanceKm =
-      160 - plan.delayedAttackAtKm;
+    const plan = selectStageAttackPlan(riders, segments, () => 0.5);
+    const remainingDistanceKm = 160 - plan.delayedAttackAtKm;
 
     expect(plan.delayedAttackIds.size).toBeGreaterThan(0);
     expect(plan.delayedAttackRequiresGroupedPeloton).toBe(false);
@@ -794,7 +759,7 @@ describe("simulateRaceStage", () => {
         endurance: 65,
         resistance: 65,
         recovery: 66,
-      })
+      }),
     );
     const segments: RaceStageSegment[] = [
       {
@@ -823,10 +788,10 @@ describe("simulateRaceStage", () => {
     });
     const riderId = riders[0].id;
     const energyAfterClimb = result.timeline[0].groups.find((group) =>
-      group.riderIds.includes(riderId)
+      group.riderIds.includes(riderId),
     )!.averageEnergy;
     const energyAfterDescent = result.timeline[1].groups.find((group) =>
-      group.riderIds.includes(riderId)
+      group.riderIds.includes(riderId),
     )!.averageEnergy;
 
     expect(energyAfterDescent).toBeGreaterThan(energyAfterClimb);
@@ -870,23 +835,23 @@ describe("simulateRaceStage", () => {
       })),
     });
     const tiredRiderResult = tiredRiderSimulation.results.find(
-      (result) => result.riderId === "reserve-0"
+      (result) => result.riderId === "reserve-0",
     )!;
     const freshRiderResult = freshRiderSimulation.results.find(
-      (result) => result.riderId === "reserve-0"
+      (result) => result.riderId === "reserve-0",
     )!;
     const protectedTeammateResult = tiredRiderSimulation.results.find(
-      (result) => result.riderId === "reserve-1"
+      (result) => result.riderId === "reserve-1",
     )!;
 
     expect(tiredRiderResult.energyAfter).toBeLessThan(
-      protectedTeammateResult.energyAfter
+      protectedTeammateResult.energyAfter,
     );
     expect(tiredRiderResult.energyAfter).toBeLessThan(
-      freshRiderResult.energyAfter
+      freshRiderResult.energyAfter,
     );
     expect(tiredRiderSimulation.results[0].elapsedTimeSeconds).toBe(
-      freshRiderSimulation.results[0].elapsedTimeSeconds
+      freshRiderSimulation.results[0].elapsedTimeSeconds,
     );
   });
 
@@ -942,23 +907,17 @@ describe("simulateRaceStage", () => {
       riders: [protectedLeader, isolatedLeader, ...helpers, ...fillers],
     });
     const resultByRiderId = new Map(
-      result.results.map((row) => [row.riderId, row])
+      result.results.map((row) => [row.riderId, row]),
     );
 
     expect(
-      resultByRiderId.get(protectedLeader.id)!.energyAfter
-    ).toBeGreaterThan(
-      resultByRiderId.get(isolatedLeader.id)!.energyAfter
-    );
+      resultByRiderId.get(protectedLeader.id)!.energyAfter,
+    ).toBeGreaterThan(resultByRiderId.get(isolatedLeader.id)!.energyAfter);
     expect(
       Math.min(
-        ...helpers.map(
-          (helper) => resultByRiderId.get(helper.id)!.energyAfter
-        )
-      )
-    ).toBeLessThan(
-      resultByRiderId.get(protectedLeader.id)!.energyAfter
-    );
+        ...helpers.map((helper) => resultByRiderId.get(helper.id)!.energyAfter),
+      ),
+    ).toBeLessThan(resultByRiderId.get(protectedLeader.id)!.energyAfter);
   });
 
   it("ne lâche pas un coureur épuisé sur une portion plate", () => {
@@ -991,10 +950,10 @@ describe("simulateRaceStage", () => {
     });
     const finalSnapshot = result.timeline.at(-1)!;
     const tiredRiderGroup = finalSnapshot.groups.find((group) =>
-      group.riderIds.includes("pace-0")
+      group.riderIds.includes("pace-0"),
     );
     const freshRiderGroup = finalSnapshot.groups.find((group) =>
-      group.riderIds.includes("pace-1")
+      group.riderIds.includes("pace-1"),
     );
 
     expect(tiredRiderGroup?.type).toBe("peloton");
@@ -1002,36 +961,25 @@ describe("simulateRaceStage", () => {
   });
 
   it("conserve le peloton sur une étape vallonnée tant que la sélection reste supportable", () => {
-    const input = createDemoSimulationInput(
-      "collines-ardennes",
-      32
-    );
+    const input = createDemoSimulationInput("collines-ardennes", 32);
     const result = simulateRaceStage(input);
     const firstSnapshotWithoutPeloton = result.timeline.findIndex(
       (snapshot, index) =>
         index < result.timeline.length - 1 &&
-        !snapshot.groups.some(
-          (group) => group.type === "peloton"
-        ) &&
-        snapshot.groups.some(
-          (group) => group.type === "breakaway"
-        )
+        !snapshot.groups.some((group) => group.type === "peloton") &&
+        snapshot.groups.some((group) => group.type === "breakaway"),
     );
     const finishers = result.results.filter(
-      (resultRow) => resultRow.status === "finished"
+      (resultRow) => resultRow.status === "finished",
     );
     const winnerTime = finishers[0].elapsedTimeSeconds;
     const maximumGap = Math.max(
-      ...finishers.map(
-        (resultRow) => resultRow.gapToWinnerSeconds
-      )
+      ...finishers.map((resultRow) => resultRow.gapToWinnerSeconds),
     );
     const maximumTimelineGap = Math.max(
       ...result.timeline.flatMap((snapshot) =>
-        snapshot.groups.map(
-          (group) => group.gapToLeaderSeconds
-        )
-      )
+        snapshot.groups.map((group) => group.gapToLeaderSeconds),
+      ),
     );
 
     expect(firstSnapshotWithoutPeloton).toBe(-1);
@@ -1044,10 +992,10 @@ describe("simulateRaceStage", () => {
     const baseInput = createDemoSimulationInput("sprint-littoral", 1);
     const getAverageEnergyAfter = (
       terrain: "flat" | "climb",
-      riderCount: number
+      riderCount: number,
     ) => {
       const riders = Array.from({ length: riderCount }, (_, index) =>
-        createSelectionTestRider(`${terrain}-${riderCount}-${index}`, {})
+        createSelectionTestRider(`${terrain}-${riderCount}-${index}`, {}),
       );
       const result = simulateRaceStage({
         ...baseInput,
@@ -1068,7 +1016,7 @@ describe("simulateRaceStage", () => {
       return (
         result.results.reduce(
           (total, resultRow) => total + resultRow.energyAfter,
-          0
+          0,
         ) / result.results.length
       );
     };
@@ -1082,19 +1030,25 @@ describe("simulateRaceStage", () => {
 
   it("attribue les points des GPM et sprints intermédiaires", () => {
     const result = simulateRaceStage(
-      createDemoSimulationInput("haute-montagne", 2)
+      createDemoSimulationInput("haute-montagne", 2),
     );
 
-    expect(result.primes.some((prime) => prime.prime.type === "mountain")).toBe(true);
-    expect(Object.values(result.mountainPoints).some((points) => points > 0)).toBe(true);
-    expect(Object.values(result.sprintPoints).some((points) => points > 0)).toBe(true);
+    expect(result.primes.some((prime) => prime.prime.type === "mountain")).toBe(
+      true,
+    );
+    expect(
+      Object.values(result.mountainPoints).some((points) => points > 0),
+    ).toBe(true);
+    expect(
+      Object.values(result.sprintPoints).some((points) => points > 0),
+    ).toBe(true);
   });
 
   it("favorise un spécialiste du chrono sur un contre-la-montre", () => {
     const input = createDemoSimulationInput("chrono-algarve", 9);
     const result = simulateRaceStage(input);
     const winner = result.resolvedRiders.find(
-      (rider) => rider.id === result.results[0].riderId
+      (rider) => rider.id === result.results[0].riderId,
     )!;
 
     expect(winner.ratings.timeTrial).toBeGreaterThanOrEqual(78);
@@ -1103,17 +1057,21 @@ describe("simulateRaceStage", () => {
 
   it("attribue le même temps aux coureurs d'un sprint massif restés dans le peloton", () => {
     const result = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 12)
+      createDemoSimulationInput("sprint-littoral", 12),
     );
     const finalPelotonIds = new Set(
-      result.timeline.at(-1)?.groups.find((group) => group.type === "peloton")?.riderIds ?? []
+      result.timeline.at(-1)?.groups.find((group) => group.type === "peloton")
+        ?.riderIds ?? [],
     );
     const pelotonResults = result.results.filter((resultRow) =>
-      finalPelotonIds.has(resultRow.riderId)
+      finalPelotonIds.has(resultRow.riderId),
     );
 
     expect(pelotonResults.length).toBeGreaterThan(1);
-    expect(new Set(pelotonResults.map((resultRow) => resultRow.elapsedTimeSeconds)).size).toBe(1);
+    expect(
+      new Set(pelotonResults.map((resultRow) => resultRow.elapsedTimeSeconds))
+        .size,
+    ).toBe(1);
   });
 
   it("conserve le temps commun d'un groupe sur une étape classée montagne", () => {
@@ -1128,14 +1086,14 @@ describe("simulateRaceStage", () => {
       })),
     });
     const resultByRiderId = new Map(
-      result.results.map((resultRow) => [resultRow.riderId, resultRow])
+      result.results.map((resultRow) => [resultRow.riderId, resultRow]),
     );
     const groupedArrivals = (result.timeline.at(-1)?.groups ?? [])
       .map((group) =>
         group.riderIds.flatMap((riderId) => {
           const resultRow = resultByRiderId.get(riderId);
           return resultRow?.status === "finished" ? [resultRow] : [];
-        })
+        }),
       )
       .filter((group) => group.length > 1);
 
@@ -1143,8 +1101,9 @@ describe("simulateRaceStage", () => {
     expect(
       groupedArrivals.every(
         (group) =>
-          new Set(group.map((resultRow) => resultRow.elapsedTimeSeconds)).size === 1
-      )
+          new Set(group.map((resultRow) => resultRow.elapsedTimeSeconds))
+            .size === 1,
+      ),
     ).toBe(true);
   });
 
@@ -1158,7 +1117,7 @@ describe("simulateRaceStage", () => {
             averageGradientPct: 8,
             surface: "asphalt" as const,
           }
-        : segment
+        : segment,
     );
     const climbers = Array.from({ length: 3 }, (_, index) =>
       createSelectionTestRider(`grimpeur-${index}`, {
@@ -1168,7 +1127,7 @@ describe("simulateRaceStage", () => {
         endurance: 58,
         resistance: 58,
         breakaway: 45,
-      })
+      }),
     );
     const secondarySpecialists = Array.from({ length: 6 }, (_, index) =>
       createSelectionTestRider(`secondaire-${index}`, {
@@ -1178,7 +1137,7 @@ describe("simulateRaceStage", () => {
         endurance: 90,
         resistance: 90,
         breakaway: 85,
-      })
+      }),
     );
 
     const simulations = Array.from({ length: 30 }, (_, index) =>
@@ -1187,7 +1146,7 @@ describe("simulateRaceStage", () => {
         seed: index + 1,
         segments: longSummitSegments,
         riders: [...climbers, ...secondarySpecialists],
-      })
+      }),
     );
 
     const secondaryRidersAheadOfAFinishingClimber = simulations.flatMap(
@@ -1197,26 +1156,27 @@ describe("simulateRaceStage", () => {
             .filter(
               (resultRow) =>
                 resultRow.status === "finished" &&
-                resultRow.riderId.startsWith("grimpeur-")
+                resultRow.riderId.startsWith("grimpeur-"),
             )
-            .map((resultRow) => resultRow.rank ?? Number.POSITIVE_INFINITY)
+            .map((resultRow) => resultRow.rank ?? Number.POSITIVE_INFINITY),
         );
 
         return simulation.results.filter(
           (resultRow) =>
             resultRow.status === "finished" &&
             resultRow.riderId.startsWith("secondaire-") &&
-            (resultRow.rank ?? Number.POSITIVE_INFINITY) < bestFinishingClimberRank
+            (resultRow.rank ?? Number.POSITIVE_INFINITY) <
+              bestFinishingClimberRank,
         );
-      }
+      },
     ).length;
     const completeClimberFinishes = simulations.filter(
       (simulation) =>
         simulation.results.filter(
           (resultRow) =>
             resultRow.status === "finished" &&
-            resultRow.riderId.startsWith("grimpeur-")
-        ).length === climbers.length
+            resultRow.riderId.startsWith("grimpeur-"),
+        ).length === climbers.length,
     );
 
     expect(secondaryRidersAheadOfAFinishingClimber).toBe(0);
@@ -1225,18 +1185,22 @@ describe("simulateRaceStage", () => {
         simulation.results
           .filter((resultRow) => resultRow.status === "finished")
           .slice(0, climbers.length)
-          .every((resultRow) => resultRow.riderId.startsWith("grimpeur-"))
-      )
+          .every((resultRow) => resultRow.riderId.startsWith("grimpeur-")),
+      ),
     ).toBe(true);
   });
 
   it("laisse certaines échappées aller au bout sans rendre ce résultat systématique", () => {
     const outcomes = Array.from({ length: 100 }, (_, index) =>
-      simulateRaceStage(createDemoSimulationInput("collines-ardennes", index + 1))
-    ).map((result) =>
-      result.timeline.at(-1)?.commentary.some((message) =>
-        message.includes("ligne avec")
-      ) ?? false
+      simulateRaceStage(
+        createDemoSimulationInput("collines-ardennes", index + 1),
+      ),
+    ).map(
+      (result) =>
+        result.timeline
+          .at(-1)
+          ?.commentary.some((message) => message.includes("ligne avec")) ??
+        false,
     );
 
     expect(outcomes).toContain(true);
@@ -1247,21 +1211,23 @@ describe("simulateRaceStage", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const riders = [
       ...Array.from({ length: 4 }, (_, index) =>
-        createHillyTestRider("puncheur", index)
+        createHillyTestRider("puncheur", index),
       ),
       ...Array.from({ length: 4 }, (_, index) =>
-        createHillyTestRider("baroudeur", index)
+        createHillyTestRider("baroudeur", index),
       ),
     ];
-    const winners = Array.from({ length: 120 }, (_, index) =>
-      simulateRaceStage({
-        ...baseInput,
-        seed: index + 1,
-        riders,
-      }).results[0].riderId
+    const winners = Array.from(
+      { length: 120 },
+      (_, index) =>
+        simulateRaceStage({
+          ...baseInput,
+          seed: index + 1,
+          riders,
+        }).results[0].riderId,
     );
     const puncherWins = winners.filter((riderId) =>
-      riderId.startsWith("puncheur-")
+      riderId.startsWith("puncheur-"),
     ).length;
 
     expect(puncherWins).toBeGreaterThanOrEqual(84);
@@ -1291,22 +1257,22 @@ describe("simulateRaceStage", () => {
     const freshClimberRating = getHillyClimbSelectionRating(
       climber,
       shallowClimb,
-      0
+      0,
     );
     const tiredClimberRating = getHillyClimbSelectionRating(
       climber,
       shallowClimb,
-      42
+      42,
     );
     const freshPuncherRating = getHillyClimbSelectionRating(
       puncher,
       shallowClimb,
-      0
+      0,
     );
     const tiredPuncherRating = getHillyClimbSelectionRating(
       puncher,
       shallowClimb,
-      42
+      42,
     );
 
     expect(freshClimberRating).toBeGreaterThan(tiredClimberRating + 10);
@@ -1316,7 +1282,10 @@ describe("simulateRaceStage", () => {
 
   it("fait céder tardivement un grimpeur peu puncheur sans lui infliger un gouffre", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 37);
-    const flat = (segmentNumber: number, distanceKm = 10): RaceStageSegment => ({
+    const flat = (
+      segmentNumber: number,
+      distanceKm = 10,
+    ): RaceStageSegment => ({
       segmentNumber,
       distanceKm,
       terrain: "flat",
@@ -1379,12 +1348,11 @@ describe("simulateRaceStage", () => {
     const firstDropIndex = result.timeline.findIndex((snapshot) =>
       snapshot.groups.some(
         (group) =>
-          group.type === "dropped" &&
-          group.riderIds.includes(climber.id)
-      )
+          group.type === "dropped" && group.riderIds.includes(climber.id),
+      ),
     );
     const climberResult = result.results.find(
-      (row) => row.riderId === climber.id
+      (row) => row.riderId === climber.id,
     )!;
 
     expect(firstDropIndex).toBeGreaterThan(1);
@@ -1392,17 +1360,9 @@ describe("simulateRaceStage", () => {
     expect(climberResult.gapToWinnerSeconds).toBeGreaterThan(0);
     expect(climberResult.gapToWinnerSeconds).toBeLessThan(240);
 
-    const loadAfterOneClimb = getNextHillyClimbLoad(
-      0,
-      climb(2),
-      "hilly"
-    );
+    const loadAfterOneClimb = getNextHillyClimbLoad(0, climb(2), "hilly");
     expect(
-      getNextHillyClimbLoad(
-        loadAfterOneClimb,
-        descent(3),
-        "hilly"
-      )
+      getNextHillyClimbLoad(loadAfterOneClimb, descent(3), "hilly"),
     ).toBeGreaterThan(0);
   });
 
@@ -1413,14 +1373,14 @@ describe("simulateRaceStage", () => {
         hills: 70,
         mountain: 62,
         acceleration: 68,
-      })
+      }),
     );
     const weakRiders = Array.from({ length: 4 }, (_, index) =>
       createSelectionTestRider(`faible-${index}`, {
         hills: 45,
         mountain: 47,
         acceleration: 52,
-      })
+      }),
     );
     const result = simulateRaceStage({
       ...baseInput,
@@ -1431,24 +1391,23 @@ describe("simulateRaceStage", () => {
       snapshot.groups.some(
         (group) =>
           group.type === "dropped" &&
-          group.riderIds.some((riderId) => weakIds.has(riderId))
-      )
+          group.riderIds.some((riderId) => weakIds.has(riderId)),
+      ),
     );
 
     expect(firstDropIndex).toBeGreaterThan(0);
-    const permanentlyDroppedWeakIds = result.timeline.at(-2)!.groups
-      .filter((group) => group.label.startsWith("Groupe attardé"))
+    const permanentlyDroppedWeakIds = result.timeline
+      .at(-2)!
+      .groups.filter((group) => group.label.startsWith("Groupe attardé"))
       .flatMap((group) => group.riderIds)
       .filter((riderId) => weakIds.has(riderId));
     expect(permanentlyDroppedWeakIds.length).toBeGreaterThan(0);
     expect(
       Math.min(
         ...result.results
-          .filter((row) =>
-            permanentlyDroppedWeakIds.includes(row.riderId)
-          )
-          .map((row) => row.gapToWinnerSeconds)
-      )
+          .filter((row) => permanentlyDroppedWeakIds.includes(row.riderId))
+          .map((row) => row.gapToWinnerSeconds),
+      ),
     ).toBeGreaterThan(120);
   });
 
@@ -1469,11 +1428,15 @@ describe("simulateRaceStage", () => {
         ...baseInput,
         seed: index + 1,
         riders: [pureSprinter, explosiveRider],
-      })
+      }),
     );
     const groupedFinishes = simulations.filter((result) => {
-      const pureResult = result.results.find((row) => row.riderId === pureSprinter.id);
-      const explosiveResult = result.results.find((row) => row.riderId === explosiveRider.id);
+      const pureResult = result.results.find(
+        (row) => row.riderId === pureSprinter.id,
+      );
+      const explosiveResult = result.results.find(
+        (row) => row.riderId === explosiveRider.id,
+      );
 
       return (
         pureResult?.status === "finished" &&
@@ -1486,7 +1449,7 @@ describe("simulateRaceStage", () => {
     expect(groupedFinishes.length).toBeGreaterThanOrEqual(20);
     const pureSprinterWinRate =
       groupedFinishes.filter(
-        (result) => result.results[0].riderId === pureSprinter.id
+        (result) => result.results[0].riderId === pureSprinter.id,
       ).length / groupedFinishes.length;
     expect(pureSprinterWinRate).toBeGreaterThanOrEqual(0.9);
   });
@@ -1538,15 +1501,103 @@ describe("simulateRaceStage", () => {
       riders: [local, visitor],
     });
     const resolvedLocal = result.resolvedRiders.find(
-      (rider) => rider.id === local.id
+      (rider) => rider.id === local.id,
     )!;
     const resolvedVisitor = result.resolvedRiders.find(
-      (rider) => rider.id === visitor.id
+      (rider) => rider.id === visitor.id,
     )!;
 
     expect(resolvedLocal.localRaceBonus).toBe(2);
     expect(resolvedVisitor.localRaceBonus).toBe(0);
     expect(resolvedLocal.ratings).toEqual(local.ratings);
+  });
+
+  it("accorde aussi le bonus local aux pays adjacents débloqués par le Centre d’accueil", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const rider = {
+      ...createSelectionTestRider("voisin", { hills: 64 }),
+      countryCode: "FR",
+      localRaceCountryCodes: ["BE"],
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      raceCountryCode: "BE",
+      riders: [rider, createSelectionTestRider("temoin", { hills: 64 })],
+    });
+    expect(
+      result.resolvedRiders.find((candidate) => candidate.id === rider.id)
+        ?.localRaceBonus,
+    ).toBe(2);
+  });
+
+  it("applique les bonus indoor et soufflerie uniquement dans leur fenêtre de jours", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const baseRatings = createSelectionTestRider("base-preparation", {
+      sprint: 64,
+    }).ratings;
+    const prepared = {
+      ...createSelectionTestRider("prepare", { sprint: 64 }),
+      climateProfile: { strength: "rain", weakness: "snow" } as const,
+      ratings: { ...baseRatings },
+      performancePreparations: [
+        {
+          type: "indoor_track" as const,
+          bonusStartGameDay: 40,
+          bonusEndGameDay: 42,
+          ratingBonus: 2,
+        },
+        {
+          type: "wind_tunnel" as const,
+          bonusStartGameDay: 40,
+          bonusEndGameDay: 42,
+          ratingBonus: 1,
+        },
+      ],
+    };
+    const witness = {
+      ...createSelectionTestRider("temoin-preparation", { sprint: 64 }),
+      climateProfile: { strength: "rain", weakness: "snow" } as const,
+      ratings: { ...baseRatings },
+    };
+    const active = simulateRaceStage({
+      ...baseInput,
+      gameDayIndex: 41,
+      riders: [prepared, witness],
+    });
+    const preparedActive = active.resolvedRiders.find(
+      (rider) => rider.id === prepared.id,
+    )!;
+    const witnessActive = active.resolvedRiders.find(
+      (rider) => rider.id === witness.id,
+    )!;
+    expect(
+      preparedActive.ratings.sprint - witnessActive.ratings.sprint,
+    ).toBeCloseTo(2);
+    expect(
+      preparedActive.ratings.acceleration - witnessActive.ratings.acceleration,
+    ).toBeCloseTo(2);
+    expect(
+      preparedActive.ratings.timeTrial - witnessActive.ratings.timeTrial,
+    ).toBeCloseTo(1);
+    expect(
+      preparedActive.ratings.prologue - witnessActive.ratings.prologue,
+    ).toBeCloseTo(1);
+    expect(
+      preparedActive.ratings.endurance - witnessActive.ratings.endurance,
+    ).toBeCloseTo(1);
+
+    const expired = simulateRaceStage({
+      ...baseInput,
+      gameDayIndex: 43,
+      riders: [prepared, witness],
+    });
+    const preparedExpired = expired.resolvedRiders.find(
+      (rider) => rider.id === prepared.id,
+    )!;
+    const witnessExpired = expired.resolvedRiders.find(
+      (rider) => rider.id === witness.id,
+    )!;
+    expect(preparedExpired.ratings).toEqual(witnessExpired.ratings);
   });
 
   it("applique le bonus de reconnaissance aux treize notes pour la seule étape ciblée", () => {
@@ -1568,7 +1619,9 @@ describe("simulateRaceStage", () => {
 
     expect(resolved.ratings.hills).toBeCloseTo(66.3);
     expect(resolved.ratings.mountain).toBeCloseTo(rider.ratings.mountain + 2.3);
-    expect(resolved.ratings.breakaway).toBeCloseTo(rider.ratings.breakaway + 2.3);
+    expect(resolved.ratings.breakaway).toBeCloseTo(
+      rider.ratings.breakaway + 2.3,
+    );
     expect(rider.ratings.hills).toBe(64);
   });
 
@@ -1576,14 +1629,11 @@ describe("simulateRaceStage", () => {
     const incidentTypes = new Set(
       Array.from({ length: 60 }, (_, index) =>
         simulateRaceStage(
-          createDemoSimulationInput(
-            "collines-ardennes",
-            index + 1
-          )
+          createDemoSimulationInput("collines-ardennes", index + 1),
         ).timeline.flatMap((snapshot) =>
-          snapshot.incidents.map((incident) => incident.type)
-        )
-      ).flat()
+          snapshot.incidents.map((incident) => incident.type),
+        ),
+      ).flat(),
     );
 
     expect(incidentTypes.has("puncture")).toBe(true);
@@ -1593,10 +1643,7 @@ describe("simulateRaceStage", () => {
 
   it("place les coureurs piégés par une bordure derrière le peloton", () => {
     const crosswindCase = Array.from({ length: 80 }, (_, index) => {
-      const input = createDemoSimulationInput(
-        "sprint-littoral",
-        index + 1
-      );
+      const input = createDemoSimulationInput("sprint-littoral", index + 1);
       return simulateRaceStage({
         ...input,
         weather: {
@@ -1614,18 +1661,18 @@ describe("simulateRaceStage", () => {
       .map((snapshot) => ({
         snapshot,
         incident: snapshot.incidents.find(
-          (incident) => incident.type === "crosswind"
+          (incident) => incident.type === "crosswind",
         ),
       }))
       .find(({ snapshot, incident }) => {
         const peloton = snapshot.groups.find(
-          (group) => group.type === "peloton"
+          (group) => group.type === "peloton",
         );
         const affectedGroup = incident
           ? snapshot.groups.find((group) =>
               incident.riderIds.every((riderId) =>
-                group.riderIds.includes(riderId)
-              )
+                group.riderIds.includes(riderId),
+              ),
             )
           : null;
         return Boolean(incident && peloton && affectedGroup);
@@ -1634,12 +1681,10 @@ describe("simulateRaceStage", () => {
     expect(crosswindCase).toBeDefined();
     const { snapshot, incident } = crosswindCase!;
     const pelotonIndex = snapshot.groups.findIndex(
-      (group) => group.type === "peloton"
+      (group) => group.type === "peloton",
     );
     const affectedGroupIndex = snapshot.groups.findIndex((group) =>
-      incident!.riderIds.every((riderId) =>
-        group.riderIds.includes(riderId)
-      )
+      incident!.riderIds.every((riderId) => group.riderIds.includes(riderId)),
     );
     const peloton = snapshot.groups[pelotonIndex];
     const affectedGroup = snapshot.groups[affectedGroupIndex];
@@ -1647,7 +1692,7 @@ describe("simulateRaceStage", () => {
     expect(affectedGroupIndex).toBeGreaterThan(pelotonIndex);
     expect(affectedGroup.type).toBe("dropped");
     expect(affectedGroup.gapToLeaderSeconds).toBeGreaterThan(
-      peloton.gapToLeaderSeconds
+      peloton.gapToLeaderSeconds,
     );
     expect(affectedGroup.label).toContain("bordure");
   });
@@ -1703,9 +1748,7 @@ describe("simulateRaceStage", () => {
     expect(
       simulations.some((simulation) =>
         simulation.timeline.some((snapshot) =>
-          snapshot.commentary.some((line) =>
-            line.includes("attaque préparée"),
-          ),
+          snapshot.commentary.some((line) => line.includes("attaque préparée")),
         ),
       ),
     ).toBe(true);
@@ -1713,27 +1756,24 @@ describe("simulateRaceStage", () => {
 
   it("peut scinder une échappée en plusieurs groupes", () => {
     const result = simulateRaceStage(
-      createDemoSimulationInput("haute-montagne", 1)
+      createDemoSimulationInput("haute-montagne", 1),
     );
 
     expect(
       result.timeline.some(
         (snapshot) =>
-          snapshot.groups.filter(
-            (group) => group.type === "breakaway"
-          ).length > 1
-      )
+          snapshot.groups.filter((group) => group.type === "breakaway").length >
+          1,
+      ),
     ).toBe(true);
   });
   it("place un abandon sur chute en fin de classement et exclut le coureur de l'étape suivante", () => {
     const firstStage = Array.from({ length: 80 }, (_, index) =>
       simulateRaceStage(
-        createDemoSimulationInput("collines-ardennes", index + 1)
-      )
+        createDemoSimulationInput("collines-ardennes", index + 1),
+      ),
     ).find((result) =>
-      result.results.some(
-        (row) => row.status === "did_not_finish"
-      )
+      result.results.some((row) => row.status === "did_not_finish"),
     );
 
     expect(firstStage).toBeDefined();
@@ -1748,26 +1788,24 @@ describe("simulateRaceStage", () => {
       unavailableRiderIds: [abandoned.riderId],
     });
     expect(
-      nextStage.resolvedRiders.some(
-        (rider) => rider.id === abandoned.riderId
-      )
+      nextStage.resolvedRiders.some((rider) => rider.id === abandoned.riderId),
     ).toBe(false);
   });
 
   it("peut diagnostiquer une blessure sans retirer le coureur du classement de l’étape", () => {
     const stage = Array.from({ length: 160 }, (_, index) =>
       simulateRaceStage(
-        createDemoSimulationInput("collines-ardennes", index + 1)
-      )
+        createDemoSimulationInput("collines-ardennes", index + 1),
+      ),
     ).find((result) =>
       result.results.some(
-        (row) => row.status === "finished" && row.injury !== null
-      )
+        (row) => row.status === "finished" && row.injury !== null,
+      ),
     );
 
     expect(stage).toBeDefined();
     const injuredFinisher = stage!.results.find(
-      (row) => row.status === "finished" && row.injury !== null
+      (row) => row.status === "finished" && row.injury !== null,
     )!;
     expect(injuredFinisher.rank).not.toBeNull();
     expect(injuredFinisher.abandonment).toBeNull();
@@ -1783,31 +1821,31 @@ describe("simulateRaceStage", () => {
 
     expect(standings.general.length).toBeGreaterThan(1);
     expect(standings.general[0].elapsedTimeSeconds).toBeLessThanOrEqual(
-      standings.general[1].elapsedTimeSeconds
+      standings.general[1].elapsedTimeSeconds,
     );
     expect(standings.mountain[0]?.points).toBeGreaterThan(0);
     expect(standings.sprint[0]?.points).toBeGreaterThan(0);
     expect(
       stages
         .flatMap((stage) => stage.resolvedRiders)
-        .find((rider) => rider.id === standings.youth[0]?.riderId)?.age
+        .find((rider) => rider.id === standings.youth[0]?.riderId)?.age,
     ).toBeLessThan(25);
     expect(standings.teams.length).toBeGreaterThan(1);
     expect(standings.teams[0].elapsedTimeSeconds).toBeLessThanOrEqual(
-      standings.teams[1].elapsedTimeSeconds
+      standings.teams[1].elapsedTimeSeconds,
     );
   });
 
   it("pondère le classement par équipes selon le nombre de coureurs engagés", () => {
     const stage = simulateRaceStage(
-      createDemoSimulationInput("sprint-littoral", 12)
+      createDemoSimulationInput("sprint-littoral", 12),
     );
     const ridersByTeam = Map.groupBy(
       stage.resolvedRiders,
-      (rider) => rider.teamId
+      (rider) => rider.teamId,
     );
     const [smallTeam, largeTeam] = [...ridersByTeam.entries()].filter(
-      ([, riders]) => riders.length >= 4
+      ([, riders]) => riders.length >= 4,
     );
 
     expect(smallTeam).toBeDefined();
@@ -1817,14 +1855,13 @@ describe("simulateRaceStage", () => {
     const largeTeamRiders = largeTeam[1].slice(0, 4);
     const selectedRiders = [...smallTeamRiders, ...largeTeamRiders];
     const resultByRiderId = new Map(
-      stage.results.map((result) => [result.riderId, result])
+      stage.results.map((result) => [result.riderId, result]),
     );
     const selectedResults = selectedRiders.map((rider, index) => {
       const original = resultByRiderId.get(rider.id)!;
       const isSmallTeam = rider.teamId === smallTeam[0];
       const teamIndex = isSmallTeam ? index : index - smallTeamRiders.length;
-      const elapsedTimeSeconds =
-        (isSmallTeam ? 2_000 : 1_000) + teamIndex * 10;
+      const elapsedTimeSeconds = (isSmallTeam ? 2_000 : 1_000) + teamIndex * 10;
       return {
         ...original,
         status: "finished" as const,
@@ -1855,7 +1892,7 @@ describe("simulateRaceStage", () => {
 
 function createHillyTestRider(
   archetype: "puncheur" | "baroudeur",
-  index: number
+  index: number,
 ): RiderSimulationInput {
   const isPuncher = archetype === "puncheur";
   return {
@@ -1888,7 +1925,7 @@ function createHillyTestRider(
 
 function createSelectionTestRider(
   id: string,
-  overrides: Partial<RiderSimulationInput["ratings"]>
+  overrides: Partial<RiderSimulationInput["ratings"]>,
 ): RiderSimulationInput {
   return {
     id,
@@ -1928,17 +1965,19 @@ describe("assignAutomaticRaceRoles", () => {
     const resolved = assignAutomaticRaceRoles(oneTeam, input.segments);
 
     expect(resolved.filter((rider) => rider.role === "leader")).toHaveLength(1);
-    expect(resolved.filter((rider) => rider.role === "sprinter")).toHaveLength(1);
+    expect(resolved.filter((rider) => rider.role === "sprinter")).toHaveLength(
+      1,
+    );
   });
 
   it("refuse deux leaders dans la même équipe", () => {
     const input = createDemoSimulationInput("sprint-littoral", 1);
-    const riders = input.riders.slice(0, 2).map(
-      (rider) => ({ ...rider, role: "leader" }) as RiderSimulationInput
-    );
+    const riders = input.riders
+      .slice(0, 2)
+      .map((rider) => ({ ...rider, role: "leader" }) as RiderSimulationInput);
 
     expect(() => assignAutomaticRaceRoles(riders, input.segments)).toThrow(
-      "un seul leader"
+      "un seul leader",
     );
   });
 });

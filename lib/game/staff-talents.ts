@@ -57,6 +57,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "doctor_care_cost",
     "doctor_injury_form_loss",
   ],
+  research_engineer: ["research_time", "research_cost", "research_success"],
 } as const satisfies Record<StaffRole, readonly string[]>;
 
 export type StaffTalentCode = (typeof STAFF_TALENTS_BY_ROLE)[StaffRole][number];
@@ -245,6 +246,24 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Maintien de la condition",
     description: () =>
       "−1 point sur la perte de forme quotidienne pendant une blessure",
+  },
+  research_time: {
+    role: "research_engineer",
+    label: "Protocoles accélérés",
+    description: (level) =>
+      `−${percentage(level, 1)} jour${normalizeStaffLevel(level) > 1 ? "s" : ""} sur chaque recherche R&D`,
+  },
+  research_cost: {
+    role: "research_engineer",
+    label: "Optimisation budgétaire",
+    description: (level) =>
+      `−${percentage(level, 5)} % sur le coût de chaque recherche R&D`,
+  },
+  research_success: {
+    role: "research_engineer",
+    label: "Validation expérimentale",
+    description: (level) =>
+      `+${percentage(level, 3)} points sur la probabilité de réussite R&D`,
   },
 };
 

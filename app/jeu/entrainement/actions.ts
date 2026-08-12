@@ -49,8 +49,7 @@ export async function saveRiderTrainingPlansAction(formData: FormData) {
 export async function bookRaceReconnaissanceAction(formData: FormData) {
   const stageId = readValue(formData, "stageId");
   const startDayNumber = Number(readValue(formData, "startDayNumber"));
-  const preparerContractId =
-    readValue(formData, "preparerContractId") || null;
+  const preparerContractId = readValue(formData, "preparerContractId") || null;
   const riderIds = formData
     .getAll("riderIds")
     .filter((value): value is string => typeof value === "string")
@@ -87,9 +86,39 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/inscriptions");
   revalidatePath("/jeu/finances");
-  redirect(
-    "/jeu/entrainement?onglet=reconnaissance&reconnaissance=confirmee",
+  redirect("/jeu/entrainement?onglet=reconnaissance&reconnaissance=confirmee");
+}
+
+export async function startRiderPerformancePreparationAction(
+  formData: FormData,
+) {
+  const riderId = readValue(formData, "riderId");
+  const preparationType = readValue(formData, "preparationType");
+  if (
+    !isUuid(riderId) ||
+    !["indoor_track", "wind_tunnel"].includes(preparationType)
+  ) {
+    redirect(
+      `/jeu/entrainement?onglet=preparation&erreur=${encodeURIComponent("Sélection de préparation invalide.")}`,
+    );
+  }
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "start_current_team_rider_performance_preparation",
+    {
+      p_rider_id: riderId,
+      p_preparation_type: preparationType,
+    },
   );
+  if (error) {
+    redirect(
+      `/jeu/entrainement?onglet=preparation&erreur=${encodeURIComponent(error.message.slice(0, 300))}`,
+    );
+  }
+  revalidateTrainingPaths();
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/inscriptions");
+  redirect("/jeu/entrainement?onglet=preparation&preparation=confirmee");
 }
 
 function parseTrainingPlans(rawPlans: string): TrainingPlanDraft[] {
@@ -124,8 +153,7 @@ function parseTrainingPlans(rawPlans: string): TrainingPlanDraft[] {
       typeof domain !== "string" ||
       !isTrainingDomain(domain) ||
       (trainerContractId !== null &&
-        (typeof trainerContractId !== "string" ||
-          !isUuid(trainerContractId)))
+        (typeof trainerContractId !== "string" || !isUuid(trainerContractId)))
     ) {
       redirectWithError("Un des programmes d’entraînement est invalide.");
     }
@@ -162,7 +190,9 @@ function revalidateTrainingPaths() {
 }
 
 function redirectWithError(message: string): never {
-  redirect(`/jeu/entrainement?erreur=${encodeURIComponent(message.slice(0, 300))}`);
+  redirect(
+    `/jeu/entrainement?erreur=${encodeURIComponent(message.slice(0, 300))}`,
+  );
 }
 
 function redirectWithRecognitionError(message: string): never {

@@ -12,8 +12,6 @@ import { getEquipmentCategory } from "@/lib/game/equipment";
 import {
   EQUIPMENT_PARTNER_CONTRACT_SEASONS,
   EQUIPMENT_PARTNER_RARE_OFFER_RATE,
-  EQUIPMENT_PARTNER_RND_DURATION_DAYS,
-  EQUIPMENT_PARTNER_RND_SUCCESS_RATE,
 } from "@/lib/game/equipment-partner";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -26,19 +24,16 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamEquipmentPartnerOverview,
   type EquipmentPartnerProduct,
-  type EquipmentPartnerProject,
   type EquipmentPartnerSupplierOption,
 } from "@/services/team-equipment-partner";
 import {
   claimEquipmentPartnerOfferAction,
   signEquipmentPartnerAction,
-  startEquipmentPartnerRndAction,
 } from "./actions";
 
 export const metadata: Metadata = {
   title: "Équipementier",
-  description:
-    "Signez un équipementier et développez sa dotation grâce à la R&D.",
+  description: "Signez un équipementier et accédez à sa dotation technique.",
 };
 
 type EquipmentPartnerPageProps = {
@@ -122,6 +117,12 @@ export default async function EquipmentPartnerPage({
             Équipementier
           </Link>
           <Link
+            href="/jeu/materiel/laboratoire"
+            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
+          >
+            Labo R&D
+          </Link>
+          <Link
             href="/jeu/materiel/equiper"
             className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
           >
@@ -140,7 +141,7 @@ export default async function EquipmentPartnerPage({
           <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
-                Partenariat technique · laboratoire R&D
+                Partenariat technique · dotation
               </p>
               <div className="mt-3 flex items-center gap-3">
                 <h1 className="text-3xl font-black tracking-tight sm:text-5xl">
@@ -152,12 +153,13 @@ export default async function EquipmentPartnerPage({
                 />
               </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-                Accédez sans limite de stock au vélo du partenaire pendant le
-                contrat, puis faites évoluer une pièce à la fois. Chaque recherche
-                peut aussi faire reculer le prototype.
+                Accédez sans limite de stock aux équipements proposés par le
+                partenaire pendant toute la durée du contrat. Les recherches et
+                prototypes uniques sont désormais gérés par votre propre Labo
+                R&D.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
               <HeroMetric
                 label="Réputation"
                 value={formatNumber(overview.reputationPoints)}
@@ -165,10 +167,6 @@ export default async function EquipmentPartnerPage({
               <HeroMetric
                 label="Contrat"
                 value={`${EQUIPMENT_PARTNER_CONTRACT_SEASONS} saisons`}
-              />
-              <HeroMetric
-                label="Réussite R&D"
-                value={`${EQUIPMENT_PARTNER_RND_SUCCESS_RATE * 100} %`}
               />
             </div>
           </div>
@@ -183,7 +181,7 @@ export default async function EquipmentPartnerPage({
 
         <section
           data-tutorial-id="equipment-partner-rules"
-          className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+          className="mt-7 grid gap-4 md:grid-cols-3"
         >
           <RuleCard
             eyebrow="Signature"
@@ -194,11 +192,6 @@ export default async function EquipmentPartnerPage({
             eyebrow="Engagement"
             title="Deux saisons fermes"
             body="Le contrat est irrévocable et ne peut pas être prolongé avec la même marque."
-          />
-          <RuleCard
-            eyebrow="Laboratoire"
-            title={`Cycle de ${EQUIPMENT_PARTNER_RND_DURATION_DAYS} jours`}
-            body="Un seul matériel est étudié à la fois, avec autant de chances de progresser que de régresser."
           />
           <RuleCard
             eyebrow="Séries limitées"
@@ -243,7 +236,7 @@ export default async function EquipmentPartnerPage({
                       {contract.startSeasonName} → {contract.endSeasonName}
                     </p>
                     <p className="mt-3 text-xs font-bold leading-5 text-[#936A21]">
-                      L’accès aux prototypes et à leurs avancées R&D a été retiré.
+                      L’accès à la dotation de cette marque a été retiré.
                     </p>
                   </div>
                 ))}
@@ -451,8 +444,8 @@ function ActiveContractSection({
             <h2 className="mt-2 text-3xl font-black">{supplier.name}</h2>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/85">
               {contract.startSeasonName} à {contract.endSeasonName}. Les
-              références et toutes leurs évolutions R&D restent utilisables sans
-              limite de stock, puis seront retirées au terme de la seconde saison.
+              références de la dotation restent utilisables sans limite de
+              stock, puis seront retirées au terme de la seconde saison.
             </p>
           </div>
           <div className="rounded-2xl border border-white/25 bg-black/15 px-5 py-4 text-center backdrop-blur">
@@ -478,72 +471,19 @@ function ActiveContractSection({
             Dotation de l’équipe
           </p>
           <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-            Prototypes disponibles
+            Équipements disponibles
           </h2>
         </div>
         <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {overview.activeProducts
             .filter((product) => product.isAvailable)
             .map((product) => (
-              <PartnerProductCard
-                key={product.id}
-                product={product}
-                activeProject={overview.activeProject}
-              />
+              <PartnerProductCard key={product.id} product={product} />
             ))}
         </div>
       </section>
 
-      <section className="mt-7 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <article className="rounded-[2rem] border border-[#315B3E]/12 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.16)] sm:p-8">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
-            Laboratoire R&D
-          </p>
-          <h2 className="mt-2 text-2xl font-black">Une recherche à la fois</h2>
-          {overview.activeProject ? (
-            <ActiveProjectCard project={overview.activeProject} />
-          ) : (
-            <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">
-              Le laboratoire est libre. Lancez une recherche depuis l’un des
-              prototypes ci-dessus ; le résultat sera connu après{" "}
-              {EQUIPMENT_PARTNER_RND_DURATION_DAYS} jours.
-            </p>
-          )}
-
-          {overview.recentProjects.length > 0 ? (
-            <div className="mt-6 border-t border-white/10 pt-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
-                Derniers résultats
-              </p>
-              <div className="mt-3 space-y-2">
-                {overview.recentProjects.slice(0, 5).map((project) => (
-                  <div
-                    key={project.id}
-                    className="flex items-center justify-between gap-4 rounded-xl bg-white/7 px-4 py-3"
-                  >
-                    <div>
-                      <p className="text-sm font-black">{project.itemName}</p>
-                      <p className="mt-1 text-[11px] font-semibold text-[#BFD1C6]">
-                        {ratingLabel(project.researchRatingKey)}
-                      </p>
-                    </div>
-                    <span
-                      className={
-                        project.outcome === "improvement"
-                          ? "rounded-full bg-[#42B99A]/20 px-3 py-1.5 text-xs font-black text-[#9BE0BC]"
-                          : "rounded-full bg-[#EF5B65]/15 px-3 py-1.5 text-xs font-black text-[#FFB5BB]"
-                      }
-                    >
-                      {project.delta && project.delta > 0 ? "+" : ""}
-                      {project.delta ?? 0}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </article>
-
+      <section className="mt-7">
         <article className="rounded-[2rem] border border-[#D29F32]/25 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#B47A16]">
             Propositions rares
@@ -611,15 +551,7 @@ function ActiveContractSection({
   );
 }
 
-function PartnerProductCard({
-  product,
-  activeProject,
-}: {
-  product: EquipmentPartnerProduct;
-  activeProject: EquipmentPartnerProject | null;
-}) {
-  const thisProject = activeProject?.itemId === product.id;
-
+function PartnerProductCard({ product }: { product: EquipmentPartnerProduct }) {
   return (
     <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
       <div className="relative aspect-[16/9] overflow-hidden bg-[#071A17]">
@@ -644,54 +576,17 @@ function PartnerProductCard({
         <p className="text-xs font-bold leading-5 text-[#60756E]">
           {formatEffects(product)}
         </p>
-        <div className="mt-4 rounded-xl bg-[#EAF5F3] px-4 py-3">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#278B70]">
-            Axe de recherche
-          </p>
-          <p className="mt-1 text-sm font-black text-[#183F37]">
-            {ratingLabel(product.researchRatingKey)}
-          </p>
-        </div>
         <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold text-[#60756E]">
-          <span>Accès illimité</span>
-          <span>R&D : ±1</span>
+          <span>Accès illimité pendant le contrat</span>
+          <Link
+            href="/jeu/materiel/equiper"
+            className="text-[#176951] hover:underline"
+          >
+            Équiper
+          </Link>
         </div>
-        <form action={startEquipmentPartnerRndAction} className="mt-4">
-          <input type="hidden" name="equipmentItemId" value={product.id} />
-          <EquipmentPartnerSubmitButton
-            label={thisProject ? "Recherche en cours" : "Lancer la recherche"}
-            pendingLabel="Lancement…"
-            disabled={Boolean(activeProject)}
-            tone="green"
-          />
-        </form>
       </div>
     </article>
-  );
-}
-
-function ActiveProjectCard({ project }: { project: EquipmentPartnerProject }) {
-  return (
-    <div className="mt-5 rounded-2xl border border-[#9BE0BC]/20 bg-white/8 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-wider text-[#9BE0BC]">
-            Banc d’essai occupé
-          </p>
-          <p className="mt-2 text-lg font-black">{project.itemName}</p>
-          <p className="mt-1 text-xs font-semibold text-[#BFD1C6]">
-            Axe : {ratingLabel(project.researchRatingKey)}
-          </p>
-        </div>
-        <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-[10px] font-black uppercase text-[#071A17]">
-          Résultat le {formatDate(project.completesOn)}
-        </span>
-      </div>
-      <p className="mt-4 text-xs font-semibold leading-5 text-[#D6DFD2]">
-        Le prochain chargement après cette date révélera une amélioration de +1
-        ou une dégradation de −1.
-      </p>
-    </div>
   );
 }
 
@@ -732,8 +627,6 @@ function SuccessMessage({ state }: { state: string }) {
   const messages: Record<string, string> = {
     "contrat-signe":
       "Le contrat est signé. Le vélo du partenaire est disponible sans limite de stock pendant le partenariat.",
-    "recherche-lancee":
-      "La recherche R&D est lancée. Son résultat sera révélé dans trois jours.",
     "proposition-acceptee":
       "La série limitée est désormais disponible sans limite de stock pendant le partenariat.",
   };

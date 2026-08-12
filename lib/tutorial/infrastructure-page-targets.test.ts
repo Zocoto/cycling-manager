@@ -14,10 +14,7 @@ const materialPage = readFileSync(
 );
 
 const tutorialCenter = readFileSync(
-  join(
-    process.cwd(),
-    "components/tutorial/tutorial-center-menu.tsx",
-  ),
+  join(process.cwd(), "components/tutorial/tutorial-center-menu.tsx"),
   "utf8",
 );
 
@@ -29,7 +26,6 @@ describe("infrastructure tutorial integration", () => {
       "infrastructure-tabs",
       "infrastructure-data-room",
       "infrastructure-staff-academy",
-      "infrastructure-roadmap",
       "infrastructure-school-effect",
       "infrastructure-school-map",
     ]) {
@@ -51,23 +47,18 @@ describe("infrastructure tutorial integration", () => {
     );
   });
 
-
   it("propose le point d’interrogation et reprend le parcours en cours", () => {
     expect(infrastructurePage).toContain(
       "tutorialKey={INFRASTRUCTURE_TUTORIAL_KEY}",
     );
     expect(infrastructurePage).toContain("<TutorialRouteResume");
-    expect(infrastructurePage).toContain(
-      "currentInfrastructureTutorialRoute",
-    );
+    expect(infrastructurePage).toContain("currentInfrastructureTutorialRoute");
   });
 
   it("ajoute le parcours au Centre des didacticiels", () => {
     expect(tutorialCenter).toContain("INFRASTRUCTURE_TUTORIAL_KEY");
     expect(tutorialCenter).toContain("Développer ses infrastructures");
-    expect(tutorialCenter).toContain(
-      "infrastructurePresentation.statusLabel",
-    );
+    expect(tutorialCenter).toContain("infrastructurePresentation.statusLabel");
   });
 
   it("conserve un accès contextuel au didacticiel Équipements", () => {

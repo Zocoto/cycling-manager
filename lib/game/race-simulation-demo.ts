@@ -189,6 +189,7 @@ export function createCalendarSimulationInput({
     stageType: stage.stageType,
     profileType: stage.profileType,
     raceCountryCode: edition.countryCode,
+    gameDayIndex: stage.gameDayIndex,
     isStageRace: edition.raceFormat === "stage_race",
     seed,
     weather: getRaceWeather(`${edition.id}:${stage.id}:weather`, {

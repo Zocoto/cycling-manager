@@ -3,10 +3,8 @@ import type { TutorialDefinition } from "@/types/tutorial";
 export const STAFF_TUTORIAL_KEY = "staff";
 export const STAFF_TUTORIAL_VERSION = 1;
 export const STAFF_TUTORIAL_ROUTE = "/jeu/staff";
-export const STAFF_TUTORIAL_MARKET_ROUTE =
-  `${STAFF_TUTORIAL_ROUTE}?onglet=marche`;
-export const STAFF_TUTORIAL_TEAM_ROUTE =
-  `${STAFF_TUTORIAL_ROUTE}?onglet=equipe`;
+export const STAFF_TUTORIAL_MARKET_ROUTE = `${STAFF_TUTORIAL_ROUTE}?onglet=marche`;
+export const STAFF_TUTORIAL_TEAM_ROUTE = `${STAFF_TUTORIAL_ROUTE}?onglet=equipe`;
 
 export function isStaffTutorialRoute(
   route: string | null | undefined,
@@ -90,9 +88,9 @@ export const staffTutorialDefinition = {
       key: "staff-professions",
       route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-market-listings",
-      title: "Neuf métiers, neuf leviers de progression",
+      title: "Dix métiers, dix leviers de progression",
       content:
-        "L’entraîneur accélère la progression dans sa spécialité ; le scout améliore la détection des jeunes ; le médecin réduit la récupération des blessures ; le kiné protège la forme après les courses ; le nutritionniste améliore la récupération et les compléments ; le mécanicien limite les pertes dues aux avaries.\n\nLe préparateur de parcours renforce les reconnaissances, l’architecte réduit coûts et délais des infrastructures, et le community manager augmente les gains de réputation.\n\nChaque personne est unique : lisez sa nationalité, son niveau, ses spécialités, ses talents et toutes ses lignes d’effets. Deux profils du même métier ne constituent pas nécessairement le même investissement.",
+        "L’entraîneur accélère la progression dans sa spécialité ; le scout améliore la détection des jeunes ; le médecin réduit la récupération des blessures ; le kiné protège la forme après les courses ; le nutritionniste améliore la récupération et les compléments ; le mécanicien limite les pertes dues aux avaries.\n\nLe préparateur de parcours renforce les reconnaissances, l’architecte réduit coûts et délais des infrastructures, le community manager augmente les gains de réputation et l’ingénieur R&D fiabilise les prototypes du laboratoire.\n\nChaque personne est unique : lisez sa nationalité, son niveau, ses spécialités, ses talents et toutes ses lignes d’effets. Deux profils du même métier ne constituent pas nécessairement le même investissement.",
       placement: "top",
       highlightPadding: 8,
     },

@@ -202,40 +202,52 @@ export async function getTeamStaffOverview(
   if (!context) return null;
 
   const marketDate = formatParisDate(new Date());
-  const [batchResult, contractsResult, transactionsResult, countriesResult] =
-    await Promise.all([
-      admin
-        .from("staff_market_batches")
-        .select("id, market_date")
-        .eq("market_date", marketDate)
-        .maybeSingle<BatchRow>(),
-      admin
-        .from("staff_contracts")
-        .select(
-          "id, staff_member_id, salary_per_season, currency_code, signing_fee, signed_at",
-        )
-        .eq("team_id", context.teamSeason.team_id)
-        .eq("status", "active")
-        .order("signed_at", { ascending: true })
-        .returns<ContractRow[]>(),
-      admin
-        .from("team_finance_transactions")
-        .select("amount")
-        .eq("team_season_id", context.teamSeason.id)
-        .eq("status", "pending")
-        .returns<FinanceRow[]>(),
-      admin
-        .from("countries")
-        .select("id, name, iso_alpha2, is_active")
-        .eq("is_active", true)
-        .order("name")
-        .returns<CountryRow[]>(),
-    ]);
+  const [
+    batchResult,
+    contractsResult,
+    transactionsResult,
+    countriesResult,
+    researchLabResult,
+  ] = await Promise.all([
+    admin
+      .from("staff_market_batches")
+      .select("id, market_date")
+      .eq("market_date", marketDate)
+      .maybeSingle<BatchRow>(),
+    admin
+      .from("staff_contracts")
+      .select(
+        "id, staff_member_id, salary_per_season, currency_code, signing_fee, signed_at",
+      )
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("status", "active")
+      .order("signed_at", { ascending: true })
+      .returns<ContractRow[]>(),
+    admin
+      .from("team_finance_transactions")
+      .select("amount")
+      .eq("team_season_id", context.teamSeason.id)
+      .eq("status", "pending")
+      .returns<FinanceRow[]>(),
+    admin
+      .from("countries")
+      .select("id, name, iso_alpha2, is_active")
+      .eq("is_active", true)
+      .order("name")
+      .returns<CountryRow[]>(),
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("infrastructure_code", "research_lab")
+      .maybeSingle<{ level: number }>(),
+  ]);
 
   assertQuery(batchResult.error, "le marché du staff du jour");
   assertQuery(contractsResult.error, "le staff de l’équipe");
   assertQuery(transactionsResult.error, "le budget projeté");
   assertQuery(countriesResult.error, "les nationalités du staff");
+  assertQuery(researchLabResult.error, "le Laboratoire R&D");
 
   const batch = batchResult.data;
   const { data: listingRows, error: listingsError } = batch
@@ -335,6 +347,10 @@ export async function getTeamStaffOverview(
     );
     const hireBlockedReason =
       commonBlockReason ??
+      (member.role === "research_engineer" &&
+      Number(researchLabResult.data?.level ?? 0) < 1
+        ? "Construisez le Laboratoire R&D avant de recruter cet ingénieur."
+        : null) ??
       (member.role === "nutritionist" && activeNutritionistCount >= 3
         ? "Limite atteinte : une équipe ne peut employer que 3 nutritionnistes actifs."
         : null) ??

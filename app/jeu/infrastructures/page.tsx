@@ -47,40 +47,10 @@ type PageProps = {
   }>;
 };
 
-const futureFacilities = [
-  {
-    name: "Soufflerie & Bike Fit Lab",
-    detail:
-      "Sessions limitées pour optimiser les performances en plaine, prologue et contre-la-montre.",
-  },
-  {
-    name: "Centre d’altitude modulable",
-    detail:
-      "Blocs d’acclimatation ciblés avec indisponibilité et impact temporaire sur la forme.",
-  },
-  {
-    name: "Clinique de récupération avancée",
-    detail:
-      "Capacités de soin supplémentaires et synergie avec le médecin, le kiné et le nutritionniste.",
-  },
-  {
-    name: "Hub logistique itinérant",
-    detail:
-      "Réduction future des frais de reconnaissance, de stage et de déplacement.",
-  },
-  {
-    name: "Atelier technique",
-    detail:
-      "Entretien du matériel et amélioration de l’efficacité des mécaniciens.",
-  },
-];
-
 const infrastructureCodesByStartingCost =
   getTeamInfrastructureCodesByStartingCost();
 
-export default async function InfrastructuresPage({
-  searchParams,
-}: PageProps) {
+export default async function InfrastructuresPage({ searchParams }: PageProps) {
   const query = await searchParams;
   const activeTab: Tab =
     query.onglet === "international" ? "international" : "batiments";
@@ -162,9 +132,9 @@ export default async function InfrastructuresPage({
                 />
               </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">
-                Engagez une part majeure de la trésorerie dans des bâtiments
-                qui suivent l’équipe au fil des saisons. Un seul chantier peut
-                être mené à la fois.
+                Engagez une part majeure de la trésorerie dans des bâtiments qui
+                suivent l’équipe au fil des saisons. Un seul chantier peut être
+                mené à la fois.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <HeroMetric
@@ -181,7 +151,11 @@ export default async function InfrastructuresPage({
                 />
                 <HeroMetric
                   label="Académie"
-                  value={academy.academyLevel ? `Niveau ${academy.academyLevel}` : "À construire"}
+                  value={
+                    academy.academyLevel
+                      ? `Niveau ${academy.academyLevel}`
+                      : "À construire"
+                  }
                 />
               </div>
             </div>
@@ -219,9 +193,7 @@ export default async function InfrastructuresPage({
           </div>
         </header>
 
-        {query.succes ? (
-          <Notice tone="success">{query.succes}</Notice>
-        ) : null}
+        {query.succes ? <Notice tone="success">{query.succes}</Notice> : null}
         {query.erreur ? <Notice tone="error">{query.erreur}</Notice> : null}
 
         {overview.notifications.length ? (
@@ -281,7 +253,6 @@ export default async function InfrastructuresPage({
               </p>
             </section>
           )}
-
         </div>
 
         <nav
@@ -386,8 +357,8 @@ export default async function InfrastructuresPage({
                         currency={overview.currency}
                         prerequisiteMessage={
                           code === "club_shop" &&
-                          overview.infrastructureLevels
-                            .fan_club_headquarters < 1
+                          overview.infrastructureLevels.fan_club_headquarters <
+                            1
                             ? "Construisez d’abord le siège social du Fan Club."
                             : null
                         }
@@ -395,38 +366,6 @@ export default async function InfrastructuresPage({
                     </div>
                   );
                 })}
-              </div>
-            </section>
-
-            <section data-tutorial-id="infrastructure-roadmap">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">
-                Plan directeur
-              </p>
-              <h2 className="mt-2 text-3xl font-black text-[#183F37]">
-                Prochains pôles structurants
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-                Leur moteur de construction est prêt à les accueillir. Leurs
-                interactions sportives seront activées lors de livraisons
-                dédiées afin de préserver l’équilibre.
-              </p>
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {futureFacilities.map((facility) => (
-                  <article
-                    key={facility.name}
-                    className="rounded-2xl border border-[#315B3E]/12 bg-[#0B302B] p-5 text-white"
-                  >
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#F2C94C]">
-                      Prochaine livraison
-                    </span>
-                    <h3 className="mt-4 text-xl font-black">
-                      {facility.name}
-                    </h3>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-[#BFD1C6]">
-                      {facility.detail}
-                    </p>
-                  </article>
-                ))}
               </div>
             </section>
           </div>
@@ -441,9 +380,9 @@ export default async function InfrastructuresPage({
               </p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[#7B6B37]">
                 Chaque étoile de centre ajoute 10 points de probabilité de
-                gagner une étoile entière de potentiel lors d’une détection
-                dans le pays. Les étoiles de toutes les équipes se cumulent,
-                avec un plafond mondial de 90 %.
+                gagner une étoile entière de potentiel lors d’une détection dans
+                le pays. Les étoiles de toutes les équipes se cumulent, avec un
+                plafond mondial de 90 %.
               </p>
             </div>
             <div data-tutorial-id="infrastructure-school-map">

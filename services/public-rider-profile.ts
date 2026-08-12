@@ -368,7 +368,8 @@ type EquipmentItemRow = {
   image_path: string;
   effect_summary: string;
   effect_payload: unknown;
-  acquisition_channel: "commercial" | "equipment_partner";
+  acquisition_channel:
+    "commercial" | "equipment_partner" | "research_prototype";
 };
 
 type EquipmentPartnerContractRow = {

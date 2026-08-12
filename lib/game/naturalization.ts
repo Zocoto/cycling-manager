@@ -79,10 +79,7 @@ export function findContinuousProfessionalTenureStart({
 }: {
   currentContract: ProfessionalContractTenure;
   contracts: ProfessionalContractTenure[];
-}): Pick<
-  ProfessionalContractTenure,
-  "startGameYear" | "joinedDayNumber"
-> {
+}): Pick<ProfessionalContractTenure, "startGameYear" | "joinedDayNumber"> {
   let startGameYear = currentContract.startGameYear;
   let joinedDayNumber = clampDay(currentContract.joinedDayNumber);
 
@@ -115,6 +112,7 @@ export function evaluateNaturalizationEligibility({
   targetCountry,
   hasNationalChampionshipTitle = false,
   available = true,
+  requiredDays: requiredDaysOverride,
 }: {
   level: NaturalizationLevel;
   elapsedDays: number;
@@ -122,8 +120,12 @@ export function evaluateNaturalizationEligibility({
   targetCountry: NaturalizationCountry;
   hasNationalChampionshipTitle?: boolean;
   available?: boolean;
+  requiredDays?: number;
 }): NaturalizationEligibility {
-  const requiredDays = getNaturalizationRequiredDays(level);
+  const requiredDays = Math.max(
+    0,
+    Math.floor(requiredDaysOverride ?? getNaturalizationRequiredDays(level)),
+  );
   const normalizedElapsedDays = Math.max(0, Math.floor(elapsedDays));
   const remainingDays = Math.max(0, requiredDays - normalizedElapsedDays);
 
