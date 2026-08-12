@@ -1,4 +1,9 @@
 import type { ReferralTrophyMilestone } from "@/lib/game/referrals";
+import {
+  ACHIEVEMENT_TROPHY_DEFINITIONS,
+  type AchievementTrophyKey,
+  type AchievementTrophyVisualVariant,
+} from "@/lib/game/achievement-trophies";
 
 export type TrophyKind =
   | "grand_tour"
@@ -8,6 +13,7 @@ export type TrophyKind =
   | "uci_team"
   | "uci_rider"
   | "special"
+  | "achievement"
   | "attendance"
   | "referral";
 
@@ -37,6 +43,8 @@ export type CareerTrophy = {
   palette: TrophyPalette;
   description?: string | null;
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
+  imagePath?: string | null;
+  visualVariant?: AchievementTrophyVisualVariant | null;
 };
 
 export type ClaimableTrophyReward = {
@@ -58,6 +66,7 @@ export type TrophyGallery = {
     championships: number;
     uciTitles: number;
     special: number;
+    achievements: number;
     attendance: number;
     referrals: number;
   };
@@ -73,9 +82,7 @@ export type TrophyRaceWin = {
   isGrandTour: boolean;
   isMonument: boolean;
   competitionType?:
-    | "standard"
-    | "world_championship"
-    | "continental_championship";
+    "standard" | "world_championship" | "continental_championship";
 };
 
 export type TrophyTeamUciTitle = {
@@ -98,7 +105,7 @@ export type TrophyAttendance = {
 
 export type TrophySpecialAward = {
   id: string;
-  trophyKey: typeof ALPHA_TESTER_TROPHY_KEY;
+  trophyKey: typeof ALPHA_TESTER_TROPHY_KEY | AchievementTrophyKey;
   availableAt: string;
   claimedAt: string;
   href: string | null;
@@ -373,35 +380,58 @@ export function buildTrophyGallery({
     palette: UCI_RIDER_PALETTE,
   }));
 
-  const specialTrophies = specialAwards.map<CareerTrophy>((award) => ({
-    id: `special:${award.id}`,
-    kind: "special",
-    title: ALPHA_TESTER_TROPHY_DEFINITION.title,
-    competitionName: ALPHA_TESTER_TROPHY_DEFINITION.competitionName,
-    seasonName: ALPHA_TESTER_TROPHY_DEFINITION.seasonName,
-    wonAt: award.claimedAt,
-    riderName: null,
-    href: award.href,
-    inscription: ALPHA_TESTER_TROPHY_DEFINITION.inscription,
-    palette: ALPHA_TESTER_TROPHY_DEFINITION.palette,
-    description: ALPHA_TESTER_TROPHY_DEFINITION.description,
-    avatarFrameKey: ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
-  }));
+  const specialTrophies = specialAwards.map<CareerTrophy>((award) => {
+    if (award.trophyKey === ALPHA_TESTER_TROPHY_KEY) {
+      return {
+        id: `special:${award.id}`,
+        kind: "special",
+        title: ALPHA_TESTER_TROPHY_DEFINITION.title,
+        competitionName: ALPHA_TESTER_TROPHY_DEFINITION.competitionName,
+        seasonName: ALPHA_TESTER_TROPHY_DEFINITION.seasonName,
+        wonAt: award.claimedAt,
+        riderName: null,
+        href: award.href,
+        inscription: ALPHA_TESTER_TROPHY_DEFINITION.inscription,
+        palette: ALPHA_TESTER_TROPHY_DEFINITION.palette,
+        description: ALPHA_TESTER_TROPHY_DEFINITION.description,
+        avatarFrameKey: ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
+      };
+    }
 
-  const attendanceCareerTrophies = attendanceTrophies.map<CareerTrophy>((trophy) => ({
-    id: `attendance:${trophy.id}`,
-    kind: "attendance",
-    title: "Assidu",
-    competitionName: "Présence parfaite",
-    seasonName: trophy.seasonName,
-    wonAt: trophy.awardedAt,
-    riderName: null,
-    href: "/jeu/directeur-sportif#assidu-avatar-accessory",
-    inscription: "Tous les jours · Saison complète",
-    palette: ATTENDANCE_PALETTE,
-    description:
-      "Décerné après une saison entière sans manquer un seul jour de connexion. Débloque les lunettes Premier de la classe dans l’éditeur d’avatar.",
-  }));
+    const definition = ACHIEVEMENT_TROPHY_DEFINITIONS[award.trophyKey];
+    return {
+      id: `achievement:${award.id}`,
+      kind: "achievement",
+      title: definition.title,
+      competitionName: definition.competitionName,
+      seasonName: definition.seasonName,
+      wonAt: award.claimedAt,
+      riderName: null,
+      href: award.href,
+      inscription: definition.inscription,
+      palette: definition.palette,
+      description: definition.description,
+      imagePath: definition.imagePath,
+      visualVariant: definition.visualVariant,
+    };
+  });
+
+  const attendanceCareerTrophies = attendanceTrophies.map<CareerTrophy>(
+    (trophy) => ({
+      id: `attendance:${trophy.id}`,
+      kind: "attendance",
+      title: "Assidu",
+      competitionName: "Présence parfaite",
+      seasonName: trophy.seasonName,
+      wonAt: trophy.awardedAt,
+      riderName: null,
+      href: "/jeu/directeur-sportif#assidu-avatar-accessory",
+      inscription: "Tous les jours · Saison complète",
+      palette: ATTENDANCE_PALETTE,
+      description:
+        "Décerné après une saison entière sans manquer un seul jour de connexion. Débloque les lunettes Premier de la classe dans l’éditeur d’avatar.",
+    }),
+  );
 
   const referralCareerTrophies = referralTrophies.map((trophy) => ({
     id: `referral:${trophy.count}`,
@@ -432,18 +462,20 @@ export function buildTrophyGallery({
       total: trophies.length,
       grandTours: trophies.filter((trophy) => trophy.kind === "grand_tour")
         .length,
-      monuments: trophies.filter((trophy) => trophy.kind === "monument")
-        .length,
+      monuments: trophies.filter((trophy) => trophy.kind === "monument").length,
       championships: trophies.filter(
         (trophy) =>
           trophy.kind === "world_championship" ||
-          trophy.kind === "continental_championship"
+          trophy.kind === "continental_championship",
       ).length,
       uciTitles: trophies.filter(
-        (trophy) =>
-          trophy.kind === "uci_team" || trophy.kind === "uci_rider"
+        (trophy) => trophy.kind === "uci_team" || trophy.kind === "uci_rider",
       ).length,
-      special: specialTrophies.length,
+      special: specialTrophies.filter((trophy) => trophy.kind === "special")
+        .length,
+      achievements: specialTrophies.filter(
+        (trophy) => trophy.kind === "achievement",
+      ).length,
       attendance: attendanceCareerTrophies.length,
       referrals: trophies.filter((trophy) => trophy.kind === "referral").length,
     },
@@ -472,6 +504,7 @@ function compareTrophies(left: CareerTrophy, right: CareerTrophy) {
 
 function getTrophyWeight(kind: TrophyKind) {
   if (kind === "special") return 500;
+  if (kind === "achievement") return 475;
   if (kind === "uci_team") return 400;
   if (kind === "world_championship") return 380;
   if (kind === "uci_rider") return 350;

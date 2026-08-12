@@ -1,35 +1,36 @@
+import Image from "next/image";
 import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gift";
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
+import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
 import Link from "@/components/ui/app-link";
 import type {
   CareerTrophy,
   TrophyGallery as TrophyGalleryData,
 } from "@/lib/game/trophy-gallery";
 
-export function TrophyGallery({
-  gallery,
-}: {
-  gallery: TrophyGalleryData;
-}) {
+export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
   const specialTrophies = gallery.trophies.filter(
-    (trophy) => trophy.kind === "special"
+    (trophy) => trophy.kind === "special",
+  );
+  const achievementTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "achievement",
   );
   const uciTrophies = gallery.trophies.filter(
-    (trophy) => trophy.kind === "uci_team" || trophy.kind === "uci_rider"
+    (trophy) => trophy.kind === "uci_team" || trophy.kind === "uci_rider",
   );
   const raceTrophies = gallery.trophies.filter(
-    (trophy) => trophy.kind === "grand_tour" || trophy.kind === "monument"
+    (trophy) => trophy.kind === "grand_tour" || trophy.kind === "monument",
   );
   const championshipTrophies = gallery.trophies.filter(
     (trophy) =>
       trophy.kind === "world_championship" ||
-      trophy.kind === "continental_championship"
+      trophy.kind === "continental_championship",
   );
   const attendanceTrophies = gallery.trophies.filter(
-    (trophy) => trophy.kind === "attendance"
+    (trophy) => trophy.kind === "attendance",
   );
   const referralTrophies = gallery.trophies.filter(
-    (trophy) => trophy.kind === "referral"
+    (trophy) => trophy.kind === "referral",
   );
 
   return (
@@ -63,14 +64,33 @@ export function TrophyGallery({
 
             <div
               data-trophy-metrics
-              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-7"
+              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-8"
             >
               <GalleryMetric label="Total" value={gallery.counts.total} />
-              <GalleryMetric label="Grands Tours" value={gallery.counts.grandTours} />
-              <GalleryMetric label="Monuments" value={gallery.counts.monuments} />
-              <GalleryMetric label="CM & CC" value={gallery.counts.championships} />
-              <GalleryMetric label="Titres UCI" value={gallery.counts.uciTitles} />
-              <GalleryMetric label="Assiduité" value={gallery.counts.attendance} />
+              <GalleryMetric
+                label="Grands Tours"
+                value={gallery.counts.grandTours}
+              />
+              <GalleryMetric
+                label="Monuments"
+                value={gallery.counts.monuments}
+              />
+              <GalleryMetric
+                label="CM & CC"
+                value={gallery.counts.championships}
+              />
+              <GalleryMetric
+                label="Titres UCI"
+                value={gallery.counts.uciTitles}
+              />
+              <GalleryMetric
+                label="Défis"
+                value={gallery.counts.achievements}
+              />
+              <GalleryMetric
+                label="Assiduité"
+                value={gallery.counts.attendance}
+              />
               <GalleryMetric label="Parrain" value={gallery.counts.referrals} />
             </div>
           </div>
@@ -92,6 +112,15 @@ export function TrophyGallery({
               />
             ) : null}
 
+            {achievementTrophies.length > 0 ? (
+              <TrophyShelf
+                eyebrow="Objectifs maîtres"
+                title="Cabinet des accomplissements"
+                description="Ces pièces uniques récompensent les défis de carrière les plus exigeants et les découvertes les mieux cachées."
+                trophies={achievementTrophies}
+                epic
+              />
+            ) : null}
             {referralTrophies.length > 0 ? (
               <TrophyShelf
                 eyebrow="Transmission"
@@ -205,13 +234,8 @@ function TrophyShelf({
   );
 }
 
-function TrophyCard({
-  trophy,
-  epic,
-}: {
-  trophy: CareerTrophy;
-  epic: boolean;
-}) {
+function TrophyCard({ trophy, epic }: { trophy: CareerTrophy; epic: boolean }) {
+  const frameClassName = getTrophyFrameClassName(trophy, epic);
   const content = (
     <>
       <div
@@ -220,9 +244,8 @@ function TrophyCard({
         style={{ backgroundColor: trophy.palette.glow }}
       />
       <div
-        className={`relative flex shrink-0 items-center justify-center rounded-[1.4rem] border border-white/10 bg-black/20 ${
-          epic ? "h-44 w-full sm:h-48 sm:w-48" : "h-40 w-full sm:w-40"
-        }`}
+        data-trophy-visual={trophy.visualVariant ?? "classic"}
+        className={`relative flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/20 ${frameClassName}`}
       >
         <TrophyIllustration trophy={trophy} epic={epic} />
       </div>
@@ -238,7 +261,9 @@ function TrophyCard({
         >
           {getTrophyKindLabel(trophy.kind)}
         </span>
-        <h4 className={`mt-3 font-black leading-tight ${epic ? "text-2xl" : "text-xl"}`}>
+        <h4
+          className={`mt-3 font-black leading-tight ${epic ? "text-2xl" : "text-xl"}`}
+        >
           {trophy.title}
         </h4>
         <p className="mt-2 text-sm font-bold text-[#BBD0C6]">
@@ -300,11 +325,26 @@ function TrophyIllustration({
   trophy: CareerTrophy;
   epic: boolean;
 }) {
+  if (trophy.imagePath) {
+    return (
+      <Image
+        src={trophy.imagePath}
+        alt=""
+        width={768}
+        height={768}
+        sizes={
+          epic
+            ? "(min-width: 640px) 12rem, 100vw"
+            : "(min-width: 640px) 10rem, 100vw"
+        }
+        className="h-full w-full rounded-[1.2rem] object-cover"
+      />
+    );
+  }
+
   if (trophy.kind === "special") {
     return (
-      <AlphaTesterTrophyMark
-        className={epic ? "h-40 w-40" : "h-36 w-36"}
-      />
+      <AlphaTesterTrophyMark className={epic ? "h-40 w-40" : "h-36 w-36"} />
     );
   }
 
@@ -328,7 +368,13 @@ function TrophyIllustration({
       fill="none"
     >
       <defs>
-        <linearGradient id={`cup-${trophy.id}`} x1="50" y1="30" x2="130" y2="160">
+        <linearGradient
+          id={`cup-${trophy.id}`}
+          x1="50"
+          y1="30"
+          x2="130"
+          y2="160"
+        >
           <stop stopColor={trophy.palette.secondary} />
           <stop offset="0.45" stopColor={trophy.palette.primary} />
           <stop offset="1" stopColor={trophy.palette.accent} />
@@ -337,7 +383,13 @@ function TrophyIllustration({
           <stop stopColor="#FFFFFF" stopOpacity="0.78" />
           <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
-        <filter id={`glow-${trophy.id}`} x="-60%" y="-60%" width="220%" height="220%">
+        <filter
+          id={`glow-${trophy.id}`}
+          x="-60%"
+          y="-60%"
+          width="220%"
+          height="220%"
+        >
           <feGaussianBlur stdDeviation={isUci ? "8" : "5"} />
         </filter>
       </defs>
@@ -379,7 +431,11 @@ function TrophyIllustration({
       )}
 
       <path
-        d={isUci ? "M46 34h88l-8 52c-3 23-19 38-36 38S57 109 54 86L46 34Z" : "M52 40h76l-7 46c-3 21-16 33-31 33S62 107 59 86l-7-46Z"}
+        d={
+          isUci
+            ? "M46 34h88l-8 52c-3 23-19 38-36 38S57 109 54 86L46 34Z"
+            : "M52 40h76l-7 46c-3 21-16 33-31 33S62 107 59 86l-7-46Z"
+        }
         fill={`url(#cup-${trophy.id})`}
         stroke={trophy.palette.secondary}
         strokeWidth="3"
@@ -425,7 +481,13 @@ function TrophyIllustration({
 
       {isUci ? (
         <>
-          <circle cx="90" cy="72" r="23" fill={trophy.palette.accent} opacity="0.88" />
+          <circle
+            cx="90"
+            cy="72"
+            r="23"
+            fill={trophy.palette.accent}
+            opacity="0.88"
+          />
           <path
             d="m90 52 5.4 11 12.1 1.7-8.8 8.5 2.1 12-10.8-5.7-10.8 5.7 2.1-12-8.8-8.5L84.6 63 90 52Z"
             fill={trophy.palette.secondary}
@@ -443,12 +505,27 @@ function TrophyIllustration({
             opacity="0.85"
             transform="rotate(45 90 74)"
           />
-          <path d="m76 74 14-14 14 14-14 14-14-14Z" stroke={trophy.palette.secondary} strokeWidth="3" />
+          <path
+            d="m76 74 14-14 14 14-14 14-14-14Z"
+            stroke={trophy.palette.secondary}
+            strokeWidth="3"
+          />
         </>
       ) : (
         <>
-          <circle cx="90" cy="72" r="22" fill={trophy.palette.accent} opacity="0.88" />
-          <path d="M77 72h26M90 59v26" stroke={trophy.palette.secondary} strokeWidth="5" strokeLinecap="round" />
+          <circle
+            cx="90"
+            cy="72"
+            r="22"
+            fill={trophy.palette.accent}
+            opacity="0.88"
+          />
+          <path
+            d="M77 72h26M90 59v26"
+            stroke={trophy.palette.secondary}
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
         </>
       )}
     </svg>
@@ -526,9 +603,25 @@ function AssiduTrophyMark({
           strokeWidth="3.5"
           strokeLinejoin="round"
         />
-        <path d="M85 65h10" stroke="#D7A928" strokeWidth="3.5" strokeLinecap="round" />
-        <path d="M69 63l-8-5M111 63l8-5" stroke="#FFF2B8" strokeWidth="3" strokeLinecap="round" />
-        <path d="m82 91 8-8 8 8" stroke="#D7A928" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M85 65h10"
+          stroke="#D7A928"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M69 63l-8-5M111 63l8-5"
+          stroke="#FFF2B8"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="m82 91 8-8 8 8"
+          stroke="#D7A928"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </g>
       <path
         d="M61 120c12-3 22 0 29 7 7-7 17-10 29-7v25c-12-3-22 0-29 7-7-7-17-10-29-7v-25Z"
@@ -538,9 +631,29 @@ function AssiduTrophyMark({
         strokeLinejoin="round"
       />
       <path d="M90 127v25" stroke="#D7A928" strokeWidth="2.5" />
-      <path d="M69 132c6-1 11 0 16 3M111 132c-6-1-11 0-16 3" stroke="#80640C" strokeWidth="2" strokeLinecap="round" opacity="0.65" />
-      <rect x="48" y="157" width="84" height="16" rx="5" fill="#173F37" stroke="#D7A928" strokeWidth="3" />
-      <path d="M61 157h58l-7-11H68l-7 11Z" fill={`url(#${gradientId})`} stroke="#FFF2B8" strokeWidth="2" />
+      <path
+        d="M69 132c6-1 11 0 16 3M111 132c-6-1-11 0-16 3"
+        stroke="#80640C"
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.65"
+      />
+      <rect
+        x="48"
+        y="157"
+        width="84"
+        height="16"
+        rx="5"
+        fill="#173F37"
+        stroke="#D7A928"
+        strokeWidth="3"
+      />
+      <path
+        d="M61 157h58l-7-11H68l-7 11Z"
+        fill={`url(#${gradientId})`}
+        stroke="#FFF2B8"
+        strokeWidth="2"
+      />
     </svg>
   );
 }
@@ -623,12 +736,30 @@ function LongTermChallenges() {
           </article>
         ))}
       </div>
+      <HiddenSwitchbackLink />
     </section>
   );
 }
 
+function getTrophyFrameClassName(trophy: CareerTrophy, epic: boolean) {
+  if (trophy.visualVariant === "astrolabe")
+    return "h-64 w-full rounded-[4rem_4rem_1.2rem_1.2rem] sm:w-40";
+  if (trophy.visualVariant === "panorama")
+    return "h-40 w-full rounded-xl sm:h-44 sm:w-72";
+  if (trophy.visualVariant === "apparatus")
+    return "h-52 w-full rounded-[2.3rem_.8rem_2.3rem_.8rem] sm:w-52";
+  if (trophy.visualVariant === "regalia")
+    return "h-44 w-full rounded-[50%_50%_1rem_1rem] sm:w-64";
+  if (trophy.visualVariant === "switchback")
+    return "h-64 w-full rounded-[999px_999px_1.2rem_1.2rem] sm:w-36";
+  return epic
+    ? "h-44 w-full rounded-[1.4rem] sm:h-48 sm:w-48"
+    : "h-40 w-full rounded-[1.4rem] sm:w-40";
+}
+
 function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
   if (kind === "special") return "Distinction Alpha";
+  if (kind === "achievement") return "Trophée maître";
   if (kind === "grand_tour") return "Grand Tour";
   if (kind === "monument") return "Monument";
   if (kind === "world_championship") return "Champion du monde";

@@ -10,6 +10,7 @@ import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
+import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
 import {
   filterGameObjectives,
   parseGameObjectiveStatusFilter,
@@ -53,10 +54,21 @@ const groupLabels: Record<string, string> = {
   reconnaissance: "Reconnaissance",
   health: "Santé et récupération",
   tutorials: "Didacticiels",
+  infrastructures: "Infrastructures",
+  rider_preparation: "Préparation coureurs",
+  research: "Laboratoire R&D",
+  social: "Vie du peloton",
+  diversity: "Diversité",
+  referrals: "Parrainage",
+  fan_club: "Fan Club",
+  championships: "Championnats",
 };
 
 const groupLinks: Record<string, { href: string; label: string }> = {
-  onboarding: { href: "/jeu/directeur-sportif", label: "Continuer ma création" },
+  onboarding: {
+    href: "/jeu/directeur-sportif",
+    label: "Continuer ma création",
+  },
   victories: { href: "/jeu/resultats", label: "Voir les résultats" },
   roster: { href: "/jeu/effectif", label: "Gérer l’effectif" },
   equipment: { href: "/jeu/materiel", label: "Voir le matériel" },
@@ -75,6 +87,23 @@ const groupLinks: Record<string, { href: string; label: string }> = {
   reconnaissance: { href: "/jeu/entrainement", label: "Planifier un stage" },
   health: { href: "/jeu/centre-de-soin", label: "Voir le centre médical" },
   tutorials: { href: "/jeu", label: "Ouvrir les didacticiels" },
+  infrastructures: {
+    href: "/jeu/infrastructures",
+    label: "Voir les infrastructures",
+  },
+  rider_preparation: {
+    href: "/jeu/entrainement",
+    label: "Préparer les coureurs",
+  },
+  research: {
+    href: "/jeu/materiel/laboratoire",
+    label: "Ouvrir le laboratoire",
+  },
+  social: { href: "/jeu/gazette", label: "Lire la Cyclogazette" },
+  diversity: { href: "/jeu/effectif", label: "Voir le collectif" },
+  referrals: { href: "/jeu/parrainage", label: "Voir le parrainage" },
+  fan_club: { href: "/jeu/fan-club", label: "Ouvrir le Fan Club" },
+  championships: { href: "/jeu/resultats", label: "Voir les championnats" },
 };
 
 export default async function ObjectivesPage({
@@ -96,15 +125,16 @@ export default async function ObjectivesPage({
     redirect("/connexion");
   }
 
-  const [headerData, objectives, trophyGallery, dailyRewards] = await Promise.all([
-    getGameHeaderData(supabase, user.id),
-    getCurrentGameObjectives(supabase),
-    getSportingDirectorTrophyGallery(user.id),
-    getCurrentDailyRewardOverview(supabase),
-  ]);
+  const [headerData, objectives, trophyGallery, dailyRewards] =
+    await Promise.all([
+      getGameHeaderData(supabase, user.id),
+      getCurrentGameObjectives(supabase),
+      getSportingDirectorTrophyGallery(user.id),
+      getCurrentDailyRewardOverview(supabase),
+    ]);
 
   const availableGroups = Array.from(
-    new Set(objectives.map((objective) => objective.group))
+    new Set(objectives.map((objective) => objective.group)),
   );
   const requestedGroup = readQuery(query.groupe);
   const selectedGroup =
@@ -113,7 +143,7 @@ export default async function ObjectivesPage({
       : "all";
   const selectedType = parseGameObjectiveTypeFilter(readQuery(query.type));
   const selectedStatus = parseGameObjectiveStatusFilter(
-    readQuery(query.statut)
+    readQuery(query.statut),
   );
   const visibleObjectives = filterGameObjectives(objectives, {
     type: selectedType,
@@ -121,21 +151,21 @@ export default async function ObjectivesPage({
     group: selectedGroup,
   });
   const primaryObjectives = visibleObjectives.filter(
-    (objective) => objective.type === "primary"
+    (objective) => objective.type === "primary",
   );
   const secondaryObjectives = visibleObjectives.filter(
-    (objective) => objective.type === "secondary"
+    (objective) => objective.type === "secondary",
   );
   const groupOptions = availableGroups
     .map((group) => ({ value: group, label: groupLabels[group] ?? group }))
     .sort((left, right) => left.label.localeCompare(right.label, "fr"));
   const readyObjectiveCount = objectives.filter(
-    (objective) => objective.completed && !objective.claimedAt
+    (objective) => objective.completed && !objective.claimedAt,
   ).length;
   const readyCount =
     readyObjectiveCount + trophyGallery.claimableTrophies.length;
   const completedCount = objectives.filter(
-    (objective) => objective.completed
+    (objective) => objective.completed,
   ).length;
   const claimedCount =
     objectives.filter((objective) => objective.claimedAt).length +
@@ -186,8 +216,15 @@ export default async function ObjectivesPage({
             </div>
 
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:grid-cols-4 xl:grid-cols-2">
-              <HeroMetric label="Terminés" value={`${completedCount}/${objectives.length}`} />
-              <HeroMetric label="À récupérer" value={String(readyCount)} highlight />
+              <HeroMetric
+                label="Terminés"
+                value={`${completedCount}/${objectives.length}`}
+              />
+              <HeroMetric
+                label="À récupérer"
+                value={String(readyCount)}
+                highlight
+              />
               <HeroMetric label="Réclamés" value={String(claimedCount)} />
               <HeroMetric
                 label="Trophées"
@@ -232,80 +269,81 @@ export default async function ObjectivesPage({
 
         {selectedTab === "objectifs" ? (
           <>
-        {success ? <Notice tone="success">{success}</Notice> : null}
-        {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
+            {success ? <Notice tone="success">{success}</Notice> : null}
+            {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
 
-        {readyObjectiveCount > 0 ? (
-          <aside className="mt-7 flex flex-col gap-4 rounded-2xl border border-[#D6A600]/25 bg-[#FFF7D2] p-5 shadow-[0_12px_30px_rgba(100,75,0,0.08)] sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] text-lg font-black text-[#071A17]">
-                {readyObjectiveCount}
-              </span>
-              <div>
-                <p className="font-black text-[#4A3A00]">
-                  {readyObjectiveCount === 1
-                    ? "Une récompense vous attend"
-                    : `${readyObjectiveCount} récompenses vous attendent`}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[#75631C]">
-                  Les objectifs prêts à être réclamés sont signalés en premier.
-                </p>
-              </div>
+            {readyObjectiveCount > 0 ? (
+              <aside className="mt-7 flex flex-col gap-4 rounded-2xl border border-[#D6A600]/25 bg-[#FFF7D2] p-5 shadow-[0_12px_30px_rgba(100,75,0,0.08)] sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] text-lg font-black text-[#071A17]">
+                    {readyObjectiveCount}
+                  </span>
+                  <div>
+                    <p className="font-black text-[#4A3A00]">
+                      {readyObjectiveCount === 1
+                        ? "Une récompense vous attend"
+                        : `${readyObjectiveCount} récompenses vous attendent`}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[#75631C]">
+                      Les objectifs prêts à être réclamés sont signalés en
+                      premier.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-[#8A7000]">
+                  Versement immédiat et définitif
+                </span>
+                <Link
+                  href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
+                >
+                  Afficher et récupérer →
+                </Link>
+              </aside>
+            ) : null}
+
+            <div id="objectives-list" className="scroll-mt-6">
+              <ObjectiveFilters
+                key={`${selectedType}-${selectedStatus}-${selectedGroup}`}
+                groups={groupOptions}
+                initialType={selectedType}
+                initialStatus={selectedStatus}
+                initialGroup={selectedGroup}
+                totalCount={objectives.length}
+                visibleCount={visibleObjectives.length}
+              />
             </div>
-            <span className="text-xs font-black uppercase tracking-[0.15em] text-[#8A7000]">
-              Versement immédiat et définitif
-            </span>
-            <Link
-              href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"
-            >
-              Afficher et récupérer →
-            </Link>
-          </aside>
-        ) : null}
 
-        <div id="objectives-list" className="scroll-mt-6">
-          <ObjectiveFilters
-            key={`${selectedType}-${selectedStatus}-${selectedGroup}`}
-            groups={groupOptions}
-            initialType={selectedType}
-            initialStatus={selectedStatus}
-            initialGroup={selectedGroup}
-            totalCount={objectives.length}
-            visibleCount={visibleObjectives.length}
-          />
-        </div>
+            <ObjectiveSection
+              eyebrow="Parcours fondateur"
+              title="Objectifs primaires"
+              description="Les quatre jalons qui installent les bases de votre carrière et débloquent rapidement vos premiers moyens."
+              objectives={primaryObjectives}
+              returnPath={returnPath}
+              featured
+            />
 
-        <ObjectiveSection
-          eyebrow="Parcours fondateur"
-          title="Objectifs primaires"
-          description="Les quatre jalons qui installent les bases de votre carrière et débloquent rapidement vos premiers moyens."
-          objectives={primaryObjectives}
-          returnPath={returnPath}
-          featured
-        />
+            <ObjectiveSection
+              eyebrow="Développement de carrière"
+              title="Objectifs secondaires"
+              description="Des paliers durables dans toutes les dimensions du club. Les niveaux supérieurs offrent les objets les plus rares."
+              objectives={secondaryObjectives}
+              returnPath={returnPath}
+            />
 
-        <ObjectiveSection
-          eyebrow="Développement de carrière"
-          title="Objectifs secondaires"
-          description="Des paliers durables dans toutes les dimensions du club. Les niveaux supérieurs offrent les objets les plus rares."
-          objectives={secondaryObjectives}
-          returnPath={returnPath}
-        />
-
-        {visibleObjectives.length === 0 ? (
-          <div className="mt-8 rounded-[1.65rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center">
-            <p className="text-xl font-black text-[#183F37]">
-              Aucun objectif ne correspond à ces filtres.
-            </p>
-            <Link
-              href="/jeu/objectifs?onglet=objectifs#objectives-list"
-              className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B]"
-            >
-              Réinitialiser les filtres
-            </Link>
-          </div>
-        ) : null}
+            {visibleObjectives.length === 0 ? (
+              <div className="mt-8 rounded-[1.65rem] border border-dashed border-[#315B3E]/25 bg-white px-6 py-12 text-center">
+                <p className="text-xl font-black text-[#183F37]">
+                  Aucun objectif ne correspond à ces filtres.
+                </p>
+                <Link
+                  href="/jeu/objectifs?onglet=objectifs#objectives-list"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B]"
+                >
+                  Réinitialiser les filtres
+                </Link>
+              </div>
+            ) : null}
           </>
         ) : selectedTab === "quotidiennes" ? (
           <>
@@ -383,7 +421,10 @@ function ObjectiveSection({
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
             {eyebrow}
           </p>
-          <h2 id={sectionId} className="mt-2 text-3xl font-black tracking-tight">
+          <h2
+            id={sectionId}
+            className="mt-2 text-3xl font-black tracking-tight"
+          >
             {title}
           </h2>
         </div>
@@ -422,6 +463,7 @@ function ObjectiveCard({
   const ready = objective.completed && !objective.claimedAt;
   const claimed = Boolean(objective.claimedAt);
   const groupLink = groupLinks[objective.group];
+  const trophyReward = getAchievementTrophyForObjective(objective.key);
 
   return (
     <article
@@ -463,7 +505,9 @@ function ObjectiveCard({
         <ObjectiveStatus objective={objective} />
       </div>
 
-      <h3 className={`mt-5 font-black text-[#183F37] ${featured ? "text-2xl" : "text-xl"}`}>
+      <h3
+        className={`mt-5 font-black text-[#183F37] ${featured ? "text-2xl" : "text-xl"}`}
+      >
         {objective.title}
       </h3>
       <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
@@ -472,9 +516,12 @@ function ObjectiveCard({
 
       <div className="mt-5">
         <div className="flex items-center justify-between gap-3 text-xs font-black">
-          <span className="uppercase tracking-[0.12em] text-[#60756E]">Progression</span>
+          <span className="uppercase tracking-[0.12em] text-[#60756E]">
+            Progression
+          </span>
           <span className={ready ? "text-[#8A7000]" : "text-[#176951]"}>
-            {formatProgressValue(objective.currentValue)} / {formatProgressValue(objective.targetValue)}
+            {formatProgressValue(objective.currentValue)} /{" "}
+            {formatProgressValue(objective.targetValue)}
           </span>
         </div>
         <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#DCE7E2]">
@@ -505,6 +552,13 @@ function ObjectiveCard({
             <RewardChip
               icon="★"
               label={`${formatProgressValue(objective.reward.reputation)} réputation`}
+            />
+          ) : null}
+          {trophyReward ? (
+            <RewardChip
+              icon="♛"
+              label={`Trophée · ${trophyReward.title}`}
+              rare
             />
           ) : null}
           {objective.reward.itemName ? (
@@ -604,7 +658,9 @@ function HeroMetric({
       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#BFD1C6]">
         {label}
       </p>
-      <p className={`mt-1 text-2xl font-black ${highlight ? "text-[#F2C94C]" : "text-white"}`}>
+      <p
+        className={`mt-1 text-2xl font-black ${highlight ? "text-[#F2C94C]" : "text-white"}`}
+      >
         {value}
       </p>
     </div>

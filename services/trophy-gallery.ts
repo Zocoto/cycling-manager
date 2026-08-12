@@ -1,6 +1,10 @@
 import "server-only";
 
 import {
+  ACHIEVEMENT_TROPHY_DEFINITIONS,
+  isAchievementTrophyKey,
+} from "@/lib/game/achievement-trophies";
+import {
   getUnlockedReferralTrophies,
   type ReferralTrophyMilestone,
 } from "@/lib/game/referrals";
@@ -129,7 +133,7 @@ const EMPTY_GALLERY = buildTrophyGallery({
 });
 
 export async function getSportingDirectorTrophyGallery(
-  authUserId: string
+  authUserId: string,
 ): Promise<TrophyGallery> {
   const normalizedAuthUserId = authUserId.trim();
 
@@ -157,7 +161,7 @@ export async function getSportingDirectorTrophyGallery(
 }
 
 export async function getPublicSportingDirectorTrophyGallery(
-  sportingDirectorId: string
+  sportingDirectorId: string,
 ): Promise<TrophyGallery> {
   const normalizedDirectorId = sportingDirectorId.trim();
 
@@ -172,7 +176,7 @@ export async function getPublicSportingDirectorTrophyGallery(
 }
 
 export async function getSportingDirectorTrophyRewardStatus(
-  authUserId: string
+  authUserId: string,
 ): Promise<SportingDirectorTrophyRewardStatus> {
   const normalizedAuthUserId = authUserId.trim();
 
@@ -208,7 +212,7 @@ export async function getSportingDirectorTrophyRewardStatus(
   return {
     availableCount: rewards.length,
     alphaTesterAvailable: rewards.some(
-      (reward) => reward.trophy_key === ALPHA_TESTER_TROPHY_KEY
+      (reward) => reward.trophy_key === ALPHA_TESTER_TROPHY_KEY,
     ),
   };
 }
@@ -300,9 +304,7 @@ async function loadSportingDirectorTrophyGallery({
     fetchPage: async (chunk, from, to) => {
       const result = await admin
         .from("team_seasons")
-        .select(
-          "id, team_id, season_id, display_name, final_rank, status"
-        )
+        .select("id, team_id, season_id, display_name, final_rank, status")
         .in("team_id", chunk)
         .order("created_at", { ascending: true })
         .range(from, to)
@@ -320,10 +322,10 @@ async function loadSportingDirectorTrophyGallery({
       seasonId: teamSeason.season_id,
       assignments,
       seasonById,
-    })
+    }),
   );
   const managedTeamSeasonIds = managedTeamSeasons.map(
-    (teamSeason) => teamSeason.id
+    (teamSeason) => teamSeason.id,
   );
   const completedSeasonIds = unique(
     managedTeamSeasons.flatMap((teamSeason) => {
@@ -331,7 +333,7 @@ async function loadSportingDirectorTrophyGallery({
       return season?.status === "completed" && teamSeason.status === "completed"
         ? [teamSeason.season_id]
         : [];
-    })
+    }),
   );
 
   const [raceWins, riderUciTitles] = await Promise.all([
@@ -419,7 +421,13 @@ async function loadAttendanceTrophies({
   return (result.data ?? []).flatMap((trophy) => {
     const season = seasonById.get(trophy.season_id);
     return season
-      ? [{ id: trophy.id, seasonName: season.name, awardedAt: trophy.awarded_at } satisfies TrophyAttendance]
+      ? [
+          {
+            id: trophy.id,
+            seasonName: season.name,
+            awardedAt: trophy.awarded_at,
+          } satisfies TrophyAttendance,
+        ]
       : [];
   });
 }
@@ -434,26 +442,45 @@ function mapSpecialTrophies({
   specialAwards: TrophySpecialAward[];
   claimableTrophies: ClaimableTrophyReward[];
 } {
+  const specialAwards = entitlements.flatMap<TrophySpecialAward>(
+    (entitlement) => {
+      if (!entitlement.claimed_at) return [];
+
+      if (entitlement.trophy_key === ALPHA_TESTER_TROPHY_KEY) {
+        return [
+          {
+            id: entitlement.id,
+            trophyKey: ALPHA_TESTER_TROPHY_KEY,
+            availableAt: entitlement.available_at,
+            claimedAt: entitlement.claimed_at,
+            href: includeClaimable
+              ? "/jeu/directeur-sportif#distinction-avatar"
+              : null,
+          },
+        ];
+      }
+
+      if (!isAchievementTrophyKey(entitlement.trophy_key)) return [];
+      const definition = ACHIEVEMENT_TROPHY_DEFINITIONS[entitlement.trophy_key];
+
+      return [
+        {
+          id: entitlement.id,
+          trophyKey: entitlement.trophy_key,
+          availableAt: entitlement.available_at,
+          claimedAt: entitlement.claimed_at,
+          href: includeClaimable ? definition.href : null,
+        },
+      ];
+    },
+  );
+
   const alphaTesterEntitlements = entitlements.filter(
-    (entitlement) => entitlement.trophy_key === ALPHA_TESTER_TROPHY_KEY
+    (entitlement) => entitlement.trophy_key === ALPHA_TESTER_TROPHY_KEY,
   );
 
   return {
-    specialAwards: alphaTesterEntitlements.flatMap((entitlement) =>
-      entitlement.claimed_at
-        ? [
-            {
-              id: entitlement.id,
-              trophyKey: ALPHA_TESTER_TROPHY_KEY,
-              availableAt: entitlement.available_at,
-              claimedAt: entitlement.claimed_at,
-              href: includeClaimable
-                ? "/jeu/directeur-sportif#distinction-avatar"
-                : null,
-            },
-          ]
-        : []
-    ),
+    specialAwards,
     claimableTrophies: includeClaimable
       ? alphaTesterEntitlements.flatMap((entitlement) =>
           entitlement.claimed_at
@@ -464,11 +491,10 @@ function mapSpecialTrophies({
                   availableAt: entitlement.available_at,
                   title: ALPHA_TESTER_TROPHY_DEFINITION.title,
                   description: ALPHA_TESTER_TROPHY_DEFINITION.description,
-                  avatarFrameKey:
-                    ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
+                  avatarFrameKey: ALPHA_TESTER_TROPHY_DEFINITION.avatarFrameKey,
                   palette: ALPHA_TESTER_TROPHY_DEFINITION.palette,
                 },
-              ]
+              ],
         )
       : [],
   };
@@ -505,7 +531,7 @@ async function loadMajorRaceWins({
   assertQuery(registrationsResult.error, "les inscriptions historiques");
 
   const registrationIds = registrationsResult.data.map(
-    (registration) => registration.id
+    (registration) => registration.id,
   );
   const rostersResult = await collectChunkedPaginatedRows<
     RaceRosterRow,
@@ -580,16 +606,14 @@ async function loadMajorRaceWins({
 
   assertQuery(editionsResult.error, "les éditions victorieuses");
 
-  const raceIds = unique(
-    editionsResult.data.map((edition) => edition.race_id)
-  );
+  const raceIds = unique(editionsResult.data.map((edition) => edition.race_id));
   const winnerRosterIds = unique(
-    results.map((result) => result.race_roster_id)
+    results.map((result) => result.race_roster_id),
   );
   const riderIds = unique(
     rostersResult.data
       .filter((roster) => winnerRosterIds.includes(roster.id))
-      .map((roster) => roster.rider_id)
+      .map((roster) => roster.rider_id),
   );
   const [racesResult, ridersResult] = await Promise.all([
     collectChunkedPaginatedRows<RaceRow, QueryError, string>({
@@ -626,13 +650,15 @@ async function loadMajorRaceWins({
   assertQuery(ridersResult.error, "les vainqueurs des trophées");
 
   const editionById = new Map(
-    editionsResult.data.map((edition) => [edition.id, edition])
+    editionsResult.data.map((edition) => [edition.id, edition]),
   );
   const raceById = new Map(racesResult.data.map((race) => [race.id, race]));
   const rosterById = new Map(
-    rostersResult.data.map((roster) => [roster.id, roster])
+    rostersResult.data.map((roster) => [roster.id, roster]),
   );
-  const riderById = new Map(ridersResult.data.map((rider) => [rider.id, rider]));
+  const riderById = new Map(
+    ridersResult.data.map((rider) => [rider.id, rider]),
+  );
 
   return results.flatMap((result) => {
     const edition = editionById.get(result.race_edition_id);
@@ -709,9 +735,7 @@ async function loadRiderUciTitles({
       fetchPage: async (chunk, from, to) => {
         const result = await admin
           .from("rider_contracts")
-          .select(
-            "rider_id, team_id, start_season_id, end_season_id"
-          )
+          .select("rider_id, team_id, start_season_id, end_season_id")
           .in("team_id", chunk)
           .in("status", ["active", "completed", "terminated"])
           .order("created_at", { ascending: true })
@@ -736,8 +760,8 @@ async function loadRiderUciTitles({
           seasonId: summary.season_id,
           assignments,
           seasonById,
-        })
-    )
+        }),
+    ),
   );
 
   const ridersResult = await collectChunkedPaginatedRows<
@@ -761,7 +785,9 @@ async function loadRiderUciTitles({
 
   assertQuery(ridersResult.error, "l’identité des numéros un mondiaux");
 
-  const riderById = new Map(ridersResult.data.map((rider) => [rider.id, rider]));
+  const riderById = new Map(
+    ridersResult.data.map((rider) => [rider.id, rider]),
+  );
 
   return eligibleSummaries.flatMap((summary) => {
     const rider = riderById.get(summary.rider_id);
@@ -819,7 +845,7 @@ function wasManagedDuringSeason({
 function coversSeason(
   contract: RiderContractRow,
   seasonId: string,
-  seasonById: Map<string, SeasonRow>
+  seasonById: Map<string, SeasonRow>,
 ) {
   const seasonYear = seasonById.get(seasonId)?.game_year;
   const startYear = seasonById.get(contract.start_season_id)?.game_year;
@@ -836,7 +862,7 @@ function coversSeason(
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
+    value,
   );
 }
 

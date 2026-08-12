@@ -104,88 +104,133 @@ export function GameHeader({
         <GameNavigationMenu />
 
         <div className="order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px border-t border-white/10 pt-2 sm:gap-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
-              <HeaderMenuLink
-                href="/jeu/equipe"
-                label={sponsor?.shortName ?? "Mon équipe"}
-                description="Effectif et identité"
+          <HeaderMenuLink
+            href="/jeu/equipe"
+            label={sponsor?.shortName ?? "Mon équipe"}
+            description="Effectif et identité"
+          >
+            {sponsor ? (
+              <SponsorLogoMark
+                src={sponsor.logoPath}
+                alt={`Logo de ${sponsor.name}`}
+                sponsorName={sponsor.name}
+                primaryColor={sponsor.colors.primary}
+                backgroundColor={sponsor.colors.background}
+                textColor={sponsor.colors.text}
+                className="h-6 w-7 rounded-md p-0.5"
+              />
+            ) : (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                {sponsor ? (
-                  <SponsorLogoMark
-                    src={sponsor.logoPath}
-                    alt={`Logo de ${sponsor.name}`}
-                    sponsorName={sponsor.name}
-                    primaryColor={sponsor.colors.primary}
-                    backgroundColor={sponsor.colors.background}
-                    textColor={sponsor.colors.text}
-                    className="h-6 w-7 rounded-md p-0.5"
-                  />
-                ) : (
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    className="h-5 w-5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="7" cy="7" r="2.5" />
-                    <circle cx="14" cy="8" r="2" />
-                    <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
-                  </svg>
-                )}
-              </HeaderMenuLink>
+                <circle cx="7" cy="7" r="2.5" />
+                <circle cx="14" cy="8" r="2" />
+                <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
+              </svg>
+            )}
+          </HeaderMenuLink>
 
-              {displayName ? (
-                <HeaderMenuLink
-                  href="/jeu/directeur-sportif"
-                  label={displayName}
-                  description="Profil du DS"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    className="h-5 w-5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="10" cy="6.5" r="3" />
-                    <path d="M4.5 16c.5-3.3 2.3-5 5.5-5s5 1.7 5.5 5" />
-                  </svg>
-                </HeaderMenuLink>
-              ) : null}
-
-              <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
-
-              <GlobalChatShortcut chatIsOpen={chatIsOpen} />
-
-              {canAccessRaceSimulator(simulatorEmail) ? (
-                <RaceSimulatorShortcut />
-              ) : null}
-
-              <HeaderIconMenuItem
-                label="Cyclogazette"
-                description="Actualités du peloton"
+          {displayName ? (
+            <HeaderMenuLink
+              href="/jeu/directeur-sportif"
+              label={displayName}
+              description="Profil du DS"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
-              </HeaderIconMenuItem>
+                <circle cx="10" cy="6.5" r="3" />
+                <path d="M4.5 16c.5-3.3 2.3-5 5.5-5s5 1.7 5.5 5" />
+              </svg>
+            </HeaderMenuLink>
+          ) : null}
 
-              <HeaderIconMenuItem
-                label="Didacticiels"
-                description="Aide interactive"
-              >
-                <TutorialCenterMenu />
-              </HeaderIconMenuItem>
+          <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
 
-              <HeaderMenuLink
-                href="/guide"
-                label="Guide du jeu"
-                description="Règles et conseils"
-              >
+          <GlobalChatShortcut chatIsOpen={chatIsOpen} />
+
+          {canAccessRaceSimulator(simulatorEmail) ? (
+            <RaceSimulatorShortcut />
+          ) : null}
+
+          <HeaderIconMenuItem
+            label="Cyclogazette"
+            description="Actualités du peloton"
+          >
+            <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
+          </HeaderIconMenuItem>
+
+          <HeaderIconMenuItem
+            label="Didacticiels"
+            description="Aide interactive"
+          >
+            <TutorialCenterMenu />
+          </HeaderIconMenuItem>
+
+          <HeaderMenuLink
+            href="/guide"
+            label="Guide du jeu"
+            description="Règles et conseils"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
+              <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
+            </svg>
+          </HeaderMenuLink>
+
+          <HeaderMenuLink
+            href="/jeu/parrainage"
+            label="Parrainage"
+            description="Objets niv. 5 à 7"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="6.5" cy="7" r="2.5" />
+              <circle cx="14" cy="8" r="2" />
+              <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
+              <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
+            </svg>
+          </HeaderMenuLink>
+
+          <form action={logoutAccount} className="shrink-0">
+            <button
+              type="submit"
+              title="Se déconnecter"
+              aria-label="Se déconnecter"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#F6C2C6] transition hover:border-[#EF5B65] hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65] sm:h-10 sm:w-10"
+            >
+              <span className="contents">
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 20 20"
@@ -196,65 +241,20 @@ export function GameHeader({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
-                  <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
+                  <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
+                  <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
                 </svg>
-              </HeaderMenuLink>
+              </span>
+            </button>
+          </form>
 
-              <HeaderMenuLink
-                href="/jeu/parrainage"
-                label="Parrainage"
-                description="Objets niv. 5 à 7"
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  className="h-5 w-5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="6.5" cy="7" r="2.5" />
-                  <circle cx="14" cy="8" r="2" />
-                  <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
-                  <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
-                </svg>
-              </HeaderMenuLink>
-
-              <form action={logoutAccount} className="shrink-0">
-                <button
-                  type="submit"
-                  title="Se déconnecter"
-                  aria-label="Se déconnecter"
-                  className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#F6C2C6] transition hover:border-[#EF5B65] hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65] sm:h-10 sm:w-10"
-                >
-                  <span className="contents">
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      className="h-5 w-5"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
-                      <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
-                    </svg>
-                  </span>
-                </button>
-              </form>
-
-              <GameHeaderSearchToggle>
-                <GameHeaderSearch
-                  id="game-global-search"
-                  searchQuery={searchQuery}
-                  className="flex"
-                />
-              </GameHeaderSearchToggle>
+          <GameHeaderSearchToggle>
+            <GameHeaderSearch
+              id="game-global-search"
+              searchQuery={searchQuery}
+              className="flex"
+            />
+          </GameHeaderSearchToggle>
         </div>
       </div>
     </header>
