@@ -22,6 +22,29 @@ const riderActions = readFileSync(
 );
 
 describe("mise en page mobile de la fiche coureur", () => {
+  it("sépare les maillots de champion de l’identité d’équipe sur PC et téléphone", () => {
+    expect(riderPage).toContain(
+      'lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center xl:grid-cols-[auto_minmax(0,1fr)_minmax(360px,400px)]',
+    );
+    expect(riderPage).toContain(
+      'className="space-y-3 lg:col-span-2 xl:col-span-1"',
+    );
+    expect(riderPage).toContain("data-champion-jerseys");
+    expect(riderPage).toContain(
+      "grid-cols-[repeat(auto-fit,minmax(5rem,1fr))]",
+    );
+    expect(riderPage).toContain("data-current-team-identity");
+    expect(riderPage).toContain(
+      "grid-cols-[5rem_minmax(0,1fr)]",
+    );
+    expect(riderPage).toContain(
+      "relative block min-w-0 overflow-hidden rounded-2xl",
+    );
+    expect(riderPage).not.toContain(
+      "flex max-w-full shrink-0 flex-wrap items-end",
+    );
+  });
+
   it("place le contrat dans la colonne latérale et libère toute la largeur pour l’historique", () => {
     expect(riderPage).toContain(
       'className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"',

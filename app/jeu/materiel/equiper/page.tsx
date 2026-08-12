@@ -89,6 +89,12 @@ export default async function TeamEquipmentPage({
             Équipementier
           </Link>
           <Link
+            href="/jeu/materiel/laboratoire"
+            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
+          >
+            Labo R&D
+          </Link>
+          <Link
             href="/jeu/materiel/equiper"
             aria-current="page"
             className="shrink-0 rounded-xl bg-[#0B302B] px-4 py-3 text-[10px] font-black uppercase tracking-wider text-white sm:px-5 sm:text-xs"
@@ -117,7 +123,8 @@ export default async function TeamEquipmentPage({
                 />
               </div>
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-                Choisissez les pièces de chaque coureur, contrôlez le stock projeté, puis appliquez tous les changements d’un coup.
+                Choisissez les pièces de chaque coureur, contrôlez le stock
+                projeté, puis appliquez tous les changements d’un coup.
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -133,7 +140,8 @@ export default async function TeamEquipmentPage({
 
         {success ? (
           <div className="mt-4 rounded-2xl border border-[#42B99A]/35 bg-[#EAF8F2] px-5 py-4 text-sm font-black text-[#176951]">
-            {changedCount} affectation{changedCount > 1 ? "s" : ""} de matériel enregistrée{changedCount > 1 ? "s" : ""} en une seule fois.
+            {changedCount} affectation{changedCount > 1 ? "s" : ""} de matériel
+            enregistrée{changedCount > 1 ? "s" : ""} en une seule fois.
           </div>
         ) : null}
         {errorMessage ? (
@@ -155,5 +163,5 @@ export default async function TeamEquipmentPage({
 }
 
 function readQuery(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }

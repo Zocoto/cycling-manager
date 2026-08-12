@@ -5,6 +5,7 @@ import { CyclogazetteArchiveNavigation } from "@/components/game/cyclogazette-ar
 import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper";
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
 import { GameHeader } from "@/components/game/game-header";
+import { MediaCenterComposer } from "@/components/game/media-center-composer";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -14,16 +15,22 @@ import {
   getLatestCyclogazetteEdition,
 } from "@/services/cyclogazette";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
 
 export const metadata: Metadata = {
   title: "La Cyclogazette",
-  description: "Le journal quotidien des courses, du mercato et des directeurs sportifs de Cyclo Stratège.",
+  description:
+    "Le journal quotidien des courses, du mercato et des directeurs sportifs de Cyclo Stratège.",
 };
 
 export default async function CyclogazettePage({
   searchParams,
 }: {
-  searchParams: Promise<{ edition?: string | string[] }>;
+  searchParams: Promise<{
+    edition?: string | string[];
+    article?: string | string[];
+    erreur?: string | string[];
+  }>;
 }) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -36,9 +43,10 @@ export default async function CyclogazettePage({
   const requestedEditionId = Array.isArray(params.edition)
     ? params.edition[0]
     : params.edition;
-  const [headerData, latestEdition] = await Promise.all([
+  const [headerData, latestEdition, mediaCenterOverview] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getLatestCyclogazetteEdition(),
+    getCurrentTeamMediaCenterOverview(user.id),
   ]);
   const [archive, requestedEdition] = await Promise.all([
     getCyclogazetteArchive(),
@@ -47,7 +55,9 @@ export default async function CyclogazettePage({
       : Promise.resolve(null),
   ]);
   const edition = requestedEdition ?? latestEdition;
-  const community = edition ? await getCyclogazetteCommunity(edition.id, user.id) : null;
+  const community = edition
+    ? await getCyclogazetteCommunity(edition.id, user.id)
+    : null;
 
   return (
     <main className="min-h-screen bg-[#D9D4C8] text-[#082A2A]">
@@ -59,6 +69,13 @@ export default async function CyclogazettePage({
         gazetteIsOpen
       />
       <div className="px-2 py-5 sm:px-5 sm:py-9 lg:px-8">
+        {mediaCenterOverview ? (
+          <MediaCenterComposer
+            overview={mediaCenterOverview}
+            success={readQuery(params.article) === "propose"}
+            errorMessage={readQuery(params.erreur)}
+          />
+        ) : null}
         {edition && latestEdition ? (
           <>
             <CyclogazetteReadMarker editionId={edition.id} />
@@ -67,7 +84,10 @@ export default async function CyclogazettePage({
               currentEditionId={edition.id}
               latestEditionId={latestEdition.id}
             />
-            <CyclogazetteNewspaper edition={edition} community={community ?? undefined} />
+            <CyclogazetteNewspaper
+              edition={edition}
+              community={community ?? undefined}
+            />
           </>
         ) : (
           <EmptyGazette />
@@ -77,12 +97,24 @@ export default async function CyclogazettePage({
   );
 }
 
+function readQuery(value: string | string[] | undefined) {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+}
+
 function EmptyGazette() {
   return (
     <section className="mx-auto max-w-[1100px] border border-[#9A8A65]/40 bg-[#F4EBD2] px-6 py-20 text-center shadow-[0_35px_100px_rgba(45,34,20,0.2)] sm:px-12">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">La rédaction prépare sa une</p>
-      <h1 className="mt-4 font-serif text-5xl font-black tracking-[-0.05em] sm:text-7xl">La Cyclogazette</h1>
-      <p className="mx-auto mt-5 max-w-xl font-serif text-lg italic leading-7 text-[#695D43]">La première édition sera mise sous presse ce soir à 20 h. Revenez découvrir les résultats, les mouvements du mercato et les réactions des Directeurs Sportifs.</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">
+        La rédaction prépare sa une
+      </p>
+      <h1 className="mt-4 font-serif text-5xl font-black tracking-[-0.05em] sm:text-7xl">
+        La Cyclogazette
+      </h1>
+      <p className="mx-auto mt-5 max-w-xl font-serif text-lg italic leading-7 text-[#695D43]">
+        La première édition sera mise sous presse ce soir à 20 h. Revenez
+        découvrir les résultats, les mouvements du mercato et les réactions des
+        Directeurs Sportifs.
+      </p>
     </section>
   );
 }

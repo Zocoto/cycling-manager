@@ -15,7 +15,8 @@ type AssignmentRow = {
 type CatalogRow = {
   id: string;
   effect_payload: unknown;
-  acquisition_channel: "commercial" | "equipment_partner";
+  acquisition_channel:
+    "commercial" | "equipment_partner" | "research_prototype";
 };
 
 type RiderContractRow = {
@@ -40,9 +41,7 @@ export async function getRiderEquipmentEffectsByRiderId(
 ): Promise<Map<string, EquipmentEffects>> {
   const normalizedRiderIds = [
     ...new Set(
-      riderIds
-        .map((riderId) => riderId.trim().toLowerCase())
-        .filter(isUuid),
+      riderIds.map((riderId) => riderId.trim().toLowerCase()).filter(isUuid),
     ),
   ];
 
@@ -158,9 +157,7 @@ export async function getRiderEquipmentEffectsByRiderId(
         ? partnerContractByTeamId.get(teamId)
         : null;
       payload = partnerContract
-        ? partnerEffectByContractAndItem.get(
-            `${partnerContract.id}:${item.id}`,
-          )
+        ? partnerEffectByContractAndItem.get(`${partnerContract.id}:${item.id}`)
         : null;
     }
 

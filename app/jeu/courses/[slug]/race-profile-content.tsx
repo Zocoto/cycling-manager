@@ -36,6 +36,7 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 import { getStageFormCostRange } from "@/lib/game/form-management";
+import { getRaceWeather, type RaceWeather } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -52,6 +53,10 @@ import {
 } from "@/services/race-calendar";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
+import {
+  getCurrentTeamWeatherCenterLevel,
+  getWeatherForecastHorizon,
+} from "@/services/team-weather-center";
 
 export type RaceProfilePageProps = {
   params: Promise<{
@@ -86,9 +91,10 @@ export async function RaceProfileContent({
     redirect("/connexion");
   }
 
-  const [headerData, calendar] = await Promise.all([
+  const [headerData, calendar, weatherCenterLevel] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase),
+    getCurrentTeamWeatherCenterLevel(user.id),
   ]);
   const edition = calendar?.editions.find(
     (candidate) => candidate.slug === slug,
@@ -348,6 +354,25 @@ export async function RaceProfileContent({
                         key={stage.id}
                         stage={stage}
                         showStageNumber={edition.raceFormat === "stage_race"}
+                        weather={
+                          stage.dayNumber - calendar.currentDayNumber <=
+                          getWeatherForecastHorizon(weatherCenterLevel)
+                            ? getRaceWeather(
+                                `${edition.id}:${stage.id}:weather`,
+                                {
+                                  countryCode: edition.countryCode,
+                                  profileType: stage.profileType,
+                                },
+                              )
+                            : null
+                        }
+                        forecastAvailableInDays={Math.max(
+                          0,
+                          stage.dayNumber -
+                            calendar.currentDayNumber -
+                            getWeatherForecastHorizon(weatherCenterLevel),
+                        )}
+                        weatherCenterLevel={weatherCenterLevel}
                       />
                     ))}
                   </div>
@@ -1090,9 +1115,15 @@ function RegistrationNotice({
 function StageCard({
   stage,
   showStageNumber,
+  weather,
+  forecastAvailableInDays,
+  weatherCenterLevel,
 }: {
   stage: RaceCalendarEdition["stages"][number];
   showStageNumber: boolean;
+  weather: RaceWeather | null;
+  forecastAvailableInDays: number;
+  weatherCenterLevel: number;
 }) {
   const formCost = getStageFormCostRange(stage);
 
@@ -1113,6 +1144,20 @@ function StageCard({
           {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
           {formatDistance(stage.distanceKm)} km
         </p>
+        {weather ? (
+          <p className="mt-2 inline-flex rounded-full bg-[#EAF5F3] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]">
+            {weatherLabel(weather)} · {weather.temperatureC} °C · vent{" "}
+            {weather.windSpeedKph} km/h
+          </p>
+        ) : weatherCenterLevel > 0 ? (
+          <p className="mt-2 text-[10px] font-bold text-[#688176]">
+            Prévision disponible dans {forecastAvailableInDays} jour(s)
+          </p>
+        ) : (
+          <p className="mt-2 text-[10px] font-bold text-[#82918C]">
+            Centre météo requis pour anticiper les conditions
+          </p>
+        )}
         <p
           className="mt-1 text-[11px] font-bold text-[#8A6A20]"
           title="Le coût exact dépend de la récupération du coureur."
@@ -1132,6 +1177,17 @@ function StageCard({
       </div>
     </article>
   );
+}
+
+function weatherLabel(weather: RaceWeather) {
+  return {
+    clear: "Soleil",
+    cloudy: "Nuageux",
+    wind: "Venteux",
+    rain: "Pluie",
+    storm: "Orage",
+    snow: "Neige",
+  }[weather.condition];
 }
 
 function formatFormCost(value: number) {

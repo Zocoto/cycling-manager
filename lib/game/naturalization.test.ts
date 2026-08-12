@@ -147,4 +147,17 @@ describe("naturalization", () => {
     expect(shouldDisplayNaturalizationCard(unavailable)).toBe(false);
     expect(shouldDisplayNaturalizationCard(null)).toBe(false);
   });
+
+  it("accepte un délai personnalisé par le Centre d’accueil", () => {
+    const eligibility = evaluateNaturalizationEligibility({
+      level: "youth",
+      elapsedDays: 0,
+      requiredDays: 0,
+      currentCountry: france,
+      targetCountry: belgium,
+    });
+    expect(eligibility.eligible).toBe(true);
+    expect(eligibility.requiredDays).toBe(0);
+    expect(eligibility.remainingDays).toBe(0);
+  });
 });

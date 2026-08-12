@@ -215,6 +215,9 @@ export async function getArchivedRiderProfile(
       notablePerformances: parseNotablePerformances(
         season.notable_performances,
       ),
+      careerLevel: "professional" as const,
+      juniorRaceCount: null,
+      juniorPodiums: null,
     };
   });
 

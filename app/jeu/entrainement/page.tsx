@@ -6,6 +6,7 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RaceReconnaissancePlanner } from "@/components/game/race-reconnaissance-planner";
+import { RiderPreparationCenter } from "@/components/game/rider-preparation-center";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TrainingReportPopover } from "@/components/game/training-report-popover";
 import { TeamProgressionModal } from "@/components/game/team-progression-modal";
@@ -42,6 +43,7 @@ import {
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import { getActiveTeamSponsorIdentityForAuthUser } from "@/services/team-sponsor-identity";
 import { getCurrentTeamRaceReconnaissanceOverview } from "@/services/team-race-reconnaissance";
+import { getCurrentTeamRiderPreparationOverview } from "@/services/team-rider-preparation";
 import { getRiderProgressionHistories } from "@/services/rider-progression";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -65,6 +67,7 @@ type TrainingPageProps = {
     erreur?: string;
     onglet?: string | string[];
     reconnaissance?: string;
+    preparation?: string;
     progression?: string;
     coureur?: string;
   }>;
@@ -89,6 +92,7 @@ export default async function TrainingPage({
     amateurIdentity,
     sponsorIdentity,
     reconnaissanceOverview,
+    preparationOverview,
     trainingTutorialProgress,
   ] = await Promise.all([
     getCurrentTeamTrainingOverview(user.id),
@@ -97,6 +101,9 @@ export default async function TrainingPage({
     getActiveTeamSponsorIdentityForAuthUser(user.id),
     activeTab === "reconnaissance"
       ? getCurrentTeamRaceReconnaissanceOverview(user.id)
+      : Promise.resolve(null),
+    activeTab === "preparation"
+      ? getCurrentTeamRiderPreparationOverview(user.id)
       : Promise.resolve(null),
     getAuthenticatedTutorialProgress(supabase, TRAINING_TUTORIAL_KEY).catch(
       (error: unknown) => {
@@ -111,6 +118,9 @@ export default async function TrainingPage({
 
   if (!overview) redirect("/jeu");
   if (activeTab === "reconnaissance" && !reconnaissanceOverview) {
+    redirect("/jeu");
+  }
+  if (activeTab === "preparation" && !preparationOverview) {
     redirect("/jeu");
   }
 
@@ -179,6 +189,12 @@ export default async function TrainingPage({
             <Alert tone="success">
               La reconnaissance est programmée. Les coureurs sélectionnés sont
               désormais indisponibles pendant ses deux jours.
+            </Alert>
+          ) : null}
+          {query.preparation ? (
+            <Alert tone="success">
+              La préparation est programmée. Le coureur est indisponible pendant
+              deux jours, puis son bonus temporaire s’activera.
             </Alert>
           ) : null}
         </div>
@@ -383,87 +399,89 @@ export default async function TrainingPage({
               >
                 <div className="mt-5 space-y-4">
                   {overview.riders.map((rider, riderIndex) => (
-                  <article
-                    key={rider.id}
-                    className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
-                  >
-                    <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
-                      <div className="flex min-w-0 items-center gap-4">
-                        <RiderAvatar
-                          profileKey={rider.avatarProfileKey}
-                          seed={rider.avatarSeed}
-                          riderId={rider.id}
-                          age={rider.age}
-                          jersey={jersey}
-                          label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-                          className="h-16 w-16"
-                        />
-                        <div className="min-w-0">
-                          <Link
-                            href={`/jeu/coureurs/${rider.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
-                          >
-                            {rider.firstName} {rider.lastName} ↗
-                          </Link>
-                          <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
-                            <span
-                              className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
-                              role="img"
-                              aria-label={`Drapeau : ${rider.countryName}`}
-                            />
-                            {rider.countryName} · {rider.age} ans · Forme{" "}
-                            {rider.form}%
-                          </p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span
-                              title="Profil recalculé depuis les notes actuelles de la saison"
-                              className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
+                    <article
+                      key={rider.id}
+                      className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:p-6"
+                    >
+                      <div className="grid gap-5 xl:grid-cols-[310px_minmax(0,1fr)_150px] xl:items-center">
+                        <div className="flex min-w-0 items-center gap-4">
+                          <RiderAvatar
+                            profileKey={rider.avatarProfileKey}
+                            seed={rider.avatarSeed}
+                            riderId={rider.id}
+                            age={rider.age}
+                            jersey={jersey}
+                            label={`Portrait de ${rider.firstName} ${rider.lastName}`}
+                            className="h-16 w-16"
+                          />
+                          <div className="min-w-0">
+                            <Link
+                              href={`/jeu/coureurs/${rider.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block truncate text-lg font-black text-[#183F37] transition hover:text-[#278B70]"
                             >
-                              Profil ·{" "}
-                              {getRiderSportingProfile(
-                                toTrainingRatings(rider.ratings),
-                              )}
-                            </span>
-                            <PotentialStars
-                              potentialSteps={rider.potentialSteps}
-                              compact
-                            />
-                            <RiderDeclineIndicators rider={rider} />
-                          </div>
-                          {rider.plan.isPending ? (
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
-                              Programme à venir J
-                              {rider.plan.effectiveFromDayNumber}
+                              {rider.firstName} {rider.lastName} ↗
+                            </Link>
+                            <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[#60756E]">
+                              <span
+                                className={`fi fi-${rider.countryCode.toLowerCase()} rounded-sm`}
+                                role="img"
+                                aria-label={`Drapeau : ${rider.countryName}`}
+                              />
+                              {rider.countryName} · {rider.age} ans · Forme{" "}
+                              {rider.form}%
                             </p>
-                          ) : null}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span
+                                title="Profil recalculé depuis les notes actuelles de la saison"
+                                className="inline-flex rounded-full bg-[#D7EEE8] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]"
+                              >
+                                Profil ·{" "}
+                                {getRiderSportingProfile(
+                                  toTrainingRatings(rider.ratings),
+                                )}
+                              </span>
+                              <PotentialStars
+                                potentialSteps={rider.potentialSteps}
+                                compact
+                              />
+                              <RiderDeclineIndicators rider={rider} />
+                            </div>
+                            {rider.plan.isPending ? (
+                              <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
+                                Programme à venir J
+                                {rider.plan.effectiveFromDayNumber}
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
+
+                        <RiderTrainingPlanFields
+                          riderId={rider.id}
+                          riderCountryCode={rider.countryCode}
+                          trainers={overview.trainers}
+                          tutorialTargetPrefix={
+                            riderIndex === 0 ? "training-plan" : undefined
+                          }
+                        />
+
+                        <TrainingReportPopover
+                          report={rider.latestReport}
+                          seasonReport={rider.seasonReport}
+                          tutorialTargetId={
+                            riderIndex === 0 ? "training-report" : undefined
+                          }
+                        />
                       </div>
-
-                      <RiderTrainingPlanFields
-                        riderId={rider.id}
-                        riderCountryCode={rider.countryCode}
-                        trainers={overview.trainers}
-                        tutorialTargetPrefix={
-                          riderIndex === 0 ? "training-plan" : undefined
-                        }
-                      />
-
-                      <TrainingReportPopover
-                        report={rider.latestReport}
-                        seasonReport={rider.seasonReport}
-                        tutorialTargetId={
-                          riderIndex === 0 ? "training-report" : undefined
-                        }
-                      />
-                    </div>
                     </article>
                   ))}
                 </div>
               </TrainingPlansEditor>
             </section>
           </>
+        ) : activeTab === "preparation" ? (
+          <RiderPreparationCenter overview={preparationOverview!} />
         ) : (
           <RaceReconnaissancePlanner
             overview={reconnaissanceOverview!}
@@ -489,6 +507,12 @@ function TrainingSectionTabs({ activeTab }: { activeTab: TrainingPageTab }) {
       href: "/jeu/entrainement",
     },
     {
+      id: "preparation",
+      label: "Préparation coureurs",
+      description: "Piste indoor et soufflerie",
+      href: "/jeu/entrainement?onglet=preparation",
+    },
+    {
       id: "reconnaissance",
       label: "Stages de reconnaissance",
       description: "Préparation des parcours",
@@ -499,7 +523,7 @@ function TrainingSectionTabs({ activeTab }: { activeTab: TrainingPageTab }) {
   return (
     <nav
       aria-label="Rubriques de l’entraînement"
-      className="mb-7 grid gap-3 rounded-[1.6rem] border border-[#315B3E]/12 bg-white p-2 shadow-[0_12px_34px_rgba(19,60,46,0.07)] sm:grid-cols-2"
+      className="mb-7 grid gap-3 rounded-[1.6rem] border border-[#315B3E]/12 bg-white p-2 shadow-[0_12px_34px_rgba(19,60,46,0.07)] sm:grid-cols-3"
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;

@@ -14,6 +14,7 @@ export const STAFF_ROLES = [
   "race_preparer",
   "architect",
   "community_manager",
+  "research_engineer",
 ] as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
@@ -105,6 +106,14 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     salaryBase: 11_000,
     accent: "#3FA58B",
   },
+  research_engineer: {
+    label: "Ingénieur R&D",
+    pluralLabel: "Ingénieurs R&D",
+    shortDescription:
+      "Réduit le temps ou le coût d’une recherche, ou améliore ses chances de réussite.",
+    salaryBase: 24_000,
+    accent: "#39788F",
+  },
 };
 
 export const TRAINER_SPECIALTY_LABELS: Record<TrainerSpecialty, string> = {
@@ -122,8 +131,6 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "trainer",
   "trainer",
   "trainer",
-  "trainer",
-  "scout",
   "scout",
   "scout",
   "doctor",
@@ -143,6 +150,8 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "physiotherapist",
   "architect",
   "architect",
+  "research_engineer",
+  "research_engineer",
 ];
 
 export const STAFF_LEVEL_RARITY_WEIGHTS = [
@@ -160,10 +169,7 @@ export const STAFF_LEVEL_WEIGHT_TOTAL = STAFF_LEVEL_RARITY_WEIGHTS.reduce(
 
 export function selectStaffLevelFromRoll(roll: number): number {
   const normalizedRoll = Number.isFinite(roll)
-    ? Math.min(
-        STAFF_LEVEL_WEIGHT_TOTAL - 1,
-        Math.max(0, Math.floor(roll)),
-      )
+    ? Math.min(STAFF_LEVEL_WEIGHT_TOTAL - 1, Math.max(0, Math.floor(roll)))
     : 0;
   let upperBound = 0;
 
@@ -192,7 +198,10 @@ export function calculateStaffSalary(role: StaffRole, level: number): number {
   return Math.round(rawSalary / 500) * 500;
 }
 
-export function calculateStaffSigningFee(role: StaffRole, level: number): number {
+export function calculateStaffSigningFee(
+  role: StaffRole,
+  level: number,
+): number {
   const safeLevel = normalizeStaffLevel(level);
   const salary = calculateStaffSalary(role, safeLevel);
   const feeRate = STAFF_LEVEL_SIGNING_FEE_RATES[safeLevel - 1];
@@ -215,9 +224,7 @@ export function calculateDueStaffSalary(
   );
   const regularInstallment = Math.round((salary / 4) * 100) / 100;
 
-  return dueInstallments < 4
-    ? regularInstallment * dueInstallments
-    : salary;
+  return dueInstallments < 4 ? regularInstallment * dueInstallments : salary;
 }
 
 export function calculateRemainingStaffSalary(
@@ -338,9 +345,7 @@ export function calculateConstructionWithArchitect({
   );
 
   return {
-    cost: Math.round(
-      safeCost * (1 - bonuses.costReductionPercentage / 100),
-    ),
+    cost: Math.round(safeCost * (1 - bonuses.costReductionPercentage / 100)),
     durationDays: Math.max(
       1,
       Math.ceil(
@@ -351,7 +356,10 @@ export function calculateConstructionWithArchitect({
   };
 }
 
-export function getStaffEffectPercentage(role: StaffRole, level: number): number {
+export function getStaffEffectPercentage(
+  role: StaffRole,
+  level: number,
+): number {
   const safeLevel = normalizeStaffLevel(level);
 
   switch (role) {
@@ -372,6 +380,8 @@ export function getStaffEffectPercentage(role: StaffRole, level: number): number
     case "physiotherapist":
       return safeLevel;
     case "race_preparer":
+      return safeLevel * 5;
+    case "research_engineer":
       return safeLevel * 5;
   }
 }
@@ -452,6 +462,8 @@ export function describeStaffEffect({
         `−${architectBonuses.durationReductionPercentage} % sur les délais de construction`,
       ];
     }
+    case "research_engineer":
+      return ["Spécialité R&D unique : temps, coût ou probabilité de réussite"];
   }
 }
 

@@ -116,6 +116,20 @@ describe("team result highlights", () => {
     ]);
   });
 
+  it("expose par défaut davantage que cinq résultats majeurs", () => {
+    const palmares = selectSeasonTeamPalmares(
+      Array.from({ length: 8 }, (_, index) =>
+        result({
+          id: `result-${index + 1}`,
+          raceName: `Course ${index + 1}`,
+          dayNumber: index + 1,
+        })
+      )
+    );
+
+    expect(palmares).toHaveLength(8);
+  });
+
   it("utilise une fenêtre glissante de sept jours de jeu", () => {
     const recent = selectRecentMajorTeamResults({
       candidates: [

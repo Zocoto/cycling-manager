@@ -51,6 +51,7 @@ describe("staff tutorial", () => {
       "préparateur de parcours",
       "architecte",
       "community manager",
+      "ingénieur r&d",
     ]) {
       expect(professionStep?.content.toLocaleLowerCase("fr")).toContain(job);
     }

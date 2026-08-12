@@ -125,12 +125,9 @@ export const IRON_HEALTH_DECLINE_DELAY_YEARS = 1;
 export const FIRST_IN_CLASS_TRAINING_MULTIPLIER = 1.5;
 
 export type RiderLongevityTier =
-  | "standard"
-  | "durable"
-  | "long_lived"
-  | "exceptional";
+  "standard" | "durable" | "long_lived" | "exceptional";
 
-export type TrainingPageTab = "training" | "reconnaissance";
+export type TrainingPageTab = "training" | "preparation" | "reconnaissance";
 
 export type RecognitionCampScheduleValidation =
   | {
@@ -146,7 +143,9 @@ export type RecognitionCampScheduleValidation =
 export function parseTrainingPageTab(
   value: string | string[] | undefined,
 ): TrainingPageTab {
-  return value === "reconnaissance" ? "reconnaissance" : "training";
+  if (value === "reconnaissance") return "reconnaissance";
+  if (value === "preparation") return "preparation";
+  return "training";
 }
 
 export function validateRecognitionCampSchedule({
@@ -207,7 +206,8 @@ export function validateRecognitionCampSchedule({
   if (endDayNumber >= targetStageDayNumber) {
     return {
       valid: false,
-      error: "Les deux jours de préparation doivent être terminés avant l’étape ciblée.",
+      error:
+        "Les deux jours de préparation doivent être terminés avant l’étape ciblée.",
     };
   }
 
@@ -234,9 +234,7 @@ export function validateRecognitionCampSchedule({
 }
 
 export type SkippedTrainingStatus =
-  | "skipped_low_form"
-  | "skipped_injury"
-  | "skipped_form_camp";
+  "skipped_low_form" | "skipped_injury" | "skipped_form_camp";
 
 export type TrainerSpecialty =
   | "mountain"
@@ -267,7 +265,10 @@ const SECONDARY_STATS: Record<TrainingDomain, readonly RiderRatingKey[]> = {
   sprinter: ["resistance", "prologue", "cobbles"],
 };
 
-const TRAINER_SPECIALTY_STATS: Record<TrainerSpecialty, readonly RiderRatingKey[]> = {
+const TRAINER_SPECIALTY_STATS: Record<
+  TrainerSpecialty,
+  readonly RiderRatingKey[]
+> = {
   mountain: ["mountain"],
   hills: ["hills"],
   flat: ["flat"],
@@ -278,7 +279,10 @@ const TRAINER_SPECIALTY_STATS: Record<TrainerSpecialty, readonly RiderRatingKey[
 };
 
 export function normalizePotentialSteps(value: number): number {
-  return Math.min(POTENTIAL_MAX_STEPS, Math.max(POTENTIAL_MIN_STEPS, Math.round(value)));
+  return Math.min(
+    POTENTIAL_MAX_STEPS,
+    Math.max(POTENTIAL_MIN_STEPS, Math.round(value)),
+  );
 }
 
 export function getPotentialStars(potentialSteps: number): number {
@@ -403,9 +407,7 @@ export function getSeasonDeclinePoints(
 
   const veteranYears = declineAge - 32;
   const baseDecline = 3.6 * Math.pow(1.05, veteranYears);
-  const abilityMultiplier = hasIronHealth
-    ? IRON_HEALTH_DECLINE_MULTIPLIER
-    : 1;
+  const abilityMultiplier = hasIronHealth ? IRON_HEALTH_DECLINE_MULTIPLIER : 1;
 
   return (
     Math.min(8, baseDecline) *
@@ -497,7 +499,10 @@ export function indexLatestTrainingSessionsByRider<
   for (const session of sessions) {
     const current = latestByRiderId.get(session.rider_id);
 
-    if (!current || isTrainingSessionMoreRecent(session, current, dayNumberById)) {
+    if (
+      !current ||
+      isTrainingSessionMoreRecent(session, current, dayNumberById)
+    ) {
       latestByRiderId.set(session.rider_id, session);
     }
   }
@@ -573,7 +578,8 @@ export function buildRiderTrainingSeasonReport({
       progress?.rating_loss ?? Math.max(0, -recordedRatingChange);
     const totalTrainingMilli =
       progress?.total_training_milli ??
-      (totalTrainingMilliByStat.get(statCode) ?? 0);
+      totalTrainingMilliByStat.get(statCode) ??
+      0;
     const totalDeclineMilli = totalDeclineMilliByStat.get(statCode) ?? 0;
     const netRatingChange = currentRating - initialRating;
 

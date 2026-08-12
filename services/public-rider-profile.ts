@@ -130,6 +130,9 @@ export type PublicRiderProfile = {
       continentName: string;
     }>;
     notablePerformances: RiderNotablePerformance[];
+    careerLevel: "professional" | "junior";
+    juniorRaceCount: number | null;
+    juniorPodiums: number | null;
   }>;
   specialAbilities: RiderSpecialAbility[];
   equipment: Partial<
@@ -335,6 +338,7 @@ type PerformanceEditionRow = {
   display_name: string;
   race: {
     competition_type: string;
+    race_format: "one_day" | "stage_race";
   } | null;
 };
 
@@ -364,7 +368,8 @@ type EquipmentItemRow = {
   image_path: string;
   effect_summary: string;
   effect_payload: unknown;
-  acquisition_channel: "commercial" | "equipment_partner";
+  acquisition_channel:
+    "commercial" | "equipment_partner" | "research_prototype";
 };
 
 type EquipmentPartnerContractRow = {
@@ -646,7 +651,7 @@ export async function getPublicRiderProfile({
     performanceEditionIds.length > 0
       ? supabase
           .from("race_editions")
-          .select("id, display_name, race:races(competition_type)")
+          .select("id, display_name, race:races(competition_type, race_format)")
           .in("id", performanceEditionIds)
           .returns<PerformanceEditionRow[]>()
       : Promise.resolve({
@@ -871,7 +876,7 @@ export async function getPublicRiderProfile({
     }
   }
 
-  const history = visibleContracts
+  const professionalHistory: PublicRiderProfile["history"] = visibleContracts
     .flatMap((contract) => {
       const startYear = getSeasonYear(seasons, contract.start_season_id);
       const endYear = getSeasonYear(
@@ -1005,6 +1010,9 @@ export async function getPublicRiderProfile({
               notablePerformancesBySeasonTeam.get(
                 historyTeamKey(season.id, contract.team_id),
               ) ?? [],
+            careerLevel: "professional" as const,
+            juniorRaceCount: null,
+            juniorPodiums: null,
           };
         });
     })
@@ -1021,6 +1029,21 @@ export async function getPublicRiderProfile({
         right.gameYear - left.gameYear ||
         (right.joinedDayNumber ?? 1) - (left.joinedDayNumber ?? 1),
     );
+
+  const juniorDevelopmentHistory = await getJuniorDevelopmentHistory({
+    supabase,
+    riderId: rider.id,
+    seasons,
+  });
+  const history = [...professionalHistory, ...juniorDevelopmentHistory].sort(
+    (left, right) =>
+      right.gameYear - left.gameYear ||
+      (left.careerLevel === right.careerLevel
+        ? (right.joinedDayNumber ?? 1) - (left.joinedDayNumber ?? 1)
+        : left.careerLevel === "professional"
+          ? -1
+          : 1),
+  );
 
   const equipmentItems = new Map(
     (equipmentItemsResult.data ?? []).map((item) => [item.id, item]),
@@ -1199,6 +1222,100 @@ export async function getPublicRiderProfile({
     canManage,
     archive: null,
   };
+}
+
+async function getJuniorDevelopmentHistory({
+  supabase,
+  riderId,
+  seasons,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  riderId: string;
+  seasons: SeasonRow[];
+}): Promise<PublicRiderProfile["history"]> {
+  const academyRiderResult = await supabase
+    .from("youth_academy_riders")
+    .select("id")
+    .eq("promoted_rider_id", riderId)
+    .maybeSingle<{ id: string }>();
+  assertQuery(
+    academyRiderResult.error,
+    "le parcours junior du coureur professionnel",
+  );
+  if (!academyRiderResult.data) return [];
+
+  const rosterResult = await supabase
+    .from("development_team_roster")
+    .select("development_team_id")
+    .eq("academy_rider_id", academyRiderResult.data.id)
+    .returns<Array<{ development_team_id: string }>>();
+  assertQuery(rosterResult.error, "les saisons Development Team du coureur");
+  const developmentTeamIds = [
+    ...new Set(
+      (rosterResult.data ?? []).map((row) => row.development_team_id),
+    ),
+  ];
+  if (!developmentTeamIds.length) return [];
+
+  const [teamsResult, resultsResult] = await Promise.all([
+    supabase
+      .from("development_teams")
+      .select("id, team_id, season_id, display_name")
+      .in("id", developmentTeamIds)
+      .returns<
+        Array<{
+          id: string;
+          team_id: string;
+          season_id: string;
+          display_name: string;
+        }>
+      >(),
+    supabase
+      .from("development_race_results")
+      .select("development_team_id, rank")
+      .eq("academy_rider_id", academyRiderResult.data.id)
+      .eq("result_scope", "general")
+      .returns<
+        Array<{ development_team_id: string | null; rank: number }>
+      >(),
+  ]);
+  assertQuery(teamsResult.error, "les identites Development Team du coureur");
+  assertQuery(resultsResult.error, "le bilan de courses junior du coureur");
+
+  const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const results = resultsResult.data ?? [];
+
+  return (teamsResult.data ?? []).flatMap((team) => {
+    const season = seasonById.get(team.season_id);
+    if (!season) return [];
+    const teamResults = results.filter(
+      (result) => result.development_team_id === team.id,
+    );
+
+    return [
+      {
+        seasonId: season.id,
+        seasonName: season.name,
+        gameYear: season.game_year,
+        teamId: team.team_id,
+        teamName: team.display_name,
+        transferFee: null,
+        currencyCode: "EUR",
+        joinedDayNumber: 1,
+        leftDayNumber: null,
+        victories: teamResults.filter((result) => result.rank === 1).length,
+        points: null,
+        uciRank: null,
+        nationalTitles: [],
+        worldTitles: [],
+        continentalTitles: [],
+        notablePerformances: [],
+        careerLevel: "junior" as const,
+        juniorRaceCount: teamResults.length,
+        juniorPodiums: teamResults.filter((result) => result.rank <= 3).length,
+      },
+    ];
+  });
 }
 
 export async function getPublicTeamRiders(
@@ -1666,6 +1783,7 @@ function buildNotablePerformancesBySeason({
             ),
             secondaryWins,
             stageWinCount,
+            raceFormat: edition?.race?.race_format ?? null,
           })
         : [parsedDescription.performance];
     const teamKey = historyTeamKey(teamSeason.season_id, teamSeason.team_id);

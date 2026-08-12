@@ -131,7 +131,14 @@ export type RiderSimulationInput = {
   countryCode?: string | null;
   climateProfile?: RiderClimateProfile;
   localRaceBonus?: number;
+  localRaceCountryCodes?: string[];
   reconnaissanceBonus?: number;
+  performancePreparations?: Array<{
+    type: "indoor_track" | "wind_tunnel";
+    bonusStartGameDay: number;
+    bonusEndGameDay: number;
+    ratingBonus: number;
+  }>;
   role: RaceRole;
   raceDuty?: RiderRaceDuty | null;
   mountainPointsTarget?: boolean;
@@ -149,6 +156,7 @@ export type StageSimulationInput = {
   stageType: SimulationStageType;
   profileType: RaceProfileType;
   raceCountryCode?: string | null;
+  gameDayIndex?: number;
   isStageRace: boolean;
   seed: string | number;
   weather?: RaceWeather;
@@ -701,14 +709,23 @@ export function simulateRaceStage(
     riders: input.riders
       .filter((rider) => !unavailableRiderIds.has(rider.id))
       .map((rider) => {
+        const preparationAdjustedRatings = applyPerformancePreparationBonuses(
+          rider.ratings,
+          rider.performancePreparations,
+          input.gameDayIndex,
+        );
         const equipmentAdjustedRatings = rider.equipmentEffects
-          ? applyEquipmentRatingBonuses(rider.ratings, rider.equipmentEffects, {
-              isTimeTrial:
-                input.stageType === "individual_time_trial" ||
-                input.stageType === "team_time_trial" ||
-                input.stageType === "prologue",
-            })
-          : rider.ratings;
+          ? applyEquipmentRatingBonuses(
+              preparationAdjustedRatings,
+              rider.equipmentEffects,
+              {
+                isTimeTrial:
+                  input.stageType === "individual_time_trial" ||
+                  input.stageType === "team_time_trial" ||
+                  input.stageType === "prologue",
+              },
+            )
+          : preparationAdjustedRatings;
         const climateProfile =
           rider.climateProfile ??
           getRiderClimateProfile({
@@ -720,10 +737,15 @@ export function simulateRaceStage(
           ...rider,
           climateProfile,
           localRaceBonus:
-            rider.countryCode &&
             input.raceCountryCode &&
-            rider.countryCode.toUpperCase() ===
-              input.raceCountryCode.toUpperCase()
+            ((rider.countryCode &&
+              rider.countryCode.toUpperCase() ===
+                input.raceCountryCode.toUpperCase()) ||
+              rider.localRaceCountryCodes?.some(
+                (countryCode) =>
+                  countryCode.toUpperCase() ===
+                  input.raceCountryCode?.toUpperCase(),
+              ))
               ? 2
               : 0,
           ratings: applyReconnaissanceRatingBonus(
@@ -5326,6 +5348,32 @@ function isBreakawaySpecialist(rider: RiderSimulationInput) {
     rider.ratings.timeTrial,
   );
   return rider.ratings.breakaway > competingProfileRating;
+}
+
+function applyPerformancePreparationBonuses(
+  ratings: RiderSimulationRatings,
+  preparations: RiderSimulationInput["performancePreparations"],
+  gameDayIndex: number | undefined,
+): RiderSimulationRatings {
+  if (gameDayIndex === undefined || !preparations?.length) return ratings;
+  const activePreparations = preparations.filter(
+    (preparation) =>
+      gameDayIndex >= preparation.bonusStartGameDay &&
+      gameDayIndex <= preparation.bonusEndGameDay,
+  );
+  if (!activePreparations.length) return ratings;
+  const next = { ...ratings };
+  for (const preparation of activePreparations) {
+    if (preparation.type === "indoor_track") {
+      next.sprint += preparation.ratingBonus;
+      next.acceleration += preparation.ratingBonus;
+    } else {
+      next.timeTrial += preparation.ratingBonus;
+      next.prologue += preparation.ratingBonus;
+      next.endurance += preparation.ratingBonus;
+    }
+  }
+  return next;
 }
 
 function getRaceDayBonus(rider: RiderSimulationInput) {

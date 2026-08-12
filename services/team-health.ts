@@ -221,11 +221,11 @@ export type TeamHealthOverview = {
 };
 
 export async function getCurrentTeamHealthOverview(
-  authUserId: string
+  authUserId: string,
 ): Promise<TeamHealthOverview | null> {
   const admin = createSupabaseAdminClient();
   const { error: trainingSettlementError } = await admin.rpc(
-    "settle_due_training_sessions"
+    "settle_due_training_sessions",
   );
   assertQuery(
     trainingSettlementError,
@@ -233,7 +233,7 @@ export async function getCurrentTeamHealthOverview(
   );
 
   const { error: settlementError } = await admin.rpc(
-    "settle_current_health_and_form"
+    "settle_current_health_and_form",
   );
   assertQuery(settlementError, "la mise à jour quotidienne de la forme");
 
@@ -283,7 +283,7 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("medical_protocol_catalog")
         .select(
-          "code, name, description, price, duration_reduction_pct, form_loss_per_day"
+          "code, name, description, price, duration_reduction_pct, form_loss_per_day",
         )
         .eq("is_active", true)
         .order("price")
@@ -313,55 +313,50 @@ export async function getCurrentTeamHealthOverview(
     };
   }
 
-  const [
-    ridersResult,
-    ratingsResult,
-    daysResult,
-    injuriesResult,
-    campsResult,
-  ] = await Promise.all([
-    admin
-      .from("riders")
-      .select(
-        "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed"
-      )
-      .in("id", riderIds)
-      .returns<RiderRow[]>(),
-    admin
-      .from("rider_season_ratings")
-      .select("rider_id, age")
-      .eq("season_id", season.id)
-      .in("rider_id", riderIds)
-      .returns<RatingRow[]>(),
-    admin
-      .from("season_days")
-      .select("id, day_number")
-      .eq("season_id", season.id)
-      .lte("day_number", season.current_day_number ?? 1)
-      .order("day_number", { ascending: false })
-      .returns<SeasonDayRow[]>(),
-    admin
-      .from("rider_injuries")
-      .select(
-        "id, rider_id, diagnosis_code, recovery_hours, started_at, base_expected_recovery_at, expected_recovery_at, doctor_recovery_hours_reduced, form_loss_per_day, protocol_code, status"
-      )
-      .in("rider_id", riderIds)
-      .eq("status", "active")
-      .gt("expected_recovery_at", new Date().toISOString())
-      .order("expected_recovery_at")
-      .returns<InjuryRow[]>(),
-    admin
-      .from("rider_form_camps")
-      .select(
-        "id, rider_id, camp_type, start_day_number, end_day_number, form_gain_per_day, price_per_day, total_price, status"
-      )
-      .eq("season_id", season.id)
-      .in("rider_id", riderIds)
-      .in("status", ["planned", "active"])
-      .neq("camp_type", "reconnaissance")
-      .order("start_day_number")
-      .returns<CampRow[]>(),
-  ]);
+  const [ridersResult, ratingsResult, daysResult, injuriesResult, campsResult] =
+    await Promise.all([
+      admin
+        .from("riders")
+        .select(
+          "id, country_id, first_name, last_name, avatar_profile_key, avatar_seed",
+        )
+        .in("id", riderIds)
+        .returns<RiderRow[]>(),
+      admin
+        .from("rider_season_ratings")
+        .select("rider_id, age")
+        .eq("season_id", season.id)
+        .in("rider_id", riderIds)
+        .returns<RatingRow[]>(),
+      admin
+        .from("season_days")
+        .select("id, day_number")
+        .eq("season_id", season.id)
+        .lte("day_number", season.current_day_number ?? 1)
+        .order("day_number", { ascending: false })
+        .returns<SeasonDayRow[]>(),
+      admin
+        .from("rider_injuries")
+        .select(
+          "id, rider_id, diagnosis_code, recovery_hours, started_at, base_expected_recovery_at, expected_recovery_at, doctor_recovery_hours_reduced, form_loss_per_day, protocol_code, status",
+        )
+        .in("rider_id", riderIds)
+        .eq("status", "active")
+        .gt("expected_recovery_at", new Date().toISOString())
+        .order("expected_recovery_at")
+        .returns<InjuryRow[]>(),
+      admin
+        .from("rider_form_camps")
+        .select(
+          "id, rider_id, camp_type, start_day_number, end_day_number, form_gain_per_day, price_per_day, total_price, status",
+        )
+        .eq("season_id", season.id)
+        .in("rider_id", riderIds)
+        .in("status", ["planned", "active"])
+        .in("camp_type", ["classic", "premium"])
+        .order("start_day_number")
+        .returns<CampRow[]>(),
+    ]);
   assertQuery(ridersResult.error, "les coureurs");
   assertQuery(ratingsResult.error, "l’âge des coureurs");
   assertQuery(daysResult.error, "les journées de saison");
@@ -378,45 +373,44 @@ export async function getCurrentTeamHealthOverview(
     conditionsResult,
     treatmentsResult,
     nutritionInterventionsResult,
-  ] =
-    await Promise.all([
-      admin
-        .from("countries")
-        .select("id, name, iso_alpha2")
-        .in("id", countryIds)
-        .returns<CountryRow[]>(),
-      dayIds.length
-        ? admin
-            .from("rider_condition_states")
-            .select("rider_id, season_day_id, form, fatigue")
-            .in("rider_id", riderIds)
-            .in("season_day_id", dayIds)
-            .returns<ConditionRow[]>()
-        : Promise.resolve({ data: [] as ConditionRow[], error: null }),
-      injuryIds.length
-        ? admin
-            .from("rider_injury_treatments")
-            .select(
-              "rider_injury_id, protocol_code, price_paid, recovery_hours_reduced, applied_at"
-            )
-            .in("rider_injury_id", injuryIds)
-            .returns<TreatmentRow[]>()
-        : Promise.resolve({ data: [] as TreatmentRow[], error: null }),
-      currentDayId
-        ? admin
-            .from("rider_nutrition_interventions")
-            .select(
-              "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at",
-            )
-            .eq("team_season_id", teamSeason.id)
-            .eq("season_day_id", currentDayId)
-            .order("applied_at")
-            .returns<NutritionInterventionRow[]>()
-        : Promise.resolve({
-            data: [] as NutritionInterventionRow[],
-            error: null,
-          }),
-    ]);
+  ] = await Promise.all([
+    admin
+      .from("countries")
+      .select("id, name, iso_alpha2")
+      .in("id", countryIds)
+      .returns<CountryRow[]>(),
+    dayIds.length
+      ? admin
+          .from("rider_condition_states")
+          .select("rider_id, season_day_id, form, fatigue")
+          .in("rider_id", riderIds)
+          .in("season_day_id", dayIds)
+          .returns<ConditionRow[]>()
+      : Promise.resolve({ data: [] as ConditionRow[], error: null }),
+    injuryIds.length
+      ? admin
+          .from("rider_injury_treatments")
+          .select(
+            "rider_injury_id, protocol_code, price_paid, recovery_hours_reduced, applied_at",
+          )
+          .in("rider_injury_id", injuryIds)
+          .returns<TreatmentRow[]>()
+      : Promise.resolve({ data: [] as TreatmentRow[], error: null }),
+    currentDayId
+      ? admin
+          .from("rider_nutrition_interventions")
+          .select(
+            "id, rider_id, nutritionist_contract_id, intervention_code, nutritionist_level, actual_form_gain, price_paid, form_before, form_after, applied_at",
+          )
+          .eq("team_season_id", teamSeason.id)
+          .eq("season_day_id", currentDayId)
+          .order("applied_at")
+          .returns<NutritionInterventionRow[]>()
+      : Promise.resolve({
+          data: [] as NutritionInterventionRow[],
+          error: null,
+        }),
+  ]);
   assertQuery(countriesResult.error, "les pays des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
   assertQuery(treatmentsResult.error, "les soins appliqués");
@@ -426,13 +420,13 @@ export async function getCurrentTeamHealthOverview(
   );
 
   const countryById = new Map(
-    (countriesResult.data ?? []).map((country) => [country.id, country])
+    (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
   const ratingByRiderId = new Map(
-    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating])
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]),
   );
   const dayRank = new Map(
-    (daysResult.data ?? []).map((day) => [day.id, day.day_number])
+    (daysResult.data ?? []).map((day) => [day.id, day.day_number]),
   );
   const conditionByRiderId = new Map<string, ConditionRow>();
   for (const condition of conditionsResult.data ?? []) {
@@ -449,13 +443,13 @@ export async function getCurrentTeamHealthOverview(
     (treatmentsResult.data ?? []).map((treatment) => [
       treatment.rider_injury_id,
       treatment,
-    ])
+    ]),
   );
   const injuryByRiderId = new Map(
-    (injuriesResult.data ?? []).map((injury) => [injury.rider_id, injury])
+    (injuriesResult.data ?? []).map((injury) => [injury.rider_id, injury]),
   );
   const campByRiderId = new Map(
-    (campsResult.data ?? []).map((camp) => [camp.rider_id, camp])
+    (campsResult.data ?? []).map((camp) => [camp.rider_id, camp]),
   );
 
   return {
@@ -468,21 +462,21 @@ export async function getCurrentTeamHealthOverview(
     currency: teamSeason.currency,
     protocols: mapProtocols(protocolsResult.data ?? []),
     medicalStaff,
-    nutritionInterventionsToday: (
-      nutritionInterventionsResult.data ?? []
-    ).map((intervention) => ({
-      id: intervention.id,
-      riderId: intervention.rider_id,
-      nutritionistContractId: intervention.nutritionist_contract_id,
-      code: intervention.intervention_code,
-      label: NUTRITION_INTERVENTIONS[intervention.intervention_code].label,
-      nutritionistLevel: intervention.nutritionist_level,
-      formGain: intervention.actual_form_gain,
-      pricePaid: toNumber(intervention.price_paid),
-      formBefore: intervention.form_before,
-      formAfter: intervention.form_after,
-      appliedAt: intervention.applied_at,
-    })),
+    nutritionInterventionsToday: (nutritionInterventionsResult.data ?? []).map(
+      (intervention) => ({
+        id: intervention.id,
+        riderId: intervention.rider_id,
+        nutritionistContractId: intervention.nutritionist_contract_id,
+        code: intervention.intervention_code,
+        label: NUTRITION_INTERVENTIONS[intervention.intervention_code].label,
+        nutritionistLevel: intervention.nutritionist_level,
+        formGain: intervention.actual_form_gain,
+        pricePaid: toNumber(intervention.price_paid),
+        formBefore: intervention.form_before,
+        formAfter: intervention.form_after,
+        appliedAt: intervention.applied_at,
+      }),
+    ),
     riders: riders
       .map((rider) => {
         const country = countryById.get(rider.country_id);
@@ -521,8 +515,7 @@ export async function getCurrentTeamHealthOverview(
                   ? {
                       protocolCode: treatment.protocol_code,
                       pricePaid: toNumber(treatment.price_paid),
-                      recoveryHoursReduced:
-                        treatment.recovery_hours_reduced,
+                      recoveryHoursReduced: treatment.recovery_hours_reduced,
                       appliedAt: treatment.applied_at,
                     }
                   : null,
@@ -547,7 +540,7 @@ export async function getCurrentTeamHealthOverview(
         (left, right) =>
           Number(Boolean(right.injury)) - Number(Boolean(left.injury)) ||
           left.lastName.localeCompare(right.lastName, "fr") ||
-          left.firstName.localeCompare(right.firstName, "fr")
+          left.firstName.localeCompare(right.firstName, "fr"),
       ),
   };
 }
@@ -644,9 +637,8 @@ async function loadMedicalStaff(
 
 export function getInjuryLabel(diagnosisCode: string) {
   if (diagnosisCode in RIDER_INJURY_DIAGNOSES) {
-    return RIDER_INJURY_DIAGNOSES[
-      diagnosisCode as RiderInjuryDiagnosisCode
-    ].label;
+    return RIDER_INJURY_DIAGNOSES[diagnosisCode as RiderInjuryDiagnosisCode]
+      .label;
   }
 
   return "Blessure en cours";
@@ -670,7 +662,7 @@ function toNumber(value: number | string | null | undefined) {
 
 function assertQuery(
   error: { message: string } | null,
-  resourceName: string
+  resourceName: string,
 ): asserts error is null {
   if (error) {
     throw new Error(`Impossible de charger ${resourceName} : ${error.message}`);

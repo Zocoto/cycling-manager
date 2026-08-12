@@ -32,6 +32,7 @@ export function CyclogazetteNewspaper({
     mercatoStories,
     reactions,
     tourSummaries = [],
+    mediaArticles = [],
   } = edition.content;
   const winnerStories = uniqueStories(
     [lead, ...raceStories].filter(
@@ -45,7 +46,10 @@ export function CyclogazetteNewspaper({
   const secondaryRaceStories = raceStories.filter(
     (item) => !winnerStories.some((winner) => winner.id === item.id),
   );
-  const roadStories = uniqueStories([...raceHighlights, ...secondaryRaceStories]);
+  const roadStories = uniqueStories([
+    ...raceHighlights,
+    ...secondaryRaceStories,
+  ]);
 
   return (
     <article
@@ -56,11 +60,16 @@ export function CyclogazetteNewspaper({
           "radial-gradient(circle at 18% 10%,rgba(255,255,255,.68),transparent 28%),repeating-linear-gradient(0deg,rgba(80,61,31,.022) 0,rgba(80,61,31,.022) 1px,transparent 1px,transparent 4px)",
       }}
     >
-      <div aria-hidden="true" className="absolute inset-y-0 left-1/2 hidden w-px bg-[#806C45]/10 lg:block" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-1/2 hidden w-px bg-[#806C45]/10 lg:block"
+      />
       <header className="border-b-4 border-double border-[#241F18] px-5 pb-4 pt-5 sm:px-8 sm:pt-7">
         <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[#241F18]/45 py-2 text-[9px] font-black uppercase tracking-[0.2em] sm:text-[10px]">
           <span>Le journal quotidien du peloton</span>
-          <span>Saison {edition.seasonName} · Jour {edition.dayNumber}</span>
+          <span>
+            Saison {edition.seasonName} · Jour {edition.dayNumber}
+          </span>
           <span>{formatIssueDate(edition.issueDate)} · Édition de 20 h</span>
         </div>
         <div className="grid items-end gap-3 py-4 sm:grid-cols-[1fr_auto_1fr]">
@@ -81,12 +90,13 @@ export function CyclogazetteNewspaper({
 
       <main className="border-b border-[#806C45]/35 p-5 sm:p-8">
         <section>
-          <SectionTitle
-            eyebrow="La Une"
-            title="Les vainqueurs des étapes"
-          />
+          <SectionTitle eyebrow="La Une" title="Les vainqueurs des étapes" />
           <div className="mt-4">
-            {frontPageLead ? <LeadStory item={frontPageLead} /> : <QuietNewsroom />}
+            {frontPageLead ? (
+              <LeadStory item={frontPageLead} />
+            ) : (
+              <QuietNewsroom />
+            )}
           </div>
           {additionalWinners.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-stretch gap-4">
@@ -101,7 +111,10 @@ export function CyclogazetteNewspaper({
 
         {tourSummaries.length > 0 ? (
           <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
-            <SectionTitle eyebrow="Les maillots du jour" title="Le point sur les tours" />
+            <SectionTitle
+              eyebrow="Les maillots du jour"
+              title="Le point sur les tours"
+            />
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {tourSummaries.map((tour) => (
                 <TourClassificationCard
@@ -120,7 +133,9 @@ export function CyclogazetteNewspaper({
               title="Ceux qui ont animé la course"
             />
             <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[#695D43]">
-              Échappés, chasseurs, coureurs piégés et équipiers infatigables : la rédaction raconte celles et ceux qui ont fait la course au-delà du résultat brut.
+              Échappés, chasseurs, coureurs piégés et équipiers infatigables :
+              la rédaction raconte celles et ceux qui ont fait la course au-delà
+              du résultat brut.
             </p>
             <div className="mt-4 flex flex-wrap items-stretch gap-4">
               {roadStories.map((item) => (
@@ -148,10 +163,42 @@ export function CyclogazetteNewspaper({
             </div>
           ) : (
             <p className="mt-4 border-y border-[#806C45]/35 py-5 font-serif text-sm italic text-[#695D43]">
-              Aucune déclaration n’est parvenue à la rédaction avant le bouclage.
+              Aucune déclaration n’est parvenue à la rédaction avant le
+              bouclage.
             </p>
           )}
         </section>
+
+        {mediaArticles.length > 0 ? (
+          <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
+            <SectionTitle
+              eyebrow="Les tribunes du peloton"
+              title="La parole aux équipes"
+            />
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              {mediaArticles.map((article) => (
+                <article
+                  key={article.id}
+                  className="border border-[#806C45]/45 bg-[#EFE4C8]/70 p-5"
+                >
+                  <p className="text-[9px] font-black uppercase tracking-[.18em] text-[#A12742]">
+                    Carte blanche · {article.teamName}
+                  </p>
+                  <h3 className="mt-2 font-serif text-2xl font-black leading-6">
+                    {article.title}
+                  </h3>
+                  <p className="mt-4 whitespace-pre-line font-serif text-sm font-medium leading-6 text-[#493F2E]">
+                    {article.body}
+                  </p>
+                  <p className="mt-4 border-t border-[#806C45]/35 pt-3 text-[9px] font-black uppercase tracking-[.14em] text-[#695D43]">
+                    Tribune proposée par le DS · Média Center N
+                    {article.buildingLevel}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
           <SectionTitle eyebrow="Télégrammes" title="Le carnet du mercato" />
@@ -170,15 +217,28 @@ export function CyclogazetteNewspaper({
       </main>
 
       <aside className="mx-5 border-y-2 border-dashed border-[#806C45]/60 bg-[#E7D7B6]/55 px-5 py-4 text-center sm:mx-8">
-        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-[#695D43]">Annonce partenaire</p>
+        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-[#695D43]">
+          Annonce partenaire
+        </p>
         <p className="mt-1 font-serif text-lg font-black">
-          {edition.issueNumber % 2 === 0 ? "Roulez plus loin : les bidons Altitude gardent le frais jusqu’au sommet." : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}
+          {mediaArticles.find((article) => article.sponsorName)?.sponsorName
+            ? `${mediaArticles.find((article) => article.sponsorName)?.sponsorName} soutient le projet de ${mediaArticles.find((article) => article.sponsorName)?.teamName}.`
+            : edition.issueNumber % 2 === 0
+              ? "Roulez plus loin : les bidons Altitude gardent le frais jusqu’au sommet."
+              : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}
         </p>
       </aside>
-      {community ? <CyclogazetteCommunityPanel editionId={edition.id} community={community} /> : null}
+      {community ? (
+        <CyclogazetteCommunityPanel
+          editionId={edition.id}
+          community={community}
+        />
+      ) : null}
 
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t-4 border-double border-[#241F18] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[#695D43] sm:px-8">
-        <span>La Cyclogazette · Toute l’actualité du monde de Cyclo Stratège</span>
+        <span>
+          La Cyclogazette · Toute l’actualité du monde de Cyclo Stratège
+        </span>
         <span>Prochaine édition demain à 20 h</span>
       </footer>
     </article>
@@ -186,7 +246,39 @@ export function CyclogazetteNewspaper({
 }
 
 function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
-  return <section className="border-2 border-[#241F18] bg-[#EFE4C8]/75 p-4"><p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A12742]">Après {tour.stageLabel}</p><Link href={tour.href} className="mt-1 block font-serif text-xl font-black hover:text-[#A12742]">{tour.raceName}</Link>{tour.generalLeader ? <p className="mt-3 border-y border-[#806C45]/35 py-2 text-sm"><span className="font-black">Maillot jaune :</span> {tour.generalLeader}</p> : null}{tour.jerseys.length > 0 ? <ul className="mt-3 space-y-1 text-xs">{tour.jerseys.map((jersey) => <li key={`${jersey.label}:${jersey.holder}`}><span className="font-black">{jersey.label} :</span> {jersey.holder}</li>)}</ul> : <p className="mt-3 text-xs italic text-[#695D43]">Les classements se précisent après cette étape.</p>}</section>;
+  return (
+    <section className="border-2 border-[#241F18] bg-[#EFE4C8]/75 p-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A12742]">
+        Après {tour.stageLabel}
+      </p>
+      <Link
+        href={tour.href}
+        className="mt-1 block font-serif text-xl font-black hover:text-[#A12742]"
+      >
+        {tour.raceName}
+      </Link>
+      {tour.generalLeader ? (
+        <p className="mt-3 border-y border-[#806C45]/35 py-2 text-sm">
+          <span className="font-black">Maillot jaune :</span>{" "}
+          {tour.generalLeader}
+        </p>
+      ) : null}
+      {tour.jerseys.length > 0 ? (
+        <ul className="mt-3 space-y-1 text-xs">
+          {tour.jerseys.map((jersey) => (
+            <li key={`${jersey.label}:${jersey.holder}`}>
+              <span className="font-black">{jersey.label} :</span>{" "}
+              {jersey.holder}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-xs italic text-[#695D43]">
+          Les classements se précisent après cette étape.
+        </p>
+      )}
+    </section>
+  );
 }
 
 function LeadStory({ item }: { item: PublicGameNewsItem }) {
@@ -416,10 +508,18 @@ function NewsBrief({
         <div className="min-w-0">
           {showRaceEvent ? <RaceEventLabel item={item} /> : null}
           <StoryLink item={item} className="group">
-            <h3 className={`${compact ? "text-lg" : "text-xl"} font-serif font-black leading-5 group-hover:text-[#A12742]`}>{item.title}</h3>
+            <h3
+              className={`${compact ? "text-lg" : "text-xl"} font-serif font-black leading-5 group-hover:text-[#A12742]`}
+            >
+              {item.title}
+            </h3>
           </StoryLink>
-          <p className="mt-2 text-sm font-medium leading-5 text-[#493F2E]">{item.detail}</p>
-          <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#7A6B4B]">{formatNewsTime(item.happenedAt)}</p>
+          <p className="mt-2 text-sm font-medium leading-5 text-[#493F2E]">
+            {item.detail}
+          </p>
+          <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#7A6B4B]">
+            {formatNewsTime(item.happenedAt)}
+          </p>
         </div>
       </div>
     </article>
@@ -436,9 +536,7 @@ function RaceEventLabel({ item }: { item: PublicGameNewsItem }) {
   return (
     <p
       className={`mb-1 text-[8px] font-black uppercase tracking-[0.16em] ${
-        item.raceEventKind === "incident"
-          ? "text-[#A12742]"
-          : "text-[#426D58]"
+        item.raceEventKind === "incident" ? "text-[#A12742]" : "text-[#426D58]"
       }`}
     >
       {label}
@@ -446,16 +544,43 @@ function RaceEventLabel({ item }: { item: PublicGameNewsItem }) {
   );
 }
 
-function StoryLink({ item, className, children }: { item: PublicGameNewsItem; className?: string; children: ReactNode }) {
-  return item.href ? <Link href={item.href} className={className}>{children}</Link> : <div className={className}>{children}</div>;
+function StoryLink({
+  item,
+  className,
+  children,
+}: {
+  item: PublicGameNewsItem;
+  className?: string;
+  children: ReactNode;
+}) {
+  return item.href ? (
+    <Link href={item.href} className={className}>
+      {children}
+    </Link>
+  ) : (
+    <div className={className}>{children}</div>
+  );
 }
 
-function NewsPortrait({ item, large = false }: { item: PublicGameNewsItem; large?: boolean }) {
+function NewsPortrait({
+  item,
+  large = false,
+}: {
+  item: PublicGameNewsItem;
+  large?: boolean;
+}) {
   const person = item.visual?.person;
   const sizeClass = large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-14 w-14";
   if (!person) return null;
   if (person.kind === "director") {
-    return <SportingDirectorAvatar avatarKey={person.avatarKey} size={large ? "large" : "small"} label={person.label} className="grayscale-[20%]" />;
+    return (
+      <SportingDirectorAvatar
+        avatarKey={person.avatarKey}
+        size={large ? "large" : "small"}
+        label={person.label}
+        className="grayscale-[20%]"
+      />
+    );
   }
   return (
     <RiderAvatar
@@ -471,8 +596,12 @@ function NewsPortrait({ item, large = false }: { item: PublicGameNewsItem; large
 function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div>
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#A12742]">{eyebrow}</p>
-      <h2 className="mt-1 border-b border-[#241F18] pb-2 font-serif text-2xl font-black leading-none">{title}</h2>
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#A12742]">
+        {eyebrow}
+      </p>
+      <h2 className="mt-1 border-b border-[#241F18] pb-2 font-serif text-2xl font-black leading-none">
+        {title}
+      </h2>
     </div>
   );
 }
@@ -480,9 +609,16 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
 function QuietNewsroom() {
   return (
     <section className="py-12 text-center sm:py-20">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">Édition spéciale</p>
-      <h2 className="mt-3 font-serif text-4xl font-black">Une journée de calme dans le peloton</h2>
-      <p className="mx-auto mt-4 max-w-xl font-serif italic text-[#695D43]">La rédaction reste à l’affût. Les prochains résultats, signatures et réactions paraîtront dans l’édition suivante.</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">
+        Édition spéciale
+      </p>
+      <h2 className="mt-3 font-serif text-4xl font-black">
+        Une journée de calme dans le peloton
+      </h2>
+      <p className="mx-auto mt-4 max-w-xl font-serif italic text-[#695D43]">
+        La rédaction reste à l’affût. Les prochains résultats, signatures et
+        réactions paraîtront dans l’édition suivante.
+      </p>
     </section>
   );
 }
@@ -497,9 +633,19 @@ function uniqueStories(items: PublicGameNewsItem[]) {
 }
 
 function formatIssueDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" }).format(new Date(`${value}T12:00:00Z`));
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Paris",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatNewsTime(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }

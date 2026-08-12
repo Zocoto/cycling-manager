@@ -9,6 +9,10 @@ type TeamSeasonRow = {
   registration_country_id: string;
 };
 
+type WelcomeCenterRow = { team_id: string; level: number };
+type CountryContinentRow = { id: string; continent_code: string | null };
+type CountryAdjacencyRow = { country_id: string; adjacent_country_id: string };
+
 type ContractRow = {
   id: string;
   team_id: string;
@@ -128,13 +132,88 @@ export async function loadRaceStaffEffects(
       team.registration_country_id,
     ]),
   );
+  const relevantContracts = contracts.filter((contract) =>
+    membersById.has(contract.staff_member_id),
+  );
+  const relevantCountryIds = unique([
+    ...(membersResult.data ?? []).map((member) => member.country_id),
+    ...(teamSeasonsResult.data ?? []).map(
+      (team) => team.registration_country_id,
+    ),
+  ]);
+  const [welcomeCentersResult, countriesResult, adjacenciesResult] =
+    await Promise.all([
+      admin
+        .from("team_infrastructures")
+        .select("team_id, level")
+        .eq("infrastructure_code", "international_welcome_center")
+        .in("team_id", teamIds)
+        .returns<WelcomeCenterRow[]>(),
+      relevantCountryIds.length
+        ? admin
+            .from("countries")
+            .select("id, continent_code")
+            .in("id", relevantCountryIds)
+            .returns<CountryContinentRow[]>()
+        : Promise.resolve({ data: [] as CountryContinentRow[], error: null }),
+      relevantCountryIds.length
+        ? admin
+            .from("country_adjacencies")
+            .select("country_id, adjacent_country_id")
+            .in("country_id", relevantCountryIds)
+            .returns<CountryAdjacencyRow[]>()
+        : Promise.resolve({ data: [] as CountryAdjacencyRow[], error: null }),
+    ]);
+  assertQuery(
+    welcomeCentersResult.error,
+    "les Centres d’accueil internationaux",
+  );
+  assertQuery(countriesResult.error, "les continents du staff");
+  assertQuery(adjacenciesResult.error, "les pays adjacents du staff");
+  const welcomeLevelByTeamId = new Map(
+    (welcomeCentersResult.data ?? []).map((row) => [
+      row.team_id,
+      Number(row.level),
+    ]),
+  );
+  const continentByCountryId = new Map(
+    (countriesResult.data ?? []).map((row) => [row.id, row.continent_code]),
+  );
+  const adjacentPairs = new Set(
+    (adjacenciesResult.data ?? []).map(
+      (row) => `${row.country_id}:${row.adjacent_country_id}`,
+    ),
+  );
+  const affinityByContractId = new Map(
+    relevantContracts.map((contract) => {
+      const member = membersById.get(contract.staff_member_id)!;
+      const teamCountryId = teamCountryById.get(contract.team_id);
+      const welcomeLevel = welcomeLevelByTeamId.get(contract.team_id) ?? 0;
+      const sameCountry = member.country_id === teamCountryId;
+      const adjacentCountry =
+        welcomeLevel >= 3 &&
+        Boolean(teamCountryId) &&
+        adjacentPairs.has(`${member.country_id}:${teamCountryId}`);
+      const memberContinent = continentByCountryId.get(member.country_id);
+      const sameContinent =
+        welcomeLevel >= 4 &&
+        Boolean(teamCountryId) &&
+        Boolean(memberContinent) &&
+        memberContinent === continentByCountryId.get(teamCountryId!);
+      return [
+        contract.id,
+        sameCountry || adjacentCountry || sameContinent ? 1.1 : 1,
+      ] as const;
+    }),
+  );
   const byTeamId = new Map<string, TeamRaceStaffEffects>();
 
   for (const contract of contracts) {
     const member = membersById.get(contract.staff_member_id);
     if (!member || member.role !== "mechanic") continue;
     const affinity =
-      member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1;
+      affinityByContractId.get(contract.id) ??
+      (member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1);
     const talentCodes =
       talentCodesByMemberId.get(contract.staff_member_id) ?? new Set();
     const current = byTeamId.get(contract.team_id) ?? {
@@ -208,7 +287,8 @@ export async function loadRaceStaffEffects(
       talentCodesByMemberId.get(member.id) ?? new Set<string>();
     if (!talentCodes.has("physio_injury_prevention")) continue;
     const affinity =
-      member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1;
+      affinityByContractId.get(contract.id) ??
+      (member.country_id === teamCountryById.get(contract.team_id) ? 1.1 : 1);
     const prevention = clamp(member.level * 3 * affinity, 0, 30);
     injuryPreventionByRiderId.set(
       assignment.rider_id,

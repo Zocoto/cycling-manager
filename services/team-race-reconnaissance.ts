@@ -62,7 +62,12 @@ type InjuryRow = {
 };
 type CampRow = {
   rider_id: string;
-  camp_type: "classic" | "premium" | "reconnaissance";
+  camp_type:
+    | "classic"
+    | "premium"
+    | "reconnaissance"
+    | "indoor_preparation"
+    | "wind_tunnel_preparation";
   start_day_number: number;
   end_day_number: number;
 };
@@ -511,7 +516,11 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           reason:
             camp.camp_type === "reconnaissance"
               ? `Reconnaissance J${camp.start_day_number}–J${camp.end_day_number}`
-              : `Stage de forme J${camp.start_day_number}–J${camp.end_day_number}`,
+              : camp.camp_type === "indoor_preparation"
+                ? `Préparation indoor J${camp.start_day_number}–J${camp.end_day_number}`
+                : camp.camp_type === "wind_tunnel_preparation"
+                  ? `Préparation en soufflerie J${camp.start_day_number}–J${camp.end_day_number}`
+                  : `Stage de forme J${camp.start_day_number}–J${camp.end_day_number}`,
         })),
         ...(raceConflictsByRiderId.get(rider.id) ?? []).map((conflict) => ({
           startDayNumber: conflict.startDay,

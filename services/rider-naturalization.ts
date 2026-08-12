@@ -61,32 +61,43 @@ export async function getProfessionalRiderNaturalizationEligibility({
   if (!assignmentResult.data) return null;
 
   const teamId = assignmentResult.data.team_id;
-  const [riderResult, contractResult, teamSeasonResult, titleResult] =
-    await Promise.all([
-      admin
-        .from("riders")
-        .select("country_id")
-        .eq("id", riderId)
-        .eq("status", "active")
-        .maybeSingle<{ country_id: string }>(),
-      admin
-        .from("rider_contracts")
-        .select("id")
-        .eq("rider_id", riderId)
-        .eq("team_id", teamId)
-        .eq("status", "active")
-        .maybeSingle<{ id: string }>(),
-      admin
-        .from("team_seasons")
-        .select("registration_country_id")
-        .eq("team_id", teamId)
-        .eq("season_id", seasonResult.data.id)
-        .maybeSingle<{ registration_country_id: string }>(),
-      admin
-        .from("rider_national_championship_titles")
-        .select("id", { count: "exact", head: true })
-        .eq("rider_id", riderId),
-    ]);
+  const [
+    riderResult,
+    contractResult,
+    teamSeasonResult,
+    titleResult,
+    welcomeCenterResult,
+  ] = await Promise.all([
+    admin
+      .from("riders")
+      .select("country_id")
+      .eq("id", riderId)
+      .eq("status", "active")
+      .maybeSingle<{ country_id: string }>(),
+    admin
+      .from("rider_contracts")
+      .select("id")
+      .eq("rider_id", riderId)
+      .eq("team_id", teamId)
+      .eq("status", "active")
+      .maybeSingle<{ id: string }>(),
+    admin
+      .from("team_seasons")
+      .select("registration_country_id")
+      .eq("team_id", teamId)
+      .eq("season_id", seasonResult.data.id)
+      .maybeSingle<{ registration_country_id: string }>(),
+    admin
+      .from("rider_national_championship_titles")
+      .select("id", { count: "exact", head: true })
+      .eq("rider_id", riderId),
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", teamId)
+      .eq("infrastructure_code", "international_welcome_center")
+      .maybeSingle<{ level: number }>(),
+  ]);
   assertQuery(riderResult.error, "le coureur");
   assertQuery(contractResult.error, "le contrat actuel du coureur");
   assertQuery(teamSeasonResult.error, "la nationalité actuelle de l'équipe");
@@ -156,6 +167,9 @@ export async function getProfessionalRiderNaturalizationEligibility({
     currentCountry: toCountry(currentCountry),
     targetCountry: toCountry(targetCountry),
     hasNationalChampionshipTitle: (titleResult.count ?? 0) > 0,
+    requiredDays: [84, 70, 56, 42, 28, 14][
+      Math.max(0, Math.min(5, Number(welcomeCenterResult.data?.level ?? 0)))
+    ],
   });
 }
 

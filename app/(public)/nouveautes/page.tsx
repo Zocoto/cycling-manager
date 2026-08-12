@@ -57,9 +57,7 @@ function ReleasesHero() {
 
           <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl">
             Les nouveautés de
-            <span className="mt-2 block text-[#42B99A]">
-              Cyclo Stratège.
-            </span>
+            <span className="mt-2 block text-[#42B99A]">Cyclo Stratège.</span>
           </h1>
 
           <p className="mt-7 max-w-2xl text-lg leading-8 text-[#25443F]">
@@ -161,12 +159,15 @@ function ReleaseCard({
   isCurrent: boolean;
 }) {
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_65px_rgba(7,26,23,0.22)]">
+    <article
+      id={isCurrent ? "patch-4" : undefined}
+      className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_65px_rgba(7,26,23,0.22)]"
+    >
       <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
 
       <WheelDecoration />
 
-      <details className="group relative">
+      <details className="group relative" open={isCurrent}>
         <summary className="relative flex min-h-20 cursor-pointer list-none items-center gap-4 px-5 py-4 marker:content-none sm:px-7">
           <span className="shrink-0 rounded-md bg-[#F2C94C] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#071A17]">
             {release.version}

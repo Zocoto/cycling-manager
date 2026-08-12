@@ -11,7 +11,7 @@ describe("page d’accueil publique", () => {
     expect(source).not.toContain("function FolderIcon");
   });
 
-  it("met le Patch 3 en vedette au-dessus de quatre annonces historiques", () => {
+  it("met le Patch 4 en vedette au-dessus de quatre annonces historiques", () => {
     expect(source).toContain('title: "Le Patch 3 est déployé"');
     expect(source).toContain('dateTime: "2026-08-01"');
     expect(source).toContain('title: "Le Patch 2 est déployé"');
@@ -25,7 +25,18 @@ describe("page d’accueil publique", () => {
     );
     expect(source).toContain("xl:grid-cols-4");
     expect(source.indexOf("{featuredNews.title}")).toBeLessThan(
-      source.indexOf("historicalNews.map"),
+      source.indexOf("historicalNews.slice"),
     );
+  });
+  it("publie le Patch 4 illustre et renvoie vers sa note detaillee", () => {
+    expect(source).toContain(
+      'title: "Le Patch 4 d\\u00e9veloppe vos infrastructures"',
+    );
+    expect(source).toContain('href: "/nouveautes#patch-4"');
+    expect(source).toContain(
+      'image: "/images/infrastructure/training-center.webp"',
+    );
+    expect(source).toContain("src={featuredNews.image}");
+    expect(source).toContain("historicalNews.slice(0, 4)");
   });
 });

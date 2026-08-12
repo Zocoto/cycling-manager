@@ -26,8 +26,7 @@ export const infrastructureTutorialDefinition = {
       route: INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
       targetId: "infrastructure-overview",
       title: "Des investissements durables et coûteux",
-      content:
-        `Les infrastructures suivent votre équipe au fil des saisons. Leur construction est réservée aux Directeurs Sportifs de niveau ${INFRASTRUCTURE_UNLOCK_LEVEL} ou plus et engage une part importante de la trésorerie.\n\nLe bandeau résume votre solde, les architectes disponibles, le chantier actif et le niveau de l’Académie des métiers.`,
+      content: `Les infrastructures suivent votre équipe au fil des saisons. Leur construction est réservée aux Directeurs Sportifs de niveau ${INFRASTRUCTURE_UNLOCK_LEVEL} ou plus et engage une part importante de la trésorerie.\n\nLe bandeau résume votre solde, les architectes disponibles, le chantier actif et le niveau de l’Académie des métiers.`,
       placement: "bottom",
       requirement: "team_created",
       highlightPadding: 8,
@@ -73,22 +72,11 @@ export const infrastructureTutorialDefinition = {
       highlightPadding: 8,
     },
     {
-      key: "future-facilities",
-      route: INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
-      targetId: "infrastructure-roadmap",
-      title: "Les autres pôles sont encore une feuille de route",
-      content:
-        "La soufflerie, le centre d’altitude, la clinique avancée, le hub logistique et l’atelier technique annoncent les prochaines familles de bâtiments.\n\nIls sont visibles pour présenter leur orientation future, mais leurs effets sportifs ne sont pas encore actifs et aucun chantier ne peut être lancé pour eux aujourd’hui.",
-      placement: "top",
-      highlightPadding: 8,
-    },
-    {
       key: "international-school-effect",
       route: INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE,
       targetId: "infrastructure-school-effect",
       title: "Les écoles améliorent les jeunes du pays",
-      content:
-        `Chaque étoile de centre construite dans un pays ajoute 10 points de probabilité qu’un jeune détecté dans ce pays gagne une étoile entière de potentiel. Les contributions de toutes les équipes se cumulent, jusqu’au plafond mondial de ${MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE} %.\n\nL’effet intervient lors de la génération du jeune dans un rapport de scouting : il ne modifie pas rétroactivement les coureurs déjà découverts.`,
+      content: `Chaque étoile de centre construite dans un pays ajoute 10 points de probabilité qu’un jeune détecté dans ce pays gagne une étoile entière de potentiel. Les contributions de toutes les équipes se cumulent, jusqu’au plafond mondial de ${MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE} %.\n\nL’effet intervient lors de la génération du jeune dans un rapport de scouting : il ne modifie pas rétroactivement les coureurs déjà découverts.`,
       placement: "bottom",
       highlightPadding: 8,
     },
