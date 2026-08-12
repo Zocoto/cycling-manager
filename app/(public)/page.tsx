@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "@/components/ui/app-link";
 
 import { PublicGameNewsBoard } from "@/components/public/public-game-news-board";
+import { InstallAppBanner } from "@/components/pwa/install-app-banner";
 import { getPublicGameNews } from "@/services/public-game-news";
 
 export const revalidate = 60;
@@ -115,6 +116,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <InstallAppBanner />
       <HeroSection />
       <PublicGameNewsBoard snapshot={gameNews} />
       <CareerSection />

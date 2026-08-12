@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { appConfig } from "../lib/app-config";
@@ -22,6 +22,21 @@ export const metadata: Metadata = {
     template: `%s | ${appConfig.name}`,
   },
   description: appConfig.description,
+  applicationName: appConfig.name,
+  category: "games",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: appConfig.name,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#071A17",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
