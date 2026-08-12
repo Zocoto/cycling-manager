@@ -66,7 +66,7 @@ export function TeamEquipmentBulkEditor({
         EQUIPMENT_SLOTS.map((slot) => [
           slot,
           catalog
-            .filter((item) => item.slot === slot && item.ownedQuantity > 0)
+            .filter((item) => isEquipmentItemSelectable(item))
             .sort(
               (left, right) =>
                 left.name.localeCompare(right.name, "fr") ||
@@ -125,9 +125,7 @@ export function TeamEquipmentBulkEditor({
   const affectedRiderCount = new Set(
     changedAssignments.map((assignment) => assignment.riderId),
   ).size;
-  const hasStockError = catalog.some(
-    (item) => (usageByItemId[item.id] ?? 0) > item.ownedQuantity,
-  );
+  const hasStockError = hasEquipmentStockError(catalog, usageByItemId);
   const normalizedSearch = search.trim().toLocaleLowerCase("fr");
   const visibleRiders = riders.filter((rider) => {
     const equippedCount = SLOT_ORDER.filter(
@@ -201,7 +199,8 @@ export function TeamEquipmentBulkEditor({
                     total +
                     Math.max(
                       0,
-                      item.ownedQuantity - (usageByItemId[item.id] ?? 0),
+                      getEquipmentItemCapacity(item, riders.length) -
+                        (usageByItemId[item.id] ?? 0),
                     ),
                   0,
                 ),
@@ -314,18 +313,18 @@ export function TeamEquipmentBulkEditor({
                           Emplacement vide
                         </option>
                         {slotItems.map((item) => {
-                          const remaining =
-                            item.ownedQuantity -
-                            (usageByItemId[item.id] ?? 0);
+                          const usage = usageByItemId[item.id] ?? 0;
+                          const remaining = item.ownedQuantity - usage;
                           const isSelected = item.id === selectedItemId;
                           return (
                             <option
                               key={item.id}
                               value={item.id}
-                              disabled={remaining <= 0 && !isSelected}
+                              disabled={
+                                !item.isUnlimited && remaining <= 0 && !isSelected
+                              }
                             >
-                              {item.name} · {Math.max(0, remaining)} libre
-                              {Math.max(0, remaining) > 1 ? "s" : ""}
+                              {item.name} · {getEquipmentAvailabilityLabel(item, usage)}
                             </option>
                           );
                         })}
@@ -398,6 +397,36 @@ export function TeamEquipmentBulkEditor({
   );
 }
 
+export function isEquipmentItemSelectable(item: TeamEquipmentCatalogItem) {
+  return item.isUnlimited || item.ownedQuantity > 0;
+}
+
+export function hasEquipmentStockError(
+  catalog: TeamEquipmentCatalogItem[],
+  usageByItemId: Record<string, number>,
+) {
+  return catalog.some(
+    (item) =>
+      !item.isUnlimited &&
+      (usageByItemId[item.id] ?? 0) > item.ownedQuantity,
+  );
+}
+
+export function getEquipmentItemCapacity(
+  item: TeamEquipmentCatalogItem,
+  riderCount: number,
+) {
+  return item.isUnlimited ? riderCount : item.ownedQuantity;
+}
+
+export function getEquipmentAvailabilityLabel(
+  item: TeamEquipmentCatalogItem,
+  usage: number,
+) {
+  if (item.isUnlimited) return "dotation illimitée";
+  const remaining = Math.max(0, item.ownedQuantity - usage);
+  return `${remaining} libre${remaining > 1 ? "s" : ""}`;
+}
 export function buildInitialEquipmentValues({
   riders,
   assignments,

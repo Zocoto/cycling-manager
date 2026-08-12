@@ -9,10 +9,7 @@ import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-butt
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
-import {
-  EQUIPMENT_PARTNER_CONTRACT_SEASONS,
-  EQUIPMENT_PARTNER_RARE_OFFER_RATE,
-} from "@/lib/game/equipment-partner";
+import { EQUIPMENT_PARTNER_CONTRACT_SEASONS } from "@/lib/game/equipment-partner";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -26,10 +23,7 @@ import {
   type EquipmentPartnerProduct,
   type EquipmentPartnerSupplierOption,
 } from "@/services/team-equipment-partner";
-import {
-  claimEquipmentPartnerOfferAction,
-  signEquipmentPartnerAction,
-} from "./actions";
+import { signEquipmentPartnerAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Équipementier",
@@ -194,9 +188,9 @@ export default async function EquipmentPartnerPage({
             body="Le contrat est irrévocable et ne peut pas être prolongé avec la même marque."
           />
           <RuleCard
-            eyebrow="Séries limitées"
-            title={`${EQUIPMENT_PARTNER_RARE_OFFER_RATE * 100} % par jour`}
-            body="Casques, textiles et accessoires peuvent être proposés ponctuellement."
+            eyebrow="Signature technique"
+            title="Des profils vraiment différents"
+            body="Chaque marque affiche sa philosophie et ses terrains de prédilection. Les bonus restent fixes pendant le contrat."
           />
         </section>
 
@@ -328,9 +322,7 @@ function SupplierContractCard({
 }: {
   supplier: EquipmentPartnerSupplierOption;
 }) {
-  const coreProducts = supplier.products.filter(
-    (product) => product.offerType === "core",
-  );
+  const coreProducts = supplier.products;
 
   return (
     <article
@@ -360,6 +352,16 @@ function SupplierContractCard({
           <p className="mt-2 line-clamp-3 text-xs font-bold leading-5 text-white/85">
             {supplier.positioning}
           </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {supplier.strengths.map((strength) => (
+              <span
+                key={strength}
+                className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-white"
+              >
+                {strength}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       <div className="p-6">
@@ -382,9 +384,8 @@ function SupplierContractCard({
           ))}
         </div>
         <p className="mt-4 text-xs font-semibold leading-5 text-[#60756E]">
-          Cadre et roues peuvent équiper autant de coureurs que nécessaire
-          pendant le contrat. Les autres références restent réservées aux
-          propositions rares.
+          Cette dotation peut équiper autant de coureurs que nécessaire pendant
+          le contrat. Elle reste virtuelle et ne remplit jamais l’inventaire.
         </p>
         <form action={signEquipmentPartnerAction} className="mt-5">
           <input type="hidden" name="supplierKey" value={supplier.key} />
@@ -442,6 +443,16 @@ function ActiveContractSection({
               Contrat actif · irrévocable
             </p>
             <h2 className="mt-2 text-3xl font-black">{supplier.name}</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {supplier.strengths.map((strength) => (
+                <span
+                  key={strength}
+                  className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide"
+                >
+                  {strength}
+                </span>
+              ))}
+            </div>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/85">
               {contract.startSeasonName} à {contract.endSeasonName}. Les
               références de la dotation restent utilisables sans limite de
@@ -483,70 +494,6 @@ function ActiveContractSection({
         </div>
       </section>
 
-      <section className="mt-7">
-        <article className="rounded-[2rem] border border-[#D29F32]/25 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#B47A16]">
-            Propositions rares
-          </p>
-          <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-            Séries limitées
-          </h2>
-          {overview.openOffers.length > 0 ? (
-            <div className="mt-5 space-y-4">
-              {overview.openOffers.map((offer) => (
-                <div
-                  key={offer.id}
-                  className="rounded-2xl border border-[#D29F32]/25 bg-[#FFF9E7] p-4"
-                >
-                  <div className="flex gap-4">
-                    <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-[#071A17]">
-                      <Image
-                        src={offer.item.imagePath}
-                        alt=""
-                        fill
-                        sizes="96px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-[#B47A16]">
-                        {getEquipmentCategory(offer.item.slot).shortLabel}
-                      </p>
-                      <p className="mt-1 font-black text-[#183F37]">
-                        {offer.item.name}
-                      </p>
-                      <p className="mt-1 text-[11px] font-bold text-[#7A6A4A]">
-                        Expire le {formatDate(offer.expiresOn)}
-                      </p>
-                    </div>
-                  </div>
-                  <form
-                    action={claimEquipmentPartnerOfferAction}
-                    className="mt-4"
-                  >
-                    <input type="hidden" name="offerId" value={offer.id} />
-                    <EquipmentPartnerSubmitButton
-                      label="Activer la série"
-                      pendingLabel="Acceptation…"
-                      tone="green"
-                    />
-                  </form>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7F9F7] px-5 py-8 text-center">
-              <p className="text-sm font-black text-[#183F37]">
-                Aucune proposition aujourd’hui
-              </p>
-              <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
-                Le bureau d’études peut présenter une référence hors dotation à
-                chaque nouvelle journée.
-              </p>
-            </div>
-          )}
-        </article>
-      </section>
     </>
   );
 }
@@ -569,7 +516,7 @@ function PartnerProductCard({ product }: { product: EquipmentPartnerProduct }) {
           <h3 className="mt-1 text-xl font-black">{product.name}</h3>
         </div>
         <span className="absolute right-4 top-4 rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase text-[#071A17]">
-          {product.offerType === "core" ? "Dotation" : "Série limitée"}
+          Dotation
         </span>
       </div>
       <div className="p-5">
@@ -626,9 +573,7 @@ function HeroMetric({ label, value }: { label: string; value: string }) {
 function SuccessMessage({ state }: { state: string }) {
   const messages: Record<string, string> = {
     "contrat-signe":
-      "Le contrat est signé. Le vélo du partenaire est disponible sans limite de stock pendant le partenariat.",
-    "proposition-acceptee":
-      "La série limitée est désormais disponible sans limite de stock pendant le partenariat.",
+      "Le contrat est signé. La dotation du partenaire est disponible sans limite de stock pendant le partenariat.",
   };
   const message = messages[state];
   return message ? (
@@ -686,12 +631,6 @@ function ratingLabel(key: string) {
   return labels[key] ?? key;
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "short",
-  }).format(new Date(`${value}T12:00:00Z`));
-}
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("fr-FR", {

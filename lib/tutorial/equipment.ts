@@ -1,7 +1,7 @@
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const EQUIPMENT_TUTORIAL_KEY = "equipment";
-export const EQUIPMENT_TUTORIAL_VERSION = 1;
+export const EQUIPMENT_TUTORIAL_VERSION = 2;
 
 export const EQUIPMENT_TUTORIAL_COMMERCIAL_ROUTE = "/jeu/materiel";
 export const EQUIPMENT_TUTORIAL_PARTNER_ROUTE = "/jeu/materiel/equipementier";
@@ -69,7 +69,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-overview",
       title: "L’équipementier est un partenariat d’équipe",
       content:
-        "Une fois le seuil de réputation atteint, votre équipe peut signer gratuitement avec un équipementier. Les cadres et roues du partenaire deviennent équipables sans contingent depuis la fiche des coureurs pendant toute la durée du contrat.\n\nCes références restent hors inventaire : elles constituent un droit d’usage temporaire lié au contrat. Les prototypes uniques sont développés séparément dans le Labo R&D de votre équipe.",
+        "Une fois le seuil de réputation atteint, votre équipe peut signer gratuitement avec un équipementier. Chaque marque possède une philosophie et des terrains de prédilection différents ; sa dotation devient équipable sans contingent pendant toute la durée du contrat.\n\nCes références restent hors inventaire : elles constituent un droit d’usage temporaire lié au contrat. Les prototypes uniques sont développés séparément dans le Labo R&D de votre équipe.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -79,7 +79,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-rules",
       title: "Un engagement technique de deux saisons",
       content:
-        "Le contrat ne coûte rien, mais il est irrévocable, dure deux saisons et ne peut pas être prolongé avec la même marque. Toute la dotation du partenaire est retirée à son terme.\n\nDes séries limitées peuvent être proposées ponctuellement. La R&D ne dépend plus de la marque : elle se mène dans votre propre laboratoire sur les pièces de votre stock.",
+        "Le contrat ne coûte rien, mais il est irrévocable, dure deux saisons et ne peut pas être prolongé avec la même marque. Toute la dotation du partenaire est retirée à son terme.\n\nLa rubrique équipementier ne comporte plus de R&D ni d’offres aléatoires : les recherches se mènent uniquement dans votre propre laboratoire sur les pièces de votre stock.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -89,7 +89,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-partner-workflow",
       title: "Le contenu s’adapte à votre situation",
       content:
-        "Avant 200 points de réputation, cette zone affiche votre progression vers le déblocage. Une fois le seuil atteint, elle compare les partenaires encore disponibles. Après signature, elle regroupe la dotation et les éventuelles séries limitées. Le Labo R&D dispose désormais de son propre onglet dans la rubrique Matériel.\n\nUne marque déjà utilisée ne pourra pas être choisie une seconde fois.",
+        "Avant 200 points de réputation, cette zone affiche votre progression vers le déblocage. Une fois le seuil atteint, elle compare la philosophie et les points forts des partenaires encore disponibles. Après signature, elle regroupe toute la dotation. Le Labo R&D dispose de son propre onglet dans la rubrique Matériel.\n\nUne marque déjà utilisée ne pourra pas être choisie une seconde fois.",
       placement: "top",
       highlightPadding: 8,
     },

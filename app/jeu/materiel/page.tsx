@@ -91,7 +91,10 @@ export default async function MaterialPage({
       item.channel === "commercial" &&
       item.catalogKey !== EQUIPMENT_TUTORIAL_GLASSES_CATALOG_KEY,
   );
-  const supplierKey = overview.suppliers.some(
+  const commercialSuppliers = overview.suppliers.filter(
+    (supplier) => supplier.referenceCount > 0,
+  );
+  const supplierKey = commercialSuppliers.some(
     (supplier) => supplier.key === rawSupplierKey,
   )
     ? rawSupplierKey
@@ -249,7 +252,7 @@ export default async function MaterialPage({
 
           <article className="relative overflow-hidden rounded-[2rem] border border-[#D29F32]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
             <span className="absolute right-5 top-5 rounded-full bg-[#F2C94C]/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#F2C94C]">
-              {overview.suppliers.length} marques
+              {commercialSuppliers.length} marques
             </span>
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#9BE0BC]">
               Marché ouvert
@@ -293,7 +296,7 @@ export default async function MaterialPage({
             aria-label="Équipementiers"
             className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
           >
-            {overview.suppliers.map((supplier) => {
+            {commercialSuppliers.map((supplier) => {
               const isActive = supplier.key === supplierKey;
 
               return (
@@ -479,7 +482,7 @@ export default async function MaterialPage({
                   ? getEquipmentCategory(category).label
                   : "Toutes les catégories"}
                 {supplierKey
-                  ? ` · ${overview.suppliers.find((supplier) => supplier.key === supplierKey)?.name}`
+                  ? ` · ${commercialSuppliers.find((supplier) => supplier.key === supplierKey)?.name}`
                   : ""}
                 {activeEffect ? ` · ${activeEffect.label}` : ""}
               </p>

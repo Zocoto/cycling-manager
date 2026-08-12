@@ -38,30 +38,7 @@ type ContractSupplierRow = {
 type ProductRow = {
   supplier_key: string;
   equipment_item_id: string;
-  offer_type: "core" | "rare";
-  research_rating_key: string;
   display_order: number;
-};
-
-type ProjectRow = {
-  id: string;
-  equipment_item_id: string;
-  research_rating_key: string;
-  status: "in_progress" | "completed";
-  started_on: string;
-  completes_on: string;
-  outcome: "improvement" | "setback" | null;
-  delta: number | null;
-  started_at: string;
-  completed_at: string | null;
-};
-
-type OfferRow = {
-  id: string;
-  equipment_item_id: string;
-  offered_on: string;
-  expires_on: string;
-  status: "open" | "claimed" | "expired";
 };
 
 export type EquipmentPartnerProduct = {
@@ -71,8 +48,6 @@ export type EquipmentPartnerProduct = {
   imagePath: string;
   baseEffectSummary: string;
   effects: EquipmentEffects;
-  offerType: ProductRow["offer_type"];
-  researchRatingKey: string;
   isAvailable: boolean;
 };
 
@@ -84,6 +59,7 @@ export type EquipmentPartnerSupplierOption = {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  strengths: string[];
   alreadyUsed: boolean;
   products: EquipmentPartnerProduct[];
 };
@@ -101,27 +77,6 @@ export type EquipmentPartnerContract = {
   completedAt: string | null;
 };
 
-export type EquipmentPartnerProject = {
-  id: string;
-  itemId: string;
-  itemName: string;
-  itemSlot: EquipmentSlot;
-  researchRatingKey: string;
-  status: ProjectRow["status"];
-  startedOn: string;
-  completesOn: string;
-  outcome: ProjectRow["outcome"];
-  delta: number | null;
-  completedAt: string | null;
-};
-
-export type EquipmentPartnerOffer = {
-  id: string;
-  item: EquipmentPartnerProduct;
-  offeredOn: string;
-  expiresOn: string;
-};
-
 export type TeamEquipmentPartnerOverview = {
   teamName: string;
   seasonName: string;
@@ -133,9 +88,6 @@ export type TeamEquipmentPartnerOverview = {
   contractHistory: EquipmentPartnerContract[];
   suppliers: EquipmentPartnerSupplierOption[];
   activeProducts: EquipmentPartnerProduct[];
-  activeProject: EquipmentPartnerProject | null;
-  recentProjects: EquipmentPartnerProject[];
-  openOffers: EquipmentPartnerOffer[];
 };
 
 export async function getCurrentTeamEquipmentPartnerOverview(
@@ -179,9 +131,7 @@ export async function getCurrentTeamEquipmentPartnerOverview(
       .returns<ContractSupplierRow[]>(),
     admin
       .from("equipment_partner_products")
-      .select(
-        "supplier_key, equipment_item_id, offer_type, research_rating_key, display_order",
-      )
+      .select("supplier_key, equipment_item_id, display_order")
       .order("display_order", { ascending: true })
       .returns<ProductRow[]>(),
   ]);
@@ -212,76 +162,28 @@ export async function getCurrentTeamEquipmentPartnerOverview(
   );
   const activeContract =
     contracts.find((contract) => contract.status === "active") ?? null;
-  const usedSupplierKeys = new Set(contracts.map((contract) => contract.supplierKey));
+  const usedSupplierKeys = new Set(
+    contracts.map((contract) => contract.supplierKey),
+  );
   const supplierKeys = new Set(
     (contractSuppliersResult.data ?? []).map((supplier) => supplier.supplier_key),
   );
+  if (activeContract) supplierKeys.add(activeContract.supplierKey);
   const suppliers = equipment.suppliers
     .filter((supplier) => supplierKeys.has(supplier.key))
-    .map(
-      (supplier) =>
-        ({
-          ...supplier,
-          alreadyUsed: usedSupplierKeys.has(supplier.key),
-          products: productsBySupplier.get(supplier.key) ?? [],
-        }) satisfies EquipmentPartnerSupplierOption,
-    );
+    .map((supplier) => {
+      const products = productsBySupplier.get(supplier.key) ?? [];
+      return {
+        ...supplier,
+        strengths: getSupplierStrengths(products),
+        alreadyUsed: usedSupplierKeys.has(supplier.key),
+        products,
+      } satisfies EquipmentPartnerSupplierOption;
+    });
 
   const activeProducts = activeContract
     ? productsBySupplier.get(activeContract.supplierKey) ?? []
     : [];
-  const currentContractRow = activeContract
-    ? (contractsResult.data ?? []).find(
-        (contract) => contract.id === activeContract.id,
-      ) ?? null
-    : null;
-
-  const [projectsResult, offersResult] = currentContractRow
-    ? await Promise.all([
-        admin
-          .from("equipment_partner_rnd_projects")
-          .select(
-            "id, equipment_item_id, research_rating_key, status, started_on, completes_on, outcome, delta, started_at, completed_at",
-          )
-          .eq("contract_id", currentContractRow.id)
-          .order("started_at", { ascending: false })
-          .limit(12)
-          .returns<ProjectRow[]>(),
-        admin
-          .from("equipment_partner_offers")
-          .select("id, equipment_item_id, offered_on, expires_on, status")
-          .eq("contract_id", currentContractRow.id)
-          .eq("status", "open")
-          .order("offered_on", { ascending: false })
-          .returns<OfferRow[]>(),
-      ])
-    : [
-        { data: [] as ProjectRow[], error: null },
-        { data: [] as OfferRow[], error: null },
-      ];
-
-  assertQuery(projectsResult.error, "les recherches R&D");
-  assertQuery(offersResult.error, "les propositions de matériel");
-
-  const projectRows = projectsResult.data ?? [];
-  const projects = projectRows.flatMap((project) => {
-    const item = itemById.get(project.equipment_item_id);
-    return item ? [mapProject(project, item)] : [];
-  });
-  const productById = new Map(activeProducts.map((product) => [product.id, product]));
-  const openOffers = (offersResult.data ?? []).flatMap((offer) => {
-    const item = productById.get(offer.equipment_item_id);
-    return item
-      ? [
-          {
-            id: offer.id,
-            item,
-            offeredOn: offer.offered_on,
-            expiresOn: offer.expires_on,
-          } satisfies EquipmentPartnerOffer,
-        ]
-      : [];
-  });
   const reputationPoints = Number(directorResult.data.reputation_points ?? 0);
   const unlocked = canSignEquipmentPartnerContract(reputationPoints);
 
@@ -296,10 +198,6 @@ export async function getCurrentTeamEquipmentPartnerOverview(
     contractHistory: contracts,
     suppliers,
     activeProducts,
-    activeProject:
-      projects.find((project) => project.status === "in_progress") ?? null,
-    recentProjects: projects.filter((project) => project.status === "completed"),
-    openOffers,
   };
 }
 
@@ -320,8 +218,6 @@ function groupProductsBySupplier(
       imagePath: item.imagePath,
       baseEffectSummary: item.effectSummary,
       effects: item.effects,
-      offerType: row.offer_type,
-      researchRatingKey: row.research_rating_key,
       isAvailable: item.isUnlimited,
     });
     grouped.set(row.supplier_key, products);
@@ -330,13 +226,55 @@ function groupProductsBySupplier(
   return grouped;
 }
 
+function getSupplierStrengths(products: EquipmentPartnerProduct[]) {
+  const scores = new Map<string, number>();
+
+  for (const product of products) {
+    for (const [key, rawValue] of Object.entries(product.effects.ratingBonuses)) {
+      const value = Number(rawValue);
+      if (value > 0) scores.set(key, (scores.get(key) ?? 0) + value);
+    }
+    for (const [key, rawValue] of Object.entries(
+      product.effects.timeTrialRatingBonuses,
+    )) {
+      const value = Number(rawValue);
+      if (value > 0) scores.set(key, (scores.get(key) ?? 0) + value);
+    }
+  }
+
+  const strengths = [...scores.entries()]
+    .sort(([leftKey, left], [rightKey, right]) =>
+      right - left || leftKey.localeCompare(rightKey, "fr"),
+    )
+    .slice(0, 3)
+    .map(([key]) => ratingLabel(key));
+
+  return strengths.length ? strengths : ["Polyvalence"];
+}
+
+function ratingLabel(key: string) {
+  const labels: Record<string, string> = {
+    mountain: "Montagne",
+    hills: "Vallons",
+    flat: "Plaine",
+    timeTrial: "Contre-la-montre",
+    cobbles: "Pavés",
+    sprint: "Sprint",
+    acceleration: "Accélération",
+    downhill: "Descente",
+    endurance: "Endurance",
+    resistance: "Résistance",
+    recovery: "Récupération",
+    breakaway: "Échappée",
+    prologue: "Prologue",
+  };
+  return labels[key] ?? key;
+}
+
 function mapContract(
   contract: ContractRow,
   seasonById: Map<string, SeasonRow>,
-  supplierByKey: Map<
-    string,
-    { name: string }
-  >,
+  supplierByKey: Map<string, { name: string }>,
 ): EquipmentPartnerContract {
   const start = seasonById.get(contract.start_season_id);
   const end = seasonById.get(contract.end_season_id);
@@ -353,25 +291,6 @@ function mapContract(
     status: contract.status,
     signedAt: contract.signed_at,
     completedAt: contract.completed_at,
-  };
-}
-
-function mapProject(
-  project: ProjectRow,
-  item: TeamEquipmentCatalogItem,
-): EquipmentPartnerProject {
-  return {
-    id: project.id,
-    itemId: item.id,
-    itemName: item.name,
-    itemSlot: item.slot,
-    researchRatingKey: project.research_rating_key,
-    status: project.status,
-    startedOn: project.started_on,
-    completesOn: project.completes_on,
-    outcome: project.outcome,
-    delta: project.delta,
-    completedAt: project.completed_at,
   };
 }
 
