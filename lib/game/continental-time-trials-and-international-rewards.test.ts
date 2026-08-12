@@ -136,6 +136,6 @@ describe("CLM continentaux S2 et gains internationaux", () => {
     );
     expect(s1RewardBackfill).toContain("v_result.target_uci - v_existing_uci");
     expect(s1RewardBackfill).toContain("s1-international-reward-adjustment:");
-    expect(s1RewardBackfill).toContain("v_delta_uci,\n        false,");
+    expect(s1RewardBackfill).toMatch(/v_delta_uci,\r?\n\s+false,/);
   });
 });
