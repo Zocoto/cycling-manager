@@ -363,6 +363,14 @@ do $migration$ declare v_definition text; begin
   end if;
   v_definition:=replace(
     v_definition,
+    'when ''premium'' then ''Stage de forme premium''',
+    'when ''premium'' then ''Stage de forme premium''
+        when ''reconnaissance'' then ''Reconnaissance de parcours''
+        when ''indoor_preparation'' then U&''Pr\00E9paration indoor''
+        when ''wind_tunnel_preparation'' then U&''Pr\00E9paration en soufflerie'''
+  );
+  v_definition:=replace(
+    v_definition,
     'case form_camp.camp_type
         when ''premium'' then ''Stage de forme premium''
         else ''Stage de forme classique''
