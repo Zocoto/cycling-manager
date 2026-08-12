@@ -10,6 +10,8 @@ import {
   type FocusEvent,
   type PointerEvent,
   type ReactNode,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -27,6 +29,8 @@ type AppLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
     children?: ReactNode;
   };
+
+const PREVIEW_INTENT_DELAY_MS = 220;
 
 /**
  * Drop-in replacement for `next/link`.
@@ -51,11 +55,14 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   ref,
 ) {
   const [previewIntentOpen, setPreviewIntentOpen] = useState(false);
+  const previewIntentTimerRef = useRef<number | null>(
+    null,
+  );
   const [RiderPreviewLink, setRiderPreviewLink] =
     useState<RiderPreviewLinkComponent | null>(null);
   const [RacePreviewLink, setRacePreviewLink] =
     useState<RacePreviewLinkComponent | null>(null);
-  const resolvedPrefetch = prefetch ?? null;
+  const resolvedPrefetch = prefetch ?? false;
   const usesAnchor =
     typeof href === "string"
       ? href.includes("#")
@@ -77,6 +84,21 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     </>
   );
 
+  useEffect(() => {
+    return () => {
+      if (previewIntentTimerRef.current !== null) {
+        window.clearTimeout(previewIntentTimerRef.current);
+      }
+    };
+  }, []);
+
+  function clearPreviewIntentTimer() {
+    if (previewIntentTimerRef.current === null) return;
+
+    window.clearTimeout(previewIntentTimerRef.current);
+    previewIntentTimerRef.current = null;
+  }
+
   function loadPreview() {
     if (!riderId && !raceTarget) return;
 
@@ -89,30 +111,44 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     }
   }
 
+  function schedulePreview() {
+    clearPreviewIntentTimer();
+    if (!riderId && !raceTarget) return;
+
+    previewIntentTimerRef.current = window.setTimeout(() => {
+      previewIntentTimerRef.current = null;
+      loadPreview();
+    }, PREVIEW_INTENT_DELAY_MS);
+  }
+
   function handlePointerEnter(event: PointerEvent<HTMLAnchorElement>) {
     onPointerEnter?.(event);
     if (event.defaultPrevented) return;
-    if (event.pointerType === "mouse") loadPreview();
+    if (event.pointerType === "mouse") schedulePreview();
   }
 
   function handlePointerLeave(event: PointerEvent<HTMLAnchorElement>) {
     onPointerLeave?.(event);
+    clearPreviewIntentTimer();
     setPreviewIntentOpen(false);
   }
 
   function handleFocus(event: FocusEvent<HTMLAnchorElement>) {
     onFocus?.(event);
     if (event.defaultPrevented) return;
+    clearPreviewIntentTimer();
     loadPreview();
   }
 
   function handleBlur(event: FocusEvent<HTMLAnchorElement>) {
     onBlur?.(event);
+    clearPreviewIntentTimer();
     setPreviewIntentOpen(false);
   }
 
   function handlePointerDown(event: PointerEvent<HTMLAnchorElement>) {
     onPointerDown?.(event);
+    clearPreviewIntentTimer();
   }
 
   const intentHandlers = {

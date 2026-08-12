@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import {
@@ -12,6 +11,7 @@ import { StaffDismissalSubmitButton } from "@/components/game/staff-dismissal-su
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
+import Link from "@/components/ui/app-link";
 import { ARCHITECT_SPECIALTY_LABELS } from "@/lib/game/infrastructure";
 import {
   STAFF_ROLES,

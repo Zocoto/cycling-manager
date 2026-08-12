@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { claimGameObjectiveAction } from "@/app/jeu/objectifs/actions";
@@ -9,6 +8,7 @@ import { GameHeader } from "@/components/game/game-header";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
+import Link from "@/components/ui/app-link";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   filterGameObjectives,

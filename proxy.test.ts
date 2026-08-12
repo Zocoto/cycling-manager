@@ -5,7 +5,20 @@ import { config } from "./proxy";
 
 describe("proxy route coverage", () => {
   it.each(["/guide", "/guide/debuter"])(
-    "refreshes the session on the public guide route %s",
+    "keeps the public guide route %s outside the session proxy",
+    (url) => {
+      expect(
+        unstable_doesMiddlewareMatch({
+          config,
+          nextConfig: {},
+          url,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it.each(["/jeu", "/jeu/effectif", "/connexion", "/inscription"])(
+    "refreshes the session on protected or authentication route %s",
     (url) => {
       expect(
         unstable_doesMiddlewareMatch({
