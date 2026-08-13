@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { AUTOMOTIVE_SPONSORS } from "../data/sponsors/automotive";
 import { CYCLING_PROJECT_SPONSORS } from "../data/sponsors/cycling-projects";
 import { POSTAL_SERVICE_SPONSORS } from "../data/sponsors/postal-services";
+import { WELLNESS_HYGIENE_SPONSORS } from "../data/sponsors/wellness-hygiene";
 import type { Sponsor } from "../types/sponsor";
 
 type BrandLockup = {
@@ -42,12 +43,23 @@ const BRAND_LOCKUPS: BrandLockup[] = [
   { id: "calder-wren-motorworks", main: "CALDER & WREN", descriptor: "MOTORWORKS", monogram: "CW", category: "BRITISH MOTORING" },
   { id: "suryavaan-motors", main: "SURYAVAAN", descriptor: "MOTORS", monogram: "SY", category: "SMART MOBILITY" },
   { id: "vereda-nova-automoveis", main: "VEREDA NOVA", descriptor: "AUTOMÓVEIS", monogram: "VN", category: "SOUTH AMERICAN MOTORS" },
+  { id: "savonnerie-calanque", main: "CALANQUE", descriptor: "SAVONNERIE", monogram: "SC", category: "MARSEILLE SOAP CARE" },
+  { id: "savana-karite", main: "SAVANA KARITÉ", descriptor: "BEURRE · SAVON NOIR", monogram: "SK", category: "SHEA DAILY CARE" },
+  { id: "atlas-ghassoul", main: "ATLAS GHASSOUL", descriptor: "RITUELS DU HAMMAM", monogram: "AG", category: "MINERAL BATH CARE" },
+  { id: "yuzu-sento", main: "YUZU SENTŌ", descriptor: "BATH & MINERAL", monogram: "YS", category: "JAPANESE BATH CARE" },
+  { id: "hanbyeol-care", main: "HANBYEOL", descriptor: "DAILY SKIN CARE", monogram: "HC", category: "DERMOCOSMETICS" },
+  { id: "eldur-moss", main: "ELDUR & MOSS", descriptor: "GEOTHERMAL CARE", monogram: "EM", category: "ICELANDIC MINERALS" },
+  { id: "sauna-sisu", main: "SAUNA SISU", descriptor: "BIRCH · TAR · STEAM", monogram: "SS", category: "FINNISH SAUNA CARE" },
+  { id: "kakheti-botanica", main: "KAKHETI", descriptor: "BOTANICA", monogram: "KB", category: "GRAPE SEED CARE" },
+  { id: "neem-nadi", main: "NEEM NADI", descriptor: "HERBAL HYGIENE", monogram: "NN", category: "NEEM & TULSI CARE" },
+  { id: "nalu-noni", main: "NALU NONI", descriptor: "ISLAND BODY CARE", monogram: "NN", category: "PACIFIC BOTANICALS" },
 ];
 
 const sponsors = [
   ...CYCLING_PROJECT_SPONSORS,
   ...POSTAL_SERVICE_SPONSORS,
   ...AUTOMOTIVE_SPONSORS,
+  ...WELLNESS_HYGIENE_SPONSORS,
 ] satisfies readonly Sponsor[];
 const lockupById = new Map(BRAND_LOCKUPS.map((lockup) => [lockup.id, lockup]));
 
@@ -147,6 +159,24 @@ async function removeChromaKey(inputPath: string) {
         0,
         data[offset + 2] - spill * (1 - matte) * 0.55,
       );
+    }
+  }
+
+  const edgePadding = Math.max(
+    4,
+    Math.round(Math.min(info.width, info.height) * 0.008),
+  );
+
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      const isInsideSafeArea =
+        x >= edgePadding &&
+        x < info.width - edgePadding &&
+        y >= edgePadding &&
+        y < info.height - edgePadding;
+
+      if (isInsideSafeArea) continue;
+      data[(y * info.width + x) * 4 + 3] = 0;
     }
   }
 
