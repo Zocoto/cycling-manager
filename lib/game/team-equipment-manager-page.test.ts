@@ -9,6 +9,9 @@ const managerPage = read("app/jeu/materiel/equiper/page.tsx");
 const managerComponent = read(
   "components/game/team-equipment-bulk-editor.tsx",
 );
+const desktopTable = read(
+  "components/game/team-equipment-desktop-table.tsx",
+);
 const equipmentActions = read("app/jeu/materiel/actions.ts");
 const equipmentService = read("services/team-equipment.ts");
 
@@ -31,7 +34,11 @@ describe("gestion groupée des équipements", () => {
 
   it("propose une grille compacte, filtrable et adaptée au mobile", () => {
     expect(managerComponent).toContain('type StatusFilter = "all"');
-    expect(managerComponent).toContain("sm:grid-cols-2 xl:grid-cols-4");
+    expect(managerComponent).toContain("space-y-3 lg:hidden");
+    expect(managerComponent).toContain("TeamEquipmentDesktopTable");
+    expect(desktopTable).toContain("<table");
+    expect(desktopTable).toContain("sticky left-0");
+    expect(desktopTable).toContain("hidden overflow-hidden");
     expect(managerComponent).toContain("fixed inset-x-3");
     expect(managerComponent).toContain("setStatusFilter");
   });

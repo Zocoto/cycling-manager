@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { saveTeamEquipmentAssignmentsAction } from "@/app/jeu/materiel/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { TeamEquipmentDesktopTable } from "@/components/game/team-equipment-desktop-table";
 import {
   EQUIPMENT_CATEGORIES,
   EQUIPMENT_SLOTS,
@@ -239,7 +240,7 @@ export function TeamEquipmentBulkEditor({
         </div>
       </section>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-3 lg:hidden">
         {visibleRiders.map((rider) => {
           const equippedCount = SLOT_ORDER.filter(
             (slot) => valuesByKey[riderSlotKey(rider.id, slot)],
@@ -334,6 +335,18 @@ export function TeamEquipmentBulkEditor({
           );
         })}
       </div>
+
+      <TeamEquipmentDesktopTable
+        riders={visibleRiders}
+        slots={SLOT_ORDER}
+        itemsBySlot={itemsBySlot}
+        itemById={itemById}
+        valuesByKey={valuesByKey}
+        usageByItemId={usageByItemId}
+        pendingKeys={pendingKeys}
+        jersey={jersey}
+        onChange={updateValue}
+      />
 
       {visibleRiders.length === 0 ? (
         <div className="mt-4 rounded-[1.6rem] border border-dashed border-[#315B3E]/20 bg-white px-6 py-12 text-center">
