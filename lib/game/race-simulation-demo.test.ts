@@ -168,7 +168,7 @@ describe("createCalendarSimulationInput", () => {
       {
         segmentNumber: 1,
         distanceKm: 174,
-        terrain: "hilly",
+        terrain: "climb",
         averageGradientPct: 2,
         surface: "asphalt",
         prime: null,
