@@ -104,31 +104,38 @@ $$;
 do $migration$
 declare
   v_definition text;
-  v_old_block text := $old$
-  insert into public.rider_condition_states (
-    rider_id, season_day_id, form, fatigue, source
-  )
-  select rating.rider_id, day.id, 75, 0, 'season_rollover'
-  from public.rider_season_ratings as rating
-  join public.season_days as day
-    on day.season_id = v_target.id and day.day_number = 1
-  where rating.season_id = v_target.id
-  on conflict (rider_id, season_day_id) do nothing;
-$old$;
-  v_new_block text := $new$
-  perform public.apply_season_break_recovery(v_source.id, v_target.id);
-$new$;
+  v_insert_marker text := 'insert into public.rider_condition_states (';
+  v_new_statement text :=
+    'perform public.apply_season_break_recovery(v_source.id, v_target.id);';
+  v_statement_start integer;
+  v_statement_length integer;
 begin
   select pg_catalog.pg_get_functiondef(
     'public.rollover_game_season(uuid,boolean)'::regprocedure
   ) into v_definition;
 
-  if position(v_new_block in v_definition) = 0 then
-    if position(v_old_block in v_definition) = 0 then
+  if position(v_new_statement in v_definition) = 0 then
+    if (
+      length(v_definition) - length(replace(v_definition, v_insert_marker, ''))
+    ) / length(v_insert_marker) <> 1 then
       raise exception 'Le bloc de forme du rollover de saison est introuvable.';
     end if;
 
-    execute replace(v_definition, v_old_block, v_new_block);
+    v_statement_start := position(v_insert_marker in v_definition);
+    v_statement_length := position(
+      ';' in substring(v_definition from v_statement_start)
+    );
+
+    if v_statement_start = 0 or v_statement_length = 0 then
+      raise exception 'Le bloc de forme du rollover de saison est incomplet.';
+    end if;
+
+    execute overlay(
+      v_definition
+      placing v_new_statement
+      from v_statement_start
+      for v_statement_length
+    );
   end if;
 end;
 $migration$;

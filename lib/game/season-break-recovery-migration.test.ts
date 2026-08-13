@@ -33,6 +33,9 @@ describe("season break recovery", () => {
     expect(migration).toContain(
       "perform public.apply_season_break_recovery(v_source.id, v_target.id);",
     );
+    expect(migration).toContain("v_insert_marker text := 'insert into public.rider_condition_states ('");
+    expect(migration).toContain("length(replace(v_definition, v_insert_marker, ''))");
+    expect(migration).toContain("execute overlay(");
     expect(migration).toContain("on conflict (rider_id, season_day_id) do update set");
     expect(migration).toContain("v_target_game_year <> v_source_game_year + 1");
     expect(migration).toContain(
