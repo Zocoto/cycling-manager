@@ -1,7 +1,9 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { ACHIEVEMENT_TROPHY_DEFINITIONS } from "@/lib/game/achievement-trophies";
 
 const migrationPath = resolve(
   process.cwd(),
@@ -44,19 +46,17 @@ describe("modern feature career objectives", () => {
     expect(migration).toContain("'virage_cache'");
   });
 
-  it("ships every dedicated trophy artwork", () => {
-    for (const assetName of [
-      "atlas-du-peloton.webp",
-      "campus-de-pointe.webp",
-      "alchimiste-du-carbone.webp",
-      "triple-couronne-integrale.webp",
-      "virage-cache.webp",
-    ]) {
-      expect(
-        existsSync(
-          resolve(process.cwd(), "public/images/objective-trophies", assetName),
-        ),
-      ).toBe(true);
-    }
+  it("ships a distinct simple mark for every dedicated trophy", () => {
+    expect(
+      Object.values(ACHIEVEMENT_TROPHY_DEFINITIONS).map(
+        ({ visualVariant }) => visualVariant,
+      ),
+    ).toEqual([
+      "astrolabe",
+      "panorama",
+      "apparatus",
+      "regalia",
+      "switchback",
+    ]);
   });
 });
