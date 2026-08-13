@@ -14,8 +14,9 @@ export function EquipmentRatingBonus({
 
   return (
     <span
+      data-equipment-rating-bonus="true"
       aria-label={`Bonus équipement : +${formattedBonus}`}
-      className={`ml-1 whitespace-nowrap font-black text-[#2E82C4] ${className}`.trim()}
+      className={`ml-1 inline-flex items-center rounded-full border border-[#78AEDA] bg-[#F7FBFF] px-1.5 py-0.5 align-baseline font-black leading-none whitespace-nowrap text-[#145A8D] shadow-[0_1px_2px_rgba(7,26,23,0.16)] ${className}`.trim()}
     >
       +{formattedBonus}
     </span>

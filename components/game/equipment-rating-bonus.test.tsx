@@ -8,7 +8,10 @@ describe("EquipmentRatingBonus", () => {
     const markup = renderToStaticMarkup(<EquipmentRatingBonus bonus={4} />);
 
     expect(markup).toContain("Bonus équipement : +4");
-    expect(markup).toContain("text-[#2E82C4]");
+    expect(markup).toContain('data-equipment-rating-bonus="true"');
+    expect(markup).toContain("bg-[#F7FBFF]");
+    expect(markup).toContain("border-[#78AEDA]");
+    expect(markup).toContain("text-[#145A8D]");
     expect(markup).toContain("+4");
   });
 
