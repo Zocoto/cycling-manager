@@ -6,6 +6,7 @@ import { AUTOMOTIVE_SPONSORS } from "./automotive";
 import { BALTIC_SPONSORS } from "./baltics";
 import { BANKING_SPONSORS } from "./banking";
 import { BELGIAN_SPONSORS } from "./belgium";
+import { BRETON_SPONSORS } from "./brittany";
 import { CONFECTIONERY_SPONSORS } from "./confectionery";
 import { CYCLING_PROJECT_SPONSORS } from "./cycling-projects";
 import { ENERGY_SPONSORS } from "./energy";
@@ -23,6 +24,7 @@ import { AMERICAN_SPONSORS } from "./united-states";
 
 const RAW_SPONSORS = [
   ...FRENCH_SPONSORS,
+  ...BRETON_SPONSORS,
   ...BELGIAN_SPONSORS,
   ...DUTCH_SPONSORS,
   ...ITALIAN_SPONSORS,
