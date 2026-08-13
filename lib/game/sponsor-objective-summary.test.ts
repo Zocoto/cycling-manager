@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { summarizeSponsorObjectiveStatuses } from "./sponsor-objective-summary";
+import {
+  summarizeSponsorObjectives,
+  summarizeSponsorObjectiveStatuses,
+} from "./sponsor-objective-summary";
 
 describe("sponsor objective summary", () => {
-  it("counts achieved objectives against every tracked objective", () => {
+  it("calcule la satisfaction avec le poids des objectifs atteints", () => {
+    expect(
+      summarizeSponsorObjectives([
+        { status: "achieved", satisfactionPoints: 18 },
+        { status: "in_progress", satisfactionPoints: 14 },
+        { status: "achieved", satisfactionPoints: 10 },
+        { status: "failed", satisfactionPoints: 8 },
+      ]),
+    ).toEqual({
+      completed: 2,
+      total: 4,
+      satisfactionScore: 28,
+      satisfactionMaximum: 50,
+    });
+  });
+
+  it("conserve le résumé historique des statuts", () => {
     expect(
       summarizeSponsorObjectiveStatuses([
         "achieved",
@@ -11,16 +30,21 @@ describe("sponsor objective summary", () => {
         "achieved",
         "not_started",
         "failed",
-        "in_progress",
-        "not_started",
       ]),
-    ).toEqual({ completed: 2, total: 7 });
+    ).toEqual({
+      completed: 2,
+      total: 5,
+      satisfactionScore: 0,
+      satisfactionMaximum: 0,
+    });
   });
 
-  it("returns an empty summary when the contract has no objective", () => {
-    expect(summarizeSponsorObjectiveStatuses([])).toEqual({
+  it("retourne un résumé vide sans objectif", () => {
+    expect(summarizeSponsorObjectives([])).toEqual({
       completed: 0,
       total: 0,
+      satisfactionScore: 0,
+      satisfactionMaximum: 0,
     });
   });
 });

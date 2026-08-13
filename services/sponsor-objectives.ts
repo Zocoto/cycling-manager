@@ -6,8 +6,8 @@ import type {
   SponsorPrestige,
 } from "@/types/sponsor";
 
-const OBJECTIVE_COUNT = 7;
-const RENEWAL_BONUS_PERCENT = 1;
+const OBJECTIVE_COUNT = 10;
+const MAXIMUM_RENEWAL_BONUS_PERCENT = 7;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -17,6 +17,10 @@ export type SponsorObjectiveRaceCandidate = {
   countryCode: string;
   registrationPolicy: "open" | "criteria_pending" | "closed";
   minimumReputation: number | null;
+  raceFormat?: "one_day" | "stage_race";
+  competitionType?: string;
+  isMonument?: boolean;
+  isGrandTour?: boolean;
 };
 
 type GenerateSponsorObjectivesOptions = {
@@ -24,6 +28,9 @@ type GenerateSponsorObjectivesOptions = {
   sponsorPrestige: SponsorPrestige;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+  sponsorCatalogKey?: string;
+  sponsorSector?: string;
+  relationshipYear?: number;
   random?: () => number;
 };
 
@@ -32,16 +39,142 @@ type ObjectiveWithoutDisplayOrder = Omit<
   "displayOrder"
 >;
 
+export type SponsorObjectiveFocus =
+  | "national_identity"
+  | "territorial_races"
+  | "sporting_performance"
+  | "talent_development"
+  | "prestige";
+
+type SponsorObjectiveWeightKey =
+  | "domesticRace"
+  | "regionalRace"
+  | "nationality"
+  | "seasonWins"
+  | "specialtyWins"
+  | "teamRanking"
+  | "nationRanking"
+  | "nationalChampionship"
+  | "ambition"
+  | "legacy";
+
+const SATISFACTION_WEIGHTS: Record<
+  SponsorObjectiveFocus,
+  Record<SponsorObjectiveWeightKey, number>
+> = {
+  national_identity: {
+    domesticRace: 14,
+    regionalRace: 6,
+    nationality: 18,
+    seasonWins: 10,
+    specialtyWins: 7,
+    teamRanking: 10,
+    nationRanking: 10,
+    nationalChampionship: 14,
+    ambition: 7,
+    legacy: 4,
+  },
+  territorial_races: {
+    domesticRace: 20, regionalRace: 10, nationality: 10, seasonWins: 10,
+    specialtyWins: 7, teamRanking: 10, nationRanking: 8,
+    nationalChampionship: 14, ambition: 7, legacy: 4,
+  },
+  sporting_performance: {
+    domesticRace: 10, regionalRace: 6, nationality: 7, seasonWins: 15,
+    specialtyWins: 10, teamRanking: 18, nationRanking: 8,
+    nationalChampionship: 8, ambition: 12, legacy: 6,
+  },
+  talent_development: {
+    domesticRace: 8, regionalRace: 6, nationality: 10, seasonWins: 10,
+    specialtyWins: 8, teamRanking: 12, nationRanking: 8,
+    nationalChampionship: 8, ambition: 20, legacy: 10,
+  },
+  prestige: {
+    domesticRace: 8, regionalRace: 5, nationality: 5, seasonWins: 10,
+    specialtyWins: 7, teamRanking: 15, nationRanking: 5,
+    nationalChampionship: 8, ambition: 17, legacy: 20,
+  },
+};
+
+const SPONSOR_COUNTRY_NEIGHBORS: Readonly<Record<string, readonly string[]>> = {
+  AM: ["GE", "TR", "AZ"],
+  AR: ["BR", "CL", "UY", "PY", "BO"],
+  AT: ["DE", "CH", "IT", "SI", "CZ", "SK", "HU"],
+  BE: ["FR", "NL", "DE", "LU"],
+  BR: ["AR", "UY", "PY", "BO", "PE", "CO", "VE"],
+  BW: ["ZA", "NA", "ZW", "ZM"],
+  CA: ["US"],
+  CH: ["FR", "DE", "AT", "IT"],
+  CI: ["GH", "BF", "ML", "GN", "LR"],
+  CL: ["AR", "BO", "PE"],
+  CM: ["NG", "TD", "CF", "CG", "GA"],
+  CN: ["KR", "MN", "KZ", "IN", "NP"],
+  CO: ["VE", "BR", "PE", "EC", "PA"],
+  CY: ["GR", "TR"],
+  CZ: ["DE", "PL", "SK", "AT"],
+  DE: ["DK", "PL", "CZ", "AT", "CH", "FR", "BE", "NL"],
+  DK: ["DE", "SE", "NO"],
+  EE: ["LV", "FI"],
+  ES: ["PT", "FR", "MA"],
+  ET: ["KE", "SD", "SS", "SO", "DJ", "ER"],
+  FI: ["SE", "NO", "EE"],
+  FJ: ["NZ", "AU"],
+  FR: ["BE", "LU", "DE", "CH", "IT", "ES", "GB"],
+  GB: ["IE", "FR", "BE", "NL"],
+  GE: ["TR", "AM", "AZ"],
+  GR: ["TR", "BG", "AL", "CY"],
+  HR: ["SI", "HU", "RS", "BA", "ME", "IT"],
+  ID: ["MY", "PH", "SG"],
+  IN: ["PK", "CN", "NP", "BD", "LK"],
+  IT: ["FR", "CH", "AT", "SI", "HR"],
+  JP: ["KR", "CN"],
+  JM: ["US", "MX"],
+  KE: ["ET", "UG", "TZ", "SO", "SS"],
+  KR: ["CN", "JP"],
+  KZ: ["CN", "MN", "KG", "UZ"],
+  LB: ["TR", "CY"],
+  LT: ["LV", "PL"],
+  LV: ["EE", "LT"],
+  MA: ["ES", "PT", "DZ"],
+  MG: ["MU", "ZA"],
+  MU: ["MG", "ZA"],
+  MX: ["US"],
+  MN: ["CN", "KZ", "KR"],
+  MV: ["IN", "LK"],
+  NA: ["ZA", "BW", "AO", "ZM"],
+  NG: ["CM", "BJ", "NE", "TD"],
+  NL: ["BE", "DE"],
+  NP: ["IN", "CN"],
+  NZ: ["AU", "FJ"],
+  PE: ["BR", "CO", "CL", "BO", "EC"],
+  PH: ["ID", "MY", "SG"],
+  PK: ["IN", "CN"],
+  PL: ["DE", "CZ", "SK", "LT"],
+  PT: ["ES", "MA"],
+  RW: ["UG", "TZ", "BI", "CD"],
+  SE: ["NO", "FI", "DK"],
+  SG: ["MY", "ID"],
+  SI: ["IT", "AT", "HU", "HR"],
+  SN: ["MA", "MR", "ML", "GN"],
+  TH: ["MY", "LA", "KH", "MM"],
+  TR: ["GR", "BG", "GE", "AM", "CY"],
+  US: ["CA", "MX"],
+  UY: ["BR", "AR"],
+  VE: ["CO", "BR"],
+  ZA: ["NA", "BW", "ZW", "MZ"],
+};
+
 export function generateProvisionalSponsorObjectives({
   sponsorCountryCode,
   sponsorPrestige,
   teamReputationPoints,
   raceCandidates,
+  sponsorCatalogKey = "",
+  sponsorSector = "",
+  relationshipYear = 1,
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
-  const normalizedCountryCode = sponsorCountryCode
-    .trim()
-    .toUpperCase();
+  const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
 
   if (!normalizedCountryCode) {
     throw new Error(
@@ -49,104 +182,362 @@ export function generateProvisionalSponsorObjectives({
     );
   }
 
-  const selectedRaces = selectSponsorObjectiveRaces({
+  const focus = resolveSponsorObjectiveFocus({
+    sponsorCatalogKey,
+    sponsorSector,
+    sponsorPrestige,
+  });
+  const weights = SATISFACTION_WEIGHTS[focus];
+  const portfolio = selectSponsorObjectivePortfolio({
     sponsorCountryCode: normalizedCountryCode,
     teamReputationPoints,
     raceCandidates,
-    count: 3,
+    includePrestigeRaces: sponsorPrestige >= 4,
     random,
   });
-
-  const firstTopRank = getTopRankForPrestige(
+  const firstTopRank = getTopRankForPrestige(sponsorPrestige, random);
+  const secondTopRank = getTopRankForPrestige(sponsorPrestige, random);
+  const nationalityPercentage = getNationalityPercentageForPrestige(
     sponsorPrestige,
     random
   );
-
-  const secondTopRank = getTopRankForPrestige(
+  const minimumSeasonWinCount = getSeasonWinCountForPrestige(
     sponsorPrestige,
     random
   );
-
-  const nationalityPercentage =
-    getNationalityPercentageForPrestige(
-      sponsorPrestige,
-      random
-    );
-
-  const minimumSeasonWinCount =
-    getSeasonWinCountForPrestige(
-      sponsorPrestige,
-      random
-    );
-
-  const minimumOneDayWinCount =
-    getOneDayWinCountForPrestige(
-      sponsorPrestige,
-      random
-    );
-
-  const targetUciRank = getUciRankForPrestige(
+  const minimumOneDayWinCount = getOneDayWinCountForPrestige(
     sponsorPrestige,
     random
   );
+  const targetUciRank = getUciRankForPrestige(sponsorPrestige, random);
+  const normalizedRelationshipYear = Math.max(1, Math.floor(relationshipYear));
+  const includeFormation = normalizedRelationshipYear >= 2;
+  const includeInfrastructure =
+    sponsorPrestige < 4 &&
+    !includeFormation &&
+    stableSponsorBucket(sponsorCatalogKey || normalizedCountryCode, 6) === 0;
 
-  const objectives: ObjectiveWithoutDisplayOrder[] = [
-    createRaceWinObjective(
-      selectedRaces[0],
-      getPriorityForRaceWin(sponsorPrestige)
+  const domesticRaceObjective =
+    sponsorPrestige >= 4
+      ? createRaceWinObjective(
+          portfolio.domestic,
+          getPriorityForRaceWin(sponsorPrestige)
+        )
+      : createRaceTopObjective(
+          portfolio.domestic,
+          firstTopRank,
+          getPriorityForTopRank(firstTopRank)
+        );
+
+  const regionalRaceObjective = createRaceTopObjective(
+    portfolio.regional,
+    secondTopRank,
+    getPriorityForTopRank(secondTopRank)
+  );
+
+  const ambitionObjective =
+    sponsorPrestige >= 4 && portfolio.monument
+      ? createRaceWinObjective(portfolio.monument, "mandatory")
+      : includeFormation
+        ? createHomegrownRosterObjective(10)
+        : createSeasonWinsObjective(
+            Math.max(1, sponsorPrestige),
+            "stages",
+            "Victoires d’étape"
+          );
+
+  const legacyObjective =
+    sponsorPrestige >= 4 && portfolio.grandTour
+      ? sponsorPrestige === 5
+        ? createRaceWinObjective(portfolio.grandTour, "mandatory")
+        : createRaceTopObjective(portfolio.grandTour, 3, "important")
+      : includeInfrastructure
+        ? createInfrastructureObjective(1)
+        : createSeasonWinsObjective(
+            Math.max(1, Math.ceil(sponsorPrestige / 2)),
+            "stage_race_general",
+            "Tours remportés"
+          );
+
+  const objectives = [
+    withSatisfactionPoints(domesticRaceObjective, weights.domesticRace),
+    withSatisfactionPoints(regionalRaceObjective, weights.regionalRace),
+    withSatisfactionPoints(
+      createNationalityObjective(normalizedCountryCode, nationalityPercentage),
+      weights.nationality
     ),
-
-    createRaceTopObjective(
-      selectedRaces[1],
-      firstTopRank,
-      getPriorityForTopRank(firstTopRank)
+    withSatisfactionPoints(
+      createSeasonWinsObjective(
+        minimumSeasonWinCount,
+        "all",
+        "Victoires sur la saison"
+      ),
+      weights.seasonWins
     ),
-
-    createRaceTopObjective(
-      selectedRaces[2],
-      secondTopRank,
-      getPriorityForTopRank(secondTopRank)
+    withSatisfactionPoints(
+      createSeasonWinsObjective(
+        minimumOneDayWinCount,
+        "one_day_races",
+        "Victoires sur les courses d’un jour"
+      ),
+      weights.specialtyWins
     ),
-
-    createNationalityObjective(
-      normalizedCountryCode,
-      nationalityPercentage
+    withSatisfactionPoints(
+      createUciRankingObjective(targetUciRank),
+      weights.teamRanking
     ),
-
-    createSeasonWinsObjective(
-      minimumSeasonWinCount,
-      "all",
-      "Victoires sur la saison"
+    withSatisfactionPoints(
+      createNationUciRankingObjective(
+        normalizedCountryCode,
+        getNationUciRankForPrestige(sponsorPrestige)
+      ),
+      weights.nationRanking
     ),
-
-    createSeasonWinsObjective(
-      minimumOneDayWinCount,
-      "one_day_races",
-      "Victoires sur les courses d’un jour"
+    withSatisfactionPoints(
+      createNationalChampionshipObjective(normalizedCountryCode),
+      weights.nationalChampionship
     ),
-
-    createUciRankingObjective(targetUciRank),
+    withSatisfactionPoints(ambitionObjective, weights.ambition),
+    withSatisfactionPoints(legacyObjective, weights.legacy),
   ];
 
-  const shuffledObjectives = shuffleValues(
-    objectives,
-    random
+  const shuffledObjectives = shuffleValues(objectives, random);
+  const satisfactionTotal = shuffledObjectives.reduce(
+    (total, objective) => total + objective.satisfactionPoints,
+    0
   );
 
-  if (shuffledObjectives.length !== OBJECTIVE_COUNT) {
+  if (
+    shuffledObjectives.length !== OBJECTIVE_COUNT ||
+    satisfactionTotal !== 100
+  ) {
     throw new Error(
-      `Le générateur doit produire exactement ${OBJECTIVE_COUNT} objectifs.`
+      "Le générateur doit produire exactement dix objectifs totalisant 100 points de satisfaction."
     );
   }
 
-  return shuffledObjectives.map(
-    (objective, index) => ({
-      ...objective,
-      displayOrder: index + 1,
-    })
-  );
+  return shuffledObjectives.map((objective, index) => ({
+    ...objective,
+    displayOrder: index + 1,
+  }));
 }
 
+function withSatisfactionPoints(
+  objective: ObjectiveWithoutDisplayOrder,
+  satisfactionPoints: number
+): ObjectiveWithoutDisplayOrder {
+  return {
+    ...objective,
+    satisfactionPoints,
+    priority: getPriorityForSatisfactionPoints(satisfactionPoints),
+    renewalBonusPercent: Number(
+      (
+        satisfactionPoints *
+        (MAXIMUM_RENEWAL_BONUS_PERCENT / 100)
+      ).toFixed(2)
+    ),
+  };
+}
+
+function getPriorityForSatisfactionPoints(
+  satisfactionPoints: number
+): SponsorObjectivePriority {
+  if (satisfactionPoints >= 17) return "mandatory";
+  if (satisfactionPoints >= 11) return "important";
+  if (satisfactionPoints >= 6) return "standard";
+  return "optional";
+}
+
+export function resolveSponsorObjectiveFocus({
+  sponsorCatalogKey,
+  sponsorSector,
+  sponsorPrestige,
+}: {
+  sponsorCatalogKey: string;
+  sponsorSector: string;
+  sponsorPrestige: SponsorPrestige;
+}): SponsorObjectiveFocus {
+  if (sponsorPrestige >= 4) {
+    return "prestige";
+  }
+
+  const normalizedSector = sponsorSector
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (
+    /(cycliste.*developpement|developpement.*cycliste|laboratoire.*cycliste|cycliste.*haute performance|essais cycliste|equipe-test cycliste)/.test(
+      normalizedSector
+    )
+  ) {
+    return "talent_development";
+  }
+
+  if (
+    /(technolog|ingenier|automobile|mobilite|energie|infrastructure|cybersecurite)/.test(
+      normalizedSector
+    )
+  ) {
+    return "sporting_performance";
+  }
+
+  if (
+    /(agro|aliment|tourisme|confiserie|brasserie|cafe|agriculture|postal|courrier|mode|luxe|spiritueux|arak|baijiu|brandy|cachaca|gin|pisco|rhum|tequila|vodka|whisky|restauration|patisserie|pizzeria|sushi|tacos|wok)/.test(
+      normalizedSector
+    )
+  ) {
+    return stableSponsorBucket(sponsorCatalogKey || normalizedSector, 2) === 0
+      ? "national_identity"
+      : "territorial_races";
+  }
+
+  const fallbackFocuses: readonly SponsorObjectiveFocus[] = [
+    "national_identity",
+    "territorial_races",
+    "sporting_performance",
+    "talent_development",
+  ];
+
+  return fallbackFocuses[
+    stableSponsorBucket(sponsorCatalogKey || normalizedSector, fallbackFocuses.length)
+  ];
+}
+
+export function areSponsorCountriesNeighbors(
+  firstCountryCode: string,
+  secondCountryCode: string
+): boolean {
+  const normalizedFirst = firstCountryCode.trim().toUpperCase();
+  const normalizedSecond = secondCountryCode.trim().toUpperCase();
+
+  return (
+    SPONSOR_COUNTRY_NEIGHBORS[normalizedFirst]?.includes(normalizedSecond) ??
+    false
+  );
+}
+function stableSponsorBucket(value: string, bucketCount: number): number {
+  let hash = 2_166_136_261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+
+  return (hash >>> 0) % bucketCount;
+}
+
+function selectSponsorObjectivePortfolio({
+  sponsorCountryCode,
+  teamReputationPoints,
+  raceCandidates,
+  includePrestigeRaces,
+  random,
+}: {
+  sponsorCountryCode: string;
+  teamReputationPoints: number;
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+  includePrestigeRaces: boolean;
+  random: () => number;
+}): {
+  domestic: SponsorObjectiveRaceCandidate;
+  regional: SponsorObjectiveRaceCandidate;
+  monument: SponsorObjectiveRaceCandidate | null;
+  grandTour: SponsorObjectiveRaceCandidate | null;
+} {
+  const eligible = getEligibleSponsorObjectiveRaces({
+    teamReputationPoints,
+    raceCandidates,
+  });
+  const usedRaceIds = new Set<string>();
+  const take = (
+    predicate: (candidate: SponsorObjectiveRaceCandidate) => boolean
+  ): SponsorObjectiveRaceCandidate | null => {
+    const candidate = shuffleValues(
+      eligible.filter(
+        (entry) => !usedRaceIds.has(entry.raceId) && predicate(entry)
+      ),
+      random
+    )[0];
+
+    if (candidate) usedRaceIds.add(candidate.raceId);
+    return candidate ?? null;
+  };
+  const takeAny = () => take(() => true);
+  const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
+  const canReservePrestigeRaces = includePrestigeRaces && eligible.length >= 4;
+  const monument = canReservePrestigeRaces
+    ? take((candidate) => candidate.isMonument === true)
+    : null;
+  const grandTour = canReservePrestigeRaces
+    ? take((candidate) => candidate.isGrandTour === true)
+    : null;
+
+  const domestic =
+    take(
+      (candidate) =>
+        candidate.countryCode.toUpperCase() === normalizedCountryCode &&
+        candidate.raceFormat === "stage_race"
+    ) ??
+    take(
+      (candidate) =>
+        candidate.countryCode.toUpperCase() === normalizedCountryCode
+    ) ??
+    takeAny();
+
+  const regional =
+    take((candidate) =>
+      areSponsorCountriesNeighbors(
+        normalizedCountryCode,
+        candidate.countryCode
+      )
+    ) ??
+    take(
+      (candidate) =>
+        candidate.countryCode.toUpperCase() !== normalizedCountryCode
+    ) ??
+    takeAny();
+
+  if (!domestic || !regional) {
+    throw new Error(
+      "Au moins deux courses accessibles sont nécessaires pour les objectifs sponsor."
+    );
+  }
+
+  return {
+    domestic,
+    regional,
+    monument,
+    grandTour,
+  };
+}
+
+function getEligibleSponsorObjectiveRaces({
+  teamReputationPoints,
+  raceCandidates,
+}: {
+  teamReputationPoints: number;
+  raceCandidates: readonly SponsorObjectiveRaceCandidate[];
+}): SponsorObjectiveRaceCandidate[] {
+  const normalizedReputation = Math.max(0, Math.floor(teamReputationPoints));
+  const uniqueCandidates = new Map<string, SponsorObjectiveRaceCandidate>();
+
+  for (const candidate of raceCandidates) {
+    if (
+      candidate.registrationPolicy !== "open" ||
+      candidate.minimumReputation === null ||
+      normalizedReputation < candidate.minimumReputation
+    ) {
+      continue;
+    }
+
+    if (!uniqueCandidates.has(candidate.raceId)) {
+      uniqueCandidates.set(candidate.raceId, candidate);
+    }
+  }
+
+  return [...uniqueCandidates.values()];
+}
 function createRaceWinObjective(
   race: SponsorObjectiveRaceCandidate,
   priority: SponsorObjectivePriority
@@ -159,7 +550,8 @@ function createRaceWinObjective(
     priority,
     evaluationTiming: "season_end",
     evaluationDayNumber: null,
-    renewalBonusPercent: RENEWAL_BONUS_PERCENT,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
     isProvisional: true,
     targetDetails: {
       kind: "race_result",
@@ -188,7 +580,8 @@ function createRaceTopObjective(
     priority,
     evaluationTiming: "season_end",
     evaluationDayNumber: null,
-    renewalBonusPercent: RENEWAL_BONUS_PERCENT,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
     isProvisional: true,
     targetDetails: {
       kind: "race_result",
@@ -279,7 +672,8 @@ function createNationalityObjective(
       : "standard",
     evaluationTiming: "season_end",
     evaluationDayNumber: null,
-    renewalBonusPercent: RENEWAL_BONUS_PERCENT,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
     isProvisional: true,
     targetDetails: {
       kind: "nationality_quota",
@@ -313,7 +707,8 @@ function createSeasonWinsObjective(
       : "standard",
     evaluationTiming: "season_end",
     evaluationDayNumber: null,
-    renewalBonusPercent: RENEWAL_BONUS_PERCENT,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
     isProvisional: true,
     targetDetails: {
       kind: "season_wins",
@@ -337,7 +732,8 @@ function createUciRankingObjective(
       : "standard",
     evaluationTiming: "season_end",
     evaluationDayNumber: null,
-    renewalBonusPercent: RENEWAL_BONUS_PERCENT,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
     isProvisional: true,
     targetDetails: {
       kind: "uci_ranking",
@@ -345,6 +741,109 @@ function createUciRankingObjective(
       targetRank,
     },
   };
+}
+
+
+function createNationUciRankingObjective(
+  countryCode: string,
+  targetRank: number
+): ObjectiveWithoutDisplayOrder {
+  return {
+    name: `Hisser ${countryCode} dans le top ${targetRank} UCI`,
+    description:
+      `Faire terminer la nation ${countryCode} parmi les ${targetRank} premières du classement UCI des pays.`,
+    objectiveType: "nation_uci_ranking",
+    priority: "standard",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: {
+      kind: "nation_uci_ranking",
+      countryCode,
+      targetRank,
+    },
+  };
+}
+
+function createNationalChampionshipObjective(
+  countryCode: string
+): ObjectiveWithoutDisplayOrder {
+  return {
+    name: `Décrocher un titre national ${countryCode}`,
+    description:
+      `Remporter le championnat national sur route ou contre-la-montre du pays ${countryCode}.`,
+    objectiveType: "national_championship",
+    priority: "important",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: {
+      kind: "national_championship",
+      countryCode,
+      championshipType: "any",
+      requiredTitleCount: 1,
+    },
+  };
+}
+
+function createHomegrownRosterObjective(
+  minimumPercentage: number
+): ObjectiveWithoutDisplayOrder {
+  return {
+    name: `Atteindre ${minimumPercentage} % de coureurs formés au club`,
+    description:
+      `Au moins ${minimumPercentage} % de l’effectif professionnel doit provenir de votre Centre de formation.`,
+    objectiveType: "homegrown_roster",
+    priority: "standard",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: {
+      kind: "homegrown_roster",
+      minimumPercentage,
+    },
+  };
+}
+
+function createInfrastructureObjective(
+  minimumCompletedCount: number
+): ObjectiveWithoutDisplayOrder {
+  return {
+    name: "Faire grandir les installations",
+    description:
+      "Achever la construction ou l’amélioration d’au moins une infrastructure pendant la saison.",
+    objectiveType: "infrastructure",
+    priority: "optional",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: {
+      kind: "infrastructure",
+      minimumCompletedCount,
+    },
+  };
+}
+
+function getNationUciRankForPrestige(
+  prestige: SponsorPrestige
+): number {
+  const ranksByPrestige: Record<SponsorPrestige, number> = {
+    1: 60,
+    2: 50,
+    3: 40,
+    4: 30,
+    5: 20,
+  };
+
+  return ranksByPrestige[prestige];
 }
 
 function getTopRankForPrestige(

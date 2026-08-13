@@ -1,18 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  areSponsorCountriesNeighbors,
   generateProvisionalSponsorObjectives as generateObjectivesFromRaces,
+  resolveSponsorObjectiveFocus,
   selectSponsorObjectiveRaces,
   type SponsorObjectiveRaceCandidate,
 } from "./sponsor-objectives";
 
 const RACE_CANDIDATES: SponsorObjectiveRaceCandidate[] = [
+  createRace("fr-tour", "Tour de l’Hexagone", "FR", {
+    raceFormat: "stage_race",
+  }),
   createRace("fr-bretagne", "Grand Prix de Bretagne", "FR"),
-  createRace("fr-cevennes", "Circuit des Cévennes", "FR"),
-  createRace("fr-hexagone", "Boucle de l’Hexagone", "FR"),
   createRace("be-namur", "Critérium de Namur", "BE"),
-  createRace("be-brabant", "Flèche du Brabant", "BE"),
   createRace("es-valencia", "Trofeo de Valencia", "ES"),
+  createRace("it-lombardia", "Giro di Lombardia", "IT", {
+    isMonument: true,
+  }),
+  createRace("es-grand-tour", "Vuelta Iberica", "ES", {
+    raceFormat: "stage_race",
+    isGrandTour: true,
+  }),
 ];
 
 type GeneratorOptions = Omit<
@@ -21,11 +30,11 @@ type GeneratorOptions = Omit<
 >;
 
 function generateProvisionalSponsorObjectives(
-  options: GeneratorOptions
+  options: GeneratorOptions,
 ) {
   return generateObjectivesFromRaces({
     ...options,
-    teamReputationPoints: 30,
+    teamReputationPoints: 100,
     raceCandidates: RACE_CANDIDATES,
   });
 }
@@ -34,7 +43,7 @@ function createRace(
   raceSlug: string,
   raceLabel: string,
   countryCode: string,
-  overrides: Partial<SponsorObjectiveRaceCandidate> = {}
+  overrides: Partial<SponsorObjectiveRaceCandidate> = {},
 ): SponsorObjectiveRaceCandidate {
   return {
     raceId: `race-${raceSlug}`,
@@ -44,124 +53,187 @@ function createRace(
     countryCode,
     registrationPolicy: "open",
     minimumReputation: 0,
+    raceFormat: "one_day",
+    competitionType: "standard",
+    isMonument: false,
+    isGrandTour: false,
     ...overrides,
   };
 }
 
 function createDeterministicRandom(
-  values: readonly number[]
+  values: readonly number[],
 ): () => number {
   let currentIndex = 0;
 
   return () => {
-    const value =
-      values[currentIndex % values.length];
-
+    const value = values[currentIndex % values.length];
     currentIndex += 1;
-
     return value;
   };
 }
 
 describe("generateProvisionalSponsorObjectives", () => {
-  it("génère exactement sept objectifs ordonnés", () => {
-    const objectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "FR",
-        sponsorPrestige: 2,
-      });
+  it("génère exactement dix objectifs ordonnés totalisant 100 points", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 2,
+      sponsorCatalogKey: "terroirs-unis",
+      sponsorSector: "Agroalimentaire",
+    });
 
-    expect(objectives).toHaveLength(7);
-
+    expect(objectives).toHaveLength(10);
+    expect(objectives.map((objective) => objective.displayOrder)).toEqual(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    );
     expect(
-      objectives.map(
-        (objective) => objective.displayOrder
-      )
-    ).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      objectives.reduce(
+        (total, objective) => total + objective.satisfactionPoints,
+        0,
+      ),
+    ).toBe(100);
   });
 
-  it("génère les quatre familles d’objectifs prévues", () => {
-    const objectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "FR",
-        sponsorPrestige: 3,
-      });
+  it("conserve au maximum sept pour cent de bonus de renouvellement", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "ES",
+      sponsorPrestige: 3,
+      sponsorCatalogKey: "sol-del-sur",
+      sponsorSector: "Énergie solaire",
+    });
+    const total = objectives.reduce(
+      (sum, objective) => sum + objective.renewalBonusPercent,
+      0,
+    );
 
+    expect(total).toBeCloseTo(7, 5);
+  });
+
+  it("couvre les résultats, l’effectif, les victoires et les classements", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 3,
+    });
     const objectiveTypes = new Set(
-      objectives.map(
-        (objective) => objective.objectiveType
-      )
+      objectives.map((objective) => objective.objectiveType),
     );
 
-    expect(objectiveTypes).toContain("race_result");
-    expect(objectiveTypes).toContain(
-      "nationality_quota"
-    );
-    expect(objectiveTypes).toContain("season_wins");
-    expect(objectiveTypes).toContain("uci_ranking");
+    for (const objectiveType of [
+      "race_result",
+      "nationality_quota",
+      "season_wins",
+      "uci_ranking",
+      "nation_uci_ranking",
+      "national_championship",
+    ]) {
+      expect(objectiveTypes).toContain(objectiveType);
+    }
   });
 
-  it("génère trois objectifs de résultat sur des courses distinctes", () => {
-    const objectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "FR",
-        sponsorPrestige: 2,
-        random: createDeterministicRandom([
-          0.1,
-          0.2,
-          0.3,
-          0.4,
-          0.5,
-          0.6,
-          0.7,
-          0.8,
-          0.9,
-        ]),
-      });
-
-    const raceObjectives = objectives.filter(
-      (objective) =>
-        objective.objectiveType === "race_result"
-    );
-
-    expect(raceObjectives).toHaveLength(3);
-
-    const raceLabels = raceObjectives.map(
-      (objective) => {
-        if (
-          objective.targetDetails.kind !==
-          "race_result"
-        ) {
-          throw new Error(
-            "Type de détails inattendu pour un objectif de course."
-          );
-        }
-
-        return objective.targetDetails.raceLabel;
-      }
-    );
-
-    expect(new Set(raceLabels).size).toBe(3);
-  });
-
-  it("privilégie les courses du pays du sponsor", () => {
+  it("associe une course nationale et une course d’un pays voisin", () => {
     const objectives = generateProvisionalSponsorObjectives({
       sponsorCountryCode: "FR",
       sponsorPrestige: 2,
       random: createDeterministicRandom([0.2, 0.7, 0.4]),
     });
-    const raceObjectives = objectives.filter(
-      (objective) => objective.targetDetails.kind === "race_result"
+    const raceCountries = objectives.flatMap((objective) =>
+      objective.targetDetails.kind === "race_result"
+        ? [objective.targetDetails.countryCode]
+        : [],
     );
 
-    expect(raceObjectives).toHaveLength(3);
+    expect(raceCountries).toContain("FR");
     expect(
-      raceObjectives.every(
-        (objective) =>
-          objective.targetDetails.kind === "race_result" &&
-          objective.targetDetails.countryCode === "FR"
-      )
+      raceCountries.some(
+        (countryCode) =>
+          countryCode !== "FR" &&
+          areSponsorCountriesNeighbors("FR", countryCode),
+      ),
     ).toBe(true);
+  });
+
+  it("réserve Monuments et Grands Tours aux sponsors prestigieux", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      sponsorCatalogKey: "montbrun-private",
+      sponsorSector: "Banque privée",
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    });
+    const raceIds = objectives.flatMap((objective) =>
+      objective.targetDetails.kind === "race_result"
+        ? [objective.targetDetails.raceId]
+        : [],
+    );
+
+    expect(raceIds).toContain("race-it-lombardia");
+    expect(raceIds).toContain("race-es-grand-tour");
+  });
+
+  it("utilise le pays du sponsor pour le quota, le titre et le classement national", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: " be ",
+      sponsorPrestige: 2,
+    });
+    const countryCodes = objectives.flatMap((objective) => {
+      const details = objective.targetDetails;
+
+      if (
+        details.kind === "nationality_quota" ||
+        details.kind === "national_championship" ||
+        details.kind === "nation_uci_ranking"
+      ) {
+        return [details.countryCode];
+      }
+
+      return [];
+    });
+
+    expect(countryCodes).toEqual(["BE", "BE", "BE"]);
+  });
+
+  it("introduit la formation à partir de la deuxième année de relation", () => {
+    const firstYear = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 2,
+      relationshipYear: 1,
+    });
+    const secondYear = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 2,
+      relationshipYear: 2,
+    });
+
+    expect(
+      firstYear.some(
+        (objective) => objective.objectiveType === "homegrown_roster",
+      ),
+    ).toBe(false);
+    expect(
+      secondYear.some(
+        (objective) =>
+          objective.targetDetails.kind === "homegrown_roster" &&
+          objective.targetDetails.minimumPercentage === 10,
+      ),
+    ).toBe(true);
+  });
+
+  it("attribue des profils de priorité différents selon le sponsor", () => {
+    expect(
+      resolveSponsorObjectiveFocus({
+        sponsorCatalogKey: "atlas-racing-lab",
+        sponsorSector: "Laboratoire cycliste d’altitude",
+        sponsorPrestige: 2,
+      }),
+    ).toBe("talent_development");
+
+    expect(
+      resolveSponsorObjectiveFocus({
+        sponsorCatalogKey: "montbrun-private",
+        sponsorSector: "Banque privée",
+        sponsorPrestige: 5,
+      }),
+    ).toBe("prestige");
   });
 
   it("écarte les courses fermées ou trop prestigieuses pour l’équipe", () => {
@@ -195,7 +267,7 @@ describe("generateProvisionalSponsorObjectives", () => {
     const newRace = createRace(
       "nouvelle-classique",
       "Nouvelle Classique",
-      "FR"
+      "FR",
     );
     const selectedRaces = selectSponsorObjectiveRaces({
       sponsorCountryCode: "FR",
@@ -208,138 +280,32 @@ describe("generateProvisionalSponsorObjectives", () => {
     expect(selectedRaces).toEqual([newRace]);
   });
 
-  it("utilise la nationalité du sponsor pour le quota d’effectif", () => {
-    const objectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: " be ",
-        sponsorPrestige: 2,
-      });
-
-    const nationalityObjective = objectives.find(
-      (objective) =>
-        objective.objectiveType ===
-        "nationality_quota"
-    );
-
-    expect(nationalityObjective).toBeDefined();
-
-    if (
-      !nationalityObjective ||
-      nationalityObjective.targetDetails.kind !==
-        "nationality_quota"
-    ) {
-      throw new Error(
-        "Objectif de nationalité introuvable."
-      );
-    }
-
-    expect(
-      nationalityObjective.targetDetails.countryCode
-    ).toBe("BE");
-  });
-
-  it("attribue un bonus de renouvellement de un pour cent à chaque objectif", () => {
-    const objectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "ES",
-        sponsorPrestige: 3,
-      });
-
-    expect(
-      objectives.every(
-        (objective) =>
-          objective.renewalBonusPercent === 1
-      )
-    ).toBe(true);
-
-    const maximumRenewalBonus = objectives.reduce(
-      (total, objective) =>
-        total + objective.renewalBonusPercent,
-      0
-    );
-
-    expect(maximumRenewalBonus).toBe(7);
-  });
-
-  it("marque tous les objectifs comme provisoires et évaluables en fin de saison", () => {
-    const objectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "FR",
-        sponsorPrestige: 1,
-      });
-
-    expect(
-      objectives.every(
-        (objective) =>
-          objective.isProvisional &&
-          objective.evaluationTiming ===
-            "season_end" &&
-          objective.evaluationDayNumber === null
-      )
-    ).toBe(true);
-  });
-
-  it("rend les attentes globalement plus exigeantes pour un sponsor prestigieux", () => {
-    const randomValues = [
-      0.1,
-      0.2,
-      0.3,
-      0.4,
-      0.5,
-      0.6,
-      0.7,
-      0.8,
-      0.9,
-    ];
-
-    const lowPrestigeObjectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "FR",
-        sponsorPrestige: 1,
-        random:
-          createDeterministicRandom(randomValues),
-      });
-
-    const highPrestigeObjectives =
-      generateProvisionalSponsorObjectives({
-        sponsorCountryCode: "FR",
-        sponsorPrestige: 5,
-        random:
-          createDeterministicRandom(randomValues),
-      });
-
-    const lowPrestigeUciObjective =
-      lowPrestigeObjectives.find(
-        (objective) =>
-          objective.objectiveType === "uci_ranking"
+  it("rend les classements plus exigeants pour un sponsor prestigieux", () => {
+    const lowPrestige = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 1,
+      random: () => 0.3,
+    });
+    const highPrestige = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      random: () => 0.3,
+    });
+    const getTeamRank = (
+      objectives: ReturnType<typeof generateProvisionalSponsorObjectives>,
+    ) => {
+      const objective = objectives.find(
+        (entry) => entry.targetDetails.kind === "uci_ranking",
       );
 
-    const highPrestigeUciObjective =
-      highPrestigeObjectives.find(
-        (objective) =>
-          objective.objectiveType === "uci_ranking"
-      );
+      if (!objective || objective.targetDetails.kind !== "uci_ranking") {
+        throw new Error("Objectif UCI introuvable.");
+      }
 
-    if (
-      !lowPrestigeUciObjective ||
-      lowPrestigeUciObjective.targetDetails.kind !==
-        "uci_ranking" ||
-      !highPrestigeUciObjective ||
-      highPrestigeUciObjective.targetDetails.kind !==
-        "uci_ranking"
-    ) {
-      throw new Error(
-        "Objectifs de classement UCI introuvables."
-      );
-    }
+      return objective.targetDetails.targetRank;
+    };
 
-    expect(
-      highPrestigeUciObjective.targetDetails
-        .targetRank
-    ).toBeLessThan(
-      lowPrestigeUciObjective.targetDetails
-        .targetRank
-    );
+    expect(getTeamRank(highPrestige)).toBeLessThan(getTeamRank(lowPrestige));
   });
 
   it("refuse de générer des objectifs sans pays sponsor", () => {
@@ -347,9 +313,7 @@ describe("generateProvisionalSponsorObjectives", () => {
       generateProvisionalSponsorObjectives({
         sponsorCountryCode: "   ",
         sponsorPrestige: 1,
-      })
-    ).toThrow(
-      "Le code pays du sponsor est obligatoire"
-    );
+      }),
+    ).toThrow("Le code pays du sponsor est obligatoire");
   });
 });

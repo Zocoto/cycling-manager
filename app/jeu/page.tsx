@@ -379,7 +379,12 @@ export default async function GamePage() {
       identity?.contractId
         ? loadDashboardValue(
             getSponsorObjectiveSummary(identity.contractId),
-            { completed: 0, total: 0 },
+            {
+              completed: 0,
+              total: 0,
+              satisfactionScore: 0,
+              satisfactionMaximum: 0,
+            },
             "Impossible de récupérer le résumé des objectifs sponsor :",
           )
         : null,

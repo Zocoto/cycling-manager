@@ -36,6 +36,7 @@ export type SponsorContractObjective = {
   description: string | null;
   displayOrder: number;
   status: SponsorObjectiveStatus;
+  satisfactionPoints: number;
 };
 
 export type PersistedSponsorContract = {
@@ -57,6 +58,7 @@ export type PersistedSponsorContract = {
   completedAt: string | null;
   terminatedAt: string | null;
   terminationReason: string | null;
+  satisfactionScore: number;
   reputationPenalty: number;
   objectives: SponsorContractObjective[];
 };
@@ -183,6 +185,7 @@ type SponsorContractRow = {
   terminated_at: string | null;
   termination_reason: string | null;
   reputation_penalty: number;
+  satisfaction_score: number;
 };
 
 type SponsorRegistryRow = {
@@ -581,7 +584,8 @@ function contractSelection(): string {
     completed_at,
     terminated_at,
     termination_reason,
-    reputation_penalty
+    reputation_penalty,
+    satisfaction_score
   `;
 }
 
@@ -683,6 +687,7 @@ async function hydrateSponsorContract({
         description: objective.description,
         displayOrder: objective.displayOrder,
         status: objective.status,
+        satisfactionPoints: objective.satisfactionPoints,
       })) ?? [];
   }
 
@@ -715,6 +720,14 @@ async function hydrateSponsorContract({
     contractRow.contract_duration_seasons -
     1;
 
+  const satisfactionScore = objectives.reduce(
+    (total, objective) =>
+      total +
+      (objective.status === "completed"
+        ? objective.satisfactionPoints
+        : 0),
+    0
+  );
   return {
     id: contractRow.id,
     sponsor,
@@ -737,6 +750,7 @@ async function hydrateSponsorContract({
     terminatedAt: contractRow.terminated_at,
     terminationReason: contractRow.termination_reason,
     reputationPenalty,
+    satisfactionScore,
     objectives,
   };
 }

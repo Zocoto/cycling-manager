@@ -41,15 +41,15 @@ describe("dashboard sponsor card", () => {
         sponsor={sponsor}
         jersey={sponsor.jerseys[0]}
         budgetLabel="510 000 €"
-        objectiveSummary={{ completed: 2, total: 7 }}
+        objectiveSummary={{ completed: 2, total: 10, satisfactionScore: 28, satisfactionMaximum: 100 }}
       />,
     );
 
     expect(markup).toContain("Graphicool Mobilités");
     expect(markup).toContain("510 000");
     expect(markup).toContain("Maillot officiel");
-    expect(markup).toContain("Objectifs 2/7");
-    expect(markup).toContain("2 objectifs accomplis sur 7");
+    expect(markup).toContain("Satisfaction 28/100");
+    expect(markup).toContain("Satisfaction sponsor : 28 sur 100");
     expect(markup).toContain(encodeURIComponent(sponsor.logoPath));
     expect(markup).toContain(
       encodeURIComponent(sponsor.jerseys[0].imagePath),

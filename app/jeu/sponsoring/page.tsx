@@ -1030,7 +1030,7 @@ function ContractObjectivesSection({
       }}
     >
       <div
-        className="flex flex-wrap items-center justify-between gap-4 border-b px-5 py-4 sm:px-6"
+        className="flex flex-wrap items-center justify-between gap-5 border-b px-5 py-5 sm:px-6"
         style={{
           borderColor: `${sponsor.colors.primary}24`,
           background: `linear-gradient(90deg, ${sponsor.colors.background}, rgba(255,255,255,0.94))`,
@@ -1054,17 +1054,16 @@ function ContractObjectivesSection({
           >
             {contract.objectives.length} objectifs saisonniers
           </h2>
+          <p className="mt-1 text-xs font-semibold text-[#60756E]">
+            Chaque objectif validé ajoute son poids à la satisfaction du partenaire.
+          </p>
         </div>
 
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black"
-          style={{
-            backgroundColor: sponsor.colors.primary,
-            color: "#FFFFFF",
-          }}
-        >
-          {contract.objectives.length}
-        </span>
+        <SponsorSatisfactionGauge
+          score={contract.satisfactionScore}
+          primaryColor={sponsor.colors.primary}
+          textColor={sponsor.colors.text}
+        />
       </div>
 
       <ol className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
@@ -1080,6 +1079,43 @@ function ContractObjectivesSection({
   );
 }
 
+function SponsorSatisfactionGauge({
+  score,
+  primaryColor,
+  textColor,
+}: {
+  score: number;
+  primaryColor: string;
+  textColor: string;
+}) {
+  const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
+
+  return (
+    <div
+      className="min-w-52 rounded-xl border bg-white/90 px-4 py-3"
+      style={{ borderColor: `${primaryColor}30` }}
+      aria-label={`Satisfaction sponsor : ${normalizedScore} sur 100`}
+    >
+      <div className="flex items-end justify-between gap-4">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#72847E]">
+          Satisfaction sponsor
+        </p>
+        <p className="text-xl font-black" style={{ color: textColor }}>
+          {normalizedScore}<span className="text-xs">/100</span>
+        </p>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E4ECE8]">
+        <div
+          className="h-full rounded-full transition-[width] duration-500"
+          style={{
+            width: `${normalizedScore}%`,
+            backgroundColor: primaryColor,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 function ContractObjectiveItem({
   objective,
   textColor,
@@ -1104,6 +1140,9 @@ function ContractObjectiveItem({
           {objective.name}
         </p>
 
+        <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
+          {objective.satisfactionPoints} points de satisfaction
+        </p>
         <p
           className={`mt-1 text-xs font-extrabold ${
             presentation.status === "achieved"
@@ -1304,18 +1343,22 @@ function SponsorObjectiveItem({
         }}
       />
 
-      <p
-        className="text-sm font-bold leading-5"
-        style={{
-          color: textColor,
-        }}
-      >
-        {objective.name}
-      </p>
+      <div className="min-w-0">
+        <p
+          className="text-sm font-bold leading-5"
+          style={{
+            color: textColor,
+          }}
+        >
+          {objective.name}
+        </p>
+        <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
+          {objective.satisfactionPoints} points de satisfaction
+        </p>
+      </div>
     </li>
   );
 }
-
 function ActionSuccessMessage() {
   return (
     <div

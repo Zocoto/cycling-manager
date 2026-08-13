@@ -315,7 +315,7 @@ function FutureSponsorOfferCard({
             className="text-xs font-extrabold uppercase tracking-[0.14em]"
             style={{ color: sponsor.colors.primary }}
           >
-            7 engagements pour la future saison
+            10 engagements · 100 points de satisfaction
           </p>
 
           <ol className="mt-3 space-y-2.5">
@@ -334,7 +334,12 @@ function FutureSponsorOfferCard({
                   {index + 1}
                 </span>
 
-                <span>{objective.name}</span>
+                <span>
+                  {objective.name}
+                  <span className="mt-0.5 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#72847E]">
+                    {objective.satisfactionPoints} points
+                  </span>
+                </span>
               </li>
             ))}
           </ol>

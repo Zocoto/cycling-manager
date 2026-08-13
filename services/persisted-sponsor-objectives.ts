@@ -15,9 +15,10 @@ import type {
   SponsorObjectiveType,
 } from "@/types/sponsor-objective";
 
-const OBJECTIVE_COUNT_PER_OFFER = 7;
+const OBJECTIVE_COUNT_PER_OFFER = 10;
 const OBJECTIVE_COMPLETION_ATTEMPTS = 4;
 const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 50;
+const MAXIMUM_RENEWAL_BONUS_PERCENT = 7;
 
 type SupabaseAdminClient = ReturnType<
   typeof createSupabaseAdminClient
@@ -26,6 +27,7 @@ type SupabaseAdminClient = ReturnType<
 export type SponsorOfferObjectiveContext = {
   offerId: string;
   sponsor: Sponsor;
+  relationshipYear?: number;
 };
 
 type SponsorObjectiveRow = {
@@ -40,6 +42,7 @@ type SponsorObjectiveRow = {
   status: SponsorObjectiveStatus;
   display_order: number;
   renewal_bonus_percent: number | string;
+  satisfaction_points: number;
   is_provisional: boolean;
   target_details: SponsorObjectiveTargetDetails;
 };
@@ -56,6 +59,7 @@ type SponsorObjectiveInsertRow = {
   status: "draft";
   display_order: number;
   renewal_bonus_percent: number;
+  satisfaction_points: number;
   is_provisional: true;
   target_details: SponsorObjectiveTargetDetails;
 };
@@ -74,6 +78,10 @@ type RaceRow = {
   id: string;
   country_id: string;
   slug: string;
+  race_format: "one_day" | "stage_race";
+  competition_type: string;
+  is_monument: boolean;
+  is_grand_tour: boolean;
   status: string;
 };
 
@@ -110,7 +118,8 @@ export async function ensureAndLoadSponsorObjectives({
   const existingObjectiveRows =
     await loadSponsorObjectiveRows(
       supabase,
-      offerIds
+      offerIds,
+      seasonId
     );
 
   const existingRowsByOfferId = groupRowsByOfferId(
@@ -120,8 +129,29 @@ export async function ensureAndLoadSponsorObjectives({
   const rowsToInsert: SponsorObjectiveInsertRow[] = [];
 
   for (const offer of offers) {
-    const existingRows =
+    let existingRows =
       existingRowsByOfferId.get(offer.offerId) ?? [];
+
+    if (
+      existingRows.length > 0 &&
+      existingRows.length < OBJECTIVE_COUNT_PER_OFFER &&
+      existingRows.every((objective) => objective.status === "draft")
+    ) {
+      const { error: resetError } = await supabase
+        .from("sponsor_objectives")
+        .delete()
+        .eq("sponsor_offer_id", offer.offerId)
+        .eq("season_id", seasonId);
+
+      if (resetError) {
+        throw new Error(
+          `Impossible de moderniser les objectifs de l’offre ${offer.offerId} : ${resetError.message}`
+        );
+      }
+
+      existingRows = [];
+    }
+
 
     const existingDisplayOrders = new Set(
       existingRows.map(
@@ -135,12 +165,68 @@ export async function ensureAndLoadSponsorObjectives({
           offer.sponsor.countryCode,
         sponsorPrestige:
           offer.sponsor.prestige,
+        sponsorCatalogKey:
+          offer.sponsor.id,
+        sponsorSector:
+          offer.sponsor.sector,
+        relationshipYear: offer.relationshipYear ?? 1,
         teamReputationPoints,
         raceCandidates,
         random: createSeededRandom(
           `${offer.offerId}:${offer.sponsor.id}`
         ),
       });
+
+    const missingDisplayOrders = Array.from(
+      { length: OBJECTIVE_COUNT_PER_OFFER },
+      (_, index) => index + 1
+    ).filter((displayOrder) => !existingDisplayOrders.has(displayOrder));
+    const existingSignatures = new Set(
+      existingRows.map((objective) =>
+        getObjectiveSignature(objective.target_details)
+      )
+    );
+    const existingFamilyCounts = countObjectiveFamilies(
+      existingRows.map((objective) => objective.target_details),
+    );
+    const generatedFamilyCounts = countObjectiveFamilies(
+      generatedObjectives.map((objective) => objective.targetDetails),
+    );
+    const missingFamilyCounts = new Map(
+      [...generatedFamilyCounts].map(([family, desiredCount]) => [
+        family,
+        Math.max(0, desiredCount - (existingFamilyCounts.get(family) ?? 0)),
+      ]),
+    );
+    const objectivesToInsert =
+      existingRows.length === 0
+        ? generatedObjectives
+        : generatedObjectives
+            .filter((objective) => {
+              const signature = getObjectiveSignature(objective.targetDetails);
+              const family = getObjectiveFamily(objective.targetDetails);
+              const remainingCount = missingFamilyCounts.get(family) ?? 0;
+
+              if (existingSignatures.has(signature) || remainingCount <= 0) {
+                return false;
+              }
+
+              existingSignatures.add(signature);
+              missingFamilyCounts.set(family, remainingCount - 1);
+              return true;
+            })
+            .slice(0, missingDisplayOrders.length)
+            .map((objective, index) => ({
+              ...objective,
+              displayOrder: missingDisplayOrders[index],
+            }));
+
+    if (objectivesToInsert.length !== missingDisplayOrders.length) {
+      throw new Error(
+        `Impossible de compléter l’offre ${offer.offerId} avec dix objectifs distincts.`
+      );
+    }
+
 
     await repairLegacyRaceObjectives({
       supabase,
@@ -153,7 +239,7 @@ export async function ensureAndLoadSponsorObjectives({
       ),
     });
 
-    for (const objective of generatedObjectives) {
+    for (const objective of objectivesToInsert) {
       if (
         existingDisplayOrders.has(
           objective.displayOrder
@@ -179,6 +265,8 @@ export async function ensureAndLoadSponsorObjectives({
           objective.displayOrder,
         renewal_bonus_percent:
           objective.renewalBonusPercent,
+        satisfaction_points:
+          objective.satisfactionPoints,
         is_provisional:
           objective.isProvisional,
         target_details:
@@ -202,10 +290,11 @@ export async function ensureAndLoadSponsorObjectives({
     }
   }
 
-  const completeObjectiveRows =
+  let completeObjectiveRows =
     await loadSponsorObjectiveRows(
       supabase,
-      offerIds
+      offerIds,
+      seasonId
     );
 
   for (
@@ -228,7 +317,8 @@ export async function ensureAndLoadSponsorObjectives({
     );
     const refreshedRows = await loadSponsorObjectiveRows(
       supabase,
-      offerIds
+      offerIds,
+      seasonId
     );
     completeObjectiveRows.splice(
       0,
@@ -236,6 +326,17 @@ export async function ensureAndLoadSponsorObjectives({
       ...refreshedRows
     );
   }
+
+  await normalizeObjectiveSatisfactionWeights(
+    supabase,
+    completeObjectiveRows
+  );
+
+  completeObjectiveRows = await loadSponsorObjectiveRows(
+    supabase,
+    offerIds,
+    seasonId
+  );
   await syncRaceResultObjectiveLinks(
     supabase,
     completeObjectiveRows
@@ -280,7 +381,8 @@ export async function ensureAndLoadSponsorObjectives({
 
 async function loadSponsorObjectiveRows(
   supabase: SupabaseAdminClient,
-  offerIds: readonly string[]
+  offerIds: readonly string[],
+  seasonId: string
 ): Promise<SponsorObjectiveRow[]> {
   const {
     data: objectiveRows,
@@ -301,10 +403,12 @@ async function loadSponsorObjectiveRows(
         display_order,
         renewal_bonus_percent,
         is_provisional,
+        satisfaction_points,
         target_details
       `
     )
     .in("sponsor_offer_id", [...offerIds])
+    .eq("season_id", seasonId)
     .order("display_order", {
       ascending: true,
     })
@@ -344,6 +448,102 @@ function groupRowsByOfferId(
   return rowsByOfferId;
 }
 
+
+
+async function normalizeObjectiveSatisfactionWeights(
+  supabase: SupabaseAdminClient,
+  objectiveRows: readonly SponsorObjectiveRow[]
+): Promise<void> {
+  const rowsByOfferId = groupRowsByOfferId(objectiveRows);
+
+  for (const rows of rowsByOfferId.values()) {
+    if (rows.length !== OBJECTIVE_COUNT_PER_OFFER) continue;
+
+    const rawTotal = rows.reduce(
+      (total, row) => total + Math.max(1, Number(row.satisfaction_points)),
+      0
+    );
+    const allocations = rows.map((row) => {
+      const exact =
+        (Math.max(1, Number(row.satisfaction_points)) * 100) / rawTotal;
+
+      return {
+        row,
+        points: Math.max(1, Math.floor(exact)),
+        fraction: exact - Math.floor(exact),
+      };
+    });
+    let remaining =
+      100 -
+      allocations.reduce((total, allocation) => total + allocation.points, 0);
+
+    for (const allocation of [...allocations].sort(
+      (first, second) =>
+        second.fraction - first.fraction ||
+        first.row.display_order - second.row.display_order
+    )) {
+      if (remaining <= 0) break;
+      allocation.points += 1;
+      remaining -= 1;
+    }
+
+    for (const allocation of allocations) {
+      const renewalBonusPercent = Number(
+        (
+          allocation.points *
+          (MAXIMUM_RENEWAL_BONUS_PERCENT / 100)
+        ).toFixed(2)
+      );
+      const priority: SponsorObjectivePriority =
+        allocation.points >= 17
+          ? "mandatory"
+          : allocation.points >= 11
+            ? "important"
+            : allocation.points >= 6
+              ? "standard"
+              : "optional";
+
+      if (
+        Number(allocation.row.satisfaction_points) === allocation.points &&
+        Number(allocation.row.renewal_bonus_percent) === renewalBonusPercent &&
+        allocation.row.priority === priority
+      ) {
+        continue;
+      }
+
+      const { error } = await supabase
+        .from("sponsor_objectives")
+        .update({
+          satisfaction_points: allocation.points,
+          renewal_bonus_percent: renewalBonusPercent,
+          priority,
+        })
+        .eq("id", allocation.row.id);
+
+      if (error) {
+        throw new Error(
+          `Impossible de normaliser la satisfaction de l’objectif ${allocation.row.id} : ${error.message}`
+        );
+      }
+    }
+  }
+}
+
+
+function getObjectiveSignature(
+  details: SponsorObjectiveTargetDetails
+): string {
+  if (details.kind === "race_result") {
+    return `race_result:${details.raceId}`;
+  }
+
+  if (details.kind === "season_wins") {
+    return `season_wins:${details.winScope}`;
+  }
+
+  return details.kind;
+}
+
 function hydrateSponsorObjective(
   objectiveRow: SponsorObjectiveRow
 ): PersistedSponsorObjective {
@@ -380,6 +580,16 @@ function hydrateSponsorObjective(
     );
   }
 
+  const satisfactionPoints = Number(
+    objectiveRow.satisfaction_points
+  );
+
+  if (!Number.isInteger(satisfactionPoints) || satisfactionPoints <= 0) {
+    throw new Error(
+      `Poids de satisfaction invalide pour l’objectif ${objectiveRow.id}.`
+    );
+  }
+
   return {
     id: objectiveRow.id,
     displayOrder: objectiveRow.display_order,
@@ -392,6 +602,7 @@ function hydrateSponsorObjective(
     evaluationTiming: "season_end",
     evaluationDayNumber: null,
     renewalBonusPercent,
+    satisfactionPoints,
     isProvisional: true,
     targetDetails:
       objectiveRow.target_details,
@@ -488,7 +699,7 @@ async function loadSponsorObjectiveRaceCandidates({
 
   const { data: raceRows, error: raceError } = await supabase
     .from("races")
-    .select("id, country_id, slug, status")
+    .select("id, country_id, slug, status, race_format, competition_type, is_monument, is_grand_tour")
     .in("id", raceIds)
     .eq("status", "active")
     .returns<RaceRow[]>();
@@ -545,6 +756,10 @@ async function loadSponsorObjectiveRaceCandidates({
       countryCode,
       registrationPolicy: edition.registration_policy,
       minimumReputation: edition.minimum_reputation,
+      raceFormat: race.race_format,
+      competitionType: race.competition_type,
+      isMonument: race.is_monument,
+      isGrandTour: race.is_grand_tour,
     };
     const existingCandidate = candidatesByRaceId.get(race.id);
 
@@ -736,4 +951,26 @@ async function syncRaceResultObjectiveLinks(
       );
     }
   }
+}
+function getObjectiveFamily(
+  details: SponsorObjectiveTargetDetails,
+): string {
+  if (details.kind === "race_result") {
+    return "race_result";
+  }
+
+  return getObjectiveSignature(details);
+}
+
+function countObjectiveFamilies(
+  detailsList: readonly SponsorObjectiveTargetDetails[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const details of detailsList) {
+    const family = getObjectiveFamily(details);
+    counts.set(family, (counts.get(family) ?? 0) + 1);
+  }
+
+  return counts;
 }

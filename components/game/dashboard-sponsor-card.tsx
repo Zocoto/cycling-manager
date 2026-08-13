@@ -86,12 +86,12 @@ export function DashboardSponsorCard({
             {objectiveSummary && objectiveSummary.total > 0 ? (
               <span
                 className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white/80 backdrop-blur-sm"
-                aria-label={`${objectiveSummary.completed} objectifs accomplis sur ${objectiveSummary.total}`}
+                aria-label={`Satisfaction sponsor : ${objectiveSummary.satisfactionScore} sur 100`}
               >
                 <span aria-hidden="true" className="text-[var(--dashboard-sponsor-accent)]">
                   ✓
                 </span>
-                Objectifs {objectiveSummary.completed}/{objectiveSummary.total}
+                Satisfaction {objectiveSummary.satisfactionScore}/100
               </span>
             ) : null}
           </div>

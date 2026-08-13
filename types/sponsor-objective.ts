@@ -2,7 +2,11 @@ export type SponsorObjectiveType =
   | "race_result"
   | "nationality_quota"
   | "season_wins"
-  | "uci_ranking";
+  | "uci_ranking"
+  | "nation_uci_ranking"
+  | "national_championship"
+  | "homegrown_roster"
+  | "infrastructure";
 
 export type SponsorObjectivePriority =
   | "optional"
@@ -51,11 +55,38 @@ export type UciRankingObjectiveDetails = {
   targetRank: number;
 };
 
+export type NationUciRankingObjectiveDetails = {
+  kind: "nation_uci_ranking";
+  countryCode: string;
+  targetRank: number;
+};
+
+export type NationalChampionshipObjectiveDetails = {
+  kind: "national_championship";
+  countryCode: string;
+  championshipType: "any" | "road" | "time_trial";
+  requiredTitleCount: number;
+};
+
+export type HomegrownRosterObjectiveDetails = {
+  kind: "homegrown_roster";
+  minimumPercentage: number;
+};
+
+export type InfrastructureObjectiveDetails = {
+  kind: "infrastructure";
+  minimumCompletedCount: number;
+};
+
 export type SponsorObjectiveTargetDetails =
   | RaceResultObjectiveDetails
   | NationalityQuotaObjectiveDetails
   | SeasonWinsObjectiveDetails
-  | UciRankingObjectiveDetails;
+  | UciRankingObjectiveDetails
+  | NationUciRankingObjectiveDetails
+  | NationalChampionshipObjectiveDetails
+  | HomegrownRosterObjectiveDetails
+  | InfrastructureObjectiveDetails;
 
 export type GeneratedSponsorObjective = {
   displayOrder: number;
@@ -65,6 +96,7 @@ export type GeneratedSponsorObjective = {
   priority: SponsorObjectivePriority;
   evaluationTiming: "season_end";
   evaluationDayNumber: null;
+  satisfactionPoints: number;
   renewalBonusPercent: number;
   isProvisional: true;
   targetDetails: SponsorObjectiveTargetDetails;
