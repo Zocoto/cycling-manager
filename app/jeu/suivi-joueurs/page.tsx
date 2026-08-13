@@ -14,10 +14,10 @@ import {
 
 export const metadata: Metadata = {
   title: "Suivi des joueurs",
-  description: "Console privée des dernières connexions des joueurs.",
+  description: "Console privée de la dernière activité quotidienne des joueurs.",
 };
 
-const LAST_SIGN_IN_DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
+const LAST_ACTIVITY_DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   day: "2-digit",
   month: "short",
   year: "numeric",
@@ -34,13 +34,23 @@ export default async function PlayerTrackingPage() {
   if (authenticationError || !user) redirect("/connexion");
   if (!canAccessPlayerTracking(user.email)) notFound();
 
+  const { error: attendanceError } = await supabase.rpc(
+    "record_current_sporting_director_attendance",
+  );
+  if (attendanceError) {
+    console.error(
+      "Impossible d'enregistrer la présence quotidienne du joueur administrateur.",
+      attendanceError,
+    );
+  }
+
   const [headerData, overview] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getPlayerTrackingOverview(user.email),
   ]);
 
-  const connectedPlayers = overview.players.filter(
-    (player) => player.lastSignInAt,
+  const activePlayers = overview.players.filter(
+    (player) => player.lastActivityOn,
   ).length;
 
   return (
@@ -62,8 +72,8 @@ export default async function PlayerTrackingPage() {
               Suivi des joueurs
             </h1>
             <p className="mt-4 text-base font-medium leading-7 text-[#557068]">
-              Dernière connexion connue par Supabase Auth. Seule la date est
-              affichée ; aucune heure ni donnée de session n’est exposée.
+              Une activité est comptée dès qu’un membre ouvre une page du jeu,
+              y compris avec une session déjà active. Seule la date est affichée.
             </p>
           </header>
           <BackToOfficeLink />
@@ -71,12 +81,12 @@ export default async function PlayerTrackingPage() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <StatCard label="Comptes joueurs" value={overview.players.length} />
-          <StatCard label="Connexion déjà enregistrée" value={connectedPlayers} />
+          <StatCard label="Activité déjà enregistrée" value={activePlayers} />
         </div>
 
         <section className="mt-7 overflow-hidden rounded-[1.75rem] border border-[#B9CEC7] bg-white shadow-[0_20px_55px_rgba(20,67,56,0.09)]">
           <div className="border-b border-[#D7E4DF] bg-[#123D34] px-5 py-5 text-white sm:px-7">
-            <h2 className="text-xl font-black">Activite des comptes</h2>
+            <h2 className="text-xl font-black">Activité des comptes</h2>
             <p className="mt-1 text-sm font-medium text-[#CDE2DA]">
               Joueur = identifiant de compte · DS = nom public du Directeur Sportif
             </p>
@@ -92,7 +102,7 @@ export default async function PlayerTrackingPage() {
                       <TableHeader>E-mail</TableHeader>
                       <TableHeader>DS</TableHeader>
                       <TableHeader>Équipe</TableHeader>
-                      <TableHeader>Dernière connexion</TableHeader>
+                      <TableHeader>Dernière activité</TableHeader>
                     </tr>
                   </thead>
                   <tbody>
@@ -143,7 +153,7 @@ function PlayerTableRow({ player }: { player: PlayerTrackingRow }) {
       <TableCell>{player.directorName}</TableCell>
       <TableCell>{player.teamName ?? "Aucune équipe active"}</TableCell>
       <TableCell>
-        <LastSignInDate value={player.lastSignInAt} />
+        <LastActivityDate value={player.lastActivityOn} />
       </TableCell>
     </tr>
   );
@@ -180,7 +190,7 @@ function PlayerMobileCard({ player }: { player: PlayerTrackingRow }) {
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-[#DFF1EB] px-2.5 py-1 text-[0.65rem] font-black uppercase text-[#176951]">
-          <LastSignInDate value={player.lastSignInAt} />
+          <LastActivityDate value={player.lastActivityOn} />
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm">
@@ -205,11 +215,11 @@ function MobileDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LastSignInDate({ value }: { value: string | null }) {
-  if (!value) return <>Jamais</>;
+function LastActivityDate({ value }: { value: string | null }) {
+  if (!value) return <>Aucune</>;
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return <>Date indisponible</>;
 
-  return <time dateTime={value}>{LAST_SIGN_IN_DATE_FORMAT.format(date)}</time>;
+  return <time dateTime={value}>{LAST_ACTIVITY_DATE_FORMAT.format(date)}</time>;
 }

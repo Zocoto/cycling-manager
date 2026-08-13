@@ -10,6 +10,9 @@ import {
 
 const pageSource = readSource("app/jeu/suivi-joueurs/page.tsx");
 const serviceSource = readSource("services/player-tracking-admin.ts");
+const activityMigration = readSource(
+  "supabase/migrations/20260814030000_expose_player_daily_activity.sql",
+);
 
 describe("player tracking access", () => {
   it("autorise uniquement le compte demande", () => {
@@ -34,15 +37,35 @@ describe("player tracking access", () => {
 
   it("ne charge que les informations demandees pour le suivi", () => {
     expect(serviceSource).toContain("admin.auth.admin.listUsers");
-    expect(serviceSource).toContain("user.last_sign_in_at");
+    expect(serviceSource).not.toContain("last_sign_in_at");
+    expect(serviceSource).toContain(
+      '.rpc("get_player_tracking_last_activity")',
+    );
     expect(serviceSource).toContain(
       '.select("id, auth_user_id, username, display_name")',
     );
     expect(serviceSource).toContain('.select("team_id, display_name")');
-    expect(pageSource).toContain("Dernière connexion");
+    expect(pageSource).toContain("Dernière activité");
+    expect(pageSource).toContain(
+      '"record_current_sporting_director_attendance"',
+    );
     expect(pageSource).toContain('timeZone: "Europe/Paris"');
     expect(pageSource).not.toContain("hour:");
     expect(pageSource).not.toContain("minute:");
+  });
+
+  it("enregistre une seule activite civile par compte et par jour", () => {
+    expect(activityMigration).toContain("create table public.player_daily_activity");
+    expect(activityMigration).toContain(
+      "primary key (auth_user_id, activity_on)",
+    );
+    expect(activityMigration).toContain(
+      "on conflict (auth_user_id, activity_on) do nothing",
+    );
+    expect(activityMigration).toContain("activity_on date not null");
+    expect(activityMigration).toContain(
+      "(now() at time zone 'Europe/Paris')::date",
+    );
   });
 });
 

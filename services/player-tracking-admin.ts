@@ -24,13 +24,18 @@ type TeamSeasonRow = {
   display_name: string;
 };
 
+type LastActivityRow = {
+  auth_user_id: string;
+  last_activity_on: string;
+};
+
 export type PlayerTrackingRow = {
   authUserId: string;
   playerName: string;
   email: string;
   directorName: string;
   teamName: string | null;
-  lastSignInAt: string | null;
+  lastActivityOn: string | null;
 };
 
 export type PlayerTrackingOverview = {
@@ -58,7 +63,8 @@ export async function getPlayerTrackingOverview(
 
   const directors = directorsResult.data ?? [];
   const directorIds = directors.map((director) => director.id);
-  const [assignmentsResult, activeSeasonResult] = await Promise.all([
+  const [assignmentsResult, activeSeasonResult, lastActivityResult] =
+    await Promise.all([
     directorIds.length > 0
       ? admin
           .from("team_manager_assignments")
@@ -73,10 +79,15 @@ export async function getPlayerTrackingOverview(
       .select("id")
       .eq("status", "active")
       .maybeSingle<SeasonRow>(),
+    admin.rpc("get_player_tracking_last_activity"),
   ]);
 
   assertAdminQuery(assignmentsResult.error, "les affectations des joueurs");
   assertAdminQuery(activeSeasonResult.error, "la saison active");
+  assertAdminQuery(lastActivityResult.error, "les activites des joueurs");
+  const lastActivities = Array.isArray(lastActivityResult.data)
+    ? (lastActivityResult.data as LastActivityRow[])
+    : [];
 
   const assignments = assignmentsResult.data ?? [];
   const teamIds = [
@@ -111,6 +122,12 @@ export async function getPlayerTrackingOverview(
       teamSeason.display_name,
     ]),
   );
+  const lastActivityByAuthUserId = new Map(
+    lastActivities.map((activity) => [
+      activity.auth_user_id,
+      activity.last_activity_on,
+    ]),
+  );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -127,7 +144,7 @@ export async function getPlayerTrackingOverview(
           email: user.email ?? "E-mail indisponible",
           directorName: director?.display_name ?? "Profil DS non créé",
           teamName: teamId ? teamNameByTeamId.get(teamId) ?? null : null,
-          lastSignInAt: user.last_sign_in_at ?? null,
+          lastActivityOn: lastActivityByAuthUserId.get(user.id) ?? null,
         } satisfies PlayerTrackingRow;
       })
       .sort(comparePlayerTrackingRows),
@@ -172,11 +189,11 @@ function comparePlayerTrackingRows(
   left: PlayerTrackingRow,
   right: PlayerTrackingRow,
 ) {
-  const rightDate = right.lastSignInAt
-    ? Date.parse(right.lastSignInAt)
+  const rightDate = right.lastActivityOn
+    ? Date.parse(right.lastActivityOn)
     : Number.NEGATIVE_INFINITY;
-  const leftDate = left.lastSignInAt
-    ? Date.parse(left.lastSignInAt)
+  const leftDate = left.lastActivityOn
+    ? Date.parse(left.lastActivityOn)
     : Number.NEGATIVE_INFINITY;
 
   if (rightDate !== leftDate) return rightDate - leftDate;
