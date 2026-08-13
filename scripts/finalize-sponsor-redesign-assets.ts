@@ -303,44 +303,16 @@ async function buildWellnessFinalLogo({
   emblem: Buffer;
   countryDetails: WellnessCountryDetails;
 }) {
-  const emblemLayer = await prepareEmblemLayer(emblem, 244, 244);
-  const mainSize = fitFontSizeForWidth(lockup.main, 58, 30, 420);
-  const descriptorSize = fitFontSizeForWidth(lockup.descriptor, 25, 17, 380);
-  const countryStripe = buildCountryStripeMarkup({
-    colors: countryDetails.colors,
-    x: 176,
-    y: 374,
-    width: 160,
-    height: 11,
-    outline: sponsor.colors.text,
-  });
-  const textLayer = Buffer.from(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
-      <rect x="38" y="251" width="436" height="111" rx="24"
-        fill="${sponsor.colors.background}" fill-opacity=".96"
-        stroke="${sponsor.colors.primary}" stroke-width="6"/>
-      <path d="M65 266H447" stroke="${sponsor.colors.accent}" stroke-width="5" stroke-linecap="round"/>
-      <text x="256" y="313" text-anchor="middle"
-        font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="${mainSize}"
-        font-weight="900" letter-spacing=".7"
-        fill="${sponsor.colors.primary}" stroke="${sponsor.colors.background}"
-        stroke-width="2.5" paint-order="stroke">${escapeXml(lockup.main)}</text>
-      <text x="256" y="348" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif" font-size="${descriptorSize}"
-        font-weight="900" letter-spacing="2.6"
-        fill="${sponsor.colors.secondary}">${escapeXml(lockup.descriptor)}</text>
-      ${countryStripe}
-      <text x="256" y="414" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif" font-size="17"
-        font-weight="900" letter-spacing="3.2"
-        fill="${sponsor.colors.text}">${escapeXml(countryDetails.label)}</text>
-      <path d="M118 436H394" stroke="${sponsor.colors.accent}" stroke-width="4" stroke-linecap="round"/>
-      <text x="256" y="470" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif" font-size="14"
-        font-weight="800" letter-spacing="3.4"
-        fill="${sponsor.colors.text}" opacity=".84">${escapeXml(lockup.category)}</text>
-    </svg>
-  `);
+  const placement = getWellnessLogoEmblemPlacement(sponsor.id);
+  const emblemLayer = await prepareEmblemLayer(
+    emblem,
+    placement.width,
+    placement.height,
+    placement.opacity,
+  );
+  const textLayer = Buffer.from(
+    buildWellnessLogoSvg({ sponsor, lockup, countryDetails }),
+  );
 
   return sharp({
     create: {
@@ -350,11 +322,142 @@ async function buildWellnessFinalLogo({
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
   }).composite([
-    { input: emblemLayer, left: 134, top: 8 },
+    { input: emblemLayer, left: placement.left, top: placement.top },
     { input: textLayer, left: 0, top: 0 },
   ]);
 }
 
+function getWellnessLogoEmblemPlacement(id: string) {
+  const placements: Record<
+    string,
+    { width: number; height: number; left: number; top: number; opacity: number }
+  > = {
+    "savonnerie-calanque": { width: 154, height: 154, left: 34, top: 174, opacity: 1 },
+    "savana-karite": { width: 178, height: 178, left: 167, top: 30, opacity: 1 },
+    "atlas-ghassoul": { width: 230, height: 230, left: 141, top: 20, opacity: 1 },
+    "yuzu-sento": { width: 142, height: 142, left: 321, top: 138, opacity: 1 },
+    "hanbyeol-care": { width: 68, height: 68, left: 387, top: 132, opacity: 0.94 },
+    "eldur-moss": { width: 112, height: 112, left: 44, top: 170, opacity: 1 },
+    "sauna-sisu": { width: 92, height: 92, left: 210, top: 86, opacity: 1 },
+    "kakheti-botanica": { width: 184, height: 184, left: 164, top: 164, opacity: 1 },
+    "neem-nadi": { width: 124, height: 124, left: 42, top: 174, opacity: 1 },
+    "nalu-noni": { width: 118, height: 118, left: 197, top: 176, opacity: 1 },
+  };
+
+  return placements[id] ?? { width: 160, height: 160, left: 176, top: 72, opacity: 1 };
+}
+
+function buildWellnessLogoSvg({
+  sponsor,
+  lockup,
+  countryDetails,
+}: {
+  sponsor: Sponsor;
+  lockup: BrandLockup;
+  countryDetails: WellnessCountryDetails;
+}) {
+  const p = sponsor.colors.primary;
+  const s = sponsor.colors.secondary;
+  const a = sponsor.colors.accent;
+  const t = sponsor.colors.text;
+  const provenance = escapeXml(countryDetails.label);
+
+  switch (sponsor.id) {
+    case "savonnerie-calanque":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <path d="M190 190C250 152 344 151 448 191" fill="none" stroke="${s}" stroke-width="5" stroke-linecap="round"/>
+        <text x="318" y="182" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="800" letter-spacing="8" fill="${p}">SAVONNERIE</text>
+        <text x="329" y="260" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" letter-spacing="-1" fill="${p}">CALANQUE</text>
+        <path d="M194 279C252 259 304 300 360 277S440 277 470 267" fill="none" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <path d="M196 294C256 279 310 312 368 291S438 291 463 283" fill="none" stroke="${a}" stroke-width="4" stroke-linecap="round"/>
+        <text x="329" y="333" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="800" letter-spacing="5" fill="${t}">SAVON DE MARSEILLE</text>
+        <circle cx="437" cy="172" r="8" fill="none" stroke="${s}" stroke-width="3"/><circle cx="458" cy="151" r="13" fill="none" stroke="${a}" stroke-width="3"/>
+        <path d="M230 362H408" stroke="${p}" stroke-width="3"/><path d="M414 362H435" stroke="#ED2939" stroke-width="3"/>
+        <text x="329" y="390" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" letter-spacing="4" fill="${t}" opacity=".78">${provenance}</text>
+      </svg>`;
+    case "savana-karite":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <path d="M116 273C168 217 338 211 399 271" fill="none" stroke="${a}" stroke-width="5" stroke-linecap="round"/>
+        <text x="256" y="292" text-anchor="middle" font-family="Georgia,serif" font-size="78" font-style="italic" font-weight="700" fill="${p}">Savana</text>
+        <text x="256" y="353" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="49" font-weight="900" letter-spacing="7" fill="${s}">KARITÉ</text>
+        <path d="M125 373C196 391 319 391 390 373" fill="none" stroke="${p}" stroke-width="4"/>
+        <circle cx="206" cy="411" r="5" fill="#EF2B2D"/><circle cx="256" cy="411" r="5" fill="#FCD116"/><circle cx="306" cy="411" r="5" fill="#009E49"/>
+        <text x="256" y="446" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="${t}">${provenance}</text>
+      </svg>`;
+    case "atlas-ghassoul":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <path d="M82 281H430M110 264H402" stroke="${a}" stroke-width="4" stroke-linecap="round"/>
+        <text x="256" y="337" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="72" font-weight="900" letter-spacing="9" fill="${p}">ATLAS</text>
+        <text x="256" y="383" text-anchor="middle" font-family="Trebuchet MS,Arial,sans-serif" font-size="36" font-weight="800" letter-spacing="8" fill="${s}">GHASSOUL</text>
+        <path d="M116 410L137 389 158 410 179 389 200 410M312 410L333 389 354 410 375 389 396 410" fill="none" stroke="${a}" stroke-width="5"/>
+        <text x="256" y="449" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="${t}">${provenance}</text>
+      </svg>`;
+    case "yuzu-sento":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <text x="42" y="245" font-family="Arial Black,Arial,Helvetica,sans-serif" font-size="78" font-weight="900" letter-spacing="-2" fill="${p}">YUZU</text>
+        <text x="74" y="318" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="65" font-weight="900" letter-spacing="3" fill="${s}" stroke="${p}" stroke-width="1.5" paint-order="stroke">SENTŌ</text>
+        <path d="M70 341C145 319 223 370 300 341S417 337 469 350" fill="none" stroke="${p}" stroke-width="7" stroke-linecap="round"/>
+        <path d="M96 363C170 343 235 389 315 360S420 359 454 368" fill="none" stroke="${a}" stroke-width="4" stroke-linecap="round"/>
+        <text x="264" y="405" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="700" letter-spacing="8" fill="${t}">柚子銭湯</text>
+        <text x="264" y="442" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="800" letter-spacing="5" fill="${t}" opacity=".78">TOKYO · JAPAN</text>
+        <circle cx="421" cy="113" r="8" fill="none" stroke="${s}" stroke-width="3"/><circle cx="451" cy="91" r="14" fill="none" stroke="${a}" stroke-width="4"/>
+      </svg>`;
+    case "hanbyeol-care":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <path d="M85 200C162 157 338 157 425 203" fill="none" stroke="${s}" stroke-width="3"/>
+        <text x="256" y="283" text-anchor="middle" font-family="Avenir Next,Montserrat,Arial,sans-serif" font-size="67" font-weight="300" letter-spacing="-2" fill="${p}">hanbyeol</text>
+        <path d="M376 170l7 15 15 7-15 7-7 15-7-15-15-7 15-7z" fill="${a}"/>
+        <text x="256" y="335" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" letter-spacing="15" fill="${t}">CARE</text>
+        <path d="M126 365H386" stroke="${a}" stroke-width="4" stroke-linecap="round"/>
+        <text x="256" y="410" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" letter-spacing="6" fill="${t}">SEOUL · DAILY SKIN LAB</text>
+      </svg>`;
+    case "eldur-moss":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <text x="150" y="242" font-family="Georgia,serif" font-size="72" font-weight="700" letter-spacing="3" fill="${p}">ELDUR</text>
+        <text x="156" y="310" font-family="Georgia,serif" font-size="59" font-style="italic" fill="${s}">&amp; Moss</text>
+        <path d="M70 342C143 296 197 374 265 335S392 326 450 346" fill="none" stroke="${a}" stroke-width="5" stroke-linecap="round"/>
+        <path d="M72 358C151 334 215 386 291 353S406 348 448 364" fill="none" stroke="${s}" stroke-width="8" stroke-linecap="round"/>
+        <text x="260" y="409" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="${t}">GEOTHERMAL CARE · ÍSLAND</text>
+      </svg>`;
+    case "sauna-sisu":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <path d="M166 92V413M346 92V413M166 92H346" fill="none" stroke="${p}" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M216 164C188 127 243 111 217 74M256 160C228 124 282 106 258 66M298 164C270 129 325 112 300 76" fill="none" stroke="${a}" stroke-width="7" stroke-linecap="round"/>
+        <text x="256" y="231" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="30" font-weight="900" letter-spacing="12" fill="${p}">SAUNA</text>
+        <text x="256" y="335" text-anchor="middle" font-family="Impact,Arial Black,Arial,sans-serif" font-size="105" font-weight="900" letter-spacing="3" fill="${t}">SISU</text>
+        <text x="256" y="385" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="6" fill="${p}">BIRCH · TAR · STEAM</text>
+        <path d="M201 424H311" stroke="#002F6C" stroke-width="5"/>
+      </svg>`;
+    case "kakheti-botanica":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <circle cx="256" cy="256" r="178" fill="none" stroke="${p}" stroke-width="8"/>
+        <circle cx="256" cy="256" r="148" fill="none" stroke="${a}" stroke-width="3"/>
+        <text x="256" y="141" text-anchor="middle" font-family="Georgia,serif" font-size="39" font-weight="700" letter-spacing="6" fill="${p}">KAKHETI</text>
+        <text x="256" y="393" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="800" letter-spacing="7" fill="${s}">BOTANICA</text>
+        <circle cx="113" cy="256" r="5" fill="#FF0000"/><circle cx="399" cy="256" r="5" fill="#FF0000"/>
+        <text x="256" y="469" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="800" letter-spacing="5" fill="${t}">KAKHETI · GEORGIA</text>
+      </svg>`;
+    case "neem-nadi":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <text x="145" y="251" font-family="Georgia,serif" font-size="69" font-weight="700" letter-spacing="3" fill="${p}">NEEM</text>
+        <text x="146" y="326" font-family="Georgia,serif" font-size="72" font-style="italic" font-weight="700" fill="${s}">Nadi</text>
+        <path d="M105 353C184 318 248 386 322 348S421 347 459 362" fill="none" stroke="${p}" stroke-width="8" stroke-linecap="round"/>
+        <path d="M120 374C196 345 257 402 332 369S416 368 448 378" fill="none" stroke="${a}" stroke-width="4" stroke-linecap="round"/>
+        <path d="M393 201C414 165 452 173 448 208C421 220 401 218 393 201Z" fill="${a}"/>
+        <text x="277" y="422" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="${t}">NEEM · TULSI · INDIA</text>
+      </svg>`;
+    case "nalu-noni":
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+        <text x="256" y="159" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="64" font-weight="900" letter-spacing="7" fill="${p}">NALU</text>
+        <text x="256" y="401" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="57" font-weight="900" letter-spacing="6" fill="${s}">NONI</text>
+        <path d="M64 367C147 328 214 403 290 366S409 357 459 382" fill="none" stroke="${p}" stroke-width="9" stroke-linecap="round"/>
+        <path d="M79 389C159 359 223 419 302 387S407 382 447 399" fill="none" stroke="${a}" stroke-width="5" stroke-linecap="round"/>
+        <text x="262" y="443" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="${t}">PACIFIC BOTANICALS · SAMOA</text>
+      </svg>`;
+    default:
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><text x="256" y="330" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="900" fill="${p}">${escapeXml(lockup.main)}</text></svg>`;
+  }
+}
 async function buildFinalJersey({
   style,
   sponsor,
@@ -433,7 +536,7 @@ async function buildWellnessFinalJersey({
   sponsor,
   lockup,
   jersey,
-  emblem,
+  emblem: _emblem,
   countryDetails,
 }: {
   style: "classic" | "modern" | "bold";
@@ -451,41 +554,6 @@ async function buildWellnessFinalJersey({
     })
     .png()
     .toBuffer();
-  const primaryEmblemSize = style === "classic" ? 132 : style === "modern" ? 150 : 174;
-  const watermarkSize = style === "classic" ? 270 : style === "modern" ? 324 : 374;
-  const watermarkOpacity = style === "classic" ? 0.18 : style === "modern" ? 0.25 : 0.34;
-  const primaryEmblem = await prepareEmblemLayer(
-    emblem,
-    primaryEmblemSize,
-    primaryEmblemSize,
-  );
-  const watermarkEmblem = await prepareEmblemLayer(
-    emblem,
-    watermarkSize,
-    watermarkSize,
-    watermarkOpacity,
-  );
-  const primaryTop = style === "classic" ? 126 : style === "modern" ? 119 : 105;
-  const watermarkTop = style === "classic" ? 382 : style === "modern" ? 350 : 322;
-  const primaryLeft = Math.round((600 - primaryEmblemSize) / 2);
-  const watermarkLeft = Math.round((600 - watermarkSize) / 2);
-  const wordmarkLines = splitJerseyWordmark(lockup.main);
-  const longestWordmarkLine = wordmarkLines.reduce(
-    (longest, line) => (line.length > longest.length ? line : longest),
-    "",
-  );
-  const mainSize = fitFontSizeForWidth(
-    longestWordmarkLine,
-    style === "classic" ? 54 : style === "modern" ? 60 : 64,
-    26,
-    315,
-  );
-  const descriptorSize = fitFontSizeForWidth(
-    lockup.descriptor,
-    style === "bold" ? 22 : 20,
-    15,
-    390,
-  );
   const jerseyMask = await sharp({
     create: {
       width: 600,
@@ -503,9 +571,6 @@ async function buildWellnessFinalJersey({
       sponsor,
       lockup,
       countryDetails,
-      wordmarkLines,
-      mainSize,
-      descriptorSize,
     }),
   );
 
@@ -518,8 +583,6 @@ async function buildWellnessFinalJersey({
     },
   }).composite([
     { input: jerseyLayer, left: 21, top: 30 },
-    { input: watermarkEmblem, left: watermarkLeft, top: watermarkTop },
-    { input: primaryEmblem, left: primaryLeft, top: primaryTop },
     { input: brandingLayer, left: 0, top: 0 },
     { input: jerseyMask, left: 0, top: 0, blend: "dest-in" },
   ]);
@@ -530,105 +593,180 @@ function buildWellnessJerseyBrandingSvg({
   sponsor,
   lockup,
   countryDetails,
-  wordmarkLines,
-  mainSize,
-  descriptorSize,
 }: {
   style: "classic" | "modern" | "bold";
   sponsor: Sponsor;
   lockup: BrandLockup;
   countryDetails: WellnessCountryDetails;
-  wordmarkLines: readonly string[];
-  mainSize: number;
-  descriptorSize: number;
 }) {
-  const isStackedWordmark = wordmarkLines.length > 1;
-  const stackShift = isStackedWordmark ? 31 : 0;
-  const plate =
-    style === "classic"
-      ? `<rect x="82" y="260" width="436" height="${146 + stackShift}" rx="25"
-          fill="${sponsor.colors.primary}" fill-opacity=".91"
-          stroke="${sponsor.colors.accent}" stroke-width="6"/>`
-      : style === "modern"
-        ? `<path d="M58 282 535 232 514 ${410 + stackShift} 78 ${432 + stackShift}Z"
-            fill="${sponsor.colors.primary}" fill-opacity=".88"
-            stroke="${sponsor.colors.accent}" stroke-width="7" stroke-linejoin="round"/>`
-        : `<path d="M45 292Q300 235 555 292L526 ${445 + stackShift}Q300 ${482 + stackShift} 74 ${445 + stackShift}Z"
-            fill="${sponsor.colors.primary}" fill-opacity=".82"
-            stroke="${sponsor.colors.accent}" stroke-width="8" stroke-linejoin="round"/>`;
-  const nameY = style === "classic" ? 324 : style === "modern" ? 337 : 350;
-  const nameLineGap = Math.round(mainSize * 0.88);
-  const firstNameY = isStackedWordmark
-    ? nameY - Math.round(nameLineGap * 0.46)
-    : nameY;
-  const wordmarkMarkup = wordmarkLines
-    .map(
-      (line, index) => `<text x="300" y="${firstNameY + nameLineGap * index}" text-anchor="middle"
-        transform="rotate(${style === "modern" ? -3 : 0} 300 ${firstNameY + nameLineGap * index})"
-        font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="${mainSize}"
-        font-weight="900" letter-spacing=".4"
-        fill="${sponsor.colors.background}" stroke="${sponsor.colors.text}"
-        stroke-width="4.5" paint-order="stroke">${escapeXml(line)}</text>`,
-    )
-    .join("");
-  const descriptorY =
-    (style === "classic" ? 358 : style === "modern" ? 372 : 387) + stackShift;
-  const stripeY =
-    (style === "classic" ? 375 : style === "modern" ? 390 : 405) + stackShift;
-  const countryY =
-    (style === "classic" ? 402 : style === "modern" ? 418 : 434) + stackShift;
-  const countryStripe = buildCountryStripeMarkup({
-    colors: countryDetails.colors,
-    x: 252,
-    y: stripeY,
-    width: 96,
-    height: 9,
-    outline: sponsor.colors.background,
-  });
-  const collarStripe = buildCountryStripeMarkup({
-    colors: countryDetails.colors,
-    x: 258,
-    y: 111,
-    width: 84,
-    height: 7,
-    outline: sponsor.colors.text,
-  });
-  const echoWordmark = wordmarkLines.join(" ");
-  const echoSize = fitFontSizeForWidth(echoWordmark, 48, 22, 390);
-  const echoRotation = style === "modern" ? -7 : style === "bold" ? 5 : 0;
+  const p = sponsor.colors.primary;
+  const s = sponsor.colors.secondary;
+  const a = sponsor.colors.accent;
+  const bg = sponsor.colors.background;
+  const t = sponsor.colors.text;
+  const provenance = escapeXml(countryDetails.label);
 
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="750">
-      ${collarStripe}
-      ${plate}
-      ${wordmarkMarkup}
-      <text x="300" y="${descriptorY}" text-anchor="middle"
-        transform="rotate(${style === "modern" ? -3 : 0} 300 ${descriptorY})"
-        font-family="Arial, Helvetica, sans-serif" font-size="${descriptorSize}"
-        font-weight="900" letter-spacing="2.8"
-        fill="${sponsor.colors.accent}" stroke="${sponsor.colors.text}"
-        stroke-width="2.4" paint-order="stroke">${escapeXml(lockup.descriptor)}</text>
-      ${countryStripe}
-      <text x="300" y="${countryY}" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif" font-size="13"
-        font-weight="900" letter-spacing="3.1"
-        fill="${sponsor.colors.background}" stroke="${sponsor.colors.text}"
-        stroke-width="1.8" paint-order="stroke">${escapeXml(countryDetails.label)}</text>
-      <text x="300" y="598" text-anchor="middle"
-        transform="rotate(${echoRotation} 300 598)"
-        font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="${echoSize}"
-        font-weight="900" letter-spacing="1"
-        fill="none" stroke="${sponsor.colors.background}" stroke-width="3"
-        opacity="${style === "classic" ? ".18" : style === "modern" ? ".24" : ".3"}">${escapeXml(echoWordmark)}</text>
-      <text x="300" y="628" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif" font-size="12"
-        font-weight="900" letter-spacing="3.3"
-        fill="${sponsor.colors.accent}" stroke="${sponsor.colors.text}"
-        stroke-width="1.4" paint-order="stroke" opacity=".9">${escapeXml(lockup.category)}</text>
-    </svg>
-  `;
+  switch (sponsor.id) {
+    case "savonnerie-calanque":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="257" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="800" letter-spacing="7" fill="${p}">SAVONNERIE</text>
+        <text x="300" y="304" text-anchor="middle" font-family="Georgia,serif" font-size="48" font-weight="700" letter-spacing="-1" fill="${bg}" stroke="${p}" stroke-width="1.5" paint-order="stroke">CALANQUE</text>
+        <path d="M176 323C223 307 267 337 312 321S393 316 426 326" fill="none" stroke="${a}" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="438" cy="251" r="8" fill="none" stroke="${bg}" stroke-width="3"/><circle cx="457" cy="228" r="13" fill="none" stroke="${s}" stroke-width="3"/>
+        <text x="300" y="596" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" letter-spacing="5" fill="${bg}" opacity=".82">MARSEILLE</text>`);
+      if (style === "modern") return jerseySvg(`
+        <g transform="rotate(-8 300 303)">
+          <text x="300" y="280" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="900" letter-spacing="7" fill="${p}">SAVONNERIE</text>
+          <text x="300" y="326" text-anchor="middle" font-family="Georgia,serif" font-size="48" font-weight="700" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">CALANQUE</text>
+          <path d="M162 345C218 324 260 362 313 342S397 338 440 349" fill="none" stroke="${a}" stroke-width="6" stroke-linecap="round"/>
+        </g>
+        <circle cx="169" cy="394" r="15" fill="none" stroke="${bg}" stroke-width="4" opacity=".8"/><circle cx="135" cy="427" r="8" fill="none" stroke="${a}" stroke-width="3"/>`);
+      return jerseySvg(`
+        <text x="300" y="304" text-anchor="middle" transform="rotate(-3 300 304)" font-family="Georgia,serif" font-size="47" font-weight="700" letter-spacing="1" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">CALANQUE</text>
+        <text x="300" y="348" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="900" letter-spacing="7" fill="${a}">SAVONNERIE · MARSEILLE</text>
+        <circle cx="146" cy="235" r="17" fill="none" stroke="${bg}" stroke-width="4"/><circle cx="458" cy="360" r="22" fill="none" stroke="${a}" stroke-width="5"/><circle cx="418" cy="406" r="10" fill="none" stroke="${bg}" stroke-width="3"/>
+        <path d="M121 385C198 349 257 414 332 377S432 375 478 393" fill="none" stroke="${bg}" stroke-width="5" stroke-linecap="round"/>`);
+    case "savana-karite":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="285" text-anchor="middle" font-family="Georgia,serif" font-size="55" font-style="italic" font-weight="700" fill="${p}">Savana</text>
+        <text x="300" y="326" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="28" font-weight="900" letter-spacing="7" fill="${s}">KARITÉ</text>
+        <path d="M199 344C250 360 350 360 401 344" fill="none" stroke="${a}" stroke-width="4"/>
+        <text x="300" y="596" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" letter-spacing="4" fill="${p}">BURKINA FASO</text>`);
+      if (style === "modern") return jerseySvg(`
+        <g transform="rotate(-11 306 333)">
+          <text x="306" y="318" text-anchor="middle" font-family="Georgia,serif" font-size="56" font-style="italic" font-weight="700" fill="${p}" stroke="${bg}" stroke-width="2" paint-order="stroke">Savana</text>
+          <text x="306" y="358" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="27" font-weight="900" letter-spacing="7" fill="${s}">KARITÉ</text>
+        </g>
+        <path d="M149 414C211 367 278 450 345 403S438 397 468 418" fill="none" stroke="${a}" stroke-width="6" stroke-linecap="round"/>`);
+      return jerseySvg(`
+        <text x="300" y="312" text-anchor="middle" transform="rotate(-4 300 312)" font-family="Georgia,serif" font-size="54" font-style="italic" font-weight="700" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">Savana</text>
+        <text x="300" y="366" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="32" font-weight="900" letter-spacing="9" fill="${s}" stroke="${p}" stroke-width="1.5" paint-order="stroke">KARITÉ</text>
+        <path d="M181 392L160 419M211 403L198 440M419 392L440 419M389 403L402 440" stroke="${a}" stroke-width="7" stroke-linecap="round"/>
+        <ellipse cx="300" cy="478" rx="42" ry="29" fill="none" stroke="${bg}" stroke-width="5" transform="rotate(-18 300 478)"/>`);
+    case "atlas-ghassoul":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="258" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="39" font-weight="900" letter-spacing="5" fill="${bg}" stroke="${p}" stroke-width="1.5" paint-order="stroke">ATLAS</text>
+        <text x="300" y="293" text-anchor="middle" font-family="Trebuchet MS,Arial,sans-serif" font-size="24" font-weight="800" letter-spacing="5" fill="${a}">GHASSOUL</text>
+        <path d="M204 314L221 297 238 314M362 314L379 297 396 314" fill="none" stroke="${s}" stroke-width="5"/>`);
+      if (style === "modern") return jerseySvg(`
+        <g transform="rotate(-13 300 332)">
+          <text x="300" y="320" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="42" font-weight="900" letter-spacing="5" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">ATLAS</text>
+          <text x="300" y="355" text-anchor="middle" font-family="Trebuchet MS,Arial,sans-serif" font-size="23" font-weight="800" letter-spacing="5" fill="${a}">GHASSOUL</text>
+        </g>`);
+      return jerseySvg(`
+        <text x="300" y="254" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="43" font-weight="900" letter-spacing="7" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">ATLAS</text>
+        <text x="300" y="289" text-anchor="middle" font-family="Trebuchet MS,Arial,sans-serif" font-size="24" font-weight="900" letter-spacing="6" fill="${a}">GHASSOUL</text>
+        <path d="M145 322L173 294 201 322 229 294 257 322M343 322L371 294 399 322 427 294 455 322" fill="none" stroke="${s}" stroke-width="6"/>
+        <path d="M300 408C267 449 271 484 300 499 329 484 333 449 300 408Z" fill="none" stroke="${bg}" stroke-width="5"/>`);
+    case "yuzu-sento":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="259" text-anchor="middle" font-family="Arial Black,Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="2" fill="${bg}">YUZU SENTŌ</text>
+        <text x="300" y="293" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="800" letter-spacing="7" fill="${s}">柚子銭湯</text>
+        <circle cx="166" cy="273" r="11" fill="none" stroke="${s}" stroke-width="4"/><circle cx="438" cy="243" r="8" fill="none" stroke="${bg}" stroke-width="3"/>`);
+      if (style === "modern") return jerseySvg(`
+        <text x="300" y="337" text-anchor="middle" transform="rotate(-9 300 337)" font-family="Arial Black,Arial,Helvetica,sans-serif" font-size="40" font-weight="900" letter-spacing="2" fill="${p}" stroke="${bg}" stroke-width="2" paint-order="stroke">YUZU SENTO</text>
+        <circle cx="450" cy="244" r="14" fill="none" stroke="${s}" stroke-width="4"/><circle cx="474" cy="214" r="8" fill="none" stroke="${a}" stroke-width="3"/>`);
+      return jerseySvg(`
+        <text x="300" y="299" text-anchor="middle" transform="rotate(-2 300 299)" font-family="Arial Black,Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="2" fill="${bg}" stroke="${p}" stroke-width="2.5" paint-order="stroke">YUZU SENTO</text>
+        <text x="300" y="345" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="800" letter-spacing="7" fill="${s}">柚子銭湯 · TOKYO</text>
+        <g transform="rotate(28 430 205)">
+          <rect x="402" y="150" width="58" height="93" rx="18" fill="${bg}" fill-opacity=".72" stroke="${p}" stroke-width="5"/>
+          <rect x="415" y="135" width="32" height="20" rx="5" fill="${s}" stroke="${p}" stroke-width="4"/>
+          <circle cx="431" cy="194" r="19" fill="${s}" stroke="${bg}" stroke-width="3"/>
+          <path d="M431 176V212M413 194H449" stroke="${bg}" stroke-width="3" opacity=".8"/>
+        </g>
+        <path d="M459 241C477 270 454 291 468 316S492 349 477 383" fill="none" stroke="${a}" stroke-width="13" stroke-linecap="round" opacity=".78"/>
+        <circle cx="463" cy="408" r="13" fill="none" stroke="${bg}" stroke-width="4"/><circle cx="438" cy="436" r="8" fill="none" stroke="${s}" stroke-width="3"/>`);
+    case "hanbyeol-care":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="286" text-anchor="middle" font-family="Avenir Next,Montserrat,Arial,sans-serif" font-size="45" font-weight="300" letter-spacing="-1" fill="${p}">hanbyeol</text>
+        <text x="300" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="10" fill="${t}">CARE</text>
+        <path d="M411 245l6 13 13 6-13 6-6 13-6-13-13-6 13-6z" fill="${a}"/>`);
+      if (style === "modern") return jerseySvg(`
+        <g transform="rotate(9 300 326)">
+          <text x="300" y="320" text-anchor="middle" font-family="Avenir Next,Montserrat,Arial,sans-serif" font-size="48" font-weight="300" fill="${bg}" stroke="${p}" stroke-width="1.4" paint-order="stroke">hanbyeol</text>
+          <text x="300" y="354" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" letter-spacing="10" fill="${a}">CARE</text>
+        </g>
+        <path d="M162 413l7 15 15 7-15 7-7 15-7-15-15-7 15-7z" fill="${bg}" opacity=".8"/>`);
+      return jerseySvg(`
+        <text x="300" y="300" text-anchor="middle" font-family="Avenir Next,Montserrat,Arial,sans-serif" font-size="52" font-weight="300" fill="${bg}" stroke="${p}" stroke-width="1.5" paint-order="stroke">hanbyeol</text>
+        <text x="300" y="339" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="11" fill="${a}">CARE · SEOUL</text>
+        <path d="M143 387l8 17 17 8-17 8-8 17-8-17-17-8 17-8zM452 232l5 11 11 5-11 5-5 11-5-11-11-5 11-5z" fill="${bg}" opacity=".85"/>
+        <circle cx="188" cy="476" r="12" fill="${bg}" fill-opacity=".5"/><circle cx="420" cy="448" r="18" fill="${s}" fill-opacity=".55"/><circle cx="383" cy="507" r="8" fill="${bg}" fill-opacity=".55"/>`);
+    case "eldur-moss":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="278" text-anchor="middle" font-family="Georgia,serif" font-size="43" font-weight="700" letter-spacing="2" fill="${bg}">ELDUR</text>
+        <text x="300" y="318" text-anchor="middle" font-family="Georgia,serif" font-size="34" font-style="italic" fill="${s}">&amp; Moss</text>
+        <path d="M202 338C248 315 279 361 323 337S383 333 407 343" fill="none" stroke="${a}" stroke-width="5"/>`);
+      if (style === "modern") return jerseySvg(`
+        <g transform="rotate(-10 302 340)">
+          <text x="302" y="326" text-anchor="middle" font-family="Georgia,serif" font-size="45" font-weight="700" fill="${bg}" stroke="${p}" stroke-width="1.5" paint-order="stroke">ELDUR</text>
+          <text x="302" y="365" text-anchor="middle" font-family="Georgia,serif" font-size="32" font-style="italic" fill="${s}">&amp; Moss</text>
+        </g>`);
+      return jerseySvg(`
+        <text x="300" y="285" text-anchor="middle" font-family="Georgia,serif" font-size="46" font-weight="700" letter-spacing="2" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">ELDUR</text>
+        <text x="300" y="327" text-anchor="middle" font-family="Georgia,serif" font-size="35" font-style="italic" fill="${s}">&amp; Moss</text>
+        <path d="M153 382C203 335 228 422 279 371S357 358 390 387 444 393 468 371" fill="none" stroke="${a}" stroke-width="7" stroke-linecap="round"/>
+        <path d="M184 448C157 413 216 393 190 356M420 455C393 419 449 397 426 362" fill="none" stroke="${bg}" stroke-width="5" stroke-linecap="round" opacity=".75"/>`);
+    case "sauna-sisu":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="252" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="19" font-weight="900" letter-spacing="10" fill="${bg}">SAUNA</text>
+        <text x="300" y="321" text-anchor="middle" font-family="Impact,Arial Black,Arial,sans-serif" font-size="72" font-weight="900" letter-spacing="4" fill="${bg}">SISU</text>
+        <text x="300" y="352" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" letter-spacing="5" fill="${a}">SUOMI</text>`);
+      if (style === "modern") return jerseySvg(`
+        <text x="304" y="349" text-anchor="middle" transform="rotate(-11 304 349)" font-family="Impact,Arial Black,Arial,sans-serif" font-size="56" font-weight="900" letter-spacing="4" fill="${p}" stroke="${bg}" stroke-width="2" paint-order="stroke">SAUNA SISU</text>
+        <path d="M424 248C391 208 455 189 425 143" fill="none" stroke="${a}" stroke-width="6" stroke-linecap="round"/>`);
+      return jerseySvg(`
+        <text x="300" y="275" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="20" font-weight="900" letter-spacing="11" fill="${a}">SAUNA</text>
+        <text x="300" y="346" text-anchor="middle" font-family="Impact,Arial Black,Arial,sans-serif" font-size="76" font-weight="900" letter-spacing="4" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">SISU</text>
+        <path d="M181 413C151 371 218 349 188 305M300 430C267 387 334 362 302 318M418 413C386 372 452 348 421 304" fill="none" stroke="${bg}" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+        <path d="M132 469C164 438 190 454 202 492-166 502-140 493-132 469ZM438 470C467 440 492 458 501 494-468 503-445 494-438 470Z" fill="none" stroke="${s}" stroke-width="4"/>`);
+    case "kakheti-botanica":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="292" text-anchor="middle" font-family="Georgia,serif" font-size="31" font-weight="700" letter-spacing="4" fill="${p}">KAKHETI</text>
+        <text x="300" y="331" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="800" letter-spacing="7" fill="${s}">BOTANICA</text>`);
+      if (style === "modern") return jerseySvg(`
+        <g transform="rotate(-12 300 347)">
+          <text x="300" y="333" text-anchor="middle" font-family="Georgia,serif" font-size="39" font-weight="700" fill="${bg}" stroke="${p}" stroke-width="1.5" paint-order="stroke">KAKHETI</text>
+          <text x="300" y="368" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="800" letter-spacing="6" fill="${a}">BOTANICA</text>
+        </g>`);
+      return jerseySvg(`
+        <text x="300" y="310" text-anchor="middle" transform="rotate(-2 300 310)" font-family="Georgia,serif" font-size="40" font-weight="700" letter-spacing="4" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">KAKHETI</text>
+        <text x="300" y="356" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="900" letter-spacing="7" fill="${a}">BOTANICA</text>
+        <g fill="${p}" stroke="${bg}" stroke-width="2"><circle cx="153" cy="419" r="12"/><circle cx="170" cy="436" r="12"/><circle cx="136" cy="438" r="12"/><circle cx="153" cy="457" r="12"/><circle cx="447" cy="419" r="12"/><circle cx="464" cy="436" r="12"/><circle cx="430" cy="438" r="12"/><circle cx="447" cy="457" r="12"/></g>`);
+    case "neem-nadi":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="279" text-anchor="middle" font-family="Georgia,serif" font-size="44" font-weight="700" letter-spacing="3" fill="${p}">NEEM</text>
+        <text x="300" y="320" text-anchor="middle" font-family="Georgia,serif" font-size="37" font-style="italic" font-weight="700" fill="${s}">Nadi</text>
+        <path d="M214 342C261 318 294 362 339 339S393 336 414 346" fill="none" stroke="${a}" stroke-width="5"/>`);
+      if (style === "modern") return jerseySvg(`
+        <text x="304" y="359" text-anchor="middle" transform="rotate(-10 304 359)" font-family="Georgia,serif" font-size="43" font-style="italic" font-weight="700" letter-spacing="2" fill="${p}" stroke="${bg}" stroke-width="1.5" paint-order="stroke">NEEM NADI</text>
+        <path d="M431 270C451 235 482 244 480 277-456 288-438 286-431 270Z" fill="${a}"/>`);
+      return jerseySvg(`
+        <text x="300" y="312" text-anchor="middle" transform="rotate(-2 300 312)" font-family="Georgia,serif" font-size="45" font-weight="700" letter-spacing="3" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">NEEM NADI</text>
+        <text x="300" y="356" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="900" letter-spacing="6" fill="${s}">HERBAL HYGIENE · INDIA</text>
+        <path d="M142 409C164 369 201 380 196 417-168 430-149 427-142 409ZM404 415C428 372 468 382 462 422-432 434-412 432-404 415Z" fill="${a}" stroke="${bg}" stroke-width="2"/>`);
+    case "nalu-noni":
+      if (style === "classic") return jerseySvg(`
+        <text x="300" y="281" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="43" font-weight="900" letter-spacing="4" fill="${p}">NALU NONI</text>
+        <path d="M184 305C238 279 276 326 329 302S406 299 433 311" fill="none" stroke="${a}" stroke-width="6" stroke-linecap="round"/>
+        <text x="300" y="594" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" letter-spacing="5" fill="${s}">SAMOA</text>`);
+      if (style === "modern") return jerseySvg(`
+        <text x="304" y="354" text-anchor="middle" transform="rotate(-8 304 354)" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="42" font-weight="900" letter-spacing="4" fill="${p}" stroke="${bg}" stroke-width="2" paint-order="stroke">NALU NONI</text>
+        <path d="M146 415C212 378 267 441 332 407S425 401 465 421" fill="none" stroke="${a}" stroke-width="7" stroke-linecap="round"/>`);
+      return jerseySvg(`
+        <text x="300" y="310" text-anchor="middle" transform="rotate(-2 300 310)" font-family="Arial Rounded MT Bold,Arial Black,Arial,sans-serif" font-size="45" font-weight="900" letter-spacing="4" fill="${bg}" stroke="${p}" stroke-width="2" paint-order="stroke">NALU NONI</text>
+        <text x="300" y="355" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="900" letter-spacing="7" fill="${a}">PACIFIC BOTANICALS</text>
+        <path d="M122 405C195 357 251 438 327 394S430 394 483 421" fill="none" stroke="${bg}" stroke-width="8" stroke-linecap="round"/>
+        <g fill="none" stroke="${a}" stroke-width="4"><path d="M162 464C135 422 204 405 167 373"/><path d="M438 469C412 426 481 410 443 378"/></g>`);
+    default:
+      return jerseySvg(`<text x="300" y="310" text-anchor="middle" font-family="Arial,sans-serif" font-size="40" font-weight="900" fill="${bg}">${escapeXml(lockup.main)}</text><text x="300" y="340" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="800" letter-spacing="4" fill="${a}">${provenance}</text>`);
+  }
 }
 
+function jerseySvg(markup: string) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750">${markup}</svg>`;
+}
 function splitJerseyWordmark(value: string): string[] {
   if (value.length <= 15) return [value];
 
