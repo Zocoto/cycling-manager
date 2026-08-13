@@ -1,4 +1,5 @@
 import Link from "@/components/ui/app-link";
+import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
 
 const NAVIGATION_GROUPS = [
   {
@@ -53,7 +54,13 @@ const NAVIGATION_COLUMNS = [
   [NAVIGATION_GROUPS[1], NAVIGATION_GROUPS[3]],
 ] as const;
 
-export function GameNavigationMenu() {
+export function GameNavigationMenu({
+  viewerEmail,
+}: {
+  viewerEmail?: string | null;
+}) {
+  const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
+
   return (
     <details className="group relative shrink-0">
       <summary className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-auto sm:px-3 [&::-webkit-details-marker]:hidden">
@@ -120,6 +127,23 @@ export function GameNavigationMenu() {
             </div>
           ))}
         </nav>
+
+        {showPlayerTracking ? (
+          <div className="border-t border-[#78947D]/30 bg-[#071A17] p-3 sm:px-5">
+            <Link
+              href="/jeu/suivi-joueurs"
+              className="flex items-center justify-between gap-3 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/8 px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:border-[#F2C94C]/60 hover:bg-[#F2C94C]/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+            >
+              <span>
+                <span className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
+                  Administration
+                </span>
+                <span className="mt-0.5 block">Suivi des joueurs</span>
+              </span>
+              <span aria-hidden="true" className="text-[#F2C94C]">?</span>
+            </Link>
+          </div>
+        ) : null}
       </div>
     </details>
   );

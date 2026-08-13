@@ -101,7 +101,7 @@ export function GameHeader({
           </span>
         </Link>
 
-        <GameNavigationMenu />
+        <GameNavigationMenu viewerEmail={simulatorEmail} />
 
         <div className="order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px border-t border-white/10 pt-2 sm:gap-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
           <HeaderMenuLink
