@@ -21,7 +21,9 @@ export async function saveTeamTrainingSettingsAction(formData: FormData) {
   if (error) redirectWithError(error.message);
 
   revalidateTrainingPaths();
-  redirect(`/jeu/entrainement?seuil=confirme&effet=J${Number(data)}`);
+  redirect(
+    `/jeu/entrainement?seuil=confirme&effet=${encodeURIComponent(formatTrainingEffect(Number(data)))}`,
+  );
 }
 
 export async function saveRiderTrainingPlansAction(formData: FormData) {
@@ -42,7 +44,7 @@ export async function saveRiderTrainingPlansAction(formData: FormData) {
 
   revalidateTrainingPaths();
   redirect(
-    `/jeu/entrainement?programme=confirme&nombre=${plans.length}&effet=J${Number(data)}`,
+    `/jeu/entrainement?programme=confirme&nombre=${plans.length}&effet=${encodeURIComponent(formatTrainingEffect(Number(data)))}`,
   );
 }
 
@@ -187,6 +189,12 @@ function revalidateTrainingPaths() {
   revalidatePath("/jeu/entrainement");
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu");
+}
+
+function formatTrainingEffect(effectiveDayNumber: number) {
+  return effectiveDayNumber === 29
+    ? "\u00e0 la prochaine s\u00e9ance (demain \u00e0 8 h)"
+    : `J${effectiveDayNumber}`;
 }
 
 function redirectWithError(message: string): never {

@@ -249,8 +249,9 @@ export default async function TrainingPage({
                   <TrainingThresholdForm minimumForm={overview.minimumForm} />
                   {overview.minimumFormIsPending ? (
                     <p className="mt-2 text-xs font-bold text-[#FFF4C5]">
-                      Nouveau seuil programmé pour J
-                      {overview.minimumFormEffectiveFromDayNumber}.
+                      {overview.minimumFormEffectiveFromDayNumber === 29
+                        ? "Nouveau seuil programm\u00e9 pour la prochaine saison \u00b7 J1 \u00e0 8 h."
+                        : `Nouveau seuil programm\u00e9 pour J${overview.minimumFormEffectiveFromDayNumber}.`}
                     </p>
                   ) : null}
                 </div>
@@ -450,8 +451,9 @@ export default async function TrainingPage({
                             </div>
                             {rider.plan.isPending ? (
                               <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-[#8A6B16]">
-                                Programme à venir J
-                                {rider.plan.effectiveFromDayNumber}
+                                {rider.plan.effectiveFromDayNumber === 29
+                                  ? "Programme \u00e0 venir \u00b7 prochaine saison J1 \u00e0 8 h"
+                                  : `Programme \u00e0 venir J${rider.plan.effectiveFromDayNumber}`}
                               </p>
                             ) : null}
                           </div>
