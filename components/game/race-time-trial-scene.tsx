@@ -106,6 +106,7 @@ export function RaceTimeTrialScene({
                 strokeDasharray="7 6"
                 vectorEffect="non-scaling-stroke"
                 data-road-flow-direction="right-to-left"
+                className={isMoving ? "cm-race-road-marking-svg" : ""}
               />
               <RaceRoadChalk
                 show={activeSegment?.terrain === "climb"}
@@ -113,6 +114,7 @@ export function RaceTimeTrialScene({
                 roadLeft={46}
                 roadRight={46}
                 roadDepth={34}
+                isMoving={isMoving}
               />
             </svg>
             <RaceRoadsideCrowd

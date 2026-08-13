@@ -167,6 +167,15 @@ a {
   to { background-position-x: -78px; }
 }
 
+@keyframes cm-race-road-chalk-svg {
+  to {
+    transform: translate(
+      -100px,
+      var(--cm-race-road-chalk-travel-y, 0px)
+    );
+  }
+}
+
 @keyframes cm-race-cobble-flow-strip {
   to {
     background-position:
@@ -345,6 +354,13 @@ a {
 .cm-race-road-marking-strip {
   animation: cm-race-road-marking-strip 0.68s linear infinite;
   will-change: background-position;
+}
+
+.cm-race-road-chalk-svg {
+  animation-name: cm-race-road-chalk-svg;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
 }
 
 .cm-race-cobble-flow-strip {
@@ -534,6 +550,7 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .cm-race-road-marking-svg,
   .cm-race-road-marking-strip,
+  .cm-race-road-chalk-svg,
   .cm-race-cobble-flow-strip,
   .cm-race-scenery,
   .cm-race-scenery-detail,

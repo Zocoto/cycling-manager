@@ -865,6 +865,7 @@ function RoadScene({
           roadLeft={roadLeftPct}
           roadRight={roadRightPct}
           roadDepth={roadDepthPct}
+          isMoving={isMoving}
         />
         {[0, roadDepthPct].map((depth) => (
           <path
