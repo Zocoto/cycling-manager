@@ -8,6 +8,7 @@ import {
 } from "@/lib/gameplay-rules";
 import type { FeaturedRiderSponsorAffinity } from "@/lib/game/sponsor-nationality-affinity";
 import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
+import { calculateSponsorRenewalBudget } from "@/lib/game/sponsor-renewal-budget";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -24,7 +25,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
-const SPONSOR_OFFER_GENERATION_VERSION = 2;
+const SPONSOR_OFFER_GENERATION_VERSION = 3;
 
 export type FutureSponsorOfferMode =
   | "renewal"
@@ -56,6 +57,8 @@ export type FutureSponsorOfferRequest = {
   };
   mode: FutureSponsorOfferMode;
   currentSponsorCatalogKey: string | null;
+  currentSponsorBudget: number | null;
+  currentSponsorSatisfactionScore: number | null;
   excludedSponsorCatalogKey: string | null;
 };
 
@@ -128,6 +131,8 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
   activeSeason,
   mode,
   currentSponsorCatalogKey,
+  currentSponsorBudget,
+  currentSponsorSatisfactionScore,
   excludedSponsorCatalogKey,
 }: FutureSponsorOfferRequest): Promise<FutureSponsorOfferPackage> {
   const normalizedAuthUserId = authUserId.trim();
@@ -306,6 +311,8 @@ export async function getOrCreateFutureSponsorOffersForAuthUser({
     directorReputation: sportingDirector.reputation_points,
     unavailableSponsorCatalogKeys,
     currentSponsorCatalogKey,
+    currentSponsorBudget,
+    currentSponsorSatisfactionScore,
     excludedSponsorCatalogKey,
     featuredRiderAffinity,
   });
@@ -433,6 +440,8 @@ function createFutureProposals({
   directorReputation,
   unavailableSponsorCatalogKeys,
   currentSponsorCatalogKey,
+  currentSponsorBudget,
+  currentSponsorSatisfactionScore,
   excludedSponsorCatalogKey,
   featuredRiderAffinity,
 }: {
@@ -441,6 +450,8 @@ function createFutureProposals({
   directorReputation: number;
   unavailableSponsorCatalogKeys: readonly string[];
   currentSponsorCatalogKey: string | null;
+  currentSponsorBudget: number | null;
+  currentSponsorSatisfactionScore: number | null;
   excludedSponsorCatalogKey: string | null;
   featuredRiderAffinity: FeaturedRiderSponsorAffinity | null;
 }): GeneratedFutureProposal[] {
@@ -456,6 +467,15 @@ function createFutureProposals({
     if (!currentSponsorCatalogKey) {
       throw new Error(
         "Le sponsor à renouveler est introuvable."
+      );
+    }
+
+    if (
+      currentSponsorBudget === null ||
+      currentSponsorSatisfactionScore === null
+    ) {
+      throw new Error(
+        "Le budget et la satisfaction du sponsor à renouveler sont introuvables."
       );
     }
 
@@ -486,7 +506,15 @@ function createFutureProposals({
     });
 
     return [
-      ...(renewalIsEligible ? [createRenewalProposal(currentSponsor)] : []),
+      ...(renewalIsEligible
+        ? [
+            createRenewalProposal(
+              currentSponsor,
+              currentSponsorBudget,
+              currentSponsorSatisfactionScore,
+            ),
+          ]
+        : []),
       ...alternativeProposals.map((proposal) => ({
         sponsor: proposal.sponsor,
         proposedBudget: proposal.proposedBudget,
@@ -515,16 +543,16 @@ function createFutureProposals({
 }
 
 function createRenewalProposal(
-  sponsor: Sponsor
+  sponsor: Sponsor,
+  currentBudget: number,
+  satisfactionScore: number,
 ): GeneratedFutureProposal {
   return {
     sponsor,
-    proposedBudget: roundBudget(
-      randomIntegerBetween(
-        sponsor.budgetRange.min,
-        sponsor.budgetRange.max
-      )
-    ),
+    proposedBudget: calculateSponsorRenewalBudget({
+      currentBudget,
+      satisfactionScore,
+    }),
     contractDurationSeasons: randomIntegerBetween(
       sponsor.contractDurationRange.min,
       sponsor.contractDurationRange.max
@@ -989,8 +1017,4 @@ function randomIntegerBetween(min: number, max: number): number {
       Math.random() * (upperBound - lowerBound + 1)
     ) + lowerBound
   );
-}
-
-function roundBudget(value: number): number {
-  return Math.round(value / 10_000) * 10_000;
 }

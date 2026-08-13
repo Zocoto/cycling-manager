@@ -94,7 +94,7 @@ describe("generateProvisionalSponsorObjectives", () => {
     ).toBe(100);
   });
 
-  it("conserve au maximum sept pour cent de bonus de renouvellement", () => {
+  it("laisse le renouvellement dépendre uniquement de la satisfaction globale", () => {
     const objectives = generateProvisionalSponsorObjectives({
       sponsorCountryCode: "ES",
       sponsorPrestige: 3,
@@ -106,7 +106,7 @@ describe("generateProvisionalSponsorObjectives", () => {
       0,
     );
 
-    expect(total).toBeCloseTo(7, 5);
+    expect(total).toBe(0);
   });
 
   it("couvre les résultats, l’effectif, les victoires et les classements", () => {

@@ -19,6 +19,14 @@ const repairMigration = readFileSync(
   "utf8",
 );
 
+const renewalMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260813203000_rework_sponsor_renewals_and_reputation.sql",
+  ),
+  "utf8",
+);
+
 describe("sponsor satisfaction migration", () => {
   it("Étend les offres à dix objectifs pondérés", () => {
     expect(migration).toContain("check (display_order between 1 and 10)");
@@ -108,13 +116,53 @@ describe("legacy sponsor objective repair", () => {
       "skip_cancelled_sponsor_objective_progress",
     );
     expect(repairMigration).toMatch(
-      /renewal_bonus_percent,[\s\S]*satisfaction_points,[\s\S]*select[\s\S]*\n\s+0,\n\s+0,/,
+      /renewal_bonus_percent,[\s\S]*satisfaction_points,[\s\S]*select[\s\S]*\r?\n\s+0,\r?\n\s+0,/,
     );
   });
 
   it("autorise la régénération pondérée des offres S2", () => {
     expect(repairMigration).toMatch(
       /grant delete\s+on table public\.sponsor_objectives\s+to service_role/,
+    );
+  });
+});
+
+describe("sponsor renewal and reputation settlement", () => {
+  it("applique le barème linéaire -25 / 0 / +10 depuis la satisfaction", () => {
+    expect(renewalMigration).toContain(
+      "v_budget_adjustment := (v_satisfaction_score - 50) / 2.0",
+    );
+    expect(renewalMigration).toContain(
+      "v_budget_adjustment := (v_satisfaction_score - 50) / 5.0",
+    );
+    expect(renewalMigration).toContain(
+      "renewal_budget_adjustment_percent between -25 and 10",
+    );
+  });
+
+  it("retire dix points par objectif manquant sous la moitié", () => {
+    expect(renewalMigration).toContain(
+      "ceil(v_live_objective_count / 2.0)::integer",
+    );
+    expect(renewalMigration).toMatch(
+      /v_required_completed_count - v_completed_objective_count[\s\S]*\) \* 10/,
+    );
+  });
+
+  it("supprime les gains de réputation et les anciens bonus unitaires", () => {
+    const rewardFunction = renewalMigration.slice(
+      renewalMigration.indexOf(
+        "create or replace function public.reward_completed_sponsor_objective",
+      ),
+      renewalMigration.indexOf(
+        "alter function public.evaluate_sponsor_objectives_for_contract",
+      ),
+    );
+
+    expect(rewardFunction).toContain("return new");
+    expect(rewardFunction).not.toContain("insert into public.reward_events");
+    expect(renewalMigration).toContain(
+      "set next_sponsor_budget_bonus_percent = 0",
     );
   });
 });

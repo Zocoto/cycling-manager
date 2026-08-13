@@ -474,6 +474,10 @@ async function resolveFutureSponsoringState({
       mode,
       currentSponsorCatalogKey:
         currentContract?.sponsor.id ?? null,
+      currentSponsorBudget:
+        currentContract?.budgetPerSeason ?? null,
+      currentSponsorSatisfactionScore:
+        currentContract?.satisfactionScore ?? null,
       excludedSponsorCatalogKey:
         terminatedContract?.sponsor.id ?? null,
     });

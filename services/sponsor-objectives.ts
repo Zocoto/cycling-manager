@@ -7,7 +7,6 @@ import type {
 } from "@/types/sponsor";
 
 const OBJECTIVE_COUNT = 10;
-const MAXIMUM_RENEWAL_BONUS_PERCENT = 7;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -330,12 +329,7 @@ function withSatisfactionPoints(
     ...objective,
     satisfactionPoints,
     priority: getPriorityForSatisfactionPoints(satisfactionPoints),
-    renewalBonusPercent: Number(
-      (
-        satisfactionPoints *
-        (MAXIMUM_RENEWAL_BONUS_PERCENT / 100)
-      ).toFixed(2)
-    ),
+    renewalBonusPercent: 0,
   };
 }
 

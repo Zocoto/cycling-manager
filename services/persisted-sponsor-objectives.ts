@@ -18,7 +18,6 @@ import type {
 const OBJECTIVE_COUNT_PER_OFFER = 10;
 const OBJECTIVE_COMPLETION_ATTEMPTS = 4;
 const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 50;
-const MAXIMUM_RENEWAL_BONUS_PERCENT = 7;
 
 type SupabaseAdminClient = ReturnType<
   typeof createSupabaseAdminClient
@@ -130,29 +129,14 @@ export async function ensureAndLoadSponsorObjectives({
   const rowsToInsert: SponsorObjectiveInsertRow[] = [];
 
   for (const offer of offers) {
-    let existingRows =
+    const existingRows =
       existingRowsByOfferId.get(offer.offerId) ?? [];
 
-    if (
+    const modernizeLegacyObjectiveSet =
       !offer.neutralizeMissingObjectives &&
       existingRows.length > 0 &&
       existingRows.length < OBJECTIVE_COUNT_PER_OFFER &&
-      existingRows.every((objective) => objective.status === "draft")
-    ) {
-      const { error: resetError } = await supabase
-        .from("sponsor_objectives")
-        .delete()
-        .eq("sponsor_offer_id", offer.offerId)
-        .eq("season_id", seasonId);
-
-      if (resetError) {
-        throw new Error(
-          `Impossible de moderniser les objectifs de l’offre ${offer.offerId} : ${resetError.message}`
-        );
-      }
-
-      existingRows = [];
-    }
+      existingRows.every((objective) => objective.status === "draft");
 
 
     const existingDisplayOrders = new Set(
@@ -178,6 +162,14 @@ export async function ensureAndLoadSponsorObjectives({
           `${offer.offerId}:${offer.sponsor.id}`
         ),
       });
+
+    if (modernizeLegacyObjectiveSet) {
+      await modernizeLegacyObjectiveWeights({
+        supabase,
+        existingRows,
+        generatedObjectives,
+      });
+    }
 
     const missingDisplayOrders = Array.from(
       { length: OBJECTIVE_COUNT_PER_OFFER },
@@ -381,6 +373,62 @@ export async function ensureAndLoadSponsorObjectives({
   return objectivesByOfferId;
 }
 
+async function modernizeLegacyObjectiveWeights({
+  supabase,
+  existingRows,
+  generatedObjectives,
+}: {
+  supabase: SupabaseAdminClient;
+  existingRows: readonly SponsorObjectiveRow[];
+  generatedObjectives: Readonly<
+    ReturnType<typeof generateProvisionalSponsorObjectives>
+  >;
+}): Promise<void> {
+  const availableObjectives = [...generatedObjectives];
+
+  for (const existingRow of existingRows) {
+    const existingSignature = getObjectiveSignature(
+      existingRow.target_details
+    );
+    const existingFamily = getObjectiveFamily(
+      existingRow.target_details
+    );
+    let matchIndex = availableObjectives.findIndex(
+      (objective) =>
+        getObjectiveSignature(objective.targetDetails) === existingSignature
+    );
+
+    if (matchIndex < 0) {
+      matchIndex = availableObjectives.findIndex(
+        (objective) =>
+          getObjectiveFamily(objective.targetDetails) === existingFamily
+      );
+    }
+
+    const matchedObjective =
+      matchIndex >= 0
+        ? availableObjectives.splice(matchIndex, 1)[0]
+        : undefined;
+
+    if (!matchedObjective) continue;
+
+    const { error } = await supabase
+      .from("sponsor_objectives")
+      .update({
+        priority: matchedObjective.priority,
+        renewal_bonus_percent: matchedObjective.renewalBonusPercent,
+        satisfaction_points: matchedObjective.satisfactionPoints,
+      })
+      .eq("id", existingRow.id);
+
+    if (error) {
+      throw new Error(
+        `Impossible de pondérer l’objectif ${existingRow.id} selon la philosophie du sponsor : ${error.message}`
+      );
+    }
+  }
+}
+
 async function loadSponsorObjectiveRows(
   supabase: SupabaseAdminClient,
   offerIds: readonly string[],
@@ -498,12 +546,7 @@ async function normalizeObjectiveSatisfactionWeights(
     }
 
     for (const allocation of allocations) {
-      const renewalBonusPercent = Number(
-        (
-          allocation.points *
-          (MAXIMUM_RENEWAL_BONUS_PERCENT / 100)
-        ).toFixed(2)
-      );
+      const renewalBonusPercent = 0;
       const priority: SponsorObjectivePriority =
         allocation.points >= 17
           ? "mandatory"
