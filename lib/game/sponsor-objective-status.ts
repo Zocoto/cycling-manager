@@ -3,6 +3,7 @@ import type { SponsorObjectiveStatus } from "@/types/sponsor-objective";
 export type SponsorObjectiveVisualStatus =
   | "achieved"
   | "failed"
+  | "neutralized"
   | "in_progress";
 
 export type SponsorObjectiveStatusPresentation = {
@@ -17,8 +18,12 @@ export function getSponsorObjectiveStatusPresentation(
     return { status: "achieved", label: "Objectif atteint" };
   }
 
-  if (status === "failed" || status === "cancelled") {
+  if (status === "failed") {
     return { status: "failed", label: "Objectif non atteint" };
+  }
+
+  if (status === "cancelled") {
+    return { status: "neutralized", label: "Neutralisé — sans impact" };
   }
 
   return { status: "in_progress", label: "Objectif en cours" };

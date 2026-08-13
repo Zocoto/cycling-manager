@@ -11,6 +11,14 @@ const migration = readFileSync(
   "utf8",
 );
 
+const repairMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260813193000_repair_legacy_sponsor_objectives.sql",
+  ),
+  "utf8",
+);
+
 describe("sponsor satisfaction migration", () => {
   it("Étend les offres à dix objectifs pondérés", () => {
     expect(migration).toContain("check (display_order between 1 and 10)");
@@ -70,5 +78,43 @@ describe("sponsor satisfaction migration", () => {
 
     expect(initialization).not.toContain("insert into public.reward_events");
     expect(initialization).not.toContain("reputation_points = reputation_points +");
+  });
+});
+
+describe("legacy sponsor objective repair", () => {
+  it("neutralise exactement les trois ajouts des contrats S1", () => {
+    expect(repairMigration).toContain(
+      "and season.status = 'active'",
+    );
+    expect(repairMigration).toContain(
+      ") = 7",
+    );
+    expect(repairMigration).toContain(
+      "where missing_order.missing_rank <= 3",
+    );
+    expect(repairMigration).toContain(
+      "'cancelled'",
+    );
+    expect(repairMigration).toContain(
+      "'legacyNeutralized', true",
+    );
+  });
+
+  it("exclut ces objectifs de la satisfaction et de la progression", () => {
+    expect(repairMigration).toContain(
+      "check (satisfaction_points between 0 and 100)",
+    );
+    expect(repairMigration).toContain(
+      "skip_cancelled_sponsor_objective_progress",
+    );
+    expect(repairMigration).toMatch(
+      /renewal_bonus_percent,[\s\S]*satisfaction_points,[\s\S]*select[\s\S]*\n\s+0,\n\s+0,/,
+    );
+  });
+
+  it("autorise la régénération pondérée des offres S2", () => {
+    expect(repairMigration).toMatch(
+      /grant delete\s+on table public\.sponsor_objectives\s+to service_role/,
+    );
   });
 });

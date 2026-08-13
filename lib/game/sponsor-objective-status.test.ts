@@ -24,7 +24,10 @@ describe("getSponsorObjectiveStatusPresentation", () => {
     });
   });
 
-  it("considère un objectif annulé comme non atteint", () => {
-    expect(getSponsorObjectiveStatusPresentation("cancelled").status).toBe("failed");
+  it("présente un objectif annulé comme neutralisé et sans impact", () => {
+    expect(getSponsorObjectiveStatusPresentation("cancelled")).toEqual({
+      status: "neutralized",
+      label: "Neutralisé — sans impact",
+    });
   });
 });

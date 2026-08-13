@@ -28,6 +28,7 @@ export type SponsorOfferObjectiveContext = {
   offerId: string;
   sponsor: Sponsor;
   relationshipYear?: number;
+  neutralizeMissingObjectives?: boolean;
 };
 
 type SponsorObjectiveRow = {
@@ -56,7 +57,7 @@ type SponsorObjectiveInsertRow = {
   priority: SponsorObjectivePriority;
   evaluation_timing: "season_end";
   evaluation_day_number: null;
-  status: "draft";
+  status: "draft" | "cancelled";
   display_order: number;
   renewal_bonus_percent: number;
   satisfaction_points: number;
@@ -133,6 +134,7 @@ export async function ensureAndLoadSponsorObjectives({
       existingRowsByOfferId.get(offer.offerId) ?? [];
 
     if (
+      !offer.neutralizeMissingObjectives &&
       existingRows.length > 0 &&
       existingRows.length < OBJECTIVE_COUNT_PER_OFFER &&
       existingRows.every((objective) => objective.status === "draft")
@@ -260,13 +262,13 @@ export async function ensureAndLoadSponsorObjectives({
           objective.evaluationTiming,
         evaluation_day_number:
           objective.evaluationDayNumber,
-        status: "draft",
+        status: offer.neutralizeMissingObjectives ? "cancelled" : "draft",
         display_order:
           objective.displayOrder,
         renewal_bonus_percent:
-          objective.renewalBonusPercent,
+          offer.neutralizeMissingObjectives ? 0 : objective.renewalBonusPercent,
         satisfaction_points:
-          objective.satisfactionPoints,
+          offer.neutralizeMissingObjectives ? 0 : objective.satisfactionPoints,
         is_provisional:
           objective.isProvisional,
         target_details:
@@ -459,13 +461,21 @@ async function normalizeObjectiveSatisfactionWeights(
   for (const rows of rowsByOfferId.values()) {
     if (rows.length !== OBJECTIVE_COUNT_PER_OFFER) continue;
 
-    const rawTotal = rows.reduce(
-      (total, row) => total + Math.max(1, Number(row.satisfaction_points)),
+    const weightedRows = rows.filter(
+      (row) =>
+        row.status !== "cancelled" &&
+        Number(row.satisfaction_points) > 0
+    );
+
+    if (weightedRows.length === 0) continue;
+
+    const rawTotal = weightedRows.reduce(
+      (total, row) => total + Number(row.satisfaction_points),
       0
     );
-    const allocations = rows.map((row) => {
+    const allocations = weightedRows.map((row) => {
       const exact =
-        (Math.max(1, Number(row.satisfaction_points)) * 100) / rawTotal;
+        (Number(row.satisfaction_points) * 100) / rawTotal;
 
       return {
         row,

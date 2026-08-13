@@ -255,6 +255,7 @@ export async function getSponsoringStateForAuthUser(
         supabase,
         contractRow: currentPlannedContract,
         teamReputationPoints: sportingDirector.reputation_points,
+        neutralizeMissingObjectives: true,
       }),
     };
   }
@@ -270,6 +271,7 @@ export async function getSponsoringStateForAuthUser(
       supabase,
       contractRow: activeContractRow,
       teamReputationPoints: sportingDirector.reputation_points,
+      neutralizeMissingObjectives: true,
     });
 
     return {
@@ -302,6 +304,7 @@ export async function getSponsoringStateForAuthUser(
         supabase,
         contractRow: terminatedContractRow,
         teamReputationPoints: sportingDirector.reputation_points,
+        neutralizeMissingObjectives: true,
       });
 
     return {
@@ -388,6 +391,7 @@ async function resolveFutureSponsoringState({
         supabase,
         contractRow: futureContractRow,
         teamReputationPoints: currentReputation,
+        neutralizeMissingObjectives: false,
       });
 
       const mode = resolveFutureSponsorOfferMode({
@@ -593,10 +597,12 @@ async function hydrateSponsorContract({
   supabase,
   contractRow,
   teamReputationPoints,
+  neutralizeMissingObjectives,
 }: {
   supabase: SupabaseAdminClient;
   contractRow: SponsorContractRow;
   teamReputationPoints: number;
+  neutralizeMissingObjectives: boolean;
 }): Promise<PersistedSponsorContract> {
   const [sponsorRegistryResult, startSeasonResult] =
     await Promise.all([
@@ -655,6 +661,7 @@ async function hydrateSponsorContract({
         {
           offerId: contractRow.sponsor_offer_id,
           sponsor,
+          neutralizeMissingObjectives,
         },
       ],
     } as const;

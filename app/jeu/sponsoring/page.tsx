@@ -1149,6 +1149,8 @@ function ContractObjectiveItem({
               ? "text-[#17865F]"
               : presentation.status === "failed"
                 ? "text-[#C4473B]"
+                : presentation.status === "neutralized"
+                  ? "text-[#72847E]"
                 : "text-[#B57A09]"
           }`}
         >
@@ -1162,13 +1164,15 @@ function ContractObjectiveItem({
 function SponsorObjectiveStatusIcon({
   status,
 }: {
-  status: "achieved" | "failed" | "in_progress";
+  status: "achieved" | "failed" | "neutralized" | "in_progress";
 }) {
   const tone =
     status === "achieved"
       ? "bg-[#DDF5E9] text-[#17865F] ring-[#17865F]/15"
       : status === "failed"
         ? "bg-[#FDE7E4] text-[#C4473B] ring-[#C4473B]/15"
+        : status === "neutralized"
+          ? "bg-[#EDF1EF] text-[#72847E] ring-[#72847E]/15"
         : "bg-[#FFF2C9] text-[#B57A09] ring-[#B57A09]/15";
 
   return (
@@ -1190,6 +1194,15 @@ function SponsorObjectiveStatusIcon({
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
           <path
             d="m7 7 10 10M17 7 7 17"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      ) : status === "neutralized" ? (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+          <path
+            d="M7 12h10"
             stroke="currentColor"
             strokeWidth="2.4"
             strokeLinecap="round"
