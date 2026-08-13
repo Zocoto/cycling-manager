@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AchievementTrophyMark } from "@/components/game/achievement-trophy-mark";
 import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gift";
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
 import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
@@ -325,19 +325,12 @@ function TrophyIllustration({
   trophy: CareerTrophy;
   epic: boolean;
 }) {
-  if (trophy.imagePath) {
+  if (trophy.kind === "achievement" && trophy.visualVariant) {
     return (
-      <Image
-        src={trophy.imagePath}
-        alt=""
-        width={768}
-        height={768}
-        sizes={
-          epic
-            ? "(min-width: 640px) 12rem, 100vw"
-            : "(min-width: 640px) 10rem, 100vw"
-        }
-        className="h-full w-full rounded-[1.2rem] object-cover"
+      <AchievementTrophyMark
+        variant={trophy.visualVariant}
+        palette={trophy.palette}
+        className={epic ? "h-44 w-44" : "h-36 w-36"}
       />
     );
   }
@@ -742,16 +735,8 @@ function LongTermChallenges() {
 }
 
 function getTrophyFrameClassName(trophy: CareerTrophy, epic: boolean) {
-  if (trophy.visualVariant === "astrolabe")
-    return "h-64 w-full rounded-[4rem_4rem_1.2rem_1.2rem] sm:w-40";
-  if (trophy.visualVariant === "panorama")
-    return "h-40 w-full rounded-xl sm:h-44 sm:w-72";
-  if (trophy.visualVariant === "apparatus")
-    return "h-52 w-full rounded-[2.3rem_.8rem_2.3rem_.8rem] sm:w-52";
-  if (trophy.visualVariant === "regalia")
-    return "h-44 w-full rounded-[50%_50%_1rem_1rem] sm:w-64";
-  if (trophy.visualVariant === "switchback")
-    return "h-64 w-full rounded-[999px_999px_1.2rem_1.2rem] sm:w-36";
+  if (trophy.kind === "achievement")
+    return "h-48 w-full rounded-[1.4rem] sm:w-48";
   return epic
     ? "h-44 w-full rounded-[1.4rem] sm:h-48 sm:w-48"
     : "h-40 w-full rounded-[1.4rem] sm:w-40";

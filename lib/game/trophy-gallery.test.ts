@@ -238,7 +238,7 @@ describe("buildTrophyGallery", () => {
       ]),
     );
   });
-  it("adds difficult objective trophies with their dedicated artwork", () => {
+  it("adds difficult objective trophies with their dedicated simple mark", () => {
     const gallery = buildTrophyGallery({
       raceWins: [],
       teamUciTitles: [],
@@ -262,7 +262,6 @@ describe("buildTrophyGallery", () => {
     expect(gallery.trophies[0]).toMatchObject({
       kind: "achievement",
       title: "Atlas du peloton",
-      imagePath: "/images/objective-trophies/atlas-du-peloton.webp",
       visualVariant: "astrolabe",
     });
   });

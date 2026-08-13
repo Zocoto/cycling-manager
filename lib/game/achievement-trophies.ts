@@ -13,13 +13,12 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "Décerné au DS qui réunit simultanément dans son effectif des coureurs d’Afrique, d’Amérique, d’Asie, d’Europe et d’Océanie.",
     href: "/jeu/objectifs?onglet=objectifs&groupe=diversity",
-    imagePath: "/images/objective-trophies/atlas-du-peloton.webp",
     visualVariant: "astrolabe" satisfies AchievementTrophyVisualVariant,
     palette: {
-      primary: "#D4A847",
-      secondary: "#FFF0B8",
-      accent: "#0F5A48",
-      glow: "rgba(212, 168, 71, 0.42)",
+      primary: "#70A7E8",
+      secondary: "#EAF4FF",
+      accent: "#314F8F",
+      glow: "rgba(112, 167, 232, 0.38)",
     } satisfies TrophyPalette,
   },
   campus_de_pointe: {
@@ -31,13 +30,12 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "Récompense la construction au niveau 5 de tout le campus de performance, du vélodrome au Média Center.",
     href: "/jeu/objectifs?onglet=objectifs&groupe=infrastructures",
-    imagePath: "/images/objective-trophies/campus-de-pointe.webp",
     visualVariant: "panorama" satisfies AchievementTrophyVisualVariant,
     palette: {
-      primary: "#DDB95D",
-      secondary: "#FFF2C7",
-      accent: "#155F48",
-      glow: "rgba(221, 185, 93, 0.43)",
+      primary: "#D8895B",
+      secondary: "#FFF1E5",
+      accent: "#2E7E78",
+      glow: "rgba(216, 137, 91, 0.38)",
     } satisfies TrophyPalette,
   },
   alchimiste_carbone: {
@@ -49,13 +47,12 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "Réservé aux bureaux d’études ayant obtenu une amélioration positive sur chacune des huit familles de matériel.",
     href: "/jeu/objectifs?onglet=objectifs&groupe=research",
-    imagePath: "/images/objective-trophies/alchimiste-du-carbone.webp",
     visualVariant: "apparatus" satisfies AchievementTrophyVisualVariant,
     palette: {
-      primary: "#D7AA43",
-      secondary: "#DFFFF5",
-      accent: "#087A67",
-      glow: "rgba(49, 205, 176, 0.37)",
+      primary: "#47D6C7",
+      secondary: "#E5FFFB",
+      accent: "#B96C42",
+      glow: "rgba(71, 214, 199, 0.35)",
     } satisfies TrophyPalette,
   },
   triple_couronne_integrale: {
@@ -67,13 +64,12 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "La pièce la plus exigeante du palmarès : les six couronnes de champion, sur route et en CLM, aux trois niveaux.",
     href: "/jeu/objectifs?onglet=objectifs&groupe=championships",
-    imagePath: "/images/objective-trophies/triple-couronne-integrale.webp",
     visualVariant: "regalia" satisfies AchievementTrophyVisualVariant,
     palette: {
-      primary: "#E2B84E",
-      secondary: "#FFF4C9",
-      accent: "#166953",
-      glow: "rgba(226, 184, 78, 0.48)",
+      primary: "#D8C7A7",
+      secondary: "#FFF5E5",
+      accent: "#7B2A3B",
+      glow: "rgba(216, 199, 167, 0.4)",
     } satisfies TrophyPalette,
   },
   virage_cache: {
@@ -85,13 +81,12 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     description:
       "Décerné aux DS qui regardent le parcours jusque dans ses plus petits détails.",
     href: null,
-    imagePath: "/images/objective-trophies/virage-cache.webp",
     visualVariant: "switchback" satisfies AchievementTrophyVisualVariant,
     palette: {
-      primary: "#E0B34C",
-      secondary: "#D9FFF4",
-      accent: "#0D7967",
-      glow: "rgba(38, 224, 187, 0.43)",
+      primary: "#A58AF4",
+      secondary: "#EEE8FF",
+      accent: "#246C73",
+      glow: "rgba(165, 138, 244, 0.38)",
     } satisfies TrophyPalette,
   },
 } as const;

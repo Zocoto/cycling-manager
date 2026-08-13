@@ -43,7 +43,6 @@ export type CareerTrophy = {
   palette: TrophyPalette;
   description?: string | null;
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
-  imagePath?: string | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
 };
 
@@ -411,7 +410,6 @@ export function buildTrophyGallery({
       inscription: definition.inscription,
       palette: definition.palette,
       description: definition.description,
-      imagePath: definition.imagePath,
       visualVariant: definition.visualVariant,
     };
   });
