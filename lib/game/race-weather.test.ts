@@ -79,6 +79,27 @@ describe("race weather", () => {
     expect(adjusted.cobbles - ratings.cobbles).toBeLessThanOrEqual(3.75);
   });
 
+  it("preserves an equipment-shifted ceiling in wet weather", () => {
+    const wetWeather = {
+      ...getRaceWeather("equipment-rain-test"),
+      condition: "rain" as const,
+      rainIntensity: "heavy" as const,
+      isWet: true,
+    };
+    const boostedRatings = {
+      ...ratings,
+      mountain: 109,
+      cobbles: 109,
+    };
+    const adjusted = applyRaceWeatherRatingAdjustments(
+      boostedRatings,
+      wetWeather,
+    );
+
+    expect(adjusted.mountain).toBe(109);
+    expect(adjusted.cobbles).toBe(109);
+  });
+
   it("does not alter ratings on a dry road", () => {
     const dryWeather = {
       ...getRaceWeather("dry-test"),

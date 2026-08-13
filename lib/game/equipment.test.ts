@@ -98,13 +98,13 @@ describe("equipment effects", () => {
     expect(isEquipmentEffectFilterKey("inconnu")).toBe(false);
   });
 
-  it("applique les bonus sans dépasser 100", () => {
+  it("autorise le matériel à déplacer le plafond au-delà de 100", () => {
     const boosted = applyEquipmentRatingBonuses(ratings, {
       ratingBonuses: { mountain: 2, timeTrial: 4 },
     });
 
     expect(boosted.mountain).toBe(82);
-    expect(boosted.timeTrial).toBe(100);
+    expect(boosted.timeTrial).toBe(103);
   });
 
   it("gèle les changements cinq minutes avant chaque course", () => {

@@ -219,7 +219,11 @@ export function applyEquipmentRatingBonuses(
   return Object.fromEntries(
     Object.entries(ratings).map(([key, value]) => [
       key,
-      Math.min(100, Math.max(0, value + (contextualBonuses[key as RiderRatingKey] ?? 0))),
+      Math.max(
+        0,
+        Math.min(100, value) +
+          (contextualBonuses[key as RiderRatingKey] ?? 0),
+      ),
     ])
   ) as RiderRatings;
 }

@@ -757,6 +757,7 @@ export function simulateRaceStage(
               climateProfile,
             ),
             rider.reconnaissanceBonus,
+            equipmentAdjustedRatings,
           ),
         };
       }),
@@ -985,25 +986,23 @@ export function applyStageTimeLimit(
 function applyReconnaissanceRatingBonus(
   ratings: RiderSimulationRatings,
   bonus: number | null | undefined,
+  ratingMaximums: RiderSimulationRatings,
 ): RiderSimulationRatings {
   const safeBonus = Number.isFinite(bonus) ? Math.max(0, bonus ?? 0) : 0;
   if (safeBonus === 0) return ratings;
 
-  return {
-    mountain: Math.min(100, ratings.mountain + safeBonus),
-    hills: Math.min(100, ratings.hills + safeBonus),
-    flat: Math.min(100, ratings.flat + safeBonus),
-    cobbles: Math.min(100, ratings.cobbles + safeBonus),
-    downhill: Math.min(100, ratings.downhill + safeBonus),
-    sprint: Math.min(100, ratings.sprint + safeBonus),
-    acceleration: Math.min(100, ratings.acceleration + safeBonus),
-    timeTrial: Math.min(100, ratings.timeTrial + safeBonus),
-    prologue: Math.min(100, ratings.prologue + safeBonus),
-    endurance: Math.min(100, ratings.endurance + safeBonus),
-    resistance: Math.min(100, ratings.resistance + safeBonus),
-    recovery: Math.min(100, ratings.recovery + safeBonus),
-    breakaway: Math.min(100, ratings.breakaway + safeBonus),
-  };
+  return Object.fromEntries(
+    Object.entries(ratings).map(([key, value]) => [
+      key,
+      Math.min(
+        Math.max(
+          100,
+          ratingMaximums[key as keyof RiderSimulationRatings],
+        ),
+        value + safeBonus,
+      ),
+    ]),
+  ) as RiderSimulationRatings;
 }
 
 export function assignAutomaticRaceRoles(
@@ -5368,12 +5367,21 @@ function applyPerformancePreparationBonuses(
   const next = { ...ratings };
   for (const preparation of activePreparations) {
     if (preparation.type === "indoor_track") {
-      next.sprint += preparation.ratingBonus;
-      next.acceleration += preparation.ratingBonus;
+      next.sprint = Math.min(100, next.sprint + preparation.ratingBonus);
+      next.acceleration = Math.min(
+        100,
+        next.acceleration + preparation.ratingBonus,
+      );
     } else {
-      next.timeTrial += preparation.ratingBonus;
-      next.prologue += preparation.ratingBonus;
-      next.endurance += preparation.ratingBonus;
+      next.timeTrial = Math.min(
+        100,
+        next.timeTrial + preparation.ratingBonus,
+      );
+      next.prologue = Math.min(100, next.prologue + preparation.ratingBonus);
+      next.endurance = Math.min(
+        100,
+        next.endurance + preparation.ratingBonus,
+      );
     }
   }
   return next;

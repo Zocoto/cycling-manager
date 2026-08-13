@@ -1600,6 +1600,55 @@ describe("simulateRaceStage", () => {
     expect(preparedExpired.ratings).toEqual(witnessExpired.ratings);
   });
 
+  it("réserve au matériel le dépassement artificiel du plafond de 100", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 1);
+    const rider = {
+      ...createSelectionTestRider("materiel-hors-plafond", {
+        mountain: 100,
+        sprint: 100,
+      }),
+      reconnaissanceBonus: 2,
+      performancePreparations: [
+        {
+          type: "indoor_track" as const,
+          bonusStartGameDay: 40,
+          bonusEndGameDay: 42,
+          ratingBonus: 3,
+        },
+      ],
+      equipmentEffects: {
+        ratingBonuses: { mountain: 9 },
+        timeTrialRatingBonuses: {},
+        injuryRiskReductionPct: 0,
+        breakawayReputationBonus: 0,
+        victoryReputationBonus: 0,
+      },
+    };
+    const result = simulateRaceStage({
+      ...baseInput,
+      gameDayIndex: 41,
+      weather: {
+        ...baseInput.weather!,
+        condition: "clear" as const,
+        rainIntensity: "none" as const,
+        isWet: false,
+      },
+      riders: [
+        rider,
+        createSelectionTestRider("temoin-materiel-hors-plafond", {
+          mountain: 100,
+          sprint: 100,
+        }),
+      ],
+    });
+    const resolved = result.resolvedRiders.find(
+      (candidate) => candidate.id === rider.id,
+    )!;
+
+    expect(resolved.ratings.mountain).toBe(109);
+    expect(resolved.ratings.sprint).toBe(100);
+  });
+
   it("applique le bonus de reconnaissance aux treize notes pour la seule étape ciblée", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const rider = {

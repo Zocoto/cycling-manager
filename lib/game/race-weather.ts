@@ -134,43 +134,60 @@ export function applyRaceWeatherRatingAdjustments(
   return {
     ...ratings,
     flat: clampRating(
-      ratings.flat + handlingAdjustment * 0.52 + climateAdjustment
+      ratings.flat + handlingAdjustment * 0.52 + climateAdjustment,
+      ratings.flat,
     ),
-    mountain: clampRating(ratings.mountain + climateAdjustment),
+    mountain: clampRating(
+      ratings.mountain + climateAdjustment,
+      ratings.mountain,
+    ),
     hills: clampRating(
-      ratings.hills + handlingAdjustment * 0.36 + climateAdjustment
+      ratings.hills + handlingAdjustment * 0.36 + climateAdjustment,
+      ratings.hills,
     ),
     cobbles: clampRating(
-      ratings.cobbles + handlingAdjustment + climateAdjustment
+      ratings.cobbles + handlingAdjustment + climateAdjustment,
+      ratings.cobbles,
     ),
     downhill: clampRating(
       ratings.downhill +
         handlingAdjustment * 0.68 +
-        climateAdjustment * 0.75
+        climateAdjustment * 0.75,
+      ratings.downhill,
     ),
     sprint: clampRating(
-      ratings.sprint + climateAdjustment * 0.65
+      ratings.sprint + climateAdjustment * 0.65,
+      ratings.sprint,
     ),
     acceleration: clampRating(
-      ratings.acceleration + climateAdjustment * 0.7
+      ratings.acceleration + climateAdjustment * 0.7,
+      ratings.acceleration,
     ),
     timeTrial: clampRating(
-      ratings.timeTrial + climateAdjustment * 0.8
+      ratings.timeTrial + climateAdjustment * 0.8,
+      ratings.timeTrial,
     ),
     prologue: clampRating(
-      ratings.prologue + climateAdjustment * 0.75
+      ratings.prologue + climateAdjustment * 0.75,
+      ratings.prologue,
     ),
-    endurance: clampRating(ratings.endurance + climateAdjustment),
+    endurance: clampRating(
+      ratings.endurance + climateAdjustment,
+      ratings.endurance,
+    ),
     resistance: clampRating(
       ratings.resistance +
         Math.max(0, handlingAdjustment) * 0.25 +
-        climateAdjustment
+        climateAdjustment,
+      ratings.resistance,
     ),
     recovery: clampRating(
-      ratings.recovery + climateAdjustment * 0.55
+      ratings.recovery + climateAdjustment * 0.55,
+      ratings.recovery,
     ),
     breakaway: clampRating(
-      ratings.breakaway + climateAdjustment * 0.75
+      ratings.breakaway + climateAdjustment * 0.75,
+      ratings.breakaway,
     ),
   };
 }
@@ -486,8 +503,9 @@ function getFallbackWeakness(
   return fallbackByStrength[strength];
 }
 
-function clampRating(value: number) {
-  return Math.round(clamp(value, 1, 99) * 100) / 100;
+function clampRating(value: number, currentRating: number) {
+  const maximum = currentRating > 100 ? currentRating : 99;
+  return Math.round(clamp(value, 1, maximum) * 100) / 100;
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
