@@ -51,8 +51,8 @@ export type YouthMiniGameScoreInput = {
 };
 
 export const YOUTH_TRAINING_DURATION_SECONDS = 30;
-export const YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE = 28;
-export const YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE = 940;
+export const YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE = 27;
+export const YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE = 920;
 export const YOUTH_REFLEX_HITS_FOR_MAX_SCORE = 36;
 export const YOUTH_REFLEX_INITIAL_DELAY_MS = 950;
 export const YOUTH_REFLEX_TARGET_INTERVAL_MIN_MS = 520;
@@ -394,6 +394,16 @@ export function calculateYouthMiniGameScore({
   return clampScore(
     Math.round((hitFactor * 0.85 + accuracyFactor * 0.15) * 1_000),
   );
+}
+
+export function getYouthPuncheurScoredOpportunities(
+  opportunities: number,
+  attemptActiveAtTimeout: boolean,
+) {
+  const normalizedOpportunities = Math.max(0, Math.floor(opportunities));
+  return attemptActiveAtTimeout
+    ? Math.max(0, normalizedOpportunities - 1)
+    : normalizedOpportunities;
 }
 
 export function getYouthPuncheurChargeRateMultiplier(charge: number) {

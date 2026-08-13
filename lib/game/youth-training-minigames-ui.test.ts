@@ -39,6 +39,15 @@ describe("youth training minigame surfaces", () => {
     expect(source).toContain("select-none");
   });
 
+  it("ne compte pas comme échec un HIT Puncheur maintenu à l’expiration", () => {
+    expect(source).toContain("getYouthPuncheurScoredOpportunities");
+    expect(source).toContain("puncheurAttemptActive");
+    expect(source).toContain("puncheurAttemptActiveRef.current = false");
+    expect(source).toContain(
+      "puncheurOpportunities: scoredPuncheurOpportunities",
+    );
+  });
+
   it("prévoit des interactions tactiles pour les trois nouveaux jeux", () => {
     expect(source).toContain("onTimeTrialControlStart");
     expect(source).toContain("onBreakawayAttack");

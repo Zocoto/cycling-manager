@@ -51,6 +51,7 @@ import {
   getYouthManualTrainingDivisor,
   getYouthManualTrainingSlot,
   getYouthPuncheurChargeRateMultiplier,
+  getYouthPuncheurScoredOpportunities,
   getYouthReflexTargetInterval,
   getYouthRhythmCursorPosition,
   getYouthTimeTrialWindDrift,
@@ -74,8 +75,8 @@ describe("youth training", () => {
   it("applique la durée et les calibrages demandés aux jeux existants", () => {
     expect(YOUTH_TRAINING_DURATION_SECONDS).toBe(30);
     expect(YOUTH_SPEED_TAPS_FOR_MAX_SCORE).toBe(190);
-    expect(YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE).toBe(28);
-    expect(YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE).toBe(940);
+    expect(YOUTH_RHYTHM_TAPS_FOR_MAX_SCORE).toBe(27);
+    expect(YOUTH_RHYTHM_ACCURACY_FOR_MAX_SCORE).toBe(920);
     expect(YOUTH_REFLEX_INITIAL_DELAY_MS).toBe(950);
     expect(YOUTH_REFLEX_TARGET_INTERVAL_MIN_MS).toBe(520);
     expect(YOUTH_REFLEX_TARGET_INTERVAL_MAX_MS).toBe(880);
@@ -323,6 +324,13 @@ describe("youth training", () => {
     );
   });
 
+  it("ignore la tentative Puncheur encore pressée au terme du chrono", () => {
+    expect(getYouthPuncheurScoredOpportunities(7, false)).toBe(7);
+    expect(getYouthPuncheurScoredOpportunities(7, true)).toBe(6);
+    expect(getYouthPuncheurScoredOpportunities(1, true)).toBe(0);
+    expect(getYouthPuncheurScoredOpportunities(0, true)).toBe(0);
+  });
+
   it("exige plusieurs HIT Puncheur pour approcher les 1000 points", () => {
     expect(
       calculateYouthMiniGameScore(
@@ -353,12 +361,31 @@ describe("youth training", () => {
     ).toBe(1_000);
   });
 
+  it("garde le score parfait Grimpeur exigeant sur les deux critères", () => {
+    expect(
+      calculateYouthMiniGameScore(
+        createScoreInput("rhythm", {
+          rhythmPoints: 24_300,
+          rhythmTaps: 27,
+        }),
+      ),
+    ).toBe(978);
+    expect(
+      calculateYouthMiniGameScore(
+        createScoreInput("rhythm", {
+          rhythmPoints: 23_920,
+          rhythmTaps: 26,
+        }),
+      ),
+    ).toBe(987);
+  });
+
   it("normalise les six minijeux sur 1000 points", () => {
     expect(
       calculateYouthMiniGameScore(
         createScoreInput("rhythm", {
-          rhythmPoints: 26_320,
-          rhythmTaps: 28,
+          rhythmPoints: 24_840,
+          rhythmTaps: 27,
         }),
       ),
     ).toBe(1_000);

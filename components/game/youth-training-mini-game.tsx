@@ -26,6 +26,7 @@ import {
   calculateYouthPuncheurReleasePoints,
   getYouthBreakawayWindowStart,
   getYouthPuncheurChargeRateMultiplier,
+  getYouthPuncheurScoredOpportunities,
   getYouthReflexTargetInterval,
   getYouthRhythmCursorPosition,
   getYouthTimeTrialWindDrift,
@@ -147,6 +148,16 @@ export function YouthTrainingMiniGame({
     if (!attemptId || finishingRef.current) return;
     finishingRef.current = true;
     setPhase("submitting");
+    const puncheurAttemptActive =
+      activeGameType === "puncheur" &&
+      puncheurAttemptActiveRef.current;
+    const scoredPuncheurOpportunities =
+      getYouthPuncheurScoredOpportunities(
+        puncheurOpportunitiesRef.current,
+        puncheurAttemptActive,
+      );
+    puncheurChargingRef.current = false;
+    puncheurAttemptActiveRef.current = false;
 
     const score = calculateYouthMiniGameScore({
       gameType: activeGameType,
@@ -165,7 +176,7 @@ export function YouthTrainingMiniGame({
       breakawayEnergy: breakawayEnergyRef.current,
       puncheurPoints: puncheurPointsRef.current,
       puncheurHits: puncheurHitsRef.current,
-      puncheurOpportunities: puncheurOpportunitiesRef.current,
+      puncheurOpportunities: scoredPuncheurOpportunities,
     });
 
     if (demoMode) {
