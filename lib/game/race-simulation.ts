@@ -177,6 +177,7 @@ export type RaceGroupSnapshot = {
   type: "breakaway" | "chase" | "peloton" | "dropped" | "time_trial";
   riderIds: string[];
   gapToLeaderSeconds: number;
+  elapsedTimeSeconds?: number;
   averageEnergy: number;
 };
 
@@ -2029,7 +2030,7 @@ function simulateIndividualTimeTrial(
     timeline.push({
       segmentNumber: segment.segmentNumber,
       completedDistanceKm: round(completedDistanceKm, 1),
-      groups: ordered.slice(0, 20).map((state, index) => ({
+      groups: ordered.map((state, index) => ({
         id: `chrono-${state.rider.id}`,
         label:
           index === 0 ? "Meilleur temps provisoire" : `Chrono n°${index + 1}`,
@@ -2039,6 +2040,7 @@ function simulateIndividualTimeTrial(
           0,
           Math.round(state.elapsedTimeSeconds - leaderTime),
         ),
+        elapsedTimeSeconds: round(state.elapsedTimeSeconds, 3),
         averageEnergy: round(state.energy, 1),
       })),
       incidents: [],
@@ -2128,6 +2130,7 @@ function simulateTeamTimeTrial(
         type: "time_trial",
         riderIds: teams.get(teamId)!.map((rider) => rider.id),
         gapToLeaderSeconds: Math.max(0, Math.round(time - leaderTime)),
+        elapsedTimeSeconds: round(time, 3),
         averageEnergy: round(
           average(
             teams.get(teamId)!.map((rider) => states.get(rider.id)!.energy),

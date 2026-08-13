@@ -1,5 +1,6 @@
 import type {
   RiderSimulationInput,
+  RaceTimelineSnapshot,
   SimulationStageType,
   StageSimulationInput,
   StageSimulationResult,
@@ -30,10 +31,10 @@ export function getTimeTrialStartIntervalSeconds(
     return 120;
   }
 
-  if (starterCount <= 20) return 120;
-  if (starterCount <= 50) return 90;
-  if (starterCount <= 100) return 60;
-  return 45;
+  if (starterCount <= 20) return 180;
+  if (starterCount <= 50) return 120;
+  if (starterCount <= 100) return 90;
+  return 60;
 }
 
 export function buildTimeTrialStartSchedule({
@@ -77,6 +78,7 @@ export function buildTimeTrialStartSchedule({
 export function getTimeTrialVisualFrame(
   schedule: readonly TimeTrialVisualUnit[],
   raceProgress: number,
+  timeline: readonly RaceTimelineSnapshot[] = [],
 ) {
   const totalDurationSeconds = Math.max(
     1,
@@ -97,11 +99,17 @@ export function getTimeTrialVisualFrame(
       continue;
     }
     if (rawProgress <= 0) continue;
+    const timelineProgress = getRecordedCourseProgress(
+      starter,
+      raceElapsedSeconds - starter.startSeconds,
+      timeline,
+    );
+
 
     active.push({
       ...starter,
       rawProgress,
-      progress: clamp(
+      progress: timelineProgress ?? clamp(
         rawProgress +
           starter.pacingBias * Math.sin(Math.PI * rawProgress),
         0,
@@ -128,6 +136,107 @@ export function getTimeTrialVisualFrame(
       ? Math.max(0, Math.ceil(next.startSeconds - raceElapsedSeconds))
       : null,
   };
+}
+
+
+export type TimeTrialSplitStanding = {
+  id: string;
+  label: string;
+  riderIds: string[];
+  elapsedTimeSeconds: number;
+  gapToLeaderSeconds: number;
+  passageOrder: number;
+};
+
+export function selectSpacedTimeTrialUnits(
+  units: readonly TimeTrialVisualFrameUnit[],
+  minimumProgressGap = 0.11,
+  limit = 7,
+) {
+  const selected: TimeTrialVisualFrameUnit[] = [];
+  const safeGap = clamp(minimumProgressGap, 0, 1);
+
+  for (const unit of units) {
+    if (
+      selected.every(
+        (visibleUnit) =>
+          Math.abs(visibleUnit.progress - unit.progress) >= safeGap,
+      )
+    ) {
+      selected.push(unit);
+    }
+    if (selected.length >= limit) break;
+  }
+
+  return selected;
+}
+
+export function getTimeTrialSplitStandings({
+  schedule,
+  snapshot,
+  raceElapsedSeconds,
+  courseDistanceKm,
+  limit = 20,
+}: {
+  schedule: readonly TimeTrialVisualUnit[];
+  snapshot: RaceTimelineSnapshot;
+  raceElapsedSeconds: number;
+  courseDistanceKm: number;
+  limit?: number;
+}): TimeTrialSplitStanding[] {
+  const groupByRiderId = new Map(
+    snapshot.groups.flatMap((group) =>
+      group.riderIds.map((riderId) => [riderId, group] as const),
+    ),
+  );
+  const fastestFinishSeconds =
+    schedule.length > 0
+      ? Math.min(...schedule.map((unit) => unit.elapsedTimeSeconds))
+      : 1;
+  const projectedLeaderTime =
+    fastestFinishSeconds *
+    clamp(
+      snapshot.completedDistanceKm / Math.max(1, courseDistanceKm),
+      0,
+      1,
+    );
+  const passed = schedule
+    .flatMap((unit) => {
+      const group = unit.riderIds
+        .map((riderId) => groupByRiderId.get(riderId))
+        .find((candidate) => candidate !== undefined);
+      if (!group) return [];
+
+      const elapsedTimeSeconds =
+        group.elapsedTimeSeconds ??
+        projectedLeaderTime + group.gapToLeaderSeconds;
+      if (unit.startSeconds + elapsedTimeSeconds > raceElapsedSeconds) {
+        return [];
+      }
+
+      return [{
+        id: unit.id,
+        label: unit.label,
+        riderIds: unit.riderIds,
+        elapsedTimeSeconds,
+        gapToLeaderSeconds: 0,
+        passageOrder: unit.startOrder,
+      }];
+    })
+    .sort(
+      (first, second) =>
+        first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+        first.passageOrder - second.passageOrder,
+    );
+  const leaderTime = passed[0]?.elapsedTimeSeconds ?? 0;
+
+  return passed.slice(0, Math.max(0, limit)).map((standing) => ({
+    ...standing,
+    gapToLeaderSeconds: Math.max(
+      0,
+      standing.elapsedTimeSeconds - leaderTime,
+    ),
+  }));
 }
 
 export function getTimeTrialSplitIndexes(segmentCount: number) {
@@ -233,6 +342,51 @@ function getGeneralClassificationRankByRiderId(
       .map((row, index) => [row.riderId, index + 1] as const),
   );
 }
+
+function getRecordedCourseProgress(
+  starter: TimeTrialVisualUnit,
+  elapsedTimeSeconds: number,
+  timeline: readonly RaceTimelineSnapshot[],
+) {
+  const totalDistanceKm = timeline.at(-1)?.completedDistanceKm ?? 0;
+  if (totalDistanceKm <= 0) return null;
+
+  let previousDistanceKm = 0;
+  let previousElapsedTimeSeconds = 0;
+  let hasRecordedSplit = false;
+
+  for (const snapshot of timeline) {
+    const group = snapshot.groups.find((candidate) =>
+      starter.riderIds.some((riderId) =>
+        candidate.riderIds.includes(riderId),
+      ),
+    );
+    if (group?.elapsedTimeSeconds === undefined) continue;
+
+    hasRecordedSplit = true;
+    if (elapsedTimeSeconds <= group.elapsedTimeSeconds) {
+      const splitDuration = Math.max(
+        0.001,
+        group.elapsedTimeSeconds - previousElapsedTimeSeconds,
+      );
+      const splitProgress = clamp(
+        (elapsedTimeSeconds - previousElapsedTimeSeconds) / splitDuration,
+        0,
+        1,
+      );
+      const distanceKm =
+        previousDistanceKm +
+        (snapshot.completedDistanceKm - previousDistanceKm) * splitProgress;
+      return clamp(distanceKm / totalDistanceKm, 0, 1);
+    }
+
+    previousDistanceKm = snapshot.completedDistanceKm;
+    previousElapsedTimeSeconds = group.elapsedTimeSeconds;
+  }
+
+  return hasRecordedSplit ? 1 : null;
+}
+
 
 function getPacingBias(id: string) {
   const hash = [...id].reduce(

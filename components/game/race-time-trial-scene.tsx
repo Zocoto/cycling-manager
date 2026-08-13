@@ -10,8 +10,11 @@ import { RaceWeatherOverlay } from "@/components/game/race-weather-overlay";
 import {
   buildTimeTrialStartSchedule,
   getTimeTrialSplitIndexes,
+  getTimeTrialSplitStandings,
   getTimeTrialStartIntervalSeconds,
   getTimeTrialVisualFrame,
+  selectSpacedTimeTrialUnits,
+  type TimeTrialVisualUnit,
 } from "@/lib/game/race-time-trial-visual";
 import type {
   RiderSimulationInput,
@@ -52,21 +55,36 @@ export function RaceTimeTrialScene({
         Math.max(1, input.segments.length),
     ),
   );
-  const frame = getTimeTrialVisualFrame(schedule, raceProgress);
+  const frame = getTimeTrialVisualFrame(
+    schedule,
+    raceProgress,
+    simulation.timeline,
+  );
   const interval = getTimeTrialStartIntervalSeconds(
     schedule.length,
     input.stageType,
   );
-  const activeUnits = frame.active.slice(0, 12);
+  const isTeamTimeTrial = input.stageType === "team_time_trial";
+  const activeUnits = isTeamTimeTrial
+    ? frame.active.slice(0, 6)
+    : selectSpacedTimeTrialUnits(frame.active);
   const activeSegment = input.segments[displayedIndex] ?? input.segments[0];
   const teamPalettes = getEngagedTeamPalettes(input.riders);
   const splitIndexes = getTimeTrialSplitIndexes(simulation.timeline.length);
-  const visibleSplitIndexes = splitIndexes.filter(
-    (index) =>
-      index < displayedIndex ||
-      (index === displayedIndex && segmentProgress >= 0.82),
-  );
-  const isTeamTimeTrial = input.stageType === "team_time_trial";
+  const courseDistanceKm =
+    simulation.timeline.at(-1)?.completedDistanceKm ??
+    input.segments.reduce((total, segment) => total + segment.distanceKm, 0);
+  const intermediateSplitMarkers = splitIndexes
+    .filter((splitIndex) => splitIndex < simulation.timeline.length - 1)
+    .map((splitIndex, markerIndex) => ({
+      snapshot: simulation.timeline[splitIndex],
+      label: markerIndex + 1,
+      left:
+        7 +
+        (simulation.timeline[splitIndex].completedDistanceKm /
+          Math.max(1, courseDistanceKm)) *
+          86,
+    }));
 
   return (
     <div data-time-trial-live={isTeamTimeTrial ? "team" : "individual"}>
@@ -137,6 +155,20 @@ export function RaceTimeTrialScene({
               Arrivée
             </span>
 
+            {intermediateSplitMarkers.map((marker) => (
+              <div
+                key={marker.snapshot.segmentNumber}
+                aria-hidden="true"
+                data-time-trial-split-line={marker.snapshot.segmentNumber}
+                className="absolute top-[43%] z-[9] h-[40%] border-l border-dashed border-[#72D4B7]/75"
+                style={{ left: `${marker.left}%` }}
+              >
+                <span className="absolute -top-5 left-1/2 -translate-x-1/2 rounded bg-[#102C28]/90 px-1.5 py-0.5 text-[7px] font-black text-[#9BE0CA]">
+                  I{marker.label}
+                </span>
+              </div>
+            ))}
+
             <div className="absolute left-4 top-4 z-30 max-w-[47%] rounded-xl bg-[#071A17]/90 px-3 py-2 backdrop-blur">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#F2C94C]">
                 {isTeamTimeTrial ? "Chrono par équipes" : "Chrono individuel"}
@@ -173,6 +205,7 @@ export function RaceTimeTrialScene({
                 <div
                   key={unit.id}
                   data-time-trial-starter={unit.id}
+                  data-time-trial-lane={isTeamTimeTrial ? "team" : "single-file"}
                   data-time-trial-pacing={
                     unit.pacingBias > 0.045
                       ? "fast-start"
@@ -183,11 +216,11 @@ export function RaceTimeTrialScene({
                   className="absolute z-20 -translate-x-1/2 transition-[left] duration-700 ease-linear"
                   style={{
                     left: `${left}%`,
-                    top: `${49 + (unitIndex % 4) * 7}%`,
+                    top: isTeamTimeTrial ? `${49 + (unitIndex % 3) * 8}%` : "55%",
                   }}
                   title={`${unit.label} · départ n°${unit.startOrder}`}
                 >
-                  <div className="relative h-10 w-24">
+                  <div className={isTeamTimeTrial ? "relative h-10 w-24" : "relative h-10 w-20"}>
                     {riders.map((rider, riderIndex) => (
                       <div
                         key={rider.id}
@@ -208,7 +241,7 @@ export function RaceTimeTrialScene({
                       </div>
                     ))}
                   </div>
-                  <span className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[8px] font-black text-white shadow-lg">
+                  <span className={`absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full bg-[#071A17]/90 px-2 py-1 text-[8px] font-black text-white shadow-lg ${isTeamTimeTrial ? "" : "max-w-[7rem] truncate"}`}>
                     {unit.label}
                     {!isTeamTimeTrial && riders[0]
                       ? ` · ${getTeamMonogram(riders[0].teamName)}`
@@ -232,8 +265,11 @@ export function RaceTimeTrialScene({
       </div>
 
       <TimeTrialSplitBoards
-        splitIndexes={visibleSplitIndexes}
+        splitIndexes={splitIndexes}
         simulation={simulation}
+        schedule={schedule}
+        raceElapsedSeconds={frame.raceElapsedSeconds}
+        courseDistanceKm={courseDistanceKm}
         riderById={riderById}
         isTeamTimeTrial={isTeamTimeTrial}
       />
@@ -244,18 +280,45 @@ export function RaceTimeTrialScene({
 function TimeTrialSplitBoards({
   splitIndexes,
   simulation,
+  schedule,
+  raceElapsedSeconds,
+  courseDistanceKm,
   riderById,
   isTeamTimeTrial,
 }: {
   splitIndexes: number[];
   simulation: StageSimulationResult;
+  schedule: readonly TimeTrialVisualUnit[];
+  raceElapsedSeconds: number;
+  courseDistanceKm: number;
   riderById: Map<string, RiderSimulationInput>;
   isTeamTimeTrial: boolean;
 }) {
-  if (splitIndexes.length === 0) {
+  const boards = splitIndexes.flatMap((splitIndex) => {
+    const snapshot = simulation.timeline[splitIndex];
+    if (!snapshot) return [];
+
+    const recordedStandings = getTimeTrialSplitStandings({
+      schedule,
+      snapshot,
+      raceElapsedSeconds,
+      courseDistanceKm,
+      limit: schedule.length,
+    });
+    return recordedStandings.length > 0
+      ? [{
+          splitIndex,
+          snapshot,
+          recordedCount: recordedStandings.length,
+          standings: recordedStandings.slice(0, 20),
+        }]
+      : [];
+  });
+
+  if (boards.length === 0) {
     return (
       <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs font-semibold text-[#8FA99D]">
-        Le premier tableau apparaîtra au prochain pointage intermédiaire.
+        Le premier tableau apparaîtra dès le passage du premier coureur au pointage.
       </div>
     );
   }
@@ -263,41 +326,53 @@ function TimeTrialSplitBoards({
   return (
     <section className="mt-4" aria-label="Tableaux des temps intermédiaires">
       <div className="flex gap-4 overflow-x-auto pb-2">
-        {splitIndexes.map((splitIndex) => {
-          const snapshot = simulation.timeline[splitIndex];
+        {boards.map(({ splitIndex, snapshot, recordedCount, standings }) => {
           const isFinish = splitIndex === simulation.timeline.length - 1;
+          const splitPosition = splitIndexes.indexOf(splitIndex) + 1;
           return (
             <article
               key={snapshot.segmentNumber}
               data-time-trial-split={snapshot.segmentNumber}
+              data-time-trial-recorded-count={recordedCount}
               className="w-[18rem] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]"
             >
               <header className="border-b border-white/10 bg-[#102C28] px-4 py-3">
                 <p className="text-[9px] font-black uppercase tracking-widest text-[#72D4B7]">
-                  {isFinish ? "Temps à l’arrivée" : `Intermédiaire ${splitIndexes.indexOf(splitIndex) + 1}`}
+                  {isFinish
+                    ? "Temps à l’arrivée"
+                    : `Intermédiaire ${splitPosition}`}
                 </p>
-                <p className="mt-1 text-sm font-black text-white">
-                  Km {formatDistance(snapshot.completedDistanceKm)}
-                </p>
+                <div className="mt-1 flex items-end justify-between gap-3">
+                  <p className="text-sm font-black text-white">
+                    Km {formatDistance(snapshot.completedDistanceKm)}
+                  </p>
+                  <p className="text-[8px] font-black uppercase tracking-wider text-[#78978A]">
+                    {recordedCount}/{schedule.length}{" "}
+                    {isTeamTimeTrial ? "équipes pointées" : "temps relevés"}
+                  </p>
+                </div>
               </header>
               <ol className="divide-y divide-white/10">
-                {snapshot.groups.slice(0, 20).map((group, index) => {
-                  const rider = riderById.get(group.riderIds[0] ?? "");
+                {standings.map((standing, index) => {
+                  const rider = riderById.get(standing.riderIds[0] ?? "");
                   const label = isTeamTimeTrial
-                    ? rider?.teamName ?? group.label
-                    : rider?.name ?? group.label;
+                    ? standing.label
+                    : rider?.name ?? standing.label;
                   const teamCode = rider
                     ? getTeamMonogram(rider.teamName)
                     : null;
                   return (
                     <li
-                      key={group.id}
+                      key={standing.id}
                       className="flex items-center gap-2 px-4 py-2 text-[11px] font-semibold"
                     >
                       <span className="w-5 font-black text-[#F2C94C]">
                         {index + 1}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-white" title={rider?.teamName}>
+                      <span
+                        className="min-w-0 flex-1 truncate text-white"
+                        title={rider?.teamName}
+                      >
                         {label}
                         {!isTeamTimeTrial && teamCode ? (
                           <span className="ml-1 text-[9px] font-black text-[#78978A]">
@@ -306,9 +381,9 @@ function TimeTrialSplitBoards({
                         ) : null}
                       </span>
                       <span className="font-black tabular-nums text-[#BBD1C6]">
-                        {group.gapToLeaderSeconds === 0
+                        {standing.gapToLeaderSeconds === 0
                           ? "MT"
-                          : `+${formatGap(group.gapToLeaderSeconds)}`}
+                          : `+${formatGap(standing.gapToLeaderSeconds)}`}
                       </span>
                     </li>
                   );
@@ -321,7 +396,6 @@ function TimeTrialSplitBoards({
     </section>
   );
 }
-
 function getEngagedTeamPalettes(riders: readonly RiderSimulationInput[]) {
   return [
     ...new Map(
