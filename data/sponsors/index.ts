@@ -1,4 +1,5 @@
 import type { Sponsor } from "@/types/sponsor";
+import { getSponsorMinimumReputation } from "@/lib/game/sponsor-prestige";
 
 import { AFRICAN_SPONSORS } from "./africa";
 import { AUTOMOTIVE_SPONSORS } from "./automotive";
@@ -20,7 +21,7 @@ import { SPANISH_SPONSORS } from "./spain";
 import { SPIRITS_SPONSORS } from "./spirits";
 import { AMERICAN_SPONSORS } from "./united-states";
 
-export const SPONSORS = [
+const RAW_SPONSORS = [
   ...FRENCH_SPONSORS,
   ...BELGIAN_SPONSORS,
   ...DUTCH_SPONSORS,
@@ -41,3 +42,8 @@ export const SPONSORS = [
   ...POSTAL_SERVICE_SPONSORS,
   ...AUTOMOTIVE_SPONSORS,
 ] satisfies readonly Sponsor[];
+
+export const SPONSORS = RAW_SPONSORS.map((sponsor) => ({
+  ...sponsor,
+  minimumReputation: getSponsorMinimumReputation(sponsor),
+})) satisfies readonly Sponsor[];

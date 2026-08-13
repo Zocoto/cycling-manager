@@ -1,9 +1,11 @@
 import { getNeighboringCountryCodes } from "@/data/country-neighbors";
 import { SPONSORS } from "@/data/sponsors";
 import {
-  getSponsorCountryProposalWeight,
-  type RiderCountrySponsorAffinity,
+  normalizeFeaturedRiderSponsorAffinity,
+  normalizeSponsorCountryCode,
+  type FeaturedRiderSponsorAffinity,
 } from "@/lib/game/sponsor-nationality-affinity";
+import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import type { Sponsor, SponsorProposal } from "@/types/sponsor";
 
 export interface GenerateSponsorProposalsOptions {
@@ -11,28 +13,30 @@ export interface GenerateSponsorProposalsOptions {
   directorReputation: number;
   unavailableSponsorIds?: readonly string[];
   proposalCount?: number;
-  riderCountryAffinities?: readonly RiderCountrySponsorAffinity[];
+  featuredRiderAffinity?: FeaturedRiderSponsorAffinity | null;
   random?: () => number;
 }
 
 const DEFAULT_PROPOSAL_COUNT = 3;
 const BUDGET_STEP = 10_000;
 
+
 export function generateSponsorProposals({
   directorCountryCode,
   directorReputation,
   unavailableSponsorIds = [],
   proposalCount = DEFAULT_PROPOSAL_COUNT,
-  riderCountryAffinities = [],
+  featuredRiderAffinity = null,
   random = Math.random,
 }: GenerateSponsorProposalsOptions): SponsorProposal[] {
   if (proposalCount <= 0) {
     return [];
   }
 
-  const normalizedCountryCode = directorCountryCode
-    .trim()
-    .toUpperCase();
+  const directorCountry = normalizeSponsorCountryCode(directorCountryCode);
+  const featuredRider = normalizeFeaturedRiderSponsorAffinity(
+    featuredRiderAffinity
+  );
 
   const unavailableSponsorIdSet = new Set(
     unavailableSponsorIds
@@ -40,80 +44,118 @@ export function generateSponsorProposals({
 
   const eligibleSponsors = SPONSORS.filter(
     (sponsor) =>
-      sponsor.minimumReputation <= directorReputation &&
+      isSponsorEligibleForReputation(sponsor, directorReputation) &&
       !unavailableSponsorIdSet.has(sponsor.id)
   );
 
-  const neighboringCountryCodes = new Set(
-    getNeighboringCountryCodes(normalizedCountryCode)
+  const directorNeighboringCountries = new Set(
+    getNeighboringCountryCodes(directorCountry)
+  );
+  const featuredRiderCountry = featuredRider?.countryCode ?? null;
+  const featuredRiderNeighboringCountries = new Set(
+    featuredRiderCountry
+      ? getNeighboringCountryCodes(featuredRiderCountry)
+      : []
   );
 
   const nationalSponsors = shuffleSponsors(
     eligibleSponsors.filter(
-      (sponsor) =>
-        sponsor.countryCode === normalizedCountryCode
-    )
+      (sponsor) => sponsor.countryCode === directorCountry
+    ),
+    random
   );
-
-  const neighboringSponsors = shuffleSponsors(
-    eligibleSponsors.filter((sponsor) =>
-      neighboringCountryCodes.has(sponsor.countryCode)
-    )
+  const featuredRiderSponsors = shuffleSponsors(
+    featuredRiderCountry && featuredRiderCountry !== directorCountry
+      ? eligibleSponsors.filter(
+          (sponsor) => sponsor.countryCode === featuredRiderCountry
+        )
+      : [],
+    random
   );
-
-  const internationalSponsors = shuffleSponsors(
+  const directorNeighboringSponsors = shuffleSponsors(
     eligibleSponsors.filter(
       (sponsor) =>
-        sponsor.countryCode !== normalizedCountryCode &&
-        !neighboringCountryCodes.has(sponsor.countryCode)
-    )
+        directorNeighboringCountries.has(sponsor.countryCode) &&
+        sponsor.countryCode !== featuredRiderCountry
+    ),
+    random
+  );
+  const featuredRiderNeighboringSponsors = shuffleSponsors(
+    featuredRiderCountry
+      ? eligibleSponsors.filter(
+          (sponsor) =>
+            featuredRiderNeighboringCountries.has(sponsor.countryCode) &&
+            sponsor.countryCode !== directorCountry &&
+            !directorNeighboringCountries.has(sponsor.countryCode)
+        )
+      : [],
+    random
+  );
+  const fallbackSponsors = shuffleSponsors(
+    eligibleSponsors.filter(
+      (sponsor) =>
+        sponsor.countryCode !== directorCountry &&
+        sponsor.countryCode !== featuredRiderCountry &&
+        !directorNeighboringCountries.has(sponsor.countryCode) &&
+        !featuredRiderNeighboringCountries.has(sponsor.countryCode)
+    ),
+    random
   );
 
-  const hasForeignRosterAffinity = riderCountryAffinities.some(
-    (affinity) =>
-      affinity.countryCode.trim().toUpperCase() !== normalizedCountryCode &&
-      affinity.affinityPoints > 0
-  );
-  const selectedSponsors = hasForeignRosterAffinity
-    ? weightedShuffleSponsors({
-        sponsors: eligibleSponsors,
-        random,
-        getWeight: (sponsor) =>
-          getSponsorCountryProposalWeight({
-            sponsorCountryCode: sponsor.countryCode,
-            teamCountryCode: normalizedCountryCode,
-            neighboringCountryCodes,
-            riderCountryAffinities,
-          }),
-      }).slice(0, proposalCount)
-    : [
-        ...nationalSponsors,
-        ...neighboringSponsors,
-        ...internationalSponsors,
-      ].slice(0, proposalCount);
+  const selectedSponsors: Sponsor[] = [];
+  const selectedSponsorIds = new Set<string>();
+  const selectFromPool = (pool: readonly Sponsor[], maximum = Infinity) => {
+    let selectedFromPool = 0;
 
-  return selectedSponsors.map(createSponsorProposal);
+    for (const sponsor of pool) {
+      if (selectedSponsors.length >= proposalCount) return;
+      if (selectedSponsorIds.has(sponsor.id)) continue;
+      selectedSponsors.push(sponsor);
+      selectedSponsorIds.add(sponsor.id);
+      selectedFromPool += 1;
+      if (selectedFromPool >= maximum) return;
+    }
+  };
+
+  if (featuredRiderSponsors.length > 0) {
+    selectFromPool(nationalSponsors, 1);
+    selectFromPool(featuredRiderSponsors, 1);
+  }
+
+  selectFromPool(nationalSponsors);
+  selectFromPool(featuredRiderSponsors);
+  selectFromPool(directorNeighboringSponsors);
+  selectFromPool(featuredRiderNeighboringSponsors);
+  selectFromPool(fallbackSponsors);
+
+  return selectedSponsors.map((sponsor) =>
+    createSponsorProposal(sponsor, random)
+  );
 }
 
 function createSponsorProposal(
-  sponsor: Sponsor
+  sponsor: Sponsor,
+  random: () => number
 ): SponsorProposal {
   return {
     sponsor,
     proposedBudget: getRandomBudget(
       sponsor.budgetRange.min,
-      sponsor.budgetRange.max
+      sponsor.budgetRange.max,
+      random
     ),
     contractDurationSeasons: getRandomInteger(
       sponsor.contractDurationRange.min,
-      sponsor.contractDurationRange.max
+      sponsor.contractDurationRange.max,
+      random
     ),
   };
 }
 
 function getRandomBudget(
   minimumBudget: number,
-  maximumBudget: number
+  maximumBudget: number,
+  random: () => number
 ): number {
   const minimumStep = Math.ceil(
     minimumBudget / BUDGET_STEP
@@ -123,23 +165,25 @@ function getRandomBudget(
   );
 
   return (
-    getRandomInteger(minimumStep, maximumStep) *
+    getRandomInteger(minimumStep, maximumStep, random) *
     BUDGET_STEP
   );
 }
 
 function getRandomInteger(
   minimum: number,
-  maximum: number
+  maximum: number,
+  random: () => number
 ): number {
   return (
-    Math.floor(Math.random() * (maximum - minimum + 1)) +
+    Math.floor(random() * (maximum - minimum + 1)) +
     minimum
   );
 }
 
 function shuffleSponsors(
-  sponsors: readonly Sponsor[]
+  sponsors: readonly Sponsor[],
+  random: () => number
 ): Sponsor[] {
   const shuffledSponsors = [...sponsors];
 
@@ -149,7 +193,7 @@ function shuffleSponsors(
     index -= 1
   ) {
     const randomIndex = Math.floor(
-      Math.random() * (index + 1)
+      random() * (index + 1)
     );
 
     [
@@ -162,32 +206,4 @@ function shuffleSponsors(
   }
 
   return shuffledSponsors;
-}
-
-function weightedShuffleSponsors({
-  sponsors,
-  random,
-  getWeight,
-}: {
-  sponsors: readonly Sponsor[];
-  random: () => number;
-  getWeight: (sponsor: Sponsor) => number;
-}) {
-  return sponsors
-    .map((sponsor) => {
-      const sample = Math.min(
-        1 - Number.EPSILON,
-        Math.max(Number.EPSILON, random())
-      );
-      return {
-        sponsor,
-        priorityKey: -Math.log(sample) / Math.max(0.01, getWeight(sponsor)),
-      };
-    })
-    .sort(
-      (left, right) =>
-        left.priorityKey - right.priorityKey ||
-        left.sponsor.id.localeCompare(right.sponsor.id)
-    )
-    .map((entry) => entry.sponsor);
 }

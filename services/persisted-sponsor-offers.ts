@@ -2,16 +2,19 @@ import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
 import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
+import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
   type SponsorOfferObjectiveContext,
 } from "@/services/persisted-sponsor-objectives";
+import { loadFeaturedRiderSponsorAffinity } from "@/services/sponsor-featured-rider";
 import { generateSponsorProposals } from "@/services/sponsor-proposals";
 import type { Sponsor } from "@/types/sponsor";
 import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
+const SPONSOR_OFFER_GENERATION_VERSION = 2;
 
 export type SponsorOfferStatus =
   | "draft"
@@ -42,6 +45,7 @@ type HydratedSponsorOfferWithoutObjectives = Omit<
 type SportingDirectorRow = {
   id: string;
   reputation_points: number;
+  country_id: string | null;
 };
 
 type CountryRow = {
@@ -50,10 +54,6 @@ type CountryRow = {
 
 type TeamAssignmentRow = {
   team_id: string;
-};
-
-type TeamRow = {
-  home_country_id: string;
 };
 
 type TerminatedContractRow = {
@@ -76,6 +76,7 @@ type SponsorOfferRow = {
   budget_per_season: number | string;
   contract_duration_seasons: number;
   status: SponsorOfferStatus;
+  generation_version: number;
 };
 
 type SponsorContractRow = {
@@ -107,7 +108,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
     error: sportingDirectorError,
   } = await supabase
     .from("sporting_directors")
-    .select("id, reputation_points")
+    .select("id, reputation_points, country_id")
     .eq("auth_user_id", normalizedAuthUserId)
     .maybeSingle<SportingDirectorRow>();
 
@@ -119,6 +120,12 @@ export async function getOrCreateSponsorOffersForAuthUser(
 
   if (!isSponsoringUnlocked(sportingDirector.reputation_points)) {
     return [];
+  }
+
+  if (!sportingDirector.country_id) {
+    throw new Error(
+      "La nationalite du Directeur Sportif est requise pour generer des offres de sponsoring."
+    );
   }
 
   const activeSeasonResult = await
@@ -138,10 +145,19 @@ export async function getOrCreateSponsorOffersForAuthUser(
   }
 
   const activeSeason = activeSeasonResult.data;
-  const teamCountry = await resolveCurrentTeamCountry({
+  const teamId = await resolveCurrentTeamId({
     supabase,
     sportingDirectorId: sportingDirector.id,
   });
+  const { data: directorCountry, error: directorCountryError } = await supabase
+    .from("countries")
+    .select("iso_alpha2")
+    .eq("id", sportingDirector.country_id)
+    .maybeSingle<CountryRow>();
+
+  if (directorCountryError || !directorCountry) {
+    throw new Error("Impossible de retrouver le pays du Directeur Sportif.");
+  }
 
   const hasTerminatedContract =
     await hasTerminatedPrincipalContractForSeason({
@@ -166,7 +182,8 @@ export async function getOrCreateSponsorOffersForAuthUser(
         sponsor_id,
         budget_per_season,
         contract_duration_seasons,
-        status
+        status,
+        generation_version
       `
     )
     .eq(
@@ -188,30 +205,62 @@ export async function getOrCreateSponsorOffersForAuthUser(
 
   if (
     existingOfferRows &&
-    existingOfferRows.length > 0
+    existingOfferRows.length > 0 &&
+    existingOfferRows.every(
+      (offer) => offer.generation_version >= SPONSOR_OFFER_GENERATION_VERSION
+    )
   ) {
-    return hydrateSponsorOffersWithObjectives({
+    const existingOffers = await hydrateSponsorOffersWithObjectives({
       supabase,
       seasonId: activeSeason.id,
       teamReputationPoints: sportingDirector.reputation_points,
       offerRows: existingOfferRows,
     });
+
+    if (
+      existingOffers.every((offer) =>
+        isSponsorEligibleForReputation(
+          offer.sponsor,
+          sportingDirector.reputation_points
+        )
+      )
+    ) {
+      return existingOffers;
+    }
   }
 
-  const unavailableSponsorIds =
-    await getUnavailableSponsorCatalogKeys(
-      supabase,
-      activeSeason
-    );
+  if (existingOfferRows && existingOfferRows.length > 0) {
+    const { error: withdrawOffersError } = await supabase
+      .from("sponsor_offers")
+      .update({ status: "withdrawn" })
+      .in("id", existingOfferRows.map((offer) => offer.id));
+
+    if (withdrawOffersError) {
+      throw new Error(
+        `Impossible de remplacer les offres hors palier : ${withdrawOffersError.message}`
+      );
+    }
+  }
+
+  const unavailableSponsorIds = await getUnavailableSponsorCatalogKeys(
+    supabase,
+    activeSeason
+  );
+  const featuredRiderAffinity = await loadFeaturedRiderSponsorAffinity({
+    supabase,
+    teamId,
+    seasonId: activeSeason.id,
+  });
 
   const generatedProposals =
     generateSponsorProposals({
       directorCountryCode:
-        teamCountry.iso_alpha2,
+        directorCountry.iso_alpha2,
       directorReputation:
         sportingDirector.reputation_points,
       unavailableSponsorIds,
       proposalCount: DEFAULT_PROPOSAL_COUNT,
+      featuredRiderAffinity,
     });
 
   if (
@@ -296,6 +345,7 @@ export async function getOrCreateSponsorOffersForAuthUser(
         available_from: availableFrom,
         available_until: null,
         status: "open",
+        generation_version: SPONSOR_OFFER_GENERATION_VERSION,
       };
     });
 
@@ -311,7 +361,8 @@ export async function getOrCreateSponsorOffersForAuthUser(
         sponsor_id,
         budget_per_season,
         contract_duration_seasons,
-        status
+        status,
+        generation_version
       `
     )
     .returns<SponsorOfferRow[]>();
@@ -330,13 +381,13 @@ export async function getOrCreateSponsorOffersForAuthUser(
   });
 }
 
-async function resolveCurrentTeamCountry({
+async function resolveCurrentTeamId({
   supabase,
   sportingDirectorId,
 }: {
   supabase: SupabaseAdminClient;
   sportingDirectorId: string;
-}): Promise<CountryRow> {
+}): Promise<string> {
   const { data: assignments, error: assignmentError } = await supabase
     .from("team_manager_assignments")
     .select("team_id")
@@ -349,43 +400,18 @@ async function resolveCurrentTeamCountry({
 
   if (assignmentError) {
     throw new Error(
-      `Impossible de charger l’équipe du Directeur Sportif : ${assignmentError.message}`
+      `Impossible de charger l'équipe du Directeur Sportif : ${assignmentError.message}`
     );
   }
 
   const teamId = assignments?.[0]?.team_id;
-
   if (!teamId) {
     throw new Error(
       "Fondez votre équipe amateur avant de recevoir des offres de sponsoring."
     );
   }
 
-  const { data: team, error: teamError } = await supabase
-    .from("teams")
-    .select("home_country_id")
-    .eq("id", teamId)
-    .maybeSingle<TeamRow>();
-
-  if (teamError || !team) {
-    throw new Error(
-      "Impossible de retrouver le pays d’affiliation de l’équipe."
-    );
-  }
-
-  const { data: country, error: countryError } = await supabase
-    .from("countries")
-    .select("iso_alpha2")
-    .eq("id", team.home_country_id)
-    .maybeSingle<CountryRow>();
-
-  if (countryError || !country) {
-    throw new Error(
-      "Impossible de retrouver le pays d’affiliation de l’équipe."
-    );
-  }
-
-  return country;
+  return teamId;
 }
 
 async function hasTerminatedPrincipalContractForSeason({

@@ -1,30 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRiderCountrySponsorAffinities } from "@/lib/game/sponsor-nationality-affinity";
-
 import { generateSponsorProposals } from "./sponsor-proposals";
 
-describe("sponsor proposals with roster nationality affinity", () => {
-  it("fait remonter un sponsor étranger porté par un leader de sa nationalité", () => {
+describe("sponsor proposals with featured rider nationality", () => {
+  it("garantit une offre du pays du DS et une du leader UCI étranger", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "BE",
-      directorReputation: 100,
-      riderCountryAffinities: buildRiderCountrySponsorAffinities([
-        { countryCode: "ES", overall: 85 },
-      ]),
+      directorReputation: 250,
+      featuredRiderAffinity: { countryCode: "ES", uciPoints: 420 },
       random: () => 0.5,
     });
 
-    expect(proposals[0]?.sponsor.countryCode).toBe("ES");
+    expect(proposals).toHaveLength(3);
+    expect(proposals[0]?.sponsor.countryCode).toBe("BE");
+    expect(proposals[1]?.sponsor.countryCode).toBe("ES");
   });
 
-  it("ne survalorise pas un unique coureur étranger moyen", () => {
+  it("ignore une affinité sans points UCI", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "BE",
-      directorReputation: 100,
-      riderCountryAffinities: buildRiderCountrySponsorAffinities([
-        { countryCode: "ES", overall: 55 },
-      ]),
+      directorReputation: 250,
+      featuredRiderAffinity: { countryCode: "ES", uciPoints: 0 },
       random: () => 0.5,
     });
 

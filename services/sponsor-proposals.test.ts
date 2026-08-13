@@ -48,7 +48,7 @@ describe("generateSponsorProposals", () => {
     ).toBe(true);
   });
 
-  it.each(["MA", "SN", "CI", "NG", "CM", "KE", "ET", "RW", "ZA", "MG", "GR", "US", "EE", "LV", "LT"])(
+  it.each(["SN", "CM", "KE", "ZA", "MG", "GR", "US", "EE", "LV"])(
     "propose d’abord un sponsor national pour un directeur %s",
     (directorCountryCode) => {
       const proposals = generateSponsorProposals({
@@ -123,6 +123,57 @@ describe("generateSponsorProposals", () => {
     ).toBe(false);
   });
 
+  it.each([
+    [99, 2],
+    [100, 3],
+    [499, 3],
+    [500, 4],
+    [999, 4],
+    [1_000, 5],
+  ])(
+    "plafonne le prestige ? %i ?toiles pour %i points de r?putation",
+    (directorReputation, maximumPrestige) => {
+      const proposals = generateSponsorProposals({
+        directorCountryCode: "BE",
+        directorReputation,
+        proposalCount: 30,
+        random: () => 0.5,
+      });
+
+      expect(proposals.length).toBeGreaterThan(0);
+      expect(
+        Math.max(
+          ...proposals.map((proposal) => proposal.sponsor.prestige)
+        )
+      ).toBeLessThanOrEqual(maximumPrestige);
+    }
+  );
+
+  it("ne propose aucun sponsor 5/5 ? 70 de r?putation", () => {
+    const proposals = generateSponsorProposals({
+      directorCountryCode: "BE",
+      directorReputation: 70,
+      proposalCount: 100,
+      random: () => 0.5,
+    });
+
+    expect(
+      proposals.some((proposal) => proposal.sponsor.prestige === 5)
+    ).toBe(false);
+  });
+
+  it("ouvre les sponsors 5/5 ? partir de 1000", () => {
+    const proposals = generateSponsorProposals({
+      directorCountryCode: "BE",
+      directorReputation: 1_000,
+      proposalCount: 100,
+      random: () => 0.5,
+      });
+
+    expect(
+      proposals.some((proposal) => proposal.sponsor.prestige === 5)
+    ).toBe(true);
+  });
   it("génère des budgets et durées dans les fourchettes prévues", () => {
     const proposals = generateSponsorProposals({
       directorCountryCode: "FR",

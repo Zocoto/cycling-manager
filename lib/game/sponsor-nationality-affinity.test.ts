@@ -1,52 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildRiderCountrySponsorAffinities,
-  calculateOverallRating,
-  getSponsorCountryProposalWeight,
+  normalizeFeaturedRiderSponsorAffinity,
+  normalizeSponsorCountryCode,
 } from "./sponsor-nationality-affinity";
 
 describe("sponsor nationality affinity", () => {
-  it("cumule le nombre de coureurs tout en donnant davantage de poids aux leaders", () => {
-    const affinities = buildRiderCountrySponsorAffinities([
-      { countryCode: "DE", overall: 82 },
-      { countryCode: "DE", overall: 61 },
-      { countryCode: "ES", overall: 61 },
-    ]);
-
-    expect(affinities[0]).toMatchObject({
-      countryCode: "DE",
-      riderCount: 2,
-      topOverall: 82,
-    });
-    expect(affinities[0]!.affinityPoints).toBeGreaterThan(
-      affinities[1]!.affinityPoints
-    );
+  it("normalise les codes pays du DS et du leader UCI", () => {
+    expect(normalizeSponsorCountryCode(" fr ")).toBe("FR");
+    expect(
+      normalizeFeaturedRiderSponsorAffinity({
+        countryCode: " es ",
+        uciPoints: 125,
+      })
+    ).toEqual({ countryCode: "ES", uciPoints: 125 });
   });
 
-  it("rend un sponsor étranger très crédible avec un coureur de premier plan", () => {
-    const riderCountryAffinities = buildRiderCountrySponsorAffinities([
-      { countryCode: "ES", overall: 85 },
-    ]);
-    const neighboringCountryCodes = new Set(["DE", "FR", "LU", "NL"]);
-    const belgianWeight = getSponsorCountryProposalWeight({
-      sponsorCountryCode: "BE",
-      teamCountryCode: "BE",
-      neighboringCountryCodes,
-      riderCountryAffinities,
-    });
-    const spanishWeight = getSponsorCountryProposalWeight({
-      sponsorCountryCode: "ES",
-      teamCountryCode: "BE",
-      neighboringCountryCodes,
-      riderCountryAffinities,
-    });
-
-    expect(spanishWeight).toBeGreaterThan(belgianWeight);
-  });
-
-  it("calcule la moyenne générale sur toutes les caractéristiques", () => {
-    expect(calculateOverallRating([60, 70, 80])).toBe(70);
-    expect(calculateOverallRating([])).toBe(0);
+  it("ignore un coureur qui n'est pas classé UCI", () => {
+    expect(
+      normalizeFeaturedRiderSponsorAffinity({
+        countryCode: "ES",
+        uciPoints: 0,
+      })
+    ).toBeNull();
   });
 });
