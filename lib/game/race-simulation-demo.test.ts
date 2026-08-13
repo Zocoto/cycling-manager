@@ -155,6 +155,77 @@ describe("createCalendarSimulationInput", () => {
     expect(edition.stages[0].segments[0].prime).not.toBeNull();
   });
 
+  it("retire les missions orphelines avant une simulation officielle", () => {
+    const riders = [
+      createRider("rider-a", "team-a"),
+      createRider("rider-b", "team-b"),
+    ];
+    const edition = createEdition({
+      slug: "course-missions-orphelines",
+      riders,
+    });
+    edition.stages[0].segments = [
+      {
+        segmentNumber: 1,
+        distanceKm: 174,
+        terrain: "hilly",
+        averageGradientPct: 2,
+        surface: "asphalt",
+        prime: null,
+      },
+    ];
+    edition.stages[0].teamStrategies = {
+      "team-a": {
+        teamId: "team-a",
+        objective: "stage_win",
+        collectivePosture: "aggressive",
+        breakawayPolicy: "target",
+        chasePolicy: "always",
+        lieutenantRiderId: "rider-a",
+        dangerPacerRiderId: "rider-from-old-roster",
+        protectorRiderId: "rider-b",
+        breakawayRiderId: null,
+        attackOrders: [
+          {
+            riderId: "rider-a",
+            segmentNumber: 1,
+            intensity: "strong",
+            condition: "always",
+          },
+          {
+            riderId: "rider-from-old-roster",
+            segmentNumber: 1,
+            intensity: "all_in",
+            condition: "always",
+          },
+          {
+            riderId: "rider-a",
+            segmentNumber: 99,
+            intensity: "all_in",
+            condition: "always",
+          },
+        ],
+      },
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "official",
+    });
+
+    expect(input.teamStrategies).toEqual([
+      expect.objectContaining({
+        teamId: "team-a",
+        lieutenantRiderId: "rider-a",
+        dangerPacerRiderId: null,
+        protectorRiderId: null,
+        attackOrders: [expect.objectContaining({ riderId: "rider-a" })],
+      }),
+    ]);
+    expect(() => simulateOfficialRaceEdition(edition)).not.toThrow();
+  });
+
   it("refuse une course ordinaire sans startlist", () => {
     const edition = createEdition({
       slug: "grand-prix-de-bretagne",

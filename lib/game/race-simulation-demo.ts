@@ -15,7 +15,12 @@ import {
   type StageSimulationInput,
 } from "./race-simulation";
 import { resolveStageRaceRole } from "./stage-race-roles";
-import { getRiderRaceDuty } from "./race-strategy";
+import {
+  getRiderRaceDuty,
+  MAX_RACE_ATTACK_ORDERS,
+  type RaceAttackOrder,
+  type RaceTeamStrategy,
+} from "./race-strategy";
 
 export const RACE_DEMO_SCENARIOS = [
   {
@@ -127,6 +132,15 @@ export function createCalendarSimulationInput({
       `La course ${edition.name} ne peut pas être simulée sans startlist enregistrée.`,
     );
   }
+  const sanitizedTeamStrategies = sanitizeCalendarTeamStrategies({
+    stage,
+    sourceRiders,
+  });
+  teamStrategies.splice(
+    0,
+    teamStrategies.length,
+    ...sanitizedTeamStrategies,
+  );
 
   const riders = sourceRiders
     .map((rider) => {
@@ -204,6 +218,79 @@ export function createCalendarSimulationInput({
         : rider;
     }),
     ...(teamStrategies.length > 0 ? { teamStrategies } : {}),
+  };
+}
+
+export function sanitizeCalendarTeamStrategies({
+  stage,
+  sourceRiders,
+}: {
+  stage: RaceCalendarStage;
+  sourceRiders: readonly RiderSimulationInput[];
+}): RaceTeamStrategy[] {
+  const riderTeamById = new Map(
+    sourceRiders.map((rider) => [rider.id, rider.teamId]),
+  );
+  const engagedTeamIds = new Set(sourceRiders.map((rider) => rider.teamId));
+  const segmentNumbers = new Set(
+    stage.segments.map((segment) => segment.segmentNumber),
+  );
+  const sanitizeDutyRiderId = (riderId: string | null, teamId: string) =>
+    riderId && riderTeamById.get(riderId) === teamId ? riderId : null;
+  const isValidAttackOrder = (
+    order: RaceAttackOrder,
+    teamId: string,
+  ) =>
+    riderTeamById.get(order.riderId) === teamId &&
+    segmentNumbers.has(order.segmentNumber);
+
+  return Object.values(stage.teamStrategies ?? {})
+    .filter((strategy) => engagedTeamIds.has(strategy.teamId))
+    .map((strategy) => {
+      const sanitized: RaceTeamStrategy = {
+        ...strategy,
+        lieutenantRiderId: sanitizeDutyRiderId(
+          strategy.lieutenantRiderId,
+          strategy.teamId,
+        ),
+        dangerPacerRiderId: sanitizeDutyRiderId(
+          strategy.dangerPacerRiderId,
+          strategy.teamId,
+        ),
+        protectorRiderId: sanitizeDutyRiderId(
+          strategy.protectorRiderId,
+          strategy.teamId,
+        ),
+        breakawayRiderId: sanitizeDutyRiderId(
+          strategy.breakawayRiderId,
+          strategy.teamId,
+        ),
+        attackOrders: strategy.attackOrders
+          .filter((order) => isValidAttackOrder(order, strategy.teamId))
+          .slice(0, MAX_RACE_ATTACK_ORDERS),
+      };
+
+      return removeDuplicateTacticalDuties(sanitized);
+    })
+    .sort((first, second) => first.teamId.localeCompare(second.teamId));
+}
+
+function removeDuplicateTacticalDuties(
+  strategy: RaceTeamStrategy,
+): RaceTeamStrategy {
+  const assignedRiderIds = new Set<string>();
+  const keepOnce = (riderId: string | null) => {
+    if (!riderId || assignedRiderIds.has(riderId)) return null;
+    assignedRiderIds.add(riderId);
+    return riderId;
+  };
+
+  return {
+    ...strategy,
+    lieutenantRiderId: keepOnce(strategy.lieutenantRiderId),
+    dangerPacerRiderId: keepOnce(strategy.dangerPacerRiderId),
+    protectorRiderId: keepOnce(strategy.protectorRiderId),
+    breakawayRiderId: keepOnce(strategy.breakawayRiderId),
   };
 }
 

@@ -16,6 +16,8 @@ import type {
 } from "@/types/sponsor-objective";
 
 const OBJECTIVE_COUNT_PER_OFFER = 7;
+const OBJECTIVE_COMPLETION_ATTEMPTS = 4;
+const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 50;
 
 type SupabaseAdminClient = ReturnType<
   typeof createSupabaseAdminClient
@@ -186,13 +188,16 @@ export async function ensureAndLoadSponsorObjectives({
   }
 
   if (rowsToInsert.length > 0) {
-    const { error: insertError } = await supabase
+    const { error: upsertError } = await supabase
       .from("sponsor_objectives")
-      .insert(rowsToInsert);
+      .upsert(rowsToInsert, {
+        onConflict: "sponsor_offer_id,display_order",
+        ignoreDuplicates: true,
+      });
 
-    if (insertError) {
+    if (upsertError) {
       throw new Error(
-        `Impossible d’enregistrer les objectifs des offres : ${insertError.message}`
+        `Impossible d’enregistrer les objectifs des offres : ${upsertError.message}`
       );
     }
   }
@@ -203,6 +208,34 @@ export async function ensureAndLoadSponsorObjectives({
       offerIds
     );
 
+  for (
+    let attempt = 0;
+    attempt < OBJECTIVE_COMPLETION_ATTEMPTS;
+    attempt += 1
+  ) {
+    const rowsByOfferId = groupRowsByOfferId(completeObjectiveRows);
+    const everyOfferIsComplete = offerIds.every(
+      (offerId) =>
+        (rowsByOfferId.get(offerId)?.length ?? 0) ===
+        OBJECTIVE_COUNT_PER_OFFER
+    );
+
+    if (everyOfferIsComplete) break;
+    if (attempt + 1 >= OBJECTIVE_COMPLETION_ATTEMPTS) break;
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, OBJECTIVE_COMPLETION_RETRY_DELAY_MS)
+    );
+    const refreshedRows = await loadSponsorObjectiveRows(
+      supabase,
+      offerIds
+    );
+    completeObjectiveRows.splice(
+      0,
+      completeObjectiveRows.length,
+      ...refreshedRows
+    );
+  }
   await syncRaceResultObjectiveLinks(
     supabase,
     completeObjectiveRows
