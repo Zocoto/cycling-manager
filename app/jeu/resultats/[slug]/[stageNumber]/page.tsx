@@ -8,6 +8,7 @@ import { RaceStageNavigation } from "@/components/game/race-stage-navigation";
 import Link from "@/components/ui/app-link";
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
+import { getRaceWeather, getRaceWeatherLabel } from "@/lib/game/race-weather";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -78,7 +79,9 @@ export default async function RaceLivePage({
       includeEngagedRiders: true,
     }),
   ]);
-  const edition = calendar?.editions.find((candidate) => candidate.slug === slug);
+  const edition = calendar?.editions.find(
+    (candidate) => candidate.slug === slug,
+  );
   const stage = edition?.stages.find(
     (candidate) => candidate.stageNumber === parsedStageNumber,
   );
@@ -105,7 +108,10 @@ export default async function RaceLivePage({
       ? {}
       : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
           (error: unknown) => {
-            console.error("Impossible de verrouiller le scénario officiel :", error);
+            console.error(
+              "Impossible de verrouiller le scénario officiel :",
+              error,
+            );
             return {};
           },
         );
@@ -113,11 +119,7 @@ export default async function RaceLivePage({
 
   if (state.status === "finished") {
     try {
-      await settleFinishedRaceResults(
-        calendar,
-        now,
-        lockedSimulationDirectory,
-      );
+      await settleFinishedRaceResults(calendar, now, lockedSimulationDirectory);
       await settleFinishedRaceConditions(supabase);
     } catch (error) {
       console.error("Impossible de consolider cette course :", error);
@@ -130,7 +132,10 @@ export default async function RaceLivePage({
       : await getOfficialRaceResults(calendar)
           .then((directory) => directory[edition.id] ?? null)
           .catch((error: unknown) => {
-            console.error("Impossible de charger les résultats de cette course :", error);
+            console.error(
+              "Impossible de charger les résultats de cette course :",
+              error,
+            );
             return null;
           });
 
@@ -141,16 +146,25 @@ export default async function RaceLivePage({
         .select("id")
         .eq("auth_user_id", user.id)
         .single<DirectorRow>();
-  if (!isNationalChampionship && (directorResult.error || !directorResult.data)) {
+  if (
+    !isNationalChampionship &&
+    (directorResult.error || !directorResult.data)
+  ) {
     redirect("/jeu/directeur-sportif");
   }
 
-  const initialMessages = isNationalChampionship || state.status === "scheduled"
-    ? []
-    : await getRaceLiveMessages(supabase, edition.id).catch((error: unknown) => {
-        console.error("Impossible de charger le chat de cette course :", error);
-        return [];
-      });
+  const initialMessages =
+    isNationalChampionship || state.status === "scheduled"
+      ? []
+      : await getRaceLiveMessages(supabase, edition.id).catch(
+          (error: unknown) => {
+            console.error(
+              "Impossible de charger le chat de cette course :",
+              error,
+            );
+            return [];
+          },
+        );
 
   const postRaceInterview =
     !isNationalChampionship && state.status === "finished" && officialResults
@@ -165,9 +179,19 @@ export default async function RaceLivePage({
             edition.raceFormat === "stage_race"
               ? `Étape ${stage.stageNumber} · ${stage.name}`
               : edition.name,
+          stageType: stage.stageType,
+          weatherLabel: getRaceWeatherLabel(
+            getRaceWeather(edition.id + ":" + stage.id + ":weather", {
+              countryCode: edition.countryCode,
+              profileType: stage.profileType,
+            }),
+          ),
           officialResults,
         }).catch((error: unknown) => {
-          console.error("Impossible de préparer l’interview après-course :", error);
+          console.error(
+            "Impossible de préparer l’interview après-course :",
+            error,
+          );
           return null;
         })
       : null;
@@ -204,7 +228,10 @@ export default async function RaceLivePage({
             href={backHref}
             className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm"
           >
-            ← {isNationalChampionship ? "Tous les CN concernés" : "Toutes les courses"}
+            ←{" "}
+            {isNationalChampionship
+              ? "Tous les CN concernés"
+              : "Toutes les courses"}
           </Link>
         </div>
 

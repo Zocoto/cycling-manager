@@ -4,6 +4,7 @@ import type {
   PostRaceInterviewAnswer,
   PostRaceInterviewContext,
   PostRaceInterviewQuestion,
+  PostRaceInterviewRaceFacts,
   PostRaceInterviewRivalryContext,
   PostRaceInterviewSnapshot,
 } from "@/lib/game/post-race-interview";
@@ -39,6 +40,11 @@ type PostRaceInterviewRow = {
 type StageRow = { season_day_id: string };
 type SeasonDayRow = { calendar_date: string };
 
+type PostRaceNewsEventRow = {
+  id: string;
+  event_kind: "breakaway" | "incident" | "classification";
+};
+
 type RivalAssignmentRow = {
   team_id: string;
   sporting_director_id: string;
@@ -62,6 +68,8 @@ export async function getOrCreatePostRaceInterview({
   stageId,
   stageNumber,
   stageName,
+  stageType,
+  weatherLabel,
   officialResults,
 }: {
   authUserId: string;
@@ -71,6 +79,8 @@ export async function getOrCreatePostRaceInterview({
   stageId: string;
   stageNumber: number;
   stageName: string;
+  stageType: NonNullable<PostRaceInterviewContext["stageType"]>;
+  weatherLabel: string;
   officialResults: OfficialRaceEditionResults;
 }): Promise<PostRaceInterviewSnapshot | null> {
   if (!teamId) return null;
@@ -78,7 +88,8 @@ export async function getOrCreatePostRaceInterview({
   const stageResults = officialResults.stages.find(
     (classification) => classification.stageId === stageId,
   )?.results;
-  const teamResults = stageResults?.filter((result) => result.teamId === teamId) ?? [];
+  const teamResults =
+    stageResults?.filter((result) => result.teamId === teamId) ?? [];
   if (teamResults.length === 0) return null;
 
   const admin = createSupabaseAdminClient();
@@ -99,7 +110,12 @@ export async function getOrCreatePostRaceInterview({
     getUciRankings().catch(() => null),
   ]);
 
-  if (directorResult.error || !directorResult.data || seasonResult.error || !seasonResult.data) {
+  if (
+    directorResult.error ||
+    !directorResult.data ||
+    seasonResult.error ||
+    !seasonResult.data
+  ) {
     return null;
   }
 
@@ -114,6 +130,17 @@ export async function getOrCreatePostRaceInterview({
 
   if (assignmentResult.error || !assignmentResult.data) return null;
 
+  const raceFacts = await loadRaceFactContext(admin, stageId);
+  const uciLeader = rankings?.riders[0] ?? null;
+  const contextEnrichment = {
+    questionVersion: 2,
+    stageType,
+    weatherLabel,
+    uciLeaderName: uciLeader?.riderName ?? null,
+    uciLeaderTeamName: uciLeader?.teamName ?? null,
+    raceFacts,
+  } satisfies Partial<PostRaceInterviewContext>;
+
   const existing = await admin
     .from("post_race_interviews")
     .select(INTERVIEW_SELECT)
@@ -122,7 +149,9 @@ export async function getOrCreatePostRaceInterview({
     .maybeSingle<PostRaceInterviewRow>();
 
   if (existing.error) {
-    throw new Error(`Impossible de charger l’interview après-course : ${existing.error.message}`);
+    throw new Error(
+      `Impossible de charger l’interview après-course : ${existing.error.message}`,
+    );
   }
   if (existing.data?.status === "submitted") return mapInterview(existing.data);
   if (existing.data) {
@@ -132,10 +161,17 @@ export async function getOrCreatePostRaceInterview({
       currentTeamId: teamId,
       stageResults: stageResults ?? [],
     });
-    if (!rivalry || sameRivalry(currentContext.rivalry, rivalry)) {
+    const rivalryChanged = rivalry
+      ? !sameRivalry(currentContext.rivalry, rivalry)
+      : Boolean(currentContext.rivalry);
+    if (currentContext.questionVersion === 2 && !rivalryChanged) {
       return mapInterview(existing.data);
     }
-    const refreshedContext = { ...currentContext, rivalry };
+    const refreshedContext: PostRaceInterviewContext = {
+      ...currentContext,
+      ...contextEnrichment,
+      rivalry,
+    };
     const refreshedQuestions = selectPostRaceInterviewQuestions(
       refreshedContext,
       `${editionId}:${stageId}:${teamId}`,
@@ -155,13 +191,17 @@ export async function getOrCreatePostRaceInterview({
     return mapInterview(existing.data);
   }
 
-  const bestResult = [...teamResults]
-    .filter((result) => result.status === "finished" && result.rank !== null)
-    .sort((first, second) => (first.rank ?? 999) - (second.rank ?? 999))[0] ?? teamResults[0];
-  const teamRanking = rankings?.teams.find((team) => team.teamId === teamId) ?? null;
+  const bestResult =
+    [...teamResults]
+      .filter((result) => result.status === "finished" && result.rank !== null)
+      .sort((first, second) => (first.rank ?? 999) - (second.rank ?? 999))[0] ??
+    teamResults[0];
+  const teamRanking =
+    rankings?.teams.find((team) => team.teamId === teamId) ?? null;
   const teamAttacks = officialResults.attackParticipants.filter(
     (participant) =>
-      participant.teamId === teamId && participant.stageNumbers.includes(stageNumber),
+      participant.teamId === teamId &&
+      participant.stageNumbers.includes(stageNumber),
   );
   const rivalry = await loadRivalryContext(admin, {
     stageId,
@@ -169,6 +209,7 @@ export async function getOrCreatePostRaceInterview({
     stageResults: stageResults ?? [],
   });
   const context: PostRaceInterviewContext = {
+    ...contextEnrichment,
     raceName,
     stageName,
     teamId,
@@ -180,8 +221,12 @@ export async function getOrCreatePostRaceInterview({
     gapLabel: formatGap(bestResult.gapToWinnerMs),
     uciRank: teamRanking?.rank ?? null,
     divisionLabel: teamRanking?.division ?? null,
-    tookBreakaway: teamAttacks.some(({ participationType }) => participationType === "breakaway"),
-    tookChase: teamAttacks.some(({ participationType }) => participationType === "chase"),
+    tookBreakaway: teamAttacks.some(
+      ({ participationType }) => participationType === "breakaway",
+    ),
+    tookChase: teamAttacks.some(
+      ({ participationType }) => participationType === "chase",
+    ),
     rivalry,
   };
   const questions = selectPostRaceInterviewQuestions(
@@ -260,19 +305,27 @@ export async function submitPostRaceInterview({
     current.data.status === "closed" ||
     !(await hasOpenPostRaceInterviewWindow(admin, current.data.stage_id))
   ) {
-    throw new Error("La zone mixte est fermée : l’interview est disponible uniquement le jour de la course, avant 20 h.");
+    throw new Error(
+      "La zone mixte est fermée : l’interview est disponible uniquement le jour de la course, avant 20 h.",
+    );
   }
   if (current.data.status === "submitted") return mapInterview(current.data);
 
   if (questions.length !== 3 || answers.length !== questions.length) {
     throw new Error("Les trois réponses de l’interview sont attendues.");
   }
-  const normalizedAnswers: PostRaceInterviewAnswer[] = questions.map((question, index) => ({
-    questionId: question.id,
-    question: question.text,
-    answer: answers[index].trim(),
-  }));
-  if (normalizedAnswers.some(({ answer }) => answer.length < 2 || answer.length > 600)) {
+  const normalizedAnswers: PostRaceInterviewAnswer[] = questions.map(
+    (question, index) => ({
+      questionId: question.id,
+      question: question.text,
+      answer: answers[index].trim(),
+    }),
+  );
+  if (
+    normalizedAnswers.some(
+      ({ answer }) => answer.length < 2 || answer.length > 600,
+    )
+  ) {
     throw new Error("Chaque réponse doit contenir entre 2 et 600 caractères.");
   }
 
@@ -292,7 +345,9 @@ export async function submitPostRaceInterview({
     .single<PostRaceInterviewRow>();
 
   if (updated.error || !updated.data) {
-    throw new Error(`Impossible d’enregistrer l’interview : ${updated.error?.message ?? "erreur inconnue"}`);
+    throw new Error(
+      `Impossible d’enregistrer l’interview : ${updated.error?.message ?? "erreur inconnue"}`,
+    );
   }
   return mapInterview(updated.data);
 }
@@ -318,6 +373,39 @@ async function hasOpenPostRaceInterviewWindow(
   return isPostRaceInterviewWindowOpen(seasonDay.data.calendar_date);
 }
 
+async function loadRaceFactContext(
+  admin: SupabaseAdminClient,
+  stageId: string,
+): Promise<PostRaceInterviewRaceFacts> {
+  const emptyFacts: PostRaceInterviewRaceFacts = {
+    breakawayOccurred: false,
+    crashOccurred: false,
+    crosswindOccurred: false,
+  };
+  const events = await admin
+    .from("post_race_news_events")
+    .select("id, event_kind")
+    .eq("stage_id", stageId)
+    .returns<PostRaceNewsEventRow[]>();
+
+  if (events.error) return emptyFacts;
+
+  return (events.data ?? []).reduce<PostRaceInterviewRaceFacts>(
+    (facts, event) => ({
+      breakawayOccurred:
+        facts.breakawayOccurred || event.event_kind === "breakaway",
+      crashOccurred:
+        facts.crashOccurred ||
+        event.id.endsWith(":crashes") ||
+        event.id.endsWith(":injuries") ||
+        event.id.endsWith(":abandonments"),
+      crosswindOccurred:
+        facts.crosswindOccurred || event.id.endsWith(":crosswind"),
+    }),
+    emptyFacts,
+  );
+}
+
 async function loadRivalryContext(
   admin: SupabaseAdminClient,
 
@@ -328,7 +416,9 @@ async function loadRivalryContext(
   }: {
     stageId: string;
     currentTeamId: string;
-    stageResults: NonNullable<OfficialRaceEditionResults["stages"][number]["results"]>;
+    stageResults: NonNullable<
+      OfficialRaceEditionResults["stages"][number]["results"]
+    >;
   },
 ): Promise<PostRaceInterviewRivalryContext | null> {
   const submitted = await admin
@@ -374,7 +464,8 @@ async function loadRivalryContext(
     .sort((first, second) => (first.rank ?? 999) - (second.rank ?? 999));
   const distinctCandidates = candidates.filter(
     (candidate, index) =>
-      candidates.findIndex((other) => other.teamId === candidate.teamId) === index,
+      candidates.findIndex((other) => other.teamId === candidate.teamId) ===
+      index,
   );
   if (distinctCandidates.length === 0) return null;
 
@@ -447,7 +538,11 @@ function sameRivalry(
   current: PostRaceInterviewRivalryContext | null | undefined,
   next: PostRaceInterviewRivalryContext,
 ) {
-  if (!current || current.kind !== next.kind || current.teamId !== next.teamId) {
+  if (
+    !current ||
+    current.kind !== next.kind ||
+    current.teamId !== next.teamId
+  ) {
     return false;
   }
   if (current.kind === "rebound" && next.kind === "rebound") {
