@@ -1,8 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { buildInitialEquipmentValues } from "@/components/game/team-equipment-bulk-editor";
+import {
+  buildInitialEquipmentValues,
+  getSelectableEquipmentItemsForSlot,
+} from "@/components/game/team-equipment-bulk-editor";
 import { canReserveNutritionistForDraft } from "@/components/game/nutrition-interventions-editor";
+import type { TeamEquipmentCatalogItem } from "@/services/team-equipment";
 import { describe, expect, it } from "vitest";
 
 const nutritionMigration = read(
@@ -126,6 +130,37 @@ describe("administration groupée du matériel", () => {
     expect(values["rider-1:helmet"]).toBe("helmet-pending");
     expect(values["rider-1:frame"]).toBe("");
     expect(Object.keys(values)).toHaveLength(8);
+  });
+
+  it("ne propose que le materiel compatible avec chaque emplacement", () => {
+    const partnerFrame = {
+      id: "partner-frame",
+      name: "Cadre partenaire",
+      slot: "frame",
+      price: 0,
+      ownedQuantity: 0,
+      isUnlimited: true,
+    } as TeamEquipmentCatalogItem;
+    const partnerWheel = {
+      id: "partner-front-wheel",
+      name: "Roue partenaire",
+      slot: "front_wheel",
+      price: 0,
+      ownedQuantity: 0,
+      isUnlimited: true,
+    } as TeamEquipmentCatalogItem;
+    const catalog = [partnerFrame, partnerWheel];
+
+    expect(
+      getSelectableEquipmentItemsForSlot(catalog, "frame").map(
+        (item) => item.id,
+      ),
+    ).toEqual([partnerFrame.id]);
+    expect(
+      getSelectableEquipmentItemsForSlot(catalog, "front_wheel").map(
+        (item) => item.id,
+      ),
+    ).toEqual([partnerWheel.id]);
   });
 
   it("valide le stock et applique tout le lot dans une transaction", () => {

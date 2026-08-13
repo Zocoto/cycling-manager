@@ -65,13 +65,7 @@ export function TeamEquipmentBulkEditor({
       Object.fromEntries(
         EQUIPMENT_SLOTS.map((slot) => [
           slot,
-          catalog
-            .filter((item) => isEquipmentItemSelectable(item))
-            .sort(
-              (left, right) =>
-                left.name.localeCompare(right.name, "fr") ||
-                left.price - right.price,
-            ),
+          getSelectableEquipmentItemsForSlot(catalog, slot),
         ]),
       ) as Record<EquipmentSlot, TeamEquipmentCatalogItem[]>,
     [catalog],
@@ -399,6 +393,20 @@ export function TeamEquipmentBulkEditor({
 
 export function isEquipmentItemSelectable(item: TeamEquipmentCatalogItem) {
   return item.isUnlimited || item.ownedQuantity > 0;
+}
+
+export function getSelectableEquipmentItemsForSlot(
+  catalog: TeamEquipmentCatalogItem[],
+  slot: EquipmentSlot,
+) {
+  return catalog
+    .filter(
+      (item) => item.slot === slot && isEquipmentItemSelectable(item),
+    )
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name, "fr") || left.price - right.price,
+    );
 }
 
 export function hasEquipmentStockError(
