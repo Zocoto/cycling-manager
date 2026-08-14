@@ -7,6 +7,7 @@ import {
   type FinanceChartPoint,
   type TeamDivisionCode,
 } from "@/lib/game/economy";
+import { summarizeFutureFinances } from "@/lib/game/team-finance-forecast";
 import {
   getTeamDivisionLabel,
   normalizeTeamDivisionCode,
@@ -94,8 +95,8 @@ export type TeamFinanceOverview = {
   currency: string;
   balance: number;
   projectedBalance: number;
-  totalIncome: number;
-  totalExpenses: number;
+  futureIncome: number;
+  futureExpenses: number;
   canSpend: boolean;
   teamPoints: number;
   teamRank: number | null;
@@ -208,22 +209,13 @@ export async function getCurrentTeamFinanceOverview(
   assertQuery(divisionResult.error, "la division de l’équipe");
 
   const transactions = (transactionsResult.data ?? []).map(toTransaction);
-  const activeTransactions = transactions.filter(
-    (transaction) => transaction.status !== "cancelled"
-  );
+  const balance = toNumber(teamSeason.cash_balance);
+  const { projectedBalance, futureIncome, futureExpenses } =
+    summarizeFutureFinances({
+      currentBalance: balance,
+      entries: transactions,
+    });
   const openingBalance = toNumber(teamSeason.opening_cash_balance);
-  const projectedBalance = activeTransactions.reduce(
-    (balance, transaction) => balance + transaction.amount,
-    openingBalance
-  );
-  const totalIncome = activeTransactions.reduce(
-    (total, transaction) => total + Math.max(0, transaction.amount),
-    0
-  );
-  const totalExpenses = activeTransactions.reduce(
-    (total, transaction) => total + Math.abs(Math.min(0, transaction.amount)),
-    0
-  );
   const currentDayNumber = season.current_day_number ?? 1;
   const rankedTeams = [...(rankingTeamsResult.data ?? [])].sort(
     (left, right) =>
@@ -242,11 +234,11 @@ export async function getCurrentTeamFinanceOverview(
     seasonName: season.name,
     currentDayNumber,
     currency: teamSeason.currency,
-    balance: toNumber(teamSeason.cash_balance),
+    balance,
     projectedBalance,
-    totalIncome,
-    totalExpenses,
-    canSpend: toNumber(teamSeason.cash_balance) > 0,
+    futureIncome,
+    futureExpenses,
+    canSpend: balance > 0,
     teamPoints: teamSeason.points,
     teamRank,
     divisionCode,

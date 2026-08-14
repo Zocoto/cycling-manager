@@ -142,13 +142,13 @@ export default async function TeamFinancesPage() {
           />
           <FinanceMetric
             label="Gains prévus"
-            value={formatCurrency(overview.totalIncome, overview.currency)}
-            detail="Sponsor et primes déjà enregistrées"
+            value={formatCurrency(overview.futureIncome, overview.currency)}
+            detail="Sponsor et primes restant à percevoir"
           />
           <FinanceMetric
             label="Charges prévues"
-            value={formatCurrency(overview.totalExpenses, overview.currency)}
-            detail="Coureurs, staff et dépenses connues"
+            value={formatCurrency(overview.futureExpenses, overview.currency)}
+            detail="Salaires et dépenses restant à payer"
           />
         </section>
 
