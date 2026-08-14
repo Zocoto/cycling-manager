@@ -356,9 +356,7 @@ export async function getTeamStaffOverview(
         : null) ??
       (balance < member.signingFee + dueSalary
         ? "Trésorerie insuffisante pour la signature et les échéances déjà dues."
-        : projectedBudget < member.signingFee + member.salaryPerSeason
-          ? "Budget projeté insuffisant pour couvrir la signature et la saison de salaire."
-          : null);
+        : null);
 
     return [
       {

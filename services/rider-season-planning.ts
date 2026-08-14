@@ -255,6 +255,8 @@ export async function getCurrentTeamRiderSeasonPlanning({
         "id, rider_id, source_stage_id, diagnosis_code, status, started_at, expected_recovery_at",
       )
       .in("rider_id", riderIds)
+      .eq("status", "active")
+      .gt("expected_recovery_at", new Date().toISOString())
       .returns<InjuryRow[]>(),
     admin
       .from("stage_reconnaissances")

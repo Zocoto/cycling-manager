@@ -85,7 +85,8 @@ export function DashboardEligibleRaces({
               <li key={edition.id}>
                 <Link
                   href={getRaceRegistrationHref(edition.slug)}
-                  className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-2 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]"
+                  title={edition.isSponsorObjective ? "Objectif sponsor" : undefined}
+                  className={`group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-2 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] ${edition.isSponsorObjective ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#F2C94C]" : ""}`}
                 >
                   <span
                     aria-hidden="true"
@@ -100,6 +101,7 @@ export function DashboardEligibleRaces({
                         role="img"
                         aria-label={`Drapeau ${edition.countryName}`}
                       />
+                      {edition.isSponsorObjective ? <span role="img" aria-label="Objectif sponsor" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F2C94C] text-[11px] font-black text-[#3D3300]">!</span> : null}
                       <span className="truncate text-[13px] font-black text-[#183F37] transition group-hover:text-[#176951]">
                         {edition.name}
                       </span>

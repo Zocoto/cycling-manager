@@ -763,13 +763,6 @@ function RegistrationPanel({
           </ul>
         ) : null}
 
-        <div className="mt-5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#E7E1C8]">
-          L&apos;arbitrage tient compte de la nationalit&eacute; de
-          l&apos;&eacute;quipe, de celle du sponsor principal, de la
-          r&eacute;putation et du meilleur coureur align&eacute; pour le profil
-          de la course.
-        </div>
-
         {canWithdrawRequest ? (
           <form action={withdrawEliteWildcardRequestAction}>
             <input type="hidden" name="editionId" value={edition.id} />
@@ -819,10 +812,7 @@ function RegistrationPanel({
         <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
           Proposez {edition.minimumRosterSize} &agrave;{" "}
           {edition.maximumRosterSize} coureurs. Leur agenda sera bloqu&eacute;
-          jusqu&apos;&agrave; l&apos;arbitrage &agrave; J-1. La
-          nationalit&eacute; de l&apos;&eacute;quipe, celle du sponsor
-          principal, la r&eacute;putation et le meilleur coureur adapt&eacute;
-          au profil sont pris en compte.
+          jusqu&apos;&agrave; l&apos;arbitrage &agrave; J-1.
         </p>
 
         <div className="mt-5 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
@@ -885,11 +875,12 @@ function RegistrationPanel({
             : "Engager votre équipe"}
       </h2>
 
-      <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
-        {edition.competitionType === "standard"
-          ? "Votre nationalité n’entre pas dans les critères. Seuls votre niveau de réputation et la catégorie de la course sont pris en compte."
-          : `Seuls les coureurs de nationalité ${edition.countryName} peuvent participer. Le championnat accepte au maximum 200 coureurs.`}
-      </p>
+      {edition.competitionType === "standard" ? null : (
+        <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
+          Seuls les coureurs de nationalité {edition.countryName} peuvent
+          participer. Le championnat accepte au maximum 200 coureurs.
+        </p>
+      )}
 
       {raceExperience ? (
         <RaceExperienceLink slug={edition.slug} availability={raceExperience} />
@@ -991,6 +982,7 @@ function EngagedRidersSection({
     {
       teamName: string;
       teamShortName: string | null;
+      teamCountryCode: string;
       riders: RaceEngagedRider[];
     }
   >();
@@ -999,6 +991,7 @@ function EngagedRidersSection({
     const team = teams.get(rider.teamId) ?? {
       teamName: rider.teamName,
       teamShortName: rider.teamShortName,
+      teamCountryCode: rider.teamCountryCode,
       riders: [],
     };
     team.riders.push(rider);
@@ -1046,12 +1039,19 @@ function EngagedRidersSection({
               key={teamId}
               className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4"
             >
-              <Link
-                href={`/jeu/equipes/${teamId}`}
-                className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
-              >
-                {team.teamName}
-              </Link>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`fi fi-${team.teamCountryCode.toLowerCase()} shrink-0 rounded shadow-sm`}
+                  role="img"
+                  aria-label={`Drapeau de l’équipe ${team.teamName}`}
+                />
+                <Link
+                  href={`/jeu/equipes/${teamId}`}
+                  className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
+                >
+                  {team.teamName}
+                </Link>
+              </div>
               <ul className="mt-3 space-y-2">
                 {team.riders.map((rider) => (
                   <li

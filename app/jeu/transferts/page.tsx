@@ -11,6 +11,7 @@ import {
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TransferCountdown } from "@/components/game/transfer-countdown";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
@@ -48,6 +49,7 @@ import {
   type TransferMarketRider,
   type TransferRosterCandidate,
 } from "@/services/transfer-market";
+import type { Sponsor } from "@/types/sponsor";
 
 export const metadata: Metadata = {
   title: "Bureau des transferts",
@@ -92,18 +94,22 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   ]);
   if (!overview) redirect("/jeu");
 
-  const sellerTeamIds = [...new Set(
-    overview.directorListings
-      .map((listing) => listing.sellerTeamId)
-      .filter((teamId): teamId is string => Boolean(teamId))
-      .concat(overview.teamId)
-  )];
+  const visualTeamIds = [
+    ...new Set(
+      [...overview.dailyListings, ...overview.directorListings]
+        .flatMap((listing) => [listing.sellerTeamId, listing.leaderTeamId])
+        .filter((teamId): teamId is string => Boolean(teamId))
+        .concat(overview.teamId),
+    ),
+  ];
   const jerseys = new Map<string, RiderJerseyAppearance>();
-  await Promise.all(sellerTeamIds.map(async (teamId) => {
+  const sponsors = new Map<string, Sponsor>();
+  await Promise.all(visualTeamIds.map(async (teamId) => {
     const [amateur, sponsor] = await Promise.all([
       getTeamAmateurIdentity(teamId).catch(() => null),
       getActiveTeamSponsorIdentity(teamId).catch(() => null),
     ]);
+    if (sponsor) sponsors.set(teamId, sponsor.sponsor);
     jerseys.set(
       teamId,
       sponsor
@@ -166,6 +172,7 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <Metric label="Trésorerie" value={formatMoney(overview.cashBalance, overview.currency)} />
               <Metric label="Budget projeté" value={formatMoney(overview.projectedBudget, overview.currency)} />
               <Metric label="Réservé" value={formatMoney(overview.reservedBudget, overview.currency)} />
               <Metric label="Disponible" value={formatMoney(overview.availableBudget, overview.currency)} />
@@ -199,9 +206,9 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
         </nav>
 
         {tab === "quotidiennes" ? (
-          <DailyAuctions listings={overview.dailyListings} overview={overview} returnPath={currentPath} />
+          <DailyAuctions listings={overview.dailyListings} overview={overview} sponsors={sponsors} returnPath={currentPath} />
         ) : tab === "directeurs" ? (
-          <DirectorAuctions listings={overview.directorListings} roster={overview.roster} overview={overview} jerseys={jerseys} returnPath={currentPath} />
+          <DirectorAuctions listings={overview.directorListings} roster={overview.roster} overview={overview} jerseys={jerseys} sponsors={sponsors} returnPath={currentPath} />
         ) : tab === "libres" ? (
           <FreeAgents riders={overview.freeAgents} countries={overview.countries} query={query} currency={overview.currency} rosterSize={overview.rosterSize} rosterLimit={overview.rosterLimit} rosterIsFull={overview.rosterIsFull} returnPath={currentPath} />
         ) : (
@@ -212,9 +219,10 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   );
 }
 
-function DailyAuctions({ listings, overview, returnPath }: {
+function DailyAuctions({ listings, overview, sponsors, returnPath }: {
   listings: TransferMarketListing[];
   overview: NonNullable<Awaited<ReturnType<typeof getTransferMarketOverview>>>;
+  sponsors: Map<string, Sponsor>;
   returnPath: string;
 }) {
   return (
@@ -223,7 +231,7 @@ function DailyAuctions({ listings, overview, returnPath }: {
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
           <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
+            {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
           </div>
         ) : (
           <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : dix nouveaux coureurs apparaîtront automatiquement." />
@@ -233,11 +241,12 @@ function DailyAuctions({ listings, overview, returnPath }: {
   );
 }
 
-function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
+function DirectorAuctions({ listings, roster, overview, jerseys, sponsors, returnPath }: {
   listings: TransferMarketListing[];
   roster: TransferRosterCandidate[];
   overview: NonNullable<Awaited<ReturnType<typeof getTransferMarketOverview>>>;
   jerseys: Map<string, RiderJerseyAppearance>;
+  sponsors: Map<string, Sponsor>;
   returnPath: string;
 }) {
   const sellable = roster.filter((candidate) => candidate.canList);
@@ -274,7 +283,7 @@ function DirectorAuctions({ listings, roster, overview, jerseys, returnPath }: {
 
       <div data-tutorial-id="transfer-director-market">
         <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture ; le transfert et les écritures financières sont ensuite automatiques." />
-        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
+        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
       </div>
     </section>
   );
@@ -470,7 +479,7 @@ function FreeAgents({ riders, countries, query, currency, rosterSize, rosterLimi
   );
 }
 
-function AuctionCard({ listing, jersey, teamId, availableBudget, rosterIsFull, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; teamId: string; availableBudget: number; rosterIsFull: boolean; returnPath: string }) {
+function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, rosterIsFull, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; leaderSponsor: Sponsor | null; teamId: string; availableBudget: number; rosterIsFull: boolean; returnPath: string }) {
   const canBid = listing.status === "open" && listing.sellerTeamId !== teamId && !rosterIsFull;
   const bidCapacity = availableBudget + (listing.isOwnTeamLeading ? listing.currentBid ?? 0 : 0);
   return (
@@ -484,12 +493,13 @@ function AuctionCard({ listing, jersey, teamId, availableBudget, rosterIsFull, r
         <TransferScoutingReportPanel report={listing.rider.scoutingReport} compact />
         <div className="mt-4 grid grid-cols-2 gap-3"><PriceBlock label={listing.currentBid ? "Offre en tête" : "Prix d’appel"} value={formatMoney(listing.currentBid ?? listing.minimumBid, listing.currency)} /><PriceBlock label="Salaire hebdo." value={formatMoney(listing.salaryPerWeek, listing.currency)} /></div>
         <div className="mt-4 flex items-center justify-between rounded-xl border border-[#F2C94C]/25 bg-[#FFF9DF] px-4 py-3 text-xs font-black text-[#705B00]"><span>{listing.status === "open" ? "Temps restant" : listing.status === "settled" ? "Attribué" : "Clôturé sans offre"}</span>{listing.status === "open" ? <TransferCountdown closesAt={listing.closesAt} /> : <span>{listing.leaderTeamName ?? "Agent libre"}</span>}</div>
+        {listing.currentBid !== null && listing.leaderTeamName ? <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-[#F3F8F6] px-4 py-3">{leaderSponsor ? <SponsorLogoMark src={leaderSponsor.logoPath} alt={`Logo de ${leaderSponsor.name}`} sponsorName={leaderSponsor.name} primaryColor={leaderSponsor.colors.primary} backgroundColor={leaderSponsor.colors.background} textColor={leaderSponsor.colors.text} className="h-10 w-14 rounded-lg p-1.5" /> : <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0B302B] text-xs font-black text-white">{getTeamInitials(listing.leaderTeamName)}</span>}<div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-wider text-[#60756E]">Meilleure enchère</p><p className="truncate text-sm font-black text-[#183F37]">{listing.leaderTeamName}</p></div><p className="shrink-0 text-sm font-black text-[#176951]">{formatMoney(listing.currentBid, listing.currency)}</p></div> : null}
         {listing.isOwnTeamLeading ? <p className="mt-3 rounded-xl bg-[#DDF3E7] px-4 py-3 text-xs font-black text-[#176951]">Votre équipe mène l’enchère avec {formatMoney(listing.ownBid ?? 0, listing.currency)}.</p> : null}
         {canBid ? (
           <form action={placeTransferBidAction} className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-3">
             <input type="hidden" name="listingId" value={listing.id} /><input type="hidden" name="returnPath" value={returnPath} />
             <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">Votre offre<input name="amount" type="number" min={listing.minimumNextBid} step="100" required defaultValue={listing.minimumNextBid} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 px-3 text-sm font-black" /></label>
-            <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid + listing.salaryPerSeason}>Enchérir</TransferSubmitButton></div>
+            <div className="self-end"><TransferSubmitButton pendingLabel="Offre…" disabled={bidCapacity < listing.minimumNextBid}>Enchérir</TransferSubmitButton></div>
           </form>
         ) : listing.sellerTeamId === teamId && listing.status === "open" ? <p className="mt-4 text-center text-xs font-black uppercase tracking-wider text-[#60756E]">Votre mise en vente</p> : rosterIsFull && listing.status === "open" ? <p className="mt-4 rounded-xl bg-[#FFF0EE] px-4 py-3 text-center text-xs font-black text-[#8A2F2F]">Effectif complet · 35 coureurs maximum</p> : null}
         <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
@@ -517,6 +527,7 @@ function Notice({ tone, children }: { tone: "success" | "error"; children: React
 function PriceBlock({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-[#315B3E]/10 bg-[#F7FAF8] px-4 py-3"><p className="text-[9px] font-black uppercase tracking-wider text-[#60756E]">{label}</p><p className="mt-1 text-base font-black text-[#183F37]">{value}</p></div>; }
 function FilterField({ label, children }: { label: string; children: React.ReactNode }) { return <label className="text-[10px] font-black uppercase tracking-wider text-[#48665F]">{label}{children}</label>; }
 
+function getTeamInitials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "ÉQ"; }
 function formatMoney(value: number, currency: string) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(`${value}T12:00:00Z`)); }
 function formatDateTime(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" }).format(new Date(value)); }

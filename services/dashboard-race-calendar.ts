@@ -87,6 +87,10 @@ type RegistrationRow = {
   roster_count: number;
 };
 
+type SponsorObjectiveRaceRow = {
+  race_edition_id: string;
+};
+
 export async function getDashboardRaceCalendar(
   supabase: SupabaseServerClient,
   {
@@ -99,7 +103,7 @@ export async function getDashboardRaceCalendar(
     currentDayNumber: number;
   },
 ): Promise<SeasonRaceCalendar> {
-  const [editionsResult, daysResult, registrationsResult] = await Promise.all([
+  const [editionsResult, daysResult, registrationsResult, sponsorObjectivesResult] = await Promise.all([
     supabase
       .from("race_editions")
       .select(
@@ -115,13 +119,16 @@ export async function getDashboardRaceCalendar(
       .order("day_number", { ascending: true })
       .returns<DayRow[]>(),
     supabase.rpc("get_current_team_calendar_registrations"),
+    supabase.rpc("get_current_team_sponsor_objective_races"),
   ]);
 
   assertQuery(editionsResult.error, "les courses du bureau");
   assertQuery(daysResult.error, "les journées de la saison");
   assertQuery(registrationsResult.error, "les inscriptions de l'équipe");
+  assertQuery(sponsorObjectivesResult.error, "les objectifs sponsor");
 
   const editions = editionsResult.data ?? [];
+  const sponsorObjectiveEditionIds = new Set(((sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []).map((objective) => objective.race_edition_id));
   const editionIds = editions.map((edition) => edition.id);
   const raceIds = unique(editions.map((edition) => edition.race_id));
   const categoryIds = unique(
@@ -243,6 +250,7 @@ export async function getDashboardRaceCalendar(
         raceFormat: race.race_format,
         competitionType: race.competition_type,
         isGrandTour: race.is_grand_tour,
+        isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id),
         registrationClosesAt: edition.registration_closes_at,
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,

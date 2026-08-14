@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import {
   buildRiderReturnPath,
@@ -9,6 +10,7 @@ import {
   withPageFeedback,
 } from "@/lib/game/filtered-page-paths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { dispatchDuePushNotifications } from "@/services/push-notifications";
 
 export async function placeTransferBidAction(formData: FormData) {
   const listingId = readValue(formData, "listingId");
@@ -105,6 +107,7 @@ export async function submitDirectTransferOfferAction(formData: FormData) {
   });
   if (error) redirectWithMessage(returnPath, "erreur", error.message);
 
+  schedulePushDispatch();
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
   revalidatePath("/jeu/messagerie");
@@ -133,6 +136,7 @@ export async function respondToDirectTransferOfferAction(formData: FormData) {
   });
   if (error) redirectWithMessage(returnPath, "erreur", error.message);
 
+  schedulePushDispatch();
   revalidateTransferPaths();
   revalidatePath("/jeu/messagerie");
   if (isUuid(riderId)) revalidatePath(`/jeu/coureurs/${riderId}`);
@@ -191,6 +195,19 @@ function revalidateTransferPaths() {
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu");
+}
+
+function schedulePushDispatch() {
+  after(async () => {
+    try {
+      await dispatchDuePushNotifications({ enqueueRaceLives: false });
+    } catch (error) {
+      console.error(
+        "Impossible de distribuer immédiatement la notification de transfert.",
+        error,
+      );
+    }
+  });
 }
 
 function formatMoney(value: number, currency: string) {

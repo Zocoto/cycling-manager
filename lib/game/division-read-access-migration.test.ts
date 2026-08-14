@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260814060000_restore_authenticated_division_reads.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 describe("division read access migration", () => {
   it("restores authenticated reads without exposing writes or anonymous access", () => {

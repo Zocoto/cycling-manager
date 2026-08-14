@@ -7,6 +7,7 @@ import { saveTeamEquipmentAssignmentsAction } from "@/app/jeu/materiel/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TeamEquipmentDesktopTable } from "@/components/game/team-equipment-desktop-table";
 import { TeamEquipmentRiderRatings } from "@/components/game/team-equipment-rider-ratings";
+import Link from "@/components/ui/app-link";
 import {
   EQUIPMENT_CATEGORIES,
   EQUIPMENT_SLOTS,
@@ -266,9 +267,9 @@ export function TeamEquipmentBulkEditor({
                   className="h-12 w-12"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-black text-[#183F37]">
-                    {rider.firstName} {rider.lastName}
-                  </p>
+                  <Link href={`/jeu/coureurs/${rider.id}`} target="_blank" rel="noreferrer" className="block truncate text-base font-black text-[#183F37] transition hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]">
+                    {rider.firstName} {rider.lastName} <span aria-hidden="true">↗</span>
+                  </Link>
                   <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-[#60756E]">
                     {equippedCount}/{SLOT_ORDER.length} emplacements équipés
                   </p>
