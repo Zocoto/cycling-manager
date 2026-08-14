@@ -26,11 +26,13 @@ describe("season break health repair", () => {
 
   it("prevents recovered injuries from blocking rest or creating penalties", () => {
     expect(migration).toContain(
-      "where injury.rider_id = v_rider.id' || chr(10) ||\n        '          and injury.status = ''active''",
+      "injury\\.rider_id[[:space:]]*=[[:space:]]*v_rider\\.id",
     );
     expect(migration).toContain(
-      "where injury.status = ''active''' || chr(10) ||\n        '      and injury.form_loss_per_day > 0",
+      "injury\\.form_loss_per_day[[:space:]]*>[[:space:]]*0",
     );
+    expect(migration).toContain("v_match_count <> 1");
+    expect(migration).toContain("injury.status = ''active''");
   });
 
   it("repairs only untouched rollover rows and stale post-rollover penalties", () => {

@@ -104,6 +104,7 @@ do $migration$
 declare
   v_definition text;
   v_previous_definition text;
+  v_match_count integer;
 begin
   select pg_catalog.pg_get_functiondef(
     'public.settle_current_health_and_form()'::regprocedure
@@ -114,14 +115,24 @@ begin
       '          and injury.status = ''active'''
     in v_definition
   ) = 0 then
-    v_previous_definition := v_definition;
-    v_definition := replace(
+    select count(*)::integer into v_match_count
+    from pg_catalog.regexp_matches(
       v_definition,
-      'where injury.rider_id = v_rider.id' || chr(10) ||
-        '          and injury.started_at <',
-      'where injury.rider_id = v_rider.id' || chr(10) ||
-        '          and injury.status = ''active''' || chr(10) ||
-        '          and injury.started_at <'
+      'where[[:space:]]+injury\.rider_id[[:space:]]*=[[:space:]]*v_rider\.id[[:space:]]+and[[:space:]]+injury\.started_at[[:space:]]*<',
+      'gi'
+    );
+    if v_match_count <> 1 then
+      raise exception
+        'Le filtre médical quotidien correspond à % bloc(s), attendu: 1.',
+        v_match_count;
+    end if;
+
+    v_previous_definition := v_definition;
+    v_definition := pg_catalog.regexp_replace(
+      v_definition,
+      '(where[[:space:]]+injury\.rider_id[[:space:]]*=[[:space:]]*v_rider\.id[[:space:]]+)(and[[:space:]]+injury\.started_at[[:space:]]*<)',
+      E'\\1and injury.status = ''active''\n          \\2',
+      'i'
     );
     if v_definition = v_previous_definition then
       raise exception 'Impossible de filtrer les blessures quotidiennes guéries.';
@@ -133,14 +144,24 @@ begin
       '      and injury.form_loss_per_day > 0'
     in v_definition
   ) = 0 then
-    v_previous_definition := v_definition;
-    v_definition := replace(
+    select count(*)::integer into v_match_count
+    from pg_catalog.regexp_matches(
       v_definition,
-      'where injury.form_loss_per_day > 0' || chr(10) ||
-        '      and injury.started_at <= now()',
-      'where injury.status = ''active''' || chr(10) ||
-        '      and injury.form_loss_per_day > 0' || chr(10) ||
-        '      and injury.started_at <= now()'
+      'where[[:space:]]+injury\.form_loss_per_day[[:space:]]*>[[:space:]]*0[[:space:]]+and[[:space:]]+injury\.started_at[[:space:]]*<=[[:space:]]*now\(\)',
+      'gi'
+    );
+    if v_match_count <> 1 then
+      raise exception
+        'Le filtre des pénalités médicales correspond à % bloc(s), attendu: 1.',
+        v_match_count;
+    end if;
+
+    v_previous_definition := v_definition;
+    v_definition := pg_catalog.regexp_replace(
+      v_definition,
+      '(where[[:space:]]+)(injury\.form_loss_per_day[[:space:]]*>[[:space:]]*0[[:space:]]+and[[:space:]]+injury\.started_at[[:space:]]*<=[[:space:]]*now\(\))',
+      E'\\1injury.status = ''active''\n      and \\2',
+      'i'
     );
     if v_definition = v_previous_definition then
       raise exception 'Impossible de filtrer les pénalités des blessures guéries.';
