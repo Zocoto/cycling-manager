@@ -5,6 +5,7 @@ import {
   RACE_EQUIPMENT_INHERIT,
   countRaceEquipmentOverrides,
   getRaceEquipmentPlanKey,
+  isRaceEquipmentItemSelectable,
   isRaceEquipmentStageEditable,
   parseRaceEquipmentPlanEntry,
   resolvePlannedEquipmentItemId,
@@ -13,6 +14,7 @@ import {
 
 const RIDER_ID = "11111111-1111-4111-8111-111111111111";
 const ITEM_ID = "22222222-2222-4222-8222-222222222222";
+const OTHER_RIDER_ID = "33333333-3333-4333-8333-333333333333";
 
 describe("planification du matériel de course", () => {
   it("sérialise et relit un choix de matériel", () => {
@@ -83,6 +85,52 @@ describe("planification du matériel de course", () => {
         RACE_EQUIPMENT_EMPTY,
       ]),
     ).toBe(2);
+  });
+
+  it("conserve le matériel porté et réserve les exemplaires physiques", () => {
+    const selections = new Map();
+    const permanentByKey = new Map([[RIDER_ID + ":helmet", ITEM_ID]]);
+    const base = {
+      itemId: ITEM_ID,
+      ownedQuantity: 1,
+      isUnlimited: false,
+      riderIds: [RIDER_ID, OTHER_RIDER_ID],
+      stageId: "stage",
+      slot: "helmet" as const,
+      selections,
+      permanentByKey,
+    };
+
+    expect(
+      isRaceEquipmentItemSelectable({ ...base, riderId: RIDER_ID }),
+    ).toBe(true);
+    expect(
+      isRaceEquipmentItemSelectable({ ...base, riderId: OTHER_RIDER_ID }),
+    ).toBe(false);
+
+    selections.set(
+      getRaceEquipmentPlanKey("stage", RIDER_ID, "helmet"),
+      RACE_EQUIPMENT_EMPTY,
+    );
+    expect(
+      isRaceEquipmentItemSelectable({ ...base, riderId: OTHER_RIDER_ID }),
+    ).toBe(true);
+  });
+
+  it("laisse toujours sélectionner une dotation équipementier illimitée", () => {
+    expect(
+      isRaceEquipmentItemSelectable({
+        itemId: ITEM_ID,
+        ownedQuantity: 0,
+        isUnlimited: true,
+        riderId: RIDER_ID,
+        riderIds: [RIDER_ID],
+        stageId: "stage",
+        slot: "helmet",
+        selections: new Map(),
+        permanentByKey: new Map(),
+      }),
+    ).toBe(true);
   });
 
   it("ferme les changements cinq minutes avant le départ", () => {

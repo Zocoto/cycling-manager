@@ -69,6 +69,46 @@ export function countRaceEquipmentOverrides(
   return count;
 }
 
+export function isRaceEquipmentItemSelectable({
+  itemId,
+  ownedQuantity,
+  isUnlimited,
+  riderId,
+  riderIds,
+  stageId,
+  slot,
+  selections,
+  permanentByKey,
+}: {
+  itemId: string;
+  ownedQuantity: number;
+  isUnlimited: boolean;
+  riderId: string;
+  riderIds: readonly string[];
+  stageId: string;
+  slot: EquipmentSlot;
+  selections: ReadonlyMap<string, RaceEquipmentPlanSelection>;
+  permanentByKey: ReadonlyMap<string, string>;
+}) {
+  if (isUnlimited) return true;
+
+  let usedByOtherRiders = 0;
+  for (const otherRiderId of riderIds) {
+    if (otherRiderId === riderId) continue;
+    const selection =
+      selections.get(getRaceEquipmentPlanKey(stageId, otherRiderId, slot)) ??
+      RACE_EQUIPMENT_INHERIT;
+    const effectiveItemId = resolvePlannedEquipmentItemId({
+      permanentItemId:
+        permanentByKey.get(otherRiderId + ":" + slot) ?? null,
+      selection,
+    });
+    if (effectiveItemId === itemId) usedByOtherRiders += 1;
+  }
+
+  return usedByOtherRiders < ownedQuantity;
+}
+
 export function isRaceEquipmentStageEditable({
   departureAt,
   now = new Date(),

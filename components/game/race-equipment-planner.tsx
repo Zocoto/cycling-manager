@@ -10,6 +10,7 @@ import {
   RACE_EQUIPMENT_INHERIT,
   countRaceEquipmentOverrides,
   getRaceEquipmentPlanKey,
+  isRaceEquipmentItemSelectable,
   resolvePlannedEquipmentItemId,
   serializeRaceEquipmentPlanEntry,
   type RaceEquipmentPlanSelection,
@@ -252,7 +253,21 @@ export function RaceEquipmentPlanner({
                 </option>
                 <option value={RACE_EQUIPMENT_EMPTY}>Sans matériel</option>
                 {planning.catalog
-                  .filter((item) => item.slot === slot)
+                  .filter(
+                    (item) =>
+                      item.slot === slot &&
+                      isRaceEquipmentItemSelectable({
+                        itemId: item.id,
+                        ownedQuantity: item.ownedQuantity,
+                        isUnlimited: item.isUnlimited,
+                        riderId: selectedRiderId,
+                        riderIds: riders.map((rider) => rider.riderId),
+                        stageId: selectedStageId,
+                        slot,
+                        selections,
+                        permanentByKey,
+                      }),
+                  )
                   .map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name} · {item.supplierName}

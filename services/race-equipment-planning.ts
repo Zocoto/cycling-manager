@@ -189,7 +189,10 @@ function buildRaceEquipmentPlanningData({
       })),
     catalog: equipment.catalog
       .filter(
-        (item) => item.ownedQuantity > 0 || referencedItemIds.has(item.id),
+        (item) =>
+          item.isUnlimited ||
+          item.ownedQuantity > 0 ||
+          referencedItemIds.has(item.id),
       )
       .map((item) => ({
         id: item.id,
@@ -198,7 +201,7 @@ function buildRaceEquipmentPlanningData({
         supplierName: item.supplierName,
         effectSummary: item.effectSummary,
         ownedQuantity: item.ownedQuantity,
-        isUnlimited: false,
+        isUnlimited: item.isUnlimited,
       })),
     permanentAssignments: equipment.assignments.filter((assignment) =>
       normalizedRiderIds.has(assignment.riderId),

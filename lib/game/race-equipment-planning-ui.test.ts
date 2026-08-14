@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const planner = read("components/game/race-equipment-planner.tsx");
+const planningService = read("services/race-equipment-planning.ts");
+const equipmentService = read("services/team-equipment.ts");
 const preparationWorkspace = read(
   "components/game/race-preparation-workspace.tsx",
 );
@@ -65,6 +67,15 @@ describe("planification du matériel de course", () => {
       "Ne modifie jamais rider_equipment_assignments",
     );
   });
+
+  it("ne propose que les références utilisables par le coureur", () => {
+    expect(planningService).toContain("item.isUnlimited ||");
+    expect(planningService).toContain("isUnlimited: item.isUnlimited");
+    expect(planner).toContain("isRaceEquipmentItemSelectable");
+    expect(equipmentService).toContain('.from("equipment_partner_offers")');
+    expect(equipmentService).toContain('.eq("status", "claimed")');
+  });
+
 });
 
 function read(path: string) {

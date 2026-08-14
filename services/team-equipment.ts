@@ -101,6 +101,9 @@ type PartnerProductRow = {
   equipment_item_id: string;
   offer_type: "core" | "rare";
 };
+type PartnerOfferRow = {
+  equipment_item_id: string;
+};
 
 export type TeamEquipmentCatalogItem = {
   id: string;
@@ -402,7 +405,11 @@ async function loadEquipmentContext(
   );
   assertQuery(partnerContractResult.error, "le partenariat matériel");
 
-  const [partnerEffectsResult, partnerProductsResult] = partnerContractResult.data
+  const [
+    partnerEffectsResult,
+    partnerProductsResult,
+    partnerOffersResult,
+  ] = partnerContractResult.data
     ? await Promise.all([
         admin
           .from("equipment_partner_item_effects")
@@ -414,13 +421,21 @@ async function loadEquipmentContext(
           .select("equipment_item_id, offer_type")
           .eq("supplier_key", partnerContractResult.data.supplier_key)
           .returns<PartnerProductRow[]>(),
+        admin
+          .from("equipment_partner_offers")
+          .select("equipment_item_id")
+          .eq("contract_id", partnerContractResult.data.id)
+          .eq("status", "claimed")
+          .returns<PartnerOfferRow[]>(),
       ])
     : [
         { data: [] as PartnerEffectRow[], error: null },
         { data: [] as PartnerProductRow[], error: null },
+        { data: [] as PartnerOfferRow[], error: null },
       ];
   assertQuery(partnerEffectsResult.error, "les effets de la dotation partenaire");
   assertQuery(partnerProductsResult.error, "la gamme du partenaire");
+  assertQuery(partnerOffersResult.error, "les références partenaire débloquées");
   const [equippedResult, ridersResult, ratingsResult] = rosterRiderIds.length
     ? await Promise.all([
         admin
@@ -488,11 +503,14 @@ async function loadEquipmentContext(
       effect.effect_payload,
     ]),
   );
-  const partnerAvailableItemIds = new Set(
-    (partnerProductsResult.data ?? [])
+  const partnerAvailableItemIds = new Set([
+    ...(partnerProductsResult.data ?? [])
       .filter((product) => product.offer_type === "core")
       .map((product) => product.equipment_item_id),
-  );
+    ...(partnerOffersResult.data ?? []).map(
+      (offer) => offer.equipment_item_id,
+    ),
+  ]);
   const catalog = (catalogResult.data ?? []).map((row) => {
     const isUnlimited =
       row.acquisition_channel === "equipment_partner" &&
