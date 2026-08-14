@@ -1,6 +1,7 @@
 "use client";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import Link from "@/components/ui/app-link";
 import {
   EQUIPMENT_CATEGORIES,
   type EquipmentSlot,
@@ -87,9 +88,9 @@ export function TeamEquipmentDesktopTable({
                         className="h-10 w-10 shrink-0"
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-black text-[#183F37]">
-                          {rider.firstName} {rider.lastName}
-                        </p>
+                        <Link href={`/jeu/coureurs/${rider.id}`} target="_blank" rel="noreferrer" className="block truncate text-xs font-black text-[#183F37] transition hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]">
+                          {rider.firstName} {rider.lastName} <span aria-hidden="true">↗</span>
+                        </Link>
                         <p
                           className={
                             equippedCount === slots.length

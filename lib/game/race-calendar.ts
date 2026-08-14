@@ -119,6 +119,7 @@ export type RaceCalendarEdition = {
   raceFormat: RaceFormat;
   competitionType: RaceCompetitionType;
   isGrandTour?: boolean;
+  isSponsorObjective?: boolean;
   registrationClosesAt: string | null;
   wildcardClosesAt: string | null;
   withdrawalClosesAt: string | null;

@@ -905,9 +905,7 @@ function DirectTransferOfferCard({
 
   const maximumOffer = Math.max(
     500,
-    Math.floor(
-      (management.availableBudget - (management.directOfferSalary ?? 0)) / 100,
-    ) * 100,
+    Math.floor(management.availableBudget / 100) * 100,
   );
   const defaultOffer = Math.min(10_000, maximumOffer);
 
@@ -968,7 +966,7 @@ function DirectTransferOfferCard({
               </strong>
             </p>
             <p>
-              Salaire réservé
+              Salaire futur
               <br />
               <strong className="text-white">
                 {formatMoney(
@@ -976,6 +974,10 @@ function DirectTransferOfferCard({
                   management.currency,
                 )}
               </strong>
+            </p>
+            <p className="col-span-2 text-[10px] leading-4 text-[#9BE0BC]">
+              Le salaire sera payé par échéances et n’est pas retiré de votre
+              trésorerie au moment de l’offre.
             </p>
           </div>
           <div className="mt-5">

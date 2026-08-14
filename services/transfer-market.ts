@@ -169,6 +169,7 @@ export type TransferMarketListing = {
   minimumNextBid: number;
   bidCount: number;
   leaderTeamName: string | null;
+  leaderTeamId: string | null;
   ownBid: number | null;
   isOwnTeamLeading: boolean;
   salaryPerSeason: number;
@@ -217,6 +218,7 @@ export type TransferMarketOverview = {
   seasonName: string;
   currentDayNumber: number;
   currency: string;
+  cashBalance: number;
   projectedBudget: number;
   reservedBudget: number;
   availableBudget: number;
@@ -467,6 +469,7 @@ export async function getTransferMarketOverview(
         leaderTeamName: leader
           ? (teamNames.get(leader.team_id) ?? "Équipe inconnue")
           : null,
+        leaderTeamId: leader?.team_id ?? null,
         ownBid: ownBid > 0 ? ownBid : null,
         isOwnTeamLeading: leader?.team_id === context.teamSeason.team_id,
         salaryPerSeason: toNumber(listing.salary_per_season),
@@ -513,10 +516,8 @@ export async function getTransferMarketOverview(
     (total, transaction) => total + toNumber(transaction.amount),
     0,
   );
-  const projectedBudget = Math.max(
-    0,
-    toNumber(context.teamSeason.cash_balance) + pendingTotal,
-  );
+  const cashBalance = toNumber(context.teamSeason.cash_balance);
+  const projectedBudget = cashBalance + pendingTotal;
   const openListingIds = new Set(
     listings
       .filter((listing) => listing.status === "open")
@@ -528,17 +529,9 @@ export async function getTransferMarketOverview(
   const reservedBudget =
     leadingByListing
       .filter((bid) => bid.team_id === context.teamSeason.team_id)
-      .reduce((total, bid) => {
-        const listing = mappedListings.find(
-          (candidate) => candidate.id === bid.listing_id,
-        );
-        return total + toNumber(bid.amount) + (listing?.salaryPerSeason ?? 0);
-      }, 0) +
+      .reduce((total, bid) => total + toNumber(bid.amount), 0) +
     (pendingDirectOffersResult.data ?? []).reduce(
-      (total, offer) =>
-        total +
-        toNumber(offer.offered_amount) +
-        toNumber(offer.salary_per_season),
+      (total, offer) => total + toNumber(offer.offered_amount),
       0,
     );
   const plannedRiderIds = new Set(
@@ -554,9 +547,10 @@ export async function getTransferMarketOverview(
     seasonName: context.season.name,
     currentDayNumber: context.season.current_day_number ?? 1,
     currency: context.teamSeason.currency,
+    cashBalance,
     projectedBudget,
     reservedBudget,
-    availableBudget: Math.max(0, projectedBudget - reservedBudget),
+    availableBudget: Math.max(0, cashBalance - reservedBudget),
     dataRoomLevel,
     marketDate,
     dailyListings: mappedListings.filter((listing) => listing.type === "daily"),
@@ -648,7 +642,6 @@ export async function getRiderTransferManagement(
     listingResult,
     teamContractsResult,
     pendingOfferResult,
-    transactionsResult,
     reservationsResult,
   ] = await Promise.all([
     admin
@@ -691,12 +684,6 @@ export async function getRiderTransferManagement(
       .eq("rider_id", riderId)
       .eq("status", "pending")
       .maybeSingle<{ id: string; offered_amount: number | string }>(),
-    admin
-      .from("team_finance_transactions")
-      .select("amount")
-      .eq("team_season_id", context.teamSeason.id)
-      .eq("status", "pending")
-      .returns<FinanceRow[]>(),
     admin.rpc("get_team_transfer_reserved_budget", {
       p_team_id: context.teamSeason.team_id,
       p_excluded_offer_id: null,
@@ -709,7 +696,6 @@ export async function getRiderTransferManagement(
   assertQuery(listingResult.error, "la disponibilité du coureur");
   assertQuery(teamContractsResult.error, "la capacité de l’effectif");
   assertQuery(pendingOfferResult.error, "l'offre directe en attente");
-  assertQuery(transactionsResult.error, "le budget projete");
   assertQuery(reservationsResult.error, "les engagements de transfert");
   if (!riderResult.data || !ratingResult.data) return null;
 
@@ -744,17 +730,10 @@ export async function getRiderTransferManagement(
   const salary = calculateSalaryApproximation(overall);
   const isFreeAgent =
     riderResult.data.status === "free_agent" && !activeContract;
-  const pendingFinance = (transactionsResult.data ?? []).reduce(
-    (total, transaction) => total + toNumber(transaction.amount),
-    0,
-  );
-  const projectedBudget = Math.max(
-    0,
-    toNumber(context.teamSeason.cash_balance) + pendingFinance,
-  );
   const availableBudget = Math.max(
     0,
-    projectedBudget - toNumber(reservationsResult.data),
+    toNumber(context.teamSeason.cash_balance) -
+      toNumber(reservationsResult.data),
   );
   const sourceContractLocked =
     activeContract?.transfer_locked_season_id === context.season.id;
@@ -775,8 +754,8 @@ export async function getRiderTransferManagement(
         ? "Ce coureur recruté cette saison ne peut pas encore être transféré."
         : rosterIsFull
           ? `Votre effectif compte déjà ${MAX_TEAM_ROSTER_SIZE} coureurs.`
-          : availableBudget < salary + 500
-            ? "Votre budget disponible ne couvre pas l’offre minimale et le salaire."
+          : availableBudget < 500
+            ? "Votre trésorerie disponible ne couvre pas l’offre minimale."
             : null
     : null;
 

@@ -135,6 +135,10 @@ type RaceCategoryRow = {
   maximum_roster_size: number | null;
 };
 
+type SponsorObjectiveRaceRow = {
+  race_edition_id: string;
+};
+
 type StageRow = {
   id: string;
   race_edition_id: string;
@@ -466,6 +470,7 @@ export type RaceEngagedRider = {
   teamId: string;
   teamName: string;
   teamShortName: string | null;
+  teamCountryCode: string;
   riderId: string;
   riderName: string;
   countryCode: string;
@@ -481,6 +486,7 @@ type RaceEngagedRiderRow = {
   team_id: string;
   team_name: string;
   team_short_name: string | null;
+  team_country_iso_alpha2: string;
   rider_id: string;
   rider_first_name: string;
   rider_last_name: string;
@@ -620,7 +626,12 @@ export async function getActiveSeasonRaceCalendar(
     return { data: result.data, error: result.error };
   };
 
-  const [daysResult, editionsResult, registrationsResult] = await Promise.all([
+  const [
+    daysResult,
+    editionsResult,
+    registrationsResult,
+    sponsorObjectivesResult,
+  ] = await Promise.all([
     supabase
       .from("season_days")
       .select("id, day_number, calendar_date, label")
@@ -635,6 +646,7 @@ export async function getActiveSeasonRaceCalendar(
     }),
 
     supabase.rpc("get_current_team_calendar_registrations"),
+    supabase.rpc("get_current_team_sponsor_objective_races"),
   ]);
 
   if (daysResult.error) {
@@ -654,10 +666,20 @@ export async function getActiveSeasonRaceCalendar(
       `Impossible de charger les inscriptions du calendrier : ${registrationsResult.error.message}`,
     );
   }
+  if (sponsorObjectivesResult.error) {
+    throw new Error(
+      `Impossible de charger les objectifs sponsor : ${sponsorObjectivesResult.error.message}`,
+    );
+  }
 
   const editionRows = editionsResult.data ?? [];
   const editionIds = editionRows.map((edition) => edition.id);
   const includeEngagedRiders = options.includeEngagedRiders !== false;
+  const sponsorObjectiveEditionIds = new Set(
+    (
+      (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []
+    ).map((objective) => objective.race_edition_id),
+  );
   // Les RPC sont plafonnées à 1 000 lignes par PostgREST : on pagine pour ne
   // jamais tronquer les startlists (source des simulations officielles).
   const engagedRidersResult = includeEngagedRiders
@@ -1225,6 +1247,7 @@ export async function getActiveSeasonRaceCalendar(
         competitionType: race.competition_type,
         isGrandTour: race.is_grand_tour,
         registrationClosesAt: edition.registration_closes_at,
+        isSponsorObjective: sponsorObjectiveEditionIds.has(edition.id),
         wildcardClosesAt: edition.wildcard_closes_at,
         withdrawalClosesAt: edition.withdrawal_closes_at,
         registrationPolicy: edition.registration_policy,
@@ -1598,6 +1621,7 @@ export async function getRaceEngagedRiders(
     teamId: rider.team_id,
     teamName: rider.team_name,
     teamShortName: rider.team_short_name,
+    teamCountryCode: rider.team_country_iso_alpha2,
     riderId: rider.rider_id,
     riderName: `${rider.rider_first_name} ${rider.rider_last_name}`,
     countryCode: rider.country_iso_alpha2,

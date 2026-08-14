@@ -982,6 +982,7 @@ function EngagedRidersSection({
     {
       teamName: string;
       teamShortName: string | null;
+      teamCountryCode: string;
       riders: RaceEngagedRider[];
     }
   >();
@@ -990,6 +991,7 @@ function EngagedRidersSection({
     const team = teams.get(rider.teamId) ?? {
       teamName: rider.teamName,
       teamShortName: rider.teamShortName,
+      teamCountryCode: rider.teamCountryCode,
       riders: [],
     };
     team.riders.push(rider);
@@ -1037,12 +1039,19 @@ function EngagedRidersSection({
               key={teamId}
               className="rounded-xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4"
             >
-              <Link
-                href={`/jeu/equipes/${teamId}`}
-                className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
-              >
-                {team.teamName}
-              </Link>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`fi fi-${team.teamCountryCode.toLowerCase()} shrink-0 rounded shadow-sm`}
+                  role="img"
+                  aria-label={`Drapeau de l’équipe ${team.teamName}`}
+                />
+                <Link
+                  href={`/jeu/equipes/${teamId}`}
+                  className="font-black text-[#0B302B] underline decoration-[#176951]/30 underline-offset-4 transition hover:text-[#176951]"
+                >
+                  {team.teamName}
+                </Link>
+              </div>
               <ul className="mt-3 space-y-2">
                 {team.riders.map((rider) => (
                   <li

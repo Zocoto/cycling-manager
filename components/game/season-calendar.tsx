@@ -352,6 +352,10 @@ export function SeasonCalendar({
               />
               Hachuré : inscriptions closes
             </span>
+            <span className="inline-flex items-center gap-2">
+              <SponsorObjectiveBadge compact />
+              Objectif sponsor
+            </span>
             <span>Les tours enchaînent une étape à chaque demi-journée.</span>
           </div>
 
@@ -452,7 +456,7 @@ export function SeasonCalendar({
                       ? `${edition.name} · Inscriptions closes`
                       : edition.name
                   }
-                  className="group grid gap-3 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#315B3E]/30 hover:shadow-md sm:grid-cols-[minmax(180px,0.75fr)_minmax(260px,1.25fr)] sm:items-center"
+                  className={`group grid gap-3 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#315B3E]/30 hover:shadow-md sm:grid-cols-[minmax(180px,0.75fr)_minmax(260px,1.25fr)] sm:items-center ${edition.isSponsorObjective ? "bg-[#FFF9DF] outline outline-2 outline-[#F2C94C]" : ""}`}
                   style={{
                     backgroundImage:
                       registrationClosed
@@ -472,6 +476,7 @@ export function SeasonCalendar({
                       >
                         {style.shortLabel}
                       </span>
+                      {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
                       <RaceCountryFlag
                         countryCode={edition.countryCode}
                         countryName={edition.countryName}
@@ -675,7 +680,7 @@ function RaceCalendarList({
                   ? `${edition.name} · Inscriptions closes`
                   : edition.name
               }
-              className="relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center"
+              className={`relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#FFF9DF] outline outline-2 outline-offset-[-2px] outline-[#F2C94C]" : ""}`}
               style={{
                 backgroundImage:
                   registrationClosed
@@ -704,6 +709,7 @@ function RaceCalendarList({
                   >
                     {style.shortLabel}
                   </span>
+                  {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#789087]">
                     {edition.raceFormat === "stage_race" ? `${edition.stages.length} étapes` : "Un jour"}
                   </span>
@@ -999,6 +1005,8 @@ function DesktopCalendarWeek({
                     segment.startsBeforeWeek ? "rounded-l-sm" : "rounded-l-lg"
                   } ${
                     segment.continuesAfterWeek ? "rounded-r-sm" : "rounded-r-lg"
+                  } ${
+                    segment.edition.isSponsorObjective ? "outline outline-2 outline-[#F2C94C]" : ""
                   }`}
                   style={{
                     gridColumn: `${columnStart} / ${columnEnd}`,
@@ -1020,6 +1028,7 @@ function DesktopCalendarWeek({
                   <span className="shrink-0 rounded bg-black/15 px-1 py-0.5 text-[8px] tracking-wider">
                     {style.shortLabel}
                   </span>
+                  {segment.edition.isSponsorObjective ? <SponsorObjectiveBadge compact /> : null}
 
                   <RaceCountryFlag
                     countryCode={segment.edition.countryCode}
@@ -1164,6 +1173,7 @@ function DesktopCalendarWeek({
                                 countryCode={segment.edition.countryCode}
                                 countryName={segment.edition.countryName}
                               />
+                              {segment.edition.isSponsorObjective ? <SponsorObjectiveBadge compact /> : null}
                               <span className="truncate text-[11px] font-bold">
                                 {segment.edition.name}
                               </span>
@@ -1289,7 +1299,7 @@ function MobileCalendarDay({
                   ? `${edition.name} · Inscriptions closes`
                   : edition.name
               }
-              className="flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17]"
+              className={`flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#F2C94C]" : ""}`}
               style={{
                 borderColor: grandTourAccent?.color ?? style.border,
                 boxShadow: grandTourAccent
@@ -1309,6 +1319,7 @@ function MobileCalendarDay({
                 {style.shortLabel}
               </span>
 
+              {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
               <RaceCountryFlag
                 countryCode={edition.countryCode}
                 countryName={edition.countryName}
@@ -1360,6 +1371,19 @@ function MobileCalendarDay({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function SponsorObjectiveBadge({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      role="img"
+      aria-label="Objectif sponsor"
+      title="Objectif sponsor"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#F2C94C] font-black text-[#3D3300] shadow-sm ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
+    >
+      !
+    </span>
   );
 }
 

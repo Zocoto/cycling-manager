@@ -114,11 +114,31 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain("Course quatrieme");
     expect(markup).not.toContain("Course hors-fenetre");
   });
+
+  it("signale visuellement une course qui est un objectif sponsor", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardEligibleRaces
+        calendar={createCalendar([
+          createEdition("objectif-sponsor", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 12,
+            isSponsorObjective: true,
+          }),
+        ])}
+        reputationPoints={125}
+        riderCount={8}
+        now={new Date("2026-07-10T10:00:00.000Z")}
+      />,
+    );
+
+    expect(markup).toContain("Course objectif-sponsor");
+    expect(markup).toContain('aria-label="Objectif sponsor"');
+    expect(markup).toContain("bg-[#FFF9DF]");
+  });
 });
 
-function createCalendar(
-  editions: RaceCalendarEdition[],
-): SeasonRaceCalendar {
+function createCalendar(editions: RaceCalendarEdition[]): SeasonRaceCalendar {
   return {
     seasonId: "season-1",
     seasonName: "Saison 1",
@@ -144,11 +164,13 @@ function createEdition(
     minimumRosterSize,
     registrationPolicy = "open",
     startDay,
+    isSponsorObjective = false,
   }: {
     minimumReputation: number;
     minimumRosterSize: number;
     registrationPolicy?: RaceCalendarEdition["registrationPolicy"];
     startDay: number;
+    isSponsorObjective?: boolean;
   },
 ): RaceCalendarEdition {
   return {
@@ -165,6 +187,7 @@ function createEdition(
     prestigeRank: 10,
     raceFormat: "one_day",
     competitionType: "standard",
+    isSponsorObjective,
     registrationClosesAt: "2026-07-11T22:00:00.000Z",
     wildcardClosesAt: null,
     withdrawalClosesAt: null,
