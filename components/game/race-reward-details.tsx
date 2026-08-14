@@ -41,14 +41,14 @@ export function RaceRewardDetails({
 
   return (
     <details
-      className={`group overflow-hidden rounded-xl border ${
+      className={`group w-full min-w-0 max-w-full overflow-hidden rounded-xl border ${
         isDark
           ? "border-white/12 bg-white/[0.06] text-white"
           : "border-[#315B3E]/12 bg-white text-[#0B302B] shadow-sm"
       } ${className}`}
     >
       <summary
-        className={`flex cursor-pointer list-none items-center gap-3 px-4 ${
+        className={`flex min-w-0 cursor-pointer list-none items-center gap-3 px-4 ${
           compact ? "py-2.5" : "py-3"
         } transition marker:content-none [&::-webkit-details-marker]:hidden ${
           isDark ? "hover:bg-white/[0.05]" : "hover:bg-[#F3F8F5]"

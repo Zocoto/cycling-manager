@@ -249,7 +249,7 @@ export async function RaceProfileContent({
         maxWidth="wide"
       />
 
-      <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
+      <section className="mx-auto w-full min-w-0 max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <Link
           href="/jeu/calendrier"
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#176951] transition hover:text-[#0B302B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176951]"
@@ -258,7 +258,7 @@ export async function RaceProfileContent({
           Retour au calendrier
         </Link>
 
-        <article className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
+        <article className="mt-5 w-full min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white/90 shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
           <header
             className="relative overflow-hidden px-6 py-8 text-white sm:px-10 sm:py-10"
             style={{
@@ -317,7 +317,7 @@ export async function RaceProfileContent({
             </div>
           </header>
 
-          <div className="p-5 sm:p-8 lg:p-10">
+          <div className="min-w-0 p-5 sm:p-8 lg:p-10">
             {successMessage === "confirmee" ? (
               <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
                 Votre équipe est bien inscrite à cette course.
@@ -336,8 +336,8 @@ export async function RaceProfileContent({
               </div>
             ) : null}
 
-            <div className="grid gap-8 xl:grid-cols-[minmax(0,1.5fr)_minmax(330px,0.65fr)]">
-              <div>
+            <div className="grid min-w-0 grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.5fr)_minmax(330px,0.65fr)]">
+              <div className="min-w-0">
                 <section>
                   <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
                     Parcours
@@ -433,8 +433,8 @@ export async function RaceProfileContent({
                 </section>
               </div>
 
-              <aside className="space-y-5">
-                <div id="inscription" className="scroll-mt-24">
+              <aside className="w-full min-w-0 max-w-full space-y-5">
+                <div id="inscription" className="min-w-0 max-w-full scroll-mt-24">
                   <RegistrationPanel
                     edition={edition}
                     context={raceUserContext}
@@ -446,7 +446,7 @@ export async function RaceProfileContent({
                   <RaceRewardDetails edition={edition} className="mt-3" />
                 </div>
 
-                <section className="rounded-2xl border border-[#315B3E]/15 bg-white p-6 shadow-sm">
+                <section className="min-w-0 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm sm:p-6">
                   <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
                     Informations
                   </p>
@@ -1213,7 +1213,7 @@ function SecondaryClassifications({
     );
 
   return (
-    <section className="rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-6">
+    <section className="min-w-0 rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-4 sm:p-6">
       <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#176951]">
         Classements annexes
       </p>
@@ -1240,10 +1240,12 @@ function ClassificationRow({
   isPresent: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#315B3E]/10 bg-white px-4 py-3">
-      <span className="text-sm font-bold text-[#315B3E]">{label}</span>
+    <div className="flex min-w-0 flex-col items-start gap-2 rounded-xl border border-[#315B3E]/10 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <span className="min-w-0 break-words text-sm font-bold text-[#315B3E]">
+        {label}
+      </span>
       <span
-        className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+        className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
           isPresent
             ? "bg-[#D7EEE8] text-[#176951]"
             : "bg-[#EDF2EF] text-[#688176]"
@@ -1257,9 +1259,13 @@ function ClassificationRow({
 
 function DefinitionRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[#315B3E]/10 pb-4 last:border-none last:pb-0">
-      <dt className="text-sm font-semibold text-[#688176]">{label}</dt>
-      <dd className="text-right text-sm font-black text-[#0B302B]">{value}</dd>
+    <div className="grid min-w-0 gap-1.5 border-b border-[#315B3E]/10 pb-4 last:border-none last:pb-0 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:gap-4">
+      <dt className="min-w-0 break-words text-sm font-semibold text-[#688176]">
+        {label}
+      </dt>
+      <dd className="min-w-0 break-words text-left text-sm font-black text-[#0B302B] sm:text-right">
+        {value}
+      </dd>
     </div>
   );
 }
