@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { saveRacePreparationAction } from "./actions";
+import { saveRacePreparationAction, saveTimeTrialPreparationAction } from "./actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import {
@@ -154,9 +154,9 @@ export default async function RacePreparationPage({
               Préparation de course
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-[#D6DFD2] sm:text-base">
-              Redéfinissez les rôles, confiez des missions précises, préparez le
-              matériel et jusqu’à deux offensives par étape. Une fois le départ
-              donné, le plan est figé dans le scénario officiel.
+              Préparez le matériel, les rôles et les offensives des courses en
+              ligne, puis dosez l’effort et les relais des contre-la-montre.
+              Au départ, chaque plan est figé dans le scénario officiel.
             </p>
           </div>
         </header>
@@ -199,6 +199,7 @@ export default async function RacePreparationPage({
           ) : editions.length > 0 ? (
             <RacePreparationWorkspace
               action={saveRacePreparationAction}
+              timeTrialAction={saveTimeTrialPreparationAction}
               editions={editions}
               nowIso={now.toISOString()}
               initialSlug={readSingleSearchParam(resolvedSearchParams.course)}

@@ -11,6 +11,14 @@ const migration = readFileSync(
   "utf8",
 );
 
+const timeTrialMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260814160000_add_time_trial_race_preparations.sql",
+  ),
+  "utf8",
+);
+
 const workspace = readFileSync(
   join(
     process.cwd(),
@@ -55,9 +63,21 @@ describe("race preparation console migration", () => {
     expect(workspace).toContain("RACE_PREPARATION_RATING_AXES.map");
   });
 
-  it("replaces time-trial forms with the dedicated message", () => {
-    expect(workspace).toContain("<TimeTrialPreparationNotice");
-    expect(workspace).toContain("Chrono : pas de planification");
-    expect(workspace).toContain("!isTimeTrialPreparationStage(stage)");
+  it("replaces the historical block with a dedicated time-trial form", () => {
+    expect(workspace).toContain("<TimeTrialPreparationForm");
+    expect(workspace).toContain("Total des relais");
+    expect(workspace).toContain("TIME_TRIAL_EFFORT_MODES.map");
+    expect(workspace).not.toContain("Chrono : pas de planification");
+  });
+
+  it("persists complete time-trial plans and enforces a 100 percent relay total", () => {
+    expect(timeTrialMigration).toContain(
+      "create table public.race_time_trial_rider_plans",
+    );
+    expect(timeTrialMigration).toContain(
+      "save_current_team_time_trial_preparation",
+    );
+    expect(timeTrialMigration).toContain("v_relay_total is distinct from 100");
+    expect(timeTrialMigration).toContain("calculate_prepared_stage_form_cost");
   });
 });

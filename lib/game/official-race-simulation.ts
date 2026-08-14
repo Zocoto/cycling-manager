@@ -29,7 +29,8 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
 };
 
-export const OFFICIAL_RACE_ENGINE_VERSION = "2026.08-race-objectives-v10";
+export const OFFICIAL_RACE_ENGINE_VERSION =
+  "2026.08-time-trial-preparation-v11";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

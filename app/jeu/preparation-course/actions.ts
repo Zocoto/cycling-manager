@@ -20,6 +20,11 @@ import {
   isRaceStrategyValue,
   type RaceAttackOrder,
 } from "@/lib/game/race-strategy";
+import {
+  isTimeTrialEffortMode,
+  type TimeTrialEffortMode,
+} from "@/lib/game/time-trial-preparation";
+import type { RaceStageType } from "@/lib/game/race-calendar";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function saveRacePreparationAction(formData: FormData) {
@@ -107,6 +112,74 @@ export async function saveRacePreparationAction(formData: FormData) {
       attackOrders,
     },
   });
+
+  if (error) {
+    redirectWithError(
+      `/jeu/preparation-course?course=${encodeURIComponent(slug)}`,
+      error.message,
+    );
+  }
+
+  revalidatePath("/jeu/preparation-course");
+  revalidatePath(`/jeu/courses/${slug}`);
+  revalidatePath("/jeu/resultats");
+  revalidatePath("/jeu");
+  redirect(
+    `/jeu/preparation-course?course=${encodeURIComponent(slug)}&etape=${stageNumber}&enregistrement=confirme#etape-${stageId}`,
+  );
+}
+
+export async function saveTimeTrialPreparationAction(formData: FormData) {
+  const editionId = readFormValue(formData, "editionId");
+  const stageId = readFormValue(formData, "stageId");
+  const stageNumber = readFormValue(formData, "stageNumber");
+  const stageType = readFormValue(formData, "stageType") as RaceStageType;
+  const slug = readFormValue(formData, "slug");
+  const plans = readTimeTrialPlans(formData);
+  const isTeamTimeTrial = stageType === "team_time_trial";
+
+  if (
+    !isUuid(editionId) ||
+    !isUuid(stageId) ||
+    !isSlug(slug) ||
+    !/^\d+$/.test(stageNumber) ||
+    !["individual_time_trial", "team_time_trial", "prologue"].includes(
+      stageType,
+    ) ||
+    !plans ||
+    plans.length === 0 ||
+    (isTeamTimeTrial &&
+      Math.abs(
+        plans.reduce(
+          (total, plan) => total + (plan.relaySharePct ?? 0),
+          0,
+        ) - 100,
+      ) > 0.001)
+  ) {
+    redirectWithError(
+      `/jeu/preparation-course${slug ? `?course=${encodeURIComponent(slug)}` : ""}`,
+      isTeamTimeTrial
+        ? "La répartition des relais doit couvrir toute l’équipe et totaliser exactement 100 %."
+        : "Le plan du contre-la-montre transmis est incomplet ou invalide.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) redirect("/connexion");
+
+  const { error } = await supabase.rpc(
+    "save_current_team_time_trial_preparation",
+    {
+      p_race_edition_id: editionId,
+      p_stage_id: stageId,
+      p_plan: plans,
+    },
+  );
 
   if (error) {
     redirectWithError(
@@ -253,6 +326,58 @@ function readAttackOrders(formData: FormData): RaceAttackOrder[] | null {
   }
 
   return orders;
+}
+
+function readTimeTrialPlans(formData: FormData): Array<{
+  riderId: string;
+  effortMode: TimeTrialEffortMode;
+  relaySharePct: number | null;
+}> | null {
+  const serialized = readFormValue(formData, "timeTrialPlans");
+  let entries: unknown;
+
+  try {
+    entries = JSON.parse(serialized || "[]");
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(entries) || entries.length === 0) return null;
+
+  const plans: Array<{
+    riderId: string;
+    effortMode: TimeTrialEffortMode;
+    relaySharePct: number | null;
+  }> = [];
+  const riderIds = new Set<string>();
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") return null;
+    const candidate = entry as Record<string, unknown>;
+    const riderId =
+      typeof candidate.riderId === "string" ? candidate.riderId : "";
+    const effortMode = candidate.effortMode;
+    const relaySharePct =
+      candidate.relaySharePct === null
+        ? null
+        : Number(candidate.relaySharePct);
+
+    if (
+      !isUuid(riderId) ||
+      riderIds.has(riderId) ||
+      !isTimeTrialEffortMode(effortMode) ||
+      (relaySharePct !== null &&
+        (!Number.isFinite(relaySharePct) ||
+          relaySharePct < 0 ||
+          relaySharePct > 100))
+    ) {
+      return null;
+    }
+
+    riderIds.add(riderId);
+    plans.push({ riderId, effortMode, relaySharePct });
+  }
+
+  return plans;
 }
 
 function readOptionalRiderId(formData: FormData, key: string) {
