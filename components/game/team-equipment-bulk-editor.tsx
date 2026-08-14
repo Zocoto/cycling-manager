@@ -6,11 +6,16 @@ import { useFormStatus } from "react-dom";
 import { saveTeamEquipmentAssignmentsAction } from "@/app/jeu/materiel/actions";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TeamEquipmentDesktopTable } from "@/components/game/team-equipment-desktop-table";
+import { TeamEquipmentRiderRatings } from "@/components/game/team-equipment-rider-ratings";
 import {
   EQUIPMENT_CATEGORIES,
   EQUIPMENT_SLOTS,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
+import {
+  formatTeamEquipmentOptionLabel,
+  getTeamEquipmentAvailabilityLabel,
+} from "@/lib/game/team-equipment-selection";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   TeamEquipmentAssignment,
@@ -278,6 +283,10 @@ export function TeamEquipmentBulkEditor({
                   {equippedCount === SLOT_ORDER.length ? "Complet" : "À compléter"}
                 </span>
               </div>
+              <TeamEquipmentRiderRatings
+                riderName={`${rider.firstName} ${rider.lastName}`}
+                ratings={rider.ratings}
+              />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {SLOT_ORDER.map((slot) => {
@@ -319,7 +328,7 @@ export function TeamEquipmentBulkEditor({
                                 !item.isUnlimited && remaining <= 0 && !isSelected
                               }
                             >
-                              {item.name} · {getEquipmentAvailabilityLabel(item, usage)}
+                              {formatTeamEquipmentOptionLabel(item, usage)}
                             </option>
                           );
                         })}
@@ -440,14 +449,7 @@ export function getEquipmentItemCapacity(
   return item.isUnlimited ? riderCount : item.ownedQuantity;
 }
 
-export function getEquipmentAvailabilityLabel(
-  item: TeamEquipmentCatalogItem,
-  usage: number,
-) {
-  if (item.isUnlimited) return "dotation illimitée";
-  const remaining = Math.max(0, item.ownedQuantity - usage);
-  return `${remaining} libre${remaining > 1 ? "s" : ""}`;
-}
+export { getTeamEquipmentAvailabilityLabel as getEquipmentAvailabilityLabel };
 export function buildInitialEquipmentValues({
   riders,
   assignments,

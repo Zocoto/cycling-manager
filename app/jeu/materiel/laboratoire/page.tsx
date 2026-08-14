@@ -298,7 +298,7 @@ function MaterialNavigation() {
     ["/jeu/materiel", "Matériel commercial"],
     ["/jeu/materiel/equipementier", "Équipementier"],
     ["/jeu/materiel/laboratoire", "Labo R&D"],
-    ["/jeu/materiel/equiper", "Équiper l’équipe"],
+    ["/jeu/materiel/equiper", "Équiper les coureurs"],
   ];
   return (
     <nav

@@ -1,10 +1,12 @@
 "use client";
 
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { TeamEquipmentRiderRatings } from "@/components/game/team-equipment-rider-ratings";
 import {
   EQUIPMENT_CATEGORIES,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
+import { formatTeamEquipmentOptionLabel } from "@/lib/game/team-equipment-selection";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
 import type {
   TeamEquipmentCatalogItem,
@@ -42,12 +44,12 @@ export function TeamEquipmentDesktopTable({
       className="mt-4 hidden overflow-hidden rounded-[1.6rem] border border-[#315B3E]/12 bg-white shadow-[0_12px_34px_rgba(19,60,46,0.06)] lg:block"
     >
       <div className="overflow-x-auto" tabIndex={0}>
-        <table className="w-full min-w-[1440px] table-fixed border-separate border-spacing-0">
+        <table className="w-full min-w-[1520px] table-fixed border-separate border-spacing-0">
           <thead>
             <tr className="bg-[#0B302B] text-white">
               <th
                 scope="col"
-                className="sticky left-0 z-30 w-[220px] border-b border-r border-white/10 bg-[#0B302B] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.14em]"
+                className="sticky left-0 z-30 w-[300px] border-b border-r border-white/10 bg-[#0B302B] px-4 py-3 text-left text-[10px] font-black uppercase tracking-[0.14em]"
               >
                 Coureur
               </th>
@@ -101,6 +103,10 @@ export function TeamEquipmentDesktopTable({
                         </p>
                       </div>
                     </div>
+                    <TeamEquipmentRiderRatings
+                      riderName={`${rider.firstName} ${rider.lastName}`}
+                      ratings={rider.ratings}
+                    />
                   </th>
                   {slots.map((slot) => {
                     const key = riderSlotKey(rider.id, slot);
@@ -145,7 +151,7 @@ export function TeamEquipmentDesktopTable({
                                     !isSelected
                                   }
                                 >
-                                  {item.name} · {availabilityLabel(item, usage)}
+                                  {formatTeamEquipmentOptionLabel(item, usage)}
                                 </option>
                               );
                             })}
@@ -189,10 +195,4 @@ function slotLabel(slot: EquipmentSlot) {
     EQUIPMENT_CATEGORIES.find((category) => category.slot === slot)
       ?.shortLabel ?? slot
   );
-}
-
-function availabilityLabel(item: TeamEquipmentCatalogItem, usage: number) {
-  if (item.isUnlimited) return "dotation illimitée";
-  const remaining = Math.max(0, item.ownedQuantity - usage);
-  return `${remaining} libre${remaining > 1 ? "s" : ""}`;
 }

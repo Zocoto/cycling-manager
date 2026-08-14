@@ -95,7 +95,7 @@ describe("administration groupée du matériel", () => {
   it("rend le nouvel onglet accessible depuis toute la rubrique", () => {
     for (const page of [materialPage, partnerPage, teamEquipmentPage]) {
       expect(page).toContain('href="/jeu/materiel/equiper"');
-      expect(page).toContain("Équiper l’équipe");
+      expect(page).toContain("Équiper les coureurs");
     }
   });
 
@@ -108,6 +108,21 @@ describe("administration groupée du matériel", () => {
           lastName: "Martin",
           avatarProfileKey: null,
           avatarSeed: null,
+          ratings: {
+            mountain: 60,
+            hills: 61,
+            recovery: 62,
+            endurance: 63,
+            resistance: 64,
+            breakaway: 65,
+            downhill: 66,
+            acceleration: 67,
+            sprint: 68,
+            flat: 69,
+            cobbles: 70,
+            prologue: 71,
+            timeTrial: 72,
+          },
         },
       ],
       assignments: [

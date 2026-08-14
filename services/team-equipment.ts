@@ -6,6 +6,7 @@ import {
   type EquipmentEffects,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
+import type { RiderRatings } from "@/lib/game/rider-profile";
 import { calculateEquipmentResalePrice } from "@/lib/game/equipment-resale";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -63,6 +64,22 @@ type RiderRow = {
   last_name: string;
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
+};
+type RatingRow = {
+  rider_id: string;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
 };
 type EquippedRow = {
   rider_id: string;
@@ -138,6 +155,7 @@ export type TeamEquipmentRider = {
   lastName: string;
   avatarProfileKey: string | null;
   avatarSeed: number | string | null;
+  ratings: RiderRatings | null;
 };
 
 export type TeamEquipmentOverview = {
@@ -403,7 +421,7 @@ async function loadEquipmentContext(
       ];
   assertQuery(partnerEffectsResult.error, "les effets de la dotation partenaire");
   assertQuery(partnerProductsResult.error, "la gamme du partenaire");
-  const [equippedResult, ridersResult] = rosterRiderIds.length
+  const [equippedResult, ridersResult, ratingsResult] = rosterRiderIds.length
     ? await Promise.all([
         admin
           .from("rider_equipment_assignments")
@@ -417,14 +435,24 @@ async function loadEquipmentContext(
           .order("last_name", { ascending: true })
           .order("first_name", { ascending: true })
           .returns<RiderRow[]>(),
+        admin
+          .from("rider_season_ratings")
+          .select(
+            "rider_id, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+          )
+          .eq("season_id", season.id)
+          .in("rider_id", rosterRiderIds)
+          .returns<RatingRow[]>(),
       ])
     : [
         { data: [] as EquippedRow[], error: null },
         { data: [] as RiderRow[], error: null },
+        { data: [] as RatingRow[], error: null },
       ];
 
   assertQuery(equippedResult.error, "les équipements attribués");
   assertQuery(ridersResult.error, "les coureurs de l’effectif");
+  assertQuery(ratingsResult.error, "les notes des coureurs de l’effectif");
 
   const inventoryByItem = new Map(
     (inventoryResult.data ?? []).map((row) => [
@@ -432,15 +460,22 @@ async function loadEquipmentContext(
       row.quantity,
     ]),
   );
+  const ratingsByRiderId = new Map(
+    (ratingsResult.data ?? []).map((rating) => [rating.rider_id, rating]),
+  );
   const pendingRows = pendingResult.data ?? [];
   const equippedRows = equippedResult.data ?? [];
-  const riders = (ridersResult.data ?? []).map((rider) => ({
-    id: rider.id,
-    firstName: rider.first_name,
-    lastName: rider.last_name,
-    avatarProfileKey: rider.avatar_profile_key,
-    avatarSeed: rider.avatar_seed,
-  })) satisfies TeamEquipmentRider[];
+  const riders = (ridersResult.data ?? []).map((rider) => {
+    const rating = ratingsByRiderId.get(rider.id);
+    return {
+      id: rider.id,
+      firstName: rider.first_name,
+      lastName: rider.last_name,
+      avatarProfileKey: rider.avatar_profile_key,
+      avatarSeed: rider.avatar_seed,
+      ratings: rating ? toRiderRatings(rating) : null,
+    };
+  }) satisfies TeamEquipmentRider[];
   const supplierByKey = new Map(
     (suppliersResult.data ?? []).map((supplier) => [
       supplier.supplier_key,
@@ -546,6 +581,24 @@ async function loadEquipmentContext(
 function toNumber(value: unknown): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toRiderRatings(row: RatingRow): RiderRatings {
+  return {
+    mountain: row.mountain,
+    hills: row.hills,
+    recovery: row.recovery,
+    endurance: row.endurance,
+    resistance: row.resistance,
+    breakaway: row.breakaway,
+    downhill: row.downhill,
+    acceleration: row.acceleration,
+    sprint: row.sprint,
+    flat: row.flat,
+    cobbles: row.cobbles,
+    prologue: row.prologue,
+    timeTrial: row.time_trial,
+  };
 }
 
 function assertQuery(

@@ -175,7 +175,7 @@ export default async function MaterialPage({
             href="/jeu/materiel/equiper"
             className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
           >
-            Équiper l’équipe
+            Équiper les coureurs
           </Link>
         </nav>
 
@@ -203,7 +203,7 @@ export default async function MaterialPage({
               </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
                 Constituez l’inventaire de {overview.teamName}, puis attribuez
-                toutes les pièces depuis l’onglet Équiper l’équipe. Les bonus
+                toutes les pièces depuis l’onglet Équiper les coureurs. Les bonus
                 sportifs se cumulent pendant les courses.
               </p>
             </div>
