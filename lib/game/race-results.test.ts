@@ -4,6 +4,7 @@ import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
   normalizeOfficialResultGapsToLeader,
+  shouldCancelUncontestedRaceEdition,
   shouldSettleRaceEdition,
 } from "./race-results";
 
@@ -53,6 +54,47 @@ describe("race settlement selection", () => {
       ),
     ).toBe(true);
     expect(shouldSettleRaceEdition({ id: "completed-healthy", status: "completed" }, incompleteCompletedIds)).toBe(false);
+  });
+});
+
+describe("uncontested race cancellation", () => {
+  const finishedStage = {
+    departureAt: null,
+    distanceKm: 150,
+    status: "completed" as const,
+  };
+
+  it("cancels an expired standard race without a viable field", () => {
+    expect(
+      shouldCancelUncontestedRaceEdition({
+        competitionType: "standard",
+        engagedRiderCount: 1,
+        stages: [finishedStage],
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps a viable race and a race whose start is still pending", () => {
+    expect(
+      shouldCancelUncontestedRaceEdition({
+        competitionType: "standard",
+        engagedRiderCount: 2,
+        stages: [finishedStage],
+      }),
+    ).toBe(false);
+    expect(
+      shouldCancelUncontestedRaceEdition({
+        competitionType: "standard",
+        engagedRiderCount: 0,
+        stages: [
+          {
+            departureAt: null,
+            distanceKm: 150,
+            status: "planned",
+          },
+        ],
+      }),
+    ).toBe(false);
   });
 });
 

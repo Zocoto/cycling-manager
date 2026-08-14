@@ -17,6 +17,7 @@ import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
   normalizeOfficialResultGapsToLeader,
+  shouldCancelUncontestedRaceEdition,
   shouldSettleRaceEdition,
   type OfficialAttackParticipant,
   type OfficialRaceEditionResults,
@@ -214,11 +215,37 @@ async function settleEditionRaceResults({
   lockedSimulations: LockedOfficialStageSimulation[];
 }) {
   const minimumFieldSize = edition.competitionType === "standard" ? 2 : 1;
+  if (
+    shouldCancelUncontestedRaceEdition(
+      {
+        competitionType: edition.competitionType,
+        engagedRiderCount: edition.engagedRiders.length,
+        stages: edition.stages,
+      },
+      now,
+    )
+  ) {
+    await cancelUncontestedRaceEdition(admin, edition);
+    return { processedStages: 0, completedEditions: 0 };
+  }
   if (edition.engagedRiders.length < minimumFieldSize) {
     return { processedStages: 0, completedEditions: 0 };
   }
 
   const rosterByRiderId = await loadRosterContext(admin, edition.id);
+  if (
+    shouldCancelUncontestedRaceEdition(
+      {
+        competitionType: edition.competitionType,
+        engagedRiderCount: rosterByRiderId.size,
+        stages: edition.stages,
+      },
+      now,
+    )
+  ) {
+    await cancelUncontestedRaceEdition(admin, edition);
+    return { processedStages: 0, completedEditions: 0 };
+  }
   if (rosterByRiderId.size < minimumFieldSize) {
     return { processedStages: 0, completedEditions: 0 };
   }
@@ -409,6 +436,28 @@ async function settleEditionRaceResults({
     processedStages,
     completedEditions: raceClassificationAlreadyComplete ? 0 : 1,
   };
+}
+
+async function cancelUncontestedRaceEdition(
+  admin: AdminClient,
+  edition: RaceCalendarEdition,
+) {
+  const { error: stagesError } = await admin
+    .from("stages")
+    .update({ status: "cancelled" })
+    .eq("race_edition_id", edition.id)
+    .in("status", ["planned", "in_progress"]);
+  assertQuery(stagesError, `l'annulation des étapes de ${edition.name}`);
+
+  const { error: editionError } = await admin
+    .from("race_editions")
+    .update({ status: "cancelled" })
+    .eq("id", edition.id)
+    .not("status", "in", '("completed","cancelled")');
+  assertQuery(
+    editionError,
+    `l'annulation de l'édition sans peloton ${edition.name}`,
+  );
 }
 
 /**

@@ -1,3 +1,5 @@
+import { getStageLiveState } from "./race-live";
+
 export type OfficialResultStatus =
   | "finished"
   | "did_not_start"
@@ -89,6 +91,28 @@ export type PersistedStageRaceStandings = {
     elapsedTimeSeconds: number;
   }>;
 };
+
+export function shouldCancelUncontestedRaceEdition(
+  edition: {
+    competitionType: string;
+    engagedRiderCount: number;
+    stages: Array<Parameters<typeof getStageLiveState>[0]>;
+  },
+  now = new Date(),
+) {
+  const minimumFieldSize = edition.competitionType === "standard" ? 2 : 1;
+  if (
+    edition.engagedRiderCount >= minimumFieldSize ||
+    edition.stages.length === 0
+  ) {
+    return false;
+  }
+
+  return edition.stages.every((stage) => {
+    const state = getStageLiveState(stage, now).status;
+    return state === "finished" || state === "cancelled";
+  });
+}
 
 export function shouldSettleRaceEdition(
   edition: { id: string; status?: string },

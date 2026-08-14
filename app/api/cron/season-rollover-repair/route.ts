@@ -1,5 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
+import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+import { settleFinishedRaceResults } from "@/services/race-results";
 
 export const maxDuration = 300;
 
@@ -9,6 +11,12 @@ export async function GET(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
+  const now = new Date();
+  const calendar = await getActiveSeasonRaceCalendar(admin, now);
+  const raceSettlement = calendar
+    ? await settleFinishedRaceResults(calendar, now)
+    : null;
+  console.info("Season rollover race preflight completed", raceSettlement);
   const result = await admin.rpc("settle_due_season_rollovers");
 
   if (result.error) {
