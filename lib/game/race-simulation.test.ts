@@ -6,6 +6,7 @@ import {
   applyStageTimeLimit,
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
+  assignRaceObjectiveDuties,
   buildStageRaceStandings,
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
@@ -1191,23 +1192,31 @@ describe("simulateRaceStage", () => {
   });
 
   it("laisse certaines échappées aller au bout sans rendre ce résultat systématique", () => {
-    const outcomes = Array.from({ length: 100 }, (_, index) =>
+    const simulations = Array.from({ length: 100 }, (_, index) =>
       simulateRaceStage(
         createDemoSimulationInput("collines-ardennes", index + 1),
       ),
-    ).map(
+    );
+    const successfulBreakaways = simulations.filter(
       (result) =>
         result.timeline
           .at(-1)
-          ?.commentary.some((message) => message.includes("ligne avec")) ??
-        false,
+          ?.commentary.some((message) => message.includes("ligne avec")),
     );
 
-    expect(outcomes).toContain(true);
-    expect(outcomes).toContain(false);
+    expect(successfulBreakaways.length).toBeGreaterThan(0);
+    expect(successfulBreakaways.length).toBeLessThan(simulations.length);
+    for (const simulation of successfulBreakaways) {
+      const winnerId = simulation.results.find(
+        (resultRow) => resultRow.rank === 1,
+      )?.riderId;
+      const winningGroup = simulation.timeline.at(-1)?.groups[0];
+      expect(winningGroup?.type).toBe("breakaway");
+      expect(winningGroup?.riderIds).toContain(winnerId);
+    }
   });
 
-  it("favorise nettement les puncheurs face aux baroudeurs sur une étape vallonnée", () => {
+  it("garde un avantage aux puncheurs sans neutraliser les baroudeurs sur les vallons", () => {
     const baseInput = createDemoSimulationInput("collines-ardennes", 1);
     const riders = [
       ...Array.from({ length: 4 }, (_, index) =>
@@ -1230,7 +1239,7 @@ describe("simulateRaceStage", () => {
       riderId.startsWith("puncheur-"),
     ).length;
 
-    expect(puncherWins).toBeGreaterThanOrEqual(84);
+    expect(puncherWins).toBeGreaterThan(60);
   });
 
   it("protège d'abord le grimpeur dans les côtes courtes puis use cet avantage par répétition", () => {
@@ -1744,6 +1753,48 @@ describe("simulateRaceStage", () => {
       peloton.gapToLeaderSeconds,
     );
     expect(affectedGroup.label).toContain("bordure");
+  });
+
+  it("respecte la consigne d’éviter l’échappée malgré un objectif de victoire", () => {
+    const baseInput = createDemoSimulationInput("haute-montagne", 1);
+    const teamId = baseInput.riders[0]!.teamId;
+    const riders = baseInput.riders
+      .filter((rider) => rider.teamId === teamId)
+      .map((rider) => ({ ...rider, raceDuty: null }));
+    const strategy = {
+      teamId,
+      objective: "stage_win" as const,
+      collectivePosture: "balanced" as const,
+      breakawayPolicy: "avoid" as const,
+      chasePolicy: "dangerous_breakaway" as const,
+      lieutenantRiderId: null,
+      dangerPacerRiderId: null,
+      protectorRiderId: null,
+      breakawayRiderId: null,
+      attackOrders: [],
+    };
+
+    const avoidingRiders = assignRaceObjectiveDuties({
+      ...baseInput,
+      riders,
+      teamStrategies: [strategy],
+    });
+    const opportunisticRiders = assignRaceObjectiveDuties({
+      ...baseInput,
+      riders,
+      teamStrategies: [
+        { ...strategy, breakawayPolicy: "opportunistic" as const },
+      ],
+    });
+
+    expect(
+      avoidingRiders.some((rider) => rider.raceDuty === "breakaway_candidate"),
+    ).toBe(false);
+    expect(
+      opportunisticRiders.some(
+        (rider) => rider.raceDuty === "breakaway_candidate",
+      ),
+    ).toBe(true);
   });
 
   it("exécute les ordres d’attaque préparés sur le tronçon demandé", () => {
