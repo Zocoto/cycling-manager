@@ -28,6 +28,11 @@ declare
   v_saved_rider_count integer;
   v_verified_rider_count integer;
   v_verified_rider_ids uuid[];
+  v_affected_registration_ids uuid[];
+  v_conflicting_registration_id uuid;
+  v_conflicting_race_name text;
+  v_conflicting_minimum_roster_size integer;
+  v_conflicting_active_roster_size integer;
 begin
   select
     edition.id,
@@ -127,8 +132,28 @@ begin
       on edition.id = v_edition_id
     join public.seasons as race_season
       on race_season.id = edition.season_id
-    where lower(btrim(rider.first_name)) = lower(v_requested_rider.first_name)
-      and lower(btrim(rider.last_name)) = lower(v_requested_rider.last_name)
+    where regexp_replace(
+        lower(btrim(rider.first_name)),
+        '[^[:alnum:]]',
+        '',
+        'g'
+      ) = regexp_replace(
+        lower(v_requested_rider.first_name),
+        '[^[:alnum:]]',
+        '',
+        'g'
+      )
+      and regexp_replace(
+        lower(btrim(rider.last_name)),
+        '[^[:alnum:]]',
+        '',
+        'g'
+      ) = regexp_replace(
+        lower(v_requested_rider.last_name),
+        '[^[:alnum:]]',
+        '',
+        'g'
+      )
       and rider.status = 'active'
       and start_season.game_year <= race_season.game_year
       and end_season.game_year >= race_season.game_year;
@@ -167,6 +192,110 @@ begin
   )
   into v_roster
   from unnest(v_rider_ids) with ordinality as selected(rider_id, ordinality);
+
+  if exists (
+    select 1
+    from unnest(v_rider_ids) as selected(rider_id)
+    join public.race_rosters as other_roster
+      on other_roster.rider_id = selected.rider_id
+     and other_roster.status in ('selected', 'confirmed')
+    join public.race_registrations as other_registration
+      on other_registration.id = other_roster.race_registration_id
+     and other_registration.status = 'accepted'
+    join public.race_editions as other_edition
+      on other_edition.id = other_registration.race_edition_id
+     and other_edition.id <> v_edition_id
+    where other_registration.team_season_id <> v_team_season_id
+      and exists (
+        select 1
+        from public.stages as target_stage
+        join public.stages as other_stage
+          on other_stage.season_day_id = target_stage.season_day_id
+         and other_stage.race_edition_id = other_edition.id
+        where target_stage.race_edition_id = v_edition_id
+      )
+  ) then
+    raise exception using
+      errcode = 'P0001',
+      message = 'Un coureur est engage par une autre equipe sur une course qui chevauche le Grand Tour italien.';
+  end if;
+
+  with conflicting_rosters as (
+    select
+      other_roster.race_registration_id,
+      other_roster.rider_id
+    from unnest(v_rider_ids) as selected(rider_id)
+    join public.race_rosters as other_roster
+      on other_roster.rider_id = selected.rider_id
+     and other_roster.status in ('selected', 'confirmed')
+    join public.race_registrations as other_registration
+      on other_registration.id = other_roster.race_registration_id
+     and other_registration.status = 'accepted'
+     and other_registration.team_season_id = v_team_season_id
+    join public.race_editions as other_edition
+      on other_edition.id = other_registration.race_edition_id
+     and other_edition.id <> v_edition_id
+    where exists (
+      select 1
+      from public.stages as target_stage
+      join public.stages as other_stage
+        on other_stage.season_day_id = target_stage.season_day_id
+       and other_stage.race_edition_id = other_edition.id
+      where target_stage.race_edition_id = v_edition_id
+    )
+  ), withdrawn_overlaps as (
+    update public.race_rosters as roster
+    set status = 'withdrawn'
+    from conflicting_rosters as conflict
+    where roster.race_registration_id = conflict.race_registration_id
+      and roster.rider_id = conflict.rider_id
+    returning roster.race_registration_id
+  )
+  select array_agg(distinct withdrawn.race_registration_id)
+  into v_affected_registration_ids
+  from withdrawn_overlaps as withdrawn;
+
+  for v_conflicting_registration_id in
+    select affected.registration_id
+    from unnest(
+      coalesce(v_affected_registration_ids, array[]::uuid[])
+    ) as affected(registration_id)
+  loop
+    select
+      edition.display_name,
+      category.minimum_roster_size,
+      count(roster.id) filter (
+        where roster.status in ('selected', 'confirmed')
+      )::integer
+    into strict
+      v_conflicting_race_name,
+      v_conflicting_minimum_roster_size,
+      v_conflicting_active_roster_size
+    from public.race_registrations as registration
+    join public.race_editions as edition
+      on edition.id = registration.race_edition_id
+    join public.race_categories as category
+      on category.id = edition.race_category_id
+    left join public.race_rosters as roster
+      on roster.race_registration_id = registration.id
+    where registration.id = v_conflicting_registration_id
+    group by
+      edition.display_name,
+      category.minimum_roster_size;
+
+    if v_conflicting_minimum_roster_size is null
+      or v_conflicting_active_roster_size < v_conflicting_minimum_roster_size
+    then
+      raise exception using
+        errcode = 'P0001',
+        message = format(
+          'Retirer un coureur de %s ferait tomber la composition a %s coureurs, sous le minimum de %s.',
+          v_conflicting_race_name,
+          v_conflicting_active_roster_size,
+          v_conflicting_minimum_roster_size
+        );
+    end if;
+  end loop;
 
   select count(*)::integer
   into v_accepted_team_count
