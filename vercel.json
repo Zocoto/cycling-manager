@@ -3,6 +3,7 @@
   "regions": ["cdg1"],
   "crons": [
     { "path": "/api/cron/game-maintenance", "schedule": "5 23 * * *" },
+    { "path": "/api/cron/push-notifications", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/race-settlements/early-summer-10", "schedule": "10 12 * * *" },
     { "path": "/api/cron/race-settlements/early-summer-20", "schedule": "20 12 * * *" },
     { "path": "/api/cron/race-settlements/early-summer-30", "schedule": "30 12 * * *" },

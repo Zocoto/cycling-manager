@@ -9,6 +9,7 @@ import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
+import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
 import { WheelLogo } from "@/components/ui/wheel-logo";
@@ -160,6 +161,8 @@ export function GameHeader({
           ) : null}
 
           <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
+
+          <PushNotificationControl />
 
           <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
