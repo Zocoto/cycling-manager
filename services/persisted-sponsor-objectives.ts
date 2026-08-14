@@ -16,8 +16,8 @@ import type {
 } from "@/types/sponsor-objective";
 
 const OBJECTIVE_COUNT_PER_OFFER = 10;
-const OBJECTIVE_COMPLETION_ATTEMPTS = 4;
-const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 50;
+const OBJECTIVE_COMPLETION_ATTEMPTS = 8;
+const OBJECTIVE_COMPLETION_RETRY_DELAY_MS = 125;
 
 type SupabaseAdminClient = ReturnType<
   typeof createSupabaseAdminClient
@@ -637,7 +637,13 @@ function hydrateSponsorObjective(
     objectiveRow.satisfaction_points
   );
 
-  if (!Number.isInteger(satisfactionPoints) || satisfactionPoints <= 0) {
+  const minimumSatisfactionPoints =
+    objectiveRow.status === "cancelled" ? 0 : 1;
+
+  if (
+    !Number.isInteger(satisfactionPoints) ||
+    satisfactionPoints < minimumSatisfactionPoints
+  ) {
     throw new Error(
       `Poids de satisfaction invalide pour l’objectif ${objectiveRow.id}.`
     );
