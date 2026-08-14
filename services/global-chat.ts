@@ -60,6 +60,7 @@ export type GlobalChatIdentity = {
   teamName: string;
   teamHref: string;
 };
+export type OnlineGlobalChatDirector = GlobalChatIdentity;
 
 export type GlobalChatMessageRow = {
   id: string;
@@ -94,6 +95,9 @@ type GlobalChatIdentityRow = {
   team_id: string;
   team_name: string;
 };
+type OnlineGlobalChatDirectorRow = GlobalChatIdentityRow & {
+  last_seen_at: string;
+};
 
 const GLOBAL_CHAT_MESSAGE_SELECT = [
   "id",
@@ -122,20 +126,29 @@ export async function getGlobalChatOverview(
   supabase: SupabaseServerClient,
 ): Promise<{
   identity: GlobalChatIdentity;
+  onlineDirectors: OnlineGlobalChatDirector[];
   messages: GlobalChatMessage[];
   hasMore: boolean;
   nextCursor: GlobalChatCursor | null;
 }> {
-  const [identityResult, messagePage] = await Promise.all([
+  const [identityResult, messagePage, onlineDirectors] = await Promise.all([
     supabase.rpc("get_current_global_chat_identity"),
     getGlobalChatMessagePage(supabase, {
       limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
+    }),
+    getOnlineGlobalChatDirectors(supabase).catch((error) => {
+      console.error(
+        "Impossible de charger les Directeurs Sportifs récemment actifs.",
+        error,
+      );
+      return [];
     }),
   ]);
 
   if (identityResult.error) {
     throw new Error(
-      `Impossible de charger votre identité dans le chat : ${identityResult.error.message}`,
+      "Impossible de charger votre identité dans le chat : " +
+        identityResult.error.message,
     );
   }
 
@@ -148,15 +161,67 @@ export async function getGlobalChatOverview(
     );
   }
 
+  const identity = mapGlobalChatIdentity(identityRow);
+
   return {
-    identity: {
-      sportingDirectorId: identityRow.sporting_director_id,
-      displayName: identityRow.display_name,
-      teamId: identityRow.team_id,
-      teamName: identityRow.team_name,
-      teamHref: `/jeu/equipes/${identityRow.team_id}`,
-    },
+    identity,
+    onlineDirectors: mergeOnlineGlobalChatDirectors(
+      onlineDirectors,
+      identity,
+    ),
     ...messagePage,
+  };
+}
+
+export async function getOnlineGlobalChatDirectors(
+  supabase: SupabaseServerClient,
+): Promise<OnlineGlobalChatDirector[]> {
+  const onlineResult = await supabase.rpc(
+    "get_online_global_chat_directors",
+  );
+  if (onlineResult.error) {
+    throw new Error(
+      "Impossible de charger les joueurs en ligne : " +
+        onlineResult.error.message,
+    );
+  }
+
+  return ((onlineResult.data as OnlineGlobalChatDirectorRow[] | null) ?? [])
+    .map(mapGlobalChatIdentity)
+    .sort((left, right) =>
+      left.displayName.localeCompare(right.displayName, "fr"),
+    );
+}
+
+export function mergeOnlineGlobalChatDirectors(
+  directors: OnlineGlobalChatDirector[],
+  currentDirector: GlobalChatIdentity,
+) {
+  const directorsById = new Map(
+    directors.map((director) => [director.sportingDirectorId, director]),
+  );
+  directorsById.set(currentDirector.sportingDirectorId, currentDirector);
+
+  return [...directorsById.values()].sort((left, right) => {
+    if (left.sportingDirectorId === currentDirector.sportingDirectorId) {
+      return -1;
+    }
+    if (right.sportingDirectorId === currentDirector.sportingDirectorId) {
+      return 1;
+    }
+    return left.displayName.localeCompare(right.displayName, "fr");
+  });
+}
+
+function mapGlobalChatIdentity(
+  row: GlobalChatIdentityRow,
+): GlobalChatIdentity {
+  return {
+    sportingDirectorId: row.sporting_director_id,
+    displayName: row.display_name,
+    teamId: row.team_id,
+    teamName: row.team_name,
+    teamHref: "/jeu/equipes/" + row.team_id,
   };
 }
 

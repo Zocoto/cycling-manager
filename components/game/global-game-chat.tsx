@@ -34,6 +34,7 @@ import {
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
+import { GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS } from "@/lib/game/game-presence";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   GlobalChatIdentity,
@@ -41,23 +42,20 @@ import type {
   GlobalChatMessagePage,
   GlobalChatMessageRow,
   GlobalChatReactionRow,
+  OnlineGlobalChatDirector,
 } from "@/services/global-chat";
 
-type OnlineDirector = {
-  sportingDirectorId: string;
-  displayName: string;
-  teamId: string;
-  teamName: string;
-  teamHref: string;
-};
+type OnlineDirector = OnlineGlobalChatDirector;
 
 export function GlobalGameChat({
   identity,
+  initialOnlineDirectors,
   initialMessages,
   initialHasMore,
   initialCursor,
 }: {
   identity: GlobalChatIdentity;
+  initialOnlineDirectors: OnlineGlobalChatDirector[];
   initialMessages: GlobalChatMessage[];
   initialHasMore: boolean;
   initialCursor: GlobalChatCursor | null;
@@ -75,9 +73,9 @@ export function GlobalGameChat({
   const [olderCursor, setOlderCursor] = useState(initialCursor);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [onlineDirectors, setOnlineDirectors] = useState<OnlineDirector[]>([
-    identity,
-  ]);
+  const [onlineDirectors, setOnlineDirectors] = useState<OnlineDirector[]>(() =>
+    readOnlineDirectors(initialOnlineDirectors, identity),
+  );
   const [draft, setDraft] = useState("");
 
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
@@ -152,18 +150,7 @@ export function GlobalGameChat({
 
   useEffect(() => {
     const channel = supabase
-      .channel("global-game-chat:v1", {
-        config: {
-          presence: {
-            key: identity.sportingDirectorId,
-          },
-        },
-      })
-      .on("presence", { event: "sync" }, () => {
-        setOnlineDirectors(
-          readOnlineDirectors(channel.presenceState(), identity),
-        );
-      })
+      .channel("global-game-chat:v1")
       .on(
         "postgres_changes",
         {
@@ -191,24 +178,67 @@ export function GlobalGameChat({
           setMessages((current) => upsertRealtimeMessage(current, message));
         },
       )
-      .subscribe(async (status: string) => {
-        if (status !== "SUBSCRIBED") return;
-
-        await channel.track({
-          sportingDirectorId: identity.sportingDirectorId,
-          displayName: identity.displayName,
-          teamId: identity.teamId,
-          teamName: identity.teamName,
-          teamHref: identity.teamHref,
-          onlineAt: new Date().toISOString(),
-        });
-      });
+      .subscribe();
 
     return () => {
-      void channel.untrack();
       void supabase.removeChannel(channel);
     };
-  }, [identity, supabase]);
+  }, [supabase]);
+
+  useEffect(() => {
+    let disposed = false;
+    let refreshing = false;
+
+    async function refreshOnlineDirectors() {
+      if (
+        disposed ||
+        refreshing ||
+        document.visibilityState !== "visible"
+      ) {
+        return;
+      }
+
+      refreshing = true;
+      try {
+        const response = await fetch("/jeu/chat/online", {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        const payload = (await response.json()) as { directors?: unknown };
+        if (response.ok && !disposed) {
+          setOnlineDirectors(
+            readOnlineDirectors(payload.directors, identity),
+          );
+        }
+      } catch {
+        // Conserve la dernière liste connue si le rafraîchissement échoue.
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void refreshOnlineDirectors();
+      }
+    }
+
+    const intervalId = window.setInterval(
+      () => void refreshOnlineDirectors(),
+      GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
+    );
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("online", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("online", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [identity]);
 
   const draftLimit = getGlobalChatDraftLimit(selectedReaction);
 
@@ -1095,15 +1125,15 @@ function getMessageExcerpt(message: string) {
 }
 
 function readOnlineDirectors(
-  presenceState: Record<string, unknown[]>,
+  value: unknown,
   fallbackIdentity: GlobalChatIdentity,
 ): OnlineDirector[] {
   const byDirectorId = new Map<string, OnlineDirector>();
 
-  for (const presences of Object.values(presenceState)) {
-    for (const presence of presences) {
-      if (!isOnlineDirector(presence)) continue;
-      byDirectorId.set(presence.sportingDirectorId, presence);
+  if (Array.isArray(value)) {
+    for (const director of value) {
+      if (!isOnlineDirector(director)) continue;
+      byDirectorId.set(director.sportingDirectorId, director);
     }
   }
 

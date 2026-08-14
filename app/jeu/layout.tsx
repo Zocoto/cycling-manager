@@ -3,6 +3,7 @@ import "flag-icons/css/flag-icons.min.css";
 import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
+import { GamePresenceHeartbeat } from "@/components/game/game-presence-heartbeat";
 import { GameRouteLoading } from "@/components/game/game-route-loading";
 import {
   TutorialProvider,
@@ -23,11 +24,13 @@ type SupabaseServerClient = Awaited<
 async function synchronizeGameEntryState(
   supabase: SupabaseServerClient,
 ): Promise<void> {
-  const [dailyReputation, academyTrainingSettlement, attendance] = await Promise.all([
-    supabase.rpc("settle_current_team_staff_daily_reputation"),
-    supabase.rpc("settle_due_staff_academy_trainings"),
-    supabase.rpc("record_current_sporting_director_attendance"),
-  ]);
+  const [dailyReputation, academyTrainingSettlement, attendance, presence] =
+    await Promise.all([
+      supabase.rpc("settle_current_team_staff_daily_reputation"),
+      supabase.rpc("settle_due_staff_academy_trainings"),
+      supabase.rpc("record_current_sporting_director_attendance"),
+      supabase.rpc("record_current_game_presence"),
+    ]);
 
   if (dailyReputation.error) {
     console.error(
@@ -47,6 +50,13 @@ async function synchronizeGameEntryState(
     console.error(
       "Impossible d’enregistrer la présence quotidienne du Directeur Sportif.",
       attendance.error,
+    );
+  }
+
+  if (presence.error) {
+    console.error(
+      "Impossible d’enregistrer la présence récente du Directeur Sportif.",
+      presence.error,
     );
   }
 }
@@ -96,6 +106,7 @@ async function GameRuntime({ children }: { children: ReactNode }) {
   return (
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
       {children}
+      <GamePresenceHeartbeat />
     </TutorialProvider>
   );
 }
