@@ -12,7 +12,7 @@ import {
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260814160000_track_recent_game_presence.sql",
+    "supabase/migrations/20260814180000_track_recent_game_presence.sql",
   ),
   "utf8",
 ).replace(/\r\n/g, "\n");
