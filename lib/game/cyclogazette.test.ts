@@ -4,6 +4,7 @@ import {
   formatCyclogazetteStageLabel,
   getParisDateKey,
   getParisHour,
+  isItalianGrandTourGazetteDay,
   repairCyclogazetteText,
   repairCyclogazetteValue,
   selectLatestCyclogazetteEveningStages,
@@ -18,6 +19,20 @@ describe("horaire de publication de La Cyclogazette", () => {
 
   it("reconnaît 20 h à Paris pendant l’heure d’hiver", () => {
     expect(getParisHour(new Date("2026-01-10T19:00:00Z"))).toBe(20);
+  });
+});
+
+describe("édition rose du Grand Tour italien", () => {
+  it("active le thème de J2 à J7 inclus à chaque saison", () => {
+    expect(isItalianGrandTourGazetteDay(2)).toBe(true);
+    expect(isItalianGrandTourGazetteDay(5)).toBe(true);
+    expect(isItalianGrandTourGazetteDay(7)).toBe(true);
+  });
+
+  it("conserve le thème classique avant le Tour et à partir de J8", () => {
+    expect(isItalianGrandTourGazetteDay(1)).toBe(false);
+    expect(isItalianGrandTourGazetteDay(8)).toBe(false);
+    expect(isItalianGrandTourGazetteDay(28)).toBe(false);
   });
 });
 

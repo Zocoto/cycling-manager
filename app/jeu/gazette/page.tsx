@@ -6,6 +6,7 @@ import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper"
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
 import { GameHeader } from "@/components/game/game-header";
 import { MediaCenterComposer } from "@/components/game/media-center-composer";
+import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -58,9 +59,14 @@ export default async function CyclogazettePage({
   const community = edition
     ? await getCyclogazetteCommunity(edition.id, user.id)
     : null;
+  const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
+    edition?.dayNumber ?? 0,
+  );
 
   return (
-    <main className="min-h-screen bg-[#D9D4C8] text-[#082A2A]">
+    <main
+      className={`min-h-screen text-[#082A2A] ${isItalianGrandTourEdition ? "bg-[#DDA6B3]" : "bg-[#D9D4C8]"}`}
+    >
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}
