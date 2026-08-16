@@ -63,6 +63,26 @@ const EMBEDDED_TRANSLATIONS = Object.entries(UI_TRANSLATIONS)
   })
   .sort(([left], [right]) => right.length - left.length);
 
+const EMBEDDED_TRANSLATIONS_BY_ANCHOR = new Map<
+  string,
+  Array<(typeof EMBEDDED_TRANSLATIONS)[number]>
+>();
+const UNANCHORED_EMBEDDED_TRANSLATIONS: Array<
+  (typeof EMBEDDED_TRANSLATIONS)[number]
+> = [];
+
+for (const translation of EMBEDDED_TRANSLATIONS) {
+  const anchor = getTranslationAnchor(translation[0]);
+  if (!anchor) {
+    UNANCHORED_EMBEDDED_TRANSLATIONS.push(translation);
+    continue;
+  }
+
+  const translations = EMBEDDED_TRANSLATIONS_BY_ANCHOR.get(anchor) ?? [];
+  translations.push(translation);
+  EMBEDDED_TRANSLATIONS_BY_ANCHOR.set(anchor, translations);
+}
+
 export function normalizeUiText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -77,7 +97,7 @@ export function translateUiText(value: string): string {
   }
 
   let translated = normalized;
-  for (const [source, target] of EMBEDDED_TRANSLATIONS) {
+  for (const [source, target] of getEmbeddedTranslationCandidates(normalized)) {
     if (translated.includes(source)) translated = translated.replaceAll(source, target);
   }
 
@@ -85,6 +105,37 @@ export function translateUiText(value: string): string {
   return normalizedEnglish === normalized
     ? value
     : preserveOuterWhitespace(value, normalizedEnglish);
+}
+
+function getEmbeddedTranslationCandidates(
+  value: string,
+): Array<(typeof EMBEDDED_TRANSLATIONS)[number]> {
+  const candidates = new Set<(typeof EMBEDDED_TRANSLATIONS)[number]>(
+    UNANCHORED_EMBEDDED_TRANSLATIONS,
+  );
+
+  for (const token of value.match(/[\p{L}\p{N}]+/gu) ?? []) {
+    const translations = EMBEDDED_TRANSLATIONS_BY_ANCHOR.get(
+      token.toLocaleLowerCase("fr"),
+    );
+    if (!translations) continue;
+    for (const translation of translations) candidates.add(translation);
+  }
+
+  return [...candidates].sort(
+    ([left], [right]) => right.length - left.length,
+  );
+}
+
+function getTranslationAnchor(value: string): string | null {
+  const tokens = value.match(/[\p{L}\p{N}]+/gu) ?? [];
+  const longestToken = tokens.reduce<string | null>(
+    (longest, token) =>
+      !longest || token.length > longest.length ? token : longest,
+    null,
+  );
+
+  return longestToken?.toLocaleLowerCase("fr") ?? null;
 }
 
 function normalizeEnglishTerminology(value: string): string {

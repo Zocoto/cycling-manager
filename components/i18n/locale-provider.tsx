@@ -8,9 +8,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import dynamic from "next/dynamic";
 
 import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n/config";
-import { DocumentLocaleBridge } from "@/components/i18n/document-locale-bridge";
+
+const DocumentLocaleBridge = dynamic(
+  () =>
+    import("@/components/i18n/document-locale-bridge").then(
+      (module) => module.DocumentLocaleBridge,
+    ),
+  { ssr: false },
+);
 
 type LocaleContextValue = {
   locale: AppLocale;
@@ -40,7 +48,7 @@ export function LocaleProvider({
 
   return (
     <LocaleContext.Provider value={value}>
-      <DocumentLocaleBridge locale={locale} />
+      {locale === "en" ? <DocumentLocaleBridge locale={locale} /> : null}
       {children}
     </LocaleContext.Provider>
   );

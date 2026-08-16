@@ -201,7 +201,20 @@ const movementTypes = [
   "free_agent",
 ] as const;
 
+const getCachedPublicGameNews = unstable_cache(
+  loadPublicGameNews,
+  ["public-game-news"],
+  {
+    revalidate: 60,
+    tags: ["public-game-news"],
+  },
+);
+
 export async function getPublicGameNews(): Promise<PublicGameNewsSnapshot> {
+  return getCachedPublicGameNews();
+}
+
+async function loadPublicGameNews(): Promise<PublicGameNewsSnapshot> {
   let admin: AdminClient;
 
   try {

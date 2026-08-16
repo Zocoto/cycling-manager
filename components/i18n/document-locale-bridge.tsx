@@ -60,7 +60,10 @@ export function DocumentLocaleBridge({ locale }: { locale: AppLocale }) {
     });
 
     observe(observer, root);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      restoreTree(root);
+    };
   }, [locale]);
 
   return null;
