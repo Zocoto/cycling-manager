@@ -93,7 +93,9 @@ type SpecialAbilityRow = {
 export async function getRaceSimulatorCalendar(now = new Date()) {
   const admin = createSupabaseAdminClient();
 
-  return getActiveSeasonRaceCalendar(admin, now);
+  return getActiveSeasonRaceCalendar(admin, now, {
+    includeIneligibleRegionalRaces: true,
+  });
 }
 
 export async function getRaceSimulatorTeams(): Promise<RaceSimulatorTeam[]> {

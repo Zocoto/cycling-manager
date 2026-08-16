@@ -1,4 +1,9 @@
-export type RaceTier = "national" | "continental" | "world" | "elite";
+export type RaceTier =
+  | "regional"
+  | "national"
+  | "continental"
+  | "world"
+  | "elite";
 
 export type RaceRewardScope = "one_day" | "tour" | "grand_tour";
 
@@ -77,11 +82,17 @@ type StagePrizeRule = {
 };
 
 const STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
-  national: [
+  regional: [
     { maxRank: 1, cashPrize: 600, uciPoints: 10 },
     { maxRank: 2, cashPrize: 350, uciPoints: 6 },
     { maxRank: 3, cashPrize: 200, uciPoints: 4 },
     { maxRank: 5, cashPrize: 100, uciPoints: 2 },
+  ],
+  national: [
+    { maxRank: 1, cashPrize: 1_200, uciPoints: 18 },
+    { maxRank: 2, cashPrize: 700, uciPoints: 10 },
+    { maxRank: 3, cashPrize: 400, uciPoints: 6 },
+    { maxRank: 5, cashPrize: 150, uciPoints: 3 },
   ],
   continental: [
     { maxRank: 1, cashPrize: 1_800, uciPoints: 25 },
@@ -106,7 +117,7 @@ const STAGE_PRIZE_SCALES: Record<RaceTier, StagePrizeRule[]> = {
 };
 
 const REWARD_SCALES: Record<RaceTier, Record<RaceRewardScope, RewardScale>> = {
-  national: {
+  regional: {
     one_day: createScale({
       placements: [
         [1, 1, 35, 1_200, 25],
@@ -133,6 +144,35 @@ const REWARD_SCALES: Record<RaceTier, Record<RaceRewardScope, RewardScale>> = {
       placements: [[1, 2, 65, 3_000, 50]],
       secondary: [1, 30, 700, 18],
       prime: [4, 75, 2],
+    }),
+  },
+  national: {
+    one_day: createScale({
+      placements: [
+        [1, 2, 50, 2_500, 40],
+        [2, 1, 32, 1_400, 25],
+        [3, 0, 22, 800, 16],
+        [5, 0, 14, 300, 10],
+        [10, 0, 8, 0, 3],
+      ],
+      secondary: [1, 35, 800, 18],
+      prime: [5, 100, 2],
+    }),
+    tour: createScale({
+      placements: [
+        [1, 3, 85, 6_000, 80],
+        [2, 2, 58, 3_500, 55],
+        [3, 1, 40, 2_000, 38],
+        [5, 0, 25, 750, 22],
+        [10, 0, 12, 0, 7],
+      ],
+      secondary: [2, 42, 1_200, 25],
+      prime: [5, 100, 2],
+    }),
+    grand_tour: createScale({
+      placements: [[1, 3, 85, 6_000, 80]],
+      secondary: [2, 42, 1_200, 25],
+      prime: [5, 100, 2],
     }),
   },
   continental: {

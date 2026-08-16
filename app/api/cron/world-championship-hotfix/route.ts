@@ -17,7 +17,9 @@ export async function GET(request: Request) {
 
   const now = new Date();
   const admin = createSupabaseAdminClient();
-  const calendar = await getActiveSeasonRaceCalendar(admin, now);
+  const calendar = await getActiveSeasonRaceCalendar(admin, now, {
+    includeIneligibleRegionalRaces: true,
+  });
 
   if (!calendar) {
     return Response.json({

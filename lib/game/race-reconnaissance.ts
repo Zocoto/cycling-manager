@@ -28,6 +28,10 @@ const RECONNAISSANCE_COSTS: Record<
     one_day: 4_000,
     stage_race: 3_000,
   },
+  regional: {
+    one_day: 2_500,
+    stage_race: 2_000,
+  },
 };
 
 export function getRaceReconnaissanceCost({

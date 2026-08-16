@@ -7,6 +7,7 @@ export const RACE_CATEGORY_CODES = [
   "world",
   "continental",
   "national",
+  "regional",
 ] as const;
 
 export const RACE_DAY_SLOTS = ["early", "late"] as const;
@@ -264,6 +265,13 @@ export const RACE_CATEGORY_STYLE: Record<
     background: "#F2C94C",
     foreground: "#17261E",
     border: "#B99525",
+  },
+  regional: {
+    label: "Régional",
+    shortLabel: "RÉG",
+    background: "#D7DADD",
+    foreground: "#293138",
+    border: "#8B9298",
   },
 };
 

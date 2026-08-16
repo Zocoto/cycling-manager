@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   RACE_CATEGORY_CODES,
+  RACE_CATEGORY_STYLE,
   buildCalendarWeeks,
   getEditionDayRange,
   getEffectiveSeasonDay,
@@ -185,6 +186,15 @@ describe("getRegistrationAvailability", () => {
     expect(getRaceCategoryReputationThreshold("continental")).toBe(100);
     expect(getRaceCategoryReputationThreshold("world")).toBe(200);
     expect(getRaceCategoryReputationThreshold("national")).toBeNull();
+    expect(getRaceCategoryReputationThreshold("regional")).toBeNull();
+  });
+
+  it("affiche les Régionales avec une identité grise dédiée", () => {
+    expect(RACE_CATEGORY_STYLE.regional).toMatchObject({
+      label: "Régional",
+      shortLabel: "RÉG",
+      background: "#D7DADD",
+    });
   });
 
   it.each([

@@ -39,6 +39,12 @@ describe("race reconnaissance", () => {
         raceFormat: "one_day",
       }),
     ).toBe(4_000);
+    expect(
+      getRaceReconnaissanceCost({
+        categoryCode: "regional",
+        raceFormat: "one_day",
+      }),
+    ).toBe(2_500);
   });
 
   it("charges a single tour stage less than a full one-day race", () => {

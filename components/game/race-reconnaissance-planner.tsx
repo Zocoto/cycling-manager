@@ -32,6 +32,7 @@ const CATEGORY_COLORS = {
   world: "border-[#B8543E] bg-[#FCEAE5] text-[#8C3E2E]",
   continental: "border-[#36855A] bg-[#E6F4EB] text-[#246744]",
   national: "border-[#D1A41A] bg-[#FFF5C9] text-[#735A08]",
+  regional: "border-[#8B9298] bg-[#EEF0F1] text-[#3F474D]",
 } as const;
 
 export function RaceReconnaissancePlanner({

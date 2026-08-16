@@ -13,6 +13,7 @@ import {
   type RegistrationPolicy,
   type SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -77,6 +78,12 @@ type CountryRow = {
   id: string;
   name: string;
   iso_alpha2: string;
+  continent_code: string | null;
+};
+
+type RegionalRaceContextRow = {
+  team_continent_code: string | null;
+  is_amateur: boolean;
 };
 
 type RegistrationRow = {
@@ -103,7 +110,13 @@ export async function getDashboardRaceCalendar(
     currentDayNumber: number;
   },
 ): Promise<SeasonRaceCalendar> {
-  const [editionsResult, daysResult, registrationsResult, sponsorObjectivesResult] = await Promise.all([
+  const [
+    editionsResult,
+    daysResult,
+    registrationsResult,
+    sponsorObjectivesResult,
+    regionalRaceContextResult,
+  ] = await Promise.all([
     supabase
       .from("race_editions")
       .select(
@@ -120,15 +133,23 @@ export async function getDashboardRaceCalendar(
       .returns<DayRow[]>(),
     supabase.rpc("get_current_team_calendar_registrations"),
     supabase.rpc("get_current_team_sponsor_objective_races"),
+    supabase.rpc("get_current_team_regional_race_context"),
   ]);
 
   assertQuery(editionsResult.error, "les courses du bureau");
   assertQuery(daysResult.error, "les journées de la saison");
   assertQuery(registrationsResult.error, "les inscriptions de l'équipe");
   assertQuery(sponsorObjectivesResult.error, "les objectifs sponsor");
+  assertQuery(
+    regionalRaceContextResult.error,
+    "l’éligibilité aux courses régionales",
+  );
 
   const editions = editionsResult.data ?? [];
   const sponsorObjectiveEditionIds = new Set(((sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []).map((objective) => objective.race_edition_id));
+  const regionalRaceContext =
+    ((regionalRaceContextResult.data as RegionalRaceContextRow[] | null) ??
+      [])[0] ?? null;
   const editionIds = editions.map((edition) => edition.id);
   const raceIds = unique(editions.map((edition) => edition.race_id));
   const categoryIds = unique(
@@ -175,7 +196,7 @@ export async function getDashboardRaceCalendar(
   const countriesResult = countryIds.length
     ? await supabase
         .from("countries")
-        .select("id, name, iso_alpha2")
+        .select("id, name, iso_alpha2, continent_code")
         .in("id", countryIds)
         .returns<CountryRow[]>()
     : emptyResult<CountryRow>();
@@ -228,6 +249,20 @@ export async function getDashboardRaceCalendar(
     const stages = stagesByEditionId.get(edition.id) ?? [];
 
     if (!race || !category || !country || !isRaceCategoryCode(category.code)) {
+      return [];
+    }
+    if (
+      !canTeamAccessRaceCategory({
+        categoryCode: category.code,
+        raceContinentCode: country.continent_code,
+        context: regionalRaceContext
+          ? {
+              isAmateur: regionalRaceContext.is_amateur,
+              teamContinentCode: regionalRaceContext.team_continent_code,
+            }
+          : null,
+      })
+    ) {
       return [];
     }
     if (!stages.length) return [];

@@ -12,6 +12,7 @@ import {
   type RaceProfileType,
   type RegistrationPolicy,
 } from "@/lib/game/race-calendar";
+import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = {
@@ -47,7 +48,13 @@ type RiderRow = {
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
 };
-type CountryRow = { id: string; name: string; iso_alpha2: string };
+type CountryRow = {
+  id: string;
+  name: string;
+  iso_alpha2: string;
+  continent_code: string;
+};
+type SponsorContractRow = { id: string };
 type ConditionRow = {
   rider_id: string;
   season_day_id: string;
@@ -250,6 +257,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     editionsResult,
     categoriesResult,
     missionsResult,
+    activePrincipalSponsorsResult,
   ] = await Promise.all([
     admin
       .from("season_days")
@@ -290,6 +298,14 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
       .neq("status", "cancelled")
       .order("created_at", { ascending: false })
       .returns<ReconnaissanceRow[]>(),
+    admin
+      .from("team_sponsor_contracts")
+      .select("id")
+      .eq("team_id", teamSeason.team_id)
+      .eq("role", "principal")
+      .eq("status", "active")
+      .limit(1)
+      .returns<SponsorContractRow[]>(),
   ]);
 
   assertQuery(daysResult.error, "les journées de saison");
@@ -298,6 +314,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   assertQuery(editionsResult.error, "les éditions de course");
   assertQuery(categoriesResult.error, "les catégories de course");
   assertQuery(missionsResult.error, "les missions de reconnaissance");
+  assertQuery(
+    activePrincipalSponsorsResult.error,
+    "le statut amateur de l'équipe",
+  );
 
   const days = daysResult.data ?? [];
   const riderIds = (contractsResult.data ?? []).map(
@@ -423,12 +443,13 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     ...new Set([
       ...riderRows.map((rider) => rider.country_id),
       ...races.map((race) => race.country_id),
+      teamSeason.registration_country_id,
     ]),
   ];
   const countriesResult = countryIds.length
     ? await admin
         .from("countries")
-        .select("id, name, iso_alpha2")
+        .select("id, name, iso_alpha2, continent_code")
         .in("id", countryIds)
         .returns<CountryRow[]>()
     : emptyResult<CountryRow>();
@@ -447,6 +468,12 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   const countryById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
+  const regionalRaceContext = {
+    isAmateur: (activePrincipalSponsorsResult.data ?? []).length === 0,
+    teamContinentCode:
+      countryById.get(teamSeason.registration_country_id)?.continent_code ??
+      null,
+  };
   const categoryById = new Map(
     (categoriesResult.data ?? []).map((category) => [category.id, category]),
   );
@@ -612,6 +639,11 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         !country ||
         editionDays.length === 0 ||
         !isRaceCategoryCode(category.code) ||
+        !canTeamAccessRaceCategory({
+          categoryCode: category.code,
+          raceContinentCode: country.continent_code,
+          context: regionalRaceContext,
+        }) ||
         stage.status !== "planned" ||
         day.day_number <= endDayNumber ||
         !canTeamRecognizeRace({

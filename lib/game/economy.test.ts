@@ -47,7 +47,7 @@ describe("calculateRaceReward", () => {
 
   it("credite tous les classements annexes d'un tour", () => {
     const reward = calculateRaceReward({
-      tier: "national",
+      tier: "regional",
       scope: "tour",
       finalRank: null,
       secondaryClassifications: ["mountain", "sprint", "youth", "team"],
@@ -60,7 +60,7 @@ describe("calculateRaceReward", () => {
 
   it("attribue des points UCI au-delà du podium sans donner de réputation", () => {
     const reward = calculateRaceReward({
-      tier: "national",
+      tier: "regional",
       scope: "one_day",
       finalRank: 8,
     });
@@ -68,6 +68,32 @@ describe("calculateRaceReward", () => {
     expect(reward.reputation).toBe(0);
     expect(reward.experience).toBe(6);
     expect(reward.uciPoints).toBe(2);
+  });
+
+  it("transfère l'ancien barème National aux Régionales et revalorise le National", () => {
+    const regional = calculateRaceReward({
+      tier: "regional",
+      scope: "one_day",
+      finalRank: 1,
+    });
+    const national = calculateRaceReward({
+      tier: "national",
+      scope: "one_day",
+      finalRank: 1,
+    });
+
+    expect(regional).toEqual({
+      reputation: 1,
+      experience: 35,
+      cashPrize: 1_200,
+      uciPoints: 25,
+    });
+    expect(national).toEqual({
+      reputation: 2,
+      experience: 50,
+      cashPrize: 2_500,
+      uciPoints: 40,
+    });
   });
 
   it("expose le detail financier du general, des annexes et des primes", () => {
@@ -118,18 +144,25 @@ describe("calculateNationalChampionshipReward", () => {
 
 describe("calculateStagePrize", () => {
   it("récompense les meilleures places d'une étape selon la catégorie", () => {
-    expect(calculateStagePrize({ tier: "national", finalRank: 1 })).toBe(600);
+    expect(calculateStagePrize({ tier: "regional", finalRank: 1 })).toBe(600);
+    expect(calculateStagePrize({ tier: "national", finalRank: 1 })).toBe(1_200);
     expect(calculateStagePrize({ tier: "continental", finalRank: 4 })).toBe(250);
     expect(calculateStagePrize({ tier: "world", finalRank: 8 })).toBe(250);
     expect(calculateStagePrize({ tier: "elite", finalRank: 2 })).toBe(7_000);
   });
 
   it("attribue des points UCI aux meilleures places d'etape", () => {
-    expect(calculateStageReward({ tier: "national", finalRank: 1 })).toEqual({
+    expect(calculateStageReward({ tier: "regional", finalRank: 1 })).toEqual({
       reputation: 0,
       experience: 0,
       cashPrize: 600,
       uciPoints: 10,
+    });
+    expect(calculateStageReward({ tier: "national", finalRank: 1 })).toEqual({
+      reputation: 0,
+      experience: 0,
+      cashPrize: 1_200,
+      uciPoints: 18,
     });
     expect(
       calculateStageReward({ tier: "continental", finalRank: 2 }).uciPoints,

@@ -9,7 +9,7 @@ const migration = readFileSync(
     "supabase/migrations/20260816143000_reward_hidden_switchback_discovery.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 const profileAction = readFileSync(
   resolve(process.cwd(), "app/jeu/directeur-sportif/actions.ts"),
   "utf8",

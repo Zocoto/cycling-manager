@@ -49,6 +49,7 @@ import {
 } from "@/lib/game/race-profiles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { TeamDivisionCode } from "@/lib/game/economy";
+import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import {
   chunkValues,
   collectChunkedPaginatedRows,
@@ -205,6 +206,12 @@ type CountryRow = {
   id: string;
   name: string;
   iso_alpha2: string;
+  continent_code: string | null;
+};
+
+type RegionalRaceContextRow = {
+  team_continent_code: string | null;
+  is_amateur: boolean;
 };
 
 type SportingDirectorReputationRow = {
@@ -295,6 +302,7 @@ export type RaceTeamSponsorVisual = {
 type ActiveSeasonCalendarLoadOptions = {
   raceSlug?: string;
   includeEngagedRiders?: boolean;
+  includeIneligibleRegionalRaces?: boolean;
 };
 
 type RiderCountryRow = {
@@ -631,6 +639,7 @@ export async function getActiveSeasonRaceCalendar(
     editionsResult,
     registrationsResult,
     sponsorObjectivesResult,
+    regionalRaceContextResult,
   ] = await Promise.all([
     supabase
       .from("season_days")
@@ -647,6 +656,9 @@ export async function getActiveSeasonRaceCalendar(
 
     supabase.rpc("get_current_team_calendar_registrations"),
     supabase.rpc("get_current_team_sponsor_objective_races"),
+    options.includeIneligibleRegionalRaces
+      ? Promise.resolve({ data: null, error: null })
+      : supabase.rpc("get_current_team_regional_race_context"),
   ]);
 
   if (daysResult.error) {
@@ -671,6 +683,11 @@ export async function getActiveSeasonRaceCalendar(
       `Impossible de charger les objectifs sponsor : ${sponsorObjectivesResult.error.message}`,
     );
   }
+  if (regionalRaceContextResult.error) {
+    throw new Error(
+      `Impossible de vérifier l’éligibilité aux courses régionales : ${regionalRaceContextResult.error.message}`,
+    );
+  }
 
   const editionRows = editionsResult.data ?? [];
   const editionIds = editionRows.map((edition) => edition.id);
@@ -680,6 +697,10 @@ export async function getActiveSeasonRaceCalendar(
       (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []
     ).map((objective) => objective.race_edition_id),
   );
+  const regionalRaceContext = options.includeIneligibleRegionalRaces
+    ? null
+    : (((regionalRaceContextResult.data as RegionalRaceContextRow[] | null) ??
+        [])[0] ?? null);
   // Les RPC sont plafonnées à 1 000 lignes par PostgREST : on pagine pour ne
   // jamais tronquer les startlists (source des simulations officielles).
   const engagedRidersResult = includeEngagedRiders
@@ -1155,7 +1176,7 @@ export async function getActiveSeasonRaceCalendar(
           fetchPage: async (chunk, from, to) => {
             const result = await supabase
               .from("countries")
-              .select("id, name, iso_alpha2")
+              .select("id, name, iso_alpha2, continent_code")
               .in("id", chunk)
               .order("id", { ascending: true })
               .range(from, to)
@@ -1227,6 +1248,22 @@ export async function getActiveSeasonRaceCalendar(
         !category ||
         !country ||
         !isRaceCategoryCode(category.code)
+      ) {
+        return null;
+      }
+
+      if (
+        !options.includeIneligibleRegionalRaces &&
+        !canTeamAccessRaceCategory({
+          categoryCode: category.code,
+          raceContinentCode: country.continent_code,
+          context: regionalRaceContext
+            ? {
+                isAmateur: regionalRaceContext.is_amateur,
+                teamContinentCode: regionalRaceContext.team_continent_code,
+              }
+            : null,
+        })
       ) {
         return null;
       }
