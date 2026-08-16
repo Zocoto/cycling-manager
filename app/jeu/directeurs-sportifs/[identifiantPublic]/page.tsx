@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { SportingDirectorTrophyTile } from "@/components/game/sporting-director-trophy-tile";
@@ -72,13 +73,7 @@ export default async function PublicSportingDirectorPage({
       />
 
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <Link
-          href={`/jeu/recherche?q=${encodeURIComponent(profile.public_identifier)}`}
-          className="inline-flex items-center gap-2 text-sm font-bold text-[#176951] transition hover:text-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour à la recherche
-        </Link>
+        <ProfileBackButton fallbackHref="/jeu/recherche" />
 
         <div className="mt-5 overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-[0_24px_70px_rgba(19,60,46,0.12)]">
           <div className="bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-9 text-[#FFFDF4] sm:px-10">

@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
+import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profile-view";
@@ -291,6 +292,11 @@ export default async function RiderProfilePage({
       />
 
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+        <ProfileBackButton
+          fallbackHref={profile.canManage ? "/jeu/effectif" : "/jeu/recherche"}
+          className="mb-5"
+        />
+
         {query.equipement ? (
           <p className="mb-5 rounded-2xl border border-[#42B99A]/25 bg-[#DFF5EA] px-5 py-4 text-sm font-bold text-[#176951]">
             {query.equipement === "retire"

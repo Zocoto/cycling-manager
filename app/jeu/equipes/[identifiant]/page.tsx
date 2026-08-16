@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
+import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RankingBadge } from "@/components/game/ranking-badge";
@@ -140,13 +141,7 @@ export default async function PublicTeamPage({
       />
 
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <Link
-          href={`/jeu/recherche?q=${encodeURIComponent(team.display_name)}`}
-          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--team-primary)] transition hover:text-[var(--team-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)]"
-        >
-          <span aria-hidden="true">←</span>
-          Retour à la recherche
-        </Link>
+        <ProfileBackButton fallbackHref="/jeu/recherche" tone="team" />
 
         <div className="mt-5 overflow-hidden rounded-[2rem] border border-[var(--team-line)] bg-white shadow-[0_24px_70px_var(--team-shadow)]">
           <div

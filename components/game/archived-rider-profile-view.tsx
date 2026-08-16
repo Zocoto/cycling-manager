@@ -1,5 +1,6 @@
 import Link from "@/components/ui/app-link";
 import { GameHeader } from "@/components/game/game-header";
+import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   CONTINENTAL_CHAMPION_PALETTES,
@@ -33,6 +34,8 @@ export function ArchivedRiderProfileView({
       />
 
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+        <ProfileBackButton fallbackHref="/jeu/recherche" className="mb-5" />
+
         <p className="mb-4 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#60756E]">
           <span aria-hidden="true">⌛</span>
           Fiche historique · carrière terminée
