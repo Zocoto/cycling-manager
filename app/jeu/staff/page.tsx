@@ -533,32 +533,6 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
         )}
       </div>
 
-      <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
-          Connexions fonctionnelles
-        </p>
-        <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-          Un modèle prêt pour le triptyque
-        </h2>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <ConnectionCard
-            title="Effet actif immédiatement"
-            detail="Le community manager augmente automatiquement chaque gain de réputation de 2 à 10 %."
-          />
-          <ConnectionCard
-            title="Soins actifs"
-            detail="Médecins, kinés et nutritionnistes sont reliés au centre de soin, avec effets et capacités dépendant de leur niveau."
-          />
-          <ConnectionCard
-            title="Reconnaissances"
-            detail="Le préparateur de parcours augmente de 5 à 25 % le bonus gagné sur l’étape étudiée."
-          />
-          <ConnectionCard
-            title="Relève et futurs chantiers"
-            detail="Le niveau du scout renforce déjà le potentiel et les notes initiales des jeunes. L’architecte réduira coût et durée de 5 à 25 % dès l’ouverture des chantiers."
-          />
-        </div>
-      </article>
     </section>
   );
 }
@@ -940,17 +914,6 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
     <div className="mt-5 rounded-[2rem] border border-dashed border-[#315B3E]/25 bg-white/70 px-6 py-14 text-center">
       <h3 className="text-xl font-black text-[#183F37]">{title}</h3>
       <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-[#60756E]">
-        {detail}
-      </p>
-    </div>
-  );
-}
-
-function ConnectionCard({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="rounded-2xl border border-[#315B3E]/10 bg-[#F3F8F6] p-5">
-      <h3 className="font-black text-[#183F37]">{title}</h3>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
         {detail}
       </p>
     </div>
