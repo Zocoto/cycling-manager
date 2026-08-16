@@ -43,6 +43,22 @@ const gamePillars = [
 
 const productNews = [
   {
+    category: "Saison 2",
+    title: "La saison 2 ouvre le bêta test",
+    description:
+      "Cyclo Stratège entre en bêta test avec un objectif clair : accueillir davantage de directeurs sportifs et éprouver le concept avec un volume de joueurs plus important.",
+    dateTime: "2026-08-16",
+    dateLabel: "16 août 2026",
+    accent: "leader",
+    href: "/inscription",
+    linkLabel: "Rejoindre la saison 2",
+    image: "/images/peloton-header.webp",
+    imageAlt: "Un peloton lancé sur les routes de Cyclo Stratège",
+    visualLabel: "Saison",
+    visualValue: "2",
+    visualStatus: "Bêta test",
+  },
+  {
     category: "Mise \u00e0 jour",
     title: "Le Patch 4 d\u00e9veloppe vos infrastructures",
     description:
@@ -183,9 +199,6 @@ function ProductNews() {
           News du jeu
         </h2>
         <span aria-hidden="true" className="h-px flex-1 bg-[#315B3E]/20" />
-        <span className="shrink-0 rounded-full bg-[#082A2A] px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#8DE3C9]">
-          Pré-alpha
-        </span>
       </div>
 
       <article className="relative mt-4 overflow-hidden rounded-2xl border border-[#8DE3C9]/25 bg-[#082A2A] p-6 text-[#FFFDF4] shadow-[0_24px_65px_rgba(7,26,23,0.28)] sm:p-8">
@@ -245,13 +258,13 @@ function ProductNews() {
             />
             <div className="absolute inset-x-0 bottom-0 p-5 text-right">
               <span className="block text-xs font-black uppercase tracking-[0.2em] text-[#8DE3C9]">
-                Patch
+                {featuredNews.visualLabel}
               </span>
               <strong className="mt-1 block text-5xl font-black leading-none text-[#F2C94C]">
-                #{featuredNews.patchNumber}
+                {featuredNews.visualValue}
               </strong>
               <span className="mt-2 block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#D6DFD2]">
-                Disponible
+                {featuredNews.visualStatus}
               </span>
             </div>
           </div>
