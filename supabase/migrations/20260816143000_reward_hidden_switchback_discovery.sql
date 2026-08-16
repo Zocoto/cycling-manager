@@ -19,7 +19,7 @@ values (
   'epic',
   'Des notes confidentielles qui révèlent une marge de progression exceptionnelle chez un coureur.',
   '+1 étoile de talent au coureur sélectionné.',
-  '{"potentialBonus":2}'::jsonb,
+  '{"potentialBonus":1}'::jsonb,
   'potential',
   true,
   'active'

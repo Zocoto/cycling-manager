@@ -18,7 +18,7 @@ const profileAction = readFileSync(
 describe("hidden switchback discovery rewards", () => {
   it("grants the cash and two real one-star talent items exactly once", () => {
     expect(migration).toContain("'classified-talent-dossier'");
-    expect(migration).toContain("'{\"potentialBonus\":2}'::jsonb");
+    expect(migration).toContain("'{\"potentialBonus\":1}'::jsonb");
     expect(migration).toContain("v_context.team_season_id,\n    v_inventory_item_id,\n    2,");
     expect(migration).toContain("cash_balance = cash_balance + 100000");
     expect(migration).toContain("'hidden-switchback:' || p_sporting_director_id::text");
