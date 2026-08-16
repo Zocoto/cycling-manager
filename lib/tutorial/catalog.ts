@@ -173,7 +173,7 @@ const onboardingTutorial = {
       targetId: "roster-rating-table",
       title: "Commencez par les notes primaires",
       content:
-        "Concentrez-vous d’abord sur MO, HIL, FL, COB, SP et TT. Elles indiquent immédiatement les terrains favoris du coureur.\n\nÉtape plate → FL et SP\nMontagne → MO\nParcours vallonné → HIL\nPavés → COB\nContre-la-montre ou prologue → TT et PRL",
+        "Concentrez-vous d’abord sur MO, VAL, PLA, PAV, SPR et CLM. Elles indiquent immédiatement les terrains favoris du coureur.\n\nÉtape plate → PLA et SPR\nMontagne → MO\nParcours vallonné → VAL\nPavés → PAV\nContre-la-montre ou prologue → CLM et PRO",
       placement: "top",
       highlightPadding: 6,
     },
@@ -183,7 +183,7 @@ const onboardingTutorial = {
       targetId: "roster-rating-table",
       title: "Affinez ensuite votre analyse",
       content:
-        "ACC, DH, STA, RES, REC, FTR et PRL sont des caractéristiques secondaires. Elles départagent les coureurs proches en influençant l’accélération, la descente, l’endurance, la résistance, la récupération, les échappées et les prologues.\n\nAu début, ne cherchez pas à tout mémoriser : identifiez d’abord le profil de l’étape, puis les notes primaires correspondantes.",
+        "ACC, DES, END, RES, REC, BAR et PRO sont des caractéristiques secondaires. Elles départagent les coureurs proches en influençant l’accélération, la descente, l’endurance, la résistance, la récupération, les échappées et les prologues.\n\nAu début, ne cherchez pas à tout mémoriser : identifiez d’abord le profil de l’étape, puis les notes primaires correspondantes.",
       placement: "top",
       highlightPadding: 6,
     },

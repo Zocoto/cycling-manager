@@ -35,7 +35,7 @@ export const youthDevelopmentTutorialDefinition = {
       targetId: "youth-development-tabs",
       title: "Trois espaces pour trois moments du parcours",
       content:
-        "Scouting regroupe la carte, les missions et les rapports. L’École de cyclisme accueille les jeunes signés et permet de régler leur entraînement. La Development Team forme à J1–J7 un effectif junior qui dispute ensuite son propre calendrier sans course live.\n\nLe didacticiel commence par la détection puis ouvrira automatiquement l’école.",
+        "La détection regroupe la carte, les missions et les rapports. L’École de cyclisme accueille les jeunes signés et permet de régler leur entraînement. L’équipe de développement forme à J1–J7 un effectif junior qui dispute ensuite son propre calendrier sans course en direct.\n\nLe didacticiel commence par la détection puis ouvrira automatiquement l’école.",
       placement: "bottom",
       highlightPadding: 6,
     },

@@ -134,13 +134,13 @@ export default async function YouthDevelopmentPage({
       developmentOverview = await getDevelopmentTeamOverview(user.id);
     } catch (developmentError) {
       console.error(
-        "Impossible de charger la Development Team :",
+        "Impossible de charger l’équipe de développement :",
         developmentError,
       );
       loadingError =
         developmentError instanceof Error
           ? developmentError.message
-          : "La Development Team ne peut pas être chargée.";
+          : "L’équipe de développement ne peut pas être chargée.";
     }
   }
   const [headerData, youthDevelopmentTutorialProgress] = await Promise.all([
@@ -252,7 +252,7 @@ export default async function YouthDevelopmentPage({
           <TabLink
             tab="development"
             activeTab={activeTab}
-            label="Development Team"
+            label="Équipe de développement"
             detail="Effectif & courses juniors"
             tutorialDemo={tutorialDemo}
           />

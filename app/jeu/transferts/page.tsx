@@ -263,7 +263,7 @@ function DirectorAuctions({ listings, roster, overview, jerseys, sponsors, retur
               <input type="hidden" name="returnPath" value={returnPath} />
               <label className="text-xs font-black uppercase tracking-wider text-[#48665F]">Coureur
                 <select name="riderId" required className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 text-sm font-bold">
-                  {sellable.map((candidate) => <option key={candidate.rider.id} value={candidate.rider.id}>{candidate.rider.firstName} {candidate.rider.lastName} · AVG {candidate.rider.overall}</option>)}
+                  {sellable.map((candidate) => <option key={candidate.rider.id} value={candidate.rider.id}>{candidate.rider.firstName} {candidate.rider.lastName} · MOY {candidate.rider.overall}</option>)}
                 </select>
               </label>
               <label className="text-xs font-black uppercase tracking-wider text-[#48665F]">Prix d’appel

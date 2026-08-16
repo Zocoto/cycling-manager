@@ -397,7 +397,7 @@ export function GlobalGameChat({
                   Réponse à {replyTo.authorDisplayName}
                 </span>
                 <span className="block truncate text-[11px] font-semibold text-[#60756E]">
-                  {getMessageExcerpt(replyTo.message)}
+                  <span data-i18n-skip>{getMessageExcerpt(replyTo.message)}</span>
                 </span>
               </span>
               <button
@@ -596,6 +596,7 @@ function ChatMessage({
               ↩ {message.replyTo.authorDisplayName}
             </span>
             <span
+              data-i18n-skip
               className={`mt-0.5 block truncate text-[11px] font-semibold ${
                 isCurrentDirector ? "text-white/70" : "text-[#60756E]"
               }`}
@@ -605,7 +606,7 @@ function ChatMessage({
           </button>
         ) : null}
 
-        <div className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+        <div data-i18n-skip className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
           {renderMessageText(message.message, isCurrentDirector)}
         </div>
 
@@ -638,9 +639,10 @@ function ChatMessage({
                   : "Coureur partagé"}
               </span>
               <span className="mt-0.5 block truncate text-sm font-black">
-                {message.preview.title}
+                <span data-i18n-skip>{message.preview.title}</span>
               </span>
               <span
+                data-i18n-skip
                 className={`block truncate text-[10px] font-semibold ${
                   isCurrentDirector ? "text-white/65" : "text-[#60756E]"
                 }`}

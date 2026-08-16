@@ -89,8 +89,8 @@ export function DevelopmentTeamBuilder({
               const disabled = !selected && selectedIds.size >= MAXIMUM_ROSTER_SIZE;
               const leadingRatings = [
                 ["MO", rider.ratings.mountain],
-                ["HIL", rider.ratings.hills],
-                ["TT", rider.ratings.timeTrial],
+                ["VAL", rider.ratings.hills],
+                ["CLM", rider.ratings.timeTrial],
               ] as const;
               return (
                 <label
@@ -284,7 +284,7 @@ function CreateButton({ disabled }: { disabled: boolean }) {
       disabled={disabled || pending}
       className="min-h-14 rounded-xl bg-[#F2C94C] px-7 text-sm font-black uppercase tracking-[0.08em] text-[#071A17] shadow-lg transition hover:bg-[#FFD968] disabled:cursor-not-allowed disabled:bg-[#B8C5BE] disabled:text-[#60756E] disabled:shadow-none"
     >
-      {pending ? "Création…" : "Fonder la Development Team"}
+      {pending ? "Création…" : "Fonder l’équipe de développement"}
     </button>
   );
 }

@@ -24,7 +24,7 @@ export function PostRaceInterviewPanel({ initialInterview }: { initialInterview:
           {interview.answers.map((answer) => (
             <blockquote key={answer.questionId} className="border-l-2 border-[#C72F5E] pl-4">
               <p className="text-xs font-bold leading-5 text-[#6F6650]">{answer.question}</p>
-              <p className="mt-2 font-serif text-base font-bold leading-6 text-[#183F37]">« {answer.answer} »</p>
+              <p data-i18n-skip className="mt-2 font-serif text-base font-bold leading-6 text-[#183F37]">« {answer.answer} »</p>
             </blockquote>
           ))}
         </div>

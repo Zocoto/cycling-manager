@@ -643,7 +643,7 @@ function InterviewReactionCard({
         >
           “
         </span>
-        <p className="relative pl-4 font-serif text-base font-bold leading-6">
+        <p data-i18n-skip className="relative pl-4 font-serif text-base font-bold leading-6">
           {reaction.answer}
         </p>
       </blockquote>
@@ -684,7 +684,7 @@ function InterviewReactionCard({
               <p className="text-[10px] font-bold italic leading-4 text-[#695D43]">
                 {answer.question}
               </p>
-              <p className="mt-1 font-serif text-sm font-semibold leading-5">
+              <p data-i18n-skip className="mt-1 font-serif text-sm font-semibold leading-5">
                 {answer.answer}
               </p>
             </div>
@@ -694,7 +694,7 @@ function InterviewReactionCard({
               <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#A12742]">
                 {isEnglish ? "The SD's final word" : "Le dernier mot du DS"}
               </p>
-              <p className="mt-1 font-serif text-sm italic">
+              <p data-i18n-skip className="mt-1 font-serif text-sm italic">
                 {reaction.closingNote}
               </p>
             </div>

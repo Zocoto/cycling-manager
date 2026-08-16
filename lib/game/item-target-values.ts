@@ -40,18 +40,18 @@ export type ItemTargetValueContext =
 
 const RATING_SHORT_LABELS: Record<ItemTargetRatingKey, string> = {
   mountain: "MO",
-  hills: "HIL",
-  flat: "FL",
-  time_trial: "TT",
-  cobbles: "COB",
-  sprint: "SP",
+  hills: "VAL",
+  flat: "PLA",
+  time_trial: "CLM",
+  cobbles: "PAV",
+  sprint: "SPR",
   acceleration: "ACC",
-  downhill: "DH",
-  endurance: "STA",
+  downhill: "DES",
+  endurance: "END",
   resistance: "RES",
   recovery: "REC",
   breakaway: "ECH",
-  prologue: "PRL",
+  prologue: "PRO",
 };
 
 export function formatItemTargetValue(

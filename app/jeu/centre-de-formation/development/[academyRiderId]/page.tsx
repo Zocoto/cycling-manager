@@ -16,7 +16,7 @@ import { getGameHeaderData } from "@/services/game-header-data";
 
 export const metadata: Metadata = {
   title: "Fiche junior",
-  description: "Consultez le profil et la carrière junior d’un coureur de Development Team.",
+  description: "Consultez le profil et la carrière junior d’un coureur de l’équipe de développement.",
 };
 
 type Props = {
@@ -59,7 +59,7 @@ export default async function DevelopmentRiderPage({ params }: Props) {
           href="/jeu/centre-de-formation?onglet=development&dev=effectif"
           className="inline-flex items-center gap-2 text-sm font-black text-[#315B3E] transition hover:text-[#176951]"
         >
-          <span aria-hidden="true">←</span> Retour à la Development Team
+          <span aria-hidden="true">←</span> Retour à l’équipe de développement
         </Link>
 
         <header className="mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(130deg,#071A17_0%,#0B302B_55%,#176951_100%)] text-white shadow-[0_25px_70px_rgba(19,60,46,0.2)]">
@@ -134,7 +134,7 @@ export default async function DevelopmentRiderPage({ params }: Props) {
             </h2>
             <p className="mt-2 text-sm font-semibold text-[#60756E]">
               Les notes évoluent avec les entraînements de l’École de cyclisme et sont
-              immédiatement reprises par la Development Team.
+              immédiatement reprises par l’équipe de développement.
             </p>
             <div className="mt-4">
               <RiderStatsRadar ratings={profile.ratings} />
@@ -204,7 +204,7 @@ export default async function DevelopmentRiderPage({ params }: Props) {
               ))}
             </div>
           ) : (
-            <p className="mt-4 rounded-xl bg-[#F3F8F5] px-4 py-5 text-sm font-semibold text-[#60756E]">Ce junior n’a pas encore disputé d’épreuve avec la Development Team.</p>
+            <p className="mt-4 rounded-xl bg-[#F3F8F5] px-4 py-5 text-sm font-semibold text-[#60756E]">Ce junior n’a pas encore disputé d’épreuve avec l’équipe de développement.</p>
           )}
         </section>
       </section>

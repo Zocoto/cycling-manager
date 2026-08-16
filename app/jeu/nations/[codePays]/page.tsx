@@ -256,7 +256,7 @@ function NationTopRidersSection({
                     </span>
                   </span>
                   <span className="shrink-0 rounded-xl bg-[#DDF3E7] px-3 py-2 text-xs font-black text-[#176951]">
-                    AVG {Math.round(rider.overall)}
+                    MOY {Math.round(rider.overall)}
                   </span>
                 </Link>
               </li>

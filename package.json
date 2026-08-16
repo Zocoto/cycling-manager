@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "i18n:check": "node scripts/build-i18n-catalog.mjs --check",
     "names:validate": "node scripts/validate-rider-names.mjs",
     "equipment:assets": "node scripts/optimize-equipment-assets.mjs",
     "sponsors:validate": "tsx scripts/validate-sponsors.ts",

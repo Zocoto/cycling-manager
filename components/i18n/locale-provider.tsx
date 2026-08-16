@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
-import { type AppLocale } from "@/lib/i18n/config";
+import { DEFAULT_LOCALE, type AppLocale } from "@/lib/i18n/config";
+import { DocumentLocaleBridge } from "@/components/i18n/document-locale-bridge";
 
 type LocaleContextValue = {
   locale: AppLocale;
@@ -17,7 +18,7 @@ type LocaleContextValue = {
 };
 
 const DEFAULT_CONTEXT: LocaleContextValue = {
-  locale: "fr",
+  locale: DEFAULT_LOCALE,
   setLocale: () => undefined,
 };
 
@@ -38,7 +39,10 @@ export function LocaleProvider({
   const value = useMemo(() => ({ locale, setLocale }), [locale, setLocale]);
 
   return (
-    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+    <LocaleContext.Provider value={value}>
+      <DocumentLocaleBridge locale={locale} />
+      {children}
+    </LocaleContext.Provider>
   );
 }
 

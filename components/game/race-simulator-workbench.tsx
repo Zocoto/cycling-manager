@@ -438,13 +438,13 @@ function TeamSelectionCard({
                   {rider.firstName} {rider.lastName}
                 </span>
                 <span className="mt-0.5 block text-[10px] font-bold text-[#60756E]">
-                  {rider.age} ans · forme {rider.form} · AVG {getOverall(rider.ratings)}
+                  {rider.age} ans · forme {rider.form} · MOY {getOverall(rider.ratings)}
                 </span>
               </span>
               <span className="hidden items-center gap-1.5 sm:flex">
                 <RatingChip label="MO" value={rider.ratings.mountain} />
-                <RatingChip label="HIL" value={rider.ratings.hills} />
-                <RatingChip label="FTR" value={rider.ratings.breakaway} secondary />
+                <RatingChip label="VAL" value={rider.ratings.hills} />
+                <RatingChip label="BAR" value={rider.ratings.breakaway} secondary />
               </span>
             </label>
           );
@@ -510,7 +510,7 @@ function SimulationSummary({
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <NoteBadge label="Profil" value={result.profileNote} highlighted />
-              <NoteBadge label="AVG" value={result.overallNote} />
+              <NoteBadge label="MOY" value={result.overallNote} />
             </div>
           </article>
         ))}
@@ -591,8 +591,8 @@ function SimulationClassification({
                     `+${formatGap(result.gapToWinnerSeconds)}`
                   )}
                 </td>
-                <td className="px-4 py-4"><NoteBadge label="PRL" value={result.profileNote} highlighted /></td>
-                <td className="px-4 py-4"><NoteBadge label="AVG" value={result.overallNote} /></td>
+                <td className="px-4 py-4"><NoteBadge label="PRO" value={result.profileNote} highlighted /></td>
+                <td className="px-4 py-4"><NoteBadge label="MOY" value={result.overallNote} /></td>
                 <td className="px-4 py-4 text-sm font-black text-[#183F37]">{result.form}</td>
                 <td className="px-4 py-4 text-sm font-black text-[#176951]">{formatDecimal(result.energyAfter)}</td>
                 <td className="min-w-80 px-4 py-4 sm:px-6">

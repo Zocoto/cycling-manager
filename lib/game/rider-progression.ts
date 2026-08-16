@@ -45,22 +45,28 @@ const STAT_COLORS: Record<RiderRatingKey, string> = {
 export const RIDER_PROGRESSION_SERIES = [
   {
     key: "average",
-    shortLabel: "AVG",
+    shortLabel: "MOY",
+    shortLabelEn: "AVG",
     label: "Moyenne générale",
+    labelEn: "Overall average",
     color: "#D6A900",
     importance: "summary",
   },
   ...RIDER_RATING_AXES.map((axis) => ({
     key: axis.key,
     shortLabel: axis.shortLabel,
+    shortLabelEn: axis.shortLabelEn,
     label: axis.label,
+    labelEn: axis.labelEn,
     color: STAT_COLORS[axis.key],
     importance: axis.importance,
   })),
 ] as const satisfies ReadonlyArray<{
   key: RiderProgressionStatKey;
   shortLabel: string;
+  shortLabelEn: string;
   label: string;
+  labelEn: string;
   color: string;
   importance: "summary" | "primary" | "secondary";
 }>;

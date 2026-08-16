@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 import {
   ProgressionStatFilters,
   RiderProgressionChart,
@@ -120,5 +121,22 @@ describe("RiderProgressionChart", () => {
     expect(markup).toContain("Moyenne &amp; stats secondaires");
     expect(markup).toContain('aria-label="Masquer Montagne"');
     expect(markup).toContain('aria-label="Afficher Récupération"');
+  });
+
+  it("renders English progression labels and abbreviations in English", () => {
+    const markup = renderToStaticMarkup(
+      <LocaleProvider initialLocale="en">
+        <ProgressionStatFilters
+          selectedStats={[...DEFAULT_RIDER_PROGRESSION_STATS]}
+          onChange={() => undefined}
+          compact
+        />
+      </LocaleProvider>,
+    );
+
+    expect(markup).toContain('aria-label="Hide Mountain"');
+    expect(markup).toContain('aria-label="Show Recovery"');
+    expect(markup).toContain(">HIL<");
+    expect(markup).not.toContain(">VAL<");
   });
 });

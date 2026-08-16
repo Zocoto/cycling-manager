@@ -1179,7 +1179,7 @@ function TeamRosterCard({
             </span>
 
             <span className="mt-3 max-w-full truncate text-center text-xs font-extrabold uppercase tracking-[0.12em] text-[#F2C94C]">
-              {leadingRider.first_name} {leadingRider.last_name} · AVG{" "}
+              {leadingRider.first_name} {leadingRider.last_name} · MOY{" "}
               {getDashboardRiderAverage(leadingRider)}
             </span>
 

@@ -44,7 +44,7 @@ export async function createDevelopmentTeamAction(formData: FormData) {
   redirectWithMessage(
     "effectif",
     "succes",
-    `${payload?.displayName ?? "La Development Team"} est créée avec ${payload?.rosterCount ?? riderIds.length} junior${(payload?.rosterCount ?? riderIds.length) > 1 ? "s" : ""}.`,
+    `${payload?.displayName ?? "L’équipe de développement"} est créée avec ${payload?.rosterCount ?? riderIds.length} junior${(payload?.rosterCount ?? riderIds.length) > 1 ? "s" : ""}.`,
   );
 }
 
@@ -66,7 +66,7 @@ export async function updateDevelopmentTeamJerseyAction(formData: FormData) {
   }
 
   revalidateDevelopmentTeam();
-  redirectWithMessage("maillot", "succes", "Le maillot de la Development Team est enregistré.");
+  redirectWithMessage("maillot", "succes", "Le maillot de l’équipe de développement est enregistré.");
 }
 
 export async function registerDevelopmentRaceAction(formData: FormData) {

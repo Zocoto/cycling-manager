@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import Link from "@/components/ui/app-link";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 import {
   DEFAULT_RIDER_PROGRESSION_STATS,
@@ -24,6 +25,8 @@ export function RiderProgressionChart({
   selectedStats,
   compact = false,
 }: ProgressionChartProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const width = compact ? 640 : 900;
   const height = compact ? 240 : 430;
   const padding = compact
@@ -72,7 +75,7 @@ export function RiderProgressionChart({
                 style={{ backgroundColor: series.color }}
                 aria-hidden="true"
               />
-              {series.shortLabel}
+              {isEnglish ? series.shortLabelEn : series.shortLabel}
             </span>
           );
         })}
@@ -100,7 +103,7 @@ export function RiderProgressionChart({
       <div className="max-w-full overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-[linear-gradient(180deg,#FBFDFB,#F3F8F5)]">
         <svg
           role="img"
-          aria-label={buildChartLabel(seasons, selectedStats)}
+          aria-label={buildChartLabel(seasons, selectedStats, isEnglish)}
           viewBox={`0 0 ${width} ${height}`}
           className={`block h-auto w-full max-w-full touch-pan-y ${
             compact ? "max-h-[240px]" : ""
@@ -200,7 +203,7 @@ export function RiderProgressionChart({
                         strokeWidth="2"
                         opacity={isCurrent ? 1 : 0.7}
                       >
-                        <title>{`${season.seasonName} \u00b7 J${point.dayNumber} \u00b7 ${series.label} : ${formatRating(value)}`}</title>
+                        <title>{`${season.seasonName} \u00b7 ${isEnglish ? "D" : "J"}${point.dayNumber} \u00b7 ${isEnglish ? series.labelEn : series.label} : ${formatRating(value)}`}</title>
                       </circle>
                     );
                   })}
@@ -284,6 +287,9 @@ function ProgressionStatOptions({
   onChange: (stats: RiderProgressionStatKey[]) => void;
   compact: boolean;
 }) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+
   return (
     <div
       className={
@@ -298,8 +304,8 @@ function ProgressionStatOptions({
           <button
             key={item.key}
             type="button"
-            title={item.label}
-            aria-label={`${isSelected ? "Masquer" : "Afficher"} ${item.label}`}
+            title={isEnglish ? item.labelEn : item.label}
+            aria-label={`${isEnglish ? (isSelected ? "Hide" : "Show") : isSelected ? "Masquer" : "Afficher"} ${isEnglish ? item.labelEn : item.label}`}
             aria-pressed={isSelected}
             onClick={() =>
               onChange(toggleProgressionStat(selectedStats, item.key))
@@ -326,7 +332,7 @@ function ProgressionStatOptions({
               aria-hidden="true"
             />
             <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-wider text-[#183F37]">
-              {item.shortLabel}
+              {isEnglish ? item.shortLabelEn : item.shortLabel}
             </span>
           </button>
         );
@@ -485,13 +491,19 @@ export function toggleProgressionStat(
 function buildChartLabel(
   seasons: readonly RiderProgressionSeason[],
   stats: readonly RiderProgressionStatKey[],
+  isEnglish = false,
 ): string {
   const seriesByKey = new Map(
-    RIDER_PROGRESSION_SERIES.map((series) => [series.key, series.label]),
+    RIDER_PROGRESSION_SERIES.map((series) => [
+      series.key,
+      isEnglish ? series.labelEn : series.label,
+    ]),
   );
-  return `Évolution de ${stats
-    .map((stat) => seriesByKey.get(stat) ?? stat)
-    .join(", ")} sur ${seasons.map((season) => season.seasonName).join(", ")}`;
+  const labels = stats.map((stat) => seriesByKey.get(stat) ?? stat).join(", ");
+  const seasonNames = seasons.map((season) => season.seasonName).join(", ");
+  return isEnglish
+    ? `Progression of ${labels} over ${seasonNames}`
+    : `Évolution de ${labels} sur ${seasonNames}`;
 }
 
 function createTicks(

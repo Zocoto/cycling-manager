@@ -31,6 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local worktrees and generated asset batches
+/.codex-tools/
 /.tmp-*/
 /.codex-feature-*/
 /.pnpm-store/

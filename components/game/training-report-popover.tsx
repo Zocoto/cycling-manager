@@ -14,18 +14,18 @@ import {
 
 const STAT_LABELS: Record<string, string> = {
   mountain: "MO",
-  hills: "HIL",
-  flat: "FL",
-  time_trial: "TT",
-  cobbles: "COB",
-  sprint: "SP",
+  hills: "VAL",
+  flat: "PLA",
+  time_trial: "CLM",
+  cobbles: "PAV",
+  sprint: "SPR",
   acceleration: "ACC",
-  downhill: "DH",
-  endurance: "STA",
+  downhill: "DES",
+  endurance: "END",
   resistance: "RES",
   recovery: "REC",
-  breakaway: "FTR",
-  prologue: "PRL",
+  breakaway: "BAR",
+  prologue: "PRO",
 };
 
 const STATUS_LABELS: Record<TrainingSessionStatus, string> = {

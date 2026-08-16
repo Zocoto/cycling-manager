@@ -79,11 +79,11 @@ export function InventoryEquipmentForm({
                     </span>
                     {rider.currentEquipmentName ? (
                       <span className="mt-1 block text-[10px] font-black text-[#8A6516]">
-                        Slot occupé · {rider.currentEquipmentName}
+                        Emplacement occupé · {rider.currentEquipmentName}
                       </span>
                     ) : (
                       <span className="mt-1 block text-[10px] font-black text-[#278B70]">
-                        Slot disponible
+                        Emplacement disponible
                       </span>
                     )}
                     {rider.pendingEquipmentName ? (
@@ -121,11 +121,11 @@ export function formatRiderRatings(
 ): string {
   const ratings = [
     ["MO", rider.ratings.mountain],
-    ["HIL", rider.ratings.hills],
-    ["FL", rider.ratings.flat],
-    ["TT", rider.ratings.time_trial],
-    ["COB", rider.ratings.cobbles],
-    ["SP", rider.ratings.sprint],
+    ["VAL", rider.ratings.hills],
+    ["PLA", rider.ratings.flat],
+    ["CLM", rider.ratings.time_trial],
+    ["PAV", rider.ratings.cobbles],
+    ["SPR", rider.ratings.sprint],
   ].filter(
     (entry): entry is [string, number] =>
       typeof entry[1] === "number",

@@ -182,7 +182,7 @@ export function RiderStatsRadar({
               fontSize="10"
               fontWeight={axis.importance === "primary" ? "900" : "700"}
             >
-              {axis.shortLabel}
+              {isEnglish ? axis.shortLabelEn : axis.shortLabel}
             </text>
           );
         })}
@@ -229,7 +229,7 @@ export function RiderStatsRadar({
             ].join(" ")}
           >
             <span className={axis.importance === "primary" ? "text-[11px] font-black" : "text-[11px] font-bold opacity-65"}>
-              {axis.shortLabel}
+              {isEnglish ? axis.shortLabelEn : axis.shortLabel}
             </span>
             <span className="flex items-baseline text-sm font-black">
               {ratings[axis.key]}

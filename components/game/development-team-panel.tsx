@@ -239,7 +239,7 @@ function DevelopmentCalendar({ overview }: { overview: DevelopmentTeamOverview }
     <section>
       <SectionTitle
         eyebrow="Calendrier U19"
-        title="Dix rendez-vous, aucune course live"
+        title="Dix rendez-vous, aucune course en direct"
         detail="Les classements apparaissent automatiquement le jour de l’arrivée. Une sélection peut être remplacée jusqu’à la veille du départ."
       />
       <div className="mt-4 space-y-3">

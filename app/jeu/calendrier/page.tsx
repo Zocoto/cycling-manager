@@ -252,7 +252,7 @@ export default async function RaceCalendarPage({
               resolvedSearchParams.wildcard
             ) === "demandee" ? (
               <div className="mb-6 rounded-xl border border-[#E6BE3F] bg-[#FFF4D6] px-5 py-4 text-sm font-bold leading-6 text-[#604B0F]">
-                La demande de Wild Card a &eacute;t&eacute; transmise. Les coureurs
+                La demande d’invitation a &eacute;t&eacute; transmise. Les coureurs
                 propos&eacute;s sont r&eacute;serv&eacute;s dans leur agenda jusqu&apos;&agrave;
                 la d&eacute;cision de l&apos;organisateur &agrave; J-1.
               </div>
@@ -262,7 +262,7 @@ export default async function RaceCalendarPage({
               resolvedSearchParams.wildcard
             ) === "retiree" ? (
               <div className="mb-6 rounded-xl border border-sky-300 bg-sky-50 px-5 py-4 text-sm font-bold leading-6 text-sky-900">
-                La demande de Wild Card a &eacute;t&eacute; retir&eacute;e. Les coureurs
+                La demande d’invitation a &eacute;t&eacute; retir&eacute;e. Les coureurs
                 propos&eacute;s sont de nouveau disponibles.
               </div>
             ) : null}

@@ -160,7 +160,7 @@ export function RaceRosterSelector({
                       </span>
                     </span>
                     <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
-                      {rider.age} ans · MO {rider.mountain} · HIL {rider.hills} · FL {rider.flat} · TT {rider.timeTrial} · COB {rider.cobbles} · SP {rider.sprint}
+                      {rider.age} ans · MO {rider.mountain} · VAL {rider.hills} · PLA {rider.flat} · CLM {rider.timeTrial} · PAV {rider.cobbles} · SPR {rider.sprint}
                     </span>
                   </span>
                 </label>

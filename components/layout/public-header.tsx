@@ -11,7 +11,7 @@ export function PublicHeader() {
   const isEnglish = locale === "en";
   const navigationItems = [
     [isEnglish ? "Home" : "Accueil", "/"],
-    ["Season 2", "/beta-saison-2"],
+    [isEnglish ? "Season 2" : "Saison 2", "/beta-saison-2"],
     ["Guide", "/guide"],
     [isEnglish ? "About" : "À propos", "/a-propos"],
   ] as const;

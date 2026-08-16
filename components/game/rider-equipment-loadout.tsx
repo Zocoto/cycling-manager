@@ -499,7 +499,7 @@ function EquipmentSlotInspector({
           open={!item}
         >
           <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-wider text-[#9BE0BC] marker:hidden">
-            {item ? "Changer cette pièce" : "Remplir ce slot"}
+            {item ? "Changer cette pièce" : "Remplir cet emplacement"}
           </summary>
           <div className="mt-3 space-y-2">
             {selectableOptions.length > 0 ? (

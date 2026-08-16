@@ -43,7 +43,7 @@ export const DIRECTOR_MESSAGE_TYPE_LABELS: Record<
   national_championship_result: "Résultats CN",
   international_selection: "Sélection",
   roster_alert: "Effectif",
-  wildcard: "Wild Card",
+  wildcard: "Invitation",
   academy: "Formation",
   infrastructure: "Infrastructures",
   system: "Direction",

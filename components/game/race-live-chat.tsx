@@ -214,7 +214,7 @@ export function RaceLiveChat({
                     {formatMessageTime(message.createdAt)}
                   </time>
                 </div>
-                <p className="mt-1 break-words text-xs font-semibold leading-5">
+                <p data-i18n-skip className="mt-1 break-words text-xs font-semibold leading-5">
                   {message.message}
                 </p>
               </div>

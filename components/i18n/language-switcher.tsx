@@ -54,7 +54,13 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
             aria-pressed={isActive}
             disabled={isPending}
             title={
-              option.locale === "fr" ? "Afficher en français" : "Display in English"
+              locale === "en"
+                ? option.locale === "fr"
+                  ? "Display in French"
+                  : "Display in English"
+                : option.locale === "fr"
+                  ? "Afficher en français"
+                  : "Afficher en anglais"
             }
             className={`inline-flex h-8 min-w-9 cursor-pointer items-center justify-center rounded-lg px-2 text-[0.68rem] font-black tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4] disabled:cursor-wait disabled:opacity-70 ${
               isActive

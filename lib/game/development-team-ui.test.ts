@@ -37,12 +37,12 @@ describe("Development Team UI", () => {
     expect(builder).toContain("MAXIMUM_ROSTER_SIZE = 11");
     expect(builder).toContain('name="riderIds"');
     expect(builder).toContain("AMATEUR_JERSEY_PATTERNS.map");
-    expect(builder).toContain("Fonder la Development Team");
+    expect(builder).toContain("Fonder l’équipe de développement");
   });
 
   it("expose le calendrier, les inscriptions et les résultats bruts", () => {
     expect(panel).toContain("registerDevelopmentRaceAction");
-    expect(panel).toContain("Dix rendez-vous, aucune course live");
+    expect(panel).toContain("Dix rendez-vous, aucune course en direct");
     expect(panel).toContain("Résultats bruts");
     expect(panel).toContain("Classement général final");
     expect(panel).toContain("formatRaceTime");

@@ -719,10 +719,10 @@ function RegistrationPanel({
     return (
       <section className="rounded-2xl border border-[#F2C94C]/45 bg-[#2F321F] p-6 text-white shadow-[0_18px_45px_rgba(45,42,19,0.2)]">
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
-          Wild Card
+          Invitation
         </p>
         <h2 className="mt-3 text-xl font-black">
-          Demande de Wild Card transmise
+          Demande d’invitation transmise
         </h2>
         <p className="mt-3 text-sm leading-6 text-[#E7E1C8]">
           Les {registration.rosterCount} coureurs propos&eacute;s sont
@@ -787,9 +787,9 @@ function RegistrationPanel({
     return (
       <section className="rounded-2xl border border-[#EF5B65]/55 bg-[#351D20] p-6 text-white shadow-[0_18px_45px_rgba(66,20,25,0.22)]">
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#FF9EA6]">
-          Wild Card
+          Invitation
         </p>
-        <h2 className="mt-3 text-xl font-black">Wild Card refus&eacute;e</h2>
+        <h2 className="mt-3 text-xl font-black">Invitation refus&eacute;e</h2>
         <p className="mt-3 text-sm leading-6 text-[#F4D7D9]">
           L&apos;organisateur n&apos;a pas retenu votre candidature. Les
           cr&eacute;neaux des coureurs propos&eacute;s ont &eacute;t&eacute;
@@ -808,7 +808,7 @@ function RegistrationPanel({
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#F7DA72]">
           Course Elite
         </p>
-        <h2 className="mt-3 text-xl font-black">Demander une Wild Card</h2>
+        <h2 className="mt-3 text-xl font-black">Demander une invitation</h2>
         <p className="mt-3 text-sm leading-6 text-[#D6DFD2]">
           Proposez {edition.minimumRosterSize} &agrave;{" "}
           {edition.maximumRosterSize} coureurs. Leur agenda sera bloqu&eacute;
@@ -844,7 +844,7 @@ function RegistrationPanel({
                 maximum={edition.maximumRosterSize}
                 jersey={riderJersey}
                 isStageRace={edition.raceFormat === "stage_race"}
-                submitLabel="Demander une Wild Card"
+                submitLabel="Demander une invitation"
               />
             ) : (
               <RegistrationNotice tone="warning">
@@ -854,7 +854,7 @@ function RegistrationPanel({
           </form>
         ) : (
           <RegistrationNotice tone="warning">
-            Les demandes de Wild Card ferment 24 heures avant le d&eacute;part
+            Les demandes d’invitation ferment 24 heures avant le d&eacute;part
             afin de permettre l&apos;arbitrage.
           </RegistrationNotice>
         )}

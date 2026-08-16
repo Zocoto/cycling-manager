@@ -33,7 +33,7 @@ export const rosterTutorialDefinition = {
       targetId: "roster-rating-table",
       title: "Comparez les notes sans perdre le profil de vue",
       content:
-        "Les notes primaires décrivent les terrains décisifs : MO, HIL, FL, TT, COB et SP. Les notes secondaires — ACC, DH, STA, RES, REC, FTR et PRL — affinent le comportement du coureur.\n\nLe profil et la moyenne offrent un premier repère, mais le meilleur choix dépend toujours du parcours. Les bonus bleus proviennent de l’équipement et s’ajoutent aux notes de base pendant les courses compatibles.",
+        "Les notes primaires décrivent les terrains décisifs : MO, VAL, PLA, CLM, PAV et SPR. Les notes secondaires — ACC, DES, END, RES, REC, BAR et PRO — affinent le comportement du coureur.\n\nLe profil et la moyenne offrent un premier repère, mais le meilleur choix dépend toujours du parcours. Les bonus bleus proviennent de l’équipement et s’ajoutent aux notes de base pendant les courses compatibles.",
       placement: "top",
       highlightPadding: 6,
     },

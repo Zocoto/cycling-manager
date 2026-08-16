@@ -235,7 +235,7 @@ export function TeamEquipmentManager({
         </div>
 
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Afficher une catégorie de matériel">
-          <SlotFocusButton active={focusedSlot === null} label="Tous les slots" onClick={() => focusSlot(null)} />
+          <SlotFocusButton active={focusedSlot === null} label="Tous les emplacements" onClick={() => focusSlot(null)} />
           {SLOT_ORDER.map((slot) => (
             <SlotFocusButton
               key={slot}
@@ -415,7 +415,7 @@ function EquipmentSelectionPanel({ selection, rider, currentItem, pendingItem, c
     : "hidden rounded-[1.6rem] border border-[#315B3E]/15 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] xl:sticky xl:top-24 xl:block";
 
   if (!selection || !rider) {
-    return <aside className={panelClass}><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0BC]">Attribution rapide</p><h3 className="mt-2 text-xl font-black">Sélectionnez un slot</h3><p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">Le stock compatible apparaîtra ici. Le panneau reste en place pendant que vous passez d’un coureur à l’autre.</p><div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs font-bold leading-5 text-[#B9C9C3]">Astuce : choisissez une catégorie au-dessus du tableau pour équiper tous les casques, cadres ou roues à la chaîne.</div></aside>;
+    return <aside className={panelClass}><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0BC]">Attribution rapide</p><h3 className="mt-2 text-xl font-black">Sélectionnez un emplacement</h3><p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">Le stock compatible apparaîtra ici. Le panneau reste en place pendant que vous passez d’un coureur à l’autre.</p><div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs font-bold leading-5 text-[#B9C9C3]">Astuce : choisissez une catégorie au-dessus du tableau pour équiper tous les casques, cadres ou roues à la chaîne.</div></aside>;
   }
 
   return (

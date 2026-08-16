@@ -117,18 +117,18 @@ const daySchedule = [
 
 const riderRatings = [
   ["MO", "Montagne"],
-  ["HIL", "Vallons"],
-  ["FL", "Plaine"],
-  ["TT", "Contre-la-montre"],
-  ["COB", "Pavés"],
-  ["SP", "Sprint"],
+  ["VAL", "Vallons"],
+  ["PLA", "Plaine"],
+  ["CLM", "Contre-la-montre"],
+  ["PAV", "Pavés"],
+  ["SPR", "Sprint"],
   ["ACC", "Accélération"],
-  ["DH", "Descente"],
-  ["STA", "Endurance"],
+  ["DES", "Descente"],
+  ["END", "Endurance"],
   ["RES", "Résistance"],
   ["REC", "Récupération"],
   ["ECH", "Échappée"],
-  ["PRL", "Prologue"],
+  ["PRO", "Prologue"],
 ] as const;
 
 const trainingDomains = [
@@ -237,7 +237,7 @@ const activeFeatures = [
 
 const partialFeatures = [
   "Le suivi sportif détaillé des objectifs de sponsor est encore indiqué comme incomplet dans l’interface.",
-  "La Development Team du centre de formation est affichée comme étant en construction.",
+  "L’équipe de développement du centre de formation est affichée comme étant en construction.",
   "Le partenariat avec un équipementier n’a pas encore sa rubrique fonctionnelle dédiée ; seul le matériel commercial est actif.",
   "Le laboratoire de simulation est réservé aux comptes autorisés. Les joueurs utilisent normalement la page Résultats / Live.",
 ] as const;
@@ -674,7 +674,7 @@ function RacingSection() {
       <StrategyNote title="Catégories et wildcards">
         Toutes les équipes voient les courses Élite dans leur calendrier. Les
         équipes Élite inscrivent directement huit à neuf coureurs ; toutes les
-        autres divisions peuvent demander une Wild Card avec la même composition.
+        autres divisions peuvent demander une invitation avec la même composition.
         À J-1, l’organisateur départage les demandes selon la nationalité de
         l’équipe, celle du sponsor principal, la réputation et le meilleur
         coureur aligné pour le profil de la course.

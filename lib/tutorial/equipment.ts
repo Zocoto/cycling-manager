@@ -49,7 +49,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-commercial-filters",
       title: "Trouvez la bonne pièce avec les filtres",
       content:
-        "Filtrez d’abord par emplacement, puis par effet recherché. Les abréviations MO, HIL, FL, TT, COB, SP, ACC, DH, STA, RES, REC et PRL correspondent aux statistiques des coureurs ; d’autres filtres isolent la protection ou les gains de réputation.\n\nVous pouvez combiner une marque, une catégorie et un effet.",
+        "Filtrez d’abord par emplacement, puis par effet recherché. Les abréviations MO, VAL, PLA, CLM, PAV, SPR, ACC, DES, END, RES, REC et PRO correspondent aux statistiques des coureurs ; d’autres filtres isolent la protection ou les gains de réputation.\n\nVous pouvez combiner une marque, une catégorie et un effet.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -99,7 +99,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-inventory-overview",
       title: "Tout votre matériel se retrouve dans l’inventaire",
       content:
-        "L’inventaire réunit les achats commerciaux, les récompenses matérielles et les autres objets gagnés. Les compteurs distinguent les exemplaires possédés, disponibles, déjà équipés ou programmés.\n\nPour vous souhaiter la bienvenue, une paire de « Lunettes didactiques » vient d’être ajoutée gratuitement à votre inventaire. Elle apporte +1 en STA au coureur qui la porte.",
+        "L’inventaire réunit les achats commerciaux, les récompenses matérielles et les autres objets gagnés. Les compteurs distinguent les exemplaires possédés, disponibles, déjà équipés ou programmés.\n\nPour vous souhaiter la bienvenue, une paire de « Lunettes didactiques » vient d’être ajoutée gratuitement à votre inventaire. Elle apporte +1 en END au coureur qui la porte.",
       placement: "bottom",
       highlightPadding: 8,
     },

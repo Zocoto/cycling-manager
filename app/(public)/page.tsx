@@ -67,7 +67,7 @@ const gamePillarsEn = [
     icon: "strategy",
     title: "Plan your strategy",
     description:
-      "Analyse course profiles, adapt your tactics and make the right decisions at the decisive moment.",
+      "Analyze race profiles, adapt your tactics and make the right decisions at the decisive moment.",
     linkLabel: "Prepare your races",
     backgroundPosition: "66% center",
   },

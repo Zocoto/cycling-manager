@@ -118,6 +118,6 @@ function SelectField({
 function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "training_multiplier") return "Activer pour la prochaine séance";
   if (kind === "scouting_boost") return "Activer pendant 7 jours";
-  if (kind === "wildcard") return "Réserver la Wild Card";
+  if (kind === "wildcard") return "Réserver l’invitation";
   return "Utiliser sur ce coureur";
 }
