@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { CyclogazetteCommunityPanel } from "@/components/game/cyclogazette-community";
+import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
 import type {
   CyclogazetteCommunity,
   CyclogazetteEdition,
@@ -50,15 +51,38 @@ export function CyclogazetteNewspaper({
     ...raceHighlights,
     ...secondaryRaceStories,
   ]);
+  const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
+    edition.dayNumber,
+  );
+  const newspaperStyle = {
+    "--gazette-paper": isItalianGrandTourEdition ? "#F2B8C6" : "#F4EBD2",
+    "--gazette-feature": isItalianGrandTourEdition
+      ? "rgba(255, 226, 233, 0.78)"
+      : "rgba(234, 221, 190, 0.55)",
+    "--gazette-card": isItalianGrandTourEdition
+      ? "rgba(248, 208, 218, 0.8)"
+      : "rgba(239, 228, 200, 0.72)",
+    "--gazette-card-soft": isItalianGrandTourEdition
+      ? "rgba(248, 208, 218, 0.64)"
+      : "rgba(239, 228, 200, 0.6)",
+    "--gazette-aside": isItalianGrandTourEdition
+      ? "rgba(235, 157, 177, 0.36)"
+      : "rgba(231, 215, 182, 0.55)",
+    "--gazette-details": isItalianGrandTourEdition
+      ? "rgba(251, 217, 225, 0.7)"
+      : "rgba(233, 221, 188, 0.5)",
+    "--gazette-input": isItalianGrandTourEdition ? "#FCE7EC" : "#F8F0DB",
+    backgroundImage: isItalianGrandTourEdition
+      ? "radial-gradient(circle at 18% 10%,rgba(255,255,255,.72),transparent 28%),repeating-linear-gradient(0deg,rgba(123,24,55,.028) 0,rgba(123,24,55,.028) 1px,transparent 1px,transparent 4px)"
+      : "radial-gradient(circle at 18% 10%,rgba(255,255,255,.68),transparent 28%),repeating-linear-gradient(0deg,rgba(80,61,31,.022) 0,rgba(80,61,31,.022) 1px,transparent 1px,transparent 4px)",
+  } as CSSProperties;
 
   return (
     <article
-      aria-label={`La Cyclogazette numéro ${edition.issueNumber}`}
-      className="relative mx-auto max-w-[1380px] overflow-hidden border border-[#9A8A65]/40 bg-[#F4EBD2] text-[#241F18] shadow-[0_35px_100px_rgba(45,34,20,0.25)]"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 18% 10%,rgba(255,255,255,.68),transparent 28%),repeating-linear-gradient(0deg,rgba(80,61,31,.022) 0,rgba(80,61,31,.022) 1px,transparent 1px,transparent 4px)",
-      }}
+      aria-label={`${isItalianGrandTourEdition ? "Cyclo Gazetta" : "La Cyclogazette"} numéro ${edition.issueNumber}`}
+      data-gazette-theme={isItalianGrandTourEdition ? "giro" : "classic"}
+      className="relative mx-auto max-w-[1380px] overflow-hidden border border-[#9A8A65]/40 bg-[var(--gazette-paper)] text-[#241F18] shadow-[0_35px_100px_rgba(45,34,20,0.25)]"
+      style={newspaperStyle}
     >
       <div
         aria-hidden="true"
@@ -66,7 +90,11 @@ export function CyclogazetteNewspaper({
       />
       <header className="border-b-4 border-double border-[#241F18] px-5 pb-4 pt-5 sm:px-8 sm:pt-7">
         <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[#241F18]/45 py-2 text-[9px] font-black uppercase tracking-[0.2em] sm:text-[10px]">
-          <span>Le journal quotidien du peloton</span>
+          <span>
+            {isItalianGrandTourEdition
+              ? "Edizione rosa · Il giornale del Giro"
+              : "Le journal quotidien du peloton"}
+          </span>
           <span>
             Saison {edition.seasonName} · Jour {edition.dayNumber}
           </span>
@@ -77,10 +105,12 @@ export function CyclogazetteNewspaper({
             Courses · Mercato · Coulisses
           </p>
           <h1 className="text-center font-serif text-5xl font-black leading-none tracking-[-0.055em] sm:text-7xl lg:text-8xl">
-            La Cyclogazette
+            {isItalianGrandTourEdition ? "Cyclo Gazetta" : "La Cyclogazette"}
           </h1>
           <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#A12742] sm:text-right">
-            N° {edition.issueNumber}
+            {isItalianGrandTourEdition
+              ? `Edizione rosa · N° ${edition.issueNumber}`
+              : `N° ${edition.issueNumber}`}
           </p>
         </div>
         <p className="border-t border-[#241F18]/40 pt-3 text-center font-serif text-lg font-black italic sm:text-2xl">
@@ -179,7 +209,7 @@ export function CyclogazetteNewspaper({
               {mediaArticles.map((article) => (
                 <article
                   key={article.id}
-                  className="border border-[#806C45]/45 bg-[#EFE4C8]/70 p-5"
+                  className="border border-[#806C45]/45 bg-[var(--gazette-card)] p-5"
                 >
                   <p className="text-[9px] font-black uppercase tracking-[.18em] text-[#A12742]">
                     Carte blanche · {article.teamName}
@@ -216,7 +246,7 @@ export function CyclogazetteNewspaper({
         </section>
       </main>
 
-      <aside className="mx-5 border-y-2 border-dashed border-[#806C45]/60 bg-[#E7D7B6]/55 px-5 py-4 text-center sm:mx-8">
+      <aside className="mx-5 border-y-2 border-dashed border-[#806C45]/60 bg-[var(--gazette-aside)] px-5 py-4 text-center sm:mx-8">
         <p className="text-[8px] font-black uppercase tracking-[0.22em] text-[#695D43]">
           Annonce partenaire
         </p>
@@ -237,7 +267,8 @@ export function CyclogazetteNewspaper({
 
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t-4 border-double border-[#241F18] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[#695D43] sm:px-8">
         <span>
-          La Cyclogazette · Toute l’actualité du monde de Cyclo Stratège
+          {isItalianGrandTourEdition ? "Cyclo Gazetta" : "La Cyclogazette"} ·
+          Toute l’actualité du monde de Cyclo Stratège
         </span>
         <span>Prochaine édition demain à 20 h</span>
       </footer>
@@ -247,7 +278,7 @@ export function CyclogazetteNewspaper({
 
 function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
   return (
-    <section className="border-2 border-[#241F18] bg-[#EFE4C8]/75 p-4">
+    <section className="border-2 border-[#241F18] bg-[var(--gazette-card)] p-4">
       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A12742]">
         Après {tour.stageLabel}
       </p>
@@ -286,7 +317,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
   const team = item.visual?.team;
 
   return (
-    <section className="relative isolate overflow-hidden border border-[#806C45]/45 bg-[#EADDBE]/55 px-4 py-5 sm:px-6 sm:py-6">
+    <section className="relative isolate overflow-hidden border border-[#806C45]/45 bg-[var(--gazette-feature)] px-4 py-5 sm:px-6 sm:py-6">
       {profile?.length ? (
         <div
           aria-hidden="true"
@@ -338,7 +369,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
 
 function WinnerCard({ item }: { item: PublicGameNewsItem }) {
   return (
-    <article className="group relative isolate min-h-44 overflow-hidden border border-[#806C45]/40 bg-[#EADDBE]/55 p-4">
+    <article className="group relative isolate min-h-44 overflow-hidden border border-[#806C45]/40 bg-[var(--gazette-feature)] p-4">
       {item.visual?.raceProfile?.length ? (
         <div
           aria-hidden="true"
@@ -409,7 +440,7 @@ function InterviewReactionCard({
   reaction: CyclogazetteReaction;
 }) {
   return (
-    <article className="min-w-0 flex-[1_1_360px] border-2 border-[#241F18] bg-[#EFE4C8]/70 p-4">
+    <article className="min-w-0 flex-[1_1_360px] border-2 border-[#241F18] bg-[var(--gazette-card)] p-4">
       <p className="text-[10px] font-bold italic leading-4 text-[#695D43]">
         {reaction.question}
       </p>
@@ -443,7 +474,7 @@ function InterviewReactionCard({
           </p>
         </div>
       </footer>
-      <details className="group mt-3 border border-[#806C45]/40 bg-[#E9DDBC]/50">
+      <details className="group mt-3 border border-[#806C45]/40 bg-[var(--gazette-details)]">
         <summary className="cursor-pointer list-none px-3 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-[#A12742] marker:hidden">
           <span className="flex items-center justify-between gap-2">
             Détail de l’interview
@@ -497,7 +528,7 @@ function NewsBrief({
     <article
       className={
         balancedCard
-          ? "min-w-0 flex-[1_1_290px] border border-[#806C45]/40 bg-[#EFE4C8]/60 p-4"
+          ? "min-w-0 flex-[1_1_290px] border border-[#806C45]/40 bg-[var(--gazette-card-soft)] p-4"
           : compact
             ? "py-4"
             : "mb-6 break-inside-avoid"

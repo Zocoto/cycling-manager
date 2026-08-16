@@ -89,6 +89,17 @@ export type CyclogazetteArchiveSeason = {
   editions: CyclogazetteArchiveEntry[];
 };
 
+const ITALIAN_GRAND_TOUR_GAZETTE_START_DAY = 2;
+const ITALIAN_GRAND_TOUR_GAZETTE_END_DAY = 7;
+
+export function isItalianGrandTourGazetteDay(dayNumber: number) {
+  return (
+    Number.isInteger(dayNumber) &&
+    dayNumber >= ITALIAN_GRAND_TOUR_GAZETTE_START_DAY &&
+    dayNumber <= ITALIAN_GRAND_TOUR_GAZETTE_END_DAY
+  );
+}
+
 const PARIS_DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Paris",
   year: "numeric",

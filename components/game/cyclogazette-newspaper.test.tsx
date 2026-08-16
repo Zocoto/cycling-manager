@@ -159,4 +159,28 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("Comment avez-vous préparé le sprint ?");
     expect(markup).toContain("Le dernier mot du DS");
   });
+
+  it("devient Cyclo Gazetta sur papier rose de J2 à J7", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 7 }} />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="giro"');
+    expect(markup).toContain("Cyclo Gazetta");
+    expect(markup).toContain("Edizione rosa");
+    expect(markup).toContain("Il giornale del Giro");
+    expect(markup).toContain("--gazette-paper:#F2B8C6");
+  });
+
+  it("reprend La Cyclogazette et son papier classique dès J8", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 8 }} />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="classic"');
+    expect(markup).toContain("La Cyclogazette");
+    expect(markup).not.toContain("Cyclo Gazetta");
+    expect(markup).not.toContain("Edizione rosa");
+    expect(markup).toContain("--gazette-paper:#F4EBD2");
+  });
 });
