@@ -77,7 +77,7 @@ type RaceRosterRow = {
 type RegistrationRow = {
   id: string;
   race_edition_id: string;
-  team_season_id: string;
+  team_season_id: string | null;
 };
 
 type RaceResultRow = {
@@ -322,7 +322,11 @@ export async function getFanClubLiveData({
   const categoryIds = [...new Set(editions.map((row) => row.race_category_id))];
   const raceIds = [...new Set(editions.map((row) => row.race_id))];
   const teamSeasonIds = [
-    ...new Set(historicalRegistrations.map((row) => row.team_season_id)),
+    ...new Set(
+      historicalRegistrations
+        .map((row) => row.team_season_id)
+        .filter((teamSeasonId): teamSeasonId is string => Boolean(teamSeasonId)),
+    ),
   ];
 
   const [allStagesResult, categoriesResult, racesResult, teamSeasonsResult] =
@@ -552,7 +556,7 @@ function buildSportingEvents({
     const registration = roster
       ? registrationById.get(roster.race_registration_id)
       : null;
-    const teamSeason = registration
+    const teamSeason = registration?.team_season_id
       ? teamSeasonById.get(registration.team_season_id)
       : null;
     const edition = editionById.get(editionId);
