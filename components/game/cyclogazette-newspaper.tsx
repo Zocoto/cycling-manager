@@ -19,6 +19,43 @@ import type {
   PublicGameNewsTeamVisual,
 } from "@/lib/game/public-game-news";
 
+type ItalianGazettaAdvertisement = {
+  headline: string;
+  copy: string;
+};
+
+type ItalianGazettaIncident = {
+  title: string;
+  copy: string;
+};
+
+const ITALIAN_GAZETTA_INCIDENTS: readonly ItalianGazettaIncident[] = [
+  {
+    title: "Le chat Coppi neutralise le peloton",
+    copy: "Installé sur la ligne blanche, il a refusé de bouger sans parmesan. Quatre minutes d’arrêt et le prix de la combativité pour le chat.",
+  },
+  {
+    title: "Un mécanicien gonfle un ravioli à huit bars",
+    copy: "La confusion avec un boyau n’a été découverte qu’au contrôle technique. Le ravioli a tenu la pression et négocie déjà un contrat pour les pavés.",
+  },
+  {
+    title: "Une attaque déclenchée par le mot « pasta »",
+    copy: "La radio disait « resta », le coureur a compris « pasta ». Résultat : 38 secondes d’avance et une réservation pour quatre au sommet.",
+  },
+  {
+    title: "Le bus des DS doublé par une Vespa",
+    copy: "La Vespa transportait douze espressos dans un lacet. Les commissaires réclament désormais un contrôle moteur de la machine à café.",
+  },
+  {
+    title: "Un sprinteur porte plainte contre la tour de Pise",
+    copy: "Il juge la ligne d’arrivée « manifestement pas verticale ». Réclamation rejetée : la tour conserve la victoire à la photo-finish.",
+  },
+  {
+    title: "Le classement général bouleversé par un tiramisù",
+    copy: "Une deuxième part aurait été comptée comme bonification. Les commissaires ont mangé la preuve : enquête classée, assiettes léchées.",
+  },
+];
+
 export function CyclogazetteNewspaper({
   edition,
   community,
@@ -54,6 +91,10 @@ export function CyclogazetteNewspaper({
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition.dayNumber,
   );
+  const italianAdvertisement = getItalianGazettaAdvertisement(
+    edition.issueNumber,
+  );
+  const italianIncidents = getItalianGazettaIncidents(edition.issueNumber);
   const newspaperStyle = {
     "--gazette-paper": isItalianGrandTourEdition ? "#F2B8C6" : "#F4EBD2",
     "--gazette-feature": isItalianGrandTourEdition
@@ -84,6 +125,17 @@ export function CyclogazetteNewspaper({
       className="relative mx-auto max-w-[1380px] overflow-hidden border border-[#9A8A65]/40 bg-[var(--gazette-paper)] text-[#241F18] shadow-[0_35px_100px_rgba(45,34,20,0.25)]"
       style={newspaperStyle}
     >
+      {isItalianGrandTourEdition ? (
+        <div
+          aria-hidden="true"
+          data-gazetta-tricolore="true"
+          className="grid h-2 grid-cols-3"
+        >
+          <span className="bg-[#009246]" />
+          <span className="bg-[#F7F7F2]" />
+          <span className="bg-[#CE2B37]" />
+        </div>
+      ) : null}
       <div
         aria-hidden="true"
         className="absolute inset-y-0 left-1/2 hidden w-px bg-[#806C45]/10 lg:block"
@@ -244,19 +296,32 @@ export function CyclogazetteNewspaper({
             </p>
           )}
         </section>
+
+        {isItalianGrandTourEdition ? (
+          <ItalianGazettaChronicle incidents={italianIncidents} />
+        ) : null}
       </main>
 
       <aside className="mx-5 border-y-2 border-dashed border-[#806C45]/60 bg-[var(--gazette-aside)] px-5 py-4 text-center sm:mx-8">
         <p className="text-[8px] font-black uppercase tracking-[0.22em] text-[#695D43]">
-          Annonce partenaire
+          {isItalianGrandTourEdition
+            ? "Pubblicità italiana"
+            : "Annonce partenaire"}
         </p>
         <p className="mt-1 font-serif text-lg font-black">
-          {mediaArticles.find((article) => article.sponsorName)?.sponsorName
-            ? `${mediaArticles.find((article) => article.sponsorName)?.sponsorName} soutient le projet de ${mediaArticles.find((article) => article.sponsorName)?.teamName}.`
-            : edition.issueNumber % 2 === 0
-              ? "Roulez plus loin : les bidons Altitude gardent le frais jusqu’au sommet."
-              : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}
+          {isItalianGrandTourEdition
+            ? italianAdvertisement.headline
+            : mediaArticles.find((article) => article.sponsorName)?.sponsorName
+              ? `${mediaArticles.find((article) => article.sponsorName)?.sponsorName} soutient le projet de ${mediaArticles.find((article) => article.sponsorName)?.teamName}.`
+              : edition.issueNumber % 2 === 0
+                ? "Roulez plus loin : les bidons Altitude gardent le frais jusqu’au sommet."
+                : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}
         </p>
+        {isItalianGrandTourEdition ? (
+          <p className="mx-auto mt-1 max-w-3xl font-serif text-sm italic text-[#695D43]">
+            {italianAdvertisement.copy}
+          </p>
+        ) : null}
       </aside>
       {community ? (
         <CyclogazetteCommunityPanel
@@ -274,6 +339,74 @@ export function CyclogazetteNewspaper({
       </footer>
     </article>
   );
+}
+
+function ItalianGazettaChronicle({
+  incidents,
+}: {
+  incidents: readonly ItalianGazettaIncident[];
+}) {
+  return (
+    <section
+      data-gazetta-italian-chronicle="true"
+      className="mt-8 border-t-4 border-double border-[#241F18] pt-5"
+    >
+      <SectionTitle
+        eyebrow="Cronaca rosa"
+        title="Les faits divers transalpins (presque vérifiés)"
+      />
+      <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[#695D43]">
+        Notre correspondant Mario Pressé jure que tout est vrai. Il jure aussi
+        ne pas avoir emprunté la voiture-balai pour livrer des pizzas.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        {incidents.map((incident, index) => (
+          <article
+            key={incident.title}
+            className="border border-[#806C45]/45 bg-[var(--gazette-card)] p-4"
+          >
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#A12742]">
+              Ultimissima · Brève n° {index + 1}
+            </p>
+            <h3 className="mt-2 font-serif text-xl font-black leading-5">
+              {incident.title}
+            </h3>
+            <p className="mt-3 font-serif text-sm leading-5 text-[#493F2E]">
+              {incident.copy}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getItalianGazettaAdvertisement(
+  issueNumber: number,
+): ItalianGazettaAdvertisement {
+  const rotation = Math.abs(Math.trunc(issueNumber)) % 3;
+  if (rotation === 0) {
+    return {
+      headline: "Pasta Passista · Les penne qui ne craquent jamais dans le dernier col",
+      copy: "Cuisson : 8 minutes. Attaque : 7 minutes 59. Servies al dente, comme les mollets.",
+    };
+  }
+  if (rotation === 1) {
+    return {
+      headline: "Tiramisù Domestique · Il vous remonte avant même le général",
+      copy: "Café, mascarpone et panache : testé par neuf soigneurs, confisqué par le dixième.",
+    };
+  }
+  return {
+    headline: "Pizza a Ruota · La seule quatre-fromages homologuée en roue pleine",
+    copy: "Livrée chaude avant la voiture-balai. Supplément basilic, aucune bonification UCI.",
+  };
+}
+
+function getItalianGazettaIncidents(issueNumber: number) {
+  return Math.abs(Math.trunc(issueNumber)) % 2 === 0
+    ? ITALIAN_GAZETTA_INCIDENTS.slice(0, 3)
+    : ITALIAN_GAZETTA_INCIDENTS.slice(3, 6);
 }
 
 function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {

@@ -170,6 +170,36 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("Edizione rosa");
     expect(markup).toContain("Il giornale del Giro");
     expect(markup).toContain("--gazette-paper:#F2B8C6");
+    expect(markup).toContain('data-gazetta-tricolore="true"');
+    expect(markup).toContain("Pubblicità italiana");
+    expect(markup).toContain("Pasta Passista");
+    expect(markup).toContain("Cronaca rosa");
+    expect(markup).toContain("Le chat Coppi neutralise le peloton");
+    expect(markup).toContain("Un mécanicien gonfle un ravioli à huit bars");
+    expect(markup).toContain("Une attaque déclenchée par le mot « pasta »");
+  });
+
+  it("fait tourner les réclames et les brèves italiennes selon le numéro", () => {
+    const tiramisuMarkup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 13, dayNumber: 5 }}
+      />,
+    );
+    const pizzaMarkup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 14, dayNumber: 5 }}
+      />,
+    );
+
+    expect(tiramisuMarkup).toContain("Tiramisù Domestique");
+    expect(tiramisuMarkup).toContain("Le bus des DS doublé par une Vespa");
+    expect(tiramisuMarkup).toContain(
+      "Un sprinteur porte plainte contre la tour de Pise",
+    );
+    expect(tiramisuMarkup).toContain(
+      "Le classement général bouleversé par un tiramisù",
+    );
+    expect(pizzaMarkup).toContain("Pizza a Ruota");
   });
 
   it("reprend La Cyclogazette et son papier classique dès J8", () => {
@@ -181,6 +211,8 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("La Cyclogazette");
     expect(markup).not.toContain("Cyclo Gazetta");
     expect(markup).not.toContain("Edizione rosa");
+    expect(markup).not.toContain("Pubblicità italiana");
+    expect(markup).not.toContain("Cronaca rosa");
     expect(markup).toContain("--gazette-paper:#F4EBD2");
   });
 });
