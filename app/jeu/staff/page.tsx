@@ -358,7 +358,7 @@ function StaffMarketCard({
   const definition = STAFF_ROLE_DEFINITIONS[member.role];
 
   return (
-    <article className="overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
+    <article id={`staff-${listing.id}`} className="scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] target:ring-4 target:ring-[#F2C94C]/60">
       <div className="h-1.5" style={{ backgroundColor: definition.accent }} />
       <div className="p-5">
         <div className="flex items-start gap-4">

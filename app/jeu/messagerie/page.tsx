@@ -10,6 +10,7 @@ import {
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
 import { GameHeader } from "@/components/game/game-header";
+import { RecruitmentAlertPanel } from "@/components/game/recruitment-alert-panel";
 import Link from "@/components/ui/app-link";
 import {
   DIRECTOR_MESSAGE_TYPE_LABELS,
@@ -23,6 +24,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentDirectorMailbox } from "@/services/director-mailbox";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getCurrentDirectorRecruitmentAlertOverview } from "@/services/recruitment-alerts";
 
 export const metadata: Metadata = {
   title: "Boîte mail du Directeur Sportif",
@@ -35,6 +37,7 @@ type MailboxPageProps = {
     filtre?: string | string[];
     message?: string | string[];
     q?: string | string[];
+    alerte?: string | string[];
   }>;
 };
 
@@ -56,6 +59,7 @@ export default async function DirectorMailboxPage({
   const filter = normalizeDirectorMailboxFilter(params.filtre);
   const selectedMessageId = readSingleParam(params.message);
   const query = readSingleParam(params.q)?.slice(0, 80) ?? "";
+  const showRecruitmentAlerts = readSingleParam(params.alerte) === "nouvelle";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -64,13 +68,14 @@ export default async function DirectorMailboxPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, mailbox] = await Promise.all([
+  const [headerData, mailbox, recruitmentAlertOverview] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getCurrentDirectorMailbox(supabase, {
       filter,
       query,
       selectedMessageId,
     }),
+    getCurrentDirectorRecruitmentAlertOverview(supabase),
   ]);
 
   return (
@@ -100,17 +105,42 @@ export default async function DirectorMailboxPage({
             </p>
           </div>
 
-          {mailbox.counts.unread > 0 ? (
-            <form action={markAllDirectorMessagesReadAction}>
-              <button
-                type="submit"
-                className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                Tout marquer comme lu
-              </button>
-            </form>
-          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={buildMailboxHref({
+                filter,
+                query,
+                showRecruitmentAlerts: true,
+              })}
+              aria-expanded={showRecruitmentAlerts}
+              className="inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-4 text-sm font-black text-white shadow-md shadow-[#176951]/15 transition hover:-translate-y-0.5 hover:bg-[#0F5641]"
+            >
+              Créer une alerte
+              {recruitmentAlertOverview.alerts.length > 0 ? (
+                <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-[10px]">
+                  {recruitmentAlertOverview.alerts.length}
+                </span>
+              ) : null}
+            </Link>
+            {mailbox.counts.unread > 0 ? (
+              <form action={markAllDirectorMessagesReadAction}>
+                <button
+                  type="submit"
+                  className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  Tout marquer comme lu
+                </button>
+              </form>
+            ) : null}
+          </div>
         </header>
+
+        {showRecruitmentAlerts ? (
+          <RecruitmentAlertPanel
+            overview={recruitmentAlertOverview}
+            closeHref={buildMailboxHref({ filter, query })}
+          />
+        ) : null}
 
         <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-[#176951]/15 bg-white shadow-[0_20px_55px_rgba(18,74,60,0.12)] lg:grid lg:min-h-[680px] lg:grid-cols-[210px_340px_minmax(0,1fr)] xl:grid-cols-[230px_410px_minmax(0,1fr)]">
           <aside className="border-b border-[#176951]/12 bg-[#071A17] p-4 text-white lg:border-b-0 lg:border-r lg:p-5">
@@ -396,15 +426,18 @@ function buildMailboxHref({
   filter,
   query,
   messageId,
+  showRecruitmentAlerts,
 }: {
   filter: DirectorMailboxFilter;
   query?: string;
   messageId?: string;
+  showRecruitmentAlerts?: boolean;
 }) {
   const params = new URLSearchParams();
   if (filter !== "inbox") params.set("filtre", filter);
   if (query) params.set("q", query);
   if (messageId) params.set("message", messageId);
+  if (showRecruitmentAlerts) params.set("alerte", "nouvelle");
   const serialized = params.toString();
   return serialized ? `/jeu/messagerie?${serialized}` : "/jeu/messagerie";
 }
