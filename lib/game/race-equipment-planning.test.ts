@@ -4,6 +4,10 @@ import {
   RACE_EQUIPMENT_EMPTY,
   RACE_EQUIPMENT_INHERIT,
   countRaceEquipmentOverrides,
+  formatRaceEquipmentOptionLabel,
+  getRaceEquipmentAvailableQuantity,
+  getRaceEquipmentStockConflicts,
+  isRaceEquipmentItemSelectable,
   getRaceEquipmentPlanKey,
   isRaceEquipmentStageEditable,
   parseRaceEquipmentPlanEntry,
@@ -105,5 +109,79 @@ describe("planification du matériel de course", () => {
     expect(getRaceEquipmentPlanKey("stage", RIDER_ID, "rear_wheel")).toBe(
       `stage:${RIDER_ID}:rear_wheel`,
     );
+  });
+
+  it("rend au groupe engagé les exemplaires portés par ses coureurs", () => {
+    expect(
+      getRaceEquipmentAvailableQuantity({
+        availableQuantity: 0,
+        permanentRosterQuantity: 1,
+        isUnlimited: false,
+      }),
+    ).toBe(1);
+    expect(
+      getRaceEquipmentAvailableQuantity({
+        availableQuantity: 0,
+        permanentRosterQuantity: 0,
+        isUnlimited: false,
+      }),
+    ).toBe(0);
+    expect(
+      getRaceEquipmentAvailableQuantity({
+        availableQuantity: 0,
+        permanentRosterQuantity: 0,
+        isUnlimited: true,
+      }),
+    ).toBe(1);
+  });
+
+  it("grise un objet consommé ailleurs mais conserve le choix courant", () => {
+    const item = { availableQuantity: 1, isUnlimited: false };
+    expect(
+      isRaceEquipmentItemSelectable({
+        item,
+        usedQuantity: 1,
+        isCurrentSelection: false,
+      }),
+    ).toBe(false);
+    expect(
+      isRaceEquipmentItemSelectable({
+        item,
+        usedQuantity: 1,
+        isCurrentSelection: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("signale les dépassements du contingent disponible", () => {
+    expect(
+      getRaceEquipmentStockConflicts({
+        catalog: [
+          {
+            id: ITEM_ID,
+            name: "Cadre test",
+            availableQuantity: 1,
+            isUnlimited: false,
+          },
+        ],
+        usageByItemId: new Map([[ITEM_ID, 2]]),
+      }),
+    ).toEqual([
+      {
+        itemId: ITEM_ID,
+        label: "Cadre test (2/1)",
+      },
+    ]);
+  });
+
+  it("place les bonus et l’indisponibilité dans le libellé de l’option", () => {
+    expect(
+      formatRaceEquipmentOptionLabel({
+        name: "Cadre test",
+        supplierName: "Atelier",
+        effectSummary: "+2 MON · +1 END",
+        isAvailable: false,
+      }),
+    ).toBe("Cadre test · Atelier · +2 MON · +1 END · indisponible");
   });
 });

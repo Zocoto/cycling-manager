@@ -65,6 +65,13 @@ describe("planification du matériel de course", () => {
       "Ne modifie jamais rider_equipment_assignments",
     );
   });
+
+  it("grise le stock épuisé et affiche les bonus dans chaque option", () => {
+    expect(planner).toContain("disabled={!isAvailable}");
+    expect(planner).toContain("isRaceEquipmentItemSelectable");
+    expect(planner).toContain("formatRaceEquipmentOptionLabel");
+    expect(planner).toContain("effectSummary: item.effectSummary");
+  });
 });
 
 function read(path: string) {

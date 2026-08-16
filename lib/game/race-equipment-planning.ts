@@ -12,6 +12,92 @@ export type RaceEquipmentPlanEntry = {
   selection: RaceEquipmentPlanSelection;
 };
 
+export type RaceEquipmentStockItem = {
+  id: string;
+  name: string;
+  availableQuantity: number;
+  isUnlimited: boolean;
+};
+
+export function getRaceEquipmentAvailableQuantity({
+  availableQuantity,
+  permanentRosterQuantity,
+  isUnlimited,
+}: {
+  availableQuantity: number;
+  permanentRosterQuantity: number;
+  isUnlimited: boolean;
+}) {
+  if (isUnlimited) return Math.max(1, availableQuantity);
+  return (
+    Math.max(0, availableQuantity) + Math.max(0, permanentRosterQuantity)
+  );
+}
+
+export function isRaceEquipmentItemSelectable({
+  item,
+  usedQuantity,
+  isCurrentSelection,
+}: {
+  item: Pick<RaceEquipmentStockItem, "availableQuantity" | "isUnlimited">;
+  usedQuantity: number;
+  isCurrentSelection: boolean;
+}) {
+  if (item.isUnlimited) return true;
+  const usedOutsideCurrentSlot = Math.max(
+    0,
+    usedQuantity - (isCurrentSelection ? 1 : 0),
+  );
+  return usedOutsideCurrentSlot < Math.max(0, item.availableQuantity);
+}
+
+export function getRaceEquipmentStockConflicts({
+  catalog,
+  usageByItemId,
+}: {
+  catalog: readonly RaceEquipmentStockItem[];
+  usageByItemId: ReadonlyMap<string, number>;
+}) {
+  return catalog.flatMap((item) => {
+    const usedQuantity = usageByItemId.get(item.id) ?? 0;
+    return !item.isUnlimited && usedQuantity > item.availableQuantity
+      ? [
+          {
+            itemId: item.id,
+            label:
+              item.name +
+              " (" +
+              usedQuantity +
+              "/" +
+              item.availableQuantity +
+              ")",
+          },
+        ]
+      : [];
+  });
+}
+
+export function formatRaceEquipmentOptionLabel({
+  name,
+  supplierName,
+  effectSummary,
+  isAvailable,
+}: {
+  name: string;
+  supplierName: string;
+  effectSummary: string;
+  isAvailable: boolean;
+}) {
+  return [
+    name,
+    supplierName,
+    effectSummary,
+    ...(isAvailable ? [] : ["indisponible"]),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function serializeRaceEquipmentPlanEntry(entry: RaceEquipmentPlanEntry) {
   return `${entry.riderId}|${entry.slot}|${entry.selection}`;
 }

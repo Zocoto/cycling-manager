@@ -1,7 +1,10 @@
 import "server-only";
 
 import type { EquipmentSlot } from "@/lib/game/equipment";
-import { isRaceEquipmentStageEditable } from "@/lib/game/race-equipment-planning";
+import {
+  getRaceEquipmentAvailableQuantity,
+  isRaceEquipmentStageEditable,
+} from "@/lib/game/race-equipment-planning";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -24,7 +27,13 @@ type PlannedAssignmentRow = {
 
 export type RaceEquipmentPlannerItem = Pick<
   TeamEquipmentCatalogItem,
-  "id" | "name" | "slot" | "supplierName" | "effectSummary" | "ownedQuantity"
+  | "id"
+  | "name"
+  | "slot"
+  | "supplierName"
+  | "effectSummary"
+  | "ownedQuantity"
+  | "availableQuantity"
 > & {
   isUnlimited: boolean;
 };
@@ -160,6 +169,16 @@ function buildRaceEquipmentPlanningData({
       slot: assignment.slot_type,
       equipmentItemId: assignment.equipment_item_id,
     }));
+  const permanentRosterQuantityByItemId = new Map<string, number>();
+  for (const assignment of equipment.assignments) {
+    if (!normalizedRiderIds.has(assignment.riderId)) continue;
+    permanentRosterQuantityByItemId.set(
+      assignment.equipmentItemId,
+      (permanentRosterQuantityByItemId.get(assignment.equipmentItemId) ?? 0) +
+        1,
+    );
+  }
+
   const referencedItemIds = new Set([
     ...equipment.assignments
       .filter((assignment) => normalizedRiderIds.has(assignment.riderId))
@@ -189,7 +208,10 @@ function buildRaceEquipmentPlanningData({
       })),
     catalog: equipment.catalog
       .filter(
-        (item) => item.ownedQuantity > 0 || referencedItemIds.has(item.id),
+        (item) =>
+          item.isUnlimited ||
+          item.ownedQuantity > 0 ||
+          referencedItemIds.has(item.id),
       )
       .map((item) => ({
         id: item.id,
@@ -198,7 +220,13 @@ function buildRaceEquipmentPlanningData({
         supplierName: item.supplierName,
         effectSummary: item.effectSummary,
         ownedQuantity: item.ownedQuantity,
-        isUnlimited: false,
+        availableQuantity: getRaceEquipmentAvailableQuantity({
+          availableQuantity: item.availableQuantity,
+          permanentRosterQuantity:
+            permanentRosterQuantityByItemId.get(item.id) ?? 0,
+          isUnlimited: item.isUnlimited,
+        }),
+        isUnlimited: item.isUnlimited,
       })),
     permanentAssignments: equipment.assignments.filter((assignment) =>
       normalizedRiderIds.has(assignment.riderId),

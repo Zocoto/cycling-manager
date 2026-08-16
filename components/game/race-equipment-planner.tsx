@@ -9,7 +9,10 @@ import {
   RACE_EQUIPMENT_EMPTY,
   RACE_EQUIPMENT_INHERIT,
   countRaceEquipmentOverrides,
+  formatRaceEquipmentOptionLabel,
   getRaceEquipmentPlanKey,
+  getRaceEquipmentStockConflicts,
+  isRaceEquipmentItemSelectable,
   resolvePlannedEquipmentItemId,
   serializeRaceEquipmentPlanEntry,
   type RaceEquipmentPlanSelection,
@@ -110,12 +113,15 @@ export function RaceEquipmentPlanner({
     ),
   );
   const overrideCount = countRaceEquipmentOverrides(stageSelections);
-  const conflicts = getInventoryConflicts({
+  const usageByItemId = getEquipmentUsageByItemId({
     stageId: selectedStageId,
     riders,
-    planning,
     selections,
     permanentByKey,
+  });
+  const conflicts = getRaceEquipmentStockConflicts({
+    catalog: planning.catalog,
+    usageByItemId,
   });
   const canSave = Boolean(selectedStage?.isEditable) && conflicts.length === 0;
 
@@ -253,11 +259,28 @@ export function RaceEquipmentPlanner({
                 <option value={RACE_EQUIPMENT_EMPTY}>Sans matériel</option>
                 {planning.catalog
                   .filter((item) => item.slot === slot)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} · {item.supplierName}
-                    </option>
-                  ))}
+                  .map((item) => {
+                    const isAvailable = isRaceEquipmentItemSelectable({
+                      item,
+                      usedQuantity: usageByItemId.get(item.id) ?? 0,
+                      isCurrentSelection: effectiveId === item.id,
+                    });
+
+                    return (
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        disabled={!isAvailable}
+                      >
+                        {formatRaceEquipmentOptionLabel({
+                          name: item.name,
+                          supplierName: item.supplierName,
+                          effectSummary: item.effectSummary,
+                          isAvailable,
+                        })}
+                      </option>
+                    );
+                  })}
               </select>
               <span className="mt-1 block text-[10px] font-semibold leading-4 text-[#AFC2BA]">
                 {effectiveItem?.effectSummary ||
@@ -433,16 +456,14 @@ function getSlotLabel(slot: EquipmentSlot) {
   );
 }
 
-function getInventoryConflicts({
+function getEquipmentUsageByItemId({
   stageId,
   riders,
-  planning,
   selections,
   permanentByKey,
 }: {
   stageId: string;
   riders: RaceEquipmentPlannerRider[];
-  planning: RaceEquipmentPlanningData;
   selections: ReadonlyMap<string, RaceEquipmentPlanSelection>;
   permanentByKey: ReadonlyMap<string, string>;
 }) {
@@ -459,17 +480,7 @@ function getInventoryConflicts({
     }
   }
 
-  return planning.catalog.flatMap((item) => {
-    const used = usageByItemId.get(item.id) ?? 0;
-    return !item.isUnlimited && used > item.ownedQuantity
-      ? [
-          {
-            itemId: item.id,
-            label: item.name + " (" + used + "/" + item.ownedQuantity + ")",
-          },
-        ]
-      : [];
-  });
+  return usageByItemId;
 }
 
 function getRiderInitials(rider: RaceEquipmentPlannerRider) {
