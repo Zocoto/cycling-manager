@@ -8,6 +8,7 @@ import {
   FAN_CLUB_PRODUCTS,
   FAN_CLUB_SHOP_LEVELS,
   getAvailableTravelingSupporters,
+  getFanClubPriceDemandFactor,
   getPopularityMaturityCap,
 } from "./fan-club-pilot";
 
@@ -75,7 +76,7 @@ describe("boutique du Fan Club", () => {
     ]);
   });
 
-  it("réduit la demande lorsque le DS augmente fortement son prix", () => {
+  it("annule la demande quand le prix dépasse le plafond psychologique", () => {
     const commonInputs = {
       product: jersey,
       supporterCount: 12_480,
@@ -86,12 +87,47 @@ describe("boutique du Fan Club", () => {
       ...commonInputs,
       salePrice: jersey.suggestedSalePrice,
     });
-    const expensiveDemand = estimateDailyProductSales({
+    const unmarketableDemand = estimateDailyProductSales({
       ...commonInputs,
-      salePrice: jersey.suggestedSalePrice * 2,
+      salePrice: 500,
+      unitCost: 38,
     });
 
-    expect(fairPriceDemand).toBeGreaterThan(expensiveDemand);
-    expect(expensiveDemand).toBeGreaterThan(0);
+    expect(fairPriceDemand).toBeGreaterThan(0);
+    expect(unmarketableDemand).toBe(0);
+  });
+
+  it("fait chuter la demande au-delà de 100 % de marge", () => {
+    const commonInputs = {
+      product: jersey,
+      unitCost: 38,
+      supporterCount: 12_480,
+      fervor: 74,
+      popularityIndex: 58,
+    };
+    const fairPriceDemand = estimateDailyProductSales({
+      ...commonInputs,
+      salePrice: 69,
+    });
+    const excessiveMarginDemand = estimateDailyProductSales({
+      ...commonInputs,
+      salePrice: 110,
+    });
+
+    expect(excessiveMarginDemand).toBeLessThan(fairPriceDemand * 0.2);
+  });
+
+  it("réserve l’exception de popularité aux équipes réellement immenses", () => {
+    const commonInputs = {
+      product: jersey,
+      salePrice: 100,
+      unitCost: 38,
+    };
+
+    expect(
+      getFanClubPriceDemandFactor({ ...commonInputs, popularityIndex: 100 }),
+    ).toBeGreaterThan(
+      getFanClubPriceDemandFactor({ ...commonInputs, popularityIndex: 80 }),
+    );
   });
 });

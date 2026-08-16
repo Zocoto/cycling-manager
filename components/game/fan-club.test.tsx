@@ -5,8 +5,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { FanClubManagementState } from "@/lib/game/fan-club-management";
 import type { FanClubLiveData } from "@/lib/game/fan-club-pilot";
+import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
+import type { Sponsor } from "@/types/sponsor";
 
-import { FanClub } from "./fan-club";
+import {
+  FanClub,
+  StoreProductVisual,
+  type FanClubSponsorIdentity,
+} from "./fan-club";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -38,13 +44,49 @@ const MANAGEMENT = {
   recentSales: [],
 } satisfies FanClubManagementState;
 
-function renderFanClub(shopLevel = 1) {
+const SPONSOR_JERSEY = {
+  id: "sponsor-modern",
+  name: "Modern",
+  style: "modern",
+  imagePath: "/images/sponsors/test/jersey-modern.png",
+} as const;
+
+const SPONSOR_IDENTITY = {
+  sponsor: {
+    id: "sponsor-test",
+    name: "Maison Brune",
+    shortName: "Brune",
+    countryCode: "FR",
+    sector: "Test",
+    description: "Sponsor de test",
+    prestige: 1,
+    minimumReputation: 0,
+    budgetRange: { min: 1, max: 2 },
+    contractDurationRange: { min: 1, max: 1 },
+    logoPath: "/images/sponsors/test/logo.png",
+    jerseys: [SPONSOR_JERSEY],
+    colors: {
+      primary: "#7A5137",
+      secondary: "#A9825B",
+      accent: "#D9C4A5",
+      background: "#F3EBDD",
+      text: "#3A2A20",
+    },
+  } satisfies Sponsor,
+  selectedJersey: SPONSOR_JERSEY,
+} satisfies FanClubSponsorIdentity;
+
+function renderFanClub(
+  shopLevel = 1,
+  sponsorIdentity: FanClubSponsorIdentity | null = null,
+) {
   return renderToStaticMarkup(
     <FanClub
       headquartersLevel={1}
       shopLevel={shopLevel}
       data={LIVE_DATA}
       management={MANAGEMENT}
+      sponsorIdentity={sponsorIdentity}
     />,
   );
 }
@@ -94,5 +136,21 @@ describe("Fan Club de production", () => {
     expect(source).toContain('productId === "pennant"');
     expect(source).toContain('productId === "cap"');
     expect(source).toContain("Prix en boutique");
+  });
+
+  it("reprend le maillot et la palette du sponsor actif", () => {
+    const markup = renderFanClub(1, SPONSOR_IDENTITY);
+    const theme = createTeamProfileTheme(SPONSOR_IDENTITY.sponsor.colors);
+    const jerseyMarkup = renderToStaticMarkup(
+      <StoreProductVisual
+        productId="team-jersey"
+        sponsorIdentity={SPONSOR_IDENTITY}
+      />,
+    );
+
+    expect(markup).toContain(`--fan-primary:${theme.primary}`);
+    expect(markup).toContain(`--fan-accent:${theme.accent}`);
+    expect(jerseyMarkup).toContain("Maillot Modern de Maison Brune");
+    expect(jerseyMarkup).toContain("jersey-modern.png");
   });
 });

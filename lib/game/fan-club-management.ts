@@ -1,5 +1,6 @@
 import {
   estimateDailyProductSales,
+  getFanClubPriceDemandFactor,
   type FanClubProduct,
 } from "@/lib/game/fan-club-pilot";
 
@@ -43,21 +44,30 @@ export type FanClubSalesForecast = {
   low: number;
   expected: number;
   high: number;
-  assessment: "attractive" | "balanced" | "expensive" | "very-expensive";
+  assessment:
+    | "attractive"
+    | "balanced"
+    | "expensive"
+    | "very-expensive"
+    | "unmarketable";
 };
 
 export function estimateDailyProductSalesForecast(input: {
   product: FanClubProduct;
   salePrice: number;
+  unitCost?: number;
   supporterCount: number;
   fervor: number;
   popularityIndex: number;
   recentResultsMultiplier?: number;
 }): FanClubSalesForecast {
   const expected = estimateDailyProductSales(input);
+  const priceFactor = getFanClubPriceDemandFactor(input);
   const ratio = input.salePrice / input.product.suggestedSalePrice;
   const assessment =
-    ratio <= 0.85
+    priceFactor === 0 || expected === 0
+      ? "unmarketable"
+      : ratio <= 0.85
       ? "attractive"
       : ratio <= 1.1
         ? "balanced"

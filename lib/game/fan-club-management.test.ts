@@ -24,14 +24,17 @@ describe("gestion de production du Fan Club", () => {
     const balanced = estimateDailyProductSalesForecast({
       ...inputs,
       salePrice: product.suggestedSalePrice,
+      unitCost: 38,
     });
     const expensive = estimateDailyProductSalesForecast({
       ...inputs,
-      salePrice: product.suggestedSalePrice * 2,
+      salePrice: 500,
+      unitCost: 38,
     });
 
     expect(balanced.expected).toBeGreaterThan(expensive.expected);
-    expect(expensive.assessment).toBe("very-expensive");
+    expect(expensive.expected).toBe(0);
+    expect(expensive.assessment).toBe("unmarketable");
     expect(balanced.low).toBeLessThan(balanced.high);
   });
 });

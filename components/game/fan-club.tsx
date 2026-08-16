@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +12,7 @@ import {
   updateFanClubSalePriceAction,
   type FanClubActionResult,
 } from "@/app/jeu/fan-club/actions";
+import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import {
   estimateDailyProductSalesForecast,
   getAvailableCarsForRace,
@@ -30,6 +32,8 @@ import {
   type FanClubPilotRider,
   type FanClubPilotTab,
 } from "@/lib/game/fan-club-pilot";
+import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
+import type { Sponsor } from "@/types/sponsor";
 
 const BASE_TABS: ReadonlyArray<{ id: FanClubPilotTab; label: string }> = [
   { id: "overview", label: "Vue d’ensemble" },
@@ -53,16 +57,23 @@ type ExecuteAction = (
   action: () => Promise<FanClubActionResult>,
 ) => void;
 
+export type FanClubSponsorIdentity = {
+  sponsor: Sponsor;
+  selectedJersey: Sponsor["jerseys"][number];
+};
+
 export function FanClub({
   headquartersLevel,
   shopLevel,
   data,
   management,
+  sponsorIdentity,
 }: {
   headquartersLevel: number;
   shopLevel: number;
   data: FanClubLiveData;
   management: FanClubManagementState;
+  sponsorIdentity: FanClubSponsorIdentity | null;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<FanClubPilotTab>("overview");
@@ -71,6 +82,26 @@ export function FanClub({
   const tabs = shopLevel > 0
     ? [...BASE_TABS, { id: "store" as const, label: "Magasin" }]
     : BASE_TABS;
+  const theme = createTeamProfileTheme(
+    sponsorIdentity?.sponsor.colors ?? {
+      primary: "#176951",
+      secondary: "#278B70",
+      accent: "#F2C94C",
+      background: "#F5FAF7",
+      text: "#183F37",
+    },
+  );
+  const themeStyle = {
+    "--fan-primary": theme.primary,
+    "--fan-secondary": theme.secondary,
+    "--fan-accent": theme.accent,
+    "--fan-surface": theme.surface,
+    "--fan-soft": theme.soft,
+    "--fan-ink": theme.ink,
+    "--fan-muted": theme.muted,
+    "--fan-line": theme.line,
+    "--fan-shadow": theme.shadow,
+  } as CSSProperties;
 
   const execute: ExecuteAction = (action) => {
     setFeedback("");
@@ -82,11 +113,11 @@ export function FanClub({
   };
 
   return (
-    <div className="mt-7">
+    <div className="mt-7" style={themeStyle}>
       <nav
         role="tablist"
         aria-label="Rubriques du Fan Club"
-        className="flex gap-1 overflow-x-auto border-b border-[#315B3E]/15"
+        className="flex gap-1 overflow-x-auto border-b border-[var(--fan-line)]"
       >
         {tabs.map((tab) => (
           <button
@@ -101,10 +132,10 @@ export function FanClub({
               setFeedback("");
             }}
             className={[
-              "min-h-12 shrink-0 border-b-2 px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-inset",
+              "min-h-12 shrink-0 border-b-2 px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)] focus-visible:ring-inset",
               activeTab === tab.id
-                ? "border-[#176951] text-[#0B302B]"
-                : "border-transparent text-[#5C746C] hover:border-[#42B99A]/45 hover:text-[#176951]",
+                ? "border-[var(--fan-primary)] text-[var(--fan-ink)]"
+                : "border-transparent text-[var(--fan-muted)] hover:border-[var(--fan-secondary)] hover:text-[var(--fan-primary)]",
             ].join(" ")}
           >
             {tab.label}
@@ -147,6 +178,7 @@ export function FanClub({
               execute={execute}
               isPending={isPending}
               feedback={feedback}
+              sponsorIdentity={sponsorIdentity}
             />
           </Panel>
         ) : null}
@@ -199,7 +231,7 @@ function OverviewPanel({
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-[#315B3E]/12 text-xs font-black uppercase tracking-[0.1em] text-[#6F817A]">
+              <tr className="border-b border-[var(--fan-line)] text-xs font-black uppercase tracking-[0.1em] text-[var(--fan-muted)]">
                 <th className="px-2 py-3">Coureur</th>
                 <th className="px-2 py-3">Popularité</th>
                 <th className="px-2 py-3">Dernier mouvement</th>
@@ -207,16 +239,16 @@ function OverviewPanel({
             </thead>
             <tbody>
               {data.riders.slice(0, 5).map((rider) => (
-                <tr key={rider.id} className="border-b border-[#315B3E]/10 last:border-0">
+                <tr key={rider.id} className="border-b border-[var(--fan-line)] last:border-0">
                   <td className="px-2 py-4"><RiderIdentity rider={rider} /></td>
                   <td className="px-2 py-4">
-                    <strong className="text-[#9A7000]">{rider.popularity} / 100</strong>
+                    <strong className="text-[var(--fan-secondary)]">{rider.popularity} / 100</strong>
                     <span className={[
                       "ml-2 text-xs font-black",
-                      rider.trend >= 0 ? "text-[#176951]" : "text-[#B34A42]",
+                      rider.trend >= 0 ? "text-[var(--fan-primary)]" : "text-[#B34A42]",
                     ].join(" ")}>{formatTrend(rider.trend)}</span>
                   </td>
-                  <td className="px-2 py-4 font-bold text-[#536B63]">{rider.currentDriver}</td>
+                  <td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{rider.currentDriver}</td>
                 </tr>
               ))}
             </tbody>
@@ -231,7 +263,7 @@ function OverviewPanel({
             title="Origine des supporters"
             detail="L’audience évolue avec la réputation de l’équipe, la popularité de l’effectif et les résultats de la saison."
           />
-          <dl className="mt-5 divide-y divide-[#315B3E]/10 text-sm">
+          <dl className="mt-5 divide-y divide-[var(--fan-line)] text-sm">
             <AudienceLine label="Socle du Fan Club" value={data.supporterBreakdown.foundation} />
             <AudienceLine label="Réputation de l’équipe" value={data.supporterBreakdown.reputation} />
             <AudienceLine label="Popularité des coureurs" value={data.supporterBreakdown.riders} />
@@ -275,7 +307,7 @@ function RidersPanel({ riders }: { riders: ReadonlyArray<FanClubPilotRider> }) {
           title="Popularité des coureurs"
           detail="Le score agrège les résultats, le panache, la fidélité et la dynamique actuelle."
         />
-        <div className="mt-5 divide-y divide-[#315B3E]/10">
+        <div className="mt-5 divide-y divide-[var(--fan-line)]">
           {riders.map((candidate) => (
             <button
               key={candidate.id}
@@ -283,14 +315,14 @@ function RidersPanel({ riders }: { riders: ReadonlyArray<FanClubPilotRider> }) {
               aria-pressed={candidate.id === rider.id}
               onClick={() => setSelectedRiderId(candidate.id)}
               className={[
-                "flex w-full items-center justify-between gap-4 px-2 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]",
-                candidate.id === rider.id ? "bg-[#FFF5CF]" : "hover:bg-[#F5FAF7]",
+                "flex w-full items-center justify-between gap-4 px-2 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)]",
+                candidate.id === rider.id ? "bg-[var(--fan-soft)]" : "hover:bg-[var(--fan-surface)]",
               ].join(" ")}
             >
               <RiderIdentity rider={candidate} />
               <span className="text-right">
-                <strong className="block text-lg text-[#9A7000]">{candidate.popularity} / 100</strong>
-                <span className="text-xs font-bold text-[#6F817A]">{candidate.status}</span>
+                <strong className="block text-lg text-[var(--fan-secondary)]">{candidate.popularity} / 100</strong>
+                <span className="text-xs font-bold text-[var(--fan-muted)]">{candidate.status}</span>
               </span>
             </button>
           ))}
@@ -300,31 +332,31 @@ function RidersPanel({ riders }: { riders: ReadonlyArray<FanClubPilotRider> }) {
       <Surface ariaLive>
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="grid h-20 w-20 place-items-center rounded-full border-[7px] border-[#F2C94C] bg-[#0B302B] text-2xl font-black text-[#F2C94C]">
+            <div className="grid h-20 w-20 place-items-center rounded-full border-[7px] border-[var(--fan-accent)] bg-[var(--fan-primary)] text-2xl font-black text-[var(--fan-accent)]">
               {rider.popularity}
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#278B70]">{rider.status}</p>
-              <h2 className="mt-1 text-2xl font-black text-[#183F37]">{rider.name}</h2>
-              <p className="mt-1 text-sm font-bold text-[#60736C]">{formatTrend(rider.trend)} · {rider.currentDriver}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--fan-secondary)]">{rider.status}</p>
+              <h2 className="mt-1 text-2xl font-black text-[var(--fan-ink)]">{rider.name}</h2>
+              <p className="mt-1 text-sm font-bold text-[var(--fan-muted)]">{formatTrend(rider.trend)} · {rider.currentDriver}</p>
             </div>
           </div>
         </div>
         <div className="mt-7 grid gap-4 sm:grid-cols-2">
           {rider.factors.map((factor) => (
-            <article key={factor.label} className="rounded-xl border border-[#315B3E]/15 bg-[#F8FBF9] p-4">
-              <div className="flex justify-between gap-3 text-xs font-black text-[#536B63]">
+            <article key={factor.label} className="rounded-xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-4">
+              <div className="flex justify-between gap-3 text-xs font-black text-[var(--fan-muted)]">
                 <span>{factor.label}</span><span>{factor.value} / {factor.maximum}</span>
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#DDE9E2]">
-                <div className="h-full rounded-full bg-[#42B99A]" style={{ width: `${Math.min(100, factor.value / factor.maximum * 100)}%` }} />
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--fan-soft)]">
+                <div className="h-full rounded-full bg-[var(--fan-secondary)]" style={{ width: `${Math.min(100, factor.value / factor.maximum * 100)}%` }} />
               </div>
             </article>
           ))}
         </div>
-        <div className="mt-6 rounded-xl border border-[#D29F32]/25 bg-[#FFF5D8] p-4">
-          <p className="text-xs font-black uppercase tracking-[0.13em] text-[#76530D]">Impact d’un départ</p>
-          <p className="mt-2 text-sm font-bold leading-6 text-[#76530D]">{rider.departureImpact}</p>
+        <div className="mt-6 rounded-xl border border-[var(--fan-line)] bg-[var(--fan-soft)] p-4">
+          <p className="text-xs font-black uppercase tracking-[0.13em] text-[var(--fan-primary)]">Impact d’un départ</p>
+          <p className="mt-2 text-sm font-bold leading-6 text-[var(--fan-ink)]">{rider.departureImpact}</p>
         </div>
       </Surface>
     </div>
@@ -390,15 +422,15 @@ function TravelPanel({
             const owned = management.fleet[candidate.id] ?? 0;
             const unlocked = candidate.requiredHeadquartersLevel <= headquartersLevel;
             return (
-              <article key={candidate.id} className="rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] p-5">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#278B70]">{owned} dans le parc</p>
-                <h3 className="mt-2 text-lg font-black text-[#183F37]">{candidate.name}</h3>
-                <p className="mt-2 text-xs font-semibold leading-5 text-[#60736C]">{candidate.capacity} places · {candidate.description}</p>
+              <article key={candidate.id} className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--fan-secondary)]">{owned} dans le parc</p>
+                <h3 className="mt-2 text-lg font-black text-[var(--fan-ink)]">{candidate.name}</h3>
+                <p className="mt-2 text-xs font-semibold leading-5 text-[var(--fan-muted)]">{candidate.capacity} places · {candidate.description}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
                   <Metric label="Achat" value={euroFormatter.format(candidate.purchasePrice)} />
                   <Metric label="Revente" value={euroFormatter.format(calculateCarResalePrice(candidate))} />
                 </dl>
-                {!unlocked ? <p className="mt-3 text-xs font-black text-[#76530D]">Siège niveau {candidate.requiredHeadquartersLevel} requis</p> : null}
+                {!unlocked ? <p className="mt-3 text-xs font-black text-[var(--fan-primary)]">Siège niveau {candidate.requiredHeadquartersLevel} requis</p> : null}
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <ActionButton
                     disabled={isPending || !unlocked || totalCars >= fleetLimit}
@@ -441,10 +473,10 @@ function TravelPanel({
                 }))}
               />
             </div>
-          ) : <p className="mt-5 rounded-xl bg-[#EAF5F3] p-4 text-sm font-bold text-[#536B63]">Aucune course à venir n’est actuellement ouverte à l’affrètement.</p>}
+          ) : <p className="mt-5 rounded-xl bg-[var(--fan-soft)] p-4 text-sm font-bold text-[var(--fan-muted)]">Aucune course à venir n’est actuellement ouverte à l’affrètement.</p>}
           <label className="mt-6 block">
-            <span className="flex justify-between gap-3 text-sm font-black text-[#183F37]">
-              Cars à ajouter <strong className="text-[#176951]">{availableCars > 0 ? cars : 0} / {availableCars}</strong>
+            <span className="flex justify-between gap-3 text-sm font-black text-[var(--fan-ink)]">
+              Cars à ajouter <strong className="text-[var(--fan-primary)]">{availableCars > 0 ? cars : 0} / {availableCars}</strong>
             </span>
             <input
               type="range"
@@ -453,13 +485,13 @@ function TravelPanel({
               value={cars}
               disabled={availableCars <= 0}
               onChange={(event) => setRequestedCars(Number(event.target.value))}
-              className="mt-3 w-full accent-[#D29F32]"
+              className="mt-3 w-full accent-[var(--fan-accent)]"
             />
           </label>
         </Surface>
 
-        <aside className="rounded-[1.5rem] bg-[linear-gradient(145deg,#071A17,#176951)] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.18)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">Déplacement réel</p>
+        <aside className="rounded-[1.5rem] bg-[linear-gradient(145deg,var(--fan-ink),var(--fan-primary))] p-6 text-white shadow-[0_18px_45px_var(--fan-shadow)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">Déplacement réel</p>
           <h2 className="mt-3 text-2xl font-black">{race?.name ?? "Aucune course"}</h2>
           <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
             <PreviewLine label="Déjà affectés" value={`${raceTrips.reduce((sum, trip) => sum + trip.carCount, 0)} car(s)`} />
@@ -472,7 +504,7 @@ function TravelPanel({
             type="button"
             disabled={isPending || !race || availableCars <= 0 || travelers <= 0}
             onClick={() => race && execute(() => charterFanClubCarsAction({ raceId: race.id, modelId: model.id, carCount: cars }))}
-            className="mt-6 min-h-11 w-full rounded-xl bg-[#F2C94C] px-4 text-sm font-black text-[#30270C] transition hover:bg-[#FFDC67] disabled:cursor-not-allowed disabled:opacity-45"
+            className="mt-6 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
           >{isPending ? "Enregistrement…" : "Confirmer l’affrètement"}</button>
           <StatusMessage message={feedback} dark />
         </aside>
@@ -488,7 +520,7 @@ function TravelPanel({
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {management.trips.map((trip) => <TripCard key={trip.id} trip={trip} />)}
           </div>
-        ) : <p className="mt-5 text-sm font-bold text-[#60736C]">Aucun car n’a encore été envoyé.</p>}
+        ) : <p className="mt-5 text-sm font-bold text-[var(--fan-muted)]">Aucun car n’a encore été envoyé.</p>}
       </Surface>
     </div>
   );
@@ -501,6 +533,7 @@ function StorePanel({
   execute,
   isPending,
   feedback,
+  sponsorIdentity,
 }: {
   data: FanClubLiveData;
   management: FanClubManagementState;
@@ -508,6 +541,7 @@ function StorePanel({
   execute: ExecuteAction;
   isPending: boolean;
   feedback: string;
+  sponsorIdentity: FanClubSponsorIdentity | null;
 }) {
   const products = FAN_CLUB_PRODUCTS.filter((product) => product.requiredShopLevel <= shopLevel);
   const inventoryByProduct = new Map(management.inventory.map((item) => [item.productId, item]));
@@ -531,7 +565,7 @@ function StorePanel({
             title="Stock et prix de vente"
             detail="Les ventes sont réglées automatiquement à chaque nouvelle journée de jeu. Le prix influe fortement sur la demande, tandis que les résultats, la ferveur et une part d’aléatoire rendent chaque journée différente."
           />
-          <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[#176951] px-4 text-sm font-black text-white transition hover:bg-[#0B5541]">Acheter du stock</button>
+          <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[var(--fan-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--fan-secondary)]">Acheter du stock</button>
         </div>
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {products.map((product) => {
@@ -539,58 +573,61 @@ function StorePanel({
             const stock = inventory?.quantity ?? 0;
             const price = prices[product.id] ?? product.suggestedSalePrice;
             const averageCost = inventory?.averageUnitCost ?? 0;
+            const marginRate =
+              averageCost > 0 ? ((price - averageCost) / averageCost) * 100 : null;
             const forecast = estimateDailyProductSalesForecast({
               product,
               salePrice: price,
+              unitCost: averageCost,
               supporterCount: data.supporterCount,
               fervor: data.fervor,
               popularityIndex: data.popularityIndex,
               recentResultsMultiplier: data.recentResultsMultiplier,
             });
             return (
-              <article key={product.id} className="group overflow-hidden rounded-[1.35rem] border border-[#315B3E]/15 bg-[#FFFEFA] shadow-[0_12px_30px_rgba(19,60,46,0.08)] transition hover:-translate-y-0.5 hover:border-[#278B70]/35 hover:shadow-[0_18px_38px_rgba(19,60,46,0.13)]">
-                <div aria-hidden="true" className="h-2 bg-[repeating-linear-gradient(90deg,#176951_0_28px,#FFF7DD_28px_56px,#F2C94C_56px_84px,#FFF7DD_84px_112px)]" />
+              <article key={product.id} className="group overflow-hidden rounded-[1.35rem] border border-[var(--fan-line)] bg-[var(--fan-surface)] shadow-[0_12px_30px_var(--fan-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--fan-secondary)] hover:shadow-[0_18px_38px_var(--fan-shadow)]">
+                <div aria-hidden="true" className="h-2 bg-[repeating-linear-gradient(90deg,var(--fan-primary)_0_28px,var(--fan-soft)_28px_56px,var(--fan-accent)_56px_84px,var(--fan-soft)_84px_112px)]" />
                 <div className="p-4 sm:p-5">
                   <div className="flex items-start gap-4">
-                    <StoreProductVisual productId={product.id} />
+                    <StoreProductVisual productId={product.id} sponsorIdentity={sponsorIdentity} />
                     <div className="min-w-0 flex-1">
-                      <span className="inline-flex rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.13em] text-[#176951]">En vitrine</span>
-                      <h3 className="mt-2 text-lg font-black text-[#183F37]">{product.name}</h3>
-                      <p className="mt-1 text-xs font-semibold leading-5 text-[#6A7D76]">{product.description}</p>
+                      <span className="inline-flex rounded-full bg-[var(--fan-soft)] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.13em] text-[var(--fan-primary)]">En vitrine</span>
+                      <h3 className="mt-2 text-lg font-black text-[var(--fan-ink)]">{product.name}</h3>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-[var(--fan-muted)]">{product.description}</p>
                     </div>
                   </div>
                   <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     <StoreMetric label="Stock restant" value={String(stock)} tone="gold" />
-                    <StoreMetric label="Marge / unité" value={decimalEuroFormatter.format(price - averageCost)} tone={price - averageCost >= 0 ? "green" : "red"} />
+                    <StoreMetric label="Marge / unité" value={formatStoreMargin(price - averageCost, marginRate)} tone={price - averageCost >= 0 ? "green" : "red"} />
                     <StoreMetric label="Ventes prévues" value={[Math.min(stock, forecast.low), " à ", Math.min(stock, forecast.high), " / jour"].join("")} />
                   </dl>
-                  <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[#315B3E]/10 bg-[#F4F8F5] p-3">
+                  <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-soft)] p-3">
                     <div className="min-w-0 flex-1">
-                      <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[#60736C]">Prix en boutique</span>
+                      <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-[var(--fan-muted)]">Prix en boutique</span>
                       <span className="mt-2 flex items-center gap-2">
                         <input
                           aria-label={"Prix de vente de " + product.name}
                           type="number" min={0.5} max={999} step={0.5} value={price}
                           onChange={(event) => setPrices((current) => ({ ...current, [product.id]: Math.max(0.5, Number(event.target.value)) }))}
-                          className="min-h-10 w-24 rounded-xl border border-[#315B3E]/20 bg-white px-3 font-black text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/25"
+                          className="min-h-10 w-24 rounded-xl border border-[var(--fan-line)] bg-white px-3 font-black text-[var(--fan-ink)] outline-none focus:border-[var(--fan-secondary)] focus:ring-2 focus:ring-[var(--fan-secondary)]"
                         />
                         <button
                           type="button" disabled={isPending || price === inventory?.salePrice}
                           onClick={() => execute(() => updateFanClubSalePriceAction({ productId: product.id, salePrice: price }))}
-                          className="min-h-10 rounded-xl bg-[#176951] px-3 text-xs font-black text-white transition hover:bg-[#0B5541] disabled:opacity-40"
+                          className="min-h-10 rounded-xl bg-[var(--fan-primary)] px-3 text-xs font-black text-white transition hover:bg-[var(--fan-secondary)] disabled:opacity-40"
                         >Valider</button>
                       </span>
                     </div>
-                    <div className="text-right"><span className="mb-1 block text-[9px] font-black uppercase tracking-[0.12em] text-[#71837C]">Demande</span><DemandBadge assessment={forecast.assessment} /></div>
+                    <div className="text-right"><span className="mb-1 block text-[9px] font-black uppercase tracking-[0.12em] text-[var(--fan-muted)]">Demande</span><DemandBadge assessment={forecast.assessment} /></div>
                   </div>
                 </div>
               </article>
             );
           })}
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#EAF5F3] px-4 py-3 text-sm font-bold text-[#536B63]">
-          <span>Stock total : <strong className="text-[#176951]">{totalStock} / {level.capacity}</strong></span>
-          <span>Capacité disponible : <strong className="text-[#176951]">{capacityLeft}</strong></span>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--fan-soft)] px-4 py-3 text-sm font-bold text-[var(--fan-muted)]">
+          <span>Stock total : <strong className="text-[var(--fan-primary)]">{totalStock} / {level.capacity}</strong></span>
+          <span>Capacité disponible : <strong className="text-[var(--fan-primary)]">{capacityLeft}</strong></span>
         </div>
         <StatusMessage message={feedback} />
       </Surface>
@@ -610,33 +647,33 @@ function StorePanel({
                   key={product.id} type="button" aria-pressed={product.id === selectedProduct.id}
                   onClick={() => setProductId(product.id)}
                   className={[
-                    "rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]",
-                    product.id === selectedProduct.id ? "border-[#D29F32] bg-[#FFF5D8] ring-2 ring-[#F2C94C]/35" : "border-[#315B3E]/15 bg-[#F8FBF9] hover:border-[#278B70]/35",
+                    "rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)]",
+                    product.id === selectedProduct.id ? "border-[var(--fan-accent)] bg-[var(--fan-soft)] ring-2 ring-[var(--fan-accent)]" : "border-[var(--fan-line)] bg-[var(--fan-surface)] hover:border-[var(--fan-secondary)]",
                   ].join(" ")}
                 >
-                  <StoreProductVisual productId={product.id} compact />
-                  <span className="block font-black text-[#183F37]">{product.name}</span>
-                  <span className="mt-3 block text-lg font-black text-[#9A7000]">{decimalEuroFormatter.format(getCurrentWholesalePrice(product))}</span>
+                  <StoreProductVisual productId={product.id} sponsorIdentity={sponsorIdentity} compact />
+                  <span className="block font-black text-[var(--fan-ink)]">{product.name}</span>
+                  <span className="mt-3 block text-lg font-black text-[var(--fan-secondary)]">{decimalEuroFormatter.format(getCurrentWholesalePrice(product))}</span>
                   <span className={[
                     "mt-1 block text-xs font-black",
-                    trend >= 0 ? "text-[#176951]" : "text-[#B34A42]",
+                    trend >= 0 ? "text-[var(--fan-primary)]" : "text-[#B34A42]",
                   ].join(" ")}>{trend >= 0 ? "+" : ""}{trend.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} % sur 7 jours</span>
                 </button>
               );
             })}
           </div>
           <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.5fr)]">
-            <div className="rounded-2xl border border-[#315B3E]/15 bg-[#F8FBF9] p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">Cours des sept derniers jours</p>
-              <h3 className="mt-1 text-xl font-black text-[#183F37]">{selectedProduct.name}</h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#60736C]">{selectedProduct.description}</p>
+            <div className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-secondary)]">Cours des sept derniers jours</p>
+              <h3 className="mt-1 text-xl font-black text-[var(--fan-ink)]">{selectedProduct.name}</h3>
+              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">{selectedProduct.description}</p>
               <PriceCourse product={selectedProduct} />
             </div>
-            <aside className="rounded-2xl bg-[#0B302B] p-5 text-white">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9BE0BC]">Bon de commande</p>
+            <aside className="rounded-2xl bg-[var(--fan-primary)] p-5 text-white">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">Bon de commande</p>
               <label className="mt-4 block">
                 <span className="text-xs font-black text-[#D6DFD2]">Quantité</span>
-                <input type="number" min={1} max={Math.max(1, capacityLeft)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.floor(Number(event.target.value))))} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 font-black text-white outline-none focus:border-[#F2C94C]" />
+                <input type="number" min={1} max={Math.max(1, capacityLeft)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.floor(Number(event.target.value))))} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 font-black text-white outline-none focus:border-[var(--fan-accent)]" />
               </label>
               <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
                 <PreviewLine label="Prix unitaire" value={decimalEuroFormatter.format(getCurrentWholesalePrice(selectedProduct))} />
@@ -645,7 +682,7 @@ function StorePanel({
               <button
                 type="button" disabled={isPending || capacityLeft <= 0 || quantity > capacityLeft}
                 onClick={() => execute(() => purchaseFanClubStockAction({ productId: selectedProduct.id, quantity }))}
-                className="mt-5 min-h-11 w-full rounded-xl bg-[#F2C94C] px-4 text-sm font-black text-[#30270C] transition hover:bg-[#FFDC67] disabled:opacity-45"
+                className="mt-5 min-h-11 w-full rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)] transition hover:opacity-90 disabled:opacity-45"
               >{isPending ? "Enregistrement…" : "Acheter ce stock"}</button>
             </aside>
           </div>
@@ -661,14 +698,14 @@ function StorePanel({
         {management.recentSales.length > 0 ? (
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[660px] border-collapse text-left text-sm">
-              <thead><tr className="border-b border-[#315B3E]/12 text-xs font-black uppercase tracking-[0.1em] text-[#6F817A]"><th className="px-2 py-3">Journée</th><th className="px-2 py-3">Article</th><th className="px-2 py-3">Vendus</th><th className="px-2 py-3">Recette</th><th className="px-2 py-3">Conjoncture</th></tr></thead>
+              <thead><tr className="border-b border-[var(--fan-line)] text-xs font-black uppercase tracking-[0.1em] text-[var(--fan-muted)]"><th className="px-2 py-3">Journée</th><th className="px-2 py-3">Article</th><th className="px-2 py-3">Vendus</th><th className="px-2 py-3">Recette</th><th className="px-2 py-3">Conjoncture</th></tr></thead>
               <tbody>{management.recentSales.map((sale) => {
                 const product = FAN_CLUB_PRODUCTS.find((candidate) => candidate.id === sale.productId);
-                return <tr key={sale.id} className="border-b border-[#315B3E]/10 last:border-0"><td className="px-2 py-4 font-bold text-[#536B63]">{sale.seasonName} · J{sale.dayNumber}</td><td className="px-2 py-4 font-black text-[#183F37]">{product?.name ?? "Article"}</td><td className="px-2 py-4 font-black text-[#9A7000]">{sale.unitsSold}</td><td className="px-2 py-4 font-black text-[#176951]">{decimalEuroFormatter.format(sale.revenue)}</td><td className="px-2 py-4 font-bold text-[#536B63]">{sale.demandFactor >= 1.15 ? "Journée porteuse" : sale.demandFactor <= 0.8 ? "Journée calme" : "Demande normale"}</td></tr>;
+                return <tr key={sale.id} className="border-b border-[var(--fan-line)] last:border-0"><td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{sale.seasonName} · J{sale.dayNumber}</td><td className="px-2 py-4 font-black text-[var(--fan-ink)]">{product?.name ?? "Article"}</td><td className="px-2 py-4 font-black text-[var(--fan-secondary)]">{sale.unitsSold}</td><td className="px-2 py-4 font-black text-[var(--fan-primary)]">{decimalEuroFormatter.format(sale.revenue)}</td><td className="px-2 py-4 font-bold text-[var(--fan-muted)]">{sale.demandFactor >= 1.15 ? "Journée porteuse" : sale.demandFactor <= 0.8 ? "Journée calme" : "Demande normale"}</td></tr>;
               })}</tbody>
             </table>
           </div>
-        ) : <p className="mt-5 text-sm font-bold text-[#60736C]">Aucune vente enregistrée pour le moment. Les premières ventes seront calculées au prochain changement de journée.</p>}
+        ) : <p className="mt-5 text-sm font-bold text-[var(--fan-muted)]">Aucune vente enregistrée pour le moment. Les premières ventes seront calculées au prochain changement de journée.</p>}
       </Surface>
     </div>
   );
@@ -678,59 +715,82 @@ function TripCard({ trip }: { trip: FanClubTripAllocation }) {
   const model = FAN_CLUB_CAR_MODELS.find((candidate) => candidate.id === trip.modelId);
   const status = trip.raceStatus === "completed" ? "Terminée" : trip.raceStatus === "cancelled" ? "Annulée" : "À venir";
   return (
-    <article className="rounded-xl border border-[#315B3E]/15 bg-[#F8FBF9] p-4">
+    <article className="rounded-xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-4">
       <div className="flex items-start justify-between gap-3">
-        <div><p className="font-black text-[#183F37]">{trip.raceName}</p><p className="mt-1 text-xs font-bold text-[#60736C]">{model?.name ?? "Car"} · {trip.carCount} engagé{trip.carCount > 1 ? "s" : ""}</p></div>
-        <span className="rounded-full bg-[#EAF5F3] px-2.5 py-1 text-[10px] font-black uppercase text-[#176951]">{status}</span>
+        <div><p className="font-black text-[var(--fan-ink)]">{trip.raceName}</p><p className="mt-1 text-xs font-bold text-[var(--fan-muted)]">{model?.name ?? "Car"} · {trip.carCount} engagé{trip.carCount > 1 ? "s" : ""}</p></div>
+        <span className="rounded-full bg-[var(--fan-soft)] px-2.5 py-1 text-[10px] font-black uppercase text-[var(--fan-primary)]">{status}</span>
       </div>
-      <p className="mt-3 text-sm font-black text-[#9A7000]">{euroFormatter.format(trip.tripCost)}</p>
+      <p className="mt-3 text-sm font-black text-[var(--fan-secondary)]">{euroFormatter.format(trip.tripCost)}</p>
     </article>
   );
 }
 
-function StoreProductVisual({ productId, compact = false }: { productId: string; compact?: boolean }) {
+export function StoreProductVisual({
+  productId,
+  sponsorIdentity,
+  compact = false,
+}: {
+  productId: string;
+  sponsorIdentity: FanClubSponsorIdentity | null;
+  compact?: boolean;
+}) {
   return (
     <span
       aria-hidden="true"
       className={[
-        "relative grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-[#D8C88E]/55 bg-[radial-gradient(circle_at_70%_18%,#FFF4C7_0_12%,transparent_13%),linear-gradient(145deg,#FFF9E7,#E4F2EA)] shadow-inner",
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-[var(--fan-line)] bg-[radial-gradient(circle_at_70%_18%,var(--fan-accent)_0_12%,transparent_13%),linear-gradient(145deg,var(--fan-surface),var(--fan-soft))] shadow-inner",
         compact ? "mb-3 h-14 w-14" : "h-20 w-20",
       ].join(" ")}
     >
-      <span className="absolute bottom-2 left-2 right-2 h-1.5 rounded-full bg-[#C8AC62]/45" />
-      <svg viewBox="0 0 48 48" className={compact ? "h-10 w-10" : "h-14 w-14"} fill="none" stroke="#123F36" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <span className="absolute bottom-2 left-2 right-2 h-1.5 rounded-full bg-[var(--fan-accent)] opacity-35" />
+      {productId === "team-jersey" && sponsorIdentity ? (
+        <SponsorJerseyPreview
+          sponsor={sponsorIdentity.sponsor}
+          jersey={sponsorIdentity.selectedJersey}
+          className={compact ? "h-12 w-11" : "h-[4.5rem] w-16"}
+        />
+      ) : (
+        <svg viewBox="0 0 48 48" className={compact ? "h-10 w-10" : "h-14 w-14"} fill="none" stroke="var(--fan-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         {productId === "team-jersey" ? (
-          <><path d="m16 8 5-3c.8 2 1.8 3 3 3s2.2-1 3-3l5 3 7 8-6 5-3-4v24H18V17l-3 4-6-5 7-8Z" fill="#176951" /><path d="M18 22h12M18 27h12" stroke="#F2C94C" /><path d="M21 5c.5 2 1.5 3 3 3s2.5-1 3-3" /></>
+          <><path d="m16 8 5-3c.8 2 1.8 3 3 3s2.2-1 3-3l5 3 7 8-6 5-3-4v24H18V17l-3 4-6-5 7-8Z" fill="var(--fan-primary)" /><path d="M18 22h12M18 27h12" stroke="var(--fan-accent)" /><path d="M21 5c.5 2 1.5 3 3 3s2.5-1 3-3" /></>
         ) : productId === "bottle" ? (
-          <><path d="M20 6h8v6l3 4v24H17V16l3-4V6Z" fill="#F9FBF5" /><path d="M20 12h8M17 22h14M17 31h14" /><path d="M19 22h10v9H19z" fill="#176951" stroke="none" /><path d="m21 29 6-5" stroke="#F2C94C" /></>
+          <><path d="M20 6h8v6l3 4v24H17V16l3-4V6Z" fill="var(--fan-surface)" /><path d="M20 12h8M17 22h14M17 31h14" /><path d="M19 22h10v9H19z" fill="var(--fan-primary)" stroke="none" /><path d="m21 29 6-5" stroke="var(--fan-accent)" /></>
         ) : productId === "pennant" ? (
-          <><path d="M13 6v36" /><path d="M14 9h25L28 20l11 11H14V9Z" fill="#176951" /><path d="m19 14 14 12M19 26l14-12" stroke="#F2C94C" /></>
+          <><path d="M13 6v36" /><path d="M14 9h25L28 20l11 11H14V9Z" fill="var(--fan-primary)" /><path d="m19 14 14 12M19 26l14-12" stroke="var(--fan-accent)" /></>
         ) : productId === "cap" ? (
-          <><path d="M11 27c0-10 5-16 13-16 7 0 12 5 13 14l-26 2Z" fill="#176951" /><path d="M11 27c9-3 20-3 29 1-4 5-11 6-18 3l-11-4Z" fill="#F2C94C" /><path d="M19 13c1 4 1 8 0 12" /></>
+          <><path d="M11 27c0-10 5-16 13-16 7 0 12 5 13 14l-26 2Z" fill="var(--fan-primary)" /><path d="M11 27c9-3 20-3 29 1-4 5-11 6-18 3l-11-4Z" fill="var(--fan-accent)" /><path d="M19 13c1 4 1 8 0 12" /></>
         ) : (
-          <><path d="M24 7c8 0 14 7 14 16 0 8-5 14-12 15l-2 4-2-4C15 37 10 31 10 23 10 14 16 7 24 7Z" fill="#F2C94C" /><path d="M22 38c-2 3 3 3 1 6" /><path d="m18 17 12 12M30 17 18 29" stroke="#176951" /></>
+          <><path d="M24 7c8 0 14 7 14 16 0 8-5 14-12 15l-2 4-2-4C15 37 10 31 10 23 10 14 16 7 24 7Z" fill="var(--fan-accent)" /><path d="M22 38c-2 3 3 3 1 6" /><path d="m18 17 12 12M30 17 18 29" stroke="var(--fan-primary)" /></>
         )}
-      </svg>
+        </svg>
+      )}
     </span>
   );
 }
 
 function StoreMetric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "gold" | "green" | "red" }) {
-  const toneClass = tone === "gold" ? "text-[#9A7000]" : tone === "green" ? "text-[#176951]" : tone === "red" ? "text-[#B34A42]" : "text-[#536B63]";
+  const toneClass = tone === "gold" ? "text-[var(--fan-secondary)]" : tone === "green" ? "text-[var(--fan-primary)]" : tone === "red" ? "text-[#B34A42]" : "text-[var(--fan-muted)]";
   return (
-    <div className="rounded-xl border border-[#315B3E]/10 bg-white px-3 py-2.5">
-      <dt className="text-[9px] font-black uppercase tracking-[0.1em] text-[#7B8B85]">{label}</dt>
+    <div className="rounded-xl border border-[var(--fan-line)] bg-white px-3 py-2.5">
+      <dt className="text-[9px] font-black uppercase tracking-[0.1em] text-[var(--fan-muted)]">{label}</dt>
       <dd className={["mt-1 text-sm font-black", toneClass].join(" ")}>{value}</dd>
     </div>
   );
 }
 
 function DemandBadge({ assessment }: { assessment: ReturnType<typeof estimateDailyProductSalesForecast>["assessment"] }) {
-  const labels = { attractive: "Forte", balanced: "Équilibrée", expensive: "Faible", "very-expensive": "Très faible" } as const;
+  const labels = { attractive: "Forte", balanced: "Équilibrée", expensive: "Faible", "very-expensive": "Très faible", unmarketable: "Nulle" } as const;
   return <span className={[
     "inline-flex rounded-full px-2.5 py-1 text-xs font-black",
-    assessment === "attractive" ? "bg-[#DDF3E9] text-[#176951]" : assessment === "balanced" ? "bg-[#FFF1B8] text-[#76530D]" : "bg-[#FBE5E2] text-[#B34A42]",
+    assessment === "attractive" ? "bg-[var(--fan-soft)] text-[var(--fan-primary)]" : assessment === "balanced" ? "bg-[var(--fan-accent)] text-[var(--fan-ink)]" : "bg-[#FBE5E2] text-[#B34A42]",
   ].join(" ")}>{labels[assessment]}</span>;
+}
+
+function formatStoreMargin(amount: number, rate: number | null): string {
+  const formattedAmount = decimalEuroFormatter.format(amount);
+  if (rate === null || !Number.isFinite(rate)) return formattedAmount;
+  const formattedRate = Math.round(rate).toLocaleString("fr-FR");
+  return `${formattedAmount} · ${rate >= 0 ? "+" : ""}${formattedRate} %`;
 }
 
 function PriceCourse({ product }: { product: (typeof FAN_CLUB_PRODUCTS)[number] }) {
@@ -738,32 +798,32 @@ function PriceCourse({ product }: { product: (typeof FAN_CLUB_PRODUCTS)[number] 
   const maximum = Math.max(...product.wholesaleHistory);
   const range = Math.max(0.01, maximum - minimum);
   const points = product.wholesaleHistory.map((price, index) => `${index / (product.wholesaleHistory.length - 1) * 100},${34 - (price - minimum) / range * 28}`).join(" ");
-  return <svg viewBox="0 0 100 40" role="img" aria-label={`Évolution du cours de ${product.name} sur sept jours`} className="mt-5 h-32 w-full overflow-visible" preserveAspectRatio="none"><line x1="0" y1="34" x2="100" y2="34" stroke="#BFD1C6" strokeWidth="0.6" /><polyline points={points} fill="none" stroke="#176951" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  return <svg viewBox="0 0 100 40" role="img" aria-label={`Évolution du cours de ${product.name} sur sept jours`} className="mt-5 h-32 w-full overflow-visible" preserveAspectRatio="none"><line x1="0" y1="34" x2="100" y2="34" stroke="var(--fan-line)" strokeWidth="0.6" /><polyline points={points} fill="none" stroke="var(--fan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 function Surface({ children, ariaLive = false }: { children: React.ReactNode; ariaLive?: boolean }) {
-  return <section aria-live={ariaLive ? "polite" : undefined} className="rounded-[1.5rem] border border-[#315B3E]/15 bg-white p-5 shadow-[0_14px_36px_rgba(19,60,46,0.08)] sm:p-6">{children}</section>;
+  return <section aria-live={ariaLive ? "polite" : undefined} className="rounded-[1.5rem] border border-[var(--fan-line)] bg-white p-5 shadow-[0_14px_36px_var(--fan-shadow)] sm:p-6">{children}</section>;
 }
 function Heading({ eyebrow, title, detail, action }: { eyebrow: string; title: string; detail?: string; action?: React.ReactNode }) {
-  return <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#278B70]">{eyebrow}</p><h2 className="mt-1 text-xl font-black text-[#183F37] sm:text-2xl">{title}</h2>{detail ? <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#60736C]">{detail}</p> : null}</div>{action}</div>;
+  return <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[0.17em] text-[var(--fan-secondary)]">{eyebrow}</p><h2 className="mt-1 text-xl font-black text-[var(--fan-ink)] sm:text-2xl">{title}</h2>{detail ? <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[var(--fan-muted)]">{detail}</p> : null}</div>{action}</div>;
 }
 function RiderIdentity({ rider }: { rider: FanClubPilotRider }) {
-  return <span className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0B302B] text-xs font-black text-[#F2C94C]">{rider.initials}</span><span><span className="block font-black text-[#183F37]">{rider.name}</span><span className="mt-0.5 block text-xs font-bold text-[#71837C]">{rider.role} · {rider.country}</span></span></span>;
+  return <span className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--fan-primary)] text-xs font-black text-[var(--fan-accent)]">{rider.initials}</span><span><span className="block font-black text-[var(--fan-ink)]">{rider.name}</span><span className="mt-0.5 block text-xs font-bold text-[var(--fan-muted)]">{rider.role} · {rider.country}</span></span></span>;
 }
 function AudienceLine({ label, value }: { label: string; value: number }) {
-  return <div className="flex items-center justify-between gap-4 py-3"><dt className="font-bold text-[#60736C]">{label}</dt><dd className="font-black text-[#176951]">+{value.toLocaleString("fr-FR")}</dd></div>;
+  return <div className="flex items-center justify-between gap-4 py-3"><dt className="font-bold text-[var(--fan-muted)]">{label}</dt><dd className="font-black text-[var(--fan-primary)]">+{value.toLocaleString("fr-FR")}</dd></div>;
 }
 function DecisionCard({ eyebrow, title, description, buttonLabel, onClick }: { eyebrow: string; title: string; description: string; buttonLabel: string; onClick: () => void }) {
-  return <aside className="overflow-hidden rounded-[1.5rem] bg-[linear-gradient(145deg,#071A17,#176951)] p-6 text-white shadow-[0_18px_45px_rgba(7,26,23,0.18)]"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F2C94C]">{eyebrow}</p><h2 className="mt-3 text-2xl font-black">{title}</h2><p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">{description}</p><button type="button" onClick={onClick} className="mt-5 min-h-11 rounded-xl bg-[#F2C94C] px-4 text-sm font-black text-[#30270C]">{buttonLabel}</button></aside>;
+  return <aside className="overflow-hidden rounded-[1.5rem] bg-[linear-gradient(145deg,var(--fan-ink),var(--fan-primary))] p-6 text-white shadow-[0_18px_45px_var(--fan-shadow)]"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--fan-accent)]">{eyebrow}</p><h2 className="mt-3 text-2xl font-black">{title}</h2><p className="mt-3 text-sm font-semibold leading-6 text-white/80">{description}</p><button type="button" onClick={onClick} className="mt-5 min-h-11 rounded-xl bg-[var(--fan-accent)] px-4 text-sm font-black text-[var(--fan-ink)]">{buttonLabel}</button></aside>;
 }
 function TextButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="min-h-10 rounded-xl px-2 text-sm font-black text-[#176951]">{children} →</button>;
+  return <button type="button" onClick={onClick} className="min-h-10 rounded-xl px-2 text-sm font-black text-[var(--fan-primary)]">{children} →</button>;
 }
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: ReadonlyArray<{ value: string; label: string }> }) {
-  return <label className="block"><span className="text-sm font-black text-[#183F37]">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/20 bg-[#F6FAF7] px-4 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#278B70]/25">{options.length > 0 ? options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>) : <option value="">Aucun car disponible</option>}</select></label>;
+  return <label className="block"><span className="text-sm font-black text-[var(--fan-ink)]">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[var(--fan-line)] bg-[var(--fan-surface)] px-4 text-sm font-bold text-[var(--fan-ink)] outline-none focus:border-[var(--fan-secondary)] focus:ring-2 focus:ring-[var(--fan-secondary)]">{options.length > 0 ? options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>) : <option value="">Aucun car disponible</option>}</select></label>;
 }
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div><dt className="font-bold text-[#6F817A]">{label}</dt><dd className="mt-1 font-black text-[#183F37]">{value}</dd></div>;
+  return <div><dt className="font-bold text-[var(--fan-muted)]">{label}</dt><dd className="mt-1 font-black text-[var(--fan-ink)]">{value}</dd></div>;
 }
 function PreviewLine({ label, value }: { label: string; value: string }) {
   return <div className="flex items-start justify-between gap-4 py-3"><dt className="font-bold text-[#BFD1C6]">{label}</dt><dd className="text-right font-black text-white">{value}</dd></div>;
@@ -771,13 +831,13 @@ function PreviewLine({ label, value }: { label: string; value: string }) {
 function ActionButton({ children, disabled, secondary = false, onClick }: { children: React.ReactNode; disabled: boolean; secondary?: boolean; onClick: () => void }) {
   return <button type="button" disabled={disabled} onClick={onClick} className={[
     "min-h-10 rounded-xl px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45",
-    secondary ? "border border-[#176951]/25 bg-white text-[#176951] hover:bg-[#EAF5F3]" : "bg-[#176951] text-white hover:bg-[#0B5541]",
+    secondary ? "border border-[var(--fan-line)] bg-white text-[var(--fan-primary)] hover:bg-[var(--fan-soft)]" : "bg-[var(--fan-primary)] text-white hover:bg-[var(--fan-secondary)]",
   ].join(" ")}>{children}</button>;
 }
 function StatusMessage({ message, dark = false }: { message: string; dark?: boolean }) {
   return <p className={[
     "mt-4 min-h-5 text-sm font-bold",
-    dark ? "text-[#9BE0BC]" : "text-[#176951]",
+    dark ? "text-[var(--fan-accent)]" : "text-[var(--fan-primary)]",
   ].join(" ")} role="status">{message}</p>;
 }
 function getTabId(tab: FanClubPilotTab): string { return `fan-club-tab-${tab}`; }
