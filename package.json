@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "postbuild": "node scripts/validate-race-registration-routes.mjs",
+    "marketing:assets": "node scripts/generate-season2-marketing-assets.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

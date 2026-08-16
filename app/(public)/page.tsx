@@ -9,9 +9,20 @@ import { getPublicGameNews } from "@/services/public-game-news";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Accueil",
+  title: {
+    absolute: "Cyclo Stratège – Jeu de management cycliste en ligne",
+  },
   description:
-    "Prenez la direction de votre propre équipe cycliste et construisez votre légende.",
+    "Devenez directeur sportif dans Cyclo Stratège : recrutez vos coureurs, développez votre équipe et affrontez la Saison 2 du jeu de management cycliste en ligne.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    url: "/",
+    title: "Cyclo Stratège – Jeu de management cycliste en ligne",
+    description:
+      "Prenez la direction de votre équipe cycliste. La Saison 2 ouvre le bêta test de Cyclo Stratège.",
+  },
 };
 
 const gamePillars = [
@@ -50,10 +61,10 @@ const productNews = [
     dateTime: "2026-08-16",
     dateLabel: "16 août 2026",
     accent: "leader",
-    href: "/inscription",
+    href: "/beta-saison-2",
     linkLabel: "Rejoindre la saison 2",
-    image: "/images/peloton-header.webp",
-    imageAlt: "Un peloton lancé sur les routes de Cyclo Stratège",
+    image: "/images/marketing/season-2-beta-editorial.png",
+    imageAlt: "Annonce graphique de la Saison 2 de Cyclo Stratège",
     visualLabel: "Saison",
     visualValue: "2",
     visualStatus: "Bêta test",

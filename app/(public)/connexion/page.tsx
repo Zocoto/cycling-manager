@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "Connexion",
   description:
     "Connectez-vous à votre compte Cyclostratège pour reprendre votre carrière.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 const benefits = [

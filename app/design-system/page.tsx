@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Design System",
   description:
     "Référence graphique Peloton UI pour l’interface de Cyclo Stratège.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 const palette = [

@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Nouveau mot de passe",
   description:
     "Choisissez un nouveau mot de passe pour votre compte Cyclostratège.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 type PasswordResetPageProps = {

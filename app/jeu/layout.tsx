@@ -1,5 +1,6 @@
 import "flag-icons/css/flag-icons.min.css";
 
+import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
@@ -19,6 +20,17 @@ import { listAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
 >;
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 async function synchronizeGameEntryState(
   supabase: SupabaseServerClient,

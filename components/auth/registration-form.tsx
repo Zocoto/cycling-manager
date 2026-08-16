@@ -7,6 +7,10 @@ import {
   initialRegistrationState,
   type RegistrationField,
 } from "../../app/(public)/inscription/registration-state";
+import {
+  MARKETING_FIELD_NAMES,
+  type MarketingAttribution,
+} from "../../lib/marketing/attribution";
 import { EmailVerificationResendForm } from "./email-verification-resend-form";
 
 const registrationFields: RegistrationField[] = [
@@ -20,9 +24,14 @@ const registrationFields: RegistrationField[] = [
 type RegistrationFormProps = {
   referralCode?: string;
   referrerName?: string;
+  marketingAttribution?: MarketingAttribution;
 };
 
-export function RegistrationForm({ referralCode, referrerName }: RegistrationFormProps) {
+export function RegistrationForm({
+  referralCode,
+  referrerName,
+  marketingAttribution = {},
+}: RegistrationFormProps) {
   const [state, formAction, pending] = useActionState(
     registerAccount,
     initialRegistrationState
@@ -149,6 +158,15 @@ export function RegistrationForm({ referralCode, referrerName }: RegistrationFor
           name="referralCode"
           value={referralCode ?? ""}
         />
+
+        {MARKETING_FIELD_NAMES.map((field) => (
+          <input
+            key={field}
+            type="hidden"
+            name={field}
+            value={marketingAttribution[field] ?? ""}
+          />
+        ))}
 
         <FormField
           id="managerName"

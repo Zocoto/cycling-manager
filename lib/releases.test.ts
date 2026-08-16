@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { latestRelease } from "./releases";
+import { latestRelease, releases } from "./releases";
 
-describe("Patch 4 release note", () => {
+describe("notes de version", () => {
+  it("met la Saison 2 en tête des nouveautés", () => {
+    expect(latestRelease.version).toBe("Saison 2 · Bêta");
+    expect(latestRelease.anchor).toBe("saison-2-beta");
+    expect(latestRelease.title).toContain("Saison 2");
+  });
+
   it("detaille chaque nouveau batiment et les autres livraisons majeures", () => {
-    expect(latestRelease.version).toBe("Patch #4");
+    const patch4 = releases.find((release) => release.version === "Patch #4");
 
-    const details = latestRelease.features.join("\n");
+    expect(patch4).toBeDefined();
+    if (!patch4) {
+      throw new Error("La note du Patch 4 doit rester disponible.");
+    }
+
+
+    const details = patch4.features.join("\n");
     for (const topic of [
       "Centre d\u2019entra\u00eenement",
       "Piste indoor",

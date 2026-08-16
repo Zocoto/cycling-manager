@@ -11,7 +11,12 @@ describe("page d’accueil publique", () => {
     expect(source).not.toContain("function FolderIcon");
   });
 
-  it("met le Patch 4 en vedette au-dessus de quatre annonces historiques", () => {
+  it("met la Saison 2 en vedette au-dessus de quatre annonces historiques", () => {
+    expect(source).toContain('title: "La saison 2 ouvre le bêta test"');
+    expect(source).toContain('dateTime: "2026-08-16"');
+    expect(source).toContain(
+      'title: "Le Patch 4 d\\u00e9veloppe vos infrastructures"',
+    );
     expect(source).toContain('title: "Le Patch 3 est déployé"');
     expect(source).toContain('dateTime: "2026-08-01"');
     expect(source).toContain('title: "Le Patch 2 est déployé"');
@@ -28,13 +33,11 @@ describe("page d’accueil publique", () => {
       source.indexOf("historicalNews.slice"),
     );
   });
-  it("publie le Patch 4 illustre et renvoie vers sa note detaillee", () => {
+  it("publie la Saison 2 et renvoie vers la page de bêta", () => {
+    expect(source).toContain('href: "/beta-saison-2"');
+    expect(source).toContain('linkLabel: "Rejoindre la saison 2"');
     expect(source).toContain(
-      'title: "Le Patch 4 d\\u00e9veloppe vos infrastructures"',
-    );
-    expect(source).toContain('href: "/nouveautes#patch-4"');
-    expect(source).toContain(
-      'image: "/images/infrastructure/training-center.webp"',
+      'image: "/images/marketing/season-2-beta-editorial.png"',
     );
     expect(source).toContain("src={featuredNews.image}");
     expect(source).toContain("historicalNews.slice(0, 4)");

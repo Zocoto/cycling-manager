@@ -49,6 +49,13 @@ export function PublicFooter() {
               </Link>
 
               <Link
+                href="/beta-saison-2"
+                className="w-fit transition hover:text-[#F2C94C]"
+              >
+                Saison 2 · Bêta
+              </Link>
+
+              <Link
                 href="/guide"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
@@ -90,7 +97,7 @@ export function PublicFooter() {
 
             <div className="mt-4 flex flex-col gap-3">
               <SocialLink
-                href="https://discord.gg/Zq9ecPYEF"
+                href={appConfig.discordUrl}
                 label="Discord"
                 description="Rejoindre la communauté"
                 iconSrc="/images/social/discord-symbol.svg"
@@ -98,7 +105,7 @@ export function PublicFooter() {
                 iconClassName="h-5 w-7"
               />
               <SocialLink
-                href="https://www.instagram.com/cyclostratege/"
+                href={appConfig.instagramUrl}
                 label="Instagram"
                 description="@cyclostratege"
                 iconSrc="/images/social/instagram-glyph.svg"

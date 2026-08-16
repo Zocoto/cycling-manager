@@ -5,6 +5,15 @@ export const metadata: Metadata = {
   title: "À propos",
   description:
     "Découvrez le projet Cyclo Stratège : sa vision, ses valeurs et l’équipe qui le développe.",
+  alternates: {
+    canonical: "/a-propos",
+  },
+  openGraph: {
+    url: "/a-propos",
+    title: "À propos de Cyclo Stratège",
+    description:
+      "Découvrez la vision du jeu de management cycliste et les valeurs qui guident son développement.",
+  },
 };
 
 const values = [

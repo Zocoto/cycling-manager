@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: "Confirmer votre adresse e-mail",
   description:
     "Validez explicitement l’adresse e-mail de votre compte Cyclo Stratège.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 type ConfirmSignupPageProps = {

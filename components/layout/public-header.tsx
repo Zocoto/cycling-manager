@@ -8,6 +8,10 @@ const navigationItems = [
     label: "Accueil",
   },
   {
+    href: "/beta-saison-2",
+    label: "Saison 2",
+  },
+  {
     href: "/guide",
     label: "Guide",
   },

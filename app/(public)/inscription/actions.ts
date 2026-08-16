@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
+import { readMarketingAttributionFromFormData } from "../../../lib/marketing/attribution";
 
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { RegistrationState } from "./registration-state";
@@ -64,6 +65,9 @@ export async function registerAccount(
 
   const referralCode = getFormValue(formData, "referralCode");
 
+  const marketingAttribution =
+    readMarketingAttributionFromFormData(formData);
+
   const validationResult = registrationSchema.safeParse({
     managerName,
     email,
@@ -105,6 +109,11 @@ export async function registerAccount(
       data: {
         manager_name: validationResult.data.managerName,
         referral_code: validationResult.data.referralCode || null,
+        ...(Object.keys(marketingAttribution).length > 0
+          ? {
+              marketing_attribution: marketingAttribution,
+            }
+          : {}),
       },
     },
   });

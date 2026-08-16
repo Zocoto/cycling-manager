@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "Confirmation de l’inscription",
   description:
     "Confirmation de l’adresse e-mail de votre compte Cyclo Stratège.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 type ConfirmationPageProps = {

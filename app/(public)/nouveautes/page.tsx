@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   title: "Nouveautés",
   description:
     "Découvrez les dernières fonctionnalités et évolutions de Cyclo Stratège.",
+  alternates: {
+    canonical: "/nouveautes",
+  },
+  openGraph: {
+    url: "/nouveautes",
+    title: "Nouveautés de Cyclo Stratège",
+    description:
+      "Suivez la Saison 2, les mises à jour et les évolutions du jeu de management cycliste.",
+  },
 };
 
 export default function ReleasesPage() {
@@ -118,23 +127,23 @@ function ReleasesTimeline() {
 
         <div className="mt-14 rounded-2xl border border-[#315B3E]/15 bg-[#E5F3EC] px-6 py-8 text-center sm:px-10">
           <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
-            La suite arrive
+            Participez à la suite
           </p>
 
           <h2 className="mt-3 text-2xl font-black sm:text-3xl">
-            Le journal continuera de s’enrichir à chaque nouvelle livraison.
+            La Saison 2 se construit avec ses directeurs sportifs.
           </h2>
 
           <p className="mx-auto mt-4 max-w-2xl leading-7 text-[#536B64]">
-            Les prochaines versions couvriront notamment la création de compte,
-            l’authentification et les premières fonctionnalités du jeu.
+            Rejoignez le bêta test, lancez votre carrière et partagez vos
+            retours pour nous aider à améliorer les prochaines versions.
           </p>
 
           <Link
-            href="/inscription"
+            href="/beta-saison-2"
             className="mt-7 inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
           >
-            Préparer ma carrière
+            Rejoindre la Saison 2
             <ArrowIcon />
           </Link>
         </div>
@@ -151,6 +160,7 @@ function ReleaseCard({
 }: {
   release: {
     version: string;
+    anchor?: string;
     date: string;
     title: string;
     description: string;
@@ -160,7 +170,7 @@ function ReleaseCard({
 }) {
   return (
     <article
-      id={isCurrent ? "patch-4" : undefined}
+      id={release.anchor}
       className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_65px_rgba(7,26,23,0.22)]"
     >
       <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />

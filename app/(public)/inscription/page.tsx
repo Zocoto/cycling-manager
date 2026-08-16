@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 
 import { RegistrationForm } from "../../../components/auth/registration-form";
+import {
+  readMarketingAttribution,
+  type MarketingSearchParams,
+} from "../../../lib/marketing/attribution";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getPublicReferralInvitation } from "../../../services/referrals";
 
@@ -9,6 +13,15 @@ export const metadata: Metadata = {
   title: "Inscription",
   description:
     "Créez votre compte Cyclo Stratège et votre identité de directeur sportif.",
+  alternates: {
+    canonical: "/inscription",
+  },
+  openGraph: {
+    url: "/inscription",
+    title: "Rejoindre Cyclo Stratège",
+    description:
+      "Créez votre compte et prenez la direction de votre équipe cycliste.",
+  },
 };
 
 const benefits = [
@@ -20,12 +33,18 @@ const benefits = [
 export default async function RegistrationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ parrain?: string | string[] }>;
+  searchParams: Promise<
+    MarketingSearchParams & { parrain?: string | string[] }
+  >;
 }) {
-  const rawReferralCode = (await searchParams).parrain;
+  const resolvedSearchParams = await searchParams;
+  const rawReferralCode = resolvedSearchParams.parrain;
   const referralCode = Array.isArray(rawReferralCode)
     ? rawReferralCode[0]
     : rawReferralCode;
+  const marketingAttribution = readMarketingAttribution(
+    resolvedSearchParams,
+  );
   const supabase = await createSupabaseServerClient();
   const invitation = referralCode
     ? await getPublicReferralInvitation(supabase, referralCode)
@@ -126,6 +145,7 @@ export default async function RegistrationPage({
               <RegistrationForm
                 referralCode={invitation?.code}
                 referrerName={invitation?.referrerName}
+                marketingAttribution={marketingAttribution}
               />
             </div>
 

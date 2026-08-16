@@ -1,5 +1,6 @@
 export type ReleaseNote = {
   version: string;
+  anchor?: string;
   date: string;
   title: string;
   description: string;
@@ -8,7 +9,24 @@ export type ReleaseNote = {
 
 export const releases = [
   {
+    version: "Saison 2 · Bêta",
+    anchor: "saison-2-beta",
+    date: "16 août 2026",
+    title: "La Saison 2 ouvre le bêta test",
+    description:
+      "Cyclo Stratège accueille davantage de directeurs sportifs afin d’éprouver le jeu à plus grande échelle et de construire ses prochaines évolutions avec la communauté.",
+    features: [
+      "Ouverture de la Saison 2 à une communauté de testeurs élargie.",
+      "Nouvelle page publique dédiée pour comprendre la bêta et rejoindre le jeu.",
+      "Parcours de découverte guidé jusqu’à la première équipe et au Critérium de la découverte.",
+      "Collecte de retours centralisée sur Discord pour les bugs, les idées et l’équilibrage.",
+      "Suivi de l’origine des inscriptions pour mesurer l’impact des campagnes de lancement.",
+      "Fondations SEO et partage social renforcés pour rendre le projet plus facile à découvrir.",
+    ],
+  },
+  {
     version: "Patch #4",
+    anchor: "patch-4",
     date: "12 ao\u00fbt 2026",
     title: "Les infrastructures passent un cap",
     description:

@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "Mot de passe oublié",
   description:
     "Demandez un lien pour réinitialiser le mot de passe de votre compte Cyclostratège.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 const benefits = [
