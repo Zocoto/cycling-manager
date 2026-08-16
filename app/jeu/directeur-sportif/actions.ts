@@ -16,6 +16,7 @@ import { ALPHA_TESTER_TROPHY_KEY } from "../../../lib/game/trophy-gallery";
 import {
   ASSIDU_AVATAR_GLASSES_KEY,
   decodeCustomSportingDirectorAvatar,
+  HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   isSportingDirectorAvatarKey,
 } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
@@ -280,6 +281,29 @@ export async function updateSportingDirectorProfile(
         fieldErrors: {
           avatarKey: [
             "Terminez une saison en vous connectant chaque jour pour débloquer cet accessoire.",
+          ],
+        },
+      };
+    }
+  }
+
+  if (avatarConfig?.glasses === HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY) {
+    const { data: hiddenSwitchbackTrophy, error: hiddenSwitchbackTrophyError } =
+      await supabase
+        .from("sporting_director_trophies")
+        .select("id")
+        .eq("sporting_director_id", currentProfile.id)
+        .eq("trophy_key", "virage_cache")
+        .not("claimed_at", "is", null)
+        .maybeSingle<{ id: string }>();
+
+    if (hiddenSwitchbackTrophyError || !hiddenSwitchbackTrophy) {
+      return {
+        status: "error",
+        message: "Les lunettes d’espion ne sont pas encore disponibles.",
+        fieldErrors: {
+          avatarKey: [
+            "Trouvez d’abord le Virage caché pour débloquer cet accessoire.",
           ],
         },
       };

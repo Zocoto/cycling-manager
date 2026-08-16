@@ -6,6 +6,7 @@ import {
   ASSIDU_AVATAR_GLASSES_KEY,
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
   encodeSportingDirectorAvatar,
+  HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
 } from "@/lib/sporting-director-avatar";
 
 describe("SportingDirectorAvatar", () => {
@@ -38,5 +39,18 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-accessory="assidu-glasses"');
     expect(markup).toContain("#D7A928");
+  });
+
+  it("renders the spy glasses unlocked by the hidden switchback", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      glasses: HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar espion" />,
+    );
+
+    expect(markup).toContain('data-avatar-accessory="spy-glasses"');
+    expect(markup).toContain("#8057B5");
   });
 });

@@ -11,6 +11,7 @@ import {
   AVATAR_FACIAL_HAIR_STYLES,
   getAvailableAvatarGlassesStyles,
   ASSIDU_AVATAR_GLASSES_KEY,
+  HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   AVATAR_HAIR_COLORS,
   AVATAR_HAIR_STYLES,
   AVATAR_MOUTH_SHAPES,
@@ -75,14 +76,35 @@ describe("sporting director avatar editor", () => {
 
   it("only exposes Premier de la classe after the Assidu trophy", () => {
     expect(
-      getAvailableAvatarGlassesStyles(false).some(
+      getAvailableAvatarGlassesStyles({
+        hasAssiduTrophy: false,
+        hasHiddenSwitchbackTrophy: false,
+      }).some(
         ({ key }) => key === ASSIDU_AVATAR_GLASSES_KEY,
       ),
     ).toBe(false);
     expect(
-      getAvailableAvatarGlassesStyles(true).some(
+      getAvailableAvatarGlassesStyles({
+        hasAssiduTrophy: true,
+        hasHiddenSwitchbackTrophy: false,
+      }).some(
         ({ key }) => key === ASSIDU_AVATAR_GLASSES_KEY,
       ),
+    ).toBe(true);
+  });
+
+  it("only exposes the spy glasses after discovering the hidden switchback", () => {
+    expect(
+      getAvailableAvatarGlassesStyles({
+        hasAssiduTrophy: false,
+        hasHiddenSwitchbackTrophy: false,
+      }).some(({ key }) => key === HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY),
+    ).toBe(false);
+    expect(
+      getAvailableAvatarGlassesStyles({
+        hasAssiduTrophy: false,
+        hasHiddenSwitchbackTrophy: true,
+      }).some(({ key }) => key === HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY),
     ).toBe(true);
   });
 

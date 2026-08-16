@@ -79,7 +79,7 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
     seasonName: "Carrière",
     inscription: "La curiosité ouvre des routes",
     description:
-      "Décerné aux DS qui regardent le parcours jusque dans ses plus petits détails.",
+      "Décerné aux DS qui regardent le parcours jusque dans ses plus petits détails. Offre 100 000 €, deux objets de talent +1 étoile et les lunettes d’espion.",
     href: null,
     visualVariant: "switchback" satisfies AchievementTrophyVisualVariant,
     palette: {

@@ -29,6 +29,7 @@ type SportingDirectorAvatarEditorProps = {
   avatarKey: string | null;
   frameKey?: "alpha_tester" | null;
   hasAssiduTrophy?: boolean;
+  hasHiddenSwitchbackTrophy?: boolean;
   onCancel: () => void;
   onConfirm: (avatarKey: string) => void;
   patronOutfitUnlocked?: boolean;
@@ -51,6 +52,7 @@ export function SportingDirectorAvatarEditor({
   avatarKey,
   frameKey = null,
   hasAssiduTrophy = false,
+  hasHiddenSwitchbackTrophy = false,
   onCancel,
   onConfirm,
   patronOutfitUnlocked = false,
@@ -60,7 +62,10 @@ export function SportingDirectorAvatarEditor({
     useState<SportingDirectorAvatarConfig>(initialConfig);
   const [activeTab, setActiveTab] = useState<EditorTab>("face");
   const previewKey = encodeSportingDirectorAvatar(config);
-  const availableGlassesStyles = getAvailableAvatarGlassesStyles(hasAssiduTrophy);
+  const availableGlassesStyles = getAvailableAvatarGlassesStyles({
+    hasAssiduTrophy,
+    hasHiddenSwitchbackTrophy,
+  });
 
   function updateField<K extends keyof SportingDirectorAvatarConfig>(
     field: K,
@@ -196,11 +201,14 @@ export function SportingDirectorAvatarEditor({
               <>
                 <AvatarChoiceGroup
                   title="Lunettes"
-                  description={
+                  description={[
                     hasAssiduTrophy
                       ? "Votre trophée Assidu débloque les lunettes Premier de la classe."
-                      : undefined
-                  }
+                      : null,
+                    hasHiddenSwitchbackTrophy
+                      ? "Le Virage caché débloque les lunettes d’espion."
+                      : null,
+                  ].filter(Boolean).join(" ") || undefined}
                   field="glasses"
                   value={config.glasses}
                   options={availableGlassesStyles}

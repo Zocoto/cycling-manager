@@ -4,6 +4,7 @@ import {
 } from "@/lib/game/trophy-gallery";
 import {
   ASSIDU_AVATAR_GLASSES_KEY,
+  HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   SPORTING_DIRECTOR_AVATARS,
   getAvatarBackground,
   getAvatarEyeColor,
@@ -373,6 +374,26 @@ function AvatarGlasses({ avatar }: { avatar: SportingDirectorAvatarConfig }) {
   }
 
   const frame = "#263936";
+  if (avatar.glasses === HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY) {
+    return (
+      <g data-avatar-accessory="spy-glasses">
+        <g
+          fill="#182526"
+          fillOpacity="0.88"
+          stroke="#080D0E"
+          strokeWidth="2.7"
+          strokeLinejoin="round"
+        >
+          <path d="M39 43L57 45L55 54H44C41 52 39 48 39 43Z" />
+          <path d="M81 43L63 45L65 54H76C79 52 81 48 81 43Z" />
+        </g>
+        <path d="M56 48H64" stroke="#8057B5" strokeWidth="2.8" strokeLinecap="round" />
+        <path d="M39 46L34 43M81 46L86 43" stroke="#080D0E" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M44 46L51 45M67 46L75 45" stroke="#BDA7E8" strokeWidth="1.5" strokeLinecap="round" opacity="0.75" />
+      </g>
+    );
+  }
+
   if (avatar.glasses === ASSIDU_AVATAR_GLASSES_KEY) {
     return (
       <g data-avatar-accessory="assidu-glasses">

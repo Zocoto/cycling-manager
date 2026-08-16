@@ -262,14 +262,28 @@ export async function discoverHiddenSwitchbackAction(): Promise<HiddenSwitchback
     !Array.isArray(data) &&
     (data as { newlyUnlocked?: unknown }).newlyUnlocked,
   );
+  const rewardsGranted = Boolean(
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    (data as { rewardsGranted?: unknown }).rewardsGranted,
+  );
 
+  revalidatePath("/jeu");
   revalidatePath("/jeu/objectifs");
+  revalidatePath("/jeu/finances");
+  revalidatePath("/jeu/inventaire");
+  revalidatePath("/jeu/directeur-sportif");
 
   return {
     ok: true,
-    message: newlyUnlocked
-      ? "Virage secret découvert ! Le trophée « Le Virage caché » rejoint votre galerie."
-      : "Vous connaissiez déjà ce virage. Son trophée est toujours dans votre galerie.",
+    message: newlyUnlocked && rewardsGranted
+      ? "Virage secret découvert ! Vous gagnez 100 000 €, deux Dossiers de talent classifiés (+1 étoile chacun) et les lunettes d’espion pour votre avatar."
+      : newlyUnlocked
+        ? "Virage secret découvert ! Le trophée est acquis et vos cadeaux seront crédités dès que votre équipe active sera disponible."
+      : rewardsGranted
+        ? "Vos cadeaux du Virage caché ont été ajoutés : 100 000 €, deux Dossiers de talent classifiés et les lunettes d’espion."
+        : "Vous connaissiez déjà ce virage. Son trophée et ses cadeaux sont toujours acquis.",
   };
 }
 export async function logoutAccount(): Promise<void> {

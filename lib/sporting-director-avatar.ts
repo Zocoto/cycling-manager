@@ -125,6 +125,7 @@ export const AVATAR_FACIAL_HAIR_STYLES = [
 ] as const;
 
 export const ASSIDU_AVATAR_GLASSES_KEY = "honor-roll";
+export const HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY = "spy-glasses";
 
 const STANDARD_AVATAR_GLASSES_STYLES = [
   { key: "none", label: "Sans lunettes" },
@@ -137,12 +138,22 @@ const STANDARD_AVATAR_GLASSES_STYLES = [
 export const AVATAR_GLASSES_STYLES = [
   ...STANDARD_AVATAR_GLASSES_STYLES,
   { key: ASSIDU_AVATAR_GLASSES_KEY, label: "Premier de la classe" },
+  { key: HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY, label: "Lunettes d’espion" },
 ] as const;
 
-export function getAvailableAvatarGlassesStyles(hasAssiduTrophy: boolean) {
-  return hasAssiduTrophy
-    ? AVATAR_GLASSES_STYLES
-    : STANDARD_AVATAR_GLASSES_STYLES;
+export function getAvailableAvatarGlassesStyles({
+  hasAssiduTrophy,
+  hasHiddenSwitchbackTrophy,
+}: {
+  hasAssiduTrophy: boolean;
+  hasHiddenSwitchbackTrophy: boolean;
+}) {
+  return AVATAR_GLASSES_STYLES.filter(
+    ({ key }) =>
+      (key !== ASSIDU_AVATAR_GLASSES_KEY || hasAssiduTrophy) &&
+      (key !== HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY ||
+        hasHiddenSwitchbackTrophy),
+  );
 }
 
 export const AVATAR_OUTFITS = [

@@ -167,7 +167,11 @@ export default async function SportingDirectorProfilePage() {
   const sportingDirector =
     profileResult.data;
 
-  const [alphaTesterTrophyResult, assiduTrophyResult] = sportingDirector
+  const [
+    alphaTesterTrophyResult,
+    assiduTrophyResult,
+    hiddenSwitchbackTrophyResult,
+  ] = sportingDirector
     ? await Promise.all([
         supabase
           .from("sporting_director_trophies")
@@ -182,8 +186,16 @@ export default async function SportingDirectorProfilePage() {
           .eq("sporting_director_id", sportingDirector.id)
           .limit(1)
           .maybeSingle<{ id: string }>(),
+        supabase
+          .from("sporting_director_trophies")
+          .select("id")
+          .eq("sporting_director_id", sportingDirector.id)
+          .eq("trophy_key", "virage_cache")
+          .not("claimed_at", "is", null)
+          .maybeSingle<{ id: string }>(),
       ])
     : [
+        { data: null, error: null },
         { data: null, error: null },
         { data: null, error: null },
       ];
@@ -202,8 +214,18 @@ export default async function SportingDirectorProfilePage() {
     );
   }
 
+  if (hiddenSwitchbackTrophyResult.error) {
+    console.error(
+      "Impossible de vérifier le trophée du Virage caché :",
+      hiddenSwitchbackTrophyResult.error,
+    );
+  }
+
   const hasAlphaTesterTrophy = Boolean(alphaTesterTrophyResult.data);
   const hasAssiduTrophy = Boolean(assiduTrophyResult.data);
+  const hasHiddenSwitchbackTrophy = Boolean(
+    hiddenSwitchbackTrophyResult.data,
+  );
 
   if (
     profileResult.error ||
@@ -322,6 +344,7 @@ export default async function SportingDirectorProfilePage() {
                     }
                     hasAlphaTesterTrophy={hasAlphaTesterTrophy}
                     hasAssiduTrophy={hasAssiduTrophy}
+                    hasHiddenSwitchbackTrophy={hasHiddenSwitchbackTrophy}
                     initialIsEmailVisible={
                       sportingDirector.is_email_visible
                     }
