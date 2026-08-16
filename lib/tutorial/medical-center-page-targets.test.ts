@@ -70,7 +70,7 @@ describe("medical center tutorial page targets", () => {
   it("ajoute le parcours au Centre des didacticiels", () => {
     expect(tutorialCenter).toContain("MEDICAL_CENTER_TUTORIAL_KEY");
     expect(tutorialCenter).toContain(
-      'title="Maîtriser le centre de soins"',
+      'title={medicalCenterCopy?.title ?? "Maîtriser le centre de soins"}',
     );
   });
 

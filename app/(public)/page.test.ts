@@ -26,8 +26,10 @@ describe("page d’accueil publique", () => {
     expect(source).toContain('title: "MVP déployé, pré-alpha lancée"');
     expect(source).toContain('title: "Le Discord ouvre ses portes"');
     expect(source).toContain(
-      "const [featuredNews, ...historicalNews] = productNews;",
+      "const [featuredNews, ...historicalNews] = isEnglish",
     );
+    expect(source).toContain("? productNewsEn");
+    expect(source).toContain(": productNews;");
     expect(source).toContain("xl:grid-cols-4");
     expect(source.indexOf("{featuredNews.title}")).toBeLessThan(
       source.indexOf("historicalNews.slice"),

@@ -1,6 +1,7 @@
 "use client";
 
 import type { TutorialStep } from "@/types/tutorial";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 type TutorialInstantIntroProps = {
   tutorialTitle: string;
@@ -19,11 +20,19 @@ export function TutorialInstantIntro({
   onStart,
   onSkip,
 }: TutorialInstantIntroProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const actionLabel = errorMessage
-    ? "Réessayer"
+    ? isEnglish
+      ? "Try again"
+      : "Réessayer"
     : isPending
-      ? "Préparation…"
-      : "Commencer";
+      ? isEnglish
+        ? "Preparing…"
+        : "Préparation…"
+      : isEnglish
+        ? "Start"
+        : "Commencer";
 
   return (
     <div
@@ -75,8 +84,12 @@ export function TutorialInstantIntro({
                 />
                 <p className="text-xs font-bold text-[#48665F]">
                   {isPending
-                    ? "Votre parcours est en cours de préparation."
-                    : "Votre parcours peut commencer immédiatement."}
+                    ? isEnglish
+                      ? "Your tutorial is being prepared."
+                      : "Votre parcours est en cours de préparation."
+                    : isEnglish
+                      ? "Your tutorial can start immediately."
+                      : "Votre parcours peut commencer immédiatement."}
                 </p>
               </div>
             </div>
@@ -90,7 +103,7 @@ export function TutorialInstantIntro({
             disabled={isPending}
             className="min-h-11 rounded-xl px-4 text-sm font-bold text-[#6B7F79] underline decoration-[#6B7F79]/35 underline-offset-4 transition hover:text-[#8B302E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-wait disabled:opacity-45"
           >
-            Passer le didacticiel
+            {isEnglish ? "Skip tutorial" : "Passer le didacticiel"}
           </button>
 
           <button

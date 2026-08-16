@@ -46,6 +46,7 @@ describe("bandeau du jeu sur mobile", () => {
     expect(gameHeader).toContain("<GameHeaderSearchToggle");
     expect(searchToggle).toContain('title="Rechercher"');
     expect(searchToggle).toContain('aria-haspopup="dialog"');
-    expect(gameHeader).toContain('placeholder="Rechercher un DS');
+    expect(gameHeader).toContain('? "Search for a sports director, team or nation…"');
+    expect(gameHeader).toContain(': "Rechercher un DS, une équipe, une nation…"');
   });
 });

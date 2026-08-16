@@ -88,9 +88,9 @@ export function DevelopmentTeamBuilder({
               const selected = selectedIds.has(rider.id);
               const disabled = !selected && selectedIds.size >= MAXIMUM_ROSTER_SIZE;
               const leadingRatings = [
-                ["MON", rider.ratings.mountain],
-                ["VAL", rider.ratings.hills],
-                ["CLM", rider.ratings.timeTrial],
+                ["MO", rider.ratings.mountain],
+                ["HIL", rider.ratings.hills],
+                ["TT", rider.ratings.timeTrial],
               ] as const;
               return (
                 <label

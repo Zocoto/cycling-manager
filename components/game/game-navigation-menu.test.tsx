@@ -48,7 +48,7 @@ describe("GameNavigationMenu", () => {
     expect(headerSource).toContain(
       "canAccessRaceSimulator(simulatorEmail) ? (",
     );
-    expect(headerSource).toContain("<RaceSimulatorShortcut />");
+    expect(headerSource).toContain("<RaceSimulatorShortcut isEnglish={isEnglish} />");
     expect(headerSource).not.toContain("showRaceSimulator");
   });
 });

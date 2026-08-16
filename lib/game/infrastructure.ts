@@ -164,35 +164,35 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         cost: 180_000,
         durationDays: 10,
         effect:
-          "Après 2 jours de préparation : +1 SPR et +1 ACC pendant 2 jours.",
+          "Après 2 jours de préparation : +1 SP et +1 ACC pendant 2 jours.",
       },
       {
         level: 2,
         cost: 450_000,
         durationDays: 18,
         effect:
-          "Après 2 jours de préparation : +1 SPR et +1 ACC pendant 3 jours.",
+          "Après 2 jours de préparation : +1 SP et +1 ACC pendant 3 jours.",
       },
       {
         level: 3,
         cost: 900_000,
         durationDays: 28,
         effect:
-          "Après 2 jours de préparation : +2 SPR et +2 ACC pendant 2 jours.",
+          "Après 2 jours de préparation : +2 SP et +2 ACC pendant 2 jours.",
       },
       {
         level: 4,
         cost: 1_550_000,
         durationDays: 40,
         effect:
-          "Après 2 jours de préparation : +2 SPR et +2 ACC pendant 3 jours.",
+          "Après 2 jours de préparation : +2 SP et +2 ACC pendant 3 jours.",
       },
       {
         level: 5,
         cost: 2_400_000,
         durationDays: 55,
         effect:
-          "Après 2 jours de préparation : +3 SPR et +3 ACC pendant 2 jours.",
+          "Après 2 jours de préparation : +3 SP et +3 ACC pendant 2 jours.",
       },
     ],
   },
@@ -218,7 +218,7 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     name: "Soufflerie",
     domain: "Préparation · Aérodynamisme",
     summary:
-      "Débloque des préparations de deux jours qui renforcent temporairement le CLM, le prologue et l’endurance.",
+      "Débloque des préparations de deux jours qui renforcent temporairement le TT, le PRL et la STA.",
     illustration: {
       src: "/images/infrastructure/wind-tunnel.webp",
       alt: "Soufflerie cycliste avec vélo de contre-la-montre sur banc d’essai",
@@ -229,35 +229,35 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         cost: 400_000,
         durationDays: 16,
         effect:
-          "Après 2 jours de préparation : +1 CLM, +1 PRL et +1 END pendant 2 jours.",
+          "Après 2 jours de préparation : +1 TT, +1 PRL et +1 STA pendant 2 jours.",
       },
       {
         level: 2,
         cost: 850_000,
         durationDays: 28,
         effect:
-          "Après 2 jours de préparation : +1 CLM, +1 PRL et +1 END pendant 3 jours.",
+          "Après 2 jours de préparation : +1 TT, +1 PRL et +1 STA pendant 3 jours.",
       },
       {
         level: 3,
         cost: 1_500_000,
         durationDays: 42,
         effect:
-          "Après 2 jours de préparation : +2 CLM, +2 PRL et +2 END pendant 2 jours.",
+          "Après 2 jours de préparation : +2 TT, +2 PRL et +2 STA pendant 2 jours.",
       },
       {
         level: 4,
         cost: 2_400_000,
         durationDays: 58,
         effect:
-          "Après 2 jours de préparation : +2 CLM, +2 PRL et +2 END pendant 3 jours.",
+          "Après 2 jours de préparation : +2 TT, +2 PRL et +2 STA pendant 3 jours.",
       },
       {
         level: 5,
         cost: 3_600_000,
         durationDays: 76,
         effect:
-          "Après 2 jours de préparation : +3 CLM, +3 PRL et +3 END pendant 2 jours.",
+          "Après 2 jours de préparation : +3 TT, +3 PRL et +3 STA pendant 2 jours.",
       },
     ],
   },

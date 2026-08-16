@@ -39,7 +39,7 @@ describe("rider progression", () => {
     ).toBe(RIDER_PROGRESSION_SERIES.length);
     expect(RIDER_PROGRESSION_SERIES[0]).toMatchObject({
       key: "average",
-      shortLabel: "MOY",
+      shortLabel: "AVG",
       label: "Moyenne générale",
     });
   });

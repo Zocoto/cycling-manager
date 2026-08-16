@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useLocale } from "@/components/i18n/locale-provider";
 import {
   calculateTutorialPanelPosition,
   expandTutorialTargetRectangle,
@@ -100,6 +101,8 @@ export function TutorialOverlay({
   onSkip,
   onFollowUp,
 }: TutorialOverlayProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const isClient = useIsClient();
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -387,7 +390,7 @@ export function TutorialOverlay({
             <div className="min-w-0">
               {isMobile ? (
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#278B70]">
-                  Étape {stepIndex + 1}/{totalSteps}
+                  {isEnglish ? "Step" : "Étape"} {stepIndex + 1}/{totalSteps}
                 </p>
               ) : (
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
@@ -411,7 +414,11 @@ export function TutorialOverlay({
               type="button"
               onClick={onQuit}
               disabled={isPending}
-              aria-label="Quitter le didacticiel et reprendre plus tard"
+              aria-label={
+                isEnglish
+                  ? "Leave the tutorial and resume later"
+                  : "Quitter le didacticiel et reprendre plus tard"
+              }
               className={
                 isMobile
                   ? "grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#315B3E]/15 bg-white text-base font-black text-[#48665F] transition hover:border-[#278B70]/40 hover:text-[#176951] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-wait disabled:opacity-50"
@@ -439,7 +446,8 @@ export function TutorialOverlay({
 
           {isMobile ? null : (
             <p className="mt-2 text-[10px] font-bold text-[#668078]">
-              Étape {stepIndex + 1} sur {totalSteps}
+              {isEnglish ? "Step" : "Étape"} {stepIndex + 1}{" "}
+              {isEnglish ? "of" : "sur"} {totalSteps}
             </p>
           )}
         </div>
@@ -487,7 +495,7 @@ export function TutorialOverlay({
               disabled={isPending}
               className="text-xs font-bold text-[#6B7F79] underline decoration-[#6B7F79]/35 underline-offset-4 transition hover:text-[#8B302E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-wait disabled:opacity-50"
             >
-              Passer le didacticiel
+              {isEnglish ? "Skip tutorial" : "Passer le didacticiel"}
             </button>
 
             <div className="ml-auto flex items-center gap-2">
@@ -503,7 +511,11 @@ export function TutorialOverlay({
                       : "min-h-10 rounded-xl border border-[#F2C94C]/55 bg-[#FDF4D6] px-5 text-xs font-black text-[#755913] transition hover:border-[#F2C94C] hover:text-[#986C00] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
                   }
                 >
-                  {isMobile ? "Parcours suivant" : followUpLabel}
+                  {isMobile
+                    ? isEnglish
+                      ? "Next tutorial"
+                      : "Parcours suivant"
+                    : followUpLabel}
                 </button>
               ) : null}
 
@@ -513,7 +525,7 @@ export function TutorialOverlay({
                 disabled={!canGoPrevious || isPending}
                 className="min-h-10 rounded-xl border border-[#315B3E]/15 bg-white px-4 text-xs font-black text-[#35554D] transition hover:border-[#278B70]/40 hover:bg-[#F2F8F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Précédent
+                {isEnglish ? "Previous" : "Précédent"}
               </button>
 
               <button
@@ -523,19 +535,25 @@ export function TutorialOverlay({
                 className="min-h-10 rounded-xl bg-[#176951] px-5 text-xs font-black text-white shadow-md transition hover:bg-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
               >
                 {isPending
-                  ? "Enregistrement…"
+                  ? isEnglish
+                    ? "Saving…"
+                    : "Enregistrement…"
                   : isLastStep
-                    ? "Terminer"
-                    : "Suivant"}
+                    ? isEnglish
+                      ? "Finish"
+                      : "Terminer"
+                    : isEnglish
+                      ? "Next"
+                      : "Suivant"}
               </button>
             </div>
           </div>
 
           {isMobile ? null : (
             <p className="mt-3 text-[10px] font-semibold leading-4 text-[#82928D]">
-              Quitter conserve votre progression. Passer masque définitivement le
-              lancement automatique, mais le parcours restera disponible dans le
-              Guide.
+              {isEnglish
+                ? "Leaving saves your progress. Skipping permanently hides the automatic launch, but the tutorial remains available in the Guide."
+                : "Quitter conserve votre progression. Passer masque définitivement le lancement automatique, mais le parcours restera disponible dans le Guide."}
             </p>
           )}
         </div>

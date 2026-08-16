@@ -64,8 +64,8 @@ describe("rider profile radar", () => {
 
   it("keeps coherent rider ratings next to each other", () => {
     expect(RIDER_RATING_AXES.slice(0, 3).map((axis) => axis.shortLabel)).toEqual([
-      "MON",
-      "VAL",
+      "MO",
+      "HIL",
       "REC",
     ]);
   });

@@ -55,7 +55,7 @@ describe("equipment tutorial", () => {
     expect(partnerSteps).not.toContain("50 points de réputation");
   });
 
-  it("rend le cadeau interactif et annonce END +1 sans doublon au replay", () => {
+  it("rend le cadeau interactif et annonce STA +1 sans doublon au replay", () => {
     const giftStep = getTutorialDefinition(EQUIPMENT_TUTORIAL_KEY)?.steps.find(
       (step) => step.key === "equipment-welcome-gift",
     );
@@ -67,7 +67,7 @@ describe("equipment tutorial", () => {
     const inventoryStep = getTutorialDefinition(
       EQUIPMENT_TUTORIAL_KEY,
     )?.steps.find((step) => step.key === "equipment-inventory-overview");
-    expect(inventoryStep?.content).toContain("+1 en END");
+    expect(inventoryStep?.content).toContain("+1 en STA");
   });
 
   it("annonce la validation dans le Centre des didacticiels", () => {

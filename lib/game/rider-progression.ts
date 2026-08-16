@@ -45,7 +45,7 @@ const STAT_COLORS: Record<RiderRatingKey, string> = {
 export const RIDER_PROGRESSION_SERIES = [
   {
     key: "average",
-    shortLabel: "MOY",
+    shortLabel: "AVG",
     label: "Moyenne générale",
     color: "#D6A900",
     importance: "summary",

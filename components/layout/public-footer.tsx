@@ -1,12 +1,17 @@
+"use client";
+
 import Image from "next/image";
 
 import Link from "@/components/ui/app-link";
 
 import { appConfig } from "../../lib/app-config";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "../ui/wheel-logo";
 
 export function PublicFooter() {
   const currentYear = new Date().getFullYear();
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
 
   return (
     <footer className="relative overflow-hidden border-t border-[#78947D]/25 bg-[#071A17]">
@@ -24,14 +29,15 @@ export function PublicFooter() {
                 </p>
 
                 <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[#F2C94C]">
-                  Devenez directeur sportif
+                  {isEnglish ? "Become a sports director" : "Devenez directeur sportif"}
                 </p>
               </div>
             </div>
 
             <p className="mt-5 max-w-md text-sm leading-6 text-[#D6DFD2]">
-              Construisez votre équipe, préparez vos courses et écrivez votre
-              propre histoire dans le peloton.
+              {isEnglish
+                ? "Build your team, prepare your races and write your own story in the peloton."
+                : "Construisez votre équipe, préparez vos courses et écrivez votre propre histoire dans le peloton."}
             </p>
           </div>
 
@@ -45,14 +51,14 @@ export function PublicFooter() {
                 href="/"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
-                Accueil
+                {isEnglish ? "Home" : "Accueil"}
               </Link>
 
               <Link
                 href="/beta-saison-2"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
-                Saison 2 · Bêta
+                {isEnglish ? "Season 2 · Beta" : "Saison 2 · Bêta"}
               </Link>
 
               <Link
@@ -66,40 +72,40 @@ export function PublicFooter() {
                 href="/a-propos"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
-                À propos
+                {isEnglish ? "About" : "À propos"}
               </Link>
 
               <Link
                 href="/connexion"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
-                Connexion
+                {isEnglish ? "Log in" : "Connexion"}
               </Link>
             </div>
           </div>
 
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#F2C94C]">
-              Développement
+              {isEnglish ? "Development" : "Développement"}
             </p>
 
             <p className="mt-4 text-sm leading-6 text-[#D6DFD2]">
-              Version {appConfig.version}
+              {isEnglish ? "Version" : "Version"} {appConfig.version}
               <br />
-              Projet en développement actif
+              {isEnglish ? "Project in active development" : "Projet en développement actif"}
             </p>
           </div>
 
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#F2C94C]">
-              Nous suivre
+              {isEnglish ? "Follow us" : "Nous suivre"}
             </p>
 
             <div className="mt-4 flex flex-col gap-3">
               <SocialLink
                 href={appConfig.discordUrl}
                 label="Discord"
-                description="Rejoindre la communauté"
+                description={isEnglish ? "Join the community" : "Rejoindre la communauté"}
                 iconSrc="/images/social/discord-symbol.svg"
                 iconAlt=""
                 iconClassName="h-5 w-7"
@@ -120,7 +126,9 @@ export function PublicFooter() {
           <p>© {currentYear} Cyclo Stratège</p>
 
           <p className="uppercase tracking-[0.26em] text-[#D9C978]">
-            Votre voyage · Votre équipe · Votre histoire
+            {isEnglish
+              ? "Your journey · Your team · Your story"
+              : "Votre voyage · Votre équipe · Votre histoire"}
           </p>
         </div>
       </div>

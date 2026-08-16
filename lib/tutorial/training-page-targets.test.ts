@@ -83,7 +83,7 @@ describe("training tutorial page targets", () => {
   it("ajoute le parcours au Centre des didacticiels", () => {
     expect(tutorialCenter).toContain("TRAINING_TUTORIAL_KEY");
     expect(tutorialCenter).toContain(
-      'title="Entraînement et reconnaissance"',
+      'title={trainingCopy?.title ?? "Entraînement et reconnaissance"}',
     );
   });
 });

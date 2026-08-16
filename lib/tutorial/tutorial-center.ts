@@ -2,6 +2,7 @@ import type {
   TutorialProgressStatus,
   TutorialSessionLaunchSource,
 } from "@/types/tutorial";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export type TutorialCenterEntryPresentation = {
   statusLabel: string;
@@ -13,12 +14,15 @@ export type TutorialCenterEntryPresentation = {
 
 export function getTutorialCenterEntryPresentation(
   status: TutorialProgressStatus | null,
+  locale: AppLocale = "fr",
 ): TutorialCenterEntryPresentation {
+  const isEnglish = locale === "en";
+
   switch (status) {
     case "in_progress":
       return {
-        statusLabel: "En cours",
-        actionLabel: "Reprendre",
+        statusLabel: isEnglish ? "In progress" : "En cours",
+        actionLabel: isEnglish ? "Resume" : "Reprendre",
         launchSource: "resume",
         restartFromBeginning: false,
         needsAttention: true,
@@ -26,8 +30,8 @@ export function getTutorialCenterEntryPresentation(
 
     case "completed":
       return {
-        statusLabel: "Terminé",
-        actionLabel: "Revoir depuis le début",
+        statusLabel: isEnglish ? "Completed" : "Terminé",
+        actionLabel: isEnglish ? "Replay from the start" : "Revoir depuis le début",
         launchSource: "replay",
         restartFromBeginning: true,
         needsAttention: false,
@@ -35,8 +39,8 @@ export function getTutorialCenterEntryPresentation(
 
     case "skipped":
       return {
-        statusLabel: "Ignoré",
-        actionLabel: "Découvrir maintenant",
+        statusLabel: isEnglish ? "Skipped" : "Ignoré",
+        actionLabel: isEnglish ? "Discover now" : "Découvrir maintenant",
         launchSource: "replay",
         restartFromBeginning: true,
         needsAttention: false,
@@ -45,8 +49,8 @@ export function getTutorialCenterEntryPresentation(
     case "not_started":
     case null:
       return {
-        statusLabel: "À découvrir",
-        actionLabel: "Commencer",
+        statusLabel: isEnglish ? "Not started" : "À découvrir",
+        actionLabel: isEnglish ? "Start" : "Commencer",
         launchSource: "manual",
         restartFromBeginning: true,
         needsAttention: false,

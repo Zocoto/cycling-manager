@@ -1,3 +1,5 @@
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
 import Link from "@/components/ui/app-link";
 
@@ -12,6 +14,8 @@ import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "@/components/ui/wheel-logo";
 import {
   GLOBAL_SEARCH_MAX_LENGTH,
@@ -46,6 +50,8 @@ export function GameHeader({
   gazetteIsOpen = false,
   mailboxIsOpen = false,
 }: GameHeaderProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const colors = sponsor?.colors ?? DEFAULT_HEADER_COLORS;
 
   const maxWidthClassName =
@@ -77,7 +83,9 @@ export function GameHeader({
       >
         <Link
           href="/jeu"
-          aria-label="Retour à l’accueil de Cyclo Stratège"
+          aria-label={
+            isEnglish ? "Back to the Cyclo Stratège dashboard" : "Retour à l’accueil de Cyclo Stratège"
+          }
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
@@ -105,15 +113,17 @@ export function GameHeader({
         <GameNavigationMenu viewerEmail={simulatorEmail} />
 
         <div className="order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px border-t border-white/10 pt-2 sm:gap-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
+          <LanguageSwitcher compact />
+
           <HeaderMenuLink
             href="/jeu/equipe"
-            label={sponsor?.shortName ?? "Mon équipe"}
-            description="Effectif et identité"
+            label={sponsor?.shortName ?? (isEnglish ? "My team" : "Mon équipe")}
+            description={isEnglish ? "Roster and identity" : "Effectif et identité"}
           >
             {sponsor ? (
               <SponsorLogoMark
                 src={sponsor.logoPath}
-                alt={`Logo de ${sponsor.name}`}
+                alt={isEnglish ? `${sponsor.name} logo` : `Logo de ${sponsor.name}`}
                 sponsorName={sponsor.name}
                 primaryColor={sponsor.colors.primary}
                 backgroundColor={sponsor.colors.background}
@@ -142,7 +152,7 @@ export function GameHeader({
             <HeaderMenuLink
               href="/jeu/directeur-sportif"
               label={displayName}
-              description="Profil du DS"
+              description={isEnglish ? "Sports director profile" : "Profil du DS"}
             >
               <svg
                 aria-hidden="true"
@@ -167,27 +177,27 @@ export function GameHeader({
           <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
           {canAccessRaceSimulator(simulatorEmail) ? (
-            <RaceSimulatorShortcut />
+            <RaceSimulatorShortcut isEnglish={isEnglish} />
           ) : null}
 
           <HeaderIconMenuItem
             label="Cyclogazette"
-            description="Actualités du peloton"
+            description={isEnglish ? "Peloton news" : "Actualités du peloton"}
           >
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
           </HeaderIconMenuItem>
 
           <HeaderIconMenuItem
-            label="Didacticiels"
-            description="Aide interactive"
+            label={isEnglish ? "Tutorials" : "Didacticiels"}
+            description={isEnglish ? "Interactive help" : "Aide interactive"}
           >
             <TutorialCenterMenu />
           </HeaderIconMenuItem>
 
           <HeaderMenuLink
             href="/guide"
-            label="Guide du jeu"
-            description="Règles et conseils"
+            label={isEnglish ? "Game guide" : "Guide du jeu"}
+            description={isEnglish ? "Rules and tips" : "Règles et conseils"}
           >
             <svg
               aria-hidden="true"
@@ -206,8 +216,8 @@ export function GameHeader({
 
           <HeaderMenuLink
             href="/jeu/parrainage"
-            label="Parrainage"
-            description="Objets niv. 5 à 7"
+            label={isEnglish ? "Referral programme" : "Parrainage"}
+            description={isEnglish ? "Level 5 to 7 items" : "Objets niv. 5 à 7"}
           >
             <svg
               aria-hidden="true"
@@ -229,8 +239,8 @@ export function GameHeader({
           <form action={logoutAccount} className="shrink-0">
             <button
               type="submit"
-              title="Se déconnecter"
-              aria-label="Se déconnecter"
+              title={isEnglish ? "Log out" : "Se déconnecter"}
+              aria-label={isEnglish ? "Log out" : "Se déconnecter"}
               className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#F6C2C6] transition hover:border-[#EF5B65] hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65] sm:h-10 sm:w-10"
             >
               <span className="contents">
@@ -256,6 +266,7 @@ export function GameHeader({
               id="game-global-search"
               searchQuery={searchQuery}
               className="flex"
+              isEnglish={isEnglish}
             />
           </GameHeaderSearchToggle>
         </div>
@@ -268,10 +279,12 @@ function GameHeaderSearch({
   id,
   searchQuery,
   className,
+  isEnglish,
 }: {
   id: string;
   searchQuery: string;
   className: string;
+  isEnglish: boolean;
 }) {
   return (
     <form
@@ -281,7 +294,9 @@ function GameHeaderSearch({
       className={`w-full items-center ${className}`}
     >
       <label htmlFor={id} className="sr-only">
-        Rechercher un Directeur Sportif, une équipe ou une nation
+        {isEnglish
+          ? "Search for a sports director, a team or a nation"
+          : "Rechercher un Directeur Sportif, une équipe ou une nation"}
       </label>
 
       <div className="flex w-full items-center overflow-hidden rounded-xl border border-[#78947D]/55 bg-[#FFFDF4]/8 shadow-inner shadow-black/20 transition focus-within:border-[var(--game-header-accent)] focus-within:ring-2 focus-within:ring-[var(--game-header-accent-soft)]">
@@ -310,14 +325,18 @@ function GameHeaderSearch({
           minLength={GLOBAL_SEARCH_MIN_LENGTH}
           maxLength={GLOBAL_SEARCH_MAX_LENGTH}
           defaultValue={searchQuery}
-          placeholder="Rechercher un DS, une équipe, une nation…"
+          placeholder={
+            isEnglish
+              ? "Search for a sports director, team or nation…"
+              : "Rechercher un DS, une équipe, une nation…"
+          }
           autoComplete="off"
           className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-[#D6DFD2]/65"
         />
 
         <button
           type="submit"
-          aria-label="Lancer la recherche"
+          aria-label={isEnglish ? "Start search" : "Lancer la recherche"}
           className="m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:w-auto sm:px-3"
         >
           <svg
@@ -340,7 +359,7 @@ function GameHeaderSearch({
               strokeWidth="2"
             />
           </svg>
-          <span className="hidden sm:inline">Rechercher</span>
+          <span className="hidden sm:inline">{isEnglish ? "Search" : "Rechercher"}</span>
         </button>
       </div>
     </form>
@@ -380,12 +399,12 @@ function HeaderIconMenuItem({
   return <>{children}</>;
 }
 
-function RaceSimulatorShortcut() {
+function RaceSimulatorShortcut({ isEnglish }: { isEnglish: boolean }) {
   return (
     <HeaderMenuLink
       href="/jeu/simulateur-course"
-      label="Simulateur"
-      description="Tester une course"
+      label={isEnglish ? "Simulator" : "Simulateur"}
+      description={isEnglish ? "Test a race" : "Tester une course"}
     >
       <svg
         aria-hidden="true"

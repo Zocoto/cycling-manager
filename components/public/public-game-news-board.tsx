@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -7,7 +9,6 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import {
-  formatPublicGameNewsDate,
   formatPublicGameNewsTotal,
   type PublicGameNewsItem,
   type PublicGameNewsKind,
@@ -17,6 +18,8 @@ import {
 } from "@/lib/game/public-game-news";
 import { STAFF_ROLE_DEFINITIONS } from "@/lib/game/staff";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { localizePublicGameNewsItem } from "@/lib/i18n/cyclogazette-en";
 
 const emptyNews = [
   {
@@ -31,11 +34,18 @@ const emptyNews = [
   },
 ];
 
+const emptyNewsEn = [
+  { kind: "victory" as const, title: "The first achievements are taking shape", detail: "Every official victory will be celebrated here." },
+  { kind: "gazette" as const, title: "The newsroom is preparing its next issue", detail: "The Cyclogazette is published every evening at 8 pm." },
+];
+
 export function PublicGameNewsBoard({
   snapshot,
 }: {
   snapshot: PublicGameNewsSnapshot;
 }) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const featured =
     snapshot.items.find((item) => item.kind === "victory") ??
     snapshot.items[0] ??
@@ -61,17 +71,18 @@ export function PublicGameNewsBoard({
                 ) : null}
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#42B99A]" />
               </span>
-              Résultats en direct
+              {isEnglish ? "Live results" : "Résultats en direct"}
             </div>
 
             <h2 className="mt-4 text-3xl font-black tracking-[-0.035em] text-[#082A2A] sm:text-5xl">
-              La course s’écrit
-              <span className="text-[#42A884]"> sous vos yeux.</span>
+              {isEnglish ? "The race unfolds" : "La course s’écrit"}
+              <span className="text-[#42A884]"> {isEnglish ? "before your eyes." : "sous vos yeux."}</span>
             </h2>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#536B64] sm:text-lg">
-              Retrouvez les vainqueurs des courses officielles et la publication
-              quotidienne de La Cyclogazette, sans bruit autour des résultats.
+              {isEnglish
+                ? "Follow official race winners and the daily Cyclogazette, with a clear focus on results."
+                : "Retrouvez les vainqueurs des courses officielles et la publication quotidienne de La Cyclogazette, sans bruit autour des résultats."}
             </p>
           </div>
 
@@ -79,7 +90,7 @@ export function PublicGameNewsBoard({
             href="/inscription"
             className="inline-flex w-fit items-center gap-2 rounded-full border border-[#315B3E]/20 bg-white px-5 py-3 text-sm font-extrabold !text-[#173C2E] shadow-sm transition hover:-translate-y-0.5 hover:border-[#42B99A] hover:!text-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
           >
-            Prendre le départ
+            {isEnglish ? "Join the start line" : "Prendre le départ"}
             <ArrowIcon />
           </Link>
         </div>
@@ -94,17 +105,19 @@ export function PublicGameNewsBoard({
               </span>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-                  Résultats et éditions
+                  {isEnglish ? "Results and editions" : "Résultats et éditions"}
                 </p>
                 <p className="mt-0.5 text-sm text-[#BFD1C6]">
-                  L’essentiel sportif de Cyclo Stratège
+                  {isEnglish ? "Cyclo Stratège sporting essentials" : "L’essentiel sportif de Cyclo Stratège"}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#8DCFB8]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#42CDA8]" />
-              {snapshot.isLive ? "Actualisé régulièrement" : "Le fil se prépare"}
+              {snapshot.isLive
+                ? isEnglish ? "Updated regularly" : "Actualisé régulièrement"
+                : isEnglish ? "The feed is getting ready" : "Le fil se prépare"}
             </div>
           </div>
 
@@ -114,22 +127,22 @@ export function PublicGameNewsBoard({
             <div className="border-t border-white/10 lg:border-l lg:border-t-0">
               <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 sm:px-8">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8DCFB8]">
-                  Fil d’actualité
+                  {isEnglish ? "News feed" : "Fil d’actualité"}
                 </p>
                 <span className="rounded-full bg-white/5 px-3 py-1 text-[11px] font-bold text-[#BFD1C6]">
-                  Derniers événements
+                  {isEnglish ? "Latest events" : "Derniers événements"}
                 </span>
               </div>
 
               {timeline.length > 0 ? (
-                <ol aria-label="Dernières actualités du jeu" className="divide-y divide-white/10">
+                <ol aria-label={isEnglish ? "Latest game news" : "Dernières actualités du jeu"} className="divide-y divide-white/10">
                   {timeline.map((item) => (
                     <NewsRow key={item.id} item={item} />
                   ))}
                 </ol>
               ) : (
-                <ol aria-label="Actualités à venir" className="divide-y divide-white/10">
-                  {emptyNews.map((item) => (
+                <ol aria-label={isEnglish ? "Upcoming news" : "Actualités à venir"} className="divide-y divide-white/10">
+                  {(isEnglish ? emptyNewsEn : emptyNews).map((item) => (
                     <EmptyNewsRow key={item.kind} {...item} />
                   ))}
                 </ol>
@@ -140,18 +153,18 @@ export function PublicGameNewsBoard({
           <div className="relative grid border-t border-white/10 sm:grid-cols-3">
             <NewsStat
               value={formatPublicGameNewsTotal(snapshot.totals.directors)}
-              label="Directeurs actifs"
-              detail="sur la ligne de départ"
+              label={isEnglish ? "Active Sports Directors" : "Directeurs actifs"}
+              detail={isEnglish ? "on the start line" : "sur la ligne de départ"}
             />
             <NewsStat
               value={formatPublicGameNewsTotal(snapshot.totals.victories)}
-              label="Victoires officielles"
-              detail="déjà inscrites au palmarès"
+              label={isEnglish ? "Official victories" : "Victoires officielles"}
+              detail={isEnglish ? "already in the record books" : "déjà inscrites au palmarès"}
             />
             <NewsStat
               value={formatPublicGameNewsTotal(snapshot.totals.gazettes)}
-              label="Gazettes publiées"
-              detail="une nouvelle édition chaque soir"
+              label={isEnglish ? "Gazettes published" : "Gazettes publiées"}
+              detail={isEnglish ? "a new edition every evening" : "une nouvelle édition chaque soir"}
               isLast
             />
           </div>
@@ -162,6 +175,8 @@ export function PublicGameNewsBoard({
 }
 
 function FeaturedNews({ item }: { item: PublicGameNewsItem | null }) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   if (!item) {
     return (
       <div className="relative flex min-h-88 flex-col justify-end overflow-hidden p-6 sm:p-8 lg:min-h-105">
@@ -174,19 +189,22 @@ function FeaturedNews({ item }: { item: PublicGameNewsItem | null }) {
             <FlagIcon />
           </span>
           <p className="mt-7 text-xs font-black uppercase tracking-[0.2em] text-[#8DCFB8]">
-            Prochainement sur la route
+            {isEnglish ? "Coming up on the road" : "Prochainement sur la route"}
           </p>
           <h3 className="mt-3 max-w-md text-3xl font-black leading-tight tracking-tight sm:text-4xl">
-            Le prochain grand moment peut être le vôtre.
+            {isEnglish ? "The next great moment could be yours." : "Le prochain grand moment peut être le vôtre."}
           </h3>
           <p className="mt-4 max-w-md leading-7 text-[#BFD1C6]">
-            Lancez une carrière et écrivez la première ligne de ce tableau de
-            course.
+            {isEnglish
+              ? "Start a career and write the first line on this race board."
+              : "Lancez une carrière et écrivez la première ligne de ce tableau de course."}
           </p>
         </div>
       </div>
     );
   }
+
+  const localizedItem = localizePublicGameNewsItem(item, locale);
 
   return (
     <div className="group relative flex min-h-88 flex-col justify-end overflow-hidden p-6 sm:p-8 lg:min-h-105">
@@ -202,28 +220,28 @@ function FeaturedNews({ item }: { item: PublicGameNewsItem | null }) {
             "repeating-conic-gradient(transparent 0deg 14deg, rgba(124,207,156,0.13) 14deg 15deg)",
         }}
       />
-      <FeaturedVisual item={item} />
+      <FeaturedVisual item={localizedItem} />
 
       <div className="relative">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2C94C] text-[#082A2A] shadow-[0_16px_40px_rgba(242,201,76,0.22)]">
-          <NewsIcon kind={item.kind} featured />
+          <NewsIcon kind={localizedItem.kind} featured />
         </span>
 
         <div className="mt-7 flex flex-wrap items-center gap-3">
-          <NewsBadge kind={item.kind} />
+          <NewsBadge kind={localizedItem.kind} />
           <time
-            dateTime={item.happenedAt}
+            dateTime={localizedItem.happenedAt}
             className="text-xs font-bold text-[#BFD1C6]"
           >
-            {formatPublicGameNewsDate(item.happenedAt)}
+            {formatNewsDate(localizedItem.happenedAt, locale)}
           </time>
         </div>
 
         <h3 className="mt-3 max-w-lg text-3xl font-black leading-tight tracking-tight sm:text-4xl">
-          {item.title}
+          {localizedItem.title}
         </h3>
         <p className="mt-4 max-w-lg text-base leading-7 text-[#D6DFD2]">
-          {item.detail}
+          {localizedItem.detail}
         </p>
       </div>
     </div>
@@ -231,33 +249,35 @@ function FeaturedNews({ item }: { item: PublicGameNewsItem | null }) {
 }
 
 function NewsRow({ item }: { item: PublicGameNewsItem }) {
+  const { locale } = useLocale();
+  const localizedItem = localizePublicGameNewsItem(item, locale);
   return (
     <li className="group grid grid-cols-[auto_1fr] gap-4 px-6 py-5 transition hover:bg-white/[0.035] sm:grid-cols-[auto_1fr_auto] sm:items-center sm:px-8">
-      <NewsVisual item={item} />
+      <NewsVisual item={localizedItem} />
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <NewsBadge kind={item.kind} compact />
+          <NewsBadge kind={localizedItem.kind} compact />
           <time
-            dateTime={item.happenedAt}
+            dateTime={localizedItem.happenedAt}
             className="text-[11px] font-semibold text-[#78968C] sm:hidden"
           >
-            {formatPublicGameNewsDate(item.happenedAt)}
+            {formatNewsDate(localizedItem.happenedAt, locale)}
           </time>
         </div>
         <p className="mt-1.5 font-extrabold leading-5 text-[#FFFDF4]">
-          {item.title}
+          {localizedItem.title}
         </p>
         <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#9FB8AE]">
-          {item.detail}
+          {localizedItem.detail}
         </p>
       </div>
 
       <time
-        dateTime={item.happenedAt}
+        dateTime={localizedItem.happenedAt}
         className="hidden whitespace-nowrap text-xs font-semibold text-[#78968C] sm:block"
       >
-        {formatPublicGameNewsDate(item.happenedAt)}
+        {formatNewsDate(localizedItem.happenedAt, locale)}
       </time>
     </li>
   );
@@ -450,6 +470,7 @@ function TeamMark({
   team: PublicGameNewsTeamVisual;
   size: "featured" | "badge" | "row";
 }) {
+  const { locale } = useLocale();
   const className =
     size === "featured"
       ? "h-16 w-20 rounded-2xl p-2 sm:h-18 sm:w-24"
@@ -461,7 +482,7 @@ function TeamMark({
     return (
       <SponsorLogoMark
         src={team.logoPath}
-        alt={`Logo de ${team.name}`}
+        alt={locale === "en" ? `${team.name} logo` : `Logo de ${team.name}`}
         sponsorName={team.sponsorName}
         primaryColor={team.colors.primary}
         backgroundColor={team.colors.background}
@@ -474,7 +495,7 @@ function TeamMark({
   return (
     <span
       role="img"
-      aria-label={`Emblème de ${team.name}`}
+      aria-label={locale === "en" ? `${team.name} emblem` : `Emblème de ${team.name}`}
       className={`relative flex shrink-0 items-center justify-center overflow-hidden border font-black shadow-sm ${className}`}
       style={{
         borderColor: `${team.colors.primary}66`,
@@ -584,18 +605,20 @@ function NewsBadge({
   kind: PublicGameNewsKind;
   compact?: boolean;
 }) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const label =
     kind === "race_recap"
-      ? "Après-course"
+      ? isEnglish ? "Post-race" : "Après-course"
       : kind === "victory"
-        ? "Victoire"
+        ? isEnglish ? "Victory" : "Victoire"
         : kind === "gazette"
-          ? "La Cyclogazette"
+          ? isEnglish ? "The Cyclogazette" : "La Cyclogazette"
           : kind === "arrival"
-            ? "Nouveau DS"
+            ? isEnglish ? "New SD" : "Nouveau DS"
             : kind === "staff"
-              ? "Recrutement staff"
-              : "Transfert";
+              ? isEnglish ? "Staff signing" : "Recrutement staff"
+              : isEnglish ? "Transfer" : "Transfert";
 
   return (
     <span
@@ -801,6 +824,16 @@ function ArrowIcon() {
       <path d="m11 5 5 5-5 5" />
     </svg>
   );
+}
+
+function formatNewsDate(value: string, locale: "fr" | "en") {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }
 
 function BoardDecoration() {

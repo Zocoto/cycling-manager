@@ -1,27 +1,21 @@
+"use client";
+
 import Link from "@/components/ui/app-link";
 
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "../ui/wheel-logo";
 
-const navigationItems = [
-  {
-    href: "/",
-    label: "Accueil",
-  },
-  {
-    href: "/beta-saison-2",
-    label: "Saison 2",
-  },
-  {
-    href: "/guide",
-    label: "Guide",
-  },
-  {
-    href: "/a-propos",
-    label: "À propos",
-  },
-] as const;
-
 export function PublicHeader() {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  const navigationItems = [
+    [isEnglish ? "Home" : "Accueil", "/"],
+    ["Season 2", "/beta-saison-2"],
+    ["Guide", "/guide"],
+    [isEnglish ? "About" : "À propos", "/a-propos"],
+  ] as const;
+
   return (
     <header className="sticky top-0 z-50 border-b border-[#78947D]/25 bg-[#071A17]/95 shadow-lg shadow-black/15 backdrop-blur-xl">
       <div
@@ -33,7 +27,9 @@ export function PublicHeader() {
         <Link
           href="/"
           className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
-          aria-label="Retour à l’accueil de Cyclo Stratège"
+          aria-label={
+            isEnglish ? "Back to the Cyclo Stratège homepage" : "Retour à l’accueil de Cyclo Stratège"
+          }
         >
           <WheelLogo className="h-12 w-12" />
 
@@ -56,24 +52,26 @@ export function PublicHeader() {
         </Link>
 
         <nav
-          aria-label="Navigation principale"
+          aria-label={isEnglish ? "Main navigation" : "Navigation principale"}
           className="hidden items-center gap-2 lg:flex"
         >
-          {navigationItems.map((item) => (
+          {navigationItems.map(([label, href]) => (
             <Link
-              key={item.href}
-              href={item.href}
+              key={href}
+              href={href}
               className="rounded-md px-4 py-2 text-sm font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
             >
-              {item.label}
+              {label}
             </Link>
           ))}
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher compact />
+
           <Link
             href="/connexion"
-            aria-label="Se connecter"
+            aria-label={isEnglish ? "Log in" : "Se connecter"}
             className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#D6DFD2]/45 bg-[#071A17]/45 px-3 py-2 text-sm font-semibold text-[#FFFDF4] transition hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] sm:px-4"
           >
             <svg
@@ -89,30 +87,30 @@ export function PublicHeader() {
               <path d="M11.5 3H14a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 14 17h-2.5" />
               <path d="M3.5 10h8m0 0L9 7.5M11.5 10 9 12.5" />
             </svg>
-            <span className="hidden sm:inline">Se connecter</span>
+            <span className="hidden sm:inline">{isEnglish ? "Log in" : "Se connecter"}</span>
           </Link>
 
           <Link
             href="/inscription"
             className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-4 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
           >
-            S’inscrire
+            {isEnglish ? "Sign up" : "S’inscrire"}
           </Link>
         </div>
       </div>
 
       <div className="border-t border-[#78947D]/15 px-5 py-2 lg:hidden">
         <nav
-          aria-label="Navigation mobile"
+          aria-label={isEnglish ? "Mobile navigation" : "Navigation mobile"}
           className="mx-auto flex max-w-375 items-center justify-center gap-1"
         >
-          {navigationItems.map((item) => (
+          {navigationItems.map(([label, href]) => (
             <Link
-              key={item.href}
-              href={item.href}
+              key={href}
+              href={href}
               className="rounded-md px-3 py-2 text-xs font-semibold text-[#D6DFD2] transition hover:bg-[#315B3E]/35 hover:text-[#F2C94C]"
             >
-              {item.label}
+              {label}
             </Link>
           ))}
         </nav>

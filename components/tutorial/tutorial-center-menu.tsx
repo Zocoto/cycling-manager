@@ -4,6 +4,9 @@ import Link from "@/components/ui/app-link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { localizeTutorialDefinition } from "@/lib/i18n/tutorials-en";
+import { getTutorialDefinition } from "@/lib/tutorial/catalog";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
 import {
   CRITERIUM_DISCOVERY_KEY,
@@ -21,6 +24,8 @@ import { YOUTH_DEVELOPMENT_TUTORIAL_KEY } from "@/lib/tutorial/youth-development
 import type { TutorialProgressRow } from "@/types/tutorial";
 
 export function TutorialCenterMenu() {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -46,35 +51,61 @@ export function TutorialCenterMenu() {
     YOUTH_DEVELOPMENT_TUTORIAL_KEY,
   );
 
+  function tutorialCopy(key: string) {
+    const definition = getTutorialDefinition(key);
+    return definition ? localizeTutorialDefinition(definition, locale) : null;
+  }
+
+  const baseCopy = tutorialCopy(ONBOARDING_TUTORIAL_KEY);
+  const criteriumCopy = tutorialCopy(CRITERIUM_DISCOVERY_KEY);
+  const rosterCopy = tutorialCopy(ROSTER_TUTORIAL_KEY);
+  const trainingCopy = tutorialCopy(TRAINING_TUTORIAL_KEY);
+  const medicalCenterCopy = tutorialCopy(MEDICAL_CENTER_TUTORIAL_KEY);
+  const staffCopy = tutorialCopy(STAFF_TUTORIAL_KEY);
+  const transferCopy = tutorialCopy(TRANSFER_TUTORIAL_KEY);
+  const equipmentCopy = tutorialCopy(EQUIPMENT_TUTORIAL_KEY);
+  const infrastructureCopy = tutorialCopy(INFRASTRUCTURE_TUTORIAL_KEY);
+  const youthDevelopmentCopy = tutorialCopy(YOUTH_DEVELOPMENT_TUTORIAL_KEY);
+
   const basePresentation = getTutorialCenterEntryPresentation(
     baseProgress?.status ?? null,
+    locale,
   );
   const criteriumPresentation = getTutorialCenterEntryPresentation(
     criteriumProgress?.status ?? null,
+    locale,
   );
   const medicalCenterPresentation = getTutorialCenterEntryPresentation(
     medicalCenterProgress?.status ?? null,
+    locale,
   );
   const rosterPresentation = getTutorialCenterEntryPresentation(
     rosterProgress?.status ?? null,
+    locale,
   );
   const trainingPresentation = getTutorialCenterEntryPresentation(
     trainingProgress?.status ?? null,
+    locale,
   );
   const staffPresentation = getTutorialCenterEntryPresentation(
     staffProgress?.status ?? null,
+    locale,
   );
   const transferPresentation = getTutorialCenterEntryPresentation(
     transferProgress?.status ?? null,
+    locale,
   );
   const equipmentPresentation = getTutorialCenterEntryPresentation(
     equipmentProgress?.status ?? null,
+    locale,
   );
   const infrastructurePresentation = getTutorialCenterEntryPresentation(
     infrastructureProgress?.status ?? null,
+    locale,
   );
   const youthDevelopmentPresentation = getTutorialCenterEntryPresentation(
     youthDevelopmentProgress?.status ?? null,
+    locale,
   );
 
   const tutorialIsActive = Boolean(activeTutorial);
@@ -260,15 +291,25 @@ export function TutorialCenterMenu() {
         aria-controls={open ? panelId : undefined}
         aria-label={
           tutorialIsActive
-            ? "Un didacticiel est déjà en cours"
+            ? isEnglish
+              ? "A tutorial is already in progress"
+              : "Un didacticiel est déjà en cours"
             : open
-              ? "Fermer le centre des didacticiels"
-              : "Ouvrir le centre des didacticiels"
+              ? isEnglish
+                ? "Close the tutorial centre"
+                : "Fermer le centre des didacticiels"
+              : isEnglish
+                ? "Open the tutorial centre"
+                : "Ouvrir le centre des didacticiels"
         }
         title={
           tutorialIsActive
-            ? "Un didacticiel est déjà en cours"
-            : "Ouvrir le centre des didacticiels"
+            ? isEnglish
+              ? "A tutorial is already in progress"
+              : "Un didacticiel est déjà en cours"
+            : isEnglish
+              ? "Open the tutorial centre"
+              : "Ouvrir le centre des didacticiels"
         }
         disabled={disabled}
         onClick={() => {
@@ -302,7 +343,7 @@ export function TutorialCenterMenu() {
       {open ? (
         <button
           type="button"
-          aria-label="Fermer le centre des didacticiels"
+          aria-label={isEnglish ? "Close the tutorial centre" : "Fermer le centre des didacticiels"}
           className="fixed inset-0 z-[130] bg-[#071A17]/45 backdrop-blur-[1px] sm:hidden"
           onClick={() => {
             setOpen(false);
@@ -323,23 +364,23 @@ export function TutorialCenterMenu() {
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-                  Bibliothèque de formation
+                  {isEnglish ? "Training library" : "Bibliothèque de formation"}
                 </p>
                 <h2
                   id={`${panelId}-title`}
                   className="mt-1 truncate text-base font-black text-[#0B302B] sm:text-lg"
                 >
-                  Centre des didacticiels
+                  {isEnglish ? "Tutorial centre" : "Centre des didacticiels"}
                 </h2>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-full bg-[#176951] px-2.5 py-1 text-[9px] font-black text-white sm:text-[10px]">
-                  {completedTutorialCount} / 10 didacticiels
+                  {completedTutorialCount} / 10 {isEnglish ? "tutorials" : "didacticiels"}
                 </span>
                 <button
                   type="button"
-                  aria-label="Fermer le centre des didacticiels"
-                  title="Fermer"
+                  aria-label={isEnglish ? "Close the tutorial centre" : "Fermer le centre des didacticiels"}
+                  title={isEnglish ? "Close" : "Fermer"}
                   onClick={() => {
                     setOpen(false);
                     triggerRef.current?.focus();
@@ -351,18 +392,19 @@ export function TutorialCenterMenu() {
               </div>
             </div>
             <p className="mt-2 hidden text-xs font-semibold leading-5 text-[#60756E] sm:block">
-              Découvrez les fondamentaux puis vivez une course dans les mêmes
-              conditions d’affichage que les épreuves officielles.
+              {isEnglish
+                ? "Learn the fundamentals, then experience a race in the same display used for official events."
+                : "Découvrez les fondamentaux puis vivez une course dans les mêmes conditions d’affichage que les épreuves officielles."}
             </p>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:max-h-[min(620px,calc(100vh-100px))] sm:flex-none sm:p-4">
             <p className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
-              Formation essentielle
+              {isEnglish ? "Essential training" : "Formation essentielle"}
             </p>
             <div className="mt-2 grid gap-3">
               <TutorialEntry
-                title="Tutoriel de base"
-                description="Bureau, profil, fondation de l’équipe, effectif, calendrier et sponsoring."
+                title={baseCopy?.title ?? "Tutoriel de base"}
+                description={baseCopy?.description ?? "Bureau, profil, fondation de l’équipe, effectif, calendrier et sponsoring."}
                 progress={baseProgress}
                 statusLabel={basePresentation.statusLabel}
                 actionLabel={basePresentation.actionLabel}
@@ -373,15 +415,16 @@ export function TutorialCenterMenu() {
               />
               {criteriumProgress?.status === "completed" ? (
                 <TutorialLinkEntry
-                  title="Critérium de la découverte"
-                  description="Inscrivez cinq coureurs, attribuez les rôles tactiques puis suivez la course dans le véritable replay Résultats / Live."
+                  title={criteriumCopy?.title ?? "Critérium de la découverte"}
+                  description={criteriumCopy?.description ?? "Inscrivez cinq coureurs, attribuez les rôles tactiques puis suivez la course dans le véritable replay Résultats / Live."}
                   progress={criteriumProgress}
                   href={CRITERIUM_DISCOVERY_RESULTS_ROUTE}
+                  isEnglish={isEnglish}
                 />
               ) : (
                 <TutorialEntry
-                  title="Critérium de la découverte"
-                  description="Inscrivez cinq coureurs, attribuez les rôles tactiques puis suivez la course dans le véritable replay Résultats / Live."
+                  title={criteriumCopy?.title ?? "Critérium de la découverte"}
+                  description={criteriumCopy?.description ?? "Inscrivez cinq coureurs, attribuez les rôles tactiques puis suivez la course dans le véritable replay Résultats / Live."}
                   progress={criteriumProgress}
                   statusLabel={criteriumPresentation.statusLabel}
                   actionLabel={criteriumPresentation.actionLabel}
@@ -394,18 +437,18 @@ export function TutorialCenterMenu() {
             </div>
             <div className="mt-4 hidden rounded-xl border border-dashed border-[#315B3E]/20 bg-[#F5F9F7] px-4 py-3 sm:block">
               <p className="text-xs font-bold leading-5 text-[#60756E]">
-                Terminez les deux formations essentielles puis tous les guides
-                des rubriques pour obtenir l’objectif « Finaliser le
-                didacticiel ».
+                {isEnglish
+                  ? "Complete both essential tutorials and every section guide to earn the “Complete the tutorial” objective."
+                  : "Terminez les deux formations essentielles puis tous les guides des rubriques pour obtenir l’objectif « Finaliser le didacticiel »."}
               </p>
             </div>
             <p className="mt-5 px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
-              Guides des rubriques
+              {isEnglish ? "Section guides" : "Guides des rubriques"}
             </p>
             <div className="mt-2 grid gap-3">
               <TutorialEntry
-                title="Gérer son effectif"
-                description="Notes, contrats, expérience, potentiel, forme, planning, historique et équipement d’un coureur."
+                title={rosterCopy?.title ?? "Gérer son effectif"}
+                description={rosterCopy?.description ?? "Notes, contrats, expérience, potentiel, forme, planning, historique et équipement d’un coureur."}
                 progress={rosterProgress}
                 statusLabel={rosterPresentation.statusLabel}
                 actionLabel={rosterPresentation.actionLabel}
@@ -415,8 +458,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Entraînement et reconnaissance"
-                description="Seuil de forme, programmes individuels, entraîneurs, rapports de progression et préparation d’une future course."
+                title={trainingCopy?.title ?? "Entraînement et reconnaissance"}
+                description={trainingCopy?.description ?? "Seuil de forme, programmes individuels, entraîneurs, rapports de progression et préparation d’une future course."}
                 progress={trainingProgress}
                 statusLabel={trainingPresentation.statusLabel}
                 actionLabel={trainingPresentation.actionLabel}
@@ -426,8 +469,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Maîtriser le centre de soins"
-                description="Blessures, protocoles, forme, nutrition, kinés et résumé de l’équipe médicale."
+                title={medicalCenterCopy?.title ?? "Maîtriser le centre de soins"}
+                description={medicalCenterCopy?.description ?? "Blessures, protocoles, forme, nutrition, kinés et résumé de l’équipe médicale."}
                 progress={medicalCenterProgress}
                 statusLabel={medicalCenterPresentation.statusLabel}
                 actionLabel={medicalCenterPresentation.actionLabel}
@@ -437,8 +480,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Constituer son staff"
-                description="Places liées au niveau du DS, marché mondial, filtres, métiers, effets uniques et staff actif."
+                title={staffCopy?.title ?? "Constituer son staff"}
+                description={staffCopy?.description ?? "Places liées au niveau du DS, marché mondial, filtres, métiers, effets uniques et staff actif."}
                 progress={staffProgress}
                 statusLabel={staffPresentation.statusLabel}
                 actionLabel={staffPresentation.actionLabel}
@@ -448,8 +491,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Maîtriser le Bureau des transferts"
-                description="Enchères quotidiennes, ventes entre DS, agents libres, scouting, budget et règles de signature."
+                title={transferCopy?.title ?? "Maîtriser le Bureau des transferts"}
+                description={transferCopy?.description ?? "Enchères quotidiennes, ventes entre DS, agents libres, scouting, budget et règles de signature."}
                 progress={transferProgress}
                 statusLabel={transferPresentation.statusLabel}
                 actionLabel={transferPresentation.actionLabel}
@@ -459,8 +502,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Maîtriser le matériel"
-                description="Boutique, filtres, bonus, équipementier, inventaire et gestion individuelle des équipements."
+                title={equipmentCopy?.title ?? "Maîtriser le matériel"}
+                description={equipmentCopy?.description ?? "Boutique, filtres, bonus, équipementier, inventaire et gestion individuelle des équipements."}
                 progress={equipmentProgress}
                 statusLabel={equipmentPresentation.statusLabel}
                 actionLabel={equipmentPresentation.actionLabel}
@@ -470,8 +513,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Développer ses infrastructures"
-                description="Bâtiments disponibles, chantiers, architectes et effet partagé des écoles internationales de cyclisme."
+                title={infrastructureCopy?.title ?? "Développer ses infrastructures"}
+                description={infrastructureCopy?.description ?? "Bâtiments disponibles, chantiers, architectes et effet partagé des écoles internationales de cyclisme."}
                 progress={infrastructureProgress}
                 statusLabel={infrastructurePresentation.statusLabel}
                 actionLabel={infrastructurePresentation.actionLabel}
@@ -481,8 +524,8 @@ export function TutorialCenterMenu() {
                 }}
               />
               <TutorialEntry
-                title="Former les talents de demain"
-                description="Carte mondiale, mission fictive, rapports, signature, école de cyclisme et entraînement junior."
+                title={youthDevelopmentCopy?.title ?? "Former les talents de demain"}
+                description={youthDevelopmentCopy?.description ?? "Carte mondiale, mission fictive, rapports, signature, école de cyclisme et entraînement junior."}
                 progress={youthDevelopmentProgress}
                 statusLabel={youthDevelopmentPresentation.statusLabel}
                 actionLabel={youthDevelopmentPresentation.actionLabel}
@@ -516,6 +559,7 @@ function TutorialEntry({
   pending: boolean;
   onAction: () => void;
 }) {
+  const { locale } = useLocale();
   return (
     <article className="rounded-xl border border-[#278B70]/20 bg-white p-3 shadow-sm sm:p-4">
       <EntryHeader
@@ -530,7 +574,7 @@ function TutorialEntry({
         onClick={onAction}
         className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#176951] px-4 text-xs font-black text-white transition hover:bg-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-55"
       >
-        {pending ? "Préparation…" : actionLabel}
+        {pending ? (locale === "en" ? "Preparing…" : "Préparation…") : actionLabel}
       </button>
     </article>
   );
@@ -541,25 +585,39 @@ function TutorialLinkEntry({
   description,
   progress,
   href,
+  isEnglish,
 }: {
   title: string;
   description: string;
   progress: TutorialProgressRow | null;
   href: string;
+  isEnglish: boolean;
 }) {
   const statusLabel =
     progress?.status === "completed"
-      ? "Terminé"
+      ? isEnglish
+        ? "Completed"
+        : "Terminé"
       : progress?.status === "in_progress"
-        ? "Replay prêt"
-        : "À découvrir";
+        ? isEnglish
+          ? "Replay ready"
+          : "Replay prêt"
+        : isEnglish
+          ? "Not started"
+          : "À découvrir";
 
   const actionLabel =
     progress?.status === "completed"
-      ? "Revoir le replay"
+      ? isEnglish
+        ? "Watch replay again"
+        : "Revoir le replay"
       : progress?.current_route === CRITERIUM_DISCOVERY_RESULTS_ROUTE
-        ? "Ouvrir le replay"
-        : "Commencer depuis le calendrier";
+        ? isEnglish
+          ? "Open replay"
+          : "Ouvrir le replay"
+        : isEnglish
+          ? "Start from the calendar"
+          : "Commencer depuis le calendrier";
 
   return (
     <article className="rounded-xl border border-[#F2C94C]/55 bg-white p-3 shadow-sm sm:p-4">

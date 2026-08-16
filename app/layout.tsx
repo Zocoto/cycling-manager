@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { appConfig } from "../lib/app-config";
 import { ScrollToTop } from "../components/layout/scroll-to-top";
+import { LocaleProvider } from "../components/i18n/locale-provider";
+import { getRequestLocale } from "../lib/i18n/server";
 
 import "./globals.css";
 
@@ -78,11 +80,13 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getRequestLocale();
+  const inLanguage = locale === "en" ? "en-GB" : "fr-FR";
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -92,7 +96,7 @@ export default function RootLayout({
         url: appConfig.siteUrl,
         name: appConfig.name,
         description: appConfig.description,
-        inLanguage: "fr-FR",
+        inLanguage,
         publisher: {
           "@id": `${appConfig.siteUrl}/#organization`,
         },
@@ -115,7 +119,7 @@ export default function RootLayout({
         applicationCategory: "GameApplication",
         operatingSystem: "Web Browser",
         genre: ["Cyclisme", "Management sportif", "Stratégie"],
-        inLanguage: "fr-FR",
+        inLanguage,
         publisher: {
           "@id": `${appConfig.siteUrl}/#organization`,
         },
@@ -125,7 +129,7 @@ export default function RootLayout({
 
   return (
     <html
-      lang="fr"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
@@ -135,8 +139,10 @@ export default function RootLayout({
             __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
           }}
         />
-        <ScrollToTop />
-        {children}
+        <LocaleProvider initialLocale={locale}>
+          <ScrollToTop />
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

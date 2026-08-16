@@ -1,3 +1,5 @@
+"use client";
+
 import {
   createRadarPoints,
   RIDER_RATING_AXES,
@@ -7,6 +9,7 @@ import {
 } from "@/lib/game/rider-profile";
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
 import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 type RiderStatsRadarProps = {
   ratings: RiderRatings;
@@ -20,6 +23,8 @@ export function RiderStatsRadar({
   ratings,
   equipmentBonuses = {},
 }: RiderStatsRadarProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const values = RIDER_RATING_AXES.map((axis) => ratings[axis.key]);
   const dataPoints = createRadarPoints({ values, center: CENTER, radius: RADIUS });
   const normalizedEquipmentBonuses = RIDER_RATING_AXES.map((axis) =>
@@ -48,8 +53,12 @@ export function RiderStatsRadar({
         role="img"
         aria-label={
           hasEquipmentBonuses
-            ? "Graphique radar des caractéristiques sportives, avec les bonus d’équipement en bleu"
-            : "Graphique radar des caractéristiques sportives"
+            ? isEnglish
+              ? "Rider attributes radar chart, with equipment bonuses in blue"
+              : "Graphique radar des caractéristiques sportives, avec les bonus d’équipement en bleu"
+            : isEnglish
+              ? "Rider attributes radar chart"
+              : "Graphique radar des caractéristiques sportives"
         }
         className="mx-auto w-full max-w-[32rem] overflow-visible"
       >
@@ -182,21 +191,21 @@ export function RiderStatsRadar({
       {hasEquipmentBonuses ? (
         <div
           className="-mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[10px] font-bold text-[#5D716B]"
-          aria-label="Légende du graphique"
+          aria-label={isEnglish ? "Chart legend" : "Légende du graphique"}
         >
           <span className="inline-flex items-center gap-1.5">
             <span
               aria-hidden="true"
               className="h-2.5 w-2.5 rounded-full border border-[#176951] bg-[#3B9A78]"
             />
-            Stats naturelles
+            {isEnglish ? "Natural stats" : "Stats naturelles"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span
               aria-hidden="true"
               className="h-2.5 w-2.5 rounded-full border border-[#367FD3] bg-[#62B5FF]"
             />
-            Avec équipement
+            {isEnglish ? "With equipment" : "Avec équipement"}
           </span>
         </div>
       ) : null}
@@ -205,11 +214,13 @@ export function RiderStatsRadar({
         {RIDER_RATING_AXES.map((axis) => (
           <div
             key={axis.key}
-            title={axis.label}
+            title={isEnglish ? axis.labelEn : axis.label}
             data-rating-importance={axis.importance}
-            aria-label={`${axis.label} : ${ratings[axis.key]}${
+            aria-label={`${isEnglish ? axis.labelEn : axis.label} : ${ratings[axis.key]}${
               Number(equipmentBonuses[axis.key] ?? 0) > 0
-                ? `, bonus équipement +${equipmentBonuses[axis.key]}`
+                ? isEnglish
+                  ? `, equipment bonus +${equipmentBonuses[axis.key]}`
+                  : `, bonus équipement +${equipmentBonuses[axis.key]}`
                 : ""
             }`}
             className={[

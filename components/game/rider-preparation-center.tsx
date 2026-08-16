@@ -29,14 +29,14 @@ export function RiderPreparationCenter({
           type="indoor_track"
           title="Piste indoor"
           imagePath="/images/infrastructure/indoor-track.webp"
-          stats="SPR · ACC"
+          stats="SP · ACC"
         />
         <FacilityCard
           overview={overview}
           type="wind_tunnel"
           title="Soufflerie"
           imagePath="/images/infrastructure/wind-tunnel.webp"
-          stats="CLM · PRL · END"
+          stats="TT · PRL · STA"
         />
       </div>
       {overview.preparations.length ? (

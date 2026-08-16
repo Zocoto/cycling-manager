@@ -5,6 +5,8 @@ import Link from "@/components/ui/app-link";
 import { PublicGameNewsBoard } from "@/components/public/public-game-news-board";
 import { InstallAppBanner } from "@/components/pwa/install-app-banner";
 import { getPublicGameNews } from "@/services/public-game-news";
+import { getRequestLocale } from "@/lib/i18n/server";
+import type { AppLocale } from "@/lib/i18n/config";
 
 export const revalidate = 60;
 
@@ -48,6 +50,33 @@ const gamePillars = [
     description:
       "Remportez les plus grandes épreuves et inscrivez durablement votre équipe dans l’histoire du cyclisme.",
     linkLabel: "Écrire votre histoire",
+    backgroundPosition: "82% center",
+  },
+] as const;
+
+const gamePillarsEn = [
+  {
+    icon: "team",
+    title: "Manage your team",
+    description:
+      "Recruit, train and develop your riders. Build a squad capable of shining throughout the season.",
+    linkLabel: "Discover team management",
+    backgroundPosition: "42% center",
+  },
+  {
+    icon: "strategy",
+    title: "Plan your strategy",
+    description:
+      "Analyse course profiles, adapt your tactics and make the right decisions at the decisive moment.",
+    linkLabel: "Prepare your races",
+    backgroundPosition: "66% center",
+  },
+  {
+    icon: "trophy",
+    title: "Create a legacy",
+    description:
+      "Win the greatest races and write your team's name permanently into cycling history.",
+    linkLabel: "Write your story",
     backgroundPosition: "82% center",
   },
 ] as const;
@@ -138,20 +167,108 @@ const productNews = [
   },
 ] as const;
 
+const productNewsEn = [
+  {
+    category: "Season 2",
+    title: "Season 2 opens the beta test",
+    description:
+      "Cyclo Stratège enters beta with a clear goal: welcome more Sports Directors and test the concept with a larger player base.",
+    dateTime: "2026-08-16",
+    dateLabel: "16 August 2026",
+    accent: "leader",
+    href: "/beta-saison-2",
+    linkLabel: "Join Season 2",
+    image: "/images/marketing/season-2-beta-editorial-en.png",
+    imageAlt: "Cyclo Stratège Season 2 beta announcement",
+    visualLabel: "Season",
+    visualValue: "2",
+    visualStatus: "Beta test",
+  },
+  {
+    category: "Update",
+    title: "Patch 4 expands your infrastructure",
+    description:
+      "The training centre grows with seven specialist facilities for preparation, recovery, research and team development.",
+    dateTime: "2026-08-12",
+    dateLabel: "12 August 2026",
+    accent: "leader",
+    href: "/nouveautes#patch-4",
+    linkLabel: "Read the Patch 4 notes",
+    image: "/images/infrastructure/training-center.webp",
+    imageAlt: "The team training centre",
+    patchNumber: 4,
+  },
+  {
+    category: "Update",
+    title: "Patch 3 is live",
+    description:
+      "Cyclogazette, post-race interviews, revised junior minigames, equipment management, group training plans and many interface, performance and balance improvements.",
+    dateTime: "2026-08-01",
+    dateLabel: "1 August 2026",
+    accent: "leader",
+    href: "https://discord.com/channels/1530228791857909891/1530867588093968544",
+    linkLabel: "Read the Patch 3 notes",
+  },
+  {
+    category: "Update",
+    title: "Patch 2 is live",
+    description:
+      "New features, refined interfaces, gameplay balancing and numerous fixes have reached production.",
+    dateTime: "2026-07-28",
+    dateLabel: "28 July 2026",
+    accent: "leader",
+    href: "https://discord.com/channels/1530228791857909891/1530867588093968544",
+    linkLabel: "Read the Patch 2 notes",
+  },
+  {
+    category: "Update",
+    title: "Patch 1 lays the first foundations",
+    description:
+      "Consolidated game flows, richer racing and equipment, refined progression and consistent rider visuals.",
+    dateTime: "2026-07-26",
+    dateLabel: "26 July 2026",
+    accent: "leader",
+    href: "https://discord.com/channels/1530228791857909891/1530867588093968544",
+    linkLabel: "Read the Patch 1 notes",
+  },
+  {
+    category: "Development",
+    title: "MVP deployed, pre-alpha launched",
+    description:
+      "The first Cyclo Stratège version is online. The pre-alpha begins and the game will evolve through testing and player feedback.",
+    dateTime: "2026-07-26",
+    dateLabel: "26 July 2026",
+    accent: "leader",
+  },
+  {
+    category: "Community",
+    title: "Discord opens its doors",
+    description:
+      "A place to report bugs, share ideas and talk with us about the game.",
+    dateTime: "2026-07-26",
+    dateLabel: "26 July 2026",
+    accent: "mint",
+    href: "https://discord.gg/tz4EA3e2b",
+    linkLabel: "Join Discord",
+  },
+] as const;
+
 export default async function HomePage() {
+  const locale = await getRequestLocale();
   const gameNews = await getPublicGameNews();
 
   return (
     <>
       <InstallAppBanner />
-      <HeroSection />
+      <HeroSection locale={locale} />
       <PublicGameNewsBoard snapshot={gameNews} />
-      <CareerSection />
+      <CareerSection locale={locale} />
     </>
   );
 }
 
-function HeroSection() {
+function HeroSection({ locale }: { locale: AppLocale }) {
+  const isEnglish = locale === "en";
   return (
     <section className="relative isolate overflow-hidden bg-[#EAF5F3]">
       <Image
@@ -187,18 +304,23 @@ function HeroSection() {
 
       <div className="relative mx-auto min-h-150 max-w-7xl px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
         <h1 className="max-w-2xl text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
-          Prenez la tête
-          <span className="mt-2 block text-[#42B99A]">du peloton.</span>
+          {isEnglish ? "Lead" : "Prenez la tête"}
+          <span className="mt-2 block text-[#42B99A]">
+            {isEnglish ? "the peloton." : "du peloton."}
+          </span>
         </h1>
 
-        <ProductNews />
+        <ProductNews locale={locale} />
       </div>
     </section>
   );
 }
 
-function ProductNews() {
-  const [featuredNews, ...historicalNews] = productNews;
+function ProductNews({ locale }: { locale: AppLocale }) {
+  const isEnglish = locale === "en";
+  const [featuredNews, ...historicalNews] = isEnglish
+    ? productNewsEn
+    : productNews;
 
   return (
     <section className="mt-10 w-full" aria-labelledby="product-news-title">
@@ -207,7 +329,7 @@ function ProductNews() {
           id="product-news-title"
           className="shrink-0 text-xs font-black uppercase tracking-[0.2em] text-[#278B70]"
         >
-          News du jeu
+          {isEnglish ? "Game news" : "News du jeu"}
         </h2>
         <span aria-hidden="true" className="h-px flex-1 bg-[#315B3E]/20" />
       </div>
@@ -334,7 +456,9 @@ function ProductNews() {
   );
 }
 
-function CareerSection() {
+function CareerSection({ locale }: { locale: AppLocale }) {
+  const isEnglish = locale === "en";
+  const pillars = isEnglish ? gamePillarsEn : gamePillars;
   return (
     <section
       id="carriere"
@@ -343,19 +467,22 @@ function CareerSection() {
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#42A884]">
-            Votre carrière
+            {isEnglish ? "Your career" : "Votre carrière"}
           </p>
 
           <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
-            Une aventure sportive
+            {isEnglish ? "A sporting adventure" : "Une aventure sportive"}
             <span className="block text-[#315B3E]">
-              qui se construit étape après étape.
+              {isEnglish
+                ? "built one stage at a time."
+                : "qui se construit étape après étape."}
             </span>
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#536B64] sm:text-lg">
-            Du recrutement à la victoire finale, chaque décision façonne votre
-            équipe et l’histoire que vous écrirez.
+            {isEnglish
+              ? "From recruitment to the final victory, every decision shapes your team and the story you will write."
+              : "Du recrutement à la victoire finale, chaque décision façonne votre équipe et l’histoire que vous écrirez."}
           </p>
 
           <Image
@@ -369,7 +496,7 @@ function CareerSection() {
         </div>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {gamePillars.map((pillar) => (
+          {pillars.map((pillar) => (
             <FeatureCard
               key={pillar.title}
               icon={pillar.icon}

@@ -116,15 +116,15 @@ const daySchedule = [
 ] as const;
 
 const riderRatings = [
-  ["MON", "Montagne"],
-  ["VAL", "Vallons"],
-  ["PLA", "Plaine"],
-  ["CLM", "Contre-la-montre"],
-  ["PAV", "Pavés"],
-  ["SPR", "Sprint"],
+  ["MO", "Montagne"],
+  ["HIL", "Vallons"],
+  ["FL", "Plaine"],
+  ["TT", "Contre-la-montre"],
+  ["COB", "Pavés"],
+  ["SP", "Sprint"],
   ["ACC", "Accélération"],
-  ["DES", "Descente"],
-  ["END", "Endurance"],
+  ["DH", "Descente"],
+  ["STA", "Endurance"],
   ["RES", "Résistance"],
   ["REC", "Récupération"],
   ["ECH", "Échappée"],

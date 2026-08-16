@@ -1,6 +1,7 @@
 "use client";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 export function TutorialLaunchButton({
   tutorialKey,
@@ -9,6 +10,8 @@ export function TutorialLaunchButton({
   tutorialKey: string;
   iconOnly?: boolean;
 }) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const {
     activeTutorial,
     getTutorialProgress,
@@ -24,14 +27,22 @@ export function TutorialLaunchButton({
     tutorialKey;
 
   const label = isActive
-    ? "Visite en cours"
+    ? isEnglish
+      ? "Tour in progress"
+      : "Visite en cours"
     : progress?.status === "in_progress"
-      ? "Reprendre la visite"
+      ? isEnglish
+        ? "Resume tour"
+        : "Reprendre la visite"
       : progress?.status === "completed" ||
           progress?.status === "skipped"
-        ? "Revoir la visite"
-        : "Visite guidée";
-  const accessibleLabel = `${label} · didacticiel de cette rubrique`;
+        ? isEnglish
+          ? "Replay tour"
+          : "Revoir la visite"
+        : isEnglish
+          ? "Guided tour"
+          : "Visite guidée";
+  const accessibleLabel = `${label} · ${isEnglish ? "tutorial for this section" : "didacticiel de cette rubrique"}`;
 
   return (
     <button

@@ -21,6 +21,24 @@ await mkdir(instagramOutputDirectory, { recursive: true });
 
 const assets = [
   {
+    output: path.join(
+      projectRoot,
+      "public",
+      "images",
+      "marketing",
+      "season-2-beta-editorial-en.png",
+    ),
+    width: 1200,
+    height: 630,
+    logoWidth: 104,
+    logoX: 66,
+    logoY: 52,
+    eyebrow: "SEASON 2 · BETA TEST",
+    title: ["LEAD THE", "PELOTON"],
+    body: "BUILD YOUR TEAM · WRITE YOUR STORY",
+    footer: "JOIN THE BETA",
+  },
+  {
     output: path.join(projectRoot, "app", "opengraph-image.png"),
     width: 1200,
     height: 630,

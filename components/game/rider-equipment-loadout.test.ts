@@ -103,10 +103,10 @@ describe("collectAvailableEquipment", () => {
       }),
     );
 
-    expect(markup.match(/CLM \+4/g)).toHaveLength(1);
+    expect(markup.match(/TT \+4/g)).toHaveLength(1);
     expect(markup.match(/ACC \+3/g)).toHaveLength(1);
-    expect(markup.match(/END \+1/g)).toHaveLength(1);
-    expect(markup).not.toContain("· CLM");
+    expect(markup.match(/STA \+1/g)).toHaveLength(1);
+    expect(markup).not.toContain("· TT");
   });
 });
 

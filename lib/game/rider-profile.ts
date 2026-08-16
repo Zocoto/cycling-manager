@@ -95,21 +95,22 @@ export const RIDER_RATING_AXES: ReadonlyArray<{
   key: RiderRatingKey;
   shortLabel: string;
   label: string;
+  labelEn: string;
   importance: RiderRatingImportance;
 }> = [
-  { key: "mountain", shortLabel: "MON", label: "Montagne", importance: "primary" },
-  { key: "hills", shortLabel: "VAL", label: "Vallon", importance: "primary" },
-  { key: "recovery", shortLabel: "REC", label: "Récupération", importance: "secondary" },
-  { key: "endurance", shortLabel: "END", label: "Endurance", importance: "secondary" },
-  { key: "resistance", shortLabel: "RES", label: "Résistance", importance: "secondary" },
-  { key: "breakaway", shortLabel: "BAR", label: "Baroudeur", importance: "secondary" },
-  { key: "downhill", shortLabel: "DES", label: "Descente", importance: "secondary" },
-  { key: "acceleration", shortLabel: "ACC", label: "Accélération", importance: "secondary" },
-  { key: "sprint", shortLabel: "SPR", label: "Sprint", importance: "primary" },
-  { key: "flat", shortLabel: "PLA", label: "Plaine", importance: "primary" },
-  { key: "cobbles", shortLabel: "PAV", label: "Pavés", importance: "primary" },
-  { key: "prologue", shortLabel: "PRO", label: "Prologue", importance: "secondary" },
-  { key: "timeTrial", shortLabel: "CLM", label: "Contre-la-montre", importance: "primary" },
+  { key: "mountain", shortLabel: "MO", label: "Montagne", labelEn: "Mountain", importance: "primary" },
+  { key: "hills", shortLabel: "HIL", label: "Vallon", labelEn: "Hills", importance: "primary" },
+  { key: "recovery", shortLabel: "REC", label: "Récupération", labelEn: "Recovery", importance: "secondary" },
+  { key: "endurance", shortLabel: "STA", label: "Endurance", labelEn: "Stamina", importance: "secondary" },
+  { key: "resistance", shortLabel: "RES", label: "Résistance", labelEn: "Resistance", importance: "secondary" },
+  { key: "breakaway", shortLabel: "FTR", label: "Baroudeur", labelEn: "Fighter", importance: "secondary" },
+  { key: "downhill", shortLabel: "DH", label: "Descente", labelEn: "Downhill", importance: "secondary" },
+  { key: "acceleration", shortLabel: "ACC", label: "Accélération", labelEn: "Acceleration", importance: "secondary" },
+  { key: "sprint", shortLabel: "SP", label: "Sprint", labelEn: "Sprint", importance: "primary" },
+  { key: "flat", shortLabel: "FL", label: "Plaine", labelEn: "Flat", importance: "primary" },
+  { key: "cobbles", shortLabel: "COB", label: "Pavés", labelEn: "Cobblestones", importance: "primary" },
+  { key: "prologue", shortLabel: "PRL", label: "Prologue", labelEn: "Prologue", importance: "secondary" },
+  { key: "timeTrial", shortLabel: "TT", label: "Contre-la-montre", labelEn: "Time Trial", importance: "primary" },
 ] as const;
 
 export type RadarPoint = {

@@ -120,12 +120,12 @@ export function formatRiderRatings(
   rider: InventoryRiderOption,
 ): string {
   const ratings = [
-    ["MON", rider.ratings.mountain],
-    ["VAL", rider.ratings.hills],
-    ["PLA", rider.ratings.flat],
-    ["CLM", rider.ratings.time_trial],
-    ["PAV", rider.ratings.cobbles],
-    ["SPR", rider.ratings.sprint],
+    ["MO", rider.ratings.mountain],
+    ["HIL", rider.ratings.hills],
+    ["FL", rider.ratings.flat],
+    ["TT", rider.ratings.time_trial],
+    ["COB", rider.ratings.cobbles],
+    ["SP", rider.ratings.sprint],
   ].filter(
     (entry): entry is [string, number] =>
       typeof entry[1] === "number",

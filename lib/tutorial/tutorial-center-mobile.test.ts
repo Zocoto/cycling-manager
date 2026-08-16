@@ -36,7 +36,7 @@ describe("tutorial center mobile layout", () => {
     );
     expect(
       tutorialCenter.match(
-        /aria-label="Fermer le centre des didacticiels"/g,
+        /aria-label=\{isEnglish \? "Close the tutorial centre" : "Fermer le centre des didacticiels"\}/g,
       ),
     ).toHaveLength(2);
     expect(tutorialCenter).toContain(

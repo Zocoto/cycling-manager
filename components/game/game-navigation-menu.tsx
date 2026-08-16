@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "@/components/ui/app-link";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
 
-const NAVIGATION_GROUPS = [
+const NAVIGATION_GROUPS_FR = [
   {
     label: "Essentiel",
     links: [
@@ -49,16 +52,72 @@ const NAVIGATION_GROUPS = [
   },
 ] as const;
 
-const NAVIGATION_COLUMNS = [
-  [NAVIGATION_GROUPS[0], NAVIGATION_GROUPS[2]],
-  [NAVIGATION_GROUPS[1], NAVIGATION_GROUPS[3]],
+const NAVIGATION_GROUPS_EN = [
+  {
+    label: "Essentials",
+    links: [
+      ["Sports director office", "/jeu"],
+      ["My SD profile", "/jeu/directeur-sportif"],
+      ["My team", "/jeu/equipe"],
+      ["Objectives and trophies", "/jeu/objectifs"],
+    ],
+  },
+  {
+    label: "Sport",
+    links: [
+      ["Roster", "/jeu/effectif"],
+      ["Calendar", "/jeu/calendrier"],
+      ["Results and replays", "/jeu/resultats"],
+      ["Rankings", "/jeu/classements"],
+      ["Training", "/jeu/entrainement"],
+      ["Medical centre", "/jeu/centre-de-soin"],
+      ["Youth development", "/jeu/centre-de-formation"],
+      ["National selections", "/jeu/selections-internationales"],
+    ],
+  },
+  {
+    label: "Club management",
+    links: [
+      ["Staff", "/jeu/staff"],
+      ["Transfers", "/jeu/transferts"],
+      ["Sponsorship", "/jeu/sponsoring"],
+      ["Finances", "/jeu/finances"],
+      ["Infrastructure", "/jeu/infrastructures"],
+      ["Equipment", "/jeu/materiel"],
+      ["Suppliers", "/jeu/materiel/equipementier"],
+      ["Inventory", "/jeu/inventaire"],
+      ["Jersey", "/jeu/maillot"],
+    ],
+  },
+  {
+    label: "Community and help",
+    links: [
+      ["Peloton chat", "/jeu/chat"],
+      ["Global search", "/jeu/recherche"],
+      ["Referral programme", "/jeu/parrainage"],
+      ["Game guide", "/guide"],
+    ],
+  },
 ] as const;
+
+function createNavigationColumns(groups: typeof NAVIGATION_GROUPS_FR | typeof NAVIGATION_GROUPS_EN) {
+  return [
+    [groups[0], groups[2]],
+    [groups[1], groups[3]],
+  ] as const;
+}
+
+const NAVIGATION_COLUMNS_FR = createNavigationColumns(NAVIGATION_GROUPS_FR);
+const NAVIGATION_COLUMNS_EN = createNavigationColumns(NAVIGATION_GROUPS_EN);
 
 export function GameNavigationMenu({
   viewerEmail,
 }: {
   viewerEmail?: string | null;
 }) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  const navigationColumns = isEnglish ? NAVIGATION_COLUMNS_EN : NAVIGATION_COLUMNS_FR;
   const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
 
   return (
@@ -96,15 +155,15 @@ export function GameNavigationMenu({
             Navigation
           </p>
           <p className="mt-1 text-sm font-semibold text-[#FFFDF4]">
-            Toutes les rubriques de Cyclo Stratège
+            {isEnglish ? "Every Cyclo Stratège section" : "Toutes les rubriques de Cyclo Stratège"}
           </p>
         </div>
 
         <nav
-          aria-label="Navigation principale du jeu"
+          aria-label={isEnglish ? "Main game navigation" : "Navigation principale du jeu"}
           className="grid max-h-[min(70vh,42rem)] gap-5 overflow-y-auto p-4 sm:grid-cols-2 sm:p-5"
         >
-          {NAVIGATION_COLUMNS.map((column, columnIndex) => (
+          {navigationColumns.map((column, columnIndex) => (
             <div key={columnIndex} className="space-y-5">
               {column.map((group) => (
                 <section key={group.label}>
@@ -136,9 +195,9 @@ export function GameNavigationMenu({
             >
               <span>
                 <span className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-[#F2C94C]">
-                  Administration
+                  {isEnglish ? "Administration" : "Administration"}
                 </span>
-                <span className="mt-0.5 block">Suivi des joueurs</span>
+                <span className="mt-0.5 block">{isEnglish ? "Player tracking" : "Suivi des joueurs"}</span>
               </span>
               <span aria-hidden="true" className="text-[#F2C94C]">?</span>
             </Link>

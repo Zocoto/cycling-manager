@@ -1,16 +1,24 @@
 "use client";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { ONBOARDING_TUTORIAL_KEY } from "@/lib/tutorial/onboarding";
 
-const DEMO_OBJECTIVES = [
-  "Obtenir 5 victoires pendant la saison",
-  "Terminer dans le Top 10 d’une course ciblée",
-  "Conserver au moins 5 coureurs français",
-] as const;
-
 export function TutorialSponsorPreview() {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const { activeTutorial } = useTutorial();
+  const demoObjectives = isEnglish
+    ? [
+        "Win 5 races during the season",
+        "Finish in the Top 10 of a target race",
+        "Keep at least 5 French riders",
+      ]
+    : [
+        "Obtenir 5 victoires pendant la saison",
+        "Terminer dans le Top 10 d’une course ciblée",
+        "Conserver au moins 5 coureurs français",
+      ];
 
   const currentStep =
     activeTutorial?.definition.steps[
@@ -34,15 +42,17 @@ export function TutorialSponsorPreview() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/10 bg-[#0B302B] px-6 py-4 text-white">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
-            Aperçu du sponsoring
+            {isEnglish ? "Sponsorship preview" : "Aperçu du sponsoring"}
           </p>
           <h2 className="mt-1 text-xl font-black">
-            Offre fictive — aucune action enregistrée
+            {isEnglish
+              ? "Fictional offer — no action recorded"
+              : "Offre fictive — aucune action enregistrée"}
           </h2>
         </div>
 
         <span className="rounded-full bg-[#F2C94C] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#40320A]">
-          Démonstration
+          {isEnglish ? "Demo" : "Démonstration"}
         </span>
       </div>
 
@@ -56,7 +66,7 @@ export function TutorialSponsorPreview() {
               Horizon Mobilités
             </p>
             <p className="mt-1 text-xs font-bold uppercase tracking-wider text-[#60756E]">
-              France · Mobilité
+              {isEnglish ? "France · Mobility" : "France · Mobilité"}
             </p>
           </div>
         </div>
@@ -64,23 +74,23 @@ export function TutorialSponsorPreview() {
         <div>
           <div className="grid gap-3 sm:grid-cols-2">
             <DemoMetric
-              label="Budget annuel"
+              label={isEnglish ? "Annual budget" : "Budget annuel"}
               value="850 000 €"
-              detail="Versé par saison"
+              detail={isEnglish ? "Paid each season" : "Versé par saison"}
             />
             <DemoMetric
-              label="Durée"
-              value="2 saisons"
-              detail="Contrat principal"
+              label={isEnglish ? "Duration" : "Durée"}
+              value={isEnglish ? "2 seasons" : "2 saisons"}
+              detail={isEnglish ? "Main contract" : "Contrat principal"}
             />
           </div>
 
           <div className="mt-5 rounded-xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
             <p className="text-xs font-black uppercase tracking-[0.15em] text-[#278B70]">
-              Objectifs proposés
+              {isEnglish ? "Proposed objectives" : "Objectifs proposés"}
             </p>
             <ul className="mt-3 space-y-2">
-              {DEMO_OBJECTIVES.map(
+              {demoObjectives.map(
                 (objective) => (
                   <li
                     key={objective}
@@ -102,7 +112,9 @@ export function TutorialSponsorPreview() {
             disabled
             className="mt-5 min-h-11 w-full cursor-not-allowed rounded-xl bg-[#B8C5BE] px-5 text-sm font-black text-[#60756E]"
           >
-            Aperçu uniquement — signature impossible
+            {isEnglish
+              ? "Preview only — signing unavailable"
+              : "Aperçu uniquement — signature impossible"}
           </button>
         </div>
       </div>

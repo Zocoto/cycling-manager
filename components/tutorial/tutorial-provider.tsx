@@ -23,6 +23,8 @@ import {
 } from "@/app/jeu/tutorial-actions";
 import { TutorialInstantIntro } from "@/components/tutorial/tutorial-instant-intro";
 import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { localizeTutorialDefinition } from "@/lib/i18n/tutorials-en";
 import {
   getTutorialDefinition,
   listAutoStartTutorialDefinitions,
@@ -157,6 +159,8 @@ export function TutorialProvider({
   autoStartTutorialKeys = [],
   bootstrapPromise,
 }: TutorialProviderProps) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -237,7 +241,9 @@ export function TutorialProvider({
 
       if (!definition) {
         setErrorMessage(
-          `Le didacticiel « ${options.tutorialKey} » est introuvable.`,
+          isEnglish
+            ? `Tutorial “${options.tutorialKey}” could not be found.`
+            : `Le didacticiel « ${options.tutorialKey} » est introuvable.`,
         );
 
         return false;
@@ -261,7 +267,11 @@ export function TutorialProvider({
         const session = result.session;
 
         if (!session) {
-          setErrorMessage("La session du didacticiel n’a pas pu être créée.");
+          setErrorMessage(
+            isEnglish
+              ? "The tutorial session could not be created."
+              : "La session du didacticiel n’a pas pu être créée.",
+          );
 
           return false;
         }
@@ -272,7 +282,9 @@ export function TutorialProvider({
 
         if (!step) {
           setErrorMessage(
-            "Aucune étape valide n’est disponible pour ce didacticiel.",
+            isEnglish
+              ? "No valid step is available for this tutorial."
+              : "Aucune étape valide n’est disponible pour ce didacticiel.",
           );
 
           return false;
@@ -319,7 +331,7 @@ export function TutorialProvider({
         setIsPending(false);
       }
     },
-    [currentRoute, navigateToStep, saveProgress],
+    [currentRoute, isEnglish, navigateToStep, saveProgress],
   );
 
   const updateCurrentStep = useCallback(
@@ -697,9 +709,23 @@ export function TutorialProvider({
     startTutorial,
   ]);
 
+  const localizedActiveTutorial = useMemo<ActiveTutorial | null>(
+    () =>
+      activeTutorial
+        ? {
+            ...activeTutorial,
+            definition: localizeTutorialDefinition(
+              activeTutorial.definition,
+              locale,
+            ),
+          }
+        : null,
+    [activeTutorial, locale],
+  );
+
   const contextValue = useMemo<TutorialContextValue>(
     () => ({
-      activeTutorial,
+      activeTutorial: localizedActiveTutorial,
       progressByTutorialKey,
       isPending,
       errorMessage,
@@ -712,7 +738,7 @@ export function TutorialProvider({
       clearTutorialError,
     }),
     [
-      activeTutorial,
+      localizedActiveTutorial,
       progressByTutorialKey,
       isPending,
       errorMessage,
@@ -726,9 +752,13 @@ export function TutorialProvider({
     ],
   );
 
-  const instantAutoStartDefinition = instantAutoStartTutorialKey
-    ? getTutorialDefinition(instantAutoStartTutorialKey)
-    : null;
+  const instantAutoStartDefinition = useMemo(() => {
+    const definition = instantAutoStartTutorialKey
+      ? getTutorialDefinition(instantAutoStartTutorialKey)
+      : null;
+
+    return definition ? localizeTutorialDefinition(definition, locale) : null;
+  }, [instantAutoStartTutorialKey, locale]);
 
   const instantAutoStartStep = instantAutoStartDefinition?.steps[0] ?? null;
 
@@ -739,16 +769,21 @@ export function TutorialProvider({
     matchesTutorialRoute(instantAutoStartStep?.route ?? "", currentRoute);
 
   const currentStep =
-    activeTutorial?.definition.steps[activeTutorial.currentStepIndex] ?? null;
+    localizedActiveTutorial?.definition.steps[
+      localizedActiveTutorial.currentStepIndex
+    ] ?? null;
 
   const shouldDisplayOverlay =
     Boolean(activeTutorial) &&
     Boolean(currentStep) &&
     matchesTutorialRoute(currentStep?.route ?? "", currentRoute);
 
-  const followUpDefinition = activeTutorial?.definition.followUpTutorialKey
-    ? getTutorialDefinition(activeTutorial.definition.followUpTutorialKey)
-    : null;
+  const followUpDefinition = useMemo(() => {
+    const followUpKey = activeTutorial?.definition.followUpTutorialKey;
+    const definition = followUpKey ? getTutorialDefinition(followUpKey) : null;
+
+    return definition ? localizeTutorialDefinition(definition, locale) : null;
+  }, [activeTutorial?.definition.followUpTutorialKey, locale]);
 
   return (
     <TutorialContext.Provider value={contextValue}>
@@ -778,22 +813,24 @@ export function TutorialProvider({
 
       {children}
 
-      {activeTutorial && currentStep && shouldDisplayOverlay ? (
+      {localizedActiveTutorial && currentStep && shouldDisplayOverlay ? (
         <TutorialOverlay
-          tutorialTitle={activeTutorial.definition.title}
+          tutorialTitle={localizedActiveTutorial.definition.title}
           step={currentStep}
-          stepIndex={activeTutorial.currentStepIndex}
-          totalSteps={activeTutorial.definition.steps.length}
-          canGoPrevious={activeTutorial.currentStepIndex > 0}
+          stepIndex={localizedActiveTutorial.currentStepIndex}
+          totalSteps={localizedActiveTutorial.definition.steps.length}
+          canGoPrevious={localizedActiveTutorial.currentStepIndex > 0}
           isLastStep={
-            activeTutorial.currentStepIndex ===
-            activeTutorial.definition.steps.length - 1
+            localizedActiveTutorial.currentStepIndex ===
+            localizedActiveTutorial.definition.steps.length - 1
           }
           isPending={isPending}
           errorMessage={errorMessage}
           followUpLabel={
             followUpDefinition
-              ? `Enchaîner avec « ${followUpDefinition.title} »`
+              ? isEnglish
+                ? `Continue with “${followUpDefinition.title}”`
+                : `Enchaîner avec « ${followUpDefinition.title} »`
               : undefined
           }
           onPrevious={() => {
