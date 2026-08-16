@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -16,11 +16,20 @@ import type {
   CyclogazetteReaction,
   CyclogazetteTourSummary,
 } from "@/lib/game/cyclogazette";
+import {
+  applyCyclogazetteInterviewReactionState,
+  CYCLOGAZETTE_INTERVIEW_REACTION_DEFINITIONS,
+  type CyclogazetteAnswerReactionSummary,
+  type CyclogazetteInterviewReactionEmoji,
+  type CyclogazetteInterviewReactionState,
+  type CyclogazetteInterviewReactionStates,
+} from "@/lib/game/cyclogazette-interview-reactions";
 import type {
   PublicGameNewsItem,
   PublicGameNewsTeamVisual,
 } from "@/lib/game/public-game-news";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   localizeCyclogazetteText,
   localizePublicGameNewsItem,
@@ -75,9 +84,11 @@ const ITALIAN_GAZETTA_INCIDENTS_EN: readonly ItalianGazettaIncident[] = [
 export function CyclogazetteNewspaper({
   edition,
   community,
+  interviewReactions,
 }: {
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
+  interviewReactions?: CyclogazetteInterviewReactionStates;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -270,6 +281,10 @@ export function CyclogazetteNewspaper({
                 <InterviewReactionCard
                   key={reaction.interviewId}
                   reaction={reaction}
+                  interaction={
+                    interviewReactions?.[reaction.interviewId] ??
+                    community?.interviewReactions[reaction.interviewId]
+                  }
                 />
               ))}
             </div>
@@ -626,11 +641,90 @@ function WinningTeamJersey({
 
 function InterviewReactionCard({
   reaction,
+  interaction,
 }: {
   reaction: CyclogazetteReaction;
+  interaction?: CyclogazetteInterviewReactionState;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const [answerReactions, setAnswerReactions] = useState(
+    interaction?.answers ?? {},
+  );
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [reactionError, setReactionError] = useState<string | null>(null);
+  const excerptQuestionId =
+    reaction.excerptQuestionId ??
+    reaction.answers.find(
+      (answer) =>
+        answer.question === reaction.question &&
+        answer.answer === reaction.answer,
+    )?.questionId ??
+    reaction.answers[0]?.questionId ??
+    null;
+
+  async function toggleReaction(
+    questionId: string,
+    emoji: CyclogazetteInterviewReactionEmoji,
+  ) {
+    if (!interaction?.canReact || pendingKey) return;
+    const key = `${questionId}:${emoji}`;
+    const previous = answerReactions;
+    const current = previous[questionId] ?? [];
+    const active = !current.some(
+      (summary) => summary.emoji === emoji && summary.reactedByViewer,
+    );
+    setPendingKey(key);
+    setReactionError(null);
+    setAnswerReactions({
+      ...previous,
+      [questionId]: applyCyclogazetteInterviewReactionState(
+        current,
+        emoji,
+        active,
+      ),
+    });
+
+    const supabase = createSupabaseBrowserClient();
+    const result = await supabase.rpc(
+      "toggle_post_race_interview_answer_reaction",
+      {
+        p_interview_id: reaction.interviewId,
+        p_question_id: questionId,
+        p_emoji: emoji,
+      },
+    );
+
+    if (result.error) {
+      setAnswerReactions(previous);
+      setReactionError(
+        isEnglish
+          ? "Unable to save this reaction."
+          : "La réaction n’a pas pu être enregistrée.",
+      );
+      setPendingKey(null);
+      return;
+    }
+
+    const response =
+      result.data && typeof result.data === "object"
+        ? (result.data as { active?: unknown; count?: unknown })
+        : {};
+    const confirmedActive =
+      typeof response.active === "boolean" ? response.active : active;
+    const confirmedCount = Number(response.count);
+    setAnswerReactions((latest) => ({
+      ...latest,
+      [questionId]: applyCyclogazetteInterviewReactionState(
+        latest[questionId] ?? [],
+        emoji,
+        confirmedActive,
+        Number.isSafeInteger(confirmedCount) ? confirmedCount : undefined,
+      ),
+    }));
+    setPendingKey(null);
+  }
+
   return (
     <article className="min-w-0 flex-[1_1_360px] border-2 border-[#241F18] bg-[var(--gazette-card)] p-4">
       <p className="text-[10px] font-bold italic leading-4 text-[#695D43]">
@@ -647,6 +741,16 @@ function InterviewReactionCard({
           {reaction.answer}
         </p>
       </blockquote>
+      {excerptQuestionId ? (
+        <InterviewAnswerReactionBar
+          questionId={excerptQuestionId}
+          reactions={answerReactions[excerptQuestionId] ?? []}
+          canReact={interaction?.canReact ?? false}
+          pending={Boolean(pendingKey)}
+          isEnglish={isEnglish}
+          onToggle={toggleReaction}
+        />
+      ) : null}
       <footer className="mt-3 flex items-center gap-3">
         <SportingDirectorAvatar
           avatarKey={reaction.directorAvatarKey}
@@ -687,6 +791,14 @@ function InterviewReactionCard({
               <p data-i18n-skip className="mt-1 font-serif text-sm font-semibold leading-5">
                 {answer.answer}
               </p>
+              <InterviewAnswerReactionBar
+                questionId={answer.questionId}
+                reactions={answerReactions[answer.questionId] ?? []}
+                canReact={interaction?.canReact ?? false}
+                pending={Boolean(pendingKey)}
+                isEnglish={isEnglish}
+                onToggle={toggleReaction}
+              />
             </div>
           ))}
           {reaction.closingNote ? (
@@ -701,7 +813,78 @@ function InterviewReactionCard({
           ) : null}
         </div>
       </details>
+      {reactionError ? (
+        <p className="mt-2 text-[10px] font-bold text-[#A12742]" role="alert">
+          {reactionError}
+        </p>
+      ) : null}
     </article>
+  );
+}
+
+function InterviewAnswerReactionBar({
+  questionId,
+  reactions,
+  canReact,
+  pending,
+  isEnglish,
+  onToggle,
+}: {
+  questionId: string;
+  reactions: readonly CyclogazetteAnswerReactionSummary[];
+  canReact: boolean;
+  pending: boolean;
+  isEnglish: boolean;
+  onToggle: (
+    questionId: string,
+    emoji: CyclogazetteInterviewReactionEmoji,
+  ) => void;
+}) {
+  if (!canReact && reactions.length === 0) return null;
+
+  return (
+    <div
+      data-interview-answer-reactions={questionId}
+      className="mt-2 flex flex-wrap items-center gap-1.5"
+    >
+      <span className="mr-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#695D43]">
+        {canReact
+          ? isEnglish
+            ? "Your impression"
+            : "Votre impression"
+          : isEnglish
+            ? "SD reactions"
+            : "Réactions des DS"}
+      </span>
+      {CYCLOGAZETTE_INTERVIEW_REACTION_DEFINITIONS.map((definition) => {
+        const summary = reactions.find(
+          (reaction) => reaction.emoji === definition.emoji,
+        );
+        if (!canReact && !summary?.count) return null;
+        const label = isEnglish ? definition.labelEn : definition.labelFr;
+        return (
+          <button
+            key={definition.emoji}
+            type="button"
+            onClick={() => onToggle(questionId, definition.emoji)}
+            disabled={!canReact || pending}
+            aria-label={`${label}${summary?.count ? ` · ${summary.count}` : ""}`}
+            aria-pressed={summary?.reactedByViewer ?? false}
+            title={label}
+            className={`inline-flex min-h-8 items-center gap-1 rounded-full border px-2 py-1 text-sm transition ${
+              summary?.reactedByViewer
+                ? "border-[#A12742] bg-[#A12742] text-white"
+                : "border-[#806C45]/45 bg-[var(--gazette-card-soft)] text-[#241F18] hover:border-[#A12742]"
+            } disabled:cursor-default disabled:hover:border-[#806C45]/45 disabled:opacity-80`}
+          >
+            <span aria-hidden="true">{definition.emoji}</span>
+            {summary?.count ? (
+              <span className="text-[10px] font-black">{summary.count}</span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

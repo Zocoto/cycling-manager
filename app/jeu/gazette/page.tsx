@@ -57,7 +57,11 @@ export default async function CyclogazettePage({
   ]);
   const edition = requestedEdition ?? latestEdition;
   const community = edition
-    ? await getCyclogazetteCommunity(edition.id, user.id)
+    ? await getCyclogazetteCommunity(
+        edition.id,
+        user.id,
+        edition.content.reactions,
+      )
     : null;
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
@@ -93,6 +97,7 @@ export default async function CyclogazettePage({
             <CyclogazetteNewspaper
               edition={edition}
               community={community ?? undefined}
+              interviewReactions={community?.interviewReactions}
             />
           </>
         ) : (

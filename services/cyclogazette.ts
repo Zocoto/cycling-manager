@@ -15,6 +15,11 @@ import {
   selectLatestCyclogazetteEveningStages,
   selectLatestCyclogazetteTourSummaries,
 } from "@/lib/game/cyclogazette";
+import {
+  isCyclogazetteInterviewReactionEmoji,
+  type CyclogazetteAnswerReactionSummary,
+  type CyclogazetteInterviewReactionStates,
+} from "@/lib/game/cyclogazette-interview-reactions";
 import type {
   PostRaceInterviewAnswer,
   PostRaceInterviewContext,
@@ -85,6 +90,17 @@ type CommunityCommentRow = {
   created_at: string;
 };
 type CommunityDirectorRow = { id: string; display_name: string };
+type InterviewAuthorRow = {
+  id: string;
+  sporting_director_id: string;
+  status: string;
+};
+type InterviewAnswerReactionRow = {
+  interview_id: string;
+  question_id: string;
+  sporting_director_id: string;
+  emoji: string;
+};
 
 type GazetteRow = {
   id: string;
@@ -473,6 +489,7 @@ async function loadDailyReactions(
       ),
       question: excerpt.question,
       answer: excerpt.answer,
+      excerptQuestionId: excerpt.questionId,
       closingNote: row.closing_note,
       answers,
     });
@@ -635,9 +652,23 @@ async function loadDailyTourSummaries(
 export async function getCyclogazetteCommunity(
   editionId: string,
   authUserId: string,
+  interviews: readonly CyclogazetteReaction[] = [],
 ): Promise<CyclogazetteCommunity> {
   const admin = createSupabaseAdminClient();
-  const [directorResult, likeCountResult, commentsResult] = await Promise.all([
+  const interviewIds = [
+    ...new Set(
+      interviews
+        .map((interview) => interview.interviewId)
+        .filter(isUuid),
+    ),
+  ];
+  const [
+    directorResult,
+    likeCountResult,
+    commentsResult,
+    interviewAuthorsResult,
+    interviewAnswerReactionsResult,
+  ] = await Promise.all([
     admin
       .from("sporting_directors")
       .select("id")
@@ -655,6 +686,25 @@ export async function getCyclogazetteCommunity(
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<CommunityCommentRow[]>(),
+    interviewIds.length
+      ? admin
+          .from("post_race_interviews")
+          .select("id, sporting_director_id, status")
+          .in("id", interviewIds)
+          .returns<InterviewAuthorRow[]>()
+      : Promise.resolve({ data: [] as InterviewAuthorRow[], error: null }),
+    interviewIds.length
+      ? admin
+          .from("post_race_interview_answer_reactions")
+          .select(
+            "interview_id, question_id, sporting_director_id, emoji",
+          )
+          .in("interview_id", interviewIds)
+          .returns<InterviewAnswerReactionRow[]>()
+      : Promise.resolve({
+          data: [] as InterviewAnswerReactionRow[],
+          error: null,
+        }),
   ]);
   const comments = commentsResult.data ?? [];
   const directorsResult = comments.length
@@ -673,6 +723,14 @@ export async function getCyclogazetteCommunity(
     ]),
   );
   const directorId = directorResult.data?.id ?? null;
+  const interviewReactions = mapInterviewReactionStates({
+    interviewIds,
+    viewerDirectorId: directorId,
+    authors: interviewAuthorsResult.data ?? [],
+    reactions: interviewAnswerReactionsResult.error
+      ? []
+      : (interviewAnswerReactionsResult.data ?? []),
+  });
   const likedResult = directorId
     ? await admin
         .from("cyclogazette_likes")
@@ -684,6 +742,7 @@ export async function getCyclogazetteCommunity(
   return {
     likeCount: likeCountResult.count ?? 0,
     likedByViewer: Boolean(likedResult.data),
+    interviewReactions,
     comments: comments.map((comment) => ({
       id: comment.id,
       directorName:
@@ -692,6 +751,64 @@ export async function getCyclogazetteCommunity(
       createdAt: comment.created_at,
     })),
   };
+}
+
+function mapInterviewReactionStates({
+  interviewIds,
+  viewerDirectorId,
+  authors,
+  reactions,
+}: {
+  interviewIds: string[];
+  viewerDirectorId: string | null;
+  authors: InterviewAuthorRow[];
+  reactions: InterviewAnswerReactionRow[];
+}): CyclogazetteInterviewReactionStates {
+  const authorByInterviewId = new Map(
+    authors.map((interview) => [interview.id, interview]),
+  );
+  const states: CyclogazetteInterviewReactionStates = {};
+
+  for (const interviewId of interviewIds) {
+    const interview = authorByInterviewId.get(interviewId);
+    if (!interview) continue;
+    states[interviewId] = {
+      canReact: Boolean(
+        viewerDirectorId &&
+          interview.status === "submitted" &&
+          interview.sporting_director_id !== viewerDirectorId,
+      ),
+      answers: {},
+    };
+  }
+
+  for (const row of reactions) {
+    const state = states[row.interview_id];
+    if (!state || !isCyclogazetteInterviewReactionEmoji(row.emoji)) continue;
+    const summaries = state.answers[row.question_id] ?? [];
+    const existing = summaries.find((summary) => summary.emoji === row.emoji);
+    if (existing) {
+      existing.count += 1;
+      existing.reactedByViewer ||=
+        row.sporting_director_id === viewerDirectorId;
+      continue;
+    }
+    const summary: CyclogazetteAnswerReactionSummary = {
+      emoji: row.emoji,
+      count: 1,
+      reactedByViewer: row.sporting_director_id === viewerDirectorId,
+    };
+    summaries.push(summary);
+    state.answers[row.question_id] = summaries;
+  }
+
+  return states;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+    value,
+  );
 }
 
 function deduplicateStories(items: PublicGameNewsItem[]) {

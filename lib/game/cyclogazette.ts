@@ -1,5 +1,6 @@
 import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
 import type { PostRaceInterviewAnswer } from "@/lib/game/post-race-interview";
+import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
 
 export type CyclogazetteReaction = {
   interviewId: string;
@@ -11,6 +12,7 @@ export type CyclogazetteReaction = {
   stageName: string;
   question: string;
   answer: string;
+  excerptQuestionId?: string;
   closingNote: string | null;
   answers: PostRaceInterviewAnswer[];
   isEditorial?: boolean;
@@ -33,6 +35,7 @@ export type CyclogazetteTourStageCandidate = {
 export type CyclogazetteCommunity = {
   likeCount: number;
   likedByViewer: boolean;
+  interviewReactions: CyclogazetteInterviewReactionStates;
   comments: Array<{
     id: string;
     directorName: string;

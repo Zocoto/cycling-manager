@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { CyclogazetteEdition } from "@/lib/game/cyclogazette";
+import type { CyclogazetteInterviewReactionStates } from "@/lib/game/cyclogazette-interview-reactions";
 
 import { CyclogazetteNewspaper } from "./cyclogazette-newspaper";
 
@@ -125,6 +126,15 @@ const edition: CyclogazetteEdition = {
   },
 };
 
+const interviewReactions: CyclogazetteInterviewReactionStates = {
+  "interview-1": {
+    canReact: true,
+    answers: {
+      "win-belief": [{ emoji: "😂", count: 2, reactedByViewer: false }],
+    },
+  },
+};
+
 describe("CyclogazetteNewspaper", () => {
   it("met la course et le vainqueur en Une avec le maillot de son équipe", () => {
     const markup = renderToStaticMarkup(
@@ -149,7 +159,10 @@ describe("CyclogazetteNewspaper", () => {
 
   it("affiche la question et permet de déplier toutes les réponses du DS", () => {
     const markup = renderToStaticMarkup(
-      <CyclogazetteNewspaper edition={edition} />,
+      <CyclogazetteNewspaper
+        edition={edition}
+        interviewReactions={interviewReactions}
+      />,
     );
 
     expect(markup).toContain(
@@ -158,6 +171,10 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("Détail de l’interview");
     expect(markup).toContain("Comment avez-vous préparé le sprint ?");
     expect(markup).toContain("Le dernier mot du DS");
+    expect(markup).toContain("Votre impression");
+    expect(markup.match(/data-interview-answer-reactions="win-belief"/g)).toHaveLength(2);
+    expect(markup).toContain("Trait d’humour · 2");
+    expect(markup).toContain("Réponse marquante");
   });
 
   it("devient Cyclo Gazetta sur papier rose de J2 à J7", () => {
