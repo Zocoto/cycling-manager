@@ -3,12 +3,14 @@ import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gif
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
 import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
 import Link from "@/components/ui/app-link";
-import type {
-  CareerTrophy,
-  TrophyGallery as TrophyGalleryData,
+import {
+  getLockedTrophyTargets,
+  type CareerTrophy,
+  type TrophyGallery as TrophyGalleryData,
 } from "@/lib/game/trophy-gallery";
 
 export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
+  const lockedTrophies = getLockedTrophyTargets(gallery.trophies);
   const specialTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "special",
   );
@@ -30,6 +32,26 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
     (trophy) => trophy.kind === "attendance",
   );
   const referralTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "referral",
+  );
+  const lockedAchievementTrophies = lockedTrophies.filter(
+    (trophy) => trophy.kind === "achievement",
+  );
+  const lockedUciTrophies = lockedTrophies.filter(
+    (trophy) => trophy.kind === "uci_team" || trophy.kind === "uci_rider",
+  );
+  const lockedRaceTrophies = lockedTrophies.filter(
+    (trophy) => trophy.kind === "grand_tour" || trophy.kind === "monument",
+  );
+  const lockedChampionshipTrophies = lockedTrophies.filter(
+    (trophy) =>
+      trophy.kind === "world_championship" ||
+      trophy.kind === "continental_championship",
+  );
+  const lockedAttendanceTrophies = lockedTrophies.filter(
+    (trophy) => trophy.kind === "attendance",
+  );
+  const lockedReferralTrophies = lockedTrophies.filter(
     (trophy) => trophy.kind === "referral",
   );
 
@@ -56,17 +78,36 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
                 Galerie des trophées
               </h2>
               <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#BED1C8]">
-                Chaque pièce correspond à un résultat officiel de votre équipe.
-                Les trophées restent exposés saison après saison et portent le
-                nom du coureur qui a signé la victoire.
+                Les trophées en couleur racontent votre palmarès. Les pièces
+                grisées dévoilent les prochains objectifs à conquérir et leur
+                condition de déblocage.
               </p>
+              <div
+                data-trophy-legend
+                className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-black uppercase tracking-[0.12em]"
+              >
+                <span className="inline-flex items-center gap-2 text-[#DDEDE5]">
+                  <span
+                    aria-hidden="true"
+                    className="h-2.5 w-2.5 rounded-full bg-[#F2C94C] shadow-[0_0_12px_rgba(242,201,76,0.65)]"
+                  />
+                  Acquis
+                </span>
+                <span className="inline-flex items-center gap-2 text-[#93A69D]">
+                  <span
+                    aria-hidden="true"
+                    className="h-2.5 w-2.5 rounded-full border border-white/25 bg-white/10"
+                  />
+                  À débloquer
+                </span>
+              </div>
             </div>
 
             <div
               data-trophy-metrics
               className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-8"
             >
-              <GalleryMetric label="Total" value={gallery.counts.total} />
+              <GalleryMetric label="Acquis" value={gallery.counts.total} />
               <GalleryMetric
                 label="Grands Tours"
                 value={gallery.counts.grandTours}
@@ -96,83 +137,73 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
           </div>
         </header>
 
-        {gallery.trophies.length > 0 || gallery.claimableTrophies.length > 0 ? (
-          <div className="px-5 py-7 sm:px-8 sm:py-9">
-            {gallery.claimableTrophies.map((reward) => (
-              <AlphaTesterTrophyGift key={reward.key} reward={reward} />
-            ))}
+        <div className="px-5 py-7 sm:px-8 sm:py-9">
+          {gallery.claimableTrophies.map((reward) => (
+            <AlphaTesterTrophyGift key={reward.key} reward={reward} />
+          ))}
 
-            {specialTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Distinctions de carrière"
-                title="Pionniers de Cyclostratège"
-                description="Les distinctions spéciales racontent les étapes fondatrices de votre carrière de DS."
-                trophies={specialTrophies}
-                epic
-              />
-            ) : null}
+          {specialTrophies.length > 0 ? (
+            <TrophyShelf
+              eyebrow="Distinctions de carrière"
+              title="Pionniers de Cyclostratège"
+              description="Les distinctions spéciales racontent les étapes fondatrices de votre carrière de DS."
+              trophies={specialTrophies}
+              epic
+            />
+          ) : null}
 
-            {achievementTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Objectifs maîtres"
-                title="Cabinet des accomplissements"
-                description="Ces pièces uniques récompensent les défis de carrière les plus exigeants et les découvertes les mieux cachées."
-                trophies={achievementTrophies}
-                epic
-              />
-            ) : null}
-            {referralTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Transmission"
-                title="Cercle des Parrains"
-                description="Chaque rang distingue les Directeurs Sportifs qui font grandir le peloton."
-                trophies={referralTrophies}
-                epic
-              />
-            ) : null}
+          <TrophyShelf
+            eyebrow="Objectifs maîtres"
+            title="Cabinet des accomplissements"
+            description="Des défis de carrière exigeants, avec leur condition de déblocage visible directement sur le socle."
+            trophies={achievementTrophies}
+            lockedTrophies={lockedAchievementTrophies}
+            epic
+          />
+          <TrophyShelf
+            eyebrow="Transmission"
+            title="Cercle des Parrains"
+            description="Chaque rang distingue les Directeurs Sportifs qui font grandir le peloton."
+            trophies={referralTrophies}
+            lockedTrophies={lockedReferralTrophies}
+            epic
+          />
 
-            {attendanceTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Fidélité"
-                title="Assiduité parfaite"
-                description="Une saison complète sans manquer un seul jour de connexion."
-                trophies={attendanceTrophies}
-                epic
-              />
-            ) : null}
+          <TrophyShelf
+            eyebrow="Fidélité"
+            title="Assiduité parfaite"
+            description="Une saison complète sans manquer un seul jour de connexion."
+            trophies={attendanceTrophies}
+            lockedTrophies={lockedAttendanceTrophies}
+            epic
+          />
 
-            {uciTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Pièces maîtresses"
-                title="Sommets mondiaux"
-                description="Les titres UCI occupent la place d’honneur du musée."
-                trophies={uciTrophies}
-                epic
-              />
-            ) : null}
+          <TrophyShelf
+            eyebrow="Pièces maîtresses"
+            title="Sommets mondiaux"
+            description="Les titres UCI occupent la place d’honneur du musée."
+            trophies={uciTrophies}
+            lockedTrophies={lockedUciTrophies}
+            epic
+          />
 
-            {championshipTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Maillots suprêmes"
-                title="Championnats du monde & continentaux"
-                description="Chaque titre en ligne ou contre-la-montre reste associé au DS, à son équipe et au coureur vainqueur."
-                trophies={championshipTrophies}
-                epic
-              />
-            ) : null}
+          <TrophyShelf
+            eyebrow="Maillots suprêmes"
+            title="Championnats du monde & continentaux"
+            description="Les couronnes sur route et contre-la-montre sont suivies séparément."
+            trophies={championshipTrophies}
+            lockedTrophies={lockedChampionshipTrophies}
+            epic
+          />
 
-            {raceTrophies.length > 0 ? (
-              <TrophyShelf
-                eyebrow="Courses de légende"
-                title="Grands Tours & Monuments"
-                description="Une coupe est ajoutée pour chaque victoire, même si une même épreuve est remportée plusieurs fois."
-                trophies={raceTrophies}
-              />
-            ) : null}
-          </div>
-        ) : (
-          <EmptyTrophyRoom />
-        )}
+          <TrophyShelf
+            eyebrow="Courses de légende"
+            title="Grands Tours & Monuments"
+            description="Chaque grande course encore à glaner possède désormais son propre emplacement."
+            trophies={raceTrophies}
+            lockedTrophies={lockedRaceTrophies}
+          />
+        </div>
       </section>
 
       <LongTermChallenges />
@@ -199,12 +230,14 @@ function TrophyShelf({
   title,
   description,
   trophies,
+  lockedTrophies = [],
   epic = false,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   trophies: CareerTrophy[];
+  lockedTrophies?: CareerTrophy[];
   epic?: boolean;
 }) {
   return (
@@ -229,38 +262,76 @@ function TrophyShelf({
         {trophies.map((trophy) => (
           <TrophyCard key={trophy.id} trophy={trophy} epic={epic} />
         ))}
+        {lockedTrophies.map((trophy) => (
+          <TrophyCard
+            key={trophy.id}
+            trophy={trophy}
+            epic={epic}
+            locked
+          />
+        ))}
       </div>
     </section>
   );
 }
 
-function TrophyCard({ trophy, epic }: { trophy: CareerTrophy; epic: boolean }) {
+function TrophyCard({
+  trophy,
+  epic,
+  locked = false,
+}: {
+  trophy: CareerTrophy;
+  epic: boolean;
+  locked?: boolean;
+}) {
   const frameClassName = getTrophyFrameClassName(trophy, epic);
   const content = (
     <>
       <div
         aria-hidden="true"
-        className="absolute inset-x-8 bottom-0 h-16 rounded-[50%] blur-2xl"
+        className={`absolute inset-x-8 bottom-0 h-16 rounded-[50%] blur-2xl ${locked ? "opacity-0" : ""}`}
         style={{ backgroundColor: trophy.palette.glow }}
       />
       <div
         data-trophy-visual={trophy.visualVariant ?? "classic"}
-        className={`relative flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/20 ${frameClassName}`}
+        className={`relative flex shrink-0 items-center justify-center overflow-hidden border bg-black/20 ${frameClassName} ${
+          locked
+            ? "border-dashed border-white/15 grayscale opacity-55"
+            : "border-white/10"
+        }`}
       >
         <TrophyIllustration trophy={trophy} epic={epic} />
+        {locked ? (
+          <span className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#071A17]/85 text-[#C7D1CC] shadow-lg">
+            <LockIcon />
+          </span>
+        ) : null}
       </div>
 
       <div className="relative min-w-0 flex-1">
-        <span
-          className="inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em]"
-          style={{
-            borderColor: `${trophy.palette.primary}66`,
-            backgroundColor: `${trophy.palette.primary}1F`,
-            color: trophy.palette.secondary,
-          }}
-        >
-          {getTrophyKindLabel(trophy.kind)}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] ${
+              locked ? "border-white/15 bg-white/6 text-[#A9B5AF]" : ""
+            }`}
+            style={
+              locked
+                ? undefined
+                : {
+                    borderColor: `${trophy.palette.primary}66`,
+                    backgroundColor: `${trophy.palette.primary}1F`,
+                    color: trophy.palette.secondary,
+                  }
+            }
+          >
+            {getTrophyKindLabel(trophy.kind)}
+          </span>
+          {locked ? (
+            <span className="inline-flex rounded-full bg-white/8 px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-[#C1CBC6]">
+              À débloquer
+            </span>
+          ) : null}
+        </div>
         <h4
           className={`mt-3 font-black leading-tight ${epic ? "text-2xl" : "text-xl"}`}
         >
@@ -276,17 +347,17 @@ function TrophyCard({ trophy, epic }: { trophy: CareerTrophy; epic: boolean }) {
         ) : null}
         <div className="mt-4 border-t border-white/10 pt-3">
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#789B8C]">
-            Gravure
+            {locked ? "Condition" : "Gravure"}
           </p>
           <p
-            className="mt-1 truncate text-sm font-black"
-            style={{ color: trophy.palette.secondary }}
+            className={`mt-1 text-sm font-black ${locked ? "leading-5" : "truncate"}`}
+            style={{ color: locked ? "#C7D1CC" : trophy.palette.secondary }}
             title={trophy.inscription}
           >
             {trophy.inscription}
           </p>
           <p className="mt-1 text-xs font-bold text-[#8FA99E]">
-            {trophy.seasonName}
+            {locked ? "Objectif à conquérir" : trophy.seasonName}
           </p>
         </div>
       </div>
@@ -301,7 +372,11 @@ function TrophyCard({ trophy, epic }: { trophy: CareerTrophy; epic: boolean }) {
     </>
   );
 
-  const className = `group/trophy relative flex min-h-full flex-col gap-5 overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/6 p-5 transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/9 sm:flex-row sm:items-center ${
+  const className = `group/trophy relative flex min-h-full flex-col gap-5 overflow-hidden rounded-[1.6rem] border p-5 transition hover:-translate-y-1 sm:flex-row sm:items-center ${
+    locked
+      ? "border-dashed border-white/12 bg-black/12 hover:border-white/20 hover:bg-white/5"
+      : "border-white/10 bg-white/6 hover:border-white/20 hover:bg-white/9"
+  } ${
     epic ? "sm:p-6" : ""
   }`;
 
@@ -309,12 +384,22 @@ function TrophyCard({ trophy, epic }: { trophy: CareerTrophy; epic: boolean }) {
     <Link
       href={trophy.href}
       className={className}
-      aria-label={`${trophy.title}, ${trophy.seasonName}, ${trophy.inscription}`}
+      data-trophy-status={locked ? "locked" : "earned"}
+      aria-label={
+        locked
+          ? `${trophy.title}, à débloquer : ${trophy.inscription}`
+          : `${trophy.title}, ${trophy.seasonName}, ${trophy.inscription}`
+      }
     >
       {content}
     </Link>
   ) : (
-    <article className={className}>{content}</article>
+    <article
+      className={className}
+      data-trophy-status={locked ? "locked" : "earned"}
+    >
+      {content}
+    </article>
   );
 }
 
@@ -648,31 +733,6 @@ function AssiduTrophyMark({
         strokeWidth="2"
       />
     </svg>
-  );
-}
-
-function EmptyTrophyRoom() {
-  return (
-    <div className="px-6 py-12 text-center sm:px-10 sm:py-16">
-      <div className="mx-auto flex h-32 w-32 items-end justify-center rounded-full border border-white/10 bg-white/5 pb-5">
-        <span
-          aria-hidden="true"
-          className="h-5 w-20 rounded-[50%] bg-[#F2C94C]/15 shadow-[0_0_35px_rgba(242,201,76,0.18)]"
-        />
-      </div>
-      <h3 className="mt-5 text-2xl font-black">Le premier socle vous attend</h3>
-      <p className="mx-auto mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#AFC3BA]">
-        Remportez un championnat, un Grand Tour, un Monument ou terminez une
-        saison au sommet d’un classement UCI : le trophée apparaîtra ici
-        automatiquement.
-      </p>
-      <Link
-        href="/jeu/calendrier"
-        className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#332800] transition hover:bg-[#FFE17A]"
-      >
-        Repérer les grandes courses →
-      </Link>
-    </div>
   );
 }
 

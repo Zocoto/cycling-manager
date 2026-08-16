@@ -69,7 +69,7 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("Registre des graveurs");
   });
 
-  it("shows an explanatory empty room without granting challenge trophies", () => {
+  it("shows the obtainable trophies in grey without granting them", () => {
     const markup = renderToStaticMarkup(
       <TrophyGallery
         gallery={buildTrophyGallery({
@@ -80,8 +80,14 @@ describe("TrophyGallery", () => {
       />,
     );
 
-    expect(markup).toContain("Le premier socle vous attend");
-    expect(markup).not.toContain("Les emplacements sont prêts");
+    expect(markup).toContain('data-trophy-status="locked"');
+    expect(markup).toContain("À débloquer");
+    expect(markup).toContain("Atlas du peloton");
+    expect(markup).toContain("Corsa delle Regioni");
+    expect(markup).toContain("Remporter le classement général");
+    expect(markup).not.toContain('data-trophy-status="earned"');
+    expect(markup).not.toContain("Alphatesteur");
+    expect(markup).not.toContain("Le Virage caché");
     expect(markup).not.toContain("Récompense débloquée");
   });
 
@@ -131,7 +137,7 @@ describe("TrophyGallery", () => {
 
     expect(markup).toContain("Un cadeau vous attend");
     expect(markup).toContain("Ouvrir mon cadeau");
-    expect(markup).not.toContain("Le premier socle vous attend");
+    expect(markup).toContain('data-trophy-status="locked"');
   });
 
   it("renders the academic Assidu trophy skin and its avatar reward", () => {

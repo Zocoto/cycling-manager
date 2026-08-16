@@ -1,9 +1,101 @@
 import { describe, expect, it } from "vitest";
 
 import { getUnlockedReferralTrophies } from "@/lib/game/referrals";
-import { buildTrophyGallery } from "@/lib/game/trophy-gallery";
+import {
+  buildTrophyGallery,
+  getLockedTrophyTargets,
+} from "@/lib/game/trophy-gallery";
 
 describe("buildTrophyGallery", () => {
+  it("lists obtainable trophies that are still missing without revealing retired or secret awards", () => {
+    const lockedTrophies = getLockedTrophyTargets([]);
+
+    expect(lockedTrophies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "locked:achievement:atlas_peloton",
+          title: "Atlas du peloton",
+        }),
+        expect.objectContaining({
+          id: "locked:referral:25",
+          title: "Don du peloton",
+        }),
+        expect.objectContaining({
+          id: "locked:race:corsa-delle-regioni",
+          title: "Corsa delle Regioni",
+        }),
+        expect.objectContaining({
+          id: "locked:world-championship:time-trial",
+          title: "Maillot arc-en-ciel — CLM",
+        }),
+      ]),
+    );
+    expect(lockedTrophies.some((trophy) => trophy.title === "Alphatesteur")).toBe(
+      false,
+    );
+    expect(
+      lockedTrophies.some((trophy) => trophy.title === "Le Virage caché"),
+    ).toBe(false);
+  });
+
+  it("removes a unique target from the grey catalogue once it is won", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [
+        {
+          id: "result-ruta",
+          raceSlug: "ruta-de-las-sierras",
+          raceName: "Ruta de las Sierras",
+          seasonName: "Saison 4",
+          wonAt: null,
+          riderName: "Pablo Rojo",
+          isGrandTour: true,
+          isMonument: false,
+        },
+        {
+          id: "world-road",
+          raceSlug: "championnats-du-monde",
+          raceName: "Championnats du monde en ligne",
+          seasonName: "Saison 4",
+          wonAt: null,
+          riderName: "Alix Mondial",
+          isGrandTour: false,
+          isMonument: false,
+          competitionType: "world_championship",
+        },
+      ],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "atlas-award",
+          trophyKey: "atlas_peloton",
+          availableAt: "2026-08-12T12:00:00.000Z",
+          claimedAt: "2026-08-12T12:00:00.000Z",
+          href: "/jeu/objectifs?onglet=objectifs&groupe=diversity",
+        },
+      ],
+    });
+
+    const lockedTrophies = getLockedTrophyTargets(gallery.trophies);
+
+    expect(
+      lockedTrophies.some((trophy) => trophy.title === "Ruta de las Sierras"),
+    ).toBe(false);
+    expect(
+      lockedTrophies.some((trophy) => trophy.title === "Atlas du peloton"),
+    ).toBe(false);
+    expect(
+      lockedTrophies.some(
+        (trophy) => trophy.id === "locked:world-championship:road",
+      ),
+    ).toBe(false);
+    expect(
+      lockedTrophies.some(
+        (trophy) => trophy.id === "locked:world-championship:time-trial",
+      ),
+    ).toBe(true);
+  });
+
   it("creates one correctly coloured trophy for every major race victory", () => {
     const gallery = buildTrophyGallery({
       raceWins: [

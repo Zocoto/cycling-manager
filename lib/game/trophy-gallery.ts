@@ -1,4 +1,8 @@
-import type { ReferralTrophyMilestone } from "@/lib/game/referrals";
+import {
+  REFERRAL_TROPHY_MILESTONES,
+  type ReferralTrophyMilestone,
+} from "@/lib/game/referrals";
+import { RACE_PRESTIGE_DEFINITIONS } from "@/lib/game/race-prestige";
 import {
   ACHIEVEMENT_TROPHY_DEFINITIONS,
   type AchievementTrophyKey,
@@ -262,6 +266,251 @@ const ATTENDANCE_PALETTE: TrophyPalette = {
   accent: "#173F37",
   glow: "rgba(215, 169, 40, 0.46)",
 };
+
+const PRESTIGE_RACE_NAMES: Record<string, string> = {
+  "corsa-delle-regioni": "Corsa delle Regioni",
+  "boucle-des-provinces": "Boucle des Provinces",
+  "ruta-de-las-sierras": "Ruta de las Sierras",
+  "enfer-des-dunes": "L’Enfer des Dunes",
+  "paves-de-zelande": "Les Pavés de Zélande",
+  "couronne-des-ardennes": "La Couronne des Ardennes",
+  "classique-des-lacs": "La Classique des Lacs",
+  "traversee-des-flandres": "La Traversée des Flandres",
+};
+
+const CHAMPIONSHIP_TARGETS: readonly CareerTrophy[] = [
+  {
+    id: "locked:world-championship:road",
+    kind: "world_championship",
+    title: "Maillot arc-en-ciel — Route",
+    competitionName: "Championnat du monde",
+    seasonName: "À conquérir",
+    wonAt: null,
+    riderName: null,
+    href: "/jeu/calendrier",
+    inscription: "Remporter la course en ligne mondiale",
+    palette: WORLD_CHAMPIONSHIP_PALETTE,
+    description:
+      "Le titre suprême sur route, remporté sous les couleurs de l’équipe nationale.",
+  },
+  {
+    id: "locked:world-championship:time-trial",
+    kind: "world_championship",
+    title: "Maillot arc-en-ciel — CLM",
+    competitionName: "Championnat du monde",
+    seasonName: "À conquérir",
+    wonAt: null,
+    riderName: null,
+    href: "/jeu/calendrier",
+    inscription: "Remporter le contre-la-montre mondial",
+    palette: WORLD_CHAMPIONSHIP_PALETTE,
+    description:
+      "La couronne mondiale de l’effort solitaire, remportée avec une sélection nationale.",
+  },
+  {
+    id: "locked:continental-championship:road",
+    kind: "continental_championship",
+    title: "Champion continental — Route",
+    competitionName: "Championnat continental",
+    seasonName: "À conquérir",
+    wonAt: null,
+    riderName: null,
+    href: "/jeu/calendrier",
+    inscription: "Remporter la course en ligne continentale",
+    palette: CONTINENTAL_CHAMPIONSHIP_PALETTE,
+    description:
+      "Conquérir le maillot distinctif de son continent sur la course en ligne.",
+  },
+  {
+    id: "locked:continental-championship:time-trial",
+    kind: "continental_championship",
+    title: "Champion continental — CLM",
+    competitionName: "Championnat continental",
+    seasonName: "À conquérir",
+    wonAt: null,
+    riderName: null,
+    href: "/jeu/calendrier",
+    inscription: "Remporter le contre-la-montre continental",
+    palette: CONTINENTAL_CHAMPIONSHIP_PALETTE,
+    description:
+      "Signer le meilleur temps de son continent avec une sélection nationale.",
+  },
+];
+
+/**
+ * Builds the visible catalogue of obtainable trophies that are not in the
+ * sporting director's record yet. Retired and secret distinctions are
+ * deliberately excluded from this catalogue.
+ */
+export function getLockedTrophyTargets(
+  earnedTrophies: readonly CareerTrophy[],
+): CareerTrophy[] {
+  const achievementTargets = Object.entries(
+    ACHIEVEMENT_TROPHY_DEFINITIONS,
+  ).flatMap<CareerTrophy>(([key, definition]) => {
+    if (definition.objectiveKey === null) return [];
+    if (
+      earnedTrophies.some(
+        (trophy) =>
+          trophy.kind === "achievement" && trophy.title === definition.title,
+      )
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: `locked:achievement:${key}`,
+        kind: "achievement",
+        title: definition.title,
+        competitionName: definition.competitionName,
+        seasonName: "À conquérir",
+        wonAt: null,
+        riderName: null,
+        href: definition.href,
+        inscription: definition.inscription,
+        palette: definition.palette,
+        description: definition.description,
+        visualVariant: definition.visualVariant,
+      },
+    ];
+  });
+
+  const referralTargets = REFERRAL_TROPHY_MILESTONES.flatMap<CareerTrophy>(
+    (milestone) => {
+      if (
+        earnedTrophies.some(
+          (trophy) => trophy.id === `referral:${milestone.count}`,
+        )
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          id: `locked:referral:${milestone.count}`,
+          kind: "referral",
+          title: milestone.title,
+          competitionName: "Programme de parrainage",
+          seasonName: "À conquérir",
+          wonAt: null,
+          riderName: null,
+          href: "/jeu/parrainage",
+          inscription: milestone.inscription,
+          palette: milestone.palette,
+        },
+      ];
+    },
+  );
+
+  const attendanceTargets: CareerTrophy[] = earnedTrophies.some(
+    (trophy) => trophy.kind === "attendance",
+  )
+    ? []
+    : [
+        {
+          id: "locked:attendance",
+          kind: "attendance",
+          title: "Assidu",
+          competitionName: "Présence parfaite",
+          seasonName: "À conquérir",
+          wonAt: null,
+          riderName: null,
+          href: "/jeu/directeur-sportif#assidu-avatar-accessory",
+          inscription: "Se connecter tous les jours d’une saison complète",
+          palette: ATTENDANCE_PALETTE,
+          description:
+            "Débloque les lunettes Premier de la classe dans l’éditeur d’avatar.",
+        },
+      ];
+
+  const uciTargets = ([
+    {
+      id: "locked:uci-team",
+      kind: "uci_team",
+      title: "Coupe UCI des équipes",
+      competitionName: "Classement mondial UCI",
+      seasonName: "À conquérir",
+      wonAt: null,
+      riderName: null,
+      href: "/jeu/classements",
+      inscription: "Terminer la saison numéro 1 mondial par équipes",
+      palette: UCI_TEAM_PALETTE,
+    },
+    {
+      id: "locked:uci-rider",
+      kind: "uci_rider",
+      title: "Couronne UCI individuelle",
+      competitionName: "Numéro 1 mondial",
+      seasonName: "À conquérir",
+      wonAt: null,
+      riderName: null,
+      href: "/jeu/classements",
+      inscription: "Placer un coureur au sommet du classement UCI",
+      palette: UCI_RIDER_PALETTE,
+    },
+  ] satisfies CareerTrophy[]).filter(
+    (target) =>
+      !earnedTrophies.some((trophy) => trophy.kind === target.kind),
+  );
+
+  const championshipTargets = CHAMPIONSHIP_TARGETS.filter((target) => {
+    const targetIsTimeTrial = target.id.endsWith(":time-trial");
+    return !earnedTrophies.some((trophy) => {
+      if (trophy.kind !== target.kind) return false;
+      const earnedIsTimeTrial = isTimeTrialTrophy(trophy);
+      return earnedIsTimeTrial === targetIsTimeTrial;
+    });
+  });
+
+  const prestigiousRaceTargets = RACE_PRESTIGE_DEFINITIONS.flatMap<CareerTrophy>(
+    (race) => {
+      const raceName = PRESTIGE_RACE_NAMES[race.slug] ?? race.trophyTitle;
+      if (
+        earnedTrophies.some(
+          (trophy) =>
+            trophy.href === `/jeu/resultats/${encodeURIComponent(race.slug)}` ||
+            trophy.title === raceName,
+        )
+      ) {
+        return [];
+      }
+
+      const isGrandTour = race.kind === "grand_tour";
+      return [
+        {
+          id: `locked:race:${race.slug}`,
+          kind: isGrandTour ? "grand_tour" : "monument",
+          title: raceName,
+          competitionName: race.trophyTitle,
+          seasonName: "À conquérir",
+          wonAt: null,
+          riderName: null,
+          href: `/jeu/courses/${encodeURIComponent(race.slug)}`,
+          inscription: isGrandTour
+            ? "Remporter le classement général"
+            : "Remporter la course",
+          palette: race.palette,
+          description: race.trophyDescription,
+        },
+      ];
+    },
+  );
+
+  return [
+    ...achievementTargets,
+    ...referralTargets,
+    ...attendanceTargets,
+    ...uciTargets,
+    ...championshipTargets,
+    ...prestigiousRaceTargets,
+  ];
+}
+
+function isTimeTrialTrophy(trophy: CareerTrophy) {
+  const searchableText = `${trophy.id} ${trophy.title} ${trophy.competitionName} ${trophy.href ?? ""}`;
+  return /contre-la-montre|\bclm\b|time-trial/i.test(searchableText);
+}
 
 export function buildTrophyGallery({
   raceWins,
