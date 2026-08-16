@@ -84,6 +84,7 @@ function buildItem(
 ): DailyRewardInventoryItem {
   return {
     id: "inventory-1",
+    quantity: 1,
     key: "reward-1",
     name: "Cadeau",
     description: "",

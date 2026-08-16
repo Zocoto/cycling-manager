@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  sanitizeInventoryReturnPath,
   sanitizeObjectivesReturnPath,
   withPageFeedback,
 } from "@/lib/game/filtered-page-paths";
@@ -59,7 +60,10 @@ export async function claimDailyRewardAction(formData: FormData) {
   const rewardKey = readValue(formData, "rewardKey");
 
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rewardKey)) {
-    redirectDailyRewardError("Le cadeau sélectionné est invalide.");
+    redirectDailyRewardError(
+      "/jeu/objectifs?onglet=quotidiennes",
+      "Le cadeau sélectionné est invalide.",
+    );
   }
 
   const supabase = await createSupabaseServerClient();
@@ -74,11 +78,16 @@ export async function claimDailyRewardAction(formData: FormData) {
     p_reward_key: rewardKey,
   });
 
-  if (result.error) redirectDailyRewardError(result.error.message);
+  if (result.error) {
+    redirectDailyRewardError(
+      "/jeu/objectifs?onglet=quotidiennes",
+      result.error.message,
+    );
+  }
 
   const message = readRewardResultMessage(
     result.data,
-    "Cadeau ouvert ! Il a rejoint votre réserve.",
+    "Cadeau ouvert ! Il a rejoint votre inventaire.",
   );
   revalidateDailyRewardPaths();
   redirect(
@@ -89,21 +98,29 @@ export async function claimDailyRewardAction(formData: FormData) {
 
 export async function redeemDailyRewardAction(formData: FormData) {
   const inventoryId = readValue(formData, "inventoryId");
+  const quantity = readPositiveInteger(formData, "quantity");
   const riderId = readOptionalUuid(formData, "riderId");
   const raceEditionId = readOptionalUuid(formData, "raceEditionId");
   const ratingKey = readValue(formData, "ratingKey");
   const abilityCode = readValue(formData, "abilityCode");
+  const returnPath = readDailyRewardReturnPath(formData);
 
-  if (!isUuid(inventoryId)) {
-    redirectDailyRewardError("Ce cadeau n’est plus disponible.");
+  if (!isUuid(inventoryId) || quantity === null) {
+    redirectDailyRewardError(returnPath, "Ce cadeau n’est plus disponible.");
   }
 
   if (ratingKey && !/^[a-z_]+$/.test(ratingKey)) {
-    redirectDailyRewardError("La statistique sélectionnée est invalide.");
+    redirectDailyRewardError(
+      returnPath,
+      "La statistique sélectionnée est invalide.",
+    );
   }
 
   if (abilityCode && !/^[a-z0-9_]+$/.test(abilityCode)) {
-    redirectDailyRewardError("La capacité sélectionnée est invalide.");
+    redirectDailyRewardError(
+      returnPath,
+      "La capacité sélectionnée est invalide.",
+    );
   }
 
   const supabase = await createSupabaseServerClient();
@@ -114,25 +131,23 @@ export async function redeemDailyRewardAction(formData: FormData) {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const result = await supabase.rpc("redeem_current_daily_reward", {
+  const result = await supabase.rpc("redeem_current_daily_rewards", {
     p_inventory_id: inventoryId,
+    p_quantity: quantity,
     p_rider_id: riderId,
     p_rating_key: ratingKey || null,
     p_ability_code: abilityCode || null,
     p_race_edition_id: raceEditionId,
   });
 
-  if (result.error) redirectDailyRewardError(result.error.message);
+  if (result.error) redirectDailyRewardError(returnPath, result.error.message);
 
   const message = readRewardResultMessage(
     result.data,
     "Le cadeau a bien été utilisé.",
   );
   revalidateDailyRewardPaths();
-  redirect(
-    "/jeu/objectifs?onglet=quotidiennes&succes=" +
-      encodeURIComponent(message),
-  );
+  redirect(withPageFeedback(returnPath, "succes", message));
 }
 
 function revalidateDailyRewardPaths() {
@@ -145,11 +160,25 @@ function revalidateDailyRewardPaths() {
   revalidatePath("/jeu/materiel");
 }
 
-function redirectDailyRewardError(message: string): never {
-  redirect(
-    "/jeu/objectifs?onglet=quotidiennes&erreur=" +
-      encodeURIComponent(message.slice(0, 300)),
-  );
+function redirectDailyRewardError(
+  path: string,
+  message: string,
+): never {
+  redirect(withPageFeedback(path, "erreur", message.slice(0, 300)));
+}
+
+function readDailyRewardReturnPath(formData: FormData) {
+  const value = readValue(formData, "returnPath");
+  return value.startsWith("/jeu/inventaire")
+    ? sanitizeInventoryReturnPath(value)
+    : "/jeu/objectifs?onglet=quotidiennes";
+}
+
+function readPositiveInteger(formData: FormData, key: string) {
+  const parsed = Number(readValue(formData, key));
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 1_000
+    ? parsed
+    : null;
 }
 
 function readRewardResultMessage(value: unknown, fallback: string) {

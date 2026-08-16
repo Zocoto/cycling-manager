@@ -33,6 +33,7 @@ export type DailyRewardOffer = {
 
 export type DailyRewardInventoryItem = DailyRewardOffer & {
   id: string;
+  quantity: number;
   acquiredAt: string;
   expiresAfterGameYear: number;
 };
@@ -130,6 +131,49 @@ export function requiresRiderTarget(kind: DailyRewardEffectKind) {
     "special_ability",
     "naturalization",
   ].includes(kind);
+}
+
+export function isStackableDailyReward(kind: DailyRewardEffectKind) {
+  return ["form_boost", "rider_experience", "rating_boost"].includes(kind);
+}
+
+export function groupDailyRewardInventoryItems(
+  items: readonly DailyRewardInventoryItem[],
+): DailyRewardInventoryItem[] {
+  const grouped = new Map<string, DailyRewardInventoryItem>();
+
+  for (const item of items) {
+    const existing = grouped.get(item.key);
+    if (!existing) {
+      grouped.set(item.key, {
+        ...item,
+        quantity: Math.max(1, item.quantity),
+      });
+      continue;
+    }
+
+    const itemExpiresFirst =
+      item.expiresAfterGameYear < existing.expiresAfterGameYear ||
+      (item.expiresAfterGameYear === existing.expiresAfterGameYear &&
+        item.acquiredAt.localeCompare(existing.acquiredAt) < 0);
+
+    grouped.set(item.key, {
+      ...existing,
+      id: itemExpiresFirst ? item.id : existing.id,
+      acquiredAt: itemExpiresFirst ? item.acquiredAt : existing.acquiredAt,
+      expiresAfterGameYear: Math.min(
+        existing.expiresAfterGameYear,
+        item.expiresAfterGameYear,
+      ),
+      quantity: existing.quantity + Math.max(1, item.quantity),
+    });
+  }
+
+  return [...grouped.values()].sort(
+    (left, right) =>
+      right.importance - left.importance ||
+      left.name.localeCompare(right.name, "fr"),
+  );
 }
 
 export function toDatabaseRatingKey(key: RiderRatingKey) {

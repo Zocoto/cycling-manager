@@ -17,6 +17,7 @@ type InventoryApplicationResult = {
   category?: unknown;
   itemName?: unknown;
   effectSummary?: unknown;
+  quantityApplied?: unknown;
 };
 
 type EquipmentSaleResult = {
@@ -29,6 +30,7 @@ export async function useInventoryItemAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const inventoryItemId = readValue(formData, "inventoryItemId");
   const category = readValue(formData, "category");
+  const quantity = readPositiveInteger(formData, "quantity");
   const returnPath = sanitizeInventoryReturnPath(
     readValue(formData, "returnPath"),
   );
@@ -36,7 +38,8 @@ export async function useInventoryItemAction(formData: FormData) {
   if (
     !isUuid(riderId) ||
     !isUuid(inventoryItemId) ||
-    !isAssignableInventoryCategory(category)
+    !isAssignableInventoryCategory(category) ||
+    quantity === null
   ) {
     redirectWithError(returnPath, "La demande d’attribution est invalide.");
   }
@@ -50,17 +53,18 @@ export async function useInventoryItemAction(formData: FormData) {
   if (authenticationError || !user) redirect("/connexion");
 
   const { data, error } = await supabase.rpc(
-    "use_current_team_inventory_item",
+    "use_current_team_inventory_items",
     {
       p_rider_id: riderId,
       p_inventory_item_id: inventoryItemId,
+      p_quantity: quantity,
     }
   );
 
   if (error) redirectWithError(returnPath, error.message);
 
   const result = normalizeApplicationResult(data, category);
-  const successMessage = `${result.itemName} a été attribué : ${result.effectSummary} L’effet est permanent.`;
+  const successMessage = `${result.quantityApplied > 1 ? `${result.quantityApplied} × ` : ""}${result.itemName} ${result.quantityApplied > 1 ? "ont été attribués" : "a été attribué"} : ${result.effectSummary} L’effet est permanent.`;
 
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/effectif");
@@ -169,7 +173,20 @@ function normalizeApplicationResult(
       typeof result.effectSummary === "string" && result.effectSummary.trim()
         ? result.effectSummary.trim()
         : "le bonus a été appliqué au coureur.",
+    quantityApplied: readResultPositiveInteger(result.quantityApplied),
   };
+}
+
+function readPositiveInteger(formData: FormData, key: string) {
+  const parsed = Number(readValue(formData, key));
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 1_000
+    ? parsed
+    : null;
+}
+
+function readResultPositiveInteger(value: unknown) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : 1;
 }
 
 function redirectWithError(path: string, message: string): never {

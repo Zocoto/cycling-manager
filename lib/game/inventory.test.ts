@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getInventoryCategory,
   getInventoryRarityLabel,
+  dailyRewardsToInventoryItems,
   isAssignableInventoryCategory,
   isInventoryCategory,
   summarizeInventory,
@@ -68,5 +69,35 @@ describe("team inventory", () => {
       availableUnits: 3,
       equipmentUnits: 3,
     });
+  });
+
+  it("expose une pile quotidienne unique dans l’inventaire général", () => {
+    const items = dailyRewardsToInventoryItems([
+      {
+        id: "daily-1",
+        key: "secondary-technique",
+        name: "Perfectionnement technique",
+        description: "",
+        effectSummary: "+1 statistique",
+        importance: 5,
+        effectKind: "rating_boost",
+        iconKey: "rating",
+        payload: { amount: 1, statScope: "secondary" },
+        quantity: 3,
+        acquiredAt: "2026-08-16T08:00:00Z",
+        expiresAfterGameYear: 3,
+      },
+    ]);
+
+    expect(items).toEqual([
+      expect.objectContaining({
+        id: "daily-reward:secondary-technique",
+        source: "daily_reward",
+        category: "rating_boost",
+        quantity: 3,
+        availableQuantity: 3,
+        dailyReward: expect.objectContaining({ quantity: 3 }),
+      }),
+    ]);
   });
 });

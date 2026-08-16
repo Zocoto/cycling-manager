@@ -1,7 +1,10 @@
 import { useInventoryItemAction } from "@/app/jeu/inventaire/actions";
 import { InventoryUseSubmitButton } from "@/components/game/inventory-use-submit-button";
 import type { InventoryRiderOption } from "@/components/game/inventory-equipment-form";
-import type { AssignableInventoryCategory } from "@/lib/game/inventory";
+import {
+  isStackableInventoryCategory,
+  type AssignableInventoryCategory,
+} from "@/lib/game/inventory";
 import {
   formatItemTargetValue,
   readItemAbilityCode,
@@ -28,7 +31,9 @@ export function InventoryConsumableForm({
 }: InventoryConsumableFormProps) {
   const canUse = availableQuantity > 0 && riders.length > 0;
   const selectId = `inventory-consumable-rider-${inventoryItemId}`;
+  const quantityId = `inventory-consumable-quantity-${inventoryItemId}`;
   const targetContext = getInventoryTargetContext(category, effectPayload);
+  const stackable = isStackableInventoryCategory(category);
 
   return (
     <form
@@ -65,9 +70,35 @@ export function InventoryConsumableForm({
         ))}
       </select>
 
+      {stackable ? (
+        <label
+          htmlFor={quantityId}
+          className="mt-3 block text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]"
+        >
+          Quantité à utiliser
+          <input
+            id={quantityId}
+            type="number"
+            name="quantity"
+            min={1}
+            max={availableQuantity}
+            defaultValue={1}
+            required
+            disabled={!canUse}
+            className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-[#F8FBF9] px-3 text-sm font-bold text-[#183F37] outline-none transition focus:border-[#176951] focus:ring-2 focus:ring-[#42B99A]/25 disabled:cursor-not-allowed disabled:bg-[#EEF1ED] disabled:text-[#78947D]"
+          />
+          <span className="mt-1.5 block text-[11px] normal-case tracking-normal text-[#789087]">
+            {availableQuantity} disponible{availableQuantity > 1 ? "s" : ""} ·
+            l’effet sera cumulé
+          </span>
+        </label>
+      ) : (
+        <input type="hidden" name="quantity" value="1" />
+      )}
+
       <p className="mt-2 text-xs font-bold leading-5 text-[#8A6516]">
-        Usage unique : l’objet sera consommé et son effet restera acquis au
-        coureur pendant toute sa carrière.
+        Usage unique : chaque exemplaire attribué sera consommé et son effet
+        restera acquis au coureur pendant toute sa carrière.
       </p>
 
       <div className="mt-3">

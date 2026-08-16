@@ -59,6 +59,10 @@ describe("InventoryConsumableForm", () => {
     expect(markup).toContain("Milan De Smet");
     expect(markup).toContain("ACC 77/100");
     expect(markup).toContain("Utiliser sur ce coureur");
+    expect(markup).toContain("Quantité à utiliser");
+    expect(markup).toContain('name="quantity"');
+    expect(markup).toContain('max="1"');
+    expect(markup).toContain("l’effet sera cumulé");
     expect(markup).toContain("pendant toute sa carrière");
     expect(markup).not.toMatch(/<select[^>]*\sdisabled=""/);
   });
@@ -78,5 +82,6 @@ describe("InventoryConsumableForm", () => {
     expect(markup).toMatch(/<button[^>]*\sdisabled=""/);
     expect(markup).toContain("D\u00e9j\u00e0 acquise");
     expect(markup).toContain("Non acquise");
+    expect(markup).toContain('name="quantity" value="1"');
   });
 });

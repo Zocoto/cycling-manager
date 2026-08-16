@@ -4,6 +4,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { DailyRewardRedemptionForm } from "@/components/game/daily-reward-redemption-form";
 import { GameHeader } from "@/components/game/game-header";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -20,9 +21,15 @@ import {
   getInventoryRarityLabel,
   isAssignableInventoryCategory,
   isInventoryCategory,
+  dailyRewardsToInventoryItems,
+  summarizeInventory,
   type InventoryCategory,
   type TeamInventoryItem,
 } from "@/lib/game/inventory";
+import type {
+  DailyRewardAbility,
+  DailyRewardRace,
+} from "@/lib/game/daily-rewards";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -32,6 +39,7 @@ import {
 } from "@/lib/tutorial/equipment";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
 import { getCurrentTeamInventoryOverview } from "@/services/team-inventory";
 import { getCurrentTeamItemTargetRiders } from "@/services/item-target-values";
 
@@ -66,10 +74,23 @@ export default async function InventoryPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, overview, rosterResult, equipmentTutorialProgress] =
+  const [
+    headerData,
+    overview,
+    dailyRewardOverview,
+    rosterResult,
+    equipmentTutorialProgress,
+  ] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
       getCurrentTeamInventoryOverview(user.id),
+      getCurrentDailyRewardOverview(supabase).catch((error: unknown) => {
+        console.error(
+          "Impossible de charger les cadeaux dans l’inventaire :",
+          error,
+        );
+        return null;
+      }),
       getCurrentTeamItemTargetRiders(supabase)
         .then((data) => ({ data, error: null }))
         .catch((error: unknown) => ({
@@ -101,16 +122,26 @@ export default async function InventoryPage({
       left.lastName.localeCompare(right.lastName, "fr") ||
       left.firstName.localeCompare(right.firstName, "fr"),
   );
+  const inventoryItems = [
+    ...overview.items,
+    ...dailyRewardsToInventoryItems(dailyRewardOverview?.inventory ?? []),
+  ].sort(
+    (left, right) =>
+      Number(right.availableQuantity > 0) -
+        Number(left.availableQuantity > 0) ||
+      left.name.localeCompare(right.name, "fr"),
+  );
+  const inventorySummary = summarizeInventory(inventoryItems);
 
-  const equipmentByRiderAndSlot = buildEquipmentByRiderAndSlot(overview.items);
+  const equipmentByRiderAndSlot = buildEquipmentByRiderAndSlot(inventoryItems);
   const pendingEquipmentByRiderAndSlot = buildEquipmentByRiderAndSlot(
-    overview.items,
+    inventoryItems,
     true,
   );
 
   const visibleItems = category
-    ? overview.items.filter((item) => item.category === category)
-    : overview.items;
+    ? inventoryItems.filter((item) => item.category === category)
+    : inventoryItems;
   const returnPath = buildInventoryReturnPath(category);
 
   return (
@@ -178,15 +209,15 @@ export default async function InventoryPage({
             <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur sm:gap-4 sm:p-4">
               <HeroMetric
                 label="Objets"
-                value={String(overview.summary.totalUnits)}
+                value={String(inventorySummary.totalUnits)}
               />
               <HeroMetric
                 label="Libres"
-                value={String(overview.summary.availableUnits)}
+                value={String(inventorySummary.availableUnits)}
               />
               <HeroMetric
                 label="Références"
-                value={String(overview.summary.references)}
+                value={String(inventorySummary.references)}
               />
             </div>
           </div>
@@ -220,7 +251,7 @@ export default async function InventoryPage({
             className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
           >
             {INVENTORY_CATEGORY_DEFINITIONS.map((definition) => {
-              const count = overview.items
+              const count = inventoryItems
                 .filter((item) => item.category === definition.category)
                 .reduce((total, item) => total + item.quantity, 0);
               const isActive = category === definition.category;
@@ -299,6 +330,8 @@ export default async function InventoryPage({
                   }
                   returnPath={returnPath}
                   currency={overview.currency}
+                  dailyRewardAbilities={dailyRewardOverview?.abilities ?? []}
+                  dailyRewardRaces={dailyRewardOverview?.eligibleRaces ?? []}
                 />
               ))}
             </div>
@@ -318,6 +351,8 @@ function InventoryItemCard({
   pendingEquipmentByRiderAndSlot,
   returnPath,
   currency,
+  dailyRewardAbilities,
+  dailyRewardRaces,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
@@ -325,6 +360,8 @@ function InventoryItemCard({
   pendingEquipmentByRiderAndSlot: Map<string, string>;
   returnPath: string;
   currency: string;
+  dailyRewardAbilities: DailyRewardAbility[];
+  dailyRewardRaces: DailyRewardRace[];
 }) {
   const category = getInventoryCategory(item.category);
 
@@ -405,7 +442,15 @@ function InventoryItemCard({
           />
         </div>
 
-        {item.equipmentSlot ? (
+        {item.dailyReward ? (
+          <DailyRewardRedemptionForm
+            item={item.dailyReward}
+            riders={riders}
+            abilities={dailyRewardAbilities}
+            eligibleRaces={dailyRewardRaces}
+            returnPath={returnPath}
+          />
+        ) : item.equipmentSlot ? (
           <>
             <EquipmentOwnerSummary item={item} riders={riders} />
             <InventoryEquipmentForm

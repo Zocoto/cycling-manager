@@ -4,6 +4,9 @@ import {
   getDailyRewardImportance,
   getNextDailyRewardCycleDay,
   getRatingOptionsForOffer,
+  groupDailyRewardInventoryItems,
+  isStackableDailyReward,
+  type DailyRewardInventoryItem,
   type DailyRewardOffer,
 } from "@/lib/game/daily-rewards";
 
@@ -54,7 +57,51 @@ describe("daily rewards", () => {
       "time_trial",
     ]);
   });
+
+  it("regroupe les cadeaux identiques et conserve l’exemplaire qui expire en premier", () => {
+    const grouped = groupDailyRewardInventoryItems([
+      createInventoryReward("recent", 3, "2026-08-10T08:00:00Z"),
+      createInventoryReward("oldest", 2, "2026-08-01T08:00:00Z"),
+    ]);
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]).toMatchObject({
+      id: "oldest",
+      key: "energy-ration",
+      quantity: 5,
+      expiresAfterGameYear: 2,
+    });
+  });
+
+  it("réserve le cumul aux cadeaux dont l’effet peut réellement s’additionner", () => {
+    expect(isStackableDailyReward("form_boost")).toBe(true);
+    expect(isStackableDailyReward("rider_experience")).toBe(true);
+    expect(isStackableDailyReward("rating_boost")).toBe(true);
+    expect(isStackableDailyReward("special_ability")).toBe(false);
+    expect(isStackableDailyReward("naturalization")).toBe(false);
+  });
 });
+
+function createInventoryReward(
+  id: string,
+  quantity: number,
+  acquiredAt: string,
+): DailyRewardInventoryItem {
+  return {
+    id,
+    key: "energy-ration",
+    name: "Ration énergétique",
+    description: "",
+    effectSummary: "+5 en forme",
+    importance: 1,
+    effectKind: "form_boost",
+    iconKey: "nutrition",
+    payload: { amount: 5 },
+    quantity,
+    acquiredAt,
+    expiresAfterGameYear: 2,
+  };
+}
 
 function createRatingOffer(statScope: "primary" | "secondary"): DailyRewardOffer {
   return {

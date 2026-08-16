@@ -1,4 +1,8 @@
 import type { EquipmentSlot } from "@/lib/game/equipment";
+import {
+  groupDailyRewardInventoryItems,
+  type DailyRewardInventoryItem,
+} from "@/lib/game/daily-rewards";
 
 export const INVENTORY_CATEGORIES = [
   "special_ability",
@@ -18,7 +22,7 @@ export type TeamInventoryItem = {
   id: string;
   sourceId: string;
   catalogKey?: string | null;
-  source: "item" | "equipment";
+  source: "item" | "equipment" | "daily_reward";
   category: InventoryCategory;
   name: string;
   description: string;
@@ -38,6 +42,7 @@ export type TeamInventoryItem = {
   equipmentSlot: EquipmentSlot | null;
   isConsumable: boolean;
   acquiredAt: string | null;
+  dailyReward?: DailyRewardInventoryItem | null;
 };
 
 export const INVENTORY_CATEGORY_DEFINITIONS = [
@@ -121,4 +126,56 @@ export function summarizeInventory(items: ReadonlyArray<TeamInventoryItem>) {
     }),
     { references: 0, totalUnits: 0, availableUnits: 0, equipmentUnits: 0 },
   );
+}
+
+export function isStackableInventoryCategory(
+  category: AssignableInventoryCategory,
+) {
+  return category === "potential_boost" || category === "rating_boost";
+}
+
+export function dailyRewardsToInventoryItems(
+  rewards: readonly DailyRewardInventoryItem[],
+): TeamInventoryItem[] {
+  return groupDailyRewardInventoryItems(rewards).map((reward) => ({
+    id: `daily-reward:${reward.key}`,
+    sourceId: reward.id,
+    catalogKey: reward.key,
+    source: "daily_reward",
+    category: getDailyRewardInventoryCategory(reward),
+    name: reward.name,
+    description: reward.description,
+    effectSummary: reward.effectSummary,
+    resalePrice: null,
+    effectPayload: reward.payload,
+    rarity: getDailyRewardInventoryRarity(reward.importance),
+    quantity: reward.quantity,
+    availableQuantity: reward.quantity,
+    equippedQuantity: 0,
+    pendingQuantity: 0,
+    equippedRiderIds: [],
+    pendingRiderIds: [],
+    iconKey: reward.iconKey,
+    imagePath: null,
+    supplierName: null,
+    equipmentSlot: null,
+    isConsumable: true,
+    acquiredAt: reward.acquiredAt,
+    dailyReward: reward,
+  }));
+}
+
+function getDailyRewardInventoryCategory(
+  reward: DailyRewardInventoryItem,
+): InventoryCategory {
+  if (reward.effectKind === "rating_boost") return "rating_boost";
+  if (reward.effectKind === "special_ability") return "special_ability";
+  return "other";
+}
+
+function getDailyRewardInventoryRarity(importance: number): InventoryRarity {
+  if (importance >= 9) return "epic";
+  if (importance >= 6) return "rare";
+  if (importance >= 3) return "uncommon";
+  return "common";
 }

@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   DAILY_REWARD_SEASON_LENGTH,
+  groupDailyRewardInventoryItems,
   type DailyRewardAbility,
   type DailyRewardEffectKind,
   type DailyRewardInventoryItem,
@@ -64,9 +65,11 @@ export async function getCurrentDailyRewardOverview(
       .map((value) => readNumber(value, 0))
       .filter((value) => value >= 1 && value <= DAILY_REWARD_SEASON_LENGTH),
     offers: readArray(raw.offers).flatMap(normalizeOffer),
-    inventory: readArray(raw.inventory)
-      .flatMap(normalizeInventoryItem)
-      .filter((item) => item.effectKind !== "equipment"),
+    inventory: groupDailyRewardInventoryItems(
+      readArray(raw.inventory)
+        .flatMap(normalizeInventoryItem)
+        .filter((item) => item.effectKind !== "equipment"),
+    ),
     riders,
     eligibleRaces: readArray(raw.eligibleRaces).flatMap(normalizeRace),
     abilities: readArray(raw.abilities).flatMap(normalizeAbility),
@@ -105,6 +108,7 @@ function normalizeInventoryItem(value: unknown): DailyRewardInventoryItem[] {
     {
       ...offers[0],
       id,
+      quantity: 1,
       acquiredAt: readString(row.acquiredAt),
       expiresAfterGameYear: readNumber(row.expiresAfterGameYear, 1),
     },

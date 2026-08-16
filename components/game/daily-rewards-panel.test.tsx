@@ -24,6 +24,11 @@ describe("DailyRewardsPanel", () => {
     );
 
     expect(markup).toContain("Bonus forme");
+    expect(markup).toContain("× 2");
+    expect(markup).toContain("Quantité à utiliser");
+    expect(markup).toContain('name="quantity"');
+    expect(markup).toContain('min="1" max="2"');
+    expect(markup).toContain("les effets seront cumulés");
     expect(markup).not.toContain("Casque cadeau");
     expect(markup).not.toContain("Ajouter à l’inventaire");
   });
@@ -57,6 +62,7 @@ function createOverview(): DailyRewardOverview {
     inventory: [
       {
         id: "inventory-equipment",
+        quantity: 1,
         key: "daily-equipment",
         name: "Casque cadeau",
         description: "Ancien cadeau matériel.",
@@ -70,6 +76,7 @@ function createOverview(): DailyRewardOverview {
       },
       {
         id: "inventory-form",
+        quantity: 2,
         key: "daily-form",
         name: "Bonus forme",
         description: "Un bonus à appliquer plus tard.",

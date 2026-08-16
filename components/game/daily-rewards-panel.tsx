@@ -1,11 +1,10 @@
 import {
   claimDailyRewardAction,
-  redeemDailyRewardAction,
 } from "@/app/jeu/objectifs/actions";
-import { DailyRewardTargetFields } from "@/components/game/daily-reward-target-fields";
+import { DailyRewardRedemptionForm } from "@/components/game/daily-reward-redemption-form";
 import {
   DAILY_REWARD_CYCLE_LENGTH,
-  requiresRiderTarget,
+  groupDailyRewardInventoryItems,
   type DailyRewardInventoryItem,
   type DailyRewardOverview,
 } from "@/lib/game/daily-rewards";
@@ -35,6 +34,9 @@ export function DailyRewardsPanel({
   const claimedCycleDay = overview.claimedToday
     ? overview.consecutiveDays
     : Math.max(0, overview.prospectiveStreakDay - 1);
+  const groupedInventory = groupDailyRewardInventoryItems(
+    overview.inventory.filter((item) => item.effectKind !== "equipment"),
+  );
 
   return (
     <div className="mt-8 space-y-7">
@@ -210,17 +212,15 @@ export function DailyRewardsPanel({
           </p>
         </div>
 
-        {overview.inventory.some((item) => item.effectKind !== "equipment") ? (
+        {groupedInventory.length > 0 ? (
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {overview.inventory
-              .filter((item) => item.effectKind !== "equipment")
-              .map((item) => (
-                <InventoryRewardCard
-                  key={item.id}
-                  item={item}
-                  overview={overview}
-                />
-              ))}
+            {groupedInventory.map((item) => (
+              <InventoryRewardCard
+                key={item.key}
+                item={item}
+                overview={overview}
+              />
+            ))}
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-dashed border-[#315B3E]/20 bg-[#F7FAF8] px-6 py-10 text-center">
@@ -243,19 +243,18 @@ function InventoryRewardCard({
   item: DailyRewardInventoryItem;
   overview: DailyRewardOverview;
 }) {
-  const needsRider = requiresRiderTarget(item.effectKind);
-  const canUse =
-    (!needsRider || overview.riders.length > 0) &&
-    (item.effectKind !== "wildcard" || overview.eligibleRaces.length > 0) &&
-    (item.effectKind !== "special_ability" || overview.abilities.length > 0);
-
   return (
     <article className="flex min-h-full flex-col rounded-[1.6rem] border border-[#315B3E]/12 bg-[#FBFDFC] p-5">
       <div>
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
           {getGiftCategoryLabel(item.effectKind)}
         </p>
-        <h3 className="mt-1 text-xl font-black text-[#183F37]">{item.name}</h3>
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <h3 className="text-xl font-black text-[#183F37]">{item.name}</h3>
+          <span className="shrink-0 rounded-full bg-[#176951] px-3 py-1 text-xs font-black text-white">
+            × {item.quantity}
+          </span>
+        </div>
       </div>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
         {item.description}
@@ -267,68 +266,13 @@ function InventoryRewardCard({
         Valable jusqu’à la fin de la saison {item.expiresAfterGameYear}
       </p>
 
-      <form action={redeemDailyRewardAction} className="mt-auto space-y-3 pt-5">
-        <input type="hidden" name="inventoryId" value={item.id} />
-        <DailyRewardTargetFields
-          item={item}
-          riders={overview.riders}
-          abilities={overview.abilities}
-        />
-
-        {item.effectKind === "wildcard" ? (
-          <SelectField
-            name="raceEditionId"
-            label="Course Elite hors GT"
-            required
-          >
-            <option value="">Choisir une course</option>
-            {overview.eligibleRaces.map((race) => (
-              <option key={race.id} value={race.id}>
-                J{race.firstDayNumber} · {race.name}
-              </option>
-            ))}
-          </SelectField>
-        ) : null}
-
-        <button
-          type="submit"
-          disabled={!canUse}
-          className="min-h-11 w-full rounded-xl bg-[#176951] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#0B302B] disabled:cursor-not-allowed disabled:bg-[#A9B9B2]"
-        >
-          {getUseLabel(item.effectKind)}
-        </button>
-        {!canUse ? (
-          <p className="text-xs font-bold text-[#9A453D]">
-            Aucun choix compatible n’est disponible actuellement.
-          </p>
-        ) : null}
-      </form>
+      <DailyRewardRedemptionForm
+        item={item}
+        riders={overview.riders}
+        abilities={overview.abilities}
+        eligibleRaces={overview.eligibleRaces}
+      />
     </article>
-  );
-}
-
-function SelectField({
-  name,
-  label,
-  required,
-  children,
-}: {
-  name: string;
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block text-xs font-black text-[#315B3E]">
-      {label}
-      <select
-        name={name}
-        required={required}
-        className="mt-1.5 min-h-11 w-full rounded-xl border border-[#315B3E]/18 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70] focus:ring-2 focus:ring-[#42B99A]/20"
-      >
-        {children}
-      </select>
-    </label>
   );
 }
 
@@ -365,11 +309,4 @@ function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "special_ability") return "Talent révélé";
   if (kind === "naturalization") return "Naturalisation";
   return "Ticket d’or";
-}
-
-function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
-  if (kind === "training_multiplier") return "Activer pour la prochaine séance";
-  if (kind === "scouting_boost") return "Activer pendant 7 jours";
-  if (kind === "wildcard") return "Réserver la Wild Card";
-  return "Utiliser ce cadeau";
 }
