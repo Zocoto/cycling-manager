@@ -80,4 +80,31 @@ describe("grille unifiée des championnats nationaux", () => {
       "national_championship_rider_preferences",
     );
   });
+
+  it("priorise les CN avant l'insertion sans opposer route et CLM", () => {
+    expect(migration).toContain(
+      "prioritize_national_championship_rider",
+    );
+    expect(migration).toMatch(
+      /perform public\.prioritize_national_championship_rider\([\s\S]*?insert into public\.race_rosters/,
+    );
+    expect(migration).toContain(
+      "other_race.competition_type in ('national_road', 'national_time_trial')",
+    );
+    expect(migration).toContain(
+      "other_stage.season_day_id = target_stage.season_day_id",
+    );
+  });
+
+  it("écarte de la startlist un coureur blessé au moment de son CN", () => {
+    expect(migration).toContain(
+      "from public.rider_injuries as injury",
+    );
+    expect(migration).toContain(
+      "injury.expected_recovery_at > coalesce(",
+    );
+    expect(migration).toContain(
+      "stage.departure_at",
+    );
+  });
 });

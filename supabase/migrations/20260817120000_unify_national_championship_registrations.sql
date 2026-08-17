@@ -150,6 +150,107 @@ to service_role;
 comment on function public.get_national_championship_country_rankings(uuid)
   is 'Classe les coureurs séparément dans leur pays pour déterminer les 200 engagés par défaut aux CN.';
 
+-- Les championnats nationaux sont prioritaires sur les courses ordinaires du
+-- même jour. La course en ligne et le CLM d'un même pays restent compatibles :
+-- ils occupent deux créneaux distincts de J8 et un coureur peut disputer les
+-- deux épreuves.
+create or replace function public.prioritize_national_championship_rider(
+  p_race_edition_id uuid,
+  p_rider_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_target_country_id uuid;
+  v_target_competition_type text;
+begin
+  select
+    race.country_id,
+    race.competition_type
+  into
+    v_target_country_id,
+    v_target_competition_type
+  from public.race_editions as edition
+  join public.races as race
+    on race.id = edition.race_id
+  where edition.id = p_race_edition_id;
+
+  if not found
+    or v_target_competition_type not in ('national_road', 'national_time_trial')
+  then
+    return;
+  end if;
+
+  update public.race_rosters as roster
+  set status = 'withdrawn'
+  from public.race_registrations as registration,
+       public.race_editions as other_edition,
+       public.races as other_race
+  where registration.id = roster.race_registration_id
+    and other_edition.id = registration.race_edition_id
+    and other_race.id = other_edition.race_id
+    and roster.rider_id = p_rider_id
+    and roster.status in ('selected', 'confirmed')
+    and registration.status in ('accepted', 'pending')
+    and other_edition.id <> p_race_edition_id
+    and not (
+      other_race.country_id = v_target_country_id
+      and other_race.competition_type in ('national_road', 'national_time_trial')
+    )
+    and exists (
+      select 1
+      from public.stages as target_stage
+      join public.stages as other_stage
+        on other_stage.season_day_id = target_stage.season_day_id
+       and other_stage.race_edition_id = other_edition.id
+      where target_stage.race_edition_id = p_race_edition_id
+    );
+
+  update public.race_registrations as registration
+  set
+    status = 'withdrawn',
+    decided_at = now()
+  where registration.race_edition_id <> p_race_edition_id
+    and registration.status in ('accepted', 'pending')
+    and exists (
+      select 1
+      from public.race_rosters as affected_roster
+      where affected_roster.race_registration_id = registration.id
+        and affected_roster.rider_id = p_rider_id
+        and affected_roster.status = 'withdrawn'
+    )
+    and not exists (
+      select 1
+      from public.race_rosters as active_roster
+      where active_roster.race_registration_id = registration.id
+        and active_roster.status in ('selected', 'confirmed')
+    );
+
+  update public.rider_form_camps as camp
+  set
+    status = 'cancelled',
+    completed_at = now()
+  where camp.rider_id = p_rider_id
+    and camp.status in ('planned', 'active')
+    and exists (
+      select 1
+      from public.stages as target_stage
+      join public.season_days as target_day
+        on target_day.id = target_stage.season_day_id
+      where target_stage.race_edition_id = p_race_edition_id
+        and target_day.season_id = camp.season_id
+        and target_day.day_number between camp.start_day_number and camp.end_day_number
+    );
+end;
+$$;
+
+revoke all
+on function public.prioritize_national_championship_rider(uuid, uuid)
+from public, anon, authenticated;
+
 create or replace function public.sync_national_championship_registrations(
   p_season_id uuid,
   p_now timestamptz default now()
@@ -201,6 +302,21 @@ begin
             and candidate.national_rank <= 200
           )
         )
+        and not exists (
+          select 1
+          from public.rider_injuries as injury
+          join public.season_days as day
+            on day.id = stage.season_day_id
+          where injury.rider_id = candidate.rider_id
+            and injury.started_at < coalesce(
+              stage.departure_at,
+              ((day.calendar_date::timestamp + time '12:00') at time zone 'Europe/Paris')
+            ) + interval '8 hours'
+            and injury.expected_recovery_at > coalesce(
+              stage.departure_at,
+              ((day.calendar_date::timestamp + time '12:00') at time zone 'Europe/Paris')
+            )
+        )
     );
 
   for v_entry in
@@ -227,12 +343,29 @@ begin
     left join public.national_championship_rider_withdrawals as withdrawal
       on withdrawal.race_edition_id = edition.id
      and withdrawal.rider_id = candidate.rider_id
-    where preference.is_selected = true
-       or (
-         preference.rider_id is null
-         and withdrawal.rider_id is null
-         and candidate.national_rank <= 200
-       )
+    where (
+      preference.is_selected = true
+      or (
+        preference.rider_id is null
+        and withdrawal.rider_id is null
+        and candidate.national_rank <= 200
+      )
+    )
+    and not exists (
+      select 1
+      from public.rider_injuries as injury
+      join public.season_days as day
+        on day.id = stage.season_day_id
+      where injury.rider_id = candidate.rider_id
+        and injury.started_at < coalesce(
+          stage.departure_at,
+          ((day.calendar_date::timestamp + time '12:00') at time zone 'Europe/Paris')
+        ) + interval '8 hours'
+        and injury.expected_recovery_at > coalesce(
+          stage.departure_at,
+          ((day.calendar_date::timestamp + time '12:00') at time zone 'Europe/Paris')
+        )
+    )
     order by edition.id, candidate.national_rank
   loop
     v_registration_id := null;
@@ -301,6 +434,13 @@ begin
         where id = v_registration_id;
       end if;
     end if;
+
+    -- Retire d'abord le coureur de toute course ordinaire qui chevauche J8.
+    -- Cet ordre évite que le trigger anti-conflit annule la synchronisation.
+    perform public.prioritize_national_championship_rider(
+      v_entry.race_edition_id,
+      v_entry.rider_id
+    );
 
     insert into public.race_rosters (
       race_registration_id,
