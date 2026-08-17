@@ -230,7 +230,7 @@ function DailyAuctions({ listings, overview, sponsors, returnPath }: {
       <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les dix enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
           </div>
         ) : (
@@ -470,7 +470,7 @@ function FreeAgents({ riders, countries, query, currency, rosterSize, rosterLimi
       </form>
       <div data-tutorial-id="transfer-free-agent-listings">
         {riders.length > 0 ? (
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {riders.map((rider) => <FreeAgentCard key={rider.id} rider={rider} currency={currency} rosterIsFull={rosterIsFull} returnPath={returnPath} />)}
           </div>
         ) : <EmptyState title="Aucun agent libre pour ces filtres" detail="Élargissez les critères ou attendez la prochaine clôture d’enchère sans offre." />}
@@ -511,7 +511,7 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
 function FreeAgentCard({ rider, currency, rosterIsFull, returnPath }: { rider: TransferMarketRider; currency: string; rosterIsFull: boolean; returnPath: string }) {
   const seasonSalary = rider.salaryPerSeason;
   return (
-    <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
+    <article className="min-w-0 max-w-full overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
       <div className="flex items-center gap-4"><RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} jersey={FREE_AGENT_RIDER_JERSEY} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-20 w-20" /><div className="min-w-0 flex-1"><Link href={`/jeu/coureurs/${rider.id}`} target="_blank" className="block truncate text-lg font-black text-[#183F37] hover:text-[#176951]">{rider.firstName} {rider.lastName} ↗</Link><p className="mt-1 text-xs font-bold text-[#60756E]"><span className={`fi fi-${rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{rider.countryName} · {rider.age} ans</p><div className="mt-2 flex gap-2"><span className="rounded-full bg-[#EAF2FA] px-2.5 py-1 text-[10px] font-black text-[#256390]">{rider.profileLabel}</span></div></div></div>
       <div className="mt-4"><TransferScoutingReportPanel report={rider.scoutingReport} compact /></div>
       <div className="mt-4 rounded-xl bg-[#F3F8F6] px-4 py-3"><p className="text-[10px] font-black uppercase tracking-wider text-[#60756E]">Demande salariale</p><p className="mt-1 text-lg font-black text-[#183F37]">{formatMoney(Math.round(seasonSalary / 4), currency)} / semaine</p><p className="text-[10px] font-bold text-[#60756E]">{formatMoney(seasonSalary, currency)} par saison</p></div>
