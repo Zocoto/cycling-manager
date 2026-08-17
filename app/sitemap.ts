@@ -14,13 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       images: [getAbsoluteUrl("/images/marketing/season-2-beta-editorial.png")],
     },
     {
-      url: getAbsoluteUrl("/beta-saison-2"),
-      lastModified: launchDate,
-      changeFrequency: "weekly",
-      priority: 0.95,
-      images: [getAbsoluteUrl("/images/marketing/season-2-beta-editorial.png")],
-    },
-    {
       url: getAbsoluteUrl("/guide"),
       lastModified: launchDate,
       changeFrequency: "monthly",

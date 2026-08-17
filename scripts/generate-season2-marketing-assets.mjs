@@ -53,10 +53,10 @@ const assets = [
   {
     output: path.join(
       projectRoot,
-      "app",
-      "(public)",
-      "beta-saison-2",
-      "opengraph-image.png",
+      "public",
+      "images",
+      "marketing",
+      "season-2-beta-editorial.png",
     ),
     width: 1200,
     height: 630,
@@ -138,45 +138,11 @@ for (const asset of assets) {
 await sharp(path.join(projectRoot, "app", "opengraph-image.png"))
   .toFile(path.join(projectRoot, "app", "twitter-image.png"));
 
-await sharp(
-  path.join(
-    projectRoot,
-    "app",
-    "(public)",
-    "beta-saison-2",
-    "opengraph-image.png",
-  ),
-).toFile(
-  path.join(
-    projectRoot,
-    "app",
-    "(public)",
-    "beta-saison-2",
-    "twitter-image.png",
-  ),
-);
-
-const publicCampaignPath = path.join(
-  projectRoot,
-  "public",
-  "images",
-  "marketing",
-  "season-2-beta-editorial.png",
-);
-await mkdir(path.dirname(publicCampaignPath), { recursive: true });
-await sharp(
-  path.join(
-    projectRoot, "app", "(public)", "beta-saison-2", "opengraph-image.png"
-  ),
-).toFile(publicCampaignPath);
-
 console.log(
   [
     "Assets marketing Saison 2 générés :",
     ...assets.map((asset) => path.relative(projectRoot, asset.output)),
     "app/twitter-image.png",
-    "app/(public)/beta-saison-2/twitter-image.png",
-    "public/images/marketing/season-2-beta-editorial.png",
   ].join("\n"),
 );
 

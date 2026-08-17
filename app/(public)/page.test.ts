@@ -35,8 +35,9 @@ describe("page d’accueil publique", () => {
       source.indexOf("historicalNews.slice"),
     );
   });
-  it("publie la Saison 2 et renvoie vers la page de bêta", () => {
-    expect(source).toContain('href: "/beta-saison-2"');
+  it("publie la Saison 2 et renvoie directement vers l’inscription", () => {
+    expect(source).not.toContain("/beta-saison-2");
+    expect(source).toContain('href: "/inscription"');
     expect(source).toContain('linkLabel: "Rejoindre la saison 2"');
     expect(source).toContain(
       'image: "/images/marketing/season-2-beta-editorial.png"',

@@ -23,7 +23,7 @@ Bio :
 Lien de bio :
 
 ```text
-https://cyclostratege.fr/beta-saison-2?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=bio
+https://cyclostratege.fr/inscription?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=bio
 ```
 
 Publications à épingler :
@@ -65,7 +65,7 @@ Texte de publication :
 Lien associé au carrousel :
 
 ```text
-https://cyclostratege.fr/beta-saison-2?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=carousel_launch
+https://cyclostratege.fr/inscription?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=carousel_launch
 ```
 
 ## Story
@@ -82,7 +82,7 @@ Séquence conseillée :
 Lien :
 
 ```text
-https://cyclostratege.fr/beta-saison-2?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=story_launch
+https://cyclostratege.fr/inscription?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=story_launch
 ```
 
 ## Reel de lancement
@@ -106,7 +106,7 @@ Texte court :
 Lien :
 
 ```text
-https://cyclostratege.fr/beta-saison-2?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=reel_launch
+https://cyclostratege.fr/inscription?utm_source=instagram&utm_medium=social&utm_campaign=saison2_beta&utm_content=reel_launch
 ```
 
 ## Calendrier éditorial — 14 jours
@@ -150,7 +150,7 @@ Indicateurs hebdomadaires :
 - ajouter la propriété de domaine `cyclostratege.fr` ;
 - utiliser la valeur de vérification fournie dans `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, ou la vérification DNS ;
 - soumettre `https://cyclostratege.fr/sitemap.xml` ;
-- demander l’indexation de `/`, `/beta-saison-2`, `/guide` et `/nouveautes`.
+- demander l’indexation de `/`, `/inscription`, `/guide` et `/nouveautes`.
 
 ### Domaine www
 

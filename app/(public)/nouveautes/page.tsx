@@ -140,7 +140,7 @@ function ReleasesTimeline() {
           </p>
 
           <Link
-            href="/beta-saison-2"
+            href="/inscription"
             className="mt-7 inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#F2C94C] px-6 py-3 text-sm font-extrabold uppercase tracking-[0.08em] text-[#071A17] shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315B3E]"
           >
             Rejoindre la Saison 2

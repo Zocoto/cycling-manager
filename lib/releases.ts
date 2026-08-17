@@ -17,7 +17,7 @@ export const releases = [
       "Cyclo Stratège accueille davantage de directeurs sportifs afin d’éprouver le jeu à plus grande échelle et de construire ses prochaines évolutions avec la communauté.",
     features: [
       "Ouverture de la Saison 2 à une communauté de testeurs élargie.",
-      "Nouvelle page publique dédiée pour comprendre la bêta et rejoindre le jeu.",
+      "Parcours public simplifié pour rejoindre directement le jeu.",
       "Parcours de découverte guidé jusqu’à la première équipe et au Critérium de la découverte.",
       "Collecte de retours centralisée sur Discord pour les bugs, les idées et l’équilibrage.",
       "Suivi de l’origine des inscriptions pour mesurer l’impact des campagnes de lancement.",

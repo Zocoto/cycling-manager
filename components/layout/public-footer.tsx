@@ -55,13 +55,6 @@ export function PublicFooter() {
               </Link>
 
               <Link
-                href="/beta-saison-2"
-                className="w-fit transition hover:text-[#F2C94C]"
-              >
-                {isEnglish ? "Season 2 · Beta" : "Saison 2 · Bêta"}
-              </Link>
-
-              <Link
                 href="/guide"
                 className="w-fit transition hover:text-[#F2C94C]"
               >
