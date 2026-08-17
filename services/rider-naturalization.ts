@@ -23,6 +23,7 @@ type CountryProgressRow = {
   accumulated_days: number;
   active_since_season_id: string | null;
   active_since_day_number: number | null;
+  required_days_override: number | null;
 };
 
 export async function getProfessionalRiderNaturalizationEligibility({
@@ -109,7 +110,9 @@ export async function getProfessionalRiderNaturalizationEligibility({
   const targetCountryId = teamSeasonResult.data.registration_country_id;
   const progressResult = await admin
     .from("rider_naturalization_country_progress")
-    .select("accumulated_days, active_since_season_id, active_since_day_number")
+    .select(
+      "accumulated_days, active_since_season_id, active_since_day_number, required_days_override",
+    )
     .eq("rider_id", riderId)
     .eq("country_id", targetCountryId)
     .maybeSingle<CountryProgressRow>();
@@ -167,9 +170,11 @@ export async function getProfessionalRiderNaturalizationEligibility({
     currentCountry: toCountry(currentCountry),
     targetCountry: toCountry(targetCountry),
     hasNationalChampionshipTitle: (titleResult.count ?? 0) > 0,
-    requiredDays: [84, 70, 56, 42, 28, 14][
-      Math.max(0, Math.min(5, Number(welcomeCenterResult.data?.level ?? 0)))
-    ],
+    requiredDays:
+      progressResult.data?.required_days_override ??
+      [84, 70, 56, 42, 28, 14][
+        Math.max(0, Math.min(5, Number(welcomeCenterResult.data?.level ?? 0)))
+      ],
   });
 }
 

@@ -73,6 +73,31 @@ export function calculateInGameTenureDays({
   );
 }
 
+export function calculateCountryBoundNaturalizationDays({
+  trackedCountryId,
+  targetCountryId,
+  startGameYear,
+  startDayNumber,
+  currentGameYear,
+  currentDayNumber,
+}: {
+  trackedCountryId: string;
+  targetCountryId: string;
+  startGameYear: number;
+  startDayNumber: number;
+  currentGameYear: number;
+  currentDayNumber: number;
+}): number {
+  if (trackedCountryId !== targetCountryId) return 0;
+
+  return calculateInGameTenureDays({
+    startGameYear,
+    startDayNumber,
+    currentGameYear,
+    currentDayNumber,
+  });
+}
+
 export function findContinuousProfessionalTenureStart({
   currentContract,
   contracts,

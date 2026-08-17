@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculateCountryBoundNaturalizationDays,
   calculateInGameTenureDays,
   evaluateNaturalizationEligibility,
   findContinuousProfessionalTenureStart,
@@ -35,6 +36,39 @@ describe("naturalization", () => {
         currentDayNumber: 12,
       }),
     ).toBe(28);
+  });
+
+  it("conserve le compteur junior à la promotion et le remet à zéro pour un autre pays", () => {
+    expect(
+      calculateCountryBoundNaturalizationDays({
+        trackedCountryId: "france",
+        targetCountryId: "france",
+        startGameYear: 3,
+        startDayNumber: 13,
+        currentGameYear: 3,
+        currentDayNumber: 28,
+      }),
+    ).toBe(15);
+    expect(
+      calculateCountryBoundNaturalizationDays({
+        trackedCountryId: "france",
+        targetCountryId: "france",
+        startGameYear: 3,
+        startDayNumber: 13,
+        currentGameYear: 4,
+        currentDayNumber: 1,
+      }),
+    ).toBe(16);
+    expect(
+      calculateCountryBoundNaturalizationDays({
+        trackedCountryId: "belgium",
+        targetCountryId: "france",
+        startGameYear: 3,
+        startDayNumber: 13,
+        currentGameYear: 4,
+        currentDayNumber: 1,
+      }),
+    ).toBe(0);
   });
 
   it("cumule les contrats professionnels continus dans la même équipe", () => {

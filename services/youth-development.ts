@@ -2,7 +2,7 @@ import "server-only";
 
 import { COUNTRY_MAP_COORDINATES } from "@/data/country-map-coordinates";
 import {
-  calculateInGameTenureDays,
+  calculateCountryBoundNaturalizationDays,
   evaluateNaturalizationEligibility,
   type NaturalizationEligibility,
 } from "@/lib/game/naturalization";
@@ -141,6 +141,9 @@ type AcademyRow = Omit<
   team_id: string;
   joined_season_id: string;
   joined_day_number: number;
+  naturalization_country_id: string | null;
+  naturalization_started_season_id: string | null;
+  naturalization_started_day_number: number | null;
   birth_game_year: number;
   training_priority: YouthTrainingDomain;
   training_mode: YouthTrainingMode;
@@ -514,22 +517,31 @@ async function loadOverview(admin: AdminClient, context: Context) {
   });
 
   const academyRows = academyResult.data ?? [];
-  const joinedSeasonIds = [
-    ...new Set(academyRows.map((rider) => rider.joined_season_id)),
+  const naturalizationStartSeasonIds = [
+    ...new Set(
+      academyRows.flatMap((rider) =>
+        rider.naturalization_started_season_id
+          ? [rider.naturalization_started_season_id]
+          : [],
+      ),
+    ),
   ];
-  const joinedSeasonsResult = joinedSeasonIds.length
+  const naturalizationStartSeasonsResult = naturalizationStartSeasonIds.length
     ? await admin
         .from("seasons")
         .select("id, game_year")
-        .in("id", joinedSeasonIds)
+        .in("id", naturalizationStartSeasonIds)
         .returns<Array<{ id: string; game_year: number }>>()
     : {
         data: [] as Array<{ id: string; game_year: number }>,
         error: null,
       };
-  assertQuery(joinedSeasonsResult.error, "les saisons d’arrivée des juniors");
-  const joinedGameYearBySeasonId = new Map(
-    (joinedSeasonsResult.data ?? []).map((season) => [
+  assertQuery(
+    naturalizationStartSeasonsResult.error,
+    "les débuts de naturalisation des juniors",
+  );
+  const naturalizationStartGameYearBySeasonId = new Map(
+    (naturalizationStartSeasonsResult.data ?? []).map((season) => [
       season.id,
       season.game_year,
     ]),
@@ -604,16 +616,28 @@ async function loadOverview(admin: AdminClient, context: Context) {
     const currentSlotSession = todaySessions.find(
       (session) => session.slot === currentManualSlot,
     );
-    const joinedGameYear =
-      joinedGameYearBySeasonId.get(rider.joined_season_id) ?? context.gameYear;
+    const naturalizationStartGameYear = rider.naturalization_started_season_id
+      ? naturalizationStartGameYearBySeasonId.get(
+          rider.naturalization_started_season_id,
+        )
+      : null;
+    const elapsedNaturalizationDays =
+      rider.naturalization_country_id &&
+      naturalizationStartGameYear !== null &&
+      naturalizationStartGameYear !== undefined &&
+      rider.naturalization_started_day_number !== null
+        ? calculateCountryBoundNaturalizationDays({
+            trackedCountryId: rider.naturalization_country_id,
+            targetCountryId: targetCountry.id,
+            startGameYear: naturalizationStartGameYear,
+            startDayNumber: rider.naturalization_started_day_number,
+            currentGameYear: context.gameYear,
+            currentDayNumber: context.currentDayNumber,
+          })
+        : 0;
     const naturalization = evaluateNaturalizationEligibility({
       level: "youth",
-      elapsedDays: calculateInGameTenureDays({
-        startGameYear: joinedGameYear,
-        startDayNumber: rider.joined_day_number,
-        currentGameYear: context.gameYear,
-        currentDayNumber: context.currentDayNumber,
-      }),
+      elapsedDays: elapsedNaturalizationDays,
       currentCountry: {
         id: country?.id ?? rider.country_id,
         name: country?.name ?? "Pays inconnu",
