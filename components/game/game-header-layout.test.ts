@@ -23,6 +23,18 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain("lg:flex-nowrap");
   });
 
+  it("places language and logout on the mobile top row with logout at the far right", () => {
+    const searchPosition = headerSource.indexOf("<GameHeaderSearchToggle");
+    const languagePosition = headerSource.indexOf("<LanguageSwitcher compact />");
+    const logoutPosition = headerSource.indexOf("<LogoutButton isEnglish={isEnglish} />");
+
+    expect(headerSource).toContain(
+      "ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-0",
+    );
+    expect(languagePosition).toBeGreaterThan(searchPosition);
+    expect(logoutPosition).toBeGreaterThan(languagePosition);
+  });
+
   it("renders the shortcuts directly without a secondary actions menu", () => {
     const teamPosition = headerSource.indexOf('href="/jeu/equipe"');
     const profilePosition = headerSource.indexOf(

@@ -113,8 +113,6 @@ export function GameHeader({
         <GameNavigationMenu viewerEmail={simulatorEmail} />
 
         <div className="order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px border-t border-white/10 pt-2 sm:gap-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
-          <LanguageSwitcher compact />
-
           <HeaderMenuLink
             href="/jeu/equipe"
             label={sponsor?.shortName ?? (isEnglish ? "My team" : "Mon équipe")}
@@ -236,31 +234,6 @@ export function GameHeader({
             </svg>
           </HeaderMenuLink>
 
-          <form action={logoutAccount} className="shrink-0">
-            <button
-              type="submit"
-              title={isEnglish ? "Log out" : "Se déconnecter"}
-              aria-label={isEnglish ? "Log out" : "Se déconnecter"}
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#F6C2C6] transition hover:border-[#EF5B65] hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65] sm:h-10 sm:w-10"
-            >
-              <span className="contents">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  className="h-5 w-5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
-                  <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
-                </svg>
-              </span>
-            </button>
-          </form>
-
           <GameHeaderSearchToggle>
             <GameHeaderSearch
               id="game-global-search"
@@ -270,8 +243,42 @@ export function GameHeader({
             />
           </GameHeaderSearchToggle>
         </div>
+
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-0">
+          <LanguageSwitcher compact />
+          <LogoutButton isEnglish={isEnglish} />
+        </div>
       </div>
     </header>
+  );
+}
+
+function LogoutButton({ isEnglish }: { isEnglish: boolean }) {
+  return (
+    <form action={logoutAccount} className="shrink-0">
+      <button
+        type="submit"
+        title={isEnglish ? "Log out" : "Se déconnecter"}
+        aria-label={isEnglish ? "Log out" : "Se déconnecter"}
+        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-[#EF5B65]/30 bg-[#EF5B65]/8 text-[#F6C2C6] transition hover:border-[#EF5B65] hover:bg-[#EF5B65]/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EF5B65] sm:h-10 sm:w-10"
+      >
+        <span className="contents">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="none"
+            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12.5 6.5V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5v-2" />
+            <path d="M8.5 10h8m0 0-2.5-2.5M16.5 10 14 12.5" />
+          </svg>
+        </span>
+      </button>
+    </form>
   );
 }
 
