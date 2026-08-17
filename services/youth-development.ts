@@ -299,6 +299,43 @@ export type YouthDevelopmentOverview = {
   totalTuitionPerSeason: number;
 };
 
+export async function settleDueYouthScoutingMissions(): Promise<number> {
+  const admin = createSupabaseAdminClient();
+  const daySynchronization = await admin.rpc("sync_active_season_day");
+  assertQuery(
+    daySynchronization.error,
+    "la synchronisation de la journée des rapports de scouting",
+  );
+
+  const activeSeasonResult = await admin
+    .from("seasons")
+    .select("id, current_day_number")
+    .eq("status", "active")
+    .maybeSingle<{ id: string; current_day_number: number | null }>();
+  assertQuery(activeSeasonResult.error, "la saison des rapports de scouting");
+  const activeSeason = activeSeasonResult.data;
+  if (!activeSeason) return 0;
+
+  const currentDayNumber = activeSeason.current_day_number ?? 1;
+  const missionsResult = await admin
+    .from("youth_scouting_missions")
+    .select("*")
+    .eq("status", "active")
+    .returns<MissionRow[]>();
+  assertQuery(
+    missionsResult.error,
+    "les missions de scouting à finaliser automatiquement",
+  );
+
+  const due = (missionsResult.data ?? []).filter(
+    (mission) =>
+      mission.season_id !== activeSeason.id ||
+      mission.completes_day_number <= currentDayNumber,
+  );
+  for (const mission of due) await completeMission(admin, mission);
+  return due.length;
+}
+
 export async function getYouthDevelopmentOverview(
   supabase: ServerClient,
   authUserId: string,
