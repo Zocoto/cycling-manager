@@ -8,6 +8,7 @@ import {
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import {
+  consolidateNationalChampionshipEvents,
   getEffectiveSeasonDay,
   isRaceCategoryCode,
   isRaceDaySlot,
@@ -301,6 +302,7 @@ export type RaceTeamSponsorVisual = {
 
 type ActiveSeasonCalendarLoadOptions = {
   raceSlug?: string;
+  includeCancelledEditions?: boolean;
   includeEngagedRiders?: boolean;
   includeIneligibleRegionalRaces?: boolean;
 };
@@ -620,8 +622,11 @@ export async function getActiveSeasonRaceCalendar(
           field_limit
         `,
       )
-      .eq("season_id", season.id)
-      .neq("status", "cancelled");
+      .eq("season_id", season.id);
+
+    if (!options.includeCancelledEditions) {
+      editionsQuery = editionsQuery.neq("status", "cancelled");
+    }
 
     if (scopedRaceResult?.data) {
       editionsQuery = editionsQuery.eq("race_id", scopedRaceResult.data.id);
@@ -1347,24 +1352,26 @@ export async function getActiveSeasonRaceCalendar(
     calendarDate: day.calendar_date,
     label: day.label,
   }));
-  const events = (eventsResult.data ?? [])
-    .map((event) => {
-      const day = dayById.get(event.season_day_id);
+  const events = consolidateNationalChampionshipEvents(
+    (eventsResult.data ?? [])
+      .map((event) => {
+        const day = dayById.get(event.season_day_id);
 
-      if (!day) {
-        return null;
-      }
+        if (!day) {
+          return null;
+        }
 
-      return {
-        id: event.id,
-        dayNumber: day.day_number,
-        eventType: event.event_type,
-        title: event.title,
-        description: event.description,
-        href: event.href,
-      } satisfies SeasonCalendarEvent;
-    })
-    .filter((event): event is SeasonCalendarEvent => event !== null);
+        return {
+          id: event.id,
+          dayNumber: day.day_number,
+          eventType: event.event_type,
+          title: event.title,
+          description: event.description,
+          href: event.href,
+        } satisfies SeasonCalendarEvent;
+      })
+      .filter((event): event is SeasonCalendarEvent => event !== null),
+  );
 
   return {
     seasonId: season.id,

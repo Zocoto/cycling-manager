@@ -70,7 +70,7 @@ describe("dashboard events", () => {
     ).toBe(true);
   });
 
-  it("rappelle les deux championnats nationaux à l’approche de J8 et J9", () => {
+  it("regroupe les inscriptions aux deux championnats nationaux avant J8", () => {
     const events = buildDashboardEventFeed({
       currentDayNumber: 7,
       currency: "EUR",
@@ -80,11 +80,16 @@ describe("dashboard events", () => {
     });
 
     expect(
-      events.some((event) => event.id === "national-championship:time-trial")
-    ).toBe(true);
-    expect(
-      events.some((event) => event.id === "national-championship:road")
-    ).toBe(true);
+      events.filter((event) =>
+        event.id.startsWith("national-championship:"),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        id: "national-championship:registrations",
+        href: "/jeu/championnats-nationaux",
+        actionLabel: "Gérer les inscriptions",
+      }),
+    ]);
   });
 
   it("retire les rappels CN une fois les épreuves passées", () => {

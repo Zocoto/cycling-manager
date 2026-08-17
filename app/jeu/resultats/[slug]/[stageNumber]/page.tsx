@@ -96,9 +96,9 @@ export default async function RaceLivePage({
       await getCurrentTeamNationalChampionshipCountryCodes({
         authUserId: user.id,
         seasonId: calendar.seasonId,
-      });
+    });
     if (!relevantCountries.includes(edition.countryCode)) {
-      redirect(`/jeu/championnats-nationaux/${nationalDiscipline}`);
+      redirect("/jeu/championnats-nationaux");
     }
   }
 
@@ -197,7 +197,7 @@ export default async function RaceLivePage({
       : null;
 
   const backHref = nationalDiscipline
-    ? `/jeu/championnats-nationaux/${nationalDiscipline}`
+    ? "/jeu/championnats-nationaux"
     : "/jeu/resultats";
 
   return (

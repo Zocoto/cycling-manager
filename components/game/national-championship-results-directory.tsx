@@ -42,8 +42,8 @@ export function NationalChampionshipResultsDirectory({
           Championnats nationaux
         </h2>
         <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#C1D3CA]">
-          Une entrée centrale par discipline regroupe uniquement les pays liés à
-          votre effectif.
+          Chaque discipline regroupe les classements des pays liés à votre
+          effectif. Les épreuves sans partant apparaissent comme annulées.
         </p>
       </header>
 
@@ -57,10 +57,9 @@ export function NationalChampionshipResultsDirectory({
           const allResolved = resolvedCount === group.editions.length;
 
           return (
-            <Link
+            <article
               key={group.competitionType}
-              href={`/jeu/championnats-nationaux/${group.discipline}`}
-              className="group rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-5 transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:bg-white hover:shadow-lg"
+              className="rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-5"
             >
               <span className="flex items-center justify-between gap-3">
                 <span className="rounded-full bg-[#176951]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
@@ -83,16 +82,55 @@ export function NationalChampionshipResultsDirectory({
               </span>
               <span className="mt-2 block text-sm font-semibold leading-6 text-[#60756E]">
                 {allResolved
-                  ? "Ouvrez la liste des pays puis consultez chaque classement officiel."
+                  ? "Consultez directement chaque classement officiel disponible."
                   : "Tous les pays sont résolus ensemble ; aucun direct ni replay n’est généré."}
               </span>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[#176951]">
-                Ouvrir les CN
-                <span aria-hidden="true" className="transition group-hover:translate-x-1">
-                  →
-                </span>
-              </span>
-            </Link>
+              <div className="mt-4 space-y-2">
+                {[...group.editions]
+                  .sort((left, right) =>
+                    left.countryName.localeCompare(right.countryName, "fr"),
+                  )
+                  .map((edition) => {
+                    const stage = edition.stages[0];
+                    const label = (
+                      <>
+                        <span
+                          className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
+                          role="img"
+                          aria-label={`Drapeau ${edition.countryName}`}
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          {edition.countryName}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-wide">
+                          {edition.status === "cancelled"
+                            ? "Annulé"
+                            : edition.status === "completed"
+                              ? "Classement"
+                              : "À venir"}
+                        </span>
+                      </>
+                    );
+
+                    return edition.status === "completed" && stage ? (
+                      <Link
+                        key={edition.id}
+                        href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+                        className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-white px-3 text-sm font-bold text-[#183F37] transition hover:border-[#278B70]/40 hover:text-[#176951]"
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <div
+                        key={edition.id}
+                        className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-white/60 px-3 text-sm font-bold text-[#60756E]"
+                      >
+                        {label}
+                      </div>
+                    );
+                  })}
+              </div>
+            </article>
           );
         })}
       </div>

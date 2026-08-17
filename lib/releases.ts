@@ -41,7 +41,7 @@ export const releases = [
       "Centre m\u00e9t\u00e9o \u2014 pr\u00e9visions de course accessibles de plus en plus t\u00f4t \u00e0 mesure que le b\u00e2timent progresse.",
       "Media Center \u2014 propositions d\u2019articles et publicit\u00e9s sponsors dans La Cyclogazette, avec davantage d\u2019impact pour les community managers, la r\u00e9putation, la popularit\u00e9 et les fans.",
       "Rubrique infrastructures \u2014 b\u00e2timents constructibles sans architecte obligatoire, visuels d\u00e9di\u00e9s, progression par niveau et classement permanent du moins cher au plus cher.",
-      "Championnats nationaux \u2014 inscription automatique des 200 meilleurs mondiaux et des coureurs libres, retrait possible par le DS, simulation simultan\u00e9e sans live, r\u00e9sultats centralis\u00e9s et un point de r\u00e9putation par victoire.",
+      "Championnats nationaux \u2014 inscription automatique du top 200 de chaque pays et des coureurs libres, grille route/CLM unifi\u00e9e pour le DS, simulation simultan\u00e9e sans live, r\u00e9sultats centralis\u00e9s et un point de r\u00e9putation par victoire.",
       "Championnats du monde \u2014 courses route et CLM visibles par tous, directs \u00e0 14 h et 18 h, s\u00e9lections nationales annonc\u00e9es quatre jours avant et huit meilleurs coureurs des nations qualifi\u00e9es.",
       "Championnats continentaux \u2014 arriv\u00e9e des CLM, s\u00e9lections nationales, maillots de champions, nouveaux bar\u00e8mes et r\u00e9gularisation des titres et gains de la premi\u00e8re saison.",
       "Palmar\u00e8s \u2014 courses majeures mieux mises en avant et nouveaux troph\u00e9es de champion national, continental et mondial.",

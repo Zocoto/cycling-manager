@@ -1303,7 +1303,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
           </h2>
         </div>
         <Link
-          href="/jeu/championnats-nationaux/route"
+          href="/jeu/championnats-nationaux"
           className="relative z-10 rounded-full border border-[#7CCF9C]/40 bg-[#7CCF9C]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#B9E9CD] transition hover:border-[#7CCF9C] hover:bg-[#7CCF9C] hover:text-[#07302A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C]"
         >
           Championnats nationaux

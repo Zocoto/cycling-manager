@@ -91,11 +91,11 @@ export default async function RaceResultsPage({
     const edition = calendar.editions.find(
       (candidate) => candidate.slug === initialRaceSlug,
     );
-    if (edition?.competitionType === "national_road") {
-      redirect("/jeu/championnats-nationaux/route");
-    }
-    if (edition?.competitionType === "national_time_trial") {
-      redirect("/jeu/championnats-nationaux/contre-la-montre");
+    if (
+      edition?.competitionType === "national_road" ||
+      edition?.competitionType === "national_time_trial"
+    ) {
+      redirect("/jeu/championnats-nationaux");
     }
     if (edition?.raceFormat === "stage_race") {
       redirect(`/jeu/resultats/${edition.slug}`);

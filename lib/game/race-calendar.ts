@@ -194,6 +194,42 @@ export type SeasonCalendarEvent = {
   href: string | null;
 };
 
+export function consolidateNationalChampionshipEvents(
+  events: readonly SeasonCalendarEvent[],
+): SeasonCalendarEvent[] {
+  const nationalEvents = events.filter(
+    (event) =>
+      event.eventType === "national_time_trial_championships" ||
+      event.eventType === "national_road_championships",
+  );
+  if (nationalEvents.length === 0) return [...events];
+
+  const firstEvent = [...nationalEvents].sort(
+    (left, right) =>
+      left.dayNumber - right.dayNumber || left.id.localeCompare(right.id),
+  )[0]!;
+  const consolidatedEvent = {
+    ...firstEvent,
+    dayNumber: Math.min(...nationalEvents.map((event) => event.dayNumber)),
+    eventType: "national_time_trial_championships",
+    title: "Championnats nationaux",
+    description:
+      "Une seule grille regroupe le CN contre-la-montre à 14 h et le CN en ligne à 18 h pour tous les coureurs de l’effectif.",
+    href: "/jeu/championnats-nationaux",
+  } satisfies SeasonCalendarEvent;
+  return [
+    ...events.filter(
+      (event) =>
+        event.eventType !== "national_time_trial_championships" &&
+        event.eventType !== "national_road_championships",
+    ),
+    consolidatedEvent,
+  ].sort(
+    (left, right) =>
+      left.dayNumber - right.dayNumber || left.title.localeCompare(right.title),
+  );
+}
+
 export type SeasonRaceCalendar = {
   seasonId: string;
   seasonName: string;

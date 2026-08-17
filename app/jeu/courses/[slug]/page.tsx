@@ -32,7 +32,7 @@ export default async function RaceProfilePage(
   const { slug } = await props.params;
   const nationalDiscipline = getNationalChampionshipDisciplineFromSlug(slug);
   if (nationalDiscipline) {
-    redirect(`/jeu/championnats-nationaux/${nationalDiscipline}`);
+    redirect("/jeu/championnats-nationaux");
   }
 
   return (

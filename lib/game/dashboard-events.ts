@@ -184,30 +184,14 @@ function buildNationalChampionshipReminders(
 
   if (currentDayNumber >= 5 && currentDayNumber <= 8) {
     reminders.push({
-      id: "national-championship:time-trial",
+      id: "national-championship:registrations",
       category: "race",
       priority: "action",
-      title: "Sélection CN contre-la-montre",
+      title: "Inscriptions aux championnats nationaux",
       description:
-        "La sélection est automatique pour le contre-la-montre de J8. Vous pouvez retirer un coureur avant le départ.",
-      href: "/jeu/championnats-nationaux/contre-la-montre",
-      actionLabel: "Gérer les retraits",
-      badgeLabel: "Rappel",
-      dayNumber: 8,
-      happenedAt: null,
-    });
-  }
-
-  if (currentDayNumber >= 5 && currentDayNumber <= 8) {
-    reminders.push({
-      id: "national-championship:road",
-      category: "race",
-      priority: "action",
-      title: "Sélection CN sur route",
-      description:
-        "La sélection est automatique pour la course en ligne de J8 à 18 h. Vous pouvez retirer un coureur avant le départ.",
-      href: "/jeu/championnats-nationaux/route",
-      actionLabel: "Gérer les retraits",
+        "Une seule grille regroupe le CN contre-la-montre et le CN en ligne de J8. Vérifiez les choix de tout votre effectif avant les départs.",
+      href: "/jeu/championnats-nationaux",
+      actionLabel: "Gérer les inscriptions",
       badgeLabel: "Rappel",
       dayNumber: 8,
       happenedAt: null,

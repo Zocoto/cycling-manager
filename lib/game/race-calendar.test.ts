@@ -4,6 +4,7 @@ import {
   RACE_CATEGORY_CODES,
   RACE_CATEGORY_STYLE,
   buildCalendarWeeks,
+  consolidateNationalChampionshipEvents,
   getEditionDayRange,
   getEffectiveSeasonDay,
   getGrandTourCalendarAccent,
@@ -18,6 +19,37 @@ import {
   isRosterSelectionValid,
   type RaceCalendarEdition,
 } from "./race-calendar";
+
+describe("consolidateNationalChampionshipEvents", () => {
+  it("remplace les deux liens CN par une entrée unique en J8", () => {
+    const events = consolidateNationalChampionshipEvents([
+      {
+        id: "tt",
+        dayNumber: 8,
+        eventType: "national_time_trial_championships",
+        title: "CN CLM",
+        description: null,
+        href: "/ancien-clm",
+      },
+      {
+        id: "road",
+        dayNumber: 9,
+        eventType: "national_road_championships",
+        title: "CN route",
+        description: null,
+        href: "/ancienne-route",
+      },
+    ]);
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        dayNumber: 8,
+        title: "Championnats nationaux",
+        href: "/jeu/championnats-nationaux",
+      }),
+    ]);
+  });
+});
 
 describe("getGrandTourCalendarAccent", () => {
   it.each([
