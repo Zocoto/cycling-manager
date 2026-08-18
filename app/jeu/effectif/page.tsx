@@ -72,6 +72,7 @@ import {
   ROSTER_TUTORIAL_KEY,
   ROSTER_TUTORIAL_ROUTE,
 } from "@/lib/tutorial/roster";
+import { resolveTeamNationality } from "@/lib/game/team-nationality";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -473,6 +474,11 @@ export default async function TeamRosterPage({
     teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
+  const teamNationality = resolveTeamNationality({
+    sponsorCountryCode: teamSponsorIdentity?.sponsor.countryCode,
+    amateurCountryCode: teamAmateurIdentity?.homeCountryCode,
+    amateurCountryName: teamAmateurIdentity?.homeCountryName,
+  });
 
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({
@@ -606,23 +612,27 @@ export default async function TeamRosterPage({
             <SummaryCard
               label="Nationalité"
               value={
-                teamAmateurIdentity ? (
+                teamNationality ? (
                   <Link
-                    href={`/jeu/nations/${teamAmateurIdentity.homeCountryCode.toLowerCase()}`}
+                    href={`/jeu/nations/${teamNationality.countryCode.toLowerCase()}`}
                     className="inline-flex items-center gap-3 transition hover:text-[#176951] hover:underline"
                   >
                     <span
-                      className={`fi fi-${teamAmateurIdentity.homeCountryCode.toLowerCase()} shrink-0 rounded-sm shadow-sm`}
+                      className={`fi fi-${teamNationality.countryCode.toLowerCase()} shrink-0 rounded-sm shadow-sm`}
                       role="img"
-                      aria-label={`Drapeau ${teamAmateurIdentity.homeCountryName}`}
+                      aria-label={`Drapeau ${teamNationality.countryName}`}
                     />
-                    <span>{teamAmateurIdentity.homeCountryName}</span>
+                    <span>{teamNationality.countryName}</span>
                   </Link>
                 ) : (
                   "Non disponible"
                 )
               }
-              detail="Pays d’affiliation"
+              detail={
+                teamNationality?.source === "sponsor"
+                  ? "Pays du sponsor principal"
+                  : "Pays d’affiliation"
+              }
             />
           </section>
 
