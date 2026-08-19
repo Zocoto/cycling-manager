@@ -157,7 +157,7 @@ export function YouthTrainingSettingsFields({
             }}
             className="mt-2 min-h-10 w-full rounded-lg border border-[#315B3E]/15 bg-white px-3 text-xs font-bold text-[#183F37]"
           >
-            <option value="automatic">Automatique · 8 h · bonus ×2</option>
+            <option value="automatic">Automatique · séance quotidienne à 8 h</option>
             <option value="manual">Manuel · 2 minijeux / jour</option>
           </select>
         </label>

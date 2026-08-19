@@ -650,7 +650,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "youth-training-settings": {
         title: "Choose training mode and profile",
         content:
-          "Automatic mode runs at 8:00 daily with no assignable coach and ×2 junior efficiency. Manual mode opens midnight–noon and noon–midnight slots.\n\nThe chosen profile sets trained attributes and minigame. Changes start the next day; a missed manual slot is never replaced automatically.",
+          "Automatic mode calculates one session every morning at 8:00 with no assignable coach. Manual mode opens midnight–noon and noon–midnight slots.\n\nIn both modes, progress depends on potential and the current rating: it slows from 70 and becomes very small around 75. The chosen profile sets trained attributes and minigame. Changes start the next day; a missed manual slot is never replaced automatically.",
       },
       "youth-minigame": {
         title: "Try the minigame for the selected profile",
