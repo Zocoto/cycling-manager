@@ -68,6 +68,11 @@ export const YOUTH_RAW_RATING_MIN = 1;
 export const YOUTH_RAW_RATING_MAX = 8.25;
 export const YOUTH_RATING_PROJECTION_BASE = 34;
 export const YOUTH_RATING_PROJECTION_SCALE = 8;
+export const YOUTH_HIGH_RATING_SLOWDOWN_START = 70;
+export const YOUTH_TRAINING_SOFT_CEILING = 76;
+const YOUTH_HIGH_RATING_MAX_FACTOR = 0.35;
+const YOUTH_HIGH_RATING_MIN_TALENT_SCALE = 0.55;
+const YOUTH_AUTOMATIC_DAILY_SESSION_EQUIVALENT = 2;
 
 export const YOUTH_TRAINING_GAME_BY_DOMAIN: Record<
   YouthTrainingDomain,
@@ -234,6 +239,31 @@ export function getYouthManualTrainingDivisor(projectedRating: number) {
   return 10_000;
 }
 
+export function getYouthHighRatingProgressFactor({
+  currentProjectedRating,
+  potentialSteps,
+}: {
+  currentProjectedRating: number;
+  potentialSteps: number;
+}) {
+  if (currentProjectedRating < YOUTH_HIGH_RATING_SLOWDOWN_START) return 1;
+  if (currentProjectedRating >= YOUTH_TRAINING_SOFT_CEILING) return 0;
+
+  const normalizedPotential =
+    (Math.min(8, Math.max(1, potentialSteps)) - 1) / 7;
+  const talentScale =
+    YOUTH_HIGH_RATING_MIN_TALENT_SCALE +
+    (1 - YOUTH_HIGH_RATING_MIN_TALENT_SCALE) *
+      normalizedPotential ** 2;
+  const remainingProgress =
+    (YOUTH_TRAINING_SOFT_CEILING - currentProjectedRating) /
+    (YOUTH_TRAINING_SOFT_CEILING - YOUTH_HIGH_RATING_SLOWDOWN_START);
+
+  return (
+    YOUTH_HIGH_RATING_MAX_FACTOR * talentScale * remainingProgress ** 2
+  );
+}
+
 export function calculateYouthManualTrainingGain({
   score,
   potentialSteps,
@@ -252,7 +282,14 @@ export function calculateYouthManualTrainingGain({
     (normalizedScore * getPotentialStars(potentialSteps)) /
     getYouthManualTrainingDivisor(currentProjectedRating);
 
-  return rawGain * getTrainingDomainWeight(domain, ratingKey);
+  return (
+    rawGain *
+    getTrainingDomainWeight(domain, ratingKey) *
+    getYouthHighRatingProgressFactor({
+      currentProjectedRating,
+      potentialSteps,
+    })
+  );
 }
 
 export function calculateYouthAutomaticTrainingGain({
@@ -281,7 +318,11 @@ export function calculateYouthAutomaticTrainingGain({
       trainerCountryMatch: false,
     }) /
       1_000) *
-    2
+    YOUTH_AUTOMATIC_DAILY_SESSION_EQUIVALENT *
+    getYouthHighRatingProgressFactor({
+      currentProjectedRating,
+      potentialSteps,
+    })
   );
 }
 

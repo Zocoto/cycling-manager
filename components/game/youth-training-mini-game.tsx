@@ -613,7 +613,7 @@ export function YouthTrainingMiniGame({
               Mode actif · entraînement automatique
             </p>
             <p className="mt-1 text-xs font-bold text-[#315B3E]">
-              Une séance est réalisée chaque jour à 8 h avec l’efficacité junior ×2.
+              Une séance est calculée chaque jour à 8 h selon l’âge, le potentiel et le niveau des notes.
             </p>
           </div>
           <span className="rounded-full bg-[#176951] px-3 py-1.5 text-[9px] font-black uppercase text-white">

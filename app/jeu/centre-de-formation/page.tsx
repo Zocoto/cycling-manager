@@ -613,7 +613,7 @@ function AcademyTab({
         <SectionHeading
           eyebrow="Formation quotidienne"
           title="École de cyclisme"
-          description="Choisissez à tout moment le mode des prochaines séances : automatique à 8 h avec un bonus ×2, ou deux minijeux manuels de minuit à midi et de midi à minuit. Le choix reste actif jusqu’à votre prochaine modification."
+          description="Choisissez à tout moment le mode des prochaines séances : automatique chaque matin à 8 h, ou deux minijeux manuels de minuit à midi et de midi à minuit. Dans les deux modes, la progression dépend du potentiel et ralentit fortement à partir de 70."
         />
         <div className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-right">
           <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
@@ -759,7 +759,7 @@ function TutorialAcademyDemo({
             <TutorialTrainingMode
               active={automaticSelected}
               title="Automatique"
-              detail="Tous les matins à 8 h · efficacité junior ×2"
+              detail="Tous les matins à 8 h · progression calculée automatiquement"
             />
             <TutorialTrainingMode
               active={!automaticSelected}
