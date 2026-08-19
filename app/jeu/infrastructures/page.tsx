@@ -133,8 +133,9 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
               </div>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">
                 Engagez une part majeure de la trésorerie dans des bâtiments qui
-                suivent l’équipe au fil des saisons. Un seul chantier peut être
-                mené à la fois.
+                suivent l’équipe au fil des saisons. Le talent « Double
+                chantier » d’un architecte 3★ ou plus permet de mener deux
+                constructions simultanément lorsqu’il participe à l’une d’elles.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <HeroMetric
@@ -147,7 +148,11 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                 />
                 <HeroMetric
                   label="Chantier"
-                  value={overview.activeProject ? "En cours" : "Disponible"}
+                  value={
+                    overview.activeProjects.length
+                      ? `${overview.activeProjects.length} en cours`
+                      : "Disponible"
+                  }
                 />
                 <HeroMetric
                   label="Académie"
@@ -240,11 +245,16 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
         ) : null}
 
         <div data-tutorial-id="infrastructure-construction-status">
-          {overview.activeProject ? (
-            <ActiveProjectCard
-              project={overview.activeProject}
-              currency={overview.currency}
-            />
+          {overview.activeProjects.length ? (
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              {overview.activeProjects.map((project) => (
+                <ActiveProjectCard
+                  key={project.id}
+                  project={project}
+                  currency={overview.currency}
+                />
+              ))}
+            </div>
           ) : (
             <section className="mt-6 rounded-[1.5rem] border border-[#315B3E]/12 bg-white px-5 py-4">
               <p className="text-sm font-black text-[#176951]">
@@ -308,7 +318,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           currentLevel={overview.dataRoomLevel}
                           nextLevel={overview.dataRoomNextLevel}
                           architects={overview.architects}
-                          activeProject={overview.activeProject}
+                          activeProjects={overview.activeProjects}
                           isUnlocked={overview.isUnlocked}
                           balance={overview.balance}
                           currency={overview.currency}
@@ -328,7 +338,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         <StaffAcademyCard
                           academy={academy}
                           architects={overview.architects}
-                          activeProject={overview.activeProject}
+                          activeProjects={overview.activeProjects}
                           directorLevel={overview.directorLevel}
                           balance={overview.balance}
                           currency={overview.currency}
@@ -351,7 +361,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           currentLevel + 1,
                         )}
                         architects={overview.architects}
-                        activeProject={overview.activeProject}
+                        activeProjects={overview.activeProjects}
                         isUnlocked={overview.isUnlocked}
                         balance={overview.balance}
                         currency={overview.currency}
@@ -389,7 +399,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
               <InternationalYouthCenterMap
                 countries={overview.countries}
                 architects={overview.architects}
-                activeProject={overview.activeProject}
+                activeProjects={overview.activeProjects}
                 isUnlocked={overview.isUnlocked}
                 balance={overview.balance}
                 currency={overview.currency}
@@ -447,7 +457,7 @@ function ActiveProjectCard({
     ),
   );
   return (
-    <section className="mt-6 overflow-hidden rounded-[1.75rem] border border-[#F2C94C]/40 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-[1.75rem] border border-[#F2C94C]/40 bg-white shadow-sm">
       <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#B07C11]">

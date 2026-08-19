@@ -14,7 +14,7 @@ function renderCard(balance = nextLevel.cost) {
       currentLevel={0}
       nextLevel={nextLevel}
       architects={[]}
-      activeProject={null}
+      activeProjects={[]}
       isUnlocked
       balance={balance}
       currency="EUR"

@@ -23,6 +23,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "architect_construction_time",
     "architect_construction_cost",
     "architect_maintenance_cost",
+    "architect_parallel_construction",
   ],
   community_manager: [
     "community_victory_reputation",
@@ -128,6 +129,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Maintenance raisonnée",
     description: (level) =>
       `−${percentage(level, 2)} % sur les futurs coûts de maintenance des bâtiments livrés`,
+  },
+  architect_parallel_construction: {
+    role: "architect",
+    label: "Double chantier",
+    description: () =>
+      "Ajoute une ligne de construction : permet de construire deux bâtiments en même temps lorsque cet architecte est affecté à l’un des deux chantiers",
   },
   community_victory_reputation: {
     role: "community_manager",
@@ -290,16 +297,22 @@ export function selectInitialStaffTalent({
   role,
   roll,
   trainerSpecialty,
+  staffLevel,
 }: {
   role: StaffRole;
   roll: number;
   trainerSpecialty?: TrainerSpecialty | null;
+  staffLevel?: number;
 }): StaffTalentCode {
   const candidates = getStaffTalentCodes(role).filter(
     (code) =>
-      role !== "trainer" ||
-      !trainerSpecialty ||
-      code !== `trainer_${trainerSpecialty}`,
+      (role !== "trainer" ||
+        !trainerSpecialty ||
+        code !== `trainer_${trainerSpecialty}`) &&
+      !(
+        code === "architect_parallel_construction" &&
+        normalizeStaffLevel(staffLevel ?? 1) < 3
+      ),
   );
   const normalizedRoll = Number.isFinite(roll) ? Math.floor(roll) : 0;
   return candidates[

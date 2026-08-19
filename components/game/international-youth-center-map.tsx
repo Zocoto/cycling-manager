@@ -8,6 +8,7 @@ import Link from "@/components/ui/app-link";
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
 import { getInternationalCenterLevelDefinition } from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
+import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
 import type {
   InfrastructureArchitect,
   InfrastructureCountry,
@@ -17,14 +18,14 @@ import type {
 export function InternationalYouthCenterMap({
   countries,
   architects,
-  activeProject,
+  activeProjects,
   isUnlocked,
   balance,
   currency,
 }: {
   countries: InfrastructureCountry[];
   architects: InfrastructureArchitect[];
-  activeProject: InfrastructureProject | null;
+  activeProjects: InfrastructureProject[];
   isUnlocked: boolean;
   balance: number;
   currency: string;
@@ -36,6 +37,10 @@ export function InternationalYouthCenterMap({
       "",
   );
   const [architectContractId, setArchitectContractId] = useState("");
+  const constructionOptions = getInfrastructureConstructionOptions({
+    architects,
+    activeProjects,
+  });
   const selected =
     countries.find((country) => country.id === selectedCountryId) ??
     countries[0];
@@ -71,8 +76,16 @@ export function InternationalYouthCenterMap({
     : null;
   const blockReason = !isUnlocked
     ? "Le niveau 10 de Directeur Sportif est requis."
-    : activeProject
-      ? "Un autre chantier est déjà en cours."
+    : activeProjects.some(
+          (project) =>
+            project.code === "international_youth_center" &&
+            project.countryId === selected.id,
+        )
+      ? "Un chantier est déjà en cours pour ce centre."
+      : constructionOptions.capacityBlockReason
+        ? constructionOptions.capacityBlockReason
+        : constructionOptions.selectionBlockReason && !architectContractId
+          ? constructionOptions.selectionBlockReason
       : !nextLevel
         ? "Votre centre a atteint cinq étoiles."
         : quote && balance < quote.cost
@@ -293,14 +306,24 @@ export function InternationalYouthCenterMap({
                 }
                 className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
               >
-                <option value="">Sans architecte</option>
-                {architects.map((architect) => (
+                <option
+                  value=""
+                  disabled={!constructionOptions.canStartWithoutArchitect}
+                >
+                  {constructionOptions.canStartWithoutArchitect
+                    ? "Sans architecte"
+                    : "Choisir l’architecte « Double chantier »"}
+                </option>
+                {constructionOptions.eligibleArchitects.map((architect) => (
                   <option
                     key={architect.contractId}
                     value={architect.contractId}
                   >
                     {architect.firstName} {architect.lastName} · N
                     {architect.level} · {architect.specialtyLabel}
+                    {architect.hasParallelConstructionTalent
+                      ? " · Double chantier"
+                      : ""}
                   </option>
                 ))}
               </select>

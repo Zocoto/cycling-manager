@@ -233,6 +233,9 @@ export async function getStaffAcademyOverview(
       (code) =>
         !ownedCodes.has(code) &&
         !(
+          code === "architect_parallel_construction" && member.level < 3
+        ) &&
+        !(
           role === "trainer" &&
           trainerSpecialty &&
           code === `trainer_${trainerSpecialty}`

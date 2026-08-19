@@ -44,6 +44,7 @@ type ProjectRow = {
   infrastructure_code: TeamInfrastructureCode | "international_youth_center";
   country_id: string | null;
   target_level: number;
+  architect_contract_id: string | null;
   architect_specialty: string | null;
   architect_level: number | null;
   base_cost: number | string;
@@ -69,6 +70,7 @@ export type InfrastructureArchitect = {
   specialtyLabel: string;
   costReductionPercentage: number;
   durationReductionPercentage: number;
+  hasParallelConstructionTalent: boolean;
 };
 
 export type InternationalCenterOwner = {
@@ -98,8 +100,10 @@ export type InfrastructureProject = {
   id: string;
   code: ProjectRow["infrastructure_code"];
   name: string;
+  countryId: string | null;
   countryName: string | null;
   targetLevel: number;
+  architectContractId: string | null;
   finalCost: number;
   finalDurationDays: number;
   costReductionPercentage: number;
@@ -135,6 +139,7 @@ export type TeamInfrastructureOverview = {
   dataRoomLevel: number;
   dataRoomNextLevel: ReturnType<typeof getTeamInfrastructureLevelDefinition>;
   architects: InfrastructureArchitect[];
+  activeProjects: InfrastructureProject[];
   activeProject: InfrastructureProject | null;
   recentProjects: InfrastructureProject[];
   countries: InfrastructureCountry[];
@@ -174,7 +179,7 @@ export async function getTeamInfrastructureOverview(
     admin
       .from("infrastructure_projects")
       .select(
-        "id, team_id, infrastructure_code, country_id, target_level, architect_specialty, architect_level, base_cost, final_cost, base_duration_days, final_duration_days, cost_reduction_percentage, duration_reduction_percentage, started_day_number, starts_game_day_index, completes_game_day_index, status, completed_at, created_at",
+        "id, team_id, infrastructure_code, country_id, target_level, architect_contract_id, architect_specialty, architect_level, base_cost, final_cost, base_duration_days, final_duration_days, cost_reduction_percentage, duration_reduction_percentage, started_day_number, starts_game_day_index, completes_game_day_index, status, completed_at, created_at",
       )
       .eq("team_id", context.teamId)
       .order("created_at", { ascending: false })
@@ -259,6 +264,19 @@ export async function getTeamInfrastructureOverview(
     : { data: [], error: null };
   assertQuery(membersResult.error, "les profils des architectes");
 
+  const talentsResult = memberIds.length
+    ? await admin
+        .from("staff_member_talents")
+        .select("staff_member_id, talent_code")
+        .in("staff_member_id", memberIds)
+        .eq("talent_code", "architect_parallel_construction")
+        .returns<Array<{ staff_member_id: string; talent_code: string }>>()
+    : { data: [], error: null };
+  assertQuery(talentsResult.error, "les talents des architectes");
+  const parallelArchitectMemberIds = new Set(
+    (talentsResult.data ?? []).map((talent) => talent.staff_member_id),
+  );
+
   const directorIds = [
     ...new Set(
       (assignmentsResult.data ?? []).map(
@@ -297,6 +315,9 @@ export async function getTeamInfrastructureOverview(
           level: member.level,
           specialty,
           specialtyLabel: ARCHITECT_SPECIALTY_LABELS[specialty],
+          hasParallelConstructionTalent: parallelArchitectMemberIds.has(
+            member.id,
+          ),
           ...bonuses,
         },
       ];
@@ -371,6 +392,9 @@ export async function getTeamInfrastructureOverview(
   const projects = (projectsResult.data ?? []).map((project) =>
     toProject(project, currentGameDay, countryById),
   );
+  const activeProjects = projects.filter(
+    (project) => project.status === "active",
+  );
   const getInfrastructureLevel = (code: TeamInfrastructureCode) =>
     (infrastructureResult.data ?? []).find(
       (infrastructure) => infrastructure.infrastructure_code === code,
@@ -413,8 +437,8 @@ export async function getTeamInfrastructureOverview(
       dataRoomLevel + 1,
     ),
     architects,
-    activeProject:
-      projects.find((project) => project.status === "active") ?? null,
+    activeProjects,
+    activeProject: activeProjects[0] ?? null,
     recentProjects: projects.filter((project) => project.status !== "active"),
     countries,
     notifications: (notificationsResult.data ?? []).map((notification) => ({
@@ -526,10 +550,12 @@ function toProject(
       project.infrastructure_code === "international_youth_center"
         ? "École de cyclisme internationale"
         : TEAM_INFRASTRUCTURE_DEFINITIONS[project.infrastructure_code].name,
+    countryId: project.country_id,
     countryName: project.country_id
       ? (countryById.get(project.country_id)?.name ?? "Pays")
       : null,
     targetLevel: project.target_level,
+    architectContractId: project.architect_contract_id,
     finalCost: toNumber(project.final_cost),
     finalDurationDays: project.final_duration_days,
     costReductionPercentage: project.cost_reduction_percentage,

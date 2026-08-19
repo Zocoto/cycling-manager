@@ -44,6 +44,28 @@ describe("staff talents", () => {
     );
   });
 
+  it("réserve le talent Double chantier aux architectes de niveau 3 minimum", () => {
+    for (let roll = 0; roll < 20; roll += 1) {
+      expect(
+        selectInitialStaffTalent({
+          role: "architect",
+          staffLevel: 2,
+          roll,
+        }),
+      ).not.toBe("architect_parallel_construction");
+    }
+
+    expect(
+      Array.from({ length: 20 }, (_, roll) =>
+        selectInitialStaffTalent({
+          role: "architect",
+          staffLevel: 3,
+          roll,
+        }),
+      ),
+    ).toContain("architect_parallel_construction");
+  });
+
   it("présente les talents du nutritionniste comme des bonus supplémentaires", () => {
     expect(describeStaffTalent("nutrition_daily_form", 5)).toContain(
       "supplémentaire pour chaque coureur",

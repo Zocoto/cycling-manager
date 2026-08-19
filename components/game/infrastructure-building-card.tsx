@@ -10,6 +10,7 @@ import type {
   TeamInfrastructureDefinition,
 } from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
+import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
 import type {
   InfrastructureArchitect,
   InfrastructureProject,
@@ -20,7 +21,7 @@ export function InfrastructureBuildingCard({
   currentLevel,
   nextLevel,
   architects,
-  activeProject,
+  activeProjects,
   isUnlocked,
   balance,
   currency,
@@ -30,13 +31,17 @@ export function InfrastructureBuildingCard({
   currentLevel: number;
   nextLevel: InfrastructureLevelDefinition | null;
   architects: InfrastructureArchitect[];
-  activeProject: InfrastructureProject | null;
+  activeProjects: InfrastructureProject[];
   isUnlocked: boolean;
   balance: number;
   currency: string;
   prerequisiteMessage?: string | null;
 }) {
   const [architectContractId, setArchitectContractId] = useState("");
+  const constructionOptions = getInfrastructureConstructionOptions({
+    architects,
+    activeProjects,
+  });
   const architect =
     architects.find(
       (candidate) => candidate.contractId === architectContractId,
@@ -50,12 +55,19 @@ export function InfrastructureBuildingCard({
       })
     : null;
   const maximumLevel = definition.levels.at(-1)?.level ?? 0;
+  const sameBuildingIsActive = activeProjects.some(
+    (project) => project.code === definition.code,
+  );
   const blockReason = !isUnlocked
     ? "Le niveau 10 de Directeur Sportif est requis."
     : prerequisiteMessage
       ? prerequisiteMessage
-      : activeProject
-        ? "Votre équipe possède déjà un chantier actif."
+      : sameBuildingIsActive
+        ? "Un chantier est déjà en cours pour ce bâtiment."
+        : constructionOptions.capacityBlockReason
+          ? constructionOptions.capacityBlockReason
+          : constructionOptions.selectionBlockReason && !architectContractId
+            ? constructionOptions.selectionBlockReason
         : !nextLevel
           ? definition.name + " a atteint son niveau maximal."
           : quote && balance < quote.cost
@@ -125,14 +137,24 @@ export function InfrastructureBuildingCard({
                 }
                 className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
               >
-                <option value="">Sans architecte</option>
-                {architects.map((candidate) => (
+                <option
+                  value=""
+                  disabled={!constructionOptions.canStartWithoutArchitect}
+                >
+                  {constructionOptions.canStartWithoutArchitect
+                    ? "Sans architecte"
+                    : "Choisir l’architecte « Double chantier »"}
+                </option>
+                {constructionOptions.eligibleArchitects.map((candidate) => (
                   <option
                     key={candidate.contractId}
                     value={candidate.contractId}
                   >
                     {candidate.firstName} {candidate.lastName} · N
                     {candidate.level} · {candidate.specialtyLabel}
+                    {candidate.hasParallelConstructionTalent
+                      ? " · Double chantier"
+                      : ""}
                   </option>
                 ))}
               </select>

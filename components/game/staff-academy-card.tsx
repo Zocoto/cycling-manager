@@ -19,6 +19,7 @@ import {
   getTeamInfrastructureLevelDefinition,
 } from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
+import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
 import type { StaffAcademyOverview } from "@/services/staff-academy";
 import type {
   InfrastructureArchitect,
@@ -28,19 +29,23 @@ import type {
 export function StaffAcademyCard({
   academy,
   architects,
-  activeProject,
+  activeProjects,
   directorLevel,
   balance,
   currency,
 }: {
   academy: StaffAcademyOverview;
   architects: InfrastructureArchitect[];
-  activeProject: InfrastructureProject | null;
+  activeProjects: InfrastructureProject[];
   directorLevel: number;
   balance: number;
   currency: string;
 }) {
   const [architectContractId, setArchitectContractId] = useState("");
+  const constructionOptions = getInfrastructureConstructionOptions({
+    architects,
+    activeProjects,
+  });
   const [selectedContractId, setSelectedContractId] = useState(
     academy.members[0]?.contractId ?? "",
   );
@@ -68,8 +73,12 @@ export function StaffAcademyCard({
     directorLevel >= STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL;
   const constructionBlockReason = !academyUnlocked
     ? `Le niveau ${STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL} de Directeur Sportif est requis.`
-    : activeProject
-      ? "Votre équipe possède déjà un chantier actif."
+    : activeProjects.some((project) => project.code === "staff_academy")
+      ? "Un chantier est déjà en cours pour l’Académie."
+      : constructionOptions.capacityBlockReason
+        ? constructionOptions.capacityBlockReason
+        : constructionOptions.selectionBlockReason && !architectContractId
+          ? constructionOptions.selectionBlockReason
       : !nextLevel
         ? "L’Académie a atteint son niveau maximal."
         : constructionQuote && balance < constructionQuote.cost
@@ -143,14 +152,24 @@ export function StaffAcademyCard({
                   }
                   className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
                 >
-                  <option value="">Sans architecte</option>
-                  {architects.map((candidate) => (
+                  <option
+                    value=""
+                    disabled={!constructionOptions.canStartWithoutArchitect}
+                  >
+                    {constructionOptions.canStartWithoutArchitect
+                      ? "Sans architecte"
+                      : "Choisir l’architecte « Double chantier »"}
+                  </option>
+                  {constructionOptions.eligibleArchitects.map((candidate) => (
                     <option
                       key={candidate.contractId}
                       value={candidate.contractId}
                     >
                       {candidate.firstName} {candidate.lastName} · N
                       {candidate.level} · {candidate.specialtyLabel}
+                      {candidate.hasParallelConstructionTalent
+                        ? " · Double chantier"
+                        : ""}
                     </option>
                   ))}
                 </select>

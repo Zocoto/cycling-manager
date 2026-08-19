@@ -480,13 +480,16 @@ async function ensureTodayStaffMarket(
         ? TRAINER_SPECIALTIES[randomInt(0, TRAINER_SPECIALTIES.length)]
         : null;
     const talentCodes = getStaffTalentCodes(role);
+    const level = selectStaffLevelFromRoll(
+      randomInt(0, STAFF_LEVEL_WEIGHT_TOTAL),
+    );
 
     return {
       country_id: country.id,
       first_name: identity.first_name,
       last_name: identity.last_name,
       role,
-      level: selectStaffLevelFromRoll(randomInt(0, STAFF_LEVEL_WEIGHT_TOTAL)),
+      level,
       trainer_specialty: trainerSpecialty,
       architect_specialty:
         role === "architect"
@@ -495,6 +498,7 @@ async function ensureTodayStaffMarket(
       talent_code: selectInitialStaffTalent({
         role,
         trainerSpecialty,
+        staffLevel: level,
         roll: randomInt(0, talentCodes.length),
       }),
     };

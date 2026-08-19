@@ -6,6 +6,7 @@ import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/acti
 import { InfrastructureBuildingHero } from "@/components/game/infrastructure-building-hero";
 import { InfrastructureSubmitButton } from "@/components/game/infrastructure-submit-button";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
+import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
 import type {
   InfrastructureArchitect,
   InfrastructureProject,
@@ -19,7 +20,7 @@ export function DataRoomConstructionCard({
   currentLevel,
   nextLevel,
   architects,
-  activeProject,
+  activeProjects,
   isUnlocked,
   balance,
   currency,
@@ -27,12 +28,16 @@ export function DataRoomConstructionCard({
   currentLevel: number;
   nextLevel: InfrastructureLevelDefinition | null;
   architects: InfrastructureArchitect[];
-  activeProject: InfrastructureProject | null;
+  activeProjects: InfrastructureProject[];
   isUnlocked: boolean;
   balance: number;
   currency: string;
 }) {
   const [architectContractId, setArchitectContractId] = useState("");
+  const constructionOptions = getInfrastructureConstructionOptions({
+    architects,
+    activeProjects,
+  });
   const architect =
     architects.find(
       (candidate) => candidate.contractId === architectContractId,
@@ -47,8 +52,12 @@ export function DataRoomConstructionCard({
     : null;
   const blockReason = !isUnlocked
     ? "Le niveau 10 de Directeur Sportif est requis."
-    : activeProject
-      ? "Votre équipe possède déjà un chantier actif."
+    : activeProjects.some((project) => project.code === "recruitment_data_room")
+      ? "Un chantier est déjà en cours pour la Data Room."
+      : constructionOptions.capacityBlockReason
+        ? constructionOptions.capacityBlockReason
+        : constructionOptions.selectionBlockReason && !architectContractId
+          ? constructionOptions.selectionBlockReason
       : !nextLevel
         ? "La Data Room a atteint son niveau maximal."
         : quote && balance < quote.cost
@@ -121,14 +130,24 @@ export function DataRoomConstructionCard({
                   }
                   className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]"
                 >
-                  <option value="">Sans architecte</option>
-                  {architects.map((candidate) => (
+                  <option
+                    value=""
+                    disabled={!constructionOptions.canStartWithoutArchitect}
+                  >
+                    {constructionOptions.canStartWithoutArchitect
+                      ? "Sans architecte"
+                      : "Choisir l’architecte « Double chantier »"}
+                  </option>
+                  {constructionOptions.eligibleArchitects.map((candidate) => (
                     <option
                       key={candidate.contractId}
                       value={candidate.contractId}
                     >
                       {candidate.firstName} {candidate.lastName} · N
                       {candidate.level} · {candidate.specialtyLabel}
+                      {candidate.hasParallelConstructionTalent
+                        ? " · Double chantier"
+                        : ""}
                     </option>
                   ))}
                 </select>
