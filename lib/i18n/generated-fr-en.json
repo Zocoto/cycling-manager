@@ -5904,5 +5904,19 @@
   "Une seule grille regroupe le CN contre-la-montre à 14 h et le CN en ligne à 18 h pour tous les coureurs de l’effectif.": "One grid groups the 2 pm National time trial and the 6 pm National road race for every rider in the roster.",
   "Une seule grille regroupe le CN contre-la-montre et le CN en ligne de J8. Vérifiez les choix de tout votre effectif avant les départs.": "One grid groups the National time trial and road race on D8. Check the choices for your whole roster before the starts.",
   "Vous devez être connecté pour gérer les inscriptions.": "You must be signed in to manage entries.",
-  "Championnats nationaux — inscription automatique du top 200 de chaque pays et des coureurs libres, grille route/CLM unifiée pour le DS, simulation simultanée sans live, résultats centralisés et un point de réputation par victoire.": "National Championships — automatic entry for each country’s top 200 and free agents, one road/TT grid for the Sporting Director, simultaneous simulation without live coverage, centralised results and one reputation point per win."
+  "Championnats nationaux — inscription automatique du top 200 de chaque pays et des coureurs libres, grille route/CLM unifiée pour le DS, simulation simultanée sans live, résultats centralisés et un point de réputation par victoire.": "National Championships — automatic entry for each country’s top 200 and free agents, one road/TT grid for the Sporting Director, simultaneous simulation without live coverage, centralised results and one reputation point per win.",
+  "Ajoutez ou retirez librement des juniors. À partir de J8, cette composition sera figée pour le reste de la saison.": "Add or remove juniors freely. From Day 8 onward, this roster will be locked for the rest of the season.",
+  "Au moins un junior est requis, onze au maximum.": "At least one junior is required, with a maximum of eleven.",
+  "Cette première composition restera modifiable jusqu’à la fin de J7, puis sera verrouillée pour la saison. L’entraînement restera piloté depuis l’École de cyclisme.": "This initial roster can be changed until the end of Day 7, then it will be locked for the season. Training will still be managed from the Cycling School.",
+  "dû être retirée": "had to be withdrawn",
+  "être recomposée": "be rebuilt",
+  "L’effectif est enregistré avec": "The roster has been saved with",
+  "L’effectif est verrouillé depuis J8 pour le reste de la saison.": "The roster has been locked for the rest of the season since Day 8.",
+  "L’effectif reste modifiable jusqu’à la fin de J7. Nous sommes à J": "The roster can still be changed until the end of Day 7. It is currently Day",
+  "La composition est figée depuis J8. Ouvrez une fiche pour consulter les notes, les affinités météo et les résultats détaillés.": "The roster has been locked since Day 8. Open a profile to view ratings, weather affinities, and detailed results.",
+  "La composition peut encore évoluer jusqu’à la fin de J7. Ouvrez une fiche pour consulter le profil détaillé d’un junior.": "The roster can still be changed until the end of Day 7. Open a profile to view a junior’s details.",
+  "Les inscriptions restent libres course par course jusqu’à la veille du départ.": "Race entries can still be changed for each event until the day before the start.",
+  "Modifier l’effectif jusqu’à la fin de J7": "Edit the roster until the end of Day 7",
+  "Pays du sponsor principal": "Main sponsor country",
+  "Une inscription devenue incomplète sera retirée afin de pouvoir être recomposée depuis le calendrier.": "An entry that becomes incomplete will be withdrawn so it can be rebuilt from the calendar."
 }

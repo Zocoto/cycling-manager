@@ -48,6 +48,41 @@ export async function createDevelopmentTeamAction(formData: FormData) {
   );
 }
 
+export async function updateDevelopmentTeamRosterAction(formData: FormData) {
+  const riderIds = readRiderIds(formData);
+  if (!riderIds || riderIds.length < 1 || riderIds.length > 11) {
+    redirectWithMessage(
+      "effectif",
+      "erreur",
+      "Sélectionnez entre 1 et 11 juniors pour constituer l’équipe.",
+    );
+  }
+
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc("update_current_development_team_roster", {
+    p_academy_rider_ids: riderIds,
+  });
+  if (result.error) {
+    redirectWithMessage("effectif", "erreur", result.error.message);
+  }
+
+  revalidateDevelopmentTeam();
+  const payload = result.data as {
+    rosterCount?: number;
+    withdrawnRegistrationCount?: number;
+  } | null;
+  const rosterCount = payload?.rosterCount ?? riderIds.length;
+  const withdrawnCount = payload?.withdrawnRegistrationCount ?? 0;
+  const registrationDetail = withdrawnCount
+    ? ` ${withdrawnCount} inscription${withdrawnCount > 1 ? "s ont" : " a"} dû être retirée${withdrawnCount > 1 ? "s" : ""} et ${withdrawnCount > 1 ? "devront" : "devra"} être recomposée${withdrawnCount > 1 ? "s" : ""}.`
+    : "";
+  redirectWithMessage(
+    "effectif",
+    "succes",
+    `L’effectif est enregistré avec ${rosterCount} junior${rosterCount > 1 ? "s" : ""}.${registrationDetail}`,
+  );
+}
+
 export async function updateDevelopmentTeamJerseyAction(formData: FormData) {
   const jersey = readJersey(formData);
   if (!jersey) {

@@ -74,8 +74,9 @@ export function DevelopmentTeamBuilder({
                 Choisissez jusqu’à onze juniors
               </h3>
               <p className="mt-2 text-sm font-semibold text-[#60756E]">
-                Cet effectif sera verrouillé pour toute la saison. L’entraînement
-                restera piloté depuis l’École de cyclisme.
+                Cette première composition restera modifiable jusqu’à la fin de J7,
+                puis sera verrouillée pour la saison. L’entraînement restera piloté
+                depuis l’École de cyclisme.
               </p>
             </div>
             <span className="rounded-full bg-[#0B302B] px-4 py-2 text-sm font-black text-white">

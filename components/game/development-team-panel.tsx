@@ -11,6 +11,7 @@ import type {
 import { AmateurTeamJersey } from "./amateur-team-jersey";
 import { DevelopmentTeamBuilder } from "./development-team-builder";
 import { DevelopmentTeamJerseyEditor } from "./development-team-jersey-editor";
+import { DevelopmentTeamRosterEditor } from "./development-team-roster-editor";
 import { RiderAvatar } from "./rider-avatar";
 
 export type DevelopmentTeamView =
@@ -137,8 +138,10 @@ function DevelopmentTeamHero({ overview }: { overview: DevelopmentTeamOverview }
             {team.displayName}
           </h2>
           <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#C5DAD2]">
-            L’effectif est verrouillé pour la saison. Les inscriptions restent libres
-            course par course jusqu’à la veille du départ.
+            {overview.rosterEditable
+              ? `L’effectif reste modifiable jusqu’à la fin de J7. Nous sommes à J${overview.currentDayNumber}.`
+              : "L’effectif est verrouillé depuis J8 pour le reste de la saison."} Les
+            inscriptions restent libres course par course jusqu’à la veille du départ.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
@@ -193,8 +196,18 @@ function DevelopmentRoster({ overview }: { overview: DevelopmentTeamOverview }) 
       <SectionTitle
         eyebrow="Effectif de développement"
         title="Les onze de demain"
-        detail="Ouvrez une fiche pour consulter les notes, les affinités météo, l’historique junior et les résultats détaillés."
+        detail={
+          overview.rosterEditable
+            ? "La composition peut encore évoluer jusqu’à la fin de J7. Ouvrez une fiche pour consulter le profil détaillé d’un junior."
+            : "La composition est figée depuis J8. Ouvrez une fiche pour consulter les notes, les affinités météo et les résultats détaillés."
+        }
       />
+      {overview.rosterEditable ? (
+        <DevelopmentTeamRosterEditor
+          riders={overview.eligibleRiders}
+          selectedRiderIds={overview.roster.map((rider) => rider.id)}
+        />
+      ) : null}
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {overview.roster.map((rider) => (
           <Link
