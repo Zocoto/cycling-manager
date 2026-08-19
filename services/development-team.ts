@@ -231,6 +231,7 @@ export type DevelopmentTeamOverview = {
   gameYear: number;
   currentDayNumber: number;
   creationWindowOpen: boolean;
+  rosterEditable: boolean;
   expectedTeamName: string;
   defaultJersey: AmateurJerseyConfig;
   eligibleRiders: DevelopmentRider[];
@@ -469,6 +470,7 @@ export async function getDevelopmentTeamOverview(
     gameYear: context.gameYear,
     currentDayNumber: context.currentDayNumber,
     creationWindowOpen: context.currentDayNumber >= 1 && context.currentDayNumber <= 7,
+    rosterEditable: context.currentDayNumber >= 1 && context.currentDayNumber <= 7,
     expectedTeamName: `${context.teamName.trim()} Dev Team`,
     defaultJersey: {
       pattern: context.teamJerseyPattern,
