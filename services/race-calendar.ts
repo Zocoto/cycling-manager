@@ -38,6 +38,10 @@ import type {
   RaceStrategyObjective,
   RaceTeamStrategy,
 } from "@/lib/game/race-strategy";
+import type {
+  TimeTrialEffortMode,
+  TimeTrialRiderPlan,
+} from "@/lib/game/time-trial-preparation";
 import {
   combineEquipmentEffects,
   normalizeEquipmentEffects,
@@ -201,6 +205,14 @@ type StageStrategyRow = {
   protector_rider_id: string | null;
   breakaway_rider_id: string | null;
   attack_orders: RaceAttackOrder[];
+};
+
+type TimeTrialPlanRow = {
+  stage_id: string;
+  rider_id: string;
+  effort_mode: TimeTrialEffortMode;
+  relay_share_pct: number | string | null;
+  updated_at: string;
 };
 
 type CountryRow = {
@@ -393,10 +405,12 @@ export type RacePreparationRider = RaceStageRolePlanRider & {
   firstName: string;
   lastName: string;
   ratings: RiderRatings;
+  timeTrialPlans: Record<string, TimeTrialRiderPlan>;
 };
 
 export type RaceStagePreparationPlan = RaceTeamStrategy & {
   updatedAt: string | null;
+  timeTrialUpdatedAt: string | null;
 };
 
 export type RacePreparationEditionPlan = {
@@ -437,6 +451,9 @@ type RacePreparationRow = {
   prologue: number;
   general_role: RaceRole;
   stage_role: RaceRole | null;
+  time_trial_effort: TimeTrialEffortMode | null;
+  relay_share_pct: number | string | null;
+  time_trial_updated_at: string | null;
   objective: RaceStrategyObjective;
   collective_posture: RaceCollectivePosture;
   breakaway_policy: RaceBreakawayPolicy;
@@ -1028,6 +1045,7 @@ export async function getActiveSeasonRaceCalendar(
   const [
     segmentsResult,
     reconnaissanceResult,
+    timeTrialPlansResult,
     stageRoleOverridesResult,
     stageStrategiesResult,
   ] = await Promise.all([
@@ -1052,6 +1070,28 @@ export async function getActiveSeasonRaceCalendar(
           },
         })
       : Promise.resolve(emptyResult<StageReconnaissanceRow>()),
+    stageIds.length > 0 && includeEngagedRiders
+      ? collectChunkedPaginatedRows<
+          TimeTrialPlanRow,
+          { message: string },
+          string
+        >({
+          values: stageIds,
+          fetchPage: async (chunk, from, to) => {
+            const result = await admin
+              .from("race_time_trial_rider_plans")
+              .select(
+                "stage_id, rider_id, effort_mode, relay_share_pct, updated_at",
+              )
+              .in("stage_id", chunk)
+              .order("stage_id", { ascending: true })
+              .order("rider_id", { ascending: true })
+              .range(from, to)
+              .returns<TimeTrialPlanRow[]>();
+            return { data: result.data, error: result.error };
+          },
+        })
+      : Promise.resolve(emptyResult<TimeTrialPlanRow>()),
     stageIds.length > 0 && includeEngagedRiders
       ? collectChunkedPaginatedRows<
           StageRoleOverrideRow,
@@ -1121,6 +1161,10 @@ export async function getActiveSeasonRaceCalendar(
     stageStrategiesResult.error,
     "les stratégies de course par étape",
   );
+  assertQuerySucceeded(
+    timeTrialPlansResult.error,
+    "les consignes de contre-la-montre",
+  );
 
   const segmentRows = segmentsResult.data ?? [];
   const reconnaissanceRows = reconnaissanceResult.data ?? [];
@@ -1162,6 +1206,9 @@ export async function getActiveSeasonRaceCalendar(
   );
   const teamStrategiesByStageId = groupStageStrategies(
     stageStrategiesResult.data ?? [],
+  );
+  const timeTrialPlansByStageId = groupTimeTrialPlans(
+    timeTrialPlansResult.data ?? [],
   );
 
   const raceRows = racesResult.data ?? [];
@@ -1332,6 +1379,14 @@ export async function getActiveSeasonRaceCalendar(
           teamStrategiesByStageId.has(stage.id)
             ? {
                 teamStrategies: teamStrategiesByStageId.get(stage.id),
+              }
+            : {}),
+          ...((season.game_year < 2 ||
+            (race.competition_type !== "world_championship" &&
+              race.competition_type !== "continental_championship")) &&
+          timeTrialPlansByStageId.has(stage.id)
+            ? {
+                timeTrialPlans: timeTrialPlansByStageId.get(stage.id),
               }
             : {}),
           segments: removeOneDayRaceMountainPrimes(
@@ -1599,12 +1654,20 @@ export async function getCurrentTeamRacePreparation(
         breakaway: Number(row.breakaway),
         prologue: Number(row.prologue),
       },
+      timeTrialPlans: {},
       generalRole: row.general_role,
       stageRoles: {},
     };
 
     if (row.stage_role) {
       riderPlan.stageRoles[row.stage_id] = row.stage_role;
+    }
+    if (row.time_trial_effort) {
+      riderPlan.timeTrialPlans[row.stage_id] = {
+        effortMode: row.time_trial_effort,
+        relaySharePct:
+          row.relay_share_pct === null ? null : Number(row.relay_share_pct),
+      };
     }
     ridersById.set(row.rider_id, riderPlan);
     ridersByEditionId.set(row.race_edition_id, ridersById);
@@ -1621,6 +1684,7 @@ export async function getCurrentTeamRacePreparation(
       breakawayRiderId: row.breakaway_rider_id,
       attackOrders: row.attack_orders,
       updatedAt: row.strategy_updated_at,
+      timeTrialUpdatedAt: row.time_trial_updated_at,
     };
     editionsById.set(row.race_edition_id, editionPlan);
   }
@@ -2209,6 +2273,25 @@ function groupStageStrategies(rows: StageStrategyRow[]) {
   }
 
   return strategiesByStageId;
+}
+
+function groupTimeTrialPlans(rows: TimeTrialPlanRow[]) {
+  const plansByStageId = new Map<
+    string,
+    Record<string, TimeTrialRiderPlan>
+  >();
+
+  for (const row of rows) {
+    const stagePlans = plansByStageId.get(row.stage_id) ?? {};
+    stagePlans[row.rider_id] = {
+      effortMode: row.effort_mode,
+      relaySharePct:
+        row.relay_share_pct === null ? null : Number(row.relay_share_pct),
+    };
+    plansByStageId.set(row.stage_id, stagePlans);
+  }
+
+  return plansByStageId;
 }
 
 async function loadStageSegments(

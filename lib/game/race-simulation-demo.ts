@@ -217,6 +217,9 @@ export function createCalendarSimulationInput({
         ? { ...rider, reconnaissanceBonus }
         : rider;
     }),
+    ...(stage.timeTrialPlans
+      ? { timeTrialPlans: stage.timeTrialPlans }
+      : {}),
     ...(teamStrategies.length > 0 ? { teamStrategies } : {}),
   };
 }

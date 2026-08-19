@@ -16,6 +16,7 @@ import { RaceOfficialResults } from "@/components/game/race-official-results";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_DAY_SLOT_CONFIG,
+  RACE_STAGE_TYPE_LABELS,
   type RaceCalendarEdition,
   type RaceCalendarStage,
 } from "@/lib/game/race-calendar";
@@ -159,6 +160,7 @@ export function RaceStageExperience({
               {entry.edition.raceFormat === "stage_race"
                 ? `Étape ${entry.stage.stageNumber} · `
                 : ""}
+              {RACE_STAGE_TYPE_LABELS[entry.stage.stageType]} ·{" "}
               {entry.stage.distanceKm.toLocaleString("fr-FR", {
                 maximumFractionDigits: 1,
               })}{" "}
@@ -211,6 +213,21 @@ export function RaceStageExperience({
 
   return (
     <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/15 bg-white px-5 py-4 shadow-sm">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
+            Format de l’épreuve
+          </p>
+          <p className="mt-1 text-sm font-black text-[#0B302B]">
+            {RACE_STAGE_TYPE_LABELS[entry.stage.stageType]}
+          </p>
+        </div>
+        <span className="rounded-full bg-[#EAF5F0] px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#176951]">
+          {entry.stage.distanceKm.toLocaleString("fr-FR", {
+            maximumFractionDigits: 1,
+          })} km
+        </span>
+      </div>
       <nav
         className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm"
         aria-label="Live et résultats officiels"

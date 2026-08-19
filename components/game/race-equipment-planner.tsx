@@ -48,6 +48,7 @@ export function RaceEquipmentPlanner({
   isStageRace,
   riders,
   planning,
+  fixedStageId,
   savedStageId,
   saveStatus,
 }: {
@@ -56,16 +57,20 @@ export function RaceEquipmentPlanner({
   isStageRace: boolean;
   riders: RaceEquipmentPlannerRider[];
   planning: RaceEquipmentPlanningData;
+  fixedStageId?: string;
   savedStageId: string | null;
   saveStatus: string | null;
 }) {
   const firstEditable =
     planning.stages.find((stage) => stage.isEditable) ?? planning.stages[0];
-  const initialStageId = planning.stages.some(
-    (stage) => stage.id === savedStageId,
-  )
-    ? (savedStageId ?? firstEditable?.id ?? "")
-    : (firstEditable?.id ?? "");
+  const fixedStage = fixedStageId
+    ? planning.stages.find((stage) => stage.id === fixedStageId)
+    : null;
+  const initialStageId =
+    fixedStage?.id ??
+    (planning.stages.some((stage) => stage.id === savedStageId)
+      ? (savedStageId ?? firstEditable?.id ?? "")
+      : (firstEditable?.id ?? ""));
   const [selectedStageId, setSelectedStageId] = useState(initialStageId);
   const [selectedRiderId, setSelectedRiderId] = useState(
     riders[0]?.riderId ?? "",
@@ -163,22 +168,34 @@ export function RaceEquipmentPlanner({
         </SaveNotice>
       ) : null}
 
-      <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
-        {isStageRace ? "Étape préparée" : "Épreuve préparée"}
-        <select
-          value={selectedStageId}
-          onChange={(event) => setSelectedStageId(event.target.value)}
-          className="mt-2 w-full rounded-xl border border-white/15 bg-[#102F2B] px-3 py-2.5 text-xs font-bold text-white outline-none focus:border-[#9BE0BC]"
-        >
-          {planning.stages.map((stage) => (
-            <option key={stage.id} value={stage.id}>
-              {isStageRace ? "E" + stage.stageNumber + " · " : ""}
-              {stage.name} · {RACE_PROFILE_LABELS[stage.profileType]}
-              {stage.isEditable ? "" : " · figée"}
-            </option>
-          ))}
-        </select>
-      </label>
+      {fixedStage ? (
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
+            Montage rattaché à cette étape
+          </p>
+          <p className="mt-1 text-sm font-black text-white">
+            {isStageRace ? `E${fixedStage.stageNumber} · ` : ""}
+            {fixedStage.name} · {RACE_PROFILE_LABELS[fixedStage.profileType]}
+          </p>
+        </div>
+      ) : (
+        <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
+          {isStageRace ? "Étape préparée" : "Épreuve préparée"}
+          <select
+            value={selectedStageId}
+            onChange={(event) => setSelectedStageId(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-white/15 bg-[#102F2B] px-3 py-2.5 text-xs font-bold text-white outline-none focus:border-[#9BE0BC]"
+          >
+            {planning.stages.map((stage) => (
+              <option key={stage.id} value={stage.id}>
+                {isStageRace ? "E" + stage.stageNumber + " · " : ""}
+                {stage.name} · {RACE_PROFILE_LABELS[stage.profileType]}
+                {stage.isEditable ? "" : " · figée"}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
         <span

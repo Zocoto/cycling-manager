@@ -1,6 +1,7 @@
 import type { RaceStageSegment } from "./race-profiles";
 import type { RiderSimulationInput } from "./race-simulation";
 import type { RaceTeamStrategy } from "./race-strategy";
+import type { TimeTrialRiderPlan } from "./time-trial-preparation";
 
 export const RACE_CATEGORY_CODES = [
   "elite",
@@ -78,6 +79,13 @@ export type RegistrationPolicy = "open" | "criteria_pending" | "closed";
 export type RaceStageType =
   "road" | "individual_time_trial" | "team_time_trial" | "prologue";
 
+export const RACE_STAGE_TYPE_LABELS: Record<RaceStageType, string> = {
+  road: "Course en ligne",
+  individual_time_trial: "CLM individuel",
+  team_time_trial: "CLM par équipes",
+  prologue: "Prologue individuel",
+};
+
 export type RaceStageStatus =
   "planned" | "in_progress" | "completed" | "cancelled";
 
@@ -97,6 +105,7 @@ export type RaceCalendarStage = {
   reconnaissanceBonuses?: Record<string, number>;
   riderRoleOverrides?: Record<string, RiderSimulationInput["role"]>;
   teamStrategies?: Record<string, RaceTeamStrategy>;
+  timeTrialPlans?: Record<string, TimeTrialRiderPlan>;
 };
 
 export type RaceCalendarEdition = {

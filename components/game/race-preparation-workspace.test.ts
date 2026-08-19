@@ -23,4 +23,11 @@ describe("race preparation individual missions", () => {
       "strategy.lieutenantRiderId ?? strategy.protectorRiderId ??",
     );
   });
+
+  it("regroupe profil, préparatifs et équipements sous chaque étape", () => {
+    expect(source).toContain("<StageProfileOverview stage={stage} />");
+    expect(source).toContain("Préparatifs sportifs");
+    expect(source).toContain("<StageEquipmentSection");
+    expect(source).not.toContain("Un montage adapté à chaque étape");
+  });
 });

@@ -18,6 +18,12 @@ import {
   applyEquipmentRatingBonuses,
   type EquipmentEffects,
 } from "./equipment";
+import {
+  DEFAULT_TIME_TRIAL_RIDER_PLAN,
+  TIME_TRIAL_EFFORT_EFFECTS,
+  isTimeTrialEffortMode,
+  type TimeTrialRiderPlan,
+} from "./time-trial-preparation";
 import { getRiderExperienceRaceBonus } from "./rider-experience";
 import {
   hasSpecialAbility,
@@ -169,6 +175,7 @@ export type StageSimulationInput = {
   }>;
   mountainObjectiveRiderIds?: Record<string, string>;
   teamStrategies?: RaceTeamStrategy[];
+  timeTrialPlans?: Record<string, TimeTrialRiderPlan>;
 };
 
 export type RaceGroupSnapshot = {
@@ -697,6 +704,7 @@ export function reduceMechanicalIncidentTimeLoss(
 export function simulateRaceStage(
   input: StageSimulationInput,
 ): StageSimulationResult {
+  validateTimeTrialPlans(input);
   const weather =
     input.weather ??
     getRaceWeather(input.seed, {
@@ -1974,6 +1982,52 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   };
 }
 
+export function normalizeTeamTimeTrialRelayShares(
+  riderIds: string[],
+  plans: Record<string, TimeTrialRiderPlan> = {},
+) {
+  if (riderIds.length === 0) return {};
+
+  const configuredShares = riderIds.map((riderId) =>
+    Math.max(0, plans[riderId]?.relaySharePct ?? 0),
+  );
+  const configuredTotal = configuredShares.reduce(
+    (total, share) => total + share,
+    0,
+  );
+
+  if (configuredTotal <= 0) {
+    const equalShare = 1 / riderIds.length;
+    return Object.fromEntries(
+      riderIds.map((riderId) => [riderId, equalShare]),
+    );
+  }
+
+  return Object.fromEntries(
+    riderIds.map((riderId, index) => [
+      riderId,
+      configuredShares[index] / configuredTotal,
+    ]),
+  );
+}
+
+function getTimeTrialPlan(input: StageSimulationInput, riderId: string) {
+  return input.timeTrialPlans?.[riderId] ?? DEFAULT_TIME_TRIAL_RIDER_PLAN;
+}
+
+function applyTimeTrialEnergyCost(
+  energyBefore: number,
+  baselineEnergyAfter: number,
+  multiplier: number,
+) {
+  return clamp(
+    energyBefore -
+      Math.max(0, energyBefore - baselineEnergyAfter) * multiplier,
+    0,
+    100,
+  );
+}
+
 function simulateIndividualTimeTrial(
   input: StageSimulationInput,
 ): StageSimulationResult {
@@ -2002,14 +2056,23 @@ function simulateIndividualTimeTrial(
         input.stageType,
       );
       const baseSpeed = getBaseSpeed(segment);
+      const effort =
+        TIME_TRIAL_EFFORT_EFFECTS[
+          getTimeTrialPlan(input, state.rider.id).effortMode
+        ];
       const fatiguePenalty = Math.max(0, 28 - state.energy) * 0.0045;
       const speed = Math.max(
         8,
         baseSpeed *
-          (0.82 + rating * 0.0041 - fatiguePenalty + (random() - 0.5) * 0.014),
+          (0.82 +
+            rating * 0.0041 -
+            fatiguePenalty +
+            (random() - 0.5) * 0.014) *
+          effort.paceMultiplier,
       );
       state.elapsedTimeSeconds += (segment.distanceKm / speed) * 3_600;
-      state.energy = updateRiderEnergy({
+      const energyBefore = state.energy;
+      const baselineEnergyAfter = updateRiderEnergy({
         state,
         segment,
         segmentIndex,
@@ -2019,6 +2082,11 @@ function simulateIndividualTimeTrial(
         hasBottleCarrierSupport: false,
         timeTrial: true,
       });
+      state.energy = applyTimeTrialEnergyCost(
+        energyBefore,
+        baselineEnergyAfter,
+        effort.energyCostMultiplier,
+      );
     }
 
     completedDistanceKm += segment.distanceKm;
@@ -2058,7 +2126,13 @@ function simulateTeamTimeTrial(
 ): StageSimulationResult {
   const random = createSeededRandom(`${input.id}:${input.seed}:ttt`);
   const teams = groupBy(input.riders, (rider) => rider.teamId);
-  const teamTimes = new Map<string, number>();
+  const teamGroupTimes = new Map<string, number>();
+  const activeRiderIdsByTeam = new Map(
+    [...teams].map(([teamId, riders]) => [
+      teamId,
+      new Set(riders.map((rider) => rider.id)),
+    ]),
+  );
   const states = new Map<string, RiderState>(
     input.riders.map((rider) => [
       rider.id,
@@ -2076,71 +2150,232 @@ function simulateTeamTimeTrial(
   let completedDistanceKm = 0;
 
   input.segments.forEach((segment, segmentIndex) => {
+    const droppedThisSegment: RiderState[] = [];
+
     for (const [teamId, riders] of teams) {
-      const activeRatings = riders
-        .map((rider) =>
-          getTimeTrialSegmentRating(rider, segment, "team_time_trial"),
-        )
-        .sort((first, second) => second - first);
-      const scoringCount = Math.min(4, activeRatings.length);
-      const teamRating = average(activeRatings.slice(0, scoringCount));
+      const activeRiderIds = activeRiderIdsByTeam.get(teamId)!;
+      const activeRiders = riders.filter((rider) =>
+        activeRiderIds.has(rider.id),
+      );
+      const alreadyDroppedRiders = riders.filter(
+        (rider) => !activeRiderIds.has(rider.id),
+      );
+
+      for (const rider of alreadyDroppedRiders) {
+        const state = states.get(rider.id)!;
+        const effort =
+          TIME_TRIAL_EFFORT_EFFECTS[
+            getTimeTrialPlan(input, rider.id).effortMode
+          ];
+        const rating = getTimeTrialSegmentRating(
+          rider,
+          segment,
+          "team_time_trial",
+        );
+        const fatiguePenalty = Math.max(0, 28 - state.energy) * 0.0045;
+        const soloSpeed = Math.max(
+          8,
+          getBaseSpeed(segment) *
+            (0.82 +
+              rating * 0.0041 -
+              fatiguePenalty +
+              (random() - 0.5) * 0.012) *
+            effort.paceMultiplier,
+        );
+        state.elapsedTimeSeconds += (segment.distanceKm / soloSpeed) * 3_600;
+        const energyBefore = state.energy;
+        const baselineEnergyAfter = updateRiderEnergy({
+          state,
+          segment,
+          segmentIndex,
+          segmentCount: input.segments.length,
+          groupSize: 1,
+          chasePressure: 1,
+          hasBottleCarrierSupport: false,
+          timeTrial: true,
+        });
+        state.energy = applyTimeTrialEnergyCost(
+          energyBefore,
+          baselineEnergyAfter,
+          effort.energyCostMultiplier,
+        );
+      }
+
+      const relayShares = normalizeTeamTimeTrialRelayShares(
+        activeRiders.map((rider) => rider.id),
+        input.timeTrialPlans,
+      );
+      const equalRelayShare = 1 / Math.max(1, activeRiders.length);
+      const teamRating = activeRiders.reduce((total, rider) => {
+        const effort =
+          TIME_TRIAL_EFFORT_EFFECTS[
+            getTimeTrialPlan(input, rider.id).effortMode
+          ];
+        return (
+          total +
+          getTimeTrialSegmentRating(rider, segment, "team_time_trial") *
+            effort.paceMultiplier *
+            relayShares[rider.id]
+        );
+      }, 0);
       const speed = Math.max(
         8,
         getBaseSpeed(segment) *
           (0.87 +
             teamRating * 0.0038 +
-            Math.log2(riders.length + 1) * 0.012 +
+            Math.log2(activeRiders.length + 1) * 0.012 +
             (random() - 0.5) * 0.01),
       );
       const segmentSeconds = (segment.distanceKm / speed) * 3_600;
-      teamTimes.set(teamId, (teamTimes.get(teamId) ?? 0) + segmentSeconds);
+      const groupTime =
+        (teamGroupTimes.get(teamId) ?? 0) + segmentSeconds;
+      teamGroupTimes.set(teamId, groupTime);
 
-      for (const rider of riders) {
+      const dropScores: Array<{ state: RiderState; score: number }> = [];
+      for (const rider of activeRiders) {
         const state = states.get(rider.id)!;
-        state.elapsedTimeSeconds = teamTimes.get(teamId)!;
-        state.energy = updateRiderEnergy({
+        const plan = getTimeTrialPlan(input, rider.id);
+        const effort = TIME_TRIAL_EFFORT_EFFECTS[plan.effortMode];
+        const normalizedRelayShare = relayShares[rider.id];
+        const relayLoadMultiplier = clamp(
+          0.55 + (normalizedRelayShare / equalRelayShare) * 0.45,
+          0.45,
+          2.2,
+        );
+        state.elapsedTimeSeconds = groupTime;
+        const energyBefore = state.energy;
+        const baselineEnergyAfter = updateRiderEnergy({
           state,
           segment,
           segmentIndex,
           segmentCount: input.segments.length,
-          groupSize: riders.length,
+          groupSize: activeRiders.length,
           chasePressure: 0.82,
-          hasBottleCarrierSupport: riders.some(
+          hasBottleCarrierSupport: activeRiders.some(
             (teammate) =>
               teammate.id !== rider.id &&
               hasSpecialAbility(teammate, "bottle_carrier"),
           ),
           timeTrial: true,
         });
+        state.energy = applyTimeTrialEnergyCost(
+          energyBefore,
+          baselineEnergyAfter,
+          effort.energyCostMultiplier * relayLoadMultiplier,
+        );
+
+        const riderRating = getTimeTrialSegmentRating(
+          rider,
+          segment,
+          "team_time_trial",
+        );
+        const sustainableRating =
+          riderRating * 0.72 +
+          rider.ratings.endurance * 0.16 +
+          rider.ratings.resistance * 0.12;
+        const fatiguePressure = Math.max(0, 18 - state.energy) * 0.48;
+        const relayPressure =
+          Math.max(0, normalizedRelayShare / equalRelayShare - 1) *
+          Math.max(0, 24 - state.energy) *
+          0.16;
+        dropScores.push({
+          state,
+          score:
+            teamRating - sustainableRating + fatiguePressure + relayPressure,
+        });
+      }
+
+      if (
+        segmentIndex < input.segments.length - 1 &&
+        activeRiders.length > 1
+      ) {
+        const candidates = dropScores
+          .filter(
+            ({ state, score }) =>
+              state.energy <= 3.5 || score > 6.5 + random() * 3.5,
+          )
+          .sort(
+            (first, second) =>
+              second.score - first.score ||
+              first.state.energy - second.state.energy,
+          )
+          .slice(0, activeRiders.length - 1);
+
+        for (const { state, score } of candidates) {
+          activeRiderIds.delete(state.rider.id);
+          state.group = "dropped";
+          state.groupSinceSegment = segmentIndex;
+          const immediateLossSeconds = 4 + Math.max(0, score) * 1.4;
+          state.lostTimeSeconds += immediateLossSeconds;
+          state.elapsedTimeSeconds += immediateLossSeconds;
+          droppedThisSegment.push(state);
+        }
       }
     }
 
     completedDistanceKm += segment.distanceKm;
-    const orderedTeams = [...teamTimes.entries()].sort(
-      (first, second) => first[1] - second[1],
+    const groups = [...teams].flatMap(([teamId, riders]) => {
+      const activeIds = activeRiderIdsByTeam.get(teamId)!;
+      const activeStates = riders
+        .filter((rider) => activeIds.has(rider.id))
+        .map((rider) => states.get(rider.id)!);
+      const droppedStates = riders
+        .filter((rider) => !activeIds.has(rider.id))
+        .map((rider) => states.get(rider.id)!);
+      const activeGroup =
+        activeStates.length > 0
+          ? [
+              {
+                id: `team-chrono-${teamId}`,
+                label: riders[0].teamName,
+                type: "time_trial" as const,
+                riderIds: activeStates.map((state) => state.rider.id),
+                elapsedTimeSeconds: teamGroupTimes.get(teamId)!,
+                averageEnergy: average(
+                  activeStates.map((state) => state.energy),
+                ),
+              },
+            ]
+          : [];
+      return [
+        ...activeGroup,
+        ...droppedStates.map((state) => ({
+          id: `chrono-dropped-${state.rider.id}`,
+          label: `${state.rider.name} · lâché`,
+          type: "dropped" as const,
+          riderIds: [state.rider.id],
+          elapsedTimeSeconds: state.elapsedTimeSeconds,
+          averageEnergy: state.energy,
+        })),
+      ];
+    });
+    const orderedGroups = groups.sort(
+      (first, second) =>
+        first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+        first.id.localeCompare(second.id),
     );
-    const leaderTime = orderedTeams[0][1];
+    const leaderTime = orderedGroups[0].elapsedTimeSeconds;
     timeline.push({
       segmentNumber: segment.segmentNumber,
       completedDistanceKm: round(completedDistanceKm, 1),
-      groups: orderedTeams.map(([teamId, time], index) => ({
-        id: `team-chrono-${teamId}`,
-        label: index === 0 ? "Équipe en tête" : `Équipe n°${index + 1}`,
-        type: "time_trial",
-        riderIds: teams.get(teamId)!.map((rider) => rider.id),
-        gapToLeaderSeconds: Math.max(0, Math.round(time - leaderTime)),
-        elapsedTimeSeconds: round(time, 3),
-        averageEnergy: round(
-          average(
-            teams.get(teamId)!.map((rider) => states.get(rider.id)!.energy),
-          ),
-          1,
+      groups: orderedGroups.map((group, index) => ({
+        ...group,
+        label: index === 0 ? `${group.label} · meilleur temps` : group.label,
+        gapToLeaderSeconds: Math.max(
+          0,
+          Math.round(group.elapsedTimeSeconds - leaderTime),
         ),
+        elapsedTimeSeconds: round(group.elapsedTimeSeconds, 3),
+        averageEnergy: round(group.averageEnergy, 1),
       })),
       incidents: [],
       abandonments: [],
       commentary: [
-        `${teams.get(orderedTeams[0][0])![0].teamName} signe le meilleur temps intermédiaire.`,
+        `${orderedGroups[0].label} signe le meilleur temps intermédiaire.`,
+        ...droppedThisSegment.slice(0, 3).map(
+          (state) =>
+            `${state.rider.name} ne peut plus suivre le rythme de ses coéquipiers et poursuit seul.`,
+        ),
       ],
     });
   });
@@ -5502,6 +5737,62 @@ function validateSimulationInput(input: StageSimulationInput) {
   }
   validateExplicitRoles(input.riders);
   validateTeamStrategies(input);
+}
+
+function validateTimeTrialPlans(input: StageSimulationInput) {
+  const plans = input.timeTrialPlans ?? {};
+  if (Object.keys(plans).length === 0) return;
+  if (
+    input.stageType !== "individual_time_trial" &&
+    input.stageType !== "team_time_trial" &&
+    input.stageType !== "prologue"
+  ) {
+    throw new Error(
+      "Une préparation chrono ne peut viser qu’un contre-la-montre.",
+    );
+  }
+
+  const ridersById = new Map(input.riders.map((rider) => [rider.id, rider]));
+  for (const [riderId, plan] of Object.entries(plans)) {
+    if (!ridersById.has(riderId) || !isTimeTrialEffortMode(plan.effortMode)) {
+      throw new Error(
+        "Une consigne chrono vise un coureur ou un effort invalide.",
+      );
+    }
+    if (
+      plan.relaySharePct !== null &&
+      (!Number.isFinite(plan.relaySharePct) ||
+        plan.relaySharePct < 0 ||
+        plan.relaySharePct > 100)
+    ) {
+      throw new Error("Un pourcentage de relais est invalide.");
+    }
+  }
+
+  const teams = groupBy(input.riders, (rider) => rider.teamId);
+  for (const riders of teams.values()) {
+    const plannedRiders = riders.filter((rider) => plans[rider.id]);
+    if (plannedRiders.length === 0) continue;
+    if (plannedRiders.length !== riders.length) {
+      throw new Error(
+        "Une préparation chrono doit couvrir toute l’équipe engagée.",
+      );
+    }
+    if (input.stageType !== "team_time_trial") continue;
+
+    const relayTotal = plannedRiders.reduce(
+      (total, rider) => total + (plans[rider.id].relaySharePct ?? 0),
+      0,
+    );
+    if (
+      plannedRiders.some((rider) => plans[rider.id].relaySharePct === null) ||
+      Math.abs(relayTotal - 100) > 0.001
+    ) {
+      throw new Error(
+        "La répartition des relais d’une équipe doit totaliser exactement 100 %.",
+      );
+    }
+  }
 }
 function validateTeamStrategies(input: StageSimulationInput) {
   const strategies = input.teamStrategies ?? [];

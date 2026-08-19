@@ -24,7 +24,11 @@ describe("planification du matériel de course", () => {
     );
     expect(planner).toContain("Appliquer au tour entier");
     expect(preparationWorkspace).toContain("<RaceEquipmentPlanner");
-    expect(preparationWorkspace).toContain("Préparation matériel");
+    expect(preparationWorkspace).toContain("Équipements de l’étape");
+    expect(preparationWorkspace).toContain("fixedStageId={stage.id}");
+    expect(preparationWorkspace.indexOf("StageProfileOverview")).toBeLessThan(
+      preparationWorkspace.indexOf("StageEquipmentSection"),
+    );
     expect(racePage).not.toContain("RaceEquipmentPlanner");
     expect(preparationPage).toContain("getRaceEquipmentPlanningDataBatch");
   });

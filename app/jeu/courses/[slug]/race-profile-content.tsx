@@ -19,6 +19,7 @@ import {
   RACE_CATEGORY_STYLE,
   RACE_DAY_SLOT_CONFIG,
   RACE_PROFILE_LABELS,
+  RACE_STAGE_TYPE_LABELS,
   getEditionDayRange,
   getRegistrationAvailability,
   isBeforeRegistrationDeadline,
@@ -1141,6 +1142,7 @@ function StageCard({
       <div className="min-w-0">
         <h3 className="truncate font-black text-[#0B302B]">{stage.name}</h3>
         <p className="mt-1 text-sm font-semibold text-[#688176]">
+          {RACE_STAGE_TYPE_LABELS[stage.stageType]} ·{" "}
           {RACE_PROFILE_LABELS[stage.profileType]} ·{" "}
           {formatDistance(stage.distanceKm)} km
         </p>

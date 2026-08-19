@@ -5,8 +5,12 @@ import type { Dispatch, SetStateAction } from "react";
 import { useFormStatus } from "react-dom";
 
 import { RaceEquipmentPlanner } from "@/components/game/race-equipment-planner";
+import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import type { RaceCalendarStage, RaceFormat } from "@/lib/game/race-calendar";
-import { RACE_CATEGORY_STYLE } from "@/lib/game/race-calendar";
+import {
+  RACE_CATEGORY_STYLE,
+  RACE_STAGE_TYPE_LABELS,
+} from "@/lib/game/race-calendar";
 import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { isTimeTrialPreparationStage } from "@/lib/game/race-preparation";
@@ -41,6 +45,14 @@ import {
   type RaceCollectivePosture,
   type RaceStrategyObjective,
 } from "@/lib/game/race-strategy";
+import {
+  getDefaultTeamTimeTrialRelayShares,
+  TIME_TRIAL_EFFORT_DESCRIPTIONS,
+  TIME_TRIAL_EFFORT_LABELS,
+  TIME_TRIAL_EFFORT_MODES,
+  type TimeTrialEffortMode,
+  type TimeTrialRiderPlan,
+} from "@/lib/game/time-trial-preparation";
 import type { RaceEquipmentPlanningData } from "@/services/race-equipment-planning";
 import type {
   RacePreparationEditionPlan,
@@ -64,6 +76,7 @@ export type RacePreparationWorkspaceEdition = {
 
 type RacePreparationWorkspaceProps = {
   action: (formData: FormData) => Promise<void>;
+  timeTrialAction: (formData: FormData) => Promise<void>;
   editions: RacePreparationWorkspaceEdition[];
   nowIso: string;
   initialSlug?: string;
@@ -99,6 +112,7 @@ const RACE_MENU_DATE_FORMATTER = new Intl.DateTimeFormat("fr-FR", {
 
 export function RacePreparationWorkspace({
   action,
+  timeTrialAction,
   editions,
   nowIso,
   initialSlug,
@@ -113,9 +127,7 @@ export function RacePreparationWorkspace({
   );
   const firstEditableEdition = orderedEditions.find((edition) =>
     edition.stages.some(
-      (stage) =>
-        getStageLiveState(stage, now).status === "scheduled" &&
-        !isTimeTrialPreparationStage(stage),
+      (stage) => getStageLiveState(stage, now).status === "scheduled",
     ),
   );
   const initialEdition =
@@ -135,9 +147,7 @@ export function RacePreparationWorkspace({
     (first, second) => first.stageNumber - second.stageNumber,
   );
   const nextEditableStageId = orderedStages.find(
-    (stage) =>
-      getStageLiveState(stage, now).status === "scheduled" &&
-      !isTimeTrialPreparationStage(stage),
+    (stage) => getStageLiveState(stage, now).status === "scheduled",
   )?.id;
 
   return (
@@ -150,15 +160,8 @@ export function RacePreparationWorkspace({
           {orderedEditions.map((edition) => {
             const isSelected = edition.id === selectedEdition.id;
             const editableCount = edition.stages.filter(
-              (stage) =>
-                getStageLiveState(stage, now).status === "scheduled" &&
-                !isTimeTrialPreparationStage(stage),
+              (stage) => getStageLiveState(stage, now).status === "scheduled",
             ).length;
-            const hasScheduledTimeTrial = edition.stages.some(
-              (stage) =>
-                getStageLiveState(stage, now).status === "scheduled" &&
-                isTimeTrialPreparationStage(stage),
-            );
             const categoryStyle = RACE_CATEGORY_STYLE[edition.categoryCode];
             const dateRange = formatRaceEditionDates(edition.stages);
 
@@ -194,9 +197,7 @@ export function RacePreparationWorkspace({
                 <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide text-[#66877C]">
                   {editableCount > 0
                     ? `${editableCount} étape${editableCount > 1 ? "s" : ""} à préparer`
-                    : hasScheduledTimeTrial
-                      ? "Chrono · pas de planif"
-                      : "Plan verrouillé"}
+                    : "Plan verrouillé"}
                 </span>
               </button>
             );
@@ -228,50 +229,23 @@ export function RacePreparationWorkspace({
         </header>
 
         <div className="mt-5 space-y-4">
-          <section
-            id={`materiel-${selectedEdition.id}`}
-            className="scroll-mt-5 rounded-3xl bg-[#0B302B] p-5 text-white shadow-[0_18px_45px_rgba(7,26,23,0.16)] sm:p-7"
-          >
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9BE0BC]">
-              Préparation matériel
-            </p>
-            <h3 className="mt-2 text-xl font-black">
-              Un montage adapté à chaque étape
-            </h3>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-              Ajustez le vélo et la tenue des coureurs engagés sans modifier
-              leur équipement permanent.
-            </p>
-
-            {selectedEdition.equipmentPlanning ? (
-              <RaceEquipmentPlanner
-                key={selectedEdition.id}
-                editionId={selectedEdition.id}
-                slug={selectedEdition.slug}
-                isStageRace={selectedEdition.raceFormat === "stage_race"}
-                riders={selectedEdition.plan.riders}
-                planning={selectedEdition.equipmentPlanning}
-                savedStageId={savedEquipmentStageId ?? null}
-                saveStatus={equipmentSaveStatus ?? null}
-              />
-            ) : (
-              <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
-                {equipmentError
-                  ? "Le matériel n’a pas pu être chargé. Les rôles et stratégies restent disponibles ci-dessous."
-                  : "Aucun inventaire matériel n’est disponible pour cette équipe."}
-              </p>
-            )}
-          </section>
-
           {orderedStages.map((stage) => (
             <StagePreparationForm
               key={`${selectedEdition.id}:${stage.id}`}
               action={action}
+              timeTrialAction={timeTrialAction}
               edition={selectedEdition}
               stage={stage}
               riders={selectedEdition.plan.riders}
               strategy={selectedEdition.plan.stages[stage.id]}
               now={now}
+              equipmentPlanning={selectedEdition.equipmentPlanning}
+              equipmentError={equipmentError}
+              equipmentSaveStatus={
+                savedEquipmentStageId === stage.id
+                  ? (equipmentSaveStatus ?? null)
+                  : null
+              }
               initiallyOpen={
                 stage.id === nextEditableStageId ||
                 (!nextEditableStageId && stage.id === orderedStages[0]?.id)
@@ -286,19 +260,27 @@ export function RacePreparationWorkspace({
 
 function StagePreparationForm({
   action,
+  timeTrialAction,
   edition,
   stage,
   riders,
   strategy,
   now,
+  equipmentPlanning,
+  equipmentError,
+  equipmentSaveStatus,
   initiallyOpen,
 }: {
   action: (formData: FormData) => Promise<void>;
+  timeTrialAction: (formData: FormData) => Promise<void>;
   edition: RacePreparationWorkspaceEdition;
   stage: RaceCalendarStage;
   riders: RacePreparationRider[];
   strategy: RaceStagePreparationPlan;
   now: Date;
+  equipmentPlanning: RaceEquipmentPlanningData | null;
+  equipmentError: boolean;
+  equipmentSaveStatus: string | null;
   initiallyOpen: boolean;
 }) {
   const [roles, setRoles] = useState<Record<string, RaceRole>>(() =>
@@ -367,9 +349,16 @@ function StagePreparationForm({
 
   if (isTimeTrial) {
     return (
-      <TimeTrialPreparationNotice
+      <TimeTrialPreparationForm
+        action={timeTrialAction}
         edition={edition}
         stage={stage}
+        riders={riders}
+        strategy={strategy}
+        now={now}
+        equipmentPlanning={equipmentPlanning}
+        equipmentError={equipmentError}
+        equipmentSaveStatus={equipmentSaveStatus}
         isOpen={isOpen}
         onToggle={setIsOpen}
       />
@@ -394,8 +383,8 @@ function StagePreparationForm({
             {stage.name}
           </span>
           <span className="mt-1 block text-xs font-semibold text-[#66877C]">
-            {stage.distanceKm} km · {formatProfile(stage.profileType)} ·{" "}
-            {formatStageDeparture(stage.departureAt)}
+            {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {stage.distanceKm} km ·{" "}
+            {formatProfile(stage.profileType)} · {formatStageDeparture(stage.departureAt)}
           </span>
         </span>
         <span
@@ -417,7 +406,15 @@ function StagePreparationForm({
         </span>
       </summary>
 
-      <form action={action} className="border-t border-[#315B3E]/12">
+      <StageProfileOverview stage={stage} />
+
+      <div className="border-t border-[#315B3E]/12 bg-[#F8FBF9] px-5 py-3 sm:px-7">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
+          Préparatifs sportifs
+        </p>
+      </div>
+
+      <form action={action}>
         <input type="hidden" name="editionId" value={edition.id} />
         <input type="hidden" name="stageId" value={stage.id} />
         <input type="hidden" name="stageNumber" value={stage.stageNumber} />
@@ -743,21 +740,78 @@ function StagePreparationForm({
           {isEditable ? <SavePreparationButton disabled={!isValid} /> : null}
         </footer>
       </form>
+
+      <StageEquipmentSection
+        edition={edition}
+        stage={stage}
+        riders={riders}
+        planning={equipmentPlanning}
+        hasError={equipmentError}
+        saveStatus={equipmentSaveStatus}
+      />
     </details>
   );
 }
 
-function TimeTrialPreparationNotice({
+function TimeTrialPreparationForm({
+  action,
   edition,
   stage,
+  riders,
+  strategy,
+  now,
+  equipmentPlanning,
+  equipmentError,
+  equipmentSaveStatus,
   isOpen,
   onToggle,
 }: {
+  action: (formData: FormData) => Promise<void>;
   edition: RacePreparationWorkspaceEdition;
   stage: RaceCalendarStage;
+  riders: RacePreparationRider[];
+  strategy: RaceStagePreparationPlan;
+  now: Date;
+  equipmentPlanning: RaceEquipmentPlanningData | null;
+  equipmentError: boolean;
+  equipmentSaveStatus: string | null;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
 }) {
+  const isTeamTimeTrial = stage.stageType === "team_time_trial";
+  const defaultRelayShares = getDefaultTeamTimeTrialRelayShares(
+    riders.map((rider) => rider.riderId),
+  );
+  const [plans, setPlans] = useState<Record<string, TimeTrialRiderPlan>>(() =>
+    Object.fromEntries(
+      riders.map((rider) => [
+        rider.riderId,
+        rider.timeTrialPlans[stage.id] ?? {
+          effortMode: "normal" as const,
+          relaySharePct: isTeamTimeTrial
+            ? defaultRelayShares[rider.riderId]
+            : null,
+        },
+      ]),
+    ),
+  );
+  const liveState = getStageLiveState(stage, now);
+  const isEditable = liveState.status === "scheduled";
+  const relayTotal = riders.reduce(
+    (total, rider) => total + (plans[rider.riderId]?.relaySharePct ?? 0),
+    0,
+  );
+  const isValid = !isTeamTimeTrial || Math.abs(relayTotal - 100) < 0.001;
+  const serializedPlans = JSON.stringify(
+    riders.map((rider) => ({
+      riderId: rider.riderId,
+      effortMode: plans[rider.riderId]?.effortMode ?? "normal",
+      relaySharePct: isTeamTimeTrial
+        ? (plans[rider.riderId]?.relaySharePct ?? 0)
+        : null,
+    })),
+  );
+
   return (
     <details
       id={`etape-${stage.id}`}
@@ -776,46 +830,261 @@ function TimeTrialPreparationNotice({
             {stage.name}
           </span>
           <span className="mt-1 block text-xs font-semibold text-[#66877C]">
-            {stage.distanceKm} km · {formatProfile(stage.profileType)} ·{" "}
-            {formatStageDeparture(stage.departureAt)}
+            {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {stage.distanceKm} km ·{" "}
+            {formatProfile(stage.profileType)} · {formatStageDeparture(stage.departureAt)}
           </span>
         </span>
-        <span className="rounded-full bg-[#315B3E]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#4E6B62]">
-          Chrono · pas de planif
+        <span
+          className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ${
+            isEditable
+              ? strategy.timeTrialUpdatedAt
+                ? "bg-[#F2C94C]/20 text-[#7B6110]"
+                : "bg-[#278B70]/12 text-[#176951]"
+              : "bg-[#315B3E]/10 text-[#66877C]"
+          }`}
+        >
+          {isEditable
+            ? strategy.timeTrialUpdatedAt
+              ? "Plan enregistré"
+              : "À préparer"
+            : liveState.status === "live"
+              ? "En cours · verrouillé"
+              : "Verrouillé"}
         </span>
       </summary>
 
-      <div className="border-t border-[#315B3E]/12 p-5 sm:p-7">
-        <div className="flex items-start gap-4 rounded-2xl border border-[#278B70]/20 bg-[#EAF5F3] p-5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#176951] text-white">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-6 w-6"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="13" r="7" />
-              <path d="M12 10v3.5l2.5 1.5M9 3h6M12 6V3" />
-            </svg>
-          </span>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#278B70]">
-              Format spécifique
-            </p>
-            <h3 className="mt-1 text-lg font-black text-[#0B302B]">
-              Chrono : pas de planification
-            </h3>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[#55736A]">
-              Les rôles, missions collectives et attaques préparées d’une course
-              en ligne ne s’appliquent pas à cette épreuve. Une console dédiée
-              aux contre-la-montre pourra être ajoutée ultérieurement.
-            </p>
+      <StageProfileOverview stage={stage} />
+
+      <div className="border-t border-[#315B3E]/12 bg-[#F8FBF9] px-5 py-3 sm:px-7">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
+          Préparatifs sportifs
+        </p>
+      </div>
+
+      <form action={action}>
+        <input type="hidden" name="editionId" value={edition.id} />
+        <input type="hidden" name="stageId" value={stage.id} />
+        <input type="hidden" name="stageNumber" value={stage.stageNumber} />
+        <input type="hidden" name="stageType" value={stage.stageType} />
+        <input type="hidden" name="slug" value={edition.slug} />
+        <input type="hidden" name="timeTrialPlans" value={serializedPlans} />
+
+        <div className="p-5 sm:p-7">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <SectionTitle
+              eyebrow={isTeamTimeTrial ? "Relais collectifs" : "Gestion de l’effort"}
+              title={
+                isTeamTimeTrial
+                  ? "Construire le train du contre-la-montre"
+                  : "Choisir la dépense de chaque coureur"
+              }
+              description={
+                isTeamTimeTrial
+                  ? "Le pourcentage de relais fixe la contribution de chacun au rythme collectif et sa dépense de forme."
+                  : "Un effort prudent coûte du temps mais préserve la forme ; tout donner améliore le chrono au prix d’une récupération plus lourde."
+              }
+            />
+            {isTeamTimeTrial ? (
+              <div
+                className={`rounded-2xl border px-4 py-3 text-right ${
+                  isValid
+                    ? "border-[#278B70]/25 bg-[#EAF5F0] text-[#176951]"
+                    : "border-[#C8574A]/30 bg-[#FFF0ED] text-[#934137]"
+                }`}
+              >
+                <p className="text-[9px] font-black uppercase tracking-wide">
+                  Total des relais
+                </p>
+                <p className="mt-0.5 text-xl font-black tabular-nums">
+                  {relayTotal.toLocaleString("fr-FR", {
+                    maximumFractionDigits: 1,
+                  })} %
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {riders.map((rider) => {
+              const plan = plans[rider.riderId] ?? {
+                effortMode: "normal" as const,
+                relaySharePct: isTeamTimeTrial
+                  ? defaultRelayShares[rider.riderId]
+                  : null,
+              };
+              return (
+                <article
+                  key={rider.riderId}
+                  className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-[#0B302B]">
+                        {rider.firstName} {rider.lastName}
+                      </p>
+                      <p className="mt-1 text-[10px] font-bold text-[#66877C]">
+                        CLM {rider.ratings.timeTrial} · END {rider.ratings.endurance} · RES {rider.ratings.resistance}
+                      </p>
+                    </div>
+                    {isTeamTimeTrial ? (
+                      <label className="text-right text-[9px] font-black uppercase tracking-wide text-[#397A67]">
+                        Temps en tête
+                        <span className="mt-1 flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            inputMode="numeric"
+                            value={plan.relaySharePct ?? 0}
+                            disabled={!isEditable}
+                            onChange={(event) =>
+                              setPlans((current) => ({
+                                ...current,
+                                [rider.riderId]: {
+                                  ...plan,
+                                  relaySharePct: Number(event.target.value),
+                                },
+                              }))
+                            }
+                            className="h-10 w-20 rounded-xl border border-[#315B3E]/18 bg-white px-2 text-right text-sm font-black text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF]"
+                          />
+                          <span className="text-xs">%</span>
+                        </span>
+                      </label>
+                    ) : null}
+                  </div>
+
+                  <RiderRatingsGrid ratings={rider.ratings} />
+                  <label className="mt-3 block text-[10px] font-black uppercase tracking-wide text-[#397A67]">
+                    Degré de dépense
+                    <select
+                      value={plan.effortMode}
+                      disabled={!isEditable}
+                      onChange={(event) =>
+                        setPlans((current) => ({
+                          ...current,
+                          [rider.riderId]: {
+                            ...plan,
+                            effortMode: event.target.value as TimeTrialEffortMode,
+                          },
+                        }))
+                      }
+                      className="mt-1.5 min-h-11 w-full rounded-xl border border-[#315B3E]/18 bg-white px-3 text-xs font-bold normal-case tracking-normal text-[#0B302B] outline-none focus:border-[#278B70] disabled:bg-[#EDF2EF]"
+                    >
+                      {TIME_TRIAL_EFFORT_MODES.map((effortMode) => (
+                        <option key={effortMode} value={effortMode}>
+                          {TIME_TRIAL_EFFORT_LABELS[effortMode]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="mt-2 text-[10px] font-semibold leading-4 text-[#66877C]">
+                    {TIME_TRIAL_EFFORT_DESCRIPTIONS[plan.effortMode]}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         </div>
+
+        <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[#315B3E]/10 bg-[#0B302B] px-5 py-4 text-white sm:px-7">
+          <p className="max-w-2xl text-xs font-semibold leading-5 text-[#BFD1C6]">
+            {isEditable
+              ? isValid
+                ? "Ces consignes seront lues au départ et intégrées à la simulation officielle."
+                : "Ajustez les relais : leur somme doit être exactement égale à 100 %."
+              : "Le départ est passé : ce plan reste consultable et ne peut plus être modifié."}
+          </p>
+          {isEditable ? <SavePreparationButton disabled={!isValid} /> : null}
+        </footer>
+      </form>
+
+      <StageEquipmentSection
+        edition={edition}
+        stage={stage}
+        riders={riders}
+        planning={equipmentPlanning}
+        hasError={equipmentError}
+        saveStatus={equipmentSaveStatus}
+      />
+    </details>
+  );
+}
+
+function StageProfileOverview({ stage }: { stage: RaceCalendarStage }) {
+  return (
+    <section className="border-t border-[#315B3E]/12 bg-white p-5 sm:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#397A67]">
+            Profil de l’étape
+          </p>
+          <h3 className="mt-1 text-base font-black text-[#0B302B]">
+            {RACE_STAGE_TYPE_LABELS[stage.stageType]} · {formatProfile(stage.profileType)}
+          </h3>
+        </div>
+        <span className="rounded-full bg-[#EAF5F0] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#176951]">
+          {stage.distanceKm} km
+        </span>
+      </div>
+      <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 sm:p-4">
+        <RaceStageProfile segments={stage.segments} showLegend />
+      </div>
+    </section>
+  );
+}
+
+function StageEquipmentSection({
+  edition,
+  stage,
+  riders,
+  planning,
+  hasError,
+  saveStatus,
+}: {
+  edition: RacePreparationWorkspaceEdition;
+  stage: RaceCalendarStage;
+  riders: RacePreparationRider[];
+  planning: RaceEquipmentPlanningData | null;
+  hasError: boolean;
+  saveStatus: string | null;
+}) {
+  return (
+    <details className="border-t border-[#315B3E]/12 bg-[#0B302B] text-white">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 sm:px-7">
+        <span>
+          <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#9BE0BC]">
+            Équipements de l’étape
+          </span>
+          <span className="mt-1 block text-sm font-black text-white">
+            Vélo et tenue des coureurs engagés
+          </span>
+        </span>
+        <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#D6DFD2]">
+          Ouvrir
+        </span>
+      </summary>
+      <div className="border-t border-white/10 px-5 pb-5 sm:px-7 sm:pb-7">
+        {planning ? (
+          <RaceEquipmentPlanner
+            key={`${edition.id}:${stage.id}`}
+            editionId={edition.id}
+            slug={edition.slug}
+            isStageRace={edition.raceFormat === "stage_race"}
+            riders={riders}
+            planning={planning}
+            fixedStageId={stage.id}
+            savedStageId={stage.id}
+            saveStatus={saveStatus}
+          />
+        ) : (
+          <p className="mt-4 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-semibold leading-5 text-[#D6DFD2]">
+            {hasError
+              ? "Le matériel n’a pas pu être chargé. Les préparatifs sportifs restent disponibles."
+              : "Aucun inventaire matériel n’est disponible pour cette équipe."}
+          </p>
+        )}
       </div>
     </details>
   );
