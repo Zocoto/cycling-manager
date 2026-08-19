@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260819110000_add_architect_parallel_construction.sql",
+    "supabase/migrations/20260819120000_add_architect_parallel_construction.sql",
   ),
   "utf8",
 ).replace(/\r\n/g, "\n");
