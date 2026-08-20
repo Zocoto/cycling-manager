@@ -4,7 +4,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
-import { EquipmentSubmitButton } from "@/components/game/equipment-submit-button";
+import { EquipmentCommercialShop } from "@/components/game/equipment-commercial-shop";
 import { GameHeader } from "@/components/game/game-header";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -29,9 +29,7 @@ import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamEquipmentOverview,
-  type TeamEquipmentCatalogItem,
 } from "@/services/team-equipment";
-import { purchaseEquipmentAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Gestion du matériel",
@@ -43,7 +41,6 @@ type MaterialPageProps = {
     categorie?: string | string[];
     marque?: string | string[];
     effet?: string | string[];
-    achat?: string | string[];
     erreur?: string | string[];
   }>;
 };
@@ -59,7 +56,6 @@ export default async function MaterialPage({
   const effectKey = isEquipmentEffectFilterKey(rawEffectKey)
     ? rawEffectKey
     : null;
-  const success = readQuery(query.achat) === "confirme";
   const errorMessage = readQuery(query.erreur);
   const supabase = await createSupabaseServerClient();
   const {
@@ -218,11 +214,6 @@ export default async function MaterialPage({
           </div>
         </header>
 
-        {success ? (
-          <div className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">
-            Le matériel a été ajouté à l’inventaire de votre équipe.
-          </div>
-        ) : null}
         {errorMessage ? (
           <div className="mt-5 rounded-xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-bold text-red-900">
             {errorMessage.slice(0, 300)}
@@ -245,8 +236,9 @@ export default async function MaterialPage({
               </span>
             </div>
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-6 text-[#60756E]">
-              Chaque achat débite immédiatement la trésorerie. Une référence
-              achetée peut être attribuée à un seul coureur par exemplaire.
+              Ajoutez autant de références que nécessaire au panier, puis
+              réglez tout en une seule fois. Chaque exemplaire acheté peut être
+              attribué à un seul coureur.
             </p>
           </article>
 
@@ -498,19 +490,13 @@ export default async function MaterialPage({
           </div>
 
           {visibleItems.length > 0 ? (
-            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {visibleItems.map((item) => (
-                <EquipmentProductCard
-                  key={item.id}
-                  item={item}
-                  currency={overview.currency}
-                  balance={overview.balance}
-                  activeCategory={category}
-                  activeSupplierKey={supplierKey}
-                  activeEffectKey={effectKey}
-                />
-              ))}
-            </div>
+            <EquipmentCommercialShop
+              items={visibleItems}
+              catalogItems={commercialCatalog}
+              balance={overview.balance}
+              currency={overview.currency}
+              teamSeasonId={overview.teamSeasonId}
+            />
           ) : (
             <div className="mt-5 rounded-2xl border border-dashed border-[#315B3E]/25 bg-white px-6 py-10 text-center">
               <p className="text-sm font-black text-[#183F37]">
@@ -533,104 +519,6 @@ export default async function MaterialPage({
         </section>
       </section>
     </main>
-  );
-}
-
-function EquipmentProductCard({
-  item,
-  currency,
-  balance,
-  activeCategory,
-  activeSupplierKey,
-  activeEffectKey,
-}: {
-  item: TeamEquipmentCatalogItem;
-  currency: string;
-  balance: number;
-  activeCategory: EquipmentSlot | null;
-  activeSupplierKey: string | null;
-  activeEffectKey: EquipmentEffectFilterKey | null;
-}) {
-  const cannotAfford = balance <= 0 || balance < item.price;
-
-  return (
-    <article className="flex overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)]">
-      <div className="flex w-full flex-col">
-        <div className="relative aspect-[16/10] overflow-hidden bg-[#071A17]">
-          <Image
-            src={item.imagePath}
-            alt={`${item.name} par ${item.supplierName}`}
-            fill
-            sizes="(min-width:1280px) 30vw, (min-width:768px) 50vw, 100vw"
-            className="object-cover transition duration-500 hover:scale-[1.03]"
-          />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-5 pb-4 pt-12 text-white">
-            <div className="relative mb-3 h-9 w-36 overflow-hidden rounded-lg bg-white shadow-md">
-              <Image
-                src={item.supplierLogoPath}
-                alt=""
-                fill
-                sizes="144px"
-                className="object-contain p-1.5"
-              />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
-              {item.supplierName}
-            </p>
-            <h3 className="mt-1 text-xl font-black">{item.name}</h3>
-          </div>
-          <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#176951]">
-            {getEquipmentCategory(item.slot).shortLabel}
-          </span>
-          <span className="absolute right-4 top-4 rounded-full bg-[#F2C94C] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#071A17]">
-            {rarityLabel(item.rarity)}
-          </span>
-        </div>
-
-        <div className="flex flex-1 flex-col p-5">
-          <p className="text-sm font-semibold leading-6 text-[#60756E]">
-            {item.description}
-          </p>
-          <div className="mt-4 rounded-xl border border-[#42B99A]/20 bg-[#EAF5F3] px-4 py-3">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-              Effet en course
-            </p>
-            <p className="mt-1 text-sm font-black leading-5 text-[#183F37]">
-              {item.effectSummary}
-            </p>
-          </div>
-
-          <div className="mt-5 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-2xl font-black text-[#183F37]">
-                {formatCurrency(item.price, currency)}
-              </p>
-              <p className="mt-1 text-xs font-bold text-[#60756E]">
-                Possédé : {item.ownedQuantity} · Libre :{" "}
-                {item.availableQuantity}
-              </p>
-            </div>
-            {item.ownedQuantity > 0 ? (
-              <span className="rounded-full bg-[#DDF3E7] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
-                Inventaire
-              </span>
-            ) : null}
-          </div>
-
-          <form action={purchaseEquipmentAction} className="mt-5">
-            <input type="hidden" name="equipmentItemId" value={item.id} />
-            <input type="hidden" name="category" value={activeCategory ?? ""} />
-            <input
-              type="hidden"
-              name="supplier"
-              value={activeSupplierKey ?? ""}
-            />
-            <input type="hidden" name="effect" value={activeEffectKey ?? ""} />
-            <EquipmentSubmitButton mode="purchase" disabled={cannotAfford} />
-          </form>
-        </div>
-      </div>
-    </article>
   );
 }
 
@@ -811,12 +699,6 @@ function EquipmentCategoryIcon({ slot }: { slot: EquipmentSlot }) {
       <path d="M24 7v13M24 28v13M7 24h13M28 24h13M12 12l9 9M27 27l9 9M36 12l-9 9M21 27l-9 9" />
     </svg>
   );
-}
-
-function rarityLabel(rarity: TeamEquipmentCatalogItem["rarity"]) {
-  if (rarity === "premium") return "Premium";
-  if (rarity === "performance") return "Performance";
-  return "Accessible";
 }
 
 function formatCurrency(value: number, currency: string) {

@@ -9,20 +9,35 @@ import {
 } from "@/lib/game/filtered-page-paths";
 import {
   EQUIPMENT_SLOTS,
-  isEquipmentEffectFilterKey,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
+import { parseEquipmentCartLines } from "@/lib/game/equipment-cart";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function purchaseEquipmentAction(formData: FormData) {
-  const equipmentItemId = readValue(formData, "equipmentItemId");
-  const category = readValue(formData, "category");
-  const supplier = readValue(formData, "supplier");
-  const effect = readValue(formData, "effect");
-  const returnPath = buildMaterialPath(category, supplier, effect);
+export type PurchaseEquipmentCartState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  receiptId: string | null;
+};
 
-  if (!isUuid(equipmentItemId)) {
-    redirectWithError(returnPath, "La référence de matériel est invalide.");
+export async function purchaseEquipmentCartAction(
+  _previousState: PurchaseEquipmentCartState,
+  formData: FormData,
+): Promise<PurchaseEquipmentCartState> {
+  const serializedLines = readValue(formData, "cartLines");
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(serializedLines);
+  } catch {
+    return equipmentCartError("Le contenu du panier est invalide.");
+  }
+
+  const lines = parseEquipmentCartLines(payload);
+  if (!lines) {
+    return equipmentCartError(
+      "Sélectionnez au moins un matériel avec une quantité valide.",
+    );
   }
 
   const supabase = await createSupabaseServerClient();
@@ -33,18 +48,36 @@ export async function purchaseEquipmentAction(formData: FormData) {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const { error } = await supabase.rpc("purchase_current_team_equipment", {
-    p_equipment_item_id: equipmentItemId,
-  });
+  const { error } = await supabase.rpc(
+    "purchase_current_team_equipment_cart",
+    { p_items: lines },
+  );
 
-  if (error) redirectWithError(returnPath, error.message);
+  if (error) return equipmentCartError(error.message);
 
   revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/materiel/equiper");
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu");
-  redirect(
-    `${returnPath}${returnPath.includes("?") ? "&" : "?"}achat=confirme`,
+
+  const purchasedQuantity = lines.reduce(
+    (total, line) => total + line.quantity,
+    0,
   );
+
+  return {
+    status: "success",
+    message: `${purchasedQuantity} pièce${purchasedQuantity > 1 ? "s" : ""} ajoutée${purchasedQuantity > 1 ? "s" : ""} à l’inventaire.`,
+    receiptId: crypto.randomUUID(),
+  };
+}
+
+function equipmentCartError(message: string): PurchaseEquipmentCartState {
+  return {
+    status: "error",
+    message: message.slice(0, 300),
+    receiptId: crypto.randomUUID(),
+  };
 }
 
 export async function saveTeamEquipmentAssignmentsAction(formData: FormData) {
@@ -246,15 +279,6 @@ function buildTeamEquipmentPath(riderId: string, slot: string) {
   if (isEquipmentSlot(slot)) params.set("slot", slot);
   const query = params.toString();
   return query ? `/jeu/materiel/equiper?${query}` : "/jeu/materiel/equiper";
-}
-
-function buildMaterialPath(category: string, supplier: string, effect: string) {
-  const params = new URLSearchParams();
-  if (isEquipmentSlot(category)) params.set("categorie", category);
-  if (/^[a-z0-9-]{1,64}$/.test(supplier)) params.set("marque", supplier);
-  if (isEquipmentEffectFilterKey(effect)) params.set("effet", effect);
-  const query = params.toString();
-  return query ? `/jeu/materiel?${query}` : "/jeu/materiel";
 }
 
 function redirectWithError(path: string, message: string): never {

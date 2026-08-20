@@ -39,7 +39,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-commercial-brands",
       title: "Comparez les philosophies des marques",
       content:
-        "Les marques commerciales proposent des gammes et des prix différents. Filtrer par marque permet de comparer rapidement leur positionnement : polyvalence, montagne, sprint, chrono, protection ou prestige.\n\nUn achat débite immédiatement la trésorerie et ajoute un exemplaire à votre inventaire.",
+        "Les marques commerciales proposent des gammes et des prix différents. Filtrer par marque permet de comparer rapidement leur positionnement : polyvalence, montagne, sprint, chrono, protection ou prestige.\n\nAjoutez plusieurs références et quantités au panier : la trésorerie n’est débitée qu’au moment de régler l’ensemble, puis toutes les pièces rejoignent votre inventaire.",
       placement: "bottom",
       highlightPadding: 8,
     },
