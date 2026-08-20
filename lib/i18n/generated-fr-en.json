@@ -6020,5 +6020,12 @@
   "Glissez une pièce vers son emplacement latéral, ou ramenez ici une pièce portée pour la déséquiper.": "Drag an item to its side slot, or drag a worn item back here to unequip it.",
   "Le contrat est déjà sécurisé pour la saison suivante.": "The contract is already secured for next season.",
   "Les équipements se déposent dans les emplacements latéraux, sans devoir viser une partie du coureur.": "Equipment is dropped into the side slots without having to target part of the rider.",
-  "Schéma du coureur": "Rider diagram"
+  "Schéma du coureur": "Rider diagram",
+  ", refuse d’attendre et place une attaque dans le final.": ", refuses to wait and attacks in the finale.",
+  "Aucun podium officiel au classement général n’est encore enregistré.": "No official overall podium has been recorded yet.",
+  "Bilan de carrière": "Career record",
+  "Classements généraux uniquement · podiums regroupés par course et par saison.": "Overall classifications only · podium results grouped by race and season.",
+  "Courses Élite": "Elite races",
+  "repart diminué": "continues in a weakened state",
+  "repartent diminués": "continue in a weakened state"
 }

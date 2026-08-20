@@ -1,5 +1,6 @@
 import Link from "@/components/ui/app-link";
 import { GameHeader } from "@/components/game/game-header";
+import { CareerPalmaresCard } from "@/components/game/career-palmares-card";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
@@ -7,15 +8,18 @@ import {
   FREE_AGENT_RIDER_JERSEY,
 } from "@/lib/rider-jersey";
 import type { GameHeaderData } from "@/services/game-header-data";
+import type { CareerPalmares } from "@/lib/game/career-palmares";
 import type { PublicRiderProfile } from "@/services/public-rider-profile";
 
 export function ArchivedRiderProfileView({
   profile,
   headerData,
+  palmares,
   simulatorEmail,
 }: {
   profile: PublicRiderProfile;
   headerData: GameHeaderData;
+  palmares: CareerPalmares;
   simulatorEmail?: string;
 }) {
   if (!profile.archive) return null;
@@ -115,6 +119,8 @@ export function ArchivedRiderProfileView({
             />
           </dl>
         </header>
+
+        <CareerPalmaresCard palmares={palmares} className="mt-7" />
 
         <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
           <div className="px-6 py-6 sm:px-8">

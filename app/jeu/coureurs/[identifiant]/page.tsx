@@ -7,6 +7,7 @@ import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profile-view";
+import { CareerPalmaresCard } from "@/components/game/career-palmares-card";
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { ContinentalChampionJersey } from "@/components/game/continental-champion-jersey";
@@ -56,6 +57,7 @@ import {
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getRiderCareerPalmares } from "@/services/career-palmares";
 import {
   getPublicRiderProfile,
   type PublicRiderProfile,
@@ -123,7 +125,13 @@ export default async function RiderProfilePage({
     redirect("/connexion");
   }
 
-  const [profile, headerData, riderRanking, rosterTutorialProgress] =
+  const [
+    profile,
+    headerData,
+    riderRanking,
+    rosterTutorialProgress,
+    riderPalmares,
+  ] =
     await Promise.all([
       getPublicRiderProfile({
         riderIdentifier: identifiant,
@@ -140,6 +148,7 @@ export default async function RiderProfilePage({
           return null;
         },
       ),
+      getRiderCareerPalmares(identifiant),
     ]);
 
   if (!profile) {
@@ -151,6 +160,7 @@ export default async function RiderProfilePage({
       <ArchivedRiderProfileView
         profile={profile}
         headerData={headerData}
+        palmares={riderPalmares}
         simulatorEmail={user.email}
       />
     );
@@ -629,7 +639,10 @@ export default async function RiderProfilePage({
         ) : null}
 
         <div data-tutorial-id="rider-profile-history" className="mt-6 min-w-0">
-          <CareerHistory history={profile.history} />
+          <CareerPalmaresCard palmares={riderPalmares} />
+          <div className="mt-6">
+            <CareerHistory history={profile.history} />
+          </div>
         </div>
 
         <div data-tutorial-id="rider-profile-equipment" className="mt-6">

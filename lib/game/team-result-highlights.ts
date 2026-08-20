@@ -24,6 +24,8 @@ export type TeamResultCandidate = {
   categoryCode: RaceCategoryCode;
   prestigeRank: number;
   competitionType: RaceCompetitionType;
+  isGrandTour?: boolean;
+  isMonument?: boolean;
   rank: number;
   riderName: string | null;
   stageNumber: number | null;

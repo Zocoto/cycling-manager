@@ -2,6 +2,11 @@ import "server-only";
 
 import { SPONSORS } from "@/data/sponsors";
 import {
+  buildCareerPalmares,
+  type CareerPalmares,
+  type CareerPalmaresEntry,
+} from "@/lib/game/career-palmares";
+import {
   isRaceCategoryCode,
   type RaceCompetitionType,
   type RaceFormat,
@@ -20,6 +25,7 @@ import {
   getPublicTeamSeasonHistory,
   type PublicTeamSeasonHistoryEntry,
 } from "@/services/public-team-history";
+import { getTeamJuniorPalmaresEntries } from "@/services/career-palmares";
 
 export type PublicTeamHistoricalLogo = {
   sponsorName: string;
@@ -39,6 +45,7 @@ export type PublicTeamProfileSeasonHistoryEntry =
 export type PublicTeamProfileHistory = {
   seasons: PublicTeamProfileSeasonHistoryEntry[];
   recentResults: TeamResultCandidate[];
+  palmares: CareerPalmares;
 };
 
 type SponsorContractRow = {
@@ -84,6 +91,8 @@ type RaceRow = {
   slug: string;
   race_format: string;
   competition_type: string;
+  is_monument: boolean;
+  is_grand_tour: boolean;
 };
 
 type RaceCategoryRow = {
@@ -151,44 +160,54 @@ export async function getPublicTeamProfileHistory(
   const normalizedTeamId = teamId.trim();
 
   if (!normalizedTeamId) {
-    return { seasons: [], recentResults: [] };
+    return {
+      seasons: [],
+      recentResults: [],
+      palmares: buildCareerPalmares([]),
+    };
   }
 
   const seasonHistory = await getPublicTeamSeasonHistory(normalizedTeamId);
 
   if (seasonHistory.length === 0) {
-    return { seasons: [], recentResults: [] };
+    return {
+      seasons: [],
+      recentResults: [],
+      palmares: buildCareerPalmares([]),
+    };
   }
 
   const admin = createSupabaseAdminClient();
   const teamSeasonIds = seasonHistory.map((entry) => entry.teamSeasonId);
   const seasonIds = seasonHistory.map((entry) => entry.seasonId);
-  const [contractsResult, registrationsResult] = await Promise.all([
-    admin
-      .from("team_sponsor_contracts")
-      .select("sponsor_id, start_season_id, end_season_id, status, created_at")
-      .eq("team_id", normalizedTeamId)
-      .eq("role", "principal")
-      .in("status", ["active", "completed", "terminated"])
-      .returns<SponsorContractRow[]>(),
-    collectChunkedPaginatedRows<
-      RaceRegistrationRow,
-      { message: string },
-      string
-    >({
-      values: teamSeasonIds,
-      fetchPage: async (chunk, from, to) => {
-        const result = await admin
-          .from("race_registrations")
-          .select("id, race_edition_id, team_season_id")
-          .in("team_season_id", chunk)
-          .order("id", { ascending: true })
-          .range(from, to)
-          .returns<RaceRegistrationRow[]>();
-        return { data: result.data, error: result.error };
-      },
-    }),
-  ]);
+  const [contractsResult, registrationsResult, juniorPalmaresEntries] =
+    await Promise.all([
+      admin
+        .from("team_sponsor_contracts")
+        .select("sponsor_id, start_season_id, end_season_id, status, created_at")
+        .eq("team_id", normalizedTeamId)
+        .eq("role", "principal")
+        .in("status", ["active", "completed", "terminated"])
+        .returns<SponsorContractRow[]>(),
+      collectChunkedPaginatedRows<
+        RaceRegistrationRow,
+        { message: string },
+        string
+      >({
+        values: teamSeasonIds,
+        fetchPage: async (chunk, from, to) => {
+          const result = await admin
+            .from("race_registrations")
+            .select("id, race_edition_id, team_season_id")
+            .in("team_season_id", chunk)
+            .order("id", { ascending: true })
+            .range(from, to)
+            .returns<RaceRegistrationRow[]>();
+          return { data: result.data, error: result.error };
+        },
+      }),
+      getTeamJuniorPalmaresEntries(normalizedTeamId),
+    ]);
 
   assertQuery(contractsResult.error, "les sponsors historiques de l’équipe");
   assertQuery(registrationsResult.error, "les engagements historiques de l’équipe");
@@ -302,7 +321,9 @@ export async function getPublicTeamProfileHistory(
       fetchPage: async (chunk, from, to) => {
         const result = await admin
           .from("races")
-          .select("id, slug, race_format, competition_type")
+          .select(
+            "id, slug, race_format, competition_type, is_monument, is_grand_tour"
+          )
           .in("id", chunk)
           .order("id", { ascending: true })
           .range(from, to)
@@ -470,7 +491,39 @@ export async function getPublicTeamProfileHistory(
         })
       : [];
 
-  return { seasons, recentResults };
+  const seasonById = new Map(
+    seasonHistory.map((season) => [season.seasonId, season]),
+  );
+  const professionalPalmaresEntries = candidates.flatMap<CareerPalmaresEntry>(
+    (candidate) => {
+      const season = seasonById.get(candidate.seasonId);
+      if (candidate.kind !== "race" || candidate.rank > 3 || !season) return [];
+
+      return [
+        {
+          resultId: candidate.id,
+          raceKey: candidate.raceSlug,
+          raceName: candidate.raceName,
+          seasonId: season.seasonId,
+          seasonName: season.seasonName,
+          gameYear: season.gameYear,
+          rank: candidate.rank,
+          categoryCode: candidate.categoryCode,
+          competitionType: candidate.competitionType,
+          prestigeRank: candidate.prestigeRank,
+          isGrandTour: Boolean(candidate.isGrandTour),
+          isMonument: Boolean(candidate.isMonument),
+          isJunior: false,
+        },
+      ];
+    },
+  );
+  const palmares = buildCareerPalmares([
+    ...professionalPalmaresEntries,
+    ...juniorPalmaresEntries,
+  ]);
+
+  return { seasons, recentResults, palmares };
 }
 
 function buildResultCandidates({
@@ -659,6 +712,8 @@ function createCandidate({
     categoryCode: context.category.code,
     prestigeRank: context.category.prestige_rank,
     competitionType: normalizeCompetitionType(context.race.competition_type),
+    isGrandTour: context.race.is_grand_tour,
+    isMonument: context.race.is_monument,
     rank,
     riderName,
     stageNumber: stage?.stage_number ?? null,
