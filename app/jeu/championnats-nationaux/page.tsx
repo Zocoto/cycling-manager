@@ -275,6 +275,8 @@ function SelectionCheckbox({
   selection: NationalChampionshipSelectionCell;
   last?: boolean;
 }) {
+  const availabilityId = `${name}-${riderId}-availability`;
+
   return (
     <td className={`px-4 py-4 text-center ${last ? "sm:pr-8" : ""}`}>
       <label className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-[#315B3E]/15 bg-white transition hover:border-[#278B70]/45 has-disabled:cursor-not-allowed has-disabled:bg-[#EEF2F0]">
@@ -285,6 +287,11 @@ function SelectionCheckbox({
           defaultChecked={selection.checked}
           disabled={!selection.editable}
           aria-label={`${discipline} pour ${riderName}`}
+          aria-describedby={
+            selection.unavailableReasons.length > 0
+              ? availabilityId
+              : undefined
+          }
           className="h-5 w-5 accent-[#176951] disabled:opacity-50"
         />
       </label>
@@ -295,6 +302,30 @@ function SelectionCheckbox({
       ) : !selection.editable ? (
         <span className="mt-1 block text-[10px] font-bold text-[#789087]">
           Verrouillé
+        </span>
+      ) : null}
+      {selection.unavailableReasons.length > 0 ? (
+        <span
+          id={availabilityId}
+          className="mx-auto mt-2 flex max-w-40 flex-col gap-1 text-left text-[10px] font-bold leading-4"
+        >
+          {selection.unavailableReasons.map((reason) =>
+            reason.kind === "injury" ? (
+              <span
+                key="injury"
+                className="rounded-lg bg-red-50 px-2 py-1 text-[#A52E38]"
+              >
+                Blessé · indisponible au départ
+              </span>
+            ) : (
+              <span
+                key={reason.raceEditionId}
+                className="rounded-lg bg-amber-50 px-2 py-1 text-[#8A5A00]"
+              >
+                Déjà inscrit · {reason.raceName}
+              </span>
+            ),
+          )}
         </span>
       ) : null}
     </td>

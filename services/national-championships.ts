@@ -5,6 +5,12 @@ import type {
   RaceCompetitionType,
   SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import {
+  getNationalChampionshipUnavailableReasons,
+  type NationalChampionshipInjuryInterval,
+  type NationalChampionshipRaceEngagement,
+  type NationalChampionshipUnavailableReason,
+} from "@/lib/game/national-championship-availability";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type NationalChampionshipDiscipline = "route" | "contre-la-montre";
@@ -32,6 +38,7 @@ export type NationalChampionshipSelectionCell = {
   checked: boolean;
   editable: boolean;
   departureAt: string | null;
+  unavailableReasons: NationalChampionshipUnavailableReason[];
 };
 
 export type NationalChampionshipSelectionRow = {
@@ -85,6 +92,22 @@ type ResultRow = {
 type NationalRankingRow = {
   rider_id: string;
   national_rank: number;
+};
+
+type InjuryIntervalRow = {
+  rider_id: string;
+  started_at: string;
+  expected_recovery_at: string;
+};
+
+type ActiveRosterRow = {
+  rider_id: string;
+  race_registration_id: string;
+};
+
+type ActiveRegistrationRow = {
+  id: string;
+  race_edition_id: string;
 };
 
 export function getNationalChampionshipCompetitionType(
@@ -207,15 +230,23 @@ export async function getCurrentTeamNationalChampionshipSelectionMatrix({
   );
   const editionIds = editions.map((edition) => edition.id);
 
-  const registrationsResult =
+  const [registrationsResult, availability] = await Promise.all([
     editionIds.length > 0
-      ? await admin
+      ? admin
           .from("race_registrations")
           .select("id, race_edition_id")
           .in("race_edition_id", editionIds)
           .eq("team_season_id", context.teamSeasonId)
           .returns<RegistrationRow[]>()
-      : { data: [] as RegistrationRow[], error: null };
+      : Promise.resolve({ data: [] as RegistrationRow[], error: null }),
+    getNationalChampionshipAvailabilityInputs({
+      admin,
+      riderIds,
+      teamSeasonId: context.teamSeasonId,
+      calendar,
+      nationalEditions: editions,
+    }),
+  ]);
   assertQuery(registrationsResult.error, "les inscriptions de l’équipe aux CN");
 
   const registrations = registrationsResult.data ?? [];
@@ -287,12 +318,26 @@ export async function getCurrentTeamNationalChampionshipSelectionMatrix({
             riderId: rider.id,
             selectedKeys,
             now,
+            unavailableReasons: getNationalChampionshipUnavailableReasons({
+              riderId: rider.id,
+              targetEdition: roadEdition,
+              calendar,
+              injuries: availability.injuries,
+              raceEngagements: availability.raceEngagements,
+            }),
           }),
           timeTrial: buildSelectionCell({
             edition: timeTrialEdition,
             riderId: rider.id,
             selectedKeys,
             now,
+            unavailableReasons: getNationalChampionshipUnavailableReasons({
+              riderId: rider.id,
+              targetEdition: timeTrialEdition,
+              calendar,
+              injuries: availability.injuries,
+              raceEngagements: availability.raceEngagements,
+            }),
           }),
         },
       ];
@@ -512,16 +557,117 @@ async function getCurrentTeamRiders(teamId: string): Promise<RiderRow[]> {
   return riders ?? [];
 }
 
+async function getNationalChampionshipAvailabilityInputs({
+  admin,
+  riderIds,
+  teamSeasonId,
+  calendar,
+  nationalEditions,
+}: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
+  riderIds: string[];
+  teamSeasonId: string;
+  calendar: SeasonRaceCalendar;
+  nationalEditions: RaceCalendarEdition[];
+}): Promise<{
+  injuries: NationalChampionshipInjuryInterval[];
+  raceEngagements: NationalChampionshipRaceEngagement[];
+}> {
+  const departureTimes = nationalEditions
+    .flatMap((edition) =>
+      edition.stages[0]?.departureAt
+        ? [new Date(edition.stages[0].departureAt).getTime()]
+        : [],
+    )
+    .filter(Number.isFinite);
+  const earliestDeparture = Math.min(...departureTimes);
+  const latestInjuryStart = Math.max(...departureTimes) + 8 * 60 * 60 * 1_000;
+
+  const calendarEditionIds = calendar.editions.map((edition) => edition.id);
+  const [injuriesResult, registrationsResult] = await Promise.all([
+    departureTimes.length > 0
+      ? admin
+          .from("rider_injuries")
+          .select("rider_id, started_at, expected_recovery_at")
+          .in("rider_id", riderIds)
+          .lt("started_at", new Date(latestInjuryStart).toISOString())
+          .gt("expected_recovery_at", new Date(earliestDeparture).toISOString())
+          .returns<InjuryIntervalRow[]>()
+      : Promise.resolve({ data: [] as InjuryIntervalRow[], error: null }),
+    calendarEditionIds.length > 0
+      ? admin
+          .from("race_registrations")
+          .select("id, race_edition_id")
+          .eq("team_season_id", teamSeasonId)
+          .in("race_edition_id", calendarEditionIds)
+          .in("status", ["accepted", "pending"])
+          .returns<ActiveRegistrationRow[]>()
+      : Promise.resolve({
+          data: [] as ActiveRegistrationRow[],
+          error: null,
+        }),
+  ]);
+  assertQuery(injuriesResult.error, "les blessures pour les CN");
+  assertQuery(
+    registrationsResult.error,
+    "les courses déjà prévues pour les coureurs des CN",
+  );
+
+  const activeRegistrations = registrationsResult.data ?? [];
+  const registrationIds = activeRegistrations.map(
+    (registration) => registration.id,
+  );
+  const rostersResult =
+    registrationIds.length > 0
+      ? await admin
+          .from("race_rosters")
+          .select("rider_id, race_registration_id")
+          .in("race_registration_id", registrationIds)
+          .in("rider_id", riderIds)
+          .in("status", ["selected", "confirmed"])
+          .returns<ActiveRosterRow[]>()
+      : { data: [] as ActiveRosterRow[], error: null };
+  assertQuery(
+    rostersResult.error,
+    "les engagements des coureurs pour les CN",
+  );
+
+  const editionIdByRegistrationId = new Map(
+    activeRegistrations.map((registration) => [
+      registration.id,
+      registration.race_edition_id,
+    ]),
+  );
+
+  return {
+    injuries: (injuriesResult.data ?? []).map((injury) => ({
+      riderId: injury.rider_id,
+      startedAt: injury.started_at,
+      expectedRecoveryAt: injury.expected_recovery_at,
+    })),
+    raceEngagements: (rostersResult.data ?? []).flatMap((roster) => {
+      const raceEditionId = editionIdByRegistrationId.get(
+        roster.race_registration_id,
+      );
+      return raceEditionId
+        ? [{ riderId: roster.rider_id, raceEditionId }]
+        : [];
+    }),
+  };
+}
+
 function buildSelectionCell({
   edition,
   riderId,
   selectedKeys,
   now,
+  unavailableReasons,
 }: {
   edition: RaceCalendarEdition | undefined;
   riderId: string;
   selectedKeys: ReadonlySet<string>;
   now: Date;
+  unavailableReasons: NationalChampionshipUnavailableReason[];
 }): NationalChampionshipSelectionCell {
   const departureAt = edition?.stages[0]?.departureAt ?? null;
   const departureTime = departureAt ? new Date(departureAt).getTime() : 0;
@@ -537,6 +683,7 @@ function buildSelectionCell({
         edition.status !== "cancelled",
     ),
     departureAt,
+    unavailableReasons,
   };
 }
 

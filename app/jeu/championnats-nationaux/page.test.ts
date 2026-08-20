@@ -29,6 +29,13 @@ describe("console unifiée des inscriptions aux CN", () => {
     expect(page).toContain("saveNationalChampionshipSelectionsAction");
   });
 
+  it("indique pourquoi un coureur est indisponible pour chaque discipline", () => {
+    expect(page).toContain("selection.unavailableReasons.map");
+    expect(page).toContain("Blessé · indisponible au départ");
+    expect(page).toContain("Déjà inscrit · {reason.raceName}");
+    expect(page).toContain("aria-describedby");
+  });
+
   it("redirige les anciennes pages par discipline vers la console unique", () => {
     expect(legacyPage).toContain(
       'redirect("/jeu/championnats-nationaux")',
