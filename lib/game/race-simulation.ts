@@ -53,6 +53,13 @@ import {
   getRacePursuitTargetPressure,
   INITIAL_RACE_PURSUIT_STATE,
 } from "./race-pursuit-dynamics";
+import {
+  DYNAMIC_COUNTER_ATTACK_COOLDOWN_KM,
+  DYNAMIC_DECISIVE_ATTACK_COOLDOWN_KM,
+  findBestDynamicAttackWindow,
+  isDynamicAttackCooldownReady,
+  type DynamicAttackWindow,
+} from "./race-attack-dynamics";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -1451,6 +1458,9 @@ function getStageWinBreakawayScore(
 
 function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   const random = createSeededRandom(`${input.id}:${input.seed}:road`);
+  const dynamicAttackRandom = createSeededRandom(
+    `${input.id}:${input.seed}:road:dynamic-attacks`,
+  );
   const states = new Map<string, RiderState>(
     input.riders.map((rider) => [
       rider.id,
@@ -1541,8 +1551,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   let breakawayWasCaught = false;
   let delayedAttackLaunched = attackPlan.delayedAttackIds.size === 0;
   let dangerousBreakawayReactionAnnounced = false;
-  let lastOpportunisticAttackSegment = Number.NEGATIVE_INFINITY;
-  let lastDecisiveFavoriteAttackSegment = Number.NEGATIVE_INFINITY;
+  let lastOpportunisticAttackAtKm = Number.NEGATIVE_INFINITY;
+  let lastDecisiveFavoriteAttackAtKm = Number.NEGATIVE_INFINITY;
   let previousLargeBreakawayDecision: LargeBreakawayStandoffDecision = null;
   const breakawayTargetGapSeconds = Math.round(250 + random() * 150);
   let hillyClimbLoad = 0;
@@ -2128,39 +2138,95 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       },
     );
 
+    const counterAttackWindow = findBestDynamicAttackWindow({
+      kind: "counter_attack",
+      ticks: simulationTicks,
+      completedDistanceKm,
+      totalDistanceKm,
+      profileType: input.profileType,
+      breakawayGapSeconds,
+      chasePressure,
+      hasBreakaway: getStatesInGroup(states, "breakaway").length > 0,
+      likelyMassSprint,
+      isWet: input.weather?.isWet ?? false,
+    });
+    const decisiveAttackWindow = findBestDynamicAttackWindow({
+      kind: "decisive_attack",
+      ticks: simulationTicks,
+      completedDistanceKm,
+      totalDistanceKm,
+      profileType: input.profileType,
+      breakawayGapSeconds,
+      chasePressure,
+      hasBreakaway: getStatesInGroup(states, "breakaway").length > 0,
+      likelyMassSprint,
+      isWet: input.weather?.isWet ?? false,
+    });
+    let firstDynamicAttackVisualTick: number | null = null;
+
     if (
-      segmentIndex - lastOpportunisticAttackSegment >= 2 &&
+      counterAttackWindow &&
+      isDynamicAttackCooldownReady({
+        window: counterAttackWindow,
+        lastAttackAtKm: lastOpportunisticAttackAtKm,
+        cooldownKm: DYNAMIC_COUNTER_ATTACK_COOLDOWN_KM,
+      }) &&
       maybeLaunchCounterAttack({
         states,
         segmentIndex,
-        completedDistanceKm,
-        totalDistanceKm,
         breakawayGapSeconds,
         chasePressure,
+        attackWindow: counterAttackWindow,
         strategy: strategyContext,
-        random,
+        random: dynamicAttackRandom,
         commentary,
       })
     ) {
-      lastOpportunisticAttackSegment = segmentIndex;
+      lastOpportunisticAttackAtKm = counterAttackWindow.atDistanceKm;
+      firstDynamicAttackVisualTick = counterAttackWindow.tickIndex;
     }
 
     if (
-      segmentIndex - lastDecisiveFavoriteAttackSegment >= 2 &&
+      decisiveAttackWindow &&
+      isDynamicAttackCooldownReady({
+        window: decisiveAttackWindow,
+        lastAttackAtKm: lastDecisiveFavoriteAttackAtKm,
+        cooldownKm: DYNAMIC_DECISIVE_ATTACK_COOLDOWN_KM,
+      }) &&
       maybeLaunchDecisiveFavoriteAttack({
         states,
         segment,
-        segmentIndex,
-        segmentCount: input.segments.length,
         profileType: input.profileType,
         likelyMassSprint,
         hillyClimbLoad,
+        attackWindow: decisiveAttackWindow,
         strategy: strategyContext,
-        random,
+        random: dynamicAttackRandom,
         commentary,
       })
     ) {
-      lastDecisiveFavoriteAttackSegment = segmentIndex;
+      lastDecisiveFavoriteAttackAtKm = decisiveAttackWindow.atDistanceKm;
+    }
+
+    if (firstDynamicAttackVisualTick !== null) {
+      let attackVisualDistanceKm = completedDistanceKm;
+      for (const [tickIndex, tick] of simulationTicks.entries()) {
+        attackVisualDistanceKm += tick.distanceKm;
+        if (tickIndex < firstDynamicAttackVisualTick) continue;
+        intermediateVisualFrames[tickIndex] = toRaceVisualFrame(
+          buildRoadSnapshot({
+            states,
+            segmentNumber: segment.segmentNumber,
+            completedDistanceKm: attackVisualDistanceKm,
+            breakawayGapSeconds:
+              visualTickGapSeconds[tickIndex] ?? breakawayGapSeconds,
+            incidents: [],
+            abandonments: [],
+            commentary: [],
+          }),
+          segmentIndex,
+        );
+      }
     }
 
     resolveExistingChasers({
@@ -4111,31 +4177,27 @@ function dropStrugglingRiders({
 function maybeLaunchCounterAttack({
   states,
   segmentIndex,
-  completedDistanceKm,
-  totalDistanceKm,
   breakawayGapSeconds,
   chasePressure,
+  attackWindow,
   strategy,
   random,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segmentIndex: number;
-  completedDistanceKm: number;
-  totalDistanceKm: number;
   breakawayGapSeconds: number;
   chasePressure: number;
+  attackWindow: DynamicAttackWindow;
   strategy: StageStrategyContext;
   random: () => number;
   commentary: string[];
 }) {
-  const progress = completedDistanceKm / Math.max(1, totalDistanceKm);
   if (
-    progress < 0.12 ||
-    progress > 0.72 ||
+    attackWindow.opportunity < 0.42 ||
     breakawayGapSeconds < 35 ||
-    breakawayGapSeconds > 210 ||
-    chasePressure > 0.58
+    breakawayGapSeconds > 245 ||
+    chasePressure > 0.72
   ) {
     return false;
   }
@@ -4184,7 +4246,8 @@ function maybeLaunchCounterAttack({
       (candidate.state.rider.role === "free_agent" ? 0.08 : 0) +
       (hasSpecialAbility(candidate.state.rider, "chase_potato") ? 0.17 : 0) +
       (hasSpecialAbility(candidate.state.rider, "panache") ? 0.08 : 0) +
-      Math.max(0, candidate.state.rider.form - 72) * 0.006 -
+      Math.max(0, candidate.state.rider.form - 72) * 0.006 +
+      Math.max(0, attackWindow.opportunity - 0.42) * 0.24 -
       (candidate.favoriteTier === "major"
         ? 0.08
         : candidate.favoriteTier === "medium"
@@ -4215,45 +4278,47 @@ function maybeLaunchCounterAttack({
 function maybeLaunchDecisiveFavoriteAttack({
   states,
   segment,
-  segmentIndex,
-  segmentCount,
   profileType,
   likelyMassSprint,
   hillyClimbLoad,
+  attackWindow,
   strategy,
   random,
   commentary,
 }: {
   states: Map<string, RiderState>;
   segment: RaceStageSegment;
-  segmentIndex: number;
-  segmentCount: number;
   profileType: RaceProfileType;
   likelyMassSprint: boolean;
   hillyClimbLoad: number;
+  attackWindow: DynamicAttackWindow;
   strategy: StageStrategyContext;
   random: () => number;
   commentary: string[];
 }) {
-  const raceProgress = (segmentIndex + 1) / Math.max(1, segmentCount);
   const selectiveTerrain =
     segment.terrain === "climb" || segment.surface === "cobbles";
   if (
-    raceProgress < 0.58 ||
+    attackWindow.opportunity < 0.46 ||
     (likelyMassSprint && profileType !== "cobbles") ||
     (!selectiveTerrain && profileType !== "hilly")
   ) {
     return false;
   }
 
-  const candidate = getStatesInGroup(states, "peloton")
+  const pelotonStates = getStatesInGroup(states, "peloton");
+  const decisiveFavoriteLimit = Math.max(
+    strategy.outsiderFavoriteCount,
+    Math.min(5, pelotonStates.length),
+  );
+  const candidate = pelotonStates
     .flatMap((state) => {
       const favoriteRank =
         strategy.favoriteRankByRiderId.get(state.rider.id) ??
         Number.POSITIVE_INFINITY;
       if (
         favoriteRank <= 1 ||
-        favoriteRank > strategy.outsiderFavoriteCount ||
+        favoriteRank > decisiveFavoriteLimit ||
         state.energy < 22 ||
         state.decisiveAttackBonus > 0 ||
         state.injuryPerformancePenalty >= 8 ||
@@ -4295,7 +4360,8 @@ function maybeLaunchDecisiveFavoriteAttack({
       Math.min(0.08, (candidate.favoriteRank - 1) * 0.012) +
       (hasSpecialAbility(candidate.state.rider, "giclette") ? 0.08 : 0) +
       (hasSpecialAbility(candidate.state.rider, "panache") ? 0.06 : 0) +
-      Math.max(0, candidate.state.raceDayExecutionBonus) * 0.012,
+      Math.max(0, candidate.state.raceDayExecutionBonus) * 0.012 +
+      Math.max(0, attackWindow.opportunity - 0.46) * 0.22,
     0.12,
     0.52,
   );
