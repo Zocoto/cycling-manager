@@ -387,9 +387,19 @@ async function settleEditionRaceResults({
     let stageRows = allPersistedStageRows.filter((row) =>
       expectedRosterIds.has(row.race_roster_id),
     );
+    const expectedRankByRosterId = new Map(
+      simulation.results.map((result) => [
+        requireRoster(rosterByRiderId, result.riderId).rosterId,
+        result.status === "finished" ? result.rank : null,
+      ]),
+    );
+    const persistedRanksMatchSimulation = stageRows.every(
+      (row) => row.rank === expectedRankByRosterId.get(row.race_roster_id),
+    );
     const stageAlreadyComplete =
       stageRows.length === expectedRosterIds.size &&
-      allPersistedStageRows.length === expectedRosterIds.size;
+      allPersistedStageRows.length === expectedRosterIds.size &&
+      persistedRanksMatchSimulation;
 
     if (!stageAlreadyComplete) {
       await persistStageResult({
