@@ -175,6 +175,7 @@ export function GameNavigationMenu({
                       <Link
                         key={href}
                         href={href}
+                        showPendingIndicator={false}
                         className="block rounded-xl px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
                       >
                         {label}
@@ -191,6 +192,7 @@ export function GameNavigationMenu({
           <div className="border-t border-[#78947D]/30 bg-[#071A17] p-3 sm:px-5">
             <Link
               href="/jeu/suivi-joueurs"
+              showPendingIndicator={false}
               className="flex items-center justify-between gap-3 rounded-xl border border-[#F2C94C]/25 bg-[#F2C94C]/8 px-3 py-2.5 text-sm font-bold text-[#FFFDF4] transition hover:border-[#F2C94C]/60 hover:bg-[#F2C94C]/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
             >
               <span>

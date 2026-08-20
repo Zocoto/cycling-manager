@@ -28,6 +28,7 @@ import { getRiderIdFromProfileHref } from "@/lib/game/rider-quick-preview";
 type AppLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
     children?: ReactNode;
+    showPendingIndicator?: boolean;
   };
 
 const PREVIEW_INTENT_DELAY_MS = 220;
@@ -45,6 +46,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     scroll,
     prefetch,
     children,
+    showPendingIndicator = true,
     onBlur,
     onFocus,
     onPointerDown,
@@ -80,7 +82,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   const linkChildren = (
     <>
       {children}
-      <LinkPendingIndicator />
+      {showPendingIndicator ? <LinkPendingIndicator /> : null}
     </>
   );
 
