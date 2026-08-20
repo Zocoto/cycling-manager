@@ -63,7 +63,7 @@ type TransferPageProps = {
 };
 
 const tabs: Array<{ id: TransferTab; label: string; detail: string }> = [
-  { id: "quotidiennes", label: "Enchères quotidiennes", detail: "5 nouveaux talents · 9 h à 18 h" },
+  { id: "quotidiennes", label: "Enchères quotidiennes", detail: "Nouveaux talents · 9 h à 18 h" },
   { id: "directeurs", label: "Enchères des DS", detail: "Ventes entre équipes · 24 h" },
   { id: "libres", label: "Agents libres", detail: "Signature sans indemnité" },
   { id: "offres", label: "Offres reçues", detail: "Négociations directes · historique" },
@@ -227,14 +227,14 @@ function DailyAuctions({ listings, overview, sponsors, returnPath }: {
 }) {
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
-      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les dix enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
+      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
           <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
           </div>
         ) : (
-          <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : dix nouveaux coureurs apparaîtront automatiquement." />
+          <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : de nouveaux coureurs apparaîtront automatiquement." />
         )}
       </div>
     </section>
