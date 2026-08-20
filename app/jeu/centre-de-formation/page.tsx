@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import {
+  dismissYouthRiderAction,
   markYouthScoutingReportViewedAction,
   naturalizeYouthRiderAction,
   recruitYouthRiderAction,
@@ -663,6 +664,7 @@ function AcademyTab({
                 rider={rider}
                 gameYear={overview.gameYear}
                 currency={overview.currency}
+                balance={overview.balance}
                 canSchedulePromotion={overview.canScheduleYouthPromotion}
                 rosterLimit={overview.rosterLimit}
               />
@@ -849,12 +851,14 @@ function AcademyRiderCard({
   rider,
   gameYear,
   currency,
+  balance,
   canSchedulePromotion,
   rosterLimit,
 }: {
   rider: AcademyYouth;
   gameYear: number;
   currency: string;
+  balance: number;
   canSchedulePromotion: boolean;
   rosterLimit: number;
 }) {
@@ -960,6 +964,62 @@ function AcademyRiderCard({
               )}
             </div>
           </div>
+          <details className="group overflow-hidden rounded-xl border border-[#C94848]/20 bg-[#FFF8F6] xl:col-span-2 2xl:col-span-4">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#8A2F2F] marker:content-none">
+              <span>Renvoyer ce junior</span>
+              <span className="rounded-full bg-white px-3 py-1.5 text-[#A12E2E] shadow-sm">
+                {formatCurrency(rider.tuitionPerSeason, currency)}
+              </span>
+            </summary>
+            <div className="border-t border-[#C94848]/15 p-3 sm:p-4">
+              <p className="text-xs font-bold leading-5 text-[#775959]">
+                Le coût annuel de scolarité sera débité immédiatement. Les
+                échéances encore en attente seront annulées et cette décision
+                est définitive.
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-5 text-[#775959]">
+                {rider.age >= 16
+                  ? "À partir de 16 ans, le junior devient immédiatement agent libre."
+                  : "Avant 16 ans, le junior quitte l’école sans rejoindre les agents libres."}
+              </p>
+              <p className="mt-2 text-[10px] font-semibold leading-4 text-[#8A6660]">
+                Il sera également retiré de la Development Team et de ses
+                sélections futures. Une inscription devenue incomplète sera
+                retirée automatiquement.
+              </p>
+              {rider.status === "recruited" ? (
+                <p className="mt-2 rounded-lg bg-[#FBE4DF] px-3 py-2 text-[10px] font-black text-[#8A2F2F]">
+                  Sa promotion déjà programmée en équipe première sera annulée.
+                </p>
+              ) : null}
+              {balance >= rider.tuitionPerSeason ? (
+                <form action={dismissYouthRiderAction} className="mt-3 space-y-3">
+                  <input
+                    type="hidden"
+                    name="academyRiderId"
+                    value={rider.id}
+                  />
+                  <label className="flex items-start gap-3 rounded-xl border border-[#C94848]/15 bg-white px-3 py-3 text-[11px] font-bold leading-5 text-[#702E2E]">
+                    <input
+                      type="checkbox"
+                      required
+                      className="mt-0.5 h-4 w-4 accent-[#B54242]"
+                    />
+                    Je confirme le renvoi définitif et le paiement immédiat de
+                    {" "}
+                    {formatCurrency(rider.tuitionPerSeason, currency)}.
+                  </label>
+                  <button className="min-h-11 w-full rounded-xl border border-[#C94848]/35 bg-[#FFF1F1] px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-[#A12E2E] transition hover:bg-[#FDE3E3]">
+                    Payer et renvoyer
+                  </button>
+                </form>
+              ) : (
+                <p className="mt-3 rounded-xl bg-[#FBE4DF] px-3 py-3 text-xs font-black text-[#8A2F2F]">
+                  Trésorerie insuffisante pour régler ce coût annuel.
+                </p>
+              )}
+            </div>
+          </details>
         </div>
       </div>
     </article>

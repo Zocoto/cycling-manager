@@ -152,7 +152,12 @@ type AcademyRow = Omit<
   pending_training_mode: YouthTrainingMode | null;
   pending_training_mode_after_season_id: string | null;
   pending_training_mode_after_day_number: number | null;
-  status: "active" | "recruited" | "promoted" | "free_agent";
+  status:
+    | "active"
+    | "recruited"
+    | "promoted"
+    | "free_agent"
+    | "released";
   promotion_game_year: number | null;
   promoted_rider_id: string | null;
 };
