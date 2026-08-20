@@ -1145,43 +1145,20 @@ async function persistStageResult({
       mountain_points: simulation.mountainPoints[result.riderId] ?? 0,
       sprint_points: simulation.sprintPoints[result.riderId] ?? 0,
       time_bonus_seconds: timeBonusByRiderId[result.riderId] ?? 0,
+      time_penalty_seconds: 0,
       abandonment_reason: result.abandonment ? "crash" : null,
       injury_id: injuryIdByRiderId.get(result.riderId) ?? null,
       updated_at: new Date().toISOString(),
     };
   });
 
-  // Quand une startlist se contracte après la découverte d'un non-partant,
-  // ses anciens rangs peuvent entrer en collision avec le nouveau classement.
-  // Il faut donc retirer ces lignes avant l'upsert, et non après.
-  const currentRosterIds = new Set(rows.map((row) => row.race_roster_id));
-  const { data: persistedRosterRows, error: persistedRosterError } = await admin
-    .from("stage_results")
-    .select("race_roster_id")
-    .eq("stage_id", stage.id)
-    .returns<Array<{ race_roster_id: string }>>();
-  assertQuery(
-    persistedRosterError,
-    `la vérification des partants de ${stage.name}`,
-  );
-  const staleRosterIds = (persistedRosterRows ?? [])
-    .map((row) => row.race_roster_id)
-    .filter((rosterId) => !currentRosterIds.has(rosterId));
-  if (staleRosterIds.length > 0) {
-    const { error: staleResultError } = await admin
-      .from("stage_results")
-      .delete()
-      .eq("stage_id", stage.id)
-      .in("race_roster_id", staleRosterIds);
-    assertQuery(
-      staleResultError,
-      `le retrait des non-partants de ${stage.name}`,
-    );
-  }
-
-  const { error } = await admin
-    .from("stage_results")
-    .upsert(rows, { onConflict: "stage_id,race_roster_id" });
+  // Le remplacement est transactionnel côté base : tous les anciens rangs
+  // disparaissent avant l'insertion du nouveau classement, et une erreur
+  // restaure automatiquement l'état précédent.
+  const { error } = await admin.rpc("replace_official_stage_results", {
+    p_stage_id: stage.id,
+    p_rows: rows,
+  });
   assertQuery(error, `l’enregistrement du classement de ${stage.name}`);
 
   const immutableUnavailabilityRows = simulation.results.flatMap((result) =>

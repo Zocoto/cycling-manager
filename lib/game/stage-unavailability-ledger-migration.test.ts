@@ -18,6 +18,13 @@ const simulationService = readFileSync(
   resolve(process.cwd(), "services/official-race-simulations.ts"),
   "utf8",
 );
+const atomicReplacementMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260820201000_replace_stage_results_atomically.sql",
+  ),
+  "utf8",
+);
 
 describe("registre sportif des non-partants", () => {
   it("est alimenté par le résultat de course et jamais par la Gazette", () => {
@@ -35,8 +42,14 @@ describe("registre sportif des non-partants", () => {
   it("reste immuable lors d'un recalcul", () => {
     expect(resultService).toContain("ignoreDuplicates: true");
     expect(resultService).not.toContain("le nettoyage des blessures obsolètes");
-    expect(resultService.indexOf("le retrait des non-partants")).toBeLessThan(
-      resultService.indexOf('.upsert(rows, { onConflict: "stage_id,race_roster_id" })'),
+    expect(resultService).toContain(
+      'admin.rpc("replace_official_stage_results"',
+    );
+    expect(atomicReplacementMigration).toContain(
+      "create or replace function public.replace_official_stage_results",
+    );
+    expect(atomicReplacementMigration.indexOf("delete from public.stage_results")).toBeLessThan(
+      atomicReplacementMigration.indexOf("insert into public.stage_results"),
     );
   });
 
