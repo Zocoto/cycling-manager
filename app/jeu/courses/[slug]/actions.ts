@@ -286,7 +286,7 @@ function revalidateRacePaths(slug: string) {
   revalidatePath("/jeu");
 }
 
-export async function replaceInjuredRaceRosterAction(
+export async function completeUnderfilledRaceRosterAction(
   formData: FormData
 ) {
   const editionId = readFormValue(formData, "editionId");
@@ -321,7 +321,7 @@ export async function replaceInjuredRaceRosterAction(
   }
 
   const { error } = await supabase.rpc(
-    "replace_current_team_injured_race_roster",
+    "complete_current_team_underfilled_race_roster",
     {
       p_race_edition_id: editionId,
       p_roster: roster,
@@ -333,7 +333,7 @@ export async function replaceInjuredRaceRosterAction(
   }
 
   revalidateRacePaths(slug);
-  redirect(`/jeu/courses/${slug}?remplacement=confirme`);
+  redirect(`/jeu/courses/${slug}?reinscription=confirmee`);
 }
 
 function redirectWithError(path: string, message: string): never {
