@@ -12,6 +12,8 @@ import {
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   getHillyClimbSelectionRating,
+  getControlledRaceDayExecutionSwing,
+  getRaceInjuryInRaceImpact,
   decideLargeBreakawayStandoff,
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
@@ -58,6 +60,49 @@ describe("reduceMechanicalIncidentTimeLoss", () => {
     expect(reduceMechanicalIncidentTimeLoss(20, 35)).toBe(13);
     expect(reduceMechanicalIncidentTimeLoss(20, 120)).toBeCloseTo(4);
     expect(reduceMechanicalIncidentTimeLoss(20, -10)).toBe(20);
+  });
+});
+
+describe("in-race physical condition", () => {
+  it("keeps a non-abandoning injury penalty inside the current race state", () => {
+    expect(
+      getRaceInjuryInRaceImpact({ energy: 50, severity: "moderate" }),
+    ).toEqual({
+      performancePenalty: 6,
+      energyAfter: 45.5,
+    });
+    expect(
+      getRaceInjuryInRaceImpact({
+        energy: 45.5,
+        currentPenalty: 6,
+        severity: "minor",
+      }),
+    ).toEqual({
+      performancePenalty: 6,
+      energyAfter: 43.625,
+    });
+  });
+
+  it("lets experience soften a bad day without erasing the performance range", () => {
+    const noviceBadDay = getControlledRaceDayExecutionSwing({
+      firstRoll: 0,
+      secondRoll: 0,
+      experienceRaceBonus: 0,
+    });
+    const veteranBadDay = getControlledRaceDayExecutionSwing({
+      firstRoll: 0,
+      secondRoll: 0,
+      experienceRaceBonus: 1.5,
+    });
+    const excellentDay = getControlledRaceDayExecutionSwing({
+      firstRoll: 1,
+      secondRoll: 1,
+      experienceRaceBonus: 0,
+    });
+
+    expect(noviceBadDay).toBe(-5);
+    expect(veteranBadDay).toBe(-3.8);
+    expect(excellentDay).toBe(5);
   });
 });
 
@@ -1859,6 +1904,11 @@ describe("simulateRaceStage", () => {
     expect(injuredFinisher.rank).not.toBeNull();
     expect(injuredFinisher.abandonment).toBeNull();
     expect(injuredFinisher.injury?.recoveryHours).toBeGreaterThanOrEqual(72);
+    expect(
+      stage!.timeline.some((snapshot) =>
+        snapshot.commentary.some((line) => line.includes("repart diminué")),
+      ),
+    ).toBe(true);
   });
 
   it("cumule les classements montagne, points, jeunes et équipes d'un tour", () => {
@@ -1937,6 +1987,48 @@ describe("simulateRaceStage", () => {
       elapsedTimeSeconds: 2_005,
     });
   });
+
+  it("keeps five closely matched mountain favorites in contention without flattening the hierarchy", () => {
+    const winnerCounts = new Map<string, number>();
+    let racesWithDecisiveFavoriteAttack = 0;
+
+    for (let seed = 1; seed <= 120; seed += 1) {
+      const simulation = simulateRaceStage(
+        createBalancedMountainFavoritesInput(seed),
+      );
+      const winnerId = simulation.results.find(
+        (result) => result.rank === 1,
+      )!.riderId;
+      winnerCounts.set(winnerId, (winnerCounts.get(winnerId) ?? 0) + 1);
+      if (
+        simulation.timeline.some((snapshot) =>
+          snapshot.commentary.some((line) =>
+            line.includes("refuse d’attendre"),
+          ),
+        )
+      ) {
+        racesWithDecisiveFavoriteAttack += 1;
+      }
+    }
+
+    expect([...winnerCounts.keys()].sort()).toEqual([
+      "fav-1",
+      "fav-2",
+      "fav-3",
+      "fav-4",
+      "fav-5",
+    ]);
+    const leadingFavoriteWins =
+      (winnerCounts.get("fav-1") ?? 0) +
+      (winnerCounts.get("fav-2") ?? 0) +
+      (winnerCounts.get("fav-3") ?? 0);
+    const lowerFavoriteWins =
+      (winnerCounts.get("fav-4") ?? 0) +
+      (winnerCounts.get("fav-5") ?? 0);
+    expect(leadingFavoriteWins).toBeGreaterThan(lowerFavoriteWins);
+    expect(racesWithDecisiveFavoriteAttack).toBeGreaterThan(40);
+    expect(racesWithDecisiveFavoriteAttack).toBeLessThan(115);
+  });
 });
 
 function createHillyTestRider(
@@ -2002,6 +2094,66 @@ function createSelectionTestRider(
       breakaway: 55,
       ...overrides,
     },
+  };
+}
+
+function createBalancedMountainFavoritesInput(
+  seed: number,
+): Parameters<typeof simulateRaceStage>[0] {
+  const mountainRatings = [84, 82.5, 81, 79.5, 78];
+  const countryCodes = ["FR", "CO", "IT", "ES", "NO"];
+  const riders = mountainRatings.map((mountain, index) => ({
+    ...createSelectionTestRider(`fav-${index + 1}`, {
+      flat: 65,
+      mountain,
+      hills: 78,
+      cobbles: 55,
+      downhill: 76,
+      sprint: 55,
+      acceleration: 78,
+      timeTrial: 70,
+      prologue: 68,
+      endurance: 80,
+      resistance: 79,
+      recovery: 78,
+      breakaway: 62,
+    }),
+    careerRaceDays: 250,
+    countryCode: countryCodes[index],
+  }));
+  const segment = (
+    segmentNumber: number,
+    distanceKm: number,
+    terrain: RaceStageSegment["terrain"],
+    averageGradientPct: number,
+  ): RaceStageSegment => ({
+    segmentNumber,
+    distanceKm,
+    terrain,
+    averageGradientPct,
+    surface: "asphalt",
+    prime: null,
+  });
+
+  return {
+    id: `balance-${seed}`,
+    name: "Étape de montagne équilibrée",
+    stageType: "road",
+    profileType: "mountain",
+    raceCountryCode: "IT",
+    isStageRace: true,
+    seed,
+    riders,
+    segments: [
+      segment(1, 30, "flat", 0),
+      segment(2, 30, "flat", 0),
+      segment(3, 20, "climb", 5),
+      segment(4, 20, "descent", -5),
+      segment(5, 25, "flat", 0),
+      segment(6, 8, "climb", 7),
+      segment(7, 8, "climb", 8),
+      segment(8, 7, "climb", 9),
+    ],
   };
 }
 
