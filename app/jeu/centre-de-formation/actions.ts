@@ -183,6 +183,40 @@ export async function recruitYouthRiderAction(formData: FormData) {
   redirectWithMessage("ecole", "succes", `Recrutement validé : arrivée dans l’équipe première en ${result.data}.`);
 }
 
+export async function dismissYouthRiderAction(formData: FormData) {
+  const academyRiderId = readValue(formData, "academyRiderId");
+  if (!isUuid(academyRiderId)) {
+    redirectWithMessage(
+      "ecole",
+      "erreur",
+      "Le junior transmis est invalide.",
+    );
+  }
+
+  const supabase = await authenticatedClient();
+  const result = await supabase.rpc("dismiss_current_team_youth_rider", {
+    p_academy_rider_id: academyRiderId,
+  });
+  if (result.error) {
+    redirectWithMessage("ecole", "erreur", result.error.message);
+  }
+
+  const release = readYouthDismissalResult(result.data);
+  revalidateCenter();
+  revalidatePath("/jeu/transferts");
+  revalidatePath(
+    "/jeu/centre-de-formation/development/[academyRiderId]",
+    "page",
+  );
+  redirectWithMessage(
+    "ecole",
+    "succes",
+    release.freeAgent
+      ? `${release.riderName} a quitté l’école et rejoint les agents libres. ${formatMoney(release.tuitionCost, release.currency)} ont été débités immédiatement.`
+      : `${release.riderName} a quitté l’école. Comme il a moins de 16 ans, il ne rejoint pas les agents libres. ${formatMoney(release.tuitionCost, release.currency)} ont été débités immédiatement.`,
+  );
+}
+
 export async function naturalizeYouthRiderAction(formData: FormData) {
   const academyRiderId = readValue(formData, "academyRiderId");
   if (!isUuid(academyRiderId)) {
@@ -218,6 +252,42 @@ function readCountryName(data: unknown) {
   }
   return "le pays de l’équipe";
 }
+
+function readYouthDismissalResult(data: unknown) {
+  const result = data && typeof data === "object" ? data : null;
+  const riderName =
+    result &&
+    "riderName" in result &&
+    typeof result.riderName === "string"
+      ? result.riderName.slice(0, 120)
+      : "Le junior";
+  const tuitionCost =
+    result && "tuitionCost" in result
+      ? Number(result.tuitionCost)
+      : 0;
+  const currency =
+    result && "currency" in result && typeof result.currency === "string"
+      ? result.currency.slice(0, 3).toUpperCase()
+      : "EUR";
+  const freeAgent = Boolean(
+    result && "freeAgent" in result && result.freeAgent,
+  );
+  return {
+    riderName,
+    tuitionCost: Number.isFinite(tuitionCost) ? tuitionCost : 0,
+    currency,
+    freeAgent,
+  };
+}
+
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 async function authenticatedClient() {
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
