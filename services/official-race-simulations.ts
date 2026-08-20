@@ -10,7 +10,6 @@ import {
   isUnavailableForFollowingStage,
   normalizeOfficialStageResultRanks,
   OFFICIAL_RACE_ENGINE_VERSION,
-  simulationStartsUnavailableRider,
   type LockedOfficialRaceSimulationDirectory,
   type LockedOfficialStageSimulation,
   type PersistedStageRiderUnavailability,
@@ -142,14 +141,12 @@ export async function ensureLockedOfficialRaceSimulations(
       }
 
       let lockedSimulation = lockedByStageId.get(stage.id) ?? null;
-      const startsUnavailableRider = lockedSimulation
-        ? simulationStartsUnavailableRider(
-            lockedSimulation.simulation,
-            unavailableRiderIds,
-          )
-        : false;
 
-      if (!lockedSimulation || startsUnavailableRider) {
+      // Une ligne officielle déjà enregistrée appartient à l'historique de la
+      // course. Sa version de moteur, ses partants et son résultat restent
+      // intacts : seuls les départs encore dépourvus de simulation utilisent
+      // la version courante du moteur.
+      if (!lockedSimulation) {
         const liveState = getStageLiveState(stage, now);
         if (
           liveState.status === "scheduled" ||
@@ -165,28 +162,11 @@ export async function ensureLockedOfficialRaceSimulations(
         );
 
         if (!claimToken) {
-          lockedSimulation = await waitForLockedSimulation(
-            stage.id,
-            unavailableRiderIds,
-          );
+          lockedSimulation = await waitForLockedSimulation(stage.id);
           if (!lockedSimulation) break;
           lockedByStageId.set(stage.id, lockedSimulation);
         } else {
           try {
-            if (startsUnavailableRider) {
-              console.warn(
-                `Le scénario officiel de l'étape ${stage.stageNumber} fait repartir un coureur indisponible : recalcul automatique.`,
-              );
-              const { error: staleSimulationError } = await admin
-                .from("official_stage_simulations")
-                .delete()
-                .eq("stage_id", stage.id);
-              assertQuery(
-                staleSimulationError,
-                "le remplacement d’un scénario officiel incohérent",
-              );
-              lockedByStageId.delete(stage.id);
-            }
             const standingsBeforeStage =
               edition.raceFormat === "stage_race" &&
               editionSimulations.length > 0
@@ -547,10 +527,7 @@ async function acquireOfficialSimulationClaim(
   return takeover.data?.claim_token === claimToken ? claimToken : null;
 }
 
-async function waitForLockedSimulation(
-  stageId: string,
-  unavailableRiderIds: ReadonlySet<string>,
-) {
+async function waitForLockedSimulation(stageId: string) {
   const admin = createSupabaseAdminClient();
 
   for (
@@ -567,15 +544,7 @@ async function waitForLockedSimulation(
       .maybeSingle<OfficialStageSimulationRow>();
     assertQuery(existing.error, "le scénario officiel calculé en parallèle");
     if (existing.data) {
-      const locked = toLockedSimulation(existing.data);
-      if (
-        !simulationStartsUnavailableRider(
-          locked.simulation,
-          unavailableRiderIds,
-        )
-      ) {
-        return locked;
-      }
+      return toLockedSimulation(existing.data);
     }
 
     if (attempt + 1 < OFFICIAL_SIMULATION_POLL_ATTEMPTS) {

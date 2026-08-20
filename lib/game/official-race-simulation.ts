@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.08-race-variance-injury-v13";
+  "2026.08-adaptive-dynamics-v14";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;
@@ -308,6 +308,8 @@ export function simulationStartsUnavailableRider(
   simulation: Pick<StageSimulationResult, "results">,
   unavailableRiderIds: ReadonlySet<string>,
 ) {
+  // Diagnostic only: detecting a historical inconsistency must never trigger
+  // an implicit resimulation of an already locked official stage.
   return simulation.results.some((result) =>
     unavailableRiderIds.has(result.riderId),
   );
