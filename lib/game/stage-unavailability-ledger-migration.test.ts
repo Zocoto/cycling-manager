@@ -35,6 +35,9 @@ describe("registre sportif des non-partants", () => {
   it("reste immuable lors d'un recalcul", () => {
     expect(resultService).toContain("ignoreDuplicates: true");
     expect(resultService).not.toContain("le nettoyage des blessures obsolètes");
+    expect(resultService.indexOf("le retrait des non-partants")).toBeLessThan(
+      resultService.indexOf('.upsert(rows, { onConflict: "stage_id,race_roster_id" })'),
+    );
   });
 
   it("répare les quatre indisponibilités confirmées de la Corsa", () => {
