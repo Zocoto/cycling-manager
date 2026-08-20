@@ -57,6 +57,11 @@ type RaceRosterRiderRow = {
   rider_id: string;
 };
 
+type PersistedCourseUnavailabilityRow = {
+  stage_id: string;
+  rider_id: string;
+};
+
 const OFFICIAL_SIMULATION_CLAIM_STALE_MS = 120_000;
 const OFFICIAL_SIMULATION_POLL_ATTEMPTS = 20;
 const OFFICIAL_SIMULATION_POLL_DELAY_MS = 75;
@@ -95,10 +100,19 @@ export async function ensureLockedOfficialRaceSimulations(
   const lockedByStageId = new Map(
     (data ?? []).map((row) => [row.stage_id, toLockedSimulation(row)])
   );
-  const persistedUnavailabilityWindows =
-    await loadPersistedRiderUnavailabilityWindows(calendar);
-  const persistedStageResultUnavailabilities =
-    await loadPersistedStageResultUnavailabilities(calendar);
+  const [
+    persistedUnavailabilityWindows,
+    persistedStageResultUnavailabilities,
+    persistedCourseUnavailabilities,
+  ] = await Promise.all([
+    loadPersistedRiderUnavailabilityWindows(calendar),
+    loadPersistedStageResultUnavailabilities(calendar),
+    loadPersistedCourseUnavailabilities(calendar),
+  ]);
+  const persistedStageUnavailabilities = [
+    ...persistedStageResultUnavailabilities,
+    ...persistedCourseUnavailabilities,
+  ];
   const directory: LockedOfficialRaceSimulationDirectory = {};
 
   for (const edition of calendar.editions) {
@@ -114,7 +128,7 @@ export async function ensureLockedOfficialRaceSimulations(
       for (const riderId of getPersistedStageResultUnavailableRiderIds({
         raceEditionId: edition.id,
         stageNumber: stage.stageNumber,
-        unavailabilities: persistedStageResultUnavailabilities,
+        unavailabilities: persistedStageUnavailabilities,
       })) {
         unavailableRiderIds.add(riderId);
       }
@@ -226,6 +240,69 @@ export async function ensureLockedOfficialRaceSimulations(
   }
 
   return directory;
+}
+
+/**
+ * Registre sportif immuable : il est écrit par l'homologation de la course,
+ * indépendamment de la Gazette et de l'état médical courant. Il permet de
+ * reconstruire une étape sans jamais faire repartir un coureur déjà retiré.
+ */
+async function loadPersistedCourseUnavailabilities(
+  calendar: SeasonRaceCalendar,
+): Promise<PersistedStageRiderUnavailability[]> {
+  const activeStageRaceEditions = calendar.editions.filter(
+    (edition) =>
+      edition.raceFormat === "stage_race" && edition.status === "in_progress",
+  );
+  const stageById = new Map(
+    activeStageRaceEditions.flatMap((edition) =>
+      edition.stages.map(
+        (stage) =>
+          [
+            stage.id,
+            {
+              raceEditionId: edition.id,
+              stageNumber: stage.stageNumber,
+            },
+          ] as const,
+      ),
+    ),
+  );
+  const stageIds = [...stageById.keys()];
+  if (stageIds.length === 0) return [];
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await collectChunkedPaginatedRows<
+    PersistedCourseUnavailabilityRow,
+    { message: string },
+    string
+  >({
+    values: stageIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("stage_rider_unavailabilities")
+        .select("stage_id, rider_id")
+        .in("stage_id", chunk)
+        .order("stage_id", { ascending: true })
+        .order("rider_id", { ascending: true })
+        .range(from, to)
+        .returns<PersistedCourseUnavailabilityRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+  assertQuery(error, "le registre sportif des non-partants");
+
+  return (data ?? []).flatMap((row) => {
+    const stage = stageById.get(row.stage_id);
+    return stage
+      ? [
+          {
+            ...stage,
+            riderId: row.rider_id,
+          },
+        ]
+      : [];
+  });
 }
 
 async function loadPersistedStageResultUnavailabilities(
