@@ -224,6 +224,54 @@ export function isUnavailableForFollowingStage(
   return result.status !== "finished" || result.injury !== null;
 }
 
+export type RiderUnavailabilityWindow = {
+  riderId: string;
+  startedAt: string;
+  expectedRecoveryAt: string;
+  recoveredAt: string | null;
+};
+
+/**
+ * Les blessures persistées peuvent être créées après la simulation (fatigue,
+ * soin, incident extérieur à la course). On les évalue à l'heure de départ de
+ * l'étape, et non avec `now()`, afin qu'une réparation historique conserve la
+ * bonne liste de partants même si le coureur a récupéré depuis.
+ */
+export function getPersistedUnavailableRiderIdsAtStageDeparture({
+  departureAt,
+  windows,
+}: {
+  departureAt: string | null;
+  windows: readonly RiderUnavailabilityWindow[];
+}) {
+  if (!departureAt) return [];
+
+  const departureTimestamp = Date.parse(departureAt);
+  if (!Number.isFinite(departureTimestamp)) return [];
+
+  return [
+    ...new Set(
+      windows.flatMap((window) => {
+        const startedTimestamp = Date.parse(window.startedAt);
+        const expectedRecoveryTimestamp = Date.parse(
+          window.expectedRecoveryAt,
+        );
+        const recoveredTimestamp = window.recoveredAt
+          ? Date.parse(window.recoveredAt)
+          : Number.POSITIVE_INFINITY;
+
+        return Number.isFinite(startedTimestamp) &&
+          Number.isFinite(expectedRecoveryTimestamp) &&
+          startedTimestamp <= departureTimestamp &&
+          expectedRecoveryTimestamp > departureTimestamp &&
+          recoveredTimestamp > departureTimestamp
+          ? [window.riderId]
+          : [];
+      }),
+    ),
+  ].sort();
+}
+
 export function simulationStartsUnavailableRider(
   simulation: Pick<StageSimulationResult, "results">,
   unavailableRiderIds: ReadonlySet<string>,

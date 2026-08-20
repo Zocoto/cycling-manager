@@ -5,11 +5,13 @@ import { randomUUID } from "node:crypto";
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
+  getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
   OFFICIAL_RACE_ENGINE_VERSION,
   simulationStartsUnavailableRider,
   type LockedOfficialRaceSimulationDirectory,
   type LockedOfficialStageSimulation,
+  type RiderUnavailabilityWindow,
 } from "@/lib/game/official-race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import {
@@ -34,6 +36,13 @@ type OfficialStageSimulationRow = {
 type OfficialSimulationClaimRow = {
   claim_token: string;
   claimed_at: string;
+};
+
+type RiderInjuryWindowRow = {
+  rider_id: string;
+  started_at: string;
+  expected_recovery_at: string;
+  recovered_at: string | null;
 };
 
 const OFFICIAL_SIMULATION_CLAIM_STALE_MS = 120_000;
@@ -74,6 +83,8 @@ export async function ensureLockedOfficialRaceSimulations(
   const lockedByStageId = new Map(
     (data ?? []).map((row) => [row.stage_id, toLockedSimulation(row)])
   );
+  const persistedUnavailabilityWindows =
+    await loadPersistedRiderUnavailabilityWindows(calendar);
   const directory: LockedOfficialRaceSimulationDirectory = {};
 
   for (const edition of calendar.editions) {
@@ -86,6 +97,13 @@ export async function ensureLockedOfficialRaceSimulations(
     );
 
     for (const stage of orderedStages) {
+      for (const riderId of getPersistedUnavailableRiderIdsAtStageDeparture({
+        departureAt: stage.departureAt,
+        windows: persistedUnavailabilityWindows,
+      })) {
+        unavailableRiderIds.add(riderId);
+      }
+
       let lockedSimulation = lockedByStageId.get(stage.id) ?? null;
       const startsUnavailableRider = lockedSimulation
         ? simulationStartsUnavailableRider(
@@ -187,6 +205,65 @@ export async function ensureLockedOfficialRaceSimulations(
   }
 
   return directory;
+}
+
+async function loadPersistedRiderUnavailabilityWindows(
+  calendar: SeasonRaceCalendar,
+): Promise<RiderUnavailabilityWindow[]> {
+  const riderIds = [
+    ...new Set(
+      calendar.editions.flatMap((edition) =>
+        edition.engagedRiders.map((rider) => rider.id),
+      ),
+    ),
+  ];
+  const departureTimestamps = calendar.editions
+    .flatMap((edition) => edition.stages)
+    .flatMap((stage) => {
+      const timestamp = stage.departureAt
+        ? Date.parse(stage.departureAt)
+        : Number.NaN;
+      return Number.isFinite(timestamp) ? [timestamp] : [];
+    });
+  if (riderIds.length === 0 || departureTimestamps.length === 0) return [];
+
+  const earliestDepartureAt = new Date(
+    Math.min(...departureTimestamps),
+  ).toISOString();
+  const latestDepartureAt = new Date(
+    Math.max(...departureTimestamps),
+  ).toISOString();
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await collectChunkedPaginatedRows<
+    RiderInjuryWindowRow,
+    { message: string },
+    string
+  >({
+    values: riderIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("rider_injuries")
+        .select(
+          "rider_id, started_at, expected_recovery_at, recovered_at",
+        )
+        .in("rider_id", chunk)
+        .lte("started_at", latestDepartureAt)
+        .gt("expected_recovery_at", earliestDepartureAt)
+        .order("rider_id", { ascending: true })
+        .order("started_at", { ascending: true })
+        .range(from, to)
+        .returns<RiderInjuryWindowRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+  assertQuery(error, "les indisponibilites medicales des partants");
+
+  return (data ?? []).map((row) => ({
+    riderId: row.rider_id,
+    startedAt: row.started_at,
+    expectedRecoveryAt: row.expected_recovery_at,
+    recoveredAt: row.recovered_at,
+  }));
 }
 
 async function acquireOfficialSimulationClaim(

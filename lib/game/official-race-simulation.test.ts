@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
   simulationStartsUnavailableRider,
 } from "./official-race-simulation";
@@ -49,5 +50,93 @@ describe("isUnavailableForFollowingStage", () => {
         new Set(["another-rider"]),
       ),
     ).toBe(false);
+  });
+});
+
+describe("getPersistedUnavailableRiderIdsAtStageDeparture", () => {
+  const departureAt = "2026-08-20T12:00:00.000Z";
+
+  it("exclut une blessure de fatigue active au départ", () => {
+    expect(
+      getPersistedUnavailableRiderIdsAtStageDeparture({
+        departureAt,
+        windows: [
+          {
+            riderId: "fatigue-after-stage-10",
+            startedAt: "2026-08-19T17:00:00.000Z",
+            expectedRecoveryAt: "2026-08-22T17:00:00.000Z",
+            recoveredAt: null,
+          },
+        ],
+      }),
+    ).toEqual(["fatigue-after-stage-10"]);
+  });
+
+  it("reconstruit l'éligibilité historique sans dépendre de la date courante", () => {
+    expect(
+      getPersistedUnavailableRiderIdsAtStageDeparture({
+        departureAt,
+        windows: [
+          {
+            riderId: "recovered-later",
+            startedAt: "2026-08-19T17:00:00.000Z",
+            expectedRecoveryAt: "2026-08-22T17:00:00.000Z",
+            recoveredAt: "2026-08-22T17:00:00.000Z",
+          },
+        ],
+      }),
+    ).toEqual(["recovered-later"]);
+  });
+
+  it("n'exclut ni une blessure future, ni un coureur déjà rétabli", () => {
+    expect(
+      getPersistedUnavailableRiderIdsAtStageDeparture({
+        departureAt,
+        windows: [
+          {
+            riderId: "future-injury",
+            startedAt: "2026-08-20T13:00:00.000Z",
+            expectedRecoveryAt: "2026-08-23T13:00:00.000Z",
+            recoveredAt: null,
+          },
+          {
+            riderId: "recovered-before-start",
+            startedAt: "2026-08-18T12:00:00.000Z",
+            expectedRecoveryAt: "2026-08-21T12:00:00.000Z",
+            recoveredAt: "2026-08-20T11:00:00.000Z",
+          },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it("ignore une étape sans horaire exploitable et déduplique les coureurs", () => {
+    const windows = [
+      {
+        riderId: "same-rider",
+        startedAt: "2026-08-19T17:00:00.000Z",
+        expectedRecoveryAt: "2026-08-22T17:00:00.000Z",
+        recoveredAt: null,
+      },
+      {
+        riderId: "same-rider",
+        startedAt: "2026-08-19T18:00:00.000Z",
+        expectedRecoveryAt: "2026-08-23T18:00:00.000Z",
+        recoveredAt: null,
+      },
+    ];
+
+    expect(
+      getPersistedUnavailableRiderIdsAtStageDeparture({
+        departureAt: null,
+        windows,
+      }),
+    ).toEqual([]);
+    expect(
+      getPersistedUnavailableRiderIdsAtStageDeparture({
+        departureAt,
+        windows,
+      }),
+    ).toEqual(["same-rider"]);
   });
 });
