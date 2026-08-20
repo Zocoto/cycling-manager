@@ -20,6 +20,12 @@ describe("GameNavigationMenu", () => {
     expect(markup).toContain('href="/jeu/parrainage"');
     expect(markup).toContain('href="/jeu/parrainage">Parrainage');
   });
+
+  it("masque les indicateurs de chargement qui se déforment dans le menu contextuel", () => {
+    const markup = renderToStaticMarkup(<GameNavigationMenu />);
+
+    expect(markup).not.toContain("app-link-pending-indicator");
+  });
   it("masque le suivi des joueurs aux comptes ordinaires", () => {
     const markup = renderToStaticMarkup(
       <GameNavigationMenu viewerEmail="membre@example.com" />,

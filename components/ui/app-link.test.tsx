@@ -88,4 +88,14 @@ describe("AppLink", () => {
     expect(markup).not.toContain("data-rider-preview-trigger");
     expect(markup).not.toContain("data-race-preview-trigger");
   });
+
+  it("permet de masquer l’indicateur de navigation dans un conteneur incompatible", () => {
+    const markup = renderToStaticMarkup(
+      <Link href="/jeu/finances" showPendingIndicator={false}>
+        Finances
+      </Link>,
+    );
+
+    expect(markup).not.toContain("app-link-pending-indicator");
+  });
 });
