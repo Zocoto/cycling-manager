@@ -12,6 +12,10 @@ import type {
   RaceCalendarStage,
   SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import {
+  NATIONAL_CHAMPIONSHIP_RESULTS_ONLY_ENGINE_VERSION,
+  shouldUseNationalChampionshipResultsOnly,
+} from "@/lib/game/national-championship-results-only";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
   buildPersistedGeneralClassification,
@@ -34,8 +38,10 @@ import {
 } from "@/lib/game/official-race-simulation";
 import {
   getStageAttackParticipants,
+  simulateRaceStageResultsOnly,
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
+import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -165,12 +171,25 @@ export async function settleFinishedRaceResults(
   const repairableCompletedEditionIds = await loadIncompleteCompletedEditionIds(
     { admin, calendar },
   );
+  const replayCalendar = {
+    ...calendar,
+    editions: calendar.editions.filter(
+      (edition) =>
+        !shouldUseNationalChampionshipResultsOnly({
+          gameYear: calendar.gameYear,
+          competitionType: edition.competitionType,
+        }),
+    ),
+  };
   const officialSimulations =
     lockedDirectory ??
-    (await ensureLockedOfficialRaceSimulations(calendar, now));
+    (replayCalendar.editions.length > 0
+      ? await ensureLockedOfficialRaceSimulations(replayCalendar, now)
+      : {});
   let processedStages = 0;
   let completedEditions = 0;
   let failedEditions = 0;
+  let needsDeferredConditionSettlement = false;
 
   for (const edition of calendar.editions) {
     if (!shouldSettleRaceEdition(edition, repairableCompletedEditionIds)) {
@@ -182,22 +201,70 @@ export async function settleFinishedRaceResults(
     // Chaque édition est consolidée indépendamment : une course en erreur ne
     // doit jamais bloquer les primes et classements de toutes les autres.
     try {
+      const resultsOnly = shouldUseNationalChampionshipResultsOnly({
+        gameYear: calendar.gameYear,
+        competitionType: edition.competitionType,
+      });
       const settlement = await settleEditionRaceResults({
         admin,
         calendar,
         edition,
         now,
-        lockedSimulations: officialSimulations[edition.id] ?? [],
+        resultsOnly,
+        lockedSimulations: resultsOnly
+          ? createNationalChampionshipResultsOnlySimulations({ edition, now })
+          : (officialSimulations[edition.id] ?? []),
       });
       processedStages += settlement.processedStages;
       completedEditions += settlement.completedEditions;
+      needsDeferredConditionSettlement ||=
+        resultsOnly && settlement.processedStages > 0;
     } catch (error) {
       failedEditions += 1;
       console.error(`Impossible de consolider ${edition.name} :`, error);
     }
   }
 
+  if (needsDeferredConditionSettlement) {
+    const { error } = await admin.rpc("settle_finished_race_conditions");
+    assertQuery(error, "la consolidation groupée des conditions après les CN");
+  }
+
   return { processedStages, completedEditions, failedEditions };
+}
+
+function createNationalChampionshipResultsOnlySimulations({
+  edition,
+  now,
+}: {
+  edition: RaceCalendarEdition;
+  now: Date;
+}): LockedOfficialStageSimulation[] {
+  return [...edition.stages]
+    .sort(
+      (first, second) =>
+        first.stageNumber - second.stageNumber ||
+        first.id.localeCompare(second.id),
+    )
+    .flatMap((stage) => {
+      if (getStageLiveState(stage, now).status !== "finished") return [];
+
+      const input = createCalendarSimulationInput({
+        edition,
+        stage,
+        seed: `${edition.id}:${stage.id}:national-results-only-s2`,
+      });
+      return [
+        {
+          stageId: stage.id,
+          raceEditionId: edition.id,
+          engineVersion: NATIONAL_CHAMPIONSHIP_RESULTS_ONLY_ENGINE_VERSION,
+          seed: String(input.seed),
+          input,
+          simulation: simulateRaceStageResultsOnly(input),
+        },
+      ];
+    });
 }
 
 async function settleEditionRaceResults({
@@ -205,12 +272,14 @@ async function settleEditionRaceResults({
   calendar,
   edition,
   now,
+  resultsOnly,
   lockedSimulations,
 }: {
   admin: AdminClient;
   calendar: SeasonRaceCalendar;
   edition: RaceCalendarEdition;
   now: Date;
+  resultsOnly: boolean;
   lockedSimulations: LockedOfficialStageSimulation[];
 }) {
   const minimumFieldSize = edition.competitionType === "standard" ? 2 : 1;
@@ -247,7 +316,7 @@ async function settleEditionRaceResults({
   const firstStageSimulation = editionSimulations.find(
     (lockedSimulation) => lockedSimulation.stageId === orderedStages[0]?.id,
   );
-  if (firstStageSimulation) {
+  if (firstStageSimulation && !resultsOnly) {
     const simulationRiderIds = new Set(
       firstStageSimulation.simulation.results.map((result) => result.riderId),
     );
@@ -320,6 +389,7 @@ async function settleEditionRaceResults({
         edition,
         stage,
         simulation,
+        resultsOnly,
         rosterByRiderId,
       });
       processedStages += 1;
@@ -962,12 +1032,14 @@ async function persistStageResult({
   edition,
   stage,
   simulation,
+  resultsOnly,
   rosterByRiderId,
 }: {
   admin: AdminClient;
   edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   simulation: StageSimulationResult;
+  resultsOnly: boolean;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const injuryIdByRiderId = new Map<string, string>();
@@ -1087,13 +1159,15 @@ async function persistStageResult({
     .upsert(rows, { onConflict: "stage_id,race_roster_id" });
   assertQuery(error, `l’enregistrement du classement de ${stage.name}`);
 
-  const { error: conditionSettlementError } = await admin.rpc(
-    "settle_finished_race_conditions",
-  );
-  assertQuery(
-    conditionSettlementError,
-    `condition settlement before HT withdrawal for ${stage.name}`,
-  );
+  if (!resultsOnly) {
+    const { error: conditionSettlementError } = await admin.rpc(
+      "settle_finished_race_conditions",
+    );
+    assertQuery(
+      conditionSettlementError,
+      `condition settlement before HT withdrawal for ${stage.name}`,
+    );
+  }
 
   if (edition.raceFormat === "stage_race") {
     const outsideTimeLimitRosterIds = rows
@@ -1111,19 +1185,21 @@ async function persistStageResult({
     }
   }
 
-  await persistStageAttackParticipants({
-    admin,
-    stage,
-    simulation,
-    rosterByRiderId,
-  });
+  if (!resultsOnly) {
+    await persistStageAttackParticipants({
+      admin,
+      stage,
+      simulation,
+      rosterByRiderId,
+    });
 
-  await persistPostRaceNewsEvents({
-    admin,
-    edition,
-    stage,
-    simulation,
-  });
+    await persistPostRaceNewsEvents({
+      admin,
+      edition,
+      stage,
+      simulation,
+    });
+  }
 
   const { error: stageError } = await admin
     .from("stages")

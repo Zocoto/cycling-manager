@@ -6,6 +6,9 @@ import { NationalChampionshipStageResults } from "@/components/game/national-cha
 import { RaceStageExperience } from "@/components/game/race-stage-experience";
 import { RaceStageNavigation } from "@/components/game/race-stage-navigation";
 import Link from "@/components/ui/app-link";
+import {
+  shouldUseNationalChampionshipResultsOnly,
+} from "@/lib/game/national-championship-results-only";
 import type { LockedOfficialRaceSimulationDirectory } from "@/lib/game/official-race-simulation";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { getRaceWeather, getRaceWeatherLabel } from "@/lib/game/race-weather";
@@ -91,6 +94,11 @@ export default async function RaceLivePage({
     edition.competitionType,
   );
   const isNationalChampionship = nationalDiscipline !== null;
+  const resultsOnlyNationalChampionship =
+    shouldUseNationalChampionshipResultsOnly({
+      gameYear: calendar.gameYear,
+      competitionType: edition.competitionType,
+    });
   if (nationalDiscipline) {
     const relevantCountries =
       await getCurrentTeamNationalChampionshipCountryCodes({
@@ -104,7 +112,7 @@ export default async function RaceLivePage({
 
   const state = getStageLiveState(stage, now);
   const lockedSimulationDirectory: LockedOfficialRaceSimulationDirectory =
-    state.status === "scheduled"
+    state.status === "scheduled" || resultsOnlyNationalChampionship
       ? {}
       : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
           (error: unknown) => {

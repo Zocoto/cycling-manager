@@ -704,6 +704,116 @@ export function reduceMechanicalIncidentTimeLoss(
 export function simulateRaceStage(
   input: StageSimulationInput,
 ): StageSimulationResult {
+  const normalizedInput = normalizeStageSimulationInput(input);
+
+  let simulation: StageSimulationResult;
+
+  if (
+    normalizedInput.stageType === "individual_time_trial" ||
+    normalizedInput.stageType === "prologue"
+  ) {
+    simulation = simulateIndividualTimeTrial(normalizedInput);
+  } else if (normalizedInput.stageType === "team_time_trial") {
+    simulation = simulateTeamTimeTrial(normalizedInput);
+  } else {
+    simulation = simulateRoadStage(normalizedInput);
+  }
+
+  return applyStageTimeLimit(simulation, normalizedInput);
+}
+
+/**
+ * Produit uniquement un classement déterministe, sans chronologie, incidents,
+ * primes intermédiaires ni replay. Ce moteur est réservé aux championnats
+ * nationaux à partir de la saison 2 afin que tous les pays puissent être
+ * résolus dans la même tâche serveur sans fabriquer de lourds JSON de live.
+ */
+export function simulateRaceStageResultsOnly(
+  input: StageSimulationInput,
+): StageSimulationResult {
+  const normalizedInput = normalizeStageSimulationInput(input);
+  const distanceKm = Math.max(
+    1,
+    normalizedInput.segments.reduce(
+      (total, segment) => total + segment.distanceKm,
+      0,
+    ),
+  );
+  const averageSpeedKph =
+    normalizedInput.segments.reduce(
+      (total, segment) => total + getBaseSpeed(segment) * segment.distanceKm,
+      0,
+    ) / distanceKm;
+  const winnerElapsedTimeSeconds = Math.max(
+    1,
+    Math.round((distanceKm / Math.max(1, averageSpeedKph)) * 3_600),
+  );
+  const isTimeTrial =
+    normalizedInput.stageType === "individual_time_trial" ||
+    normalizedInput.stageType === "team_time_trial" ||
+    normalizedInput.stageType === "prologue";
+  const scoredRiders = normalizedInput.riders
+    .map((rider) => {
+      const random = createSeededRandom(
+        `${normalizedInput.seed}:${rider.id}:results-only`,
+      );
+      const performanceRating = isTimeTrial
+        ? getResultsOnlyTimeTrialRating(rider, normalizedInput)
+        : getResultsOnlyRoadRating(rider, normalizedInput);
+
+      return {
+        rider,
+        score: performanceRating + (random() - 0.5) * (isTimeTrial ? 4 : 6),
+      };
+    })
+    .sort(
+      (first, second) =>
+        second.score - first.score ||
+        first.rider.id.localeCompare(second.rider.id),
+    );
+  const winnerScore = scoredRiders[0]?.score ?? 0;
+  const gapMultiplier = isTimeTrial
+    ? 5.5
+    : {
+        flat: 0.55,
+        sprint: 0.45,
+        hilly: 4.5,
+        mountain: 7.5,
+        cobbles: 3.5,
+        time_trial: 5.5,
+        mixed: 4,
+      }[normalizedInput.profileType];
+
+  return {
+    stageId: normalizedInput.id,
+    seed: String(normalizedInput.seed),
+    resolvedRiders: normalizedInput.riders,
+    timeline: [],
+    results: scoredRiders.map(({ rider, score }, index) => {
+      const gapToWinnerSeconds =
+        index === 0
+          ? 0
+          : Math.max(0, Math.round((winnerScore - score) * gapMultiplier));
+      return {
+        riderId: rider.id,
+        rank: index + 1,
+        status: "finished" as const,
+        elapsedTimeSeconds: winnerElapsedTimeSeconds + gapToWinnerSeconds,
+        gapToWinnerSeconds,
+        energyAfter: round(clamp(rider.form - distanceKm / 6, 5, 100), 2),
+        injury: null,
+        abandonment: null,
+      };
+    }),
+    primes: [],
+    mountainPoints: {},
+    sprintPoints: {},
+  };
+}
+
+function normalizeStageSimulationInput(
+  input: StageSimulationInput,
+): StageSimulationInput {
   validateTimeTrialPlans(input);
   const weather =
     input.weather ??
@@ -784,20 +894,59 @@ export function simulateRaceStage(
     }),
   };
 
-  let simulation: StageSimulationResult;
+  return normalizedInput;
+}
 
-  if (
-    input.stageType === "individual_time_trial" ||
-    input.stageType === "prologue"
-  ) {
-    simulation = simulateIndividualTimeTrial(normalizedInput);
-  } else if (input.stageType === "team_time_trial") {
-    simulation = simulateTeamTimeTrial(normalizedInput);
-  } else {
-    simulation = simulateRoadStage(normalizedInput);
-  }
+function getResultsOnlyTimeTrialRating(
+  rider: RiderSimulationInput,
+  input: StageSimulationInput,
+) {
+  const totalDistance = Math.max(
+    1,
+    input.segments.reduce((total, segment) => total + segment.distanceKm, 0),
+  );
+  return input.segments.reduce(
+    (total, segment) =>
+      total +
+      getTimeTrialSegmentRating(rider, segment, input.stageType) *
+        (segment.distanceKm / totalDistance),
+    0,
+  );
+}
 
-  return applyStageTimeLimit(simulation, normalizedInput);
+function getResultsOnlyRoadRating(
+  rider: RiderSimulationInput,
+  input: StageSimulationInput,
+) {
+  const finishRating =
+    input.profileType === "flat" || input.profileType === "sprint"
+      ? rider.ratings.sprint * 0.48 +
+        rider.ratings.acceleration * 0.25 +
+        rider.ratings.flat * 0.15 +
+        rider.ratings.resistance * 0.12
+      : input.profileType === "hilly"
+        ? rider.ratings.hills * 0.45 +
+          rider.ratings.acceleration * 0.22 +
+          rider.ratings.resistance * 0.15 +
+          rider.ratings.endurance * 0.1 +
+          rider.ratings.sprint * 0.08
+        : input.profileType === "mountain"
+          ? rider.ratings.mountain * 0.5 +
+            rider.ratings.hills * 0.16 +
+            rider.ratings.endurance * 0.16 +
+            rider.ratings.resistance * 0.1 +
+            rider.ratings.acceleration * 0.08
+          : input.profileType === "cobbles"
+            ? rider.ratings.cobbles * 0.46 +
+              rider.ratings.flat * 0.18 +
+              rider.ratings.resistance * 0.16 +
+              rider.ratings.endurance * 0.12 +
+              rider.ratings.acceleration * 0.08
+            : getDecisiveRoadFinishRating(rider, input.segments);
+
+  return (
+    getStageSuitability(rider, input.segments) * 0.72 + finishRating * 0.28
+  );
 }
 
 export function getStageTimeLimitAllowanceSeconds({
