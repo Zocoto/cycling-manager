@@ -86,7 +86,7 @@ export type FanClubProduct = {
   name: string;
   description: string;
   requiredShopLevel: number;
-  wholesaleHistory: ReadonlyArray<number>;
+  baseWholesalePrice: number;
   suggestedSalePrice: number;
   baseDailyPurchaseRate: number;
   priceElasticity: number;
@@ -433,7 +433,7 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     name: "Maillot de l’équipe",
     description: "Réplique officielle du maillot porté par les coureurs.",
     requiredShopLevel: 1,
-    wholesaleHistory: [36, 35, 37, 39, 38, 40, 38],
+    baseWholesalePrice: 38,
     suggestedSalePrice: 69,
     baseDailyPurchaseRate: 0.0015,
     priceElasticity: 1.6,
@@ -448,7 +448,7 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     name: "Bidon",
     description: "Bidon cycliste aux couleurs de l’équipe.",
     requiredShopLevel: 2,
-    wholesaleHistory: [5.1, 5, 5.2, 5.4, 5.3, 5.1, 5.2],
+    baseWholesalePrice: 5.2,
     suggestedSalePrice: 12,
     baseDailyPurchaseRate: 0.003,
     priceElasticity: 1.35,
@@ -463,7 +463,7 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     name: "Fanion",
     description: "Petit fanion textile à afficher ou emmener sur les courses.",
     requiredShopLevel: 3,
-    wholesaleHistory: [7.4, 7.6, 7.8, 8.1, 8, 8.2, 8],
+    baseWholesalePrice: 8,
     suggestedSalePrice: 18,
     baseDailyPurchaseRate: 0.0022,
     priceElasticity: 1.45,
@@ -478,7 +478,7 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     name: "Casquette",
     description: "Casquette officielle avec le logo du club.",
     requiredShopLevel: 4,
-    wholesaleHistory: [9.2, 9.1, 9.4, 9.7, 9.6, 9.8, 9.5],
+    baseWholesalePrice: 9.5,
     suggestedSalePrice: 24,
     baseDailyPurchaseRate: 0.002,
     priceElasticity: 1.5,
@@ -493,7 +493,7 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
     name: "Ballon de supporter",
     description: "Ballon gonflable aux couleurs de l’équipe pour les arrivées.",
     requiredShopLevel: 5,
-    wholesaleHistory: [1.7, 1.8, 1.75, 1.9, 1.85, 1.8, 1.82],
+    baseWholesalePrice: 1.82,
     suggestedSalePrice: 5,
     baseDailyPurchaseRate: 0.004,
     priceElasticity: 1.2,
@@ -627,13 +627,19 @@ export function calculateFanClubTripPreview({
   };
 }
 
-export function getCurrentWholesalePrice(product: FanClubProduct): number {
-  return product.wholesaleHistory.at(-1) ?? 0;
+export function getCurrentWholesalePrice(
+  product: FanClubProduct,
+  history: ReadonlyArray<number> = [],
+): number {
+  return history.at(-1) ?? product.baseWholesalePrice;
 }
 
-export function getWholesaleTrendPercent(product: FanClubProduct): number {
-  const firstPrice = product.wholesaleHistory[0] ?? 0;
-  const currentPrice = getCurrentWholesalePrice(product);
+export function getWholesaleTrendPercent(
+  product: FanClubProduct,
+  history: ReadonlyArray<number> = [],
+): number {
+  const firstPrice = history[0] ?? product.baseWholesalePrice;
+  const currentPrice = getCurrentWholesalePrice(product, history);
   if (firstPrice <= 0) return 0;
   return ((currentPrice - firstPrice) / firstPrice) * 100;
 }

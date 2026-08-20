@@ -42,6 +42,7 @@ const MANAGEMENT = {
   trips: [],
   inventory: [],
   recentSales: [],
+  wholesaleMarket: [],
 } satisfies FanClubManagementState;
 
 const SPONSOR_JERSEY = {

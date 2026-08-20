@@ -18,6 +18,7 @@ import {
   getAvailableCarsForRace,
   type FanClubManagementState,
   type FanClubTripAllocation,
+  type FanClubWholesalePrice,
 } from "@/lib/game/fan-club-management";
 import {
   calculateCarResalePrice,
@@ -555,6 +556,20 @@ function StorePanel({
   const totalStock = management.inventory.reduce((sum, item) => sum + item.quantity, 0);
   const capacityLeft = Math.max(0, level.capacity - totalStock);
   const selectedProduct = products.find((product) => product.id === productId) ?? products[0];
+  const wholesaleHistoryByProduct = new Map(
+    products.map((product) => [
+      product.id,
+      [...management.wholesaleMarket]
+        .filter((quote) => quote.productId === product.id)
+        .sort((left, right) => left.dayNumber - right.dayNumber),
+    ]),
+  );
+  const selectedWholesaleHistory = selectedProduct
+    ? wholesaleHistoryByProduct.get(selectedProduct.id) ?? []
+    : [];
+  const selectedWholesalePrices = selectedWholesaleHistory.map(
+    (quote) => quote.unitCost,
+  );
 
   return (
     <div className="space-y-6">
@@ -641,7 +656,13 @@ function StorePanel({
           />
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {products.map((product) => {
-              const trend = getWholesaleTrendPercent(product);
+              const wholesaleHistory = wholesaleHistoryByProduct.get(product.id) ?? [];
+              const wholesalePrices = wholesaleHistory.map((quote) => quote.unitCost);
+              const trend = getWholesaleTrendPercent(product, wholesalePrices);
+              const currentWholesalePrice = getCurrentWholesalePrice(
+                product,
+                wholesalePrices,
+              );
               return (
                 <button
                   key={product.id} type="button" aria-pressed={product.id === selectedProduct.id}
@@ -653,7 +674,7 @@ function StorePanel({
                 >
                   <StoreProductVisual productId={product.id} sponsorIdentity={sponsorIdentity} compact />
                   <span className="block font-black text-[var(--fan-ink)]">{product.name}</span>
-                  <span className="mt-3 block text-lg font-black text-[var(--fan-secondary)]">{decimalEuroFormatter.format(getCurrentWholesalePrice(product))}</span>
+                  <span className="mt-3 block text-lg font-black text-[var(--fan-secondary)]">{decimalEuroFormatter.format(currentWholesalePrice)}</span>
                   <span className={[
                     "mt-1 block text-xs font-black",
                     trend >= 0 ? "text-[var(--fan-primary)]" : "text-[#B34A42]",
@@ -666,8 +687,11 @@ function StorePanel({
             <div className="rounded-2xl border border-[var(--fan-line)] bg-[var(--fan-surface)] p-5">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-secondary)]">Cours des sept derniers jours</p>
               <h3 className="mt-1 text-xl font-black text-[var(--fan-ink)]">{selectedProduct.name}</h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">{selectedProduct.description}</p>
-              <PriceCourse product={selectedProduct} />
+              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--fan-muted)]">Cours global, identique pour toutes les équipes et actualisé à chaque nouvelle journée de jeu.</p>
+              <PriceCourse
+                product={selectedProduct}
+                history={selectedWholesaleHistory}
+              />
             </div>
             <aside className="rounded-2xl bg-[var(--fan-primary)] p-5 text-white">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--fan-accent)]">Bon de commande</p>
@@ -676,8 +700,8 @@ function StorePanel({
                 <input type="number" min={1} max={Math.max(1, capacityLeft)} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.floor(Number(event.target.value))))} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-white/10 px-4 font-black text-white outline-none focus:border-[var(--fan-accent)]" />
               </label>
               <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
-                <PreviewLine label="Prix unitaire" value={decimalEuroFormatter.format(getCurrentWholesalePrice(selectedProduct))} />
-                <PreviewLine label="Total" value={decimalEuroFormatter.format(quantity * getCurrentWholesalePrice(selectedProduct))} />
+                <PreviewLine label="Prix unitaire" value={decimalEuroFormatter.format(getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices))} />
+                <PreviewLine label="Total" value={decimalEuroFormatter.format(quantity * getCurrentWholesalePrice(selectedProduct, selectedWholesalePrices))} />
               </dl>
               <button
                 type="button" disabled={isPending || capacityLeft <= 0 || quantity > capacityLeft}
@@ -793,12 +817,50 @@ function formatStoreMargin(amount: number, rate: number | null): string {
   return `${formattedAmount} · ${rate >= 0 ? "+" : ""}${formattedRate} %`;
 }
 
-function PriceCourse({ product }: { product: (typeof FAN_CLUB_PRODUCTS)[number] }) {
-  const minimum = Math.min(...product.wholesaleHistory);
-  const maximum = Math.max(...product.wholesaleHistory);
+function PriceCourse({
+  product,
+  history,
+}: {
+  product: (typeof FAN_CLUB_PRODUCTS)[number];
+  history: ReadonlyArray<FanClubWholesalePrice>;
+}) {
+  const quotes = history.length > 0
+    ? history
+    : [{ productId: product.id, dayNumber: 1, unitCost: product.baseWholesalePrice }];
+  const prices = quotes.map((quote) => quote.unitCost);
+  const minimum = Math.min(...prices);
+  const maximum = Math.max(...prices);
   const range = Math.max(0.01, maximum - minimum);
-  const points = product.wholesaleHistory.map((price, index) => `${index / (product.wholesaleHistory.length - 1) * 100},${34 - (price - minimum) / range * 28}`).join(" ");
-  return <svg viewBox="0 0 100 40" role="img" aria-label={`Évolution du cours de ${product.name} sur sept jours`} className="mt-5 h-32 w-full overflow-visible" preserveAspectRatio="none"><line x1="0" y1="34" x2="100" y2="34" stroke="var(--fan-line)" strokeWidth="0.6" /><polyline points={points} fill="none" stroke="var(--fan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  const denominator = Math.max(1, prices.length - 1);
+  const points = prices.map((price, index) => `${index / denominator * 100},${34 - (price - minimum) / range * 28}`).join(" ");
+  const accessibleHistory = quotes
+    .map((quote) => `J${quote.dayNumber} : ${decimalEuroFormatter.format(quote.unitCost)}`)
+    .join(", ");
+
+  return (
+    <div className="mt-5">
+      <svg viewBox="0 0 100 40" role="img" aria-label={`Évolution du cours de ${product.name}. ${accessibleHistory}`} className="h-32 w-full overflow-visible" preserveAspectRatio="none">
+        <line x1="0" y1="34" x2="100" y2="34" stroke="var(--fan-line)" strokeWidth="0.6" />
+        <polyline points={points} fill="none" stroke="var(--fan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        {prices.map((price, index) => (
+          <circle
+            key={quotes[index]?.dayNumber ?? index}
+            cx={index / denominator * 100}
+            cy={34 - (price - minimum) / range * 28}
+            r="1.4"
+            fill="var(--fan-accent)"
+            stroke="var(--fan-primary)"
+            strokeWidth="0.8"
+          />
+        ))}
+      </svg>
+      <div className="mt-2 flex justify-between text-[10px] font-black text-[var(--fan-muted)]">
+        <span>J{quotes[0]?.dayNumber}</span>
+        <span>{decimalEuroFormatter.format(prices.at(-1) ?? product.baseWholesalePrice)} aujourd’hui</span>
+        <span>J{quotes.at(-1)?.dayNumber}</span>
+      </div>
+    </div>
+  );
 }
 
 function Surface({ children, ariaLive = false }: { children: React.ReactNode; ariaLive?: boolean }) {

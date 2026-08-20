@@ -8,8 +8,10 @@ import {
   FAN_CLUB_PRODUCTS,
   FAN_CLUB_SHOP_LEVELS,
   getAvailableTravelingSupporters,
+  getCurrentWholesalePrice,
   getFanClubPriceDemandFactor,
   getPopularityMaturityCap,
+  getWholesaleTrendPercent,
 } from "./fan-club-pilot";
 
 describe("popularité du Fan Club", () => {
@@ -95,6 +97,14 @@ describe("boutique du Fan Club", () => {
 
     expect(fairPriceDemand).toBeGreaterThan(0);
     expect(unmarketableDemand).toBe(0);
+  });
+
+  it("calcule le cours courant et sa tendance depuis l’historique réel", () => {
+    expect(getCurrentWholesalePrice(jersey, [36.5, 37.25, 38.75])).toBe(38.75);
+    expect(getWholesaleTrendPercent(jersey, [36.5, 37.25, 38.75])).toBeCloseTo(
+      6.16,
+      1,
+    );
   });
 
   it("fait chuter la demande au-delà de 100 % de marge", () => {

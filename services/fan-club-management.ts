@@ -5,6 +5,7 @@ import type {
   FanClubManagementState,
   FanClubShopSale,
   FanClubTripAllocation,
+  FanClubWholesalePrice,
 } from "@/lib/game/fan-club-management";
 import type { FanClubLiveData } from "@/lib/game/fan-club-pilot";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -39,6 +40,11 @@ type SaleRow = {
 };
 type EditionRow = { id: string; display_name: string; status: string };
 type SeasonRow = { id: string; name: string };
+type WholesalePriceRow = {
+  product_code: string;
+  day_number: number;
+  unit_cost: number | string;
+};
 
 export async function getFanClubManagementState({
   supabase,
@@ -68,7 +74,13 @@ export async function getFanClubManagementState({
   );
   assertQuery(settlementResult.error, "les ventes quotidiennes du Fan Club");
 
-  const [fleetResult, tripsResult, inventoryResult, salesResult] =
+  const [
+    fleetResult,
+    tripsResult,
+    inventoryResult,
+    salesResult,
+    wholesaleMarketResult,
+  ] =
     await Promise.all([
       supabase
         .from("fan_club_fleet")
@@ -98,15 +110,23 @@ export async function getFanClubManagementState({
         .order("created_at", { ascending: false })
         .limit(20)
         .returns<SaleRow[]>(),
+      supabase.rpc("get_current_fan_club_wholesale_market"),
     ]);
 
   assertQuery(fleetResult.error, "le parc de cars du Fan Club");
   assertQuery(tripsResult.error, "les déplacements du Fan Club");
   assertQuery(inventoryResult.error, "le stock du Fan Club");
   assertQuery(salesResult.error, "les ventes du Fan Club");
+  assertQuery(
+    wholesaleMarketResult.error,
+    "le cours des matières premières du Fan Club",
+  );
 
   const tripRows = tripsResult.data ?? [];
   const saleRows = salesResult.data ?? [];
+  const wholesaleMarketRows = Array.isArray(wholesaleMarketResult.data)
+    ? (wholesaleMarketResult.data as unknown as WholesalePriceRow[])
+    : [];
   const editionIds = [...new Set(tripRows.map((row) => row.race_edition_id))];
   const seasonIds = [...new Set(saleRows.map((row) => row.season_id))];
   const [editionsResult, seasonsResult] = await Promise.all([
@@ -170,6 +190,13 @@ export async function getFanClubManagementState({
       revenue: Number(row.revenue),
       demandFactor: Number(row.demand_factor),
     })),
+    wholesaleMarket: wholesaleMarketRows.map<FanClubWholesalePrice>(
+      (row) => ({
+        productId: row.product_code,
+        dayNumber: row.day_number,
+        unitCost: Number(row.unit_cost),
+      }),
+    ),
   };
 }
 

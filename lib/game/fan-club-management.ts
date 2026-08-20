@@ -33,11 +33,18 @@ export type FanClubShopSale = {
   demandFactor: number;
 };
 
+export type FanClubWholesalePrice = {
+  productId: string;
+  dayNumber: number;
+  unitCost: number;
+};
+
 export type FanClubManagementState = {
   fleet: Readonly<Record<string, number>>;
   trips: ReadonlyArray<FanClubTripAllocation>;
   inventory: ReadonlyArray<FanClubInventoryItem>;
   recentSales: ReadonlyArray<FanClubShopSale>;
+  wholesaleMarket: ReadonlyArray<FanClubWholesalePrice>;
 };
 
 export type FanClubSalesForecast = {
