@@ -101,14 +101,6 @@ describe("intégration résultats seuls des CN", () => {
     join(process.cwd(), "app/jeu/resultats/[slug]/[stageNumber]/page.tsx"),
     "utf8",
   );
-  const migration = readFileSync(
-    join(
-      process.cwd(),
-      "supabase/migrations/20260820160000_remove_s2_national_championship_lives.sql",
-    ),
-    "utf8",
-  );
-
   it("écarte les CN S2+ du verrouillage des scénarios de replay", () => {
     expect(service).toContain("replayCalendar");
     expect(service).toContain("simulateRaceStageResultsOnly(input)");
@@ -117,16 +109,9 @@ describe("intégration résultats seuls des CN", () => {
     );
   });
 
-  it("purge les artefacts de live sans toucher aux classements", () => {
-    expect(migration).toContain("season.game_year >= 2");
-    expect(migration).toContain("'national_road', 'national_time_trial'");
-    expect(migration).toContain(
-      "delete from public.official_stage_simulation_claims",
-    );
-    expect(migration).toContain(
-      "delete from public.official_stage_simulations",
-    );
-    expect(migration).not.toContain("delete from public.stage_results");
-    expect(migration).not.toContain("delete from public.race_results");
+  it("désactive les traitements annexes du live pour les classements seuls", () => {
+    expect(service).toContain("if (!resultsOnly)");
+    expect(service).toContain("persistStageAttackParticipants");
+    expect(service).toContain("persistPostRaceNewsEvents");
   });
 });
