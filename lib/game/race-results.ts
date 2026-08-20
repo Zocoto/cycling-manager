@@ -97,8 +97,10 @@ export type PersistedStageRaceStandings = {
 export function shouldSettleRaceEdition(
   edition: { id: string; status?: string },
   repairableCompletedEditionIds: ReadonlySet<string>,
+  hasPendingStage = false,
 ) {
   if (edition.status === "cancelled") return false;
+  if (edition.status === "completed" && hasPendingStage) return true;
   if (edition.status !== "completed") return true;
 
   return repairableCompletedEditionIds.has(edition.id);

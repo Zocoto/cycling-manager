@@ -53,6 +53,13 @@ describe("race settlement selection", () => {
       ),
     ).toBe(true);
     expect(shouldSettleRaceEdition({ id: "completed-healthy", status: "completed" }, incompleteCompletedIds)).toBe(false);
+    expect(
+      shouldSettleRaceEdition(
+        { id: "completed-but-still-racing", status: "completed" },
+        incompleteCompletedIds,
+        true,
+      ),
+    ).toBe(true);
   });
 });
 

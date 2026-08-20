@@ -196,7 +196,16 @@ export async function settleFinishedRaceResults(
   let needsDeferredConditionSettlement = false;
 
   for (const edition of calendar.editions) {
-    if (!shouldSettleRaceEdition(edition, repairableCompletedEditionIds)) {
+    const hasPendingStage = edition.stages.some(
+      (stage) => getStageLiveState(stage, now).status !== "finished",
+    );
+    if (
+      !shouldSettleRaceEdition(
+        edition,
+        repairableCompletedEditionIds,
+        hasPendingStage,
+      )
+    ) {
       continue;
     }
     // La fin de journée marque les éditions « completed » même si leurs
@@ -298,7 +307,10 @@ async function settleEditionRaceResults({
 
   // Une édition déjà clôturée avec un classement général complet est saine :
   // inutile de la retraiter.
-  if (edition.status === "completed") {
+  const hasPendingStage = orderedStages.some(
+    (stage) => getStageLiveState(stage, now).status !== "finished",
+  );
+  if (edition.status === "completed" && !hasPendingStage) {
     const alreadySettled = await hasCompleteRaceClassification(
       admin,
       edition.id,
