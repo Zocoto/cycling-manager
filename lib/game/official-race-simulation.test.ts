@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getPersistedStageResultUnavailableRiderIds,
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
   simulationStartsUnavailableRider,
@@ -138,5 +139,36 @@ describe("getPersistedUnavailableRiderIdsAtStageDeparture", () => {
         windows,
       }),
     ).toEqual(["same-rider"]);
+  });
+});
+
+describe("getPersistedStageResultUnavailableRiderIds", () => {
+  it("propage toutes les indisponibilités officielles aux étapes suivantes du même tour", () => {
+    const unavailabilities = [
+      { raceEditionId: "tour-a", stageNumber: 10, riderId: "nikolic" },
+      { raceEditionId: "tour-a", stageNumber: 10, riderId: "ardennes" },
+      { raceEditionId: "tour-b", stageNumber: 2, riderId: "other-race" },
+      { raceEditionId: "tour-a", stageNumber: 11, riderId: "current-stage" },
+    ];
+
+    expect(
+      getPersistedStageResultUnavailableRiderIds({
+        raceEditionId: "tour-a",
+        stageNumber: 11,
+        unavailabilities,
+      }),
+    ).toEqual(["ardennes", "nikolic"]);
+  });
+
+  it("ne retire pas le coureur de l'étape où l'incident a eu lieu", () => {
+    expect(
+      getPersistedStageResultUnavailableRiderIds({
+        raceEditionId: "tour-a",
+        stageNumber: 10,
+        unavailabilities: [
+          { raceEditionId: "tour-a", stageNumber: 10, riderId: "injured" },
+        ],
+      }),
+    ).toEqual([]);
   });
 });

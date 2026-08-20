@@ -231,6 +231,12 @@ export type RiderUnavailabilityWindow = {
   recoveredAt: string | null;
 };
 
+export type PersistedStageRiderUnavailability = {
+  raceEditionId: string;
+  stageNumber: number;
+  riderId: string;
+};
+
 /**
  * Les blessures persistées peuvent être créées après la simulation (fatigue,
  * soin, incident extérieur à la course). On les évalue à l'heure de départ de
@@ -268,6 +274,32 @@ export function getPersistedUnavailableRiderIdsAtStageDeparture({
           ? [window.riderId]
           : [];
       }),
+    ),
+  ].sort();
+}
+
+/**
+ * Les résultats officiels déjà enregistrés restent la source de vérité si un
+ * ancien scénario verrouillé a divergé depuis. Toute blessure ou élimination
+ * constatée à une étape interdit de reprendre le départ plus tard dans le tour.
+ */
+export function getPersistedStageResultUnavailableRiderIds({
+  raceEditionId,
+  stageNumber,
+  unavailabilities,
+}: {
+  raceEditionId: string;
+  stageNumber: number;
+  unavailabilities: readonly PersistedStageRiderUnavailability[];
+}) {
+  return [
+    ...new Set(
+      unavailabilities.flatMap((unavailability) =>
+        unavailability.raceEditionId === raceEditionId &&
+        unavailability.stageNumber < stageNumber
+          ? [unavailability.riderId]
+          : [],
+      ),
     ),
   ].sort();
 }

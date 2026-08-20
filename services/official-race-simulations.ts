@@ -5,12 +5,14 @@ import { randomUUID } from "node:crypto";
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import {
+  getPersistedStageResultUnavailableRiderIds,
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
   OFFICIAL_RACE_ENGINE_VERSION,
   simulationStartsUnavailableRider,
   type LockedOfficialRaceSimulationDirectory,
   type LockedOfficialStageSimulation,
+  type PersistedStageRiderUnavailability,
   type RiderUnavailabilityWindow,
 } from "@/lib/game/official-race-simulation";
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
@@ -43,6 +45,16 @@ type RiderInjuryWindowRow = {
   started_at: string;
   expected_recovery_at: string;
   recovered_at: string | null;
+};
+
+type PersistedUnavailableStageResultRow = {
+  stage_id: string;
+  race_roster_id: string;
+};
+
+type RaceRosterRiderRow = {
+  id: string;
+  rider_id: string;
 };
 
 const OFFICIAL_SIMULATION_CLAIM_STALE_MS = 120_000;
@@ -85,6 +97,8 @@ export async function ensureLockedOfficialRaceSimulations(
   );
   const persistedUnavailabilityWindows =
     await loadPersistedRiderUnavailabilityWindows(calendar);
+  const persistedStageResultUnavailabilities =
+    await loadPersistedStageResultUnavailabilities(calendar);
   const directory: LockedOfficialRaceSimulationDirectory = {};
 
   for (const edition of calendar.editions) {
@@ -97,6 +111,13 @@ export async function ensureLockedOfficialRaceSimulations(
     );
 
     for (const stage of orderedStages) {
+      for (const riderId of getPersistedStageResultUnavailableRiderIds({
+        raceEditionId: edition.id,
+        stageNumber: stage.stageNumber,
+        unavailabilities: persistedStageResultUnavailabilities,
+      })) {
+        unavailableRiderIds.add(riderId);
+      }
       for (const riderId of getPersistedUnavailableRiderIdsAtStageDeparture({
         departureAt: stage.departureAt,
         windows: persistedUnavailabilityWindows,
@@ -205,6 +226,93 @@ export async function ensureLockedOfficialRaceSimulations(
   }
 
   return directory;
+}
+
+async function loadPersistedStageResultUnavailabilities(
+  calendar: SeasonRaceCalendar,
+): Promise<PersistedStageRiderUnavailability[]> {
+  const stageById = new Map(
+    calendar.editions.flatMap((edition) =>
+      edition.stages.map(
+        (stage) =>
+          [
+            stage.id,
+            {
+              raceEditionId: edition.id,
+              stageNumber: stage.stageNumber,
+            },
+          ] as const,
+      ),
+    ),
+  );
+  const stageIds = [...stageById.keys()];
+  if (stageIds.length === 0) return [];
+
+  const admin = createSupabaseAdminClient();
+  const { data: resultRows, error: resultError } =
+    await collectChunkedPaginatedRows<
+      PersistedUnavailableStageResultRow,
+      { message: string },
+      string
+    >({
+      values: stageIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("stage_results")
+          .select("stage_id, race_roster_id")
+          .in("stage_id", chunk)
+          .or(
+            "injury_id.not.is.null,status.in.(did_not_start,did_not_finish,disqualified,outside_time_limit)",
+          )
+          .order("stage_id", { ascending: true })
+          .order("race_roster_id", { ascending: true })
+          .range(from, to)
+          .returns<PersistedUnavailableStageResultRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    });
+  assertQuery(resultError, "les non-partants officiels deja enregistres");
+
+  const rosterIds = [
+    ...new Set((resultRows ?? []).map((row) => row.race_roster_id)),
+  ];
+  if (rosterIds.length === 0) return [];
+
+  const { data: rosterRows, error: rosterError } =
+    await collectChunkedPaginatedRows<
+      RaceRosterRiderRow,
+      { message: string },
+      string
+    >({
+      values: rosterIds,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("race_rosters")
+          .select("id, rider_id")
+          .in("id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RaceRosterRiderRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    });
+  assertQuery(rosterError, "l'identite des non-partants officiels");
+
+  const riderIdByRosterId = new Map(
+    (rosterRows ?? []).map((row) => [row.id, row.rider_id]),
+  );
+  return (resultRows ?? []).flatMap((row) => {
+    const stage = stageById.get(row.stage_id);
+    const riderId = riderIdByRosterId.get(row.race_roster_id);
+    return stage && riderId
+      ? [
+          {
+            ...stage,
+            riderId,
+          },
+        ]
+      : [];
+  });
 }
 
 async function loadPersistedRiderUnavailabilityWindows(
