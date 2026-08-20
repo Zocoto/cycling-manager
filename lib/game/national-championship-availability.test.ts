@@ -31,7 +31,7 @@ describe("getNationalChampionshipUnavailableReasons", () => {
     ).toEqual([{ kind: "injury" }]);
   });
 
-  it("nomme chaque autre course qui occupe le même jour", () => {
+  it("nomme chaque autre course qui occupe le même créneau", () => {
     const target = createEdition({
       id: "cn-road-fr",
       name: "CN France",
@@ -44,7 +44,7 @@ describe("getNationalChampionshipUnavailableReasons", () => {
       name: "Tour déjà prévu",
       countryCode: "ES",
       competitionType: "standard",
-      departureAt: "2026-08-08T12:00:00.000Z",
+      departureAt: "2026-08-08T16:00:00.000Z",
     });
 
     expect(
@@ -66,6 +66,37 @@ describe("getNationalChampionshipUnavailableReasons", () => {
     ]);
   });
 
+  it("autorise une course à 14 h puis une autre à 18 h le même jour", () => {
+    const target = createEdition({
+      id: "classic-late",
+      name: "Classique de 18 h",
+      countryCode: "FR",
+      competitionType: "standard",
+      departureAt: "2026-08-08T16:00:00.000Z",
+      daySlot: "late",
+    });
+    const earlyTour = createEdition({
+      id: "tour-early",
+      name: "Tour terminé à 14 h",
+      countryCode: "ES",
+      competitionType: "standard",
+      departureAt: "2026-08-08T12:00:00.000Z",
+      daySlot: "early",
+    });
+
+    expect(
+      getNationalChampionshipUnavailableReasons({
+        riderId: "rider-1",
+        targetEdition: target,
+        calendar: { editions: [target, earlyTour] },
+        injuries: [],
+        raceEngagements: [
+          { riderId: "rider-1", raceEditionId: earlyTour.id },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
   it("autorise le même coureur sur les deux disciplines de son CN", () => {
     const road = createEdition({
       id: "cn-road-fr",
@@ -73,6 +104,7 @@ describe("getNationalChampionshipUnavailableReasons", () => {
       countryCode: "FR",
       competitionType: "national_road",
       departureAt: "2026-08-08T16:00:00.000Z",
+      daySlot: "late",
     });
     const timeTrial = createEdition({
       id: "cn-tt-fr",
@@ -80,6 +112,7 @@ describe("getNationalChampionshipUnavailableReasons", () => {
       countryCode: "FR",
       competitionType: "national_time_trial",
       departureAt: "2026-08-08T12:00:00.000Z",
+      daySlot: "early",
     });
 
     expect(
@@ -102,12 +135,14 @@ function createEdition({
   countryCode,
   competitionType,
   departureAt,
+  daySlot = "late",
 }: {
   id: string;
   name: string;
   countryCode: string;
   competitionType: RaceCalendarEdition["competitionType"];
   departureAt: string;
+  daySlot?: RaceCalendarEdition["stages"][number]["daySlot"];
 }): RaceCalendarEdition {
   return {
     id,
@@ -142,7 +177,7 @@ function createEdition({
         status: "planned",
         profileType: "flat",
         distanceKm: 100,
-        daySlot: "late",
+        daySlot,
         departureAt,
         segments: [],
       },

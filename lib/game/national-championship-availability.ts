@@ -56,8 +56,10 @@ export function getNationalChampionshipUnavailableReasons({
   const editionById = new Map(
     calendar.editions.map((edition) => [edition.id, edition]),
   );
-  const targetDays = new Set(
-    targetEdition.stages.map((stage) => stage.dayNumber),
+  const targetSlots = new Set(
+    targetEdition.stages.map(
+      (stage) => `${stage.dayNumber}:${stage.daySlot}`,
+    ),
   );
   const seenEditionIds = new Set<string>();
 
@@ -72,13 +74,10 @@ export function getNationalChampionshipUnavailableReasons({
 
     const otherEdition = editionById.get(engagement.raceEditionId);
     if (!otherEdition) continue;
-    const isCompatibleNationalChampionship =
-      otherEdition.countryCode === targetEdition.countryCode &&
-      (otherEdition.competitionType === "national_road" ||
-        otherEdition.competitionType === "national_time_trial");
-    if (isCompatibleNationalChampionship) continue;
     if (
-      !otherEdition.stages.some((stage) => targetDays.has(stage.dayNumber))
+      !otherEdition.stages.some((stage) =>
+        targetSlots.has(`${stage.dayNumber}:${stage.daySlot}`),
+      )
     ) {
       continue;
     }
