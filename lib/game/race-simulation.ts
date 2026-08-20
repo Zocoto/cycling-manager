@@ -48,6 +48,11 @@ import {
   getContextualBreakawayMaximum,
   splitRaceSegmentIntoSimulationTicks,
 } from "./race-dynamics";
+import {
+  evolveRacePursuitState,
+  getRacePursuitTargetPressure,
+  INITIAL_RACE_PURSUIT_STATE,
+} from "./race-pursuit-dynamics";
 
 export {
   RIDER_SPECIAL_ABILITIES,
@@ -1531,6 +1536,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     1,
   );
   let breakawayGapSeconds = 0;
+  let pursuitState = INITIAL_RACE_PURSUIT_STATE;
   let completedDistanceKm = 0;
   let breakawayWasCaught = false;
   let delayedAttackLaunched = attackPlan.delayedAttackIds.size === 0;
@@ -1650,15 +1656,6 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       generalClassification: input.generalClassification,
       isStageRace: input.isStageRace,
     });
-    const baseChasePressure = getPelotonChasePressure(
-      peloton,
-      segment,
-      raceProgress,
-      breakaway.length + secondaryBreakaway.length > 0,
-      breakawayThreat,
-      breakawayGapSeconds,
-      controllingTeamIds,
-    );
     const strategyChaseModifier = getStrategyChaseModifier({
       states,
       teamStrategies: input.teamStrategies ?? [],
@@ -1666,6 +1663,32 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       raceProgress,
       generalClassificationLeaderId,
       likelyMassSprint,
+    });
+    const pelotonChaseCapacity = getPelotonChaseCapacity(
+      peloton,
+      segment,
+      controllingTeamIds,
+    );
+    const breakawayAverageEnergy = average(
+      [...breakaway, ...secondaryBreakaway].map((state) => state.energy),
+    );
+    const pelotonAverageEnergy = average(
+      peloton.map((state) => state.energy),
+    );
+    const baseChasePressure = getRacePursuitTargetPressure({
+      raceProgress,
+      hasBreakaway: activeBreakawaySize > 0,
+      breakawayGapSeconds,
+      breakawayThreat,
+      chaseCapacity: pelotonChaseCapacity,
+      strategyModifier: strategyChaseModifier,
+      pelotonAverageEnergy,
+      breakawayAverageEnergy,
+      terrain: segment.terrain,
+      surface: segment.surface,
+      isWet: input.weather?.isWet ?? false,
+      likelyMassSprint,
+      pelotonHasGivenUp: false,
     });
     const largeBreakawayDecision =
       activeBreakawaySize > LARGE_BREAKAWAY_RIDER_THRESHOLD &&
@@ -1676,14 +1699,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
             completedDistanceKm,
             raceProgress,
             gapSeconds: breakawayGapSeconds,
-            breakawayAverageEnergy: average(
-              [...breakaway, ...secondaryBreakaway].map(
-                (state) => state.energy,
-              ),
-            ),
-            pelotonAverageEnergy: average(
-              peloton.map((state) => state.energy),
-            ),
+            breakawayAverageEnergy,
+            pelotonAverageEnergy,
             chasePressure: baseChasePressure,
             likelyMassSprint,
             roll: random(),
@@ -1705,16 +1722,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
     const pelotonHasGivenUp = largeBreakawayDecision === "peloton_gives_up";
     const breakawayHasGivenUp = largeBreakawayDecision === "breakaway_gives_up";
-    const preliminaryChasePressure = clamp(
-      Math.max(
-        baseChasePressure,
-        breakawayThreat >= 0.5 ? 0.46 + breakawayThreat * 0.34 : 0,
-      ) + strategyChaseModifier,
-      0,
-      1,
-    );
     const simulationTicks = splitRaceSegmentIntoSimulationTicks(segment);
     const visualTickGapSeconds: number[] = [];
+    const visualTickChasePressures: number[] = [];
     const momentumPursuitFactor =
       raceProgress > 0.42 ? 1 - breakawayMomentum * 0.46 : 1;
     let chasePressure = pelotonHasGivenUp
@@ -1722,8 +1732,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       : clamp(
           Math.max(
             baseChasePressure * momentumPursuitFactor,
-            breakawayThreat >= 0.5 ? 0.46 + breakawayThreat * 0.34 : 0,
-          ) + strategyChaseModifier,
+            breakawayThreat >= 0.5 ? 0.42 + breakawayThreat * 0.28 : 0,
+          ),
           0,
           1,
         );
@@ -1781,6 +1791,24 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           0,
           1,
         );
+        pursuitState = evolveRacePursuitState({
+          previousState: pursuitState,
+          context: {
+            raceProgress: tickRaceProgress,
+            hasBreakaway: activeBreakawaySize > 0,
+            breakawayGapSeconds,
+            breakawayThreat,
+            chaseCapacity: pelotonChaseCapacity,
+            strategyModifier: strategyChaseModifier,
+            pelotonAverageEnergy,
+            breakawayAverageEnergy,
+            terrain: tick.terrain,
+            surface: tick.surface,
+            isWet: input.weather?.isWet ?? false,
+            likelyMassSprint,
+            pelotonHasGivenUp,
+          },
+        });
         breakawayMomentum = evolveBreakawayMomentum({
           previousMomentum: breakawayMomentum,
           raceProgress: tickRaceProgress,
@@ -1788,15 +1816,9 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           targetGapSeconds: breakawayTargetGapSeconds,
           breakawaySize: activeBreakawaySize,
           pelotonSize: peloton.length,
-          breakawayAverageEnergy: average(
-            [...breakaway, ...secondaryBreakaway].map(
-              (state) => state.energy,
-            ),
-          ),
-          pelotonAverageEnergy: average(
-            peloton.map((state) => state.energy),
-          ),
-          chasePressure: preliminaryChasePressure,
+          breakawayAverageEnergy,
+          pelotonAverageEnergy,
+          chasePressure: pursuitState.pressure,
           selectiveTerrainShare,
           likelyMassSprint,
           // Seeded variability is initialized once for the stage. The live
@@ -1806,17 +1828,18 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         const tickMomentumPursuitFactor =
           tickRaceProgress > 0.42 ? 1 - breakawayMomentum * 0.46 : 1;
         chasePressure = pelotonHasGivenUp
-          ? Math.min(0.14, baseChasePressure * 0.25)
+          ? Math.min(0.14, pursuitState.pressure)
           : clamp(
               Math.max(
-                baseChasePressure * tickMomentumPursuitFactor,
+                pursuitState.pressure * tickMomentumPursuitFactor,
                 breakawayThreat >= 0.5
-                  ? 0.46 + breakawayThreat * 0.34
+                  ? 0.42 + breakawayThreat * 0.28
                   : 0,
-              ) + strategyChaseModifier,
+              ),
               0,
               1,
             );
+        visualTickChasePressures.push(chasePressure);
         const breakawayGapCeiling = getContextualBreakawayGapCeiling({
           raceProgress: tickRaceProgress,
           breakawaySize: activeBreakawaySize,
@@ -1900,6 +1923,50 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
 
     while (visualTickGapSeconds.length < simulationTicks.length) {
       visualTickGapSeconds.push(breakawayGapSeconds);
+    }
+    let pursuitCompletedDistanceKm = completedDistanceKm;
+    while (visualTickChasePressures.length < simulationTicks.length) {
+      const tickIndex = visualTickChasePressures.length;
+      const tick = simulationTicks[tickIndex];
+      const tickRaceProgress = clamp(
+        pursuitCompletedDistanceKm / totalDistanceKm,
+        0,
+        1,
+      );
+      pursuitState = evolveRacePursuitState({
+        previousState: pursuitState,
+        context: {
+          raceProgress: tickRaceProgress,
+          hasBreakaway: activeBreakawaySize > 0,
+          breakawayGapSeconds,
+          breakawayThreat,
+          chaseCapacity: pelotonChaseCapacity,
+          strategyModifier: strategyChaseModifier,
+          pelotonAverageEnergy,
+          breakawayAverageEnergy,
+          terrain: tick.terrain,
+          surface: tick.surface,
+          isWet: input.weather?.isWet ?? false,
+          likelyMassSprint,
+          pelotonHasGivenUp,
+        },
+      });
+      const tickMomentumPursuitFactor =
+        tickRaceProgress > 0.42 ? 1 - breakawayMomentum * 0.46 : 1;
+      chasePressure = pelotonHasGivenUp
+        ? Math.min(0.14, pursuitState.pressure)
+        : clamp(
+            Math.max(
+              pursuitState.pressure * tickMomentumPursuitFactor,
+              breakawayThreat >= 0.5
+                ? 0.42 + breakawayThreat * 0.28
+                : 0,
+            ),
+            0,
+            1,
+          );
+      visualTickChasePressures.push(chasePressure);
+      pursuitCompletedDistanceKm += tick.distanceKm;
     }
 
     if (
@@ -2011,7 +2078,8 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           segmentIndex: physicalSegmentIndex,
           segmentCount: input.segments.length,
           groupSize,
-          chasePressure,
+          chasePressure:
+            visualTickChasePressures[tickIndex] ?? chasePressure,
           frontBreakawaySize: activeBreakawaySize,
           frontGroupIsYielding: breakawayHasGivenUp,
           frontGroupIsUncontested: pelotonHasGivenUp,
@@ -5829,63 +5897,6 @@ function getPelotonChaseCapacity(
   );
 }
 
-function getPelotonChasePressure(
-  peloton: RiderState[],
-  segment: RaceStageSegment,
-  progress: number,
-  hasBreakaway: boolean,
-  breakawayThreat: number,
-  breakawayGapSeconds: number,
-  controllingTeamIds: Set<string>,
-) {
-  const chaseCapacity = getPelotonChaseCapacity(
-    peloton,
-    segment,
-    controllingTeamIds,
-  );
-  const terrainFactor =
-    segment.terrain === "flat" ? 0.04 : segment.terrain === "climb" ? -0.03 : 0;
-  const gapUrgency = hasBreakaway
-    ? clamp((breakawayGapSeconds - 90) / 330, 0, 0.22)
-    : 0;
-  const dangerUrgency = hasBreakaway ? breakawayThreat : 0;
-
-  if (progress < 0.3) {
-    return clamp(
-      0.1 +
-        chaseCapacity * 0.2 +
-        terrainFactor +
-        dangerUrgency * 0.3 +
-        gapUrgency,
-      0.06,
-      0.62,
-    );
-  }
-
-  if (progress < 0.62) {
-    return clamp(
-      0.18 +
-        chaseCapacity * 0.42 +
-        terrainFactor +
-        dangerUrgency * 0.34 +
-        gapUrgency,
-      0.12,
-      0.9,
-    );
-  }
-
-  const finalUrgency = (progress - 0.62) * 0.82;
-  return clamp(
-    0.31 +
-      chaseCapacity * 0.46 +
-      terrainFactor +
-      finalUrgency +
-      dangerUrgency * 0.31 +
-      gapUrgency,
-    0.28,
-    1,
-  );
-}
 function getTerrainRating(
   rider: RiderSimulationInput,
   segment: RaceStageSegment,
