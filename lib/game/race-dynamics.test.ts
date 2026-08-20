@@ -55,6 +55,19 @@ describe("evolveBreakawayMomentum", () => {
 
     expect(goodRoll - badRoll).toBeLessThanOrEqual(0.081);
   });
+
+  it("uses live relay cooperation instead of assuming every group works equally", () => {
+    const organized = evolveBreakawayMomentum({
+      ...balancedState,
+      cooperation: 0.88,
+    });
+    const fractured = evolveBreakawayMomentum({
+      ...balancedState,
+      cooperation: 0.18,
+    });
+
+    expect(organized).toBeGreaterThan(fractured);
+  });
 });
 
 describe("contextual breakaway limits", () => {

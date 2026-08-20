@@ -12,6 +12,7 @@ export type BreakawayMomentumInput = {
   breakawayAverageEnergy: number;
   pelotonAverageEnergy: number;
   chasePressure: number;
+  cooperation?: number;
   selectiveTerrainShare: number;
   likelyMassSprint: boolean;
   randomRoll: number;
@@ -33,6 +34,7 @@ export function evolveBreakawayMomentum({
   breakawayAverageEnergy,
   pelotonAverageEnergy,
   chasePressure,
+  cooperation: liveCooperation,
   selectiveTerrainShare,
   likelyMassSprint,
   randomRoll,
@@ -49,11 +51,10 @@ export function evolveBreakawayMomentum({
     0,
     1,
   );
-  const cooperation = clamp(
-    0.22 + Math.log2(breakawaySize + 1) * 0.19,
-    0.22,
-    0.92,
-  );
+  const cooperation =
+    liveCooperation === undefined
+      ? clamp(0.22 + Math.log2(breakawaySize + 1) * 0.19, 0.22, 0.92)
+      : clamp(liveCooperation, 0, 1);
   const overcrowdingPenalty = clamp((breakawaySize - 18) * 0.018, 0, 0.18);
   const fieldLeverage = clamp(
     breakawaySize / Math.max(1, pelotonSize + breakawaySize),
