@@ -257,6 +257,7 @@ export async function loadRaceStaffEffects(
     (contract) =>
       membersById.get(contract.staff_member_id)?.role === "physiotherapist",
   );
+  const requestedRiderIds = new Set(riderIds);
   const assignmentsResult =
     physiotherapistContracts.length > 0 && riderIds.length > 0
       ? await admin
@@ -267,7 +268,6 @@ export async function loadRaceStaffEffects(
             "staff_contract_id",
             physiotherapistContracts.map((contract) => contract.id),
           )
-          .in("rider_id", riderIds)
           .returns<AssignmentRow[]>()
       : { data: [] as AssignmentRow[], error: null };
 
@@ -278,6 +278,8 @@ export async function loadRaceStaffEffects(
   const injuryPreventionByRiderId = new Map<string, number>();
 
   for (const assignment of assignmentsResult.data ?? []) {
+    if (!requestedRiderIds.has(assignment.rider_id)) continue;
+
     const contract = contractsById.get(assignment.staff_contract_id);
     const member = contract
       ? membersById.get(contract.staff_member_id)
