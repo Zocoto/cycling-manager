@@ -288,7 +288,7 @@ export function RaceRosterSelector({
       </div>
       <p className="mt-3 text-center text-[11px] font-semibold leading-5 text-[#9FB5A8]">
         {lockInitiallySelected
-          ? "Les coureurs encore aptes restent engagés ; seuls les remplaçants sont ajoutés."
+          ? "Les coureurs toujours engagés restent verrouillés ; seuls les renforts nécessaires sont ajoutés."
           : "Après validation, la composition ne pourra plus être modifiée directement."}
       </p>
     </div>
