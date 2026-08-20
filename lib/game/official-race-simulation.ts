@@ -224,6 +224,15 @@ export function isUnavailableForFollowingStage(
   return result.status !== "finished" || result.injury !== null;
 }
 
+export function simulationStartsUnavailableRider(
+  simulation: Pick<StageSimulationResult, "results">,
+  unavailableRiderIds: ReadonlySet<string>,
+) {
+  return simulation.results.some((result) =>
+    unavailableRiderIds.has(result.riderId),
+  );
+}
+
 /**
  * Produit une seule chronologie canonique pour une édition entière. Le live,
  * le replay et la consolidation serveur utilisent cette fonction afin que la
@@ -257,14 +266,12 @@ export function simulateOfficialRaceEdition(
     const input: StageSimulationInput = {
       ...baseInput,
       generalClassification: standingsBeforeStage?.general,
+      unavailableRiderIds: [...unavailableRiderIds].sort(),
       ...(Object.keys(mountainObjectiveRiderIds).length > 0
         ? { mountainObjectiveRiderIds }
         : {}),
     };
-    const simulation = simulateRaceStage({
-      ...input,
-      unavailableRiderIds: [...unavailableRiderIds].sort(),
-    });
+    const simulation = simulateRaceStage(input);
 
     for (const result of simulation.results) {
       if (isUnavailableForFollowingStage(result)) {

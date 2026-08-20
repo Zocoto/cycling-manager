@@ -873,9 +873,26 @@ function normalizeStageSimulationInput(
       profileType: input.profileType,
     });
   const unavailableRiderIds = new Set(input.unavailableRiderIds ?? []);
+  const sanitizeUnavailableRiderId = (riderId: string | null) =>
+    riderId && unavailableRiderIds.has(riderId) ? null : riderId;
+  const eligibleTeamStrategies = input.teamStrategies?.map((strategy) => ({
+    ...strategy,
+    lieutenantRiderId: sanitizeUnavailableRiderId(strategy.lieutenantRiderId),
+    dangerPacerRiderId: sanitizeUnavailableRiderId(
+      strategy.dangerPacerRiderId,
+    ),
+    protectorRiderId: sanitizeUnavailableRiderId(strategy.protectorRiderId),
+    breakawayRiderId: sanitizeUnavailableRiderId(strategy.breakawayRiderId),
+    attackOrders: strategy.attackOrders.filter(
+      (order) => !unavailableRiderIds.has(order.riderId),
+    ),
+  }));
   const eligibleInput = {
     ...input,
     weather,
+    ...(eligibleTeamStrategies
+      ? { teamStrategies: eligibleTeamStrategies }
+      : {}),
     riders: input.riders
       .filter((rider) => !unavailableRiderIds.has(rider.id))
       .map((rider) => {

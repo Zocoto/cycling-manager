@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { isUnavailableForFollowingStage } from "./official-race-simulation";
+import {
+  isUnavailableForFollowingStage,
+  simulationStartsUnavailableRider,
+} from "./official-race-simulation";
 import type { StageSimulationResult } from "./race-simulation";
 
 function createResult(
@@ -31,5 +34,20 @@ describe("isUnavailableForFollowingStage", () => {
         createResult("outside_time_limit")
       )
     ).toBe(true);
+  });
+
+  it("detects a locked stage that incorrectly restarts a non-starter", () => {
+    expect(
+      simulationStartsUnavailableRider(
+        { results: [createResult("finished")] },
+        new Set(["rider-1"]),
+      ),
+    ).toBe(true);
+    expect(
+      simulationStartsUnavailableRider(
+        { results: [createResult("finished")] },
+        new Set(["another-rider"]),
+      ),
+    ).toBe(false);
   });
 });

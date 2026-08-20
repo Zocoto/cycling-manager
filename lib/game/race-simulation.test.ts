@@ -1886,6 +1886,72 @@ describe("simulateRaceStage", () => {
     ).toBe(false);
   });
 
+  it("ignore les consignes tactiques d'un non-partant à l'étape suivante", () => {
+    const input = createDemoSimulationInput("collines-ardennes", 999);
+    const unavailableRider = input.riders[0];
+    const targetSegment = input.segments[0];
+
+    expect(() =>
+      simulateRaceStage({
+        ...input,
+        unavailableRiderIds: [unavailableRider.id],
+        teamStrategies: [
+          {
+            teamId: unavailableRider.teamId,
+            objective: "stage_win",
+            collectivePosture: "aggressive",
+            breakawayPolicy: "target",
+            chasePolicy: "dangerous_breakaway",
+            lieutenantRiderId: unavailableRider.id,
+            dangerPacerRiderId: null,
+            protectorRiderId: null,
+            breakawayRiderId: null,
+            attackOrders: [
+              {
+                riderId: unavailableRider.id,
+                segmentNumber: targetSegment.segmentNumber,
+                intensity: "strong",
+                condition: "always",
+              },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+
+    const nextStage = simulateRaceStage({
+      ...input,
+      unavailableRiderIds: [unavailableRider.id],
+      teamStrategies: [
+        {
+          teamId: unavailableRider.teamId,
+          objective: "stage_win",
+          collectivePosture: "aggressive",
+          breakawayPolicy: "target",
+          chasePolicy: "dangerous_breakaway",
+          lieutenantRiderId: unavailableRider.id,
+          dangerPacerRiderId: null,
+          protectorRiderId: null,
+          breakawayRiderId: null,
+          attackOrders: [
+            {
+              riderId: unavailableRider.id,
+              segmentNumber: targetSegment.segmentNumber,
+              intensity: "strong",
+              condition: "always",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      nextStage.resolvedRiders.some(
+        (rider) => rider.id === unavailableRider.id,
+      ),
+    ).toBe(false);
+  });
+
   it("peut diagnostiquer une blessure sans retirer le coureur du classement de l’étape", () => {
     const stage = Array.from({ length: 160 }, (_, index) =>
       simulateRaceStage(

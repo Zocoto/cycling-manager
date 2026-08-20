@@ -380,11 +380,15 @@ async function settleEditionRaceResults({
         (result) => requireRoster(rosterByRiderId, result.riderId).rosterId,
       ),
     );
-    let stageRows = persistedStageRows.filter(
-      (row) =>
-        row.stage_id === stage.id && expectedRosterIds.has(row.race_roster_id),
+    const allPersistedStageRows = persistedStageRows.filter(
+      (row) => row.stage_id === stage.id,
     );
-    const stageAlreadyComplete = stageRows.length === expectedRosterIds.size;
+    let stageRows = allPersistedStageRows.filter((row) =>
+      expectedRosterIds.has(row.race_roster_id),
+    );
+    const stageAlreadyComplete =
+      stageRows.length === expectedRosterIds.size &&
+      allPersistedStageRows.length === expectedRosterIds.size;
 
     if (!stageAlreadyComplete) {
       await persistStageResult({
@@ -1169,6 +1173,31 @@ async function persistStageResult({
     .from("stage_results")
     .upsert(rows, { onConflict: "stage_id,race_roster_id" });
   assertQuery(error, `l’enregistrement du classement de ${stage.name}`);
+
+  const currentRosterIds = new Set(rows.map((row) => row.race_roster_id));
+  const { data: persistedRosterRows, error: persistedRosterError } = await admin
+    .from("stage_results")
+    .select("race_roster_id")
+    .eq("stage_id", stage.id)
+    .returns<Array<{ race_roster_id: string }>>();
+  assertQuery(
+    persistedRosterError,
+    `la vérification des partants de ${stage.name}`,
+  );
+  const staleRosterIds = (persistedRosterRows ?? [])
+    .map((row) => row.race_roster_id)
+    .filter((rosterId) => !currentRosterIds.has(rosterId));
+  if (staleRosterIds.length > 0) {
+    const { error: staleResultError } = await admin
+      .from("stage_results")
+      .delete()
+      .eq("stage_id", stage.id)
+      .in("race_roster_id", staleRosterIds);
+    assertQuery(
+      staleResultError,
+      `le retrait des non-partants de ${stage.name}`,
+    );
+  }
 
   if (!resultsOnly) {
     const { error: conditionSettlementError } = await admin.rpc(

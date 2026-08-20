@@ -7,6 +7,7 @@ import { getStageLiveState } from "@/lib/game/race-live";
 import {
   isUnavailableForFollowingStage,
   OFFICIAL_RACE_ENGINE_VERSION,
+  simulationStartsUnavailableRider,
   type LockedOfficialRaceSimulationDirectory,
   type LockedOfficialStageSimulation,
 } from "@/lib/game/official-race-simulation";
@@ -86,8 +87,14 @@ export async function ensureLockedOfficialRaceSimulations(
 
     for (const stage of orderedStages) {
       let lockedSimulation = lockedByStageId.get(stage.id) ?? null;
+      const startsUnavailableRider = lockedSimulation
+        ? simulationStartsUnavailableRider(
+            lockedSimulation.simulation,
+            unavailableRiderIds,
+          )
+        : false;
 
-      if (!lockedSimulation) {
+      if (!lockedSimulation || startsUnavailableRider) {
         const liveState = getStageLiveState(stage, now);
         if (
           liveState.status === "scheduled" ||
@@ -103,11 +110,28 @@ export async function ensureLockedOfficialRaceSimulations(
         );
 
         if (!claimToken) {
-          lockedSimulation = await waitForLockedSimulation(stage.id);
+          lockedSimulation = await waitForLockedSimulation(
+            stage.id,
+            unavailableRiderIds,
+          );
           if (!lockedSimulation) break;
           lockedByStageId.set(stage.id, lockedSimulation);
         } else {
           try {
+            if (startsUnavailableRider) {
+              console.warn(
+                `Le scénario officiel de l'étape ${stage.stageNumber} fait repartir un coureur indisponible : recalcul automatique.`,
+              );
+              const { error: staleSimulationError } = await admin
+                .from("official_stage_simulations")
+                .delete()
+                .eq("stage_id", stage.id);
+              assertQuery(
+                staleSimulationError,
+                "le remplacement d’un scénario officiel incohérent",
+              );
+              lockedByStageId.delete(stage.id);
+            }
             const standingsBeforeStage =
               edition.raceFormat === "stage_race" &&
               editionSimulations.length > 0
@@ -220,7 +244,10 @@ async function acquireOfficialSimulationClaim(
   return takeover.data?.claim_token === claimToken ? claimToken : null;
 }
 
-async function waitForLockedSimulation(stageId: string) {
+async function waitForLockedSimulation(
+  stageId: string,
+  unavailableRiderIds: ReadonlySet<string>,
+) {
   const admin = createSupabaseAdminClient();
 
   for (
@@ -236,7 +263,17 @@ async function waitForLockedSimulation(stageId: string) {
       .eq("stage_id", stageId)
       .maybeSingle<OfficialStageSimulationRow>();
     assertQuery(existing.error, "le scénario officiel calculé en parallèle");
-    if (existing.data) return toLockedSimulation(existing.data);
+    if (existing.data) {
+      const locked = toLockedSimulation(existing.data);
+      if (
+        !simulationStartsUnavailableRider(
+          locked.simulation,
+          unavailableRiderIds,
+        )
+      ) {
+        return locked;
+      }
+    }
 
     if (attempt + 1 < OFFICIAL_SIMULATION_POLL_ATTEMPTS) {
       await new Promise((resolve) =>
