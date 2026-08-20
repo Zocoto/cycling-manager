@@ -8,6 +8,9 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "There are no active riders in the roster.",
   "Baroudeur": "Breakaway specialist",
   "Boîte mail": "Mailbox",
+  "Classement général des Grands Tours": "Grand Tour general classification",
+  "Classiques ardennaises": "Ardennes classics",
+  "Classiques pavées": "Cobbled classics",
   "Bureau du DS": "Sporting Director office",
   "Centre de formation": "Youth development centre",
   "Centre de soin": "Medical centre",
@@ -53,6 +56,7 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Moyenne générale": "Overall average",
   "Objectif": "Objective",
   "Objectifs": "Objectives",
+  "Philosophie sportive": "Sporting philosophy",
   "Pays / rang": "Country / rank",
   "Parrainage": "Referral programme",
   "Pavé": "Cobblestone",
@@ -67,11 +71,13 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Retour aux inscriptions courses": "Back to race entries",
   "s sont absentes": "s are missing",
   "Sponsoring": "Sponsorship",
+  "Sprints": "Sprints",
   "Statistiques primaires": "Primary attributes",
   "Statistiques secondaires": "Secondary attributes",
   "Stratège": "Stratège",
   "Tableau de bord": "Dashboard",
   "Top 200 national par défaut": "National top 200 by default",
+  "Tours intermédiaires": "Medium stage races",
   "Tous les coureurs sont regroupés ci-dessous. Le top 200 de chaque pays est coché par défaut ; vous pouvez ensuite confirmer ou retirer chaque participation jusqu’au départ de la discipline.":
     "All riders are grouped below. Each country’s top 200 is selected by default; you can then confirm or withdraw each entry until that discipline starts.",
   "Un coureur sélectionné ne fait pas partie de l’effectif.":
@@ -94,6 +100,22 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Saved choices override automatic selection and remain authoritative even if the national ranking changes.",
   "Les inscriptions aux deux championnats ont bien été enregistrées.":
     "Entries for both championships have been saved.",
+  "Le sponsor attend des performances sur les chronos individuels et par équipes.":
+    "The sponsor expects strong performances in individual and team time trials.",
+  "Le sponsor privilégie les arrivées massives et les courses favorables aux sprinteurs.":
+    "The sponsor prioritises bunch finishes and races suited to sprinters.",
+  "Le sponsor privilégie les classiques vallonnées et les arrivées pour puncheurs.":
+    "The sponsor prioritises hilly classics and finishes suited to puncheurs.",
+  "Le sponsor recherche des résultats au classement général des courses par étapes hors Grands Tours.":
+    "The sponsor targets general classification results in stage races outside the Grand Tours.",
+  "Le sponsor valorise les résultats sur les courses d’un jour disputées sur les pavés.":
+    "The sponsor values results in cobbled one-day races.",
+  "Le sponsor vise les classements généraux des Grands Tours dès que la réputation de l’équipe le permet.":
+    "The sponsor targets Grand Tour general classifications as soon as the team’s reputation allows it.",
+  "Les objectifs sont reliés au calendrier réel et à la philosophie de chaque sponsor. Les courses du pays du sponsor sont prioritaires, puis celles des pays voisins et enfin celles du même continent.":
+    "Objectives are linked to the real calendar and each sponsor’s philosophy. Races in the sponsor’s country come first, followed by neighbouring countries and then the same continent.",
+  "Les objectifs de course privilégient le pays du sponsor, puis ses voisins et enfin son continent. Les courses Continentales deviennent accessibles à 100 points de réputation, les Mondiales à 200 points.":
+    "Race objectives prioritise the sponsor’s country, then its neighbours and finally its continent. Continental races unlock at 100 reputation points and World races at 200.",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

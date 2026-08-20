@@ -16,6 +16,10 @@ import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers"
 import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
 import type { SponsorObjectiveStatus } from "@/types/sponsor-objective";
+import {
+  resolveSponsorSportingPhilosophy,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 
 
 
@@ -42,6 +46,7 @@ export type SponsorContractObjective = {
 export type PersistedSponsorContract = {
   id: string;
   sponsor: Sponsor;
+  sportingPhilosophy: SponsorSportingPhilosophy;
   sponsorOfferId: string | null;
   budgetPerSeason: number;
   currencyCode: string;
@@ -742,6 +747,7 @@ async function hydrateSponsorContract({
   return {
     id: contractRow.id,
     sponsor,
+    sportingPhilosophy: resolveSponsorSportingPhilosophy(sponsor.id),
     sponsorOfferId: contractRow.sponsor_offer_id,
     budgetPerSeason,
     currencyCode: contractRow.currency_code,

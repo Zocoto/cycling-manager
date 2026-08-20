@@ -11,6 +11,7 @@ import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { TutorialSponsorPreview } from "@/components/tutorial/tutorial-sponsor-preview";
 import { getSponsorObjectiveStatusPresentation } from "@/lib/game/sponsor-objective-status";
 import { GAMEPLAY_RULES } from "@/lib/gameplay-rules";
+import { SPONSOR_SPORTING_PHILOSOPHY_CONFIG } from "@/lib/game/sponsor-philosophy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { PersistedSponsorOffer } from "../../../services/persisted-sponsor-offers";
 import {
@@ -374,10 +375,9 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
       </section>
 
       <p className="mt-6 text-sm leading-7 text-[#60756E]">
-        Les objectifs de cette première version utilisent des courses et
-        classements provisoires. Ils sont enregistrés avec l’offre et ne
-        changent pas au rechargement de la page. Ils seront reliés au calendrier
-        sportif réel dans une future évolution.
+        Les objectifs sont reliés au calendrier réel et à la philosophie de
+        chaque sponsor. Les courses du pays du sponsor sont prioritaires,
+        puis celles des pays voisins et enfin celles du même continent.
       </p>
     </>
   );
@@ -385,6 +385,8 @@ function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
 
 function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
   const sponsor = offer.sponsor;
+  const philosophy =
+    SPONSOR_SPORTING_PHILOSOPHY_CONFIG[offer.sportingPhilosophy];
 
   return (
     <article
@@ -496,6 +498,30 @@ function SponsorOfferCard({ offer }: { offer: PersistedSponsorOffer }) {
           </h2>
 
           <p className="mt-3 leading-7 text-[#60756E]">{sponsor.description}</p>
+
+          <aside
+            className="mt-5 rounded-xl border px-4 py-3"
+            style={{
+              borderColor: `${sponsor.colors.primary}35`,
+              backgroundColor: `${sponsor.colors.background}CC`,
+            }}
+          >
+            <p
+              className="text-[10px] font-extrabold uppercase tracking-[0.14em]"
+              style={{ color: sponsor.colors.primary }}
+            >
+              Philosophie sportive
+            </p>
+            <p
+              className="mt-1 font-black"
+              style={{ color: sponsor.colors.text }}
+            >
+              {philosophy.label}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[#60756E]">
+              {philosophy.description}
+            </p>
+          </aside>
         </div>
 
         <section className="mt-6 grid grid-cols-2 gap-3">
