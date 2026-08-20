@@ -18,6 +18,8 @@ export type OfficialRiderResult = {
   gapToWinnerMs: number | null;
   mountainPoints: number;
   sprintPoints: number;
+  timeBonusSeconds?: number;
+  timePenaltySeconds?: number;
   abandonmentReason: string | null;
 };
 
@@ -76,6 +78,8 @@ export type PersistedStageResultForGeneral = {
   rank: number | null;
   status: OfficialResultStatus;
   elapsedTimeMs: number | null;
+  timeBonusSeconds?: number;
+  timePenaltySeconds?: number;
   abandonmentReason: string | null;
 };
 
@@ -130,7 +134,12 @@ export function buildPersistedGeneralClassification(
     string,
     Omit<
       PersistedStageResultForGeneral,
-      "rank" | "status" | "elapsedTimeMs" | "abandonmentReason"
+      | "rank"
+      | "status"
+      | "elapsedTimeMs"
+      | "timeBonusSeconds"
+      | "timePenaltySeconds"
+      | "abandonmentReason"
     >
   >();
   const totalTimeByRiderId = new Map<string, number>();
@@ -150,9 +159,15 @@ export function buildPersistedGeneralClassification(
       });
 
       if (result.status === "finished" && result.elapsedTimeMs !== null) {
+        const adjustedElapsedTimeMs = Math.max(
+          1,
+          result.elapsedTimeMs -
+            (result.timeBonusSeconds ?? 0) * 1_000 +
+            (result.timePenaltySeconds ?? 0) * 1_000,
+        );
         totalTimeByRiderId.set(
           result.riderId,
-          (totalTimeByRiderId.get(result.riderId) ?? 0) + result.elapsedTimeMs
+          (totalTimeByRiderId.get(result.riderId) ?? 0) + adjustedElapsedTimeMs
         );
         finishedStagesByRiderId.set(
           result.riderId,

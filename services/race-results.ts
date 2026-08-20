@@ -36,6 +36,7 @@ import {
   getStageAttackParticipants,
   type StageSimulationResult,
 } from "@/lib/game/race-simulation";
+import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -93,6 +94,8 @@ type StageResultRow = {
   gap_to_winner_ms: number | null;
   mountain_points: number;
   sprint_points: number;
+  time_bonus_seconds: number;
+  time_penalty_seconds: number;
   abandonment_reason: string | null;
   injury_id: string | null;
 };
@@ -505,7 +508,7 @@ export async function getOfficialRaceResults(
         const result = await admin
           .from("stage_results")
           .select(
-            "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id",
+            "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, time_bonus_seconds, time_penalty_seconds, abandonment_reason, injury_id",
           )
           .in("stage_id", chunk)
           .order("stage_id", { ascending: true })
@@ -877,7 +880,7 @@ async function loadPersistedStageResultRows(
       const result = await admin
         .from("stage_results")
         .select(
-          "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, abandonment_reason, injury_id",
+          "stage_id, race_roster_id, status, rank, elapsed_time_ms, gap_to_winner_ms, mountain_points, sprint_points, time_bonus_seconds, time_penalty_seconds, abandonment_reason, injury_id",
         )
         .in("stage_id", chunk)
         .order("stage_id", { ascending: true })
@@ -938,6 +941,8 @@ function buildPersistedStageClassification({
                 gapToWinnerMs: row.gap_to_winner_ms,
                 mountainPoints: row.mountain_points,
                 sprintPoints: row.sprint_points,
+                timeBonusSeconds: row.time_bonus_seconds,
+                timePenaltySeconds: row.time_penalty_seconds,
                 abandonmentReason: row.abandonment_reason,
               } satisfies OfficialRiderResult,
             ]
@@ -971,6 +976,11 @@ async function persistStageResult({
   rosterByRiderId: Map<string, RosterContext>;
 }) {
   const injuryIdByRiderId = new Map<string, string>();
+  const timeBonusByRiderId = calculateStageRaceTimeBonuses({
+    raceFormat: edition.raceFormat,
+    stageType: stage.stageType,
+    simulation,
+  });
   const winnerElapsedTimeSeconds = Math.min(
     ...simulation.results
       .filter((result) => result.status === "finished")
@@ -1077,6 +1087,7 @@ async function persistStageResult({
           : null,
       mountain_points: simulation.mountainPoints[result.riderId] ?? 0,
       sprint_points: simulation.sprintPoints[result.riderId] ?? 0,
+      time_bonus_seconds: timeBonusByRiderId[result.riderId] ?? 0,
       abandonment_reason: result.abandonment ? "crash" : null,
       injury_id: injuryIdByRiderId.get(result.riderId) ?? null,
       updated_at: new Date().toISOString(),
@@ -1591,6 +1602,8 @@ function toOfficialStageRiderResult({
         gapToWinnerMs: row.gap_to_winner_ms,
         mountainPoints: row.mountain_points,
         sprintPoints: row.sprint_points,
+        timeBonusSeconds: row.time_bonus_seconds,
+        timePenaltySeconds: row.time_penalty_seconds,
         abandonmentReason: row.abandonment_reason,
       }
     : null;
@@ -1826,6 +1839,8 @@ function toPersistedGeneralInput(
     rank: result.rank,
     status: result.status,
     elapsedTimeMs: result.elapsedTimeMs,
+    timeBonusSeconds: result.timeBonusSeconds,
+    timePenaltySeconds: result.timePenaltySeconds,
     abandonmentReason: result.abandonmentReason,
   };
 }

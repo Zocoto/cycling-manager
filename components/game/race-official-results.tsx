@@ -158,6 +158,9 @@ export function RaceOfficialResults({
         <RiderResultsTable
           results={riderResults}
           classification={resolvedTab}
+          showTimeBonus={
+            edition.raceFormat === "stage_race" && resolvedTab === "stage"
+          }
         />
       )}
       <RaceAnimators
@@ -247,9 +250,11 @@ function RaceAnimators({
 function RiderResultsTable({
   results,
   classification,
+  showTimeBonus,
 }: {
   results: OfficialRiderResult[];
   classification: ClassificationKey;
+  showTimeBonus: boolean;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -297,7 +302,14 @@ function RiderResultsTable({
                 />
               </td>
               <td className="px-4 py-4 font-mono text-sm font-black text-[#173E35]">
-                {formatResultTime(result, results[index - 1])}
+                <span className="block">
+                  {formatResultTime(result, results[index - 1])}
+                </span>
+                {showTimeBonus && (result.timeBonusSeconds ?? 0) > 0 ? (
+                  <span className="mt-1 block font-sans text-[10px] font-black uppercase tracking-wide text-[#176951]">
+                    Bonif. −{result.timeBonusSeconds} s
+                  </span>
+                ) : null}
               </td>
               {(classification === "stage" || classification === "mountain" || classification === "sprint") ? (
                 <td className="px-4 py-4 text-right text-xs font-black text-[#176951]">

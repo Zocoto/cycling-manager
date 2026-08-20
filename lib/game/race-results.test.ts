@@ -117,6 +117,52 @@ describe("buildPersistedGeneralClassification", () => {
     });
   });
 
+  it("déduit les bonifications et ajoute les pénalités au classement général", () => {
+    const general = buildPersistedGeneralClassification([
+      [
+        {
+          ...coquinous,
+          elapsedTimeMs: 3_600_000,
+          timeBonusSeconds: 4,
+          timePenaltySeconds: 0,
+        },
+        {
+          ...challengers,
+          elapsedTimeMs: 3_604_000,
+          timeBonusSeconds: 10,
+          timePenaltySeconds: 0,
+        },
+      ],
+      [
+        {
+          ...coquinous,
+          elapsedTimeMs: 3_700_000,
+          timeBonusSeconds: 0,
+          timePenaltySeconds: 2,
+        },
+        {
+          ...challengers,
+          elapsedTimeMs: 3_700_000,
+          timeBonusSeconds: 3,
+          timePenaltySeconds: 0,
+        },
+      ],
+    ]);
+
+    expect(general.map((result) => result.riderId)).toEqual([
+      "rider-challenger",
+      "rider-coquinous",
+    ]);
+    expect(general[0]).toMatchObject({
+      elapsedTimeMs: 7_291_000,
+      gapToWinnerMs: 0,
+    });
+    expect(general[1]).toMatchObject({
+      elapsedTimeMs: 7_298_000,
+      gapToWinnerMs: 7_000,
+    });
+  });
+
   it("conserve un abandon en bas et hors du classement général", () => {
     const general = buildPersistedGeneralClassification([
       [
