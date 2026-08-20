@@ -313,6 +313,33 @@ export function simulationStartsUnavailableRider(
   );
 }
 
+export function normalizeOfficialStageResultRanks(
+  simulation: StageSimulationResult,
+): StageSimulationResult {
+  const finishedResults = simulation.results
+    .filter((result) => result.status === "finished")
+    .sort(
+      (first, second) =>
+        (first.rank ?? Number.MAX_SAFE_INTEGER) -
+          (second.rank ?? Number.MAX_SAFE_INTEGER) ||
+        first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+        first.riderId.localeCompare(second.riderId),
+    );
+  const rankByRiderId = new Map(
+    finishedResults.map((result, index) => [result.riderId, index + 1]),
+  );
+  let changed = false;
+  const results = simulation.results.map((result) => {
+    if (result.status !== "finished") return result;
+    const rank = rankByRiderId.get(result.riderId)!;
+    if (result.rank === rank) return result;
+    changed = true;
+    return { ...result, rank };
+  });
+
+  return changed ? { ...simulation, results } : simulation;
+}
+
 /**
  * Produit une seule chronologie canonique pour une édition entière. Le live,
  * le replay et la consolidation serveur utilisent cette fonction afin que la

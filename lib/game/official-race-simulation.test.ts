@@ -4,6 +4,7 @@ import {
   getPersistedStageResultUnavailableRiderIds,
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
+  normalizeOfficialStageResultRanks,
   simulationStartsUnavailableRider,
 } from "./official-race-simulation";
 import type { StageSimulationResult } from "./race-simulation";
@@ -51,6 +52,31 @@ describe("isUnavailableForFollowingStage", () => {
         new Set(["another-rider"]),
       ),
     ).toBe(false);
+  });
+});
+
+describe("normalizeOfficialStageResultRanks", () => {
+  it("referme les trous laissés par les coureurs retirés", () => {
+    const first = createResult("finished");
+    const second = { ...createResult("finished"), riderId: "rider-2", rank: 6 };
+    const third = { ...createResult("finished"), riderId: "rider-3", rank: 10 };
+    const abandoned = {
+      ...createResult("did_not_finish"),
+      riderId: "rider-4",
+    };
+
+    expect(
+      normalizeOfficialStageResultRanks({
+        stageId: "stage",
+        seed: "seed",
+        resolvedRiders: [],
+        timeline: [],
+        results: [first, second, third, abandoned],
+        primes: [],
+        mountainPoints: {},
+        sprintPoints: {},
+      }).results.map((result) => result.rank),
+    ).toEqual([1, 2, 3, null]);
   });
 });
 

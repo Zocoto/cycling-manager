@@ -8,6 +8,7 @@ import {
   getPersistedStageResultUnavailableRiderIds,
   getPersistedUnavailableRiderIdsAtStageDeparture,
   isUnavailableForFollowingStage,
+  normalizeOfficialStageResultRanks,
   OFFICIAL_RACE_ENGINE_VERSION,
   simulationStartsUnavailableRider,
   type LockedOfficialRaceSimulationDirectory,
@@ -210,7 +211,9 @@ export async function ensureLockedOfficialRaceSimulations(
                 ? { mountainObjectiveRiderIds }
                 : {}),
             };
-            const simulation = simulateRaceStage(officialInput);
+            const simulation = normalizeOfficialStageResultRanks(
+              simulateRaceStage(officialInput),
+            );
             const candidate: LockedOfficialStageSimulation = {
               stageId: stage.id,
               raceEditionId: edition.id,
@@ -650,7 +653,7 @@ function toLockedSimulation(
     engineVersion: row.engine_version,
     seed: row.seed,
     input: row.input_data,
-    simulation: row.simulation_data,
+    simulation: normalizeOfficialStageResultRanks(row.simulation_data),
   };
 }
 
