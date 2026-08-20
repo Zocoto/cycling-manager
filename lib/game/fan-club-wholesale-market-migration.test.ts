@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    "supabase/migrations/20260820170000_create_global_fan_club_wholesale_market.sql",
+    "supabase/migrations/20260820180000_create_global_fan_club_wholesale_market.sql",
   ),
   "utf8",
 ).replace(/\r\n/g, "\n");
