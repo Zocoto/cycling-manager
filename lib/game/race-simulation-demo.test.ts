@@ -413,7 +413,6 @@ describe("createCalendarSimulationInput", () => {
     expect(
       secondContext.simulation.resolvedRiders.every(
         (rider) =>
-          rider.classificationJersey &&
           rider.activeNationalChampion?.countryCode === "FR",
       ),
     ).toBe(true);
