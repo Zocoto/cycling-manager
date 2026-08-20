@@ -862,7 +862,7 @@ async function ensureTodayDailyMarket(
     p_rider_identities: identities,
     p_force: false,
   });
-  assertQuery(error, "les dix coureurs du marché quotidien");
+  assertQuery(error, "les coureurs du marché quotidien");
 }
 
 async function prepareCurrentTransferMarket(

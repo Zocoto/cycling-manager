@@ -89,6 +89,25 @@ it("n'affiche pas les favoris dans les resultats officiels", () => {
 });
 
 describe("RaceOfficialResults", () => {
+  it("affiche la bonification obtenue sur une étape de tour", () => {
+    const stageRaceEdition = {
+      ...edition,
+      raceFormat: "stage_race",
+    } as RaceCalendarEdition;
+    const results = buildResults("team-active");
+    results.stages[0].results[0].timeBonusSeconds = 10;
+
+    const markup = renderToStaticMarkup(
+      <RaceOfficialResults
+        edition={stageRaceEdition}
+        selectedStageId="stage-1"
+        officialResults={results}
+      />,
+    );
+
+    expect(markup).toContain("Bonif. −10 s");
+  });
+
   it("ouvre directement le classement général demandé par la page du tour", () => {
     const stageRaceEdition = {
       ...edition,

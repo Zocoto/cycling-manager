@@ -434,12 +434,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "transfer-tabs": {
         title: "Choose the right market",
         content:
-          "Daily auctions offer ten new talents for one day. SD auctions let teams buy and sell between themselves for 24 hours. Free agents can be signed immediately with no transfer fee.\n\nThe tutorial visits these three areas in order.",
+          "Daily auctions feature new riders for one day. SD auctions let teams buy and sell between themselves for 24 hours. Free agents can be signed immediately with no transfer fee.\n\nThe tutorial visits these three areas in order.",
       },
       "daily-overview": {
-        title: "Ten new profiles every day",
+        title: "New profiles every day",
         content:
-          "Daily selection opens at 9:00 and closes at 18:00. Each group contains ten market-generated riders starting with 0 career race days.\n\nAge, profile and salary request are known, while attributes and potential remain estimates. A particularly rare talent may appear.",
+          "Daily selection opens at 9:00 and closes at 18:00. Each group contains a selection of market-generated riders starting with 0 career race days.\n\nAge, profile and salary request are known, while attributes and potential remain estimates. A particularly rare talent may appear.",
       },
       "daily-bidding": {
         title: "Include every cost in your bid",

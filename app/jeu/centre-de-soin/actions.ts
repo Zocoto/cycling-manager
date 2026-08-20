@@ -95,6 +95,67 @@ export async function assignPhysiotherapistAction(formData: FormData) {
   redirect("/jeu/centre-de-soin?onglet=kines&affectation=confirmee");
 }
 
+export async function assignPhysiotherapistMatrixAction(formData: FormData) {
+  const rawAssignments = readValue(formData, "assignments");
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(rawAssignments);
+  } catch {
+    redirectWithError("kines", "Les affectations des kinés sont invalides.");
+  }
+
+  if (!Array.isArray(payload) || payload.length > 50) {
+    redirectWithError("kines", "Les affectations des kinés sont invalides.");
+  }
+
+  const assignments = payload.map((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      redirectWithError("kines", "Une affectation de kiné est invalide.");
+    }
+
+    const candidate = entry as Record<string, unknown>;
+    const riderId = candidate.riderId;
+    const staffContractId = candidate.staffContractId;
+
+    if (
+      typeof riderId !== "string" ||
+      !isUuid(riderId) ||
+      typeof staffContractId !== "string" ||
+      !isUuid(staffContractId)
+    ) {
+      redirectWithError("kines", "Une affectation de kiné est invalide.");
+    }
+
+    return {
+      rider_id: riderId,
+      staff_contract_id: staffContractId,
+    };
+  });
+
+  if (
+    new Set(assignments.map((assignment) => assignment.rider_id)).size !==
+    assignments.length
+  ) {
+    redirectWithError(
+      "kines",
+      "Un coureur ne peut être suivi que par un seul kiné.",
+    );
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "assign_current_team_physiotherapist_matrix",
+    { p_assignments: assignments },
+  );
+
+  if (error) redirectWithError("kines", error.message);
+
+  revalidateHealthPaths();
+  revalidatePath("/jeu/staff");
+  redirect("/jeu/centre-de-soin?onglet=kines&affectation=confirmee");
+}
+
 export async function applyNutritionInterventionsAction(formData: FormData) {
   const rawInterventions = readValue(formData, "interventions");
   let payload: unknown;

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
+import { PhysiotherapistAssignmentMatrix } from "@/components/game/physiotherapist-assignment-matrix";
 import {
   NutritionInterventionFields,
   NutritionInterventionsEditor,
@@ -46,7 +47,6 @@ import {
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
-  assignPhysiotherapistAction,
   bookFormCampAction,
 } from "./actions";
 
@@ -207,7 +207,8 @@ export default async function HealthCenterPage({
         ) : null}
         {readQuery(query.affectation) === "confirmee" ? (
           <SuccessMessage>
-            L’affectation du kiné est enregistrée. Son bonus protégera ces coureurs dès leur prochaine course.
+            Les affectations des kinés sont enregistrées. Leurs bonus
+            protégeront les coureurs suivis dès leur prochain effort.
           </SuccessMessage>
         ) : null}
         {readQuery(query.nutrition) === "confirmee" ? (
@@ -246,7 +247,9 @@ export default async function HealthCenterPage({
         {activeTab === "nutrition" ? (
           <NutritionPanel overview={overview} jersey={jersey} />
         ) : null}
-        {activeTab === "kines" ? <PhysiotherapistsPanel overview={overview} /> : null}
+        {activeTab === "kines" ? (
+          <PhysiotherapistsPanel overview={overview} jersey={jersey} />
+        ) : null}
         {activeTab === "staff" ? (
           <MedicalStaffPanel overview={overview} />
         ) : null}
@@ -1056,7 +1059,13 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
   );
 }
 
-function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
+function PhysiotherapistsPanel({
+  overview,
+  jersey,
+}: {
+  overview: TeamHealthOverview;
+  jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+}) {
   const physiotherapists = overview.medicalStaff.filter(
     (member) => member.role === "physiotherapist",
   );
@@ -1075,71 +1084,12 @@ function PhysiotherapistsPanel({ overview }: { overview: TeamHealthOverview }) {
       {physiotherapists.length > 0 ? (
         <div
           data-tutorial-id="medical-center-physiotherapist-assignments"
-          className="mt-5 grid gap-6 xl:grid-cols-2"
         >
-          {physiotherapists.map((physio) => {
-            const capacity = getPhysiotherapistRiderCapacity(physio.level);
-            return (
-              <form
-                key={physio.contractId}
-                action={assignPhysiotherapistAction}
-                className="rounded-[2rem] border border-[#8B6FB6]/20 bg-white p-6 shadow-[0_14px_38px_rgba(19,60,46,0.07)]"
-              >
-                <input
-                  type="hidden"
-                  name="staffContractId"
-                  value={physio.contractId}
-                />
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-lg font-black text-[#183F37]">
-                      {physio.firstName} {physio.lastName}
-                    </p>
-                    <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-[#7856A4]">
-                      Kiné · niveau {physio.level}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-[#F1EAF9] px-3 py-2 text-xs font-black text-[#684390]">
-                    {physio.assignedRiderIds.length}/{capacity}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm font-semibold leading-6 text-[#60756E]">
-                  Jusqu’à {physio.level} point{physio.level > 1 ? "s" : ""} de
-                  forme préservé{physio.level > 1 ? "s" : ""} par effort ou
-                  journée de blessure, avec au moins 1 point de malus conservé.
-                </p>
-                <fieldset className="mt-5 grid gap-2 sm:grid-cols-2">
-                  <legend className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#60756E]">
-                    Coureurs suivis · {capacity} maximum
-                  </legend>
-                  {overview.riders.map((rider) => (
-                    <label
-                      key={rider.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-[#F7FAF8] px-3 py-3 text-sm font-bold text-[#183F37]"
-                    >
-                      <input
-                        type="checkbox"
-                        name="riderIds"
-                        value={rider.id}
-                        defaultChecked={physio.assignedRiderIds.includes(
-                          rider.id,
-                        )}
-                        className="h-4 w-4 accent-[#7856A4]"
-                      />
-                      <span className="min-w-0 truncate">
-                        {rider.firstName} {rider.lastName}
-                      </span>
-                    </label>
-                  ))}
-                </fieldset>
-                <div className="mt-5">
-                  <HealthCenterSubmitButton pendingLabel="Enregistrement…">
-                    Enregistrer les affectations
-                  </HealthCenterSubmitButton>
-                </div>
-              </form>
-            );
-          })}
+          <PhysiotherapistAssignmentMatrix
+            riders={overview.riders}
+            physiotherapists={physiotherapists}
+            jersey={jersey}
+          />
         </div>
       ) : (
         <div className="mt-5 rounded-[2rem] border border-[#8B6FB6]/20 bg-white px-6 py-12 text-center shadow-[0_16px_42px_rgba(19,60,46,0.07)]">

@@ -86,7 +86,7 @@ const daySchedule = [
   {
     time: "9 h",
     title: "Marché quotidien",
-    text: "Dix nouveaux coureurs apparaissent aux enchères jusqu’à 18 h.",
+    text: "De nouveaux coureurs apparaissent aux enchères jusqu’à 18 h.",
   },
   {
     time: "12 h",
@@ -711,7 +711,7 @@ function TeamManagementSection() {
           title="Trois façons de recruter"
           href="/jeu/transferts"
           bullets={[
-            "10 enchères quotidiennes, de 9 h à 18 h",
+            "Enchères quotidiennes, de 9 h à 18 h",
             "Ventes entre DS pendant 24 heures",
             "Agents libres sans indemnité de transfert",
             "Contrats couvrant la saison actuelle et la suivante",
