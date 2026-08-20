@@ -314,11 +314,7 @@ export default async function RiderProfilePage({
             {query.erreur}
           </p>
         ) : null}
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#60756E]">
-            <span aria-hidden="true">↗</span>
-            Fiche ouverte indépendamment de votre espace de jeu
-          </p>
+        <div className="mb-4 flex justify-end">
           <TutorialLaunchButton tutorialKey={ROSTER_TUTORIAL_KEY} iconOnly />
         </div>
 

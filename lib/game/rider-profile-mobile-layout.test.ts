@@ -22,6 +22,16 @@ const riderActions = readFileSync(
 );
 
 describe("mise en page mobile de la fiche coureur", () => {
+  it("retire le libellé technique tout en gardant l'aide alignée à droite", () => {
+    expect(riderPage).not.toContain(
+      "Fiche ouverte indépendamment de votre espace de jeu",
+    );
+    expect(riderPage).toContain('className="mb-4 flex justify-end"');
+    expect(riderPage).toContain(
+      "<TutorialLaunchButton tutorialKey={ROSTER_TUTORIAL_KEY} iconOnly />",
+    );
+  });
+
   it("sépare les maillots de champion de l’identité d’équipe sur PC et téléphone", () => {
     expect(riderPage).toContain(
       'lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center xl:grid-cols-[auto_minmax(0,1fr)_minmax(360px,400px)]',
