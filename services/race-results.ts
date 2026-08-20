@@ -307,7 +307,7 @@ async function settleEditionRaceResults({
 
   // Une édition déjà clôturée avec un classement général complet est saine :
   // inutile de la retraiter.
-  const hasPendingStage = orderedStages.some(
+  const hasPendingStage = edition.stages.some(
     (stage) => getStageLiveState(stage, now).status !== "finished",
   );
   if (edition.status === "completed" && !hasPendingStage) {
