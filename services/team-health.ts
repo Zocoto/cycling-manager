@@ -15,6 +15,7 @@ import {
   isStaffTalentForRole,
   type StaffTalentCode,
 } from "@/lib/game/staff-talents";
+import type { RiderRatings } from "@/lib/game/rider-profile";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = { id: string };
@@ -42,7 +43,23 @@ type RiderRow = {
   avatar_seed: number | string;
 };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
-type RatingRow = { rider_id: string; age: number };
+type RatingRow = {
+  rider_id: string;
+  age: number;
+  mountain: number;
+  hills: number;
+  flat: number;
+  time_trial: number;
+  cobbles: number;
+  sprint: number;
+  acceleration: number;
+  downhill: number;
+  endurance: number;
+  resistance: number;
+  recovery: number;
+  breakaway: number;
+  prologue: number;
+};
 type SeasonDayRow = { id: string; day_number: number };
 type ConditionRow = {
   rider_id: string;
@@ -162,6 +179,8 @@ export type TeamHealthRider = {
   avatarProfileKey: string;
   avatarSeed: number | string;
   age: number;
+  ratings: RiderRatings;
+  averageRating: number;
   form: number;
   fatigue: number;
   injury: RiderMedicalInjury | null;
@@ -324,7 +343,9 @@ export async function getCurrentTeamHealthOverview(
         .returns<RiderRow[]>(),
       admin
         .from("rider_season_ratings")
-        .select("rider_id, age")
+        .select(
+          "rider_id, age, mountain, hills, flat, time_trial, cobbles, sprint, acceleration, downhill, endurance, resistance, recovery, breakaway, prologue",
+        )
         .eq("season_id", season.id)
         .in("rider_id", riderIds)
         .returns<RatingRow[]>(),
@@ -486,6 +507,8 @@ export async function getCurrentTeamHealthOverview(
           ? treatmentByInjuryId.get(injury.id)
           : undefined;
         const camp = campByRiderId.get(rider.id);
+        const rating = ratingByRiderId.get(rider.id);
+        const ratings = toRiderRatings(rating);
 
         return {
           id: rider.id,
@@ -495,7 +518,12 @@ export async function getCurrentTeamHealthOverview(
           countryCode: country?.iso_alpha2 ?? "xx",
           avatarProfileKey: rider.avatar_profile_key,
           avatarSeed: rider.avatar_seed,
-          age: ratingByRiderId.get(rider.id)?.age ?? 25,
+          age: rating?.age ?? 25,
+          ratings,
+          averageRating: Math.round(
+            Object.values(ratings).reduce((total, value) => total + value, 0) /
+              13,
+          ),
           form: condition?.form ?? 75,
           fatigue: condition?.fatigue ?? 0,
           injury: injury
@@ -542,6 +570,24 @@ export async function getCurrentTeamHealthOverview(
           left.lastName.localeCompare(right.lastName, "fr") ||
           left.firstName.localeCompare(right.firstName, "fr"),
       ),
+  };
+}
+
+function toRiderRatings(rating: RatingRow | undefined): RiderRatings {
+  return {
+    mountain: rating?.mountain ?? 50,
+    hills: rating?.hills ?? 50,
+    flat: rating?.flat ?? 50,
+    timeTrial: rating?.time_trial ?? 50,
+    cobbles: rating?.cobbles ?? 50,
+    sprint: rating?.sprint ?? 50,
+    acceleration: rating?.acceleration ?? 50,
+    downhill: rating?.downhill ?? 50,
+    endurance: rating?.endurance ?? 50,
+    resistance: rating?.resistance ?? 50,
+    recovery: rating?.recovery ?? 50,
+    breakaway: rating?.breakaway ?? 50,
+    prologue: rating?.prologue ?? 50,
   };
 }
 
