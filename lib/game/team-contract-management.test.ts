@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTeamContractRiderStatus } from "@/lib/game/team-contract-management";
+import {
+  canRenewCurrentTeamRiderContract,
+  resolveEffectiveTeamContractEndYear,
+  resolveTeamContractRiderStatus,
+} from "@/lib/game/team-contract-management";
 
 const TEAM_ID = "team-a";
 
@@ -47,5 +51,54 @@ describe("team contract management", () => {
         successorTeamId: "team-b",
       }),
     ).toBe("leaving");
+  });
+
+  it("displays the end of a renewal signed with the current team", () => {
+    expect(
+      resolveEffectiveTeamContractEndYear({
+        currentContractEndYear: 2,
+        currentTeamId: TEAM_ID,
+        successorTeamId: TEAM_ID,
+        successorContractEndYear: 3,
+      }),
+    ).toBe(3);
+  });
+
+  it("does not extend the displayed term with a contract at another team", () => {
+    expect(
+      resolveEffectiveTeamContractEndYear({
+        currentContractEndYear: 2,
+        currentTeamId: TEAM_ID,
+        successorTeamId: "team-b",
+        successorContractEndYear: 3,
+      }),
+    ).toBe(2);
+  });
+
+  it("stops offering renewal once a next-season contract exists", () => {
+    expect(
+      canRenewCurrentTeamRiderContract({
+        currentContractEndYear: 2,
+        currentSeasonYear: 2,
+        hasNextSeasonContract: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("offers renewal only for an expiring rider without a successor", () => {
+    expect(
+      canRenewCurrentTeamRiderContract({
+        currentContractEndYear: 2,
+        currentSeasonYear: 2,
+        hasNextSeasonContract: false,
+      }),
+    ).toBe(true);
+    expect(
+      canRenewCurrentTeamRiderContract({
+        currentContractEndYear: 3,
+        currentSeasonYear: 2,
+        hasNextSeasonContract: false,
+      }),
+    ).toBe(false);
   });
 });

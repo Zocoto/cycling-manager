@@ -2,6 +2,7 @@ import "server-only";
 
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
 import {
+  resolveEffectiveTeamContractEndYear,
   resolveTeamContractRiderStatus,
   type TeamContractRiderStatus,
 } from "@/lib/game/team-contract-management";
@@ -255,6 +256,18 @@ export async function getTeamContractManagementOverview(
       currentTeamId: teamId,
       successorTeamId: successor?.team_id ?? null,
     });
+    const successorEndSeason = successor
+      ? seasonById.get(successor.end_season_id)
+      : null;
+    const effectiveEndYear = resolveEffectiveTeamContractEndYear({
+      currentContractEndYear: activeEndYear,
+      currentTeamId: teamId,
+      successorTeamId: successor?.team_id ?? null,
+      successorContractEndYear: successorEndSeason?.game_year ?? null,
+    });
+    const effectiveEndSeason = seasons.find(
+      (season) => season.game_year === effectiveEndYear,
+    );
     const overall = getOverall(rating);
     const previousSeasonUciPoints = Math.max(
       0,
@@ -282,7 +295,7 @@ export async function getTeamContractManagementOverview(
       status === "covered"
         ? activeEndSeason?.name ?? null
         : status === "renewed" && successor
-          ? seasonById.get(successor.end_season_id)?.name ?? null
+          ? successorEndSeason?.name ?? null
           : status === "eligible"
             ? nextSeason?.name ?? `Saison ${nextSeasonYear}`
             : null;
@@ -302,7 +315,9 @@ export async function getTeamContractManagementOverview(
         currentSalary,
         currentCurrency: activeContract.currency_code || currency,
         currentContractEndSeasonName:
-          activeEndSeason?.name ?? currentSeason.name,
+          effectiveEndSeason?.name ??
+          activeEndSeason?.name ??
+          currentSeason.name,
         nextSalary,
         nextCurrency: successor?.currency_code || currency,
         nextContractEndSeasonName,

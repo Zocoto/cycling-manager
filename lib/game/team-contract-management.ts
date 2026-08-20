@@ -20,3 +20,38 @@ export function resolveTeamContractRiderStatus({
   if (successorTeamId) return "leaving";
   return "eligible";
 }
+
+export function resolveEffectiveTeamContractEndYear({
+  currentContractEndYear,
+  currentTeamId,
+  successorTeamId,
+  successorContractEndYear,
+}: {
+  currentContractEndYear: number;
+  currentTeamId: string;
+  successorTeamId: string | null;
+  successorContractEndYear: number | null;
+}): number {
+  if (
+    successorTeamId === currentTeamId &&
+    successorContractEndYear !== null
+  ) {
+    return Math.max(currentContractEndYear, successorContractEndYear);
+  }
+
+  return currentContractEndYear;
+}
+
+export function canRenewCurrentTeamRiderContract({
+  currentContractEndYear,
+  currentSeasonYear,
+  hasNextSeasonContract,
+}: {
+  currentContractEndYear: number;
+  currentSeasonYear: number;
+  hasNextSeasonContract: boolean;
+}): boolean {
+  return (
+    currentContractEndYear <= currentSeasonYear && !hasNextSeasonContract
+  );
+}

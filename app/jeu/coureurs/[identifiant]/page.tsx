@@ -814,8 +814,7 @@ function ContractRenewalCard({
         </form>
       ) : (
         <p className="mt-4 rounded-xl bg-[#DDF3E7] px-4 py-3 text-sm font-bold text-[#176951]">
-          Le contrat est déjà sécurisé pour le maximum de trois saisons
-          glissantes.
+          Le contrat est déjà sécurisé pour la saison suivante.
         </p>
       )}
     </article>

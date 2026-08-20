@@ -26,6 +26,10 @@ import {
   MAX_TEAM_ROSTER_SIZE,
 } from "@/lib/game/team-roster-capacity";
 import {
+  canRenewCurrentTeamRiderContract,
+  resolveEffectiveTeamContractEndYear,
+} from "@/lib/game/team-contract-management";
+import {
   createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
   getScoutedNumericSortValue,
@@ -710,22 +714,46 @@ export async function getRiderTransferManagement(
     contracts.find((contract) => contract.status === "active") ?? null;
   const ownsRider = activeContract?.team_id === context.teamSeason.team_id;
   const seasonYears = await loadSeasonYears(admin);
-  const contractEndSeasonYear =
-    Math.max(
-      ...contracts
-        .filter(
-          (contract) =>
-            contract.status === "active" &&
-            contract.team_id === context.teamSeason.team_id,
-        )
-        .map((contract) => seasonYears.get(contract.end_season_id) ?? 0),
-      0,
-    ) || null;
+  const activeContractEndSeasonYear = activeContract
+    ? seasonYears.get(activeContract.end_season_id) ?? null
+    : null;
+  const nextSeasonContract = contracts
+    .filter((contract) => contract.id !== activeContract?.id)
+    .filter((contract) => {
+      const startYear = seasonYears.get(contract.start_season_id);
+      const endYear = seasonYears.get(contract.end_season_id);
+      return (
+        startYear !== undefined &&
+        endYear !== undefined &&
+        startYear <= context.season.game_year + 1 &&
+        endYear >= context.season.game_year + 1
+      );
+    })
+    .sort(
+      (left, right) =>
+        (seasonYears.get(right.end_season_id) ?? 0) -
+        (seasonYears.get(left.end_season_id) ?? 0),
+    )[0];
+  const successorContractEndSeasonYear = nextSeasonContract
+    ? seasonYears.get(nextSeasonContract.end_season_id) ?? null
+    : null;
+  const contractEndSeasonYear = activeContractEndSeasonYear
+    ? resolveEffectiveTeamContractEndYear({
+        currentContractEndYear: activeContractEndSeasonYear,
+        currentTeamId: context.teamSeason.team_id,
+        successorTeamId: nextSeasonContract?.team_id ?? null,
+        successorContractEndYear: successorContractEndSeasonYear,
+      })
+    : null;
   const canRenew = Boolean(
     ownsRider &&
     activeContract &&
-    contractEndSeasonYear !== null &&
-    contractEndSeasonYear < context.season.game_year + 2,
+    activeContractEndSeasonYear !== null &&
+    canRenewCurrentTeamRiderContract({
+      currentContractEndYear: activeContractEndSeasonYear,
+      currentSeasonYear: context.season.game_year,
+      hasNextSeasonContract: Boolean(nextSeasonContract),
+    }),
   );
   const salary = calculateSalaryApproximation(overall);
   const isFreeAgent =

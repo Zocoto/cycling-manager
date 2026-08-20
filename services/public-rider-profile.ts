@@ -1108,8 +1108,21 @@ export async function getPublicRiderProfile({
   const startSeason = currentContract
     ? seasonById.get(currentContract.start_season_id)
     : null;
-  const endSeason = currentContract
-    ? seasonById.get(currentContract.end_season_id)
+  const effectiveContract = currentContract
+    ? contracts
+        .filter(
+          (contract) =>
+            contract.team_id === currentContract.team_id &&
+            (contract.status === "active" || contract.status === "planned"),
+        )
+        .sort(
+          (left, right) =>
+            (seasonById.get(right.end_season_id)?.game_year ?? 0) -
+            (seasonById.get(left.end_season_id)?.game_year ?? 0),
+        )[0] ?? currentContract
+    : null;
+  const endSeason = effectiveContract
+    ? seasonById.get(effectiveContract.end_season_id)
     : null;
 
   return {
