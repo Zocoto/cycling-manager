@@ -4,6 +4,15 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 
 describe("page d’accueil publique", () => {
+  it("présente le jeu de cyclisme en ligne dès le haut du héros", () => {
+    const labelIndex = source.indexOf("jeu de cyclisme en ligne");
+    const titleIndex = source.indexOf("Prenez la tête");
+
+    expect(labelIndex).toBeGreaterThan(-1);
+    expect(labelIndex).toBeLessThan(titleIndex);
+    expect(source).toContain("Online cycling game");
+  });
+
   it("retire le texte marketing et les deux boutons du héros", () => {
     expect(source).not.toContain("Construisez votre équipe, recrutez");
     expect(source).not.toContain("Nouvelle carrière");

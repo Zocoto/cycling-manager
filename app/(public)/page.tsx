@@ -303,6 +303,9 @@ function HeroSection({ locale }: { locale: AppLocale }) {
       />
 
       <div className="relative mx-auto min-h-150 max-w-7xl px-5 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-20">
+        <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#278B70] sm:text-sm">
+          {isEnglish ? "Online cycling game" : "jeu de cyclisme en ligne"}
+        </p>
         <h1 className="max-w-2xl text-5xl font-black leading-[0.95] tracking-[-0.045em] text-[#082A2A] sm:text-6xl lg:text-7xl">
           {isEnglish ? "Lead" : "Prenez la tête"}
           <span className="mt-2 block text-[#42B99A]">
