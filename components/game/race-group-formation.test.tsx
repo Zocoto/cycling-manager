@@ -131,6 +131,44 @@ describe("race group formation", () => {
     expect(markup).toContain("translate(5");
   });
 
+  it("puts the current relay at the front and varies pedalling effort", () => {
+    const riders = Array.from({ length: 6 }, (_, index) => buildRider(index + 1));
+    const riderIds = riders.map((rider) => rider.id);
+    const group: RaceGroupSnapshot = {
+      id: "dynamic-breakaway",
+      label: "Échappée",
+      type: "breakaway",
+      riderIds,
+      gapToLeaderSeconds: 0,
+      averageEnergy: 68,
+    };
+    const markup = renderToStaticMarkup(
+      <RaceGroupFormation
+        group={group}
+        riderIds={riderIds}
+        riderById={new Map(riders.map((rider) => [rider.id, rider]))}
+        incidents={[]}
+        primeWinnerId={null}
+        primeResult={null}
+        isMoving
+        compact={false}
+        frontDynamics={{
+          breakawayCooperation: 0.78,
+          activeRelayRiderIds: ["rider-5"],
+          chasePressure: 0.72,
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-race-breakaway-state="organized"');
+    expect(markup).toContain('data-race-rider-effort="relay"');
+    expect(markup).toContain('data-race-rider-effort="sheltered"');
+    expect(markup).toContain('data-race-cyclist-airflow="relay"');
+    expect(markup.indexOf("Coureur 5")).toBeLessThan(
+      markup.indexOf("Coureur 1"),
+    );
+  });
+
   it("opens the group for an intermediate sprint battle", () => {
     const riders = Array.from({ length: 6 }, (_, index) => buildRider(index + 1));
     const riderIds = riders.map((rider) => rider.id);

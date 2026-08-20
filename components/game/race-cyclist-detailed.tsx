@@ -12,6 +12,7 @@ import {
   getRaceCyclistSkinPalette,
 } from "@/components/game/race-cyclist";
 import type { RiderJerseyPattern } from "@/lib/rider-jersey";
+import type { RaceRiderVisualEffort } from "@/lib/game/race-visual-motion";
 
 export function SideRaceCyclist({
   rider,
@@ -20,6 +21,7 @@ export function SideRaceCyclist({
   celebrating = false,
   timeTrial = false,
   rearDiscWheel = false,
+  effort = "steady",
 }: {
   rider: RiderSimulationInput;
   isMoving?: boolean;
@@ -27,12 +29,14 @@ export function SideRaceCyclist({
   celebrating?: boolean;
   timeTrial?: boolean;
   rearDiscWheel?: boolean;
+  effort?: RaceRiderVisualEffort;
 }) {
   const visual = getRaceCyclistJerseyVisual(rider);
   const helmet = getRaceCyclistTeamHelmetPalette(rider);
   const skin = getRaceCyclistSkinPalette(rider);
   const pattern = getRaceCyclistTeamKitPattern(rider);
-  const clipId = `detailed-side-jersey-${useId().replace(/:/g, "")}`;
+  const visualId = `detailed-side-${useId().replace(/:/g, "")}`;
+  const clipId = `${visualId}-jersey`;
   const label = `${rider.name} · ${rider.teamName} · ${visual.label}`;
   const torsoPath = celebrating
     ? "M42 10 39 17 40 28 54 28 56 17 53 10Z"
@@ -44,25 +48,77 @@ export function SideRaceCyclist({
       viewBox="0 0 90 56"
       role="img"
       aria-label={label}
+      data-race-cyclist-effort={effort}
       className={`${className} overflow-visible drop-shadow-md ${
         isMoving ? "cm-bike-bob" : ""
-      }`}
+      } cm-race-cyclist-effort-${effort}`}
     >
       <title>{label}</title>
       <defs>
         <clipPath id={clipId}>
           <path d={torsoPath} />
         </clipPath>
+        <linearGradient id={`${visualId}-frame`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={visual.accentColor} stopOpacity="0.88" />
+          <stop offset="0.28" stopColor={visual.primaryColor} />
+          <stop offset="0.72" stopColor={visual.primaryColor} />
+          <stop offset="1" stopColor="#071A17" stopOpacity="0.82" />
+        </linearGradient>
+        <linearGradient id={`${visualId}-jersey-light`} x1="0" y1="0" x2="0.9" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.34" />
+          <stop offset="0.32" stopColor={visual.primaryColor} />
+          <stop offset="1" stopColor="#071A17" stopOpacity="0.34" />
+        </linearGradient>
+        <linearGradient id={`${visualId}-tire`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#33423C" />
+          <stop offset="0.45" stopColor="#090E0C" />
+          <stop offset="0.78" stopColor="#1C2924" />
+          <stop offset="1" stopColor="#050807" />
+        </linearGradient>
+        <linearGradient id={`${visualId}-helmet-shell`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.46" />
+          <stop offset="0.3" stopColor={helmet.primary} />
+          <stop offset="1" stopColor={helmet.secondary} />
+        </linearGradient>
+        <pattern id={`${visualId}-fabric`} width="2.4" height="2.4" patternUnits="userSpaceOnUse">
+          <path d="M0 .4h2.4M.4 0v2.4" stroke="#FFFFFF" strokeWidth="0.16" opacity="0.28" />
+          <path d="m0 2.4 2.4-2.4" stroke="#071A17" strokeWidth="0.12" opacity="0.2" />
+        </pattern>
       </defs>
 
-      <DetailedSideWheel cx={18} moving={isMoving} disc={rearDiscWheel} />
-      <DetailedSideWheel cx={72} moving={isMoving} />
+      {isMoving && (effort === "relay" || effort === "chase") ? (
+        <g
+          aria-hidden="true"
+          data-race-cyclist-airflow={effort}
+          className="cm-race-cyclist-airflow"
+          fill="none"
+          stroke="#EAF7F3"
+          strokeLinecap="round"
+        >
+          <path d="M1 18h18" strokeWidth="0.65" opacity="0.38" />
+          <path d="M-4 24h15" strokeWidth="0.5" opacity="0.26" />
+          <path d="M2 31h12" strokeWidth="0.42" opacity="0.2" />
+        </g>
+      ) : null}
+
+      <DetailedSideWheel
+        cx={18}
+        moving={isMoving}
+        disc={rearDiscWheel}
+        tireGradientId={`${visualId}-tire`}
+      />
+      <DetailedSideWheel
+        cx={72}
+        moving={isMoving}
+        tireGradientId={`${visualId}-tire`}
+      />
 
       <g
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
         data-detailed-race-bike="true"
+        data-race-bike-texture="carbon-metal"
       >
         <path
           d="M18 42 37 25l11 17H18l16-24 23 3 15 21"
@@ -81,7 +137,7 @@ export function SideRaceCyclist({
         />
         <path
           d="M18 42 34 18 48 42 57 21"
-          stroke={visual.primaryColor}
+          stroke={`url(#${visualId}-frame)`}
           strokeWidth="2.15"
         />
         <path d="M34 18 57 21" stroke={visual.accentColor} strokeWidth="1.1" />
@@ -101,6 +157,10 @@ export function SideRaceCyclist({
           strokeWidth="0.6"
         />
         <path d="m61 14 5-2 2 2" stroke="#DCE8E2" strokeWidth="0.9" />
+        <path d="M54 22 70 39" stroke="#26342E" strokeWidth="1.1" />
+        <circle cx="72" cy="42" r="3.6" stroke="#B8C4BE" strokeWidth="0.45" strokeDasharray="1 0.7" />
+        <path d="M49 40h6l2 3-5 2" stroke="#AAB7B0" strokeWidth="0.6" />
+        <path d="M63 14h8" stroke="#2B3933" strokeWidth="2.1" />
       </g>
 
       <g
@@ -178,7 +238,7 @@ export function SideRaceCyclist({
       <path
         d={torsoPath}
         data-race-victory-torso={celebrating ? "upright" : undefined}
-        fill={visual.primaryColor}
+        fill={`url(#${visualId}-jersey-light)`}
         stroke="#F4F7F5"
         strokeWidth="0.7"
         strokeLinejoin="round"
@@ -190,6 +250,16 @@ export function SideRaceCyclist({
         mode="side"
         pattern={pattern}
         visual={visual}
+      />
+      <rect
+        x="31"
+        y="8"
+        width="29"
+        height="24"
+        clipPath={`url(#${clipId})`}
+        fill={`url(#${visualId}-fabric)`}
+        opacity="0.28"
+        data-race-jersey-texture="technical-fabric"
       />
       {!celebrating ? (
         <path
@@ -255,7 +325,7 @@ export function SideRaceCyclist({
                 ? "M52 7.1 58 4.2c2.5-2 6.3-1.8 8.8.2 1.7 1.3 2.4 2.7 2.3 4.1l-6.2-1.2-5.3 1.5Z"
                 : "M57.6 8.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7l-5.7-1.1Z"
           }
-          fill={helmet.primary}
+          fill={`url(#${visualId}-helmet-shell)`}
           stroke="#071A17"
           strokeWidth="0.75"
           strokeLinejoin="round"
@@ -273,6 +343,15 @@ export function SideRaceCyclist({
           stroke={helmet.accent}
           strokeWidth="0.6"
           strokeLinecap="round"
+        />
+        <path
+          d={celebrating ? "M45.5 2.1q3-2.2 6.1.2" : "M59.3 6.1q3.7-2.4 7.4.2"}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth="0.45"
+          strokeLinecap="round"
+          opacity="0.6"
+          data-race-helmet-texture="vented-shell"
         />
       </g>
       <path
@@ -465,10 +544,12 @@ function DetailedSideWheel({
   cx,
   moving,
   disc = false,
+  tireGradientId,
 }: {
   cx: number;
   moving: boolean;
   disc?: boolean;
+  tireGradientId: string;
 }) {
   const spokes = Array.from({ length: 10 }, (_, index) => {
     const angle = (Math.PI * 2 * index) / 10;
@@ -485,7 +566,7 @@ function DetailedSideWheel({
         cy="42"
         r="11.7"
         fill="rgba(7,26,23,0.12)"
-        stroke="#0E1814"
+        stroke={`url(#${tireGradientId})`}
         strokeWidth="2.3"
       />
       <circle

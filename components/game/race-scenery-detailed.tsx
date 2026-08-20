@@ -102,6 +102,20 @@ function DetailedSceneryPanel({
             <rect x="4" y="4" width="7" height="6" rx="1" fill="#CFE4E2" opacity="0.7" />
             <path d="M7.5 4v6" stroke="#617A73" strokeWidth="0.6" />
           </pattern>
+          <pattern
+            id={`${detailId}-ground-fibers`}
+            width="11"
+            height="8"
+            patternUnits="userSpaceOnUse"
+          >
+            <path d="M1 8 3 2m2 6 1-4m3 4-2-3" stroke="#274F35" strokeWidth="0.7" opacity="0.52" />
+            <path d="m3 7 4-1m1-4 2-1" stroke="#D9E5C5" strokeWidth="0.35" opacity="0.42" />
+          </pattern>
+          <linearGradient id={`${detailId}-atmosphere`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#E8F6F3" stopOpacity="0.26" />
+            <stop offset="0.52" stopColor="#D7ECE4" stopOpacity="0.08" />
+            <stop offset="1" stopColor="#18382D" stopOpacity="0.16" />
+          </linearGradient>
         </defs>
 
         {kind === "forest" ? <ForestDetails /> : null}
@@ -114,6 +128,19 @@ function DetailedSceneryPanel({
         {kind === "urban" ? (
           <UrbanDetails windowsId={`${detailId}-windows`} />
         ) : null}
+
+        <path
+          d="M0 202q85-11 170 2t170-1 170 2 170-2 170 2 140-1v41H0Z"
+          fill={`url(#${detailId}-ground-fibers)`}
+          opacity={kind === "urban" ? 0.16 : 0.48}
+          data-race-scenery-texture="ground-fibers"
+        />
+        <rect
+          width="1000"
+          height="235"
+          fill={`url(#${detailId}-atmosphere)`}
+          data-race-scenery-depth="atmosphere"
+        />
 
         <rect
           width="1000"

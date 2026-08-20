@@ -2,6 +2,7 @@ import { useId } from "react";
 
 const DEFAULT_CROWD_COLORS = ["#F2C94C", "#FFFDF4", "#EF5B65", "#2457C5", "#43C892"];
 const COUNTRY_FLAGS = ["FR", "BE", "IT", "ES", "NL", "CO"] as const;
+const SPECTATOR_SKIN_TONES = ["#F0C4A4", "#DDA37F", "#B97856", "#855038", "#5D382B"] as const;
 
 type SpectatorArmPose = "down" | "one-raised" | "both-raised";
 type SpectatorJersey = "plain" | "polka-dot" | "yellow" | "striped";
@@ -93,6 +94,8 @@ export function RaceRoadsideCrowd({
               opacity={0.92}
               armPose={variant.armPose}
               jersey={teamJersey && variant.jersey !== "striped" ? "plain" : variant.jersey}
+              skinTone={variant.skinTone}
+              accessory={special === null ? variant.accessory : null}
               special={special}
               holdsFlag={
                 special === "flag-runner" ||
@@ -112,6 +115,7 @@ export function RaceRoadsideCrowd({
       >
         {foregroundX.map((x, index) => {
           const variant = getSpectatorVariant(index + 31);
+          const special = dense && index === 2 ? "runner" : null;
           const supporterPalette =
             supporterPalettes[(index + 1) % supporterPalettes.length];
           return (
@@ -126,7 +130,9 @@ export function RaceRoadsideCrowd({
               opacity={0.84}
               armPose={variant.armPose}
               jersey={teamPalettes.length > 0 && variant.jersey !== "striped" ? "plain" : variant.jersey}
-              special={dense && index === 2 ? "runner" : null}
+              skinTone={variant.skinTone}
+              accessory={special === null ? variant.accessory : null}
+              special={special}
               holdsFlag={index === 1 || index === foregroundX.length - 2}
               flagCountry={COUNTRY_FLAGS[(index + 2) % COUNTRY_FLAGS.length]}
             />
@@ -195,10 +201,21 @@ function getClimbSupporter(index: number): SpecialSupporter | null {
   } as Record<number, SpecialSupporter>)[index] ?? null;
 }
 
-function getSpectatorVariant(index: number): { armPose: SpectatorArmPose; jersey: SpectatorJersey } {
+function getSpectatorVariant(index: number): {
+  armPose: SpectatorArmPose;
+  jersey: SpectatorJersey;
+  skinTone: (typeof SPECTATOR_SKIN_TONES)[number];
+  accessory: "phone" | "camera" | "cap" | null;
+} {
   const armPoses: SpectatorArmPose[] = ["down", "one-raised", "both-raised", "one-raised"];
   const jerseys: SpectatorJersey[] = ["plain", "striped", "plain", "yellow", "plain", "polka-dot"];
-  return { armPose: armPoses[index % armPoses.length], jersey: jerseys[index % jerseys.length] };
+  const accessories = [null, "phone", null, "cap", "camera", null] as const;
+  return {
+    armPose: armPoses[index % armPoses.length],
+    jersey: jerseys[index % jerseys.length],
+    skinTone: SPECTATOR_SKIN_TONES[index % SPECTATOR_SKIN_TONES.length],
+    accessory: accessories[index % accessories.length],
+  };
 }
 
 function Spectator({
@@ -211,6 +228,8 @@ function Spectator({
   opacity,
   armPose,
   jersey,
+  skinTone,
+  accessory,
   special,
   holdsFlag,
   flagCountry,
@@ -225,6 +244,8 @@ function Spectator({
   opacity: number;
   armPose: SpectatorArmPose;
   jersey: SpectatorJersey;
+  skinTone: (typeof SPECTATOR_SKIN_TONES)[number];
+  accessory: "phone" | "camera" | "cap" | null;
   special: SpecialSupporter | null;
   holdsFlag: boolean;
   flagCountry: (typeof COUNTRY_FLAGS)[number];
@@ -253,10 +274,12 @@ function Spectator({
       data-race-supporter-team={teamId}
       data-race-supporter-special={special ?? "regular"}
       data-race-supporter-motion={running ? "running" : "stationary"}
+      data-race-supporter-accessory={accessory ?? "none"}
     >
       <g className={running ? "cm-supporter-run" : undefined}>
         {holdsFlag ? <SupporterFlag country={flagCountry} /> : null}
         {smokeColor ? <SmokeFlare color={smokeColor} /> : null}
+        {accessory ? <SupporterAccessory kind={accessory} /> : null}
         {special === "devil" ? <DevilAccessories /> : null}
         {special === "horse-mask" ? <HorseMask /> : null}
         {special === "gaul-warrior" ? <GaulHelmet kind="winged" /> : null}
@@ -279,16 +302,46 @@ function Spectator({
           </g>
         ) : null}
         {armPose === "both-raised" ? (
-          <path d="M-6-23-14-34-17-45M6-23 14-34 17-45" fill="none" stroke="#DDA37F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M-6-23-14-34-17-45M6-23 14-34 17-45" fill="none" stroke={skinTone} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         ) : armPose === "one-raised" ? (
-          <path d="M-6-23-13-14M6-23 14-34 17-44" fill="none" stroke="#DDA37F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M-6-23-13-14M6-23 14-34 17-44" fill="none" stroke={skinTone} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         ) : (
-          <path d={running ? "M-6-23-15-29M6-23 15-17" : "M-6-23-13-13M6-23 13-13"} fill="none" stroke="#DDA37F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={running ? "M-6-23-15-29M6-23 15-17" : "M-6-23-13-13M6-23 13-13"} fill="none" stroke={skinTone} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         )}
-        <path d="M-2-28v3h4v-3" fill="#DDA37F" />
-        {special !== "horse-mask" ? <circle cx="0" cy="-34" r="5.7" fill="#DDA37F" stroke="#5F4133" strokeWidth="0.75" /> : null}
+        <path d="M-2-28v3h4v-3" fill={skinTone} />
+        {special !== "horse-mask" ? <circle cx="0" cy="-34" r="5.7" fill={skinTone} stroke="#5F4133" strokeWidth="0.75" /> : null}
         {special === "druid" ? null : special !== "horse-mask" ? <path d="M-5-35q5-7 10 0" fill={special === "gaul-warrior" ? "#F2C94C" : "#4A3429"} /> : null}
       </g>
+    </g>
+  );
+}
+
+function SupporterAccessory({
+  kind,
+}: {
+  kind: "phone" | "camera" | "cap";
+}) {
+  if (kind === "phone") {
+    return (
+      <g data-race-supporter-prop="phone">
+        <rect x="13" y="-43" width="4.5" height="8" rx="0.8" fill="#17261E" stroke="#D8E5DF" strokeWidth="0.55" />
+        <circle cx="15.25" cy="-41.4" r="0.45" fill="#72D4B7" />
+      </g>
+    );
+  }
+  if (kind === "camera") {
+    return (
+      <g data-race-supporter-prop="camera">
+        <path d="M-7-24 0-17 8-24" fill="none" stroke="#26342E" strokeWidth="0.9" />
+        <rect x="-5.5" y="-24" width="11" height="7" rx="1.2" fill="#26342E" stroke="#D4DDD8" strokeWidth="0.6" />
+        <circle cx="0" cy="-20.5" r="2" fill="#75908A" stroke="#0D1713" strokeWidth="0.65" />
+      </g>
+    );
+  }
+  return (
+    <g data-race-supporter-prop="cap">
+      <path d="M-5-38q5-5 10 0v2H-5Z" fill="#F2C94C" stroke="#4E4020" strokeWidth="0.6" />
+      <path d="M3-36h6" stroke="#F2C94C" strokeWidth="1.5" strokeLinecap="round" />
     </g>
   );
 }

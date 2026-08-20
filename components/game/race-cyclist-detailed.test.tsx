@@ -53,9 +53,22 @@ describe("detailed race cyclist", () => {
     );
 
     expect(markup).toContain('data-detailed-race-bike="true"');
+    expect(markup).toContain('data-race-bike-texture="carbon-metal"');
+    expect(markup).toContain('data-race-jersey-texture="technical-fabric"');
+    expect(markup).toContain('data-race-helmet-texture="vented-shell"');
     expect(markup).toContain("cm-bike-leg-front");
     expect(markup).toContain("cm-bike-leg-back");
     expect((markup.match(/<path/g) ?? []).length).toBeGreaterThan(20);
+  });
+
+  it("changes cadence and airflow for a rider currently taking a relay", () => {
+    const markup = renderToStaticMarkup(
+      <SideRaceCyclist rider={rider} isMoving effort="relay" />,
+    );
+
+    expect(markup).toContain('data-race-cyclist-effort="relay"');
+    expect(markup).toContain('data-race-cyclist-airflow="relay"');
+    expect(markup).toContain("cm-race-cyclist-effort-relay");
   });
 
   it("keeps team colors on helmets in side and top views", () => {

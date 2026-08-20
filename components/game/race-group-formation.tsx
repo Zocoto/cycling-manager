@@ -5,10 +5,15 @@ import {
   getRaceGroupRiderSlots,
   type RaceGroupVisualFormation,
 } from "@/lib/game/race-visual-layout";
+import {
+  getBreakawayVisualState,
+  getRaceRiderVisualEffort,
+} from "@/lib/game/race-visual-motion";
 import type {
   RaceGroupSnapshot,
   RaceIncident,
   RacePrimeResult,
+  RaceVisualFrame,
   RiderSimulationInput,
 } from "@/lib/game/race-simulation";
 
@@ -23,6 +28,7 @@ export function RaceGroupFormation({
   compact,
   primeSprintContenderIds = [],
   primeSprintProgress = null,
+  frontDynamics,
 }: {
   group: RaceGroupSnapshot;
   riderIds: string[];
@@ -34,7 +40,9 @@ export function RaceGroupFormation({
   compact: boolean;
   primeSprintContenderIds?: string[];
   primeSprintProgress?: number | null;
+  frontDynamics?: RaceVisualFrame["frontDynamics"];
 }) {
+  const breakawayVisualState = getBreakawayVisualState(frontDynamics);
   const groupSprintContenderIds = primeSprintContenderIds.filter((riderId) =>
     group.riderIds.includes(riderId),
   );
@@ -43,7 +51,9 @@ export function RaceGroupFormation({
   const formation: RaceGroupVisualFormation = isPrimeSprintBattle
     ? "prime-sprint"
     : group.type === "breakaway"
-      ? "breakaway-line"
+      ? breakawayVisualState === "fractured"
+        ? "bunch"
+        : "breakaway-line"
       : group.type === "peloton"
         ? "peloton-front"
         : "bunch";
@@ -52,6 +62,10 @@ export function RaceGroupFormation({
     riderById,
     formation,
     primeSprintContenderIds: groupSprintContenderIds,
+    activeRelayRiderIds:
+      group.type === "breakaway"
+        ? (frontDynamics?.activeRelayRiderIds ?? [])
+        : [],
   });
   const slots = getRaceGroupRiderSlots({
     riderIds: orderedRiderIds,
@@ -66,6 +80,9 @@ export function RaceGroupFormation({
     <div
       data-race-group-formation={formation}
       data-race-prime-sprint={isPrimeSprintBattle ? "active" : undefined}
+      data-race-breakaway-state={
+        group.type === "breakaway" ? breakawayVisualState : undefined
+      }
       className={`relative overflow-visible ${
         formation === "breakaway-line"
           ? compact
@@ -98,6 +115,12 @@ export function RaceGroupFormation({
         const incidentRider = incidentRiderIds.has(riderId);
         const primeWinner = riderId === primeWinnerId;
         const primeContenderIndex = groupSprintContenderIds.indexOf(riderId);
+        const visualEffort = getRaceRiderVisualEffort({
+          riderId,
+          role: rider.role,
+          group,
+          frontDynamics,
+        });
         const showName =
           incidentRider ||
           primeWinner ||
@@ -125,7 +148,8 @@ export function RaceGroupFormation({
               data-prime-sprint-contender={
                 primeContenderIndex >= 0 ? primeContenderIndex + 1 : undefined
               }
-              className={`relative block ${isMoving ? "cm-race-rider-weave" : ""} ${
+              data-race-rider-effort={visualEffort}
+              className={`relative block cm-race-rider-effort-${visualEffort} ${isMoving ? "cm-race-rider-weave" : ""} ${
                 isMoving && primeContenderIndex >= 0
                   ? "cm-prime-sprint-contender"
                   : ""
@@ -135,6 +159,7 @@ export function RaceGroupFormation({
               <SideRaceCyclist
                 rider={rider}
                 isMoving={isMoving}
+                effort={visualEffort}
                 className={compact ? "h-8 w-14" : "h-9 w-16"}
               />
               {showName ? (
@@ -376,11 +401,13 @@ function orderFormationRiderIds({
   riderById,
   formation,
   primeSprintContenderIds,
+  activeRelayRiderIds,
 }: {
   riderIds: string[];
   riderById: Map<string, RiderSimulationInput>;
   formation: RaceGroupVisualFormation;
   primeSprintContenderIds: string[];
+  activeRelayRiderIds: string[];
 }) {
   if (formation === "prime-sprint") {
     const contenders = primeSprintContenderIds.filter((riderId) =>
@@ -389,6 +416,16 @@ function orderFormationRiderIds({
     return [
       ...contenders,
       ...riderIds.filter((riderId) => !contenders.includes(riderId)),
+    ];
+  }
+
+  const activeRelays = activeRelayRiderIds.filter((riderId) =>
+    riderIds.includes(riderId),
+  );
+  if (activeRelays.length > 0) {
+    return [
+      ...activeRelays,
+      ...riderIds.filter((riderId) => !activeRelays.includes(riderId)),
     ];
   }
 

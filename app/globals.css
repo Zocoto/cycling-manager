@@ -207,6 +207,12 @@ a {
   72% { transform: translate3d(-0.55px, -0.35px, 0); }
 }
 
+@keyframes cm-race-cyclist-airflow {
+  0% { transform: translate3d(-4px, 0, 0); opacity: 0.15; }
+  45% { opacity: 0.58; }
+  100% { transform: translate3d(7px, 0, 0); opacity: 0.08; }
+}
+
 @keyframes cm-prime-sprint-wind-lines {
   from { background-position: 0 0; opacity: 0.25; }
   50% { opacity: 0.8; }
@@ -380,9 +386,59 @@ a {
   will-change: transform;
 }
 .cm-race-scenery-scroll {
-  animation: cm-race-scenery-scroll 18s linear infinite;
+  animation: cm-race-scenery-scroll var(--cm-scene-flow-duration, 18s) linear infinite;
   contain: paint;
   will-change: transform;
+}
+
+.cm-race-cyclist-airflow {
+  animation: cm-race-cyclist-airflow 0.52s linear infinite;
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.cm-race-rider-effort-relay {
+  filter: drop-shadow(0 0 4px rgba(242, 201, 76, 0.2));
+}
+
+.cm-race-rider-effort-chase {
+  filter: drop-shadow(0 0 4px rgba(114, 212, 183, 0.18));
+}
+
+.cm-race-cyclist-effort-relay.cm-bike-bob,
+.cm-race-cyclist-effort-chase.cm-bike-bob {
+  animation-duration: 0.26s;
+}
+
+.cm-race-cyclist-effort-sheltered.cm-bike-bob {
+  animation-duration: 0.44s;
+  animation-timing-function: ease-in-out;
+}
+
+.cm-race-cyclist-effort-relay .cm-bike-wheel,
+.cm-race-cyclist-effort-relay .cm-bike-pedal,
+.cm-race-cyclist-effort-chase .cm-bike-wheel,
+.cm-race-cyclist-effort-chase .cm-bike-pedal {
+  animation-duration: 0.3s;
+}
+
+.cm-race-cyclist-effort-relay .cm-bike-leg-front,
+.cm-race-cyclist-effort-relay .cm-bike-leg-back,
+.cm-race-cyclist-effort-chase .cm-bike-leg-front,
+.cm-race-cyclist-effort-chase .cm-bike-leg-back {
+  animation-duration: 0.34s;
+}
+
+.cm-race-cyclist-effort-sheltered .cm-bike-wheel,
+.cm-race-cyclist-effort-sheltered .cm-bike-pedal,
+.cm-race-cyclist-effort-sheltered .cm-bike-leg-front,
+.cm-race-cyclist-effort-sheltered .cm-bike-leg-back {
+  animation-duration: 0.58s;
+}
+
+[data-race-motion-intensity="urgent"] .cm-support-car,
+[data-race-motion-intensity="urgent"] .cm-race-car-wheel {
+  animation-duration: 0.27s;
 }
 
 .cm-race-rider-weave {
@@ -556,6 +612,7 @@ a {
   .cm-race-scenery-detail,
   .cm-race-scenery-scroll,
   .cm-race-rider-weave,
+  .cm-race-cyclist-airflow,
   .cm-prime-sprint-wind-lines,
   .cm-victory-arms,
   .cm-bike-bob,

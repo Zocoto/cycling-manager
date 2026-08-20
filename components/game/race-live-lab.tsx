@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import { SideRaceCyclist, TopRaceCyclist } from "@/components/game/race-cyclist-detailed";
 import {
@@ -61,6 +67,7 @@ import {
   getRaceVisualFrameForSegment,
   getRaceVisualTimeline,
 } from "@/lib/game/race-live-visual";
+import { getRaceVisualMotionProfile } from "@/lib/game/race-visual-motion";
 import {
   getOfficialStageSimulationContext,
   type LockedOfficialStageSimulation,
@@ -75,6 +82,7 @@ import {
   type RaceGroupSnapshot,
   type RaceIncident,
   type RacePrimeResult,
+  type RaceVisualFrame,
   type RiderSimulationInput,
   type StageRaceStandings,
   type StageSimulationResult,
@@ -218,9 +226,11 @@ export function RaceLiveLab({
     sourceTimelineIndex: activeIndex,
     progress: replaySegmentProgress,
   });
+  const displayedVisualFrame =
+    mode === "live" ? liveVisualFrame : replayVisualFrame;
   const visualSnapshot = applyRaceVisualFrame(
     snapshot,
-    mode === "live" ? liveVisualFrame : replayVisualFrame
+    displayedVisualFrame,
   );
 
   useEffect(() => {
@@ -602,6 +612,7 @@ export function RaceLiveLab({
           ) : (
             <RoadScene
               snapshot={visualSnapshot}
+              frontDynamics={displayedVisualFrame?.frontDynamics}
               riderById={riderById}
               segment={activeSegment}
               isMoving={mode === "live" || isPlaying}
@@ -710,9 +721,13 @@ function TabButton({
 function RaceVisualViewport({
   children,
   className,
+  style,
+  motionIntensity,
 }: {
   children: React.ReactNode;
   className: string;
+  style?: CSSProperties;
+  motionIntensity?: "calm" | "controlled" | "urgent";
 }) {
   return (
     <div className="mt-6">
@@ -725,7 +740,12 @@ function RaceVisualViewport({
         aria-label="Visualisation de la course, défilement horizontal sur téléphone"
         className="-mx-3 overflow-x-auto px-3 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0"
       >
-        <div dir="ltr" className={`relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}>
+        <div
+          dir="ltr"
+          data-race-motion-intensity={motionIntensity}
+          className={`relative min-w-[58rem] overflow-hidden lg:min-w-0 ${className}`}
+          style={style}
+        >
           {children}
         </div>
       </div>
@@ -735,6 +755,7 @@ function RaceVisualViewport({
 
 function RoadScene({
   snapshot,
+  frontDynamics,
   riderById,
   segment,
   isMoving,
@@ -746,6 +767,7 @@ function RoadScene({
   favoriteNames,
 }: {
   snapshot: StageSimulationResult["timeline"][number];
+  frontDynamics?: RaceVisualFrame["frontDynamics"];
   riderById: Map<string, RiderSimulationInput>;
   segment: RaceCalendarStage["segments"][number];
   isMoving: boolean;
@@ -756,6 +778,7 @@ function RoadScene({
   weather: RaceWeather;
   favoriteNames: readonly string[];
 }) {
+  const motionProfile = getRaceVisualMotionProfile(frontDynamics);
   const groups = snapshot.groups.slice(0, 6);
   const primeWinnerId =
     segmentProgress >= 0.5
@@ -824,7 +847,15 @@ function RoadScene({
     : null;
 
   return (
-    <RaceVisualViewport className={`h-72 rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}>
+    <RaceVisualViewport
+      className={`h-72 rounded-3xl border border-white/10 shadow-inner shadow-black/25 ${sky}`}
+      motionIntensity={motionProfile.intensity}
+      style={
+        {
+          "--cm-scene-flow-duration": `${motionProfile.sceneryDurationSeconds}s`,
+        } as CSSProperties
+      }
+    >
       <div aria-hidden="true" className="absolute left-8 top-7 h-16 w-16 rounded-full bg-[#FFF2B5] opacity-80 blur-sm" />
       <RaceSceneryBackdrop kind={scenery} isMoving={isMoving} showSpectators={false} />
       <svg
@@ -961,11 +992,16 @@ function RoadScene({
           group,
           incidents: snapshot.incidents,
           riderById,
-          priorityRiderIds: primeSprintContenderIds.length > 0
-            ? primeSprintContenderIds
-            : primeWinnerId
-              ? [primeWinnerId]
-              : [],
+          priorityRiderIds: [
+            ...(group.type === "breakaway"
+              ? (frontDynamics?.activeRelayRiderIds ?? [])
+              : []),
+            ...(primeSprintContenderIds.length > 0
+              ? primeSprintContenderIds
+              : primeWinnerId
+                ? [primeWinnerId]
+                : []),
+          ],
           maximumVisibleRiders: groups.length <= 3 ? 8 : 5,
         });
         const displayLabel = getRaceGroupDisplayLabel({
@@ -999,6 +1035,7 @@ function RoadScene({
               compact={groups.length >= 4}
               primeSprintContenderIds={primeSprintContenderIds}
               primeSprintProgress={primeSprintProgress}
+              frontDynamics={frontDynamics}
             />
           </div>
         );
@@ -1051,7 +1088,7 @@ export function RoadSurfaceDefinition({
         width={compact ? 4.2 : 19}
         height={compact ? 3.2 : 14}
         patternUnits="userSpaceOnUse"
-        data-road-asphalt-texture="uniform"
+        data-road-asphalt-texture="layered-mineral"
       >
         <rect
           width={compact ? 4.2 : 19}
@@ -1072,7 +1109,30 @@ export function RoadSurfaceDefinition({
           fill="#111B17"
           opacity="0.2"
         />
-
+        <circle
+          cx={compact ? 2.1 : 9.5}
+          cy={compact ? 1.1 : 5.5}
+          r={compact ? 0.05 : 0.24}
+          fill="#A9B4AE"
+          opacity="0.21"
+        />
+        <path
+          d={
+            compact
+              ? "M.2 2.8 1.1 2.5l.7.3 1.2-.5"
+              : "M1 12.3 5 10.8l3.2 1.1 5.4-2.2"
+          }
+          fill="none"
+          stroke="#111A17"
+          strokeWidth={compact ? 0.05 : 0.24}
+          opacity="0.32"
+        />
+        <path
+          d={compact ? "M0 .35h4.2" : "M0 1.8h19"}
+          stroke="#63716B"
+          strokeWidth={compact ? 0.04 : 0.18}
+          opacity="0.2"
+        />
       </pattern>
       {surface === "cobbles" ? (
         <>

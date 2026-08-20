@@ -43,6 +43,10 @@ describe("race roadside crowd", () => {
     expect(flat).toContain('data-race-spectator-jersey="yellow"');
     expect(flat).toContain('data-race-spectator-jersey="polka-dot"');
     expect(flat).toContain('data-race-supporter-prop="flag"');
+    expect(flat).toContain('data-race-supporter-prop="phone"');
+    expect(flat).toContain('data-race-supporter-prop="camera"');
+    expect(flat).toContain('data-race-supporter-prop="cap"');
+    expect(flat).toContain('data-race-supporter-accessory="phone"');
     expect(flat).toContain("#145A4A");
 
     expect(climb).toContain('data-race-roadside-crowd="climb-dense"');

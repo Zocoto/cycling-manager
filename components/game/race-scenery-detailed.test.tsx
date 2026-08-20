@@ -23,6 +23,8 @@ describe("detailed race scenery", () => {
       expect(markup.match(/data-race-scenery-copy="seamless"/g)).toHaveLength(2);
       expect(markup).not.toContain("cm-race-scenery-detail");
       expect(markup).toContain("micro-lines");
+      expect(markup).toContain('data-race-scenery-texture="ground-fibers"');
+      expect(markup).toContain('data-race-scenery-depth="atmosphere"');
       expect((markup.match(/<path/g) ?? []).length).toBeGreaterThan(15);
     },
   );

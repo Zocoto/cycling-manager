@@ -79,7 +79,7 @@ describe("race visual primitives", () => {
       </svg>,
     );
 
-    expect(markup).toContain('data-road-asphalt-texture="uniform"');
+    expect(markup).toContain('data-road-asphalt-texture="layered-mineral"');
     expect(markup).toContain('fill="#35453F"');
     expect(markup).not.toContain("asphalt-base");
   });
