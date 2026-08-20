@@ -4,15 +4,62 @@ import { describe, expect, it } from "vitest";
 import type {
   RaceGroupSnapshot,
   RacePrimeResult,
+  StageRaceStandings,
 } from "@/lib/game/race-simulation";
 
 import {
+  PreviousStageStandings,
   PrimeClassificationPopup,
   RaceDirectorCar,
   RaceGapLine,
   RoadTextureOverlay,
   RoadSurfaceDefinition,
 } from "./race-live-lab";
+
+describe("PreviousStageStandings", () => {
+  it("affiche en bas du replay les classements établis après l’étape précédente", () => {
+    const standings: StageRaceStandings = {
+      general: [{ riderId: "rider-1", elapsedTimeSeconds: 12_345 }],
+      mountain: [{ riderId: "rider-1", points: 18 }],
+      sprint: [{ riderId: "rider-1", points: 24 }],
+      youth: [{ riderId: "rider-1", elapsedTimeSeconds: 12_345 }],
+      teams: [
+        {
+          teamId: "team-1",
+          teamName: "Équipe Test",
+          elapsedTimeSeconds: 12_345,
+        },
+      ],
+    };
+    const riderById = new Map([
+      [
+        "rider-1",
+        {
+          name: "Coureur Test",
+          teamName: "Équipe Test",
+          teamPrimaryColor: "#76543A",
+          teamSecondaryColor: "#E6D7C4",
+        },
+      ],
+    ]);
+
+    const markup = renderToStaticMarkup(
+      <PreviousStageStandings
+        stageNumber={2}
+        standings={standings}
+        riderById={riderById}
+      />,
+    );
+
+    expect(markup).toContain("data-replay-previous-stage-standings");
+    expect(markup).toContain("Classements après l’étape 1");
+    expect(markup).toContain("Coureur Test");
+    expect(markup).toContain("Meilleur grimpeur");
+    expect(markup).toContain("Meilleur sprinteur");
+    expect(markup).toContain("Meilleur jeune");
+    expect(markup).toContain("Meilleure équipe");
+  });
+});
 
 describe("race visual primitives", () => {
   it("rotates only centered wheel rotors on the director car", () => {

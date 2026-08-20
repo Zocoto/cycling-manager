@@ -27,6 +27,7 @@ export type OfficialStageSimulationRun = {
 
 export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
   standings: StageRaceStandings | null;
+  standingsBeforeStage: StageRaceStandings | null;
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
@@ -362,6 +363,7 @@ export function getOfficialStageSimulationContext({
               ),
             )
           : null,
+      standingsBeforeStage,
     };
   }
 
@@ -399,5 +401,6 @@ export function getOfficialStageSimulationContext({
             runs.slice(0, selectedIndex + 1).map((run) => run.simulation),
           )
         : null,
+    standingsBeforeStage,
   };
 }

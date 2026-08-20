@@ -393,6 +393,10 @@ describe("createCalendarSimulationInput", () => {
       lockedSimulations,
     });
 
+    expect(firstContext.standingsBeforeStage).toBeNull();
+    expect(secondContext.standingsBeforeStage).toEqual(
+      standingsAfterStageOne,
+    );
     expect(
       firstContext.simulation.resolvedRiders.every(
         (rider) =>

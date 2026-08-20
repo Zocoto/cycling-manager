@@ -101,7 +101,12 @@ export function RaceLiveLab({
   nowIso: string;
   lockedSimulations?: LockedOfficialStageSimulation[];
 }) {
-  const { input, simulation, standings: tourStandings } = useMemo(
+  const {
+    input,
+    simulation,
+    standings: tourStandings,
+    standingsBeforeStage,
+  } = useMemo(
     () =>
       getOfficialStageSimulationContext({
         edition,
@@ -617,6 +622,14 @@ export function RaceLiveLab({
       ) : (
         <ActiveRules stageType={input.stageType} />
       )}
+
+      {mode === "replay" && standingsBeforeStage ? (
+        <PreviousStageStandings
+          stageNumber={stage.stageNumber}
+          standings={standingsBeforeStage}
+          riderById={riderById}
+        />
+      ) : null}
     </section>
   );
 }
@@ -2924,12 +2937,57 @@ function ClassificationViewButton({
   );
 }
 
+type StandingsRider = Pick<
+  RiderSimulationInput,
+  "name" | "teamName" | "teamPrimaryColor" | "teamSecondaryColor"
+>;
+
+export function PreviousStageStandings({
+  stageNumber,
+  standings,
+  riderById,
+}: {
+  stageNumber: number;
+  standings: StageRaceStandings;
+  riderById: ReadonlyMap<string, StandingsRider>;
+}) {
+  return (
+    <section
+      data-replay-previous-stage-standings
+      className="border-t border-white/10 bg-[#0B2521] p-5 sm:p-8"
+    >
+      <div className="mb-5">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#72D4B7]">
+            Situation avant cette étape
+          </p>
+          <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+            Classements après l’étape {stageNumber - 1}
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-[#91A99E]">
+            Dernier classement général et classements annexes disponibles avant le départ de l’étape {stageNumber}.
+          </p>
+        </div>
+      </div>
+
+      <GeneralClassificationTable
+        standings={standings}
+        riderById={riderById}
+      />
+      <TourSecondaryStandings
+        standings={standings}
+        riderById={riderById}
+      />
+    </section>
+  );
+}
+
 function GeneralClassificationTable({
   standings,
   riderById,
 }: {
   standings: StageRaceStandings;
-  riderById: Map<string, RiderSimulationInput>;
+  riderById: ReadonlyMap<string, StandingsRider>;
 }) {
   const leaderTime = standings.general[0]?.elapsedTimeSeconds ?? 0;
 
@@ -2946,7 +3004,7 @@ function GeneralClassificationTable({
         </thead>
         <tbody className="divide-y divide-white/10">
           {standings.general.map((result, index) => {
-            const rider = riderById.get(result.riderId)!;
+            const rider = riderById.get(result.riderId);
             return (
               <tr key={result.riderId} className="bg-white/[0.025] text-sm font-semibold">
                 <td className="px-4 py-3 font-black text-[#F2C94C]">
@@ -2956,13 +3014,16 @@ function GeneralClassificationTable({
                   <span className="flex items-center gap-2">
                     <span
                       className="h-3 w-3 rounded-full border"
-                      style={{ backgroundColor: rider.teamPrimaryColor, borderColor: rider.teamSecondaryColor }}
+                      style={{
+                        backgroundColor: rider?.teamPrimaryColor ?? "#315B3E",
+                        borderColor: rider?.teamSecondaryColor ?? "#72D4B7",
+                      }}
                     />
-                    {rider.name}
+                    {rider?.name ?? result.riderId}
                   </span>
                 </td>
                 <td className="hidden px-4 py-3 text-[#94ADA2] md:table-cell">
-                  {rider.teamName}
+                  {rider?.teamName ?? "Équipe"}
                 </td>
                 <td className="px-4 py-3 text-right font-black">
                   {index === 0
@@ -2983,7 +3044,7 @@ function TourSecondaryStandings({
   riderById,
 }: {
   standings: StageRaceStandings;
-  riderById: Map<string, RiderSimulationInput>;
+  riderById: ReadonlyMap<string, StandingsRider>;
 }) {
   const youthLeaderTime = standings.youth[0]?.elapsedTimeSeconds ?? 0;
   const teamLeaderTime = standings.teams[0]?.elapsedTimeSeconds ?? 0;
