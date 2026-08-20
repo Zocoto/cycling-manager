@@ -231,8 +231,12 @@ export async function ensureLockedOfficialRaceSimulations(
 async function loadPersistedStageResultUnavailabilities(
   calendar: SeasonRaceCalendar,
 ): Promise<PersistedStageRiderUnavailability[]> {
+  const activeStageRaceEditions = calendar.editions.filter(
+    (edition) =>
+      edition.raceFormat === "stage_race" && edition.status === "in_progress",
+  );
   const stageById = new Map(
-    calendar.editions.flatMap((edition) =>
+    activeStageRaceEditions.flatMap((edition) =>
       edition.stages.map(
         (stage) =>
           [
@@ -318,14 +322,18 @@ async function loadPersistedStageResultUnavailabilities(
 async function loadPersistedRiderUnavailabilityWindows(
   calendar: SeasonRaceCalendar,
 ): Promise<RiderUnavailabilityWindow[]> {
+  const activeStageRaceEditions = calendar.editions.filter(
+    (edition) =>
+      edition.raceFormat === "stage_race" && edition.status === "in_progress",
+  );
   const riderIds = [
     ...new Set(
-      calendar.editions.flatMap((edition) =>
+      activeStageRaceEditions.flatMap((edition) =>
         edition.engagedRiders.map((rider) => rider.id),
       ),
     ),
   ];
-  const departureTimestamps = calendar.editions
+  const departureTimestamps = activeStageRaceEditions
     .flatMap((edition) => edition.stages)
     .flatMap((stage) => {
       const timestamp = stage.departureAt
