@@ -110,7 +110,7 @@ describe("collectAvailableEquipment", () => {
   });
 });
 
-describe("CyclistEquipmentVisual", () => {
+describe("CyclistEquipmentVisual side slots", () => {
   it("conserve le cycliste normal tant qu’aucun matériel n’est équipé", () => {
     const markup = renderToStaticMarkup(
       createElement(CyclistEquipmentVisual, {
@@ -125,12 +125,17 @@ describe("CyclistEquipmentVisual", () => {
       }),
     );
 
-    expect(markup).toContain('alt="Cycliste de route avec son équipement"');
-    expect(markup).not.toContain("brightness-[0.78]");
-    expect(markup.match(/data-zone-highlight="none"/g)).toHaveLength(8);
+    expect(markup).toContain(
+      'alt="Cycliste de route au centre de ses emplacements d’équipement"',
+    );
+    expect(markup).toContain('data-equipment-layout="side-slots"');
+    expect(markup).toContain('data-equipment-slot-column="left"');
+    expect(markup).toContain('data-equipment-slot-column="right"');
+    expect(markup.match(/data-equipment-zone=/g)).toHaveLength(8);
     expect(markup).not.toContain("data-equipment-color-layer");
+    expect(markup).not.toContain("data-equipment-visual-source");
   });
-  it("pose les pièces équipées directement sur les zones de la silhouette", () => {
+  it("affiche les pièces équipées dans les emplacements latéraux", () => {
     const wornHelmet = equipment("helmet-worn", "Casque porté", "helmet");
     const markup = renderToStaticMarkup(
       createElement(CyclistEquipmentVisual, {
@@ -145,30 +150,25 @@ describe("CyclistEquipmentVisual", () => {
       }),
     );
 
-    expect(markup).toContain('data-equipment-layer="silhouette"');
     expect(markup.match(/data-equipment-zone=/g)).toHaveLength(8);
     expect(markup).toContain('data-equipment-zone="helmet"');
     expect(markup).toContain('data-equipped="true"');
-    expect(markup).toContain('data-zone-highlight="colorized"');
-    expect(markup).toContain('data-equipment-color-layer="helmet"');
     expect(markup).toContain("touch-manipulation");
     expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain('data-equipment-item-name="Casque porté"');
     expect(markup).toContain(
       'aria-label="Casque équipé : Casque porté. Glissez vers la réserve pour le retirer."',
     );
+    expect(markup).toContain('alt="Visuel de Casque porté"');
     expect(markup).toContain('data-equipment-zone="gloves"');
     expect(markup).toContain('data-equipped="false"');
     expect(markup).toContain('data-zone-state="empty"');
-    expect(markup).toContain('data-zone-highlight="none"');
-    expect(markup.match(/data-equipment-color-layer=/g)).toHaveLength(1);
-    expect(markup.match(/data-equipment-visual-source=/g)).toHaveLength(8);
     expect(markup).toContain("Casque porté");
-    expect(markup).not.toContain(wornHelmet.imagePath);
+    expect(markup).toContain(encodeURIComponent(wornHelmet.imagePath));
     expect(markup).toContain("1/8 équipé");
   });
 
-  it("annonce clairement le remplacement sans afficher l’image du produit", () => {
+  it("annonce clairement le remplacement sur la carte compatible", () => {
     const wornHelmet = equipment("helmet-worn", "Casque porté", "helmet");
     const markup = renderToStaticMarkup(
       createElement(CyclistEquipmentVisual, {
@@ -189,7 +189,27 @@ describe("CyclistEquipmentVisual", () => {
 
     expect(markup).toContain("Remplacer Casque porté par Casque neuf");
     expect(markup).toContain('draggable="true"');
-    expect(markup).not.toContain(wornHelmet.imagePath);
+    expect(markup).toContain(encodeURIComponent(wornHelmet.imagePath));
+  });
+
+  it("préserve une lecture claire sur ordinateur et téléphone", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CyclistEquipmentVisual, {
+        equipment: {},
+        pending: {},
+        compatibleDragSlot: null,
+        activeDropSlot: null,
+        selectedSlot: "helmet",
+        onSelectSlot: () => undefined,
+        onDragOverSlot: () => undefined,
+        onDropSlot: () => undefined,
+      }),
+    );
+    expect(markup).toContain("sm:grid-cols-2");
+    expect(markup).toContain(
+      "lg:grid-cols-[minmax(0,1fr)_minmax(15rem,1.15fr)_minmax(0,1fr)]",
+    );
+    expect(markup).toContain("order-first");
   });
 });
 

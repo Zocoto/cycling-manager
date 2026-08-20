@@ -6010,5 +6010,14 @@
   "Payer et renvoyer": "Pay and dismiss",
   "Renvoyer ce junior": "Dismiss this junior",
   "Sa promotion déjà programmée en équipe première sera annulée.": "His already scheduled promotion to the first team will be cancelled.",
-  "Trésorerie insuffisante pour régler ce coût annuel.": "Insufficient funds to pay this annual cost."
+  "Trésorerie insuffisante pour régler ce coût annuel.": "Insufficient funds to pay this annual cost.",
+  "Cycliste de route au centre de ses emplacements d’équipement": "Road cyclist centered between equipment slots",
+  "Déposer ici": "Drop here",
+  "Emplacement sélectionné": "Selected slot",
+  "Gérer l’équipement de l’équipe →": "Manage team equipment →",
+  "Glissez une pièce libre vers la carte latérale correspondante pour l’équiper ou la remplacer. Ramenez une pièce portée vers la réserve pour la retirer. Les bonus bleus sont ajoutés aux caractéristiques de base pendant les courses compatibles.": "Drag an available item to the corresponding side slot to equip or replace it. Drag a worn item back to the reserve to remove it. Blue bonuses are added to base ratings during compatible races.",
+  "Glissez une pièce vers son emplacement latéral, ou ramenez ici une pièce portée pour la déséquiper.": "Drag an item to its side slot, or drag a worn item back here to unequip it.",
+  "Le contrat est déjà sécurisé pour la saison suivante.": "The contract is already secured for next season.",
+  "Les équipements se déposent dans les emplacements latéraux, sans devoir viser une partie du coureur.": "Equipment is dropped into the side slots without having to target part of the rider.",
+  "Schéma du coureur": "Rider diagram"
 }
