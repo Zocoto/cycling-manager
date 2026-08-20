@@ -32,6 +32,7 @@ import {
   type PersistedStageResultForGeneral,
 } from "@/lib/game/race-results";
 import {
+  isUnavailableForFollowingStage,
   sanitizeOfficialStageSimulationForRaceFormat,
   type LockedOfficialRaceSimulationDirectory,
   type LockedOfficialStageSimulation,
@@ -1119,30 +1120,10 @@ async function persistStageResult({
     injuryIdByRiderId.set(result.riderId, inserted.data!.id);
   }
 
-  const { data: persistedStageInjuries, error: persistedInjuryError } =
-    await admin
-      .from("rider_injuries")
-      .select("id, rider_id")
-      .eq("source_stage_id", stage.id)
-      .returns<Array<{ id: string; rider_id: string }>>();
-  assertQuery(
-    persistedInjuryError,
-    `la vérification des blessures de ${stage.name}`,
-  );
-  const simulatedInjuredRiderIds = new Set(injuryIdByRiderId.keys());
-  const staleInjuryIds = (persistedStageInjuries ?? [])
-    .filter((injury) => !simulatedInjuredRiderIds.has(injury.rider_id))
-    .map((injury) => injury.id);
-  if (staleInjuryIds.length > 0) {
-    const { error: staleInjuryError } = await admin
-      .from("rider_injuries")
-      .delete()
-      .in("id", staleInjuryIds);
-    assertQuery(
-      staleInjuryError,
-      `le nettoyage des blessures obsolètes de ${stage.name}`,
-    );
-  }
+  // Une blessure déjà homologuée appartient à l'historique de la course.
+  // Elle ne doit jamais disparaître parce qu'un recalcul ultérieur produit un
+  // tirage différent. Sa fin de validité est gérée par `recovered_at`, pas par
+  // la réécriture du scénario de l'étape source.
 
   const rows = simulation.results.map((result) => {
     const roster = requireRoster(rosterByRiderId, result.riderId);
@@ -1173,6 +1154,33 @@ async function persistStageResult({
     .from("stage_results")
     .upsert(rows, { onConflict: "stage_id,race_roster_id" });
   assertQuery(error, `l’enregistrement du classement de ${stage.name}`);
+
+  const immutableUnavailabilityRows = simulation.results.flatMap((result) =>
+    isUnavailableForFollowingStage(result)
+      ? [
+          {
+            stage_id: stage.id,
+            race_edition_id: edition.id,
+            rider_id: result.riderId,
+            reason: result.injury ? "injury" : result.status,
+            result_status: result.status,
+            injury_id: injuryIdByRiderId.get(result.riderId) ?? null,
+          },
+        ]
+      : [],
+  );
+  if (immutableUnavailabilityRows.length > 0) {
+    const { error: unavailabilityError } = await admin
+      .from("stage_rider_unavailabilities")
+      .upsert(immutableUnavailabilityRows, {
+        onConflict: "stage_id,rider_id",
+        ignoreDuplicates: true,
+      });
+    assertQuery(
+      unavailabilityError,
+      `le registre sportif des non-partants de ${stage.name}`,
+    );
+  }
 
   const currentRosterIds = new Set(rows.map((row) => row.race_roster_id));
   const { data: persistedRosterRows, error: persistedRosterError } = await admin
