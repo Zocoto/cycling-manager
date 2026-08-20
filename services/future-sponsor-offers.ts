@@ -9,6 +9,7 @@ import {
 import type { FeaturedRiderSponsorAffinity } from "@/lib/game/sponsor-nationality-affinity";
 import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
 import { calculateSponsorRenewalBudget } from "@/lib/game/sponsor-renewal-budget";
+import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -25,7 +26,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
 const RENEWAL_ALTERNATIVE_COUNT = 2;
-const SPONSOR_OFFER_GENERATION_VERSION = 3;
+const SPONSOR_OFFER_GENERATION_VERSION = 4;
 
 export type FutureSponsorOfferMode =
   | "renewal"
@@ -985,6 +986,7 @@ async function hydrateFutureSponsorOffers({
     return {
       id: offerRow.id,
       sponsor,
+      sportingPhilosophy: resolveSponsorSportingPhilosophy(sponsor.id),
       proposedBudget,
       contractDurationSeasons:
         offerRow.contract_duration_seasons,

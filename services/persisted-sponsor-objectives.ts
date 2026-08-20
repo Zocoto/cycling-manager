@@ -8,6 +8,10 @@ import {
 } from "@/services/sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
 import type {
+  RaceCategoryCode,
+  RaceProfileType,
+} from "@/lib/game/race-calendar";
+import type {
   PersistedSponsorObjective,
   SponsorObjectivePriority,
   SponsorObjectiveStatus,
@@ -68,6 +72,7 @@ type RaceEditionRow = {
   id: string;
   race_id: string;
   season_id: string;
+  race_category_id: string;
   display_name: string;
   status: string;
   registration_policy: "open" | "criteria_pending" | "closed";
@@ -88,6 +93,22 @@ type RaceRow = {
 type CountryRow = {
   id: string;
   iso_alpha2: string;
+  continent_code: string | null;
+};
+
+type RaceCategoryRow = {
+  id: string;
+  code: RaceCategoryCode;
+};
+
+type RaceStageRow = {
+  race_edition_id: string;
+  profile_type: RaceProfileType;
+};
+
+type SponsorObjectiveRaceCatalog = {
+  raceCandidates: SponsorObjectiveRaceCandidate[];
+  continentCodeByCountryCode: Map<string, string | null>;
 };
 
 type SeasonReferenceRow = {
@@ -110,7 +131,10 @@ export async function ensureAndLoadSponsorObjectives({
   }
 
   const offerIds = offers.map((offer) => offer.offerId);
-  const raceCandidates = await loadSponsorObjectiveRaceCandidates({
+  const {
+    raceCandidates,
+    continentCodeByCountryCode,
+  } = await loadSponsorObjectiveRaceCandidates({
     supabase,
     seasonId,
   });
@@ -155,6 +179,10 @@ export async function ensureAndLoadSponsorObjectives({
           offer.sponsor.id,
         sponsorSector:
           offer.sponsor.sector,
+        sponsorContinentCode:
+          continentCodeByCountryCode.get(
+            offer.sponsor.countryCode.trim().toUpperCase(),
+          ) ?? null,
         relationshipYear: offer.relationshipYear ?? 1,
         teamReputationPoints,
         raceCandidates,
@@ -715,7 +743,7 @@ async function loadSponsorObjectiveRaceCandidates({
 }: {
   supabase: SupabaseAdminClient;
   seasonId: string;
-}): Promise<SponsorObjectiveRaceCandidate[]> {
+}): Promise<SponsorObjectiveRaceCatalog> {
   const targetSeasonRows = await loadRaceEditionRows(
     supabase,
     seasonId
@@ -769,13 +797,9 @@ async function loadSponsorObjectiveRaceCandidates({
     );
   }
 
-  const countryIds = [
-    ...new Set((raceRows ?? []).map((race) => race.country_id)),
-  ];
   const { data: countryRows, error: countryError } = await supabase
     .from("countries")
-    .select("id, iso_alpha2")
-    .in("id", countryIds)
+    .select("id, iso_alpha2, continent_code")
     .returns<CountryRow[]>();
 
   if (countryError) {
@@ -784,10 +808,56 @@ async function loadSponsorObjectiveRaceCandidates({
     );
   }
 
+  const raceCategoryIds = [
+    ...new Set(sourceRows.map((edition) => edition.race_category_id)),
+  ];
+  const { data: categoryRows, error: categoryError } = await supabase
+    .from("race_categories")
+    .select("id, code")
+    .in("id", raceCategoryIds)
+    .returns<RaceCategoryRow[]>();
+
+  if (categoryError) {
+    throw new Error(
+      `Impossible de charger les catégories des courses sponsor : ${categoryError.message}`
+    );
+  }
+
+  const editionIds = sourceRows.map((edition) => edition.id);
+  const { data: stageRows, error: stageError } = await supabase
+    .from("stages")
+    .select("race_edition_id, profile_type")
+    .in("race_edition_id", editionIds)
+    .returns<RaceStageRow[]>();
+
+  if (stageError) {
+    throw new Error(
+      `Impossible de charger les profils des courses sponsor : ${stageError.message}`
+    );
+  }
+
   const raceById = new Map((raceRows ?? []).map((race) => [race.id, race]));
   const countryCodeById = new Map(
     (countryRows ?? []).map((country) => [country.id, country.iso_alpha2])
   );
+  const continentCodeByCountryCode = new Map(
+    (countryRows ?? []).map((country) => [
+      country.iso_alpha2.trim().toUpperCase(),
+      country.continent_code,
+    ]),
+  );
+  const categoryCodeById = new Map(
+    (categoryRows ?? []).map((category) => [category.id, category.code]),
+  );
+  const profileTypesByEditionId = new Map<string, Set<RaceProfileType>>();
+
+  for (const stage of stageRows ?? []) {
+    const profiles =
+      profileTypesByEditionId.get(stage.race_edition_id) ??
+      new Set<RaceProfileType>();
+    profiles.add(stage.profile_type);
+    profileTypesByEditionId.set(stage.race_edition_id, profiles);
+  }
   const candidatesByRaceId = new Map<
     string,
     SponsorObjectiveRaceCandidate
@@ -813,9 +883,16 @@ async function loadSponsorObjectiveRaceCandidates({
       raceSlug: race.slug,
       raceLabel: edition.display_name,
       countryCode,
+      continentCode:
+        continentCodeByCountryCode.get(countryCode.trim().toUpperCase()) ??
+        null,
       registrationPolicy: edition.registration_policy,
       minimumReputation: edition.minimum_reputation,
+      categoryCode: categoryCodeById.get(edition.race_category_id),
       raceFormat: race.race_format,
+      profileTypes: [
+        ...(profileTypesByEditionId.get(edition.id) ?? []),
+      ],
       competitionType: race.competition_type,
       isMonument: race.is_monument,
       isGrandTour: race.is_grand_tour,
@@ -827,7 +904,10 @@ async function loadSponsorObjectiveRaceCandidates({
     }
   }
 
-  return [...candidatesByRaceId.values()];
+  return {
+    raceCandidates: [...candidatesByRaceId.values()],
+    continentCodeByCountryCode,
+  };
 }
 
 async function loadRaceEditionRows(
@@ -837,7 +917,7 @@ async function loadRaceEditionRows(
   const { data, error } = await supabase
     .from("race_editions")
     .select(
-      "id, race_id, season_id, display_name, status, registration_policy, minimum_reputation"
+      "id, race_id, season_id, race_category_id, display_name, status, registration_policy, minimum_reputation"
     )
     .eq("season_id", seasonId)
     .neq("status", "cancelled")

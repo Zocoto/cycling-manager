@@ -1,3 +1,5 @@
+import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
+
 export type SponsorObjectiveType =
   | "race_result"
   | "nationality_quota"
@@ -78,7 +80,7 @@ export type InfrastructureObjectiveDetails = {
   minimumCompletedCount: number;
 };
 
-export type SponsorObjectiveTargetDetails =
+type SponsorObjectiveTarget =
   | RaceResultObjectiveDetails
   | NationalityQuotaObjectiveDetails
   | SeasonWinsObjectiveDetails
@@ -87,6 +89,11 @@ export type SponsorObjectiveTargetDetails =
   | NationalChampionshipObjectiveDetails
   | HomegrownRosterObjectiveDetails
   | InfrastructureObjectiveDetails;
+
+export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {
+  generationVersion?: number;
+  sportingPhilosophy?: SponsorSportingPhilosophy;
+};
 
 export type GeneratedSponsorObjective = {
   displayOrder: number;

@@ -5,8 +5,18 @@ import type {
 import type {
   SponsorPrestige,
 } from "@/types/sponsor";
+import {
+  getRaceCategoryReputationThreshold,
+  type RaceCategoryCode,
+  type RaceProfileType,
+} from "@/lib/game/race-calendar";
+import {
+  resolveSponsorSportingPhilosophy,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 
 const OBJECTIVE_COUNT = 10;
+const SPONSOR_OBJECTIVE_GENERATION_VERSION = 4;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -14,9 +24,12 @@ export type SponsorObjectiveRaceCandidate = {
   raceSlug: string;
   raceLabel: string;
   countryCode: string;
+  continentCode?: string | null;
   registrationPolicy: "open" | "criteria_pending" | "closed";
   minimumReputation: number | null;
+  categoryCode?: RaceCategoryCode;
   raceFormat?: "one_day" | "stage_race";
+  profileTypes?: readonly RaceProfileType[];
   competitionType?: string;
   isMonument?: boolean;
   isGrandTour?: boolean;
@@ -29,6 +42,8 @@ type GenerateSponsorObjectivesOptions = {
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   sponsorCatalogKey?: string;
   sponsorSector?: string;
+  sponsorContinentCode?: string | null;
+  sportingPhilosophy?: SponsorSportingPhilosophy;
   relationshipYear?: number;
   random?: () => number;
 };
@@ -170,6 +185,8 @@ export function generateProvisionalSponsorObjectives({
   raceCandidates,
   sponsorCatalogKey = "",
   sponsorSector = "",
+  sponsorContinentCode = null,
+  sportingPhilosophy: requestedSportingPhilosophy,
   relationshipYear = 1,
   random = Math.random,
 }: GenerateSponsorObjectivesOptions): GeneratedSponsorObjective[] {
@@ -186,12 +203,18 @@ export function generateProvisionalSponsorObjectives({
     sponsorSector,
     sponsorPrestige,
   });
+  const sportingPhilosophy =
+    requestedSportingPhilosophy ??
+    resolveSponsorSportingPhilosophy(
+      sponsorCatalogKey || normalizedCountryCode,
+    );
   const weights = SATISFACTION_WEIGHTS[focus];
   const portfolio = selectSponsorObjectivePortfolio({
     sponsorCountryCode: normalizedCountryCode,
+    sponsorContinentCode,
+    sportingPhilosophy,
     teamReputationPoints,
     raceCandidates,
-    includePrestigeRaces: sponsorPrestige >= 4,
     random,
   });
   const firstTopRank = getTopRankForPrestige(sponsorPrestige, random);
@@ -201,10 +224,6 @@ export function generateProvisionalSponsorObjectives({
     random
   );
   const minimumSeasonWinCount = getSeasonWinCountForPrestige(
-    sponsorPrestige,
-    random
-  );
-  const minimumOneDayWinCount = getOneDayWinCountForPrestige(
     sponsorPrestige,
     random
   );
@@ -234,23 +253,29 @@ export function generateProvisionalSponsorObjectives({
     getPriorityForTopRank(secondTopRank)
   );
 
+  const philosophyRaceObjective = createPhilosophyRaceObjective({
+    race: portfolio.philosophyPrimary,
+    sponsorPrestige,
+    random,
+  });
+
   const ambitionObjective =
-    sponsorPrestige >= 4 && portfolio.monument
-      ? createRaceWinObjective(portfolio.monument, "mandatory")
-      : includeFormation
-        ? createHomegrownRosterObjective(10)
-        : createSeasonWinsObjective(
+    includeFormation
+      ? createHomegrownRosterObjective(10)
+      : portfolio.philosophySecondary
+      ? createPhilosophyRaceObjective({
+          race: portfolio.philosophySecondary,
+          sponsorPrestige,
+          random,
+        })
+      : createSeasonWinsObjective(
             Math.max(1, sponsorPrestige),
             "stages",
             "Victoires d’étape"
           );
 
   const legacyObjective =
-    sponsorPrestige >= 4 && portfolio.grandTour
-      ? sponsorPrestige === 5
-        ? createRaceWinObjective(portfolio.grandTour, "mandatory")
-        : createRaceTopObjective(portfolio.grandTour, 3, "important")
-      : includeInfrastructure
+    includeInfrastructure
         ? createInfrastructureObjective(1)
         : createSeasonWinsObjective(
             Math.max(1, Math.ceil(sponsorPrestige / 2)),
@@ -274,11 +299,7 @@ export function generateProvisionalSponsorObjectives({
       weights.seasonWins
     ),
     withSatisfactionPoints(
-      createSeasonWinsObjective(
-        minimumOneDayWinCount,
-        "one_day_races",
-        "Victoires sur les courses d’un jour"
-      ),
+      philosophyRaceObjective,
       weights.specialtyWins
     ),
     withSatisfactionPoints(
@@ -318,6 +339,11 @@ export function generateProvisionalSponsorObjectives({
   return shuffledObjectives.map((objective, index) => ({
     ...objective,
     displayOrder: index + 1,
+    targetDetails: {
+      ...objective.targetDetails,
+      generationVersion: SPONSOR_OBJECTIVE_GENERATION_VERSION,
+      sportingPhilosophy,
+    },
   }));
 }
 
@@ -423,21 +449,23 @@ function stableSponsorBucket(value: string, bucketCount: number): number {
 
 function selectSponsorObjectivePortfolio({
   sponsorCountryCode,
+  sponsorContinentCode,
+  sportingPhilosophy,
   teamReputationPoints,
   raceCandidates,
-  includePrestigeRaces,
   random,
 }: {
   sponsorCountryCode: string;
+  sponsorContinentCode: string | null;
+  sportingPhilosophy: SponsorSportingPhilosophy;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
-  includePrestigeRaces: boolean;
   random: () => number;
 }): {
   domestic: SponsorObjectiveRaceCandidate;
   regional: SponsorObjectiveRaceCandidate;
-  monument: SponsorObjectiveRaceCandidate | null;
-  grandTour: SponsorObjectiveRaceCandidate | null;
+  philosophyPrimary: SponsorObjectiveRaceCandidate;
+  philosophySecondary: SponsorObjectiveRaceCandidate | null;
 } {
   const eligible = getEligibleSponsorObjectiveRaces({
     teamReputationPoints,
@@ -459,13 +487,52 @@ function selectSponsorObjectivePortfolio({
   };
   const takeAny = () => take(() => true);
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
-  const canReservePrestigeRaces = includePrestigeRaces && eligible.length >= 4;
-  const monument = canReservePrestigeRaces
-    ? take((candidate) => candidate.isMonument === true)
-    : null;
-  const grandTour = canReservePrestigeRaces
-    ? take((candidate) => candidate.isGrandTour === true)
-    : null;
+  const normalizedContinentCode = (
+    sponsorContinentCode ??
+    eligible.find(
+      (candidate) =>
+        candidate.countryCode.toUpperCase() === normalizedCountryCode,
+    )?.continentCode ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  const takeByGeography = (
+    predicate: (candidate: SponsorObjectiveRaceCandidate) => boolean,
+  ): SponsorObjectiveRaceCandidate | null =>
+    take(
+      (candidate) =>
+        candidate.countryCode.toUpperCase() === normalizedCountryCode &&
+        predicate(candidate),
+    ) ??
+    take(
+      (candidate) =>
+        areSponsorCountriesNeighbors(
+          normalizedCountryCode,
+          candidate.countryCode,
+        ) && predicate(candidate),
+    ) ??
+    take(
+      (candidate) =>
+        normalizedContinentCode !== "" &&
+        candidate.continentCode?.toLowerCase() === normalizedContinentCode &&
+        predicate(candidate),
+    ) ??
+    take(predicate);
+
+  const philosophyPredicate = (
+    candidate: SponsorObjectiveRaceCandidate,
+  ) => matchesSponsorSportingPhilosophy(candidate, sportingPhilosophy);
+  const philosophyPrimary =
+    takeByGeography(philosophyPredicate) ??
+    (sportingPhilosophy === "grand_tour_general"
+      ? takeByGeography(
+          (candidate) =>
+            candidate.raceFormat === "stage_race" &&
+            candidate.isGrandTour !== true,
+        )
+      : null) ??
+    takeByGeography(() => true);
 
   const domestic =
     take(
@@ -477,7 +544,7 @@ function selectSponsorObjectivePortfolio({
       (candidate) =>
         candidate.countryCode.toUpperCase() === normalizedCountryCode
     ) ??
-    takeAny();
+    takeByGeography(() => true);
 
   const regional =
     take((candidate) =>
@@ -488,22 +555,51 @@ function selectSponsorObjectivePortfolio({
     ) ??
     take(
       (candidate) =>
-        candidate.countryCode.toUpperCase() !== normalizedCountryCode
+        normalizedContinentCode !== "" &&
+        candidate.continentCode?.toLowerCase() === normalizedContinentCode &&
+        candidate.countryCode.toUpperCase() !== normalizedCountryCode,
     ) ??
     takeAny();
 
-  if (!domestic || !regional) {
+  const philosophySecondary = takeByGeography(philosophyPredicate);
+
+  if (!domestic || !regional || !philosophyPrimary) {
     throw new Error(
-      "Au moins deux courses accessibles sont nécessaires pour les objectifs sponsor."
+      "Au moins trois courses accessibles sont nécessaires pour les objectifs sponsor.",
     );
   }
 
   return {
     domestic,
     regional,
-    monument,
-    grandTour,
+    philosophyPrimary,
+    philosophySecondary,
   };
+}
+
+export function matchesSponsorSportingPhilosophy(
+  candidate: SponsorObjectiveRaceCandidate,
+  sportingPhilosophy: SponsorSportingPhilosophy,
+): boolean {
+  const profileTypes = new Set(candidate.profileTypes ?? []);
+
+  switch (sportingPhilosophy) {
+    case "cobbled_classics":
+      return candidate.raceFormat === "one_day" && profileTypes.has("cobbles");
+    case "ardennes_classics":
+      return candidate.raceFormat === "one_day" && profileTypes.has("hilly");
+    case "medium_stage_races":
+      return candidate.raceFormat === "stage_race" && candidate.isGrandTour !== true;
+    case "time_trials":
+      return (
+        candidate.competitionType === "national_time_trial" ||
+        profileTypes.has("time_trial")
+      );
+    case "sprints":
+      return profileTypes.has("sprint") || profileTypes.has("flat");
+    case "grand_tour_general":
+      return candidate.isGrandTour === true;
+  }
 }
 
 function getEligibleSponsorObjectiveRaces({
@@ -520,7 +616,11 @@ function getEligibleSponsorObjectiveRaces({
     if (
       candidate.registrationPolicy !== "open" ||
       candidate.minimumReputation === null ||
-      normalizedReputation < candidate.minimumReputation
+      normalizedReputation < candidate.minimumReputation ||
+      !isRaceCategoryUnlockedForSponsorObjectives(
+        candidate.categoryCode,
+        normalizedReputation,
+      )
     ) {
       continue;
     }
@@ -531,6 +631,38 @@ function getEligibleSponsorObjectiveRaces({
   }
 
   return [...uniqueCandidates.values()];
+}
+
+export function isRaceCategoryUnlockedForSponsorObjectives(
+  categoryCode: RaceCategoryCode | undefined,
+  teamReputationPoints: number,
+): boolean {
+  if (!categoryCode) return true;
+
+  const threshold = getRaceCategoryReputationThreshold(categoryCode);
+  return threshold === null || teamReputationPoints >= threshold;
+}
+
+function createPhilosophyRaceObjective({
+  race,
+  sponsorPrestige,
+  random,
+}: {
+  race: SponsorObjectiveRaceCandidate;
+  sponsorPrestige: SponsorPrestige;
+  random: () => number;
+}): ObjectiveWithoutDisplayOrder {
+  if (sponsorPrestige >= 5) {
+    return createRaceWinObjective(race, "mandatory");
+  }
+
+  const targetRank =
+    sponsorPrestige === 4 ? 3 : getTopRankForPrestige(sponsorPrestige, random);
+  return createRaceTopObjective(
+    race,
+    targetRank,
+    getPriorityForTopRank(targetRank),
+  );
 }
 function createRaceWinObjective(
   race: SponsorObjectiveRaceCandidate,
@@ -593,36 +725,34 @@ function createRaceTopObjective(
 
 export function selectSponsorObjectiveRaces({
   sponsorCountryCode,
+  sponsorContinentCode = null,
   teamReputationPoints,
   raceCandidates,
   count,
   random = Math.random,
 }: {
   sponsorCountryCode: string;
+  sponsorContinentCode?: string | null;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   count: number;
   random?: () => number;
 }): SponsorObjectiveRaceCandidate[] {
   const normalizedCountryCode = sponsorCountryCode.trim().toUpperCase();
-  const normalizedReputation = Math.max(0, Math.floor(teamReputationPoints));
-  const uniqueCandidates = new Map<string, SponsorObjectiveRaceCandidate>();
-
-  for (const candidate of raceCandidates) {
-    if (
-      candidate.registrationPolicy !== "open" ||
-      candidate.minimumReputation === null ||
-      normalizedReputation < candidate.minimumReputation
-    ) {
-      continue;
-    }
-
-    if (!uniqueCandidates.has(candidate.raceId)) {
-      uniqueCandidates.set(candidate.raceId, candidate);
-    }
-  }
-
-  const eligibleCandidates = [...uniqueCandidates.values()];
+  const eligibleCandidates = getEligibleSponsorObjectiveRaces({
+    teamReputationPoints,
+    raceCandidates,
+  });
+  const normalizedContinentCode = (
+    sponsorContinentCode ??
+    eligibleCandidates.find(
+      (candidate) =>
+        candidate.countryCode.trim().toUpperCase() === normalizedCountryCode,
+    )?.continentCode ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
   const domesticCandidates = shuffleValues(
     eligibleCandidates.filter(
       (candidate) =>
@@ -630,15 +760,47 @@ export function selectSponsorObjectiveRaces({
     ),
     random
   );
+  const neighboringCandidates = shuffleValues(
+    eligibleCandidates.filter((candidate) =>
+      areSponsorCountriesNeighbors(
+        normalizedCountryCode,
+        candidate.countryCode,
+      ),
+    ),
+    random,
+  );
+  const continentalCandidates = shuffleValues(
+    eligibleCandidates.filter(
+      (candidate) =>
+        normalizedContinentCode !== "" &&
+        candidate.countryCode.trim().toUpperCase() !== normalizedCountryCode &&
+        !areSponsorCountriesNeighbors(
+          normalizedCountryCode,
+          candidate.countryCode,
+        ) &&
+        candidate.continentCode?.toLowerCase() === normalizedContinentCode,
+    ),
+    random,
+  );
   const otherCandidates = shuffleValues(
     eligibleCandidates.filter(
       (candidate) =>
-        candidate.countryCode.trim().toUpperCase() !== normalizedCountryCode
+        candidate.countryCode.trim().toUpperCase() !== normalizedCountryCode &&
+        !areSponsorCountriesNeighbors(
+          normalizedCountryCode,
+          candidate.countryCode,
+        ) &&
+        !continentalCandidates.some(
+          (continentalCandidate) =>
+            continentalCandidate.raceId === candidate.raceId,
+        ),
     ),
     random
   );
   const selectedCandidates = [
     ...domesticCandidates,
+    ...neighboringCandidates,
+    ...continentalCandidates,
     ...otherCandidates,
   ].slice(0, count);
 
@@ -892,22 +1054,6 @@ function getSeasonWinCountForPrestige(
   return getRandomInteger(
     minimum,
     maximum,
-    random
-  );
-}
-
-function getOneDayWinCountForPrestige(
-  prestige: SponsorPrestige,
-  random: () => number
-): number {
-  const minimum = Math.max(
-    1,
-    Math.ceil(prestige / 2)
-  );
-
-  return getRandomInteger(
-    minimum,
-    minimum + 1,
     random
   );
 }

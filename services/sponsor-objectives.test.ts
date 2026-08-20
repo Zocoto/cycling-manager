@@ -3,24 +3,37 @@ import { describe, expect, it } from "vitest";
 import {
   areSponsorCountriesNeighbors,
   generateProvisionalSponsorObjectives as generateObjectivesFromRaces,
+  isRaceCategoryUnlockedForSponsorObjectives,
+  matchesSponsorSportingPhilosophy,
   resolveSponsorObjectiveFocus,
   selectSponsorObjectiveRaces,
   type SponsorObjectiveRaceCandidate,
 } from "./sponsor-objectives";
+import { resolveSponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 
 const RACE_CANDIDATES: SponsorObjectiveRaceCandidate[] = [
   createRace("fr-tour", "Tour de l’Hexagone", "FR", {
     raceFormat: "stage_race",
+    profileTypes: ["hilly", "time_trial"],
   }),
-  createRace("fr-bretagne", "Grand Prix de Bretagne", "FR"),
-  createRace("be-namur", "Critérium de Namur", "BE"),
-  createRace("es-valencia", "Trofeo de Valencia", "ES"),
+  createRace("fr-bretagne", "Grand Prix de Bretagne", "FR", {
+    profileTypes: ["cobbles"],
+  }),
+  createRace("be-namur", "Critérium de Namur", "BE", {
+    profileTypes: ["hilly"],
+  }),
+  createRace("es-valencia", "Trofeo de Valencia", "ES", {
+    profileTypes: ["sprint"],
+  }),
   createRace("it-lombardia", "Giro di Lombardia", "IT", {
     isMonument: true,
+    profileTypes: ["hilly"],
   }),
   createRace("es-grand-tour", "Vuelta Iberica", "ES", {
     raceFormat: "stage_race",
     isGrandTour: true,
+    categoryCode: "world",
+    profileTypes: ["mountain", "time_trial"],
   }),
 ];
 
@@ -34,7 +47,7 @@ function generateProvisionalSponsorObjectives(
 ) {
   return generateObjectivesFromRaces({
     ...options,
-    teamReputationPoints: 100,
+    teamReputationPoints: 200,
     raceCandidates: RACE_CANDIDATES,
   });
 }
@@ -51,9 +64,14 @@ function createRace(
     raceSlug,
     raceLabel,
     countryCode,
+    continentCode: ["FR", "BE", "ES", "IT", "PL"].includes(countryCode)
+      ? "europe"
+      : null,
     registrationPolicy: "open",
     minimumReputation: 0,
+    categoryCode: "national",
     raceFormat: "one_day",
+    profileTypes: ["flat"],
     competitionType: "standard",
     isMonument: false,
     isGrandTour: false,
@@ -152,12 +170,13 @@ describe("generateProvisionalSponsorObjectives", () => {
     ).toBe(true);
   });
 
-  it("réserve Monuments et Grands Tours aux sponsors prestigieux", () => {
+  it("aligne au moins un objectif de course sur la philosophie du sponsor", () => {
     const objectives = generateProvisionalSponsorObjectives({
       sponsorCountryCode: "FR",
       sponsorPrestige: 5,
       sponsorCatalogKey: "montbrun-private",
       sponsorSector: "Banque privée",
+      sportingPhilosophy: "cobbled_classics",
       random: createDeterministicRandom([0.1, 0.4, 0.7]),
     });
     const raceIds = objectives.flatMap((objective) =>
@@ -166,8 +185,21 @@ describe("generateProvisionalSponsorObjectives", () => {
         : [],
     );
 
-    expect(raceIds).toContain("race-it-lombardia");
-    expect(raceIds).toContain("race-es-grand-tour");
+    expect(raceIds).toContain("race-fr-bretagne");
+    expect(
+      objectives.every(
+        (objective) =>
+          objective.targetDetails.sportingPhilosophy === "cobbled_classics",
+      ),
+    ).toBe(true);
+  });
+
+  it("conserve la même philosophie lors d’une prolongation", () => {
+    const sponsorKey = "atlas-racing-lab";
+
+    expect(resolveSponsorSportingPhilosophy(sponsorKey)).toBe(
+      resolveSponsorSportingPhilosophy(sponsorKey),
+    );
   });
 
   it("utilise le pays du sponsor pour le quota, le titre et le classement national", () => {
@@ -260,6 +292,107 @@ describe("generateProvisionalSponsorObjectives", () => {
       "accessible-1",
       "accessible-2",
       "accessible-3",
+    ]);
+  });
+
+  it("ouvre les catégories continentale et mondiale aux seuils du calendrier", () => {
+    expect(
+      isRaceCategoryUnlockedForSponsorObjectives("continental", 99),
+    ).toBe(false);
+    expect(
+      isRaceCategoryUnlockedForSponsorObjectives("continental", 100),
+    ).toBe(true);
+    expect(isRaceCategoryUnlockedForSponsorObjectives("world", 199)).toBe(
+      false,
+    );
+    expect(isRaceCategoryUnlockedForSponsorObjectives("world", 200)).toBe(
+      true,
+    );
+
+    const raceCandidates = [
+      createRace("national", "Course nationale", "FR"),
+      createRace("continental", "Course continentale", "FR", {
+        categoryCode: "continental",
+      }),
+      createRace("world", "Course mondiale", "FR", {
+        categoryCode: "world",
+      }),
+    ];
+    const selectedAt99 = selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      teamReputationPoints: 99,
+      raceCandidates,
+      count: 1,
+      random: () => 0.5,
+    });
+    const selectedAt100 = selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      teamReputationPoints: 100,
+      raceCandidates,
+      count: 2,
+      random: () => 0.5,
+    });
+    const selectedAt200 = selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      teamReputationPoints: 200,
+      raceCandidates,
+      count: 3,
+      random: () => 0.5,
+    });
+
+    expect(selectedAt99.map((race) => race.categoryCode)).toEqual([
+      "national",
+    ]);
+    expect(new Set(selectedAt100.map((race) => race.categoryCode))).toEqual(
+      new Set(["national", "continental"]),
+    );
+    expect(new Set(selectedAt200.map((race) => race.categoryCode))).toEqual(
+      new Set(["national", "continental", "world"]),
+    );
+  });
+
+  it("reconnaît les profils sportifs à partir du format et des étapes", () => {
+    expect(
+      matchesSponsorSportingPhilosophy(
+        createRace("pavee", "Classique pavée", "FR", {
+          profileTypes: ["cobbles"],
+        }),
+        "cobbled_classics",
+      ),
+    ).toBe(true);
+    expect(
+      matchesSponsorSportingPhilosophy(
+        createRace("tour", "Tour intermédiaire", "FR", {
+          raceFormat: "stage_race",
+          profileTypes: ["hilly"],
+        }),
+        "medium_stage_races",
+      ),
+    ).toBe(true);
+  });
+
+  it("privilégie le pays, puis les voisins, puis le continent", () => {
+    const selectedRaces = selectSponsorObjectiveRaces({
+      sponsorCountryCode: "FR",
+      sponsorContinentCode: "europe",
+      teamReputationPoints: 100,
+      count: 4,
+      random: () => 0.5,
+      raceCandidates: [
+        createRace("argentine", "Course Argentine", "AR", {
+          continentCode: "america",
+        }),
+        createRace("pologne", "Course Pologne", "PL"),
+        createRace("belgique", "Course Belgique", "BE"),
+        createRace("france", "Course France", "FR"),
+      ],
+    });
+
+    expect(selectedRaces.map((race) => race.countryCode)).toEqual([
+      "FR",
+      "BE",
+      "PL",
+      "AR",
     ]);
   });
 

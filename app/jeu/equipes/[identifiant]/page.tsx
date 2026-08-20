@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
+import { CareerPalmaresCard } from "@/components/game/career-palmares-card";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
@@ -325,6 +326,11 @@ export default async function PublicTeamPage({
         <TeamRiderGlossary
           riders={riderHistory}
           currentGameYear={currentGameYear}
+        />
+        <CareerPalmaresCard
+          palmares={seasonHistory.palmares}
+          tone="team"
+          className="mt-7"
         />
         <RecentTeamResults results={seasonHistory.recentResults} />
         <TeamSeasonHistory history={seasonHistory.seasons} />

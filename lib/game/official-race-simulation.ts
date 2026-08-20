@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.08-time-trial-preparation-v12";
+  "2026.08-race-variance-injury-v13";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

@@ -1,6 +1,10 @@
 import { SponsorCountryBadge } from "@/components/game/sponsor-country-badge";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import { SponsorLogo } from "@/components/game/sponsor-logo";
+import {
+  SPONSOR_SPORTING_PHILOSOPHY_CONFIG,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
 import type {
   FutureSponsoringState,
@@ -201,6 +205,12 @@ function FutureOffersSection({
         nom commercial et le maillot ne seront appliqués qu’au jour 1 de{" "}
         {state.season.name}.
       </p>
+
+      <p className="mt-2 text-sm leading-7 text-[#60756E]">
+        Les objectifs de course privilégient le pays du sponsor, puis ses
+        voisins et enfin son continent. Les courses Continentales deviennent
+        accessibles à 100 points de réputation, les Mondiales à 200 points.
+      </p>
     </>
   );
 }
@@ -288,6 +298,11 @@ function FutureSponsorOfferCard({
         <p className="mt-3 leading-7 text-[#60756E]">
           {sponsor.description}
         </p>
+
+        <SponsorPhilosophyPanel
+          philosophy={offer.sportingPhilosophy}
+          sponsor={sponsor}
+        />
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <FutureMetric
@@ -434,6 +449,11 @@ function FutureJerseySelection({
               future saison.
             </p>
 
+            <SponsorPhilosophyPanel
+              philosophy={contract.sportingPhilosophy}
+              sponsor={sponsor}
+            />
+
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <FutureMetric
                 label="Budget annuel futur"
@@ -530,6 +550,11 @@ function FuturePlannedContract({
             inchangée jusqu’au changement de saison.
           </p>
 
+          <SponsorPhilosophyPanel
+            philosophy={contract.sportingPhilosophy}
+            sponsor={sponsor}
+          />
+
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <FutureMetric
               label="Budget à J1"
@@ -603,6 +628,39 @@ function FutureMetric({
         {value}
       </p>
     </div>
+  );
+}
+
+function SponsorPhilosophyPanel({
+  philosophy,
+  sponsor,
+}: {
+  philosophy: SponsorSportingPhilosophy;
+  sponsor: PersistedSponsorContract["sponsor"];
+}) {
+  const config = SPONSOR_SPORTING_PHILOSOPHY_CONFIG[philosophy];
+
+  return (
+    <aside
+      className="mt-5 rounded-xl border px-4 py-3"
+      style={{
+        borderColor: `${sponsor.colors.primary}35`,
+        backgroundColor: `${sponsor.colors.background}CC`,
+      }}
+    >
+      <p
+        className="text-[10px] font-extrabold uppercase tracking-[0.14em]"
+        style={{ color: sponsor.colors.primary }}
+      >
+        Philosophie sportive
+      </p>
+      <p className="mt-1 font-black" style={{ color: sponsor.colors.text }}>
+        {config.label}
+      </p>
+      <p className="mt-1 text-sm leading-6 text-[#60756E]">
+        {config.description}
+      </p>
+    </aside>
   );
 }
 

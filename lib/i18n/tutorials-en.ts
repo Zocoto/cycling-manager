@@ -491,7 +491,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "equipment-commercial-brands": {
         title: "Compare brand philosophies",
         content:
-          "Commercial brands offer different ranges and prices. Filter by brand to compare versatility, mountain, sprint, time trial, protection or prestige.\n\nA purchase immediately deducts cash and adds one item to inventory.",
+          "Commercial brands offer different ranges and prices. Filter by brand to compare versatility, mountain, sprint, time trial, protection or prestige.\n\nAdd several references and quantities to the cart: cash is only deducted when the whole order is paid, then every item joins your inventory.",
       },
       "equipment-commercial-filters": {
         title: "Find the right item with filters",

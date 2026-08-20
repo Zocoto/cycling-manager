@@ -3,6 +3,10 @@ import "server-only";
 import { SPONSORS } from "@/data/sponsors";
 import { isSponsoringUnlocked } from "@/lib/gameplay-rules";
 import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
+import {
+  resolveSponsorSportingPhilosophy,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ensureAndLoadSponsorObjectives,
@@ -14,7 +18,7 @@ import type { Sponsor } from "@/types/sponsor";
 import type { PersistedSponsorObjective } from "@/types/sponsor-objective";
 
 const DEFAULT_PROPOSAL_COUNT = 3;
-const SPONSOR_OFFER_GENERATION_VERSION = 2;
+const SPONSOR_OFFER_GENERATION_VERSION = 3;
 
 export type SponsorOfferStatus =
   | "draft"
@@ -26,6 +30,7 @@ export type SponsorOfferStatus =
 export type PersistedSponsorOffer = {
   id: string;
   sponsor: Sponsor;
+  sportingPhilosophy: SponsorSportingPhilosophy;
   proposedBudget: number;
   contractDurationSeasons: number;
   status: SponsorOfferStatus;
@@ -722,6 +727,7 @@ async function hydrateSponsorOffers(
     return {
       id: offerRow.id,
       sponsor,
+      sportingPhilosophy: resolveSponsorSportingPhilosophy(sponsor.id),
       proposedBudget,
       contractDurationSeasons:
         offerRow.contract_duration_seasons,
