@@ -56,6 +56,12 @@ import {
   shouldHideRaceGaps,
 } from "@/lib/game/race-live";
 import {
+  applyRaceVisualFrame,
+  getRaceVisualFrameAtProgress,
+  getRaceVisualFrameForSegment,
+  getRaceVisualTimeline,
+} from "@/lib/game/race-live-visual";
+import {
   getOfficialStageSimulationContext,
   type LockedOfficialStageSimulation,
 } from "@/lib/game/official-race-simulation";
@@ -195,15 +201,27 @@ export function RaceLiveLab({
     [simulation.resolvedRiders]
   );
   const liveState = getStageLiveState(stage, clock);
-  const liveIndex =
+  const visualTimeline = useMemo(
+    () => getRaceVisualTimeline(simulation),
+    [simulation]
+  );
+  const liveVisualFrame =
     liveState.status === "live"
-      ? Math.min(
-          simulation.timeline.length - 1,
-          Math.floor(liveState.progress * simulation.timeline.length)
-        )
-      : simulation.timeline.length - 1;
+      ? getRaceVisualFrameAtProgress(visualTimeline, liveState.progress)
+      : visualTimeline.at(-1) ?? null;
+  const liveIndex =
+    liveVisualFrame?.sourceTimelineIndex ?? simulation.timeline.length - 1;
   const displayedIndex = mode === "live" ? liveIndex : activeIndex;
   const snapshot = simulation.timeline[displayedIndex];
+  const replayVisualFrame = getRaceVisualFrameForSegment({
+    timeline: visualTimeline,
+    sourceTimelineIndex: activeIndex,
+    progress: replaySegmentProgress,
+  });
+  const visualSnapshot = applyRaceVisualFrame(
+    snapshot,
+    mode === "live" ? liveVisualFrame : replayVisualFrame
+  );
 
   useEffect(() => {
     finalMetersRemainingRef.current = finalMetersRemaining;
@@ -539,7 +557,7 @@ export function RaceLiveLab({
                 />
               ) : null}
               <span className="text-xs font-bold text-[#AFC6BB]">
-                Tronçon {snapshot.segmentNumber}/{input.segments.length} · {formatDistance(snapshot.completedDistanceKm)} km
+                Tronçon {snapshot.segmentNumber}/{input.segments.length} · {formatDistance(visualSnapshot.completedDistanceKm)} km
               </span>
             </div>
             <p className="text-[11px] font-semibold text-[#7E9B8F]">
@@ -583,7 +601,7 @@ export function RaceLiveLab({
             />
           ) : (
             <RoadScene
-              snapshot={snapshot}
+              snapshot={visualSnapshot}
               riderById={riderById}
               segment={activeSegment}
               isMoving={mode === "live" || isPlaying}
@@ -602,7 +620,7 @@ export function RaceLiveLab({
               simulation.timeline.length
             ) ? (
               <RaceGapLine
-                groups={snapshot.groups}
+                groups={visualSnapshot.groups}
                 riderById={riderById}
               />
             ) : null}

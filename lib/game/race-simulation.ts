@@ -242,6 +242,13 @@ export type RaceTimelineSnapshot = {
   commentary: string[];
 };
 
+export type RaceVisualFrame = {
+  segmentNumber: number;
+  completedDistanceKm: number;
+  groups: RaceGroupSnapshot[];
+  sourceTimelineIndex: number;
+};
+
 export type RacePrimeResult = {
   segmentNumber: number;
   prime: RaceSegmentPrime;
@@ -257,6 +264,12 @@ export type StageSimulationResult = {
   seed: string;
   resolvedRiders: RiderSimulationInput[];
   timeline: RaceTimelineSnapshot[];
+  /**
+   * Optional high-frequency visual stream. Official sporting events stay in
+   * `timeline`; this stream only makes live and replay movement more fluid.
+   * Keeping it optional preserves simulations saved before its introduction.
+   */
+  visualTimeline?: RaceVisualFrame[];
   results: Array<{
     riderId: string;
     rank: number | null;
@@ -1469,6 +1482,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     input.segments.reduce((total, segment) => total + segment.distanceKm, 0),
   );
   const timeline: RaceTimelineSnapshot[] = [];
+  const visualTimeline: RaceVisualFrame[] = [];
   const abandonments: RaceAbandonment[] = [];
   const injuries: RaceInjury[] = [];
   const primes: RacePrimeResult[] = [];
@@ -1700,6 +1714,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       1,
     );
     const simulationTicks = splitRaceSegmentIntoSimulationTicks(segment);
+    const visualTickGapSeconds: number[] = [];
     const momentumPursuitFactor =
       raceProgress > 0.42 ? 1 - breakawayMomentum * 0.46 : 1;
     let chasePressure = pelotonHasGivenUp
@@ -1878,8 +1893,13 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
           );
         }
 
+        visualTickGapSeconds.push(breakawayGapSeconds);
         tickCompletedDistanceKm += tick.distanceKm;
       }
+    }
+
+    while (visualTickGapSeconds.length < simulationTicks.length) {
+      visualTickGapSeconds.push(breakawayGapSeconds);
     }
 
     if (
@@ -2019,6 +2039,26 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         });
       }
     }
+
+    let visualCompletedDistanceKm = completedDistanceKm;
+    const intermediateVisualFrames = simulationTicks.map(
+      (tick, tickIndex) => {
+        visualCompletedDistanceKm += tick.distanceKm;
+        return toRaceVisualFrame(
+          buildRoadSnapshot({
+            states,
+            segmentNumber: segment.segmentNumber,
+            completedDistanceKm: visualCompletedDistanceKm,
+            breakawayGapSeconds:
+              visualTickGapSeconds[tickIndex] ?? breakawayGapSeconds,
+            incidents: [],
+            abandonments: [],
+            commentary: [],
+          }),
+          segmentIndex,
+        );
+      },
+    );
 
     if (
       segmentIndex - lastOpportunisticAttackSegment >= 2 &&
@@ -2185,16 +2225,19 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     }
 
     completedDistanceKm += segment.distanceKm;
-    timeline.push(
-      buildRoadSnapshot({
-        states,
-        segmentNumber: segment.segmentNumber,
-        completedDistanceKm,
-        breakawayGapSeconds,
-        incidents,
-        abandonments,
-        commentary,
-      }),
+    const officialSnapshot = buildRoadSnapshot({
+      states,
+      segmentNumber: segment.segmentNumber,
+      completedDistanceKm,
+      breakawayGapSeconds,
+      incidents,
+      abandonments,
+      commentary,
+    });
+    timeline.push(officialSnapshot);
+    visualTimeline.push(
+      ...intermediateVisualFrames.slice(0, -1),
+      toRaceVisualFrame(officialSnapshot, segmentIndex),
     );
     hillyClimbLoad = getNextHillyClimbLoad(
       hillyClimbLoad,
@@ -2290,6 +2333,14 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     finishGroups,
   });
 
+  const finalOfficialSnapshot = timeline.at(-1);
+  if (finalOfficialSnapshot && visualTimeline.length > 0) {
+    visualTimeline[visualTimeline.length - 1] = toRaceVisualFrame(
+      finalOfficialSnapshot,
+      timeline.length - 1,
+    );
+  }
+
   if (finalCommentary.length === 0) {
     finalCommentary.push(
       breakawayWasCaught
@@ -2312,6 +2363,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     seed: String(input.seed),
     resolvedRiders: input.riders,
     timeline,
+    visualTimeline,
     results,
     primes,
     mountainPoints,
@@ -5522,6 +5574,18 @@ function buildRoadSnapshot({
         : [
             `Le rythme se stabilise après ${formatDistance(completedDistanceKm)} km.`,
           ],
+  };
+}
+
+function toRaceVisualFrame(
+  snapshot: RaceTimelineSnapshot,
+  sourceTimelineIndex: number,
+): RaceVisualFrame {
+  return {
+    segmentNumber: snapshot.segmentNumber,
+    completedDistanceKm: snapshot.completedDistanceKm,
+    groups: snapshot.groups,
+    sourceTimelineIndex,
   };
 }
 

@@ -445,6 +445,31 @@ describe("simulateRaceStage", () => {
     ).toBe(true);
     expect(result.results[0].gapToWinnerSeconds).toBe(0);
     expect(result.timeline).toHaveLength(input.segments.length);
+    expect(result.visualTimeline).toBeDefined();
+    expect(result.visualTimeline!.length).toBeGreaterThan(
+      result.timeline.length,
+    );
+    expect(result.visualTimeline!.at(-1)?.completedDistanceKm).toBe(
+      result.timeline.at(-1)?.completedDistanceKm,
+    );
+    expect(
+      result.visualTimeline!.every(
+        (frame, index, frames) =>
+          index === 0 ||
+          (frame.completedDistanceKm >
+            frames[index - 1].completedDistanceKm &&
+            frame.completedDistanceKm -
+              frames[index - 1].completedDistanceKm <=
+              2),
+      ),
+    ).toBe(true);
+    expect(
+      result.visualTimeline!.every(
+        (frame) =>
+          frame.sourceTimelineIndex >= 0 &&
+          frame.sourceTimelineIndex < result.timeline.length,
+      ),
+    ).toBe(true);
   });
 
   it("conserve des écarts monotones, calculés depuis la tête, sans cassure de 1 à 3 secondes", () => {

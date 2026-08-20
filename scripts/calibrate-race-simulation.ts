@@ -39,7 +39,7 @@ const rows = roadScenarios.map((scenario) => {
       0,
     );
     abandonments += simulation.results.filter(
-      (result) => result.status === "abandoned",
+      (result) => result.status === "did_not_finish",
     ).length;
   }
 
