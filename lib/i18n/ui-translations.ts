@@ -14,6 +14,10 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Bureau du DS": "Sporting Director office",
   "Centre de formation": "Youth development centre",
   "Centre de soin": "Medical centre",
+  "Choisir un junior de 17 ans ou plus": "Choose a junior aged 17 or over",
+  "Choisir une nationalité": "Choose a nationality",
+  "Choisir un métier": "Choose a role",
+  "· promotion prévue en": "· scheduled promotion in",
   "Classement": "Standings",
   "Classements": "Standings",
   "Chaque discipline regroupe les classements des pays liés à votre effectif. Les épreuves sans partant apparaissent comme annulées.":
@@ -25,6 +29,13 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Consultez directement chaque classement officiel disponible.":
     "Open each available official result directly.",
   "Contre-la-montre": "Time trial",
+  "Contrat Espoir immédiat": "Instant prospect contract",
+  "Permet à un junior de 17 ans ou plus de quitter immédiatement l’école pour rejoindre l’équipe première, même en cours de saison.":
+    "Allows a junior aged 17 or over to leave the academy and join the first team immediately, even during the season.",
+  "Permet à un junior de 17 ans ou plus de rejoindre immédiatement l’équipe première, même en cours de saison.":
+    "Allows a junior aged 17 or over to join the first team immediately, even during the season.",
+  "Promotion professionnelle immédiate d’un junior éligible":
+    "Immediate professional promotion for an eligible junior",
   "Coureur": "Rider",
   "Coureurs": "Riders",
   "Directeur Sportif": "Sporting Director",
@@ -51,8 +62,18 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "J8 · Deux disciplines · Une seule grille":
     "D8 · Two disciplines · One grid",
   "Kiné": "Physiotherapist",
+  "Junior à promouvoir": "Junior to promote",
+  "L’école nationale": "Home-nation staff academy",
+  "La décennie des pépites": "A decade of prospects",
+  "L’organigramme idéal": "The ideal organisation chart",
   "Maillot": "Jersey",
   "Matériel": "Equipment",
+  "Mandat de recrutement sur mesure": "Custom staff recruitment mandate",
+  "Choisissez le métier et la nationalité. Le profil généré reçoit un niveau de 1 à 5 étoiles à chances égales et un talent compatible aléatoire.":
+    "Choose the role and nationality. The generated staff member receives a level from 1 to 5 stars with equal odds and a random compatible talent.",
+  "1 staff sur mesure · 20 % de chance pour chaque niveau":
+    "1 custom staff member · 20% chance for each level",
+  "Métier": "Role",
   "Moyenne générale": "Overall average",
   "Objectif": "Objective",
   "Objectifs": "Objectives",
@@ -78,6 +99,10 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "s sont absentes": "s are missing",
   "Sponsoring": "Sponsorship",
   "Sprints": "Sprints",
+  "Signer le junior maintenant": "Sign the junior now",
+  "Générer et signer ce staff": "Generate and sign this staff member",
+  "Promotion junior": "Junior promotion",
+  "Recrutement staff": "Staff recruitment",
   "Statistiques primaires": "Primary attributes",
   "Statistiques secondaires": "Secondary attributes",
   "Stratège": "Stratège",
@@ -88,6 +113,8 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "All riders are grouped below. Each country’s top 200 is selected by default; you can then confirm or withdraw each entry until that discipline starts.",
   "Un coureur sélectionné ne fait pas partie de l’effectif.":
     "A selected rider is not part of the roster.",
+  "Un staff aux couleurs du sponsor": "Staff in the sponsor’s colours",
+  "Une filière qui compte": "A youth system that delivers",
   "Une case décochée signifie que le coureur ne prendra pas le départ. Chaque colonne se verrouille à l’heure de son CN.":
     "An unticked box means the rider will not start. Each column locks when its National Championship begins.",
   "Une seule grille regroupe le CN contre-la-montre à 14 h et le CN en ligne à 18 h pour tous les coureurs de l’effectif.":
@@ -122,6 +149,20 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Objectives are linked to the real calendar and each sponsor’s philosophy. Races in the sponsor’s country come first, followed by neighbouring countries and then the same continent.",
   "Les objectifs de course privilégient le pays du sponsor, puis ses voisins et enfin son continent. Les courses Continentales deviennent accessibles à 100 points de réputation, les Mondiales à 200 points.":
     "Race objectives prioritise the sponsor’s country, then its neighbours and finally its continent. Continental races unlock at 100 reputation points and World races at 200.",
+  "Tirage équitable : chaque niveau de 1 à 5 étoiles a exactement 20 % de chance. Le talent et les éventuelles spécialités sont ensuite tirés parmi les options compatibles.":
+    "Fair draw: each level from 1 to 5 stars has exactly a 20% chance. Talent and any specialties are then drawn from the compatible options.",
+  "La prime de signature est offerte. Le salaire normal et les limites habituelles de votre structure restent applicables.":
+    "The signing fee is waived. The normal salary and your organisation’s usual limits still apply.",
+  "Réunir trois membres actifs du staff ayant la nationalité de l’équipe, définie par son sponsor.":
+    "Employ three active staff members who share the team nationality defined by its sponsor.",
+  "Réunir six membres actifs du staff ayant la nationalité de l’équipe. Récompense : un Contrat Espoir immédiat.":
+    "Employ six active staff members who share the team nationality. Reward: an Instant prospect contract.",
+  "Réunir simultanément les dix métiers de staff. Récompense : un Mandat de recrutement sur mesure.":
+    "Employ all ten staff roles at the same time. Reward: a Custom staff recruitment mandate.",
+  "Accueillir dix juniors au centre de formation. Récompense : un Contrat Espoir immédiat.":
+    "Recruit ten juniors to the youth development centre. Reward: an Instant prospect contract.",
+  "Promouvoir dix juniors dans l’effectif professionnel. Récompense : un Mandat de recrutement sur mesure.":
+    "Promote ten juniors to the professional roster. Reward: a Custom staff recruitment mandate.",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

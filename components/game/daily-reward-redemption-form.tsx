@@ -4,22 +4,32 @@ import {
   isStackableDailyReward,
   requiresRiderTarget,
   type DailyRewardAbility,
+  type DailyRewardAcademyRider,
+  type DailyRewardCountry,
   type DailyRewardInventoryItem,
   type DailyRewardRace,
   type DailyRewardRider,
 } from "@/lib/game/daily-rewards";
+import {
+  STAFF_ROLE_DEFINITIONS,
+  STAFF_ROLES,
+} from "@/lib/game/staff";
 
 export function DailyRewardRedemptionForm({
   item,
   riders,
   abilities,
   eligibleRaces,
+  academyRiders,
+  countries,
   returnPath,
 }: {
   item: DailyRewardInventoryItem;
   riders: DailyRewardRider[];
   abilities: DailyRewardAbility[];
   eligibleRaces: DailyRewardRace[];
+  academyRiders: DailyRewardAcademyRider[];
+  countries: DailyRewardCountry[];
   returnPath?: string;
 }) {
   const needsRider = requiresRiderTarget(item.effectKind);
@@ -28,11 +38,16 @@ export function DailyRewardRedemptionForm({
     item.quantity > 0 &&
     (!needsRider || riders.length > 0) &&
     (item.effectKind !== "wildcard" || eligibleRaces.length > 0) &&
-    (item.effectKind !== "special_ability" || abilities.length > 0);
+    (item.effectKind !== "special_ability" || abilities.length > 0) &&
+    (item.effectKind !== "instant_youth_promotion" ||
+      academyRiders.length > 0) &&
+    (item.effectKind !== "custom_staff_recruitment" ||
+      countries.length > 0);
 
   return (
     <form action={redeemDailyRewardAction} className="mt-auto space-y-3 pt-5">
       <input type="hidden" name="inventoryId" value={item.id} />
+      <input type="hidden" name="effectKind" value={item.effectKind} />
       {returnPath ? (
         <input type="hidden" name="returnPath" value={returnPath} />
       ) : null}
@@ -51,6 +66,50 @@ export function DailyRewardRedemptionForm({
             </option>
           ))}
         </SelectField>
+      ) : null}
+
+      {item.effectKind === "instant_youth_promotion" ? (
+        <SelectField name="academyRiderId" label="Junior à promouvoir" required>
+          <option value="">Choisir un junior de 17 ans ou plus</option>
+          {academyRiders.map((rider) => (
+            <option key={rider.id} value={rider.id}>
+              {rider.name} · {rider.age} ans
+              {rider.promotionGameYear
+                ? ` · promotion prévue en ${rider.promotionGameYear}`
+                : ""}
+            </option>
+          ))}
+        </SelectField>
+      ) : null}
+
+      {item.effectKind === "custom_staff_recruitment" ? (
+        <>
+          <SelectField name="staffRole" label="Métier" required>
+            <option value="">Choisir un métier</option>
+            {STAFF_ROLES.map((role) => (
+              <option key={role} value={role}>
+                {STAFF_ROLE_DEFINITIONS[role].label}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField name="countryId" label="Nationalité" required>
+            <option value="">Choisir une nationalité</option>
+            {countries.map((country) => (
+              <option key={country.id} value={country.id}>
+                {country.name} ({country.code})
+              </option>
+            ))}
+          </SelectField>
+          <p className="rounded-xl border border-[#D6A600]/20 bg-[#FFF9DB] px-3 py-2 text-[11px] font-bold leading-5 text-[#715700]">
+            Tirage équitable : chaque niveau de 1 à 5 étoiles a exactement 20 %
+            de chance. Le talent et les éventuelles spécialités sont ensuite
+            tirés parmi les options compatibles.
+          </p>
+          <p className="text-[11px] font-semibold leading-5 text-[#60756E]">
+            La prime de signature est offerte. Le salaire normal et les limites
+            habituelles de votre structure restent applicables.
+          </p>
+        </>
       ) : null}
 
       {stackable ? (
@@ -119,5 +178,7 @@ function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "training_multiplier") return "Activer pour la prochaine séance";
   if (kind === "scouting_boost") return "Activer pendant 7 jours";
   if (kind === "wildcard") return "Réserver l’invitation";
+  if (kind === "instant_youth_promotion") return "Signer le junior maintenant";
+  if (kind === "custom_staff_recruitment") return "Générer et signer ce staff";
   return "Utiliser sur ce coureur";
 }

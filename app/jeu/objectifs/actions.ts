@@ -9,6 +9,8 @@ import {
   withPageFeedback,
 } from "@/lib/game/filtered-page-paths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isStaffRole } from "@/lib/game/staff";
+import { redeemCustomStaffRecruitmentReward } from "@/services/daily-reward-recruitment";
 import type { ClaimAlphaTesterTrophyState } from "@/app/jeu/objectifs/alpha-tester-trophy-state";
 
 export async function claimGameObjectiveAction(formData: FormData) {
@@ -103,6 +105,10 @@ export async function redeemDailyRewardAction(formData: FormData) {
   const raceEditionId = readOptionalUuid(formData, "raceEditionId");
   const ratingKey = readValue(formData, "ratingKey");
   const abilityCode = readValue(formData, "abilityCode");
+  const effectKind = readValue(formData, "effectKind");
+  const academyRiderId = readOptionalUuid(formData, "academyRiderId");
+  const staffRole = readValue(formData, "staffRole");
+  const countryId = readOptionalUuid(formData, "countryId");
   const returnPath = readDailyRewardReturnPath(formData);
 
   if (!isUuid(inventoryId) || quantity === null) {
@@ -123,6 +129,23 @@ export async function redeemDailyRewardAction(formData: FormData) {
     );
   }
 
+  if (
+    effectKind === "instant_youth_promotion" &&
+    academyRiderId === null
+  ) {
+    redirectDailyRewardError(returnPath, "Sélectionnez un junior éligible.");
+  }
+
+  if (
+    effectKind === "custom_staff_recruitment" &&
+    (!isStaffRole(staffRole) || countryId === null)
+  ) {
+    redirectDailyRewardError(
+      returnPath,
+      "Sélectionnez un métier et une nationalité valides.",
+    );
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -131,19 +154,51 @@ export async function redeemDailyRewardAction(formData: FormData) {
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const result = await supabase.rpc("redeem_current_daily_rewards", {
-    p_inventory_id: inventoryId,
-    p_quantity: quantity,
-    p_rider_id: riderId,
-    p_rating_key: ratingKey || null,
-    p_ability_code: abilityCode || null,
-    p_race_edition_id: raceEditionId,
-  });
-
-  if (result.error) redirectDailyRewardError(returnPath, result.error.message);
+  let resultData: unknown;
+  if (effectKind === "instant_youth_promotion") {
+    const result = await supabase.rpc("redeem_instant_youth_promotion_reward", {
+      p_inventory_id: inventoryId,
+      p_academy_rider_id: academyRiderId,
+    });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
+  } else if (effectKind === "custom_staff_recruitment") {
+    const settlement = await supabase.rpc("settle_current_team_finances");
+    if (settlement.error) {
+      redirectDailyRewardError(returnPath, settlement.error.message);
+    }
+    try {
+      resultData = await redeemCustomStaffRecruitmentReward({
+        authUserId: user.id,
+        inventoryId,
+        role: staffRole,
+        countryId: countryId!,
+      });
+    } catch (error) {
+      redirectDailyRewardError(
+        returnPath,
+        error instanceof Error ? error.message : "Le recrutement a échoué.",
+      );
+    }
+  } else {
+    const result = await supabase.rpc("redeem_current_daily_rewards", {
+      p_inventory_id: inventoryId,
+      p_quantity: quantity,
+      p_rider_id: riderId,
+      p_rating_key: ratingKey || null,
+      p_ability_code: abilityCode || null,
+      p_race_edition_id: raceEditionId,
+    });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
+  }
 
   const message = readRewardResultMessage(
-    result.data,
+    resultData,
     "Le cadeau a bien été utilisé.",
   );
   revalidateDailyRewardPaths();
@@ -158,6 +213,8 @@ function revalidateDailyRewardPaths() {
   revalidatePath("/jeu/centre-de-formation");
   revalidatePath("/jeu/calendrier");
   revalidatePath("/jeu/materiel");
+  revalidatePath("/jeu/effectif");
+  revalidatePath("/jeu/staff");
 }
 
 function redirectDailyRewardError(

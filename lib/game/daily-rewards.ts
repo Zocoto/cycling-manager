@@ -18,7 +18,9 @@ export type DailyRewardEffectKind =
   | "equipment"
   | "special_ability"
   | "naturalization"
-  | "wildcard";
+  | "wildcard"
+  | "instant_youth_promotion"
+  | "custom_staff_recruitment";
 
 export type DailyRewardOffer = {
   key: string;
@@ -52,6 +54,19 @@ export type DailyRewardAbility = {
   effectSummary: string;
 };
 
+export type DailyRewardAcademyRider = {
+  id: string;
+  name: string;
+  age: number;
+  promotionGameYear: number | null;
+};
+
+export type DailyRewardCountry = {
+  id: string;
+  name: string;
+  code: string;
+};
+
 export type DailyRewardOverview = {
   seasonId: string;
   seasonName: string;
@@ -69,6 +84,8 @@ export type DailyRewardOverview = {
   riders: DailyRewardRider[];
   eligibleRaces: DailyRewardRace[];
   abilities: DailyRewardAbility[];
+  academyRiders: DailyRewardAcademyRider[];
+  countries: DailyRewardCountry[];
 };
 
 export const DAILY_REWARD_RATING_OPTIONS = RIDER_RATING_AXES.map((axis) => ({

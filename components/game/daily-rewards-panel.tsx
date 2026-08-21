@@ -271,6 +271,8 @@ function InventoryRewardCard({
         riders={overview.riders}
         abilities={overview.abilities}
         eligibleRaces={overview.eligibleRaces}
+        academyRiders={overview.academyRiders}
+        countries={overview.countries}
       />
     </article>
   );
@@ -308,5 +310,7 @@ function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "equipment") return "Matériel";
   if (kind === "special_ability") return "Talent révélé";
   if (kind === "naturalization") return "Naturalisation";
+  if (kind === "instant_youth_promotion") return "Promotion junior";
+  if (kind === "custom_staff_recruitment") return "Recrutement staff";
   return "Ticket d’or";
 }

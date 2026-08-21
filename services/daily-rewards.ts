@@ -6,6 +6,8 @@ import {
   DAILY_REWARD_SEASON_LENGTH,
   groupDailyRewardInventoryItems,
   type DailyRewardAbility,
+  type DailyRewardAcademyRider,
+  type DailyRewardCountry,
   type DailyRewardEffectKind,
   type DailyRewardInventoryItem,
   type DailyRewardOffer,
@@ -48,12 +50,61 @@ export async function getCurrentDailyRewardOverview(
   const raw = result.data as RawOverview;
   const seasonId = readString(raw.seasonId);
   if (!seasonId) return null;
-  const riders = await getCurrentTeamItemTargetRiders(supabase);
+  const gameYear = readNumber(raw.gameYear, 1);
+  const [riders, academyResult, countriesResult] = await Promise.all([
+    getCurrentTeamItemTargetRiders(supabase),
+    supabase
+      .from("youth_academy_riders")
+      .select("id, first_name, last_name, birth_game_year, promotion_game_year")
+      .in("status", ["active", "recruited"])
+      .order("last_name")
+      .order("first_name"),
+    supabase
+      .from("countries")
+      .select("id, name, iso_alpha2")
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  if (academyResult.error) {
+    throw new Error(
+      `Impossible de charger les juniors éligibles : ${academyResult.error.message}`,
+    );
+  }
+  if (countriesResult.error) {
+    throw new Error(
+      `Impossible de charger les nationalités du staff : ${countriesResult.error.message}`,
+    );
+  }
+
+  const academyRiders = (academyResult.data ?? []).flatMap((row) => {
+    const age = gameYear - Number(row.birth_game_year);
+    if (!Number.isInteger(age) || age < 17) return [];
+    return [
+      {
+        id: row.id,
+        name: `${row.first_name} ${row.last_name}`.trim(),
+        age,
+        promotionGameYear:
+          row.promotion_game_year === null
+            ? null
+            : Number(row.promotion_game_year),
+      } satisfies DailyRewardAcademyRider,
+    ];
+  });
+  const countries = (countriesResult.data ?? []).map(
+    (row) =>
+      ({
+        id: row.id,
+        name: row.name,
+        code: row.iso_alpha2,
+      }) satisfies DailyRewardCountry,
+  );
 
   return {
     seasonId,
     seasonName: readString(raw.seasonName) || "Saison en cours",
-    gameYear: readNumber(raw.gameYear, 1),
+    gameYear,
     currentDayNumber: readNumber(raw.currentDayNumber, 1),
     seasonLength: DAILY_REWARD_SEASON_LENGTH,
     claimedToday: Boolean(raw.claimedToday),
@@ -73,6 +124,8 @@ export async function getCurrentDailyRewardOverview(
     riders,
     eligibleRaces: readArray(raw.eligibleRaces).flatMap(normalizeRace),
     abilities: readArray(raw.abilities).flatMap(normalizeAbility),
+    academyRiders,
+    countries,
   };
 }
 
@@ -146,6 +199,8 @@ function readEffectKind(value: unknown): DailyRewardEffectKind | null {
     "special_ability",
     "naturalization",
     "wildcard",
+    "instant_youth_promotion",
+    "custom_staff_recruitment",
   ];
   return allowed.includes(normalized as DailyRewardEffectKind)
     ? (normalized as DailyRewardEffectKind)

@@ -27,7 +27,10 @@ import {
   type TeamInventoryItem,
 } from "@/lib/game/inventory";
 import type {
+  DailyRewardAcademyRider,
   DailyRewardAbility,
+  DailyRewardCountry,
+  DailyRewardInventoryItem,
   DailyRewardRace,
 } from "@/lib/game/daily-rewards";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -332,6 +335,10 @@ export default async function InventoryPage({
                   currency={overview.currency}
                   dailyRewardAbilities={dailyRewardOverview?.abilities ?? []}
                   dailyRewardRaces={dailyRewardOverview?.eligibleRaces ?? []}
+                  dailyRewardAcademyRiders={
+                    dailyRewardOverview?.academyRiders ?? []
+                  }
+                  dailyRewardCountries={dailyRewardOverview?.countries ?? []}
                 />
               ))}
             </div>
@@ -353,6 +360,8 @@ function InventoryItemCard({
   currency,
   dailyRewardAbilities,
   dailyRewardRaces,
+  dailyRewardAcademyRiders,
+  dailyRewardCountries,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
@@ -362,8 +371,12 @@ function InventoryItemCard({
   currency: string;
   dailyRewardAbilities: DailyRewardAbility[];
   dailyRewardRaces: DailyRewardRace[];
+  dailyRewardAcademyRiders: DailyRewardAcademyRider[];
+  dailyRewardCountries: DailyRewardCountry[];
 }) {
   const category = getInventoryCategory(item.category);
+  const recruitmentReward =
+    item.dailyReward ?? buildRecruitmentRewardFromInventory(item);
 
   return (
     <article
@@ -442,12 +455,14 @@ function InventoryItemCard({
           />
         </div>
 
-        {item.dailyReward ? (
+        {recruitmentReward ? (
           <DailyRewardRedemptionForm
-            item={item.dailyReward}
+            item={recruitmentReward}
             riders={riders}
             abilities={dailyRewardAbilities}
             eligibleRaces={dailyRewardRaces}
+            academyRiders={dailyRewardAcademyRiders}
+            countries={dailyRewardCountries}
             returnPath={returnPath}
           />
         ) : item.equipmentSlot ? (
@@ -497,6 +512,33 @@ function InventoryItemCard({
       </div>
     </article>
   );
+}
+
+function buildRecruitmentRewardFromInventory(
+  item: TeamInventoryItem,
+): DailyRewardInventoryItem | null {
+  const effectKind = item.effectPayload?.effectKind;
+  if (
+    effectKind !== "instant_youth_promotion" &&
+    effectKind !== "custom_staff_recruitment"
+  ) {
+    return null;
+  }
+
+  return {
+    id: item.sourceId,
+    key: item.catalogKey ?? item.sourceId,
+    name: item.name,
+    description: item.description,
+    effectSummary: item.effectSummary,
+    importance: effectKind === "custom_staff_recruitment" ? 10 : 8,
+    effectKind,
+    iconKey: item.iconKey,
+    payload: item.effectPayload ?? {},
+    quantity: item.availableQuantity,
+    acquiredAt: item.acquiredAt ?? "",
+    expiresAfterGameYear: Number.MAX_SAFE_INTEGER,
+  };
 }
 
 function EquipmentOwnerSummary({
