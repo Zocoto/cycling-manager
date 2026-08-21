@@ -1,91 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
 import Link from "@/components/ui/app-link";
-import {
-  CYCLOGAZETTE_READ_EVENT,
-  CyclogazetteUnreadRefreshTracker,
-} from "@/lib/game/cyclogazette-read-sync";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useGameHeaderIndicators } from "@/components/game/game-header-indicators-provider";
 
 export function CyclogazetteShortcut({
   gazetteIsOpen = false,
 }: {
   gazetteIsOpen?: boolean;
 }) {
-  const [hasUnread, setHasUnread] = useState(false);
-  const refreshTrackerRef = useRef(
-    new CyclogazetteUnreadRefreshTracker(),
-  );
+  const hasUnread =
+    useGameHeaderIndicators()?.hasUnreadCyclogazette ?? false;
   const displayedUnread = gazetteIsOpen ? false : hasUnread;
-
-  useEffect(() => {
-    let active = true;
-    const supabase = createSupabaseBrowserClient();
-    const refreshTracker = refreshTrackerRef.current;
-
-    function acknowledgeReadEdition() {
-      refreshTracker.invalidate();
-      setHasUnread(false);
-    }
-
-    async function refreshUnreadState() {
-      const requestVersion = refreshTracker.beginRefresh();
-      const { data, error } = await supabase.rpc(
-        "has_unread_cyclogazette_editions",
-      );
-
-      if (
-        active &&
-        !error &&
-        refreshTracker.isCurrent(requestVersion)
-      ) {
-        setHasUnread(data === true);
-      }
-    }
-
-    function refreshWhenVisible() {
-      if (document.visibilityState === "visible") {
-        void refreshUnreadState();
-      }
-    }
-
-    window.addEventListener(
-      CYCLOGAZETTE_READ_EVENT,
-      acknowledgeReadEdition,
-    );
-    void refreshUnreadState();
-
-    const channel = supabase
-      .channel("cyclogazette-unread-indicator")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "cyclogazette_editions",
-        },
-        () => {
-          void refreshUnreadState();
-        },
-      )
-      .subscribe();
-
-    window.addEventListener("focus", refreshWhenVisible);
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-
-    return () => {
-      active = false;
-      window.removeEventListener(
-        CYCLOGAZETTE_READ_EVENT,
-        acknowledgeReadEdition,
-      );
-      window.removeEventListener("focus", refreshWhenVisible);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-      void supabase.removeChannel(channel);
-    };
-  }, []);
 
   const label = displayedUnread
     ? "Lire La Cyclogazette · nouvelle édition disponible"

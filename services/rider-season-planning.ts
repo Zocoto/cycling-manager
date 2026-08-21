@@ -15,6 +15,7 @@ import {
   type RaceCategoryCode,
 } from "@/lib/game/race-calendar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { settleCurrentHealthAndFormState } from "@/services/game-state-settlement";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -134,7 +135,7 @@ export async function getCurrentTeamRiderSeasonPlanning({
 }): Promise<TeamRiderSeasonPlanning | null> {
   const admin = createSupabaseAdminClient();
   const [healthSettlement, reconnaissanceSettlement] = await Promise.all([
-    admin.rpc("settle_current_health_and_form"),
+    settleCurrentHealthAndFormState().then(() => ({ error: null })),
     admin.rpc("settle_current_race_reconnaissances"),
   ]);
   assertQuery(healthSettlement.error, "l’état de santé des coureurs");

@@ -7,6 +7,7 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { GameHeaderSearchToggle } from "@/components/game/game-header-search-toggle";
+import { GameHeaderIndicatorsProvider } from "@/components/game/game-header-indicators-provider";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
@@ -66,17 +67,22 @@ export function GameHeader({
   } as CSSProperties;
 
   return (
-    <header
-      className="relative z-20 border-b border-[#78947D]/25 bg-[#071A17] text-[#FFFDF4] shadow-lg shadow-black/15"
-      style={headerStyle}
+    <GameHeaderIndicatorsProvider
+      chatIsOpen={chatIsOpen}
+      gazetteIsOpen={gazetteIsOpen}
+      mailboxIsOpen={mailboxIsOpen}
     >
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-1"
-        style={{
-          background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent}, ${colors.secondary})`,
-        }}
-      />
+      <header
+        className="relative z-20 border-b border-[#78947D]/25 bg-[#071A17] text-[#FFFDF4] shadow-lg shadow-black/15"
+        style={headerStyle}
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-1"
+          style={{
+            background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent}, ${colors.secondary})`,
+          }}
+        />
 
       <div
         className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
@@ -249,7 +255,8 @@ export function GameHeader({
           <LogoutButton isEnglish={isEnglish} />
         </div>
       </div>
-    </header>
+      </header>
+    </GameHeaderIndicatorsProvider>
   );
 }
 

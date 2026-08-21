@@ -17,6 +17,7 @@ import {
 } from "@/lib/game/staff-talents";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { settleCurrentRiderState } from "@/services/game-state-settlement";
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
@@ -243,18 +244,7 @@ export async function getCurrentTeamHealthOverview(
   authUserId: string,
 ): Promise<TeamHealthOverview | null> {
   const admin = createSupabaseAdminClient();
-  const { error: trainingSettlementError } = await admin.rpc(
-    "settle_due_training_sessions",
-  );
-  assertQuery(
-    trainingSettlementError,
-    "la mise à jour quotidienne des entraînements",
-  );
-
-  const { error: settlementError } = await admin.rpc(
-    "settle_current_health_and_form",
-  );
-  assertQuery(settlementError, "la mise à jour quotidienne de la forme");
+  await settleCurrentRiderState();
 
   const { data: director, error: directorError } = await admin
     .from("sporting_directors")

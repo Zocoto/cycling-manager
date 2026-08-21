@@ -37,6 +37,7 @@ import { parseContinentalChampionshipTitleType } from "@/services/rider-continen
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
+import { settleCurrentRiderState } from "@/services/game-state-settlement";
 
 export type RiderEquipmentSlot = EquipmentSlot;
 
@@ -421,33 +422,7 @@ export async function getPublicRiderProfile({
   if (archivedProfile) return archivedProfile;
 
   const supabase = createSupabaseAdminClient();
-  const { error: trainingSettlementError } = await supabase.rpc(
-    "settle_due_training_sessions",
-  );
-  if (trainingSettlementError) {
-    throw new Error(
-      `Impossible de mettre à jour l’entraînement du coureur : ${trainingSettlementError.message}`,
-    );
-  }
-
-  const { error: settlementError } = await supabase.rpc(
-    "settle_finished_race_conditions",
-  );
-
-  if (settlementError) {
-    throw new Error(
-      `Impossible de mettre à jour la forme après les courses : ${settlementError.message}`,
-    );
-  }
-
-  const { error: healthSettlementError } = await supabase.rpc(
-    "settle_current_health_and_form",
-  );
-  if (healthSettlementError) {
-    throw new Error(
-      `Impossible de mettre à jour la santé du coureur : ${healthSettlementError.message}`,
-    );
-  }
+  await settleCurrentRiderState();
 
   const { data: rider, error: riderError } = await supabase
     .from("riders")

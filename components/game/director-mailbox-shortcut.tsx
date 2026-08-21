@@ -1,72 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
 import Link from "@/components/ui/app-link";
-import { DIRECTOR_MAILBOX_CHANGED_EVENT } from "@/lib/game/director-mailbox-sync";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useGameHeaderIndicators } from "@/components/game/game-header-indicators-provider";
 
 export function DirectorMailboxShortcut({
   mailboxIsOpen = false,
 }: {
   mailboxIsOpen?: boolean;
 }) {
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const refreshUnreadCount = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-    const { data, error } = await supabase.rpc(
-      "get_current_director_unread_message_count",
-    );
-
-    if (!error && typeof data === "number") {
-      setUnreadCount(data);
-    }
-  }, []);
-
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-
-    function refreshWhenVisible() {
-      if (document.visibilityState === "visible") {
-        void refreshUnreadCount();
-      }
-    }
-
-    const initialRefreshId = window.setTimeout(() => {
-      void refreshUnreadCount();
-    }, 0);
-    window.addEventListener(
-      DIRECTOR_MAILBOX_CHANGED_EVENT,
-      refreshUnreadCount,
-    );
-    window.addEventListener("focus", refreshWhenVisible);
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-
-    const channel = supabase
-      .channel("director-mailbox-unread-indicator")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "sporting_director_messages",
-        },
-        () => void refreshUnreadCount(),
-      )
-      .subscribe();
-
-    return () => {
-      window.clearTimeout(initialRefreshId);
-      window.removeEventListener(
-        DIRECTOR_MAILBOX_CHANGED_EVENT,
-        refreshUnreadCount,
-      );
-      window.removeEventListener("focus", refreshWhenVisible);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-      void supabase.removeChannel(channel);
-    };
-  }, [refreshUnreadCount]);
+  const unreadCount =
+    useGameHeaderIndicators()?.mailboxUnreadCount ?? 0;
 
   const label =
     unreadCount > 0

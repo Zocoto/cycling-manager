@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
 import Link from "@/components/ui/app-link";
-import {
-  GLOBAL_CHAT_MESSAGES_READ_EVENT,
-  GlobalChatUnreadRefreshTracker,
-} from "@/lib/game/global-chat-read-sync";
+import { useGameHeaderIndicators } from "@/components/game/game-header-indicators-provider";
 
 export function GlobalChatShortcut({
   chatIsOpen = false,
@@ -15,42 +10,9 @@ export function GlobalChatShortcut({
   chatIsOpen?: boolean;
   initialHasUnread?: boolean;
 }) {
-  const [hasUnread, setHasUnread] = useState(initialHasUnread);
-  const refreshTrackerRef = useRef(
-    new GlobalChatUnreadRefreshTracker(),
-  );
+  const hasUnread =
+    useGameHeaderIndicators()?.hasUnreadGlobalChat ?? initialHasUnread;
   const displayedUnread = chatIsOpen ? false : hasUnread;
-
-  useEffect(() => {
-    if (chatIsOpen) {
-      return;
-    }
-
-    let cancelled = false;
-    let dispose: (() => void) | null = null;
-    let timeoutId: number | null = null;
-
-    function startUnreadRuntime() {
-      void import("@/components/game/global-chat-unread-runtime").then(
-        ({ subscribeToGlobalChatUnread }) => {
-          if (cancelled) return;
-          dispose = subscribeToGlobalChatUnread({
-            refreshTracker: refreshTrackerRef.current,
-            readEventName: GLOBAL_CHAT_MESSAGES_READ_EVENT,
-            onUnreadChange: setHasUnread,
-          });
-        },
-      );
-    }
-
-    timeoutId = window.setTimeout(startUnreadRuntime, 2_500);
-
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-      dispose?.();
-    };
-  }, [chatIsOpen]);
 
   const label = displayedUnread
     ? "Ouvrir le chat général · nouveaux messages non lus"
