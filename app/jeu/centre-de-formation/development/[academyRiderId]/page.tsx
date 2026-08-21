@@ -8,6 +8,7 @@ import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
+import { getRiderExperience } from "@/lib/game/rider-experience";
 import { createAmateurRiderJersey } from "@/lib/rider-jersey";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -45,6 +46,7 @@ export default async function DevelopmentRiderPage({ params }: Props) {
   const finalResults = profile.results.filter((result) => result.scope === "general");
   const wins = finalResults.filter((result) => result.rank === 1).length;
   const podiums = finalResults.filter((result) => result.rank <= 3).length;
+  const experience = getRiderExperience(profile.careerRaceDays);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -56,10 +58,10 @@ export default async function DevelopmentRiderPage({ params }: Props) {
       />
       <section className="mx-auto max-w-[1450px] px-5 py-8 sm:px-8 sm:py-11">
         <Link
-          href="/jeu/centre-de-formation?onglet=development&dev=effectif"
+          href={`/jeu/equipes/${profile.teamId}`}
           className="inline-flex items-center gap-2 text-sm font-black text-[#315B3E] transition hover:text-[#176951]"
         >
-          <span aria-hidden="true">←</span> Retour à l’équipe de développement
+          <span aria-hidden="true">←</span> Retour à la fiche équipe
         </Link>
 
         <header className="mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(130deg,#071A17_0%,#0B302B_55%,#176951_100%)] text-white shadow-[0_25px_70px_rgba(19,60,46,0.2)]">
@@ -151,6 +153,31 @@ export default async function DevelopmentRiderPage({ params }: Props) {
                 <CareerMetric value={finalResults.length} label="Courses" />
                 <CareerMetric value={podiums} label="Podiums" />
                 <CareerMetric value={wins} label="Victoires" />
+              </div>
+              <div className="mt-4 rounded-xl bg-[#EAF5F3] px-4 py-4">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+                      Expérience
+                    </p>
+                    <p className="mt-1 text-sm font-black text-[#183F37]">
+                      {experience.level}
+                    </p>
+                  </div>
+                  <p className="text-right text-xl font-black text-[#176951]">
+                    {experience.score}
+                    <span className="text-[10px] text-[#60756E]"> / 100 XP</span>
+                  </p>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                  <div
+                    className="h-full rounded-full bg-[#278B70]"
+                    style={{ width: `${experience.score}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-[10px] font-bold text-[#60756E]">
+                  {experience.raceDays} jour{experience.raceDays > 1 ? "s" : ""} de course disputé{experience.raceDays > 1 ? "s" : ""} avec la Devteam
+                </p>
               </div>
               {profile.promotionGameYear ? (
                 <p className="mt-4 rounded-xl bg-[#FFF3BC] px-3 py-3 text-xs font-black text-[#705400]">

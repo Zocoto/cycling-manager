@@ -24,6 +24,7 @@ import {
 } from "@/lib/rider-jersey";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPublicDevelopmentTeam } from "@/services/development-team";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getPublicTeam } from "@/services/public-directory";
 import { getPublicTeamRiders } from "@/services/public-rider-profile";
@@ -72,6 +73,7 @@ export default async function PublicTeamPage({
     amateurIdentity,
     sponsorIdentity,
     riders,
+    developmentTeam,
     riderHistory,
     seasonHistory,
     teamRanking,
@@ -79,6 +81,7 @@ export default async function PublicTeamPage({
     getTeamAmateurIdentity(team.public_identifier),
     getActiveTeamSponsorIdentity(team.public_identifier),
     getPublicTeamRiders(team.public_identifier),
+    getPublicDevelopmentTeam(team.public_identifier),
     getPublicTeamRiderHistory(team.public_identifier),
     getPublicTeamProfileHistory(team.public_identifier),
     getTeamRankingEntry(team.public_identifier),
@@ -323,6 +326,8 @@ export default async function PublicTeamPage({
           )}
         </section>
 
+        <DevelopmentTeamCard developmentTeam={developmentTeam} />
+
         <TeamRiderGlossary
           riders={riderHistory}
           currentGameYear={currentGameYear}
@@ -336,6 +341,100 @@ export default async function PublicTeamPage({
         <TeamSeasonHistory history={seasonHistory.seasons} />
       </section>
     </main>
+  );
+}
+
+function DevelopmentTeamCard({
+  developmentTeam,
+}: {
+  developmentTeam: Awaited<ReturnType<typeof getPublicDevelopmentTeam>>;
+}) {
+  if (!developmentTeam) return null;
+
+  const juniorJersey = createAmateurRiderJersey(developmentTeam.team.jersey);
+
+  return (
+    <section className="mt-7 overflow-hidden rounded-[2rem] border border-[var(--team-line)] bg-white/80 shadow-[0_16px_45px_var(--team-shadow)]">
+      <div className="flex flex-col gap-5 bg-[var(--team-soft)] px-6 py-6 sm:flex-row sm:items-center sm:px-8">
+        <AmateurTeamJersey
+          jersey={developmentTeam.team.jersey}
+          teamName={developmentTeam.team.displayName}
+          className="h-28 w-24 shrink-0 drop-shadow-lg"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--team-secondary)]">
+            Devteam · {developmentTeam.seasonName}
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-[var(--team-ink)]">
+            {developmentTeam.team.displayName}
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-[var(--team-muted)]">
+            L’effectif de jeunes engagé sur le calendrier junior.
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-white px-4 py-2 text-xs font-black text-[var(--team-secondary)] shadow-sm">
+          {developmentTeam.roster.length} junior{developmentTeam.roster.length > 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {developmentTeam.roster.length ? (
+        <div className="grid gap-3 p-6 sm:grid-cols-2 sm:p-8 lg:grid-cols-3">
+          {developmentTeam.roster.map((rider) => {
+            const riderName = `${rider.firstName} ${rider.lastName}`.trim();
+
+            return (
+              <Link
+                key={rider.id}
+                href={`/jeu/centre-de-formation/development/${rider.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--team-line)] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)]"
+              >
+                <span className="relative shrink-0">
+                  <RiderAvatar
+                    profileKey={rider.profileKey}
+                    seed={rider.avatarSeed}
+                    riderId={rider.id}
+                    age={rider.age}
+                    jersey={juniorJersey}
+                    label={`Portrait de ${riderName}`}
+                    className="h-14 w-14"
+                  />
+                  {rider.raceNumber ? (
+                    <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-lg bg-[var(--team-accent)] text-[9px] font-black text-[var(--team-ink)] ring-2 ring-white">
+                      {rider.raceNumber}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-black text-[var(--team-ink)]">
+                    {riderName}
+                  </span>
+                  <span className="mt-1 flex items-center gap-2 text-xs font-semibold text-[var(--team-muted)]">
+                    <CountryFlag
+                      countryCode={rider.countryCode}
+                      countryName={rider.countryName}
+                      compact
+                    />
+                    {rider.age} ans · {rider.sportingProfile}
+                  </span>
+                  <span className="mt-1 block text-[10px] font-bold text-[var(--team-secondary)]">
+                    {rider.careerRaceDays} jour{rider.careerRaceDays > 1 ? "s" : ""} de course
+                  </span>
+                </span>
+                <span className="shrink-0 font-black text-[var(--team-secondary)] transition group-hover:translate-x-0.5" aria-hidden="true">
+                  ↗
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="m-6 rounded-xl border border-dashed border-[var(--team-line)] bg-white px-4 py-5 text-sm font-bold text-[var(--team-muted)] sm:m-8">
+          Aucun junior n’est actuellement inscrit dans cette Devteam.
+        </p>
+      )}
+    </section>
   );
 }
 

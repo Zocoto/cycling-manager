@@ -56,6 +56,7 @@ type AcademyRow = {
   training_priority: string;
   status: "active" | "recruited" | "promoted" | "free_agent";
   promotion_game_year: number | null;
+  career_race_days: number;
 };
 
 type DevelopmentTeamRow = {
@@ -164,6 +165,7 @@ export type DevelopmentRider = {
   trainingPriority: string;
   status: AcademyRow["status"];
   promotionGameYear: number | null;
+  careerRaceDays: number;
   raceNumber: number | null;
 };
 
@@ -245,6 +247,13 @@ export type DevelopmentTeamOverview = {
     podiums: number;
     wins: number;
   };
+};
+
+export type PublicDevelopmentTeam = {
+  seasonName: string;
+  gameYear: number;
+  team: DevelopmentTeamIdentity;
+  roster: DevelopmentRider[];
 };
 
 export type DevelopmentRiderProfile = DevelopmentRider & {
@@ -515,7 +524,6 @@ export async function getDevelopmentRiderProfile(
     .from("development_teams")
     .select("*")
     .in("id", unique(rosterRows.map((row) => row.development_team_id)))
-    .eq("team_id", context.teamId)
     .order("created_at", { ascending: false })
     .returns<DevelopmentTeamRow[]>();
   assertQuery(teamResult.error, "les équipes juniors du coureur");
@@ -526,7 +534,6 @@ export async function getDevelopmentRiderProfile(
     .from("youth_academy_riders")
     .select("*")
     .eq("id", academyRiderId)
-    .eq("team_id", context.teamId)
     .maybeSingle<AcademyRow>();
   assertQuery(riderResult.error, "la fiche du junior");
   if (!riderResult.data) return null;
@@ -607,7 +614,7 @@ export async function getDevelopmentRiderProfile(
 
   return {
     ...rider,
-    teamId: context.teamId,
+    teamId: riderResult.data.team_id,
     currentDevelopmentTeam:
       teamRows.find((team) => team.season_id === context.seasonId)
         ? toDevelopmentTeamIdentity(
@@ -645,6 +652,91 @@ export async function getDevelopmentRiderProfile(
   };
 }
 
+
+export async function getPublicDevelopmentTeam(
+  teamIdentifier: string,
+): Promise<PublicDevelopmentTeam | null> {
+  const teamId = teamIdentifier.trim().toLowerCase();
+  if (!isUuid(teamId)) return null;
+
+  const admin = createSupabaseAdminClient();
+  const seasonResult = await admin
+    .from("seasons")
+    .select("id, name, game_year")
+    .eq("status", "active")
+    .maybeSingle<{ id: string; name: string; game_year: number }>();
+  assertQuery(seasonResult.error, "la saison active de la Development Team");
+  if (!seasonResult.data) return null;
+  const season = seasonResult.data;
+
+  const teamResult = await admin
+    .from("development_teams")
+    .select("*")
+    .eq("team_id", teamId)
+    .eq("season_id", season.id)
+    .maybeSingle<DevelopmentTeamRow>();
+  assertQuery(teamResult.error, "la Development Team publique");
+  if (!teamResult.data) return null;
+
+  const rosterResult = await admin
+    .from("development_team_roster")
+    .select("development_team_id, academy_rider_id, race_number")
+    .eq("development_team_id", teamResult.data.id)
+    .order("race_number")
+    .returns<RosterRow[]>();
+  assertQuery(rosterResult.error, "l’effectif public de la Development Team");
+  const rosterRows = rosterResult.data ?? [];
+  if (!rosterRows.length) {
+    return {
+      seasonName: season.name,
+      gameYear: season.game_year,
+      team: toDevelopmentTeamIdentity(teamResult.data),
+      roster: [],
+    };
+  }
+
+  const academyResult = await admin
+    .from("youth_academy_riders")
+    .select("*")
+    .in("id", rosterRows.map((row) => row.academy_rider_id))
+    .in("status", ["active", "recruited"])
+    .returns<AcademyRow[]>();
+  assertQuery(academyResult.error, "les juniors publics de la Development Team");
+  const academyRows = academyResult.data ?? [];
+  const countryIds = unique(academyRows.map((rider) => rider.country_id));
+  const countriesResult = countryIds.length
+    ? await admin
+        .from("countries")
+        .select("id, name, iso_alpha2")
+        .in("id", countryIds)
+        .returns<CountryRow[]>()
+    : { data: [] as CountryRow[], error: null };
+  assertQuery(countriesResult.error, "les nationalités de la Development Team");
+
+  const academyById = new Map(academyRows.map((rider) => [rider.id, rider]));
+  const countryById = new Map(
+    (countriesResult.data ?? []).map((country) => [country.id, country]),
+  );
+
+  return {
+    seasonName: season.name,
+    gameYear: season.game_year,
+    team: toDevelopmentTeamIdentity(teamResult.data),
+    roster: rosterRows.flatMap((roster) => {
+      const rider = academyById.get(roster.academy_rider_id);
+      return rider
+        ? [
+            toDevelopmentRider(
+              rider,
+              countryById.get(rider.country_id),
+              season.game_year,
+              roster.race_number,
+            ),
+          ]
+        : [];
+    }),
+  };
+}
 function toDevelopmentRider(
   rider: AcademyRow,
   country: CountryRow | undefined,
@@ -667,6 +759,7 @@ function toDevelopmentRider(
     trainingPriority: rider.training_priority,
     status: rider.status,
     promotionGameYear: rider.promotion_game_year,
+    careerRaceDays: Math.max(0, Number(rider.career_race_days) || 0),
     raceNumber,
   };
 }
@@ -813,6 +906,12 @@ async function loadContext(
       teamResult.data?.amateur_jersey_secondary_color ?? "#FFFDF4",
     teamAccentColor: teamResult.data?.amateur_jersey_accent_color ?? "#F2C94C",
   };
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 function unique(values: string[]) {
