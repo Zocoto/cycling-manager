@@ -22,7 +22,7 @@ export function PublicHeader() {
         className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]"
       />
 
-      <div className="mx-auto flex max-w-375 items-center justify-between gap-6 px-5 pb-4 pt-5 sm:px-8">
+      <div className="mx-auto flex max-w-375 items-center justify-between gap-3 px-3 pb-4 pt-5 sm:gap-6 sm:px-8">
         <Link
           href="/"
           className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
@@ -30,9 +30,9 @@ export function PublicHeader() {
             isEnglish ? "Back to the Cyclo Stratège homepage" : "Retour à l’accueil de Cyclo Stratège"
           }
         >
-          <WheelLogo className="h-12 w-12" />
+          <WheelLogo className="h-10 w-10 sm:h-12 sm:w-12" />
 
-          <span className="inline-flex h-11 -translate-y-[3px] flex-col justify-between leading-none">
+          <span className="hidden h-11 -translate-y-[3px] flex-col justify-between leading-none sm:inline-flex">
             <span
               aria-hidden="true"
               className="-mt-[2px] flex justify-between text-2xl font-extrabold uppercase text-[#FFFDF4]"
@@ -65,7 +65,7 @@ export function PublicHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <LanguageSwitcher compact />
 
           <Link
@@ -91,7 +91,7 @@ export function PublicHeader() {
 
           <Link
             href="/inscription"
-            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-4 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4]"
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#F2C94C] px-3 py-2 text-sm font-extrabold text-[#071A17] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFFDF4] sm:px-4"
           >
             {isEnglish ? "Sign up" : "S’inscrire"}
           </Link>

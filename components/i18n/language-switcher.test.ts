@@ -17,6 +17,18 @@ describe("LanguageSwitcher integration", () => {
     expect(gameHeader).toContain("<LanguageSwitcher compact />");
   });
 
+  it("keeps the public sign-up action visible on narrow mobile screens", () => {
+    const publicHeader = readFileSync(
+      resolve(process.cwd(), "components/layout/public-header.tsx"),
+      "utf8",
+    );
+
+    expect(publicHeader).toContain("gap-3 px-3");
+    expect(publicHeader).toContain("h-10 w-10 sm:h-12 sm:w-12");
+    expect(publicHeader).toContain("sm:inline-flex");
+    expect(publicHeader).toContain("px-3 py-2 text-sm");
+  });
+
   it("persists the selected locale for the whole site", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/i18n/language-switcher.tsx"),
