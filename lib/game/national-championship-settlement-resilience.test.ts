@@ -30,4 +30,22 @@ describe("national championship settlement resilience", () => {
     expect(migration).toContain("other_roster.rider_id = new.rider_id");
     expect(migration).toContain("set status = 'withdrawn'");
   });
+
+  it("runs discipline-specific crons only on national day", () => {
+    const route = readSource(
+      "app/api/cron/national-championship-settlements/[discipline]/route.ts",
+    );
+    const vercel = readSource("vercel.json");
+
+    expect(route).toContain('"time-trial-summer": "national_time_trial"');
+    expect(route).toContain('"road-summer": "national_road"');
+    expect(route).toContain("season.current_day_number !== 8");
+    expect(route).toContain("edition.competitionType === competitionType");
+    expect(vercel).toContain(
+      "/api/cron/national-championship-settlements/time-trial",
+    );
+    expect(vercel).toContain(
+      "/api/cron/national-championship-settlements/road",
+    );
+  });
 });
