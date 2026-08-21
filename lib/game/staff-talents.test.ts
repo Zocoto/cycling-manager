@@ -4,6 +4,7 @@ import {
   STAFF_TALENT_DEFINITIONS,
   describeStaffTalent,
   getStaffTalentCodes,
+  getTrainerTalentSpecialty,
   isStaffTalentForRole,
   selectInitialStaffTalent,
 } from "@/lib/game/staff-talents";
@@ -95,5 +96,12 @@ describe("staff talents", () => {
     expect(
       describeStaffTalent("nutrition_supplement_effectiveness", 5),
     ).toContain("supplémentaire sur chaque complément");
+  });
+
+  it("retrouve la spécialité couverte par une ligne de talent d’entraîneur", () => {
+    expect(getTrainerTalentSpecialty("trainer_time_trial")).toBe("time_trial");
+    expect(getTrainerTalentSpecialty("trainer_sprint")).toBe("sprint");
+    expect(getTrainerTalentSpecialty("nutrition_daily_form")).toBeNull();
+    expect(getTrainerTalentSpecialty("trainer_unknown")).toBeNull();
   });
 });

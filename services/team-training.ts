@@ -8,6 +8,13 @@ import {
   type TrainerSpecialty,
 } from "@/lib/game/staff";
 import {
+  STAFF_TALENT_DEFINITIONS,
+  describeStaffTalent,
+  getTrainerTalentSpecialty,
+  isStaffTalentForRole,
+  type StaffTalentCode,
+} from "@/lib/game/staff-talents";
+import {
   buildRiderTrainingSeasonReport,
   getLongevityTier,
   getSeasonDeclinePoints,
@@ -88,6 +95,11 @@ type StaffMemberRow = {
   level: number;
   trainer_specialty: string | null;
 };
+type StaffTalentRow = {
+  staff_member_id: string;
+  slot_number: number;
+  talent_code: string;
+};
 type SessionRow = {
   rider_id: string;
   season_day_id: string;
@@ -123,6 +135,15 @@ export type TeamTrainer = {
   specialty: TrainerSpecialty;
   specialtyLabel: string;
   efficiencyBonus: number;
+  talents: Array<{
+    slot: number;
+    code: StaffTalentCode;
+    label: string;
+    description: string;
+    specialty: TrainerSpecialty;
+    specialtyLabel: string;
+    efficiencyBonus: number;
+  }>;
   assignedRiderCount: number;
   riderCapacity: number;
 };
@@ -238,6 +259,7 @@ export async function getCurrentTeamTrainingOverview(
     sessionsResult,
     statProgressResult,
     staffMembersResult,
+    staffTalentsResult,
     ironHealthResult,
   ] =
     await Promise.all([
@@ -297,6 +319,14 @@ export async function getCurrentTeamTrainingOverview(
             .in("id", staffMemberIds)
             .returns<StaffMemberRow[]>()
         : Promise.resolve({ data: [] as StaffMemberRow[], error: null }),
+      staffMemberIds.length
+        ? admin
+            .from("staff_member_talents")
+            .select("staff_member_id, slot_number, talent_code")
+            .in("staff_member_id", staffMemberIds)
+            .order("slot_number", { ascending: true })
+            .returns<StaffTalentRow[]>()
+        : Promise.resolve({ data: [] as StaffTalentRow[], error: null }),
       riderIds.length
         ? admin
             .from("rider_special_abilities")
@@ -313,6 +343,7 @@ export async function getCurrentTeamTrainingOverview(
   assertQuery(sessionsResult.error, "les rapports d’entraînement");
   assertQuery(statProgressResult.error, "la progression saisonnière des coureurs");
   assertQuery(staffMembersResult.error, "les entraîneurs");
+  assertQuery(staffTalentsResult.error, "les talents des entraîneurs");
   assertQuery(ironHealthResult.error, "les capacités de longévité");
 
   const countryIds = [
@@ -370,6 +401,10 @@ export async function getCurrentTeamTrainingOverview(
   const staffMemberById = new Map(
     (staffMembersResult.data ?? []).map((member) => [member.id, member]),
   );
+  const trainerTalentsByMemberId = groupByKey(
+    staffTalentsResult.data ?? [],
+    (talent) => talent.staff_member_id,
+  );
   const trainers = staffContracts.flatMap((contract) => {
     const member = staffMemberById.get(contract.staff_member_id);
     if (!member?.trainer_specialty || !isTrainerSpecialty(member.trainer_specialty)) {
@@ -387,6 +422,25 @@ export async function getCurrentTeamTrainingOverview(
         specialty: member.trainer_specialty,
         specialtyLabel: TRAINER_SPECIALTY_LABELS[member.trainer_specialty],
         efficiencyBonus: member.level * 4,
+        talents: (trainerTalentsByMemberId.get(member.id) ?? []).flatMap(
+          (talent) => {
+            if (!isStaffTalentForRole(talent.talent_code, "trainer")) return [];
+            const specialty = getTrainerTalentSpecialty(talent.talent_code);
+            if (!specialty) return [];
+
+            return [
+              {
+                slot: talent.slot_number,
+                code: talent.talent_code,
+                label: STAFF_TALENT_DEFINITIONS[talent.talent_code].label,
+                description: describeStaffTalent(talent.talent_code, member.level),
+                specialty,
+                specialtyLabel: TRAINER_SPECIALTY_LABELS[specialty],
+                efficiencyBonus: member.level * 4,
+              },
+            ];
+          },
+        ),
         assignedRiderCount: trainerAssignmentCountByContractId.get(contract.id) ?? 0,
         riderCapacity: getTrainerRiderCapacity(member.level),
       } satisfies TeamTrainer,

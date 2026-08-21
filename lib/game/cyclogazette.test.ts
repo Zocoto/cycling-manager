@@ -4,6 +4,7 @@ import {
   formatCyclogazetteStageLabel,
   getParisDateKey,
   getParisHour,
+  isFrenchGrandTourGazetteDay,
   isItalianGrandTourGazetteDay,
   repairCyclogazetteText,
   repairCyclogazetteValue,
@@ -33,6 +34,22 @@ describe("édition rose du Grand Tour italien", () => {
     expect(isItalianGrandTourGazetteDay(1)).toBe(false);
     expect(isItalianGrandTourGazetteDay(8)).toBe(false);
     expect(isItalianGrandTourGazetteDay(28)).toBe(false);
+  });
+});
+
+describe("édition spéciale du Grand Tour français", () => {
+  it("active le thème de J9 à J15 inclus à chaque saison", () => {
+    expect(isFrenchGrandTourGazetteDay(9)).toBe(true);
+    expect(isFrenchGrandTourGazetteDay(10)).toBe(true);
+    expect(isFrenchGrandTourGazetteDay(12)).toBe(true);
+    expect(isFrenchGrandTourGazetteDay(15)).toBe(true);
+  });
+
+  it("conserve les autres thèmes avant le Tour et à partir de J16", () => {
+    expect(isFrenchGrandTourGazetteDay(8)).toBe(false);
+    expect(isFrenchGrandTourGazetteDay(16)).toBe(false);
+    expect(isFrenchGrandTourGazetteDay(28)).toBe(false);
+    expect(isFrenchGrandTourGazetteDay(10.5)).toBe(false);
   });
 });
 

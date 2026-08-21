@@ -25,6 +25,7 @@ import {
   getChangedTrainingPlanIds,
   type TrainingPlanDraft,
 } from "@/lib/game/training-plan-drafts";
+import { STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE } from "@/lib/game/staff-talents";
 import type { TeamTrainer } from "@/services/team-training";
 
 type TrainingPlanPatch = Partial<Omit<TrainingPlanDraft, "riderId">>;
@@ -206,6 +207,7 @@ export function RiderTrainingPlanFields({
   const nationalityBonus =
     selectedTrainer?.countryCode.toUpperCase() === riderCountryCode.toUpperCase();
   const intensityLabelId = `training-intensity-${riderId}`;
+  const trainerSelectId = `training-trainer-${riderId}`;
 
   function updateIntensity(value: number) {
     if (!Number.isFinite(value)) return;
@@ -296,15 +298,19 @@ export function RiderTrainingPlanFields({
         </select>
       </label>
 
-      <label
+      <div
         data-tutorial-id={
           tutorialTargetPrefix ? `${tutorialTargetPrefix}-trainer` : undefined
         }
       >
-        <span className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+        <label
+          htmlFor={trainerSelectId}
+          className="text-[10px] font-black uppercase tracking-[0.13em] text-[#60756E]"
+        >
           Entraîneur assigné
-        </span>
+        </label>
         <select
+          id={trainerSelectId}
           name={`training-trainer-${riderId}`}
           value={trainerContractId ?? ""}
           onChange={(event) =>
@@ -320,6 +326,12 @@ export function RiderTrainingPlanFields({
               editor.trainerAssignmentCounts[trainer.contractId] ?? 0;
             const isCurrentTrainer = trainer.contractId === trainerContractId;
             const isAtCapacity = assignedRiderCount >= trainer.riderCapacity;
+            const additionalTalents = trainer.talents
+              .map(
+                (talent) =>
+                  `${talent.specialtyLabel} +${talent.efficiencyBonus}%`,
+              )
+              .join(", ");
 
             return (
               <option
@@ -328,36 +340,72 @@ export function RiderTrainingPlanFields({
                 disabled={isAtCapacity && !isCurrentTrainer}
               >
                 {trainer.firstName} {trainer.lastName} · {trainer.countryCode} · N
-                {trainer.level} · {trainer.specialtyLabel} · {assignedRiderCount}/
-                {trainer.riderCapacity}
+                {trainer.level} · Base {trainer.specialtyLabel} +
+                {trainer.efficiencyBonus}%
+                {additionalTalents
+                  ? ` · Lignes ${additionalTalents}`
+                  : " · Sans ligne supplémentaire"}
+                {` · ${assignedRiderCount}/${trainer.riderCapacity}`}
                 {isAtCapacity ? " · Complet" : ""}
               </option>
             );
           })}
         </select>
         {selectedTrainer ? (
-          <span
-            className={`mt-2 block text-[10px] font-black ${
-              (editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0) >=
-              selectedTrainer.riderCapacity
-                ? "text-[#B54242]"
-                : "text-[#60756E]"
-            }`}
-          >
-            {editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0}/
-            {selectedTrainer.riderCapacity} coureurs suivis
-            {(editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0) >=
-            selectedTrainer.riderCapacity
-              ? " · quota atteint"
-              : ""}
+          <span className="mt-2 block rounded-xl border border-[#315B3E]/12 bg-[#F7FAF8] p-3">
+            <span className="block text-[9px] font-black uppercase tracking-[0.13em] text-[#60756E]">
+              Talents de l’entraîneur
+            </span>
+            <span className="mt-2 flex items-center justify-between gap-3 text-[11px] font-black text-[#183F37]">
+              <span>Talent de base · {selectedTrainer.specialtyLabel}</span>
+              <span className="shrink-0 text-[#176951]">
+                +{selectedTrainer.efficiencyBonus}%
+              </span>
+            </span>
+            {selectedTrainer.talents.length > 0 ? (
+              <span className="mt-2 block border-t border-[#315B3E]/10 pt-2">
+                {selectedTrainer.talents.map((talent) => (
+                  <span
+                    key={`${selectedTrainer.contractId}-${talent.slot}`}
+                    className="mt-1 flex items-center justify-between gap-3 text-[11px] font-black text-[#183F37] first:mt-0"
+                  >
+                    <span>
+                      Ligne {talent.slot} · {talent.specialtyLabel}
+                    </span>
+                    <span className="shrink-0 text-[#176951]">
+                      +{talent.efficiencyBonus}%
+                    </span>
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span className="mt-2 block border-t border-[#315B3E]/10 pt-2 text-[10px] font-bold text-[#60756E]">
+                Aucune ligne supplémentaire
+              </span>
+            )}
+            <span
+              className={`mt-2 block border-t border-[#315B3E]/10 pt-2 text-[10px] font-black ${
+                (editor.trainerAssignmentCounts[selectedTrainer.contractId] ??
+                  0) >= selectedTrainer.riderCapacity
+                  ? "text-[#B54242]"
+                  : "text-[#60756E]"
+              }`}
+            >
+              {editor.trainerAssignmentCounts[selectedTrainer.contractId] ?? 0}/
+              {selectedTrainer.riderCapacity} coureurs suivis
+              {(editor.trainerAssignmentCounts[selectedTrainer.contractId] ??
+                0) >= selectedTrainer.riderCapacity
+                ? " · quota atteint"
+                : ""}
+            </span>
           </span>
         ) : null}
         {nationalityBonus ? (
           <span className="mt-2 block text-[10px] font-black text-[#8A6B16]">
-            Affinité nationale active · +5%
+            {`Affinité nationale active · +${STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE} %`}
           </span>
         ) : null}
-      </label>
+      </div>
     </div>
   );
 }

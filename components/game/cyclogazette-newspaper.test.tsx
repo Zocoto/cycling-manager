@@ -226,6 +226,60 @@ describe("CyclogazetteNewspaper", () => {
     expect(pizzaMarkup).toContain("Pizza a Ruota");
   });
 
+  it("adopte la maquette d’un quotidien sportif français pendant le Tour", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 12, dayNumber: 9 }}
+      />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="tour"');
+    expect(markup).toContain('data-gazette-masthead="tour"');
+    expect(markup).toContain("LA CYCLOGAZETTE");
+    expect(markup).toContain("Édition spéciale");
+    expect(markup).toContain("Le quotidien du Tour");
+    expect(markup).toContain("--gazette-paper:#F5F4EF");
+    expect(markup).toContain("--gazette-accent:#E30613");
+    expect(markup).toContain('data-gazette-tricolore="france"');
+    expect(markup).toContain('data-gazette-tour-rubriques="true"');
+    expect(markup).toContain("Maillot jaune");
+    expect(markup).toContain('data-gazette-section-title="sports-daily"');
+    expect(markup).toContain('data-gazette-french-chronicle="true"');
+    expect(markup).toContain("La réclame du Tour");
+    expect(markup).toContain("Baguette Braquet");
+    expect(markup).toContain("Une baguette se glisse dans l’échappée");
+    expect(markup).toContain("Le béret déclaré plus aérodynamique qu’un casque");
+    expect(markup).toContain(
+      "Trois croissants attribués au classement de la montagne",
+    );
+  });
+
+  it("fait tourner les histoires de chocolatine, choucroute et cassoulet", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 13, dayNumber: 15 }}
+      />,
+    );
+
+    expect(markup).toContain("Croissant de l’Échappée");
+    expect(markup).toContain(
+      "Pain au chocolat ou chocolatine : le peloton coupé en deux",
+    );
+    expect(markup).toContain("La choucroute remplace le gel énergétique");
+    expect(markup).toContain("Le cassoulet provoque un vent de côté");
+  });
+
+  it("retrouve la maquette classique après le Tour français", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 16 }} />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="classic"');
+    expect(markup).not.toContain('data-gazette-french-chronicle="true"');
+    expect(markup).not.toContain("La réclame du Tour");
+    expect(markup).toContain("--gazette-paper:#F4EBD2");
+  });
+
   it("reprend La Cyclogazette et son papier classique dès J8", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 8 }} />,

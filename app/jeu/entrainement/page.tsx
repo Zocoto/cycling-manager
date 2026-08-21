@@ -9,6 +9,7 @@ import { RaceReconnaissancePlanner } from "@/components/game/race-reconnaissance
 import { RiderPreparationCenter } from "@/components/game/rider-preparation-center";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TrainingReportPopover } from "@/components/game/training-report-popover";
+import { TrainerOverviewCard } from "@/components/game/trainer-overview-card";
 import { TeamProgressionModal } from "@/components/game/team-progression-modal";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -282,78 +283,10 @@ export default async function TrainingPage({
               {overview.trainers.length > 0 ? (
                 <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {overview.trainers.map((trainer) => (
-                    <article
+                    <TrainerOverviewCard
                       key={trainer.contractId}
-                      className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-5"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-black text-[#183F37]">
-                            {trainer.firstName} {trainer.lastName}
-                          </p>
-                          <p className="mt-1 text-xs font-bold text-[#60756E]">
-                            <span
-                              className={`fi fi-${trainer.countryCode.toLowerCase()} mr-2 rounded-sm`}
-                              role="img"
-                              aria-label={`Drapeau : ${trainer.countryName}`}
-                            />
-                            {trainer.countryName} · {trainer.specialtyLabel}
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-[#FFF2C7] px-3 py-1 text-xs font-black text-[#7A5B09]">
-                          N{trainer.level}
-                        </span>
-                      </div>
-                      <p className="mt-4 text-sm font-bold text-[#176951]">
-                        +{trainer.efficiencyBonus}% d’efficacité sur les
-                        statistiques de sa spécialité
-                      </p>
-                      <div className="mt-4 border-t border-[#315B3E]/10 pt-3">
-                        <div className="flex items-center justify-between gap-3 text-xs font-black">
-                          <span className="text-[#60756E]">
-                            Coureurs suivis
-                          </span>
-                          <span
-                            className={
-                              trainer.assignedRiderCount >=
-                              trainer.riderCapacity
-                                ? "text-[#B54242]"
-                                : "text-[#176951]"
-                            }
-                          >
-                            {trainer.assignedRiderCount}/{trainer.riderCapacity}
-                          </span>
-                        </div>
-                        <div
-                          className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#DCE8E3]"
-                          role="progressbar"
-                          aria-label={`Quota de ${trainer.firstName} ${trainer.lastName}`}
-                          aria-valuemin={0}
-                          aria-valuemax={trainer.riderCapacity}
-                          aria-valuenow={Math.min(
-                            trainer.assignedRiderCount,
-                            trainer.riderCapacity,
-                          )}
-                        >
-                          <span
-                            className={`block h-full rounded-full ${
-                              trainer.assignedRiderCount >=
-                              trainer.riderCapacity
-                                ? "bg-[#D84B4B]"
-                                : "bg-[#42B99A]"
-                            }`}
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                (trainer.assignedRiderCount /
-                                  trainer.riderCapacity) *
-                                  100,
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </article>
+                      trainer={trainer}
+                    />
                   ))}
                 </div>
               ) : (

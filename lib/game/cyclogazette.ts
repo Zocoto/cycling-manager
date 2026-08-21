@@ -94,12 +94,22 @@ export type CyclogazetteArchiveSeason = {
 
 const ITALIAN_GRAND_TOUR_GAZETTE_START_DAY = 2;
 const ITALIAN_GRAND_TOUR_GAZETTE_END_DAY = 7;
+const FRENCH_GRAND_TOUR_GAZETTE_START_DAY = 9;
+const FRENCH_GRAND_TOUR_GAZETTE_END_DAY = 15;
 
 export function isItalianGrandTourGazetteDay(dayNumber: number) {
   return (
     Number.isInteger(dayNumber) &&
     dayNumber >= ITALIAN_GRAND_TOUR_GAZETTE_START_DAY &&
     dayNumber <= ITALIAN_GRAND_TOUR_GAZETTE_END_DAY
+  );
+}
+
+export function isFrenchGrandTourGazetteDay(dayNumber: number) {
+  return (
+    Number.isInteger(dayNumber) &&
+    dayNumber >= FRENCH_GRAND_TOUR_GAZETTE_START_DAY &&
+    dayNumber <= FRENCH_GRAND_TOUR_GAZETTE_END_DAY
   );
 }
 

@@ -9,7 +9,10 @@ import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { CyclogazetteCommunityPanel } from "@/components/game/cyclogazette-community";
-import { isItalianGrandTourGazetteDay } from "@/lib/game/cyclogazette";
+import {
+  isFrenchGrandTourGazetteDay,
+  isItalianGrandTourGazetteDay,
+} from "@/lib/game/cyclogazette";
 import type {
   CyclogazetteCommunity,
   CyclogazetteEdition,
@@ -45,6 +48,18 @@ type ItalianGazettaIncident = {
   copy: string;
 };
 
+type FrenchTourAdvertisement = {
+  headline: string;
+  copy: string;
+};
+
+type FrenchTourBrief = {
+  title: string;
+  copy: string;
+};
+
+type CyclogazetteTheme = "classic" | "giro" | "tour";
+
 const ITALIAN_GAZETTA_INCIDENTS: readonly ItalianGazettaIncident[] = [
   {
     title: "Le chat Coppi neutralise le peloton",
@@ -79,6 +94,42 @@ const ITALIAN_GAZETTA_INCIDENTS_EN: readonly ItalianGazettaIncident[] = [
   { title: "The SD bus overtaken by a Vespa", copy: "The Vespa carried twelve espressos through a hairpin. Commissaires now demand a motor check on the coffee machine." },
   { title: "A sprinter files a complaint against the Leaning Tower", copy: "He considers the finish line ‘clearly not vertical’. Complaint rejected: the tower keeps its photo-finish victory." },
   { title: "The general classification overturned by a tiramisù", copy: "A second helping was allegedly counted as a time bonus. The commissaires ate the evidence: case closed, plates clean." },
+];
+
+const FRENCH_TOUR_BRIEFS: readonly FrenchTourBrief[] = [
+  {
+    title: "Une baguette se glisse dans l’échappée",
+    copy: "Coincée dans la poche d’un baroudeur, elle a pris le vent à vingt kilomètres du but. Le jury l’a classée première Française et meilleure croustillante.",
+  },
+  {
+    title: "Le béret déclaré plus aérodynamique qu’un casque",
+    copy: "Un directeur sportif l’avait posé de travers pour gagner trois watts. Les commissaires l’ont confisqué, puis porté pour la photo officielle.",
+  },
+  {
+    title: "Trois croissants attribués au classement de la montagne",
+    copy: "Le boulanger du col avait mal lu le règlement à pois. Deux croissants au beurre ont été validés, le troisième attend le contrôle antidopage.",
+  },
+  {
+    title: "Pain au chocolat ou chocolatine : le peloton coupé en deux",
+    copy: "Le débat a créé une bordure dès la sortie du village. Le Sud-Ouest refuse de rouler et réclame désormais dix secondes de bonification linguistique.",
+  },
+  {
+    title: "La choucroute remplace le gel énergétique",
+    copy: "Servie dans la musette, elle promettait une récupération express. Le coureur a surtout récupéré une fourchette et demandé une deuxième assiette.",
+  },
+  {
+    title: "Le cassoulet provoque un vent de côté",
+    copy: "La météo n’avait rien annoncé, mais le peloton s’est mis en éventail après le ravitaillement. Les données aérodynamiques restent classées secret-défense.",
+  },
+];
+
+const FRENCH_TOUR_BRIEFS_EN: readonly FrenchTourBrief[] = [
+  { title: "A baguette joins the breakaway", copy: "Wedged into a rider’s pocket, it caught the wind twenty kilometres from the finish. The jury named it best French rider and crispest attacker." },
+  { title: "The beret declared more aerodynamic than a helmet", copy: "A sports director had tilted it sideways to save three watts. Commissaires confiscated it, then wore it for the official photograph." },
+  { title: "Three croissants awarded in the mountains classification", copy: "The baker at the summit had misread the polka-dot rules. Two butter croissants were approved; the third awaits doping control." },
+  { title: "Pain au chocolat or chocolatine: the peloton splits in two", copy: "The argument created a crosswind split just outside the village. The south-west group refuses to work and demands a ten-second language bonus." },
+  { title: "Choucroute replaces the energy gel", copy: "Served in a musette, it promised express recovery. The rider mostly recovered a fork and asked for a second helping." },
+  { title: "Cassoulet creates a crosswind", copy: "The forecast said nothing, but the peloton formed echelons after the feed zone. The aerodynamic data remains a state secret." },
 ];
 
 export function CyclogazetteNewspaper({
@@ -120,6 +171,19 @@ export function CyclogazetteNewspaper({
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition.dayNumber,
   );
+  const isFrenchGrandTourEdition = isFrenchGrandTourGazetteDay(
+    edition.dayNumber,
+  );
+  const gazetteTheme: CyclogazetteTheme = isItalianGrandTourEdition
+    ? "giro"
+    : isFrenchGrandTourEdition
+      ? "tour"
+      : "classic";
+  const newspaperName = isItalianGrandTourEdition
+    ? "Cyclo Gazetta"
+    : isEnglish
+      ? "The Cyclogazette"
+      : "La Cyclogazette";
   const italianAdvertisement = getItalianGazettaAdvertisement(
     edition.issueNumber,
     isEnglish,
@@ -128,34 +192,18 @@ export function CyclogazetteNewspaper({
     edition.issueNumber,
     isEnglish,
   );
-  const newspaperStyle = {
-    "--gazette-paper": isItalianGrandTourEdition ? "#F2B8C6" : "#F4EBD2",
-    "--gazette-feature": isItalianGrandTourEdition
-      ? "rgba(255, 226, 233, 0.78)"
-      : "rgba(234, 221, 190, 0.55)",
-    "--gazette-card": isItalianGrandTourEdition
-      ? "rgba(248, 208, 218, 0.8)"
-      : "rgba(239, 228, 200, 0.72)",
-    "--gazette-card-soft": isItalianGrandTourEdition
-      ? "rgba(248, 208, 218, 0.64)"
-      : "rgba(239, 228, 200, 0.6)",
-    "--gazette-aside": isItalianGrandTourEdition
-      ? "rgba(235, 157, 177, 0.36)"
-      : "rgba(231, 215, 182, 0.55)",
-    "--gazette-details": isItalianGrandTourEdition
-      ? "rgba(251, 217, 225, 0.7)"
-      : "rgba(233, 221, 188, 0.5)",
-    "--gazette-input": isItalianGrandTourEdition ? "#FCE7EC" : "#F8F0DB",
-    backgroundImage: isItalianGrandTourEdition
-      ? "radial-gradient(circle at 18% 10%,rgba(255,255,255,.72),transparent 28%),repeating-linear-gradient(0deg,rgba(123,24,55,.028) 0,rgba(123,24,55,.028) 1px,transparent 1px,transparent 4px)"
-      : "radial-gradient(circle at 18% 10%,rgba(255,255,255,.68),transparent 28%),repeating-linear-gradient(0deg,rgba(80,61,31,.022) 0,rgba(80,61,31,.022) 1px,transparent 1px,transparent 4px)",
-  } as CSSProperties;
+  const frenchAdvertisement = getFrenchTourAdvertisement(
+    edition.issueNumber,
+    isEnglish,
+  );
+  const frenchBriefs = getFrenchTourBriefs(edition.issueNumber, isEnglish);
+  const newspaperStyle = getCyclogazetteThemeStyle(gazetteTheme);
 
   return (
     <article
-      aria-label={`${isItalianGrandTourEdition ? "Cyclo Gazetta" : isEnglish ? "The Cyclogazette" : "La Cyclogazette"} ${isEnglish ? "issue" : "numéro"} ${edition.issueNumber}`}
-      data-gazette-theme={isItalianGrandTourEdition ? "giro" : "classic"}
-      className="relative mx-auto max-w-[1380px] overflow-hidden border border-[#9A8A65]/40 bg-[var(--gazette-paper)] text-[#241F18] shadow-[0_35px_100px_rgba(45,34,20,0.25)]"
+      aria-label={`${newspaperName} ${isEnglish ? "issue" : "numéro"} ${edition.issueNumber}`}
+      data-gazette-theme={gazetteTheme}
+      className="relative mx-auto max-w-[1380px] overflow-hidden border border-[var(--gazette-rule)]/40 bg-[var(--gazette-paper)] text-[var(--gazette-ink)] shadow-[0_35px_100px_rgba(20,20,20,0.25)]"
       style={newspaperStyle}
     >
       {isItalianGrandTourEdition ? (
@@ -168,16 +216,30 @@ export function CyclogazetteNewspaper({
           <span className="bg-[#F7F7F2]" />
           <span className="bg-[#CE2B37]" />
         </div>
+      ) : isFrenchGrandTourEdition ? (
+        <div
+          aria-hidden="true"
+          data-gazette-tricolore="france"
+          className="grid h-2 grid-cols-3"
+        >
+          <span className="bg-[#163B73]" />
+          <span className="bg-[#F7F7F4]" />
+          <span className="bg-[#E30613]" />
+        </div>
       ) : null}
       <div
         aria-hidden="true"
-        className="absolute inset-y-0 left-1/2 hidden w-px bg-[#806C45]/10 lg:block"
+        className="absolute inset-y-0 left-1/2 hidden w-px bg-[var(--gazette-rule)]/10 lg:block"
       />
-      <header className="border-b-4 border-double border-[#241F18] px-5 pb-4 pt-5 sm:px-8 sm:pt-7">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[#241F18]/45 py-2 text-[9px] font-black uppercase tracking-[0.2em] sm:text-[10px]">
+      <header className="border-b-4 border-double border-[var(--gazette-ink)] px-5 pb-4 pt-5 sm:px-8 sm:pt-7">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[var(--gazette-ink)]/45 py-2 text-[9px] font-black uppercase tracking-[0.2em] sm:text-[10px]">
           <span>
             {isItalianGrandTourEdition
               ? "Edizione rosa · Il giornale del Giro"
+              : isFrenchGrandTourEdition
+                ? isEnglish
+                  ? "Special edition · The Tour daily"
+                  : "Édition spéciale · Le quotidien du Tour"
               : isEnglish
                 ? "The peloton's daily newspaper"
                 : "Le journal quotidien du peloton"}
@@ -188,28 +250,65 @@ export function CyclogazetteNewspaper({
           <span>{formatIssueDate(edition.issueDate, locale)} · {isEnglish ? "8 pm edition" : "Édition de 20 h"}</span>
         </div>
         <div className="grid items-end gap-3 py-4 sm:grid-cols-[1fr_auto_1fr]">
-          <p className="hidden text-[10px] font-bold uppercase tracking-[0.16em] text-[#695D43] sm:block">
-            {isEnglish ? "Racing · Transfers · Behind the scenes" : "Courses · Mercato · Coulisses"}
+          <p className="hidden text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gazette-muted)] sm:block">
+            {isFrenchGrandTourEdition
+              ? isEnglish
+                ? "The Tour · Exclusive · Live"
+                : "Le Tour · Exclusif · Direct"
+              : isEnglish
+                ? "Racing · Transfers · Behind the scenes"
+                : "Courses · Mercato · Coulisses"}
           </p>
-          <h1 className="text-center font-serif text-5xl font-black leading-none tracking-[-0.055em] sm:text-7xl lg:text-8xl">
-            {isItalianGrandTourEdition ? "Cyclo Gazetta" : isEnglish ? "The Cyclogazette" : "La Cyclogazette"}
+          <h1
+            data-gazette-masthead={isFrenchGrandTourEdition ? "tour" : undefined}
+            className={`text-center font-black leading-none ${
+              isFrenchGrandTourEdition
+                ? "-skew-x-3 text-3xl uppercase italic tracking-[-0.075em] text-[var(--gazette-accent)] sm:-skew-x-6 sm:text-7xl lg:text-8xl"
+                : "font-serif text-5xl tracking-[-0.055em] sm:text-7xl lg:text-8xl"
+            }`}
+          >
+            {isFrenchGrandTourEdition
+              ? newspaperName.toUpperCase()
+              : newspaperName}
           </h1>
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#A12742] sm:text-right">
+          <p className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)] sm:text-right">
             {isItalianGrandTourEdition
               ? `Edizione rosa · N° ${edition.issueNumber}`
+              : isFrenchGrandTourEdition
+                ? `${isEnglish ? "Tour issue" : "Numéro du Tour"} · N° ${edition.issueNumber}`
               : `N° ${edition.issueNumber}`}
           </p>
         </div>
-        <p className="border-t border-[#241F18]/40 pt-3 text-center font-serif text-lg font-black italic sm:text-2xl">
+        <p className="border-t border-[var(--gazette-ink)]/40 pt-3 text-center font-serif text-lg font-black italic sm:text-2xl">
           {localizeCyclogazetteText(edition.subtitle, locale)}
         </p>
       </header>
 
-      <main className="border-b border-[#806C45]/35 p-5 sm:p-8">
+      {isFrenchGrandTourEdition ? (
+        <div
+          data-gazette-tour-rubriques="true"
+          className="grid grid-cols-2 bg-[var(--gazette-accent)] text-center text-[9px] font-black uppercase tracking-[0.16em] text-white sm:grid-cols-4 sm:text-[10px]"
+        >
+          {(isEnglish
+            ? ["The stage", "Yellow jersey", "The French", "Behind the scenes"]
+            : ["L’étape", "Maillot jaune", "Les Français", "Les coulisses"]
+          ).map((rubrique) => (
+            <span
+              key={rubrique}
+              className="border-r border-white/35 px-3 py-2 last:border-r-0"
+            >
+              {rubrique}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <main className="border-b border-[var(--gazette-rule)]/35 p-5 sm:p-8">
         <section>
           <SectionTitle
             eyebrow={isEnglish ? "Front page" : "La Une"}
             title={isEnglish ? "Today's stage winners" : "Les vainqueurs des étapes"}
+            sportsDaily={isFrenchGrandTourEdition}
           />
           <div className="mt-4">
             {frontPageLead ? (
@@ -230,10 +329,11 @@ export function CyclogazetteNewspaper({
         </section>
 
         {tourSummaries.length > 0 ? (
-          <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
+          <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
             <SectionTitle
               eyebrow={isEnglish ? "Today's jerseys" : "Les maillots du jour"}
               title={isEnglish ? "Stage-race round-up" : "Le point sur les tours"}
+              sportsDaily={isFrenchGrandTourEdition}
             />
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {tourSummaries.map((tour) => (
@@ -247,12 +347,13 @@ export function CyclogazetteNewspaper({
         ) : null}
 
         {roadStories.length > 0 ? (
-          <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
+          <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
             <SectionTitle
               eyebrow={isEnglish ? "Road warriors" : "Les forçats de la route"}
               title={isEnglish ? "The riders who made the race" : "Ceux qui ont animé la course"}
+              sportsDaily={isFrenchGrandTourEdition}
             />
-            <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[#695D43]">
+            <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
               {isEnglish
                 ? "Breakaway riders, chasers, caught-out contenders and tireless domestiques: our newsroom tells the stories behind the result."
                 : "Échappés, chasseurs, coureurs piégés et équipiers infatigables : la rédaction raconte celles et ceux qui ont fait la course au-delà du résultat brut."}
@@ -270,10 +371,11 @@ export function CyclogazetteNewspaper({
           </section>
         ) : null}
 
-        <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
+        <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
           <SectionTitle
             eyebrow={isEnglish ? "After the finish" : "Après l’arrivée"}
             title={isEnglish ? "The microphone goes to the SDs" : "Le micro aux DS"}
+            sportsDaily={isFrenchGrandTourEdition}
           />
           {reactions.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-stretch gap-4">
@@ -289,7 +391,7 @@ export function CyclogazetteNewspaper({
               ))}
             </div>
           ) : (
-            <p className="mt-4 border-y border-[#806C45]/35 py-5 font-serif text-sm italic text-[#695D43]">
+            <p className="mt-4 border-y border-[var(--gazette-rule)]/35 py-5 font-serif text-sm italic text-[var(--gazette-muted)]">
               {isEnglish
                 ? "No statement reached the newsroom before the deadline."
                 : "Aucune déclaration n’est parvenue à la rédaction avant le bouclage."}
@@ -298,27 +400,28 @@ export function CyclogazetteNewspaper({
         </section>
 
         {mediaArticles.length > 0 ? (
-          <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
+          <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
             <SectionTitle
               eyebrow={isEnglish ? "From the peloton" : "Les tribunes du peloton"}
               title={isEnglish ? "The teams have their say" : "La parole aux équipes"}
+              sportsDaily={isFrenchGrandTourEdition}
             />
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {mediaArticles.map((article) => (
                 <article
                   key={article.id}
-                  className="border border-[#806C45]/45 bg-[var(--gazette-card)] p-5"
+                  className="border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card)] p-5"
                 >
-                  <p className="text-[9px] font-black uppercase tracking-[.18em] text-[#A12742]">
+                  <p className="text-[9px] font-black uppercase tracking-[.18em] text-[var(--gazette-accent)]">
                     {isEnglish ? "Guest column" : "Carte blanche"} · {article.teamName}
                   </p>
                   <h3 className="mt-2 font-serif text-2xl font-black leading-6">
                     {article.title}
                   </h3>
-                  <p className="mt-4 whitespace-pre-line font-serif text-sm font-medium leading-6 text-[#493F2E]">
+                  <p className="mt-4 whitespace-pre-line font-serif text-sm font-medium leading-6 text-[var(--gazette-body)]">
                     {article.body}
                   </p>
-                  <p className="mt-4 border-t border-[#806C45]/35 pt-3 text-[9px] font-black uppercase tracking-[.14em] text-[#695D43]">
+                  <p className="mt-4 border-t border-[var(--gazette-rule)]/35 pt-3 text-[9px] font-black uppercase tracking-[.14em] text-[var(--gazette-muted)]">
                     {isEnglish ? "Column submitted by the SD" : "Tribune proposée par le DS"} · Media Center {isEnglish ? "L" : "N"}
                     {article.buildingLevel}
                   </p>
@@ -328,10 +431,11 @@ export function CyclogazetteNewspaper({
           </section>
         ) : null}
 
-        <section className="mt-8 border-t-4 border-double border-[#241F18] pt-5">
+        <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
           <SectionTitle
             eyebrow={isEnglish ? "News in brief" : "Télégrammes"}
             title={isEnglish ? "Transfer notebook" : "Le carnet du mercato"}
+            sportsDaily={isFrenchGrandTourEdition}
           />
           {mercatoStories.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-stretch gap-4">
@@ -340,7 +444,7 @@ export function CyclogazetteNewspaper({
               ))}
             </div>
           ) : (
-            <p className="mt-4 border-y border-[#806C45]/35 py-5 font-serif text-sm italic text-[#695D43]">
+            <p className="mt-4 border-y border-[var(--gazette-rule)]/35 py-5 font-serif text-sm italic text-[var(--gazette-muted)]">
               {isEnglish ? "The market remained quiet today." : "Le marché est resté calme aujourd’hui."}
             </p>
           )}
@@ -349,12 +453,19 @@ export function CyclogazetteNewspaper({
         {isItalianGrandTourEdition ? (
           <ItalianGazettaChronicle incidents={italianIncidents} />
         ) : null}
+        {isFrenchGrandTourEdition ? (
+          <FrenchTourChronicle briefs={frenchBriefs} />
+        ) : null}
       </main>
 
-      <aside className="mx-5 border-y-2 border-dashed border-[#806C45]/60 bg-[var(--gazette-aside)] px-5 py-4 text-center sm:mx-8">
-        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-[#695D43]">
+      <aside className="mx-5 border-y-2 border-dashed border-[var(--gazette-rule)]/60 bg-[var(--gazette-aside)] px-5 py-4 text-center sm:mx-8">
+        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-[var(--gazette-muted)]">
           {isItalianGrandTourEdition
             ? "Pubblicità italiana"
+            : isFrenchGrandTourEdition
+              ? isEnglish
+                ? "The Tour advertisement"
+                : "La réclame du Tour"
             : isEnglish
               ? "Partner message"
               : "Annonce partenaire"}
@@ -362,6 +473,8 @@ export function CyclogazetteNewspaper({
         <p className="mt-1 font-serif text-lg font-black">
           {isItalianGrandTourEdition
             ? italianAdvertisement.headline
+            : isFrenchGrandTourEdition
+              ? frenchAdvertisement.headline
             : mediaArticles.find((article) => article.sponsorName)?.sponsorName
               ? isEnglish
                 ? `${mediaArticles.find((article) => article.sponsorName)?.sponsorName} supports ${mediaArticles.find((article) => article.sponsorName)?.teamName}'s project.`
@@ -374,9 +487,11 @@ export function CyclogazetteNewspaper({
                   ? "Roue Libre Workshop · one free service with every new beginning."
                   : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}
         </p>
-        {isItalianGrandTourEdition ? (
-          <p className="mx-auto mt-1 max-w-3xl font-serif text-sm italic text-[#695D43]">
-            {italianAdvertisement.copy}
+        {isItalianGrandTourEdition || isFrenchGrandTourEdition ? (
+          <p className="mx-auto mt-1 max-w-3xl font-serif text-sm italic text-[var(--gazette-muted)]">
+            {isItalianGrandTourEdition
+              ? italianAdvertisement.copy
+              : frenchAdvertisement.copy}
           </p>
         ) : null}
       </aside>
@@ -387,9 +502,9 @@ export function CyclogazetteNewspaper({
         />
       ) : null}
 
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t-4 border-double border-[#241F18] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[#695D43] sm:px-8">
+      <footer className="flex flex-wrap items-center justify-between gap-2 border-t-4 border-double border-[var(--gazette-ink)] px-5 py-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--gazette-muted)] sm:px-8">
         <span>
-          {isItalianGrandTourEdition ? "Cyclo Gazetta" : isEnglish ? "The Cyclogazette" : "La Cyclogazette"} · {isEnglish ? "All the news from the world of Cyclo Stratège" : "Toute l’actualité du monde de Cyclo Stratège"}
+          {newspaperName} · {isEnglish ? "All the news from the world of Cyclo Stratège" : "Toute l’actualité du monde de Cyclo Stratège"}
         </span>
         <span>{isEnglish ? "Next edition tomorrow at 8 pm" : "Prochaine édition demain à 20 h"}</span>
       </footer>
@@ -407,13 +522,13 @@ function ItalianGazettaChronicle({
   return (
     <section
       data-gazetta-italian-chronicle="true"
-      className="mt-8 border-t-4 border-double border-[#241F18] pt-5"
+      className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5"
     >
       <SectionTitle
         eyebrow="Cronaca rosa"
         title={isEnglish ? "Transalpine news (almost verified)" : "Les faits divers transalpins (presque vérifiés)"}
       />
-      <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[#695D43]">
+      <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
         {isEnglish
           ? "Our correspondent Mario Pressé swears it is all true. He also swears he did not borrow the broom wagon to deliver pizzas."
           : "Notre correspondant Mario Pressé jure que tout est vrai. Il jure aussi ne pas avoir emprunté la voiture-balai pour livrer des pizzas."}
@@ -422,15 +537,15 @@ function ItalianGazettaChronicle({
         {incidents.map((incident, index) => (
           <article
             key={incident.title}
-            className="border border-[#806C45]/45 bg-[var(--gazette-card)] p-4"
+            className="border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card)] p-4"
           >
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#A12742]">
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[var(--gazette-accent)]">
               Ultimissima · {isEnglish ? "Brief" : "Brève"} n° {index + 1}
             </p>
             <h3 className="mt-2 font-serif text-xl font-black leading-5">
               {incident.title}
             </h3>
-            <p className="mt-3 font-serif text-sm leading-5 text-[#493F2E]">
+            <p className="mt-3 font-serif text-sm leading-5 text-[var(--gazette-body)]">
               {incident.copy}
             </p>
           </article>
@@ -472,22 +587,184 @@ function getItalianGazettaIncidents(issueNumber: number, isEnglish: boolean) {
     : incidents.slice(3, 6);
 }
 
+function FrenchTourChronicle({
+  briefs,
+}: {
+  briefs: readonly FrenchTourBrief[];
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  return (
+    <section
+      data-gazette-french-chronicle="true"
+      className="mt-8 border-t-4 border-[var(--gazette-accent)] pt-5"
+    >
+      <SectionTitle
+        eyebrow={isEnglish ? "Made in France" : "C’est la France"}
+        title={
+          isEnglish
+            ? "The Tour as if you were there (almost)"
+            : "Le Tour comme si vous y étiez (ou presque)"
+        }
+        sportsDaily
+      />
+      <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
+        {isEnglish
+          ? "Our special correspondent Jean-Paul Braquet checked every story over a coffee at the village bar. He even paid for the coffee."
+          : "Notre envoyé spécial Jean-Paul Braquet a vérifié chaque information autour d’un café au bar du village. Il a même payé le café."}
+      </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-12">
+        {briefs.map((brief, index) => (
+          <article
+            key={brief.title}
+            className={`border-t-4 bg-[var(--gazette-card)] p-4 ${
+              index === 0
+                ? "border-[var(--gazette-accent)] md:col-span-6"
+                : "border-[var(--gazette-secondary)] md:col-span-3"
+            }`}
+          >
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[var(--gazette-accent)]">
+              {isEnglish ? "Tour confidential" : "Tour confidentiel"} · {isEnglish ? "Brief" : "Brève"} n° {index + 1}
+            </p>
+            <h3
+              className={`${index === 0 ? "text-2xl" : "text-xl"} mt-2 font-serif font-black uppercase italic leading-none tracking-[-0.025em]`}
+            >
+              {brief.title}
+            </h3>
+            <p className="mt-3 font-serif text-sm leading-5 text-[var(--gazette-body)]">
+              {brief.copy}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getFrenchTourAdvertisement(
+  issueNumber: number,
+  isEnglish: boolean,
+): FrenchTourAdvertisement {
+  const rotation = Math.abs(Math.trunc(issueNumber)) % 3;
+  if (rotation === 0) {
+    return {
+      headline: isEnglish
+        ? "Baguette Braquet · The tradition that never cracks in the final climb"
+        : "Baguette Braquet · La tradition qui ne craque jamais dans le dernier col",
+      copy: isEnglish
+        ? "Baked at dawn, attacked at kilometre zero. Free crust with every polka-dot jersey."
+        : "Cuite à l’aube, attaquée au kilomètre zéro. Croûton offert avec chaque maillot à pois.",
+    };
+  }
+  if (rotation === 1) {
+    return {
+      headline: isEnglish
+        ? "Croissant de l’Échappée · Butter, panache and no headwind"
+        : "Croissant de l’Échappée · Du beurre, du panache et jamais vent de face",
+      copy: isEnglish
+        ? "Approved by the café counter and the broom wagon. Crumbs are not included in the UCI weight limit."
+        : "Homologué par le comptoir et la voiture-balai. Les miettes ne comptent pas dans la limite UCI.",
+    };
+  }
+  return {
+    headline: isEnglish
+      ? "Chocolate Roll Neutral Service · Pain au chocolat or chocolatine, everyone gets fed"
+      : "Dépannage Chocolaté · Pain au chocolat ou chocolatine, tout le monde est ravitaillé",
+    copy: isEnglish
+      ? "One name in the north, another in the south-west, the same sprint for the last one in the basket."
+      : "Un nom au nord, un autre dans le Sud-Ouest, mais le même sprint pour le dernier de la panière.",
+  };
+}
+
+function getFrenchTourBriefs(issueNumber: number, isEnglish: boolean) {
+  const briefs = isEnglish ? FRENCH_TOUR_BRIEFS_EN : FRENCH_TOUR_BRIEFS;
+  return Math.abs(Math.trunc(issueNumber)) % 2 === 0
+    ? briefs.slice(0, 3)
+    : briefs.slice(3, 6);
+}
+
+function getCyclogazetteThemeStyle(theme: CyclogazetteTheme) {
+  const editorialFont = "var(--font-geist-" + "s" + "ans)";
+  const newspaperFont = "Georgia,'Times New Roman',serif";
+
+  if (theme === "tour") {
+    return {
+      "--gazette-paper": "#F5F4EF",
+      "--gazette-feature": "rgba(255, 255, 255, 0.88)",
+      "--gazette-card": "rgba(236, 236, 232, 0.9)",
+      "--gazette-card-soft": "rgba(244, 244, 240, 0.88)",
+      "--gazette-aside": "rgba(226, 229, 235, 0.78)",
+      "--gazette-details": "rgba(245, 245, 242, 0.94)",
+      "--gazette-input": "#FFFFFF",
+      "--gazette-ink": "#111111",
+      "--gazette-body": "#292929",
+      "--gazette-muted": "#595959",
+      "--gazette-rule": "#242424",
+      "--gazette-accent": "#E30613",
+      "--gazette-secondary": "#163B73",
+      "--font-serif": editorialFont,
+      backgroundImage:
+        "radial-gradient(circle at 16% 8%,rgba(255,255,255,.94),transparent 30%),repeating-linear-gradient(0deg,rgba(20,20,20,.018) 0,rgba(20,20,20,.018) 1px,transparent 1px,transparent 3px)",
+    } as CSSProperties;
+  }
+
+  if (theme === "giro") {
+    return {
+      "--gazette-paper": "#F2B8C6",
+      "--gazette-feature": "rgba(255, 226, 233, 0.78)",
+      "--gazette-card": "rgba(248, 208, 218, 0.8)",
+      "--gazette-card-soft": "rgba(248, 208, 218, 0.64)",
+      "--gazette-aside": "rgba(235, 157, 177, 0.36)",
+      "--gazette-details": "rgba(251, 217, 225, 0.7)",
+      "--gazette-input": "#FCE7EC",
+      "--gazette-ink": "#241F18",
+      "--gazette-body": "#493F2E",
+      "--gazette-muted": "#695D43",
+      "--gazette-rule": "#806C45",
+      "--gazette-accent": "#A12742",
+      "--gazette-secondary": "#426D58",
+      "--font-serif": newspaperFont,
+      backgroundImage:
+        "radial-gradient(circle at 18% 10%,rgba(255,255,255,.72),transparent 28%),repeating-linear-gradient(0deg,rgba(123,24,55,.028) 0,rgba(123,24,55,.028) 1px,transparent 1px,transparent 4px)",
+    } as CSSProperties;
+  }
+
+  return {
+    "--gazette-paper": "#F4EBD2",
+    "--gazette-feature": "rgba(234, 221, 190, 0.55)",
+    "--gazette-card": "rgba(239, 228, 200, 0.72)",
+    "--gazette-card-soft": "rgba(239, 228, 200, 0.6)",
+    "--gazette-aside": "rgba(231, 215, 182, 0.55)",
+    "--gazette-details": "rgba(233, 221, 188, 0.5)",
+    "--gazette-input": "#F8F0DB",
+    "--gazette-ink": "#241F18",
+    "--gazette-body": "#493F2E",
+    "--gazette-muted": "#695D43",
+    "--gazette-rule": "#806C45",
+    "--gazette-accent": "#A12742",
+    "--gazette-secondary": "#426D58",
+    "--font-serif": newspaperFont,
+    backgroundImage:
+      "radial-gradient(circle at 18% 10%,rgba(255,255,255,.68),transparent 28%),repeating-linear-gradient(0deg,rgba(80,61,31,.022) 0,rgba(80,61,31,.022) 1px,transparent 1px,transparent 4px)",
+  } as CSSProperties;
+}
+
 function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   return (
-    <section className="border-2 border-[#241F18] bg-[var(--gazette-card)] p-4">
-      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#A12742]">
+    <section className="border-2 border-[var(--gazette-ink)] bg-[var(--gazette-card)] p-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[var(--gazette-accent)]">
         {isEnglish ? "After" : "Après"} {tour.stageLabel}
       </p>
       <Link
         href={tour.href}
-        className="mt-1 block font-serif text-xl font-black hover:text-[#A12742]"
+        className="mt-1 block font-serif text-xl font-black hover:text-[var(--gazette-accent)]"
       >
         {tour.raceName}
       </Link>
       {tour.generalLeader ? (
-        <p className="mt-3 border-y border-[#806C45]/35 py-2 text-sm">
+        <p className="mt-3 border-y border-[var(--gazette-rule)]/35 py-2 text-sm">
           <span className="font-black">{isEnglish ? "Yellow jersey" : "Maillot jaune"} :</span>{" "}
           {tour.generalLeader}
         </p>
@@ -502,7 +779,7 @@ function TourClassificationCard({ tour }: { tour: CyclogazetteTourSummary }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-xs italic text-[#695D43]">
+        <p className="mt-3 text-xs italic text-[var(--gazette-muted)]">
           {isEnglish ? "The classifications are taking shape after this stage." : "Les classements se précisent après cette étape."}
         </p>
       )}
@@ -518,7 +795,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
   const team = localizedItem.visual?.team;
 
   return (
-    <section className="relative isolate overflow-hidden border border-[#806C45]/45 bg-[var(--gazette-feature)] px-4 py-5 sm:px-6 sm:py-6">
+    <section className="relative isolate overflow-hidden border border-[var(--gazette-rule)]/45 bg-[var(--gazette-feature)] px-4 py-5 sm:px-6 sm:py-6">
       {profile?.length ? (
         <div
           aria-hidden="true"
@@ -537,11 +814,11 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
         }}
       />
 
-      <p className="text-center text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">
+      <p className="text-center text-[10px] font-black uppercase tracking-[0.22em] text-[var(--gazette-accent)]">
         {isEnglish ? "Front-page winner" : "Vainqueur à la Une"}
       </p>
       <StoryLink item={localizedItem} className="group block">
-        <h2 className="mx-auto mt-2 max-w-5xl text-center font-serif text-4xl font-black leading-[0.95] tracking-[-0.035em] group-hover:text-[#A12742] sm:text-6xl">
+        <h2 className="mx-auto mt-2 max-w-5xl text-center font-serif text-4xl font-black leading-[0.95] tracking-[-0.035em] group-hover:text-[var(--gazette-accent)] sm:text-6xl">
           {localizedItem.title}
         </h2>
       </StoryLink>
@@ -550,7 +827,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
           <NewsPortrait item={localizedItem} large />
           {team ? <WinningTeamJersey team={team} /> : null}
         </div>
-        <div className="border-t border-[#241F18]/35 pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+        <div className="border-t border-[var(--gazette-ink)]/35 pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
           <p className="font-serif text-lg font-medium leading-7 first-letter:float-left first-letter:mr-2 first-letter:font-serif first-letter:text-6xl first-letter:font-black first-letter:leading-[0.75]">
             {localizedItem.detail}
           </p>
@@ -559,7 +836,7 @@ function LeadStory({ item }: { item: PublicGameNewsItem }) {
               {isEnglish ? "Winning jersey" : "Maillot vainqueur"} · {team.name}
             </p>
           ) : null}
-          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-[#695D43]">
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--gazette-muted)]">
             {formatNewsTime(localizedItem.happenedAt, locale)} · {isEnglish ? "By the newsroom" : "Par la rédaction"}
           </p>
         </div>
@@ -573,7 +850,7 @@ function WinnerCard({ item }: { item: PublicGameNewsItem }) {
   const isEnglish = locale === "en";
   const localizedItem = localizePublicGameNewsItem(item, locale);
   return (
-    <article className="group relative isolate min-h-44 overflow-hidden border border-[#806C45]/40 bg-[var(--gazette-feature)] p-4">
+    <article className="group relative isolate min-h-44 overflow-hidden border border-[var(--gazette-rule)]/40 bg-[var(--gazette-feature)] p-4">
       {localizedItem.visual?.raceProfile?.length ? (
         <div
           aria-hidden="true"
@@ -585,11 +862,11 @@ function WinnerCard({ item }: { item: PublicGameNewsItem }) {
       <div className="flex items-start gap-3">
         <NewsPortrait item={localizedItem} />
         <div className="min-w-0 flex-1">
-          <p className="text-[8px] font-black uppercase tracking-[0.17em] text-[#A12742]">
+          <p className="text-[8px] font-black uppercase tracking-[0.17em] text-[var(--gazette-accent)]">
             {isEnglish ? "Victory" : "Victoire"}
           </p>
           <StoryLink item={localizedItem}>
-            <h3 className="mt-1 font-serif text-xl font-black leading-5 group-hover:text-[#A12742]">
+            <h3 className="mt-1 font-serif text-xl font-black leading-5 group-hover:text-[var(--gazette-accent)]">
               {localizedItem.title}
             </h3>
           </StoryLink>
@@ -598,7 +875,7 @@ function WinnerCard({ item }: { item: PublicGameNewsItem }) {
           <WinningTeamJersey team={localizedItem.visual.team} compact />
         ) : null}
       </div>
-      <p className="mt-3 text-sm font-medium leading-5 text-[#493F2E]">
+      <p className="mt-3 text-sm font-medium leading-5 text-[var(--gazette-body)]">
         {localizedItem.detail}
       </p>
     </article>
@@ -726,14 +1003,14 @@ function InterviewReactionCard({
   }
 
   return (
-    <article className="min-w-0 flex-[1_1_360px] border-2 border-[#241F18] bg-[var(--gazette-card)] p-4">
-      <p className="text-[10px] font-bold italic leading-4 text-[#695D43]">
+    <article className="min-w-0 flex-[1_1_360px] border-2 border-[var(--gazette-ink)] bg-[var(--gazette-card)] p-4">
+      <p className="text-[10px] font-bold italic leading-4 text-[var(--gazette-muted)]">
         {reaction.question}
       </p>
       <blockquote className="relative mt-2">
         <span
           aria-hidden="true"
-          className="absolute -left-1 -top-2 font-serif text-5xl leading-none text-[#A12742]/25"
+          className="absolute -left-1 -top-2 font-serif text-5xl leading-none text-[var(--gazette-accent)]/25"
         >
           “
         </span>
@@ -761,17 +1038,17 @@ function InterviewReactionCard({
           <p className="text-xs font-black">{reaction.directorName}</p>
           <Link
             href={`/jeu/equipes/${reaction.teamId}`}
-            className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#A12742] hover:underline"
+            className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gazette-accent)] hover:underline"
           >
             {reaction.teamName}
           </Link>
-          <p className="text-[10px] text-[#695D43]">
+          <p className="text-[10px] text-[var(--gazette-muted)]">
             {isEnglish ? "after" : "après"} {reaction.stageName}
           </p>
         </div>
       </footer>
-      <details className="group mt-3 border border-[#806C45]/40 bg-[var(--gazette-details)]">
-        <summary className="cursor-pointer list-none px-3 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-[#A12742] marker:hidden">
+      <details className="group mt-3 border border-[var(--gazette-rule)]/40 bg-[var(--gazette-details)]">
+        <summary className="cursor-pointer list-none px-3 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-[var(--gazette-accent)] marker:hidden">
           <span className="flex items-center justify-between gap-2">
             {isEnglish ? "Full interview" : "Détail de l’interview"}
             <span
@@ -782,10 +1059,10 @@ function InterviewReactionCard({
             </span>
           </span>
         </summary>
-        <div className="space-y-4 border-t border-[#806C45]/35 px-3 py-3">
+        <div className="space-y-4 border-t border-[var(--gazette-rule)]/35 px-3 py-3">
           {reaction.answers.map((answer) => (
             <div key={`${reaction.interviewId}:${answer.questionId}`}>
-              <p className="text-[10px] font-bold italic leading-4 text-[#695D43]">
+              <p className="text-[10px] font-bold italic leading-4 text-[var(--gazette-muted)]">
                 {answer.question}
               </p>
               <p data-i18n-skip className="mt-1 font-serif text-sm font-semibold leading-5">
@@ -802,8 +1079,8 @@ function InterviewReactionCard({
             </div>
           ))}
           {reaction.closingNote ? (
-            <div className="border-t border-[#806C45]/35 pt-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#A12742]">
+            <div className="border-t border-[var(--gazette-rule)]/35 pt-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[var(--gazette-accent)]">
                 {isEnglish ? "The SD's final word" : "Le dernier mot du DS"}
               </p>
               <p data-i18n-skip className="mt-1 font-serif text-sm italic">
@@ -814,7 +1091,7 @@ function InterviewReactionCard({
         </div>
       </details>
       {reactionError ? (
-        <p className="mt-2 text-[10px] font-bold text-[#A12742]" role="alert">
+        <p className="mt-2 text-[10px] font-bold text-[var(--gazette-accent)]" role="alert">
           {reactionError}
         </p>
       ) : null}
@@ -847,7 +1124,7 @@ function InterviewAnswerReactionBar({
       data-interview-answer-reactions={questionId}
       className="mt-2 flex flex-wrap items-center gap-1.5"
     >
-      <span className="mr-1 text-[9px] font-black uppercase tracking-[0.1em] text-[#695D43]">
+      <span className="mr-1 text-[9px] font-black uppercase tracking-[0.1em] text-[var(--gazette-muted)]">
         {canReact
           ? isEnglish
             ? "Your impression"
@@ -875,11 +1152,11 @@ function InterviewAnswerReactionBar({
             title={label}
             className={`inline-flex min-h-8 items-center gap-1 rounded-full border px-2 py-1 text-sm transition ${
               summary?.reactedByViewer
-                ? "border-[#A12742] bg-[#A12742] text-white"
+                ? "border-[var(--gazette-accent)] bg-[var(--gazette-accent)] text-white"
                 : isNegative
                   ? "border-[#A12742]/45 bg-[#A12742]/5 text-[#6E1C2F] hover:border-[#A12742]"
-                  : "border-[#806C45]/45 bg-[var(--gazette-card-soft)] text-[#241F18] hover:border-[#A12742]"
-            } disabled:cursor-default disabled:hover:border-[#806C45]/45 disabled:opacity-80`}
+                  : "border-[var(--gazette-rule)]/45 bg-[var(--gazette-card-soft)] text-[var(--gazette-ink)] hover:border-[var(--gazette-accent)]"
+            } disabled:cursor-default disabled:hover:border-[var(--gazette-rule)]/45 disabled:opacity-80`}
           >
             <span aria-hidden="true">{definition.emoji}</span>
             {summary?.count ? (
@@ -909,7 +1186,7 @@ function NewsBrief({
     <article
       className={
         balancedCard
-          ? "min-w-0 flex-[1_1_290px] border border-[#806C45]/40 bg-[var(--gazette-card-soft)] p-4"
+          ? "min-w-0 flex-[1_1_290px] border border-[var(--gazette-rule)]/40 bg-[var(--gazette-card-soft)] p-4"
           : compact
             ? "py-4"
             : "mb-6 break-inside-avoid"
@@ -921,15 +1198,15 @@ function NewsBrief({
           {showRaceEvent ? <RaceEventLabel item={localizedItem} /> : null}
           <StoryLink item={localizedItem} className="group">
             <h3
-              className={`${compact ? "text-lg" : "text-xl"} font-serif font-black leading-5 group-hover:text-[#A12742]`}
+              className={`${compact ? "text-lg" : "text-xl"} font-serif font-black leading-5 group-hover:text-[var(--gazette-accent)]`}
             >
               {localizedItem.title}
             </h3>
           </StoryLink>
-          <p className="mt-2 text-sm font-medium leading-5 text-[#493F2E]">
+          <p className="mt-2 text-sm font-medium leading-5 text-[var(--gazette-body)]">
             {localizedItem.detail}
           </p>
-          <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#7A6B4B]">
+          <p className="mt-2 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--gazette-muted)]">
             {formatNewsTime(localizedItem.happenedAt, locale)}
           </p>
         </div>
@@ -956,7 +1233,9 @@ function RaceEventLabel({ item }: { item: PublicGameNewsItem }) {
   return (
     <p
       className={`mb-1 text-[8px] font-black uppercase tracking-[0.16em] ${
-        item.raceEventKind === "incident" ? "text-[#A12742]" : "text-[#426D58]"
+        item.raceEventKind === "incident"
+          ? "text-[var(--gazette-accent)]"
+          : "text-[var(--gazette-secondary)]"
       }`}
     >
       {label}
@@ -1008,18 +1287,38 @@ function NewsPortrait({
       seed={person.seed}
       jersey={item.visual?.team?.jersey}
       label={person.label}
-      className={`${sizeClass} border-2 border-[#241F18]/25 grayscale-[12%]`}
+      className={`${sizeClass} border-2 border-[var(--gazette-ink)]/25 grayscale-[12%]`}
     />
   );
 }
 
-function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
+function SectionTitle({
+  eyebrow,
+  title,
+  sportsDaily = false,
+}: {
+  eyebrow: string;
+  title: string;
+  sportsDaily?: boolean;
+}) {
   return (
-    <div>
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#A12742]">
+    <div data-gazette-section-title={sportsDaily ? "sports-daily" : undefined}>
+      <p
+        className={`text-[9px] font-black uppercase tracking-[0.2em] ${
+          sportsDaily
+            ? "inline-block bg-[var(--gazette-secondary)] px-2 py-1 text-white"
+            : "text-[var(--gazette-accent)]"
+        }`}
+      >
         {eyebrow}
       </p>
-      <h2 className="mt-1 border-b border-[#241F18] pb-2 font-serif text-2xl font-black leading-none">
+      <h2
+        className={`mt-1 pb-2 text-2xl font-black leading-none ${
+          sportsDaily
+            ? "border-b-4 border-[var(--gazette-accent)] font-serif uppercase italic tracking-[-0.03em]"
+            : "border-b border-[var(--gazette-ink)] font-serif"
+        }`}
+      >
         {title}
       </h2>
     </div>
@@ -1031,13 +1330,13 @@ function QuietNewsroom() {
   const isEnglish = locale === "en";
   return (
     <section className="py-12 text-center sm:py-20">
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#A12742]">
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--gazette-accent)]">
         {isEnglish ? "Special edition" : "Édition spéciale"}
       </p>
       <h2 className="mt-3 font-serif text-4xl font-black">
         {isEnglish ? "A quiet day in the peloton" : "Une journée de calme dans le peloton"}
       </h2>
-      <p className="mx-auto mt-4 max-w-xl font-serif italic text-[#695D43]">
+      <p className="mx-auto mt-4 max-w-xl font-serif italic text-[var(--gazette-muted)]">
         {isEnglish
           ? "The newsroom remains on watch. The next results, signings and reactions will appear in the next edition."
           : "La rédaction reste à l’affût. Les prochains résultats, signatures et réactions paraîtront dans l’édition suivante."}

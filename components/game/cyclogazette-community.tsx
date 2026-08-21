@@ -57,17 +57,17 @@ export function CyclogazetteCommunityPanel({
   }
 
   return (
-    <section className="border-t-4 border-double border-[#241F18] px-5 py-6 sm:px-8">
+    <section className="border-t-4 border-double border-[var(--gazette-ink)] px-5 py-6 sm:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#A12742]">{isEnglish ? "Readers' letters" : "Le courrier des lecteurs"}</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--gazette-accent)]">{isEnglish ? "Readers' letters" : "Le courrier des lecteurs"}</p>
           <h2 className="mt-1 font-serif text-2xl font-black">{isEnglish ? "The peloton forum" : "La tribune du peloton"}</h2>
         </div>
         <button
           type="button"
           onClick={toggleLike}
           disabled={pending}
-          className={`border px-4 py-2 text-xs font-black transition ${community.likedByViewer ? "border-[#A12742] bg-[#A12742] text-white" : "border-[#806C45]/50 bg-[var(--gazette-card)] hover:border-[#A12742]"}`}
+          className={`border px-4 py-2 text-xs font-black transition ${community.likedByViewer ? "border-[var(--gazette-accent)] bg-[var(--gazette-accent)] text-white" : "border-[var(--gazette-rule)]/50 bg-[var(--gazette-card)] hover:border-[var(--gazette-accent)]"}`}
         >
           {community.likedByViewer
             ? isEnglish ? "I like this edition" : "J’aime cette édition"
@@ -75,22 +75,22 @@ export function CyclogazetteCommunityPanel({
         </button>
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
-        <form onSubmit={submitComment} className="border border-[#806C45]/45 bg-[var(--gazette-card-soft)] p-4">
-          <label htmlFor="cyclogazette-comment" className="text-[9px] font-black uppercase tracking-[0.16em] text-[#695D43]">{isEnglish ? "Your SD comment" : "Votre commentaire de DS"}</label>
-          <textarea id="cyclogazette-comment" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={400} rows={3} placeholder={isEnglish ? "Your view of today's racing…" : "Votre regard sur cette journée de course…"} className="mt-2 w-full resize-y border border-[#806C45]/45 bg-[var(--gazette-input)] p-3 font-serif text-sm outline-none focus:border-[#A12742]" />
+        <form onSubmit={submitComment} className="border border-[var(--gazette-rule)]/45 bg-[var(--gazette-card-soft)] p-4">
+          <label htmlFor="cyclogazette-comment" className="text-[9px] font-black uppercase tracking-[0.16em] text-[var(--gazette-muted)]">{isEnglish ? "Your SD comment" : "Votre commentaire de DS"}</label>
+          <textarea id="cyclogazette-comment" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={400} rows={3} placeholder={isEnglish ? "Your view of today's racing…" : "Votre regard sur cette journée de course…"} className="mt-2 w-full resize-y border border-[var(--gazette-rule)]/45 bg-[var(--gazette-input)] p-3 font-serif text-sm outline-none focus:border-[var(--gazette-accent)]" />
           <div className="mt-3 flex items-center justify-between gap-3">
-            <span className="text-[10px] text-[#695D43]">{message.length}/400</span>
-            <button type="submit" disabled={pending || !message.trim()} className="bg-[#241F18] px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#F4EBD2] disabled:opacity-45">{isEnglish ? "Publish" : "Publier"}</button>
+            <span className="text-[10px] text-[var(--gazette-muted)]">{message.length}/400</span>
+            <button type="submit" disabled={pending || !message.trim()} className="bg-[var(--gazette-ink)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--gazette-paper)] disabled:opacity-45">{isEnglish ? "Publish" : "Publier"}</button>
           </div>
-          {error ? <p className="mt-2 text-xs font-bold text-[#A12742]">{error}</p> : null}
+          {error ? <p className="mt-2 text-xs font-bold text-[var(--gazette-accent)]">{error}</p> : null}
         </form>
         <div className="space-y-3">
           {community.comments.length > 0 ? community.comments.map((comment) => (
-            <article key={comment.id} className="border-l-2 border-[#A12742] bg-[var(--gazette-card-soft)] px-4 py-3">
+            <article key={comment.id} className="border-l-2 border-[var(--gazette-accent)] bg-[var(--gazette-card-soft)] px-4 py-3">
               <p className="font-serif text-sm leading-5">{comment.message}</p>
-              <p className="mt-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#695D43]">{comment.directorName} · {formatDate(comment.createdAt, locale)}</p>
+              <p className="mt-2 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--gazette-muted)]">{comment.directorName} · {formatDate(comment.createdAt, locale)}</p>
             </article>
-          )) : <p className="border-y border-[#806C45]/35 py-4 font-serif text-sm italic text-[#695D43]">{isEnglish ? "The newsroom is waiting for the peloton's first comment." : "La rédaction attend le premier commentaire du peloton."}</p>}
+          )) : <p className="border-y border-[var(--gazette-rule)]/35 py-4 font-serif text-sm italic text-[var(--gazette-muted)]">{isEnglish ? "The newsroom is waiting for the peloton's first comment." : "La rédaction attend le premier commentaire du peloton."}</p>}
         </div>
       </div>
     </section>

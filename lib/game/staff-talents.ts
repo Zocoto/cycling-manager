@@ -1,5 +1,6 @@
 import {
   TRAINER_SPECIALTY_LABELS,
+  isTrainerSpecialty,
   normalizeStaffLevel,
   type StaffRole,
   type TrainerSpecialty,
@@ -340,6 +341,15 @@ export function describeStaffTalent(
 
 export function getStaffTalentMinimumLevel(code: StaffTalentCode): number {
   return STAFF_TALENT_DEFINITIONS[code].minimumLevel ?? 1;
+}
+
+export function getTrainerTalentSpecialty(
+  value: string,
+): TrainerSpecialty | null {
+  if (!isStaffTalentForRole(value, "trainer")) return null;
+
+  const specialty = value.slice("trainer_".length);
+  return isTrainerSpecialty(specialty) ? specialty : null;
 }
 
 export function getStaffNationalityAffinityDescription(): string {
