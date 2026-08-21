@@ -660,6 +660,7 @@ async function hydrateSponsorContract({
   }
 
   let objectives: SponsorContractObjective[] = [];
+  let sportingPhilosophy = resolveSponsorSportingPhilosophy(sponsor.id);
 
   if (contractRow.sponsor_offer_id) {
     const objectiveContext = {
@@ -696,15 +697,21 @@ async function hydrateSponsorContract({
         await ensureAndLoadSponsorObjectives(objectiveContext);
     }
 
+    const persistedObjectives =
+      objectivesByOffer.get(contractRow.sponsor_offer_id) ?? [];
+    sportingPhilosophy =
+      persistedObjectives.find(
+        (objective) => objective.targetDetails.sportingPhilosophy,
+      )?.targetDetails.sportingPhilosophy ?? sportingPhilosophy;
     objectives =
-      objectivesByOffer.get(contractRow.sponsor_offer_id)?.map((objective) => ({
+      persistedObjectives.map((objective) => ({
         id: objective.id,
         name: objective.name,
         description: objective.description,
         displayOrder: objective.displayOrder,
         status: objective.status,
         satisfactionPoints: objective.satisfactionPoints,
-      })) ?? [];
+      }));
   }
 
   const budgetPerSeason = Number(
@@ -747,7 +754,7 @@ async function hydrateSponsorContract({
   return {
     id: contractRow.id,
     sponsor,
-    sportingPhilosophy: resolveSponsorSportingPhilosophy(sponsor.id),
+    sportingPhilosophy,
     sponsorOfferId: contractRow.sponsor_offer_id,
     budgetPerSeason,
     currencyCode: contractRow.currency_code,

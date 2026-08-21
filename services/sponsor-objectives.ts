@@ -16,7 +16,7 @@ import {
 } from "@/lib/game/sponsor-philosophy";
 
 const OBJECTIVE_COUNT = 10;
-const SPONSOR_OBJECTIVE_GENERATION_VERSION = 4;
+const SPONSOR_OBJECTIVE_GENERATION_VERSION = 5;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -108,6 +108,22 @@ const SATISFACTION_WEIGHTS: Record<
     specialtyWins: 7, teamRanking: 15, nationRanking: 5,
     nationalChampionship: 8, ambition: 17, legacy: 20,
   },
+};
+
+const NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS: Record<
+  SponsorObjectiveWeightKey,
+  number
+> = {
+  domesticRace: 14,
+  regionalRace: 4,
+  nationality: 30,
+  seasonWins: 8,
+  specialtyWins: 5,
+  teamRanking: 8,
+  nationRanking: 12,
+  nationalChampionship: 12,
+  ambition: 5,
+  legacy: 2,
 };
 
 const SPONSOR_COUNTRY_NEIGHBORS: Readonly<Record<string, readonly string[]>> = {
@@ -208,7 +224,9 @@ export function generateProvisionalSponsorObjectives({
     resolveSponsorSportingPhilosophy(
       sponsorCatalogKey || normalizedCountryCode,
     );
-  const weights = SATISFACTION_WEIGHTS[focus];
+  const weights = sportingPhilosophy === "national_preference"
+    ? NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS
+    : SATISFACTION_WEIGHTS[focus];
   const portfolio = selectSponsorObjectivePortfolio({
     sponsorCountryCode: normalizedCountryCode,
     sponsorContinentCode,
@@ -219,10 +237,9 @@ export function generateProvisionalSponsorObjectives({
   });
   const firstTopRank = getTopRankForPrestige(sponsorPrestige, random);
   const secondTopRank = getTopRankForPrestige(sponsorPrestige, random);
-  const nationalityPercentage = getNationalityPercentageForPrestige(
-    sponsorPrestige,
-    random
-  );
+  const nationalityPercentage = sportingPhilosophy === "national_preference"
+    ? getNationalPreferencePercentageForPrestige(sponsorPrestige, random)
+    : getNationalityPercentageForPrestige(sponsorPrestige, random);
   const minimumSeasonWinCount = getSeasonWinCountForPrestige(
     sponsorPrestige,
     random
@@ -283,43 +300,54 @@ export function generateProvisionalSponsorObjectives({
             "Tours remportés"
           );
 
-  const objectives = [
-    withSatisfactionPoints(domesticRaceObjective, weights.domesticRace),
-    withSatisfactionPoints(regionalRaceObjective, weights.regionalRace),
-    withSatisfactionPoints(
-      createNationalityObjective(normalizedCountryCode, nationalityPercentage),
-      weights.nationality
-    ),
-    withSatisfactionPoints(
-      createSeasonWinsObjective(
-        minimumSeasonWinCount,
-        "all",
-        "Victoires sur la saison"
-      ),
-      weights.seasonWins
-    ),
-    withSatisfactionPoints(
-      philosophyRaceObjective,
-      weights.specialtyWins
-    ),
-    withSatisfactionPoints(
-      createUciRankingObjective(targetUciRank),
-      weights.teamRanking
-    ),
-    withSatisfactionPoints(
-      createNationUciRankingObjective(
+  const objectives = sportingPhilosophy === "youth_development"
+    ? createYouthDevelopmentPortfolio({
+        domesticRaceObjective,
+        regionalRaceObjective,
+        philosophyRaceObjective,
         normalizedCountryCode,
-        getNationUciRankForPrestige(sponsorPrestige)
-      ),
-      weights.nationRanking
-    ),
-    withSatisfactionPoints(
-      createNationalChampionshipObjective(normalizedCountryCode),
-      weights.nationalChampionship
-    ),
-    withSatisfactionPoints(ambitionObjective, weights.ambition),
-    withSatisfactionPoints(legacyObjective, weights.legacy),
-  ];
+        nationalityPercentage,
+        minimumSeasonWinCount,
+        targetUciRank,
+        sponsorPrestige,
+      })
+    : [
+        withSatisfactionPoints(domesticRaceObjective, weights.domesticRace),
+        withSatisfactionPoints(regionalRaceObjective, weights.regionalRace),
+        withSatisfactionPoints(
+          createNationalityObjective(normalizedCountryCode, nationalityPercentage),
+          weights.nationality
+        ),
+        withSatisfactionPoints(
+          createSeasonWinsObjective(
+            minimumSeasonWinCount,
+            "all",
+            "Victoires sur la saison"
+          ),
+          weights.seasonWins
+        ),
+        withSatisfactionPoints(
+          philosophyRaceObjective,
+          weights.specialtyWins
+        ),
+        withSatisfactionPoints(
+          createUciRankingObjective(targetUciRank),
+          weights.teamRanking
+        ),
+        withSatisfactionPoints(
+          createNationUciRankingObjective(
+            normalizedCountryCode,
+            getNationUciRankForPrestige(sponsorPrestige)
+          ),
+          weights.nationRanking
+        ),
+        withSatisfactionPoints(
+          createNationalChampionshipObjective(normalizedCountryCode),
+          weights.nationalChampionship
+        ),
+        withSatisfactionPoints(ambitionObjective, weights.ambition),
+        withSatisfactionPoints(legacyObjective, weights.legacy),
+      ];
 
   const shuffledObjectives = shuffleValues(objectives, random);
   const satisfactionTotal = shuffledObjectives.reduce(
@@ -356,6 +384,150 @@ function withSatisfactionPoints(
     satisfactionPoints,
     priority: getPriorityForSatisfactionPoints(satisfactionPoints),
     renewalBonusPercent: 0,
+  };
+}
+
+function createYouthDevelopmentPortfolio({
+  domesticRaceObjective,
+  regionalRaceObjective,
+  philosophyRaceObjective,
+  normalizedCountryCode,
+  nationalityPercentage,
+  minimumSeasonWinCount,
+  targetUciRank,
+  sponsorPrestige,
+}: {
+  domesticRaceObjective: ObjectiveWithoutDisplayOrder;
+  regionalRaceObjective: ObjectiveWithoutDisplayOrder;
+  philosophyRaceObjective: ObjectiveWithoutDisplayOrder;
+  normalizedCountryCode: string;
+  nationalityPercentage: number;
+  minimumSeasonWinCount: number;
+  targetUciRank: number;
+  sponsorPrestige: SponsorPrestige;
+}): ObjectiveWithoutDisplayOrder[] {
+  const promotionsByPrestige: Record<SponsorPrestige, number> = {
+    1: 1,
+    2: 1,
+    3: 2,
+    4: 2,
+    5: 3,
+  };
+  const developmentRosterByPrestige: Record<SponsorPrestige, number> = {
+    1: 6,
+    2: 7,
+    3: 8,
+    4: 9,
+    5: 10,
+  };
+  const juniorWinsByPrestige: Record<SponsorPrestige, number> = {
+    1: 1,
+    2: 1,
+    3: 2,
+    4: 2,
+    5: 3,
+  };
+  const homegrownSalesByPrestige: Record<SponsorPrestige, number> = {
+    1: 1,
+    2: 1,
+    3: 1,
+    4: 2,
+    5: 2,
+  };
+
+  return [
+    withSatisfactionPoints(domesticRaceObjective, 8),
+    withSatisfactionPoints(regionalRaceObjective, 5),
+    withSatisfactionPoints(
+      createNationalityObjective(normalizedCountryCode, nationalityPercentage),
+      4,
+    ),
+    withSatisfactionPoints(
+      createSeasonWinsObjective(
+        minimumSeasonWinCount,
+        "all",
+        "Victoires sur la saison",
+      ),
+      6,
+    ),
+    withSatisfactionPoints(philosophyRaceObjective, 5),
+    withSatisfactionPoints(createUciRankingObjective(targetUciRank), 6),
+    withSatisfactionPoints(
+      createYouthDevelopmentObjective(
+        "promotions",
+        promotionsByPrestige[sponsorPrestige],
+      ),
+      18,
+    ),
+    withSatisfactionPoints(
+      createYouthDevelopmentObjective(
+        "development_roster",
+        developmentRosterByPrestige[sponsorPrestige],
+      ),
+      15,
+    ),
+    withSatisfactionPoints(
+      createYouthDevelopmentObjective(
+        "junior_race_wins",
+        juniorWinsByPrestige[sponsorPrestige],
+      ),
+      18,
+    ),
+    withSatisfactionPoints(
+      createYouthDevelopmentObjective(
+        "homegrown_sales",
+        homegrownSalesByPrestige[sponsorPrestige],
+      ),
+      15,
+    ),
+  ];
+}
+
+function createYouthDevelopmentObjective(
+  metric:
+    | "promotions"
+    | "development_roster"
+    | "junior_race_wins"
+    | "homegrown_sales",
+  minimumCount: number,
+): ObjectiveWithoutDisplayOrder {
+  const copy = {
+    promotions: {
+      name: `Former et promouvoir ${minimumCount} jeune(s)`,
+      description:
+        `Faire signer professionnel ${minimumCount} coureur(s) issu(s) de votre Centre de formation pendant la saison.`,
+    },
+    development_roster: {
+      name: `Développer une Dev Team de ${minimumCount} juniors`,
+      description:
+        `Constituer pendant la saison une Development Team comptant au moins ${minimumCount} junior(s).`,
+    },
+    junior_race_wins: {
+      name: `Remporter ${minimumCount} course(s) juniors`,
+      description:
+        `Gagner au moins ${minimumCount} classement(s) général(aux) avec votre Development Team pendant la saison.`,
+    },
+    homegrown_sales: {
+      name: `Valoriser et vendre ${minimumCount} coureur(s) formé(s) au club`,
+      description:
+        `Céder sur le marché des transferts ${minimumCount} coureur(s) professionnel(s) précédemment formé(s) par votre Centre de formation.`,
+    },
+  } as const;
+
+  return {
+    ...copy[metric],
+    objectiveType: "youth_development",
+    priority: "important",
+    evaluationTiming: "season_end",
+    evaluationDayNumber: null,
+    satisfactionPoints: 0,
+    renewalBonusPercent: 0,
+    isProvisional: true,
+    targetDetails: {
+      kind: "youth_development",
+      metric,
+      minimumCount,
+    },
   };
 }
 
@@ -599,6 +771,9 @@ export function matchesSponsorSportingPhilosophy(
       return profileTypes.has("sprint") || profileTypes.has("flat");
     case "grand_tour_general":
       return candidate.isGrandTour === true;
+    case "national_preference":
+    case "youth_development":
+      return false;
   }
 }
 
@@ -1042,6 +1217,24 @@ function getNationalityPercentageForPrestige(
     percentagesByPrestige[prestige],
     random
   );
+}
+
+function getNationalPreferencePercentageForPrestige(
+  prestige: SponsorPrestige,
+  random: () => number,
+): number {
+  const percentagesByPrestige: Record<
+    SponsorPrestige,
+    readonly number[]
+  > = {
+    1: [50, 55],
+    2: [55, 60],
+    3: [60, 65],
+    4: [65, 70],
+    5: [70],
+  };
+
+  return selectRandomValue(percentagesByPrestige[prestige], random);
 }
 
 function getSeasonWinCountForPrestige(

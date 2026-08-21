@@ -910,6 +910,10 @@ async function hydrateFutureSponsorOffersWithObjectives({
 
     return {
       ...offer,
+      sportingPhilosophy:
+        objectives.find(
+          (objective) => objective.targetDetails.sportingPhilosophy,
+        )?.targetDetails.sportingPhilosophy ?? offer.sportingPhilosophy,
       objectives,
     };
   });

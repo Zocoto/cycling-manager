@@ -622,6 +622,10 @@ function getObjectiveSignature(
     return `season_wins:${details.winScope}`;
   }
 
+  if (details.kind === "youth_development") {
+    return `youth_development:${details.metric}`;
+  }
+
   return details.kind;
 }
 

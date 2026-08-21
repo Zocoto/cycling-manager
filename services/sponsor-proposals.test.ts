@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { generateSponsorProposals } from "./sponsor-proposals";
+import {
+  applySponsorPhilosophyBudgetBonus,
+  generateSponsorProposals,
+} from "./sponsor-proposals";
 
 describe("generateSponsorProposals", () => {
   it("priorise les sponsors nationaux disponibles", () => {
@@ -185,9 +188,13 @@ describe("generateSponsorProposals", () => {
         proposal.sponsor.budgetRange.min
       );
 
-      expect(proposal.proposedBudget).toBeLessThanOrEqual(
-        proposal.sponsor.budgetRange.max
+      const maximumBudget = applySponsorPhilosophyBudgetBonus(
+        proposal.sponsor.budgetRange.max,
+        proposal.sponsor.id === "terroirs-unis"
+          ? "national_preference"
+          : "cobbled_classics",
       );
+      expect(proposal.proposedBudget).toBeLessThanOrEqual(maximumBudget);
 
       expect(proposal.proposedBudget % 10_000).toBe(0);
 
@@ -203,6 +210,15 @@ describe("generateSponsorProposals", () => {
         proposal.sponsor.contractDurationRange.max
       );
     }
+  });
+
+  it("majore de 15 % et arrondit au palier financier les offres nationales", () => {
+    expect(
+      applySponsorPhilosophyBudgetBonus(1_000_000, "national_preference"),
+    ).toBe(1_150_000);
+    expect(
+      applySponsorPhilosophyBudgetBonus(1_000_000, "youth_development"),
+    ).toBe(1_000_000);
   });
 
   it("retourne un tableau vide si aucune proposition n’est demandée", () => {

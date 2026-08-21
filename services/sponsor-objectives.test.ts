@@ -194,6 +194,80 @@ describe("generateProvisionalSponsorObjectives", () => {
     ).toBe(true);
   });
 
+  it("fait du quota national l’engagement central de la préférence nationale", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 3,
+      sponsorCatalogKey: "terroirs-unis",
+      sponsorSector: "Agroalimentaire",
+      sportingPhilosophy: "national_preference",
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    });
+    const nationalityObjective = objectives.find(
+      (objective) => objective.targetDetails.kind === "nationality_quota",
+    );
+
+    expect(nationalityObjective?.satisfactionPoints).toBe(30);
+    expect(nationalityObjective?.priority).toBe("mandatory");
+    expect(
+      nationalityObjective?.targetDetails.kind === "nationality_quota"
+        ? nationalityObjective.targetDetails.minimumPercentage
+        : 0,
+    ).toBeGreaterThanOrEqual(60);
+    expect(
+      objectives.reduce(
+        (total, objective) => total + objective.satisfactionPoints,
+        0,
+      ),
+    ).toBe(100);
+  });
+
+  it("compose la philosophie formateur autour de quatre métriques juniors", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "CO",
+      sponsorPrestige: 4,
+      sponsorCatalogKey: "pura-cadencia-test-team",
+      sponsorSector: "Laboratoire cycliste d’altitude",
+      sportingPhilosophy: "youth_development",
+      random: createDeterministicRandom([0.1, 0.4, 0.7]),
+    });
+    const developmentObjectives = objectives.filter(
+      (objective) => objective.targetDetails.kind === "youth_development",
+    );
+    const metrics = new Map(
+      developmentObjectives.map((objective) => [
+        objective.targetDetails.kind === "youth_development"
+          ? objective.targetDetails.metric
+          : "",
+        objective,
+      ]),
+    );
+
+    expect(developmentObjectives).toHaveLength(4);
+    expect(new Set(metrics.keys())).toEqual(
+      new Set([
+        "promotions",
+        "development_roster",
+        "junior_race_wins",
+        "homegrown_sales",
+      ]),
+    );
+    expect(metrics.get("promotions")?.satisfactionPoints).toBe(18);
+    expect(metrics.get("junior_race_wins")?.satisfactionPoints).toBe(18);
+    expect(
+      metrics.get("homegrown_sales")?.targetDetails.kind ===
+        "youth_development"
+        ? metrics.get("homegrown_sales")?.targetDetails.minimumCount
+        : 0,
+    ).toBe(2);
+    expect(
+      objectives.reduce(
+        (total, objective) => total + objective.satisfactionPoints,
+        0,
+      ),
+    ).toBe(100);
+  });
+
   it("conserve la même philosophie lors d’une prolongation", () => {
     const sponsorKey = "atlas-racing-lab";
 

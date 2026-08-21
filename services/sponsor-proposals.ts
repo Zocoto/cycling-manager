@@ -6,6 +6,11 @@ import {
   type FeaturedRiderSponsorAffinity,
 } from "@/lib/game/sponsor-nationality-affinity";
 import { isSponsorEligibleForReputation } from "@/lib/game/sponsor-prestige";
+import {
+  getSponsorInitialBudgetBonusPercent,
+  resolveSponsorSportingPhilosophy,
+  type SponsorSportingPhilosophy,
+} from "@/lib/game/sponsor-philosophy";
 import type { Sponsor, SponsorProposal } from "@/types/sponsor";
 
 export interface GenerateSponsorProposalsOptions {
@@ -137,12 +142,18 @@ function createSponsorProposal(
   sponsor: Sponsor,
   random: () => number
 ): SponsorProposal {
+  const sportingPhilosophy = resolveSponsorSportingPhilosophy(sponsor.id);
+  const baseBudget = getRandomBudget(
+    sponsor.budgetRange.min,
+    sponsor.budgetRange.max,
+    random
+  );
+
   return {
     sponsor,
-    proposedBudget: getRandomBudget(
-      sponsor.budgetRange.min,
-      sponsor.budgetRange.max,
-      random
+    proposedBudget: applySponsorPhilosophyBudgetBonus(
+      baseBudget,
+      sportingPhilosophy,
     ),
     contractDurationSeasons: getRandomInteger(
       sponsor.contractDurationRange.min,
@@ -150,6 +161,16 @@ function createSponsorProposal(
       random
     ),
   };
+}
+
+export function applySponsorPhilosophyBudgetBonus(
+  baseBudget: number,
+  philosophy: SponsorSportingPhilosophy,
+): number {
+  const bonusPercent = getSponsorInitialBudgetBonusPercent(philosophy);
+  const adjustedBudget = baseBudget * (1 + bonusPercent / 100);
+
+  return Math.round(adjustedBudget / BUDGET_STEP) * BUDGET_STEP;
 }
 
 function getRandomBudget(

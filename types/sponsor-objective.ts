@@ -8,6 +8,7 @@ export type SponsorObjectiveType =
   | "nation_uci_ranking"
   | "national_championship"
   | "homegrown_roster"
+  | "youth_development"
   | "infrastructure";
 
 export type SponsorObjectivePriority =
@@ -75,6 +76,16 @@ export type HomegrownRosterObjectiveDetails = {
   minimumPercentage: number;
 };
 
+export type YouthDevelopmentObjectiveDetails = {
+  kind: "youth_development";
+  metric:
+    | "promotions"
+    | "development_roster"
+    | "junior_race_wins"
+    | "homegrown_sales";
+  minimumCount: number;
+};
+
 export type InfrastructureObjectiveDetails = {
   kind: "infrastructure";
   minimumCompletedCount: number;
@@ -88,6 +99,7 @@ type SponsorObjectiveTarget =
   | NationUciRankingObjectiveDetails
   | NationalChampionshipObjectiveDetails
   | HomegrownRosterObjectiveDetails
+  | YouthDevelopmentObjectiveDetails
   | InfrastructureObjectiveDetails;
 
 export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {

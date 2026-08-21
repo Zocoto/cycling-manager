@@ -57,6 +57,12 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Objectif": "Objective",
   "Objectifs": "Objectives",
   "Philosophie sportive": "Sporting philosophy",
+  "Préférence nationale": "National preference",
+  "Formateur": "Youth development",
+  "Le sponsor exige une forte majorité de coureurs de son pays. Cet engagement pèse lourd dans sa satisfaction et augmente de 15 % le budget proposé.":
+    "The sponsor requires a strong majority of riders from its own country. This commitment weighs heavily on satisfaction and increases the proposed budget by 15%.",
+  "Le sponsor privilégie les promotions du Centre de formation, la Dev Team, les victoires juniors et la valorisation de quelques coureurs formés au club.":
+    "The sponsor prioritises academy promotions, the Development Team, junior victories and the development of a small number of homegrown riders.",
   "Pays / rang": "Country / rank",
   "Parrainage": "Referral programme",
   "Pavé": "Cobblestone",
