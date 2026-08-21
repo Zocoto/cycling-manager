@@ -75,7 +75,100 @@ export function PhysiotherapistAssignmentMatrix({
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-[1.75rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_44px_rgba(19,60,46,0.08)]">
+      <div
+        data-mobile-physiotherapist-assignments
+        className="grid gap-3 lg:hidden"
+      >
+        {riders.map((rider) => {
+          const assignedContractId = assignments[rider.id] ?? null;
+          const assignedPhysio = physiotherapists.find(
+            (physio) => physio.contractId === assignedContractId,
+          );
+
+          return (
+            <article
+              key={rider.id}
+              className="min-w-0 rounded-2xl border border-[#315B3E]/12 bg-white p-4 shadow-[0_10px_28px_rgba(19,60,46,0.07)]"
+            >
+              <RiderSummary rider={rider} jersey={jersey} />
+
+              <div className="mt-4 rounded-xl bg-[#F3F8F5] px-3 py-3">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+                  Effet sur le coureur
+                </p>
+                <PhysiotherapistEffect physio={assignedPhysio ?? null} />
+              </div>
+
+              <fieldset className="mt-4">
+                <legend className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-[#3F285D]">
+                  Kiné
+                </legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {physiotherapists.map((physio) => {
+                    const capacity = getPhysiotherapistRiderCapacity(
+                      physio.level,
+                    );
+                    const assignedCount = countPhysiotherapistAssignments(
+                      assignments,
+                      physio.contractId,
+                    );
+                    const checked = assignedContractId === physio.contractId;
+                    const capacityReached =
+                      !checked && assignedCount >= capacity;
+
+                    return (
+                      <label
+                        key={physio.contractId}
+                        className={`flex min-h-14 items-center gap-3 rounded-xl border px-3 py-2.5 transition ${
+                          checked
+                            ? "cursor-pointer border-[#7856A4] bg-[#EFE6F8] shadow-[0_0_0_3px_rgba(120,86,164,0.1)]"
+                            : capacityReached
+                              ? "cursor-not-allowed border-[#315B3E]/8 bg-[#EEF1EF] opacity-50"
+                              : "cursor-pointer border-[#315B3E]/12 bg-white active:border-[#8B6FB6] active:bg-[#FAF7FD]"
+                        }`}
+                        title={
+                          capacityReached
+                            ? `Capacité atteinte : ${capacity} coureur(s)`
+                            : `${checked ? "Retirer" : "Affecter"} ${rider.firstName} ${rider.lastName} ${checked ? "de" : "à"} ${physio.firstName} ${physio.lastName}`
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={capacityReached}
+                          onChange={() =>
+                            setAssignments((current) =>
+                              togglePhysiotherapistAssignment({
+                                assignments: current,
+                                riderId: rider.id,
+                                staffContractId: physio.contractId,
+                                capacity,
+                              }),
+                            )
+                          }
+                          aria-label={`${checked ? "Retirer" : "Affecter"} ${rider.firstName} ${rider.lastName} ${checked ? "de" : "à"} ${physio.firstName} ${physio.lastName}`}
+                          className="h-5 w-5 shrink-0 accent-[#7856A4]"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-black text-[#183F37]">
+                            {physio.firstName} {physio.lastName}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-bold text-[#725F81]">
+                            Niveau {physio.level} · {assignedCount}/{capacity}{" "}
+                            suivis
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto overscroll-x-contain rounded-[1.75rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_44px_rgba(19,60,46,0.08)] lg:block">
         <table className="w-full min-w-max border-separate border-spacing-0 text-left">
           <thead>
             <tr className="bg-[#0B302B] text-white">
