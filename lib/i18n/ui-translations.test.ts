@@ -9,6 +9,7 @@ describe("French to English UI catalog", () => {
       Effectif: "Roster",
       "Centre de soin": "Medical centre",
       "Centre de formation": "Youth development centre",
+      "Fanclub / Boutique": "Fan Club / Shop",
       Pavés: "Cobblestones",
       "Contre-la-montre": "Time trial",
     });

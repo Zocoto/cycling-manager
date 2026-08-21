@@ -12,6 +12,7 @@ import {
 import {
   createEmptyPublicGameNewsSnapshot,
   createPublicGameNewsSnapshot,
+  normalizePublicGameNewsTotal,
   resolvePublicGameNewsTeamJersey,
   resolvePublicGameNewsTeamJerseyArtwork,
   resolveRaceVictoryHappenedAt,
@@ -36,6 +37,10 @@ type RaceResultRow = {
   race_edition_id: string;
   race_roster_id: string;
   created_at: string;
+};
+
+type PublicHomeVictoryRow = RaceResultRow & {
+  total_count: number | string;
 };
 
 type RaceEditionRow = {
@@ -475,25 +480,17 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
 }
 
 async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
-  const [recentQuery, totalQuery] = await Promise.all([
-    admin
-      .from("race_results")
-      .select("id, race_edition_id, race_roster_id, created_at")
-      .eq("final_rank", 1)
-      .order("created_at", { ascending: false })
-      .limit(6)
-      .returns<RaceResultRow[]>(),
-    admin
-      .from("race_results")
-      .select("id", { count: "exact", head: true })
-      .eq("final_rank", 1),
-  ]);
-  assertQuery(recentQuery.error, "les dernières victoires");
-  assertQuery(totalQuery.error, "le total des victoires");
+  const victoryQuery = await admin.rpc("get_public_home_victories", {
+    p_limit: 6,
+  });
+  assertQuery(victoryQuery.error, "les dernières victoires");
 
-  const results = recentQuery.data ?? [];
+  const results: PublicHomeVictoryRow[] = Array.isArray(victoryQuery.data)
+    ? victoryQuery.data
+    : [];
+  const total = normalizePublicGameNewsTotal(results[0]?.total_count);
   if (results.length === 0) {
-    return { items: [], total: totalQuery.count ?? 0 };
+    return { items: [], total };
   }
 
   const editionIds = unique(results.map((row) => row.race_edition_id));
@@ -604,7 +601,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
     ];
   });
 
-  return { items, total: totalQuery.count ?? items.length };
+  return { items, total };
 }
 
 async function loadRecentArrivals(admin: AdminClient): Promise<LoadedNews> {

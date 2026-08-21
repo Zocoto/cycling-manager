@@ -660,7 +660,7 @@ function NewsStat({
         isLast ? "" : "border-b border-white/10 sm:border-b-0 sm:border-r"
       }`}
     >
-      <span className="min-w-12 text-3xl font-black tracking-tight text-[#F2C94C]">
+      <span className="min-w-[4ch] shrink-0 whitespace-nowrap text-3xl font-black tabular-nums tracking-tight text-[#F2C94C]">
         {value}
       </span>
       <div>

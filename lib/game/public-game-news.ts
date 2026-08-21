@@ -255,3 +255,11 @@ export function formatPublicGameNewsDate(
 export function formatPublicGameNewsTotal(value: number | null): string {
   return value === null ? "—" : new Intl.NumberFormat("fr-FR").format(value);
 }
+
+export function normalizePublicGameNewsTotal(
+  value: number | string | bigint | null | undefined,
+): number {
+  const total = Number(value);
+
+  return Number.isSafeInteger(total) && total >= 0 ? total : 0;
+}

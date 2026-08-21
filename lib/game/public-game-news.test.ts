@@ -4,6 +4,7 @@ import {
   createPublicGameNewsSnapshot,
   formatPublicGameNewsDate,
   formatPublicGameNewsTotal,
+  normalizePublicGameNewsTotal,
   resolvePublicGameNewsTeamJersey,
   resolvePublicGameNewsTeamJerseyArtwork,
   resolveRaceVictoryHappenedAt,
@@ -210,6 +211,14 @@ describe("public game news", () => {
     expect(formatPublicGameNewsTotal(null)).toBe("—");
     expect(formatPublicGameNewsTotal(0)).toBe("0");
     expect(formatPublicGameNewsTotal(1_250)).toMatch(/1.250|1\s250/);
+  });
+
+  it("normalise le total exact renvoyé par PostgreSQL", () => {
+    expect(normalizePublicGameNewsTotal(123)).toBe(123);
+    expect(normalizePublicGameNewsTotal("123")).toBe(123);
+    expect(normalizePublicGameNewsTotal(123n)).toBe(123);
+    expect(normalizePublicGameNewsTotal(null)).toBe(0);
+    expect(normalizePublicGameNewsTotal("invalide")).toBe(0);
   });
 
   it("conserve le vrai maillot amateur ou sponsorisé de l’équipe", () => {

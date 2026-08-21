@@ -32,4 +32,9 @@ describe("alignement des cartes principales du bureau", () => {
       'className="flex items-center justify-center gap-1.5 sm:gap-3"',
     );
   });
+
+  it("explicite la boutique dans la rubrique Fanclub", () => {
+    expect(dashboardPage).toContain('title="Fanclub / Boutique"');
+    expect(dashboardPage).not.toContain('title="Fan Club"');
+  });
 });

@@ -27,7 +27,9 @@ export async function placeTransferBidAction(formData: FormData) {
     p_amount: amount,
   });
   if (error) redirectWithMessage(returnPath, "erreur", error.message);
+  schedulePushDispatch();
   revalidateTransferPaths();
+  revalidatePath("/jeu/messagerie");
   redirectWithMessage(returnPath, "succes", "Votre offre est désormais enregistrée.");
 }
 

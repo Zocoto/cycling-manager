@@ -799,7 +799,7 @@ export default async function GamePage() {
               <ManagementModuleCard
                 href="/jeu/fan-club"
                 icon="fanclub"
-                title="Fan Club"
+                title="Fanclub / Boutique"
                 status={`Actif · Siège niveau ${fanClubBuildings.headquartersLevel}`}
                 description="Gérez la popularité des coureurs, les déplacements de supporters et, si elle est construite, la boutique officielle."
               />
