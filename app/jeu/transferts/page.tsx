@@ -81,6 +81,8 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
     getGameHeaderData(supabase, user.id),
     getTransferMarketOverview(supabase, user.id, filters, {
       includeDirectOffers: tab === "offres",
+      includeFreeAgents: tab === "libres",
+      includeRoster: tab === "directeurs",
     }),
     getAuthenticatedTutorialProgress(supabase, TRANSFER_TUTORIAL_KEY).catch(
       (error: unknown) => {

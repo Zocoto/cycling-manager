@@ -254,6 +254,8 @@ export type DirectTransferOffer = {
 
 export type TransferMarketOverviewOptions = {
   includeDirectOffers?: boolean;
+  includeFreeAgents?: boolean;
+  includeRoster?: boolean;
 };
 
 export type RiderTransferManagement = {
@@ -288,24 +290,13 @@ export async function getTransferMarketOverview(
   options: TransferMarketOverviewOptions = {},
 ): Promise<TransferMarketOverview | null> {
   const admin = createSupabaseAdminClient();
-  const [financeSettlement, context] = await Promise.all([
-    supabase.rpc("settle_current_team_finances"),
-    loadCurrentContext(admin, authUserId),
-    prepareCurrentTransferMarket(admin),
-  ]);
-
-  if (financeSettlement.error) {
-    throw new Error(
-      `Impossible d’actualiser les finances : ${financeSettlement.error.message}`,
-    );
-  }
+  const context = await loadCurrentContext(admin, authUserId);
 
   if (!context) return null;
 
   const marketDate = formatParisDate(new Date());
   const [
     listingsResult,
-    bidsResult,
     contractsResult,
     transactionsResult,
     countriesResult,
@@ -327,12 +318,6 @@ export async function getTransferMarketOverview(
       .order("closes_at", { ascending: true })
       .returns<ListingRow[]>(),
     admin
-      .from("transfer_market_bids")
-      .select("id, listing_id, team_id, amount, created_at")
-      .order("amount", { ascending: false })
-      .order("created_at", { ascending: true })
-      .returns<BidRow[]>(),
-    admin
       .from("rider_contracts")
       .select(
         "id, rider_id, team_id, start_season_id, end_season_id, salary_per_season, transfer_locked_season_id, status",
@@ -352,13 +337,17 @@ export async function getTransferMarketOverview(
       .eq("is_active", true)
       .order("name")
       .returns<CountryRow[]>(),
-    admin
-      .from("riders")
-      .select("id")
-      .eq("status", "free_agent")
-      .limit(500)
-      .returns<Array<{ id: string }>>(),
-    loadSeasonYears(admin),
+    options.includeFreeAgents
+      ? admin
+          .from("riders")
+          .select("id")
+          .eq("status", "free_agent")
+          .limit(500)
+          .returns<Array<{ id: string }>>()
+      : Promise.resolve({ data: [] as Array<{ id: string }>, error: null }),
+    options.includeRoster
+      ? loadSeasonYears(admin)
+      : Promise.resolve(new Map<string, number>()),
     admin
       .from("team_infrastructures")
       .select("level")
@@ -389,6 +378,16 @@ export async function getTransferMarketOverview(
   ]);
 
   assertQuery(listingsResult.error, "les enchères");
+  const listingIds = (listingsResult.data ?? []).map((listing) => listing.id);
+  const bidsResult = listingIds.length > 0
+    ? await admin
+        .from("transfer_market_bids")
+        .select("id, listing_id, team_id, amount, created_at")
+        .in("listing_id", listingIds)
+        .order("amount", { ascending: false })
+        .order("created_at", { ascending: true })
+        .returns<BidRow[]>()
+    : { data: [] as BidRow[], error: null };
   assertQuery(bidsResult.error, "les offres");
   assertQuery(contractsResult.error, "les contrats de l’effectif");
   assertQuery(transactionsResult.error, "le budget projeté");
@@ -405,7 +404,9 @@ export async function getTransferMarketOverview(
     (contract) => contract.status === "active",
   );
   const riderIds = new Set(listings.map((listing) => listing.rider_id));
-  activeContracts.forEach((contract) => riderIds.add(contract.rider_id));
+  if (options.includeRoster) {
+    activeContracts.forEach((contract) => riderIds.add(contract.rider_id));
+  }
   const rosterSize = new Set(
     activeContracts.map((contract) => contract.rider_id),
   ).size;
@@ -907,6 +908,11 @@ async function prepareCurrentTransferMarket(
     "settle_transfer_market",
   );
   assertQuery(secondSettlementError, "la clôture du marché quotidien");
+}
+
+export async function runTransferMarketMaintenance() {
+  const admin = createSupabaseAdminClient();
+  await prepareCurrentTransferMarket(admin);
 }
 
 async function loadCurrentContext(
