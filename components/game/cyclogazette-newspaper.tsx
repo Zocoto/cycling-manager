@@ -862,9 +862,11 @@ function InterviewAnswerReactionBar({
         );
         if (!canReact && !summary?.count) return null;
         const label = isEnglish ? definition.labelEn : definition.labelFr;
+        const isNegative = definition.sentiment === "negative";
         return (
           <button
             key={definition.emoji}
+            data-reaction-sentiment={definition.sentiment}
             type="button"
             onClick={() => onToggle(questionId, definition.emoji)}
             disabled={!canReact || pending}
@@ -874,7 +876,9 @@ function InterviewAnswerReactionBar({
             className={`inline-flex min-h-8 items-center gap-1 rounded-full border px-2 py-1 text-sm transition ${
               summary?.reactedByViewer
                 ? "border-[#A12742] bg-[#A12742] text-white"
-                : "border-[#806C45]/45 bg-[var(--gazette-card-soft)] text-[#241F18] hover:border-[#A12742]"
+                : isNegative
+                  ? "border-[#A12742]/45 bg-[#A12742]/5 text-[#6E1C2F] hover:border-[#A12742]"
+                  : "border-[#806C45]/45 bg-[var(--gazette-card-soft)] text-[#241F18] hover:border-[#A12742]"
             } disabled:cursor-default disabled:hover:border-[#806C45]/45 disabled:opacity-80`}
           >
             <span aria-hidden="true">{definition.emoji}</span>

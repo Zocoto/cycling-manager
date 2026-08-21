@@ -1,9 +1,53 @@
 export const CYCLOGAZETTE_INTERVIEW_REACTION_DEFINITIONS = [
-  { emoji: "😂", labelFr: "Trait d’humour", labelEn: "Funny" },
-  { emoji: "👏", labelFr: "Bravo", labelEn: "Bravo" },
-  { emoji: "🔥", labelFr: "Réponse marquante", labelEn: "Striking answer" },
-  { emoji: "🤝", labelFr: "Fair-play", labelEn: "Fair play" },
-  { emoji: "❤️", labelFr: "J’adore", labelEn: "Love it" },
+  {
+    emoji: "😂",
+    labelFr: "Trait d’humour",
+    labelEn: "Funny",
+    sentiment: "positive",
+  },
+  { emoji: "👏", labelFr: "Bravo", labelEn: "Bravo", sentiment: "positive" },
+  {
+    emoji: "🔥",
+    labelFr: "Réponse marquante",
+    labelEn: "Striking answer",
+    sentiment: "positive",
+  },
+  {
+    emoji: "🤝",
+    labelFr: "Fair-play",
+    labelEn: "Fair play",
+    sentiment: "positive",
+  },
+  {
+    emoji: "❤️",
+    labelFr: "J’adore",
+    labelEn: "Love it",
+    sentiment: "positive",
+  },
+  {
+    emoji: "👎",
+    labelFr: "Pas d’accord",
+    labelEn: "Disagree",
+    sentiment: "negative",
+  },
+  {
+    emoji: "🙄",
+    labelFr: "Pas convaincu",
+    labelEn: "Not convinced",
+    sentiment: "negative",
+  },
+  {
+    emoji: "😡",
+    labelFr: "Ça fâche",
+    labelEn: "Angry",
+    sentiment: "negative",
+  },
+  {
+    emoji: "🤡",
+    labelFr: "Mauvais perdant",
+    labelEn: "Sore loser",
+    sentiment: "negative",
+  },
 ] as const;
 
 export type CyclogazetteInterviewReactionEmoji =

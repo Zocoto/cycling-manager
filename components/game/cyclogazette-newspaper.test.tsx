@@ -175,6 +175,13 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup.match(/data-interview-answer-reactions="win-belief"/g)).toHaveLength(2);
     expect(markup).toContain("Trait d’humour · 2");
     expect(markup).toContain("Réponse marquante");
+    expect(markup).toContain('aria-label="Pas d’accord"');
+    expect(markup).toContain('aria-label="Pas convaincu"');
+    expect(markup).toContain('aria-label="Ça fâche"');
+    expect(markup).toContain('aria-label="Mauvais perdant"');
+    expect(markup.match(/data-reaction-sentiment="negative"/g)).toHaveLength(
+      12,
+    );
   });
 
   it("devient Cyclo Gazetta sur papier rose de J2 à J7", () => {
