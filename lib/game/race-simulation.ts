@@ -6619,6 +6619,8 @@ function validateTimeTrialPlans(input: StageSimulationInput) {
   }
 
   const teams = groupBy(input.riders, (rider) => rider.teamId);
+  if (input.stageType !== "team_time_trial") return;
+
   for (const riders of teams.values()) {
     const plannedRiders = riders.filter((rider) => plans[rider.id]);
     if (plannedRiders.length === 0) continue;
@@ -6627,8 +6629,6 @@ function validateTimeTrialPlans(input: StageSimulationInput) {
         "Une préparation chrono doit couvrir toute l’équipe engagée.",
       );
     }
-    if (input.stageType !== "team_time_trial") continue;
-
     const relayTotal = plannedRiders.reduce(
       (total, rider) => total + (plans[rider.id].relaySharePct ?? 0),
       0,

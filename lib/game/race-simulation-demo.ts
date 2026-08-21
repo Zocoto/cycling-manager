@@ -120,18 +120,25 @@ export function createCalendarSimulationInput({
   const teamStrategies = Object.values(stage.teamStrategies ?? {}).sort(
     (first, second) => first.teamId.localeCompare(second.teamId),
   );
-  const sourceRiders =
+  const rawSourceRiders =
     edition.engagedRiders.length > 0
       ? edition.engagedRiders
       : edition.slug === "criterium-de-namur"
         ? DEMO_RIDERS
         : [];
 
-  if (sourceRiders.length === 0) {
+  if (rawSourceRiders.length === 0) {
     throw new Error(
       `La course ${edition.name} ne peut pas être simulée sans startlist enregistrée.`,
     );
   }
+  // Une même personne peut temporairement subsister dans deux inscriptions
+  // après une signature ou une vente (équipe puis « Coureurs libres »). La
+  // course reste unique : le moteur ne doit jamais recevoir deux fois le même
+  // coureur, même si la synchronisation de la base est encore en cours.
+  const sourceRiders = [
+    ...new Map(rawSourceRiders.map((rider) => [rider.id, rider])).values(),
+  ];
   const sanitizedTeamStrategies = sanitizeCalendarTeamStrategies({
     stage,
     sourceRiders,
@@ -179,6 +186,12 @@ export function createCalendarSimulationInput({
         first.teamId.localeCompare(second.teamId) ||
         first.id.localeCompare(second.id),
     );
+  const riderIds = new Set(riders.map((rider) => rider.id));
+  const timeTrialPlans = Object.fromEntries(
+    Object.entries(stage.timeTrialPlans ?? {}).filter(([riderId]) =>
+      riderIds.has(riderId),
+    ),
+  );
 
   const segments = removeOneDayRaceMountainPrimes(
     stage.segments.length > 0
@@ -217,9 +230,7 @@ export function createCalendarSimulationInput({
         ? { ...rider, reconnaissanceBonus }
         : rider;
     }),
-    ...(stage.timeTrialPlans
-      ? { timeTrialPlans: stage.timeTrialPlans }
-      : {}),
+    ...(Object.keys(timeTrialPlans).length > 0 ? { timeTrialPlans } : {}),
     ...(teamStrategies.length > 0 ? { teamStrategies } : {}),
   };
 }

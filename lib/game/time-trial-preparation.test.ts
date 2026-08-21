@@ -46,6 +46,23 @@ describe("time-trial race preparation", () => {
     expect(allIn.energyAfter).toBeLessThan(conserving.energyAfter);
   });
 
+  it("defaults unplanned riders to normal effort in an individual time trial", () => {
+    const baseInput = createDemoSimulationInput("chrono-algarve", 91);
+
+    expect(() =>
+      simulateRaceStage({
+        ...baseInput,
+        riders: baseInput.riders.slice(0, 3),
+        timeTrialPlans: {
+          [baseInput.riders[0].id]: {
+            effortMode: "all_in",
+            relaySharePct: null,
+          },
+        },
+      }),
+    ).not.toThrow();
+  });
+
   it("uses relay shares to build the team time-trial pace", () => {
     const baseInput = createDemoSimulationInput("chrono-algarve", 103);
     const strong = createRider("strong", 88);

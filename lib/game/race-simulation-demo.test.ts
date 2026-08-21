@@ -45,6 +45,52 @@ describe("createCalendarSimulationInput", () => {
     );
   });
 
+  it("déduplique un coureur resté dans deux inscriptions de la même course", () => {
+    const staleEntry = createRider("rider-a", "free-agents");
+    const currentEntry = createRider("rider-a", "team-a");
+    const edition = createEdition({
+      slug: "cn-startlist-dedupliquee",
+      riders: [staleEntry, currentEntry, createRider("rider-b", "team-b")],
+    });
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "official",
+    });
+
+    expect(input.riders.map((rider) => rider.id)).toEqual([
+      "rider-a",
+      "rider-b",
+    ]);
+    expect(input.riders.find((rider) => rider.id === "rider-a")?.teamId).toBe(
+      "team-a",
+    );
+  });
+
+  it("écarte les anciennes consignes chrono d'un coureur retiré", () => {
+    const rider = createRider("rider-a", "team-a");
+    const edition = createEdition({
+      slug: "cn-plan-chrono-assaini",
+      riders: [rider],
+    });
+    edition.stages[0].stageType = "individual_time_trial";
+    edition.stages[0].timeTrialPlans = {
+      "rider-a": { effortMode: "all_in", relaySharePct: null },
+      "rider-retire": { effortMode: "conserve", relaySharePct: null },
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "official",
+    });
+
+    expect(input.timeTrialPlans).toEqual({
+      "rider-a": { effortMode: "all_in", relaySharePct: null },
+    });
+  });
+
   it("applique le rôle propre à l'étape sans modifier le rôle général", () => {
     const riders = [
       { ...createRider("rider-a", "team-a"), role: "domestique" as const },

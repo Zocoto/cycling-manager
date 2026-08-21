@@ -47,6 +47,7 @@ import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
+  chunkValues,
   collectChunkedPaginatedRows,
   collectPaginatedRows,
 } from "@/lib/supabase/pagination";
@@ -145,6 +146,8 @@ type IncompleteCompletedEditionRow = {
   race_edition_id: string;
 };
 
+export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 4;
+
 async function loadIncompleteCompletedEditionIds({
   admin,
   calendar,
@@ -190,24 +193,27 @@ export async function settleFinishedRaceResults(
     (replayCalendar.editions.length > 0
       ? await ensureLockedOfficialRaceSimulations(replayCalendar, now)
       : {});
-  let processedStages = 0;
-  let completedEditions = 0;
-  let failedEditions = 0;
-  let needsDeferredConditionSettlement = false;
-
-  for (const edition of calendar.editions) {
+  const dueEditions = calendar.editions.filter((edition) => {
     const hasPendingStage = edition.stages.some(
       (stage) => getStageLiveState(stage, now).status !== "finished",
     );
-    if (
-      !shouldSettleRaceEdition(
-        edition,
-        repairableCompletedEditionIds,
-        hasPendingStage,
-      )
-    ) {
-      continue;
-    }
+    return shouldSettleRaceEdition(
+      edition,
+      repairableCompletedEditionIds,
+      hasPendingStage,
+    );
+  });
+  const nationalChampionshipEditions = dueEditions.filter((edition) =>
+    shouldUseNationalChampionshipResultsOnly({
+      gameYear: calendar.gameYear,
+      competitionType: edition.competitionType,
+    }),
+  );
+  const standardEditions = dueEditions.filter(
+    (edition) => !nationalChampionshipEditions.includes(edition),
+  );
+
+  const settleEdition = async (edition: RaceCalendarEdition) => {
     // La fin de journée marque les éditions « completed » même si leurs
     // résultats n'ont jamais été consolidés (bug historique). Sur l'espace
     // dédié d'une course, on réévalue donc ces éditions pour les réparer.
@@ -228,15 +234,54 @@ export async function settleFinishedRaceResults(
           ? createNationalChampionshipResultsOnlySimulations({ edition, now })
           : (officialSimulations[edition.id] ?? []),
       });
-      processedStages += settlement.processedStages;
-      completedEditions += settlement.completedEditions;
-      needsDeferredConditionSettlement ||=
-        resultsOnly && settlement.processedStages > 0;
+      return {
+        ...settlement,
+        failedEditions: 0,
+        needsDeferredConditionSettlement:
+          resultsOnly && settlement.processedStages > 0,
+      };
     } catch (error) {
-      failedEditions += 1;
       console.error(`Impossible de consolider ${edition.name} :`, error);
+      return {
+        processedStages: 0,
+        completedEditions: 0,
+        failedEditions: 1,
+        needsDeferredConditionSettlement: false,
+      };
     }
+  };
+
+  const settlements = [];
+  // Les CN sont indépendants les uns des autres. Un pool borné les résout en
+  // parallèle sans saturer Postgres et sans qu'un pays lent bloque tous les
+  // suivants jusqu'au timeout de la fonction serveur.
+  for (const editionBatch of chunkValues(
+    nationalChampionshipEditions,
+    NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY,
+  )) {
+    settlements.push(...(await Promise.all(editionBatch.map(settleEdition))));
   }
+  // Les courses par étapes restent séquentielles : leur historique sportif
+  // peut dépendre de la consolidation d'une étape précédente.
+  for (const edition of standardEditions) {
+    settlements.push(await settleEdition(edition));
+  }
+
+  const processedStages = settlements.reduce(
+    (total, settlement) => total + settlement.processedStages,
+    0,
+  );
+  const completedEditions = settlements.reduce(
+    (total, settlement) => total + settlement.completedEditions,
+    0,
+  );
+  const failedEditions = settlements.reduce(
+    (total, settlement) => total + settlement.failedEditions,
+    0,
+  );
+  const needsDeferredConditionSettlement = settlements.some(
+    (settlement) => settlement.needsDeferredConditionSettlement,
+  );
 
   if (needsDeferredConditionSettlement) {
     const { error } = await admin.rpc("settle_finished_race_conditions");
