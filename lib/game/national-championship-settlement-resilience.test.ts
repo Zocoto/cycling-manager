@@ -18,17 +18,25 @@ describe("national championship settlement resilience", () => {
     expect(source).toContain("await Promise.all(editionBatch.map(settleEdition))");
   });
 
-  it("enforces one active roster per rider and edition in the database", () => {
+  it("cleans duplicate CN rosters in one set-based pass", () => {
     const migration = readSource(
-      "supabase/migrations/20260821171000_harden_national_championship_settlement.sql",
+      "supabase/migrations/20260821173500_replace_conflicting_cn_roster_trigger.sql",
     );
+    const service = readSource("services/national-championships.ts");
 
     expect(migration).toContain(
-      "enforce_unique_active_rider_per_race_edition",
+      "drop trigger if exists enforce_unique_active_rider_per_race_edition",
     );
-    expect(migration).toContain("other_registration.race_edition_id");
-    expect(migration).toContain("other_roster.rider_id = new.rider_id");
-    expect(migration).toContain("set status = 'withdrawn'");
+    expect(migration).toContain(
+      "cleanup_duplicate_national_championship_rosters",
+    );
+    expect(migration).toContain(
+      "partition by edition.id, roster.rider_id",
+    );
+    expect(migration).toContain("and ranked.active_rank > 1");
+    expect(service).toContain(
+      '"cleanup_duplicate_national_championship_rosters"',
+    );
   });
 
   it("runs discipline-specific crons only on national day", () => {
@@ -41,6 +49,8 @@ describe("national championship settlement resilience", () => {
     expect(route).toContain('"road-summer": "national_road"');
     expect(route).toContain("season.current_day_number !== 8");
     expect(route).toContain("edition.competitionType === competitionType");
+    expect(route).toContain("synchronizationError");
+    expect(route).toContain("la consolidation des startlists déjà gelées continue");
     expect(vercel).toContain(
       "/api/cron/national-championship-settlements/time-trial",
     );

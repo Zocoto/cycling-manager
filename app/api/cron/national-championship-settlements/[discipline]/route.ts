@@ -50,7 +50,18 @@ export async function GET(
   }
 
   const now = new Date();
-  const synchronizedEntries = await syncNationalChampionshipRegistrations(now);
+  let synchronizedEntries: number | null = null;
+  let synchronizationError: string | null = null;
+  try {
+    synchronizedEntries = await syncNationalChampionshipRegistrations(now);
+  } catch (error) {
+    synchronizationError =
+      error instanceof Error ? error.message : "Unknown synchronization error";
+    console.error(
+      `La synchronisation préalable des ${discipline} a échoué ; la consolidation des startlists déjà gelées continue :`,
+      error,
+    );
+  }
   const calendar = await getActiveSeasonRaceCalendar(admin, now, {
     includeIneligibleRegionalRaces: true,
   });
@@ -58,6 +69,7 @@ export async function GET(
     return Response.json({
       discipline,
       synchronizedEntries,
+      synchronizationError,
       processedStages: 0,
       completedEditions: 0,
       failedEditions: 0,
@@ -75,6 +87,7 @@ export async function GET(
   return Response.json({
     discipline,
     synchronizedEntries,
+    synchronizationError,
     targetedEditions: nationalCalendar.editions.length,
     ...settlement,
     settledAt: now.toISOString(),

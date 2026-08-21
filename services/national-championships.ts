@@ -132,7 +132,25 @@ export async function syncNationalChampionshipRegistrations(now = new Date()) {
     p_now: now.toISOString(),
   });
   assertQuery(result.error, "les sélections automatiques des CN");
-  return Number(result.data ?? 0);
+
+  const { data: seasons, error: seasonsError } = await admin
+    .from("seasons")
+    .select("id")
+    .eq("status", "active")
+    .returns<Array<{ id: string }>>();
+  assertQuery(seasonsError, "les saisons actives des CN");
+
+  let withdrawnDuplicates = 0;
+  for (const season of seasons ?? []) {
+    const cleanup = await admin.rpc(
+      "cleanup_duplicate_national_championship_rosters",
+      { p_season_id: season.id },
+    );
+    assertQuery(cleanup.error, "le nettoyage des doublons d’engagement aux CN");
+    withdrawnDuplicates += Number(cleanup.data ?? 0);
+  }
+
+  return Number(result.data ?? 0) + withdrawnDuplicates;
 }
 
 export async function getCurrentTeamNationalChampionshipCountryCodes({
