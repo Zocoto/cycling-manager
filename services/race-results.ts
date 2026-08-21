@@ -146,7 +146,7 @@ type IncompleteCompletedEditionRow = {
   race_edition_id: string;
 };
 
-export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 4;
+export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 2;
 
 async function loadIncompleteCompletedEditionIds({
   admin,

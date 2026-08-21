@@ -12,7 +12,7 @@ describe("national championship settlement resilience", () => {
     const source = readSource("services/race-results.ts");
 
     expect(source).toContain(
-      "export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 4",
+      "export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 2",
     );
     expect(source).toContain("chunkValues(");
     expect(source).toContain("await Promise.all(editionBatch.map(settleEdition))");
@@ -77,5 +77,15 @@ describe("national championship settlement resilience", () => {
     expect(generalRoute).not.toContain(
       "syncNationalChampionshipRegistrations",
     );
+  });
+
+  it("keeps result pages read-only for national registrations", () => {
+    const directory = readSource("app/jeu/resultats/page.tsx");
+    const stage = readSource(
+      "app/jeu/resultats/[slug]/[stageNumber]/page.tsx",
+    );
+
+    expect(directory).not.toContain("syncNationalChampionshipRegistrations");
+    expect(stage).not.toContain("syncNationalChampionshipRegistrations");
   });
 });

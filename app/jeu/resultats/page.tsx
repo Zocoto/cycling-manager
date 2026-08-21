@@ -19,7 +19,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamNationalChampionshipCountryCodes,
-  syncNationalChampionshipRegistrations,
 } from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 
@@ -48,10 +47,6 @@ export default async function RaceResultsPage({
   if (authenticationError || !user) redirect("/connexion");
 
   const now = new Date();
-  await syncNationalChampionshipRegistrations(now).catch((error: unknown) => {
-    console.error("Impossible de synchroniser les sélections CN :", error);
-  });
-
   const [headerData, calendarResult, criteriumProgress] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {

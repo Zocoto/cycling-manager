@@ -18,7 +18,6 @@ import { getGameHeaderData } from "@/services/game-header-data";
 import {
   getCurrentTeamNationalChampionshipCountryCodes,
   getNationalChampionshipDiscipline,
-  syncNationalChampionshipRegistrations,
 } from "@/services/national-championships";
 import {
   getActiveSeasonRaceCalendar,
@@ -71,10 +70,6 @@ export default async function RaceLivePage({
   if (authenticationError || !user) redirect("/connexion");
 
   const now = new Date();
-  await syncNationalChampionshipRegistrations(now).catch((error: unknown) => {
-    console.error("Impossible de synchroniser les sélections CN :", error);
-  });
-
   const [headerData, calendar] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {
