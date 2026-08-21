@@ -57,7 +57,7 @@ describe("national championship settlement resilience", () => {
     expect(vercel).toContain(
       "/api/cron/national-championship-settlements/road",
     );
-    expect(vercel).toContain('"schedule": "23 16 * * *"');
+    expect(vercel).toContain('"schedule": "33 16 * * *"');
   });
 
   it("keeps national settlements out of the general race cron", () => {
