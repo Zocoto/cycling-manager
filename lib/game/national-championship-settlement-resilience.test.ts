@@ -12,7 +12,7 @@ describe("national championship settlement resilience", () => {
     const source = readSource("services/race-results.ts");
 
     expect(source).toContain(
-      "export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 2",
+      "export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 1",
     );
     expect(source).toContain("chunkValues(");
     expect(source).toContain("await Promise.all(editionBatch.map(settleEdition))");
