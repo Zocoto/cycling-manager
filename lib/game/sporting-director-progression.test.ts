@@ -4,6 +4,10 @@ import {
   calculateSportingDirectorProgression,
   getExperienceRequiredForNextLevel,
 } from "./sporting-director-progression";
+import {
+  MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+  MAX_SPORTING_DIRECTOR_LEVEL,
+} from "./sporting-director-limits";
 
 describe("calculateSportingDirectorProgression", () => {
   it("commence au niveau 1 avec zéro point d’expérience", () => {
@@ -15,6 +19,7 @@ describe("calculateSportingDirectorProgression", () => {
       experienceIntoLevel: 0,
       experienceRequiredForNextLevel: 100,
       progressPercentage: 0,
+      isMaxLevel: false,
     });
   });
 
@@ -90,6 +95,35 @@ describe("calculateSportingDirectorProgression", () => {
         .totalExperiencePoints
     ).toBe(74);
   });
+
+  it("plafonne la progression au niveau 50", () => {
+    const progression =
+      calculateSportingDirectorProgression(
+        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+      );
+
+    expect(progression).toMatchObject({
+      level: MAX_SPORTING_DIRECTOR_LEVEL,
+      totalExperiencePoints:
+        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+      experienceIntoLevel: 0,
+      experienceRequiredForNextLevel: 0,
+      progressPercentage: 100,
+      isMaxLevel: true,
+    });
+  });
+
+  it("ignore l'expérience gagnée au-delà du niveau maximum", () => {
+    expect(
+      calculateSportingDirectorProgression(
+        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS + 50_000,
+      ),
+    ).toEqual(
+      calculateSportingDirectorProgression(
+        MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+      ),
+    );
+  });
 });
 
 describe("getExperienceRequiredForNextLevel", () => {
@@ -105,5 +139,17 @@ describe("getExperienceRequiredForNextLevel", () => {
     expect(
       getExperienceRequiredForNextLevel(5)
     ).toBe(300);
+  });
+
+  it("conserve un plafond XP cohérent avec le niveau 50", () => {
+    const experienceRequiredForLevel50 = Array.from(
+      { length: MAX_SPORTING_DIRECTOR_LEVEL - 1 },
+      (_, index) =>
+        getExperienceRequiredForNextLevel(index + 1),
+    ).reduce((total, threshold) => total + threshold, 0);
+
+    expect(experienceRequiredForLevel50).toBe(
+      MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+    );
   });
 });

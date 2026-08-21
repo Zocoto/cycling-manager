@@ -1,17 +1,23 @@
+import {
+  MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+  MAX_SPORTING_DIRECTOR_LEVEL,
+} from "./sporting-director-limits";
+
 export type SportingDirectorProgression = {
   level: number;
   totalExperiencePoints: number;
   experienceIntoLevel: number;
   experienceRequiredForNextLevel: number;
   progressPercentage: number;
+  isMaxLevel: boolean;
 };
 
 export function calculateSportingDirectorProgression(
   experiencePoints: number
 ): SportingDirectorProgression {
-  const safeExperiencePoints = Math.max(
-    0,
-    Math.floor(experiencePoints)
+  const safeExperiencePoints = Math.min(
+    MAX_SPORTING_DIRECTOR_EXPERIENCE_POINTS,
+    Math.max(0, Math.floor(experiencePoints))
   );
 
   let level = 1;
@@ -20,6 +26,7 @@ export function calculateSportingDirectorProgression(
     getExperienceRequiredForNextLevel(level);
 
   while (
+    level < MAX_SPORTING_DIRECTOR_LEVEL &&
     safeExperiencePoints >=
     experienceConsumed +
       experienceRequiredForNextLevel
@@ -33,18 +40,28 @@ export function calculateSportingDirectorProgression(
       getExperienceRequiredForNextLevel(level);
   }
 
-  const experienceIntoLevel =
-    safeExperiencePoints - experienceConsumed;
+  const isMaxLevel =
+    level >= MAX_SPORTING_DIRECTOR_LEVEL;
 
-  const progressPercentage = Math.min(
-    100,
-    Math.max(
-      0,
-      (experienceIntoLevel /
-        experienceRequiredForNextLevel) *
-        100
-    )
-  );
+  const experienceIntoLevel = isMaxLevel
+    ? 0
+    : safeExperiencePoints - experienceConsumed;
+
+  if (isMaxLevel) {
+    experienceRequiredForNextLevel = 0;
+  }
+
+  const progressPercentage = isMaxLevel
+    ? 100
+    : Math.min(
+        100,
+        Math.max(
+          0,
+          (experienceIntoLevel /
+            experienceRequiredForNextLevel) *
+            100
+        )
+      );
 
   return {
     level,
@@ -52,6 +69,7 @@ export function calculateSportingDirectorProgression(
     experienceIntoLevel,
     experienceRequiredForNextLevel,
     progressPercentage,
+    isMaxLevel,
   };
 }
 

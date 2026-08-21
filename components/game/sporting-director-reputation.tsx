@@ -1,4 +1,5 @@
 import type { SportingDirectorReputationBreakdown } from "@/lib/game/reputation-breakdown";
+import { MAX_SPORTING_DIRECTOR_REPUTATION_POINTS } from "@/lib/game/sporting-director-limits";
 
 import { ReputationBreakdownPopover } from "./reputation-breakdown-popover";
 
@@ -15,7 +16,12 @@ export function SportingDirectorReputation({
 }: SportingDirectorReputationProps) {
   const safeReputationPoints = new Intl.NumberFormat("fr-FR", {
     maximumFractionDigits: 2,
-  }).format(Math.max(0, reputationPoints));
+  }).format(
+    Math.min(
+      MAX_SPORTING_DIRECTOR_REPUTATION_POINTS,
+      Math.max(0, reputationPoints),
+    ),
+  );
 
   if (compact) {
     return (
@@ -58,7 +64,9 @@ export function SportingDirectorReputation({
         La réputation mesure votre crédibilité auprès
         des sponsors et du monde du cyclisme. Certains
         partenaires prestigieux imposent un minimum de
-        réputation.
+        réputation. Elle est plafonnée à 1 000 points :
+        les pertes restent possibles une fois ce plafond
+        atteint.
       </p>
     </div>
   );

@@ -28,4 +28,14 @@ describe("SportingDirectorReputation", () => {
     expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain("Consulter le d\u00e9tail");
   });
+
+  it("n'affiche jamais plus de 1 000 points", () => {
+    const markup = renderToStaticMarkup(
+      <SportingDirectorReputation reputationPoints={1_250} />,
+    );
+
+    expect(markup).toContain("1\u202f000 points");
+    expect(markup).not.toContain("1\u202f250 points");
+    expect(markup).toContain("plafonn\u00e9e \u00e0 1 000 points");
+  });
 });
