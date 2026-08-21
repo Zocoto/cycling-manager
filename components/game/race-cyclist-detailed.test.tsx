@@ -56,9 +56,30 @@ describe("detailed race cyclist", () => {
     expect(markup).toContain('data-race-bike-texture="carbon-metal"');
     expect(markup).toContain('data-race-jersey-texture="technical-fabric"');
     expect(markup).toContain('data-race-helmet-texture="vented-shell"');
+    expect(markup).toContain('data-race-cyclist-anatomy="torso"');
+    expect(markup).toContain('data-race-cyclist-anatomy="pelvis"');
+    expect(markup).toContain('data-race-cyclist-anatomy="front-upper-arm"');
+    expect(markup).toContain('data-race-cyclist-anatomy="front-forearm"');
+    expect(markup).toContain('data-race-cyclist-anatomy="front-leg"');
+    expect(markup).toContain('data-race-cyclist-anatomy="rear-leg"');
+    expect(markup).not.toContain("m35 19-8 8");
+    expect(markup).toContain('data-race-cyclist-direction="finish-right"');
+    expect(markup).toContain('data-race-cyclist-pose="seated"');
     expect(markup).toContain("cm-bike-leg-front");
     expect(markup).toContain("cm-bike-leg-back");
     expect((markup.match(/<path/g) ?? []).length).toBeGreaterThan(20);
+  });
+
+  it("uses a dedicated anatomically raised pose when climbing out of the saddle", () => {
+    const markup = renderToStaticMarkup(
+      <SideRaceCyclist rider={rider} isMoving ridingPose="standing" />,
+    );
+
+    expect(markup).toContain('data-race-cyclist-pose="standing-climb"');
+    expect(markup).toContain("cm-bike-standing");
+    expect(markup).toContain("M39.2 23.5C38.8 19.2");
+    expect(markup).toContain("M35.3 30.2C36.1 35");
+    expect(markup).not.toContain("cm-bike-bob");
   });
 
   it("changes cadence and airflow for a rider currently taking a relay", () => {
@@ -113,7 +134,7 @@ describe("detailed race cyclist", () => {
 
     expect(markup.match(/data-race-victory-pose="arms-raised"/g)).toHaveLength(2);
     expect(markup.match(/data-race-victory-torso="upright"/g)).toHaveLength(3);
-    expect(markup).toContain("M42 10C40 12 39 16");
+    expect(markup).toContain("M42 10C39.8 12.3 39.2 16.1");
     expect(markup).toContain("M43 14C41 11 39.2 7.3 37 4");
     expect(markup.match(/cm-victory-arms/g)).toHaveLength(2);
   });

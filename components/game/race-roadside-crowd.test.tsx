@@ -30,6 +30,7 @@ describe("race roadside crowd", () => {
 
     expect(flat).toContain('data-race-roadside-crowd="roadside"');
     expect(flat).toContain('data-race-crowd-track="right-to-left"');
+    expect(flat).toContain('data-race-crowd-spacing="clustered-irregular"');
     expect(flat).toContain('data-race-crowd-protected-corridor="full-road"');
     expect(flat).toContain('data-race-crowd-safe-lane="upper"');
     expect(flat).toContain('data-race-crowd-safe-lane="lower"');

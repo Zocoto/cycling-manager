@@ -29,6 +29,7 @@ export function RaceGroupFormation({
   primeSprintContenderIds = [],
   primeSprintProgress = null,
   frontDynamics,
+  terrain = "flat",
 }: {
   group: RaceGroupSnapshot;
   riderIds: string[];
@@ -41,6 +42,7 @@ export function RaceGroupFormation({
   primeSprintContenderIds?: string[];
   primeSprintProgress?: number | null;
   frontDynamics?: RaceVisualFrame["frontDynamics"];
+  terrain?: "flat" | "climb" | "descent";
 }) {
   const breakawayVisualState = getBreakawayVisualState(frontDynamics);
   const groupSprintContenderIds = primeSprintContenderIds.filter((riderId) =>
@@ -154,6 +156,13 @@ export function RaceGroupFormation({
               : isMoving
                 ? "cm-race-rider-crosswind"
                 : "";
+        const ridesStanding =
+          terrain === "climb" &&
+          isMoving &&
+          !incidentRider &&
+          (visualEffort === "relay" || visualEffort === "chase") &&
+          (riderIndex === 0 ||
+            stableCyclistPoseHash(`${group.id}:${riderId}`) % 5 === 0);
 
         return (
           <span
@@ -170,6 +179,9 @@ export function RaceGroupFormation({
                 primeContenderIndex >= 0 ? primeContenderIndex + 1 : undefined
               }
               data-race-rider-effort={visualEffort}
+              data-race-rider-climbing-pose={
+                ridesStanding ? "standing" : "seated"
+              }
               className={`relative block cm-race-rider-effort-${visualEffort} ${isMoving ? "cm-race-rider-weave" : ""} ${
                 isMoving && primeContenderIndex >= 0
                   ? "cm-prime-sprint-contender"
@@ -186,7 +198,8 @@ export function RaceGroupFormation({
                   rider={rider}
                   isMoving={isMoving}
                   effort={visualEffort}
-                  className={compact ? "h-8 w-14" : "h-9 w-16"}
+                  ridingPose={ridesStanding ? "standing" : "seated"}
+                  className={compact ? "h-9 w-14" : "h-10 w-16"}
                 />
                 {riderIncident &&
                 (riderIncident.type === "crash_individual" ||
@@ -322,7 +335,7 @@ export function RaceDepartureFormation({
             <SideRaceCyclist
               rider={rider}
               isMoving={isMoving}
-              className="h-9 w-16"
+              className="h-10 w-16"
             />
           </span>
         );
@@ -491,4 +504,12 @@ function orderFormationRiderIds({
 
 function getRiderShortName(name: string) {
   return name.split(" ").at(-1) ?? name;
+}
+
+function stableCyclistPoseHash(value: string) {
+  return [...value].reduce(
+    (total, character) =>
+      (total * 31 + character.charCodeAt(0)) >>> 0,
+    17,
+  );
 }

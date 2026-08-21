@@ -235,6 +235,11 @@ a {
   50% { transform: translateY(-1.5px) rotate(-0.6deg); }
 }
 
+@keyframes cm-bike-standing {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-1.15deg); }
+  50% { transform: translate3d(0, -1.25px, 0) rotate(1.15deg); }
+}
+
 @keyframes cm-bike-wheel {
   to { stroke-dashoffset: -20; }
 }
@@ -273,9 +278,9 @@ a {
 }
 
 @keyframes cm-camera-moto {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.25deg); }
-  45% { transform: translate3d(1.2px, -1.1px, 0) rotate(0.35deg); }
-  72% { transform: translate3d(-0.5px, -0.35px, 0) rotate(0deg); }
+  0%, 100% { transform: translate3d(-1px, 0, 0) rotate(-0.25deg); }
+  45% { transform: translate3d(var(--cm-camera-moto-drift, 7px), -1.1px, 0) rotate(0.35deg); }
+  72% { transform: translate3d(1.5px, -0.35px, 0) rotate(0deg); }
 }
 
 @keyframes cm-camera-moto-wheel {
@@ -539,6 +544,12 @@ a {
   animation: cm-bike-bob 0.34s ease-in-out infinite;
 }
 
+.cm-bike-standing {
+  animation: cm-bike-standing 0.52s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 48% 86%;
+}
+
 .cm-bike-wheel {
   animation: cm-bike-wheel 0.4s linear infinite;
 }
@@ -594,7 +605,7 @@ a {
 }
 
 .cm-camera-moto {
-  animation: cm-camera-moto 0.62s ease-in-out infinite;
+  animation: cm-camera-moto 1.45s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -735,6 +746,7 @@ a {
   .cm-prime-sprint-wind-lines,
   .cm-victory-arms,
   .cm-bike-bob,
+  .cm-bike-standing,
   .cm-bike-wheel,
   .cm-bike-pedal,
   .cm-bike-leg-front,

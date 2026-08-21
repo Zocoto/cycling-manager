@@ -157,6 +157,7 @@ describe("race group formation", () => {
           activeRelayRiderIds: ["rider-5"],
           chasePressure: 0.72,
         }}
+        terrain="climb"
       />,
     );
 
@@ -164,6 +165,9 @@ describe("race group formation", () => {
     expect(markup).toContain('data-race-rider-effort="relay"');
     expect(markup).toContain('data-race-rider-effort="sheltered"');
     expect(markup).toContain('data-race-cyclist-airflow="relay"');
+    expect(markup).toContain('data-race-rider-climbing-pose="standing"');
+    expect(markup).toContain('data-race-cyclist-pose="standing-climb"');
+    expect(markup).toContain("cm-bike-standing");
     expect(markup.indexOf("Coureur 5")).toBeLessThan(
       markup.indexOf("Coureur 1"),
     );

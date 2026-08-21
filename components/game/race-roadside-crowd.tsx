@@ -52,13 +52,13 @@ export function RaceRoadsideCrowd({
         secondaryColor: colors[(index + 2) % colors.length],
       }));
   const dense = terrain === "climb";
-  const rearCount = dense ? 36 : 19;
+  const rearPositions = getClusteredSpectatorPositions(dense);
   const roadY = (x: number) => roadLeftY + (roadRightY - roadLeftY) * (x / 1000);
   const upperRoadInset = dense ? Math.min(12, roadDepthY * 0.12) : -2;
   const lowerRoadInset = dense ? Math.min(8, roadDepthY * 0.08) : -2;
   const upperSafeBoundary = (x: number) => roadY(x) + upperRoadInset;
   const lowerSafeBoundary = (x: number) => roadY(x) + roadDepthY - lowerRoadInset;
-  const foregroundX = [38, 106, 178, 822, 894, 962].filter(
+  const foregroundX = [30, 44, 61, 154, 171, 812, 829, 847, 941, 957].filter(
     (x) => roadY(x) + roadDepthY < 292,
   );
 
@@ -70,8 +70,7 @@ export function RaceRoadsideCrowd({
         clipPath={`url(#${clipId}-upper)`}
         className="cm-crowd-wave"
       >
-        {Array.from({ length: rearCount }, (_, index) => {
-          const x = 18 + (index * 964) / Math.max(1, rearCount - 1);
+        {rearPositions.map((x, index) => {
           const variant = getSpectatorVariant(index);
           const special = dense ? getClimbSupporter(index) : null;
           const runsAlongside = special === "runner" || special === "flag-runner";
@@ -84,13 +83,19 @@ export function RaceRoadsideCrowd({
               x={x}
               y={
                 dense
-                  ? upperSafeBoundary(x) - (runsAlongside ? 0.5 : 1.5)
-                  : roadY(x) - 3 - (index % 3) * 1.2
+                  ? upperSafeBoundary(x) -
+                    (runsAlongside ? 0.5 : 1.5) -
+                    getCrowdVerticalJitter(index) * 0.55
+                  : roadY(x) - 2.5 - getCrowdVerticalJitter(index)
               }
               color={supporterPalette.primaryColor}
               accentColor={supporterPalette.secondaryColor}
               teamId={teamPalettes.length > 0 ? supporterPalette.teamId : undefined}
-              scale={dense ? 0.65 : 0.58}
+              scale={
+                dense
+                  ? 0.61 + (index % 4) * 0.018
+                  : 0.53 + (index % 5) * 0.018
+              }
               opacity={0.92}
               armPose={variant.armPose}
               jersey={teamJersey && variant.jersey !== "striped" ? "plain" : variant.jersey}
@@ -151,6 +156,7 @@ export function RaceRoadsideCrowd({
       viewBox="0 0 2000 320"
       preserveAspectRatio="none"
       data-race-roadside-crowd={dense ? "climb-dense" : "roadside"}
+      data-race-crowd-spacing="clustered-irregular"
       data-race-crowd-track="right-to-left"
       data-race-crowd-protected-corridor={dense ? "climb" : "full-road"}
       className={`pointer-events-none absolute inset-y-0 left-0 z-[8] h-full w-[200%] max-w-none overflow-hidden ${
@@ -216,6 +222,33 @@ function getSpectatorVariant(index: number): {
     skinTone: SPECTATOR_SKIN_TONES[index % SPECTATOR_SKIN_TONES.length],
     accessory: accessories[index % accessories.length],
   };
+}
+
+function getClusteredSpectatorPositions(dense: boolean) {
+  return dense
+    ? [
+        18, 31, 42, 55, 72, 88,
+        142, 153, 166, 181,
+        250, 262, 274, 291, 307,
+        398, 411, 427,
+        505, 517, 531, 548, 565, 579,
+        664, 677, 691, 708,
+        781, 794, 808, 825, 839,
+        918, 931, 945, 962, 976,
+      ]
+    : [
+        25, 39, 55,
+        148, 163,
+        287, 301, 318, 337,
+        468, 483,
+        618, 633, 649,
+        787, 802, 820,
+        932, 947, 964,
+      ];
+}
+
+function getCrowdVerticalJitter(index: number) {
+  return [0, 2.8, -0.7, 1.4, -1.3, 3.1, 0.6][index % 7];
 }
 
 function Spectator({

@@ -22,6 +22,7 @@ export function SideRaceCyclist({
   timeTrial = false,
   rearDiscWheel = false,
   effort = "steady",
+  ridingPose = "seated",
 }: {
   rider: RiderSimulationInput;
   isMoving?: boolean;
@@ -30,6 +31,7 @@ export function SideRaceCyclist({
   timeTrial?: boolean;
   rearDiscWheel?: boolean;
   effort?: RaceRiderVisualEffort;
+  ridingPose?: "seated" | "standing";
 }) {
   const visual = getRaceCyclistJerseyVisual(rider);
   const helmet = getRaceCyclistTeamHelmetPalette(rider);
@@ -38,10 +40,17 @@ export function SideRaceCyclist({
   const visualId = `detailed-side-${useId().replace(/:/g, "")}`;
   const clipId = `${visualId}-jersey`;
   const label = `${rider.name} · ${rider.teamName} · ${visual.label}`;
+  const standing = ridingPose === "standing" && !celebrating;
   const torsoPath = celebrating
-    ? "M42 10C40 12 39 16 39.5 20.5L40.5 28C44 29.2 50.5 29.1 54 28L56.2 20C57 15.5 55.2 12 53 10C49.8 8.8 45.2 8.8 42 10Z"
-    : "M42 12C38.5 13.2 35.3 15.8 33.8 19L36.8 30C40.5 30.8 46 30.2 50 29L60 20C58.3 17.1 56.2 15 53.5 13.5C49.6 11.3 45.6 10.7 42 12Z";
-  const head = celebrating ? { cx: 48, cy: 4.5 } : { cx: 62, cy: 8.8 };
+    ? "M42 10C39.8 12.3 39.2 16.1 39.8 20.7L40.8 27.7C44.1 29.2 49.9 29.2 53.2 27.8L55.6 20C56.7 15.7 55 11.9 52.6 10C49.5 8.7 45.1 8.7 42 10Z"
+    : standing
+      ? "M39.2 23.5C38.8 19.2 39.6 14.4 42.4 10.9C44.7 8.1 48.4 7.5 51.5 9.1L56 12.2C57.7 13.2 58.1 15.1 56.9 16.7L49.1 24.3C46.4 26 42.1 25.7 39.2 23.5Z"
+      : "M39.6 26.8C40.1 22.4 40.6 17.4 43.2 13.4C45.3 10.3 49.1 9.8 52.3 11.5L57.2 14.6C59 15.5 59.5 17.4 58.3 19.1L50 27.5C47.4 29.4 43.2 29.1 39.6 26.8Z";
+  const head = celebrating
+    ? { cx: 48, cy: 4.5 }
+    : standing
+      ? { cx: 59, cy: 5.8 }
+      : { cx: 62, cy: 8.8 };
 
   return (
     <svg
@@ -49,8 +58,10 @@ export function SideRaceCyclist({
       role="img"
       aria-label={label}
       data-race-cyclist-effort={effort}
+      data-race-cyclist-direction="finish-right"
+      data-race-cyclist-pose={standing ? "standing-climb" : "seated"}
       className={`${className} overflow-visible drop-shadow-md ${
-        isMoving ? "cm-bike-bob" : ""
+        isMoving ? (standing ? "cm-bike-standing" : "cm-bike-bob") : ""
       } cm-race-cyclist-effort-${effort}`}
     >
       <title>{label}</title>
@@ -165,55 +176,59 @@ export function SideRaceCyclist({
 
       <g
         className={isMoving ? "cm-bike-leg-back" : ""}
-        style={{ transformOrigin: "45px 28px" }}
+        style={{ transformOrigin: standing ? "43px 23px" : "45px 28px" }}
         opacity="0.82"
+        data-race-cyclist-anatomy="rear-leg"
       >
         <path
-          d="M45 27Q40.5 30.5 38 35Q39.2 40 42 44"
-          fill="none"
+          d={standing
+            ? "M39.9 21.7C37.6 24.1 35.5 27.8 35.1 31C36 32.5 38 33 39.4 32C40.4 28.9 42.4 26 44.8 23.8Z"
+            : "M40.8 25.7C39.2 27.8 37.5 31.3 37.2 34.2C38 35.4 40 36 41.3 35.2C42 32.4 44.2 29.6 46.2 28.1Z"}
+          fill="#17261E"
+          stroke="#F4F7F5"
+          strokeWidth="0.45"
+        />
+        <path
+          d={standing
+            ? "M35.3 30.2C36.1 35 38.5 40.4 41.2 44.4L44 44.1C42 39.5 40.5 34.9 39.1 30.7Z"
+            : "M37.5 33.3C38.1 37 39.7 41 41.5 44.2L44.2 44.2C43 40 42.2 36.1 41 33.7Z"}
+          fill={skin.skinTone}
+          stroke={skin.skinShadow}
+          strokeWidth="0.42"
+        />
+        <path
+          d="M41 43.5 47.5 44.4 47 46.1 40.5 45.4Z"
+          fill="#F5F7F6"
           stroke="#17261E"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M38 35Q39.4 40.1 42 44"
-          fill="none"
-          stroke={skin.skinTone}
-          strokeWidth="2.35"
-          strokeLinecap="round"
-        />
-        <path
-          d="m40 44 7 1"
-          stroke="#F5F7F6"
-          strokeWidth="1.8"
-          strokeLinecap="round"
+          strokeWidth="0.42"
         />
       </g>
       <g
         className={isMoving ? "cm-bike-leg-front" : ""}
-        style={{ transformOrigin: "45px 28px" }}
+        style={{ transformOrigin: standing ? "43px 23px" : "45px 28px" }}
+        data-race-cyclist-anatomy="front-leg"
       >
         <path
-          d="M45 27Q49.2 30.6 51 35Q50.5 40 49 44"
-          fill="none"
+          d={standing
+            ? "M42 21.8C45.7 23.7 49.4 27.2 51.2 31C50.7 32.6 48.8 33.4 47.5 32.2C45.6 28.9 43.1 26.4 40.5 24.5Z"
+            : "M44.3 26.2C47.8 27.6 51.2 30.1 53 33.5C52.7 35.1 51 36.2 49.6 35.2C47.5 32.2 45.1 30.5 42.2 29.4Z"}
+          fill="#17261E"
+          stroke="#F4F7F5"
+          strokeWidth="0.48"
+        />
+        <path
+          d={standing
+            ? "M47.6 31.2C48.7 35 48.6 39.6 47.5 44L50.2 45C51.9 40.6 52.2 35.5 51 31.1Z"
+            : "M49.5 34C50.2 37 49.3 40.7 47.8 44L50.4 45C52.2 41.2 53.2 37.2 52.8 34.2Z"}
+          fill={skin.skinTone}
+          stroke={skin.skinShadow}
+          strokeWidth="0.44"
+        />
+        <path
+          d="M47.4 43.4 54.5 44.2 54 46.1 47 45.4Z"
+          fill="#F5F7F6"
           stroke="#17261E"
-          strokeWidth="3.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M51 35Q50.7 39.7 49 44"
-          fill="none"
-          stroke={skin.skinTone}
-          strokeWidth="2.45"
-          strokeLinecap="round"
-        />
-        <path
-          d="m47 44 7 1"
-          stroke="#F5F7F6"
-          strokeWidth="1.9"
-          strokeLinecap="round"
+          strokeWidth="0.44"
         />
       </g>
 
@@ -237,6 +252,7 @@ export function SideRaceCyclist({
 
       <path
         d={torsoPath}
+        data-race-cyclist-anatomy="torso"
         data-race-victory-torso={celebrating ? "upright" : undefined}
         fill={`url(#${visualId}-jersey-light)`}
         stroke="#F4F7F5"
@@ -262,10 +278,45 @@ export function SideRaceCyclist({
         data-race-jersey-texture="technical-fabric"
       />
       {!celebrating ? (
+        <>
+          <path
+            d={standing
+              ? "M39 21.7C41.9 21 46.9 21.3 49.8 22.8L49.1 25.1C46.3 26.1 42.1 25.7 39.3 23.6Z"
+              : "M40 25.1C42.7 24.4 47.7 24.8 50.9 26.2L49.7 29.2C46.8 30.3 42.6 30 40.5 28Z"}
+            fill="#17261E"
+            stroke="#F4F7F5"
+            strokeWidth="0.45"
+            data-race-cyclist-anatomy="pelvis"
+          />
+          <path
+            d={standing
+              ? "M48.7 10.2C52.5 10.8 55.2 12.7 57.4 16"
+              : "M49.4 12.6C53.5 13.4 56.7 15.3 59.2 18.5"}
+            fill="none"
+            stroke={visual.secondaryColor}
+            strokeWidth="3.8"
+            strokeLinecap="round"
+            data-race-cyclist-anatomy="rear-upper-arm"
+          />
+          <path
+            d={standing
+              ? "M57.2 15.8C59.1 18.8 61.9 19.3 64.1 18.3L70.6 14.3"
+              : "M59 18.3C61 20.8 63.2 21.4 65.3 20.2L70.7 14.4"}
+            fill="none"
+            stroke={skin.skinTone}
+            strokeWidth="2.45"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            data-race-cyclist-anatomy="rear-forearm"
+          />
+          <circle cx={standing ? 57.3 : 59.1} cy={standing ? 15.9 : 18.4} r="1.35" fill={skin.skinTone} />
+        </>
+      ) : null}
+      {celebrating ? (
         <path
-          d="m35 19-8 8"
-          stroke={visual.secondaryColor}
-          strokeWidth="2.8"
+          d="M45.4 8.9 45.8 6.5M51.1 8.9 52.3 6.6"
+          stroke={skin.skinTone}
+          strokeWidth="2.6"
           strokeLinecap="round"
         />
       ) : null}
@@ -291,15 +342,31 @@ export function SideRaceCyclist({
       ) : (
         <>
           <path
-            d="M57 17Q62 18.5 65 24Q68.8 23.4 72 21"
+            d={standing
+              ? "M51.4 11C54.8 11.7 57.5 13.4 59.8 16.8"
+              : "M53.2 14.3C56.5 14.8 59.2 16.3 61.5 19.2"}
             fill="none"
-            stroke={skin.skinTone}
-            strokeWidth="2.7"
+            stroke={visual.secondaryColor}
+            strokeWidth="4.1"
             strokeLinecap="round"
             strokeLinejoin="round"
+            data-race-cyclist-anatomy="front-upper-arm"
           />
           <path
-            d="m70 20 4-1"
+            d={standing
+              ? "M59.6 16.6C61.1 19.2 63.2 20 65.3 19C67.3 17.3 69.2 15.6 71.2 14.2"
+              : "M61.2 19C62.7 21.2 64.4 22 66.3 20.8C68.3 18.6 70 16.2 71.4 14.3"}
+            fill="none"
+            stroke={skin.skinTone}
+            strokeWidth="2.65"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            data-race-cyclist-anatomy="front-forearm"
+          />
+          <circle cx={standing ? 59.7 : 61.4} cy={standing ? 16.7 : 19.2} r="1.45" fill={skin.skinTone} />
+          <circle cx={standing ? 70.9 : 71.2} cy="14.3" r="1.25" fill={skin.skinTone} />
+          <path
+            d="m69.8 14.1 4 .1"
             stroke="#17261E"
             strokeWidth="1.25"
             strokeLinecap="round"
@@ -314,7 +381,16 @@ export function SideRaceCyclist({
         fill={skin.skinTone}
         stroke={skin.skinShadow}
         strokeWidth="0.65"
+        data-race-cyclist-anatomy="head"
       />
+      {!celebrating ? (
+        <>
+          <path d={standing ? "M53.7 10.4 56.6 7.5" : "M56.2 12.2 59.1 10.4"} stroke={skin.skinTone} strokeWidth="2.8" strokeLinecap="round" />
+          <path d={standing ? "m62.8 4.5 2 1.25-2.1 1" : "m65.8 7.4 2 1.25-2.1 1"} fill={skin.skinTone} stroke={skin.skinShadow} strokeWidth="0.45" strokeLinejoin="round" />
+          <circle cx={standing ? 62.1 : 65.1} cy={standing ? 5.1 : 8} r="0.45" fill="#17261E" />
+          <path d={standing ? "M62.2 7.5c-1 .65-2 .72-2.8.22" : "M65.2 10.4c-1 .65-2 .72-2.8.22"} fill="none" stroke={skin.skinShadow} strokeWidth="0.42" strokeLinecap="round" />
+        </>
+      ) : null}
       <g
         data-race-helmet-team-colors="true"
         data-race-time-trial-helmet={timeTrial ? "aero" : undefined}
@@ -323,6 +399,8 @@ export function SideRaceCyclist({
           d={
             celebrating
               ? "M43.6 4.3c.2-4.1 3.2-5.8 6.5-4.9 2.5.7 3.8 2.4 3.8 4.3l-5.4-1Z"
+              : standing
+                ? "M54.6 5.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7L59 3.9Z"
               : timeTrial
                 ? "M52 7.1 58 4.2c2.5-2 6.3-1.8 8.8.2 1.7 1.3 2.4 2.7 2.3 4.1l-6.2-1.2-5.3 1.5Z"
                 : "M57.6 8.5c.2-4.3 3.4-6.2 6.9-5.2 2.7.8 4.2 2.7 4.2 4.7l-5.7-1.1Z"
@@ -333,21 +411,31 @@ export function SideRaceCyclist({
           strokeLinejoin="round"
         />
         <path
-          d={celebrating ? "m46 0 2.8 2.5 2-1.9" : "m60.2 4.2 3.1 2.7 2.2-2.1"}
+          d={celebrating
+            ? "m46 0 2.8 2.5 2-1.9"
+            : standing
+              ? "m57.2 1.2 3.1 2.7 2.2-2.1"
+              : "m60.2 4.2 3.1 2.7 2.2-2.1"}
           fill={helmet.secondary}
         />
         <path
           d={
             celebrating
               ? "m46.1 0 .8 2m1.8-2.5.2 2.6m2-1.5-.5 2"
-              : "m60.3 4.2.9 2.1m2-2.7.2 2.8m2.2-1.7-.5 2.1"
+              : standing
+                ? "m57.3 1.2.9 2.1m2-2.7.2 2.8m2.2-1.7-.5 2.1"
+                : "m60.3 4.2.9 2.1m2-2.7.2 2.8m2.2-1.7-.5 2.1"
           }
           stroke={helmet.accent}
           strokeWidth="0.6"
           strokeLinecap="round"
         />
         <path
-          d={celebrating ? "M45.5 2.1q3-2.2 6.1.2" : "M59.3 6.1q3.7-2.4 7.4.2"}
+          d={celebrating
+            ? "M45.5 2.1q3-2.2 6.1.2"
+            : standing
+              ? "M56.3 3.1q3.7-2.4 7.4.2"
+              : "M59.3 6.1q3.7-2.4 7.4.2"}
           fill="none"
           stroke="#FFFFFF"
           strokeWidth="0.45"
@@ -357,12 +445,20 @@ export function SideRaceCyclist({
         />
       </g>
       <path
-        d={celebrating ? "m51.4 4.3-2 3.4" : "m66.4 8.6-2 3.4"}
+        d={celebrating
+          ? "m51.4 4.3-2 3.4"
+          : standing
+            ? "m63.4 5.6-2 3.4"
+            : "m66.4 8.6-2 3.4"}
         stroke="#263B32"
         strokeWidth="0.65"
       />
       <path
-        d={celebrating ? "M49 4.8h4" : "M63 9.3h4"}
+        d={celebrating
+          ? "M49 4.8h4"
+          : standing
+            ? "M60 6.3h4"
+            : "M63 9.3h4"}
         stroke="#17261E"
         strokeWidth="0.55"
       />

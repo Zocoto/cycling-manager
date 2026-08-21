@@ -817,6 +817,9 @@ function RoadScene({
 }) {
   const motionProfile = getRaceVisualMotionProfile(frontDynamics);
   const groups = snapshot.groups.slice(0, 6);
+  const mediaGroupPositions = groups.map((group, groupIndex) =>
+    getGroupScreenPosition(group, groupIndex, groups.length),
+  );
   const primeWinnerId =
     segmentProgress >= 0.5
       ? primeResult?.classification[0]?.riderId ?? null
@@ -991,6 +994,13 @@ function RoadScene({
       />
       <RaceMediaConvoy
         isMoving={isMoving}
+        visualSeed={`${visualSeed}:${segment.segmentNumber}:media`}
+        groupPositions={mediaGroupPositions}
+        roadGeometry={{
+          leftPct: roadLeftPct,
+          rightPct: roadRightPct,
+          depthPct: roadDepthPct,
+        }}
         showHelicopter={
           getVisualSeedNumber(
             `${visualSeed}:${segment.segmentNumber}:helicopter`,
@@ -1084,6 +1094,7 @@ function RoadScene({
               primeSprintContenderIds={primeSprintContenderIds}
               primeSprintProgress={primeSprintProgress}
               frontDynamics={frontDynamics}
+              terrain={segment.terrain}
             />
           </div>
         );
@@ -1949,6 +1960,9 @@ function SprintLaneView({
       <FinishRoadsideInfrastructure mode="top" />
       <RaceMediaConvoy
         isMoving={!raceComplete}
+        visualSeed={`${simulation.seed}:sprint-media`}
+        groupPositions={[58, 76]}
+        context="finish"
         showHelicopter={
           getVisualSeedNumber(`${simulation.seed}:sprint-helicopter`) % 5 === 0
         }
@@ -2368,6 +2382,14 @@ function FinishBattleView({
       />
       <RaceMediaConvoy
         isMoving={!raceComplete}
+        visualSeed={`${simulation.seed}:finish-media`}
+        groupPositions={[58, 76]}
+        roadGeometry={{
+          leftPct: (roadLeftY / 320) * 100,
+          rightPct: (roadRightY / 320) * 100,
+          depthPct: (roadDepthY / 320) * 100,
+        }}
+        context="finish"
         showHelicopter={
           getVisualSeedNumber(`${simulation.seed}:finish-helicopter`) % 3 === 0
         }
@@ -2494,6 +2516,13 @@ function FinishBattleView({
             <SideRaceCyclist
               rider={rider}
               isMoving={!raceComplete}
+              ridingPose={
+                segment.terrain === "climb" &&
+                !riderHasFinished &&
+                finalIndex % 3 === 0
+                  ? "standing"
+                  : "seated"
+              }
               celebrating={
                 result.riderId === winnerResult?.riderId &&
                 shouldWinnerCelebrate({
