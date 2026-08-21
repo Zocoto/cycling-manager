@@ -39,8 +39,8 @@ export function SideRaceCyclist({
   const clipId = `${visualId}-jersey`;
   const label = `${rider.name} · ${rider.teamName} · ${visual.label}`;
   const torsoPath = celebrating
-    ? "M42 10 39 17 40 28 54 28 56 17 53 10Z"
-    : "m42 12-8 7 3 11 13-1 10-11-6-6Z";
+    ? "M42 10C40 12 39 16 39.5 20.5L40.5 28C44 29.2 50.5 29.1 54 28L56.2 20C57 15.5 55.2 12 53 10C49.8 8.8 45.2 8.8 42 10Z"
+    : "M42 12C38.5 13.2 35.3 15.8 33.8 19L36.8 30C40.5 30.8 46 30.2 50 29L60 20C58.3 17.1 56.2 15 53.5 13.5C49.6 11.3 45.6 10.7 42 12Z";
   const head = celebrating ? { cx: 48, cy: 4.5 } : { cx: 62, cy: 8.8 };
 
   return (
@@ -169,7 +169,7 @@ export function SideRaceCyclist({
         opacity="0.82"
       >
         <path
-          d="M45 27 38 35 42 44"
+          d="M45 27Q40.5 30.5 38 35Q39.2 40 42 44"
           fill="none"
           stroke="#17261E"
           strokeWidth="3.2"
@@ -177,7 +177,7 @@ export function SideRaceCyclist({
           strokeLinejoin="round"
         />
         <path
-          d="M38 35 42 44"
+          d="M38 35Q39.4 40.1 42 44"
           fill="none"
           stroke={skin.skinTone}
           strokeWidth="2.35"
@@ -195,7 +195,7 @@ export function SideRaceCyclist({
         style={{ transformOrigin: "45px 28px" }}
       >
         <path
-          d="M45 27 51 35 49 44"
+          d="M45 27Q49.2 30.6 51 35Q50.5 40 49 44"
           fill="none"
           stroke="#17261E"
           strokeWidth="3.4"
@@ -203,7 +203,7 @@ export function SideRaceCyclist({
           strokeLinejoin="round"
         />
         <path
-          d="M51 35 49 44"
+          d="M51 35Q50.7 39.7 49 44"
           fill="none"
           stroke={skin.skinTone}
           strokeWidth="2.45"
@@ -276,23 +276,25 @@ export function SideRaceCyclist({
           className="cm-victory-arms"
         >
           <path
-            d="M43 14 37 4 34-6M53 14 59 4 62-6"
+            d="M43 14C41 11 39.2 7.3 37 4C35 1 34-2.2 34-6M53 14C55 11 56.8 7.3 59 4C61 1 62-2.2 62-6"
             fill="none"
             stroke={skin.skinTone}
-            strokeWidth="2.7"
+            strokeWidth="3.15"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx="34" cy="-6" r="1.65" fill={skin.skinTone} />
-          <circle cx="62" cy="-6" r="1.65" fill={skin.skinTone} />
+          <circle cx="37" cy="4" r="1.75" fill={skin.skinTone} />
+          <circle cx="59" cy="4" r="1.75" fill={skin.skinTone} />
+          <circle cx="34" cy="-6" r="1.85" fill={skin.skinTone} />
+          <circle cx="62" cy="-6" r="1.85" fill={skin.skinTone} />
         </g>
       ) : (
         <>
           <path
-            d="m57 17 8 7 7-3"
+            d="M57 17Q62 18.5 65 24Q68.8 23.4 72 21"
             fill="none"
             stroke={skin.skinTone}
-            strokeWidth="2.2"
+            strokeWidth="2.7"
             strokeLinecap="round"
             strokeLinejoin="round"
           />

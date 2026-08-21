@@ -200,4 +200,42 @@ describe("race group formation", () => {
     expect(markup.match(/data-prime-sprint-contender=/g)).toHaveLength(3);
     expect(markup).toContain("Sprint · 1");
   });
+
+  it("animates fallen riders and detached wheels during a mass crash", () => {
+    const riders = Array.from({ length: 5 }, (_, index) => buildRider(index + 1));
+    const riderIds = riders.map((rider) => rider.id);
+    const group: RaceGroupSnapshot = {
+      id: "crash-group",
+      label: "Peloton",
+      type: "peloton",
+      riderIds,
+      gapToLeaderSeconds: 0,
+      averageEnergy: 59,
+    };
+    const markup = renderToStaticMarkup(
+      <RaceGroupFormation
+        group={group}
+        riderIds={riderIds}
+        riderById={new Map(riders.map((rider) => [rider.id, rider]))}
+        incidents={[
+          {
+            id: "mass-crash",
+            type: "crash_mass",
+            riderIds: riderIds.slice(0, 4),
+            abandonedRiderIds: [],
+            label: "Chute massive",
+          },
+        ]}
+        primeWinnerId={null}
+        primeResult={null}
+        isMoving
+        compact={false}
+      />,
+    );
+
+    expect(markup.match(/data-race-rider-incident="crash_mass"/g)).toHaveLength(4);
+    expect(markup).toContain("cm-race-rider-crash");
+    expect(markup).toContain('data-race-loose-wheel="crash"');
+    expect(markup).toContain("cm-race-loose-wheel");
+  });
 });

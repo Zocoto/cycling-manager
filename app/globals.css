@@ -201,6 +201,11 @@ a {
   to { transform: translate3d(-50%, 0, 0); }
 }
 
+@keyframes cm-race-scenery-scroll-far {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
 @keyframes cm-race-rider-weave {
   0%, 100% { transform: translate3d(0, 0, 0); }
   36% { transform: translate3d(var(--cm-rider-weave-x, 1px), var(--cm-rider-weave-y, 0.8px), 0); }
@@ -265,6 +270,31 @@ a {
 
 @keyframes cm-race-car-wheel {
   to { transform: rotate(360deg); }
+}
+
+@keyframes cm-camera-moto {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.25deg); }
+  45% { transform: translate3d(1.2px, -1.1px, 0) rotate(0.35deg); }
+  72% { transform: translate3d(-0.5px, -0.35px, 0) rotate(0deg); }
+}
+
+@keyframes cm-camera-moto-wheel {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cm-camera-stabilizer {
+  0%, 100% { transform: rotate(-0.7deg) translateY(0); }
+  50% { transform: rotate(0.7deg) translateY(-0.7px); }
+}
+
+@keyframes cm-race-helicopter {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.2deg); }
+  50% { transform: translate3d(12px, 3px, 0) rotate(0.35deg); }
+}
+
+@keyframes cm-helicopter-rotor {
+  0%, 100% { transform: scaleX(1); opacity: 0.62; }
+  50% { transform: scaleX(0.14); opacity: 1; }
 }
 
 @keyframes cm-bike-top-sway {
@@ -348,6 +378,29 @@ a {
   100% { transform: rotate(0deg) scale(1); }
 }
 
+@keyframes cm-race-rider-crash {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  28% { transform: translate3d(-2px, -2px, 0) rotate(-8deg); }
+  64% { transform: translate3d(-7px, 4px, 0) rotate(var(--cm-crash-angle, -68deg)); }
+  100% { transform: translate3d(-10px, 8px, 0) rotate(var(--cm-crash-angle, -68deg)); }
+}
+
+@keyframes cm-race-rider-mechanical {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  30% { transform: translate3d(-2px, 1px, 0) rotate(-2.5deg); }
+  62% { transform: translate3d(1px, 0, 0) rotate(1.8deg); }
+}
+
+@keyframes cm-race-rider-crosswind {
+  0%, 100% { transform: translate3d(0, 0, 0) skewY(0deg); }
+  50% { transform: translate3d(-3px, 1px, 0) skewY(-2.5deg); }
+}
+
+@keyframes cm-race-loose-wheel {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(-17px, -5px, 0) rotate(-560deg); opacity: 0.76; }
+}
+
 @keyframes cm-start-flag {
   0%, 100% { transform: rotate(-17deg); }
   50% { transform: rotate(18deg); }
@@ -387,6 +440,12 @@ a {
 }
 .cm-race-scenery-scroll {
   animation: cm-race-scenery-scroll var(--cm-scene-flow-duration, 18s) linear infinite;
+  contain: paint;
+  will-change: transform;
+}
+
+.cm-race-scenery-scroll-far {
+  animation: cm-race-scenery-scroll-far 30s linear infinite;
   contain: paint;
   will-change: transform;
 }
@@ -534,6 +593,34 @@ a {
   transform-origin: center;
 }
 
+.cm-camera-moto {
+  animation: cm-camera-moto 0.62s ease-in-out infinite;
+  will-change: transform;
+}
+
+.cm-camera-moto-wheel {
+  animation: cm-camera-moto-wheel 0.42s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.cm-camera-stabilizer {
+  animation: cm-camera-stabilizer 0.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center right;
+}
+
+.cm-race-helicopter {
+  animation: cm-race-helicopter 5.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.cm-helicopter-rotor {
+  animation: cm-helicopter-rotor 0.12s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .cm-bike-top-sway {
   animation: cm-bike-top-sway 0.42s ease-in-out infinite;
   transform-box: fill-box;
@@ -597,6 +684,37 @@ a {
   animation: cm-incident-crash 0.62s ease-out both;
 }
 
+.cm-race-rider-crash {
+  animation: cm-race-rider-crash 0.82s cubic-bezier(0.22, 0.64, 0.28, 1) both;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+.cm-race-rider-crash-still {
+  transform: translate3d(-10px, 8px, 0) rotate(var(--cm-crash-angle, -68deg));
+  transform-origin: center bottom;
+}
+
+.cm-race-rider-mechanical {
+  animation: cm-race-rider-mechanical 0.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.cm-race-rider-mechanical-still {
+  transform: translate3d(-3px, 2px, 0) rotate(-3deg);
+  transform-origin: center bottom;
+}
+
+.cm-race-rider-crosswind {
+  animation: cm-race-rider-crosswind 0.68s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.cm-race-loose-wheel {
+  animation: cm-race-loose-wheel 0.9s cubic-bezier(0.2, 0.72, 0.3, 1) both;
+  transform-origin: center;
+}
+
 .cm-start-flag {
   animation: cm-start-flag 0.48s ease-in-out infinite;
   transform-box: fill-box;
@@ -611,6 +729,7 @@ a {
   .cm-race-scenery,
   .cm-race-scenery-detail,
   .cm-race-scenery-scroll,
+  .cm-race-scenery-scroll-far,
   .cm-race-rider-weave,
   .cm-race-cyclist-airflow,
   .cm-prime-sprint-wind-lines,
@@ -624,6 +743,11 @@ a {
   .cm-bike-leg-top-back,
   .cm-support-car,
   .cm-race-car-wheel,
+  .cm-camera-moto,
+  .cm-camera-moto-wheel,
+  .cm-camera-stabilizer,
+  .cm-race-helicopter,
+  .cm-helicopter-rotor,
   .cm-bike-top-sway,
   .cm-crowd-wave,
   .cm-supporter-run,
@@ -638,8 +762,20 @@ a {
   .cm-incident-wheel,
   .cm-incident-wind,
   .cm-incident-crash,
+  .cm-race-rider-crash,
+  .cm-race-rider-mechanical,
+  .cm-race-rider-crosswind,
+  .cm-race-loose-wheel,
   .cm-start-flag {
     animation: none;
+  }
+
+  .cm-race-rider-crash {
+    transform: translate3d(-10px, 8px, 0) rotate(var(--cm-crash-angle, -68deg));
+  }
+
+  .cm-race-rider-mechanical {
+    transform: translate3d(-3px, 2px, 0) rotate(-3deg);
   }
 }
 

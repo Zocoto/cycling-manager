@@ -15,6 +15,7 @@ import {
   RaceSupportConvoy,
 } from "@/components/game/race-group-formation";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
+import { RaceMediaConvoy } from "@/components/game/race-media-convoy";
 import { RaceRoadChalk } from "@/components/game/race-road-chalk";
 import { RaceRoadsideCrowd } from "@/components/game/race-roadside-crowd";
 import { RaceTimeTrialScene } from "@/components/game/race-time-trial-scene";
@@ -39,6 +40,7 @@ import {
   getFinalReplayFrame,
   getFinishPassageDurationMs,
   getFinishPassagePosition,
+  getFinishLaneOffset,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
   shouldWinnerCelebrate,
@@ -101,6 +103,7 @@ type LabTab = "live" | "classification" | "rules";
 type PlaybackSpeed = 1 | 2 | 4;
 
 const REPLAY_STEP_DURATION_MS = 6_000;
+const RACE_RENDER_FRAME_INTERVAL_MS = 1_000 / 30;
 
 export function RaceLiveLab({
   edition,
@@ -155,6 +158,13 @@ export function RaceLiveLab({
       ),
     [favoriteRiders, stage],
   );
+  const chalkTeamNames = useMemo(
+    () =>
+      [...new Set(input.riders.map((rider) => rider.teamName.trim()))]
+        .filter(Boolean)
+        .slice(0, 8),
+    [input.riders],
+  );
   const timeTrialInput = useMemo(() => {
     if (
       input.generalClassification ||
@@ -203,7 +213,7 @@ export function RaceLiveLab({
   const [finishPassageProgress, setFinishPassageProgress] = useState(0);
   const finishPassageProgressRef = useRef(0);
   const [tab, setTab] = useState<LabTab>("live");
-  const clock = useSynchronizedRaceClock(nowIso, 1_000);
+  const clock = useSynchronizedRaceClock(nowIso, 250);
   const riderById = useMemo(
     () => new Map(simulation.resolvedRiders.map((rider) => [rider.id, rider])),
     [simulation.resolvedRiders]
@@ -249,28 +259,37 @@ export function RaceLiveLab({
     if (mode !== "replay" || !isPlaying) return;
     if (activeIndex >= simulation.timeline.length - 1) return;
 
-    const startedAt = Date.now();
+    const startedAt = window.performance.now();
     const startedProgress = replaySegmentProgressRef.current;
     const fullDurationMs = REPLAY_STEP_DURATION_MS / playbackSpeed;
-    const timer = window.setInterval(() => {
+    let animationFrame = 0;
+    let lastRenderedAt = startedAt - RACE_RENDER_FRAME_INTERVAL_MS;
+    const renderFrame = (now: number) => {
+      if (now - lastRenderedAt < RACE_RENDER_FRAME_INTERVAL_MS) {
+        animationFrame = window.requestAnimationFrame(renderFrame);
+        return;
+      }
+      lastRenderedAt = now;
       const progress = Math.min(
         1,
-        startedProgress + (Date.now() - startedAt) / fullDurationMs
+        startedProgress + (now - startedAt) / fullDurationMs
       );
       replaySegmentProgressRef.current = progress;
       setReplaySegmentProgress(progress);
 
       if (progress >= 1) {
-        window.clearInterval(timer);
         replaySegmentProgressRef.current = 0;
         setReplaySegmentProgress(0);
         setActiveIndex((current) =>
           Math.min(current + 1, simulation.timeline.length - 1)
         );
+        return;
       }
-    }, 100);
+      animationFrame = window.requestAnimationFrame(renderFrame);
+    };
+    animationFrame = window.requestAnimationFrame(renderFrame);
 
-    return () => window.clearInterval(timer);
+    return () => window.cancelAnimationFrame(animationFrame);
   }, [
     activeIndex,
     isPlaying,
@@ -369,15 +388,22 @@ export function RaceLiveLab({
   useEffect(() => {
     if (mode !== "replay" || !isFinal || !isPlaying) return;
 
-    const startedAt = Date.now();
     const startedWithMeters = finalMetersRemainingRef.current;
     const startedWithPassageProgress = finishPassageProgressRef.current;
-    const timer = window.setInterval(() => {
+    const startedAt = window.performance.now();
+    let animationFrame = 0;
+    let lastRenderedAt = startedAt - RACE_RENDER_FRAME_INTERVAL_MS;
+    const renderFrame = (now: number) => {
+      if (now - lastRenderedAt < RACE_RENDER_FRAME_INTERVAL_MS) {
+        animationFrame = window.requestAnimationFrame(renderFrame);
+        return;
+      }
+      lastRenderedAt = now;
       const frame = getFinalReplayFrame({
         startedWithMeters,
         startedWithPassageProgress,
         finalSegmentMeters,
-        elapsedMs: Date.now() - startedAt,
+        elapsedMs: now - startedAt,
         playbackSpeed,
         approachDurationMs: REPLAY_STEP_DURATION_MS,
         finishPassageDurationMs,
@@ -386,10 +412,15 @@ export function RaceLiveLab({
       finishPassageProgressRef.current = frame.finishPassageProgress;
       setFinalMetersRemaining(frame.metersRemaining);
       setFinishPassageProgress(frame.finishPassageProgress);
-      if (frame.complete) setIsPlaying(false);
-    }, 100);
+      if (frame.complete) {
+        setIsPlaying(false);
+        return;
+      }
+      animationFrame = window.requestAnimationFrame(renderFrame);
+    };
+    animationFrame = window.requestAnimationFrame(renderFrame);
 
-    return () => window.clearInterval(timer);
+    return () => window.cancelAnimationFrame(animationFrame);
   }, [
     finalSegmentMeters,
     finishPassageDurationMs,
@@ -622,6 +653,8 @@ export function RaceLiveLab({
               visualSeed={simulation.seed}
               weather={raceWeather}
               favoriteNames={chalkFavoriteNames}
+              teamNames={chalkTeamNames}
+              countryCode={edition.countryCode}
             />
           )}
 
@@ -765,6 +798,8 @@ function RoadScene({
   visualSeed,
   weather,
   favoriteNames,
+  teamNames,
+  countryCode,
 }: {
   snapshot: StageSimulationResult["timeline"][number];
   frontDynamics?: RaceVisualFrame["frontDynamics"];
@@ -777,6 +812,8 @@ function RoadScene({
   visualSeed: string | number;
   weather: RaceWeather;
   favoriteNames: readonly string[];
+  teamNames: readonly string[];
+  countryCode: string;
 }) {
   const motionProfile = getRaceVisualMotionProfile(frontDynamics);
   const groups = snapshot.groups.slice(0, 6);
@@ -924,6 +961,9 @@ function RoadScene({
         <RaceRoadChalk
           show={segment.terrain === "climb"}
           favoriteNames={favoriteNames}
+          teamNames={teamNames}
+          countryCode={countryCode}
+          visualSeed={`${visualSeed}:${segment.segmentNumber}`}
           roadLeft={roadLeftPct}
           roadRight={roadRightPct}
           roadDepth={roadDepthPct}
@@ -948,6 +988,14 @@ function RoadScene({
         roadDepthY={roadDepthPct * 3.2}
         terrain={segment.terrain}
         teamPalettes={spectatorTeamPalettes}
+      />
+      <RaceMediaConvoy
+        isMoving={isMoving}
+        showHelicopter={
+          getVisualSeedNumber(
+            `${visualSeed}:${segment.segmentNumber}:helicopter`,
+          ) % 4 === 0
+        }
       />
       <RaceWeatherOverlay weather={weather} />
       <p className="absolute right-4 top-4 rounded-full bg-[#071A17]/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
@@ -1899,6 +1947,13 @@ function SprintLaneView({
         isMoving={!raceComplete}
       />
       <FinishRoadsideInfrastructure mode="top" />
+      <RaceMediaConvoy
+        isMoving={!raceComplete}
+        showHelicopter={
+          getVisualSeedNumber(`${simulation.seed}:sprint-helicopter`) % 5 === 0
+        }
+        mode="top"
+      />
       <RaceWeatherOverlay weather={weather} />
       <div
         aria-hidden="true"
@@ -2311,6 +2366,12 @@ function FinishBattleView({
         terrain={segment.terrain}
         teamPalettes={spectatorTeamPalettes}
       />
+      <RaceMediaConvoy
+        isMoving={!raceComplete}
+        showHelicopter={
+          getVisualSeedNumber(`${simulation.seed}:finish-helicopter`) % 3 === 0
+        }
+      />
       <RaceWeatherOverlay weather={weather} />
       <FinishRoadsideInfrastructure mode="side" roadLeftY={roadLeftY} roadRightY={roadRightY} />
       <div
@@ -2389,10 +2450,15 @@ function FinishBattleView({
           winnerHasFinished,
         });
         const riderHasFinished = winnerHasFinished && left > 86;
+        const finishLaneOffsetY = getFinishLaneOffset({
+          riderIndex: finalIndex,
+          roadDepth: roadDepthY,
+        });
         const roadY =
           roadLeftY +
           (roadRightY - roadLeftY) * (left / 100) +
-          roadDepthY * 0.55;
+          roadDepthY * 0.55 +
+          finishLaneOffsetY;
         const riderStatus = riderHasFinished
           ? result.rank === 1
             ? "Vainqueur"
@@ -2415,11 +2481,13 @@ function FinishBattleView({
             key={result.riderId}
             data-finish-rider-id={result.riderId}
             data-finish-rank={result.rank}
+            data-finish-lane-offset={finishLaneOffsetY}
             data-finish-status={result.rank === 1 ? "winner" : droppedRiderSet.has(result.riderId) ? "dropped" : "contender"}
             className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-out"
             style={{
               left: `${left}%`,
               top: `${(roadY / 320) * 100}%`,
+              zIndex: 30 + Math.round(finishLaneOffsetY),
             }}
             title={`${riderHasFinished ? `${result.rank}. ` : ""}${rider.name} · ${rider.teamName}`}
           >

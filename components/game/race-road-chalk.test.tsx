@@ -10,6 +10,9 @@ describe("race road chalk", () => {
         <RaceRoadChalk
           show
           favoriteNames={["Poga", "Vinga"]}
+          teamNames={["Dolci Bellini", "Dodo Blue"]}
+          countryCode="IT"
+          visualSeed="giro-preview"
           roadLeft={62}
           roadRight={46}
           roadDepth={30}
@@ -23,6 +26,12 @@ describe("race road chalk", () => {
       'data-race-road-chalk-orientation="top-toward-finish-right"',
     );
     expect(markup).toContain("POGA");
+    expect(markup).toContain('data-race-road-chalk-layout="across-road-width"');
+    expect(markup).toContain('data-race-road-chalk-source="team"');
+    expect(markup).toContain('data-race-road-chalk-source="local-club"');
+    expect(markup).toContain('data-race-road-chalk-source="supporter"');
+    expect(markup).toContain("DOLCI BELLINI");
+    expect(markup).toMatch(/VC TOSCANA|PEDALE FIRENZE|AS MONTELUPO/);
     expect(markup).toContain("rotate(90");
     expect(markup).toContain('data-race-road-flow-direction="right-to-left"');
     expect(markup).toContain('data-race-road-chalk-moving="true"');

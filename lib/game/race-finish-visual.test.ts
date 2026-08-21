@@ -7,6 +7,7 @@ import {
   FINISH_LINE_REVEAL_METERS,
   getFinalApproachDisplayPosition,
   getFinalApproachPosition,
+  getFinishLaneOffset,
   getFinalGroupEntryPosition,
   getFinalReplayFrame,
   getFinalReplayMeters,
@@ -58,6 +59,16 @@ const scenario: FinalBattleScenario = {
 };
 
 describe("final race visualization", () => {
+  it("répartit les coureurs sur plusieurs profondeurs sans sortir de la route", () => {
+    const offsets = Array.from({ length: 7 }, (_, riderIndex) =>
+      getFinishLaneOffset({ riderIndex, roadDepth: 70 }),
+    );
+
+    expect(new Set(offsets).size).toBe(7);
+    expect(Math.max(...offsets)).toBeLessThanOrEqual(21);
+    expect(Math.min(...offsets)).toBeGreaterThanOrEqual(-21);
+  });
+
   it("ne place dans un train que le poisson-pilote et le sprinteur réels", () => {
     const teams = buildSprintVisualTeams([
       { id: "leader", teamId: "team-a", role: "leader" },

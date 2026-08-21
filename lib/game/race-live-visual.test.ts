@@ -55,7 +55,7 @@ describe("race live visual timeline", () => {
     expect(frames.map((frame) => frame.completedDistanceKm)).toEqual([10, 20]);
   });
 
-  it("selects high-frequency frames globally and inside an authored segment", () => {
+  it("interpolates high-frequency frames globally and inside an authored segment", () => {
     const frames = [
       { ...officialTimeline[0], sourceTimelineIndex: 0, completedDistanceKm: 2 },
       { ...officialTimeline[0], sourceTimelineIndex: 0, completedDistanceKm: 4 },
@@ -63,14 +63,67 @@ describe("race live visual timeline", () => {
       { ...officialTimeline[1], sourceTimelineIndex: 1, completedDistanceKm: 14 },
     ];
 
-    expect(getRaceVisualFrameAtProgress(frames, 0.3)?.completedDistanceKm).toBe(4);
+    expect(getRaceVisualFrameAtProgress(frames, 0.3)?.completedDistanceKm).toBeCloseTo(3.8);
     expect(
       getRaceVisualFrameForSegment({
         timeline: frames,
         sourceTimelineIndex: 1,
         progress: 0.75,
       })?.completedDistanceKm,
-    ).toBe(14);
+    ).toBeCloseTo(13.5);
+  });
+
+  it("interpolates group gaps and tactical pressure without blending rider identities", () => {
+    const frames = [
+      {
+        segmentNumber: 1,
+        completedDistanceKm: 2,
+        sourceTimelineIndex: 0,
+        groups: [
+          {
+            id: "breakaway",
+            label: "Échappée",
+            type: "breakaway" as const,
+            riderIds: ["rider-1"],
+            gapToLeaderSeconds: 40,
+            averageEnergy: 80,
+          },
+        ],
+        frontDynamics: {
+          breakawayCooperation: 0.4,
+          activeRelayRiderIds: ["rider-1"],
+          chasePressure: 0.2,
+        },
+      },
+      {
+        segmentNumber: 1,
+        completedDistanceKm: 4,
+        sourceTimelineIndex: 0,
+        groups: [
+          {
+            id: "breakaway",
+            label: "Échappée",
+            type: "breakaway" as const,
+            riderIds: ["rider-2"],
+            gapToLeaderSeconds: 20,
+            averageEnergy: 70,
+          },
+        ],
+        frontDynamics: {
+          breakawayCooperation: 0.8,
+          activeRelayRiderIds: ["rider-2"],
+          chasePressure: 0.6,
+        },
+      },
+    ];
+
+    const frame = getRaceVisualFrameAtProgress(frames, 0.25);
+
+    expect(frame?.completedDistanceKm).toBeCloseTo(2.5);
+    expect(frame?.groups[0]?.gapToLeaderSeconds).toBeCloseTo(35);
+    expect(frame?.groups[0]?.averageEnergy).toBeCloseTo(77.5);
+    expect(frame?.groups[0]?.riderIds).toEqual(["rider-1"]);
+    expect(frame?.frontDynamics?.chasePressure).toBeCloseTo(0.3);
   });
 
   it("updates only visual fields and preserves official commentary and incidents", () => {

@@ -742,6 +742,22 @@ export function getFinalApproachPosition({
   );
 }
 
+/**
+ * Répartit un groupe de côté sur plusieurs profondeurs de route. Les écarts
+ * sportifs restent portés par l’axe horizontal tandis que cette légère
+ * alternance empêche les silhouettes de se masquer entre elles.
+ */
+export function getFinishLaneOffset({
+  riderIndex,
+  roadDepth,
+}: {
+  riderIndex: number;
+  roadDepth: number;
+}) {
+  const laneRatios = [0, -0.18, 0.18, -0.3, 0.3, -0.1, 0.1] as const;
+  return roadDepth * laneRatios[Math.abs(riderIndex) % laneRatios.length];
+}
+
 export function getFinishPassagePosition({
   approachPosition,
   rank,

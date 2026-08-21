@@ -113,8 +113,8 @@ describe("detailed race cyclist", () => {
 
     expect(markup.match(/data-race-victory-pose="arms-raised"/g)).toHaveLength(2);
     expect(markup.match(/data-race-victory-torso="upright"/g)).toHaveLength(3);
-    expect(markup).toContain("M42 10 39 17 40 28 54 28 56 17 53 10Z");
-    expect(markup).toContain("M43 14 37 4 34-6M53 14 59 4 62-6");
+    expect(markup).toContain("M42 10C40 12 39 16");
+    expect(markup).toContain("M43 14C41 11 39.2 7.3 37 4");
     expect(markup.match(/cm-victory-arms/g)).toHaveLength(2);
   });
 });

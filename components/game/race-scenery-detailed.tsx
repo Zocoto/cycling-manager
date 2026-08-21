@@ -21,7 +21,17 @@ export function RaceSceneryBackdrop({
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
       <div
+        data-race-scenery-parallax="far"
+        className={`absolute inset-y-0 left-0 flex w-[200%] opacity-75 ${
+          isMoving ? "cm-race-scenery-scroll-far" : ""
+        }`}
+      >
+        <SceneryAtmospherePanel kind={kind} />
+        <SceneryAtmospherePanel kind={kind} />
+      </div>
+      <div
         data-race-scenery-track="right-to-left"
+        data-race-scenery-parallax="near"
         className={`absolute inset-y-0 left-0 flex w-[200%] ${
           isMoving ? "cm-race-scenery-scroll" : ""
         }`}
@@ -38,6 +48,45 @@ export function RaceSceneryBackdrop({
         />
       </div>
     </div>
+  );
+}
+
+function SceneryAtmospherePanel({ kind }: { kind: RaceSceneryKind }) {
+  const coastal = kind === "coast";
+  const urban = kind === "urban";
+  return (
+    <svg
+      viewBox="0 0 1000 320"
+      preserveAspectRatio="none"
+      data-race-scenery-atmosphere="continuous"
+      className="h-full w-1/2 shrink-0"
+    >
+      <path
+        d={
+          coastal
+            ? "M0 164Q90 132 180 158T360 151T540 158T720 149T900 158T1080 151V225H0Z"
+            : urban
+              ? "M0 170 80 132 150 157 245 111 335 151 440 122 535 158 650 105 760 148 875 118 1000 160V224H0Z"
+              : "M0 171Q95 82 190 159T380 150T570 157T760 143T950 157T1140 146V224H0Z"
+        }
+        fill={coastal ? "#6EAEB0" : urban ? "#78958E" : "#729478"}
+        opacity="0.5"
+      />
+      <path
+        d="M0 190Q120 143 240 184T480 178T720 185T960 176T1200 182V230H0Z"
+        fill={coastal ? "#4E8F91" : "#4F7658"}
+        opacity="0.46"
+      />
+      {[105, 312, 548, 764, 925].map((x, index) => (
+        <g key={x} transform={`translate(${x} ${48 + (index % 2) * 28})`} opacity="0.6">
+          <path d="M0 8q17-14 34 0 18-14 36 1-4 12-18 12H18Q4 21 0 8Z" fill="#E8F4F0" />
+          <path d="M12 9q12-8 24 0" fill="none" stroke="#FFFFFF" strokeWidth="1.2" opacity="0.65" />
+        </g>
+      ))}
+      {[215, 684].map((x) => (
+        <path key={x} d={`M${x} 92q8-7 16 0 8-7 16 0`} fill="none" stroke="#28443D" strokeWidth="1.3" opacity="0.52" />
+      ))}
+    </svg>
   );
 }
 

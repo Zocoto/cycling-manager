@@ -72,8 +72,10 @@ export function RaceGroupFormation({
     compact,
     formation,
   });
-  const incidentRiderIds = new Set(
-    incidents.flatMap((incident) => incident.riderIds),
+  const incidentByRiderId = new Map(
+    incidents.flatMap((incident) =>
+      incident.riderIds.map((riderId) => [riderId, incident] as const),
+    ),
   );
 
   return (
@@ -112,7 +114,8 @@ export function RaceGroupFormation({
         const slot = slots[riderIndex];
         if (!rider || !slot) return null;
 
-        const incidentRider = incidentRiderIds.has(riderId);
+        const riderIncident = incidentByRiderId.get(riderId) ?? null;
+        const incidentRider = riderIncident !== null;
         const primeWinner = riderId === primeWinnerId;
         const primeContenderIndex = groupSprintContenderIds.indexOf(riderId);
         const visualEffort = getRaceRiderVisualEffort({
@@ -133,6 +136,24 @@ export function RaceGroupFormation({
           animationDelay: `${-(riderIndex % 5) * 0.43}s`,
           animationDuration: `${2.7 + (riderIndex % 4) * 0.32}s`,
         } as CSSProperties;
+        const incidentStyle = {
+          "--cm-crash-angle": `${riderIndex % 2 === 0 ? -68 : 62}deg`,
+          animationDelay: `${Math.min(0.24, riderIndex * 0.035)}s`,
+        } as CSSProperties;
+        const incidentMotionClass = !riderIncident
+          ? ""
+          : riderIncident.type === "crash_individual" ||
+              riderIncident.type === "crash_mass"
+            ? isMoving
+              ? "cm-race-rider-crash"
+              : "cm-race-rider-crash-still"
+            : riderIncident.type === "puncture"
+              ? isMoving
+                ? "cm-race-rider-mechanical"
+                : "cm-race-rider-mechanical-still"
+              : isMoving
+                ? "cm-race-rider-crosswind"
+                : "";
 
         return (
           <span
@@ -156,12 +177,37 @@ export function RaceGroupFormation({
               }`}
               style={weaveStyle}
             >
-              <SideRaceCyclist
-                rider={rider}
-                isMoving={isMoving}
-                effort={visualEffort}
-                className={compact ? "h-8 w-14" : "h-9 w-16"}
-              />
+              <span
+                data-race-rider-incident={riderIncident?.type}
+                className={`relative block origin-bottom ${incidentMotionClass}`}
+                style={incidentRider ? incidentStyle : undefined}
+              >
+                <SideRaceCyclist
+                  rider={rider}
+                  isMoving={isMoving}
+                  effort={visualEffort}
+                  className={compact ? "h-8 w-14" : "h-9 w-16"}
+                />
+                {riderIncident &&
+                (riderIncident.type === "crash_individual" ||
+                  riderIncident.type === "crash_mass") &&
+                riderIndex % 2 === 0 ? (
+                  <span
+                    aria-hidden="true"
+                    data-race-loose-wheel="crash"
+                    className={`absolute bottom-1 left-1 block h-3 w-3 rounded-full border-2 border-[#17261E] ${
+                      isMoving ? "cm-race-loose-wheel" : "-translate-x-3 -translate-y-1"
+                    }`}
+                  />
+                ) : null}
+                {riderIncident?.type === "puncture" ? (
+                  <span
+                    aria-hidden="true"
+                    data-race-mechanical-spark="puncture"
+                    className="absolute bottom-1 left-1 h-2 w-2 rounded-full border border-[#F2C94C] bg-[#EF5B65]/80"
+                  />
+                ) : null}
+              </span>
               {showName ? (
                 <span
                   className={`absolute left-1/2 top-[1.95rem] -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[7px] font-black shadow ${

@@ -17,6 +17,10 @@ describe("detailed race scenery", () => {
 
       expect(markup).toContain(`data-detailed-race-scenery="${kind}"`);
       expect(markup).toContain("cm-race-scenery-scroll");
+      expect(markup).toContain("cm-race-scenery-scroll-far");
+      expect(markup).toContain('data-race-scenery-parallax="far"');
+      expect(markup).toContain('data-race-scenery-parallax="near"');
+      expect(markup.match(/data-race-scenery-atmosphere="continuous"/g)).toHaveLength(2);
       expect(markup).toContain(
         'data-race-scenery-track="right-to-left"',
       );
