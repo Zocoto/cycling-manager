@@ -875,15 +875,42 @@ export async function getActiveSeasonRaceCalendar(
           getActiveNationalChampionshipTitlesByDisciplineForRiders(
             supabase,
             engagedRiderIds,
-          ),
+          ).catch((error: unknown) => {
+            console.error(
+              "Impossible de charger les maillots de champions nationaux du calendrier :",
+              error,
+            );
+            return new Map<
+              string,
+              ActiveNationalChampionshipTitlesByDiscipline
+            >();
+          }),
           getActiveWorldChampionshipTitlesByDisciplineForRiders(
             supabase,
             engagedRiderIds,
-          ),
+          ).catch((error: unknown) => {
+            console.error(
+              "Impossible de charger les maillots de champions du monde du calendrier :",
+              error,
+            );
+            return new Map<
+              string,
+              ActiveWorldChampionshipTitlesByDiscipline
+            >();
+          }),
           getActiveContinentalChampionshipTitlesByDisciplineForRiders(
             supabase,
             engagedRiderIds,
-          ),
+          ).catch((error: unknown) => {
+            console.error(
+              "Impossible de charger les maillots de champions continentaux du calendrier :",
+              error,
+            );
+            return new Map<
+              string,
+              ActiveContinentalChampionshipTitlesByDiscipline
+            >();
+          }),
           collectChunkedPaginatedRows<
             RiderPerformancePreparationRow,
             { message: string },

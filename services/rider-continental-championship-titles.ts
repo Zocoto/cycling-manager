@@ -4,6 +4,7 @@ import {
   CONTINENTAL_CHAMPION_PALETTES,
   type ContinentalChampionshipCode,
 } from "@/lib/rider-jersey";
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -69,13 +70,24 @@ export async function getActiveContinentalChampionshipTitlesByDisciplineForRider
   const uniqueRiderIds = [...new Set(riderIds.filter(Boolean))];
   if (uniqueRiderIds.length === 0) return new Map();
 
-  const titlesResult = await supabase
-    .from("rider_national_championship_titles")
-    .select("rider_id, championship_type")
-    .in("rider_id", uniqueRiderIds)
-    .in("championship_type", [...CONTINENTAL_CHAMPIONSHIP_TITLE_TYPES])
-    .is("relinquished_at", null)
-    .returns<ContinentalChampionshipTitleRow[]>();
+  const titlesResult = await collectChunkedPaginatedRows<
+    ContinentalChampionshipTitleRow,
+    { message: string },
+    string
+  >({
+    values: uniqueRiderIds,
+    fetchPage: async (riderIdChunk, from, to) => {
+      const result = await supabase
+        .from("rider_national_championship_titles")
+        .select("rider_id, championship_type")
+        .in("rider_id", riderIdChunk)
+        .in("championship_type", [...CONTINENTAL_CHAMPIONSHIP_TITLE_TYPES])
+        .is("relinquished_at", null)
+        .range(from, to)
+        .returns<ContinentalChampionshipTitleRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
 
   if (titlesResult.error) {
     throw new Error(

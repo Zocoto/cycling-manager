@@ -1,5 +1,6 @@
 import "server-only";
 
+import { collectChunkedPaginatedRows } from "@/lib/supabase/pagination";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -78,13 +79,24 @@ export async function getActiveNationalChampionshipTitlesByDisciplineForRiders(
     return new Map();
   }
 
-  const titlesResult = await supabase
-    .from("rider_national_championship_titles")
-    .select("rider_id, country_id, championship_type")
-    .in("rider_id", uniqueRiderIds)
-    .in("championship_type", ["road", "time_trial"])
-    .is("relinquished_at", null)
-    .returns<NationalChampionshipTitleRow[]>();
+  const titlesResult = await collectChunkedPaginatedRows<
+    NationalChampionshipTitleRow,
+    { message: string },
+    string
+  >({
+    values: uniqueRiderIds,
+    fetchPage: async (riderIdChunk, from, to) => {
+      const result = await supabase
+        .from("rider_national_championship_titles")
+        .select("rider_id, country_id, championship_type")
+        .in("rider_id", riderIdChunk)
+        .in("championship_type", ["road", "time_trial"])
+        .is("relinquished_at", null)
+        .range(from, to)
+        .returns<NationalChampionshipTitleRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
 
   if (titlesResult.error) {
     throw new Error(
@@ -141,13 +153,24 @@ export async function getActiveWorldChampionshipTitlesByDisciplineForRiders(
   const uniqueRiderIds = [...new Set(riderIds.filter(Boolean))];
   if (uniqueRiderIds.length === 0) return new Map();
 
-  const titlesResult = await supabase
-    .from("rider_national_championship_titles")
-    .select("rider_id, championship_type")
-    .in("rider_id", uniqueRiderIds)
-    .in("championship_type", ["world_road", "world_time_trial"])
-    .is("relinquished_at", null)
-    .returns<WorldChampionshipTitleRow[]>();
+  const titlesResult = await collectChunkedPaginatedRows<
+    WorldChampionshipTitleRow,
+    { message: string },
+    string
+  >({
+    values: uniqueRiderIds,
+    fetchPage: async (riderIdChunk, from, to) => {
+      const result = await supabase
+        .from("rider_national_championship_titles")
+        .select("rider_id, championship_type")
+        .in("rider_id", riderIdChunk)
+        .in("championship_type", ["world_road", "world_time_trial"])
+        .is("relinquished_at", null)
+        .range(from, to)
+        .returns<WorldChampionshipTitleRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
 
   if (titlesResult.error) {
     throw new Error(
