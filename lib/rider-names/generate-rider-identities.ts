@@ -13,11 +13,14 @@ import centralAfrica from "../../data/rider-names/central_africa.json";
 import centralAsia from "../../data/rider-names/central_asia.json";
 import centralEurope from "../../data/rider-names/central_europe.json";
 import china from "../../data/rider-names/china.json";
+import denmark from "../../data/rider-names/denmark.json";
 import eastAfrica from "../../data/rider-names/east_africa.json";
 import easternEurope from "../../data/rider-names/eastern_europe.json";
+import finland from "../../data/rider-names/finland.json";
 import france from "../../data/rider-names/france.json";
 import germany from "../../data/rider-names/germany.json";
 import greece from "../../data/rider-names/greece.json";
+import iceland from "../../data/rider-names/iceland.json";
 import iran from "../../data/rider-names/iran.json";
 import israel from "../../data/rider-names/israel.json";
 import italy from "../../data/rider-names/italy.json";
@@ -29,6 +32,7 @@ import netherlands from "../../data/rider-names/netherlands.json";
 import nordic from "../../data/rider-names/nordic.json";
 import northAfrica from "../../data/rider-names/north_africa.json";
 import northAmerica from "../../data/rider-names/north_america.json";
+import norway from "../../data/rider-names/norway.json";
 import oceania from "../../data/rider-names/oceania.json";
 import portugal from "../../data/rider-names/portugal.json";
 import southAsia from "../../data/rider-names/south_asia.json";
@@ -36,6 +40,7 @@ import southeastAsia from "../../data/rider-names/southeast_asia.json";
 import southernAfrica from "../../data/rider-names/southern_africa.json";
 import southernCone from "../../data/rider-names/southern_cone.json";
 import spain from "../../data/rider-names/spain.json";
+import sweden from "../../data/rider-names/sweden.json";
 import turkey from "../../data/rider-names/turkey.json";
 import westAfricaAnglophone from "../../data/rider-names/west_africa_anglophone.json";
 import westAfricaFrancophone from "../../data/rider-names/west_africa_francophone.json";
@@ -64,6 +69,11 @@ const riderNameLibraries = {
   germany,
   british_isles: britishIsles,
   nordic,
+  denmark,
+  finland,
+  iceland,
+  norway,
+  sweden,
   central_europe: centralEurope,
   balkans,
   eastern_europe: easternEurope,

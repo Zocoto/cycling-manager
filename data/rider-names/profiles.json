@@ -36,7 +36,27 @@
     },
     {
       "code": "nordic",
-      "label": "Europe nordique"
+      "label": "Europe nordique (profil historique)"
+    },
+    {
+      "code": "denmark",
+      "label": "Danemark"
+    },
+    {
+      "code": "finland",
+      "label": "Finlande"
+    },
+    {
+      "code": "iceland",
+      "label": "Islande"
+    },
+    {
+      "code": "norway",
+      "label": "Norvège"
+    },
+    {
+      "code": "sweden",
+      "label": "Suède"
     },
     {
       "code": "central_europe",
