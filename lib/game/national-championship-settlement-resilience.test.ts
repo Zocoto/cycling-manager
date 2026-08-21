@@ -57,5 +57,22 @@ describe("national championship settlement resilience", () => {
     expect(vercel).toContain(
       "/api/cron/national-championship-settlements/road",
     );
+    expect(vercel).toContain('"schedule": "23 16 * * *"');
+  });
+
+  it("keeps national settlements out of the general race cron", () => {
+    const generalRoute = readSource(
+      "app/api/cron/race-settlements/[slot]/route.ts",
+    );
+
+    expect(generalRoute).toContain(
+      'edition.competitionType !== "national_road"',
+    );
+    expect(generalRoute).toContain(
+      'edition.competitionType !== "national_time_trial"',
+    );
+    expect(generalRoute).toContain(
+      "settleFinishedRaceResults(standardCalendar, now)",
+    );
   });
 });

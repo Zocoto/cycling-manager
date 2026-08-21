@@ -15,8 +15,8 @@
     { "path": "/api/cron/race-settlements/early-winter-30", "schedule": "30 13 * * *" },
     { "path": "/api/cron/race-settlements/early-winter-40", "schedule": "40 13 * * *" },
     { "path": "/api/cron/race-settlements/early-winter-50", "schedule": "50 13 * * *" },
-    { "path": "/api/cron/national-championship-settlements/time-trial-summer", "schedule": "20 12 * * *" },
-    { "path": "/api/cron/national-championship-settlements/time-trial-winter", "schedule": "20 13 * * *" },
+    { "path": "/api/cron/national-championship-settlements/time-trial-summer", "schedule": "23 12 * * *" },
+    { "path": "/api/cron/national-championship-settlements/time-trial-winter", "schedule": "23 13 * * *" },
     { "path": "/api/cron/race-settlements/late-summer-00", "schedule": "0 16 * * *" },
     { "path": "/api/cron/race-settlements/late-summer-10", "schedule": "10 16 * * *" },
     { "path": "/api/cron/race-settlements/late-summer-20", "schedule": "20 16 * * *" },
@@ -29,8 +29,8 @@
     { "path": "/api/cron/race-settlements/late-winter-30", "schedule": "30 17 * * *" },
     { "path": "/api/cron/race-settlements/late-winter-40", "schedule": "40 17 * * *" },
     { "path": "/api/cron/race-settlements/late-winter-50", "schedule": "50 17 * * *" },
-    { "path": "/api/cron/national-championship-settlements/road-summer", "schedule": "20 16 * * *" },
-    { "path": "/api/cron/national-championship-settlements/road-winter", "schedule": "20 17 * * *" },
+    { "path": "/api/cron/national-championship-settlements/road-summer", "schedule": "23 16 * * *" },
+    { "path": "/api/cron/national-championship-settlements/road-winter", "schedule": "23 17 * * *" },
     { "path": "/api/cron/cyclogazette/summer", "schedule": "0 18 * * *" },
     { "path": "/api/cron/cyclogazette/winter", "schedule": "0 19 * * *" }
   ]

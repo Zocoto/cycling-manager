@@ -65,7 +65,18 @@ export async function GET(request: Request) {
     });
   }
 
-  const settlement = await settleFinishedRaceResults(calendar, now);
+  // Les CN regroupent plus d'une centaine d'éditions au même instant. Ils ont
+  // leur propre cron borné ; les inclure aussi ici doublerait les écritures et
+  // mettrait les courses ordinaires en concurrence avec eux.
+  const standardCalendar = {
+    ...calendar,
+    editions: calendar.editions.filter(
+      (edition) =>
+        edition.competitionType !== "national_road" &&
+        edition.competitionType !== "national_time_trial",
+    ),
+  };
+  const settlement = await settleFinishedRaceResults(standardCalendar, now);
   return Response.json({
     ...settlement,
     internationalSelections,
