@@ -1,7 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
-import { syncNationalChampionshipRegistrations } from "@/services/national-championships";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { settleFinishedRaceResults } from "@/services/race-results";
 
@@ -37,15 +36,10 @@ export async function GET(request: Request) {
   ) {
     return Response.json({ error: "Invalid race slug" }, { status: 400 });
   }
-  const [internationalSelections, nationalChampionshipEntries] =
-    await Promise.all([
-      runPreSettlementTask("sélections internationales", () =>
-        processDueInternationalChampionshipSelections(now),
-      ),
-      runPreSettlementTask("inscriptions aux championnats nationaux", () =>
-        syncNationalChampionshipRegistrations(now),
-      ),
-    ]);
+  const internationalSelections = await runPreSettlementTask(
+    "sélections internationales",
+    () => processDueInternationalChampionshipSelections(now),
+  );
   const admin = createSupabaseAdminClient();
   const calendar = await getActiveSeasonRaceCalendar(admin, now, {
     includeIneligibleRegionalRaces: true,
@@ -56,11 +50,7 @@ export async function GET(request: Request) {
       processedStages: 0,
       completedEditions: 0,
       internationalSelections,
-      nationalChampionshipEntries,
-      preSettlementFailures: [
-        internationalSelections,
-        nationalChampionshipEntries,
-      ].filter((task) => !task.ok).length,
+      preSettlementFailures: internationalSelections.ok ? 0 : 1,
       raceSlug: requestedRaceSlug,
     });
   }
@@ -80,11 +70,7 @@ export async function GET(request: Request) {
   return Response.json({
     ...settlement,
     internationalSelections,
-    nationalChampionshipEntries,
-    preSettlementFailures: [
-      internationalSelections,
-      nationalChampionshipEntries,
-    ].filter((task) => !task.ok).length,
+    preSettlementFailures: internationalSelections.ok ? 0 : 1,
     raceSlug: requestedRaceSlug,
     settledAt: now.toISOString(),
   });

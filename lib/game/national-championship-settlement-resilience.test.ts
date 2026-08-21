@@ -74,5 +74,8 @@ describe("national championship settlement resilience", () => {
     expect(generalRoute).toContain(
       "settleFinishedRaceResults(standardCalendar, now)",
     );
+    expect(generalRoute).not.toContain(
+      "syncNationalChampionshipRegistrations",
+    );
   });
 });
