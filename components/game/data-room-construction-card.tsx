@@ -13,6 +13,8 @@ import type {
 } from "@/services/team-infrastructures";
 import {
   TEAM_INFRASTRUCTURE_DEFINITIONS,
+  canDirectorBuildInfrastructureLevel,
+  getRequiredDirectorLevelForInfrastructureLevel,
   type InfrastructureLevelDefinition,
 } from "@/lib/game/infrastructure";
 
@@ -21,7 +23,7 @@ export function DataRoomConstructionCard({
   nextLevel,
   architects,
   activeProjects,
-  isUnlocked,
+  directorLevel,
   balance,
   currency,
 }: {
@@ -29,7 +31,7 @@ export function DataRoomConstructionCard({
   nextLevel: InfrastructureLevelDefinition | null;
   architects: InfrastructureArchitect[];
   activeProjects: InfrastructureProject[];
-  isUnlocked: boolean;
+  directorLevel: number;
   balance: number;
   currency: string;
 }) {
@@ -50,8 +52,13 @@ export function DataRoomConstructionCard({
         architectSpecialty: architect?.specialty,
       })
     : null;
-  const blockReason = !isUnlocked
-    ? "Le niveau 10 de Directeur Sportif est requis."
+  const requiredDirectorLevel = nextLevel
+    ? getRequiredDirectorLevelForInfrastructureLevel(nextLevel.level)
+    : null;
+  const blockReason =
+    nextLevel &&
+    !canDirectorBuildInfrastructureLevel(directorLevel, nextLevel.level)
+      ? `Le niveau ${requiredDirectorLevel} de Directeur Sportif est requis pour construire le niveau ${nextLevel.level}.`
     : activeProjects.some((project) => project.code === "recruitment_data_room")
       ? "Un chantier est déjà en cours pour la Data Room."
       : constructionOptions.capacityBlockReason
@@ -113,7 +120,8 @@ export function DataRoomConstructionCard({
             />
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
-                Prochain chantier · niveau {nextLevel.level}
+                Prochain chantier · niveau {nextLevel.level} · DS N
+                {requiredDirectorLevel}
               </p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
                 {nextLevel.effect}

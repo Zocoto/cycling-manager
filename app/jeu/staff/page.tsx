@@ -4,10 +4,12 @@ import { redirect } from "next/navigation";
 import {
   dismissStaffMemberAction,
   hireStaffMemberAction,
+  naturalizeStaffMemberAction,
 } from "@/app/jeu/staff/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { StaffDismissalSubmitButton } from "@/components/game/staff-dismissal-submit-button";
+import { NaturalizationSubmitButton } from "@/components/game/naturalization-submit-button";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
@@ -468,7 +470,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
               style={{ width: `${fillPercentage}%` }}
             />
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <CompactMetric
               label="Places disponibles"
               value={String(overview.availableStaffSlots)}
@@ -484,7 +486,18 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
                 overview.currency,
               )}
             />
+            <CompactMetric
+              label="Naturalisations staff"
+              value={
+                overview.staffNaturalization.limit > 0
+                  ? `${overview.staffNaturalization.used}/${overview.staffNaturalization.limit} cette saison`
+                  : "Centre requis"
+              }
+            />
           </div>
+          <p className="mt-4 text-xs font-bold leading-5 text-[#60756E]">
+            Centre d’accueil international · niveau {overview.staffNaturalization.welcomeCenterLevel}/5 · {overview.staffNaturalization.remaining} naturalisation{overview.staffNaturalization.remaining > 1 ? "s" : ""} encore disponible{overview.staffNaturalization.remaining > 1 ? "s" : ""} vers {overview.staffNaturalization.targetCountryName}.
+          </p>
         </article>
 
         <article className="rounded-[2rem] border border-[#F2C94C]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
@@ -522,6 +535,7 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
                 key={member.contractId}
                 member={member}
                 currentBalance={overview.balance}
+                naturalization={overview.staffNaturalization}
               />
             ))}
           </div>
@@ -540,9 +554,11 @@ function TeamStaff({ overview }: { overview: TeamStaffOverview }) {
 function TeamStaffCard({
   member,
   currentBalance,
+  naturalization,
 }: {
   member: TeamStaffMember;
   currentBalance: number;
+  naturalization: TeamStaffOverview["staffNaturalization"];
 }) {
   const definition = STAFF_ROLE_DEFINITIONS[member.role];
   const balanceAfterDismissal = currentBalance - member.dismissalCompensation;
@@ -603,6 +619,10 @@ function TeamStaffCard({
           Contrat actif depuis le {formatLongDate(member.signedAt)}
         </p>
       </div>
+      <StaffNaturalizationPanel
+        member={member}
+        naturalization={naturalization}
+      />
       <div className="mt-4 rounded-2xl border border-[#C94848]/20 bg-[#FFF7F7] p-4">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -653,6 +673,57 @@ function TeamStaffCard({
       ) : null}
     </article>
   );
+}
+
+function StaffNaturalizationPanel({
+  member,
+  naturalization,
+}: {
+  member: TeamStaffMember;
+  naturalization: TeamStaffOverview["staffNaturalization"];
+}) {
+  if (member.countryId === naturalization.targetCountryId) {
+    return (
+      <p className="mt-4 rounded-2xl border border-[#42B99A]/20 bg-[#EFF9F5] px-4 py-3 text-xs font-black text-[#176951]">
+        Nationalité de l’équipe déjà acquise · {naturalization.targetCountryName}
+      </p>
+    );
+  }
+
+  if (naturalization.limit === 0) {
+    return (
+      <p className="mt-4 rounded-2xl border border-[#315B3E]/12 bg-[#F6F8F6] px-4 py-3 text-xs font-bold leading-5 text-[#60756E]">
+        Construisez le Centre d’accueil international niveau 1 pour naturaliser un membre du staff par saison.
+      </p>
+    );
+  }
+
+  if (naturalization.remaining === 0) {
+    return (
+      <p className="mt-4 rounded-2xl border border-[#F2C94C]/30 bg-[#FFF9E5] px-4 py-3 text-xs font-bold leading-5 text-[#71580A]">
+        Quota de naturalisation du staff atteint pour cette saison ({naturalization.used}/{naturalization.limit}).
+      </p>
+    );
+  }
+
+  return member.contractId ? (
+    <div className="mt-4 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF9E5] p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#71580A]">
+        Centre d’accueil · {naturalization.remaining}/{naturalization.limit} disponible{naturalization.remaining > 1 ? "s" : ""}
+      </p>
+      <p className="mt-2 text-xs font-semibold leading-5 text-[#7B6B37]">
+        La naturalisation est immédiate et consomme une place du quota de la saison.
+      </p>
+      <form action={naturalizeStaffMemberAction} className="mt-3">
+        <input type="hidden" name="contractId" value={member.contractId} />
+        <NaturalizationSubmitButton
+          subjectName={`${member.firstName} ${member.lastName}`}
+          targetCountryName={naturalization.targetCountryName}
+          compact
+        />
+      </form>
+    </div>
+  ) : null;
 }
 
 function StaffTalentBlock({ member }: { member: TeamStaffMember }) {

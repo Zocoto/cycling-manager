@@ -12,10 +12,11 @@ import { StaffAcademySubmitButton } from "@/components/game/staff-academy-submit
 import {
   STAFF_ACADEMY_LEVELS,
   STAFF_ACADEMY_MAX_TALENT_LINES,
-  STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL,
 } from "@/lib/game/staff-academy";
 import {
   TEAM_INFRASTRUCTURE_DEFINITIONS,
+  canDirectorBuildInfrastructureLevel,
+  getRequiredDirectorLevelForInfrastructureLevel,
   getTeamInfrastructureLevelDefinition,
 } from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
@@ -69,10 +70,13 @@ export function StaffAcademyCard({
         architectSpecialty: architect?.specialty,
       })
     : null;
-  const academyUnlocked =
-    directorLevel >= STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL;
-  const constructionBlockReason = !academyUnlocked
-    ? `Le niveau ${STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL} de Directeur Sportif est requis.`
+  const requiredDirectorLevel = nextLevel
+    ? getRequiredDirectorLevelForInfrastructureLevel(nextLevel.level)
+    : null;
+  const constructionBlockReason =
+    nextLevel &&
+    !canDirectorBuildInfrastructureLevel(directorLevel, nextLevel.level)
+      ? `Le niveau ${requiredDirectorLevel} de Directeur Sportif est requis pour construire le niveau ${nextLevel.level}.`
     : activeProjects.some((project) => project.code === "staff_academy")
       ? "Un chantier est déjà en cours pour l’Académie."
       : constructionOptions.capacityBlockReason
@@ -109,7 +113,10 @@ export function StaffAcademyCard({
               }`}
             >
               <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#60756E]">
-                Niveau {definition.level}
+                Niveau {definition.level} · DS N
+                {getRequiredDirectorLevelForInfrastructureLevel(
+                  definition.level,
+                )}
               </p>
               <p className="mt-2 text-2xl font-black text-[#183F37]">
                 {definition.capacity}
@@ -134,7 +141,7 @@ export function StaffAcademyCard({
             />
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#278B70]">
-                {academy.academyLevel === 0 ? "Construction" : "Agrandissement"} · niveau {nextLevel.level}
+                {academy.academyLevel === 0 ? "Construction" : "Agrandissement"} · niveau {nextLevel.level} · DS N{requiredDirectorLevel}
               </p>
               <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
                 {nextLevel.effect} Les travaux sont volontairement longs et

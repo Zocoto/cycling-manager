@@ -6,7 +6,11 @@ import { startInfrastructureProjectAction } from "@/app/jeu/infrastructures/acti
 import { InfrastructureSubmitButton } from "@/components/game/infrastructure-submit-button";
 import Link from "@/components/ui/app-link";
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
-import { getInternationalCenterLevelDefinition } from "@/lib/game/infrastructure";
+import {
+  canDirectorBuildInfrastructureLevel,
+  getInternationalCenterLevelDefinition,
+  getRequiredDirectorLevelForInfrastructureLevel,
+} from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
 import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
 import type {
@@ -19,14 +23,14 @@ export function InternationalYouthCenterMap({
   countries,
   architects,
   activeProjects,
-  isUnlocked,
+  directorLevel,
   balance,
   currency,
 }: {
   countries: InfrastructureCountry[];
   architects: InfrastructureArchitect[];
   activeProjects: InfrastructureProject[];
-  isUnlocked: boolean;
+  directorLevel: number;
   balance: number;
   currency: string;
 }) {
@@ -74,8 +78,13 @@ export function InternationalYouthCenterMap({
         architectSpecialty: selectedArchitect?.specialty,
       })
     : null;
-  const blockReason = !isUnlocked
-    ? "Le niveau 10 de Directeur Sportif est requis."
+  const requiredDirectorLevel = nextLevel
+    ? getRequiredDirectorLevelForInfrastructureLevel(nextLevel.level)
+    : null;
+  const blockReason =
+    nextLevel &&
+    !canDirectorBuildInfrastructureLevel(directorLevel, nextLevel.level)
+      ? `Le niveau ${requiredDirectorLevel} de Directeur Sportif est requis pour construire le niveau ${nextLevel.level}.`
     : activeProjects.some(
           (project) =>
             project.code === "international_youth_center" &&

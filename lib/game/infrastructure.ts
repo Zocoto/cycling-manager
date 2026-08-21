@@ -1,7 +1,50 @@
 import { STAFF_ACADEMY_LEVELS } from "@/lib/game/staff-academy";
 
 export const INFRASTRUCTURE_UNLOCK_LEVEL = 10;
+export const INFRASTRUCTURE_MANAGER_LEVEL_PER_BUILDING_LEVEL = 10;
+export const INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT = 50;
 export const MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE = 90;
+
+const INFRASTRUCTURE_UPGRADE_COST_RATIOS = [1, 0.6, 0.7, 0.8, 0.9] as const;
+
+export function getInfrastructureUpgradeCost(
+  levelOneCost: number,
+  targetLevel: number,
+): number {
+  const safeLevel = Math.max(1, Math.floor(targetLevel));
+  const ratio =
+    INFRASTRUCTURE_UPGRADE_COST_RATIOS[
+      Math.min(safeLevel, INFRASTRUCTURE_UPGRADE_COST_RATIOS.length) - 1
+    ]!;
+
+  return Math.round(levelOneCost * ratio);
+}
+
+export function getRequiredDirectorLevelForInfrastructureLevel(
+  targetLevel: number,
+): number {
+  return Math.min(
+    INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT,
+    Math.max(1, Math.floor(targetLevel)) *
+      INFRASTRUCTURE_MANAGER_LEVEL_PER_BUILDING_LEVEL,
+  );
+}
+
+export function canDirectorBuildInfrastructureLevel(
+  directorLevel: number,
+  targetLevel: number,
+): boolean {
+  return (
+    Math.max(0, Math.floor(directorLevel)) >=
+    getRequiredDirectorLevelForInfrastructureLevel(targetLevel)
+  );
+}
+
+export function getStaffNaturalizationSeasonLimit(
+  welcomeCenterLevel: number,
+): number {
+  return Math.min(5, Math.max(0, Math.floor(welcomeCenterLevel)));
+}
 
 export type TeamInfrastructureCode =
   | "recruitment_data_room"
@@ -50,7 +93,7 @@ export type TeamInfrastructureDefinition = {
   levels: readonly InfrastructureLevelDefinition[];
 };
 
-export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
+const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
   TeamInfrastructureCode,
   TeamInfrastructureDefinition
 > = {
@@ -342,34 +385,36 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
         level: 1,
         cost: 800_000,
         durationDays: 24,
-        effect: "Naturalisation pro en 70 jours et junior en 21 jours.",
+        effect:
+          "Naturalisation pro en 70 jours et junior en 21 jours · 1 membre du staff naturalisable par saison.",
       },
       {
         level: 2,
         cost: 1_500_000,
         durationDays: 38,
-        effect: "Naturalisation pro en 56 jours et junior en 14 jours.",
+        effect:
+          "Naturalisation pro en 56 jours et junior en 14 jours · 2 membres du staff naturalisables par saison.",
       },
       {
         level: 3,
         cost: 2_500_000,
         durationDays: 54,
         effect:
-          "Affinité du staff et bonus local étendus aux pays frontaliers ; junior en 7 jours.",
+          "Affinité du staff et bonus local étendus aux pays frontaliers ; junior en 7 jours · 3 membres du staff naturalisables par saison.",
       },
       {
         level: 4,
         cost: 3_800_000,
         durationDays: 72,
         effect:
-          "Affinité du staff étendue au continent ; naturalisation pro en 28 jours.",
+          "Affinité du staff étendue au continent ; naturalisation pro en 28 jours · 4 membres du staff naturalisables par saison.",
       },
       {
         level: 5,
         cost: 5_500_000,
         durationDays: 84,
         effect:
-          "Naturalisation pro en 14 jours et naturalisation junior immédiate.",
+          "Naturalisation pro en 14 jours et naturalisation junior immédiate · 5 membres du staff naturalisables par saison.",
       },
     ],
   },
@@ -517,6 +562,24 @@ export const TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
   },
 };
 
+export const TEAM_INFRASTRUCTURE_DEFINITIONS = Object.fromEntries(
+  Object.entries(BASE_TEAM_INFRASTRUCTURE_DEFINITIONS).map(
+    ([code, definition]) => {
+      const levelOneCost = definition.levels[0]?.cost ?? 0;
+      return [
+        code,
+        {
+          ...definition,
+          levels: definition.levels.map((level) => ({
+            ...level,
+            cost: getInfrastructureUpgradeCost(levelOneCost, level.level),
+          })),
+        },
+      ];
+    },
+  ),
+) as unknown as Record<TeamInfrastructureCode, TeamInfrastructureDefinition>;
+
 export function getTeamInfrastructureCodesByStartingCost() {
   return (
     Object.keys(TEAM_INFRASTRUCTURE_DEFINITIONS) as TeamInfrastructureCode[]
@@ -547,25 +610,25 @@ export const INTERNATIONAL_CENTER_LEVELS = [
   },
   {
     level: 2,
-    cost: 750_000,
+    cost: getInfrastructureUpgradeCost(500_000, 2),
     durationDays: 35,
     bonusPercentage: 20,
   },
   {
     level: 3,
-    cost: 1_000_000,
+    cost: getInfrastructureUpgradeCost(500_000, 3),
     durationDays: 42,
     bonusPercentage: 30,
   },
   {
     level: 4,
-    cost: 1_350_000,
+    cost: getInfrastructureUpgradeCost(500_000, 4),
     durationDays: 49,
     bonusPercentage: 40,
   },
   {
     level: 5,
-    cost: 1_800_000,
+    cost: getInfrastructureUpgradeCost(500_000, 5),
     durationDays: 56,
     bonusPercentage: 50,
   },

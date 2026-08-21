@@ -1,4 +1,4 @@
-export const STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL = 20;
+export const STAFF_ACADEMY_UNLOCK_DIRECTOR_LEVEL = 10;
 export const STAFF_ACADEMY_MAX_LEVEL = 5;
 export const STAFF_ACADEMY_MAX_TALENT_LINES = 3;
 
@@ -13,25 +13,25 @@ export const STAFF_ACADEMY_LEVELS = [
   },
   {
     level: 2,
-    cost: 2_250_000,
+    cost: 900_000,
     durationDays: 49,
     capacity: 2,
   },
   {
     level: 3,
-    cost: 3_250_000,
+    cost: 1_050_000,
     durationDays: 56,
     capacity: 3,
   },
   {
     level: 4,
-    cost: 4_500_000,
+    cost: 1_200_000,
     durationDays: 70,
     capacity: 4,
   },
   {
     level: 5,
-    cost: 6_000_000,
+    cost: 1_350_000,
     durationDays: 84,
     capacity: 5,
   },

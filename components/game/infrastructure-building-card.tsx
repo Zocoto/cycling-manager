@@ -9,6 +9,10 @@ import type {
   InfrastructureLevelDefinition,
   TeamInfrastructureDefinition,
 } from "@/lib/game/infrastructure";
+import {
+  canDirectorBuildInfrastructureLevel,
+  getRequiredDirectorLevelForInfrastructureLevel,
+} from "@/lib/game/infrastructure";
 import { calculateConstructionWithArchitect } from "@/lib/game/staff";
 import { getInfrastructureConstructionOptions } from "@/lib/game/infrastructure-construction";
 import type {
@@ -22,7 +26,7 @@ export function InfrastructureBuildingCard({
   nextLevel,
   architects,
   activeProjects,
-  isUnlocked,
+  directorLevel,
   balance,
   currency,
   prerequisiteMessage = null,
@@ -32,7 +36,7 @@ export function InfrastructureBuildingCard({
   nextLevel: InfrastructureLevelDefinition | null;
   architects: InfrastructureArchitect[];
   activeProjects: InfrastructureProject[];
-  isUnlocked: boolean;
+  directorLevel: number;
   balance: number;
   currency: string;
   prerequisiteMessage?: string | null;
@@ -58,8 +62,13 @@ export function InfrastructureBuildingCard({
   const sameBuildingIsActive = activeProjects.some(
     (project) => project.code === definition.code,
   );
-  const blockReason = !isUnlocked
-    ? "Le niveau 10 de Directeur Sportif est requis."
+  const requiredDirectorLevel = nextLevel
+    ? getRequiredDirectorLevelForInfrastructureLevel(nextLevel.level)
+    : null;
+  const blockReason =
+    nextLevel &&
+    !canDirectorBuildInfrastructureLevel(directorLevel, nextLevel.level)
+      ? `Le niveau ${requiredDirectorLevel} de Directeur Sportif est requis pour construire le niveau ${nextLevel.level}.`
     : prerequisiteMessage
       ? prerequisiteMessage
       : sameBuildingIsActive
@@ -99,7 +108,8 @@ export function InfrastructureBuildingCard({
               }
             >
               <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
-                Niveau {level.level}
+                Niveau {level.level} · DS N
+                {getRequiredDirectorLevelForInfrastructureLevel(level.level)}
               </p>
               <p className="mt-1 text-xs font-bold leading-5 text-[#183F37]">
                 {level.effect}
@@ -119,7 +129,8 @@ export function InfrastructureBuildingCard({
               value={definition.code}
             />
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">
-              Prochain chantier · niveau {nextLevel.level}
+              Prochain chantier · niveau {nextLevel.level} · DS N
+              {requiredDirectorLevel}
             </p>
             <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
               {nextLevel.effect}

@@ -5,7 +5,7 @@ import {
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const INFRASTRUCTURE_TUTORIAL_KEY = "infrastructure";
-export const INFRASTRUCTURE_TUTORIAL_VERSION = 1;
+export const INFRASTRUCTURE_TUTORIAL_VERSION = 2;
 export const INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE =
   "/jeu/infrastructures?onglet=batiments";
 export const INFRASTRUCTURE_SCHOOLS_TUTORIAL_ROUTE =
@@ -26,7 +26,7 @@ export const infrastructureTutorialDefinition = {
       route: INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
       targetId: "infrastructure-overview",
       title: "Des investissements durables et coûteux",
-      content: `Les infrastructures suivent votre équipe au fil des saisons. Leur construction est réservée aux Directeurs Sportifs de niveau ${INFRASTRUCTURE_UNLOCK_LEVEL} ou plus et engage une part importante de la trésorerie.\n\nLe bandeau résume votre solde, les architectes disponibles, le chantier actif et le niveau de l’Académie des métiers.`,
+      content: `Les infrastructures suivent votre équipe au fil des saisons. Le niveau 1 exige un Directeur Sportif de niveau ${INFRASTRUCTURE_UNLOCK_LEVEL}, puis chaque amélioration demande 10 niveaux supplémentaires : DS N20 pour le bâtiment N2, jusqu’au DS N50 pour le bâtiment N5.\n\nLa première construction concentre le gros investissement. Les améliorations restent coûteuses et proportionnelles au bâtiment, mais chacune coûte moins cher que son niveau 1.`,
       placement: "bottom",
       requirement: "team_created",
       highlightPadding: 8,
@@ -35,9 +35,9 @@ export const infrastructureTutorialDefinition = {
       key: "construction-rules",
       route: INFRASTRUCTURE_BUILDINGS_TUTORIAL_ROUTE,
       targetId: "infrastructure-construction-status",
-      title: "Un seul chantier peut avancer à la fois",
+      title: "Planifiez chaque ligne de chantier",
       content:
-        "Une construction bloque tout autre projet jusqu’à sa livraison. Son coût est débité au lancement et son délai est exprimé en jours de jeu.\n\nUn architecte est facultatif, mais sa spécialité et son niveau peuvent réduire le coût, la durée, ou les deux. Le bâtiment ne produit son nouvel effet qu’une fois le chantier terminé.",
+        "Le coût est débité au lancement et le délai est exprimé en jours de jeu. Un architecte est facultatif, mais sa spécialité et son niveau peuvent réduire le coût, la durée, ou les deux.\n\nLe talent « Double chantier » peut ouvrir une seconde ligne de construction. Le bâtiment ne produit son nouvel effet qu’une fois le chantier terminé.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -86,7 +86,7 @@ export const infrastructureTutorialDefinition = {
       targetId: "infrastructure-school-map",
       title: "Choisissez le pays avant d’investir",
       content:
-        "La carte affiche les centres déjà financés par la communauté. Sélectionnez un pays pour consulter ses étoiles mondiales, la chance partagée et les équipes qui y possèdent déjà une école.\n\nVotre propre centre peut atteindre cinq niveaux. Chaque amélioration coûte davantage et dure plus longtemps ; elle reste soumise au chantier unique et peut bénéficier d’un architecte.",
+        "La carte affiche les centres déjà financés par la communauté. Sélectionnez un pays pour consulter ses étoiles mondiales, la chance partagée et les équipes qui y possèdent déjà une école.\n\nVotre propre centre peut atteindre cinq niveaux. La première implantation est la plus chère ; les améliorations restent moins chères que celle-ci, durent plus longtemps et peuvent bénéficier d’un architecte.",
       placement: "top",
       highlightPadding: 8,
     },

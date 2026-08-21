@@ -9,6 +9,7 @@ import {
 } from "@/lib/rider-names/generate-rider-identities";
 import {
   ARCHITECT_SPECIALTIES,
+  getStaffNaturalizationSeasonLimit,
   isArchitectSpecialty,
   type ArchitectSpecialty,
 } from "@/lib/game/infrastructure";
@@ -185,6 +186,15 @@ export type TeamStaffOverview = {
   marketListings: StaffMarketListing[];
   teamStaff: TeamStaffMember[];
   countries: Array<{ name: string; code: string }>;
+  staffNaturalization: {
+    welcomeCenterLevel: number;
+    limit: number;
+    used: number;
+    remaining: number;
+    targetCountryId: string;
+    targetCountryName: string;
+    targetCountryCode: string;
+  };
 };
 
 export async function getTeamStaffOverview(
@@ -208,6 +218,8 @@ export async function getTeamStaffOverview(
     transactionsResult,
     countriesResult,
     researchLabResult,
+    welcomeCenterResult,
+    staffNaturalizationsResult,
   ] = await Promise.all([
     admin
       .from("staff_market_batches")
@@ -241,6 +253,17 @@ export async function getTeamStaffOverview(
       .eq("team_id", context.teamSeason.team_id)
       .eq("infrastructure_code", "research_lab")
       .maybeSingle<{ level: number }>(),
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("infrastructure_code", "international_welcome_center")
+      .maybeSingle<{ level: number }>(),
+    admin
+      .from("staff_naturalizations")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", context.teamSeason.team_id)
+      .eq("season_id", context.season.id),
   ]);
 
   assertQuery(batchResult.error, "le marché du staff du jour");
@@ -248,6 +271,11 @@ export async function getTeamStaffOverview(
   assertQuery(transactionsResult.error, "le budget projeté");
   assertQuery(countriesResult.error, "les nationalités du staff");
   assertQuery(researchLabResult.error, "le Laboratoire R&D");
+  assertQuery(welcomeCenterResult.error, "le Centre d’accueil international");
+  assertQuery(
+    staffNaturalizationsResult.error,
+    "les naturalisations du staff",
+  );
 
   const batch = batchResult.data;
   const { data: listingRows, error: listingsError } = batch
@@ -307,6 +335,16 @@ export async function getTeamStaffOverview(
   const countriesById = new Map(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
+  const targetCountry = countriesById.get(
+    context.teamSeason.registration_country_id,
+  );
+  if (!targetCountry) {
+    throw new Error("Le pays d’inscription de l’équipe est introuvable.");
+  }
+  const welcomeCenterLevel = Number(welcomeCenterResult.data?.level ?? 0);
+  const staffNaturalizationLimit =
+    getStaffNaturalizationSeasonLimit(welcomeCenterLevel);
+  const staffNaturalizationUsed = staffNaturalizationsResult.count ?? 0;
   const balance = toNumber(context.teamSeason.cash_balance);
   const projectedBudget = (transactionsResult.data ?? []).reduce(
     (total, transaction) => total + toNumber(transaction.amount),
@@ -422,6 +460,18 @@ export async function getTeamStaffOverview(
       name: country.name,
       code: country.iso_alpha2,
     })),
+    staffNaturalization: {
+      welcomeCenterLevel,
+      limit: staffNaturalizationLimit,
+      used: staffNaturalizationUsed,
+      remaining: Math.max(
+        0,
+        staffNaturalizationLimit - staffNaturalizationUsed,
+      ),
+      targetCountryId: targetCountry.id,
+      targetCountryName: targetCountry.name,
+      targetCountryCode: targetCountry.iso_alpha2,
+    },
   };
 }
 

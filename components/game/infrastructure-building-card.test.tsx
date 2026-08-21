@@ -15,7 +15,7 @@ function renderCard(balance = nextLevel.cost) {
       nextLevel={nextLevel}
       architects={[]}
       activeProjects={[]}
-      isUnlocked
+      directorLevel={10}
       balance={balance}
       currency="EUR"
     />,
@@ -43,5 +43,26 @@ describe("InfrastructureBuildingCard", () => {
 
     expect(markup).toContain("Tr\u00e9sorerie insuffisante.");
     expect(submitButton).toMatch(/\sdisabled(?:=""|(?=[\s>]))/);
+  });
+
+  it("blocks a level 2 upgrade until the manager reaches level 20", () => {
+    const levelTwo = definition.levels[1]!;
+    const markup = renderToStaticMarkup(
+      <InfrastructureBuildingCard
+        definition={definition}
+        currentLevel={1}
+        nextLevel={levelTwo}
+        architects={[]}
+        activeProjects={[]}
+        directorLevel={19}
+        balance={levelTwo.cost}
+        currency="EUR"
+      />,
+    );
+
+    expect(markup).toContain(
+      "Le niveau 20 de Directeur Sportif est requis pour construire le niveau 2.",
+    );
+    expect(markup).toMatch(/<button[^>]*disabled/);
   });
 });

@@ -12,7 +12,7 @@ import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-butt
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
 import {
-  INFRASTRUCTURE_UNLOCK_LEVEL,
+  INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT,
   TEAM_INFRASTRUCTURE_DEFINITIONS,
   getTeamInfrastructureCodesByStartingCost,
   getTeamInfrastructureLevelDefinition,
@@ -79,9 +79,9 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
     ]);
   if (!overview || !academy) redirect("/jeu");
 
-  const unlockProgress = Math.min(
+  const managerProgress = Math.min(
     100,
-    (overview.directorLevel / INFRASTRUCTURE_UNLOCK_LEVEL) * 100,
+    (overview.directorLevel / INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT) * 100,
   );
   const currentInfrastructureTutorialRoute =
     activeTab === "international"
@@ -171,10 +171,10 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
-                    Seuil d’accès
+                    Paliers du manager
                   </p>
-                  <p className="mt-2 text-3xl font-black text-[#F2C94C]">
-                    Niveau {INFRASTRUCTURE_UNLOCK_LEVEL}
+                  <p className="mt-2 text-xl font-black text-[#F2C94C]">
+                    N10 · N20 · N30 · N40 · N50
                   </p>
                 </div>
                 <span className="rounded-xl bg-white/10 px-3 py-2 text-sm font-black">
@@ -184,15 +184,12 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
               <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-white/15">
                 <div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#42B99A,#F2C94C)]"
-                  style={{ width: `${unlockProgress}%` }}
+                  style={{ width: `${managerProgress}%` }}
                 />
               </div>
               <p className="mt-3 text-xs font-bold text-[#BFD1C6]">
-                {overview.isUnlocked
-                  ? "Accès débloqué"
-                  : `Encore ${
-                      INFRASTRUCTURE_UNLOCK_LEVEL - overview.directorLevel
-                    } niveau(x) à atteindre`}
+                Un bâtiment de niveau 1 exige un DS N10 ; chaque amélioration
+                ajoute 10 niveaux requis, jusqu’au DS N50.
               </p>
             </div>
           </div>
@@ -319,7 +316,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                           nextLevel={overview.dataRoomNextLevel}
                           architects={overview.architects}
                           activeProjects={overview.activeProjects}
-                          isUnlocked={overview.isUnlocked}
+                          directorLevel={overview.directorLevel}
                           balance={overview.balance}
                           currency={overview.currency}
                         />
@@ -362,7 +359,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                         )}
                         architects={overview.architects}
                         activeProjects={overview.activeProjects}
-                        isUnlocked={overview.isUnlocked}
+                        directorLevel={overview.directorLevel}
                         balance={overview.balance}
                         currency={overview.currency}
                         prerequisiteMessage={
@@ -400,7 +397,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                 countries={overview.countries}
                 architects={overview.architects}
                 activeProjects={overview.activeProjects}
-                isUnlocked={overview.isUnlocked}
+                directorLevel={overview.directorLevel}
                 balance={overview.balance}
                 currency={overview.currency}
               />

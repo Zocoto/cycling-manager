@@ -6,6 +6,9 @@ import { describe, expect, it } from "vitest";
 import {
   TEAM_INFRASTRUCTURE_DEFINITIONS,
   applyInternationalCenterPotentialBonus,
+  canDirectorBuildInfrastructureLevel,
+  getRequiredDirectorLevelForInfrastructureLevel,
+  getStaffNaturalizationSeasonLimit,
   getTeamInfrastructureCodesByStartingCost,
   getInternationalCenterBonusPercentage,
   isTeamInfrastructureCode,
@@ -93,18 +96,32 @@ describe("team infrastructure buildings", () => {
     }
   });
 
-  it("starts the training center at 100,000 euros and raises prices progressively", () => {
+  it("garde le niveau 1 cher puis facture les améliorations moins cher", () => {
     const levels = TEAM_INFRASTRUCTURE_DEFINITIONS.training_center.levels;
 
     expect(levels.map((level) => level.cost)).toEqual([
-      100_000, 250_000, 500_000, 900_000, 1_500_000,
+      100_000, 60_000, 70_000, 80_000, 90_000,
     ]);
-    expect(levels.map((level) => level.cost)).toEqual(
-      [...levels]
-        .map((level) => level.cost)
-        .sort((left, right) => left - right),
-    );
     expect(levels.at(-1)?.effect).toContain("+10 %");
+  });
+
+  it("exige 10 niveaux de manager par niveau de bâtiment, plafonnés à 50", () => {
+    expect(getRequiredDirectorLevelForInfrastructureLevel(1)).toBe(10);
+    expect(getRequiredDirectorLevelForInfrastructureLevel(5)).toBe(50);
+    expect(getRequiredDirectorLevelForInfrastructureLevel(7)).toBe(50);
+    expect(canDirectorBuildInfrastructureLevel(29, 3)).toBe(false);
+    expect(canDirectorBuildInfrastructureLevel(30, 3)).toBe(true);
+  });
+
+  it("accorde une naturalisation de staff par niveau du Centre d’accueil", () => {
+    expect(getStaffNaturalizationSeasonLimit(0)).toBe(0);
+    expect(getStaffNaturalizationSeasonLimit(1)).toBe(1);
+    expect(getStaffNaturalizationSeasonLimit(5)).toBe(5);
+    expect(getStaffNaturalizationSeasonLimit(8)).toBe(5);
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.international_welcome_center.levels[4]
+        ?.effect,
+    ).toContain("5 membres du staff naturalisables par saison");
   });
 
   it("enregistre les bâtiments de performance et leurs paliers complets", () => {
@@ -132,7 +149,10 @@ describe("team infrastructure buildings", () => {
       const costs = TEAM_INFRASTRUCTURE_DEFINITIONS[code].levels.map(
         (level) => level.cost,
       );
-      expect(costs).toEqual([...costs].sort((left, right) => left - right));
+      expect(costs.slice(1).every((cost) => cost < costs[0]!)).toBe(true);
+      expect(costs.slice(1)).toEqual(
+        [...costs.slice(1)].sort((left, right) => left - right),
+      );
     }
   });
 });

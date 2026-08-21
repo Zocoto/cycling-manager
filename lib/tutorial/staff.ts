@@ -1,7 +1,7 @@
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const STAFF_TUTORIAL_KEY = "staff";
-export const STAFF_TUTORIAL_VERSION = 1;
+export const STAFF_TUTORIAL_VERSION = 2;
 export const STAFF_TUTORIAL_ROUTE = "/jeu/staff";
 export const STAFF_TUTORIAL_MARKET_ROUTE = `${STAFF_TUTORIAL_ROUTE}?onglet=marche`;
 export const STAFF_TUTORIAL_TEAM_ROUTE = `${STAFF_TUTORIAL_ROUTE}?onglet=equipe`;
@@ -100,7 +100,7 @@ export const staffTutorialDefinition = {
       targetId: "staff-team-overview",
       title: "Pilotez les effets déjà actifs",
       content:
-        "Cet onglet rassemble la capacité utilisée, les places encore libres, la masse salariale et les spécialistes sous contrat. Les effets compatibles de plusieurs membres peuvent se cumuler ; les affinités de nationalité apportent aussi un bonus d’efficacité.\n\nVous pouvez licencier un membre depuis sa fiche. La rupture est immédiate et coûte uniquement les échéances salariales restant à régler pendant la saison en cours. Pour une nouvelle équipe, cette vue peut être vide : c’est normal.",
+        "Cet onglet rassemble la capacité utilisée, les places encore libres, la masse salariale et les spécialistes sous contrat. Les effets compatibles de plusieurs membres peuvent se cumuler ; les affinités de nationalité apportent aussi un bonus d’efficacité.\n\nLe Centre d’accueil international permet aussi de naturaliser immédiatement du staff vers le pays de l’équipe : une personne par saison au niveau 1, jusqu’à cinq au niveau 5. Vous pouvez enfin licencier un membre depuis sa fiche ; la rupture règle les échéances salariales restant dans la saison.",
       placement: "top",
       highlightPadding: 8,
     },
