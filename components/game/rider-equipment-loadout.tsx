@@ -435,6 +435,7 @@ function EquipmentSlotInspector({
                       <span className="min-w-0">
                         <span className="block truncate text-xs font-black text-white">
                           {option.name}
+                          {option.slot !== slot ? " · montage inversé" : ""}
                         </span>
                         <span className="mt-1 block text-[9px] font-semibold leading-4 text-[#9FB5A8]">
                           {option.effectSummary}

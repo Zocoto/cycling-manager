@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   EQUIPMENT_SLOTS,
+  isEquipmentSlotCompatible,
   normalizeEquipmentEffects,
   type EquipmentEffects,
   type EquipmentSlot,
@@ -153,6 +154,7 @@ export type TeamEquipmentOverview = {
   riders: TeamEquipmentRider[];
   assignments: TeamEquipmentAssignment[];
   pendingAssignments: TeamEquipmentPendingAssignment[];
+  canSwapWheelSlots: boolean;
 };
 
 export type RiderEquipmentManagement = {
@@ -196,6 +198,7 @@ export async function getCurrentTeamEquipmentOverview(
       equipmentItemId: assignment.equipment_item_id,
       effectiveAt: assignment.effective_at,
     })),
+    canSwapWheelSlots: context.canSwapWheelSlots,
   };
 }
 
@@ -233,7 +236,11 @@ export async function getRiderEquipmentManagement(
       slot,
       context.catalog.filter((item) => {
         if (
-          item.slot !== slot ||
+          !isEquipmentSlotCompatible({
+            targetSlot: slot,
+            itemSlot: item.slot,
+            canSwapWheelSlots: context.canSwapWheelSlots,
+          }) ||
           (!item.isUnlimited && item.ownedQuantity === 0)
         ) {
           return false;
@@ -314,16 +321,28 @@ async function loadEquipmentContext(
   assertQuery(teamSeasonError, "la saison de l’équipe");
   if (!teamSeason) return null;
 
-  const [{ error: settlementError }, { error: partnerSettlementError }] =
+  const [
+    { error: settlementError },
+    { error: partnerSettlementError },
+    wheelSwapResult,
+  ] =
     await Promise.all([
       admin.rpc("settle_due_equipment_assignments", {
         p_team_season_id: teamSeason.id,
       }),
       authenticated.rpc("sync_current_team_equipment_partner"),
+      admin.rpc("team_has_mechanic_wheel_interchangeability", {
+        p_team_id: teamSeason.team_id,
+      }),
     ]);
   assertQuery(settlementError, "les changements de matériel programmés");
 
   assertQuery(partnerSettlementError, "le contrat équipementier");
+  assertQuery(
+    wheelSwapResult.error,
+    "le talent Roues interchangeables du mécanicien",
+  );
+  const canSwapWheelSlots = wheelSwapResult.data === true;
   const [
     catalogResult,
     suppliersResult,
@@ -540,6 +559,7 @@ async function loadEquipmentContext(
     rosterRiderIds,
     equipped: equippedRows,
     pending: pendingRows,
+    canSwapWheelSlots,
   };
 }
 

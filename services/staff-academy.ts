@@ -18,6 +18,7 @@ import {
   STAFF_TALENT_DEFINITIONS,
   describeStaffTalent,
   getStaffTalentCodes,
+  getStaffTalentMinimumLevel,
   isStaffTalentCode,
   type StaffTalentCode,
 } from "@/lib/game/staff-talents";
@@ -232,9 +233,7 @@ export async function getStaffAcademyOverview(
     const availableTalentCodes = getStaffTalentCodes(role).filter(
       (code) =>
         !ownedCodes.has(code) &&
-        !(
-          code === "architect_parallel_construction" && member.level < 3
-        ) &&
+        member.level >= getStaffTalentMinimumLevel(code) &&
         !(
           role === "trainer" &&
           trainerSpecialty &&

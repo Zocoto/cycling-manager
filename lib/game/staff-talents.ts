@@ -18,6 +18,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "mechanic_incident_time",
     "mechanic_wheel_efficiency",
     "mechanic_frame_efficiency",
+    "mechanic_wheel_interchangeability",
   ],
   architect: [
     "architect_construction_time",
@@ -66,6 +67,7 @@ export type StaffTalentCode = (typeof STAFF_TALENTS_BY_ROLE)[StaffRole][number];
 export type StaffTalentDefinition = {
   role: StaffRole;
   label: string;
+  minimumLevel?: number;
   description: (level: number) => string;
 };
 
@@ -112,6 +114,13 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     description: (level) =>
       `+${percentage(level, 4)} % d’efficacité sur les bonus des cadres`,
   },
+  mechanic_wheel_interchangeability: {
+    role: "mechanic",
+    label: "Roues interchangeables",
+    minimumLevel: 4,
+    description: () =>
+      "Permet de monter une roue avant à l’arrière ou une roue arrière à l’avant : un coureur peut utiliser deux roues du même type",
+  },
   architect_construction_time: {
     role: "architect",
     label: "Chantiers accélérés",
@@ -133,6 +142,7 @@ export const STAFF_TALENT_DEFINITIONS: Record<
   architect_parallel_construction: {
     role: "architect",
     label: "Double chantier",
+    minimumLevel: 3,
     description: () =>
       "Ajoute une ligne de construction : permet de construire deux bâtiments en même temps lorsque cet architecte est affecté à l’un des deux chantiers",
   },
@@ -310,8 +320,8 @@ export function selectInitialStaffTalent({
         !trainerSpecialty ||
         code !== `trainer_${trainerSpecialty}`) &&
       !(
-        code === "architect_parallel_construction" &&
-        normalizeStaffLevel(staffLevel ?? 1) < 3
+        normalizeStaffLevel(staffLevel ?? 1) <
+        (STAFF_TALENT_DEFINITIONS[code].minimumLevel ?? 1)
       ),
   );
   const normalizedRoll = Number.isFinite(roll) ? Math.floor(roll) : 0;
@@ -326,6 +336,10 @@ export function describeStaffTalent(
   level: number,
 ): string {
   return STAFF_TALENT_DEFINITIONS[code].description(level);
+}
+
+export function getStaffTalentMinimumLevel(code: StaffTalentCode): number {
+  return STAFF_TALENT_DEFINITIONS[code].minimumLevel ?? 1;
 }
 
 export function getStaffNationalityAffinityDescription(): string {

@@ -161,6 +161,18 @@ describe("administration groupée du matériel", () => {
         (item) => item.id,
       ),
     ).toEqual([partnerWheel.id]);
+    expect(
+      getSelectableEquipmentItemsForSlot(
+        catalog,
+        "rear_wheel",
+        true,
+      ).map((item) => item.id),
+    ).toEqual([partnerWheel.id]);
+    expect(
+      getSelectableEquipmentItemsForSlot(catalog, "rear_wheel").map(
+        (item) => item.id,
+      ),
+    ).toEqual([]);
   });
 
   it("valide le stock et applique tout le lot dans une transaction", () => {

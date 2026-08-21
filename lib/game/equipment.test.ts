@@ -7,6 +7,7 @@ import {
   getEquipmentRatingBonusTotals,
   isEquipmentEffectFilterKey,
   isEquipmentChangeFrozenForRace,
+  isEquipmentSlotCompatible,
 } from "./equipment";
 import type { RiderRatings } from "./rider-profile";
 
@@ -25,6 +26,47 @@ const ratings: RiderRatings = {
   prologue: 80,
   timeTrial: 99,
 };
+
+describe("equipment slot compatibility", () => {
+  it("keeps ordinary equipment restricted to its own slot", () => {
+    expect(
+      isEquipmentSlotCompatible({
+        targetSlot: "front_wheel",
+        itemSlot: "rear_wheel",
+      }),
+    ).toBe(false);
+    expect(
+      isEquipmentSlotCompatible({
+        targetSlot: "helmet",
+        itemSlot: "helmet",
+      }),
+    ).toBe(true);
+  });
+
+  it("allows only front and rear wheels to cross when the talent is active", () => {
+    expect(
+      isEquipmentSlotCompatible({
+        targetSlot: "front_wheel",
+        itemSlot: "rear_wheel",
+        canSwapWheelSlots: true,
+      }),
+    ).toBe(true);
+    expect(
+      isEquipmentSlotCompatible({
+        targetSlot: "rear_wheel",
+        itemSlot: "front_wheel",
+        canSwapWheelSlots: true,
+      }),
+    ).toBe(true);
+    expect(
+      isEquipmentSlotCompatible({
+        targetSlot: "frame",
+        itemSlot: "front_wheel",
+        canSwapWheelSlots: true,
+      }),
+    ).toBe(false);
+  });
+});
 
 describe("equipment effects", () => {
   it("cumule les bonus de chaque pièce et plafonne la protection", () => {

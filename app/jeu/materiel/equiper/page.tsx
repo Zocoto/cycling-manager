@@ -155,6 +155,7 @@ export default async function TeamEquipmentPage({
           catalog={overview.catalog}
           assignments={overview.assignments}
           pendingAssignments={overview.pendingAssignments}
+          canSwapWheelSlots={overview.canSwapWheelSlots}
           jersey={riderJersey}
         />
       </section>

@@ -4,7 +4,11 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 import { saveRaceEquipmentPlanAction } from "@/app/jeu/preparation-course/actions";
-import { EQUIPMENT_CATEGORIES, type EquipmentSlot } from "@/lib/game/equipment";
+import {
+  EQUIPMENT_CATEGORIES,
+  isEquipmentSlotCompatible,
+  type EquipmentSlot,
+} from "@/lib/game/equipment";
 import {
   RACE_EQUIPMENT_EMPTY,
   RACE_EQUIPMENT_INHERIT,
@@ -158,6 +162,12 @@ export function RaceEquipmentPlanner({
         </p>
       </div>
 
+      {planning.canSwapWheelSlots ? (
+        <p className="mt-3 rounded-xl border border-[#9BE0BC]/25 bg-[#9BE0BC]/10 px-4 py-3 text-xs font-bold leading-5 text-[#D9F4E8]">
+          Talent mécanicien actif : les roues avant et arrière sont interchangeables pour ce montage.
+        </p>
+      ) : null}
+
       {saveStatus === "enregistre" ? (
         <SaveNotice>
           Montage enregistré pour {isStageRace ? "l’étape" : "la classique"}.
@@ -275,7 +285,13 @@ export function RaceEquipmentPlanner({
                 </option>
                 <option value={RACE_EQUIPMENT_EMPTY}>Sans matériel</option>
                 {planning.catalog
-                  .filter((item) => item.slot === slot)
+                  .filter((item) =>
+                    isEquipmentSlotCompatible({
+                      targetSlot: slot,
+                      itemSlot: item.slot,
+                      canSwapWheelSlots: planning.canSwapWheelSlots,
+                    }),
+                  )
                   .map((item) => {
                     const isAvailable = isRaceEquipmentItemSelectable({
                       item,
@@ -290,7 +306,9 @@ export function RaceEquipmentPlanner({
                         disabled={!isAvailable}
                       >
                         {formatRaceEquipmentOptionLabel({
-                          name: item.name,
+                          name:
+                            item.name +
+                            (item.slot !== slot ? " · montage inversé" : ""),
                           supplierName: item.supplierName,
                           effectSummary: item.effectSummary,
                           isAvailable,

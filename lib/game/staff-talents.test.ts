@@ -66,6 +66,28 @@ describe("staff talents", () => {
     ).toContain("architect_parallel_construction");
   });
 
+  it("réserve les Roues interchangeables aux mécaniciens de niveau 4 minimum", () => {
+    for (let roll = 0; roll < 24; roll += 1) {
+      expect(
+        selectInitialStaffTalent({
+          role: "mechanic",
+          staffLevel: 3,
+          roll,
+        }),
+      ).not.toBe("mechanic_wheel_interchangeability");
+    }
+
+    expect(
+      Array.from({ length: 24 }, (_, roll) =>
+        selectInitialStaffTalent({
+          role: "mechanic",
+          staffLevel: 4,
+          roll,
+        }),
+      ),
+    ).toContain("mechanic_wheel_interchangeability");
+  });
+
   it("présente les talents du nutritionniste comme des bonus supplémentaires", () => {
     expect(describeStaffTalent("nutrition_daily_form", 5)).toContain(
       "supplémentaire pour chaque coureur",

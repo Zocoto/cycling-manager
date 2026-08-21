@@ -12,6 +12,7 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import {
   EQUIPMENT_CATEGORIES,
   EQUIPMENT_SLOTS,
+  isEquipmentSlotCompatible,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
@@ -53,6 +54,7 @@ type TeamEquipmentManagerProps = {
   catalog: TeamEquipmentCatalogItem[];
   assignments: TeamEquipmentAssignment[];
   pendingAssignments: TeamEquipmentPendingAssignment[];
+  canSwapWheelSlots?: boolean;
   jersey: RiderJerseyAppearance;
   initialRiderId?: string | null;
   initialSlot?: EquipmentSlot | null;
@@ -64,6 +66,7 @@ export function TeamEquipmentManager({
   catalog,
   assignments,
   pendingAssignments,
+  canSwapWheelSlots = false,
   jersey,
   initialRiderId,
   initialSlot,
@@ -153,7 +156,11 @@ export function TeamEquipmentManager({
   const compatibleItems = selection
     ? catalog.filter(
         (item) =>
-          item.slot === selection.slot &&
+          isEquipmentSlotCompatible({
+            targetSlot: selection.slot,
+            itemSlot: item.slot,
+            canSwapWheelSlots,
+          }) &&
           (item.availableQuantity > 0 ||
             item.id === selectedAssignment?.equipmentItemId ||
             item.id === selectedPending?.equipmentItemId),
@@ -434,7 +441,7 @@ function EquipmentSelectionPanel({ selection, rider, currentItem, pendingItem, c
             return (
               <form key={item.id} action={equipRiderAction} className={isPending ? "rounded-xl border border-[#F2C94C]/45 bg-[#F2C94C]/10 p-3" : isCurrent ? "rounded-xl border border-[#42B99A]/35 bg-[#42B99A]/10 p-3" : "rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-[#42B99A]/35 hover:bg-white/10"}>
                 <input type="hidden" name="riderId" value={rider.id} /><input type="hidden" name="slot" value={selection.slot} /><input type="hidden" name="equipmentItemId" value={item.id} /><input type="hidden" name="origin" value="team-equipment" />
-                <div className="flex items-center gap-3"><span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/90 p-1"><Image src={item.imagePath} alt="" width={44} height={44} className="h-full w-full object-contain" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{item.name}</span><span className="mt-0.5 block truncate text-[10px] font-bold text-[#B9C9C3]">{item.effectSummary}</span><span className="mt-1 block text-[9px] font-black uppercase tracking-wide text-[#9BE0BC]">{isCurrent ? "Déjà équipé" : isPending ? "Changement programmé" : `${item.availableQuantity} libre${item.availableQuantity > 1 ? "s" : ""}`}</span></span>{!isCurrent && !isPending ? <EquipmentSubmitButton mode="equip" label={currentItem ? "Remplacer" : "Équiper"} /> : <span className="rounded-lg bg-white/10 px-2.5 py-2 text-[9px] font-black uppercase text-[#D6DFD2]">{isPending ? "Programmé" : "Actif"}</span>}</div>
+                <div className="flex items-center gap-3"><span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/90 p-1"><Image src={item.imagePath} alt="" width={44} height={44} className="h-full w-full object-contain" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{item.name}{item.slot !== selection.slot ? " · montage inversé" : ""}</span><span className="mt-0.5 block truncate text-[10px] font-bold text-[#B9C9C3]">{item.effectSummary}</span><span className="mt-1 block text-[9px] font-black uppercase tracking-wide text-[#9BE0BC]">{isCurrent ? "Déjà équipé" : isPending ? "Changement programmé" : `${item.availableQuantity} libre${item.availableQuantity > 1 ? "s" : ""}`}</span></span>{!isCurrent && !isPending ? <EquipmentSubmitButton mode="equip" label={currentItem ? "Remplacer" : "Équiper"} /> : <span className="rounded-lg bg-white/10 px-2.5 py-2 text-[9px] font-black uppercase text-[#D6DFD2]">{isPending ? "Programmé" : "Actif"}</span>}</div>
               </form>
             );
           })}

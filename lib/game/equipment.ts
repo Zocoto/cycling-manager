@@ -17,6 +17,24 @@ export const EQUIPMENT_SLOTS = [
 
 export type EquipmentSlot = (typeof EQUIPMENT_SLOTS)[number];
 
+export function isEquipmentSlotCompatible({
+  targetSlot,
+  itemSlot,
+  canSwapWheelSlots = false,
+}: {
+  targetSlot: EquipmentSlot;
+  itemSlot: EquipmentSlot;
+  canSwapWheelSlots?: boolean;
+}): boolean {
+  if (targetSlot === itemSlot) return true;
+  if (!canSwapWheelSlots) return false;
+
+  return (
+    (targetSlot === "front_wheel" && itemSlot === "rear_wheel") ||
+    (targetSlot === "rear_wheel" && itemSlot === "front_wheel")
+  );
+}
+
 export const EQUIPMENT_CATEGORIES = [
   { slot: "gloves", label: "Gants", shortLabel: "Gants" },
   { slot: "bib_shorts", label: "Cuissards", shortLabel: "Cuissard" },

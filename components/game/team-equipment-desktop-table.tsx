@@ -146,7 +146,9 @@ export function TeamEquipmentDesktopTable({
                                     !isSelected
                                   }
                                 >
-                                  {item.name} · {availabilityLabel(item, usage)}
+                                  {item.name}
+                                  {item.slot !== slot ? " · montage inversé" : ""}
+                                  {" · "}{availabilityLabel(item, usage)}
                                 </option>
                               );
                             })}

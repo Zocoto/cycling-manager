@@ -10,6 +10,7 @@ import Link from "@/components/ui/app-link";
 import {
   EQUIPMENT_CATEGORIES,
   EQUIPMENT_SLOTS,
+  isEquipmentSlotCompatible,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
 import type { RiderJerseyAppearance } from "@/lib/rider-jersey";
@@ -38,12 +39,14 @@ export function TeamEquipmentBulkEditor({
   catalog,
   assignments,
   pendingAssignments,
+  canSwapWheelSlots,
   jersey,
 }: {
   riders: TeamEquipmentRider[];
   catalog: TeamEquipmentCatalogItem[];
   assignments: TeamEquipmentAssignment[];
   pendingAssignments: TeamEquipmentPendingAssignment[];
+  canSwapWheelSlots: boolean;
   jersey: RiderJerseyAppearance;
 }) {
   const initialValues = useMemo(
@@ -67,10 +70,14 @@ export function TeamEquipmentBulkEditor({
       Object.fromEntries(
         EQUIPMENT_SLOTS.map((slot) => [
           slot,
-          getSelectableEquipmentItemsForSlot(catalog, slot),
+          getSelectableEquipmentItemsForSlot(
+            catalog,
+            slot,
+            canSwapWheelSlots,
+          ),
         ]),
       ) as Record<EquipmentSlot, TeamEquipmentCatalogItem[]>,
-    [catalog],
+    [canSwapWheelSlots, catalog],
   );
   const usageByItemId = useMemo(() => {
     const usage: Record<string, number> = {};
@@ -241,6 +248,13 @@ export function TeamEquipmentBulkEditor({
         </div>
       </section>
 
+      {canSwapWheelSlots ? (
+        <p className="mt-3 rounded-2xl border border-[#D29F32]/35 bg-[#FFF8D8] px-4 py-3 text-xs font-bold leading-5 text-[#6F5512]">
+          <span className="font-black">Talent mécanicien actif · Roues interchangeables.</span>{" "}
+          Les roues avant peuvent être montées à l’arrière et inversement.
+        </p>
+      ) : null}
+
       <div className="mt-4 space-y-3 lg:hidden">
         {visibleRiders.map((rider) => {
           const equippedCount = SLOT_ORDER.filter(
@@ -320,7 +334,9 @@ export function TeamEquipmentBulkEditor({
                                 !item.isUnlimited && remaining <= 0 && !isSelected
                               }
                             >
-                              {item.name} · {getEquipmentAvailabilityLabel(item, usage)}
+                              {item.name}
+                              {item.slot !== slot ? " · montage inversé" : ""}
+                              {" · "}{getEquipmentAvailabilityLabel(item, usage)}
                             </option>
                           );
                         })}
@@ -412,10 +428,16 @@ export function isEquipmentItemSelectable(item: TeamEquipmentCatalogItem) {
 export function getSelectableEquipmentItemsForSlot(
   catalog: TeamEquipmentCatalogItem[],
   slot: EquipmentSlot,
+  canSwapWheelSlots = false,
 ) {
   return catalog
     .filter(
-      (item) => item.slot === slot && isEquipmentItemSelectable(item),
+      (item) =>
+        isEquipmentSlotCompatible({
+          targetSlot: slot,
+          itemSlot: item.slot,
+          canSwapWheelSlots,
+        }) && isEquipmentItemSelectable(item),
     )
     .sort(
       (left, right) =>

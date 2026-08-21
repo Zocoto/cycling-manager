@@ -40,6 +40,7 @@ export type RaceEquipmentPlannerItem = Pick<
 
 export type RaceEquipmentPlanningData = {
   teamSeasonId: string;
+  canSwapWheelSlots: boolean;
   stages: Array<{
     id: string;
     stageNumber: number;
@@ -190,6 +191,7 @@ function buildRaceEquipmentPlanningData({
 
   return {
     teamSeasonId: equipment.teamSeasonId,
+    canSwapWheelSlots: equipment.canSwapWheelSlots,
     stages: [...edition.stages]
       .sort((left, right) => left.stageNumber - right.stageNumber)
       .map((stage) => ({
