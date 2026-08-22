@@ -2,7 +2,13 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
-export function GameHeaderSearchToggle({ children }: { children: ReactNode }) {
+export function GameHeaderSearchToggle({
+  children,
+  isEnglish = false,
+}: {
+  children: ReactNode;
+  isEnglish?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -42,8 +48,16 @@ export function GameHeaderSearchToggle({ children }: { children: ReactNode }) {
       <button
         ref={triggerRef}
         type="button"
-        title="Rechercher"
-        aria-label={open ? "Fermer la recherche" : "Ouvrir la recherche"}
+        title={isEnglish ? "Search" : "Rechercher"}
+        aria-label={
+          open
+            ? isEnglish
+              ? "Close search"
+              : "Fermer la recherche"
+            : isEnglish
+              ? "Open search"
+              : "Ouvrir la recherche"
+        }
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={panelId}
@@ -61,8 +75,8 @@ export function GameHeaderSearchToggle({ children }: { children: ReactNode }) {
         <section
           id={panelId}
           role="dialog"
-          aria-label="Recherche globale"
-          className="absolute right-0 top-full z-[150] mt-2 w-[min(32rem,calc(100vw-1.5rem))] rounded-2xl border border-[#D6DFD2]/20 bg-[#0B302B] p-2.5 text-[#FFFDF4] shadow-[0_24px_70px_rgba(0,0,0,0.38)] sm:p-3"
+          aria-label={isEnglish ? "Global search" : "Recherche globale"}
+          className="fixed left-3 right-3 top-[3.75rem] z-[150] w-auto rounded-2xl border border-[#D6DFD2]/20 bg-[#0B302B] p-2.5 text-[#FFFDF4] shadow-[0_24px_70px_rgba(0,0,0,0.38)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(32rem,calc(100vw-1.5rem))] sm:p-3"
         >
           {children}
         </section>

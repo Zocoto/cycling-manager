@@ -48,9 +48,11 @@ describe("mobile game navigation", () => {
     expect(source).toContain('aria-current={racesActive ? "page" : undefined}');
   });
 
-  it("regroupe toutes les autres rubriques dans une vue d’ensemble", () => {
+  it("regroupe uniquement les rubriques absentes du header et du dock", () => {
     expect(source).toContain("NAVIGATION_GROUPS_FR");
-    expect(source).toContain("Toutes les rubriques");
+    expect(source).toContain("getMobileMoreNavigationGroups");
+    expect(source).toContain("Autres rubriques");
+    expect(source).toContain('data-mobile-more-destination={href}');
     expect(source).toContain("max-h-[min(72dvh,42rem)]");
     expect(source).toContain("overflow-y-auto overscroll-contain");
   });

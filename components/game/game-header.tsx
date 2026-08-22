@@ -94,10 +94,22 @@ export function GameHeader({
           aria-label={
             isEnglish ? "Back to the Cyclo Stratège dashboard" : "Retour à l’accueil de Cyclo Stratège"
           }
-          className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:gap-3"
+          className="flex min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:gap-3"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
             <WheelLogo colors={colors} className="h-8 w-8 sm:h-12 sm:w-12" />
+          </span>
+
+          <span
+            data-mobile-app-name="true"
+            className="flex min-w-0 flex-col justify-center leading-none sm:hidden"
+          >
+            <span className="text-[0.7rem] font-black uppercase tracking-[0.12em] text-[#FFFDF4]">
+              Cyclo
+            </span>
+            <span className="mt-1 text-[0.52rem] font-extrabold uppercase tracking-[0.16em] text-[var(--game-header-accent)]">
+              Stratège
+            </span>
           </span>
 
           <span className="hidden h-11 -translate-y-[3px] flex-col justify-between leading-none lg:inline-flex">
@@ -120,7 +132,10 @@ export function GameHeader({
 
         <GameNavigationMenu viewerEmail={simulatorEmail} />
 
-        <div className="order-3 -mx-3 flex w-[calc(100%+1.5rem)] flex-nowrap items-center justify-start gap-1 overflow-x-auto border-t border-white/10 px-3 pt-1.5 [scrollbar-width:none] sm:mx-0 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:overflow-visible sm:px-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
+        <div
+          data-mobile-header-shortcuts="true"
+          className="order-3 -mx-3 grid w-[calc(100%+1.5rem)] grid-cols-4 items-center justify-items-center gap-1 border-t border-white/10 pb-0.5 pl-3 pr-[4.35rem] pt-1.5 sm:mx-0 sm:ml-auto sm:flex sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:px-0 sm:pb-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0"
+        >
           <span className="hidden sm:contents">
             <HeaderMenuLink
               href="/jeu/equipe"
@@ -180,9 +195,19 @@ export function GameHeader({
             </span>
           ) : null}
 
-          <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
+          <HeaderIconMenuItem
+            label={isEnglish ? "Messages" : "Messages"}
+            description={isEnglish ? "Sports director inbox" : "Boîte mail du DS"}
+          >
+            <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
+          </HeaderIconMenuItem>
 
-          <PushNotificationControl />
+          <HeaderIconMenuItem
+            label={isEnglish ? "Alerts" : "Alertes"}
+            description={isEnglish ? "Push notifications" : "Notifications push"}
+          >
+            <PushNotificationControl />
+          </HeaderIconMenuItem>
 
           <GlobalChatShortcut
             chatIsOpen={chatIsOpen}
@@ -196,14 +221,14 @@ export function GameHeader({
           ) : null}
 
           <HeaderIconMenuItem
-            label="Cyclogazette"
+            label={isEnglish ? "Gazette" : "Gazette"}
             description={isEnglish ? "Peloton news" : "Actualités du peloton"}
           >
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
           </HeaderIconMenuItem>
 
           <HeaderIconMenuItem
-            label={isEnglish ? "Tutorials" : "Didacticiels"}
+            label={isEnglish ? "Help" : "Aide"}
             description={isEnglish ? "Interactive help" : "Aide interactive"}
           >
             <TutorialCenterMenu />
@@ -255,17 +280,32 @@ export function GameHeader({
             </HeaderMenuLink>
           </span>
 
-          <GameHeaderSearchToggle>
-            <GameHeaderSearch
-              id="game-global-search"
-              searchQuery={searchQuery}
-              className="flex"
-              isEnglish={isEnglish}
-            />
-          </GameHeaderSearchToggle>
+          <div className="hidden sm:contents">
+            <GameHeaderSearchToggle isEnglish={isEnglish}>
+              <GameHeaderSearch
+                id="game-global-search"
+                searchQuery={searchQuery}
+                className="flex"
+                isEnglish={isEnglish}
+              />
+            </GameHeaderSearchToggle>
+          </div>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-0">
+        <div
+          data-mobile-header-primary-actions="true"
+          className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 lg:ml-0"
+        >
+          <div className="sm:hidden">
+            <GameHeaderSearchToggle isEnglish={isEnglish}>
+              <GameHeaderSearch
+                id="game-global-search-mobile"
+                searchQuery={searchQuery}
+                className="flex"
+                isEnglish={isEnglish}
+              />
+            </GameHeaderSearchToggle>
+          </div>
           <LanguageSwitcher compact />
           <LogoutButton isEnglish={isEnglish} />
         </div>
@@ -422,13 +462,29 @@ function HeaderMenuLink({
 }
 
 function HeaderIconMenuItem({
+  label,
+  description,
   children,
 }: {
   label: string;
   description: string;
   children: ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <div
+      title={`${label} · ${description}`}
+      data-mobile-header-shortcut={label}
+      className="flex min-w-0 flex-col items-center justify-center gap-0.5 sm:contents"
+    >
+      {children}
+      <span
+        aria-hidden="true"
+        className="max-w-full truncate text-[0.52rem] font-extrabold leading-none tracking-[0.02em] text-[#B9CBC4] sm:hidden"
+      >
+        {label}
+      </span>
+    </div>
+  );
 }
 
 function RaceSimulatorShortcut({ isEnglish }: { isEnglish: boolean }) {

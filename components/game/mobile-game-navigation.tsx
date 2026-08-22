@@ -10,6 +10,7 @@ import {
 } from "@/components/game/game-navigation-menu";
 import Link from "@/components/ui/app-link";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
+import { getMobileMoreNavigationGroups } from "@/lib/game/mobile-navigation";
 
 const PRIMARY_LINKS_FR = [
   ["Bureau", "/jeu", "home"],
@@ -102,7 +103,9 @@ export function MobileGameNavigation({
     ReadonlySet<number>
   >(() => new Set([0]));
 
-  const groups = isEnglish ? NAVIGATION_GROUPS_EN : NAVIGATION_GROUPS_FR;
+  const groups = getMobileMoreNavigationGroups(
+    isEnglish ? NAVIGATION_GROUPS_EN : NAVIGATION_GROUPS_FR,
+  );
   const primaryLinks = isEnglish ? PRIMARY_LINKS_EN : PRIMARY_LINKS_FR;
   const courseLinks = isEnglish ? COURSE_LINKS_EN : COURSE_LINKS_FR;
   const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
@@ -290,11 +293,16 @@ export function MobileGameNavigation({
           <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#071A17] px-4 pb-3 pt-5">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#7CCF9C]">
-                {isEnglish ? "Quick overview" : "Vue d’ensemble"}
+                {isEnglish ? "No duplicates" : "Sans doublons"}
               </p>
               <h2 id={`${panelId}-more-title`} className="mt-0.5 text-base font-black">
-                {isEnglish ? "All game sections" : "Toutes les rubriques"}
+                {isEnglish ? "Other sections" : "Autres rubriques"}
               </h2>
+              <p className="mt-0.5 text-[10px] font-medium text-[#B9CBC4]">
+                {isEnglish
+                  ? "Only destinations not already visible."
+                  : "Uniquement les destinations non affichées ailleurs."}
+              </p>
             </div>
             <button
               ref={closeButtonRef}
@@ -343,6 +351,8 @@ export function MobileGameNavigation({
                       key={href}
                       href={href}
                       showPendingIndicator={false}
+                      data-mobile-more-destination={href}
+                      onClick={() => closePanel()}
                       className="flex min-h-10 items-center rounded-lg px-2.5 py-2 text-[11px] font-bold leading-4 text-[#FFFDF4] transition active:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
                     >
                       {label}

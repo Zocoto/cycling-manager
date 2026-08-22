@@ -17,13 +17,14 @@ const searchToggle = readSource(
 );
 
 describe("bandeau du jeu sur mobile", () => {
-  it("garde le logo, le menu et une barre d’icônes compacte", () => {
+  it("garde la marque et transforme les raccourcis en barre applicative", () => {
     expect(gameHeader).toContain(
-      "flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3",
+      "flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2",
     );
-    expect(gameHeader).toContain('className="h-10 w-10 sm:h-12 sm:w-12"');
+    expect(gameHeader).toContain('className="h-8 w-8 sm:h-12 sm:w-12"');
+    expect(gameHeader).toContain('data-mobile-app-name="true"');
     expect(gameHeader).toContain(
-      "order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px",
+      "grid-cols-4 items-center justify-items-center",
     );
     expect(navigationMenu).toContain("inline-flex h-9 w-9 cursor-pointer");
   });
@@ -44,8 +45,10 @@ describe("bandeau du jeu sur mobile", () => {
 
   it("ouvre la barre de recherche depuis la loupe", () => {
     expect(gameHeader).toContain("<GameHeaderSearchToggle");
-    expect(searchToggle).toContain('title="Rechercher"');
+    expect(searchToggle).toContain('title={isEnglish ? "Search" : "Rechercher"}');
     expect(searchToggle).toContain('aria-haspopup="dialog"');
+    expect(gameHeader).toContain('id="game-global-search-mobile"');
+    expect(searchToggle).toContain("fixed left-3 right-3 top-[3.75rem]");
     expect(gameHeader).toContain('? "Search for a sports director, team or nation…"');
     expect(gameHeader).toContain(': "Rechercher un DS, une équipe, une nation…"');
   });

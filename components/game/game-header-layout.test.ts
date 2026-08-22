@@ -13,12 +13,13 @@ const searchToggleSource = readFileSync(
 );
 
 describe("game header responsive layout", () => {
-  it("conserve les raccourcis essentiels dans un rail mobile compact", () => {
+  it("présente les raccourcis essentiels dans un rail mobile nommé", () => {
+    expect(headerSource).toContain('data-mobile-header-shortcuts="true"');
+    expect(headerSource).toContain("grid-cols-4");
+    expect(headerSource).toContain('label={isEnglish ? "Alerts" : "Alertes"}');
+    expect(headerSource).toContain('label={isEnglish ? "Help" : "Aide"}');
     expect(headerSource).toContain(
-      "flex-nowrap items-center justify-start gap-1 overflow-x-auto",
-    );
-    expect(headerSource).toContain(
-      "sm:flex-wrap sm:justify-end sm:gap-2 sm:overflow-visible",
+      "text-[0.52rem] font-extrabold leading-none",
     );
     expect(headerSource).toContain("lg:flex-nowrap");
   });
@@ -35,15 +36,19 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain("floatingOnMobile");
   });
 
-  it("places language and logout on the mobile top row with logout at the far right", () => {
-    const searchPosition = headerSource.indexOf("<GameHeaderSearchToggle");
+  it("place le nom, la recherche, la langue et la déconnexion sur la première ligne mobile", () => {
+    const mobileActionsPosition = headerSource.indexOf(
+      'data-mobile-header-primary-actions="true"',
+    );
+    const mobileSearchPosition = headerSource.indexOf(
+      'id="game-global-search-mobile"',
+    );
     const languagePosition = headerSource.indexOf("<LanguageSwitcher compact />");
     const logoutPosition = headerSource.indexOf("<LogoutButton isEnglish={isEnglish} />");
 
-    expect(headerSource).toContain(
-      "ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-0",
-    );
-    expect(languagePosition).toBeGreaterThan(searchPosition);
+    expect(headerSource).toContain('data-mobile-app-name="true"');
+    expect(mobileSearchPosition).toBeGreaterThan(mobileActionsPosition);
+    expect(languagePosition).toBeGreaterThan(mobileSearchPosition);
     expect(logoutPosition).toBeGreaterThan(languagePosition);
   });
 
@@ -56,7 +61,7 @@ describe("game header responsive layout", () => {
     const chatPosition = headerSource.indexOf("<GlobalChatShortcut");
     const gazettePosition = headerSource.indexOf("<CyclogazetteShortcut");
     const tutorialPosition = headerSource.indexOf("<TutorialCenterMenu");
-    const searchPosition = headerSource.indexOf("<GameHeaderSearchToggle");
+    const searchPosition = headerSource.indexOf('id="game-global-search"');
 
     expect(teamPosition).toBeGreaterThan(0);
     expect(profilePosition).toBeGreaterThan(teamPosition);
@@ -69,10 +74,9 @@ describe("game header responsive layout", () => {
   });
 
   it("opens the global search from a single magnifying-glass button", () => {
-    expect(headerSource).toContain(
-      "<GameHeaderSearchToggle>",
-    );
-    expect(searchToggleSource).toContain('aria-label={open ? "Fermer la recherche" : "Ouvrir la recherche"}');
+    expect(headerSource).toContain("<GameHeaderSearchToggle isEnglish={isEnglish}>");
+    expect(searchToggleSource).toContain('? "Close search"');
+    expect(searchToggleSource).toContain(': "Ouvrir la recherche"');
     expect(headerSource).toContain('role="search"');
     expect(searchToggleSource).toContain('querySelector("input")?.focus()');
   });
