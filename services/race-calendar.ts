@@ -380,6 +380,7 @@ export type RaceRosterOption = {
   timeTrial: number;
   cobbles: number;
   sprint: number;
+  form: number;
   isSelected: boolean;
   isAvailable: boolean;
   unavailability: {
@@ -481,6 +482,7 @@ type RaceRosterOptionRow = {
   time_trial: number;
   cobbles: number;
   sprint: number;
+  current_form: number | string;
   is_selected: boolean;
   is_available: boolean;
   unavailability_type:
@@ -1575,6 +1577,7 @@ export async function getCurrentTeamRaceRosterOptions(
     timeTrial: rider.time_trial,
     cobbles: rider.cobbles,
     sprint: rider.sprint,
+    form: Number(rider.current_form),
     isSelected: rider.is_selected,
     isAvailable: rider.is_available,
     unavailability:

@@ -149,7 +149,7 @@ export function RaceRosterSelector({
                   />
 
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 text-sm font-black text-white">
+                    <span className="flex flex-wrap items-center gap-2 text-sm font-black text-white">
                       <span
                         className={`fi fi-${rider.countryCode.toLowerCase()} shrink-0 rounded`}
                         role="img"
@@ -157,6 +157,11 @@ export function RaceRosterSelector({
                       />
                       <span>
                         {rider.firstName} {rider.lastName}
+                      </span>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${getRosterFormClasses(rider.form)}`}
+                      >
+                        Forme {formatRosterForm(rider.form)}/100
                       </span>
                     </span>
                     <span className="mt-1 block text-[11px] font-semibold text-[#9FB5A8]">
@@ -379,6 +384,24 @@ function formatAvailabilityDate(value: string) {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   }).format(new Date(value));
+}
+
+export function formatRosterForm(value: number) {
+  return Math.max(0, Math.min(100, value)).toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+  });
+}
+
+export function getRosterFormClasses(form: number) {
+  if (form >= 85) {
+    return "border-emerald-300/35 bg-emerald-300/15 text-[#9BE0BC]";
+  }
+
+  if (form >= 65) {
+    return "border-amber-200/35 bg-amber-200/15 text-amber-100";
+  }
+
+  return "border-rose-300/35 bg-rose-300/15 text-[#FFB5BB]";
 }
 
 function SubmitRosterButton({

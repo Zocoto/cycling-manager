@@ -152,6 +152,7 @@ export async function CriteriumDiscoveryRaceContent({
       timeTrial: Number(rider.time_trial),
       cobbles: Number(rider.cobbles),
       sprint: Number(rider.sprint),
+      form: health?.form ?? 75,
       isSelected: selectedIds.has(rider.rider_id),
       isAvailable: unavailability === null,
       unavailability,
