@@ -9,6 +9,7 @@ import type {
 } from "@/services/development-team";
 
 import { AmateurTeamJersey } from "./amateur-team-jersey";
+import { DevelopmentPodiumProgressionBadge } from "./development-podium-progression-badge";
 import { DevelopmentTeamBuilder } from "./development-team-builder";
 import { DevelopmentTeamJerseyEditor } from "./development-team-jersey-editor";
 import { DevelopmentTeamRosterEditor } from "./development-team-roster-editor";
@@ -475,6 +476,11 @@ function ResultTable({
                       <Link href={`/jeu/centre-de-formation/development/${result.academyRiderId}`} className="hover:text-[#176951] hover:underline">{result.riderName}</Link>
                     ) : result.riderName}
                     <span className="ml-2 text-[9px] font-bold text-[#789087]">{result.countryCode}</span>
+                    {result.podiumProgression ? (
+                      <DevelopmentPodiumProgressionBadge
+                        progression={result.podiumProgression}
+                      />
+                    ) : null}
                   </td>
                   <td className="px-3 py-2.5 text-[#60756E]">{result.teamName}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-[#183F37]">{formatRaceTime(result.elapsedTimeSeconds)}</td>

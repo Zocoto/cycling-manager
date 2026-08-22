@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
 
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
+import { DevelopmentPodiumProgressionBadge } from "@/components/game/development-podium-progression-badge";
 import { GameHeader } from "@/components/game/game-header";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
@@ -225,7 +226,15 @@ export default async function DevelopmentRiderPage({ params }: Props) {
               {profile.results.map((result) => (
                 <div key={result.id} className="grid gap-2 rounded-xl border border-[#315B3E]/10 bg-[#FAFCFB] px-4 py-3 sm:grid-cols-[70px_minmax(0,1fr)_auto] sm:items-center">
                   <span className={`text-xl font-black ${result.rank <= 3 ? "text-[#B78612]" : "text-[#176951]"}`}>{result.rank}{result.rank === 1 ? "er" : "e"}</span>
-                  <div><p className="text-sm font-black text-[#183F37]">{result.stageName ?? result.raceName}</p>{result.stageName ? <p className="text-[10px] font-bold text-[#789087]">{result.raceName}</p> : null}</div>
+                  <div>
+                    <p className="text-sm font-black text-[#183F37]">{result.stageName ?? result.raceName}</p>
+                    {result.stageName ? <p className="text-[10px] font-bold text-[#789087]">{result.raceName}</p> : null}
+                    {result.podiumProgression ? (
+                      <DevelopmentPodiumProgressionBadge
+                        progression={result.podiumProgression}
+                      />
+                    ) : null}
+                  </div>
                   <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#60756E]">{result.scope === "general" ? "Classement final" : "Étape"}</span>
                 </div>
               ))}

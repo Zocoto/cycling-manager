@@ -2,7 +2,9 @@ import "server-only";
 
 import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 import {
+  RIDER_RATING_AXES,
   getRiderSportingProfile,
+  type RiderRatingKey,
   type RiderRatings,
 } from "@/lib/game/rider-profile";
 import {
@@ -141,6 +143,15 @@ type ResultRow = {
   gap_to_winner_seconds: number;
 };
 
+type PodiumProgressionRow = {
+  race_edition_id: string;
+  academy_rider_id: string;
+  final_rank: number;
+  profile_type: DevelopmentRaceProfile;
+  primary_rating_key: string;
+  projected_rating_changes: Record<string, number | string>;
+};
+
 export type DevelopmentRaceProfile =
   | "flat"
   | "sprint"
@@ -225,6 +236,14 @@ export type DevelopmentRaceResult = {
   rank: number;
   elapsedTimeSeconds: number;
   gapToWinnerSeconds: number;
+  podiumProgression: DevelopmentPodiumProgression | null;
+};
+
+export type DevelopmentPodiumProgression = {
+  rank: number;
+  profileType: DevelopmentRaceProfile;
+  primaryRatingKey: RiderRatingKey;
+  ratingChanges: Partial<Record<RiderRatingKey, number>>;
 };
 
 export type DevelopmentTeamOverview = {
@@ -342,6 +361,7 @@ export async function getDevelopmentTeamOverview(
   let registrationRows: RegistrationRow[] = [];
   let selectionRows: SelectionRow[] = [];
   let resultRows: ResultRow[] = [];
+  let progressionRows: PodiumProgressionRow[] = [];
 
   if (teamRow) {
     const [rosterResult, registrationsResult] = await Promise.all([
@@ -386,6 +406,19 @@ export async function getDevelopmentTeamOverview(
       .returns<ResultRow[]>();
     assertQuery(generalResult.error, "les classements juniors");
     resultRows = generalResult.data ?? [];
+
+    const progressionResult = await admin
+      .from("development_race_podium_progression")
+      .select(
+        "race_edition_id, academy_rider_id, final_rank, profile_type, primary_rating_key, projected_rating_changes",
+      )
+      .in("race_edition_id", completedEditionIds)
+      .returns<PodiumProgressionRow[]>();
+    assertQuery(
+      progressionResult.error,
+      "les progressions acquises sur les podiums juniors",
+    );
+    progressionRows = progressionResult.data ?? [];
 
     const stageRaceIds = editions
       .filter((edition) => edition.race_format === "stage_race" && edition.status === "completed")
@@ -467,7 +500,27 @@ export async function getDevelopmentTeamOverview(
       ),
     };
   });
-  const results = resultRows.map(toDevelopmentResult);
+  const progressionByResultKey = new Map(
+    progressionRows.flatMap((row) => {
+      const progression = toDevelopmentPodiumProgression(row);
+      return progression
+        ? [[developmentProgressionKey(row.race_edition_id, row.academy_rider_id), progression] as const]
+        : [];
+    }),
+  );
+  const results = resultRows.map((row) =>
+    toDevelopmentResult(
+      row,
+      row.result_scope === "general" && row.academy_rider_id
+        ? (progressionByResultKey.get(
+            developmentProgressionKey(
+              row.race_edition_id,
+              row.academy_rider_id,
+            ),
+          ) ?? null)
+        : null,
+    ),
+  );
   const ownFinalResults = results.filter(
     (result) =>
       result.scope === "general" && result.developmentTeamId === teamRow?.id,
@@ -566,7 +619,7 @@ export async function getDevelopmentRiderProfile(
   const stageIds = unique(
     resultRows.flatMap((result) => (result.stage_id ? [result.stage_id] : [])),
   );
-  const [editionsResult, stagesResult] = await Promise.all([
+  const [editionsResult, stagesResult, progressionResult] = await Promise.all([
     editionIds.length
       ? admin
           .from("development_race_editions")
@@ -581,9 +634,26 @@ export async function getDevelopmentRiderProfile(
           .in("id", stageIds)
           .returns<Array<{ id: string; name: string }>>()
       : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
+    editionIds.length
+      ? admin
+          .from("development_race_podium_progression")
+          .select(
+            "race_edition_id, academy_rider_id, final_rank, profile_type, primary_rating_key, projected_rating_changes",
+          )
+          .eq("academy_rider_id", academyRiderId)
+          .in("race_edition_id", editionIds)
+          .returns<PodiumProgressionRow[]>()
+      : Promise.resolve({
+          data: [] as PodiumProgressionRow[],
+          error: null,
+        }),
   ]);
   assertQuery(editionsResult.error, "les courses du palmarès junior");
   assertQuery(stagesResult.error, "les étapes du palmarès junior");
+  assertQuery(
+    progressionResult.error,
+    "la progression acquise sur les podiums juniors",
+  );
 
   const country = countryResult.data;
   const currentRoster = rosterRows.find(
@@ -606,8 +676,19 @@ export async function getDevelopmentRiderProfile(
   const stageById = new Map(
     (stagesResult.data ?? []).map((stage) => [stage.id, stage]),
   );
+  const progressionByEditionId = new Map(
+    (progressionResult.data ?? []).flatMap((row) => {
+      const progression = toDevelopmentPodiumProgression(row);
+      return progression ? [[row.race_edition_id, progression] as const] : [];
+    }),
+  );
   const resultDtos = resultRows.map((result) => ({
-    ...toDevelopmentResult(result),
+    ...toDevelopmentResult(
+      result,
+      result.result_scope === "general"
+        ? (progressionByEditionId.get(result.race_edition_id) ?? null)
+        : null,
+    ),
     raceName: editionById.get(result.race_edition_id)?.name ?? "Épreuve junior",
     stageName: result.stage_id ? stageById.get(result.stage_id)?.name ?? null : null,
   }));
@@ -815,7 +896,10 @@ function toDevelopmentStage(row: StageRow): DevelopmentRaceStage {
   };
 }
 
-function toDevelopmentResult(row: ResultRow): DevelopmentRaceResult {
+function toDevelopmentResult(
+  row: ResultRow,
+  podiumProgression: DevelopmentPodiumProgression | null = null,
+): DevelopmentRaceResult {
   return {
     id: row.id,
     raceEditionId: row.race_edition_id,
@@ -829,7 +913,38 @@ function toDevelopmentResult(row: ResultRow): DevelopmentRaceResult {
     rank: row.rank,
     elapsedTimeSeconds: row.elapsed_time_seconds,
     gapToWinnerSeconds: row.gap_to_winner_seconds,
+    podiumProgression,
   };
+}
+
+function toDevelopmentPodiumProgression(
+  row: PodiumProgressionRow,
+): DevelopmentPodiumProgression | null {
+  const primaryRatingKey = RIDER_RATING_AXES.find(
+    (axis) => axis.key === row.primary_rating_key,
+  )?.key;
+  if (!primaryRatingKey) return null;
+
+  const ratingChanges = Object.fromEntries(
+    RIDER_RATING_AXES.flatMap((axis) => {
+      const value = Number(row.projected_rating_changes?.[axis.key]);
+      return Number.isFinite(value) && value > 0 ? [[axis.key, value]] : [];
+    }),
+  ) as Partial<Record<RiderRatingKey, number>>;
+
+  return {
+    rank: Number(row.final_rank),
+    profileType: row.profile_type,
+    primaryRatingKey,
+    ratingChanges,
+  };
+}
+
+function developmentProgressionKey(
+  raceEditionId: string,
+  academyRiderId: string,
+) {
+  return `${raceEditionId}:${academyRiderId}`;
 }
 
 async function loadContext(
