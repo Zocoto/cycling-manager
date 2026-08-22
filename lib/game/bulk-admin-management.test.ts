@@ -49,7 +49,9 @@ describe("administration groupée de la nutrition", () => {
   it("affiche les réglages par coureur et une validation flottante", () => {
     expect(nutritionEditor).toContain("Aucun complément");
     expect(nutritionEditor).toContain("Nutritionniste");
-    expect(nutritionEditor).toContain("fixed inset-x-3 bottom-");
+    expect(nutritionEditor).toContain(
+      "mobile-dock-clearance fixed inset-x-3 bottom-",
+    );
     expect(nutritionEditor).toContain("Valider les compléments");
   });
 
@@ -196,7 +198,9 @@ describe("administration groupée du matériel", () => {
     expect(equipmentEditor).toContain("SLOT_ORDER.map");
     expect(equipmentEditor).toContain("visibleRiders.map");
     expect(equipmentEditor).toContain("stock projeté");
-    expect(equipmentEditor).toContain("fixed inset-x-3 bottom-");
+    expect(equipmentEditor).toContain(
+      "mobile-dock-clearance fixed inset-x-3 bottom-",
+    );
     expect(equipmentEditor).toContain("Valider les affectations");
   });
 });

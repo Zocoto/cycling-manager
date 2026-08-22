@@ -182,7 +182,7 @@ export function MobileGameNavigation({
           aria-modal="true"
           aria-labelledby={`${panelId}-races-title`}
           data-mobile-panel="races"
-          className="mobile-app-sheet fixed inset-x-2 bottom-[calc(4.65rem+env(safe-area-inset-bottom))] z-[124] overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
+          className="mobile-app-sheet fixed inset-x-2 z-[124] overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
         >
           <div
             aria-hidden="true"
@@ -281,7 +281,7 @@ export function MobileGameNavigation({
           aria-modal="true"
           aria-labelledby={`${panelId}-more-title`}
           data-mobile-panel="more"
-          className="mobile-app-sheet fixed inset-x-2 bottom-[calc(4.65rem+env(safe-area-inset-bottom))] z-[124] flex max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
+          className="mobile-app-sheet fixed inset-x-2 z-[124] flex max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
         >
           <div
             aria-hidden="true"
@@ -368,7 +368,7 @@ export function MobileGameNavigation({
 
       <nav
         aria-label={isEnglish ? "Main mobile shortcuts" : "Raccourcis mobiles principaux"}
-        className="fixed inset-x-2 bottom-[max(0.45rem,env(safe-area-inset-bottom))] z-[120] grid h-[3.85rem] grid-cols-5 overflow-hidden rounded-[1.15rem] border border-[#78947D]/35 bg-[#071A17]/96 px-1 text-[#D6DFD2] shadow-[0_14px_42px_rgba(0,0,0,0.38)] backdrop-blur-md sm:hidden"
+        className="mobile-game-navigation-dock fixed inset-x-2 z-[120] grid grid-cols-5 overflow-hidden rounded-[1.15rem] border border-[#78947D]/35 bg-[#071A17]/96 px-1 text-[#D6DFD2] shadow-[0_14px_42px_rgba(0,0,0,0.38)] backdrop-blur-md sm:hidden"
       >
         {primaryLinks.slice(0, 2).map(([label, href, icon]) => {
           const active = href === "/jeu" ? pathname === href : pathname.startsWith(href);

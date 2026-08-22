@@ -418,7 +418,7 @@ function EquipmentSelectionPanel({ selection, rider, currentItem, pendingItem, c
   onClose: () => void;
 }) {
   const panelClass = selection
-    ? "fixed inset-x-3 bottom-3 z-50 flex max-h-[72vh] flex-col overflow-hidden rounded-[1.6rem] border border-[#315B3E]/20 bg-[#0B302B] text-white shadow-[0_24px_80px_rgba(7,26,23,0.42)] xl:sticky xl:inset-auto xl:top-24 xl:z-10 xl:max-h-[74vh]"
+    ? "mobile-dock-clearance fixed inset-x-3 bottom-3 z-50 flex max-h-[72vh] flex-col overflow-hidden rounded-[1.6rem] border border-[#315B3E]/20 bg-[#0B302B] text-white shadow-[0_24px_80px_rgba(7,26,23,0.42)] xl:sticky xl:inset-auto xl:top-24 xl:z-10 xl:max-h-[74vh]"
     : "hidden rounded-[1.6rem] border border-[#315B3E]/15 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] xl:sticky xl:top-24 xl:block";
 
   if (!selection || !rider) {

@@ -13,7 +13,9 @@ const tutorialCenter = readFileSync(
 
 describe("tutorial center mobile layout", () => {
   it("reste contenu dans le viewport et conserve son propre défilement", () => {
-    expect(tutorialCenter).toContain("fixed inset-x-3 bottom-3");
+    expect(tutorialCenter).toContain(
+      "mobile-dock-clearance fixed inset-x-3 bottom-3",
+    );
     expect(tutorialCenter).toContain(
       "bottom-[max(0.75rem,env(safe-area-inset-bottom))]",
     );

@@ -1,7 +1,16 @@
 @media (max-width: 639px) {
   .game-shell {
+    --game-mobile-navigation-height: 3.85rem;
+    --game-mobile-navigation-edge-offset: max(
+      0.45rem,
+      env(safe-area-inset-bottom)
+    );
+    --game-mobile-navigation-clearance: calc(
+      var(--game-mobile-navigation-height) +
+        var(--game-mobile-navigation-edge-offset) + 0.45rem
+    );
     min-width: 0;
-    padding-bottom: calc(4.7rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--game-mobile-navigation-clearance) + 0.25rem);
   }
 
   .game-shell main {
@@ -68,8 +77,17 @@
     height: 1.3rem;
   }
 
+  .game-shell .mobile-game-navigation-dock {
+    bottom: var(--game-mobile-navigation-edge-offset);
+    height: var(--game-mobile-navigation-height);
+  }
+
+  .game-shell .mobile-app-sheet,
+  .game-shell .mobile-dock-clearance {
+    bottom: var(--game-mobile-navigation-clearance);
+  }
+
   .game-shell .mobile-app-sheet {
-    bottom: calc(4.75rem + env(safe-area-inset-bottom));
     transform-origin: bottom center;
     animation: mobile-app-sheet-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }

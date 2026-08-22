@@ -174,7 +174,7 @@ export function EquipmentCommercialShop({
         </div>
       ) : null}
 
-      <aside className="sticky bottom-3 z-30 mt-6 overflow-hidden rounded-2xl border border-[#F2C94C]/45 bg-[#071A17] text-white shadow-[0_20px_55px_rgba(7,26,23,0.32)]">
+      <aside className="mobile-dock-clearance sticky bottom-3 z-30 mt-6 overflow-hidden rounded-2xl border border-[#F2C94C]/45 bg-[#071A17] text-white shadow-[0_20px_55px_rgba(7,26,23,0.32)]">
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

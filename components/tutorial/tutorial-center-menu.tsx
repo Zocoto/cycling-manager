@@ -358,7 +358,7 @@ export function TutorialCenterMenu() {
           role="dialog"
           aria-modal="false"
           aria-labelledby={`${panelId}-title`}
-          className="fixed inset-x-3 bottom-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[140] flex max-h-[72vh] max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-none sm:w-[min(410px,calc(100vw-24px))]"
+          className="mobile-dock-clearance fixed inset-x-3 bottom-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[140] flex max-h-[72vh] max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-none sm:w-[min(410px,calc(100vw-24px))]"
         >
           <header className="shrink-0 border-b border-[#315B3E]/10 bg-[#E9F5F0] px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-start justify-between gap-4">

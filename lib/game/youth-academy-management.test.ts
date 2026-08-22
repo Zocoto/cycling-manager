@@ -60,7 +60,9 @@ describe("gestion de l’école de cyclisme", () => {
     expect(academyPage).toContain("<YouthTrainingBulkEditor");
     expect(academyPage).toContain("<YouthTrainingSettingsFields");
     expect(academyPage).not.toContain("saveYouthTrainingSettingsAction");
-    expect(bulkEditor).toContain("fixed inset-x-3 bottom-");
+    expect(bulkEditor).toContain(
+      "mobile-dock-clearance fixed inset-x-3 bottom-",
+    );
     expect(bulkEditor).toContain("Valider les entraînements");
     expect(bulkEditor).toContain("JSON.stringify(changedSettings)");
     expect(academyActions).toContain(
