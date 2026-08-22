@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { Suspense, type CSSProperties, type ReactNode } from "react";
 import Link from "@/components/ui/app-link";
 
 import type { Sponsor } from "@/types/sponsor";
@@ -12,6 +12,7 @@ import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
+import { MobileGameNavigation } from "@/components/game/mobile-game-navigation";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
@@ -73,6 +74,7 @@ export function GameHeader({
       mailboxIsOpen={mailboxIsOpen}
     >
       <header
+        data-game-header="true"
         className="relative z-20 border-b border-[#78947D]/25 bg-[#071A17] text-[#FFFDF4] shadow-lg shadow-black/15"
         style={headerStyle}
       >
@@ -85,17 +87,17 @@ export function GameHeader({
         />
 
       <div
-        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
+        className={`mx-auto flex ${maxWidthClassName} flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 sm:gap-x-3 sm:gap-y-2 sm:px-8 sm:py-4 lg:flex-nowrap lg:gap-5`}
       >
         <Link
           href="/jeu"
           aria-label={
             isEnglish ? "Back to the Cyclo Stratège dashboard" : "Retour à l’accueil de Cyclo Stratège"
           }
-          className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)]"
+          className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:gap-3"
         >
           <span className="rounded-full ring-2 ring-[var(--game-header-primary-soft)] transition group-hover:ring-[var(--game-header-primary)]">
-            <WheelLogo colors={colors} className="h-10 w-10 sm:h-12 sm:w-12" />
+            <WheelLogo colors={colors} className="h-8 w-8 sm:h-12 sm:w-12" />
           </span>
 
           <span className="hidden h-11 -translate-y-[3px] flex-col justify-between leading-none lg:inline-flex">
@@ -118,60 +120,64 @@ export function GameHeader({
 
         <GameNavigationMenu viewerEmail={simulatorEmail} />
 
-        <div className="order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px border-t border-white/10 pt-2 sm:gap-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
-          <HeaderMenuLink
-            href="/jeu/equipe"
-            label={sponsor?.shortName ?? (isEnglish ? "My team" : "Mon équipe")}
-            description={isEnglish ? "Roster and identity" : "Effectif et identité"}
-          >
-            {sponsor ? (
-              <SponsorLogoMark
-                src={sponsor.logoPath}
-                alt={isEnglish ? `${sponsor.name} logo` : `Logo de ${sponsor.name}`}
-                sponsorName={sponsor.name}
-                primaryColor={sponsor.colors.primary}
-                backgroundColor={sponsor.colors.background}
-                textColor={sponsor.colors.text}
-                className="h-6 w-7 rounded-md p-0.5"
-              />
-            ) : (
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="h-5 w-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="7" cy="7" r="2.5" />
-                <circle cx="14" cy="8" r="2" />
-                <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
-              </svg>
-            )}
-          </HeaderMenuLink>
+        <div className="order-3 -mx-3 flex w-[calc(100%+1.5rem)] flex-nowrap items-center justify-start gap-1 overflow-x-auto border-t border-white/10 px-3 pt-1.5 [scrollbar-width:none] sm:mx-0 sm:ml-auto sm:w-full sm:flex-wrap sm:justify-end sm:gap-2 sm:overflow-visible sm:px-0 sm:pt-2 lg:order-none lg:w-auto lg:flex-nowrap lg:border-t-0 lg:pt-0">
+          <span className="hidden sm:contents">
+            <HeaderMenuLink
+              href="/jeu/equipe"
+              label={sponsor?.shortName ?? (isEnglish ? "My team" : "Mon équipe")}
+              description={isEnglish ? "Roster and identity" : "Effectif et identité"}
+            >
+              {sponsor ? (
+                <SponsorLogoMark
+                  src={sponsor.logoPath}
+                  alt={isEnglish ? `${sponsor.name} logo` : `Logo de ${sponsor.name}`}
+                  sponsorName={sponsor.name}
+                  primaryColor={sponsor.colors.primary}
+                  backgroundColor={sponsor.colors.background}
+                  textColor={sponsor.colors.text}
+                  className="h-6 w-7 rounded-md p-0.5"
+                />
+              ) : (
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  className="h-5 w-5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="7" cy="7" r="2.5" />
+                  <circle cx="14" cy="8" r="2" />
+                  <path d="M2.5 16c.4-3 2-4.5 4.5-4.5s4.1 1.5 4.5 4.5M11.5 12c2.8-.4 4.8.9 5.5 3.5" />
+                </svg>
+              )}
+            </HeaderMenuLink>
+          </span>
 
           {displayName ? (
-            <HeaderMenuLink
-              href="/jeu/directeur-sportif"
-              label={displayName}
-              description={isEnglish ? "Sports director profile" : "Profil du DS"}
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="h-5 w-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <span className="hidden sm:contents">
+              <HeaderMenuLink
+                href="/jeu/directeur-sportif"
+                label={displayName}
+                description={isEnglish ? "Sports director profile" : "Profil du DS"}
               >
-                <circle cx="10" cy="6.5" r="3" />
-                <path d="M4.5 16c.5-3.3 2.3-5 5.5-5s5 1.7 5.5 5" />
-              </svg>
-            </HeaderMenuLink>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  className="h-5 w-5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="10" cy="6.5" r="3" />
+                  <path d="M4.5 16c.5-3.3 2.3-5 5.5-5s5 1.7 5.5 5" />
+                </svg>
+              </HeaderMenuLink>
+            </span>
           ) : null}
 
           <DirectorMailboxShortcut mailboxIsOpen={mailboxIsOpen} />
@@ -181,7 +187,9 @@ export function GameHeader({
           <GlobalChatShortcut chatIsOpen={chatIsOpen} />
 
           {canAccessRaceSimulator(simulatorEmail) ? (
-            <RaceSimulatorShortcut isEnglish={isEnglish} />
+            <span className="hidden sm:contents">
+              <RaceSimulatorShortcut isEnglish={isEnglish} />
+            </span>
           ) : null}
 
           <HeaderIconMenuItem
@@ -198,47 +206,51 @@ export function GameHeader({
             <TutorialCenterMenu />
           </HeaderIconMenuItem>
 
-          <HeaderMenuLink
-            href="/guide"
-            label={isEnglish ? "Game guide" : "Guide du jeu"}
-            description={isEnglish ? "Rules and tips" : "Règles et conseils"}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="h-5 w-5"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <span className="hidden sm:contents">
+            <HeaderMenuLink
+              href="/guide"
+              label={isEnglish ? "Game guide" : "Guide du jeu"}
+              description={isEnglish ? "Rules and tips" : "Règles et conseils"}
             >
-              <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
-              <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
-            </svg>
-          </HeaderMenuLink>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10H6.5A2.5 2.5 0 0 1 4 13.5v-10Z" />
+                <path d="M4 13.5A2.5 2.5 0 0 1 6.5 11H15M8 6.5h3.5" />
+              </svg>
+            </HeaderMenuLink>
+          </span>
 
-          <HeaderMenuLink
-            href="/jeu/parrainage"
-            label={isEnglish ? "Referral programme" : "Parrainage"}
-            description={isEnglish ? "Level 5 to 7 items" : "Objets niv. 5 à 7"}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="h-5 w-5"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <span className="hidden sm:contents">
+            <HeaderMenuLink
+              href="/jeu/parrainage"
+              label={isEnglish ? "Referral programme" : "Parrainage"}
+              description={isEnglish ? "Level 5 to 7 items" : "Objets niv. 5 à 7"}
             >
-              <circle cx="6.5" cy="7" r="2.5" />
-              <circle cx="14" cy="8" r="2" />
-              <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
-              <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
-            </svg>
-          </HeaderMenuLink>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="6.5" cy="7" r="2.5" />
+                <circle cx="14" cy="8" r="2" />
+                <path d="M2 16c.4-3 2-4.5 4.5-4.5S10.6 13 11 16M11.5 12.5c2.8-.5 4.8.8 5.5 3.5" />
+                <path d="m14.5 2 .7 1.3 1.5.2-1.1 1 .3 1.5-1.4-.7-1.3.7.2-1.5-1-1 1.5-.2Z" />
+              </svg>
+            </HeaderMenuLink>
+          </span>
 
           <GameHeaderSearchToggle>
             <GameHeaderSearch
@@ -256,6 +268,9 @@ export function GameHeader({
         </div>
       </div>
       </header>
+      <Suspense fallback={null}>
+        <MobileGameNavigation viewerEmail={simulatorEmail} />
+      </Suspense>
     </GameHeaderIndicatorsProvider>
   );
 }

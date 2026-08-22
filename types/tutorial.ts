@@ -38,6 +38,12 @@ export type TutorialStep = {
   targetId?: string;
 
   /**
+   * Cible alternative, volontairement plus compacte, utilisée sous 640 px.
+   * Elle évite de masquer tout l’écran lorsqu’une section ordinateur est très longue.
+   */
+  mobileTargetId?: string;
+
+  /**
    * Cible de la page courante qui contient la route concrète
    * (`data-tutorial-route` ou `href`) d’une prochaine étape dynamique.
    */

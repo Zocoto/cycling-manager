@@ -193,4 +193,23 @@ describe("createTutorialCatalog", () => {
       'La cible "Cible invalide" du didacticiel "dashboard-introduction" est invalide.',
     );
   });
+
+  it("refuse un identifiant de cible mobile invalide", () => {
+    const definition = createValidTutorial({
+      steps: [
+        {
+          key: "invalid-mobile-target",
+          route: "/jeu",
+          targetId: "valid-target",
+          mobileTargetId: "Cible mobile invalide",
+          title: "Cible mobile invalide",
+          content: "Contenu de test.",
+        },
+      ],
+    });
+
+    expect(() => createTutorialCatalog([definition])).toThrow(
+      'La cible mobile "Cible mobile invalide" du didacticiel "dashboard-introduction" est invalide.',
+    );
+  });
 });

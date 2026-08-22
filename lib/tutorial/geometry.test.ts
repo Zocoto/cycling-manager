@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateTutorialPanelPosition,
   expandTutorialTargetRectangle,
+  fitTutorialTargetRectangleToVisibleArea,
 } from "@/lib/tutorial/geometry";
 import type { TutorialTargetRectangle } from "@/types/tutorial";
 
@@ -210,5 +211,39 @@ describe("calculateTutorialPanelPosition", () => {
     expect(
       result.top + 700,
     ).toBeLessThanOrEqual(788);
+  });
+});
+
+describe("fitTutorialTargetRectangleToVisibleArea", () => {
+  it("limite une section très haute à la zone laissée libre par le volet mobile", () => {
+    const result = fitTutorialTargetRectangleToVisibleArea(
+      createTargetRectangle({
+        top: 8,
+        bottom: 820,
+        height: 812,
+      }),
+      { width: 390, height: 844 },
+      { visibleTop: 10, visibleBottom: 580 },
+    );
+
+    expect(result.top).toBe(10);
+    expect(result.bottom).toBe(580);
+    expect(result.height).toBe(570);
+  });
+
+  it("préserve un repère minimal lorsque la cible arrive au bord de la zone visible", () => {
+    const result = fitTutorialTargetRectangleToVisibleArea(
+      createTargetRectangle({
+        top: 570,
+        bottom: 650,
+        height: 80,
+      }),
+      { width: 390, height: 844 },
+      { visibleTop: 10, visibleBottom: 580, minimumHeight: 44 },
+    );
+
+    expect(result.top).toBe(536);
+    expect(result.bottom).toBe(580);
+    expect(result.height).toBe(44);
   });
 });

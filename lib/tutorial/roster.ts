@@ -20,6 +20,7 @@ export const rosterTutorialDefinition = {
       key: "roster-overview",
       route: ROSTER_TUTORIAL_ROUTE,
       targetId: "roster-overview",
+      mobileTargetId: "roster-mobile-overview",
       title: "Le poste de pilotage de votre effectif",
       content:
         "Cette rubrique rassemble tous les coureurs actuellement sous contrat. Les vues « Statistiques & contrats » et « Planning de saison » répondent à deux questions complémentaires : de quelles qualités dispose votre équipe, et quand chaque coureur sera-t-il disponible ?",
@@ -31,6 +32,7 @@ export const rosterTutorialDefinition = {
       key: "roster-ratings",
       route: ROSTER_TUTORIAL_ROUTE,
       targetId: "roster-rating-table",
+      mobileTargetId: "roster-primary-ratings",
       title: "Comparez les notes sans perdre le profil de vue",
       content:
         "Les notes primaires décrivent les terrains décisifs : MO, VAL, PLA, CLM, PAV et SPR. Les notes secondaires — ACC, DES, END, RES, REC, BAR et PRO — affinent le comportement du coureur.\n\nLe profil et la moyenne offrent un premier repère, mais le meilleur choix dépend toujours du parcours. Les bonus bleus proviennent de l’équipement et s’ajoutent aux notes de base pendant les courses compatibles.",
@@ -41,6 +43,7 @@ export const rosterTutorialDefinition = {
       key: "roster-contracts",
       route: ROSTER_TUTORIAL_ROUTE,
       targetId: "roster-rating-table",
+      mobileTargetId: "roster-mobile-list",
       title: "Lisez le salaire et l’échéance ensemble",
       content:
         "Le salaire est affiché par semaine et par saison : il pèse sur le budget de l’équipe pendant toute la durée du contrat. L’échéance indique la dernière saison couverte.\n\nUn contrat garantit la présence du coureur jusqu’à son terme. Anticipez les fins de contrat : une prolongation sécurise le coureur pour la saison suivante, mais engage aussi le futur budget.",
@@ -51,6 +54,7 @@ export const rosterTutorialDefinition = {
       key: "open-first-rider",
       route: ROSTER_TUTORIAL_ROUTE,
       targetId: "roster-rating-table",
+      mobileTargetId: "roster-mobile-list",
       title: "Passez de l’équipe au coureur",
       content:
         "Chaque nom ouvre une fiche détaillée. Pour poursuivre la visite sans vous faire choisir au hasard, le bouton « Suivant » ouvrira la fiche du premier coureur de votre effectif.\n\nDans votre gestion quotidienne, vous pourrez naturellement consulter n’importe quel coureur de la liste.",

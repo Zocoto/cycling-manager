@@ -1,0 +1,40 @@
+@media (max-width: 639px) {
+  .game-shell {
+    min-width: 0;
+    padding-bottom: calc(4.7rem + env(safe-area-inset-bottom));
+  }
+
+  .game-shell main {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .game-shell main > section.mx-auto,
+  .game-shell main > section > div.mx-auto {
+    padding-top: 1.5rem !important;
+    padding-right: 1rem !important;
+    padding-bottom: 2rem !important;
+    padding-left: 1rem !important;
+  }
+
+  .game-shell :where(button, a, summary, input, select, textarea) {
+    touch-action: manipulation;
+  }
+
+  .game-shell :where(input, select, textarea) {
+    font-size: 16px;
+  }
+
+  .game-shell :where([role="tablist"], [data-mobile-scroll-rail="true"]) {
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .game-shell :where([role="tablist"], [data-mobile-scroll-rail="true"])::-webkit-scrollbar {
+    display: none;
+  }
+
+  .game-shell [data-game-header="true"] {
+    box-shadow: 0 8px 22px rgba(7, 26, 23, 0.2);
+  }
+}

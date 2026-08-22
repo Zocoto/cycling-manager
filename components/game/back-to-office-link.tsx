@@ -10,10 +10,11 @@ export function BackToOfficeLink({
   return (
     <Link
       href="/jeu"
-      className={`inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#176951]/20 bg-white/85 px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:border-[#176951]/35 hover:bg-white hover:text-[#0B302B] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 ${className}`}
+      className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#176951]/20 bg-white/85 px-3 text-xs font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:border-[#176951]/35 hover:bg-white hover:text-[#0B302B] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 sm:min-h-10 sm:gap-2 sm:rounded-xl sm:px-4 sm:text-sm ${className}`}
     >
       <BackArrowIcon />
-      Retour au bureau du DS
+      <span className="sm:hidden">Bureau</span>
+      <span className="hidden sm:inline">Retour au bureau du DS</span>
     </Link>
   );
 }

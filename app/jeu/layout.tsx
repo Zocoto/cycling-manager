@@ -1,4 +1,5 @@
 import "flag-icons/css/flag-icons.min.css";
+import "./mobile.css";
 
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
@@ -107,7 +108,7 @@ async function GameRuntime({ children }: { children: ReactNode }) {
 
   return (
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
-      {children}
+      <div className="game-shell">{children}</div>
     </TutorialProvider>
   );
 }

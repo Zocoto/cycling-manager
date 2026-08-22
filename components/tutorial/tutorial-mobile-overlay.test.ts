@@ -11,12 +11,15 @@ const overlaySource = readFileSync(
 describe("tutorial mobile overlay", () => {
   it("restaure un volet bas compact qui laisse la page et la cible visibles", () => {
     expect(overlaySource).toContain("const MOBILE_BREAKPOINT = 640");
-    expect(overlaySource).toContain("max-h-[36dvh]");
+    expect(overlaySource).toContain("max-h-[30dvh]");
     expect(overlaySource).toContain(
       'isMobile ? "mobile-sheet" : panelPosition.placement',
     );
     expect(overlaySource).toContain("reservedBottom");
-    expect(overlaySource).toContain("window.scrollBy(0, reservedBottom / 2)");
+    expect(overlaySource).toContain("rectangle.top - desiredTop");
+    expect(overlaySource).toContain(
+      "fitTutorialTargetRectangleToVisibleArea",
+    );
     expect(overlaySource).toContain("min-h-0 flex-1 overflow-y-auto");
   });
 
@@ -27,6 +30,14 @@ describe("tutorial mobile overlay", () => {
     expect(overlaySource).toContain(
       'pointerEvents: step.allowTargetInteraction ? "none" : "auto"',
     );
+    expect(overlaySource).toContain(
+      "isMobile && step.allowTargetInteraction",
+    );
+  });
+
+  it("utilise une cible dédiée sur téléphone lorsqu’elle existe", () => {
+    expect(overlaySource).toContain("step.mobileTargetId");
+    expect(overlaySource).toContain("? step.mobileTargetId");
   });
 
   it("conserve le bouton d’enchaînement ajouté après le correctif historique", () => {

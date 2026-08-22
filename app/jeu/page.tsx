@@ -600,22 +600,25 @@ export default async function GamePage() {
       />
 
       <section className="relative overflow-hidden">
-        <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
+        <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-14">
           <header
             data-tutorial-id="dashboard-overview"
-            className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
+            className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
           >
             <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Bureau du Directeur Sportif
               </p>
 
-              <h1 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+              <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:mt-4 sm:text-5xl">
                 Bonjour, {displayName}.
               </h1>
             </div>
 
-            <div className="flex w-full flex-wrap items-stretch gap-3 xl:w-auto xl:justify-self-end">
+            <div
+              data-mobile-scroll-rail="true"
+              className="-mx-1 flex w-[calc(100%+0.5rem)] flex-nowrap items-stretch gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-full sm:flex-wrap sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0 xl:w-auto xl:justify-self-end"
+            >
               <DashboardInventoryShortcut
                 totalUnits={inventoryOverview?.summary.totalUnits ?? 0}
                 availableUnits={inventoryOverview?.summary.availableUnits ?? 0}
@@ -638,8 +641,7 @@ export default async function GamePage() {
           ) : null}
 
           <section
-            className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
-            data-tutorial-id="dashboard-director-profile"
+            className="mt-5 grid gap-4 sm:mt-8 sm:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
           >
             <DirectorProfileCard
               sportingDirector={sportingDirector}
@@ -655,7 +657,7 @@ export default async function GamePage() {
               riderCount={riderCount}
             />
 
-            <div className="grid gap-6 xl:h-full xl:grid-rows-[auto_1fr]">
+            <div className="grid gap-4 sm:gap-6 xl:h-full xl:grid-rows-[auto_1fr]">
               {teamSponsorIdentity ? (
                 <DashboardSponsorCard
                   sponsor={teamSponsorIdentity.sponsor}
@@ -711,7 +713,7 @@ export default async function GamePage() {
 
           <RaceOperationsCard alertCount={raceRosterAlertCount} />
 
-          <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <section className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
             <ManagementModuleCard
               href="/jeu/entrainement"
               icon="training"
@@ -848,9 +850,12 @@ function DirectorProfileCard({
   return (
     <article
       data-tutorial-id="dashboard-director-profile"
-      className="rounded-[1.75rem] border border-[#315B3E]/20 bg-[#0B302B] p-5 text-[#FFFDF4] shadow-[0_20px_54px_rgba(7,26,23,0.2)] sm:p-6"
+      className="rounded-[1.35rem] border border-[#315B3E]/20 bg-[#0B302B] p-4 text-[#FFFDF4] shadow-[0_20px_54px_rgba(7,26,23,0.2)] sm:rounded-[1.75rem] sm:p-6"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div
+        data-tutorial-id="dashboard-profile-summary"
+        className="flex flex-wrap items-start justify-between gap-4"
+      >
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#7CCF9C]">
             Directeur Sportif
@@ -879,7 +884,7 @@ function DirectorProfileCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+      <div className="mt-3 grid gap-4 sm:mt-4 sm:gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <DirectorIdentity
           sportingDirector={sportingDirector}
           profileName={profileName}
@@ -887,7 +892,7 @@ function DirectorProfileCard({
           selectedCountry={selectedCountry}
         />
 
-        <div className="flex items-start gap-5 md:justify-self-end">
+        <div className="flex items-start gap-3 sm:gap-5 md:justify-self-end">
           <TeamJerseyPreview
             amateurJersey={
               teamAmateurIdentity?.jersey ?? DEFAULT_AMATEUR_JERSEY
@@ -895,10 +900,10 @@ function DirectorProfileCard({
             amateurTeamName={teamAmateurIdentity?.amateurName}
             sponsor={teamSponsorIdentity?.sponsor}
             sponsorJersey={teamSponsorIdentity?.selectedJersey}
-            className="h-24 w-20 shrink-0 drop-shadow-lg"
+            className="h-20 w-16 shrink-0 drop-shadow-lg sm:h-24 sm:w-20"
           />
 
-          <div className="min-w-40 pt-1">
+          <div className="min-w-0 flex-1 pt-1 sm:min-w-40">
             <TeamSponsorInformation
               teamSummary={teamSummary}
               teamSponsorIdentity={teamSponsorIdentity}
@@ -918,7 +923,7 @@ function DirectorProfileCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-5 border-t border-white/10 pt-4">
+      <div className="mt-3 grid gap-4 border-t border-white/10 pt-3 sm:mt-4 sm:gap-5 sm:pt-4">
         <div className="grid content-start gap-4">
           <div className="grid gap-4 sm:grid-cols-2 sm:items-center">
             <SportingDirectorProgression
@@ -1124,7 +1129,7 @@ function TeamRosterCard({
     <Link
       href="/jeu/effectif"
       data-tutorial-id="dashboard-roster"
-      className="group relative isolate flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-5 text-[#FFFDF4] sm:p-6 shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3]"
+      className="group relative isolate flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-4 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] sm:p-6"
     >
       <span
         aria-hidden="true"
@@ -1140,7 +1145,7 @@ function TeamRosterCard({
       />
 
       <div className="flex items-start justify-between gap-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12">
           <ManagementModuleIcon icon="riders" />
         </span>
 
@@ -1149,10 +1154,10 @@ function TeamRosterCard({
         </span>
       </div>
 
-      <h2 className="mt-5 text-xl font-black text-white">Effectif</h2>
+      <h2 className="mt-3 text-lg font-black text-white sm:mt-5 sm:text-xl">Effectif</h2>
 
       <div
-        className="relative mt-6"
+        className="relative mt-3 sm:mt-6"
         aria-label={
           leadingRider
             ? `Photo d’équipe des ${riders.length} coureurs les mieux notés`
@@ -1174,7 +1179,7 @@ function TeamRosterCard({
                   jersey
                 }
                 label={`Portrait de ${leadingRider.first_name} ${leadingRider.last_name}`}
-                className="h-20 w-20 border-[3px] border-[#F2C94C]/80 shadow-2xl sm:h-24 sm:w-24"
+                className="h-16 w-16 border-[3px] border-[#F2C94C]/80 shadow-2xl sm:h-24 sm:w-24"
               />
             </span>
 
@@ -1184,7 +1189,7 @@ function TeamRosterCard({
             </span>
 
             {supportingRiderRows.length > 0 ? (
-              <div className="mt-4 flex w-full flex-col items-center gap-2 sm:mt-5 sm:gap-3">
+              <div className="mt-3 flex w-full flex-col items-center gap-1.5 sm:mt-5 sm:gap-3">
                 {supportingRiderRows.map((row, rowIndex) => (
                   <div
                     key={`supporting-riders-${rowIndex}`}
@@ -1209,7 +1214,7 @@ function TeamRosterCard({
                               ) ?? jersey
                             }
                             label={`Portrait de ${riderName}`}
-                            className="h-10 w-10 border-2 border-[#9BE0BC]/40 shadow-lg sm:h-12 sm:w-12"
+                            className="h-8 w-8 border-2 border-[#9BE0BC]/40 shadow-lg sm:h-12 sm:w-12"
                           />
                         </span>
                       );
@@ -1231,9 +1236,9 @@ function TeamRosterCard({
         )}
       </div>
 
-      <p className="mt-4 leading-7 text-[#BFD1C6]">{description}</p>
+      <p className="mt-4 hidden leading-7 text-[#BFD1C6] sm:block">{description}</p>
 
-      <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-extrabold text-[#9BE0BC]">
+      <span className="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-extrabold text-[#9BE0BC] sm:pt-5 sm:text-sm">
         Ouvrir
         <ArrowRightIcon />
       </span>
@@ -1286,25 +1291,25 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
 
   return (
     <section
-      className="group relative isolate mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)]"
+      className="group relative isolate mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] sm:mt-6"
       aria-labelledby="race-hub-title"
     >
       <CardWatermark url={RACE_HUB_WATERMARK} origin="100% 50%" />
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-5 py-4 sm:px-7">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.035] px-4 py-3 sm:gap-3 sm:px-7 sm:py-4">
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#7CCF9C]">
             Centre de course
           </p>
           <h2
             id="race-hub-title"
-            className="mt-1 text-xl font-black text-[#FFFDF4]"
+            className="mt-1 text-lg font-black text-[#FFFDF4] sm:text-xl"
           >
             Planifier puis vibrer
           </h2>
         </div>
         <Link
           href="/jeu/championnats-nationaux"
-          className="relative z-10 rounded-full border border-[#7CCF9C]/40 bg-[#7CCF9C]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#B9E9CD] transition hover:border-[#7CCF9C] hover:bg-[#7CCF9C] hover:text-[#07302A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C]"
+          className="relative z-10 rounded-full border border-[#7CCF9C]/40 bg-[#7CCF9C]/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#B9E9CD] transition hover:border-[#7CCF9C] hover:bg-[#7CCF9C] hover:text-[#07302A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C] sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.14em]"
         >
           Championnats nationaux
         </Link>
@@ -1315,7 +1320,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
           <Link
             key={entry.href}
             href={entry.href}
-            className={`group relative grid min-h-48 grid-cols-[auto_minmax(0,1fr)] gap-4 p-6 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:p-7 ${
+            className={`group relative grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-4 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:min-h-48 sm:gap-4 sm:p-7 ${
               index > 0
                 ? "border-t border-white/10 md:border-l md:border-t-0"
                 : ""
@@ -1327,7 +1332,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
                 className="absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-linear-to-r from-transparent via-[#F2C94C] to-transparent md:left-0 md:top-1/2 md:h-20 md:w-px md:-translate-y-1/2 md:translate-x-0 md:bg-linear-to-b"
               />
             ) : null}
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12">
               <ManagementModuleIcon icon={entry.icon} />
             </span>
             <span className="min-w-0">
@@ -1345,13 +1350,13 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
                   {entry.status}
                 </span>
               </span>
-              <span className="mt-3 block text-xl font-black text-[#FFFDF4]">
+              <span className="mt-2 block text-base font-black text-[#FFFDF4] sm:mt-3 sm:text-xl">
                 {entry.title}
               </span>
-              <span className="mt-2 block text-sm font-medium leading-6 text-[#BFD1C6]">
+              <span className="mt-2 hidden text-sm font-medium leading-6 text-[#BFD1C6] sm:block">
                 {entry.description}
               </span>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-[#9BE0BC]">
+              <span className="mt-2 inline-flex items-center gap-2 text-xs font-extrabold text-[#9BE0BC] sm:mt-4 sm:text-sm">
                 Ouvrir <ArrowRightIcon />
               </span>
             </span>
@@ -1445,7 +1450,7 @@ function ManagementModuleCard({
   description: string;
   tutorialId?: string;
 }) {
-  const className = `group relative isolate block overflow-hidden rounded-2xl border bg-[#0B302B] p-6 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] ${
+  const className = `group relative isolate block min-w-0 overflow-hidden rounded-xl border bg-[#0B302B] p-3 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] sm:rounded-2xl sm:p-6 ${
     alertCount > 0 ? "border-[#F06A62]/70" : "border-white/10"
   }`;
 
@@ -1461,13 +1466,13 @@ function ManagementModuleCard({
         />
       ) : null}
 
-      <div className="flex items-start justify-between gap-4">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A]">
+      <div className="flex items-start justify-between gap-2 sm:gap-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12 sm:rounded-xl">
           <ManagementModuleIcon icon={icon} />
         </span>
 
         <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
+          className={`max-w-[6.5rem] truncate rounded-full px-2 py-1 text-[9px] font-bold sm:max-w-none sm:px-3 sm:text-xs ${
             alertCount > 0
               ? "bg-[#F06A62]/20 text-[#FFB1AA]"
               : "bg-white/10 text-[#BFD1C6]"
@@ -1479,14 +1484,14 @@ function ManagementModuleCard({
         </span>
       </div>
 
-      <h2 className="mt-6 text-xl font-black text-white">{title}</h2>
+      <h2 className="mt-3 text-sm font-black leading-5 text-white sm:mt-6 sm:text-xl">{title}</h2>
 
-      <p className="mt-3 whitespace-pre-line leading-7 text-[#BFD1C6]">
+      <p className="mt-3 hidden whitespace-pre-line leading-7 text-[#BFD1C6] sm:block">
         {description}
       </p>
 
       {href ? (
-        <span className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#9BE0BC]">
+        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9BE0BC] sm:mt-5 sm:gap-2 sm:text-sm">
           Ouvrir
           <ArrowRightIcon />
         </span>

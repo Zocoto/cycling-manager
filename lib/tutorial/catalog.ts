@@ -64,6 +64,15 @@ function validateTutorialDefinition(definition: TutorialDefinition): void {
       );
     }
 
+    if (
+      step.mobileTargetId &&
+      !TUTORIAL_KEY_PATTERN.test(step.mobileTargetId)
+    ) {
+      throw new Error(
+        `La cible mobile "${step.mobileTargetId}" du didacticiel "${definition.key}" est invalide.`,
+      );
+    }
+
     if (step.routeTargetId && !TUTORIAL_KEY_PATTERN.test(step.routeTargetId)) {
       throw new Error(
         `La cible de navigation "${step.routeTargetId}" du didacticiel "${definition.key}" est invalide.`,
@@ -129,6 +138,7 @@ const onboardingTutorial = {
       key: "profile-overview",
       route: "/jeu",
       targetId: "dashboard-director-profile",
+      mobileTargetId: "dashboard-profile-summary",
       title: "Finalisez votre identité",
       content:
         "Avant de découvrir votre effectif, vous devez finaliser le profil de votre Directeur Sportif. Votre nom affiché et votre avatar resteront modifiables, mais votre nationalité sera définitive après validation.\n\nCliquez sur Suivant pour ouvrir votre profil.",
@@ -138,6 +148,7 @@ const onboardingTutorial = {
       key: "profile-form",
       route: "/jeu/directeur-sportif",
       targetId: "profile-form",
+      mobileTargetId: "profile-nationality",
       title: "Créez votre Directeur Sportif",
       content:
         "Choisissez votre nom affiché, votre avatar et votre nationalité. L’avatar pourra évoluer plus tard ; la nationalité est un choix irréversible qui représente durablement votre Directeur Sportif.\n\nComplétez le formulaire puis validez votre profil. Le parcours ne pourra pas avancer tant que cette étape n’est pas enregistrée.",
@@ -149,6 +160,7 @@ const onboardingTutorial = {
       key: "team-foundation",
       route: "/jeu/directeur-sportif",
       targetId: "team-foundation-area",
+      mobileTargetId: "team-foundation-mobile",
       title: "Fondez votre structure amateur",
       content:
         "Le nom choisi devient l’identité fondatrice de votre équipe. Son pays d’affiliation est définitif : il détermine vos sept premiers coureurs et influence la priorité géographique des futurs sponsors.\n\nLe maillot amateur, lui, pourra être modifié plus tard. Fondez l’équipe avant de poursuivre.",
@@ -161,6 +173,7 @@ const onboardingTutorial = {
       key: "roster-overview",
       route: "/jeu/effectif",
       targetId: "roster-overview",
+      mobileTargetId: "roster-mobile-overview",
       title: "Découvrez votre premier effectif",
       content:
         "Votre structure amateur débute avec sept coureurs. Cette page réunit leur âge, leur profil, leur potentiel, leur contrat et toutes leurs caractéristiques sportives.",
@@ -171,6 +184,7 @@ const onboardingTutorial = {
       key: "primary-ratings",
       route: "/jeu/effectif",
       targetId: "roster-rating-table",
+      mobileTargetId: "roster-primary-ratings",
       title: "Commencez par les notes primaires",
       content:
         "Concentrez-vous d’abord sur MO, VAL, PLA, PAV, SPR et CLM. Elles indiquent immédiatement les terrains favoris du coureur.\n\nÉtape plate → PLA et SPR\nMontagne → MO\nParcours vallonné → VAL\nPavés → PAV\nContre-la-montre ou prologue → CLM et PRO",
@@ -181,6 +195,7 @@ const onboardingTutorial = {
       key: "secondary-ratings",
       route: "/jeu/effectif",
       targetId: "roster-rating-table",
+      mobileTargetId: "roster-secondary-ratings",
       title: "Affinez ensuite votre analyse",
       content:
         "ACC, DES, END, RES, REC, BAR et PRO sont des caractéristiques secondaires. Elles départagent les coureurs proches en influençant l’accélération, la descente, l’endurance, la résistance, la récupération, les échappées et les prologues.\n\nAu début, ne cherchez pas à tout mémoriser : identifiez d’abord le profil de l’étape, puis les notes primaires correspondantes.",

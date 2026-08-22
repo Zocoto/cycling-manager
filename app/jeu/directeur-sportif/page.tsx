@@ -362,7 +362,10 @@ export default async function SportingDirectorProfilePage() {
                 {isProfileComplete &&
                 !teamAmateurIdentity?.isConfigured ? (
                   <article className="rounded-2xl border border-[#315B3E]/20 bg-white p-6 shadow-[0_18px_45px_rgba(19,60,46,0.1)] sm:p-8">
-                    <div className="border-b border-[#315B3E]/10 pb-6">
+                    <div
+                      data-tutorial-id="team-foundation-mobile"
+                      className="border-b border-[#315B3E]/10 pb-6"
+                    >
                       <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
                         Étape 2 · Fondation
                       </p>

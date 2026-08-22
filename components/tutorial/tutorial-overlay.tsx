@@ -13,6 +13,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import {
   calculateTutorialPanelPosition,
   expandTutorialTargetRectangle,
+  fitTutorialTargetRectangleToVisibleArea,
   type TutorialPanelPosition,
   type TutorialViewportSize,
 } from "@/lib/tutorial/geometry";
@@ -158,7 +159,20 @@ export function TutorialOverlay({
     let resizeObserver: ResizeObserver | null = null;
 
     function findTargetElement(): HTMLElement | null {
-      if (!step.targetId) return null;
+      const targetId =
+        isMobileViewport() && step.mobileTargetId
+          ? step.mobileTargetId
+          : step.targetId;
+
+      if (!targetId) return null;
+
+      const preferredTarget = document.querySelector<HTMLElement>(
+        `[data-tutorial-id="${targetId}"]`,
+      );
+
+      if (preferredTarget || targetId === step.targetId || !step.targetId) {
+        return preferredTarget;
+      }
 
       return document.querySelector<HTMLElement>(
         `[data-tutorial-id="${step.targetId}"]`,
@@ -175,19 +189,6 @@ export function TutorialOverlay({
 
       setIsMobile(nextViewportSize.width < MOBILE_BREAKPOINT);
 
-      const targetElement = findTargetElement();
-      const rawTargetRectangle = targetElement?.getBoundingClientRect() ?? null;
-
-      const nextTargetRectangle = rawTargetRectangle
-        ? expandTutorialTargetRectangle(
-            rectangleFromDomRect(rawTargetRectangle),
-            step.highlightPadding ?? 8,
-            nextViewportSize,
-          )
-        : null;
-
-      setTargetRectangle(nextTargetRectangle);
-
       const panel = panelRef.current;
 
       const panelSize = {
@@ -199,6 +200,33 @@ export function TutorialOverlay({
           ),
         height: panel?.offsetHeight ?? DEFAULT_PANEL_HEIGHT,
       };
+
+      const targetElement = findTargetElement();
+      const rawTargetRectangle = targetElement?.getBoundingClientRect() ?? null;
+      const expandedTargetRectangle = rawTargetRectangle
+        ? expandTutorialTargetRectangle(
+            rectangleFromDomRect(rawTargetRectangle),
+            step.highlightPadding ?? 8,
+            nextViewportSize,
+          )
+        : null;
+      const mobileViewport = nextViewportSize.width < MOBILE_BREAKPOINT;
+      const nextTargetRectangle =
+        expandedTargetRectangle && mobileViewport
+          ? fitTutorialTargetRectangleToVisibleArea(
+              expandedTargetRectangle,
+              nextViewportSize,
+              {
+                visibleTop: 10,
+                visibleBottom: Math.max(
+                  10,
+                  nextViewportSize.height - panelSize.height - 10,
+                ),
+              },
+            )
+          : expandedTargetRectangle;
+
+      setTargetRectangle(nextTargetRectangle);
 
       setPanelPosition(
         calculateTutorialPanelPosition({
@@ -217,18 +245,30 @@ export function TutorialOverlay({
       const mobileViewport = isMobileViewport();
       const reservedBottom = mobileViewport
         ? (panelRef.current?.offsetHeight ??
-            Math.round(window.innerHeight * 0.36)) + 16
+            Math.round(window.innerHeight * 0.3)) + 12
         : 32;
 
       if (targetNeedsRecentering(rectangle, reservedBottom)) {
-        targetElement.scrollIntoView({
-          block: "center",
-          inline: "center",
-          behavior: "auto",
-        });
-
         if (mobileViewport) {
-          window.scrollBy(0, reservedBottom / 2);
+          const visibleHeight = Math.max(
+            80,
+            window.innerHeight - reservedBottom - 20,
+          );
+          const desiredTop =
+            rectangle.height > visibleHeight
+              ? 10
+              : Math.max(10, 10 + (visibleHeight - rectangle.height) / 2);
+
+          window.scrollBy({
+            top: rectangle.top - desiredTop,
+            behavior: "auto",
+          });
+        } else {
+          targetElement.scrollIntoView({
+            block: "center",
+            inline: "center",
+            behavior: "auto",
+          });
         }
       }
     }
@@ -268,6 +308,7 @@ export function TutorialOverlay({
     isClient,
     step.highlightPadding,
     step.key,
+    step.mobileTargetId,
     step.placement,
     step.targetId,
   ]);
@@ -284,6 +325,10 @@ export function TutorialOverlay({
 
   const progressionPercentage =
     totalSteps > 0 ? ((stepIndex + 1) / totalSteps) * 100 : 0;
+  const dimLayerPointerEvents =
+    isMobile && step.allowTargetInteraction
+      ? "pointer-events-none"
+      : "pointer-events-auto";
 
   return createPortal(
     <div
@@ -294,7 +339,7 @@ export function TutorialOverlay({
         <>
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
+            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
             style={{
               left: 0,
               top: 0,
@@ -305,7 +350,7 @@ export function TutorialOverlay({
 
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
+            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
             style={{
               left: 0,
               top: highlightedArea.top,
@@ -316,7 +361,7 @@ export function TutorialOverlay({
 
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
+            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
             style={{
               left: highlightedArea.right,
               top: highlightedArea.top,
@@ -327,7 +372,7 @@ export function TutorialOverlay({
 
           <div
             aria-hidden="true"
-            className="pointer-events-auto fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
+            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
             style={{
               left: 0,
               top: highlightedArea.bottom,
@@ -367,7 +412,7 @@ export function TutorialOverlay({
         }
         className={
           isMobile
-            ? "pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[36dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] shadow-[0_-16px_50px_rgba(7,26,23,0.4)] outline-none"
+            ? "pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[30dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] shadow-[0_-16px_50px_rgba(7,26,23,0.4)] outline-none"
             : "pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border border-[#315B3E]/15 bg-[#FFFDF4] text-[#16342D] shadow-[0_28px_90px_rgba(7,26,23,0.42)] outline-none"
         }
         style={
@@ -457,7 +502,7 @@ export function TutorialOverlay({
           aria-live="polite"
           className={
             isMobile
-              ? "min-h-0 flex-1 overflow-y-auto px-4 py-3"
+              ? "min-h-0 flex-1 overflow-y-auto px-4 py-2"
               : "px-5 py-5"
           }
         >
@@ -484,7 +529,7 @@ export function TutorialOverlay({
         <div
           className={
             isMobile
-              ? "shrink-0 border-t border-[#315B3E]/10 bg-white px-4 py-2.5"
+              ? "shrink-0 border-t border-[#315B3E]/10 bg-white px-4 py-2"
               : "border-t border-[#315B3E]/10 bg-white px-5 py-4"
           }
         >

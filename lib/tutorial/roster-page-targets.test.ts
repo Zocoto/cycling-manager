@@ -21,6 +21,17 @@ describe("roster tutorial page targets", () => {
     expect(rosterPage).toContain("data-tutorial-route=");
   });
 
+  it("expose des repères compacts pour le didacticiel mobile", () => {
+    for (const targetId of [
+      "roster-mobile-overview",
+      "roster-primary-ratings",
+      "roster-secondary-ratings",
+      "roster-mobile-list",
+    ]) {
+      expect(rosterPage).toContain(targetId);
+    }
+  });
+
   it("expose chaque rubrique guidée de la fiche coureur", () => {
     for (const targetId of [
       "rider-profile-overview",

@@ -13,14 +13,21 @@ const searchToggleSource = readFileSync(
 );
 
 describe("game header responsive layout", () => {
-  it("keeps every shortcut visible in a compact wrapping strip", () => {
+  it("conserve les raccourcis essentiels dans un rail mobile compact", () => {
     expect(headerSource).toContain(
-      "flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3",
+      "flex-nowrap items-center justify-start gap-1 overflow-x-auto",
     );
     expect(headerSource).toContain(
-      "order-3 ml-auto flex w-full flex-wrap items-center justify-end gap-px",
+      "sm:flex-wrap sm:justify-end sm:gap-2 sm:overflow-visible",
     );
     expect(headerSource).toContain("lg:flex-nowrap");
+  });
+
+  it("ajoute une navigation de pouce réservée au téléphone", () => {
+    expect(headerSource).toContain(
+      "<MobileGameNavigation viewerEmail={simulatorEmail} />",
+    );
+    expect(headerSource).toContain('className="hidden sm:contents"');
   });
 
   it("places language and logout on the mobile top row with logout at the far right", () => {

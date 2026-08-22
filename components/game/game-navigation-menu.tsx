@@ -4,7 +4,7 @@ import Link from "@/components/ui/app-link";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
 
-const NAVIGATION_GROUPS_FR = [
+export const NAVIGATION_GROUPS_FR = [
   {
     label: "Essentiel",
     links: [
@@ -52,7 +52,7 @@ const NAVIGATION_GROUPS_FR = [
   },
 ] as const;
 
-const NAVIGATION_GROUPS_EN = [
+export const NAVIGATION_GROUPS_EN = [
   {
     label: "Essentials",
     links: [
@@ -121,7 +121,7 @@ export function GameNavigationMenu({
   const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
 
   return (
-    <details className="group relative shrink-0">
+    <details className="group relative hidden shrink-0 sm:block">
       <summary className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-2 rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-xs font-extrabold uppercase tracking-[0.12em] text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-auto sm:px-3 [&::-webkit-details-marker]:hidden">
         <svg
           aria-hidden="true"

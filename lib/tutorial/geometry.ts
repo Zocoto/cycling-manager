@@ -28,6 +28,12 @@ type CalculateTutorialPanelPositionOptions = {
   viewportPadding?: number;
 };
 
+type FitTutorialTargetRectangleOptions = {
+  visibleTop: number;
+  visibleBottom: number;
+  minimumHeight?: number;
+};
+
 const POSITIONING_PLACEMENTS = [
   "top",
   "right",
@@ -332,5 +338,48 @@ export function calculateTutorialPanelPosition({
         panelSize.height -
         safeViewportPadding,
     ),
+  };
+}
+
+/**
+ * Réduit une cible très haute à la partie réellement visible au-dessus du
+ * volet mobile. Le didacticiel conserve ainsi un repère utile sans recouvrir
+ * le contenu que le joueur est en train de manipuler.
+ */
+export function fitTutorialTargetRectangleToVisibleArea(
+  rectangle: TutorialTargetRectangle,
+  viewportSize: TutorialViewportSize,
+  {
+    visibleTop,
+    visibleBottom,
+    minimumHeight = 44,
+  }: FitTutorialTargetRectangleOptions,
+): TutorialTargetRectangle {
+  const safeTop = clamp(visibleTop, 0, viewportSize.height);
+  const safeBottom = clamp(visibleBottom, safeTop, viewportSize.height);
+  const availableHeight = Math.max(0, safeBottom - safeTop);
+  const wantedMinimumHeight = Math.min(
+    Math.max(0, minimumHeight),
+    availableHeight,
+    rectangle.height,
+  );
+
+  let top = clamp(rectangle.top, safeTop, safeBottom);
+  let bottom = clamp(rectangle.bottom, safeTop, safeBottom);
+
+  if (bottom - top < wantedMinimumHeight) {
+    top = clamp(
+      rectangle.top,
+      safeTop,
+      Math.max(safeTop, safeBottom - wantedMinimumHeight),
+    );
+    bottom = Math.min(safeBottom, top + wantedMinimumHeight);
+  }
+
+  return {
+    ...rectangle,
+    top,
+    bottom,
+    height: Math.max(0, bottom - top),
   };
 }

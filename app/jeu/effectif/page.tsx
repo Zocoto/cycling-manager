@@ -522,17 +522,17 @@ export default async function TeamRosterPage({
       />
 
       <section className="relative overflow-hidden">
-        <div className="relative mx-auto max-w-[1500px] px-5 py-10 sm:px-8 sm:py-14">
+        <div className="relative mx-auto max-w-[1500px] px-4 py-6 sm:px-8 sm:py-14">
           <BackToOfficeLink />
 
-          <header className="mt-7 flex flex-wrap items-end justify-between gap-6">
+          <header className="mt-5 flex flex-wrap items-end justify-between gap-4 sm:mt-7 sm:gap-6">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Gestion sportive
               </p>
 
-              <div className="mt-4 flex items-center gap-3">
-                <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+              <div className="mt-2 flex items-center gap-3 sm:mt-4">
+                <h1 className="text-3xl font-black tracking-[-0.04em] sm:text-5xl">
                   Effectif
                 </h1>
                 <TutorialLaunchButton
@@ -541,7 +541,7 @@ export default async function TeamRosterPage({
                 />
               </div>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#48665F]">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#48665F] sm:mt-4 sm:text-lg sm:leading-8">
                 Consultez les qualités, les contrats et les spécialités de vos
                 coureurs pour la saison actuelle.
               </p>
@@ -584,7 +584,7 @@ export default async function TeamRosterPage({
           ) : null}
 
           <section
-            className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            className="mt-5 grid grid-cols-2 gap-2 sm:mt-10 sm:gap-4 xl:grid-cols-4"
             data-tutorial-id="roster-overview"
           >
             <SummaryCard
@@ -680,13 +680,13 @@ export default async function TeamRosterPage({
                 />
               ) : null}
 
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#315B3E]/15 bg-[#0B302B] px-5 py-5 text-[#FFFDF4] sm:px-7">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/15 bg-[#0B302B] px-4 py-3 text-[#FFFDF4] sm:gap-4 sm:px-7 sm:py-5">
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
                     Équipe première
                   </p>
 
-                  <h2 className="mt-2 text-2xl font-black">
+                  <h2 className="mt-1 text-lg font-black sm:mt-2 sm:text-2xl">
                     {commercialTeamName}
                   </h2>
 
@@ -695,17 +695,23 @@ export default async function TeamRosterPage({
                   </p>
                 </div>
 
-                <RatingLegend />
+                <span className="hidden sm:block">
+                  <RatingLegend />
+                </span>
               </div>
 
               {riders.length > 0 ? (
                 <>
                   <div className="xl:hidden">
+                    <MobileRatingCategoryGuide />
                     <MobileRosterSortMenu
                       currentSortKey={currentSortKey}
                       currentDirection={currentSortDirection}
                     />
-                    <div className="space-y-3 bg-[#F3F8F5] p-2 sm:p-3">
+                    <div
+                      data-tutorial-id="roster-mobile-list"
+                      className="space-y-3 bg-[#F3F8F5] p-2 sm:p-3"
+                    >
                       {sortedRiders.map((rider) => (
                         <RiderMobileCard
                           key={rider.rider_id}
@@ -874,12 +880,12 @@ function RosterViewTabs({
   return (
     <nav
       aria-label="Vues de l’effectif"
-      className="mt-8 grid gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm sm:grid-cols-3"
+      className="mt-5 grid grid-cols-3 gap-1 rounded-xl border border-[#315B3E]/15 bg-white p-1 shadow-sm sm:mt-8 sm:gap-2 sm:rounded-2xl sm:p-2"
     >
       <Link
         href="/jeu/effectif?vue=statistiques"
         aria-current={activeView === "statistiques" ? "page" : undefined}
-        className={`rounded-xl px-5 py-4 transition ${
+        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:rounded-xl sm:px-5 sm:py-4 sm:text-left ${
           activeView === "statistiques"
             ? "bg-[#0B302B] text-white shadow-md"
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
@@ -893,7 +899,7 @@ function RosterViewTabs({
           Effectif
         </strong>
         <span
-          className={`mt-1 block text-xs font-semibold ${
+          className={`mt-1 hidden text-xs font-semibold sm:block ${
             activeView === "statistiques" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
@@ -903,7 +909,7 @@ function RosterViewTabs({
       <Link
         href="/jeu/effectif?vue=planning"
         aria-current={activeView === "planning" ? "page" : undefined}
-        className={`rounded-xl px-5 py-4 transition ${
+        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:rounded-xl sm:px-5 sm:py-4 sm:text-left ${
           activeView === "planning"
             ? "bg-[#0B302B] text-white shadow-md"
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
@@ -914,10 +920,11 @@ function RosterViewTabs({
             activeView === "planning" ? "text-white" : "text-[#183F37]"
           }`}
         >
-          Planning de saison
+          <span className="sm:hidden">Planning</span>
+          <span className="hidden sm:inline">Planning de saison</span>
         </strong>
         <span
-          className={`mt-1 block text-xs font-semibold ${
+          className={`mt-1 hidden text-xs font-semibold sm:block ${
             activeView === "planning" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
@@ -927,7 +934,7 @@ function RosterViewTabs({
       <Link
         href="/jeu/effectif?vue=contrats"
         aria-current={activeView === "contrats" ? "page" : undefined}
-        className={`rounded-xl px-5 py-4 transition ${
+        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:rounded-xl sm:px-5 sm:py-4 sm:text-left ${
           activeView === "contrats"
             ? "bg-[#0B302B] text-white shadow-md"
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
@@ -941,7 +948,7 @@ function RosterViewTabs({
           Contrats
         </strong>
         <span
-          className={`mt-1 block text-xs font-semibold ${
+          className={`mt-1 hidden text-xs font-semibold sm:block ${
             activeView === "contrats" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
@@ -1212,15 +1219,54 @@ function SummaryCard({
   detail: string;
 }) {
   return (
-    <article className="rounded-2xl border border-[#315B3E]/20 bg-white/90 p-5 shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
-      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
+    <article
+      data-tutorial-id={label === "Coureurs" ? "roster-mobile-overview" : undefined}
+      className="min-w-0 rounded-xl border border-[#315B3E]/20 bg-white/90 p-3 shadow-[0_14px_34px_rgba(19,60,46,0.08)] sm:rounded-2xl sm:p-5"
+    >
+      <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#278B70] sm:text-xs sm:tracking-[0.16em]">
         {label}
       </p>
 
-      <p className="mt-3 text-2xl font-black text-[#082A2A]">{value}</p>
+      <p className="mt-1.5 truncate text-base font-black text-[#082A2A] sm:mt-3 sm:text-2xl">{value}</p>
 
-      <p className="mt-2 text-sm font-semibold text-[#60756E]">{detail}</p>
+      <p className="mt-2 hidden text-sm font-semibold text-[#60756E] sm:block">{detail}</p>
     </article>
+  );
+}
+
+function MobileRatingCategoryGuide() {
+  const categories = [
+    {
+      tutorialId: "roster-primary-ratings",
+      label: "Notes principales",
+      ratings: ["MO", "VAL", "PLA", "PAV", "SPR", "CLM"],
+      className: "border-[#278B70]/20 bg-[#EAF5F3] text-[#176951]",
+    },
+    {
+      tutorialId: "roster-secondary-ratings",
+      label: "Notes secondaires",
+      ratings: ["ACC", "DES", "END", "RES", "REC", "BAR", "PRO"],
+      className: "border-[#315B3E]/15 bg-white text-[#60756E]",
+    },
+  ] as const;
+
+  return (
+    <div className="grid grid-cols-2 gap-2 border-b border-[#315B3E]/10 bg-[#F3F8F5] p-2 sm:p-3">
+      {categories.map((category) => (
+        <section
+          key={category.tutorialId}
+          data-tutorial-id={category.tutorialId}
+          className={`min-w-0 rounded-xl border p-2.5 ${category.className}`}
+        >
+          <p className="truncate text-[9px] font-black uppercase tracking-[0.08em]">
+            {category.label}
+          </p>
+          <p className="mt-1.5 text-[10px] font-extrabold leading-4">
+            {category.ratings.join(" · ")}
+          </p>
+        </section>
+      ))}
+    </div>
   );
 }
 
