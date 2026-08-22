@@ -5,6 +5,7 @@ import type {
   RaceCalendarEdition,
   SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
+import type { NationalChampionshipGroup } from "./national-championship-results-directory";
 
 import {
   RaceLiveDirectory,
@@ -119,6 +120,82 @@ describe("RaceLiveDirectory", () => {
       'href="/jeu/resultats/course-non-courue/1"',
     );
     expect(markup).not.toContain("Course de mon équipe");
+  });
+
+  it("range les championnats nationaux résolus avec les courses passées", () => {
+    const pastEdition = createEdition({
+      id: "course-passee",
+      name: "Classique passée",
+      dayNumbers: [3],
+    });
+    const nationalEdition = createEdition({
+      id: "cn-fr-route",
+      name: "Championnat de France",
+      dayNumbers: [4],
+      registered: false,
+    });
+    nationalEdition.competitionType = "national_road";
+    nationalEdition.status = "completed";
+    nationalEdition.stages[0]!.status = "completed";
+    const nationalGroup: NationalChampionshipGroup = {
+      competitionType: "national_road",
+      title: "CN sur route",
+      discipline: "route",
+      dayNumber: 4,
+      editions: [nationalEdition],
+    };
+
+    const markup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={createCalendar({
+          currentDayNumber: 5,
+          editions: [pastEdition],
+        })}
+        nowIso="2026-07-30T20:00:00Z"
+        pastNationalChampionshipGroups={[nationalGroup]}
+      />,
+    );
+
+    expect(markup).toContain("Courses passées");
+    expect(markup).toContain("2 courses");
+    expect(markup).toContain('data-race-period="past"');
+    expect(markup).toContain(
+      'data-race-competition="national-championship"',
+    );
+    expect(markup).toContain("CN sur route");
+    expect(markup.indexOf("CN sur route")).toBeLessThan(
+      markup.indexOf("Classique passée"),
+    );
+  });
+
+  it("ne mélange pas les CN de l’équipe aux courses non courues", () => {
+    const nationalEdition = createEdition({
+      id: "cn-fr-clm",
+      name: "Championnat de France CLM",
+      dayNumbers: [4],
+      registered: false,
+    });
+    nationalEdition.competitionType = "national_time_trial";
+    nationalEdition.status = "completed";
+    const nationalGroup: NationalChampionshipGroup = {
+      competitionType: "national_time_trial",
+      title: "CN contre-la-montre",
+      discipline: "contre-la-montre",
+      dayNumber: 4,
+      editions: [nationalEdition],
+    };
+
+    const markup = renderToStaticMarkup(
+      <RaceLiveDirectory
+        calendar={createCalendar({ currentDayNumber: 5, editions: [] })}
+        nowIso="2026-07-30T20:00:00Z"
+        initialScope="unridden"
+        pastNationalChampionshipGroups={[nationalGroup]}
+      />,
+    );
+
+    expect(markup).not.toContain("CN contre-la-montre");
+    expect(markup).not.toContain("Courses passées");
   });
 });
 

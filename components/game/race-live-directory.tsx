@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  NationalChampionshipGroupCard,
+  type NationalChampionshipGroup,
+} from "@/components/game/national-championship-results-directory";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import Link from "@/components/ui/app-link";
 import {
@@ -33,14 +37,28 @@ type DirectoryEdition = {
   stages: RaceCalendarStage[];
 };
 
+type PastDirectoryItem =
+  | {
+      kind: "edition";
+      dayNumber: number;
+      entry: DirectoryEdition;
+    }
+  | {
+      kind: "national-championship";
+      dayNumber: number;
+      group: NationalChampionshipGroup;
+    };
+
 export function RaceLiveDirectory({
   calendar,
   nowIso,
   initialScope = "team",
+  pastNationalChampionshipGroups = [],
 }: {
   calendar: SeasonRaceCalendar;
   nowIso: string;
   initialScope?: ResultsScope;
+  pastNationalChampionshipGroups?: NationalChampionshipGroup[];
 }) {
   const [scope, setScope] = useState<ResultsScope>(initialScope);
   const [selectedCategories, setSelectedCategories] = useState<
@@ -98,6 +116,16 @@ export function RaceLiveDirectory({
       !currentEditionIds.has(edition.id),
   );
   const pastEditions = groupEntriesByEdition(pastEntries).reverse();
+  const showPastNationalChampionships =
+    scope === "team" &&
+    (selectedCategories.length === 0 ||
+      selectedCategories.includes("national"));
+  const pastDirectoryItems = buildPastDirectoryItems({
+    pastEditions,
+    nationalChampionshipGroups: showPastNationalChampionships
+      ? pastNationalChampionshipGroups
+      : [],
+  });
   const liveCount = currentDayEntries.filter(
     ({ stage }) => getStageLiveState(stage, now).status === "live",
   ).length;
@@ -254,7 +282,7 @@ export function RaceLiveDirectory({
         </div>
       </div>
 
-      {pastEditions.length > 0 ? (
+      {pastDirectoryItems.length > 0 ? (
         <details className="group/archive border-t border-[#315B3E]/15 bg-[#F6FAF7] last:rounded-b-[2rem]">
           <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:content-none sm:px-8 [&::-webkit-details-marker]:hidden">
             <span>
@@ -262,12 +290,14 @@ export function RaceLiveDirectory({
                 Courses passées
               </span>
               <span className="mt-1 block text-xs font-semibold text-[#688176]">
-                Retrouvez les résultats et replays des jours précédents.
+                Retrouvez les résultats et les replays disponibles des jours
+                précédents.
               </span>
             </span>
             <span className="inline-flex items-center gap-3">
               <span className="rounded-full bg-[#176951]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
-                {pastEditions.length} course{pastEditions.length > 1 ? "s" : ""}
+                {pastDirectoryItems.length} course
+                {pastDirectoryItems.length > 1 ? "s" : ""}
               </span>
               <span
                 aria-hidden="true"
@@ -278,20 +308,62 @@ export function RaceLiveDirectory({
             </span>
           </summary>
           <div className="grid gap-3 border-t border-[#315B3E]/10 p-4 sm:p-6 lg:grid-cols-2">
-            {pastEditions.map(({ edition, stages }) => (
-              <DirectoryCard
-                key={edition.id}
-                edition={edition}
-                stages={stages}
-                currentDayNumber={calendar.currentDayNumber}
-                now={now}
-                period="past"
-              />
-            ))}
+            {pastDirectoryItems.map((item) =>
+              item.kind === "national-championship" ? (
+                <NationalChampionshipGroupCard
+                  key={`national-${item.group.competitionType}`}
+                  group={item.group}
+                  period="past"
+                />
+              ) : (
+                <DirectoryCard
+                  key={item.entry.edition.id}
+                  edition={item.entry.edition}
+                  stages={item.entry.stages}
+                  currentDayNumber={calendar.currentDayNumber}
+                  now={now}
+                  period="past"
+                />
+              ),
+            )}
           </div>
         </details>
       ) : null}
     </section>
+  );
+}
+
+function buildPastDirectoryItems({
+  pastEditions,
+  nationalChampionshipGroups,
+}: {
+  pastEditions: DirectoryEdition[];
+  nationalChampionshipGroups: NationalChampionshipGroup[];
+}): PastDirectoryItem[] {
+  return [
+    ...pastEditions.map(
+      (entry): PastDirectoryItem => ({
+        kind: "edition",
+        dayNumber: Math.max(
+          ...entry.stages.map((stage) => stage.dayNumber),
+        ),
+        entry,
+      }),
+    ),
+    ...nationalChampionshipGroups.map(
+      (group): PastDirectoryItem => ({
+        kind: "national-championship",
+        dayNumber: group.dayNumber,
+        group,
+      }),
+    ),
+  ].sort(
+    (left, right) => {
+      const dayDifference = right.dayNumber - left.dayNumber;
+      if (dayDifference !== 0) return dayDifference;
+      if (left.kind === right.kind) return 0;
+      return left.kind === "national-championship" ? -1 : 1;
+    },
   );
 }
 

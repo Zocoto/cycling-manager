@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildNationalChampionshipGroups } from "@/components/game/national-championship-results-directory";
+import {
+  buildNationalChampionshipGroups,
+  splitNationalChampionshipGroupsForResults,
+} from "@/components/game/national-championship-results-directory";
 import type {
   RaceCalendarEdition,
   RaceCompetitionType,
@@ -122,5 +125,50 @@ describe("annuaire central des résultats CN", () => {
       "FR",
     ]);
     expect(groups.map((group) => group.dayNumber)).toEqual([8, 8]);
+
+    const directoryGroups = splitNationalChampionshipGroupsForResults(
+      groups,
+      calendar.currentDayNumber,
+    );
+    expect(directoryGroups.current).toEqual([]);
+    expect(directoryGroups.past).toHaveLength(2);
+  });
+
+  it("archive un CN dès sa résolution et conserve le CN en cours au premier plan", () => {
+    const edition = createEdition({
+      id: "fr-road",
+      countryCode: "FR",
+      competitionType: "national_road",
+      dayNumber: 8,
+    });
+    edition.status = "in_progress";
+    edition.stages[0]!.status = "in_progress";
+
+    const calendar: SeasonRaceCalendar = {
+      seasonId: "season-4",
+      seasonName: "Saison 4",
+      gameYear: 4,
+      startsOn: "2029-08-01",
+      endsOn: "2029-08-30",
+      currentDayNumber: 8,
+      days: [],
+      events: [],
+      editions: [edition],
+    };
+    const groups = buildNationalChampionshipGroups(
+      calendar,
+      new Set(["FR"]),
+    );
+
+    expect(
+      splitNationalChampionshipGroupsForResults(groups, 8),
+    ).toMatchObject({ current: [{ competitionType: "national_road" }], past: [] });
+
+    edition.status = "completed";
+    edition.stages[0]!.status = "completed";
+
+    expect(
+      splitNationalChampionshipGroupsForResults(groups, 8),
+    ).toMatchObject({ current: [], past: [{ competitionType: "national_road" }] });
   });
 });

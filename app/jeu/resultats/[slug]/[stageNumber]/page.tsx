@@ -199,9 +199,17 @@ export default async function RaceLivePage({
         })
       : null;
 
-  const backHref = nationalDiscipline
-    ? "/jeu/championnats-nationaux"
-    : "/jeu/resultats";
+  const archivedNationalChampionship =
+    Boolean(nationalDiscipline) &&
+    (stage.dayNumber < calendar.currentDayNumber ||
+      edition.status === "completed" ||
+      edition.status === "cancelled" ||
+      state.status === "finished" ||
+      state.status === "cancelled");
+  const backHref =
+    nationalDiscipline && !archivedNationalChampionship
+      ? "/jeu/championnats-nationaux"
+      : "/jeu/resultats";
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -232,7 +240,7 @@ export default async function RaceLivePage({
             className="inline-flex min-h-10 items-center rounded-xl border border-[#176951]/20 bg-white px-4 text-xs font-black text-[#176951] shadow-sm"
           >
             ←{" "}
-            {isNationalChampionship
+            {isNationalChampionship && !archivedNationalChampionship
               ? "Tous les CN concernés"
               : "Toutes les courses"}
           </Link>

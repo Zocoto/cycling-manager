@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { GameHeader } from "@/components/game/game-header";
-import { NationalChampionshipResultsDirectory } from "@/components/game/national-championship-results-directory";
+import {
+  NationalChampionshipResultsDirectory,
+  buildNationalChampionshipGroups,
+  splitNationalChampionshipGroupsForResults,
+} from "@/components/game/national-championship-results-directory";
 import { RaceLiveDirectory } from "@/components/game/race-live-directory";
 import Link from "@/components/ui/app-link";
 import { selectRaceStageForLiveAccess } from "@/lib/game/race-live";
@@ -124,6 +128,18 @@ export default async function RaceResultsPage({
         ),
       }
     : null;
+  const nationalChampionshipGroups = calendar
+    ? buildNationalChampionshipGroups(
+        calendar,
+        new Set(nationalCountryCodes.map((code) => code.toUpperCase())),
+      )
+    : [];
+  const nationalChampionshipResults = calendar
+    ? splitNationalChampionshipGroupsForResults(
+        nationalChampionshipGroups,
+        calendar.currentDayNumber,
+      )
+    : { current: [], past: [] };
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -162,12 +178,14 @@ export default async function RaceResultsPage({
           {calendar && spectatorCalendar ? (
             <>
               <NationalChampionshipResultsDirectory
-                calendar={calendar}
-                countryCodes={nationalCountryCodes}
+                groups={nationalChampionshipResults.current}
               />
               <RaceLiveDirectory
                 calendar={spectatorCalendar}
                 nowIso={now.toISOString()}
+                pastNationalChampionshipGroups={
+                  nationalChampionshipResults.past
+                }
               />
             </>
           ) : (

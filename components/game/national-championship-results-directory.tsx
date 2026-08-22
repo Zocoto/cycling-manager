@@ -5,7 +5,7 @@ import type {
   SeasonRaceCalendar,
 } from "@/lib/game/race-calendar";
 
-type NationalChampionshipGroup = {
+export type NationalChampionshipGroup = {
   competitionType: Extract<
     RaceCompetitionType,
     "national_road" | "national_time_trial"
@@ -17,16 +17,10 @@ type NationalChampionshipGroup = {
 };
 
 export function NationalChampionshipResultsDirectory({
-  calendar,
-  countryCodes,
+  groups,
 }: {
-  calendar: SeasonRaceCalendar;
-  countryCodes: string[];
+  groups: NationalChampionshipGroup[];
 }) {
-  const relevantCodes = new Set(countryCodes.map((code) => code.toUpperCase()));
-  const groups = buildNationalChampionshipGroups(calendar, relevantCodes).filter(
-    (group) => group.dayNumber <= calendar.currentDayNumber,
-  );
   if (groups.length === 0) return null;
 
   return (
@@ -48,93 +42,136 @@ export function NationalChampionshipResultsDirectory({
       </header>
 
       <div className="grid gap-3 p-4 sm:p-6 lg:grid-cols-2">
-        {groups.map((group) => {
-          const resolvedCount = group.editions.filter(
-            (edition) =>
-              edition.status === "completed" ||
-              edition.status === "cancelled",
-          ).length;
-          const allResolved = resolvedCount === group.editions.length;
-
-          return (
-            <article
-              key={group.competitionType}
-              className="rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-5"
-            >
-              <span className="flex items-center justify-between gap-3">
-                <span className="rounded-full bg-[#176951]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
-                  J{group.dayNumber} · {group.editions.length} pays
-                </span>
-                <span
-                  className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
-                    allResolved
-                      ? "bg-[#D7EEE8] text-[#176951]"
-                      : "bg-[#FFF2C7] text-[#7A5B09]"
-                  }`}
-                >
-                  {allResolved
-                    ? "Journée résolue"
-                    : "Simulation automatique"}
-                </span>
-              </span>
-              <span className="mt-4 block text-xl font-black text-[#183F37]">
-                {group.title}
-              </span>
-              <span className="mt-2 block text-sm font-semibold leading-6 text-[#60756E]">
-                {allResolved
-                  ? "Consultez directement chaque classement officiel disponible."
-                  : "Tous les pays sont résolus ensemble ; aucun direct ni replay n’est généré."}
-              </span>
-              <div className="mt-4 space-y-2">
-                {[...group.editions]
-                  .sort((left, right) =>
-                    left.countryName.localeCompare(right.countryName, "fr"),
-                  )
-                  .map((edition) => {
-                    const stage = edition.stages[0];
-                    const label = (
-                      <>
-                        <span
-                          className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
-                          role="img"
-                          aria-label={`Drapeau ${edition.countryName}`}
-                        />
-                        <span className="min-w-0 flex-1 truncate">
-                          {edition.countryName}
-                        </span>
-                        <span className="text-[10px] font-black uppercase tracking-wide">
-                          {edition.status === "cancelled"
-                            ? "Annulé"
-                            : edition.status === "completed"
-                              ? "Classement"
-                              : "À venir"}
-                        </span>
-                      </>
-                    );
-
-                    return edition.status === "completed" && stage ? (
-                      <Link
-                        key={edition.id}
-                        href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
-                        className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-white px-3 text-sm font-bold text-[#183F37] transition hover:border-[#278B70]/40 hover:text-[#176951]"
-                      >
-                        {label}
-                      </Link>
-                    ) : (
-                      <div
-                        key={edition.id}
-                        className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-white/60 px-3 text-sm font-bold text-[#60756E]"
-                      >
-                        {label}
-                      </div>
-                    );
-                  })}
-              </div>
-            </article>
-          );
-        })}
+        {groups.map((group) => (
+          <NationalChampionshipGroupCard
+            key={group.competitionType}
+            group={group}
+          />
+        ))}
       </div>
     </section>
+  );
+}
+
+export function NationalChampionshipGroupCard({
+  group,
+  period = "current",
+}: {
+  group: NationalChampionshipGroup;
+  period?: "current" | "past";
+}) {
+  const allResolved = isNationalChampionshipGroupResolved(group);
+
+  return (
+    <article
+      data-race-period={period}
+      data-race-competition="national-championship"
+      className="rounded-2xl border border-[#315B3E]/15 bg-[#F6FAF7] p-5 shadow-sm"
+    >
+      <span className="flex items-center justify-between gap-3">
+        <span className="rounded-full bg-[#176951]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#176951]">
+          J{group.dayNumber} · {group.editions.length} pays
+        </span>
+        <span
+          className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
+            allResolved
+              ? "bg-[#D7EEE8] text-[#176951]"
+              : "bg-[#FFF2C7] text-[#7A5B09]"
+          }`}
+        >
+          {allResolved ? "Journée résolue" : "Simulation automatique"}
+        </span>
+      </span>
+      <span className="mt-4 block text-xl font-black text-[#183F37]">
+        {group.title}
+      </span>
+      <span className="mt-2 block text-sm font-semibold leading-6 text-[#60756E]">
+        {allResolved
+          ? "Consultez directement chaque classement officiel disponible."
+          : "Tous les pays sont résolus ensemble ; aucun direct ni replay n’est généré."}
+      </span>
+      <div className="mt-4 space-y-2">
+        {[...group.editions]
+          .sort((left, right) =>
+            left.countryName.localeCompare(right.countryName, "fr"),
+          )
+          .map((edition) => {
+            const stage = edition.stages[0];
+            const label = (
+              <>
+                <span
+                  className={`fi fi-${edition.countryCode.toLowerCase()} rounded shadow-sm`}
+                  role="img"
+                  aria-label={`Drapeau ${edition.countryName}`}
+                />
+                <span className="min-w-0 flex-1 truncate">
+                  {edition.countryName}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wide">
+                  {edition.status === "cancelled"
+                    ? "Annulé"
+                    : edition.status === "completed"
+                      ? "Classement"
+                      : "À venir"}
+                </span>
+              </>
+            );
+
+            return edition.status === "completed" && stage ? (
+              <Link
+                key={edition.id}
+                href={`/jeu/resultats/${edition.slug}/${stage.stageNumber}`}
+                className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-white px-3 text-sm font-bold text-[#183F37] transition hover:border-[#278B70]/40 hover:text-[#176951]"
+              >
+                {label}
+              </Link>
+            ) : (
+              <div
+                key={edition.id}
+                className="flex min-h-10 items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-white/60 px-3 text-sm font-bold text-[#60756E]"
+              >
+                {label}
+              </div>
+            );
+          })}
+      </div>
+    </article>
+  );
+}
+
+export function splitNationalChampionshipGroupsForResults(
+  groups: NationalChampionshipGroup[],
+  currentDayNumber: number,
+) {
+  return {
+    current: groups.filter(
+      (group) =>
+        group.dayNumber <= currentDayNumber &&
+        !isNationalChampionshipGroupPast(group, currentDayNumber),
+    ),
+    past: groups.filter((group) =>
+      isNationalChampionshipGroupPast(group, currentDayNumber),
+    ),
+  };
+}
+
+function isNationalChampionshipGroupPast(
+  group: NationalChampionshipGroup,
+  currentDayNumber: number,
+) {
+  return (
+    group.dayNumber < currentDayNumber ||
+    (group.dayNumber === currentDayNumber &&
+      isNationalChampionshipGroupResolved(group))
+  );
+}
+
+function isNationalChampionshipGroupResolved(
+  group: NationalChampionshipGroup,
+) {
+  return group.editions.every(
+    (edition) =>
+      edition.status === "completed" || edition.status === "cancelled",
   );
 }
 
