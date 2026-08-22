@@ -377,6 +377,29 @@ function MessageReader({ message }: { message: DirectorMailboxMessage }) {
         {message.body}
       </div>
 
+      {message.actionLinks.length > 0 ? (
+        <nav
+          aria-label="Raccourcis conseillés"
+          className="mt-8 max-w-3xl rounded-2xl border border-[#176951]/12 bg-[#F3F9F7] p-4 sm:p-5"
+        >
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#176951]">
+            Accès rapides
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {message.actionLinks.map((link) => (
+              <Link
+                key={`${link.href}:${link.label}`}
+                href={link.href}
+                className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-[#176951]/12 bg-white px-4 py-2.5 text-sm font-black text-[#174D40] transition hover:-translate-y-0.5 hover:border-[#176951]/35 hover:text-[#176951]"
+              >
+                <span>{link.label}</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      ) : null}
+
       {message.actionHref && message.actionLabel ? (
         <div className="mt-9 border-t border-[#176951]/12 pt-6">
           <Link

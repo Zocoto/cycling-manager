@@ -5,7 +5,10 @@ import type {
   DirectorMailboxMessage,
   DirectorMessageType,
 } from "@/lib/game/director-mailbox";
-import { filterDirectorMailboxMessages } from "@/lib/game/director-mailbox";
+import {
+  filterDirectorMailboxMessages,
+  normalizeDirectorMessageActionLinks,
+} from "@/lib/game/director-mailbox";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -21,6 +24,7 @@ type DirectorMessageRow = {
   body: string;
   action_href: string | null;
   action_label: string | null;
+  action_links: unknown;
   is_important: boolean;
   sent_at: string;
   read_at: string | null;
@@ -53,7 +57,7 @@ export async function getCurrentDirectorMailbox(
   const { data, error } = await supabase
     .from("sporting_director_messages")
     .select(
-      "id, message_type, sender_name, subject, preview, body, action_href, action_label, is_important, sent_at, read_at, archived_at",
+      "id, message_type, sender_name, subject, preview, body, action_href, action_label, action_links, is_important, sent_at, read_at, archived_at",
     )
     .order("sent_at", { ascending: false })
     .limit(200)
@@ -108,6 +112,7 @@ function mapDirectorMessage(row: DirectorMessageRow): DirectorMailboxMessage {
     body: row.body,
     actionHref: row.action_href,
     actionLabel: row.action_label,
+    actionLinks: normalizeDirectorMessageActionLinks(row.action_links),
     isImportant: row.is_important,
     sentAt: row.sent_at,
     readAt: row.read_at,

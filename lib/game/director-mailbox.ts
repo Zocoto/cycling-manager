@@ -19,6 +19,11 @@ export type DirectorMessageType =
   | "infrastructure"
   | "system";
 
+export type DirectorMessageActionLink = {
+  label: string;
+  href: string;
+};
+
 export type DirectorMailboxMessage = {
   id: string;
   type: DirectorMessageType;
@@ -28,11 +33,35 @@ export type DirectorMailboxMessage = {
   body: string;
   actionHref: string | null;
   actionLabel: string | null;
+  actionLinks: DirectorMessageActionLink[];
   isImportant: boolean;
   sentAt: string;
   readAt: string | null;
   archivedAt: string | null;
 };
+
+export function normalizeDirectorMessageActionLinks(
+  value: unknown,
+): DirectorMessageActionLink[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(
+      (link): link is Record<string, unknown> =>
+        typeof link === "object" && link !== null,
+    )
+    .map((link) => ({
+      label: typeof link.label === "string" ? link.label.trim() : "",
+      href: typeof link.href === "string" ? link.href.trim() : "",
+    }))
+    .filter(
+      (link) =>
+        link.label.length > 0 &&
+        link.label.length <= 80 &&
+        /^\/jeu(?:\/|$)/.test(link.href),
+    )
+    .slice(0, 16);
+}
 
 export const DIRECTOR_MESSAGE_TYPE_LABELS: Record<
   DirectorMessageType,

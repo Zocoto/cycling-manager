@@ -4,6 +4,7 @@ import {
   filterDirectorMailboxMessages,
   getDirectorMessageIdToMarkReadOnNavigation,
   normalizeDirectorMailboxFilter,
+  normalizeDirectorMessageActionLinks,
   type DirectorMailboxMessage,
 } from "@/lib/game/director-mailbox";
 
@@ -17,6 +18,7 @@ const messages: DirectorMailboxMessage[] = [
     body: "Victoire de Jean Dupont.",
     actionHref: "/jeu/resultats/tour-des-alpes",
     actionLabel: "Consulter les résultats",
+    actionLinks: [],
     isImportant: true,
     sentAt: "2026-08-08T18:00:00.000Z",
     readAt: null,
@@ -31,6 +33,7 @@ const messages: DirectorMailboxMessage[] = [
     body: "La promotion est programmée.",
     actionHref: "/jeu/centre-de-formation",
     actionLabel: "Ouvrir le centre",
+    actionLinks: [],
     isImportant: false,
     sentAt: "2026-08-07T18:00:00.000Z",
     readAt: "2026-08-08T08:00:00.000Z",
@@ -45,6 +48,7 @@ const messages: DirectorMailboxMessage[] = [
     body: "Décision définitive.",
     actionHref: "/jeu/calendrier",
     actionLabel: "Voir le calendrier",
+    actionLinks: [],
     isImportant: false,
     sentAt: "2026-08-06T18:00:00.000Z",
     readAt: "2026-08-06T19:00:00.000Z",
@@ -120,5 +124,16 @@ describe("boîte mail du directeur sportif", () => {
         targetMessageId: "autre-mail",
       }),
     ).toBeNull();
+  });
+
+  it("ne conserve que des raccourcis internes valides", () => {
+    expect(
+      normalizeDirectorMessageActionLinks([
+        { label: "Transferts", href: "/jeu/transferts" },
+        { label: "Site externe", href: "https://example.com" },
+        { label: "", href: "/jeu/staff" },
+        null,
+      ]),
+    ).toEqual([{ label: "Transferts", href: "/jeu/transferts" }]);
   });
 });
