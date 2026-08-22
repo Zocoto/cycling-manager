@@ -81,4 +81,13 @@ describe("navigation vers les fiches de course", () => {
     );
     expect(content).not.toContain(".auth.getUser(");
   });
+
+  it("limite le chargement du calendrier à la course demandée", () => {
+    const content = readProjectFile(
+      "app/jeu/courses/[slug]/race-profile-content.tsx",
+    );
+
+    expect(content).toContain("getActiveSeasonRaceCalendar(supabase, new Date(), {");
+    expect(content).toContain("raceSlug: slug");
+  });
 });

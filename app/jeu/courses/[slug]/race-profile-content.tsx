@@ -94,7 +94,9 @@ export async function RaceProfileContent({
 
   const [headerData, calendar, weatherCenterLevel] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase),
+    getActiveSeasonRaceCalendar(supabase, new Date(), {
+      raceSlug: slug,
+    }),
     getCurrentTeamWeatherCenterLevel(user.id),
   ]);
   const edition = calendar?.editions.find(
