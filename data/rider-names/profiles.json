@@ -1,182 +1,426 @@
 {
-  "minimumFirstNames": 100,
-  "minimumLastNames": 100,
+  "minimumFirstNames": 120,
+  "minimumLastNames": 160,
   "profiles": [
     {
       "code": "france",
-      "label": "France"
+      "label": "France",
+      "minimumFirstNames": 420,
+      "minimumLastNames": 420
     },
     {
       "code": "belgium",
-      "label": "Belgique"
+      "label": "Belgique",
+      "minimumFirstNames": 420,
+      "minimumLastNames": 360
     },
     {
       "code": "netherlands",
-      "label": "Pays-Bas"
+      "label": "Pays-Bas",
+      "minimumFirstNames": 260,
+      "minimumLastNames": 175
     },
     {
       "code": "italy",
-      "label": "Italie"
+      "label": "Italie",
+      "minimumFirstNames": 300,
+      "minimumLastNames": 260
     },
     {
       "code": "spain",
-      "label": "Espagne"
+      "label": "Espagne",
+      "minimumFirstNames": 180,
+      "minimumLastNames": 260
     },
     {
       "code": "portugal",
-      "label": "Portugal"
+      "label": "Portugal et espace lusophone",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "germany",
-      "label": "Allemagne et espace germanophone"
+      "label": "Allemagne et espace germanophone",
+      "minimumFirstNames": 300,
+      "minimumLastNames": 280
     },
     {
       "code": "british_isles",
-      "label": "Îles britanniques"
+      "label": "Îles britanniques",
+      "minimumFirstNames": 300,
+      "minimumLastNames": 280
     },
     {
       "code": "nordic",
-      "label": "Europe nordique (profil historique)"
+      "label": "Europe nordique (profil historique)",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "denmark",
-      "label": "Danemark"
+      "label": "Danemark",
+      "minimumFirstNames": 160,
+      "minimumLastNames": 200
     },
     {
       "code": "finland",
-      "label": "Finlande"
+      "label": "Finlande",
+      "minimumFirstNames": 150,
+      "minimumLastNames": 169
     },
     {
       "code": "iceland",
-      "label": "Islande"
+      "label": "Islande",
+      "minimumFirstNames": 180,
+      "minimumLastNames": 180
     },
     {
       "code": "norway",
-      "label": "Norvège"
+      "label": "Norvège",
+      "minimumFirstNames": 180,
+      "minimumLastNames": 200
     },
     {
       "code": "sweden",
-      "label": "Suède"
+      "label": "Suède",
+      "minimumFirstNames": 135,
+      "minimumLastNames": 200
     },
     {
       "code": "central_europe",
-      "label": "Europe centrale"
+      "label": "Europe centrale",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "balkans",
-      "label": "Balkans"
+      "label": "Balkans",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "eastern_europe",
-      "label": "Europe orientale"
+      "label": "Europe orientale",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "greece",
-      "label": "Grèce et Chypre"
+      "label": "Grèce, Chypre et Malte",
+      "minimumFirstNames": 200,
+      "minimumLastNames": 200
     },
     {
       "code": "caucasus",
-      "label": "Caucase"
+      "label": "Caucase",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "turkey",
-      "label": "Turquie"
+      "label": "Turquie",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "north_america",
-      "label": "Amérique du Nord anglophone"
+      "label": "Amérique du Nord anglophone",
+      "minimumFirstNames": 320,
+      "minimumLastNames": 320
     },
     {
       "code": "mexico_central_america",
-      "label": "Mexique et Amérique centrale"
+      "label": "Mexique et Amérique centrale",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "andean",
-      "label": "Région andine"
+      "label": "Région andine",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "southern_cone",
-      "label": "Cône Sud de l’Amérique"
+      "label": "Cône Sud de l’Amérique",
+      "minimumFirstNames": 180,
+      "minimumLastNames": 240
     },
     {
       "code": "brazil",
-      "label": "Brésil"
+      "label": "Brésil",
+      "minimumFirstNames": 280,
+      "minimumLastNames": 260
     },
     {
       "code": "caribbean",
-      "label": "Caraïbes"
+      "label": "Caraïbes",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "japan",
-      "label": "Japon"
+      "label": "Japon",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "korea",
-      "label": "Corée"
+      "label": "Corée",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 200
     },
     {
       "code": "china",
-      "label": "Chine"
+      "label": "Chine continentale",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "taiwan",
+      "label": "Taïwan",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 200
     },
     {
       "code": "southeast_asia",
-      "label": "Asie du Sud-Est"
+      "label": "Asie du Sud-Est (profil régional)",
+      "minimumFirstNames": 260,
+      "minimumLastNames": 260
+    },
+    {
+      "code": "vietnam",
+      "label": "Vietnam",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 200
+    },
+    {
+      "code": "thailand",
+      "label": "Thaïlande",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "indonesia",
+      "label": "Indonésie",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "philippines",
+      "label": "Philippines",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "malaysia",
+      "label": "Malaisie",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "cambodia",
+      "label": "Cambodge",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "myanmar",
+      "label": "Myanmar",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "laos",
+      "label": "Laos",
+      "minimumFirstNames": 180,
+      "minimumLastNames": 180
     },
     {
       "code": "south_asia",
-      "label": "Asie du Sud"
+      "label": "Asie du Sud (profil régional)",
+      "minimumFirstNames": 260,
+      "minimumLastNames": 260
+    },
+    {
+      "code": "india",
+      "label": "Inde",
+      "minimumFirstNames": 300,
+      "minimumLastNames": 240
+    },
+    {
+      "code": "pakistan",
+      "label": "Pakistan",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
+    },
+    {
+      "code": "bangladesh",
+      "label": "Bangladesh",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
+    },
+    {
+      "code": "nepal",
+      "label": "Népal",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "sri_lanka",
+      "label": "Sri Lanka",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "afghanistan",
-      "label": "Afghanistan (dari et pachto)"
+      "label": "Afghanistan (dari et pachto)",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "central_asia",
-      "label": "Asie centrale"
+      "label": "Asie centrale",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
+    },
+    {
+      "code": "mongolia",
+      "label": "Mongolie",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "north_africa",
-      "label": "Afrique du Nord"
+      "label": "Afrique du Nord",
+      "minimumFirstNames": 230,
+      "minimumLastNames": 240
     },
     {
       "code": "middle_east_arabic",
-      "label": "Levant et Mésopotamie arabes"
+      "label": "Levant et Mésopotamie arabes",
+      "minimumFirstNames": 205,
+      "minimumLastNames": 220
     },
     {
       "code": "arabian_peninsula",
-      "label": "Péninsule Arabique"
+      "label": "Péninsule Arabique",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "israel",
-      "label": "Israël"
+      "label": "Israël",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "iran",
-      "label": "Iran"
+      "label": "Iran",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "west_africa_francophone",
-      "label": "Afrique de l’Ouest francophone"
+      "label": "Afrique de l’Ouest francophone (profil régional)",
+      "minimumFirstNames": 260,
+      "minimumLastNames": 260
+    },
+    {
+      "code": "ivory_coast",
+      "label": "Côte d’Ivoire",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "senegal",
+      "label": "Sénégal",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "west_africa_anglophone",
-      "label": "Afrique de l’Ouest anglophone"
+      "label": "Afrique de l’Ouest anglophone (profil régional)",
+      "minimumFirstNames": 260,
+      "minimumLastNames": 260
+    },
+    {
+      "code": "ghana",
+      "label": "Ghana",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "nigeria",
+      "label": "Nigeria",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "central_africa",
-      "label": "Afrique centrale"
+      "label": "Afrique centrale (profil régional)",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
+    },
+    {
+      "code": "cameroon",
+      "label": "Cameroun",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "east_africa",
-      "label": "Afrique de l’Est"
+      "label": "Afrique de l’Est (profil régional)",
+      "minimumFirstNames": 280,
+      "minimumLastNames": 280
+    },
+    {
+      "code": "ethiopia",
+      "label": "Éthiopie",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
+    },
+    {
+      "code": "eritrea",
+      "label": "Érythrée",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "kenya",
+      "label": "Kenya",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "somalia",
+      "label": "Somalie",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
     },
     {
       "code": "southern_africa",
-      "label": "Afrique australe"
+      "label": "Afrique australe (profil régional)",
+      "minimumFirstNames": 280,
+      "minimumLastNames": 280
+    },
+    {
+      "code": "madagascar",
+      "label": "Madagascar",
+      "minimumFirstNames": 220,
+      "minimumLastNames": 220
+    },
+    {
+      "code": "south_africa",
+      "label": "Afrique du Sud",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     },
     {
       "code": "oceania",
-      "label": "Océanie"
+      "label": "Océanie",
+      "minimumFirstNames": 240,
+      "minimumLastNames": 240
     }
   ]
 }

@@ -63,6 +63,21 @@ function validateStringList({
     (value) => typeof value === "string" && value.trim().length > 0,
   );
 
+  const malformedValues = validValues.filter(
+    (value) =>
+      value.length > 42 ||
+      /\d/.test(value) ||
+      !/^[\p{Script=Latin}\p{M}][\p{Script=Latin}\p{M}'’ .-]*$/u.test(
+        value,
+      ),
+  );
+
+  if (malformedValues.length > 0) {
+    errors.push(
+      `[${profileCode}] Valeur(s) mal formée(s) dans "${fieldName}" : ${malformedValues.slice(0, 10).join(", ")}.`,
+    );
+  }
+
   if (validValues.length < minimumCount) {
     errors.push(
       `[${profileCode}] Le champ "${fieldName}" contient ${validValues.length} entrée(s), alors que ${minimumCount} sont requises.`,
@@ -177,6 +192,22 @@ async function validateCatalog() {
       );
     }
 
+    const minimumFirstNames =
+      profile.minimumFirstNames ?? catalog.minimumFirstNames;
+    const minimumLastNames =
+      profile.minimumLastNames ?? catalog.minimumLastNames;
+
+    for (const [fieldName, value, catalogMinimum] of [
+      ["minimumFirstNames", minimumFirstNames, catalog.minimumFirstNames],
+      ["minimumLastNames", minimumLastNames, catalog.minimumLastNames],
+    ]) {
+      if (!Number.isInteger(value) || value < catalogMinimum) {
+        errors.push(
+          `[${profile.code}] Le seuil "${fieldName}" doit être un entier supérieur ou égal au minimum global (${catalogMinimum}).`,
+        );
+      }
+    }
+
     const profileFilePath = path.join(
       namesDirectory,
       `${profile.code}.json`,
@@ -203,7 +234,7 @@ async function validateCatalog() {
       values: profileData.firstNames,
       fieldName: "firstNames",
       profileCode: profile.code,
-      minimumCount: catalog.minimumFirstNames,
+      minimumCount: minimumFirstNames,
       errors,
     });
 
@@ -211,7 +242,7 @@ async function validateCatalog() {
       values: profileData.lastNames,
       fieldName: "lastNames",
       profileCode: profile.code,
-      minimumCount: catalog.minimumLastNames,
+      minimumCount: minimumLastNames,
       errors,
     });
 
@@ -224,6 +255,8 @@ async function validateCatalog() {
       lastNameCount: Array.isArray(profileData.lastNames)
         ? profileData.lastNames.length
         : 0,
+      minimumFirstNames,
+      minimumLastNames,
     });
   }
 
@@ -267,7 +300,7 @@ async function main() {
 
     for (const profile of result.validatedProfiles) {
       console.log(
-        `- ${profile.code} : ${profile.firstNameCount} prénoms, ${profile.lastNameCount} noms`,
+        `- ${profile.code} : ${profile.firstNameCount} prénoms, ${profile.lastNameCount} noms (seuils ${profile.minimumFirstNames}/${profile.minimumLastNames})`,
       );
     }
 

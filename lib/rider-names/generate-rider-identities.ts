@@ -4,11 +4,14 @@ import afghanistan from "../../data/rider-names/afghanistan.json";
 import andean from "../../data/rider-names/andean.json";
 import arabianPeninsula from "../../data/rider-names/arabian_peninsula.json";
 import balkans from "../../data/rider-names/balkans.json";
+import bangladesh from "../../data/rider-names/bangladesh.json";
 import belgium from "../../data/rider-names/belgium.json";
 import brazil from "../../data/rider-names/brazil.json";
 import britishIsles from "../../data/rider-names/british_isles.json";
+import cambodia from "../../data/rider-names/cambodia.json";
 import caribbean from "../../data/rider-names/caribbean.json";
 import caucasus from "../../data/rider-names/caucasus.json";
+import cameroon from "../../data/rider-names/cameroon.json";
 import centralAfrica from "../../data/rider-names/central_africa.json";
 import centralAsia from "../../data/rider-names/central_asia.json";
 import centralEurope from "../../data/rider-names/central_europe.json";
@@ -16,32 +19,55 @@ import china from "../../data/rider-names/china.json";
 import denmark from "../../data/rider-names/denmark.json";
 import eastAfrica from "../../data/rider-names/east_africa.json";
 import easternEurope from "../../data/rider-names/eastern_europe.json";
+import eritrea from "../../data/rider-names/eritrea.json";
+import ethiopia from "../../data/rider-names/ethiopia.json";
 import finland from "../../data/rider-names/finland.json";
 import france from "../../data/rider-names/france.json";
 import germany from "../../data/rider-names/germany.json";
+import ghana from "../../data/rider-names/ghana.json";
 import greece from "../../data/rider-names/greece.json";
 import iceland from "../../data/rider-names/iceland.json";
+import india from "../../data/rider-names/india.json";
+import indonesia from "../../data/rider-names/indonesia.json";
 import iran from "../../data/rider-names/iran.json";
 import israel from "../../data/rider-names/israel.json";
 import italy from "../../data/rider-names/italy.json";
+import ivoryCoast from "../../data/rider-names/ivory_coast.json";
 import japan from "../../data/rider-names/japan.json";
+import kenya from "../../data/rider-names/kenya.json";
 import korea from "../../data/rider-names/korea.json";
+import laos from "../../data/rider-names/laos.json";
+import madagascar from "../../data/rider-names/madagascar.json";
+import malaysia from "../../data/rider-names/malaysia.json";
 import mexicoCentralAmerica from "../../data/rider-names/mexico_central_america.json";
 import middleEastArabic from "../../data/rider-names/middle_east_arabic.json";
+import mongolia from "../../data/rider-names/mongolia.json";
+import myanmar from "../../data/rider-names/myanmar.json";
+import nepal from "../../data/rider-names/nepal.json";
 import netherlands from "../../data/rider-names/netherlands.json";
+import nigeria from "../../data/rider-names/nigeria.json";
 import nordic from "../../data/rider-names/nordic.json";
 import northAfrica from "../../data/rider-names/north_africa.json";
 import northAmerica from "../../data/rider-names/north_america.json";
 import norway from "../../data/rider-names/norway.json";
 import oceania from "../../data/rider-names/oceania.json";
+import pakistan from "../../data/rider-names/pakistan.json";
+import philippines from "../../data/rider-names/philippines.json";
 import portugal from "../../data/rider-names/portugal.json";
+import senegal from "../../data/rider-names/senegal.json";
 import southAsia from "../../data/rider-names/south_asia.json";
+import southAfrica from "../../data/rider-names/south_africa.json";
 import southeastAsia from "../../data/rider-names/southeast_asia.json";
+import somalia from "../../data/rider-names/somalia.json";
 import southernAfrica from "../../data/rider-names/southern_africa.json";
 import southernCone from "../../data/rider-names/southern_cone.json";
 import spain from "../../data/rider-names/spain.json";
+import sriLanka from "../../data/rider-names/sri_lanka.json";
 import sweden from "../../data/rider-names/sweden.json";
+import taiwan from "../../data/rider-names/taiwan.json";
+import thailand from "../../data/rider-names/thailand.json";
 import turkey from "../../data/rider-names/turkey.json";
+import vietnam from "../../data/rider-names/vietnam.json";
 import westAfricaAnglophone from "../../data/rider-names/west_africa_anglophone.json";
 import westAfricaFrancophone from "../../data/rider-names/west_africa_francophone.json";
 
@@ -89,20 +115,46 @@ const riderNameLibraries = {
   japan,
   korea,
   china,
+  taiwan,
   southeast_asia: southeastAsia,
+  vietnam,
+  thailand,
+  indonesia,
+  philippines,
+  malaysia,
+  cambodia,
+  myanmar,
+  laos,
   south_asia: southAsia,
+  india,
+  pakistan,
+  bangladesh,
+  nepal,
+  sri_lanka: sriLanka,
   afghanistan,
   central_asia: centralAsia,
+  mongolia,
   north_africa: northAfrica,
   middle_east_arabic: middleEastArabic,
   arabian_peninsula: arabianPeninsula,
   israel,
   iran,
   west_africa_francophone: westAfricaFrancophone,
+  ivory_coast: ivoryCoast,
+  senegal,
   west_africa_anglophone: westAfricaAnglophone,
+  ghana,
+  nigeria,
   central_africa: centralAfrica,
+  cameroon,
   east_africa: eastAfrica,
+  ethiopia,
+  eritrea,
+  kenya,
+  somalia,
   southern_africa: southernAfrica,
+  madagascar,
+  south_africa: southAfrica,
   oceania,
 } satisfies Record<string, RiderNameLibrary>;
 
