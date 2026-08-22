@@ -11,8 +11,8 @@ const route = readFileSync(
 describe("race settlement cron resilience", () => {
   it("isolates pre-settlement failures instead of aborting race results", () => {
     expect(route).toContain("runPreSettlementTask");
-    expect(route).toContain(
-      'runPreSettlementTask(\n    "sélections internationales"',
+    expect(route).toMatch(
+      /runPreSettlementTask\(\s*"sélections internationales"/,
     );
     expect(route).not.toContain("syncNationalChampionshipRegistrations");
     expect(route).toContain("const settlement = await settleFinishedRaceResults");
