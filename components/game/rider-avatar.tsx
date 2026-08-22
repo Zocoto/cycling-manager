@@ -522,23 +522,31 @@ function Ears({
   const widthScale: Record<RiderAvatarDesign["earStyle"], number> = {
     angular: 1,
     attached: 0.82,
+    lobed: 1.02,
+    long: 0.94,
+    pointed: 0.96,
     prominent: 1.28,
     rounded: 1,
     small: 0.72,
     tapered: 0.9,
+    wide: 1.38,
   };
   const heightScale: Record<RiderAvatarDesign["earStyle"], number> = {
     angular: 1,
     attached: 0.92,
+    lobed: 1.16,
+    long: 1.4,
+    pointed: 1.14,
     prominent: 1.08,
     rounded: 1,
     small: 0.76,
     tapered: 1.12,
+    wide: 0.96,
   };
   const placementScale =
     design.earStyle === "attached"
       ? 0.08
-      : design.earStyle === "prominent"
+      : design.earStyle === "prominent" || design.earStyle === "wide"
         ? 0.58
         : 0.34;
   const width = design.earWidth * widthScale[design.earStyle];
@@ -556,14 +564,29 @@ function Ears({
           <g key={direction}>
             {design.earStyle === "angular" ? (
               <path
-                d={`M ${innerX} ${y - height * 0.45} L ${outerX} ${y - height * 0.25} L ${outerX - direction * width * 0.08} ${y + height * 0.32} Q ${earX} ${y + height * 0.58} ${innerX} ${y + height * 0.38} Z`}
+                d={
+                  design.version === 1
+                    ? `M ${innerX} ${y - height * 0.45} L ${outerX} ${y - height * 0.25} L ${outerX - direction * width * 0.08} ${y + height * 0.32} Q ${earX} ${y + height * 0.58} ${innerX} ${y + height * 0.38} Z`
+                    : `M ${innerX} ${y - height * 0.43} Q ${outerX - direction * width * 0.12} ${y - height * 0.43} ${outerX} ${y - height * 0.2} L ${outerX - direction * width * 0.14} ${y + height * 0.28} Q ${earX} ${y + height * 0.55} ${innerX} ${y + height * 0.36} Z`
+                }
                 fill={design.skinTone}
                 stroke={design.skinShadow}
                 strokeWidth="0.7"
               />
-            ) : design.earStyle === "tapered" ? (
+            ) : design.earStyle === "tapered" || design.earStyle === "pointed" ? (
               <path
-                d={`M ${innerX} ${y - height * 0.42} Q ${outerX} ${y - height * 0.3} ${outerX - direction * width * 0.2} ${y + height * 0.08} Q ${earX} ${y + height * 0.62} ${innerX} ${y + height * 0.34} Z`}
+                d={
+                  design.earStyle === "pointed"
+                    ? `M ${innerX} ${y - height * 0.42} Q ${earX} ${y - height * 0.5} ${outerX} ${y - height * 0.2} Q ${outerX - direction * width * 0.18} ${y + height * 0.4} ${innerX} ${y + height * 0.36} Z`
+                    : `M ${innerX} ${y - height * 0.42} Q ${outerX} ${y - height * 0.3} ${outerX - direction * width * 0.2} ${y + height * 0.08} Q ${earX} ${y + height * 0.62} ${innerX} ${y + height * 0.34} Z`
+                }
+                fill={design.skinTone}
+                stroke={design.skinShadow}
+                strokeWidth="0.7"
+              />
+            ) : design.earStyle === "lobed" ? (
+              <path
+                d={`M ${innerX} ${y - height * 0.42} Q ${outerX} ${y - height * 0.35} ${outerX} ${y + height * 0.12} Q ${outerX - direction * width * 0.08} ${y + height * 0.5} ${earX} ${y + height * 0.54} Q ${innerX} ${y + height * 0.38} ${innerX} ${y - height * 0.42} Z`}
                 fill={design.skinTone}
                 stroke={design.skinShadow}
                 strokeWidth="0.7"
@@ -613,6 +636,30 @@ function Hair({
   let detail: ReactNode = null;
 
   switch (design.hairStyle) {
+    case "afro":
+      detail = (
+        <g fill={color} stroke={highlight} strokeWidth="0.5">
+          {[32, 37, 42, 48, 54, 59, 64].map((x, index) => (
+            <circle key={x} cx={x} cy={faceTop - 2.5 - (index % 2) * 2} r="5.2" />
+          ))}
+          {[35, 41, 47, 53, 59].map((x) => (
+            <circle key={`afro-${x}`} cx={x} cy={faceTop - 7} r="4.8" />
+          ))}
+        </g>
+      );
+      break;
+    case "braids":
+      detail = (
+        <g fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round">
+          {[35, 39, 43, 47, 51, 55, 59, 63].map((x, index) => (
+            <path
+              key={x}
+              d={`M ${x} ${faceTop - 4} q ${index % 2 ? 1.4 : -1.4} 5 0 11 q ${index % 2 ? -1.2 : 1.2} 3 0 6`}
+            />
+          ))}
+        </g>
+      );
+      break;
     case "shaved":
       return (
         <path
@@ -661,6 +708,25 @@ function Hair({
         />
       );
       break;
+    case "football-curl":
+      detail = (
+        <>
+          <path
+            d={`M 36 ${faceTop + 1} Q 44 ${faceTop - 7} 59 ${faceTop - 3}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="1.25"
+          />
+          <path
+            d={`M 53 ${faceTop + 1} Q 58 ${faceTop + 1} 58 ${faceTop + 7} Q 55 ${faceTop + 4} 52 ${faceTop + 8}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="3.1"
+            strokeLinecap="round"
+          />
+        </>
+      );
+      break;
     case "fringe":
       detail = (
         <path
@@ -681,6 +747,36 @@ function Hair({
           strokeWidth="4.2"
           strokeLinejoin="round"
         />
+      );
+      break;
+    case "mohawk":
+      detail = (
+        <path
+          d={`M 42 ${faceTop - 2} L 44 ${faceTop - 12} L 48 ${faceTop - 5} L 51 ${faceTop - 14} L 54 ${faceTop - 3}`}
+          fill={color}
+          stroke={highlight}
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+      );
+      break;
+    case "undercut":
+      detail = (
+        <>
+          <path
+            d={`M 35 ${faceTop + 7} Q 48 ${faceTop + 2} 62 ${faceTop + 7}`}
+            fill="none"
+            stroke={design.skinShadow}
+            strokeWidth="1.6"
+            opacity="0.32"
+          />
+          <path
+            d={`M 38 ${faceTop} Q 47 ${faceTop - 8} 60 ${faceTop - 2}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="1.35"
+          />
+        </>
       );
       break;
     case "slicked":
@@ -743,6 +839,58 @@ function Hair({
         </g>
       );
       break;
+    case "dreadlocks":
+    case "long-dreadlocks": {
+      const lockEnd =
+        design.hairStyle === "long-dreadlocks" ? faceTop + 39 : faceTop + 25;
+      detail = (
+        <g stroke={color} strokeWidth="2.25" strokeLinecap="round" fill="none">
+          {[33, 36, 39].map((x, index) => (
+            <path
+              key={`left-lock-${x}`}
+              d={`M ${x + 2} ${faceTop - 1 + index * 0.5} Q ${x - 1.5} ${faceTop + 11} ${x - 1 - (index % 2)} ${lockEnd - index * 1.3}`}
+            />
+          ))}
+          {[57, 60, 63].map((x, index) => (
+            <path
+              key={`right-lock-${x}`}
+              d={`M ${x - 2} ${faceTop - 1 + index * 0.5} Q ${x + 1.5} ${faceTop + 11} ${x + 1 + (index % 2)} ${lockEnd - index * 1.3}`}
+            />
+          ))}
+          <g stroke={highlight} strokeWidth="0.55" opacity="0.55">
+            <path d={`M 33 ${faceTop + 6} Q 31 ${faceTop + 15} 32 ${lockEnd - 5}`} />
+            <path d={`M 63 ${faceTop + 6} Q 65 ${faceTop + 15} 64 ${lockEnd - 5}`} />
+          </g>
+        </g>
+      );
+      break;
+    }
+    case "ponytail":
+      detail = (
+        <>
+          <ellipse cx="63.5" cy={faceTop + 2} rx="3.2" ry="4" fill={color} />
+          <path
+            d={`M 64 ${faceTop + 2} Q 72 ${faceTop + 11} 65 ${faceTop + 29} Q 61 ${faceTop + 19} 62 ${faceTop + 6} Z`}
+            fill={color}
+            stroke={highlight}
+            strokeWidth="0.7"
+          />
+        </>
+      );
+      break;
+    case "man-bun":
+      detail = (
+        <>
+          <circle cx="59.5" cy={faceTop - 7} r="5.2" fill={color} />
+          <path
+            d={`M 54 ${faceTop - 7} Q 60 ${faceTop - 11} 64 ${faceTop - 5}`}
+            fill="none"
+            stroke={highlight}
+            strokeWidth="0.9"
+          />
+        </>
+      );
+      break;
     case "crop":
     default:
       detail = (
@@ -773,20 +921,33 @@ function Brows({
   leftEyeX: number;
   rightEyeX: number;
 }) {
-  const browWidth = design.eyeWidth + 1.6;
+  const browWidth =
+    design.eyeWidth +
+    (design.browStyle === "heavy" ? 2.4 : design.browStyle === "soft" ? 1 : 1.6);
+  const strokeWidth =
+    design.browStyle === "heavy" ? 2.35 : design.browStyle === "soft" ? 1.25 : 1.65;
+  const archHeight =
+    design.browStyle === "arched"
+      ? -2.4
+      : design.browStyle === "straight"
+        ? -0.1
+        : design.browStyle === "low-angled"
+          ? 0.8
+          : -1.2;
+  const outerOffset = design.browStyle === "low-angled" ? 1.1 : 0.5;
 
   return (
     <g
       fill="none"
       stroke={design.hairColor}
-      strokeWidth="1.65"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
     >
       <path
-        d={`M ${leftEyeX - browWidth / 2} ${design.browY + 0.5} Q ${leftEyeX} ${design.browY - 1.2} ${leftEyeX + browWidth / 2} ${design.browY}`}
+        d={`M ${leftEyeX - browWidth / 2} ${design.browY + outerOffset} Q ${leftEyeX} ${design.browY + archHeight} ${leftEyeX + browWidth / 2} ${design.browY}`}
       />
       <path
-        d={`M ${rightEyeX - browWidth / 2} ${design.browY} Q ${rightEyeX} ${design.browY - 1.2} ${rightEyeX + browWidth / 2} ${design.browY + 0.5}`}
+        d={`M ${rightEyeX - browWidth / 2} ${design.browY} Q ${rightEyeX} ${design.browY + archHeight} ${rightEyeX + browWidth / 2} ${design.browY + outerOffset}`}
       />
     </g>
   );
@@ -808,11 +969,16 @@ function Eye({
     deep: 2.05,
     downturned: 2.15,
     hooded: 1.8,
+    large: 3.25,
     monolid: 1.55,
     narrow: 1.45,
     prominent: 2.95,
     round: 2.75,
+    sharp: 1.9,
+    sleepy: 1.65,
+    small: 1.65,
     soft: 2.3,
+    squinting: 1.05,
     upturned: 2.05,
   };
   const eyeHeight = heightByStyle[design.eyeStyle];
@@ -825,22 +991,41 @@ function Eye({
   const tilt = (design.eyeTilt + styleTilt) * direction;
   const leftX = x - design.eyeWidth / 2;
   const rightX = x + design.eyeWidth / 2;
-  const eyePath = `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight} ${rightX} ${y - tilt / 2} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`;
+  const eyePath =
+    design.eyeStyle === "sharp"
+      ? `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight * 0.85} ${rightX} ${y - tilt / 2} L ${x + design.eyeWidth * 0.18} ${y + eyeHeight * 0.78} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`
+      : design.eyeStyle === "sleepy"
+        ? `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight * 0.35} ${rightX} ${y - tilt / 2} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`
+        : `M ${leftX} ${y + tilt / 2} Q ${x} ${y - eyeHeight} ${rightX} ${y - tilt / 2} Q ${x} ${y + eyeHeight} ${leftX} ${y + tilt / 2} Z`;
   const irisScale =
-    design.eyeStyle === "prominent"
+    design.eyeStyle === "prominent" || design.eyeStyle === "large"
       ? 0.83
       : design.eyeStyle === "round"
         ? 0.76
         : 0.72;
+  const pupilOffset =
+    design.gazeStyle === "left"
+      ? -0.75
+      : design.gazeStyle === "right"
+        ? 0.75
+        : design.gazeStyle === "crossed"
+          ? -direction * 0.68
+          : design.gazeStyle === "wall-eyed"
+            ? direction * 0.68
+            : 0;
+  const irisX = x + pupilOffset;
+  const irisColor = direction === 1 ? design.rightEyeColor : design.eyeColor;
 
   return (
     <g>
       {design.eyeStyle === "deep" ||
       design.eyeStyle === "hooded" ||
-      design.eyeStyle === "monolid" ? (
+      design.eyeStyle === "monolid" ||
+      design.eyeStyle === "sleepy" ||
+      design.eyeStyle === "squinting" ? (
         <path
           d={
-            design.eyeStyle === "monolid"
+            design.eyeStyle === "monolid" || design.eyeStyle === "squinting"
               ? `M ${leftX - 0.2} ${y - 1.5} Q ${x} ${y - 2.5} ${rightX + 0.2} ${y - 1.5}`
               : `M ${leftX - 0.4} ${y - 2.2} Q ${x} ${y - 4} ${rightX + 0.4} ${y - 2.2}`
           }
@@ -856,15 +1041,15 @@ function Eye({
         stroke={design.skinShadow}
         strokeWidth="0.65"
       />
-      <circle cx={x} cy={y} r={eyeHeight * irisScale} fill={design.eyeColor} />
+      <circle cx={irisX} cy={y} r={eyeHeight * irisScale} fill={irisColor} />
       <circle
-        cx={x}
+        cx={irisX}
         cy={y}
         r={Math.max(0.75, eyeHeight * 0.34)}
         fill="#171513"
       />
       <circle
-        cx={x - 0.45}
+        cx={irisX - 0.45}
         cy={y - 0.55}
         r="0.38"
         fill="#FFFFFF"
@@ -887,37 +1072,47 @@ function Nose({
   const widthFactor: Record<RiderAvatarDesign["noseStyle"], number> = {
     angular: 0.94,
     aquiline: 0.9,
+    bulbous: 1.26,
     broad: 1.22,
     button: 0.88,
     compact: 0.92,
+    fine: 0.66,
+    flared: 1.38,
+    flat: 1.2,
+    hooked: 0.92,
     long: 0.9,
     rounded: 1.08,
     snub: 1.02,
     straight: 1,
     tapered: 0.82,
+    "wide-bridge": 1.3,
   };
   const halfWidth = (design.noseWidth * widthFactor[design.noseStyle]) / 2;
   const bridgeOffset =
     design.noseStyle === "angular"
       ? 1.15
-      : design.noseStyle === "aquiline"
+      : design.noseStyle === "aquiline" || design.noseStyle === "hooked"
         ? 1.35
         : design.noseStyle === "tapered"
           ? 0.45
           : 0.8;
   const bridgePath =
-    design.noseStyle === "aquiline"
-      ? `M ${centerX - bridgeOffset} ${topY} C ${centerX - 2.2} ${topY + (bottomY - topY) * 0.42}, ${centerX - 0.2} ${bottomY - 2.2}, ${centerX - halfWidth} ${bottomY - 0.8}`
+    design.noseStyle === "aquiline" || design.noseStyle === "hooked"
+      ? `M ${centerX - bridgeOffset} ${topY} C ${centerX - 2.2} ${topY + (bottomY - topY) * 0.42}, ${centerX - 0.2} ${bottomY - 2.2}, ${centerX - halfWidth} ${bottomY - (design.noseStyle === "hooked" ? -0.5 : 0.8)}`
       : design.noseStyle === "button" || design.noseStyle === "snub"
         ? `M ${centerX - bridgeOffset * 0.7} ${topY + 1} Q ${centerX - 0.5} ${bottomY - 2.2} ${centerX - halfWidth} ${bottomY - 0.7}`
+        : design.noseStyle === "flat"
+          ? `M ${centerX - bridgeOffset * 0.55} ${topY + 1.2} Q ${centerX - 0.3} ${bottomY - 1.5} ${centerX - halfWidth} ${bottomY - 0.5}`
         : `M ${centerX - bridgeOffset} ${topY} Q ${centerX - bridgeOffset - 0.6} ${topY + (bottomY - topY) * 0.55} ${centerX - halfWidth} ${bottomY - 1}`;
   const basePath =
     design.noseStyle === "angular"
       ? `M ${centerX - halfWidth} ${bottomY - 1} L ${centerX} ${bottomY + 0.9} L ${centerX + halfWidth} ${bottomY - 1}`
-      : design.noseStyle === "snub"
+      : design.noseStyle === "snub" || design.noseStyle === "flat"
         ? `M ${centerX - halfWidth} ${bottomY} Q ${centerX} ${bottomY - 0.8} ${centerX + halfWidth} ${bottomY}`
+        : design.noseStyle === "bulbous"
+          ? `M ${centerX - halfWidth} ${bottomY - 0.6} Q ${centerX - halfWidth * 0.6} ${bottomY + 1.5} ${centerX} ${bottomY + 1.6} Q ${centerX + halfWidth * 0.6} ${bottomY + 1.5} ${centerX + halfWidth} ${bottomY - 0.6}`
         : `M ${centerX - halfWidth} ${bottomY - 1} Q ${centerX - halfWidth - 1} ${bottomY + 0.5} ${centerX} ${bottomY + 1} Q ${centerX + halfWidth + 1} ${bottomY + 0.5} ${centerX + halfWidth} ${bottomY - 1}`;
-  const showsNostrils = ["broad", "button", "rounded", "snub"].includes(
+  const showsNostrils = ["broad", "bulbous", "button", "flared", "flat", "rounded", "snub", "wide-bridge"].includes(
     design.noseStyle,
   );
 
@@ -943,7 +1138,7 @@ function Nose({
           />
         </>
       ) : null}
-      {design.noseStyle === "aquiline" || design.noseStyle === "long" ? (
+      {design.noseStyle === "aquiline" || design.noseStyle === "hooked" || design.noseStyle === "long" ? (
         <path
           d={`M ${centerX + 0.8} ${topY + 1.4} Q ${centerX + 1.6} ${(topY + bottomY) / 2} ${centerX + halfWidth * 0.55} ${bottomY - 1.2}`}
           stroke={design.skinHighlight}
@@ -971,8 +1166,14 @@ function Mouth({
     downturned: 0.96,
     flat: 1,
     full: 1.03,
+    gritted: 1.04,
+    grimace: 1.02,
     narrow: 0.82,
+    open: 0.94,
+    "open-smile": 1.12,
+    pursed: 0.68,
     smile: 1.08,
+    smirk: 1.02,
     soft: 0.95,
     wide: 1.15,
   };
@@ -983,17 +1184,23 @@ function Mouth({
     downturned: 1.05,
     flat: 0.8,
     full: 2.1,
+    gritted: 1.2,
+    grimace: 0.9,
     narrow: 1,
+    open: 2.1,
+    "open-smile": 2.15,
+    pursed: 1.4,
     smile: 1.15,
+    smirk: 1.05,
     soft: 1.55,
     wide: 1,
   };
   const halfWidth = (design.mouthWidth * widthFactor[design.mouthStyle]) / 2;
   const fullness = fullnessByStyle[design.mouthStyle];
   const expressionCurve =
-    design.mouthStyle === "smile"
+    design.mouthStyle === "smile" || design.mouthStyle === "open-smile"
       ? 1.8
-      : design.mouthStyle === "downturned"
+      : design.mouthStyle === "downturned" || design.mouthStyle === "grimace"
         ? -1.8
         : design.mouthStyle === "flat"
           ? 0
@@ -1003,6 +1210,78 @@ function Mouth({
     design.skinShadow,
     design.mouthStyle === "full" ? 12 : 5,
   );
+
+  if (design.mouthStyle === "open" || design.mouthStyle === "open-smile") {
+    const openingHeight = design.mouthStyle === "open-smile" ? 3.1 : 3.8;
+
+    return (
+      <g>
+        <path
+          d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y - fullness} ${centerX + halfWidth} ${y} Q ${centerX} ${y + openingHeight} ${centerX - halfWidth} ${y} Z`}
+          fill="#3A1E1B"
+          stroke={lipColor}
+          strokeWidth="0.9"
+        />
+        <path
+          d={`M ${centerX - halfWidth * 0.76} ${y + 0.2} Q ${centerX} ${y + 1.1} ${centerX + halfWidth * 0.76} ${y + 0.2}`}
+          fill="none"
+          stroke="#F5EEE3"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+        />
+        {design.mouthStyle === "open" ? (
+          <path
+            d={`M ${centerX - halfWidth * 0.45} ${y + openingHeight - 0.65} Q ${centerX} ${y + openingHeight - 1.35} ${centerX + halfWidth * 0.45} ${y + openingHeight - 0.65}`}
+            fill="none"
+            stroke="#B76C67"
+            strokeWidth="0.85"
+            strokeLinecap="round"
+          />
+        ) : null}
+      </g>
+    );
+  }
+
+  if (design.mouthStyle === "gritted") {
+    return (
+      <g>
+        <path
+          d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y - 1.3} ${centerX + halfWidth} ${y} Q ${centerX} ${y + 2.2} ${centerX - halfWidth} ${y} Z`}
+          fill="#F3EEE5"
+          stroke={lipColor}
+          strokeWidth="0.9"
+        />
+        <path
+          d={`M ${centerX - halfWidth * 0.85} ${y + 0.65} H ${centerX + halfWidth * 0.85}`}
+          stroke={design.skinShadow}
+          strokeWidth="0.45"
+        />
+      </g>
+    );
+  }
+
+  if (design.mouthStyle === "smirk") {
+    return (
+      <path
+        d={`M ${centerX - halfWidth} ${y + 0.8} Q ${centerX} ${y + 0.7} ${centerX + halfWidth} ${y - 1.2}`}
+        fill="none"
+        stroke={lipColor}
+        strokeWidth="1.45"
+        strokeLinecap="round"
+      />
+    );
+  }
+
+  if (design.mouthStyle === "pursed") {
+    return (
+      <path
+        d={`M ${centerX - halfWidth} ${y} Q ${centerX} ${y - 1.8} ${centerX + halfWidth} ${y} Q ${centerX} ${y + 1.8} ${centerX - halfWidth} ${y} Z`}
+        fill={lipColor}
+        stroke={design.skinShadow}
+        strokeWidth="0.45"
+      />
+    );
+  }
 
   return (
     <g>
@@ -1040,13 +1319,71 @@ function FacialHair({
     return null;
   }
 
-  if (design.facialHairStyle === "moustache") {
+  if (design.facialHairStyle === "five-o-clock") {
+    const shadowDots = [
+      [36, faceBottom - 13],
+      [39, faceBottom - 9],
+      [42, faceBottom - 6],
+      [45, faceBottom - 4],
+      [48, faceBottom - 3],
+      [51, faceBottom - 4],
+      [54, faceBottom - 6],
+      [57, faceBottom - 9],
+      [60, faceBottom - 13],
+      [40, faceBottom - 12],
+      [44, faceBottom - 9],
+      [52, faceBottom - 9],
+      [56, faceBottom - 12],
+    ];
+
     return (
-      <path
-        d={`M 40 ${faceBottom - 12.5} Q 44 ${faceBottom - 15} 48 ${faceBottom - 12.8} Q 52 ${faceBottom - 15} 56 ${faceBottom - 12.5} Q 52 ${faceBottom - 10.5} 48 ${faceBottom - 12} Q 44 ${faceBottom - 10.5} 40 ${faceBottom - 12.5} Z`}
-        fill={color}
-        opacity="0.78"
-      />
+      <g data-avatar-facial-hair="five-o-clock">
+        <path
+          d={`M 34 ${faceBottom - 16} Q 36 ${faceBottom - 6} 43 ${faceBottom - 2} Q 48 ${faceBottom + 0.5} 53 ${faceBottom - 2} Q 60 ${faceBottom - 6} 62 ${faceBottom - 16} Q 58 ${faceBottom - 11} 54 ${faceBottom - 9} Q 48 ${faceBottom - 6.5} 42 ${faceBottom - 9} Q 38 ${faceBottom - 11} 34 ${faceBottom - 16} Z`}
+          fill="#626966"
+          opacity="0.2"
+        />
+        <g fill="#4F5552" opacity="0.42">
+          {shadowDots.map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.34" />
+          ))}
+        </g>
+        <path
+          d={`M 41 ${faceBottom - 12.7} Q 48 ${faceBottom - 14.2} 55 ${faceBottom - 12.7}`}
+          fill="none"
+          stroke="#555B58"
+          strokeWidth="0.7"
+          strokeDasharray="0.7 1"
+          opacity="0.5"
+        />
+      </g>
+    );
+  }
+
+  if (
+    design.facialHairStyle === "moustache" ||
+    design.facialHairStyle === "thick-moustache" ||
+    design.facialHairStyle === "handlebar"
+  ) {
+    const thick = design.facialHairStyle !== "moustache";
+
+    return (
+      <g>
+        <path
+          d={`M ${thick ? 38 : 40} ${faceBottom - 12.5} Q 43 ${faceBottom - (thick ? 16 : 15)} 48 ${faceBottom - 12.8} Q 53 ${faceBottom - (thick ? 16 : 15)} ${thick ? 58 : 56} ${faceBottom - 12.5} Q 53 ${faceBottom - (thick ? 9.6 : 10.5)} 48 ${faceBottom - 12} Q 43 ${faceBottom - (thick ? 9.6 : 10.5)} ${thick ? 38 : 40} ${faceBottom - 12.5} Z`}
+          fill={color}
+          opacity={thick ? 0.82 : 0.78}
+        />
+        {design.facialHairStyle === "handlebar" ? (
+          <path
+            d={`M 40 ${faceBottom - 12.3} Q 35 ${faceBottom - 9.4} 34 ${faceBottom - 13.4} M 56 ${faceBottom - 12.3} Q 61 ${faceBottom - 9.4} 62 ${faceBottom - 13.4}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+        ) : null}
+      </g>
     );
   }
 
@@ -1066,6 +1403,47 @@ function FacialHair({
           opacity="0.68"
         />
       </>
+    );
+  }
+
+  if (design.facialHairStyle === "sideburns") {
+    return (
+      <g fill={color} opacity="0.72">
+        <path d={`M 33 ${faceBottom - 27} Q 36 ${faceBottom - 23} 37 ${faceBottom - 15} L 34 ${faceBottom - 13} Q 32 ${faceBottom - 20} 33 ${faceBottom - 27} Z`} />
+        <path d={`M 63 ${faceBottom - 27} Q 60 ${faceBottom - 23} 59 ${faceBottom - 15} L 62 ${faceBottom - 13} Q 64 ${faceBottom - 20} 63 ${faceBottom - 27} Z`} />
+      </g>
+    );
+  }
+
+  if (design.facialHairStyle === "chinstrap") {
+    return (
+      <path
+        d={`M 33 ${faceBottom - 15} Q 35 ${faceBottom - 5} 43 ${faceBottom - 1.2} Q 48 ${faceBottom + 1.2} 53 ${faceBottom - 1.2} Q 61 ${faceBottom - 5} 63 ${faceBottom - 15}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        opacity="0.72"
+      />
+    );
+  }
+
+  if (
+    design.facialHairStyle === "full-beard" ||
+    design.facialHairStyle === "long-beard"
+  ) {
+    const long = design.facialHairStyle === "long-beard";
+    const beardBottom = faceBottom + (long ? 9 : 3);
+
+    return (
+      <g fill={color} opacity="0.86">
+        <path
+          d={`M 32 ${faceBottom - 22} Q 33 ${faceBottom - 5} 42 ${beardBottom - 1} Q 48 ${beardBottom + (long ? 3 : 0)} 54 ${beardBottom - 1} Q 63 ${faceBottom - 5} 64 ${faceBottom - 22} L 60 ${faceBottom - 16} Q 57 ${faceBottom - 10} 55 ${faceBottom - 8} Q 48 ${faceBottom - 5} 41 ${faceBottom - 8} Q 39 ${faceBottom - 10} 36 ${faceBottom - 16} Z`}
+        />
+        <path
+          d={`M 39 ${faceBottom - 12.7} Q 43 ${faceBottom - 15.7} 48 ${faceBottom - 12.8} Q 53 ${faceBottom - 15.7} 57 ${faceBottom - 12.7} Q 52 ${faceBottom - 9.8} 48 ${faceBottom - 12} Q 44 ${faceBottom - 9.8} 39 ${faceBottom - 12.7} Z`}
+        />
+      </g>
     );
   }
 

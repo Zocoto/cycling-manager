@@ -1042,7 +1042,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       international_center_bonus_percentage:
         internationalCenterBonus.bonusPercentage,
       avatar_profile_key: profile.avatar_profile_key,
-      avatar_seed: identity.avatar_seed,
+      // Youth candidates are portraits in their own right. Negative seeds opt
+      // only newly generated reports into avatar v2; existing candidates keep
+      // their already visible positive-seed face.
+      avatar_seed: `-${identity.avatar_seed}`,
       ...ratingsToRow(ratings),
       signing_fee: costs.signingFee,
       tuition_per_season: Math.max(
