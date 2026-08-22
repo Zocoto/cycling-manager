@@ -124,7 +124,7 @@ const assets = [
     logoX: 64,
     logoY: 88,
     eyebrow: "CYCLO STRATÈGE · SAISON 2",
-    title: ["VOTRE NOUVELLE", "SAISON COMMENCE"],
+    title: ["VOTRE SAISON", "COMMENCE"],
     body: "LA BÊTA EST OUVERTE",
     footer: "REJOINDRE LE JEU",
   },

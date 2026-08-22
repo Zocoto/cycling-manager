@@ -604,12 +604,12 @@ function RecentTeamResults({
       </p>
 
       {results.length > 0 ? (
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <div className="mt-5 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-2">
           {results.map((result) => (
             <Link
               key={result.id}
               href={getTeamResultHref(result)}
-              className="group flex items-center gap-4 rounded-2xl border border-[var(--team-line)] bg-[var(--team-surface)] p-4 transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)]"
+              className="group flex min-w-0 max-w-full items-center gap-3 rounded-2xl border border-[var(--team-line)] bg-[var(--team-surface)] p-3 transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)] sm:gap-4 sm:p-4"
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--team-soft)] text-lg font-black text-[var(--team-primary)]">
                 {result.rank === 1 ? "1" : result.rank}
@@ -628,7 +628,7 @@ function RecentTeamResults({
               </span>
               <span
                 aria-hidden="true"
-                className="font-black text-[var(--team-secondary)] transition group-hover:translate-x-0.5"
+                className="shrink-0 font-black text-[var(--team-secondary)] transition group-hover:translate-x-0.5"
               >
                 →
               </span>

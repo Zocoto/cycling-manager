@@ -88,7 +88,13 @@ export const REFERRAL_TROPHY_MILESTONES: readonly ReferralTrophyMilestone[] = [
 ] as const;
 
 export function buildReferralInviteUrl(siteUrl: string, code: string): string {
-  const query = new URLSearchParams({ parrain: code }).toString();
+  const query = new URLSearchParams({
+    parrain: code,
+    utm_source: "player_referral",
+    utm_medium: "referral",
+    utm_campaign: "saison2_ambassadors",
+    utm_content: "personal_invite",
+  }).toString();
   const base = siteUrl.trim().replace(/\/$/, "");
   return `${base}/inscription?${query}`;
 }

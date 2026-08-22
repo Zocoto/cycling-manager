@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "@/components/ui/app-link";
 
-const DISMISSED_STORAGE_KEY = "cyclostrategie:referral-invite-dismissed";
+const DISMISSED_STORAGE_KEY =
+  "cyclostratege:referral-invite:saison2-ambassadors-2026-08";
 
 export function DashboardReferralInvite() {
   const [dismissed, setDismissed] = useState(false);
@@ -43,9 +44,9 @@ export function DashboardReferralInvite() {
             <ReferralIcon />
           </span>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Nouveau · Parrainage</p>
-            <h2 className="mt-1 text-xl font-black">Invitez vos amis et recevez des cadeaux exclusifs</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">Votre lien personnel est prêt. Débloquez aussi le trophée et la tenue spéciale « Le Parrain » pour votre avatar.</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Saison 2 · Appel aux ambassadeurs</p>
+            <h2 className="mt-1 text-xl font-black">Le peloton a besoin de renfort : invitez un ami</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">Partagez votre lien personnel avec un amateur de cyclisme ou de jeux de gestion. Chaque filleul actif vous rapproche d’objets rares et de la tenue spéciale « Le Parrain ».</p>
           </div>
         </div>
 
@@ -53,7 +54,7 @@ export function DashboardReferralInvite() {
           href="/jeu/parrainage"
           className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-sm font-extrabold text-[#071A17] transition hover:bg-[#FFD968] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
-          Voir mes gains
+          Partager mon lien
         </Link>
       </div>
     </aside>

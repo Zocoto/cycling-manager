@@ -20,8 +20,10 @@ const milestones: ReferralMilestone[] = [1, 3, 5, 10, 25].map((count) => ({
 
 describe("referrals", () => {
   it("construit une URL personnelle encodée", () => {
-    expect(buildReferralInviteUrl("https://cyclostrategie.fr/", "DS-ABC123"))
-      .toBe("https://cyclostrategie.fr/inscription?parrain=DS-ABC123");
+    expect(buildReferralInviteUrl("https://cyclostratege.fr/", "DS-ABC123"))
+      .toBe(
+        "https://cyclostratege.fr/inscription?parrain=DS-ABC123&utm_source=player_referral&utm_medium=referral&utm_campaign=saison2_ambassadors&utm_content=personal_invite",
+      );
   });
 
   it("désigne le prochain palier et sa progression", () => {
