@@ -44,32 +44,7 @@ export default async function GlobalChatPage() {
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
-        <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#071A17_0%,#0B302B_58%,#176951_100%)] px-6 py-8 text-white shadow-[0_24px_70px_rgba(19,60,46,0.22)] sm:px-10">
-          <div
-            aria-hidden="true"
-            className="absolute -right-12 -top-20 h-64 w-64 rounded-full border-[42px] border-white/5"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]"
-          />
-
-          <div className="relative">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
-              Communauté · Temps réel
-            </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-              Chat général
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2]">
-              Échangez avec les autres Directeurs Sportifs connectés. Partagez
-              une URL de fiche équipe ou coureur pour afficher automatiquement
-              sa tuile dans la conversation.
-            </p>
-          </div>
-        </header>
-
-        <div className="mt-7">
+        <div className="mt-5">
           <GlobalGameChat
             identity={chat.identity}
             initialMessages={chat.messages}
