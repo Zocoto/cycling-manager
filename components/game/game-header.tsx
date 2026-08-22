@@ -184,7 +184,10 @@ export function GameHeader({
 
           <PushNotificationControl />
 
-          <GlobalChatShortcut chatIsOpen={chatIsOpen} />
+          <GlobalChatShortcut
+            chatIsOpen={chatIsOpen}
+            floatingOnMobile
+          />
 
           {canAccessRaceSimulator(simulatorEmail) ? (
             <span className="hidden sm:contents">

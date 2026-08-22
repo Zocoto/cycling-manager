@@ -14,16 +14,73 @@ import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
 const PRIMARY_LINKS_FR = [
   ["Bureau", "/jeu", "home"],
   ["Effectif", "/jeu/effectif", "riders"],
-  ["Courses", "/jeu/calendrier", "calendar"],
   ["Transferts", "/jeu/transferts", "transfer"],
 ] as const;
 
 const PRIMARY_LINKS_EN = [
   ["Office", "/jeu", "home"],
   ["Roster", "/jeu/effectif", "riders"],
-  ["Races", "/jeu/calendrier", "calendar"],
   ["Transfers", "/jeu/transferts", "transfer"],
 ] as const;
+
+const COURSE_LINKS_FR = [
+  {
+    label: "Inscriptions",
+    eyebrow: "1 · Planifier",
+    description: "Calendrier et choix des épreuves",
+    href: "/jeu/calendrier",
+    icon: "calendar",
+  },
+  {
+    label: "Préparation",
+    eyebrow: "2 · Préparer",
+    description: "Sélection, matériel et stratégie",
+    href: "/jeu/preparation-course",
+    icon: "prepare",
+  },
+  {
+    label: "Résultats & replays",
+    eyebrow: "3 · Suivre",
+    description: "Live, classements et rediffusions",
+    href: "/jeu/resultats",
+    icon: "results",
+  },
+] as const;
+
+const COURSE_LINKS_EN = [
+  {
+    label: "Registrations",
+    eyebrow: "1 · Plan",
+    description: "Calendar and race selection",
+    href: "/jeu/calendrier",
+    icon: "calendar",
+  },
+  {
+    label: "Preparation",
+    eyebrow: "2 · Prepare",
+    description: "Line-up, equipment and strategy",
+    href: "/jeu/preparation-course",
+    icon: "prepare",
+  },
+  {
+    label: "Results & replays",
+    eyebrow: "3 · Follow",
+    description: "Live coverage, standings and replays",
+    href: "/jeu/resultats",
+    icon: "results",
+  },
+] as const;
+
+const COURSE_PATH_PREFIXES = [
+  "/jeu/calendrier",
+  "/jeu/preparation-course",
+  "/jeu/resultats",
+  "/jeu/courses",
+  "/jeu/championnats-nationaux",
+  "/jeu/selections-internationales",
+] as const;
+
+type MobilePanel = "races" | "more";
 
 export function MobileGameNavigation({
   viewerEmail,
@@ -34,20 +91,28 @@ export function MobileGameNavigation({
   const isEnglish = locale === "en";
   const pathname = usePathname();
   const panelId = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const raceTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [openPathname, setOpenPathname] = useState<string | null>(null);
+  const [openState, setOpenState] = useState<{
+    panel: MobilePanel;
+    pathname: string;
+  } | null>(null);
   const [expandedGroupIndexes, setExpandedGroupIndexes] = useState<
     ReadonlySet<number>
   >(() => new Set([0]));
 
   const groups = isEnglish ? NAVIGATION_GROUPS_EN : NAVIGATION_GROUPS_FR;
   const primaryLinks = isEnglish ? PRIMARY_LINKS_EN : PRIMARY_LINKS_FR;
+  const courseLinks = isEnglish ? COURSE_LINKS_EN : COURSE_LINKS_FR;
   const showPlayerTracking = canAccessPlayerTracking(viewerEmail);
-  const open = openPathname === pathname;
+  const openPanel = openState?.pathname === pathname ? openState.panel : null;
+  const racesActive = COURSE_PATH_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
 
   useEffect(() => {
-    if (!open) return;
+    if (!openPanel) return;
 
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -55,8 +120,10 @@ export function MobileGameNavigation({
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      setOpenPathname(null);
-      triggerRef.current?.focus();
+      setOpenState(null);
+      const trigger =
+        openPanel === "races" ? raceTriggerRef.current : moreTriggerRef.current;
+      trigger?.focus();
     }
 
     document.addEventListener("keydown", closeOnEscape);
@@ -64,43 +131,175 @@ export function MobileGameNavigation({
       document.removeEventListener("keydown", closeOnEscape);
       document.body.style.overflow = previousBodyOverflow;
     };
-  }, [open]);
+  }, [openPanel]);
+
+  function togglePanel(panel: MobilePanel) {
+    setOpenState((current) =>
+      current?.pathname === pathname && current.panel === panel
+        ? null
+        : { panel, pathname },
+    );
+  }
+
+  function closePanel(restoreFocus = false) {
+    const panelToRestore = openPanel;
+    setOpenState(null);
+
+    if (!restoreFocus || !panelToRestore) return;
+
+    window.requestAnimationFrame(() => {
+      const trigger =
+        panelToRestore === "races"
+          ? raceTriggerRef.current
+          : moreTriggerRef.current;
+      trigger?.focus();
+    });
+  }
 
   return (
     <>
-      {open ? (
+      {openPanel ? (
         <button
           type="button"
-          aria-label={isEnglish ? "Close game menu" : "Fermer le menu du jeu"}
-          onClick={() => setOpenPathname(null)}
-          className="fixed inset-0 z-[112] bg-[#071A17]/58 backdrop-blur-[1px] sm:hidden"
+          aria-label={
+            openPanel === "races"
+              ? isEnglish
+                ? "Close race center"
+                : "Fermer le centre de course"
+              : isEnglish
+                ? "Close game menu"
+                : "Fermer le menu du jeu"
+          }
+          onClick={() => closePanel(true)}
+          className="mobile-app-backdrop fixed inset-0 z-[112] bg-[#071A17]/58 backdrop-blur-[1px] sm:hidden"
         />
       ) : null}
 
-      {open ? (
+      {openPanel === "races" ? (
         <section
-          id={panelId}
+          id={`${panelId}-races`}
           role="dialog"
           aria-modal="true"
-          aria-labelledby={`${panelId}-title`}
-          className="fixed inset-x-2 bottom-[calc(4.65rem+env(safe-area-inset-bottom))] z-[124] flex max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
+          aria-labelledby={`${panelId}-races-title`}
+          data-mobile-panel="races"
+          className="mobile-app-sheet fixed inset-x-2 bottom-[calc(4.65rem+env(safe-area-inset-bottom))] z-[124] overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
         >
-          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#071A17] px-4 py-3">
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-white/20"
+          />
+          <header className="flex items-start justify-between gap-3 border-b border-white/10 bg-[#071A17] px-4 pb-3 pt-5">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#7CCF9C]">
+                {isEnglish ? "Race workflow" : "Parcours de course"}
+              </p>
+              <h2
+                id={`${panelId}-races-title`}
+                className="mt-0.5 text-lg font-black"
+              >
+                {isEnglish ? "Race center" : "Centre de course"}
+              </h2>
+              <p className="mt-0.5 text-[11px] font-medium text-[#B9CBC4]">
+                {isEnglish
+                  ? "Plan, prepare, then follow every race."
+                  : "Planifiez, préparez, puis suivez chaque course."}
+              </p>
+            </div>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              onClick={() => closePanel(true)}
+              aria-label={
+                isEnglish ? "Close race center" : "Fermer le centre de course"
+              }
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/15 bg-white/5 text-lg font-black text-[#D6DFD2] transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C]"
+            >
+              ×
+            </button>
+          </header>
+
+          <nav
+            aria-label={isEnglish ? "Race center" : "Centre de course"}
+            className="space-y-2 p-3"
+          >
+            {courseLinks.map((item) => {
+              const active = pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  showPendingIndicator={false}
+                  aria-current={active ? "page" : undefined}
+                  data-course-destination={item.icon}
+                  onClick={() => closePanel()}
+                  className={`group flex min-h-[4.4rem] items-center gap-3 rounded-xl border px-3 py-2.5 transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
+                    active
+                      ? "border-[#F2C94C]/55 bg-[#F2C94C]/12"
+                      : "border-white/10 bg-white/[0.055] active:bg-white/10"
+                  }`}
+                >
+                  <span
+                    className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${
+                      active
+                        ? "bg-[#F2C94C] text-[#071A17]"
+                        : "bg-[#1B463C] text-[#9BE0CA]"
+                    }`}
+                  >
+                    <CourseNavigationIcon icon={item.icon} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[9px] font-black uppercase tracking-[0.13em] text-[#7CCF9C]">
+                      {item.eyebrow}
+                    </span>
+                    <span className="mt-0.5 block text-sm font-black text-[#FFFDF4]">
+                      {item.label}
+                    </span>
+                    <span className="block truncate text-[10px] font-medium text-[#B9CBC4]">
+                      {item.description}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`text-lg font-black ${
+                      active ? "text-[#F2C94C]" : "text-[#78947D]"
+                    }`}
+                  >
+                    {active ? "✓" : "›"}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        </section>
+      ) : null}
+
+      {openPanel === "more" ? (
+        <section
+          id={`${panelId}-more`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`${panelId}-more-title`}
+          data-mobile-panel="more"
+          className="mobile-app-sheet fixed inset-x-2 bottom-[calc(4.65rem+env(safe-area-inset-bottom))] z-[124] flex max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
+        >
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-white/20"
+          />
+          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#071A17] px-4 pb-3 pt-5">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#7CCF9C]">
                 {isEnglish ? "Quick overview" : "Vue d’ensemble"}
               </p>
-              <h2 id={`${panelId}-title`} className="mt-0.5 text-base font-black">
+              <h2 id={`${panelId}-more-title`} className="mt-0.5 text-base font-black">
                 {isEnglish ? "All game sections" : "Toutes les rubriques"}
               </h2>
             </div>
             <button
               ref={closeButtonRef}
               type="button"
-              onClick={() => {
-                setOpenPathname(null);
-                triggerRef.current?.focus();
-              }}
+              onClick={() => closePanel(true)}
               aria-label={isEnglish ? "Close game menu" : "Fermer le menu du jeu"}
               className="grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-white/5 text-lg font-black text-[#D6DFD2]"
             >
@@ -171,7 +370,7 @@ export function MobileGameNavigation({
         aria-label={isEnglish ? "Main mobile shortcuts" : "Raccourcis mobiles principaux"}
         className="fixed inset-x-2 bottom-[max(0.45rem,env(safe-area-inset-bottom))] z-[120] grid h-[3.85rem] grid-cols-5 overflow-hidden rounded-[1.15rem] border border-[#78947D]/35 bg-[#071A17]/96 px-1 text-[#D6DFD2] shadow-[0_14px_42px_rgba(0,0,0,0.38)] backdrop-blur-md sm:hidden"
       >
-        {primaryLinks.map(([label, href, icon]) => {
+        {primaryLinks.slice(0, 2).map(([label, href, icon]) => {
           const active = href === "/jeu" ? pathname === href : pathname.startsWith(href);
 
           return (
@@ -180,10 +379,13 @@ export function MobileGameNavigation({
               href={href}
               showPendingIndicator={false}
               aria-current={active ? "page" : undefined}
-              className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
+              className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
                 active ? "bg-white/10 text-[#F2C94C]" : "text-[#C6D4CE]"
               }`}
             >
+              {active ? (
+                <span className="absolute inset-x-auto top-0 h-0.5 w-5 rounded-full bg-[#F2C94C]" />
+              ) : null}
               <MobileNavigationIcon icon={icon} />
               <span className="max-w-full truncate px-1">{label}</span>
             </Link>
@@ -191,18 +393,68 @@ export function MobileGameNavigation({
         })}
 
         <button
-          ref={triggerRef}
+          ref={raceTriggerRef}
           type="button"
           aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-controls={panelId}
-          onClick={() =>
-            setOpenPathname((current) =>
-              current === pathname ? null : pathname,
-            )
-          }
-          className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
-            open ? "bg-[#F2C94C] text-[#071A17]" : "text-[#C6D4CE]"
+          aria-expanded={openPanel === "races"}
+          aria-controls={`${panelId}-races`}
+          aria-current={racesActive ? "page" : undefined}
+          aria-label={isEnglish ? "Open race center" : "Ouvrir le centre de course"}
+          onClick={() => togglePanel("races")}
+          className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
+            openPanel === "races"
+              ? "bg-[#F2C94C] text-[#071A17]"
+              : racesActive
+                ? "bg-white/10 text-[#F2C94C]"
+                : "text-[#C6D4CE]"
+          }`}
+        >
+          {racesActive && openPanel !== "races" ? (
+            <span className="absolute inset-x-auto top-0 h-0.5 w-5 rounded-full bg-[#F2C94C]" />
+          ) : null}
+          <span className="relative">
+            <MobileNavigationIcon icon="calendar" />
+            <span
+              aria-hidden="true"
+              className="absolute -right-2 -top-1 text-[8px] leading-none"
+            >
+              ⌃
+            </span>
+          </span>
+          <span>{isEnglish ? "Races" : "Courses"}</span>
+        </button>
+
+        {primaryLinks.slice(2).map(([label, href, icon]) => {
+          const active = pathname.startsWith(href);
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              showPendingIndicator={false}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
+                active ? "bg-white/10 text-[#F2C94C]" : "text-[#C6D4CE]"
+              }`}
+            >
+              {active ? (
+                <span className="absolute inset-x-auto top-0 h-0.5 w-5 rounded-full bg-[#F2C94C]" />
+              ) : null}
+              <MobileNavigationIcon icon={icon} />
+              <span className="max-w-full truncate px-1">{label}</span>
+            </Link>
+          );
+        })}
+
+        <button
+          ref={moreTriggerRef}
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={openPanel === "more"}
+          aria-controls={`${panelId}-more`}
+          onClick={() => togglePanel("more")}
+          className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
+            openPanel === "more" ? "bg-[#F2C94C] text-[#071A17]" : "text-[#C6D4CE]"
           }`}
         >
           <MobileNavigationIcon icon="menu" />
@@ -211,6 +463,33 @@ export function MobileGameNavigation({
       </nav>
     </>
   );
+}
+
+function CourseNavigationIcon({
+  icon,
+}: {
+  icon: "calendar" | "prepare" | "results";
+}) {
+  const commonProps = {
+    "aria-hidden": true,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    className: "h-5 w-5",
+    stroke: "currentColor",
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (icon === "calendar") {
+    return <svg {...commonProps}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 10h18M8 14h3M14 14h2M8 18h2" /></svg>;
+  }
+
+  if (icon === "prepare") {
+    return <svg {...commonProps}><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M7 14v6" /><circle cx="14" cy="7" r="2" /><circle cx="7" cy="17" r="2" /></svg>;
+  }
+
+  return <svg {...commonProps}><path d="M4 19V9M10 19V5M16 19v-7M22 19V3" /><path d="m3 6 6-3 6 5 7-6" /></svg>;
 }
 
 function MobileNavigationIcon({

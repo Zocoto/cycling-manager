@@ -30,6 +30,11 @@ describe("game header responsive layout", () => {
     expect(headerSource).toContain('className="hidden sm:contents"');
   });
 
+  it("sort le chat du rail mobile sous la forme d’une bulle", () => {
+    expect(headerSource).toContain("<GlobalChatShortcut");
+    expect(headerSource).toContain("floatingOnMobile");
+  });
+
   it("places language and logout on the mobile top row with logout at the far right", () => {
     const searchPosition = headerSource.indexOf("<GameHeaderSearchToggle");
     const languagePosition = headerSource.indexOf("<LanguageSwitcher compact />");

@@ -6,9 +6,11 @@ import { useGameHeaderIndicators } from "@/components/game/game-header-indicator
 export function GlobalChatShortcut({
   chatIsOpen = false,
   initialHasUnread = false,
+  floatingOnMobile = false,
 }: {
   chatIsOpen?: boolean;
   initialHasUnread?: boolean;
+  floatingOnMobile?: boolean;
 }) {
   const hasUnread =
     useGameHeaderIndicators()?.hasUnreadGlobalChat ?? initialHasUnread;
@@ -23,8 +25,12 @@ export function GlobalChatShortcut({
       href="/jeu/chat"
       title={label}
       aria-label={label}
+      aria-current={chatIsOpen ? "page" : undefined}
       data-chat-unread={displayedUnread ? "true" : "false"}
-      className="group relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10"
+      data-mobile-chat-bubble={floatingOnMobile ? "true" : undefined}
+      className={`group relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10 ${
+        floatingOnMobile ? "mobile-chat-bubble" : ""
+      }`}
     >
       <svg
         aria-hidden="true"

@@ -25,4 +25,12 @@ describe("mobile game shell", () => {
     expect(mobileStyles).toContain("overflow-x: clip");
     expect(mobileStyles).toContain("font-size: 16px");
   });
+
+  it("positionne le chat en bulle et anime les panneaux applicatifs", () => {
+    expect(mobileStyles).toContain(".game-shell .mobile-chat-bubble");
+    expect(mobileStyles).toContain("position: fixed");
+    expect(mobileStyles).toContain(".game-shell .mobile-app-sheet");
+    expect(mobileStyles).toContain("@keyframes mobile-app-sheet-in");
+    expect(mobileStyles).toContain("prefers-reduced-motion: reduce");
+  });
 });

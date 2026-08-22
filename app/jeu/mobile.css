@@ -37,4 +37,72 @@
   .game-shell [data-game-header="true"] {
     box-shadow: 0 8px 22px rgba(7, 26, 23, 0.2);
   }
+
+  .game-shell .mobile-chat-bubble {
+    position: fixed;
+    z-index: 72;
+    top: 4.55rem;
+    right: 0.75rem;
+    width: 3rem;
+    height: 3rem;
+    border-color: color-mix(in srgb, var(--game-header-accent) 58%, transparent);
+    border-radius: 9999px;
+    background: color-mix(in srgb, #0b332c 94%, transparent);
+    color: #fffdf4;
+    box-shadow:
+      0 12px 32px rgba(7, 26, 23, 0.34),
+      0 0 0 4px rgba(255, 253, 244, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .game-shell .mobile-chat-bubble::before {
+    content: "";
+    position: absolute;
+    inset: -0.35rem;
+    border-radius: inherit;
+  }
+
+  .game-shell .mobile-chat-bubble svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .game-shell .mobile-app-sheet {
+    transform-origin: bottom center;
+    animation: mobile-app-sheet-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .game-shell .mobile-app-backdrop {
+    animation: mobile-app-backdrop-in 140ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .game-shell .mobile-app-sheet,
+    .game-shell .mobile-app-backdrop {
+      animation: none;
+    }
+  }
+}
+
+@keyframes mobile-app-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes mobile-app-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

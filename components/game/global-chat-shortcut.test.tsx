@@ -30,4 +30,13 @@ describe("GlobalChatShortcut", () => {
     expect(markup).toContain('data-chat-unread="false"');
     expect(markup).toContain("bg-[#42B99A]");
   });
+
+  it("peut devenir une bulle de chat flottante réservée au mobile", () => {
+    const markup = renderToStaticMarkup(
+      <GlobalChatShortcut floatingOnMobile />,
+    );
+
+    expect(markup).toContain('data-mobile-chat-bubble="true"');
+    expect(markup).toContain("mobile-chat-bubble");
+  });
 });
