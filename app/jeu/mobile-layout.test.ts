@@ -30,6 +30,9 @@ describe("mobile game shell", () => {
     expect(mobileStyles).toContain(".game-shell .mobile-chat-bubble");
     expect(mobileStyles).toContain("position: fixed");
     expect(mobileStyles).toContain(".game-shell .mobile-app-sheet");
+    expect(mobileStyles).toContain(
+      "bottom: calc(4.75rem + env(safe-area-inset-bottom))",
+    );
     expect(mobileStyles).toContain("@keyframes mobile-app-sheet-in");
     expect(mobileStyles).toContain("prefers-reduced-motion: reduce");
   });
