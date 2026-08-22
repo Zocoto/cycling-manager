@@ -6,13 +6,14 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
+import {
+  describeEquipmentRndEngineerEffects,
+  estimateEquipmentRndResearch,
+} from "@/lib/game/equipment-rnd";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
-import {
-  estimateEquipmentRndResearch,
-  getCurrentTeamEquipmentRndOverview,
-} from "@/services/team-equipment-rnd";
+import { getCurrentTeamEquipmentRndOverview } from "@/services/team-equipment-rnd";
 import { startEquipmentRndAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -23,12 +24,6 @@ export const metadata: Metadata = {
 type PageProps = {
   searchParams: Promise<{ recherche?: string; erreur?: string }>;
 };
-
-const SPECIALTY_LABELS = {
-  research_time: "temps de recherche",
-  research_cost: "coût de recherche",
-  research_success: "taux de réussite",
-} as const;
 
 export default async function EquipmentLaboratoryPage({
   searchParams,
@@ -198,16 +193,17 @@ export default async function EquipmentLaboratoryPage({
                           value={engineer.contractId}
                         >
                           {engineer.name} · N{engineer.level} ·{" "}
-                          {engineer.specialty
-                            ? SPECIALTY_LABELS[engineer.specialty]
-                            : "généraliste"}
+                          {describeEquipmentRndEngineerEffects(engineer).join(
+                            " · ",
+                          ) || "aucun talent actif"}
                         </option>
                       ))}
                     </select>
                   </label>
                   <p className="rounded-xl bg-[#F3F8F5] p-4 text-xs font-semibold leading-5 text-[#60756E]">
                     Le coût exact dépend de la valeur de la pièce et de
-                    l’ingénieur. À ce niveau, la recherche dure de 4 à{" "}
+                    l’ingénieur. Les talents R&D acquis se cumulent. À ce
+                    niveau, la recherche dure de 4 à{" "}
                     {baseline?.durationDays ?? 18} jours et part de{" "}
                     {baseline?.successRate ?? 0} % de réussite.
                   </p>

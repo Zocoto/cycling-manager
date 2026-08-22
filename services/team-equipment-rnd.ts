@@ -1,6 +1,12 @@
 import "server-only";
 
 import type { EquipmentSlot } from "@/lib/game/equipment";
+import {
+  EQUIPMENT_RND_SPECIALTIES,
+  isEquipmentRndSpecialty,
+  type EquipmentRndEngineer,
+  type EquipmentRndSpecialty,
+} from "@/lib/game/equipment-rnd";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentTeamEquipmentOverview,
@@ -44,12 +50,7 @@ type MemberRow = {
 };
 type TalentRow = { staff_member_id: string; talent_code: string };
 
-export type EquipmentRndEngineer = {
-  contractId: string;
-  name: string;
-  level: number;
-  specialty: "research_time" | "research_cost" | "research_success" | null;
-};
+export type { EquipmentRndEngineer } from "@/lib/game/equipment-rnd";
 
 export type EquipmentRndProject = {
   id: string;
@@ -163,27 +164,28 @@ export async function getCurrentTeamEquipmentRndOverview(
   const memberById = new Map(
     (membersResult.data ?? []).map((member) => [member.id, member]),
   );
-  const talentByMemberId = new Map(
-    (talentsResult.data ?? []).map((talent) => [
-      talent.staff_member_id,
-      talent.talent_code,
-    ]),
-  );
+  const specialtiesByMemberId = new Map<string, EquipmentRndSpecialty[]>();
+  for (const talent of talentsResult.data ?? []) {
+    if (!isEquipmentRndSpecialty(talent.talent_code)) continue;
+    const specialties = specialtiesByMemberId.get(talent.staff_member_id) ?? [];
+    if (!specialties.includes(talent.talent_code)) {
+      specialties.push(talent.talent_code);
+      specialtiesByMemberId.set(talent.staff_member_id, specialties);
+    }
+  }
   const engineers = contractRows.flatMap((contract) => {
     const member = memberById.get(contract.staff_member_id);
     if (!member) return [];
-    const talent = talentByMemberId.get(member.id);
+    const specialties = EQUIPMENT_RND_SPECIALTIES.filter((specialty) =>
+      (specialtiesByMemberId.get(member.id) ?? []).includes(specialty),
+    );
     return [
       {
         contractId: contract.id,
         name: `${member.first_name} ${member.last_name}`,
         level: Number(member.level),
-        specialty:
-          talent === "research_time" ||
-          talent === "research_cost" ||
-          talent === "research_success"
-            ? talent
-            : null,
+        specialties: [...specialties],
+        specialty: specialties[0] ?? null,
       } satisfies EquipmentRndEngineer,
     ];
   });
@@ -249,30 +251,4 @@ export async function getCurrentTeamEquipmentRndOverview(
       (project) => project.status === "completed",
     ),
   };
-}
-
-export function estimateEquipmentRndResearch(args: {
-  labLevel: number;
-  itemPrice: number;
-  engineer?: EquipmentRndEngineer | null;
-}) {
-  const baseDays =
-    [18, 16, 14, 12, 10, 9, 8][Math.max(1, args.labLevel) - 1] ?? 18;
-  const engineer = args.engineer ?? null;
-  const successRate = Math.min(
-    95,
-    45 +
-      args.labLevel * 5 +
-      (engineer?.specialty === "research_success" ? engineer.level * 3 : 0),
-  );
-  const durationDays = Math.max(
-    4,
-    baseDays - (engineer?.specialty === "research_time" ? engineer.level : 0),
-  );
-  const cost = Math.round(
-    (100_000 + args.labLevel * 50_000 + Math.max(args.itemPrice, 1_000) * 12) *
-      (1 -
-        (engineer?.specialty === "research_cost" ? engineer.level * 0.05 : 0)),
-  );
-  return { successRate, durationDays, cost };
 }

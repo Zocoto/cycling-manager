@@ -403,19 +403,7 @@ function StaffMarketCard({
           </p>
         ) : null}
 
-        <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
-            Compétence de base · niveau {member.level}
-          </p>
-          <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
-            {member.effects.map((effect) => (
-              <li key={effect} className="flex gap-2">
-                <span aria-hidden="true">◆</span>
-                <span>{effect}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <StaffEffectBlock member={member} />
 
         <StaffTalentBlock member={member} />
 
@@ -597,19 +585,7 @@ function TeamStaffCard({
           Profil · {ARCHITECT_SPECIALTY_LABELS[member.architectSpecialty]}
         </p>
       ) : null}
-      <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
-        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
-          Compétence de base · niveau {member.level}
-        </p>
-        <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
-          {member.effects.map((effect) => (
-            <li key={effect} className="flex gap-2">
-              <span aria-hidden="true">◆</span>
-              <span>{effect}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <StaffEffectBlock member={member} />
       <StaffTalentBlock member={member} />
       <div className="mt-4 border-t border-[#315B3E]/10 pt-4">
         <p className="text-xs font-black text-[#183F37]">
@@ -726,18 +702,53 @@ function StaffNaturalizationPanel({
   ) : null;
 }
 
+function StaffEffectBlock({ member }: { member: TeamStaffMember }) {
+  const isResearchEngineer = member.role === "research_engineer";
+  const effects = isResearchEngineer
+    ? member.talents.map(
+        (talent) => `${talent.label} · ${talent.description}`,
+      )
+    : member.effects;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#F2F8F5] p-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#60756E]">
+        {isResearchEngineer
+          ? `Talents R&D actifs · ${member.talents.length}/3`
+          : `Compétence de base · niveau ${member.level}`}
+      </p>
+      {effects.length > 0 ? (
+        <ul className="mt-2 space-y-1.5 text-sm font-bold leading-5 text-[#176951]">
+          {effects.map((effect) => (
+            <li key={effect} className="flex gap-2">
+              <span aria-hidden="true">◆</span>
+              <span>{effect}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm font-bold leading-5 text-[#A12E2E]">
+          Aucun talent R&D actif. Ce membre doit être régularisé.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function StaffTalentBlock({ member }: { member: TeamStaffMember }) {
-  if (member.talents.length === 0 && !member.nationalityAffinity) return null;
+  const displayedTalents =
+    member.role === "research_engineer" ? [] : member.talents;
+  if (displayedTalents.length === 0 && !member.nationalityAffinity) return null;
 
   return (
     <div className="mt-3 space-y-3">
-      {member.talents.length > 0 ? (
+      {displayedTalents.length > 0 ? (
         <div className="rounded-2xl border border-[#E2A63B]/25 bg-[#FFF9E8] p-4">
           <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#8A6714]">
-            Compétences supplémentaires · {member.talents.length}/3
+            Compétences supplémentaires · {displayedTalents.length}/3
           </p>
           <div className="mt-2 space-y-3">
-            {member.talents.map((talent) => (
+            {displayedTalents.map((talent) => (
               <div key={talent.code}>
                 <p className="text-xs font-black text-[#5E4A18]">
                   {talent.label}

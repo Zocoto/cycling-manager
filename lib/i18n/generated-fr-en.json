@@ -1,4 +1,8 @@
 {
+  "aucun talent actif": "no active talent",
+  "Aucun talent R&D actif. Ce membre doit être régularisé.": "No active R&D talent. This staff member needs to be regularized.",
+  "Le coût exact dépend de la valeur de la pièce et de l’ingénieur. Les talents R&D acquis se cumulent. À ce niveau, la recherche dure de 4 à": "The exact cost depends on the value of the piece and the engineer. Acquired R&D talents stack. At this level, research takes from 4 to",
+  "points de réussite": "success points",
   "Ça fâche": "Angry",
   "Mauvais perdant": "Sore loser",
   "Pas convaincu": "Not convinced",
