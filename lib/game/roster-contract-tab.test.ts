@@ -23,6 +23,13 @@ describe("roster contract management tab", () => {
     expect(page).toContain("<TeamContractManagement");
   });
 
+  it("keeps contractual columns out of the sporting roster view", () => {
+    expect(page).not.toContain('sortKey="salary"');
+    expect(page).not.toContain('sortKey="contract"');
+    expect(page).not.toContain("rider.salary_per_season");
+    expect(page).not.toContain("rider.contract_end_season_name");
+  });
+
   it("shows the bulk decision and every contract state", () => {
     expect(component).toContain("Prolongation groupée");
     expect(component).toContain("Prolonger les ${overview.eligibleCount} contrats");

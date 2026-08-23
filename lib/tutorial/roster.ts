@@ -23,7 +23,7 @@ export const rosterTutorialDefinition = {
       mobileTargetId: "roster-mobile-overview",
       title: "Le poste de pilotage de votre effectif",
       content:
-        "Cette rubrique rassemble tous les coureurs actuellement sous contrat. Les vues « Statistiques & contrats » et « Planning de saison » répondent à deux questions complémentaires : de quelles qualités dispose votre équipe, et quand chaque coureur sera-t-il disponible ?",
+        "Cette rubrique rassemble tous vos coureurs dans trois vues complémentaires : « Effectif » pour comparer les qualités sportives, « Planning de saison » pour suivre leur disponibilité et « Contrats » pour gérer les échéances.",
       placement: "bottom",
       requirement: "team_created",
       highlightPadding: 8,
@@ -42,11 +42,11 @@ export const rosterTutorialDefinition = {
     {
       key: "roster-contracts",
       route: ROSTER_TUTORIAL_ROUTE,
-      targetId: "roster-rating-table",
-      mobileTargetId: "roster-mobile-list",
-      title: "Lisez le salaire et l’échéance ensemble",
+      targetId: "roster-view-tabs",
+      mobileTargetId: "roster-view-tabs",
+      title: "Centralisez le suivi dans l’onglet Contrats",
       content:
-        "Le salaire est affiché par semaine et par saison : il pèse sur le budget de l’équipe pendant toute la durée du contrat. L’échéance indique la dernière saison couverte.\n\nUn contrat garantit la présence du coureur jusqu’à son terme. Anticipez les fins de contrat : une prolongation sécurise le coureur pour la saison suivante, mais engage aussi le futur budget.",
+        "La vue Effectif reste centrée sur les notes, la forme et le potentiel. L’onglet « Contrats » regroupe les salaires, les échéances et les décisions de prolongation sans surcharger le tableau sportif.\n\nAnticipez les fins de contrat : une prolongation sécurise le coureur pour la saison suivante, mais engage aussi le futur budget.",
       placement: "top",
       highlightPadding: 6,
     },

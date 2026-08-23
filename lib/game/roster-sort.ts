@@ -18,8 +18,6 @@ export const ROSTER_SORT_KEYS = [
   "breakaway",
   "prologue",
   "average",
-  "salary",
-  "contract",
 ] as const;
 
 export type RosterSortKey =
@@ -51,7 +49,6 @@ const DESCENDING_BY_DEFAULT = new Set<RosterSortKey>([
   "breakaway",
   "prologue",
   "average",
-  "salary",
 ]);
 
 export function parseRosterSortKey(

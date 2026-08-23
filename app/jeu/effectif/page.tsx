@@ -8,14 +8,10 @@ import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-butt
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
 import { GameHeader } from "../../../components/game/game-header";
-import { AmateurTeamJersey } from "../../../components/game/amateur-team-jersey";
-import { SponsorJerseyPreview } from "../../../components/game/sponsor-jersey-preview";
-import { SponsorLogo } from "../../../components/game/sponsor-logo";
 import { RiderAvatar } from "../../../components/game/rider-avatar";
 import { RiderSeasonPlanning } from "../../../components/game/rider-season-planning";
 import { TeamContractManagement } from "@/components/game/team-contract-management";
 import { PotentialStars } from "../../../components/game/potential-stars";
-import { TeamDivisionBadge } from "../../../components/game/team-division-badge";
 import {
   createAmateurRiderJersey,
   createNationalChampionRiderJersey,
@@ -27,15 +23,11 @@ import {
 } from "../../../lib/rider-jersey";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getAuthenticatedUser } from "../../../lib/supabase/authenticated-user";
-import {
-  getTeamAmateurIdentityForAuthUser,
-  type TeamAmateurIdentity,
-} from "../../../services/team-amateur-identity";
+import { getTeamAmateurIdentityForAuthUser } from "../../../services/team-amateur-identity";
 import {
   getActiveTeamSponsorIdentityForAuthUser,
   type TeamSponsorIdentity,
 } from "../../../services/team-sponsor-identity";
-import { getCurrentTeamDivisionForAuthUser } from "../../../services/team-divisions";
 import {
   getRiderSportingProfile,
   type RiderRatingImportance,
@@ -53,7 +45,6 @@ import {
   type RosterSortKey,
   type RosterSortValue,
 } from "../../../lib/game/roster-sort";
-import { MAX_TEAM_ROSTER_SIZE } from "../../../lib/game/team-roster-capacity";
 import {
   getCurrentTeamHealthOverview,
   type RiderFormCamp,
@@ -72,7 +63,6 @@ import {
   ROSTER_TUTORIAL_KEY,
   ROSTER_TUTORIAL_ROUTE,
 } from "@/lib/tutorial/roster";
-import { resolveTeamNationality } from "@/lib/game/team-nationality";
 
 export const metadata: Metadata = {
   title: "Effectif",
@@ -112,10 +102,6 @@ type RiderRow = {
   recovery: number;
   breakaway: number;
   prologue: number;
-  salary_per_season: number | string;
-  contract_currency: string;
-  contract_end_season_id: string;
-  contract_end_season_name: string;
 };
 
 type RiderRosterHealth = {
@@ -287,7 +273,6 @@ export default async function TeamRosterPage({
     contractOverview,
     sponsorIdentityResult,
     teamAmateurIdentity,
-    teamDivision,
     healthOverview,
     rosterTutorialProgress,
   ] = await Promise.all([
@@ -321,10 +306,6 @@ export default async function TeamRosterPage({
         "Impossible de récupérer l’identité amateur de l’équipe :",
         error,
       );
-      return null;
-    }),
-    getCurrentTeamDivisionForAuthUser(user.id).catch((error: unknown) => {
-      console.error("Impossible de récupérer la division de l’équipe :", error);
       return null;
     }),
     getCurrentTeamHealthOverview(user.id).catch((error: unknown) => {
@@ -474,12 +455,6 @@ export default async function TeamRosterPage({
     teamAmateurIdentity?.amateurName ??
     teamSummary?.team_name ??
     "Votre équipe";
-  const teamNationality = resolveTeamNationality({
-    sponsorCountryCode: teamSponsorIdentity?.sponsor.countryCode,
-    amateurCountryCode: teamAmateurIdentity?.homeCountryCode,
-    amateurCountryName: teamAmateurIdentity?.homeCountryName,
-  });
-
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({
         colors: teamSponsorIdentity.sponsor.colors,
@@ -489,20 +464,6 @@ export default async function TeamRosterPage({
     : teamAmateurIdentity
       ? createAmateurRiderJersey(teamAmateurIdentity.jersey)
       : FREE_AGENT_RIDER_JERSEY;
-
-  const minimumAge =
-    riders.length > 0 ? Math.min(...riders.map((rider) => rider.age)) : 0;
-
-  const maximumAge =
-    riders.length > 0 ? Math.max(...riders.map((rider) => rider.age)) : 0;
-
-  const teamAverage =
-    riders.length > 0
-      ? Math.round(
-          riders.reduce((total, rider) => total + getRiderAverage(rider), 0) /
-            riders.length,
-        )
-      : 0;
 
   return (
     <main className="min-h-screen text-[#082A2A]">
@@ -525,8 +486,11 @@ export default async function TeamRosterPage({
         <div className="relative mx-auto max-w-[1500px] px-4 py-6 sm:px-8 sm:py-14">
           <BackToOfficeLink />
 
-          <header className="mt-5 flex flex-wrap items-end justify-between gap-4 sm:mt-7 sm:gap-6">
-            <div>
+          <header
+            data-tutorial-id="roster-overview"
+            className="mt-5 sm:mt-7"
+          >
+            <div data-tutorial-id="roster-mobile-overview">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
                 Gestion sportive
               </p>
@@ -542,30 +506,14 @@ export default async function TeamRosterPage({
               </div>
 
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[#48665F] sm:mt-4 sm:text-lg sm:leading-8">
-                Consultez les qualités, les contrats et les spécialités de vos
-                coureurs pour la saison actuelle.
+                Comparez les qualités, la forme et les spécialités de vos
+                coureurs pour composer votre équipe.
               </p>
             </div>
-
-            {teamSummary ? (
-              <TeamSeasonSummary
-                teamName={commercialTeamName}
-                seasonName={teamSummary.season_name}
-                seasonDayNumber={teamSummary.season_day_number}
-                sponsorIdentity={teamSponsorIdentity}
-                divisionCode={teamDivision?.code ?? null}
-              />
-            ) : null}
           </header>
 
           {teamSponsorIdentityError ? (
             <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
-          ) : null}
-
-          {teamSponsorIdentity ? (
-            <TeamCommercialIdentityBanner identity={teamSponsorIdentity} />
-          ) : teamAmateurIdentity?.isConfigured ? (
-            <TeamAmateurIdentityBanner identity={teamAmateurIdentity} />
           ) : null}
 
           {rosterResult.error ? <RosterErrorMessage /> : null}
@@ -582,59 +530,6 @@ export default async function TeamRosterPage({
               {getFirstSearchParam(rosterQuery.erreur)}
             </p>
           ) : null}
-
-          <section
-            className="mt-5 grid grid-cols-2 gap-2 sm:mt-10 sm:gap-4 xl:grid-cols-4"
-            data-tutorial-id="roster-overview"
-          >
-            <SummaryCard
-              label="Coureurs"
-              value={`${riders.length} / ${MAX_TEAM_ROSTER_SIZE}`}
-              detail="Sous contrat actif · maximum autorisé"
-            />
-
-            <SummaryCard
-              label="Âges"
-              value={
-                riders.length > 0
-                  ? `${minimumAge} – ${maximumAge} ans`
-                  : "Non disponible"
-              }
-              detail="Effectif initial équilibré"
-            />
-
-            <SummaryCard
-              label="Niveau moyen"
-              value={riders.length > 0 ? String(teamAverage) : "—"}
-              detail="Moyenne des 13 caractéristiques"
-            />
-
-            <SummaryCard
-              label="Nationalité"
-              value={
-                teamNationality ? (
-                  <Link
-                    href={`/jeu/nations/${teamNationality.countryCode.toLowerCase()}`}
-                    className="inline-flex items-center gap-3 transition hover:text-[#176951] hover:underline"
-                  >
-                    <span
-                      className={`fi fi-${teamNationality.countryCode.toLowerCase()} shrink-0 rounded-sm shadow-sm`}
-                      role="img"
-                      aria-label={`Drapeau ${teamNationality.countryName}`}
-                    />
-                    <span>{teamNationality.countryName}</span>
-                  </Link>
-                ) : (
-                  "Non disponible"
-                )
-              }
-              detail={
-                teamNationality?.source === "sponsor"
-                  ? "Pays du sponsor principal"
-                  : "Pays d’affiliation"
-              }
-            />
-          </section>
 
           {activeView === "planning" ? (
             <div className="mt-6" data-tutorial-id="roster-rating-table">
@@ -733,7 +628,7 @@ export default async function TeamRosterPage({
                   </div>
 
                   <div className="hidden max-h-[calc(100vh-6rem)] overflow-auto overscroll-contain [scrollbar-gutter:stable] xl:block">
-                    <table className="min-w-[1380px] w-full border-collapse">
+                    <table className="min-w-[1140px] w-full border-collapse">
                       <thead>
                         <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
                           <SortableTableHeader
@@ -808,27 +703,6 @@ export default async function TeamRosterPage({
                             currentDirection={currentSortDirection}
                           />
 
-                          <SortableTableHeader
-                            sortKey="salary"
-                            label="Salaire"
-                            fullLabel="salaire"
-                            align="right"
-                            className="min-w-32"
-                            linkClassName="px-3"
-                            currentSortKey={currentSortKey}
-                            currentDirection={currentSortDirection}
-                          />
-
-                          <SortableTableHeader
-                            sortKey="contract"
-                            label="Contrat"
-                            fullLabel="échéance du contrat"
-                            align="left"
-                            className="min-w-28"
-                            linkClassName="px-3"
-                            currentSortKey={currentSortKey}
-                            currentDirection={currentSortDirection}
-                          />
                         </tr>
                       </thead>
 
@@ -880,6 +754,7 @@ function RosterViewTabs({
   return (
     <nav
       aria-label="Vues de l’effectif"
+      data-tutorial-id="roster-view-tabs"
       className="mt-5 grid grid-cols-3 gap-1 rounded-xl border border-[#315B3E]/15 bg-white p-1 shadow-sm sm:mt-8 sm:gap-2 sm:rounded-2xl sm:p-2"
     >
       <Link
@@ -982,255 +857,6 @@ function ContractManagementUnavailable() {
         Réessayez dans quelques instants. Aucun contrat n’a été modifié.
       </p>
     </section>
-  );
-}
-
-function TeamSeasonSummary({
-  teamName,
-  seasonName,
-  seasonDayNumber,
-  sponsorIdentity,
-  divisionCode,
-}: {
-  teamName: string;
-  seasonName: string;
-  seasonDayNumber: number;
-  sponsorIdentity: TeamSponsorIdentity | null;
-  divisionCode: string | null;
-}) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border border-[#315B3E]/20 bg-white/85 px-5 py-4 shadow-[0_14px_34px_rgba(19,60,46,0.08)]">
-      {sponsorIdentity ? (
-        <div
-          className="hidden h-14 w-24 items-center justify-center overflow-hidden rounded-lg border bg-white px-2 py-1 sm:flex"
-          style={{
-            borderColor: `${sponsorIdentity.sponsor.colors.primary}35`,
-            backgroundColor: sponsorIdentity.sponsor.colors.background,
-          }}
-        >
-          <SponsorLogo
-            src={sponsorIdentity.sponsor.logoPath}
-            alt={`Logo de ${sponsorIdentity.sponsor.name}`}
-            sponsorName={sponsorIdentity.sponsor.name}
-            primaryColor={sponsorIdentity.sponsor.colors.primary}
-            backgroundColor={sponsorIdentity.sponsor.colors.background}
-            textColor={sponsorIdentity.sponsor.colors.text}
-          />
-        </div>
-      ) : null}
-
-      <div className="text-right">
-        <p className="font-black text-[#082A2A]">{teamName}</p>
-
-        <p className="mt-1 text-sm font-semibold text-[#60756E]">
-          {seasonName} · Jour {seasonDayNumber} / 28
-        </p>
-        <span className="mt-2 flex justify-end">
-          <TeamDivisionBadge
-            division={divisionCode}
-            isProfessional={Boolean(sponsorIdentity)}
-            compact
-          />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function TeamAmateurIdentityBanner({
-  identity,
-}: {
-  identity: TeamAmateurIdentity;
-}) {
-  return (
-    <article className="mt-8 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white shadow-[0_20px_50px_rgba(19,60,46,0.1)]">
-      <div className="grid items-center gap-6 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_180px]">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-            Identité fondatrice
-          </p>
-          <h2 className="mt-3 text-3xl font-black text-[#183F37]">
-            {identity.amateurName}
-          </h2>
-          <Link
-            href="/jeu/maillot"
-            className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#176951] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0F5944] hover:shadow-md"
-          >
-            Modifier le maillot
-            <span className="ml-2" aria-hidden="true">
-              →
-            </span>
-          </Link>
-        </div>
-        <div className="flex justify-center">
-          <AmateurTeamJersey
-            jersey={identity.jersey}
-            teamName={identity.amateurName}
-            className="h-44 w-40 drop-shadow-xl"
-          />
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function TeamCommercialIdentityBanner({
-  identity,
-}: {
-  identity: TeamSponsorIdentity;
-}) {
-  const sponsor = identity.sponsor;
-
-  return (
-    <article
-      className="relative mt-8 overflow-hidden rounded-2xl border bg-white shadow-[0_20px_50px_rgba(19,60,46,0.1)]"
-      style={{
-        borderColor: `${sponsor.colors.primary}45`,
-        background: `linear-gradient(145deg, ${sponsor.colors.background}, #FFFFFF 36%, #FFFFFF 78%, ${sponsor.colors.secondary}70)`,
-      }}
-    >
-      <div
-        aria-hidden="true"
-        className="h-2 w-full"
-        style={{
-          background: `linear-gradient(90deg, ${sponsor.colors.primary}, ${sponsor.colors.accent}, ${sponsor.colors.secondary})`,
-        }}
-      />
-
-      <div className="grid items-center gap-7 p-6 sm:p-7 lg:grid-cols-[220px_minmax(0,1fr)_180px]">
-        <div
-          className="flex min-h-28 items-center justify-center overflow-hidden rounded-xl border bg-white/90 px-5 py-4"
-          style={{
-            borderColor: `${sponsor.colors.primary}30`,
-          }}
-        >
-          <SponsorLogo
-            src={sponsor.logoPath}
-            alt={`Logo de ${sponsor.name}`}
-            sponsorName={sponsor.name}
-            primaryColor={sponsor.colors.primary}
-            backgroundColor={sponsor.colors.background}
-            textColor={sponsor.colors.text}
-          />
-        </div>
-
-        <div>
-          <p
-            className="text-xs font-extrabold uppercase tracking-[0.17em]"
-            style={{
-              color: sponsor.colors.primary,
-            }}
-          >
-            Identité de l’équipe
-          </p>
-
-          <h2
-            className="mt-3 text-3xl font-black tracking-[-0.035em]"
-            style={{
-              color: sponsor.colors.text,
-            }}
-          >
-            {identity.teamName}
-          </h2>
-
-          <p className="mt-2 text-sm font-bold text-[#60756E]">
-            Sponsor principal : {sponsor.name}
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <CommercialMetric
-              label="Budget annuel"
-              value={formatMoney(
-                identity.budgetPerSeason,
-                identity.currencyCode,
-              )}
-              primaryColor={sponsor.colors.primary}
-              backgroundColor={sponsor.colors.background}
-            />
-
-            <CommercialMetric
-              label="Durée"
-              value={formatDuration(identity.contractDurationSeasons)}
-              primaryColor={sponsor.colors.primary}
-              backgroundColor={sponsor.colors.background}
-            />
-
-            <CommercialMetric
-              label="Maillot"
-              value={identity.selectedJersey.name}
-              primaryColor={sponsor.colors.primary}
-              backgroundColor={sponsor.colors.background}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-center">
-          <SponsorJerseyPreview
-            sponsor={sponsor}
-            jersey={identity.selectedJersey}
-            className="h-44 w-40 drop-shadow-xl"
-          />
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function CommercialMetric({
-  label,
-  value,
-  primaryColor,
-  backgroundColor,
-}: {
-  label: string;
-  value: string;
-  primaryColor: string;
-  backgroundColor: string;
-}) {
-  return (
-    <div
-      className="min-w-36 rounded-xl border px-4 py-3"
-      style={{
-        borderColor: `${primaryColor}25`,
-        backgroundColor,
-      }}
-    >
-      <p
-        className="text-[0.65rem] font-extrabold uppercase tracking-[0.13em]"
-        style={{
-          color: primaryColor,
-        }}
-      >
-        {label}
-      </p>
-
-      <p className="mt-1 text-sm font-black text-[#082A2A]">{value}</p>
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: ReactNode;
-  detail: string;
-}) {
-  return (
-    <article
-      data-tutorial-id={label === "Coureurs" ? "roster-mobile-overview" : undefined}
-      className="min-w-0 rounded-xl border border-[#315B3E]/20 bg-white/90 p-3 shadow-[0_14px_34px_rgba(19,60,46,0.08)] sm:rounded-2xl sm:p-5"
-    >
-      <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#278B70] sm:text-xs sm:tracking-[0.16em]">
-        {label}
-      </p>
-
-      <p className="mt-1.5 truncate text-base font-black text-[#082A2A] sm:mt-3 sm:text-2xl">{value}</p>
-
-      <p className="mt-2 hidden text-sm font-semibold text-[#60756E] sm:block">{detail}</p>
-    </article>
   );
 }
 
@@ -1387,8 +1013,6 @@ function MobileRosterSortMenu({
       fullLabel: column.fullLabel,
     })),
     { key: "average", label: "Moyenne", fullLabel: "moyenne" },
-    { key: "salary", label: "Salaire", fullLabel: "salaire" },
-    { key: "contract", label: "Contrat", fullLabel: "contrat" },
   ];
   const activeOption = sortOptions.find(
     (option) => option.key === currentSortKey,
@@ -1608,28 +1232,6 @@ function RiderMobileCard({
         </dl>
       </section>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#315B3E]/10 pt-3">
-        <div>
-          <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#82958F]">
-            Salaire
-          </p>
-          <p className="mt-1 text-xs font-black text-[#183F37]">
-            {formatMoney(
-              Number(rider.salary_per_season) / 4,
-              rider.contract_currency,
-            )}{" "}
-            / sem.
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#82958F]">
-            Contrat
-          </p>
-          <p className="mt-1 text-xs font-black text-[#183F37]">
-            {rider.contract_end_season_name}
-          </p>
-        </div>
-      </div>
     </article>
   );
 }
@@ -1789,29 +1391,6 @@ function RiderTableRow({
         <span className="font-black text-[#082A2A]">{riderAverage}</span>
       </td>
 
-      <td className="px-3 py-4 text-right font-bold text-[#48665F]">
-        <p>
-          {formatMoney(
-            Number(rider.salary_per_season) / 4,
-            rider.contract_currency,
-          )}{" "}
-          / sem.
-        </p>
-        <p className="mt-1 text-[10px] font-semibold text-[#82958F]">
-          {formatMoney(rider.salary_per_season, rider.contract_currency)} /
-          saison
-        </p>
-      </td>
-
-      <td className="px-3 py-4">
-        <p className="font-bold text-[#082A2A]">
-          {rider.contract_end_season_name}
-        </p>
-
-        <p className="mt-1 text-xs font-semibold text-[#60756E]">
-          Expire en fin de saison
-        </p>
-      </td>
     </tr>
   );
 }
@@ -2080,13 +1659,6 @@ function getRosterSortValue(
       return form;
     case "average":
       return getRiderAverage(rider);
-    case "salary": {
-      const salary = Number(rider.salary_per_season);
-
-      return Number.isFinite(salary) ? salary : null;
-    }
-    case "contract":
-      return rider.contract_end_season_name;
   }
 }
 
@@ -2105,28 +1677,6 @@ function getErrorMessage(error: unknown): string {
   }
 
   return "Une erreur inattendue est survenue.";
-}
-
-function formatMoney(value: number | string, currency: string): string {
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) {
-    return "Non disponible";
-  }
-
-  try {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(numericValue);
-  } catch {
-    return `${numericValue.toLocaleString("fr-FR")} ${currency}`;
-  }
-}
-
-function formatDuration(value: number): string {
-  return `${value} saison${value === 1 ? "" : "s"}`;
 }
 
 function formatRiderCount(value: number): string {

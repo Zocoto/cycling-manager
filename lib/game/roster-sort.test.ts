@@ -13,6 +13,8 @@ describe("roster sorting", () => {
     expect(parseRosterSortKey("sprint")).toBe("sprint");
     expect(parseRosterSortKey("mountain")).toBe("mountain");
     expect(parseRosterSortKey("form")).toBe("form");
+    expect(parseRosterSortKey("salary")).toBeNull();
+    expect(parseRosterSortKey("contract")).toBeNull();
     expect(parseRosterSortKey("unknown")).toBeNull();
   });
 
