@@ -13,9 +13,11 @@ import { FREE_AGENT_RIDER_JERSEY } from "@/lib/rider-jersey";
 export function TeamRiderGlossary({
   riders,
   currentGameYear,
+  className = "mt-7",
 }: {
   riders: readonly TeamRiderMemoryEntry[];
   currentGameYear: number;
+  className?: string;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -55,7 +57,7 @@ export function TeamRiderGlossary({
   };
 
   return (
-    <section className="mt-7">
+    <section className={className}>
       <button
         ref={triggerRef}
         type="button"

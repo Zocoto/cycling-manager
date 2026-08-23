@@ -39,9 +39,10 @@ describe("roster contract management tab", () => {
     expect(page).not.toContain("get_current_team_dashboard_summary");
     expect(enrichmentBlock).toContain("await Promise.all([");
     expect(enrichmentBlock.match(/\bawait\b/g)).toHaveLength(1);
-    expect(enrichmentBlock).toContain("getActiveNationalChampionshipTitlesForRiders");
-    expect(enrichmentBlock).toContain("getActiveContinentalChampionshipTitlesForRiders");
-    expect(enrichmentBlock).toContain("getActiveWorldChampionshipTitlesForRiders");
+    expect(enrichmentBlock).toContain("getActiveChampionshipTitlesForRiders");
+    expect(enrichmentBlock).not.toContain(
+      "getActiveNationalChampionshipTitlesForRiders",
+    );
     expect(enrichmentBlock).toContain("getRiderEquipmentEffectsByRiderId");
   });
 

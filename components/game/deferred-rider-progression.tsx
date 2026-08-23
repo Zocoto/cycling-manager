@@ -56,7 +56,7 @@ export function DeferredRiderProgression({
     return (
       <div
         id={panelId}
-        className="min-w-0 max-w-full overflow-x-clip"
+        className="mt-4 min-w-0 max-w-full overflow-x-clip sm:mt-5"
         aria-live="polite"
       >
         {history ? (
@@ -73,17 +73,14 @@ export function DeferredRiderProgression({
   }
 
   return (
-    <section className="mt-7 min-w-0 max-w-full overflow-x-clip border-t border-[#315B3E]/12 pt-6">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+    <section className="mt-4 min-w-0 max-w-full overflow-x-clip rounded-2xl border border-[#315B3E]/15 bg-white px-4 py-3 shadow-[0_12px_34px_rgba(19,60,46,0.07)] sm:mt-5 sm:px-6 sm:py-4">
+      <div className="flex min-w-0 items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-            Évolution
-          </p>
-          <h3 className="mt-1 text-lg font-black text-[#183F37] sm:text-xl">
-            Progression cette saison
+          <h3 className="text-base font-black text-[#183F37] sm:text-lg">
+            Progression
           </h3>
-          <p className="mt-2 max-w-xl text-xs font-semibold leading-5 text-[#60756E]">
-            Le graphe est chargé uniquement lorsque vous souhaitez le consulter.
+          <p className="mt-0.5 max-w-xl text-xs font-semibold leading-5 text-[#60756E]">
+            Évolution des caractéristiques pendant la saison
           </p>
         </div>
         <button
@@ -92,10 +89,10 @@ export function DeferredRiderProgression({
           aria-expanded={false}
           disabled={isLoading}
           onClick={openProgression}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#176951] px-4 py-2.5 text-xs font-black text-white transition hover:bg-[#0F5743] disabled:cursor-wait disabled:opacity-65 sm:w-auto"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#E8F7F1] px-3 py-2 text-[10px] font-black text-[#176951] transition hover:bg-[#D7EEE8] disabled:cursor-wait disabled:opacity-65 sm:px-4 sm:text-xs"
         >
-          {history ? "Réafficher le graphe" : "Afficher le graphe"}
-          <span aria-hidden="true">↘</span>
+          {history ? "Réafficher" : "Afficher le graphe"}
+          <span aria-hidden="true">⌄</span>
         </button>
       </div>
       {error ? (
@@ -112,14 +109,11 @@ export function DeferredRiderProgression({
 
 function ProgressionLoading() {
   return (
-    <section className="mt-7 min-w-0 max-w-full overflow-hidden border-t border-[#315B3E]/12 pt-6">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-        Évolution
-      </p>
-      <p className="mt-1 text-lg font-black text-[#183F37] sm:text-xl">
+    <section className="mt-4 min-w-0 max-w-full overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-[0_12px_34px_rgba(19,60,46,0.07)] sm:mt-5 sm:p-6">
+      <p className="text-base font-black text-[#183F37] sm:text-lg">
         Chargement de la progression…
       </p>
-      <div className="mt-5 h-32 animate-pulse rounded-2xl bg-[#E7F0EB] sm:h-48" />
+      <div className="mt-4 h-32 animate-pulse rounded-2xl bg-[#E7F0EB] sm:h-48" />
     </section>
   );
 }

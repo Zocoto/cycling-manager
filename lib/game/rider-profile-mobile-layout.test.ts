@@ -55,7 +55,7 @@ describe("mise en page mobile de la fiche coureur", () => {
     );
   });
 
-  it("place le contrat dans la colonne latérale et libère toute la largeur pour l’historique", () => {
+  it("place le contrat dans la colonne latérale et replie l’historique sur toute la largeur", () => {
     expect(riderPage).toContain(
       'className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"',
     );
@@ -65,9 +65,8 @@ describe("mise en page mobile de la fiche coureur", () => {
     expect(riderPage).toMatch(
       /data-tutorial-id="rider-profile-contract"\s+className="min-w-0 space-y-5"/,
     );
-    expect(riderPage).toMatch(
-      /data-tutorial-id="rider-profile-history"\s+className="mt-6 min-w-0"/,
-    );
+    expect(riderPage).toContain('title="Palmarès et historique"');
+    expect(riderPage).toContain('tutorialId="rider-profile-history"');
     expect(riderPage).not.toContain(
       "lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]",
     );

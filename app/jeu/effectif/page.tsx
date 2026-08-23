@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { CollapsibleMobileRiderRatings } from "@/components/game/collapsible-mobile-rider-ratings";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
@@ -52,11 +53,7 @@ import {
 } from "../../../services/team-health";
 import { getCurrentTeamRiderSeasonPlanning } from "../../../services/rider-season-planning";
 import { getTeamContractManagementOverview } from "@/services/team-contract-management";
-import {
-  getActiveNationalChampionshipTitlesForRiders,
-  getActiveWorldChampionshipTitlesForRiders,
-} from "@/services/rider-national-championship-titles";
-import { getActiveContinentalChampionshipTitlesForRiders } from "@/services/rider-continental-championship-titles";
+import { getActiveChampionshipTitlesForRiders } from "@/services/rider-championship-titles";
 import { getRiderEquipmentEffectsByRiderId } from "@/services/rider-equipment-effects";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import {
@@ -337,42 +334,21 @@ export default async function TeamRosterPage({
 
   const riders = (rosterResult.data ?? []) as RiderRow[];
   const riderIds = riders.map((rider) => rider.rider_id);
-  const [
-    activeNationalTitlesByRiderId,
-    activeContinentalTitlesByRiderId,
-    activeWorldTitlesByRiderId,
-    riderEquipmentEffectsByRiderId,
-  ] = await Promise.all([
-    getActiveNationalChampionshipTitlesForRiders(
-      supabase,
-      riderIds,
-    ).catch((error: unknown) => {
-      console.error(
-        "Impossible de récupérer les maillots de champions nationaux de l’effectif :",
-        error,
-      );
-      return new Map();
-    }),
-    getActiveContinentalChampionshipTitlesForRiders(
-      supabase,
-      riderIds,
-    ).catch((error: unknown) => {
-      console.error(
-        "Impossible de recuperer les maillots de champions continentaux de l'effectif :",
-        error,
-      );
-      return new Map();
-    }),
-    getActiveWorldChampionshipTitlesForRiders(
-      supabase,
-      riderIds,
-    ).catch((error: unknown) => {
-      console.error(
-        "Impossible de recuperer les maillots de champions du monde de l''effectif :",
-        error,
-      );
-      return new Map();
-    }),
+  const [activeChampionshipTitles, riderEquipmentEffectsByRiderId] =
+    await Promise.all([
+      getActiveChampionshipTitlesForRiders(supabase, riderIds).catch(
+        (error: unknown) => {
+          console.error(
+            "Impossible de récupérer les maillots de champions de l’effectif :",
+            error,
+          );
+          return {
+            national: new Map(),
+            continental: new Map(),
+            world: new Map(),
+          };
+        },
+      ),
     getRiderEquipmentEffectsByRiderId(riderIds).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer les bonus d’équipement de l’effectif :",
@@ -380,7 +356,11 @@ export default async function TeamRosterPage({
       );
       return new Map();
     }),
-  ]);
+    ]);
+  const activeNationalTitlesByRiderId = activeChampionshipTitles.national;
+  const activeContinentalTitlesByRiderId =
+    activeChampionshipTitles.continental;
+  const activeWorldTitlesByRiderId = activeChampionshipTitles.world;
   const equipmentRatingBonusesByRiderId = new Map(
     [...riderEquipmentEffectsByRiderId].map(([riderId, effects]) => [
       riderId,
@@ -459,34 +439,39 @@ export default async function TeamRosterPage({
       />
 
       <section className="relative overflow-hidden">
-        <div className="relative mx-auto max-w-[1500px] px-4 py-6 sm:px-8 sm:py-14">
-          <BackToOfficeLink />
+        <div className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-8 sm:py-6">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <BackToOfficeLink />
 
-          <header
-            data-tutorial-id="roster-overview"
-            className="mt-5 sm:mt-7"
-          >
-            <div data-tutorial-id="roster-mobile-overview">
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#278B70]">
-                Gestion sportive
-              </p>
-
-              <div className="mt-2 flex items-center gap-3 sm:mt-4">
-                <h1 className="text-3xl font-black tracking-[-0.04em] sm:text-5xl">
-                  Effectif
-                </h1>
-                <TutorialLaunchButton
-                  tutorialKey={ROSTER_TUTORIAL_KEY}
-                  iconOnly
-                />
+            <header
+              data-tutorial-id="roster-overview"
+              className="min-w-0 flex-1"
+            >
+              <div
+                data-tutorial-id="roster-mobile-overview"
+                className="flex min-w-0 items-center gap-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#278B70] sm:text-xs">
+                    Gestion sportive
+                  </p>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <h1 className="text-2xl font-black tracking-[-0.04em] sm:text-3xl">
+                      Effectif
+                    </h1>
+                    <TutorialLaunchButton
+                      tutorialKey={ROSTER_TUTORIAL_KEY}
+                      iconOnly
+                    />
+                  </div>
+                </div>
+                <p className="hidden max-w-xl text-sm font-semibold leading-6 text-[#48665F] lg:block">
+                  Comparez les qualités, la forme et les spécialités de vos
+                  coureurs pour composer votre équipe.
+                </p>
               </div>
-
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#48665F] sm:mt-4 sm:text-lg sm:leading-8">
-                Comparez les qualités, la forme et les spécialités de vos
-                coureurs pour composer votre équipe.
-              </p>
-            </div>
-          </header>
+            </header>
+          </div>
 
           {teamSponsorIdentityError ? (
             <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
@@ -533,7 +518,7 @@ export default async function TeamRosterPage({
             </div>
           ) : (
             <section
-              className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
+              className="mt-4 overflow-hidden rounded-2xl border border-[#315B3E]/20 bg-white/95 shadow-[0_22px_55px_rgba(19,60,46,0.12)]"
               data-tutorial-id="roster-rating-table"
               data-tutorial-route={
                 sortedRiders[0]
@@ -551,24 +536,25 @@ export default async function TeamRosterPage({
                 />
               ) : null}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/15 bg-[#0B302B] px-4 py-3 text-[#FFFDF4] sm:gap-4 sm:px-7 sm:py-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/15 bg-[#0B302B] px-4 py-3 text-[#FFFDF4] sm:px-6">
                 <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#7CCF9C]">
                     Équipe première
                   </p>
 
-                  <h2 className="mt-1 text-lg font-black sm:mt-2 sm:text-2xl">
+                  <h2 className="mt-1 text-base font-black sm:text-xl">
                     {commercialTeamName}
                   </h2>
-
-                  <p className="mt-1 text-sm font-semibold text-[#BFD1C6]">
-                    {formatRiderCount(riders.length)}
-                  </p>
                 </div>
 
-                <span className="hidden sm:block">
-                  <RatingLegend />
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-[#BFD1C6]">
+                    {formatRiderCount(riders.length)}
+                  </span>
+                  <span className="hidden lg:block">
+                    <RatingLegend />
+                  </span>
+                </div>
               </div>
 
               {riders.length > 0 ? (
@@ -603,7 +589,7 @@ export default async function TeamRosterPage({
                     </div>
                   </div>
 
-                  <div className="hidden max-h-[calc(100vh-6rem)] overflow-auto overscroll-contain [scrollbar-gutter:stable] xl:block">
+                  <div className="hidden h-[calc(100dvh-20rem)] min-h-[30rem] max-h-[52rem] overflow-auto overscroll-contain [scrollbar-gutter:stable] xl:block">
                     <table className="min-w-[1140px] w-full border-collapse">
                       <thead>
                         <tr className="border-b border-[#315B3E]/15 bg-[#F3F8F6]">
@@ -731,12 +717,14 @@ function RosterViewTabs({
     <nav
       aria-label="Vues de l’effectif"
       data-tutorial-id="roster-view-tabs"
-      className="mt-5 grid grid-cols-3 gap-1 rounded-xl border border-[#315B3E]/15 bg-white p-1 shadow-sm sm:mt-8 sm:gap-2 sm:rounded-2xl sm:p-2"
+      className="mt-4 grid grid-cols-3 gap-1 rounded-xl border border-[#315B3E]/15 bg-white p-1 shadow-sm sm:gap-2"
     >
       <Link
         href="/jeu/effectif?vue=statistiques"
+        prefetchOnIntent
+        title="Notes, profils, forme et potentiel"
         aria-current={activeView === "statistiques" ? "page" : undefined}
-        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:rounded-xl sm:px-5 sm:py-4 sm:text-left ${
+        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:px-4 ${
           activeView === "statistiques"
             ? "bg-[#0B302B] text-white shadow-md"
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
@@ -750,7 +738,7 @@ function RosterViewTabs({
           Effectif
         </strong>
         <span
-          className={`mt-1 hidden text-xs font-semibold sm:block ${
+          className={`sr-only ${
             activeView === "statistiques" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
@@ -759,8 +747,10 @@ function RosterViewTabs({
       </Link>
       <Link
         href="/jeu/effectif?vue=planning"
+        prefetchOnIntent
+        title="Courses, stages, reconnaissances et blessures"
         aria-current={activeView === "planning" ? "page" : undefined}
-        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:rounded-xl sm:px-5 sm:py-4 sm:text-left ${
+        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:px-4 ${
           activeView === "planning"
             ? "bg-[#0B302B] text-white shadow-md"
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
@@ -775,7 +765,7 @@ function RosterViewTabs({
           <span className="hidden sm:inline">Planning de saison</span>
         </strong>
         <span
-          className={`mt-1 hidden text-xs font-semibold sm:block ${
+          className={`sr-only ${
             activeView === "planning" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
@@ -784,8 +774,10 @@ function RosterViewTabs({
       </Link>
       <Link
         href="/jeu/effectif?vue=contrats"
+        prefetchOnIntent
+        title="Échéances et prolongation groupée"
         aria-current={activeView === "contrats" ? "page" : undefined}
-        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:rounded-xl sm:px-5 sm:py-4 sm:text-left ${
+        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:px-4 ${
           activeView === "contrats"
             ? "bg-[#0B302B] text-white shadow-md"
             : "text-[#315B3E] hover:bg-[#F3F8F6]"
@@ -799,7 +791,7 @@ function RosterViewTabs({
           Contrats
         </strong>
         <span
-          className={`mt-1 hidden text-xs font-semibold sm:block ${
+          className={`sr-only ${
             activeView === "contrats" ? "text-[#BFD1C6]" : "text-[#60756E]"
           }`}
         >
@@ -940,6 +932,7 @@ function SortableTableHeader({
             direction: nextDirection,
           },
         }}
+        prefetchOnIntent
         scroll={false}
         title={`Trier par ${fullLabel} (${nextDirectionLabel})`}
         aria-label={`Trier par ${fullLabel}, ordre ${nextDirectionLabel}`}
@@ -1028,6 +1021,7 @@ function MobileRosterSortMenu({
                   direction: nextDirection,
                 },
               }}
+              prefetchOnIntent
               scroll={false}
               aria-current={isActive ? "page" : undefined}
               aria-label={`Trier par ${option.fullLabel}`}
@@ -1074,6 +1068,7 @@ function RiderMobileCard({
       <div className="flex items-start gap-3">
         <Link
           href={`/jeu/coureurs/${rider.rider_id}`}
+          prefetchOnIntent
           target="_blank"
           rel="noreferrer"
           className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
@@ -1165,48 +1160,17 @@ function RiderMobileCard({
         />
       </div>
 
-      <section
-        aria-label={`Statistiques de ${riderName}`}
-        className="mt-4 rounded-xl border border-[#315B3E]/12 bg-[#F7FAF9] p-3"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#48665F]">
-            Statistiques
-          </h3>
-          <span className="text-[10px] font-bold text-[#82958F]">
-            13 notes du coureur
-          </span>
-        </div>
-        <dl className="mt-3 grid grid-cols-4 gap-2 min-[420px]:grid-cols-5 sm:grid-cols-7">
-          {ratingColumns.map((column) => (
-            <div
-              key={column.key}
-              data-rating-importance={column.importance}
-              className="text-center"
-            >
-              <dt
-                title={column.fullLabel}
-                className={[
-                  "text-[9px] uppercase tracking-wide",
-                  column.importance === "primary"
-                    ? "font-black text-[#48665F]"
-                    : "font-bold text-[#91A098]",
-                ].join(" ")}
-              >
-                {column.label}
-              </dt>
-              <dd className="mt-1">
-                <RatingBadge
-                  value={rider[column.key]}
-                  label={column.fullLabel}
-                  importance={column.importance}
-                  bonus={equipmentBonuses[toRiderRatingKey(column.key)]}
-                />
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      <CollapsibleMobileRiderRatings
+        riderName={riderName}
+        ratings={ratingColumns.map((column) => ({
+          key: column.key,
+          label: column.label,
+          fullLabel: column.fullLabel,
+          importance: column.importance,
+          value: rider[column.key],
+          bonus: equipmentBonuses[toRiderRatingKey(column.key)],
+        }))}
+      />
 
     </article>
   );
@@ -1252,10 +1216,11 @@ function RiderTableRow({
     <tr className="border-b border-[#315B3E]/10 transition last:border-b-0 hover:bg-[#F6FAF8]">
       <th
         scope="row"
-        className="sticky left-0 z-10 bg-white px-4 py-4 text-left shadow-[8px_0_16px_-14px_rgba(8,42,42,0.45)]"
+        className="sticky left-0 z-10 bg-white px-4 py-3 text-left shadow-[8px_0_16px_-14px_rgba(8,42,42,0.45)]"
       >
         <Link
           href={`/jeu/coureurs/${rider.rider_id}`}
+          prefetchOnIntent
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
@@ -1318,17 +1283,17 @@ function RiderTableRow({
         </Link>
       </th>
 
-      <td className="px-2 py-4 text-center font-black text-[#082A2A]">
+      <td className="px-2 py-3 text-center font-black text-[#082A2A]">
         {rider.age}
       </td>
 
-      <td className="px-2 py-4">
+      <td className="px-2 py-3">
         <span className="inline-flex max-w-28 rounded-full bg-[#D7EEE8] px-2.5 py-1.5 text-xs font-extrabold leading-4 text-[#176951]">
           {riderProfile}
         </span>
       </td>
 
-      <td className="px-2 py-4 text-center">
+      <td className="px-2 py-3 text-center">
         <PotentialStars
           potentialSteps={rider.potential_steps}
           compact
@@ -1336,7 +1301,7 @@ function RiderTableRow({
         />
       </td>
 
-      <td className="px-2 py-4 text-center">
+      <td className="px-2 py-3 text-center">
         <RiderFormBadge value={health?.form ?? 75} />
       </td>
 
@@ -1349,8 +1314,8 @@ function RiderTableRow({
             data-rating-importance={column.importance}
             className={
               column.importance === "primary"
-                ? "px-1 py-4 text-center"
-                : "bg-[#FAFBFA] px-1 py-4 text-center"
+                ? "px-1 py-3 text-center"
+                : "bg-[#FAFBFA] px-1 py-3 text-center"
             }
           >
             <RatingBadge
@@ -1363,7 +1328,7 @@ function RiderTableRow({
         );
       })}
 
-      <td className="px-2 py-4 text-center">
+      <td className="px-2 py-3 text-center">
         <span className="font-black text-[#082A2A]">{riderAverage}</span>
       </td>
 

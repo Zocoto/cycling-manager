@@ -419,11 +419,12 @@ export async function getPublicRiderProfile({
     return null;
   }
 
-  const archivedProfile = await getArchivedRiderProfile(riderId);
-  if (archivedProfile) return archivedProfile;
-
   const supabase = createSupabaseAdminClient();
-  await settleCurrentRiderState();
+  const [archivedProfile] = await Promise.all([
+    getArchivedRiderProfile(riderId),
+    settleCurrentRiderState(),
+  ]);
+  if (archivedProfile) return archivedProfile;
 
   const { data: rider, error: riderError } = await supabase
     .from("riders")
@@ -575,6 +576,30 @@ export async function getPublicRiderProfile({
     )[0] ??
     null;
 
+  const conditionPromise = getCurrentCondition({
+    supabase,
+    riderId: rider.id,
+    activeSeason,
+  });
+  const canManagePromise = currentContract
+    ? viewerManagesTeam({
+        supabase,
+        viewerAuthUserId,
+        teamId: currentContract.team_id,
+      })
+    : Promise.resolve(false);
+  const juniorDevelopmentHistoryPromise = getJuniorDevelopmentHistory({
+    supabase,
+    riderId: rider.id,
+    seasons,
+  });
+  const partnerEffectByItemIdPromise = getActivePartnerEffectByItemId({
+    supabase,
+    currentContract,
+    activeSeason,
+    seasons,
+  });
+
   const teamIds = [...new Set(contracts.map((contract) => contract.team_id))];
   const equipmentItemIds = [
     ...new Set(
@@ -665,8 +690,7 @@ export async function getPublicRiderProfile({
   const teamSeasons = teamSeasonsResult.data ?? [];
   const performanceRosters = performanceRostersResult.data ?? [];
   const performanceRosterIds = performanceRosters.map((roster) => roster.id);
-  const [performanceResultsResult, performanceSecondaryResult] =
-    await Promise.all([
+  const performanceResultsPromise = Promise.all([
       performanceEditionIds.length > 0 && performanceRosterIds.length > 0
         ? supabase
             .from("race_results")
@@ -692,6 +716,38 @@ export async function getPublicRiderProfile({
             error: null,
           }),
     ]);
+  const divisionIds = [
+    ...new Set(
+      teamSeasons
+        .map((teamSeason) => teamSeason.division_id)
+        .filter((divisionId): divisionId is string => Boolean(divisionId)),
+    ),
+  ];
+  const divisionsPromise = divisionIds.length
+    ? supabase
+        .from("divisions")
+        .select("id, code")
+        .in("id", divisionIds)
+        .returns<Array<{ id: string; code: string }>>()
+    : Promise.resolve({
+        data: [] as Array<{ id: string; code: string }>,
+        error: null,
+      });
+  const [
+    [performanceResultsResult, performanceSecondaryResult],
+    divisionsResult,
+    condition,
+    canManage,
+    juniorDevelopmentHistory,
+    partnerEffectByItemId,
+  ] = await Promise.all([
+    performanceResultsPromise,
+    divisionsPromise,
+    conditionPromise,
+    canManagePromise,
+    juniorDevelopmentHistoryPromise,
+    partnerEffectByItemIdPromise,
+  ]);
   assertQuery(
     performanceResultsResult.error,
     "les classements des performances notables",
@@ -700,20 +756,7 @@ export async function getPublicRiderProfile({
     performanceSecondaryResult.error,
     "les maillots distinctifs des performances notables",
   );
-  const divisionIds = [
-    ...new Set(
-      teamSeasons
-        .map((teamSeason) => teamSeason.division_id)
-        .filter((divisionId): divisionId is string => Boolean(divisionId)),
-    ),
-  ];
-  const { data: divisions, error: divisionsError } = divisionIds.length
-    ? await supabase
-        .from("divisions")
-        .select("id, code")
-        .in("id", divisionIds)
-        .returns<Array<{ id: string; code: string }>>()
-    : { data: [] as Array<{ id: string; code: string }>, error: null };
+  const { data: divisions, error: divisionsError } = divisionsResult;
   assertQuery(divisionsError, "les divisions des équipes");
   const divisionCodeById = new Map(
     (divisions ?? []).map((division) => [division.id, division.code]),
@@ -750,20 +793,6 @@ export async function getPublicRiderProfile({
       })()
     : null;
 
-  const [condition, canManage] = await Promise.all([
-    getCurrentCondition({
-      supabase,
-      riderId: rider.id,
-      activeSeason,
-    }),
-    currentContract
-      ? viewerManagesTeam({
-          supabase,
-          viewerAuthUserId,
-          teamId: currentContract.team_id,
-        })
-      : Promise.resolve(false),
-  ]);
   const exactRatings = currentRating ? toRatings(currentRating) : null;
   const isTransferTarget =
     rider.status === "free_agent" || Boolean(marketListingResult.data);
@@ -1006,11 +1035,6 @@ export async function getPublicRiderProfile({
         (right.joinedDayNumber ?? 1) - (left.joinedDayNumber ?? 1),
     );
 
-  const juniorDevelopmentHistory = await getJuniorDevelopmentHistory({
-    supabase,
-    riderId: rider.id,
-    seasons,
-  });
   const history = [...professionalHistory, ...juniorDevelopmentHistory].sort(
     (left, right) =>
       right.gameYear - left.gameYear ||
@@ -1025,42 +1049,6 @@ export async function getPublicRiderProfile({
     (equipmentItemsResult.data ?? []).map((item) => [item.id, item]),
   );
   const equipment: PublicRiderProfile["equipment"] = {};
-  const partnerEffectByItemId = new Map<string, unknown>();
-
-  if (currentContract && activeSeason) {
-    const { data: partnerContract, error: partnerContractError } =
-      await supabase
-        .from("equipment_partner_contracts")
-        .select("id, start_season_id, end_season_id")
-        .eq("team_id", currentContract.team_id)
-        .eq("status", "active")
-        .maybeSingle<EquipmentPartnerContractRow>();
-    assertQuery(partnerContractError, "le contrat équipementier du coureur");
-
-    const contractCoversActiveSeason =
-      partnerContract &&
-      activeSeason.game_year >=
-        getSeasonYear(seasons, partnerContract.start_season_id) &&
-      activeSeason.game_year <=
-        getSeasonYear(seasons, partnerContract.end_season_id);
-
-    if (partnerContract && contractCoversActiveSeason) {
-      const { data: partnerEffects, error: partnerEffectsError } =
-        await supabase
-          .from("equipment_partner_item_effects")
-          .select("equipment_item_id, effect_payload")
-          .eq("contract_id", partnerContract.id)
-          .returns<EquipmentPartnerEffectRow[]>();
-      assertQuery(partnerEffectsError, "les effets R&D du coureur");
-
-      for (const effect of partnerEffects ?? []) {
-        partnerEffectByItemId.set(
-          effect.equipment_item_id,
-          effect.effect_payload,
-        );
-      }
-    }
-  }
 
   for (const assignment of equipmentAssignments) {
     const item = equipmentItems.get(assignment.equipment_item_id);
@@ -1217,6 +1205,51 @@ export async function getPublicRiderProfile({
     canManage,
     archive: null,
   };
+}
+
+async function getActivePartnerEffectByItemId({
+  supabase,
+  currentContract,
+  activeSeason,
+  seasons,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  currentContract: ContractRow | null;
+  activeSeason: SeasonRow | null;
+  seasons: SeasonRow[];
+}): Promise<Map<string, unknown>> {
+  const effectsByItemId = new Map<string, unknown>();
+  if (!currentContract || !activeSeason) return effectsByItemId;
+
+  const { data: partnerContract, error: partnerContractError } = await supabase
+    .from("equipment_partner_contracts")
+    .select("id, start_season_id, end_season_id")
+    .eq("team_id", currentContract.team_id)
+    .eq("status", "active")
+    .maybeSingle<EquipmentPartnerContractRow>();
+  assertQuery(partnerContractError, "le contrat équipementier du coureur");
+
+  const contractCoversActiveSeason =
+    partnerContract &&
+    activeSeason.game_year >=
+      getSeasonYear(seasons, partnerContract.start_season_id) &&
+    activeSeason.game_year <=
+      getSeasonYear(seasons, partnerContract.end_season_id);
+
+  if (!partnerContract || !contractCoversActiveSeason) return effectsByItemId;
+
+  const { data: partnerEffects, error: partnerEffectsError } = await supabase
+    .from("equipment_partner_item_effects")
+    .select("equipment_item_id, effect_payload")
+    .eq("contract_id", partnerContract.id)
+    .returns<EquipmentPartnerEffectRow[]>();
+  assertQuery(partnerEffectsError, "les effets R&D du coureur");
+
+  for (const effect of partnerEffects ?? []) {
+    effectsByItemId.set(effect.equipment_item_id, effect.effect_payload);
+  }
+
+  return effectsByItemId;
 }
 
 async function getJuniorDevelopmentHistory({

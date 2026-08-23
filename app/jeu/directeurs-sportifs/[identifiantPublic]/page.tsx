@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
+import {
+  ProfileDisclosure,
+  ProfileDisclosureSkeleton,
+} from "@/components/game/profile-disclosure";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { SportingDirectorTrophyTile } from "@/components/game/sporting-director-trophy-tile";
@@ -51,12 +56,9 @@ export default async function PublicSportingDirectorPage({
     notFound();
   }
 
-  const [teamSponsorIdentity, trophyGallery] = await Promise.all([
-    profile.team_id
-      ? getActiveTeamSponsorIdentity(profile.team_id)
-      : Promise.resolve(null),
-    getPublicSportingDirectorTrophyGallery(profile.entity_id),
-  ]);
+  const teamSponsorIdentity = profile.team_id
+    ? await getActiveTeamSponsorIdentity(profile.team_id)
+    : null;
 
   const countryHref = `/jeu/nations/${profile.country_code.toLowerCase()}`;
   const teamHref = profile.team_id
@@ -159,7 +161,13 @@ export default async function PublicSportingDirectorPage({
             )}
 
             <div className="lg:col-span-2">
-              <SportingDirectorTrophyTile gallery={trophyGallery} />
+              <Suspense
+                fallback={<ProfileDisclosureSkeleton title="Palmarès du DS" />}
+              >
+                <SportingDirectorPalmaresDisclosure
+                  sportingDirectorId={profile.entity_id}
+                />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -192,6 +200,7 @@ function PublicLinkCard({
   return (
     <Link
       href={href}
+      prefetchOnIntent
       className="flex items-center gap-4 rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5 shadow-[0_8px_24px_rgba(19,60,46,0.06)] transition hover:-translate-y-0.5 hover:border-[#278B70]/40 hover:shadow-[0_14px_30px_rgba(19,60,46,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70]"
     >
       {leading}
@@ -210,6 +219,24 @@ function PublicLinkCard({
         →
       </span>
     </Link>
+  );
+}
+
+async function SportingDirectorPalmaresDisclosure({
+  sportingDirectorId,
+}: {
+  sportingDirectorId: string;
+}) {
+  const trophyGallery =
+    await getPublicSportingDirectorTrophyGallery(sportingDirectorId);
+
+  return (
+    <ProfileDisclosure
+      title="Palmarès du DS"
+      description="Trophées et distinctions remportés"
+    >
+      <SportingDirectorTrophyTile gallery={trophyGallery} />
+    </ProfileDisclosure>
   );
 }
 

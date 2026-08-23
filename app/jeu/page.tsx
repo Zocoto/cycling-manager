@@ -35,15 +35,9 @@ import {
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getAuthenticatedUser } from "../../lib/supabase/authenticated-user";
 import {
-  getActiveNationalChampionshipTitlesForRiders,
-  type ActiveNationalChampionshipTitle,
-  getActiveWorldChampionshipTitlesForRiders,
-  type ActiveWorldChampionshipTitle,
-} from "@/services/rider-national-championship-titles";
-import {
-  getActiveContinentalChampionshipTitlesForRiders,
-  type ActiveContinentalChampionshipTitle,
-} from "@/services/rider-continental-championship-titles";
+  getActiveChampionshipTitlesForRiders,
+  type ActiveChampionshipTitlesForRiders,
+} from "@/services/rider-championship-titles";
 import {
   getTeamAmateurIdentity,
   type TeamAmateurIdentity,
@@ -389,25 +383,14 @@ export default async function GamePage() {
           )
         : null,
   );
-  const activeNationalTitlesPromise = loadDashboardValue(
-    getActiveNationalChampionshipTitlesForRiders(supabase, dashboardRiderIds),
-    new Map<string, ActiveNationalChampionshipTitle>(),
-    "Impossible de récupérer les maillots de champions nationaux du bureau :",
-  );
-
-  const activeContinentalTitlesPromise = loadDashboardValue(
-    getActiveContinentalChampionshipTitlesForRiders(
-      supabase,
-      dashboardRiderIds,
-    ),
-    new Map<string, ActiveContinentalChampionshipTitle>(),
-    "Impossible de recuperer les maillots de champions continentaux du bureau :",
-  );
-
-  const activeWorldTitlesPromise = loadDashboardValue(
-    getActiveWorldChampionshipTitlesForRiders(supabase, dashboardRiderIds),
-    new Map<string, ActiveWorldChampionshipTitle>(),
-    "Impossible de recuperer les maillots de champions du monde du bureau :",
+  const activeChampionshipTitlesPromise = loadDashboardValue(
+    getActiveChampionshipTitlesForRiders(supabase, dashboardRiderIds),
+    {
+      national: new Map(),
+      continental: new Map(),
+      world: new Map(),
+    } satisfies ActiveChampionshipTitlesForRiders,
+    "Impossible de récupérer les maillots de champions du bureau :",
   );
   const [
     sponsorIdentityResult,
@@ -416,9 +399,7 @@ export default async function GamePage() {
     inventoryOverview,
     reputationBreakdown,
     raceCalendar,
-    activeNationalTitlesByRiderId,
-    activeContinentalTitlesByRiderId,
-    activeWorldTitlesByRiderId,
+    activeChampionshipTitles,
     sponsorObjectiveSummary,
     fanClubBuildings,
   ] = await Promise.all([
@@ -444,9 +425,7 @@ export default async function GamePage() {
       "Impossible de r\u00e9cup\u00e9rer le d\u00e9tail de la r\u00e9putation :",
     ),
     raceCalendarPromise,
-    activeNationalTitlesPromise,
-    activeContinentalTitlesPromise,
-    activeWorldTitlesPromise,
+    activeChampionshipTitlesPromise,
     sponsorObjectiveSummaryPromise,
     loadDashboardValue(
       dashboardTeamId
@@ -456,6 +435,10 @@ export default async function GamePage() {
       "Impossible de récupérer les bâtiments du Fan Club :",
     ),
   ]);
+  const activeNationalTitlesByRiderId = activeChampionshipTitles.national;
+  const activeContinentalTitlesByRiderId =
+    activeChampionshipTitles.continental;
+  const activeWorldTitlesByRiderId = activeChampionshipTitles.world;
 
   const teamSponsorIdentity = sponsorIdentityResult.identity;
   const teamSponsorIdentityError = sponsorIdentityResult.error;
@@ -600,7 +583,7 @@ export default async function GamePage() {
       />
 
       <section className="relative overflow-hidden">
-        <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-14">
+        <div className="relative mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8">
           <header
             data-tutorial-id="dashboard-overview"
             className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start"
@@ -641,7 +624,7 @@ export default async function GamePage() {
           ) : null}
 
           <section
-            className="mt-5 grid gap-4 sm:mt-8 sm:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
+            className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
           >
             <DirectorProfileCard
               sportingDirector={sportingDirector}
@@ -713,7 +696,7 @@ export default async function GamePage() {
 
           <RaceOperationsCard alertCount={raceRosterAlertCount} />
 
-          <section className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <section className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
             <ManagementModuleCard
               href="/jeu/entrainement"
               icon="training"
@@ -1128,6 +1111,7 @@ function TeamRosterCard({
   return (
     <Link
       href="/jeu/effectif"
+      prefetchOnIntent
       data-tutorial-id="dashboard-roster"
       className="group relative isolate flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B302B] p-4 text-[#FFFDF4] shadow-[0_24px_60px_rgba(7,26,23,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_66px_rgba(7,26,23,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] sm:p-6"
     >
@@ -1309,6 +1293,7 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
         </div>
         <Link
           href="/jeu/championnats-nationaux"
+          prefetchOnIntent
           className="relative z-10 rounded-full border border-[#7CCF9C]/40 bg-[#7CCF9C]/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-[#B9E9CD] transition hover:border-[#7CCF9C] hover:bg-[#7CCF9C] hover:text-[#07302A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7CCF9C] sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.14em]"
         >
           Championnats nationaux
@@ -1320,7 +1305,8 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
           <Link
             key={entry.href}
             href={entry.href}
-            className={`group relative grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-4 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:min-h-48 sm:gap-4 sm:p-7 ${
+            prefetchOnIntent
+            className={`group relative grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-4 transition hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#42B99A] sm:gap-4 sm:p-5 ${
               index > 0
                 ? "border-t border-white/10 md:border-l md:border-t-0"
                 : ""
@@ -1353,10 +1339,10 @@ function RaceOperationsCard({ alertCount }: { alertCount: number }) {
               <span className="mt-2 block text-base font-black text-[#FFFDF4] sm:mt-3 sm:text-xl">
                 {entry.title}
               </span>
-              <span className="mt-2 hidden text-sm font-medium leading-6 text-[#BFD1C6] sm:block">
+              <span className="mt-2 hidden line-clamp-2 text-xs font-semibold leading-5 text-[#BFD1C6] sm:block">
                 {entry.description}
               </span>
-              <span className="mt-2 inline-flex items-center gap-2 text-xs font-extrabold text-[#9BE0BC] sm:mt-4 sm:text-sm">
+              <span className="mt-2 inline-flex items-center gap-2 text-xs font-extrabold text-[#9BE0BC] sm:mt-3">
                 Ouvrir <ArrowRightIcon />
               </span>
             </span>
@@ -1450,7 +1436,7 @@ function ManagementModuleCard({
   description: string;
   tutorialId?: string;
 }) {
-  const className = `group relative isolate block min-w-0 overflow-hidden rounded-xl border bg-[#0B302B] p-3 text-[#FFFDF4] shadow-[0_20px_48px_rgba(7,26,23,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_54px_rgba(7,26,23,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] sm:rounded-2xl sm:p-6 ${
+  const className = `group relative isolate block min-w-0 overflow-hidden rounded-xl border bg-[#0B302B] p-3 text-[#FFFDF4] shadow-[0_16px_38px_rgba(7,26,23,0.16)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_46px_rgba(7,26,23,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#42B99A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EAF5F3] sm:rounded-2xl sm:p-4 ${
     alertCount > 0 ? "border-[#F06A62]/70" : "border-white/10"
   }`;
 
@@ -1467,12 +1453,12 @@ function ManagementModuleCard({
       ) : null}
 
       <div className="flex items-start justify-between gap-2 sm:gap-4">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-12 sm:w-12 sm:rounded-xl">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#42B99A]/15 text-[#9BE0BC] transition group-hover:bg-[#42B99A] group-hover:text-[#07302A] sm:h-10 sm:w-10 sm:rounded-xl">
           <ManagementModuleIcon icon={icon} />
         </span>
 
         <span
-          className={`max-w-[6.5rem] truncate rounded-full px-2 py-1 text-[9px] font-bold sm:max-w-none sm:px-3 sm:text-xs ${
+          className={`max-w-[6.5rem] truncate rounded-full px-2 py-1 text-[9px] font-bold sm:max-w-[8rem] sm:px-2.5 sm:text-[10px] ${
             alertCount > 0
               ? "bg-[#F06A62]/20 text-[#FFB1AA]"
               : "bg-white/10 text-[#BFD1C6]"
@@ -1484,14 +1470,14 @@ function ManagementModuleCard({
         </span>
       </div>
 
-      <h2 className="mt-3 text-sm font-black leading-5 text-white sm:mt-6 sm:text-xl">{title}</h2>
+      <h2 className="mt-3 text-sm font-black leading-5 text-white sm:text-base">{title}</h2>
 
-      <p className="mt-3 hidden whitespace-pre-line leading-7 text-[#BFD1C6] sm:block">
+      <p className="mt-2 hidden line-clamp-2 whitespace-pre-line text-xs font-semibold leading-5 text-[#BFD1C6] sm:block">
         {description}
       </p>
 
       {href ? (
-        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9BE0BC] sm:mt-5 sm:gap-2 sm:text-sm">
+        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-extrabold text-[#9BE0BC] sm:mt-3 sm:gap-2 sm:text-xs">
           Ouvrir
           <ArrowRightIcon />
         </span>
@@ -1501,7 +1487,12 @@ function ManagementModuleCard({
 
   if (href) {
     return (
-      <Link href={href} data-tutorial-id={tutorialId} className={className}>
+      <Link
+        href={href}
+        prefetchOnIntent
+        data-tutorial-id={tutorialId}
+        className={className}
+      >
         {content}
       </Link>
     );

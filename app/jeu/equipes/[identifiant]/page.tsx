@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
-import type { CSSProperties } from "react";
+import { Suspense, type CSSProperties } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
 import { CareerPalmaresCard } from "@/components/game/career-palmares-card";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
+import {
+  ProfileDisclosure,
+  ProfileDisclosureSkeleton,
+} from "@/components/game/profile-disclosure";
 import { AmateurTeamJersey } from "@/components/game/amateur-team-jersey";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RankingBadge } from "@/components/game/ranking-badge";
@@ -21,6 +25,7 @@ import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
+  type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -65,20 +70,12 @@ export default async function PublicTeamPage({
     headerData,
     amateurIdentity,
     sponsorIdentity,
-    riders,
-    developmentTeam,
-    riderHistory,
-    seasonHistory,
     teamRanking,
   ] = await Promise.all([
     getPublicTeam(supabase, identifiant),
     getGameHeaderData(supabase, user.id),
     getTeamAmateurIdentity(identifiant),
     getActiveTeamSponsorIdentity(identifiant),
-    getPublicTeamRiders(identifiant),
-    getPublicDevelopmentTeam(identifiant),
-    getPublicTeamRiderHistory(identifiant),
-    getPublicTeamProfileHistory(identifiant),
     getTeamRankingEntry(identifiant),
   ]);
 
@@ -108,9 +105,6 @@ export default async function PublicTeamPage({
         DEFAULT_AMATEUR_JERSEY.accentColor,
     },
   );
-  const currentGameYear =
-    seasonHistory.seasons.find((season) => season.status === "active")
-      ?.gameYear ?? seasonHistory.seasons[0]?.gameYear ?? 1;
   const teamThemeStyle = {
     "--team-primary": teamTheme.primary,
     "--team-secondary": teamTheme.secondary,
@@ -190,6 +184,7 @@ export default async function PublicTeamPage({
                 />
                 <Link
                   href={countryHref}
+                  prefetchOnIntent
                   className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-accent)]"
                 >
                   <CountryFlag
@@ -219,6 +214,7 @@ export default async function PublicTeamPage({
             {directorHref ? (
               <Link
                 href={directorHref}
+                prefetchOnIntent
                 className="rounded-2xl border border-[var(--team-line)] bg-[var(--team-surface)] p-5 shadow-[0_8px_24px_var(--team-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-[0_14px_30px_var(--team-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)]"
               >
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--team-secondary)]">
@@ -268,78 +264,144 @@ export default async function PublicTeamPage({
           </div>
         </div>
 
-        <section className="mt-7 rounded-[2rem] border border-[var(--team-line)] bg-white/75 p-6 sm:p-8">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--team-secondary)]">
-            Effectif public
-          </p>
-          <h2 className="mt-2 text-xl font-black text-[var(--team-ink)]">
-            Les coureurs de l’équipe
-          </h2>
-          {riders.length > 0 ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {riders.map((rider) => {
-                const riderName = `${rider.firstName} ${rider.lastName}`.trim();
+        <Suspense
+          fallback={<ProfileDisclosureSkeleton title="Effectif public" />}
+        >
+          <TeamRosterDisclosure
+            teamId={identifiant}
+            riderJersey={riderJersey}
+          />
+        </Suspense>
 
-                return (
-                  <Link
-                    key={rider.id}
-                    href={`/jeu/coureurs/${rider.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-4 rounded-2xl border border-[var(--team-line)] bg-white p-4 shadow-[0_8px_24px_var(--team-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-[0_14px_30px_var(--team-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)]"
-                  >
-                    <RiderAvatar
-                      profileKey={rider.avatarProfileKey}
-                      seed={rider.avatarSeed}
-                      riderId={rider.id}
-                      age={rider.age ?? 25}
-                      jersey={riderJersey}
-                      label={`Portrait généré de ${riderName}`}
-                      className="h-14 w-14"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-black text-[var(--team-ink)]">
-                        {riderName}
-                      </span>
-                      <span className="mt-1 flex items-center gap-2 text-xs font-semibold text-[var(--team-muted)]">
-                        <CountryFlag
-                          countryCode={rider.countryCode}
-                          countryName={rider.countryName}
-                          compact
-                        />
-                        {rider.countryName}
-                        {rider.age ? ` · ${rider.age} ans` : ""}
-                      </span>
-                    </span>
-                    <span className="text-sm font-black text-[var(--team-secondary)]" aria-hidden="true">
-                      ↗
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-5 rounded-xl border border-dashed border-[var(--team-line)] bg-[var(--team-soft)] px-4 py-5 text-sm font-bold text-[var(--team-muted)]">
-              Aucun coureur n’est actuellement sous contrat avec cette équipe.
-            </p>
-          )}
-        </section>
+        <Suspense
+          fallback={<ProfileDisclosureSkeleton title="Équipe de développement" />}
+        >
+          <DevelopmentTeamDisclosure teamId={identifiant} />
+        </Suspense>
 
-        <DevelopmentTeamCard developmentTeam={developmentTeam} />
-
-        <TeamRiderGlossary
-          riders={riderHistory}
-          currentGameYear={currentGameYear}
-        />
-        <CareerPalmaresCard
-          palmares={seasonHistory.palmares}
-          tone="team"
-          className="mt-7"
-        />
-        <RecentTeamResults results={seasonHistory.recentResults} />
-        <TeamSeasonHistory history={seasonHistory.seasons} />
+        <Suspense
+          fallback={
+            <ProfileDisclosureSkeleton title="Palmarès et historique" />
+          }
+        >
+          <TeamHistoryDisclosure teamId={identifiant} />
+        </Suspense>
       </section>
     </main>
+  );
+}
+
+async function TeamRosterDisclosure({
+  teamId,
+  riderJersey,
+}: {
+  teamId: string;
+  riderJersey: RiderJerseyAppearance;
+}) {
+  const riders = await getPublicTeamRiders(teamId);
+
+  return (
+    <ProfileDisclosure
+      title="Effectif public"
+      description={`${riders.length} coureur${riders.length > 1 ? "s" : ""} sous contrat`}
+    >
+      {riders.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {riders.map((rider) => {
+            const riderName = `${rider.firstName} ${rider.lastName}`.trim();
+
+            return (
+              <Link
+                key={rider.id}
+                href={`/jeu/coureurs/${rider.id}`}
+                prefetchOnIntent
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-h-18 items-center gap-3 rounded-2xl border border-[var(--team-line)] bg-white p-3 shadow-[0_8px_24px_var(--team-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--team-secondary)] hover:shadow-[0_14px_30px_var(--team-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--team-primary)] sm:gap-4 sm:p-4"
+              >
+                <RiderAvatar
+                  profileKey={rider.avatarProfileKey}
+                  seed={rider.avatarSeed}
+                  riderId={rider.id}
+                  age={rider.age ?? 25}
+                  jersey={riderJersey}
+                  label={`Portrait généré de ${riderName}`}
+                  className="h-12 w-12 sm:h-14 sm:w-14"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-black text-[var(--team-ink)]">
+                    {riderName}
+                  </span>
+                  <span className="mt-1 flex items-center gap-2 text-xs font-semibold text-[var(--team-muted)]">
+                    <CountryFlag
+                      countryCode={rider.countryCode}
+                      countryName={rider.countryName}
+                      compact
+                    />
+                    <span className="truncate">{rider.countryName}</span>
+                    {rider.age ? ` · ${rider.age} ans` : ""}
+                  </span>
+                </span>
+                <span
+                  className="text-sm font-black text-[var(--team-secondary)]"
+                  aria-hidden="true"
+                >
+                  ↗
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-[var(--team-line)] bg-[var(--team-soft)] px-4 py-5 text-sm font-bold text-[var(--team-muted)]">
+          Aucun coureur n’est actuellement sous contrat avec cette équipe.
+        </p>
+      )}
+    </ProfileDisclosure>
+  );
+}
+
+async function DevelopmentTeamDisclosure({ teamId }: { teamId: string }) {
+  const developmentTeam = await getPublicDevelopmentTeam(teamId);
+  if (!developmentTeam) return null;
+
+  return (
+    <ProfileDisclosure
+      title="Équipe de développement"
+      description="Jeunes coureurs et structure de formation"
+    >
+      <DevelopmentTeamCard developmentTeam={developmentTeam} />
+    </ProfileDisclosure>
+  );
+}
+
+async function TeamHistoryDisclosure({ teamId }: { teamId: string }) {
+  const [riderHistory, seasonHistory] = await Promise.all([
+    getPublicTeamRiderHistory(teamId),
+    getPublicTeamProfileHistory(teamId),
+  ]);
+  const currentGameYear =
+    seasonHistory.seasons.find((season) => season.status === "active")
+      ?.gameYear ?? seasonHistory.seasons[0]?.gameYear ?? 1;
+
+  return (
+    <ProfileDisclosure
+      title="Palmarès et historique"
+      description="Résultats marquants, coureurs et identité saison après saison"
+    >
+      <TeamRiderGlossary
+        riders={riderHistory}
+        currentGameYear={currentGameYear}
+        className=""
+      />
+      <CareerPalmaresCard
+        palmares={seasonHistory.palmares}
+        tone="team"
+        className="mt-5"
+      />
+      <RecentTeamResults results={seasonHistory.recentResults} />
+      <TeamSeasonHistory history={seasonHistory.seasons} />
+    </ProfileDisclosure>
   );
 }
 
@@ -353,7 +415,7 @@ function DevelopmentTeamCard({
   const juniorJersey = createAmateurRiderJersey(developmentTeam.team.jersey);
 
   return (
-    <section className="mt-7 overflow-hidden rounded-[2rem] border border-[var(--team-line)] bg-white/80 shadow-[0_16px_45px_var(--team-shadow)]">
+    <section className="overflow-hidden rounded-[2rem] border border-[var(--team-line)] bg-white/80 shadow-[0_16px_45px_var(--team-shadow)]">
       <div className="flex flex-col gap-5 bg-[var(--team-soft)] px-6 py-6 sm:flex-row sm:items-center sm:px-8">
         <AmateurTeamJersey
           jersey={developmentTeam.team.jersey}

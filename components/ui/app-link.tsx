@@ -29,6 +29,7 @@ type AppLinkProps = LinkProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
     children?: ReactNode;
     showPendingIndicator?: boolean;
+    prefetchOnIntent?: boolean;
   };
 
 const PREVIEW_INTENT_DELAY_MS = 220;
@@ -47,6 +48,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     prefetch,
     children,
     showPendingIndicator = true,
+    prefetchOnIntent = false,
     onBlur,
     onFocus,
     onPointerDown,
@@ -57,6 +59,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   ref,
 ) {
   const [previewIntentOpen, setPreviewIntentOpen] = useState(false);
+  const [intentPrefetchActive, setIntentPrefetchActive] = useState(false);
   const previewIntentTimerRef = useRef<number | null>(
     null,
   );
@@ -64,7 +67,12 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
     useState<RiderPreviewLinkComponent | null>(null);
   const [RacePreviewLink, setRacePreviewLink] =
     useState<RacePreviewLinkComponent | null>(null);
-  const resolvedPrefetch = prefetch ?? false;
+  const resolvedPrefetch =
+    prefetch !== undefined
+      ? prefetch
+      : prefetchOnIntent && intentPrefetchActive
+        ? null
+        : false;
   const usesAnchor =
     typeof href === "string"
       ? href.includes("#")
@@ -126,7 +134,10 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   function handlePointerEnter(event: PointerEvent<HTMLAnchorElement>) {
     onPointerEnter?.(event);
     if (event.defaultPrevented) return;
-    if (event.pointerType === "mouse") schedulePreview();
+    if (event.pointerType === "mouse") {
+      if (prefetchOnIntent) setIntentPrefetchActive(true);
+      schedulePreview();
+    }
   }
 
   function handlePointerLeave(event: PointerEvent<HTMLAnchorElement>) {
@@ -138,6 +149,7 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
   function handleFocus(event: FocusEvent<HTMLAnchorElement>) {
     onFocus?.(event);
     if (event.defaultPrevented) return;
+    if (prefetchOnIntent) setIntentPrefetchActive(true);
     clearPreviewIntentTimer();
     loadPreview();
   }
@@ -150,6 +162,9 @@ const Link = forwardRef<HTMLAnchorElement, AppLinkProps>(function Link(
 
   function handlePointerDown(event: PointerEvent<HTMLAnchorElement>) {
     onPointerDown?.(event);
+    if (!event.defaultPrevented && prefetchOnIntent) {
+      setIntentPrefetchActive(true);
+    }
     clearPreviewIntentTimer();
   }
 

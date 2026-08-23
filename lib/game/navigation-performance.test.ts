@@ -17,7 +17,11 @@ const staffPageSource = readFileSync(
 
 describe("game navigation performance", () => {
   it("does not prefetch every visible game link by default", () => {
-    expect(appLinkSource).toContain("const resolvedPrefetch = prefetch ?? false");
+    expect(appLinkSource).toContain("prefetchOnIntent && intentPrefetchActive");
+    expect(appLinkSource).toContain(": false;");
+    expect(appLinkSource).toContain(
+      "if (event.pointerType === \"mouse\")",
+    );
   });
 
   it("waits for deliberate hover intent before loading a heavy preview", () => {

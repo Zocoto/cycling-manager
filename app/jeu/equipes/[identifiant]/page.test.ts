@@ -20,16 +20,28 @@ describe("team profile mobile layout", () => {
     );
   });
 
-  it("starts the team directory and profile queries in the same parallel batch", () => {
-    const queryBlock = teamProfilePage.slice(
+  it("streams secondary team sections after the essential profile queries", () => {
+    const essentialQueryBlock = teamProfilePage.slice(
       teamProfilePage.indexOf("const [\n    team,"),
       teamProfilePage.indexOf("if (!team)"),
     );
+    const rosterDisclosureBlock = teamProfilePage.slice(
+      teamProfilePage.indexOf("async function TeamRosterDisclosure"),
+      teamProfilePage.indexOf("async function DevelopmentTeamDisclosure"),
+    );
+    const historyDisclosureBlock = teamProfilePage.slice(
+      teamProfilePage.indexOf("async function TeamHistoryDisclosure"),
+    );
 
-    expect(queryBlock).toContain("await Promise.all([");
-    expect(queryBlock.match(/\bawait\b/g)).toHaveLength(1);
-    expect(queryBlock).toContain("getPublicTeam(supabase, identifiant)");
-    expect(queryBlock).toContain("getPublicTeamProfileHistory(identifiant)");
-    expect(queryBlock).toContain("getTeamRankingEntry(identifiant)");
+    expect(essentialQueryBlock).toContain("await Promise.all([");
+    expect(essentialQueryBlock.match(/\bawait\b/g)).toHaveLength(1);
+    expect(essentialQueryBlock).toContain("getPublicTeam(supabase, identifiant)");
+    expect(essentialQueryBlock).toContain("getTeamRankingEntry(identifiant)");
+    expect(essentialQueryBlock).not.toContain("getPublicTeamProfileHistory");
+    expect(rosterDisclosureBlock).toContain("getPublicTeamRiders(teamId)");
+    expect(historyDisclosureBlock).toContain("await Promise.all([");
+    expect(historyDisclosureBlock).toContain("getPublicTeamRiderHistory(teamId)");
+    expect(historyDisclosureBlock).toContain("getPublicTeamProfileHistory(teamId)");
+    expect(teamProfilePage).toContain("<ProfileDisclosureSkeleton");
   });
 });

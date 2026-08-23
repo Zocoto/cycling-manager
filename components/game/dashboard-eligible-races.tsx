@@ -42,7 +42,7 @@ export function DashboardEligibleRaces({
   return (
     <section
       aria-labelledby="dashboard-eligible-races-title"
-      className="flex h-[19rem] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#F8FBF9] text-[#082A2A] shadow-[0_16px_40px_rgba(4,25,21,0.18)]"
+      className="flex h-[15rem] min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#F8FBF9] text-[#082A2A] shadow-[0_16px_40px_rgba(4,25,21,0.18)]"
     >
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[#315B3E]/10 px-4 py-3">
         <div>
@@ -94,6 +94,7 @@ export function DashboardEligibleRaces({
 
       <Link
         href="/jeu/calendrier"
+        prefetchOnIntent
         className="flex shrink-0 items-center justify-between border-t border-[#315B3E]/10 bg-white px-4 py-2.5 text-[11px] font-black text-[#176951] transition hover:bg-[#E8F7F1]"
       >
         Ouvrir toutes les inscriptions

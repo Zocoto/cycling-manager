@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { GameHeader } from "@/components/game/game-header";
 import { ProfileBackButton } from "@/components/game/profile-back-button";
+import {
+  ProfileDisclosure,
+  ProfileDisclosureSkeleton,
+} from "@/components/game/profile-disclosure";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { ArchivedRiderProfileView } from "@/components/game/archived-rider-profile-view";
@@ -53,6 +58,7 @@ import {
   createWorldChampionRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   getNationalChampionPalette,
+  type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -125,13 +131,7 @@ export default async function RiderProfilePage({
     redirect("/connexion");
   }
 
-  const [
-    profile,
-    headerData,
-    riderRanking,
-    rosterTutorialProgress,
-    riderPalmares,
-  ] =
+  const [profile, headerData, riderRanking, rosterTutorialProgress] =
     await Promise.all([
       getPublicRiderProfile({
         riderIdentifier: identifiant,
@@ -148,7 +148,6 @@ export default async function RiderProfilePage({
           return null;
         },
       ),
-      getRiderCareerPalmares(identifiant),
     ]);
 
   if (!profile) {
@@ -156,6 +155,7 @@ export default async function RiderProfilePage({
   }
 
   if (profile.archive) {
+    const riderPalmares = await getRiderCareerPalmares(identifiant);
     return (
       <ArchivedRiderProfileView
         profile={profile}
@@ -165,30 +165,6 @@ export default async function RiderProfilePage({
       />
     );
   }
-
-  const [
-    equipmentManagement,
-    transferManagement,
-    riderPlanning,
-    naturalizationEligibility,
-  ] = await Promise.all([
-    profile.canManage
-      ? getRiderEquipmentManagement(user.id, profile.id)
-      : Promise.resolve(null),
-    getRiderTransferManagement(user.id, profile.id),
-    profile.canManage
-      ? getCurrentTeamRiderSeasonPlanning({
-          authUserId: user.id,
-          riderId: profile.id,
-        })
-      : Promise.resolve(null),
-    profile.canManage
-      ? getProfessionalRiderNaturalizationEligibility({
-          authUserId: user.id,
-          riderId: profile.id,
-        })
-      : Promise.resolve(null),
-  ]);
 
   const [amateurIdentity, sponsorIdentity] = profile.currentTeam
     ? await Promise.all([
@@ -536,80 +512,16 @@ export default async function RiderProfilePage({
             ) : (
               <EmptyBlock message="Aucune caractéristique n’est disponible pour ce coureur." />
             )}
-            {profile.canManage && profile.activeSeason ? (
-              <DeferredRiderProgression
-                riderId={profile.id}
-                detailHref={`/jeu/entrainement?progression=1&coureur=${profile.id}`}
-              />
-            ) : null}
           </section>
 
           <aside className="space-y-5">
-            {shouldDisplayNaturalizationCard(naturalizationEligibility) ? (
-              <div data-tutorial-id="rider-profile-naturalization">
-                <NaturalizationCard
-                  eligibility={naturalizationEligibility}
-                  subjectName={fullName}
-                  subjectId={profile.id}
-                  subjectIdField="riderId"
-                  action={naturalizeProfessionalRiderAction}
-                />
-              </div>
-            ) : null}
-            {profile.privateContract ? (
-              <div
-                data-tutorial-id="rider-profile-contract"
-                className="min-w-0 space-y-5"
-              >
-                {transferManagement ? (
-                  <>
-                    <ContractRenewalCard
-                      riderId={profile.id}
-                      contract={profile.privateContract}
-                      management={transferManagement}
-                    />
-                    <RiderDismissalCard
-                      riderId={profile.id}
-                      management={transferManagement}
-                    />
-                  </>
-                ) : (
-                  <PrivateContractCard contract={profile.privateContract} />
-                )}
-              </div>
-            ) : transferManagement?.isFreeAgent ? (
-              <div
-                data-tutorial-id="rider-profile-contract"
-                className="min-w-0 space-y-5"
-              >
-                <FreeAgentSigningCard
-                  riderId={profile.id}
-                  management={transferManagement}
-                />
-              </div>
-            ) : (
-              <div
-                data-tutorial-id="rider-profile-contract"
-                className="min-w-0 space-y-5"
-              >
-                <CareerSummaryCard
-                  teamName={profile.currentTeam?.displayName ?? "Agent libre"}
-                  seasonsCount={
-                    new Set(profile.history.map((entry) => entry.seasonId)).size
-                  }
-                />
-                {transferManagement ? (
-                  <DirectTransferOfferCard
-                    riderId={profile.id}
-                    teamName={
-                      profile.currentTeam?.displayName ??
-                      "l'\u00e9quipe actuelle"
-                    }
-                    management={transferManagement}
-                  />
-                ) : null}
-              </div>
-            )}
+            <Suspense fallback={<SidebarManagementSkeleton />}>
+              <RiderManagementCards
+                profile={profile}
+                viewerAuthUserId={user.id}
+                fullName={fullName}
+              />
+            </Suspense>
             {profile.medical ? (
               <RiderMedicalCard medical={profile.medical} />
             ) : null}
@@ -627,34 +539,225 @@ export default async function RiderProfilePage({
           </aside>
         </div>
 
-        {profile.canManage && riderPlanning ? (
-          <div data-tutorial-id="rider-profile-planning" className="mt-6">
-            <RiderSeasonPlanning
-              planning={riderPlanning}
-              jersey={riderJersey}
-              variant="rider"
-              showEventDetails={false}
-            />
-          </div>
+        {profile.canManage && profile.activeSeason ? (
+          <DeferredRiderProgression
+            riderId={profile.id}
+            detailHref={`/jeu/entrainement?progression=1&coureur=${profile.id}`}
+          />
         ) : null}
 
-        <div data-tutorial-id="rider-profile-history" className="mt-6 min-w-0">
-          <CareerPalmaresCard palmares={riderPalmares} />
-          <div className="mt-6">
-            <CareerHistory history={profile.history} />
-          </div>
-        </div>
+        {profile.canManage ? (
+          <Suspense
+            fallback={
+              <ProfileDisclosureSkeleton title="Programme de la saison" />
+            }
+          >
+            <RiderPlanningDisclosure
+              profile={profile}
+              viewerAuthUserId={user.id}
+              jersey={riderJersey}
+            />
+          </Suspense>
+        ) : null}
 
-        <div data-tutorial-id="rider-profile-equipment" className="mt-6">
-          <RiderEquipmentLoadout
-            riderId={profile.id}
-            equipment={profile.equipment}
-            canManage={profile.canManage}
-            management={equipmentManagement}
+        <Suspense
+          fallback={
+            <ProfileDisclosureSkeleton title="Palmarès et historique" />
+          }
+        >
+          <RiderHistoryDisclosure profile={profile} />
+        </Suspense>
+
+        <Suspense
+          fallback={<ProfileDisclosureSkeleton title="Équipement" />}
+        >
+          <RiderEquipmentDisclosure
+            profile={profile}
+            viewerAuthUserId={user.id}
           />
-        </div>
+        </Suspense>
       </section>
     </main>
+  );
+}
+
+async function RiderManagementCards({
+  profile,
+  viewerAuthUserId,
+  fullName,
+}: {
+  profile: PublicRiderProfile;
+  viewerAuthUserId: string;
+  fullName: string;
+}) {
+  const [transferManagement, naturalizationEligibility] = await Promise.all([
+    getRiderTransferManagement(viewerAuthUserId, profile.id),
+    profile.canManage
+      ? getProfessionalRiderNaturalizationEligibility({
+          authUserId: viewerAuthUserId,
+          riderId: profile.id,
+        })
+      : Promise.resolve(null),
+  ]);
+
+  return (
+    <>
+      {shouldDisplayNaturalizationCard(naturalizationEligibility) ? (
+        <div data-tutorial-id="rider-profile-naturalization">
+          <NaturalizationCard
+            eligibility={naturalizationEligibility}
+            subjectName={fullName}
+            subjectId={profile.id}
+            subjectIdField="riderId"
+            action={naturalizeProfessionalRiderAction}
+          />
+        </div>
+      ) : null}
+      {profile.privateContract ? (
+        <div
+          data-tutorial-id="rider-profile-contract"
+          className="min-w-0 space-y-5"
+        >
+          {transferManagement ? (
+            <>
+              <ContractRenewalCard
+                riderId={profile.id}
+                contract={profile.privateContract}
+                management={transferManagement}
+              />
+              <RiderDismissalCard
+                riderId={profile.id}
+                management={transferManagement}
+              />
+            </>
+          ) : (
+            <PrivateContractCard contract={profile.privateContract} />
+          )}
+        </div>
+      ) : transferManagement?.isFreeAgent ? (
+        <div
+          data-tutorial-id="rider-profile-contract"
+          className="min-w-0 space-y-5"
+        >
+          <FreeAgentSigningCard
+            riderId={profile.id}
+            management={transferManagement}
+          />
+        </div>
+      ) : (
+        <div
+          data-tutorial-id="rider-profile-contract"
+          className="min-w-0 space-y-5"
+        >
+          <CareerSummaryCard
+            teamName={profile.currentTeam?.displayName ?? "Agent libre"}
+            seasonsCount={
+              new Set(profile.history.map((entry) => entry.seasonId)).size
+            }
+          />
+          {transferManagement ? (
+            <DirectTransferOfferCard
+              riderId={profile.id}
+              teamName={
+                profile.currentTeam?.displayName ?? "l'équipe actuelle"
+              }
+              management={transferManagement}
+            />
+          ) : null}
+        </div>
+      )}
+    </>
+  );
+}
+
+async function RiderPlanningDisclosure({
+  profile,
+  viewerAuthUserId,
+  jersey,
+}: {
+  profile: PublicRiderProfile;
+  viewerAuthUserId: string;
+  jersey: RiderJerseyAppearance;
+}) {
+  const planning = await getCurrentTeamRiderSeasonPlanning({
+    authUserId: viewerAuthUserId,
+    riderId: profile.id,
+  });
+
+  return (
+    <ProfileDisclosure
+      title="Programme de la saison"
+      description="Courses, stages et disponibilités du coureur"
+      tutorialId="rider-profile-planning"
+    >
+      {planning ? (
+        <RiderSeasonPlanning
+          planning={planning}
+          jersey={jersey}
+          variant="rider"
+          showEventDetails={false}
+        />
+      ) : (
+        <EmptyBlock message="Le programme de la saison est momentanément indisponible." />
+      )}
+    </ProfileDisclosure>
+  );
+}
+
+async function RiderHistoryDisclosure({
+  profile,
+}: {
+  profile: PublicRiderProfile;
+}) {
+  const palmares = await getRiderCareerPalmares(profile.id);
+
+  return (
+    <ProfileDisclosure
+      title="Palmarès et historique"
+      description="Résultats marquants et parcours saison après saison"
+      tutorialId="rider-profile-history"
+    >
+      <CareerPalmaresCard palmares={palmares} />
+      <div className="mt-5">
+        <CareerHistory history={profile.history} />
+      </div>
+    </ProfileDisclosure>
+  );
+}
+
+async function RiderEquipmentDisclosure({
+  profile,
+  viewerAuthUserId,
+}: {
+  profile: PublicRiderProfile;
+  viewerAuthUserId: string;
+}) {
+  const equipmentManagement = profile.canManage
+    ? await getRiderEquipmentManagement(viewerAuthUserId, profile.id)
+    : null;
+
+  return (
+    <ProfileDisclosure
+      title="Équipement"
+      description="Matériel attribué et bonus actifs"
+      tutorialId="rider-profile-equipment"
+    >
+      <RiderEquipmentLoadout
+        riderId={profile.id}
+        equipment={profile.equipment}
+        canManage={profile.canManage}
+        management={equipmentManagement}
+      />
+    </ProfileDisclosure>
+  );
+}
+
+function SidebarManagementSkeleton() {
+  return (
+    <div
+      aria-label="Chargement de la gestion du coureur"
+      className="h-32 animate-pulse rounded-2xl border border-[#315B3E]/10 bg-white"
+    />
   );
 }
 

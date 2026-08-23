@@ -44,7 +44,10 @@ describe("roster tutorial page targets", () => {
       "rider-profile-history",
       "rider-profile-equipment",
     ]) {
-      expect(riderPage).toContain(`data-tutorial-id="${targetId}"`);
+      expect(
+        riderPage.includes(`data-tutorial-id="${targetId}"`) ||
+          riderPage.includes(`tutorialId="${targetId}"`),
+      ).toBe(true);
     }
   });
 
