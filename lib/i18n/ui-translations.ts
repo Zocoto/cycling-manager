@@ -30,6 +30,31 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Open each available official result directly.",
   "Contre-la-montre": "Time trial",
   "Contrat Espoir immédiat": "Instant prospect contract",
+  "Équerre de chantier": "Builder’s square",
+  "Té d’architecte de précision": "Precision architect’s T-square",
+  "Insigne d’expertise": "Expertise badge",
+  "Un outil de contrôle qui permet de corriger rapidement le planning d’un bâtiment déjà en construction.":
+    "A checking tool used to quickly adjust the schedule of a building already under construction.",
+  "Un instrument rare réservé aux grands chantiers, capable de raccourcir nettement un calendrier de construction en cours.":
+    "A rare instrument for major projects that can significantly shorten an active construction schedule.",
+  "Récompense un membre actif du staff par une progression immédiate de son niveau professionnel.":
+    "Immediately raises the professional level of one active staff member.",
+  "Retire 2 jours à un chantier actif · 1 jour minimum restant":
+    "Removes 2 days from an active project · at least 1 day remains",
+  "Retire 7 jours à un chantier actif · 1 jour minimum restant":
+    "Removes 7 days from an active project · at least 1 day remains",
+  "+1 étoile au membre du staff choisi · maximum 5★":
+    "+1 star for the selected staff member · maximum 5★",
+  "Chantier en cours": "Active construction project",
+  "Choisir un chantier": "Choose a construction project",
+  "Membre du staff": "Staff member",
+  "Choisir un membre à faire progresser": "Choose a staff member to improve",
+  "Accélérer ce chantier": "Speed up this project",
+  "Attribuer l’étoile": "Award the star",
+  "Accélération chantier": "Construction boost",
+  "Perfectionnement du staff": "Staff development",
+  "Vous choisissez la cible adaptée : coureur, statistique, course, chantier ou membre du staff. Les bonus expirent à la fin de la saison suivante.":
+    "Choose the appropriate target: rider, attribute, race, construction project or staff member. Bonuses expire at the end of the following season.",
   "Permet à un junior de 17 ans ou plus de quitter immédiatement l’école pour rejoindre l’équipe première, même en cours de saison.":
     "Allows a junior aged 17 or over to leave the academy and join the first team immediately, even during the season.",
   "Permet à un junior de 17 ans ou plus de rejoindre immédiatement l’équipe première, même en cours de saison.":
@@ -163,6 +188,12 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Recruit ten juniors to the youth development centre. Reward: an Instant prospect contract.",
   "Promouvoir dix juniors dans l’effectif professionnel. Récompense : un Mandat de recrutement sur mesure.":
     "Promote ten juniors to the professional roster. Reward: a Custom staff recruitment mandate.",
+  "Construire une première infrastructure de performance parmi les sept nouvelles installations. Récompense : une Équerre de chantier.":
+    "Build the first of the seven performance facilities. Reward: one Builder’s Square.",
+  "Construire les sept infrastructures de performance : piste, cryothérapie, soufflerie, R&D, accueil international, météo et Média Center. Récompense : un Té d’architecte de précision.":
+    "Build all seven performance facilities: indoor track, cryotherapy centre, wind tunnel, R&D lab, international welcome centre, weather centre and Media Centre. Reward: one Precision Architect’s T-square.",
+  "Réunir trois membres actifs du staff ayant la nationalité de l’équipe, définie par son sponsor. Récompense : un Insigne d’expertise.":
+    "Employ three active staff members with the team nationality set by its sponsor. Reward: one Expertise Badge.",
 };
 
 export const UI_TRANSLATIONS: Readonly<Record<string, string>> = {

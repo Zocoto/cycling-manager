@@ -6,9 +6,11 @@ import {
   type DailyRewardAbility,
   type DailyRewardAcademyRider,
   type DailyRewardCountry,
+  type DailyRewardConstructionProject,
   type DailyRewardInventoryItem,
   type DailyRewardRace,
   type DailyRewardRider,
+  type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import {
   STAFF_ROLE_DEFINITIONS,
@@ -22,6 +24,8 @@ export function DailyRewardRedemptionForm({
   eligibleRaces,
   academyRiders,
   countries,
+  constructionProjects,
+  staffMembers,
   returnPath,
 }: {
   item: DailyRewardInventoryItem;
@@ -30,6 +34,8 @@ export function DailyRewardRedemptionForm({
   eligibleRaces: DailyRewardRace[];
   academyRiders: DailyRewardAcademyRider[];
   countries: DailyRewardCountry[];
+  constructionProjects: DailyRewardConstructionProject[];
+  staffMembers: DailyRewardStaffMember[];
   returnPath?: string;
 }) {
   const needsRider = requiresRiderTarget(item.effectKind);
@@ -42,7 +48,10 @@ export function DailyRewardRedemptionForm({
     (item.effectKind !== "instant_youth_promotion" ||
       academyRiders.length > 0) &&
     (item.effectKind !== "custom_staff_recruitment" ||
-      countries.length > 0);
+      countries.length > 0) &&
+    (item.effectKind !== "construction_time_reduction" ||
+      constructionProjects.some((project) => project.remainingDays > 1)) &&
+    (item.effectKind !== "staff_level_boost" || staffMembers.length > 0);
 
   return (
     <form action={redeemDailyRewardAction} className="mt-auto space-y-3 pt-5">
@@ -110,6 +119,40 @@ export function DailyRewardRedemptionForm({
             habituelles de votre structure restent applicables.
           </p>
         </>
+      ) : null}
+
+      {item.effectKind === "construction_time_reduction" ? (
+        <SelectField
+          name="constructionProjectId"
+          label="Chantier en cours"
+          required
+        >
+          <option value="">Choisir un chantier</option>
+          {constructionProjects.map((project) => (
+            <option
+              key={project.id}
+              value={project.id}
+              disabled={project.remainingDays <= 1}
+            >
+              {project.name} · niveau {project.targetLevel} ·{" "}
+              {project.remainingDays} jour
+              {project.remainingDays > 1 ? "s" : ""} restant
+              {project.remainingDays > 1 ? "s" : ""}
+            </option>
+          ))}
+        </SelectField>
+      ) : null}
+
+      {item.effectKind === "staff_level_boost" ? (
+        <SelectField name="staffContractId" label="Membre du staff" required>
+          <option value="">Choisir un membre à faire progresser</option>
+          {staffMembers.map((member) => (
+            <option key={member.contractId} value={member.contractId}>
+              {member.name} · {member.roleLabel} · {member.level}★ →{" "}
+              {member.level + 1}★
+            </option>
+          ))}
+        </SelectField>
       ) : null}
 
       {stackable ? (
@@ -180,5 +223,7 @@ function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "wildcard") return "Réserver l’invitation";
   if (kind === "instant_youth_promotion") return "Signer le junior maintenant";
   if (kind === "custom_staff_recruitment") return "Générer et signer ce staff";
+  if (kind === "construction_time_reduction") return "Accélérer ce chantier";
+  if (kind === "staff_level_boost") return "Attribuer l’étoile";
   return "Utiliser sur ce coureur";
 }

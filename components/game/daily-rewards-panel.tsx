@@ -207,8 +207,9 @@ export function DailyRewardsPanel({
             </h2>
           </div>
           <p className="max-w-2xl text-sm font-semibold leading-6 text-[#60756E] sm:text-right">
-            Vous choisissez le coureur, la statistique ou la course. Les bonus
-            expirent à la fin de la saison suivante.
+            Vous choisissez la cible adaptée : coureur, statistique, course,
+            chantier ou membre du staff. Les bonus expirent à la fin de la
+            saison suivante.
           </p>
         </div>
 
@@ -273,6 +274,8 @@ function InventoryRewardCard({
         eligibleRaces={overview.eligibleRaces}
         academyRiders={overview.academyRiders}
         countries={overview.countries}
+        constructionProjects={overview.constructionProjects}
+        staffMembers={overview.staffMembers}
       />
     </article>
   );
@@ -312,5 +315,7 @@ function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "naturalization") return "Naturalisation";
   if (kind === "instant_youth_promotion") return "Promotion junior";
   if (kind === "custom_staff_recruitment") return "Recrutement staff";
+  if (kind === "construction_time_reduction") return "Accélération chantier";
+  if (kind === "staff_level_boost") return "Perfectionnement du staff";
   return "Ticket d’or";
 }

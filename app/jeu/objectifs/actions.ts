@@ -109,6 +109,11 @@ export async function redeemDailyRewardAction(formData: FormData) {
   const academyRiderId = readOptionalUuid(formData, "academyRiderId");
   const staffRole = readValue(formData, "staffRole");
   const countryId = readOptionalUuid(formData, "countryId");
+  const constructionProjectId = readOptionalUuid(
+    formData,
+    "constructionProjectId",
+  );
+  const staffContractId = readOptionalUuid(formData, "staffContractId");
   const returnPath = readDailyRewardReturnPath(formData);
 
   if (!isUuid(inventoryId) || quantity === null) {
@@ -143,6 +148,20 @@ export async function redeemDailyRewardAction(formData: FormData) {
     redirectDailyRewardError(
       returnPath,
       "Sélectionnez un métier et une nationalité valides.",
+    );
+  }
+
+  if (
+    effectKind === "construction_time_reduction" &&
+    constructionProjectId === null
+  ) {
+    redirectDailyRewardError(returnPath, "Sélectionnez un chantier actif.");
+  }
+
+  if (effectKind === "staff_level_boost" && staffContractId === null) {
+    redirectDailyRewardError(
+      returnPath,
+      "Sélectionnez un membre du staff pouvant encore progresser.",
     );
   }
 
@@ -182,6 +201,24 @@ export async function redeemDailyRewardAction(formData: FormData) {
         error instanceof Error ? error.message : "Le recrutement a échoué.",
       );
     }
+  } else if (effectKind === "construction_time_reduction") {
+    const result = await supabase.rpc("redeem_construction_time_reward", {
+      p_inventory_id: inventoryId,
+      p_project_id: constructionProjectId,
+    });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
+  } else if (effectKind === "staff_level_boost") {
+    const result = await supabase.rpc("redeem_staff_level_boost_reward", {
+      p_inventory_id: inventoryId,
+      p_staff_contract_id: staffContractId,
+    });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
   } else {
     const result = await supabase.rpc("redeem_current_daily_rewards", {
       p_inventory_id: inventoryId,
@@ -215,6 +252,7 @@ function revalidateDailyRewardPaths() {
   revalidatePath("/jeu/materiel");
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu/staff");
+  revalidatePath("/jeu/infrastructures");
 }
 
 function redirectDailyRewardError(

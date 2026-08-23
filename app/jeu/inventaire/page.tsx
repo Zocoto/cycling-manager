@@ -30,8 +30,10 @@ import type {
   DailyRewardAcademyRider,
   DailyRewardAbility,
   DailyRewardCountry,
+  DailyRewardConstructionProject,
   DailyRewardInventoryItem,
   DailyRewardRace,
+  DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -339,6 +341,12 @@ export default async function InventoryPage({
                     dailyRewardOverview?.academyRiders ?? []
                   }
                   dailyRewardCountries={dailyRewardOverview?.countries ?? []}
+                  dailyRewardConstructionProjects={
+                    dailyRewardOverview?.constructionProjects ?? []
+                  }
+                  dailyRewardStaffMembers={
+                    dailyRewardOverview?.staffMembers ?? []
+                  }
                 />
               ))}
             </div>
@@ -362,6 +370,8 @@ function InventoryItemCard({
   dailyRewardRaces,
   dailyRewardAcademyRiders,
   dailyRewardCountries,
+  dailyRewardConstructionProjects,
+  dailyRewardStaffMembers,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
@@ -373,10 +383,12 @@ function InventoryItemCard({
   dailyRewardRaces: DailyRewardRace[];
   dailyRewardAcademyRiders: DailyRewardAcademyRider[];
   dailyRewardCountries: DailyRewardCountry[];
+  dailyRewardConstructionProjects: DailyRewardConstructionProject[];
+  dailyRewardStaffMembers: DailyRewardStaffMember[];
 }) {
   const category = getInventoryCategory(item.category);
-  const recruitmentReward =
-    item.dailyReward ?? buildRecruitmentRewardFromInventory(item);
+  const managementReward =
+    item.dailyReward ?? buildDailyRewardFromInventory(item);
 
   return (
     <article
@@ -455,14 +467,16 @@ function InventoryItemCard({
           />
         </div>
 
-        {recruitmentReward ? (
+        {managementReward ? (
           <DailyRewardRedemptionForm
-            item={recruitmentReward}
+            item={managementReward}
             riders={riders}
             abilities={dailyRewardAbilities}
             eligibleRaces={dailyRewardRaces}
             academyRiders={dailyRewardAcademyRiders}
             countries={dailyRewardCountries}
+            constructionProjects={dailyRewardConstructionProjects}
+            staffMembers={dailyRewardStaffMembers}
             returnPath={returnPath}
           />
         ) : item.equipmentSlot ? (
@@ -514,13 +528,15 @@ function InventoryItemCard({
   );
 }
 
-function buildRecruitmentRewardFromInventory(
+function buildDailyRewardFromInventory(
   item: TeamInventoryItem,
 ): DailyRewardInventoryItem | null {
   const effectKind = item.effectPayload?.effectKind;
   if (
     effectKind !== "instant_youth_promotion" &&
-    effectKind !== "custom_staff_recruitment"
+    effectKind !== "custom_staff_recruitment" &&
+    effectKind !== "construction_time_reduction" &&
+    effectKind !== "staff_level_boost"
   ) {
     return null;
   }
@@ -531,7 +547,11 @@ function buildRecruitmentRewardFromInventory(
     name: item.name,
     description: item.description,
     effectSummary: item.effectSummary,
-    importance: effectKind === "custom_staff_recruitment" ? 10 : 8,
+    importance:
+      effectKind === "custom_staff_recruitment" ||
+      effectKind === "staff_level_boost"
+        ? 10
+        : Number(item.effectPayload?.level ?? 7),
     effectKind,
     iconKey: item.iconKey,
     payload: item.effectPayload ?? {},

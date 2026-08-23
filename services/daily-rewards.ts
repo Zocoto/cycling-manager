@@ -8,11 +8,13 @@ import {
   type DailyRewardAbility,
   type DailyRewardAcademyRider,
   type DailyRewardCountry,
+  type DailyRewardConstructionProject,
   type DailyRewardEffectKind,
   type DailyRewardInventoryItem,
   type DailyRewardOffer,
   type DailyRewardOverview,
   type DailyRewardRace,
+  type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import { getCurrentTeamItemTargetRiders } from "@/services/item-target-values";
 
@@ -37,7 +39,10 @@ type RawOverview = {
 export async function getCurrentDailyRewardOverview(
   supabase: SupabaseClient,
 ): Promise<DailyRewardOverview | null> {
-  const result = await supabase.rpc("get_current_daily_reward_overview");
+  const [result, managementTargetsResult] = await Promise.all([
+    supabase.rpc("get_current_daily_reward_overview"),
+    supabase.rpc("get_current_management_reward_targets"),
+  ]);
 
   if (result.error) {
     throw new Error(
@@ -46,8 +51,14 @@ export async function getCurrentDailyRewardOverview(
   }
 
   if (!result.data || typeof result.data !== "object") return null;
+  if (managementTargetsResult.error) {
+    throw new Error(
+      `Impossible de charger les cibles des objets de gestion : ${managementTargetsResult.error.message}`,
+    );
+  }
 
   const raw = result.data as RawOverview;
+  const rawManagementTargets = readObject(managementTargetsResult.data);
   const seasonId = readString(raw.seasonId);
   if (!seasonId) return null;
   const gameYear = readNumber(raw.gameYear, 1);
@@ -126,6 +137,12 @@ export async function getCurrentDailyRewardOverview(
     abilities: readArray(raw.abilities).flatMap(normalizeAbility),
     academyRiders,
     countries,
+    constructionProjects: readArray(
+      rawManagementTargets.constructionProjects,
+    ).flatMap(normalizeConstructionProject),
+    staffMembers: readArray(rawManagementTargets.staffMembers).flatMap(
+      normalizeStaffMember,
+    ),
   };
 }
 
@@ -187,6 +204,30 @@ function normalizeAbility(value: unknown): DailyRewardAbility[] {
   return [{ code, name, effectSummary: readString(row.effectSummary) }];
 }
 
+function normalizeConstructionProject(
+  value: unknown,
+): DailyRewardConstructionProject[] {
+  if (!value || typeof value !== "object") return [];
+  const row = value as Record<string, unknown>;
+  const id = readString(row.id);
+  const name = readString(row.name);
+  const targetLevel = readNumber(row.targetLevel, 0);
+  const remainingDays = readNumber(row.remainingDays, 0);
+  if (!id || !name || targetLevel < 1 || remainingDays < 1) return [];
+  return [{ id, name, targetLevel, remainingDays }];
+}
+
+function normalizeStaffMember(value: unknown): DailyRewardStaffMember[] {
+  if (!value || typeof value !== "object") return [];
+  const row = value as Record<string, unknown>;
+  const contractId = readString(row.contractId);
+  const name = readString(row.name);
+  const roleLabel = readString(row.roleLabel);
+  const level = readNumber(row.level, 0);
+  if (!contractId || !name || !roleLabel || level < 1 || level >= 5) return [];
+  return [{ contractId, name, roleLabel, level }];
+}
+
 function readEffectKind(value: unknown): DailyRewardEffectKind | null {
   const normalized = readString(value);
   const allowed: DailyRewardEffectKind[] = [
@@ -201,6 +242,8 @@ function readEffectKind(value: unknown): DailyRewardEffectKind | null {
     "wildcard",
     "instant_youth_promotion",
     "custom_staff_recruitment",
+    "construction_time_reduction",
+    "staff_level_boost",
   ];
   return allowed.includes(normalized as DailyRewardEffectKind)
     ? (normalized as DailyRewardEffectKind)

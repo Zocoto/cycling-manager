@@ -98,6 +98,67 @@ describe("DailyRewardsPanel", () => {
     expect(markup).toContain("Signer le junior maintenant");
     expect(markup).toContain("Générer et signer ce staff");
   });
+
+  it("offers only active construction projects and staff below five stars", () => {
+    const overview = createOverview();
+    overview.inventory = [
+      {
+        id: "55555555-5555-4555-8555-555555555555",
+        quantity: 1,
+        key: "precision-architect-tee",
+        name: "Té d’architecte de précision",
+        description: "Accélérateur de chantier.",
+        effectSummary: "Retire 7 jours",
+        importance: 7,
+        effectKind: "construction_time_reduction",
+        iconKey: "architect",
+        payload: { days: 7 },
+        acquiredAt: "2026-08-01T09:00:00.000Z",
+        expiresAfterGameYear: 2,
+      },
+      {
+        id: "66666666-6666-4666-8666-666666666666",
+        quantity: 1,
+        key: "staff-expertise-badge",
+        name: "Insigne d’expertise",
+        description: "Progression du staff.",
+        effectSummary: "+1 étoile",
+        importance: 10,
+        effectKind: "staff_level_boost",
+        iconKey: "staff",
+        payload: {},
+        acquiredAt: "2026-08-01T09:00:00.000Z",
+        expiresAfterGameYear: 2,
+      },
+    ];
+    overview.constructionProjects = [
+      {
+        id: "77777777-7777-4777-8777-777777777777",
+        name: "Soufflerie",
+        targetLevel: 3,
+        remainingDays: 12,
+      },
+    ];
+    overview.staffMembers = [
+      {
+        contractId: "88888888-8888-4888-8888-888888888888",
+        name: "Anna Martin",
+        roleLabel: "Architecte",
+        level: 4,
+      },
+    ];
+
+    const markup = renderToStaticMarkup(
+      <DailyRewardsPanel overview={overview} />,
+    );
+
+    expect(markup).toContain('name="constructionProjectId"');
+    expect(markup).toContain("Soufflerie · niveau 3 · 12 jours restants");
+    expect(markup).toContain("Accélérer ce chantier");
+    expect(markup).toContain('name="staffContractId"');
+    expect(markup).toContain("Anna Martin · Architecte · 4★ → 5★");
+    expect(markup).toContain("Attribuer l’étoile");
+  });
 });
 
 function createOverview(): DailyRewardOverview {
@@ -160,5 +221,7 @@ function createOverview(): DailyRewardOverview {
     abilities: [],
     academyRiders: [],
     countries: [],
+    constructionProjects: [],
+    staffMembers: [],
   };
 }
