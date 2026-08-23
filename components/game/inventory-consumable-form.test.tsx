@@ -74,6 +74,7 @@ describe("InventoryConsumableForm", () => {
         category="special_ability"
         availableQuantity={0}
         effectPayload={{ abilityCode: "panache" }}
+        effectSummary="Débloque Panache."
         riders={riders}
       />
     );
@@ -82,6 +83,10 @@ describe("InventoryConsumableForm", () => {
     expect(markup).toMatch(/<button[^>]*\sdisabled=""/);
     expect(markup).toContain("D\u00e9j\u00e0 acquise");
     expect(markup).toContain("Non acquise");
+    expect(markup).toContain("Capacité attribuée · Panache");
+    expect(markup).toContain("Augmente fortement les chances");
+    expect(markup).toContain("contre-attaques audacieuses");
+    expect(markup).not.toContain("Débloque Panache.");
     expect(markup).toContain('name="quantity" value="1"');
   });
 });

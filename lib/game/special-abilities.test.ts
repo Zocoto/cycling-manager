@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   RIDER_SPECIAL_ABILITIES,
   SPECIAL_ABILITY_CATALOG,
+  getSpecialAbilityDefinition,
   hasSpecialAbility,
   isRiderSpecialAbility,
 } from "./special-abilities";
@@ -34,6 +35,11 @@ describe("special abilities", () => {
   });
 
   it("reconnaît une capacité historique ou une capacité parmi plusieurs", () => {
+    expect(getSpecialAbilityDefinition(" panache ")?.name).toBe("Panache");
+    expect(getSpecialAbilityDefinition("panache")?.effect).toContain(
+      "échappée",
+    );
+    expect(getSpecialAbilityDefinition("unknown_ability")).toBeNull();
     expect(
       hasSpecialAbility({ specialAbility: "flahute" }, "flahute")
     ).toBe(true);

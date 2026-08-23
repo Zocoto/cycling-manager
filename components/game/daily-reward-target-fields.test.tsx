@@ -74,7 +74,9 @@ describe("DailyRewardTargetFields", () => {
     );
 
     expect(markup).toContain("Choisir une capacité");
-    expect(markup).toContain("Panache · Audace");
+    expect(markup).toContain("Panache · Augmente fortement les chances");
+    expect(markup).toContain("contre-attaques audacieuses");
+    expect(markup).not.toContain("Panache · Audace");
     expect(markup).toContain("Choisir d’abord une capacité");
   });
 });

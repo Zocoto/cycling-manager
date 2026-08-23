@@ -35,6 +35,7 @@ import type {
   DailyRewardRace,
   DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
+import { getSpecialAbilityDefinition } from "@/lib/game/special-abilities";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -394,6 +395,10 @@ function InventoryItemCard({
   const category = getInventoryCategory(item.category);
   const managementReward =
     item.dailyReward ?? buildDailyRewardFromInventory(item);
+  const specialAbility =
+    item.category === "special_ability"
+      ? getSpecialAbilityDefinition(item.effectPayload?.abilityCode)
+      : null;
 
   return (
     <article
@@ -448,10 +453,10 @@ function InventoryItemCard({
         </p>
         <div className="mt-4 rounded-xl border border-[#42B99A]/20 bg-[#EAF5F3] px-4 py-3">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
-            Effet
+            {specialAbility ? `Effet de ${specialAbility.name}` : "Effet"}
           </p>
           <p className="mt-1 text-sm font-black leading-5 text-[#183F37]">
-            {item.effectSummary}
+            {specialAbility?.effect ?? item.effectSummary}
           </p>
         </div>
 
@@ -521,6 +526,7 @@ function InventoryItemCard({
             category={item.category}
             availableQuantity={item.availableQuantity}
             effectPayload={item.effectPayload}
+            effectSummary={item.effectSummary}
             riders={riders}
             returnPath={returnPath}
           />

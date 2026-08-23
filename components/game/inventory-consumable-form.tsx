@@ -11,12 +11,14 @@ import {
   readItemTargetRatingKey,
   type ItemTargetValueContext,
 } from "@/lib/game/item-target-values";
+import { getSpecialAbilityDefinition } from "@/lib/game/special-abilities";
 
 type InventoryConsumableFormProps = {
   inventoryItemId: string;
   category: AssignableInventoryCategory;
   availableQuantity: number;
   effectPayload?: Record<string, unknown>;
+  effectSummary?: string;
   riders: InventoryRiderOption[];
   returnPath?: string;
 };
@@ -26,6 +28,7 @@ export function InventoryConsumableForm({
   category,
   availableQuantity,
   effectPayload = {},
+  effectSummary = "",
   riders,
   returnPath,
 }: InventoryConsumableFormProps) {
@@ -34,6 +37,10 @@ export function InventoryConsumableForm({
   const quantityId = `inventory-consumable-quantity-${inventoryItemId}`;
   const targetContext = getInventoryTargetContext(category, effectPayload);
   const stackable = isStackableInventoryCategory(category);
+  const specialAbility =
+    category === "special_ability"
+      ? getSpecialAbilityDefinition(effectPayload.abilityCode)
+      : null;
 
   return (
     <form
@@ -43,6 +50,19 @@ export function InventoryConsumableForm({
       <input type="hidden" name="inventoryItemId" value={inventoryItemId} />
       <input type="hidden" name="category" value={category} />
       <input type="hidden" name="returnPath" value={returnPath ?? `/jeu/inventaire?categorie=${category}`} />
+
+      {category === "special_ability" ? (
+        <div className="mb-4 rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-3 text-[#5F4B0D]">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em]">
+            Capacité attribuée{specialAbility ? ` · ${specialAbility.name}` : ""}
+          </p>
+          <p className="mt-1 text-xs font-bold leading-5">
+            {specialAbility?.effect ||
+              effectSummary ||
+              "Cette capacité restera acquise au coureur pendant toute sa carrière."}
+          </p>
+        </div>
+      ) : null}
 
       <label
         htmlFor={selectId}

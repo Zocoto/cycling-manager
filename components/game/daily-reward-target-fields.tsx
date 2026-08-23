@@ -14,6 +14,7 @@ import {
   readItemTargetRatingKey,
   type ItemTargetValueContext,
 } from "@/lib/game/item-target-values";
+import { getSpecialAbilityDefinition } from "@/lib/game/special-abilities";
 
 export function DailyRewardTargetFields({
   item,
@@ -33,6 +34,10 @@ export function DailyRewardTargetFields({
     (item.effectKind === "rating_boost" && !ratingKey) ||
     (item.effectKind === "special_ability" && !abilityCode);
   const context = getTargetContext(item, ratingKey, abilityCode);
+  const selectedAbility = abilities.find(
+    (ability) => ability.code === abilityCode,
+  );
+  const selectedAbilityDefinition = getSpecialAbilityDefinition(abilityCode);
 
   return (
     <>
@@ -68,12 +73,32 @@ export function DailyRewardTargetFields({
           }}
         >
           <option value="">Choisir une capacité</option>
-          {abilities.map((ability) => (
-            <option key={ability.code} value={ability.code}>
-              {ability.name} · {ability.effectSummary}
-            </option>
-          ))}
+          {abilities.map((ability) => {
+            const definition = getSpecialAbilityDefinition(ability.code);
+            return (
+              <option key={ability.code} value={ability.code}>
+                {definition?.name ?? ability.name} ·{" "}
+                {definition?.effect ?? ability.effectSummary}
+              </option>
+            );
+          })}
         </SelectField>
+      ) : null}
+
+      {item.effectKind === "special_ability" && selectedAbility ? (
+        <div
+          aria-live="polite"
+          className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-3 text-[#5F4B0D]"
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.16em]">
+            Effet de {selectedAbilityDefinition?.name ?? selectedAbility.name}
+          </p>
+          <p className="mt-1 text-xs font-bold leading-5">
+            {selectedAbilityDefinition?.effect ||
+              selectedAbility.effectSummary ||
+              "Effet détaillé indisponible."}
+          </p>
+        </div>
       ) : null}
 
       {needsRider ? (

@@ -121,6 +121,17 @@ export function isRiderSpecialAbility(
   return (RIDER_SPECIAL_ABILITIES as readonly string[]).includes(value);
 }
 
+export function getSpecialAbilityDefinition(
+  value: unknown,
+): SpecialAbilityDefinition | null {
+  if (typeof value !== "string") return null;
+  const code = value.trim();
+  if (!isRiderSpecialAbility(code)) return null;
+  return (
+    SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === code) ?? null
+  );
+}
+
 export function hasSpecialAbility(
   rider: {
     specialAbility?: RiderSpecialAbility | null;
