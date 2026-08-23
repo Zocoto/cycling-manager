@@ -55,15 +55,18 @@ describe("mise en page mobile de la fiche coureur", () => {
     );
   });
 
-  it("place le contrat dans la colonne latérale et replie l’historique sur toute la largeur", () => {
+  it("équilibre les tuiles visibles et place la gestion sous le profil sportif", () => {
     expect(riderPage).toContain(
-      'className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"',
+      'className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]"',
+    );
+    expect(riderPage).toContain(
+      '<aside className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">',
     );
     expect(riderPage).toMatch(
       /data-tutorial-id="rider-profile-naturalization"[\s\S]*data-tutorial-id="rider-profile-contract"/,
     );
-    expect(riderPage).toMatch(
-      /data-tutorial-id="rider-profile-contract"\s+className="min-w-0 space-y-5"/,
+    expect(riderPage).toContain(
+      'className="grid min-w-0 gap-5 lg:grid-cols-2 xl:col-span-2"',
     );
     expect(riderPage).toContain('title="Palmarès et historique"');
     expect(riderPage).toContain('tutorialId="rider-profile-history"');

@@ -487,7 +487,7 @@ export default async function RiderProfilePage({
           </div>
         </header>
 
-        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
+        <div className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">
           <section
             data-tutorial-id="rider-profile-stats"
             className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
@@ -514,14 +514,7 @@ export default async function RiderProfilePage({
             )}
           </section>
 
-          <aside className="space-y-5">
-            <Suspense fallback={<SidebarManagementSkeleton />}>
-              <RiderManagementCards
-                profile={profile}
-                viewerAuthUserId={user.id}
-                fullName={fullName}
-              />
-            </Suspense>
+          <aside className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
             {profile.medical ? (
               <RiderMedicalCard medical={profile.medical} />
             ) : null}
@@ -538,6 +531,14 @@ export default async function RiderProfilePage({
             </div>
           </aside>
         </div>
+
+        <Suspense fallback={<SidebarManagementSkeleton />}>
+          <RiderManagementCards
+            profile={profile}
+            viewerAuthUserId={user.id}
+            fullName={fullName}
+          />
+        </Suspense>
 
         {profile.canManage && profile.activeSeason ? (
           <DeferredRiderProgression
@@ -601,7 +602,7 @@ async function RiderManagementCards({
   ]);
 
   return (
-    <>
+    <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-2">
       {shouldDisplayNaturalizationCard(naturalizationEligibility) ? (
         <div data-tutorial-id="rider-profile-naturalization">
           <NaturalizationCard
@@ -616,7 +617,7 @@ async function RiderManagementCards({
       {profile.privateContract ? (
         <div
           data-tutorial-id="rider-profile-contract"
-          className="min-w-0 space-y-5"
+          className="grid min-w-0 gap-5 lg:grid-cols-2 xl:col-span-2"
         >
           {transferManagement ? (
             <>
@@ -637,7 +638,7 @@ async function RiderManagementCards({
       ) : transferManagement?.isFreeAgent ? (
         <div
           data-tutorial-id="rider-profile-contract"
-          className="min-w-0 space-y-5"
+          className="min-w-0 xl:col-span-2"
         >
           <FreeAgentSigningCard
             riderId={profile.id}
@@ -647,7 +648,7 @@ async function RiderManagementCards({
       ) : (
         <div
           data-tutorial-id="rider-profile-contract"
-          className="min-w-0 space-y-5"
+          className="grid min-w-0 gap-5 lg:grid-cols-2 xl:col-span-2"
         >
           <CareerSummaryCard
             teamName={profile.currentTeam?.displayName ?? "Agent libre"}
@@ -666,7 +667,7 @@ async function RiderManagementCards({
           ) : null}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -756,7 +757,7 @@ function SidebarManagementSkeleton() {
   return (
     <div
       aria-label="Chargement de la gestion du coureur"
-      className="h-32 animate-pulse rounded-2xl border border-[#315B3E]/10 bg-white"
+      className="mt-5 h-32 animate-pulse rounded-2xl border border-[#315B3E]/10 bg-white"
     />
   );
 }
