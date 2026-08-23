@@ -19,4 +19,17 @@ describe("team profile mobile layout", () => {
       "shrink-0 font-black text-[var(--team-secondary)]",
     );
   });
+
+  it("starts the team directory and profile queries in the same parallel batch", () => {
+    const queryBlock = teamProfilePage.slice(
+      teamProfilePage.indexOf("const [\n    team,"),
+      teamProfilePage.indexOf("if (!team)"),
+    );
+
+    expect(queryBlock).toContain("await Promise.all([");
+    expect(queryBlock.match(/\bawait\b/g)).toHaveLength(1);
+    expect(queryBlock).toContain("getPublicTeam(supabase, identifiant)");
+    expect(queryBlock).toContain("getPublicTeamProfileHistory(identifiant)");
+    expect(queryBlock).toContain("getTeamRankingEntry(identifiant)");
+  });
 });

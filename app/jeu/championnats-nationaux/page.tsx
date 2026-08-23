@@ -37,15 +37,14 @@ export default async function NationalChampionshipsPage({
   if (authenticationError || !user) redirect("/connexion");
 
   const now = new Date();
-  await syncNationalChampionshipRegistrations(now).catch((error: unknown) => {
-    console.error("Impossible de synchroniser les sélections CN :", error);
-  });
-
   const [headerData, calendar] = await Promise.all([
     getGameHeaderData(supabase, user.id),
     getActiveSeasonRaceCalendar(supabase, now, {
       includeCancelledEditions: true,
       includeEngagedRiders: false,
+    }),
+    syncNationalChampionshipRegistrations(now).catch((error: unknown) => {
+      console.error("Impossible de synchroniser les sélections CN :", error);
     }),
   ]);
   if (!calendar) redirect("/jeu");

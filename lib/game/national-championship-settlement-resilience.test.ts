@@ -88,4 +88,17 @@ describe("national championship settlement resilience", () => {
     expect(directory).not.toContain("syncNationalChampionshipRegistrations");
     expect(stage).not.toContain("syncNationalChampionshipRegistrations");
   });
+
+  it("overlaps directory synchronization with championship page reads", () => {
+    const page = readSource("app/jeu/championnats-nationaux/page.tsx");
+    const parallelBlock = page.slice(
+      page.indexOf("const [headerData, calendar]"),
+      page.indexOf("if (!calendar)"),
+    );
+
+    expect(parallelBlock).toContain("await Promise.all([");
+    expect(parallelBlock).toContain("getActiveSeasonRaceCalendar");
+    expect(parallelBlock).toContain("syncNationalChampionshipRegistrations");
+    expect(parallelBlock.match(/\bawait\b/g)).toHaveLength(1);
+  });
 });

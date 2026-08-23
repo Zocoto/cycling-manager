@@ -571,29 +571,31 @@ export async function getActiveSeasonRaceCalendar(
   now = new Date(),
   options: ActiveSeasonCalendarLoadOptions = {},
 ): Promise<SeasonRaceCalendar | null> {
-  const { error: wildcardSettlementError } = await supabase.rpc(
-    "settle_due_elite_wildcards",
-  );
+  const [wildcardSettlementResult, seasonResult] = await Promise.all([
+    supabase.rpc("settle_due_elite_wildcards"),
+    supabase
+      .from("seasons")
+      .select(
+        `
+          id,
+          game_year,
+          name,
+          starts_on,
+          ends_on,
+          current_day_number
+        `,
+      )
+      .eq("status", "active")
+      .maybeSingle<SeasonRow>(),
+  ]);
+  const { error: wildcardSettlementError } = wildcardSettlementResult;
   if (wildcardSettlementError) {
     throw new Error(
       `Impossible d'arbitrer les Wild Cards Elite : ${wildcardSettlementError.message}`,
     );
   }
 
-  const { data: season, error: seasonError } = await supabase
-    .from("seasons")
-    .select(
-      `
-        id,
-        game_year,
-        name,
-        starts_on,
-        ends_on,
-        current_day_number
-      `,
-    )
-    .eq("status", "active")
-    .maybeSingle<SeasonRow>();
+  const { data: season, error: seasonError } = seasonResult;
 
   if (seasonError) {
     throw new Error(
@@ -622,6 +624,8 @@ export async function getActiveSeasonRaceCalendar(
   if (options.raceSlug && !scopedRaceResult?.data) {
     return null;
   }
+
+  const includeEngagedRiders = options.includeEngagedRiders !== false;
 
   const fetchEditionsPage = async (from: number, to: number) => {
     let editionsQuery = supabase
@@ -664,6 +668,7 @@ export async function getActiveSeasonRaceCalendar(
     registrationsResult,
     sponsorObjectivesResult,
     regionalRaceContextResult,
+    earlyEngagedCountsResult,
   ] = await Promise.all([
     supabase
       .from("season_days")
@@ -683,6 +688,19 @@ export async function getActiveSeasonRaceCalendar(
     options.includeIneligibleRegionalRaces
       ? Promise.resolve({ data: null, error: null })
       : supabase.rpc("get_current_team_regional_race_context"),
+    includeEngagedRiders
+      ? Promise.resolve(null)
+      : collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
+          fetchPage: async (from, to) => {
+            const result = await supabase
+              .rpc("get_active_calendar_engaged_counts")
+              .range(from, to);
+            return {
+              data: result.data as CalendarEngagedCountRow[] | null,
+              error: result.error,
+            };
+          },
+        }),
   ]);
 
   if (daysResult.error) {
@@ -715,7 +733,6 @@ export async function getActiveSeasonRaceCalendar(
 
   const editionRows = editionsResult.data ?? [];
   const editionIds = editionRows.map((edition) => edition.id);
-  const includeEngagedRiders = options.includeEngagedRiders !== false;
   const sponsorObjectiveEditionIds = new Set(
     (
       (sponsorObjectivesResult.data as SponsorObjectiveRaceRow[] | null) ?? []
@@ -766,19 +783,7 @@ export async function getActiveSeasonRaceCalendar(
           },
         })
       : null;
-  const engagedCountsResult = includeEngagedRiders
-    ? null
-    : await collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
-        fetchPage: async (from, to) => {
-          const result = await supabase
-            .rpc("get_active_calendar_engaged_counts")
-            .range(from, to);
-          return {
-            data: result.data as CalendarEngagedCountRow[] | null,
-            error: result.error,
-          };
-        },
-      });
+  const engagedCountsResult = earlyEngagedCountsResult;
 
   if (engagedRidersResult?.error) {
     throw new Error(

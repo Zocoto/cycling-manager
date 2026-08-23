@@ -30,6 +30,21 @@ describe("roster contract management tab", () => {
     expect(page).not.toContain("rider.contract_end_season_name");
   });
 
+  it("loads roster enrichments in parallel without the obsolete dashboard summary", () => {
+    const enrichmentBlock = page.slice(
+      page.indexOf("const riderIds"),
+      page.indexOf("const equipmentRatingBonusesByRiderId"),
+    );
+
+    expect(page).not.toContain("get_current_team_dashboard_summary");
+    expect(enrichmentBlock).toContain("await Promise.all([");
+    expect(enrichmentBlock.match(/\bawait\b/g)).toHaveLength(1);
+    expect(enrichmentBlock).toContain("getActiveNationalChampionshipTitlesForRiders");
+    expect(enrichmentBlock).toContain("getActiveContinentalChampionshipTitlesForRiders");
+    expect(enrichmentBlock).toContain("getActiveWorldChampionshipTitlesForRiders");
+    expect(enrichmentBlock).toContain("getRiderEquipmentEffectsByRiderId");
+  });
+
   it("shows the bulk decision and every contract state", () => {
     expect(component).toContain("Prolongation groupée");
     expect(component).toContain("Prolonger les ${overview.eligibleCount} contrats");

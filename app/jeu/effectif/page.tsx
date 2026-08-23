@@ -69,15 +69,6 @@ export const metadata: Metadata = {
   description: "Consultez les coureurs de votre équipe dans Cyclostratège.",
 };
 
-type CurrentTeamDashboardSummary = {
-  team_id: string;
-  team_name: string;
-  rider_count: number;
-  season_id: string;
-  season_name: string;
-  season_day_number: number;
-};
-
 type RiderRow = {
   rider_id: string;
   first_name: string;
@@ -267,7 +258,6 @@ export default async function TeamRosterPage({
     });
 
   const [
-    teamSummaryResult,
     rosterResult,
     planningOverview,
     contractOverview,
@@ -276,9 +266,6 @@ export default async function TeamRosterPage({
     healthOverview,
     rosterTutorialProgress,
   ] = await Promise.all([
-    supabase
-      .rpc("get_current_team_dashboard_summary")
-      .maybeSingle<CurrentTeamDashboardSummary>(),
     supabase.rpc("get_current_team_roster_with_potential"),
     activeView === "planning"
       ? getCurrentTeamRiderSeasonPlanning({
@@ -339,15 +326,6 @@ export default async function TeamRosterPage({
     ]),
   );
 
-  if (teamSummaryResult.error) {
-    console.error("Impossible de récupérer le résumé de l’équipe :", {
-      code: teamSummaryResult.error.code,
-      message: teamSummaryResult.error.message,
-      details: teamSummaryResult.error.details,
-      hint: teamSummaryResult.error.hint,
-    });
-  }
-
   if (rosterResult.error) {
     console.error("Impossible de récupérer l’effectif :", {
       code: rosterResult.error.code,
@@ -357,53 +335,52 @@ export default async function TeamRosterPage({
     });
   }
 
-  const teamSummary = (teamSummaryResult.data ??
-    null) as CurrentTeamDashboardSummary | null;
-
   const riders = (rosterResult.data ?? []) as RiderRow[];
-  const activeNationalTitlesByRiderId =
-    await getActiveNationalChampionshipTitlesForRiders(
+  const riderIds = riders.map((rider) => rider.rider_id);
+  const [
+    activeNationalTitlesByRiderId,
+    activeContinentalTitlesByRiderId,
+    activeWorldTitlesByRiderId,
+    riderEquipmentEffectsByRiderId,
+  ] = await Promise.all([
+    getActiveNationalChampionshipTitlesForRiders(
       supabase,
-      riders.map((rider) => rider.rider_id),
+      riderIds,
     ).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer les maillots de champions nationaux de l’effectif :",
         error,
       );
       return new Map();
-    });
-  const activeContinentalTitlesByRiderId =
-    await getActiveContinentalChampionshipTitlesForRiders(
+    }),
+    getActiveContinentalChampionshipTitlesForRiders(
       supabase,
-      riders.map((rider) => rider.rider_id),
+      riderIds,
     ).catch((error: unknown) => {
       console.error(
         "Impossible de recuperer les maillots de champions continentaux de l'effectif :",
         error,
       );
       return new Map();
-    });
-  const activeWorldTitlesByRiderId =
-    await getActiveWorldChampionshipTitlesForRiders(
+    }),
+    getActiveWorldChampionshipTitlesForRiders(
       supabase,
-      riders.map((rider) => rider.rider_id),
+      riderIds,
     ).catch((error: unknown) => {
       console.error(
         "Impossible de recuperer les maillots de champions du monde de l''effectif :",
         error,
       );
       return new Map();
-    });
-  const riderEquipmentEffectsByRiderId =
-    await getRiderEquipmentEffectsByRiderId(
-      riders.map((rider) => rider.rider_id),
-    ).catch((error: unknown) => {
+    }),
+    getRiderEquipmentEffectsByRiderId(riderIds).catch((error: unknown) => {
       console.error(
         "Impossible de récupérer les bonus d’équipement de l’effectif :",
         error,
       );
       return new Map();
-    });
+    }),
+  ]);
   const equipmentRatingBonusesByRiderId = new Map(
     [...riderEquipmentEffectsByRiderId].map(([riderId, effects]) => [
       riderId,
@@ -453,7 +430,6 @@ export default async function TeamRosterPage({
   const commercialTeamName =
     teamSponsorIdentity?.teamName ??
     teamAmateurIdentity?.amateurName ??
-    teamSummary?.team_name ??
     "Votre équipe";
   const riderJersey = teamSponsorIdentity
     ? createSponsoredRiderJersey({

@@ -60,16 +60,9 @@ export default async function PublicTeamPage({
     redirect("/connexion");
   }
 
-  const [team, headerData] = await Promise.all([
-    getPublicTeam(supabase, identifiant),
-    getGameHeaderData(supabase, user.id),
-  ]);
-
-  if (!team) {
-    notFound();
-  }
-
   const [
+    team,
+    headerData,
     amateurIdentity,
     sponsorIdentity,
     riders,
@@ -78,14 +71,20 @@ export default async function PublicTeamPage({
     seasonHistory,
     teamRanking,
   ] = await Promise.all([
-    getTeamAmateurIdentity(team.public_identifier),
-    getActiveTeamSponsorIdentity(team.public_identifier),
-    getPublicTeamRiders(team.public_identifier),
-    getPublicDevelopmentTeam(team.public_identifier),
-    getPublicTeamRiderHistory(team.public_identifier),
-    getPublicTeamProfileHistory(team.public_identifier),
-    getTeamRankingEntry(team.public_identifier),
+    getPublicTeam(supabase, identifiant),
+    getGameHeaderData(supabase, user.id),
+    getTeamAmateurIdentity(identifiant),
+    getActiveTeamSponsorIdentity(identifiant),
+    getPublicTeamRiders(identifiant),
+    getPublicDevelopmentTeam(identifiant),
+    getPublicTeamRiderHistory(identifiant),
+    getPublicTeamProfileHistory(identifiant),
+    getTeamRankingEntry(identifiant),
   ]);
+
+  if (!team) {
+    notFound();
+  }
   const riderJersey = sponsorIdentity
     ? createSponsoredRiderJersey({
         colors: sponsorIdentity.sponsor.colors,
