@@ -199,4 +199,16 @@ describe("daily staff pool", () => {
       "Récupération passive : +1 point de forme par jour pour chaque coureur",
     ]);
   });
+
+  it("donne aussi aux médecins un effet sur les stages de récupération", () => {
+    expect(
+      describeStaffEffect({
+        role: "doctor",
+        level: 4,
+      }),
+    ).toEqual([
+      "−24 % de temps de récupération après une blessure",
+      "+20 % d’efficacité sur les stages de récupération",
+    ]);
+  });
 });

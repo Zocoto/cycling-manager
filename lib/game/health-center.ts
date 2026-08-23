@@ -43,17 +43,45 @@ export type RaceMedicalOutcome = {
 export const FORM_CAMP_TYPES = {
   classic: {
     label: "Stage classique",
-    formGainPerDay: 5,
+    formGainPerDay: 10,
     pricePerDay: 2_000,
   },
   premium: {
     label: "Stage premium",
-    formGainPerDay: 10,
+    formGainPerDay: 20,
     pricePerDay: 6_000,
   },
 } as const;
 
 export type FormCampType = keyof typeof FORM_CAMP_TYPES;
+
+export const DOCTOR_FORM_CAMP_BOOST_PER_LEVEL = 5;
+export const MAX_DOCTOR_FORM_CAMP_BOOST_PCT = 50;
+
+export function getDoctorFormCampBoostPct(totalDoctorLevel: number) {
+  return clamp(
+    Math.trunc(totalDoctorLevel) * DOCTOR_FORM_CAMP_BOOST_PER_LEVEL,
+    0,
+    MAX_DOCTOR_FORM_CAMP_BOOST_PCT,
+  );
+}
+
+export function getFormCampGainPerDay({
+  type,
+  doctorBoostPct = 0,
+}: {
+  type: FormCampType;
+  doctorBoostPct?: number;
+}) {
+  const baseGain = FORM_CAMP_TYPES[type].formGainPerDay;
+  const safeBoost = clamp(
+    doctorBoostPct,
+    0,
+    MAX_DOCTOR_FORM_CAMP_BOOST_PCT,
+  );
+
+  return Math.round(baseGain * (1 + safeBoost / 100));
+}
 
 export const NUTRITION_INTERVENTIONS = {
   recovery_snack: {
@@ -205,16 +233,19 @@ export function getProtocolRecoveryReductionHours({
 export function getFormCampTotal({
   type,
   durationDays,
+  doctorBoostPct = 0,
 }: {
   type: FormCampType;
   durationDays: number;
+  doctorBoostPct?: number;
 }) {
   const duration = clamp(Math.trunc(durationDays), 1, 3);
   const camp = FORM_CAMP_TYPES[type];
 
   return {
     durationDays: duration,
-    totalFormGain: camp.formGainPerDay * duration,
+    totalFormGain:
+      getFormCampGainPerDay({ type, doctorBoostPct }) * duration,
     totalPrice: camp.pricePerDay * duration,
   };
 }

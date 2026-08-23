@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getDoctorFormCampBoostPct,
+  getFormCampGainPerDay,
   getFormCampTotal,
   getNutritionInterventionOutcome,
   getNutritionistDailyRecoveryBonus,
@@ -97,14 +99,32 @@ describe("health center rules", () => {
   it("calcule le coût et le gain des stages", () => {
     expect(getFormCampTotal({ type: "classic", durationDays: 3 })).toEqual({
       durationDays: 3,
-      totalFormGain: 15,
+      totalFormGain: 30,
       totalPrice: 6_000,
     });
     expect(getFormCampTotal({ type: "premium", durationDays: 2 })).toEqual({
       durationDays: 2,
-      totalFormGain: 20,
+      totalFormGain: 40,
       totalPrice: 12_000,
     });
+  });
+
+  it("renforce les stages de 5 % par niveau cumulé de médecin", () => {
+    expect(getDoctorFormCampBoostPct(3)).toBe(15);
+    expect(getDoctorFormCampBoostPct(14)).toBe(50);
+    expect(
+      getFormCampGainPerDay({ type: "classic", doctorBoostPct: 15 }),
+    ).toBe(12);
+    expect(
+      getFormCampGainPerDay({ type: "premium", doctorBoostPct: 25 }),
+    ).toBe(25);
+    expect(
+      getFormCampTotal({
+        type: "premium",
+        durationDays: 3,
+        doctorBoostPct: 25,
+      }),
+    ).toEqual({ durationDays: 3, totalFormGain: 75, totalPrice: 18_000 });
   });
 
   it("améliore et réduit le prix des interventions nutritionnelles avec le niveau", () => {

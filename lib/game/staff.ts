@@ -424,7 +424,10 @@ export function describeStaffEffect({
       ];
     }
     case "doctor":
-      return [`−${percentage} % de temps de récupération après une blessure`];
+      return [
+        `−${percentage} % de temps de récupération après une blessure`,
+        `+${safeLevel * 5} % d’efficacité sur les stages de récupération`,
+      ];
     case "mechanic":
       return [`−${percentage} % de temps perdu lors d’une avarie technique`];
     case "community_manager":

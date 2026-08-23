@@ -738,8 +738,9 @@ function TeamManagementSection() {
             "Diagnostic et date de reprise",
             "Protocoles médicaux payants",
             "Compléments nutritionnels",
-            "Stages classiques : +5 forme par jour",
-            "Stages premium : +10 forme par jour",
+            "Stages classiques : +10 forme par jour",
+            "Stages premium : +20 forme par jour",
+            "Bonus d’efficacité des médecins et programmation groupée",
           ]}
         />
       </div>

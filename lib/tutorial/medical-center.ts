@@ -1,7 +1,7 @@
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const MEDICAL_CENTER_TUTORIAL_KEY = "medical-center";
-export const MEDICAL_CENTER_TUTORIAL_VERSION = 1;
+export const MEDICAL_CENTER_TUTORIAL_VERSION = 2;
 
 export const MEDICAL_CENTER_TUTORIAL_ROUTES = {
   injuries: "/jeu/centre-de-soin?onglet=blessures",
@@ -68,7 +68,7 @@ export const medicalCenterTutorialDefinition = {
       targetId: "medical-center-form-camps",
       title: "Programmez un stage de remise en forme",
       content:
-        "Un stage classique ou premium commence le lendemain, dure de un à trois jours et rend immédiatement le coureur indisponible sur toute la période. Ses courses et entraînements sont suspendus.\n\nComparez le coût, la durée et le gain annoncé, puis vérifiez le calendrier du coureur : ce levier est puissant pour préparer un objectif, mais une mauvaise date peut lui faire manquer une épreuve.",
+        "Choisissez un stage classique (+10 forme par jour) ou premium (+20), puis sélectionnez librement une plage future de un à trois jours. Le niveau cumulé des médecins améliore encore ces gains.\n\nLe planning en ligne désactive les coureurs occupés par une course, une blessure ou un autre stage. Sélectionnez tous les coureurs libres souhaités, puis validez la programmation et son coût en une seule fois dans la barre flottante.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -118,7 +118,7 @@ export const medicalCenterTutorialDefinition = {
       targetId: "medical-center-staff",
       title: "Contrôlez toute l’équipe médicale",
       content:
-        "Le dernier onglet résume les trois métiers médicaux actifs : les médecins et leur réduction des convalescences, les nutritionnistes et leurs effets de récupération, puis les kinés et leur capacité de suivi.\n\nUtilisez ce bilan pour repérer un métier absent, consulter les effets cumulés et rejoindre rapidement le marché du staff ou l’onglet opérationnel correspondant.",
+        "Le dernier onglet résume les trois métiers médicaux actifs : les médecins, qui réduisent les convalescences et ajoutent 5 % d’efficacité aux stages par niveau, les nutritionnistes et leurs effets de récupération, puis les kinés et leur capacité de suivi.\n\nUtilisez ce bilan pour repérer un métier absent, consulter les effets cumulés et rejoindre rapidement le marché du staff ou l’onglet opérationnel correspondant.",
       placement: "top",
       highlightPadding: 8,
     },

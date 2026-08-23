@@ -36,32 +36,52 @@ export async function applyInjuryProtocolAction(formData: FormData) {
   redirect("/jeu/centre-de-soin?onglet=blessures&soin=confirme");
 }
 
-export async function bookFormCampAction(formData: FormData) {
-  const riderId = readValue(formData, "riderId");
+export async function bookFormCampsAction(formData: FormData) {
+  const riderIds = [
+    ...new Set(
+      formData
+        .getAll("riderIds")
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim()),
+    ),
+  ];
   const campType = readValue(formData, "campType");
-  const durationDays = Number(readValue(formData, "durationDays"));
+  const startDayNumber = Number(readValue(formData, "startDayNumber"));
+  const endDayNumber = Number(readValue(formData, "endDayNumber"));
+  const durationDays = endDayNumber - startDayNumber + 1;
 
   if (
-    !isUuid(riderId) ||
+    riderIds.length < 1 ||
+    riderIds.length > 50 ||
+    riderIds.some((riderId) => !isUuid(riderId)) ||
     !isFormCampType(campType) ||
-    !Number.isInteger(durationDays) ||
+    !Number.isInteger(startDayNumber) ||
+    !Number.isInteger(endDayNumber) ||
+    startDayNumber < 1 ||
+    endDayNumber > 28 ||
     durationDays < 1 ||
     durationDays > 3
   ) {
-    redirectWithError("forme", "La demande de stage est invalide.");
+    redirectWithError("forme", "La sélection de stages est invalide.");
   }
 
   const supabase = await requireAuthenticatedClient();
-  const { error } = await supabase.rpc("book_current_team_form_camp", {
-    p_rider_id: riderId,
+  const { error } = await supabase.rpc("book_current_team_form_camps", {
+    p_rider_ids: riderIds,
     p_camp_type: campType,
-    p_duration_days: durationDays,
+    p_start_day_number: startDayNumber,
+    p_end_day_number: endDayNumber,
   });
 
   if (error) redirectWithError("forme", error.message);
 
   revalidateHealthPaths();
-  redirect("/jeu/centre-de-soin?onglet=forme&stage=confirme");
+  for (const riderId of riderIds) {
+    revalidatePath(`/jeu/coureurs/${riderId}`);
+  }
+  redirect(
+    `/jeu/centre-de-soin?onglet=forme&stage=confirme&nombre=${riderIds.length}`,
+  );
 }
 
 export async function assignPhysiotherapistAction(formData: FormData) {

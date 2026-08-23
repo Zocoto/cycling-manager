@@ -3,6 +3,7 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { FormCampPlanner } from "@/components/game/form-camp-planner";
 import { GameHeader } from "@/components/game/game-header";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
 import { PhysiotherapistAssignmentMatrix } from "@/components/game/physiotherapist-assignment-matrix";
@@ -14,13 +15,13 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import {
-  FORM_CAMP_TYPES,
   NUTRITION_INTERVENTIONS,
+  getDoctorFormCampBoostPct,
   getNutritionInterventionOutcome,
   getProtocolRecoveryReductionHours,
-  type FormCampType,
   type NutritionInterventionCode,
 } from "@/lib/game/health-center";
+import type { TeamRiderSeasonPlanning } from "@/lib/game/rider-season-planning";
 import {
   getNutritionistDailyCapacity,
   getPhysiotherapistRiderCapacity,
@@ -38,6 +39,7 @@ import {
 } from "@/lib/tutorial/medical-center";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getGameHeaderData } from "@/services/game-header-data";
+import { getCurrentTeamRiderSeasonPlanning } from "@/services/rider-season-planning";
 import { getTeamAmateurIdentityForAuthUser } from "@/services/team-amateur-identity";
 import {
   getCurrentTeamHealthOverview,
@@ -45,10 +47,7 @@ import {
   type TeamHealthRider,
   type TeamMedicalStaffMember,
 } from "@/services/team-health";
-import {
-  applyInjuryProtocolAction,
-  bookFormCampAction,
-} from "./actions";
+import { applyInjuryProtocolAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Centre de soin",
@@ -101,7 +100,13 @@ export default async function HealthCenterPage({
   if (authenticationError || !user) redirect("/connexion");
 
   await supabase.rpc("settle_current_team_finances");
-  const [headerData, overview, amateurIdentity, medicalCenterTutorialProgress] =
+  const [
+    headerData,
+    overview,
+    amateurIdentity,
+    medicalCenterTutorialProgress,
+    riderPlanning,
+  ] =
     await Promise.all([
       getGameHeaderData(supabase, user.id),
       getCurrentTeamHealthOverview(user.id),
@@ -116,6 +121,9 @@ export default async function HealthCenterPage({
         );
         return null;
       }),
+      activeTab === "forme"
+        ? getCurrentTeamRiderSeasonPlanning({ authUserId: user.id })
+        : Promise.resolve(null),
     ]);
 
   if (!overview) redirect("/jeu");
@@ -202,7 +210,8 @@ export default async function HealthCenterPage({
         ) : null}
         {readQuery(query.stage) === "confirme" ? (
           <SuccessMessage>
-            Le stage commence demain. Le coureur est désormais indisponible sur toute sa durée.
+            Les stages sont programmés sur la plage choisie. Les coureurs sont
+            désormais indisponibles sur toute leur durée.
           </SuccessMessage>
         ) : null}
         {readQuery(query.affectation) === "confirmee" ? (
@@ -242,7 +251,9 @@ export default async function HealthCenterPage({
           <InjuriesPanel overview={overview} jersey={jersey} />
         ) : null}
         {activeTab === "forme" ? (
-          <FormPanel overview={overview} jersey={jersey} />
+          riderPlanning ? (
+            <FormPanel overview={overview} planning={riderPlanning} />
+          ) : null
         ) : null}
         {activeTab === "nutrition" ? (
           <NutritionPanel overview={overview} jersey={jersey} />
@@ -526,17 +537,22 @@ function InjuryCard({
 
 function FormPanel({
   overview,
-  jersey,
+  planning,
 }: {
   overview: TeamHealthOverview;
-  jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
+  planning: TeamRiderSeasonPlanning;
 }) {
+  const totalDoctorLevel = overview.medicalStaff
+    .filter((member) => member.role === "doctor")
+    .reduce((total, doctor) => total + doctor.level, 0);
+  const doctorBoostPct = getDoctorFormCampBoostPct(totalDoctorLevel);
+
   return (
     <section data-tutorial-id="medical-center-form" className="mt-7">
       <SectionHeading
         eyebrow="Gestion de la forme"
-        title="Repos naturel et stages ciblés"
-        detail="Sans course, blessure ou stage, un coureur récupère automatiquement 2 points par jour. Un stage commence toujours le lendemain et dure de un à trois jours."
+        title="Planning et stages de récupération"
+        detail="Sans course, blessure ou stage, un coureur récupère automatiquement 2 points par jour. Placez librement un stage de un à trois jours sur le calendrier futur, puis validez tous les coureurs disponibles en une seule fois."
       />
 
       <div
@@ -558,119 +574,23 @@ function FormPanel({
         </p>
       </div>
 
-      <div data-tutorial-id="medical-center-form-camps" className="mt-4 grid gap-5 xl:grid-cols-2">
-        {overview.riders.map((rider) => (
-          <FormRiderCard
-            key={rider.id}
-            rider={rider}
-            overview={overview}
-            jersey={jersey}
-          />
-        ))}
+      <div data-tutorial-id="medical-center-form-camps">
+        <FormCampPlanner
+          riders={overview.riders.map((rider) => ({
+            id: rider.id,
+            firstName: rider.firstName,
+            lastName: rider.lastName,
+            countryName: rider.countryName,
+            countryCode: rider.countryCode,
+            form: rider.form,
+          }))}
+          planning={planning}
+          balance={overview.balance}
+          currency={overview.currency}
+          doctorBoostPct={doctorBoostPct}
+        />
       </div>
     </section>
-  );
-}
-
-function FormRiderCard({
-  rider,
-  overview,
-  jersey,
-}: {
-  rider: TeamHealthRider;
-  overview: TeamHealthOverview;
-  jersey: Parameters<typeof RiderAvatar>[0]["jersey"];
-}) {
-  const unavailable = Boolean(rider.injury || rider.formCamp);
-  const cannotSchedule = unavailable || rider.form >= 100 || overview.currentDayNumber >= 28;
-
-  return (
-    <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_40px_rgba(19,60,46,0.07)] sm:p-6">
-      <div className="flex items-center gap-4">
-        <RiderAvatar
-          profileKey={rider.avatarProfileKey}
-          seed={rider.avatarSeed}
-          riderId={rider.id}
-          age={rider.age}
-          jersey={jersey}
-          label={`Portrait de ${rider.firstName} ${rider.lastName}`}
-          className="h-16 w-16"
-        />
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/jeu/coureurs/${rider.id}`}
-            target="_blank"
-            className="truncate text-lg font-black text-[#183F37] hover:text-[#176951]"
-          >
-            {rider.firstName} {rider.lastName} ↗
-          </Link>
-          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#DCE8E3]">
-            <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#D6A93A,#42B99A)]"
-              style={{ width: `${rider.form}%` }}
-            />
-          </div>
-          <p className="mt-1 text-xs font-black text-[#48665F]">
-            Forme {rider.form}/100
-          </p>
-        </div>
-      </div>
-
-      {rider.injury ? (
-        <AvailabilityNotice tone="danger">
-          {rider.injury.label} · retour le {formatDateTime(rider.injury.expectedRecoveryAt)}
-        </AvailabilityNotice>
-      ) : rider.formCamp ? (
-        <AvailabilityNotice tone="warning">
-          {rider.formCamp.label} · J{rider.formCamp.startDay}–J{rider.formCamp.endDay} · +{rider.formCamp.formGainPerDay}/jour
-        </AvailabilityNotice>
-      ) : (
-        <AvailabilityNotice tone="success">
-          Disponible · récupération naturelle de +2 lors d’une journée libre
-        </AvailabilityNotice>
-      )}
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {(Object.keys(FORM_CAMP_TYPES) as FormCampType[]).map((type) => {
-          const camp = FORM_CAMP_TYPES[type];
-          return (
-            <form
-              key={type}
-              action={bookFormCampAction}
-              className="rounded-2xl border border-[#315B3E]/12 bg-[#F7FAF8] p-4"
-            >
-              <input type="hidden" name="riderId" value={rider.id} />
-              <input type="hidden" name="campType" value={type} />
-              <p className="font-black text-[#183F37]">{camp.label}</p>
-              <p className="mt-1 text-xs font-bold text-[#278B70]">
-                +{camp.formGainPerDay} forme/jour · {formatCurrency(camp.pricePerDay, overview.currency)}/jour
-              </p>
-              <label className="mt-3 block text-[10px] font-black uppercase tracking-wider text-[#60756E]">
-                Durée
-                <select
-                  name="durationDays"
-                  defaultValue="1"
-                  disabled={cannotSchedule}
-                  className="mt-1 min-h-10 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-black text-[#183F37] outline-none focus:border-[#278B70]"
-                >
-                  <option value="1">1 jour</option>
-                  <option value="2">2 jours</option>
-                  <option value="3">3 jours</option>
-                </select>
-              </label>
-              <div className="mt-3">
-                <HealthCenterSubmitButton
-                  pendingLabel="Planification…"
-                  disabled={cannotSchedule || overview.balance < camp.pricePerDay}
-                >
-                  Programmer
-                </HealthCenterSubmitButton>
-              </div>
-            </form>
-          );
-        })}
-      </div>
-    </article>
   );
 }
 
@@ -902,7 +822,7 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
       <SectionHeading
         eyebrow="Équipe médicale"
         title="Tous les spécialistes médicaux de l’équipe"
-        detail="Le médecin raccourcit les nouvelles blessures, le nutritionniste soutient la récupération et le kiné protège la forme des coureurs qui lui sont affectés."
+        detail="Le médecin raccourcit les nouvelles blessures et renforce les stages de récupération, le nutritionniste soutient la récupération quotidienne et le kiné protège la forme des coureurs qui lui sont affectés."
       />
 
       {doctors.length === 0 &&
@@ -954,6 +874,10 @@ function MedicalStaffPanel({ overview }: { overview: TeamHealthOverview }) {
                       {
                         label: "Traitement des blessures",
                         description: `−${doctor.level * 6} % sur la durée initiale de toute nouvelle blessure`,
+                      },
+                      {
+                        label: "Efficacité des stages de récupération",
+                        description: `+${doctor.level * 5} % sur les gains de forme des stages classiques et premium`,
                       },
                     ]}
                   />
@@ -1295,25 +1219,6 @@ function MedicalMetric({ label, value }: { label: string; value: string }) {
       </dt>
       <dd className="mt-1 font-black text-[#702E2E]">{value}</dd>
     </div>
-  );
-}
-
-function AvailabilityNotice({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: "success" | "warning" | "danger";
-}) {
-  const classes = {
-    success: "border-[#42B99A]/20 bg-[#DDF3E7] text-[#176951]",
-    warning: "border-[#D29F32]/20 bg-[#FFF6D8] text-[#755A0B]",
-    danger: "border-[#D75D5D]/20 bg-[#FFF0EE] text-[#8A2F2F]",
-  }[tone];
-  return (
-    <p className={`mt-4 rounded-xl border px-4 py-3 text-xs font-black ${classes}`}>
-      {children}
-    </p>
   );
 }
 

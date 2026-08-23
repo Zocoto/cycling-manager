@@ -171,7 +171,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "form-camps": {
         title: "Schedule a form camp",
         content:
-          "A standard or premium camp starts the next day, lasts one to three days and immediately makes the rider unavailable. Races and training are suspended.\n\nCompare cost, duration and gain, then check the rider's calendar before confirming.",
+          "Choose a standard camp (+10 form per day) or premium camp (+20), then select any future range of one to three days. Doctors add another 5% efficiency per combined level.\n\nThe inline schedule disables riders who are racing, injured or already in another camp. Select the available riders you want, then confirm the entire booking and its cost once from the floating bar.",
       },
       "nutrition-overview": {
         title: "Nutrition supports recovery",
@@ -196,7 +196,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "medical-staff-summary": {
         title: "Oversee the whole medical team",
         content:
-          "The final tab summarises doctors and recovery reductions, nutritionists and their recovery effects, then physiotherapists and follow-up capacity.\n\nUse it to spot a missing profession, review combined effects and reach the staff market or the relevant operational tab.",
+          "The final tab summarises doctors, nutritionists and physiotherapists and their combined effects. Doctors now reduce injury recovery and add 5% form-camp efficiency per level.\n\nUse it to spot a missing profession, review combined effects and reach the staff market or the relevant operational tab.",
       },
       complete: {
         title: "Your medical department is ready",
