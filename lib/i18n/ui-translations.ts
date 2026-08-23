@@ -104,7 +104,31 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
   "Objectifs": "Objectives",
   "Philosophie sportive": "Sporting philosophy",
   "Préférence nationale": "National preference",
-  "Formateur": "Youth development",
+  "Formateur": "Staff educator",
+  "Filière formatrice": "Youth development",
+  "Optimise les stages de l’Académie des métiers.":
+    "Optimises Trades Academy courses.",
+  "peuvent être menés en parallèle": "can run simultaneously",
+  "Pédagogie accélérée": "Accelerated teaching",
+  "Double cursus": "Dual course",
+  "Excellence pédagogique": "Teaching excellence",
+  "Formateurs de l’équipe": "Team staff educators",
+  "Aucun formateur actif": "No active staff educator",
+  "· Académie des métiers requise": "· Trades Academy required",
+  "Ajoute une place de formation simultanée à l’Académie des métiers":
+    "Adds one simultaneous course slot to the Trades Academy",
+  "% sur la durée des stages de l’Académie":
+    "% off Trades Academy course duration",
+  "% sur le coût des stages de l’Académie":
+    "% off Trades Academy course cost",
+  "% sur le coût et la durée des stages de l’Académie":
+    "% off Trades Academy course cost and duration",
+  ", bonus du formateur inclus": ", including the staff educator bonus",
+  "Bonus formateur : coût −": "Staff educator bonus: cost −",
+  "Formateur · coût −": "Staff educator · cost −",
+  "· délai −": "· duration −",
+  "Onze métiers, onze leviers de progression":
+    "Eleven professions, eleven development levers",
   "Le sponsor exige une forte majorité de coureurs de son pays. Cet engagement pèse lourd dans sa satisfaction et augmente de 15 % le budget proposé.":
     "The sponsor requires a strong majority of riders from its own country. This commitment weighs heavily on satisfaction and increases the proposed budget by 15%.",
   "Le sponsor privilégie les promotions du Centre de formation, la Dev Team, les victoires juniors et la valorisation de quelques coureurs formés au club.":
@@ -182,8 +206,8 @@ const REVIEWED_TRANSLATIONS: Record<string, string> = {
     "Employ three active staff members who share the team nationality defined by its sponsor.",
   "Réunir six membres actifs du staff ayant la nationalité de l’équipe. Récompense : un Contrat Espoir immédiat.":
     "Employ six active staff members who share the team nationality. Reward: an Instant prospect contract.",
-  "Réunir simultanément les dix métiers de staff. Récompense : un Mandat de recrutement sur mesure.":
-    "Employ all ten staff roles at the same time. Reward: a Custom staff recruitment mandate.",
+  "Réunir simultanément les onze métiers de staff. Récompense : un Mandat de recrutement sur mesure.":
+    "Employ all eleven staff roles at the same time. Reward: a Custom staff recruitment mandate.",
   "Accueillir dix juniors au centre de formation. Récompense : un Contrat Espoir immédiat.":
     "Recruit ten juniors to the youth development centre. Reward: an Instant prospect contract.",
   "Promouvoir dix juniors dans l’effectif professionnel. Récompense : un Mandat de recrutement sur mesure.":

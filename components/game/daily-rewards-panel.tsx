@@ -274,6 +274,7 @@ function InventoryRewardCard({
         eligibleRaces={overview.eligibleRaces}
         academyRiders={overview.academyRiders}
         countries={overview.countries}
+        staffAcademyBuilt={overview.staffAcademyBuilt}
         constructionProjects={overview.constructionProjects}
         staffMembers={overview.staffMembers}
       />

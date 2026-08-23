@@ -93,10 +93,21 @@ describe("DailyRewardsPanel", () => {
     expect(markup).toContain('name="academyRiderId"');
     expect(markup).toContain("Lina Martin · 17 ans");
     expect(markup).toContain('name="staffRole"');
+    expect(markup).toContain(
+      '<option value="educator" disabled="">Formateur · Académie des métiers requise</option>',
+    );
     expect(markup).toContain('name="countryId"');
     expect(markup).toContain("exactement 20");
     expect(markup).toContain("Signer le junior maintenant");
     expect(markup).toContain("Générer et signer ce staff");
+
+    overview.staffAcademyBuilt = true;
+    const unlockedMarkup = renderToStaticMarkup(
+      <DailyRewardsPanel overview={overview} />,
+    );
+    expect(unlockedMarkup).toContain(
+      '<option value="educator">Formateur</option>',
+    );
   });
 
   it("offers only active construction projects and staff below five stars", () => {
@@ -221,6 +232,7 @@ function createOverview(): DailyRewardOverview {
     abilities: [],
     academyRiders: [],
     countries: [],
+    staffAcademyBuilt: false,
     constructionProjects: [],
     staffMembers: [],
   };

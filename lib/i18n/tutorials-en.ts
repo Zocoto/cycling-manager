@@ -405,9 +405,9 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
           "Filter by profession, level, nationality or coach speciality. Recruited profiles disappear immediately. Combine filters and Reset to see all remaining profiles.\n\nLevels range from 1 to 5: higher levels have stronger effects, salaries and signing fees.",
       },
       "staff-professions": {
-        title: "Ten professions, ten development levers",
+        title: "Eleven professions, eleven development levers",
         content:
-          "Coaches improve training; scouts youth detection; doctors injury recovery; physiotherapists form protection; nutritionists recovery; mechanics mechanical-loss protection.\n\nRoute specialists improve reconnaissance, architects reduce infrastructure cost and time, community managers increase reputation gains and R&D engineers improve laboratory prototypes. Read every profile: two people in the same profession may provide different value.",
+          "Coaches improve rider training; scouts youth detection; doctors injury recovery; physiotherapists form protection; nutritionists recovery; mechanics mechanical-loss protection.\n\nRoute specialists improve reconnaissance, architects reduce infrastructure cost and time, community managers increase reputation gains, R&D engineers improve laboratory prototypes and staff educators optimise Trades Academy courses. Staff educators can only be recruited after that building has been constructed. Read every profile: two people in the same profession may provide different value.",
       },
       "staff-team": {
         title: "Manage active effects",

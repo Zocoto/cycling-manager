@@ -63,6 +63,12 @@ export const STAFF_TALENTS_BY_ROLE = {
     "doctor_injury_form_loss",
   ],
   research_engineer: ["research_time", "research_cost", "research_success"],
+  educator: [
+    "educator_training_time",
+    "educator_training_cost",
+    "educator_parallel_training",
+    "educator_training_effectiveness",
+  ],
 } as const satisfies Record<StaffRole, readonly string[]>;
 
 export type StaffTalentCode = (typeof STAFF_TALENTS_BY_ROLE)[StaffRole][number];
@@ -291,6 +297,31 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Validation expérimentale",
     description: (level) =>
       `+${percentage(level, 3)} points sur la probabilité de réussite R&D`,
+  },
+  educator_training_time: {
+    role: "educator",
+    label: "Pédagogie accélérée",
+    description: (level) =>
+      `−${percentage(level, 3)} % sur la durée des stages de l’Académie`,
+  },
+  educator_training_cost: {
+    role: "educator",
+    label: "Réseau de formation",
+    description: (level) =>
+      `−${percentage(level, 4)} % sur le coût des stages de l’Académie`,
+  },
+  educator_parallel_training: {
+    role: "educator",
+    label: "Double cursus",
+    minimumLevel: 3,
+    description: () =>
+      "Ajoute une place de formation simultanée à l’Académie des métiers",
+  },
+  educator_training_effectiveness: {
+    role: "educator",
+    label: "Excellence pédagogique",
+    description: (level) =>
+      `−${percentage(level, 5)} % sur le coût et la durée des stages de l’Académie`,
   },
 };
 

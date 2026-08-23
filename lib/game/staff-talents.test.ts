@@ -120,6 +120,28 @@ describe("staff talents", () => {
     );
   });
 
+  it("réserve le Double cursus aux formateurs de niveau 3 minimum", () => {
+    for (let roll = 0; roll < 20; roll += 1) {
+      expect(
+        selectInitialStaffTalent({
+          role: "educator",
+          staffLevel: 2,
+          roll,
+        }),
+      ).not.toBe("educator_parallel_training");
+    }
+
+    expect(
+      Array.from({ length: 20 }, (_, roll) =>
+        selectInitialStaffTalent({
+          role: "educator",
+          staffLevel: 3,
+          roll,
+        }),
+      ),
+    ).toContain("educator_parallel_training");
+  });
+
   it("présente les talents du nutritionniste comme des bonus supplémentaires", () => {
     expect(describeStaffTalent("nutrition_daily_form", 5)).toContain(
       "supplémentaire pour chaque coureur",

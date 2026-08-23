@@ -183,6 +183,7 @@ export type TeamStaffOverview = {
   marketDate: string;
   marketTotalCount: number;
   marketAvailableCount: number;
+  staffAcademyLevel: number;
   marketListings: StaffMarketListing[];
   teamStaff: TeamStaffMember[];
   countries: Array<{ name: string; code: string }>;
@@ -218,6 +219,7 @@ export async function getTeamStaffOverview(
     transactionsResult,
     countriesResult,
     researchLabResult,
+    staffAcademyResult,
     welcomeCenterResult,
     staffNaturalizationsResult,
   ] = await Promise.all([
@@ -257,6 +259,12 @@ export async function getTeamStaffOverview(
       .from("team_infrastructures")
       .select("level")
       .eq("team_id", context.teamSeason.team_id)
+      .eq("infrastructure_code", "staff_academy")
+      .maybeSingle<{ level: number }>(),
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", context.teamSeason.team_id)
       .eq("infrastructure_code", "international_welcome_center")
       .maybeSingle<{ level: number }>(),
     admin
@@ -271,6 +279,7 @@ export async function getTeamStaffOverview(
   assertQuery(transactionsResult.error, "le budget projeté");
   assertQuery(countriesResult.error, "les nationalités du staff");
   assertQuery(researchLabResult.error, "le Laboratoire R&D");
+  assertQuery(staffAcademyResult.error, "l’Académie des métiers");
   assertQuery(welcomeCenterResult.error, "le Centre d’accueil international");
   assertQuery(
     staffNaturalizationsResult.error,
@@ -389,6 +398,10 @@ export async function getTeamStaffOverview(
       Number(researchLabResult.data?.level ?? 0) < 1
         ? "Construisez le Laboratoire R&D avant de recruter cet ingénieur."
         : null) ??
+      (member.role === "educator" &&
+      Number(staffAcademyResult.data?.level ?? 0) < 1
+        ? "Construisez l’Académie des métiers avant de recruter ce formateur."
+        : null) ??
       (member.role === "nutritionist" && activeNutritionistCount >= 3
         ? "Limite atteinte : une équipe ne peut employer que 3 nutritionnistes actifs."
         : null) ??
@@ -454,6 +467,7 @@ export async function getTeamStaffOverview(
     marketAvailableCount: listings.filter(
       (listing) => listing.status === "available",
     ).length,
+    staffAcademyLevel: Number(staffAcademyResult.data?.level ?? 0),
     marketListings,
     teamStaff,
     countries: (countriesResult.data ?? []).map((country) => ({

@@ -4,6 +4,7 @@ import {
   STAFF_ACADEMY_MAX_TALENT_LINES,
   calculateStaffAcademyTraining,
   getStaffAcademyCapacity,
+  type StaffAcademyEducatorBonuses,
   type StaffAcademyImprovementType,
 } from "@/lib/game/staff-academy";
 import {
@@ -63,6 +64,8 @@ type TrainingRow = {
   awarded_talent_code: string | null;
   completed_at: string | null;
   created_at: string;
+  educator_cost_reduction_percentage: number | string;
+  educator_duration_reduction_percentage: number | string;
 };
 
 export type StaffAcademyTalentLine = {
@@ -90,6 +93,8 @@ export type StaffAcademyTraining = {
   status: TrainingRow["status"];
   awardedTalentLabel: string | null;
   completedAt: string | null;
+  educatorCostReductionPercentage: number;
+  educatorDurationReductionPercentage: number;
 };
 
 export type StaffAcademyMember = {
@@ -114,8 +119,10 @@ export type StaffAcademyMember = {
 
 export type StaffAcademyOverview = {
   academyLevel: number;
+  baseCapacity: number;
   capacity: number;
   activeTrainingCount: number;
+  educatorBonuses: StaffAcademyEducatorBonuses;
   members: StaffAcademyMember[];
   activeTrainings: StaffAcademyTraining[];
   recentTrainings: StaffAcademyTraining[];
@@ -132,7 +139,12 @@ export async function getStaffAcademyOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
-  const [infrastructureResult, contractsResult, trainingsResult] =
+  const [
+    infrastructureResult,
+    contractsResult,
+    trainingsResult,
+    educatorBonusesResult,
+  ] =
     await Promise.all([
       admin
         .from("team_infrastructures")
@@ -149,17 +161,21 @@ export async function getStaffAcademyOverview(
       admin
         .from("staff_academy_trainings")
         .select(
-          "id, staff_contract_id, staff_member_id, improvement_type, previous_level, previous_talent_count, cost, duration_days, starts_game_day_index, completes_game_day_index, status, awarded_talent_code, completed_at, created_at",
+          "id, staff_contract_id, staff_member_id, improvement_type, previous_level, previous_talent_count, cost, duration_days, starts_game_day_index, completes_game_day_index, status, awarded_talent_code, completed_at, created_at, educator_cost_reduction_percentage, educator_duration_reduction_percentage",
         )
         .eq("team_id", context.teamId)
         .order("created_at", { ascending: false })
         .limit(30)
         .returns<TrainingRow[]>(),
+      admin.rpc("get_team_staff_academy_educator_bonuses", {
+        p_team_id: context.teamId,
+      }),
     ]);
 
   assertQuery(infrastructureResult.error, "l’Académie des métiers");
   assertQuery(contractsResult.error, "les contrats du staff");
   assertQuery(trainingsResult.error, "les stages de l’Académie");
+  assertQuery(educatorBonusesResult.error, "les bonus des formateurs");
 
   const contracts = contractsResult.data ?? [];
   const memberIds = [
@@ -204,6 +220,9 @@ export async function getStaffAcademyOverview(
       .filter((training) => training.status === "active")
       .map((training) => [training.staff_member_id, training]),
   );
+  const educatorBonuses = normalizeEducatorBonuses(
+    educatorBonusesResult.data,
+  );
 
   const members = contracts.flatMap((contract): StaffAcademyMember[] => {
     const member = memberById.get(contract.staff_member_id);
@@ -244,11 +263,13 @@ export async function getStaffAcademyOverview(
       improvementType: "level",
       staffLevel: member.level,
       talentCount: talents.length,
+      educatorBonuses,
     });
     const talentTraining = calculateStaffAcademyTraining({
       improvementType: "talent",
       staffLevel: member.level,
       talentCount: talents.length,
+      educatorBonuses,
     });
 
     return [
@@ -289,13 +310,16 @@ export async function getStaffAcademyOverview(
     },
   );
   const academyLevel = infrastructureResult.data?.level ?? 0;
+  const baseCapacity = getStaffAcademyCapacity(academyLevel);
 
   return {
     academyLevel,
-    capacity: getStaffAcademyCapacity(academyLevel),
+    baseCapacity,
+    capacity: baseCapacity + educatorBonuses.extraCapacity,
     activeTrainingCount: trainings.filter(
       (training) => training.status === "active",
     ).length,
+    educatorBonuses,
     members: members.sort((left, right) =>
       left.roleLabel.localeCompare(right.roleLabel, "fr") ||
       left.fullName.localeCompare(right.fullName, "fr"),
@@ -394,7 +418,41 @@ function toTraining(
       ? STAFF_TALENT_DEFINITIONS[awardedTalentCode].label
       : null,
     completedAt: training.completed_at,
+    educatorCostReductionPercentage: toNumber(
+      training.educator_cost_reduction_percentage,
+    ),
+    educatorDurationReductionPercentage: toNumber(
+      training.educator_duration_reduction_percentage,
+    ),
   };
+}
+
+function normalizeEducatorBonuses(value: unknown): StaffAcademyEducatorBonuses {
+  const record =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    activeEducatorCount: Math.max(
+      0,
+      Math.floor(toNumber(record.activeEducatorCount)),
+    ),
+    costReductionPercentage: clampPercentage(
+      toNumber(record.costReductionPercentage),
+    ),
+    durationReductionPercentage: clampPercentage(
+      toNumber(record.durationReductionPercentage),
+    ),
+    extraCapacity: Math.min(
+      1,
+      Math.max(0, Math.floor(toNumber(record.extraCapacity))),
+    ),
+  };
+}
+
+function clampPercentage(value: number) {
+  return Math.min(50, Math.max(0, value));
 }
 
 function toTrainerSpecialty(value: string | null): TrainerSpecialty | null {

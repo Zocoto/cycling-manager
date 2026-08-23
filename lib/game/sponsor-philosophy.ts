@@ -94,7 +94,7 @@ export const SPONSOR_SPORTING_PHILOSOPHY_CONFIG: Record<
     initialBudgetBonusPercent: 15,
   },
   youth_development: {
-    label: "Formateur",
+    label: "Filière formatrice",
     description:
       "Le sponsor privilégie les promotions du Centre de formation, la Dev Team, les victoires juniors et la valorisation de quelques coureurs formés au club.",
     initialBudgetBonusPercent: 0,

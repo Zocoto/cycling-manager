@@ -341,6 +341,9 @@ export default async function InventoryPage({
                     dailyRewardOverview?.academyRiders ?? []
                   }
                   dailyRewardCountries={dailyRewardOverview?.countries ?? []}
+                  dailyRewardStaffAcademyBuilt={
+                    dailyRewardOverview?.staffAcademyBuilt ?? false
+                  }
                   dailyRewardConstructionProjects={
                     dailyRewardOverview?.constructionProjects ?? []
                   }
@@ -370,6 +373,7 @@ function InventoryItemCard({
   dailyRewardRaces,
   dailyRewardAcademyRiders,
   dailyRewardCountries,
+  dailyRewardStaffAcademyBuilt,
   dailyRewardConstructionProjects,
   dailyRewardStaffMembers,
 }: {
@@ -383,6 +387,7 @@ function InventoryItemCard({
   dailyRewardRaces: DailyRewardRace[];
   dailyRewardAcademyRiders: DailyRewardAcademyRider[];
   dailyRewardCountries: DailyRewardCountry[];
+  dailyRewardStaffAcademyBuilt: boolean;
   dailyRewardConstructionProjects: DailyRewardConstructionProject[];
   dailyRewardStaffMembers: DailyRewardStaffMember[];
 }) {
@@ -475,6 +480,7 @@ function InventoryItemCard({
             eligibleRaces={dailyRewardRaces}
             academyRiders={dailyRewardAcademyRiders}
             countries={dailyRewardCountries}
+            staffAcademyBuilt={dailyRewardStaffAcademyBuilt}
             constructionProjects={dailyRewardConstructionProjects}
             staffMembers={dailyRewardStaffMembers}
             returnPath={returnPath}

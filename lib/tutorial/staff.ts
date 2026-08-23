@@ -88,9 +88,9 @@ export const staffTutorialDefinition = {
       key: "staff-professions",
       route: STAFF_TUTORIAL_MARKET_ROUTE,
       targetId: "staff-market-listings",
-      title: "Dix métiers, dix leviers de progression",
+      title: "Onze métiers, onze leviers de progression",
       content:
-        "L’entraîneur accélère la progression dans sa spécialité ; le scout améliore la détection des jeunes ; le médecin réduit la récupération des blessures ; le kiné protège la forme après les courses ; le nutritionniste améliore la récupération et les compléments ; le mécanicien limite les pertes dues aux avaries.\n\nLe préparateur de parcours renforce les reconnaissances, l’architecte réduit coûts et délais des infrastructures, le community manager augmente les gains de réputation et l’ingénieur R&D fiabilise les prototypes du laboratoire.\n\nChaque personne est unique : lisez sa nationalité, son niveau, ses spécialités, ses talents et toutes ses lignes d’effets. Deux profils du même métier ne constituent pas nécessairement le même investissement.",
+        "L’entraîneur accélère la progression dans sa spécialité ; le scout améliore la détection des jeunes ; le médecin réduit la récupération des blessures ; le kiné protège la forme après les courses ; le nutritionniste améliore la récupération et les compléments ; le mécanicien limite les pertes dues aux avaries.\n\nLe préparateur de parcours renforce les reconnaissances, l’architecte réduit coûts et délais des infrastructures, le community manager augmente les gains de réputation, l’ingénieur R&D fiabilise les prototypes du laboratoire et le formateur optimise les stages de l’Académie des métiers. Ce dernier métier ne peut être recruté qu’après la construction du bâtiment.\n\nChaque personne est unique : lisez sa nationalité, son niveau, ses spécialités, ses talents et toutes ses lignes d’effets. Deux profils du même métier ne constituent pas nécessairement le même investissement.",
       placement: "top",
       highlightPadding: 8,
     },

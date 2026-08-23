@@ -62,7 +62,12 @@ export async function getCurrentDailyRewardOverview(
   const seasonId = readString(raw.seasonId);
   if (!seasonId) return null;
   const gameYear = readNumber(raw.gameYear, 1);
-  const [riders, academyResult, countriesResult] = await Promise.all([
+  const [
+    riders,
+    academyResult,
+    countriesResult,
+    staffAcademyResult,
+  ] = await Promise.all([
     getCurrentTeamItemTargetRiders(supabase),
     supabase
       .from("youth_academy_riders")
@@ -75,6 +80,12 @@ export async function getCurrentDailyRewardOverview(
       .select("id, name, iso_alpha2")
       .eq("is_active", true)
       .order("name"),
+    supabase
+      .from("team_infrastructures")
+      .select("level")
+      .eq("infrastructure_code", "staff_academy")
+      .gt("level", 0)
+      .maybeSingle<{ level: number }>(),
   ]);
 
   if (academyResult.error) {
@@ -85,6 +96,11 @@ export async function getCurrentDailyRewardOverview(
   if (countriesResult.error) {
     throw new Error(
       `Impossible de charger les nationalités du staff : ${countriesResult.error.message}`,
+    );
+  }
+  if (staffAcademyResult.error) {
+    throw new Error(
+      `Impossible de vérifier l’Académie des métiers : ${staffAcademyResult.error.message}`,
     );
   }
 
@@ -137,6 +153,7 @@ export async function getCurrentDailyRewardOverview(
     abilities: readArray(raw.abilities).flatMap(normalizeAbility),
     academyRiders,
     countries,
+    staffAcademyBuilt: Number(staffAcademyResult.data?.level ?? 0) > 0,
     constructionProjects: readArray(
       rawManagementTargets.constructionProjects,
     ).flatMap(normalizeConstructionProject),

@@ -268,6 +268,9 @@ function EmploymentMarket({
             {STAFF_ROLES.map((role) => (
               <option key={role} value={role}>
                 {STAFF_ROLE_DEFINITIONS[role].label}
+                {role === "educator" && overview.staffAcademyLevel < 1
+                  ? " · Académie des métiers requise"
+                  : ""}
               </option>
             ))}
           </select>
@@ -832,6 +835,12 @@ function StaffRoleIcon({ role }: { role: StaffRole }) {
       <>
         <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" />
         <path d="M8 15h8M10 18h4" />
+      </>
+    ),
+    educator: (
+      <>
+        <path d="M4 5h16v12H4zM8 21h8M12 17v4" />
+        <path d="m8 11 2.5 2.5L16 8" />
       </>
     ),
   };

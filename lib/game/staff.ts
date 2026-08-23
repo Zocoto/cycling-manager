@@ -15,6 +15,7 @@ export const STAFF_ROLES = [
   "architect",
   "community_manager",
   "research_engineer",
+  "educator",
 ] as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
@@ -114,6 +115,14 @@ export const STAFF_ROLE_DEFINITIONS: Record<StaffRole, StaffRoleDefinition> = {
     salaryBase: 24_000,
     accent: "#39788F",
   },
+  educator: {
+    label: "Formateur",
+    pluralLabel: "Formateurs",
+    shortDescription:
+      "Optimise les stages de l’Académie des métiers.",
+    salaryBase: 18_000,
+    accent: "#8B5FA8",
+  },
 };
 
 export const TRAINER_SPECIALTY_LABELS: Record<TrainerSpecialty, string> = {
@@ -130,7 +139,6 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "trainer",
   "trainer",
   "trainer",
-  "trainer",
   "scout",
   "scout",
   "doctor",
@@ -152,6 +160,7 @@ export const STAFF_DAILY_ROLE_DISTRIBUTION: readonly StaffRole[] = [
   "architect",
   "research_engineer",
   "research_engineer",
+  "educator",
 ];
 
 export const STAFF_LEVEL_RARITY_WEIGHTS = [
@@ -383,6 +392,8 @@ export function getStaffEffectPercentage(
       return safeLevel * 5;
     case "research_engineer":
       return safeLevel * 5;
+    case "educator":
+      return safeLevel * 5;
   }
 }
 
@@ -467,6 +478,10 @@ export function describeStaffEffect({
     }
     case "research_engineer":
       return ["Spécialité R&D unique : temps, coût ou probabilité de réussite"];
+    case "educator":
+      return [
+        "Pilote les stages de l’Académie des métiers ; ses talents déterminent les bonus appliqués",
+      ];
   }
 }
 

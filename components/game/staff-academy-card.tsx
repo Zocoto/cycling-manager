@@ -138,6 +138,46 @@ export function StaffAcademyCard({
           ))}
         </div>
 
+        <div
+          className={`mt-5 rounded-2xl border p-5 ${
+            academy.educatorBonuses.activeEducatorCount > 0
+              ? "border-[#8B5FA8]/25 bg-[#F6F0FA]"
+              : "border-[#315B3E]/12 bg-[#F6F8F6]"
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8B5FA8]">
+                Formateurs de l’équipe
+              </p>
+              <p className="mt-2 text-sm font-black text-[#183F37]">
+                {academy.educatorBonuses.activeEducatorCount > 0
+                  ? `${academy.educatorBonuses.activeEducatorCount} formateur${academy.educatorBonuses.activeEducatorCount > 1 ? "s" : ""} actif${academy.educatorBonuses.activeEducatorCount > 1 ? "s" : ""}`
+                  : "Aucun formateur actif"}
+              </p>
+              <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-[#60756E]">
+                Le métier se débloque dès la construction de l’Académie. Les
+                meilleurs bonus de coût et de délai se cumulent, dans la limite
+                de 50 %.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <QuoteMetric
+                label="Coût"
+                value={`−${formatPercentage(academy.educatorBonuses.costReductionPercentage)}`}
+              />
+              <QuoteMetric
+                label="Délai"
+                value={`−${formatPercentage(academy.educatorBonuses.durationReductionPercentage)}`}
+              />
+              <QuoteMetric
+                label="Places"
+                value={`+${academy.educatorBonuses.extraCapacity}`}
+              />
+            </div>
+          </div>
+        </div>
+
         {nextLevel && constructionQuote ? (
           <form
             action={startInfrastructureProjectAction}
@@ -229,8 +269,12 @@ export function StaffAcademyCard({
           </form>
         ) : (
           <p className="mt-6 rounded-2xl bg-[#E5F4ED] p-5 text-sm font-black text-[#176951]">
-            L’Académie a atteint son niveau maximal : cinq stages peuvent être
-            menés en parallèle.
+            L’Académie a atteint son niveau maximal : {academy.capacity} stage
+            {academy.capacity > 1 ? "s" : ""} peuvent être menés en parallèle
+            {academy.educatorBonuses.extraCapacity > 0
+              ? ", bonus du formateur inclus"
+              : ""}
+            .
           </p>
         )}
 
@@ -288,6 +332,18 @@ export function StaffAcademyCard({
                       Fin prévue en saison {training.completionGameYear}, J
                       {training.completionDayNumber} · le staff reste actif
                     </p>
+                    {training.educatorCostReductionPercentage > 0 ||
+                    training.educatorDurationReductionPercentage > 0 ? (
+                      <p className="mt-1 text-[10px] font-black text-[#8B5FA8]">
+                        Formateur · coût −
+                        {formatPercentage(
+                          training.educatorCostReductionPercentage,
+                        )} · délai −
+                        {formatPercentage(
+                          training.educatorDurationReductionPercentage,
+                        )}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -465,6 +521,18 @@ export function StaffAcademyCard({
                   <p className="mt-2 text-[10px] font-semibold text-[#60756E]">
                     {training.durationDays} jours · {formatMoney(training.cost, currency)}
                   </p>
+                  {training.educatorCostReductionPercentage > 0 ||
+                  training.educatorDurationReductionPercentage > 0 ? (
+                    <p className="mt-1 text-[10px] font-black text-[#8B5FA8]">
+                      Bonus formateur : coût −
+                      {formatPercentage(
+                        training.educatorCostReductionPercentage,
+                      )} · délai −
+                      {formatPercentage(
+                        training.educatorDurationReductionPercentage,
+                      )}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -572,4 +640,10 @@ function formatMoney(value: number, currency: string) {
     currency,
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatPercentage(value: number) {
+  return `${value.toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+  })} %`;
 }

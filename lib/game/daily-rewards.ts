@@ -102,6 +102,7 @@ export type DailyRewardOverview = {
   abilities: DailyRewardAbility[];
   academyRiders: DailyRewardAcademyRider[];
   countries: DailyRewardCountry[];
+  staffAcademyBuilt: boolean;
   constructionProjects: DailyRewardConstructionProject[];
   staffMembers: DailyRewardStaffMember[];
 };

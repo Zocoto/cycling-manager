@@ -24,6 +24,7 @@ export function DailyRewardRedemptionForm({
   eligibleRaces,
   academyRiders,
   countries,
+  staffAcademyBuilt,
   constructionProjects,
   staffMembers,
   returnPath,
@@ -34,6 +35,7 @@ export function DailyRewardRedemptionForm({
   eligibleRaces: DailyRewardRace[];
   academyRiders: DailyRewardAcademyRider[];
   countries: DailyRewardCountry[];
+  staffAcademyBuilt: boolean;
   constructionProjects: DailyRewardConstructionProject[];
   staffMembers: DailyRewardStaffMember[];
   returnPath?: string;
@@ -96,8 +98,15 @@ export function DailyRewardRedemptionForm({
           <SelectField name="staffRole" label="Métier" required>
             <option value="">Choisir un métier</option>
             {STAFF_ROLES.map((role) => (
-              <option key={role} value={role}>
+              <option
+                key={role}
+                value={role}
+                disabled={role === "educator" && !staffAcademyBuilt}
+              >
                 {STAFF_ROLE_DEFINITIONS[role].label}
+                {role === "educator" && !staffAcademyBuilt
+                  ? " · Académie des métiers requise"
+                  : ""}
               </option>
             ))}
           </SelectField>
