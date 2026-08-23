@@ -26,6 +26,16 @@ describe("equipment R&D engineer talents", () => {
     ).toEqual({ successRate: 50, durationDays: 18, cost: 162_000 });
   });
 
+  it("applies the building efficiency bonus to the laboratory contribution", () => {
+    expect(
+      estimateEquipmentRndResearch({
+        labLevel: 5,
+        labEfficiencyBonusPercentage: 10,
+        itemPrice: 1_000,
+      }),
+    ).toEqual({ successRate: 73, durationDays: 10, cost: 362_000 });
+  });
+
   it("applies every unlocked engineer talent cumulatively", () => {
     expect(
       estimateEquipmentRndResearch({

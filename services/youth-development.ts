@@ -6,7 +6,10 @@ import {
   evaluateNaturalizationEligibility,
   type NaturalizationEligibility,
 } from "@/lib/game/naturalization";
-import { applyInternationalCenterPotentialBonus } from "@/lib/game/infrastructure";
+import {
+  applyInfrastructureEfficiencyBonus,
+  applyInternationalCenterPotentialBonus,
+} from "@/lib/game/infrastructure";
 import { MAX_TEAM_ROSTER_SIZE } from "@/lib/game/team-roster-capacity";
 import {
   calculateCountryWorldReputation,
@@ -894,9 +897,14 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       .single<{ name_profile_code: string; avatar_profile_key: string }>(),
     admin
       .from("international_youth_centers")
-      .select("quality_level")
+      .select("quality_level, efficiency_bonus_percentage")
       .eq("country_id", mission.country_id)
-      .returns<Array<{ quality_level: number }>>(),
+      .returns<
+        Array<{
+          quality_level: number;
+          efficiency_bonus_percentage: number;
+        }>
+      >(),
   ]);
   assertQuery(contractResult.error, "le contrat du scout");
   assertQuery(countryResult.error, "le pays scouté");
@@ -990,7 +998,12 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
   const reputation = getCountryBaseReputation(country.iso_alpha2);
   const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
-    (total, center) => total + center.quality_level,
+    (total, center) =>
+      total +
+      applyInfrastructureEfficiencyBonus(
+        center.quality_level,
+        center.efficiency_bonus_percentage,
+      ),
     0,
   );
   const candidates = identities.map((identity, index) => {

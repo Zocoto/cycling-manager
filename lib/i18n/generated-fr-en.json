@@ -6275,5 +6275,15 @@
   "Sélectionner les": "Select the",
   "sur J": "across D",
   "Tout désélectionner": "Clear selection",
-  "Valider les stages": "Confirm camps"
+  "Valider les stages": "Confirm camps",
+  "· bâtiment : +": "· building: +",
+  "· Bâtiment +": "· Building +",
+  "% d’efficacité": "% efficiency",
+  "% d’efficacité à la livraison": "% efficiency on delivery",
+  "% d’efficacité sur le prochain niveau de bâtiment livré avec cet architecte": "% efficiency on the next building level delivered with this architect",
+  "% d’efficacité.": "% efficiency.",
+  "% sur le délai": "% on construction time",
+  "Bâtiment livré : +": "Delivered building: +",
+  "Conception haute performance": "High-performance design",
+  "Conception haute performance · +": "High-performance design · +"
 }

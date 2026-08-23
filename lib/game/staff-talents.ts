@@ -8,6 +8,7 @@ import {
 
 export const STAFF_TALENT_SLOTS_MAX = 3;
 export const STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE = 10;
+export const ARCHITECT_BUILDING_EFFICIENCY_PERCENTAGE_PER_LEVEL = 2;
 
 export const STAFF_TALENTS_BY_ROLE = {
   physiotherapist: [
@@ -25,6 +26,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "architect_construction_time",
     "architect_construction_cost",
     "architect_maintenance_cost",
+    "architect_building_efficiency",
     "architect_parallel_construction",
   ],
   community_manager: [
@@ -139,6 +141,13 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     label: "Maintenance raisonnée",
     description: (level) =>
       `−${percentage(level, 2)} % sur les futurs coûts de maintenance des bâtiments livrés`,
+  },
+  architect_building_efficiency: {
+    role: "architect",
+    label: "Conception haute performance",
+    minimumLevel: 2,
+    description: (level) =>
+      `+${getArchitectBuildingEfficiencyBonusPercentage(level)} % d’efficacité sur le prochain niveau de bâtiment livré avec cet architecte`,
   },
   architect_parallel_construction: {
     role: "architect",
@@ -304,6 +313,22 @@ export function isStaffTalentForRole(
   );
 }
 
+export function isStaffTalentAvailableAtLevel(
+  code: StaffTalentCode,
+  level: number,
+): boolean {
+  return normalizeStaffLevel(level) >= getStaffTalentMinimumLevel(code);
+}
+
+export function getArchitectBuildingEfficiencyBonusPercentage(
+  level: number,
+): number {
+  return (
+    normalizeStaffLevel(level) *
+    ARCHITECT_BUILDING_EFFICIENCY_PERCENTAGE_PER_LEVEL
+  );
+}
+
 export function selectInitialStaffTalent({
   role,
   roll,
@@ -317,13 +342,10 @@ export function selectInitialStaffTalent({
 }): StaffTalentCode {
   const candidates = getStaffTalentCodes(role).filter(
     (code) =>
+      isStaffTalentAvailableAtLevel(code, staffLevel ?? 1) &&
       (role !== "trainer" ||
         !trainerSpecialty ||
-        code !== `trainer_${trainerSpecialty}`) &&
-      !(
-        normalizeStaffLevel(staffLevel ?? 1) <
-        (STAFF_TALENT_DEFINITIONS[code].minimumLevel ?? 1)
-      ),
+        code !== `trainer_${trainerSpecialty}`),
   );
   const normalizedRoll = Number.isFinite(roll) ? Math.floor(roll) : 0;
   return candidates[

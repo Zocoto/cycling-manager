@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   TEAM_INFRASTRUCTURE_DEFINITIONS,
+  applyInfrastructureEfficiencyBonus,
   applyInternationalCenterPotentialBonus,
   canDirectorBuildInfrastructureLevel,
   getRequiredDirectorLevelForInfrastructureLevel,
@@ -154,5 +155,10 @@ describe("team infrastructure buildings", () => {
         [...costs.slice(1)].sort((left, right) => left - right),
       );
     }
+  });
+
+  it("intègre l’efficacité de l’architecte dans la qualité partagée", () => {
+    expect(applyInfrastructureEfficiencyBonus(5, 10)).toBe(5.5);
+    expect(getInternationalCenterBonusPercentage(5.5)).toBe(55);
   });
 });

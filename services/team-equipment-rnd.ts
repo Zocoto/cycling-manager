@@ -75,6 +75,7 @@ export type TeamEquipmentRndOverview = {
   balance: number;
   currency: string;
   labLevel: number;
+  labEfficiencyBonusPercentage: number;
   researchableItems: Array<
     TeamEquipmentCatalogItem & { requiredLabLevel: number }
   >;
@@ -96,10 +97,13 @@ export async function getCurrentTeamEquipmentRndOverview(
     await Promise.all([
       admin
         .from("team_infrastructures")
-        .select("level")
+        .select("level,efficiency_bonus_percentage")
         .eq("team_id", equipment.teamId)
         .eq("infrastructure_code", "research_lab")
-        .maybeSingle<{ level: number }>(),
+        .maybeSingle<{
+          level: number;
+          efficiency_bonus_percentage: number;
+        }>(),
       admin
         .from("equipment_rnd_projects")
         .select(
@@ -217,6 +221,9 @@ export async function getCurrentTeamEquipmentRndOverview(
   });
   const projects = (projectsResult.data ?? []).map(mapProject);
   const labLevel = Number(infrastructureResult.data?.level ?? 0);
+  const labEfficiencyBonusPercentage = Number(
+    infrastructureResult.data?.efficiency_bonus_percentage ?? 0,
+  );
 
   return {
     teamName: equipment.teamName,
@@ -228,6 +235,7 @@ export async function getCurrentTeamEquipmentRndOverview(
     balance: equipment.balance,
     currency: equipment.currency,
     labLevel,
+    labEfficiencyBonusPercentage,
     researchableItems: equipment.catalog
       .filter(
         (item) =>

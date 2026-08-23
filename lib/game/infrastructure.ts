@@ -5,6 +5,17 @@ export const INFRASTRUCTURE_MANAGER_LEVEL_PER_BUILDING_LEVEL = 10;
 export const INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT = 50;
 export const MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE = 90;
 
+export function applyInfrastructureEfficiencyBonus(
+  baseValue: number,
+  efficiencyBonusPercentage: number,
+): number {
+  const safeValue = Number.isFinite(baseValue) ? Math.max(0, baseValue) : 0;
+  const safeBonus = Number.isFinite(efficiencyBonusPercentage)
+    ? Math.min(10, Math.max(0, efficiencyBonusPercentage))
+    : 0;
+  return Math.round(safeValue * (1 + safeBonus / 100) * 100) / 100;
+}
+
 const INFRASTRUCTURE_UPGRADE_COST_RATIOS = [1, 0.6, 0.7, 0.8, 0.9] as const;
 
 export function getInfrastructureUpgradeCost(
@@ -658,7 +669,7 @@ export function getInternationalCenterBonusPercentage(
 ): number {
   return Math.min(
     MAX_INTERNATIONAL_CENTER_BONUS_PERCENTAGE,
-    Math.max(0, Math.floor(totalQualityStars)) * 10,
+    Math.round(Math.max(0, totalQualityStars) * 10),
   );
 }
 

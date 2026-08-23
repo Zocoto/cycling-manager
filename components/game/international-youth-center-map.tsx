@@ -263,6 +263,12 @@ export function InternationalYouthCenterMap({
                       {"★".repeat(center.qualityLevel)}
                     </span>
                   </div>
+                  {center.efficiencyBonusPercentage > 0 ? (
+                    <p className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#278B70]">
+                      Conception haute performance · +
+                      {center.efficiencyBonusPercentage} % d’efficacité
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -333,6 +339,9 @@ export function InternationalYouthCenterMap({
                     {architect.hasParallelConstructionTalent
                       ? " · Double chantier"
                       : ""}
+                    {architect.buildingEfficiencyBonusPercentage > 0
+                      ? ` · Bâtiment +${architect.buildingEfficiencyBonusPercentage} %`
+                      : ""}
                   </option>
                 ))}
               </select>
@@ -350,7 +359,10 @@ export function InternationalYouthCenterMap({
             {selectedArchitect ? (
               <p className="text-xs font-bold text-[#176951]">
                 Architecte : −{quote.costReductionPercentage} % sur le
-                coût et −{quote.durationReductionPercentage} % sur le délai.
+                coût et −{quote.durationReductionPercentage} % sur le délai
+                {selectedArchitect.buildingEfficiencyBonusPercentage > 0
+                  ? ` · bâtiment : +${selectedArchitect.buildingEfficiencyBonusPercentage} % d’efficacité.`
+                  : "."}
               </p>
             ) : null}
             <InfrastructureSubmitButton disabled={Boolean(blockReason)}>

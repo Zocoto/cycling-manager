@@ -1,3 +1,5 @@
+import { applyInfrastructureEfficiencyBonus } from "@/lib/game/infrastructure";
+
 export type EquipmentRndSpecialty =
   | "research_time"
   | "research_cost"
@@ -39,6 +41,7 @@ function getEngineerSpecialties(
 export function estimateEquipmentRndResearch(args: {
   labLevel: number;
   itemPrice: number;
+  labEfficiencyBonusPercentage?: number;
   engineer?: EquipmentRndEngineer | null;
 }) {
   const baseDays =
@@ -50,7 +53,12 @@ export function estimateEquipmentRndResearch(args: {
   const successRate = Math.min(
     95,
     45 +
-      args.labLevel * 5 +
+      Math.round(
+        applyInfrastructureEfficiencyBonus(
+          args.labLevel * 5,
+          args.labEfficiencyBonusPercentage ?? 0,
+        ),
+      ) +
       (engineer && hasSpecialty("research_success") ? engineer.level * 3 : 0),
   );
   const durationDays = Math.max(

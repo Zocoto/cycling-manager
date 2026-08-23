@@ -5,6 +5,7 @@ import {
   ARCHITECT_SPECIALTY_LABELS,
   INFRASTRUCTURE_UNLOCK_LEVEL,
   TEAM_INFRASTRUCTURE_DEFINITIONS,
+  applyInfrastructureEfficiencyBonus,
   getInternationalCenterBonusPercentage,
   getInternationalCenterLevelDefinition,
   getTeamInfrastructureLevelDefinition,
@@ -17,6 +18,7 @@ import {
   calculateConstructionWithArchitect,
   getArchitectConstructionBonuses,
 } from "@/lib/game/staff";
+import { getArchitectBuildingEfficiencyBonusPercentage } from "@/lib/game/staff-talents";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -35,6 +37,7 @@ type CenterRow = {
   team_id: string;
   country_id: string;
   quality_level: number;
+  efficiency_bonus_percentage: number;
   completed_at: string;
 };
 
@@ -53,6 +56,7 @@ type ProjectRow = {
   final_duration_days: number;
   cost_reduction_percentage: number;
   duration_reduction_percentage: number;
+  efficiency_bonus_percentage: number;
   started_day_number: number;
   starts_game_day_index: number;
   completes_game_day_index: number;
@@ -71,11 +75,13 @@ export type InfrastructureArchitect = {
   costReductionPercentage: number;
   durationReductionPercentage: number;
   hasParallelConstructionTalent: boolean;
+  buildingEfficiencyBonusPercentage: number;
 };
 
 export type InternationalCenterOwner = {
   id: string;
   qualityLevel: number;
+  efficiencyBonusPercentage: number;
   teamId: string;
   teamName: string;
   directorName: string;
@@ -108,6 +114,7 @@ export type InfrastructureProject = {
   finalDurationDays: number;
   costReductionPercentage: number;
   durationReductionPercentage: number;
+  efficiencyBonusPercentage: number;
   architectSpecialtyLabel: string | null;
   startedDayNumber: number;
   remainingDays: number;
@@ -136,6 +143,7 @@ export type TeamInfrastructureOverview = {
   balance: number;
   currency: string;
   infrastructureLevels: Record<TeamInfrastructureCode, number>;
+  infrastructureEfficiencyBonuses: Record<TeamInfrastructureCode, number>;
   dataRoomLevel: number;
   dataRoomNextLevel: ReturnType<typeof getTeamInfrastructureLevelDefinition>;
   architects: InfrastructureArchitect[];
@@ -173,13 +181,19 @@ export async function getTeamInfrastructureOverview(
   ] = await Promise.all([
     admin
       .from("team_infrastructures")
-      .select("infrastructure_code, level")
+      .select("infrastructure_code, level, efficiency_bonus_percentage")
       .eq("team_id", context.teamId)
-      .returns<Array<{ infrastructure_code: string; level: number }>>(),
+      .returns<
+        Array<{
+          infrastructure_code: string;
+          level: number;
+          efficiency_bonus_percentage: number;
+        }>
+      >(),
     admin
       .from("infrastructure_projects")
       .select(
-        "id, team_id, infrastructure_code, country_id, target_level, architect_contract_id, architect_specialty, architect_level, base_cost, final_cost, base_duration_days, final_duration_days, cost_reduction_percentage, duration_reduction_percentage, started_day_number, starts_game_day_index, completes_game_day_index, status, completed_at, created_at",
+        "id, team_id, infrastructure_code, country_id, target_level, architect_contract_id, architect_specialty, architect_level, base_cost, final_cost, base_duration_days, final_duration_days, cost_reduction_percentage, duration_reduction_percentage, efficiency_bonus_percentage, started_day_number, starts_game_day_index, completes_game_day_index, status, completed_at, created_at",
       )
       .eq("team_id", context.teamId)
       .order("created_at", { ascending: false })
@@ -199,7 +213,9 @@ export async function getTeamInfrastructureOverview(
       .returns<CountryRow[]>(),
     admin
       .from("international_youth_centers")
-      .select("id, team_id, country_id, quality_level, completed_at")
+      .select(
+        "id, team_id, country_id, quality_level, efficiency_bonus_percentage, completed_at",
+      )
       .order("completed_at", { ascending: true })
       .returns<CenterRow[]>(),
     admin
@@ -269,12 +285,16 @@ export async function getTeamInfrastructureOverview(
         .from("staff_member_talents")
         .select("staff_member_id, talent_code")
         .in("staff_member_id", memberIds)
-        .eq("talent_code", "architect_parallel_construction")
+        .in("talent_code", [
+          "architect_parallel_construction",
+          "architect_building_efficiency",
+        ])
         .returns<Array<{ staff_member_id: string; talent_code: string }>>()
     : { data: [], error: null };
   assertQuery(talentsResult.error, "les talents des architectes");
-  const parallelArchitectMemberIds = new Set(
-    (talentsResult.data ?? []).map((talent) => talent.staff_member_id),
+  const talentsByArchitectMemberId = groupBy(
+    talentsResult.data ?? [],
+    (talent) => talent.staff_member_id,
   );
 
   const directorIds = [
@@ -307,6 +327,11 @@ export async function getTeamInfrastructureOverview(
         ? rawSpecialty
         : "balanced";
       const bonuses = getArchitectConstructionBonuses(member.level, specialty);
+      const talentCodes = new Set(
+        (talentsByArchitectMemberId.get(member.id) ?? []).map(
+          (talent) => talent.talent_code,
+        ),
+      );
       return [
         {
           contractId: contract.id,
@@ -315,9 +340,14 @@ export async function getTeamInfrastructureOverview(
           level: member.level,
           specialty,
           specialtyLabel: ARCHITECT_SPECIALTY_LABELS[specialty],
-          hasParallelConstructionTalent: parallelArchitectMemberIds.has(
-            member.id,
+          hasParallelConstructionTalent: talentCodes.has(
+            "architect_parallel_construction",
           ),
+          buildingEfficiencyBonusPercentage: talentCodes.has(
+            "architect_building_efficiency",
+          )
+            ? getArchitectBuildingEfficiencyBonusPercentage(member.level)
+            : 0,
           ...bonuses,
         },
       ];
@@ -357,6 +387,7 @@ export async function getTeamInfrastructureOverview(
           return {
             id: center.id,
             qualityLevel: center.quality_level,
+            efficiencyBonusPercentage: center.efficiency_bonus_percentage,
             teamId: center.team_id,
             teamName: teamNameById.get(center.team_id) ?? "Équipe cycliste",
             directorName: director?.display_name ?? "Directeur Sportif",
@@ -367,7 +398,12 @@ export async function getTeamInfrastructureOverview(
         },
       );
       const totalQualityStars = centers.reduce(
-        (total, center) => total + center.qualityLevel,
+        (total, center) =>
+          total +
+          applyInfrastructureEfficiencyBonus(
+            center.qualityLevel,
+            center.efficiencyBonusPercentage,
+          ),
         0,
       );
       return [
@@ -415,6 +451,16 @@ export async function getTeamInfrastructureOverview(
     fan_club_headquarters: getInfrastructureLevel("fan_club_headquarters"),
     club_shop: getInfrastructureLevel("club_shop"),
   };
+  const getInfrastructureEfficiencyBonus = (code: TeamInfrastructureCode) =>
+    (infrastructureResult.data ?? []).find(
+      (infrastructure) => infrastructure.infrastructure_code === code,
+    )?.efficiency_bonus_percentage ?? 0;
+  const infrastructureEfficiencyBonuses = Object.fromEntries(
+    Object.keys(infrastructureLevels).map((code) => [
+      code,
+      getInfrastructureEfficiencyBonus(code as TeamInfrastructureCode),
+    ]),
+  ) as Record<TeamInfrastructureCode, number>;
   const dataRoomLevel = infrastructureLevels.recruitment_data_room;
   const directorLevel = calculateSportingDirectorProgression(
     context.experiencePoints,
@@ -431,6 +477,7 @@ export async function getTeamInfrastructureOverview(
     balance: context.balance,
     currency: context.currency,
     infrastructureLevels,
+    infrastructureEfficiencyBonuses,
     dataRoomLevel,
     dataRoomNextLevel: getTeamInfrastructureLevelDefinition(
       TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room.code,
@@ -560,6 +607,7 @@ function toProject(
     finalDurationDays: project.final_duration_days,
     costReductionPercentage: project.cost_reduction_percentage,
     durationReductionPercentage: project.duration_reduction_percentage,
+    efficiencyBonusPercentage: project.efficiency_bonus_percentage,
     architectSpecialtyLabel: specialty
       ? ARCHITECT_SPECIALTY_LABELS[specialty]
       : null,

@@ -29,6 +29,7 @@ import type {
 
 export function StaffAcademyCard({
   academy,
+  currentEfficiencyBonusPercentage = 0,
   architects,
   activeProjects,
   directorLevel,
@@ -36,6 +37,7 @@ export function StaffAcademyCard({
   currency,
 }: {
   academy: StaffAcademyOverview;
+  currentEfficiencyBonusPercentage?: number;
   architects: InfrastructureArchitect[];
   activeProjects: InfrastructureProject[];
   directorLevel: number;
@@ -100,6 +102,13 @@ export function StaffAcademyCard({
         secondaryLabel={`${academy.activeTrainingCount}/${academy.capacity} stage(s)`}
         description="Développez durablement un membre du staff sans l’écarter de ses fonctions. Son étoile ou son nouveau bonus s’active uniquement à la fin du stage."
       />
+
+      {currentEfficiencyBonusPercentage > 0 ? (
+        <p className="border-b border-[#315B3E]/10 bg-[#E5F4ED] px-6 py-3 text-xs font-black text-[#176951] sm:px-8">
+          Conception haute performance · +{currentEfficiencyBonusPercentage} %
+          d’efficacité
+        </p>
+      ) : null}
 
       <div className="p-6 sm:p-8">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -177,6 +186,9 @@ export function StaffAcademyCard({
                       {candidate.hasParallelConstructionTalent
                         ? " · Double chantier"
                         : ""}
+                      {candidate.buildingEfficiencyBonusPercentage > 0
+                        ? ` · Bâtiment +${candidate.buildingEfficiencyBonusPercentage} %`
+                        : ""}
                     </option>
                   ))}
                 </select>
@@ -193,6 +205,12 @@ export function StaffAcademyCard({
                   value={`${constructionQuote.durationDays} jours`}
                 />
               </dl>
+              {architect?.buildingEfficiencyBonusPercentage ? (
+                <p className="mt-3 text-xs font-bold text-[#176951]">
+                  Bâtiment livré : +
+                  {architect.buildingEfficiencyBonusPercentage} % d’efficacité
+                </p>
+              ) : null}
               <div className="mt-4">
                 <InfrastructureSubmitButton
                   disabled={Boolean(constructionBlockReason)}

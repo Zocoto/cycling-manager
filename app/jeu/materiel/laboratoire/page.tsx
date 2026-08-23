@@ -45,6 +45,8 @@ export default async function EquipmentLaboratoryPage({
   const baseline = overview.labLevel
     ? estimateEquipmentRndResearch({
         labLevel: overview.labLevel,
+        labEfficiencyBonusPercentage:
+          overview.labEfficiencyBonusPercentage,
         itemPrice: 0,
       })
     : null;
@@ -87,6 +89,12 @@ export default async function EquipmentLaboratoryPage({
                   ? `${baseline.successRate} % de réussite de base`
                   : "Installation non construite"}
               </span>
+              {overview.labEfficiencyBonusPercentage > 0 ? (
+                <span className="rounded-full bg-[#9BE0BC]/20 px-3 py-2 text-[#C9F0E4]">
+                  Conception haute performance · +
+                  {overview.labEfficiencyBonusPercentage} % d’efficacité
+                </span>
+              ) : null}
               <span className="rounded-full bg-white/10 px-3 py-2">
                 1 recherche simultanée
               </span>

@@ -313,6 +313,10 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                       >
                         <DataRoomConstructionCard
                           currentLevel={overview.dataRoomLevel}
+                          currentEfficiencyBonusPercentage={
+                            overview.infrastructureEfficiencyBonuses
+                              .recruitment_data_room
+                          }
                           nextLevel={overview.dataRoomNextLevel}
                           architects={overview.architects}
                           activeProjects={overview.activeProjects}
@@ -334,6 +338,10 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                       >
                         <StaffAcademyCard
                           academy={academy}
+                          currentEfficiencyBonusPercentage={
+                            overview.infrastructureEfficiencyBonuses
+                              .staff_academy
+                          }
                           architects={overview.architects}
                           activeProjects={overview.activeProjects}
                           directorLevel={overview.directorLevel}
@@ -353,6 +361,9 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
                       <InfrastructureBuildingCard
                         definition={definition}
                         currentLevel={currentLevel}
+                        currentEfficiencyBonusPercentage={
+                          overview.infrastructureEfficiencyBonuses[code]
+                        }
                         nextLevel={getTeamInfrastructureLevelDefinition(
                           code,
                           currentLevel + 1,
@@ -469,6 +480,12 @@ function ActiveProjectCard({
             {project.completionGameYear}, J{project.completionDayNumber} ·{" "}
             {formatMoney(project.finalCost, currency)}
           </p>
+          {project.efficiencyBonusPercentage > 0 ? (
+            <p className="mt-2 text-xs font-black text-[#176951]">
+              Conception haute performance · +
+              {project.efficiencyBonusPercentage} % d’efficacité à la livraison
+            </p>
+          ) : null}
           <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#E3E9E6]">
             <div
               className="h-full rounded-full bg-[linear-gradient(90deg,#278B70,#F2C94C)]"

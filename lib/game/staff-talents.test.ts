@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   STAFF_TALENT_DEFINITIONS,
   describeStaffTalent,
+  getArchitectBuildingEfficiencyBonusPercentage,
   getStaffTalentCodes,
   getTrainerTalentSpecialty,
   isStaffTalentForRole,
@@ -87,6 +88,36 @@ describe("staff talents", () => {
         }),
       ),
     ).toContain("mechanic_wheel_interchangeability");
+  });
+
+  it("réserve la conception haute performance aux architectes de niveau 2 minimum", () => {
+    const levelOneTalents = Array.from({ length: 30 }, (_, roll) =>
+      selectInitialStaffTalent({
+        role: "architect",
+        staffLevel: 1,
+        roll,
+      }),
+    );
+    const levelTwoTalents = Array.from({ length: 30 }, (_, roll) =>
+      selectInitialStaffTalent({
+        role: "architect",
+        staffLevel: 2,
+        roll,
+      }),
+    );
+
+    expect(levelOneTalents).not.toContain("architect_building_efficiency");
+    expect(levelTwoTalents).toContain("architect_building_efficiency");
+    expect(levelTwoTalents).not.toContain("architect_parallel_construction");
+  });
+
+  it("augmente le bonus d’efficacité du bâtiment avec le niveau de l’architecte", () => {
+    expect(getArchitectBuildingEfficiencyBonusPercentage(2)).toBe(4);
+    expect(getArchitectBuildingEfficiencyBonusPercentage(3)).toBe(6);
+    expect(getArchitectBuildingEfficiencyBonusPercentage(5)).toBe(10);
+    expect(describeStaffTalent("architect_building_efficiency", 5)).toContain(
+      "+10 % d’efficacité",
+    );
   });
 
   it("présente les talents du nutritionniste comme des bonus supplémentaires", () => {

@@ -23,6 +23,7 @@ import type {
 export function InfrastructureBuildingCard({
   definition,
   currentLevel,
+  currentEfficiencyBonusPercentage = 0,
   nextLevel,
   architects,
   activeProjects,
@@ -33,6 +34,7 @@ export function InfrastructureBuildingCard({
 }: {
   definition: TeamInfrastructureDefinition;
   currentLevel: number;
+  currentEfficiencyBonusPercentage?: number;
   nextLevel: InfrastructureLevelDefinition | null;
   architects: InfrastructureArchitect[];
   activeProjects: InfrastructureProject[];
@@ -94,6 +96,13 @@ export function InfrastructureBuildingCard({
             : "À construire"
         }
       />
+
+      {currentEfficiencyBonusPercentage > 0 ? (
+        <p className="border-b border-[#315B3E]/10 bg-[#E5F4ED] px-5 py-3 text-xs font-black text-[#176951] sm:px-6">
+          Conception haute performance · +{currentEfficiencyBonusPercentage} %
+          d’efficacité
+        </p>
+      ) : null}
 
       <div className="grid flex-1 gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(330px,0.55fr)]">
         <div className="grid content-start gap-2 sm:grid-cols-2 2xl:grid-cols-3">
@@ -166,6 +175,9 @@ export function InfrastructureBuildingCard({
                     {candidate.hasParallelConstructionTalent
                       ? " · Double chantier"
                       : ""}
+                    {candidate.buildingEfficiencyBonusPercentage > 0
+                      ? ` · Bâtiment +${candidate.buildingEfficiencyBonusPercentage} %`
+                      : ""}
                   </option>
                 ))}
               </select>
@@ -186,6 +198,9 @@ export function InfrastructureBuildingCard({
                 <p className="mt-3 text-xs font-bold text-[#176951]">
                   Économie : −{quote.costReductionPercentage} % · délai : −
                   {quote.durationReductionPercentage} %
+                  {architect.buildingEfficiencyBonusPercentage > 0
+                    ? ` · bâtiment : +${architect.buildingEfficiencyBonusPercentage} % d’efficacité`
+                    : ""}
                 </p>
               ) : (
                 <p className="mt-3 text-xs font-semibold text-[#60756E]">
