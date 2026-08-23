@@ -60,7 +60,7 @@ describe("game header responsive layout", () => {
     const mailboxPosition = headerSource.indexOf("<DirectorMailboxShortcut");
     const chatPosition = headerSource.indexOf("<GlobalChatShortcut");
     const gazettePosition = headerSource.indexOf("<CyclogazetteShortcut");
-    const tutorialPosition = headerSource.indexOf("<TutorialCenterMenu");
+    const tutorialPosition = headerSource.indexOf("<TutorialCenterLauncher");
     const searchPosition = headerSource.indexOf('id="game-global-search"');
 
     expect(teamPosition).toBeGreaterThan(0);

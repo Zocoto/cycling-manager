@@ -15,7 +15,7 @@ import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
 import { MobileGameNavigation } from "@/components/game/mobile-game-navigation";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
-import { TutorialCenterMenu } from "@/components/tutorial/tutorial-center-menu";
+import { TutorialCenterLauncher } from "@/components/tutorial/tutorial-center-launcher";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "@/components/ui/wheel-logo";
@@ -231,7 +231,7 @@ export function GameHeader({
             label={isEnglish ? "Help" : "Aide"}
             description={isEnglish ? "Interactive help" : "Aide interactive"}
           >
-            <TutorialCenterMenu />
+            <TutorialCenterLauncher />
           </HeaderIconMenuItem>
 
           <span className="hidden sm:contents">

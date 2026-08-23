@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -21,14 +22,7 @@ import {
   skipTutorialAction,
   startTutorialAction,
 } from "@/app/jeu/tutorial-actions";
-import { TutorialInstantIntro } from "@/components/tutorial/tutorial-instant-intro";
-import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay";
 import { useLocale } from "@/components/i18n/locale-provider";
-import { localizeTutorialDefinition } from "@/lib/i18n/tutorials-en";
-import {
-  getTutorialDefinition,
-  listAutoStartTutorialDefinitions,
-} from "@/lib/tutorial/catalog";
 import { selectInstantAutoStartTutorialKey } from "@/lib/tutorial/instant-start";
 import {
   hasDynamicTutorialRouteSegment,
@@ -40,6 +34,33 @@ import type {
   TutorialProgressRow,
   TutorialSessionLaunchSource,
 } from "@/types/tutorial";
+
+const TutorialInstantIntro = dynamic(() =>
+  import("@/components/tutorial/tutorial-instant-intro").then(
+    (module) => module.TutorialInstantIntro,
+  ),
+);
+
+const TutorialOverlay = dynamic(() =>
+  import("@/components/tutorial/tutorial-overlay").then(
+    (module) => module.TutorialOverlay,
+  ),
+);
+
+type TutorialClientRuntime = typeof import("@/lib/tutorial/client-runtime");
+
+let tutorialClientRuntimePromise: Promise<TutorialClientRuntime> | null = null;
+
+function loadTutorialClientRuntime(): Promise<TutorialClientRuntime> {
+  tutorialClientRuntimePromise ??= import(
+    "@/lib/tutorial/client-runtime"
+  ).catch((error) => {
+    tutorialClientRuntimePromise = null;
+    throw error;
+  });
+
+  return tutorialClientRuntimePromise;
+}
 
 type TutorialContextValue = {
   activeTutorial: ActiveTutorial | null;
@@ -177,7 +198,11 @@ export function TutorialProvider({
     () => new Set(resolvedAutoStartTutorialKeys),
     [resolvedAutoStartTutorialKeys],
   );
-  const [bootstrapLoaded, setBootstrapLoaded] = useState(!bootstrapPromise);
+  const [bootstrapLoaded, setBootstrapLoaded] = useState(
+    !bootstrapPromise && autoStartTutorialKeys.length === 0,
+  );
+  const [tutorialRuntime, setTutorialRuntime] =
+    useState<TutorialClientRuntime | null>(null);
 
   const [progressByTutorialKey, setProgressByTutorialKey] = useState<
     Record<string, TutorialProgressRow>
@@ -192,32 +217,68 @@ export function TutorialProvider({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [instantAutoStartTutorialKey, setInstantAutoStartTutorialKey] =
-    useState<string | null>(() =>
-      bootstrapPromise
-        ? null
-        : selectInstantAutoStartTutorialKey({
-            autoStartTutorialKeys,
-            progressRows: initialProgress,
-            definitions: listAutoStartTutorialDefinitions(),
-          }),
-    );
+    useState<string | null>(null);
+
+  const loadAndStoreTutorialRuntime = useCallback(async () => {
+    const runtime = await loadTutorialClientRuntime();
+    setTutorialRuntime(runtime);
+    return runtime;
+  }, []);
 
   const hydrateTutorialBootstrap = useCallback(
     (bootstrap: TutorialProviderBootstrap) => {
       setProgressByTutorialKey(createProgressMap(bootstrap.progress));
       setResolvedAutoStartTutorialKeys(bootstrap.autoStartTutorialKeys);
-      setInstantAutoStartTutorialKey(
-        selectInstantAutoStartTutorialKey({
-          autoStartTutorialKeys: bootstrap.autoStartTutorialKeys,
-          progressRows: bootstrap.progress,
-          definitions: listAutoStartTutorialDefinitions(),
-        }),
-      );
       autoStartAttemptedRef.current = false;
-      setBootstrapLoaded(true);
+
+      if (bootstrap.autoStartTutorialKeys.length === 0) {
+        setInstantAutoStartTutorialKey(null);
+        setBootstrapLoaded(true);
+        return;
+      }
+
+      setBootstrapLoaded(false);
+
+      void loadAndStoreTutorialRuntime()
+        .then((runtime) => {
+          setInstantAutoStartTutorialKey(
+            selectInstantAutoStartTutorialKey({
+              autoStartTutorialKeys: bootstrap.autoStartTutorialKeys,
+              progressRows: bootstrap.progress,
+              definitions: runtime.listAutoStartTutorialDefinitions(),
+            }),
+          );
+          setBootstrapLoaded(true);
+        })
+        .catch((error) => {
+          console.error(
+            "Impossible de charger le moteur des didacticiels.",
+            error,
+          );
+          setBootstrapLoaded(true);
+        });
     },
-    [],
+    [loadAndStoreTutorialRuntime],
   );
+
+  const initialBootstrapHandledRef = useRef(false);
+
+  useEffect(() => {
+    if (bootstrapPromise || initialBootstrapHandledRef.current) {
+      return;
+    }
+
+    initialBootstrapHandledRef.current = true;
+    hydrateTutorialBootstrap({
+      progress: [...initialProgress],
+      autoStartTutorialKeys: [...autoStartTutorialKeys],
+    });
+  }, [
+    autoStartTutorialKeys,
+    bootstrapPromise,
+    hydrateTutorialBootstrap,
+    initialProgress,
+  ]);
 
   const saveProgress = useCallback((progress: TutorialProgressRow) => {
     setProgressByTutorialKey((current) => ({
@@ -237,22 +298,23 @@ export function TutorialProvider({
 
   const startTutorial = useCallback(
     async (options: StartTutorialOptions): Promise<boolean> => {
-      const definition = getTutorialDefinition(options.tutorialKey);
-
-      if (!definition) {
-        setErrorMessage(
-          isEnglish
-            ? `Tutorial “${options.tutorialKey}” could not be found.`
-            : `Le didacticiel « ${options.tutorialKey} » est introuvable.`,
-        );
-
-        return false;
-      }
-
       setIsPending(true);
       setErrorMessage(null);
 
       try {
+        const runtime = await loadAndStoreTutorialRuntime();
+        const definition = runtime.getTutorialDefinition(options.tutorialKey);
+
+        if (!definition) {
+          setErrorMessage(
+            isEnglish
+              ? `Tutorial “${options.tutorialKey}” could not be found.`
+              : `Le didacticiel « ${options.tutorialKey} » est introuvable.`,
+          );
+
+          return false;
+        }
+
         const result = await startTutorialAction({
           tutorialKey: options.tutorialKey,
           launchSource: options.launchSource,
@@ -331,7 +393,13 @@ export function TutorialProvider({
         setIsPending(false);
       }
     },
-    [currentRoute, isEnglish, navigateToStep, saveProgress],
+    [
+      currentRoute,
+      isEnglish,
+      loadAndStoreTutorialRuntime,
+      navigateToStep,
+      saveProgress,
+    ],
   );
 
   const updateCurrentStep = useCallback(
@@ -666,10 +734,15 @@ export function TutorialProvider({
       return;
     }
 
+    if (!tutorialRuntime) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
       autoStartAttemptedRef.current = true;
 
-      const definition = listAutoStartTutorialDefinitions()
+      const definition = tutorialRuntime
+        .listAutoStartTutorialDefinitions()
         .filter((candidate) => autoStartTutorialKeySet.has(candidate.key))
         .find((candidate) => {
           const progress = progressByTutorialKey[candidate.key];
@@ -707,6 +780,7 @@ export function TutorialProvider({
     isPending,
     progressByTutorialKey,
     startTutorial,
+    tutorialRuntime,
   ]);
 
   const localizedActiveTutorial = useMemo<ActiveTutorial | null>(
@@ -714,13 +788,13 @@ export function TutorialProvider({
       activeTutorial
         ? {
             ...activeTutorial,
-            definition: localizeTutorialDefinition(
+            definition: tutorialRuntime?.localizeTutorialDefinition(
               activeTutorial.definition,
               locale,
-            ),
+            ) ?? activeTutorial.definition,
           }
         : null,
-    [activeTutorial, locale],
+    [activeTutorial, locale, tutorialRuntime],
   );
 
   const contextValue = useMemo<TutorialContextValue>(
@@ -753,12 +827,14 @@ export function TutorialProvider({
   );
 
   const instantAutoStartDefinition = useMemo(() => {
-    const definition = instantAutoStartTutorialKey
-      ? getTutorialDefinition(instantAutoStartTutorialKey)
+    const definition = instantAutoStartTutorialKey && tutorialRuntime
+      ? tutorialRuntime.getTutorialDefinition(instantAutoStartTutorialKey)
       : null;
 
-    return definition ? localizeTutorialDefinition(definition, locale) : null;
-  }, [instantAutoStartTutorialKey, locale]);
+    return definition
+      ? tutorialRuntime?.localizeTutorialDefinition(definition, locale) ?? null
+      : null;
+  }, [instantAutoStartTutorialKey, locale, tutorialRuntime]);
 
   const instantAutoStartStep = instantAutoStartDefinition?.steps[0] ?? null;
 
@@ -780,10 +856,14 @@ export function TutorialProvider({
 
   const followUpDefinition = useMemo(() => {
     const followUpKey = activeTutorial?.definition.followUpTutorialKey;
-    const definition = followUpKey ? getTutorialDefinition(followUpKey) : null;
+    const definition = followUpKey && tutorialRuntime
+      ? tutorialRuntime.getTutorialDefinition(followUpKey)
+      : null;
 
-    return definition ? localizeTutorialDefinition(definition, locale) : null;
-  }, [activeTutorial?.definition.followUpTutorialKey, locale]);
+    return definition
+      ? tutorialRuntime?.localizeTutorialDefinition(definition, locale) ?? null
+      : null;
+  }, [activeTutorial?.definition.followUpTutorialKey, locale, tutorialRuntime]);
 
   return (
     <TutorialContext.Provider value={contextValue}>

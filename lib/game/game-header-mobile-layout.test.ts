@@ -36,7 +36,7 @@ describe("bandeau du jeu sur mobile", () => {
     expect(mailboxPosition).toBeGreaterThan(0);
     expect(chatPosition).toBeGreaterThan(mailboxPosition);
     expect(gameHeader).toContain("<CyclogazetteShortcut");
-    expect(gameHeader).toContain("<TutorialCenterMenu");
+    expect(gameHeader).toContain("<TutorialCenterLauncher");
     expect(gameHeader).not.toContain("GameHeaderActionsMenu");
     expect(globalChat).toContain("h-8 w-8 shrink-0");
     expect(globalChat).toContain("sm:h-10 sm:w-10");

@@ -23,13 +23,15 @@ import { TRANSFER_TUTORIAL_KEY } from "@/lib/tutorial/transfers";
 import { YOUTH_DEVELOPMENT_TUTORIAL_KEY } from "@/lib/tutorial/youth-development";
 import type { TutorialProgressRow } from "@/types/tutorial";
 
-export function TutorialCenterMenu() {
+export function TutorialCenterMenu({ initiallyOpen = false }: {
+  initiallyOpen?: boolean;
+}) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
 
   const { activeTutorial, getTutorialProgress, isPending, startTutorial } =
     useTutorial();
