@@ -66,7 +66,8 @@ describe("dashboard eligible races", () => {
 
     expect(markup).toContain("Course eligible");
     expect(markup).toContain("/jeu/courses/eligible#inscription");
-    expect(markup).toContain("Inscriptions accessibles");
+    expect(markup).toContain("Calendrier court terme");
+    expect(markup).toContain("Inscriptions à suivre");
     expect(markup).not.toContain("data-race-preview-trigger");
     expect(markup).toContain("data-dashboard-race-scroll");
     expect(markup).toContain("overflow-y-auto");
@@ -136,6 +137,71 @@ describe("dashboard eligible races", () => {
     expect(markup).toContain('aria-label="Objectif sponsor"');
     expect(markup).toContain("bg-[#FFF9DF]");
   });
+
+  it("conserve et signale une inscription acceptée devenue incomplète", () => {
+    const calendar = createCalendar([
+      createEdition("a-corriger", {
+        minimumReputation: 200,
+        minimumRosterSize: 6,
+        registrationPolicy: "closed",
+        startDay: 12,
+        currentTeamRegistration: {
+          status: "accepted",
+          rosterCount: 5,
+        },
+      }),
+    ]);
+
+    const races = getOpenEligibleDashboardRaces({
+      calendar,
+      reputationPoints: 0,
+      riderCount: 5,
+      now: new Date("2026-07-10T10:00:00.000Z"),
+      horizonDays: 4,
+    });
+    const markup = renderToStaticMarkup(
+      <DashboardEligibleRaces
+        calendar={calendar}
+        reputationPoints={0}
+        riderCount={5}
+        now={new Date("2026-07-10T10:00:00.000Z")}
+      />,
+    );
+
+    expect(races).toHaveLength(1);
+    expect(races[0]?.needsRegistrationAttention).toBe(true);
+    expect(markup).toContain('aria-label="Attention, inscription à revoir"');
+    expect(markup).toContain("Start-list à revoir");
+    expect(markup).toContain("5/6 coureurs");
+    expect(markup).toContain("À corriger");
+    expect(markup).toContain("bg-[#FFF0F1]");
+    expect(markup).toContain("/jeu/courses/a-corriger#inscription");
+  });
+
+  it("ne signale pas une inscription dont le contingent reste conforme", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardEligibleRaces
+        calendar={createCalendar([
+          createEdition("conforme", {
+            minimumReputation: 0,
+            minimumRosterSize: 6,
+            startDay: 12,
+            currentTeamRegistration: {
+              status: "accepted",
+              rosterCount: 6,
+            },
+          }),
+        ])}
+        reputationPoints={125}
+        riderCount={8}
+        now={new Date("2026-07-10T10:00:00.000Z")}
+      />,
+    );
+
+    expect(markup).toContain("Voir l’inscription");
+    expect(markup).not.toContain("Attention, inscription à revoir");
+    expect(markup).not.toContain("Start-list à revoir");
+  });
 });
 
 function createCalendar(editions: RaceCalendarEdition[]): SeasonRaceCalendar {
@@ -165,12 +231,14 @@ function createEdition(
     registrationPolicy = "open",
     startDay,
     isSponsorObjective = false,
+    currentTeamRegistration = null,
   }: {
     minimumReputation: number;
     minimumRosterSize: number;
     registrationPolicy?: RaceCalendarEdition["registrationPolicy"];
     startDay: number;
     isSponsorObjective?: boolean;
+    currentTeamRegistration?: RaceCalendarEdition["currentTeamRegistration"];
   },
 ): RaceCalendarEdition {
   return {
@@ -197,7 +265,7 @@ function createEdition(
     maximumRosterSize: 8,
     engagedRiderCount: 0,
     engagedRiders: [],
-    currentTeamRegistration: null,
+    currentTeamRegistration,
     stages: [
       {
         id: `${id}-stage-1`,

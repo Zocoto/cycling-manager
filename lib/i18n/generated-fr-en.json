@@ -6325,5 +6325,12 @@
   "% sur le délai": "% on construction time",
   "Bâtiment livré : +": "Delivered building: +",
   "Conception haute performance": "High-performance design",
-  "Conception haute performance · +": "High-performance design · +"
+  "Conception haute performance · +": "High-performance design · +",
+  "À corriger": "Needs attention",
+  "Attention, inscription à revoir": "Warning, registration needs attention",
+  "Calendrier court terme": "Short-term calendar",
+  "Courses à engager ou inscriptions à corriger des quatre prochains jours": "Races to enter or registrations to fix over the next four days",
+  "Inscription à revoir : la start-list ne respecte plus le contingent minimum": "Registration needs attention: the start list no longer meets the minimum roster requirement",
+  "Inscriptions à suivre": "Registrations to monitor",
+  "Start-list à revoir ·": "Start list needs attention ·"
 }

@@ -15,6 +15,7 @@ export type DashboardEligibleRace = {
   startDayNumber: number;
   endDayNumber: number;
   calendarDate: string | null;
+  needsRegistrationAttention: boolean;
 };
 
 export function DashboardEligibleRaces({
@@ -46,13 +47,13 @@ export function DashboardEligibleRaces({
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[#315B3E]/10 px-4 py-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-            Inscriptions accessibles
+            Calendrier court terme
           </p>
           <h3
             id="dashboard-eligible-races-title"
             className="mt-0.5 text-base font-black text-[#082A2A]"
           >
-            Courses à engager
+            Inscriptions à suivre
           </h3>
         </div>
         {calendar ? (
@@ -66,59 +67,12 @@ export function DashboardEligibleRaces({
         <ol
           data-dashboard-race-scroll=""
           tabIndex={0}
-          aria-label="Courses éligibles des quatre prochains jours"
+          aria-label="Courses à engager ou inscriptions à corriger des quatre prochains jours"
           className="min-h-0 flex-1 divide-y divide-[#315B3E]/10 overflow-y-auto overscroll-contain [scrollbar-color:#7EB4A3_#E7F0EC] [scrollbar-gutter:stable] [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70]"
         >
-          {races.map(({ edition, startDayNumber, endDayNumber, calendarDate }) => {
-            const style = RACE_CATEGORY_STYLE[edition.categoryCode];
-            const registration = edition.currentTeamRegistration;
-            const actionLabel =
-              registration?.status === "accepted"
-                ? "Voir l’inscription"
-                : registration?.status === "pending"
-                  ? "Voir la demande"
-                  : registration?.status === "withdrawn"
-                    ? "Se réinscrire"
-                    : "S’inscrire";
-
-            return (
-              <li key={edition.id}>
-                <Link
-                  href={getRaceRegistrationHref(edition.slug)}
-                  title={edition.isSponsorObjective ? "Objectif sponsor" : undefined}
-                  className={`group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-2 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] ${edition.isSponsorObjective ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#F2C94C]" : ""}`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="h-8 w-1 rounded-full"
-                    style={{ backgroundColor: style.background }}
-                  />
-
-                  <span className="min-w-0">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={`fi fi-${edition.countryCode.toLowerCase()} shrink-0 rounded`}
-                        role="img"
-                        aria-label={`Drapeau ${edition.countryName}`}
-                      />
-                      {edition.isSponsorObjective ? <span role="img" aria-label="Objectif sponsor" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F2C94C] text-[11px] font-black text-[#3D3300]">!</span> : null}
-                      <span className="truncate text-[13px] font-black text-[#183F37] transition group-hover:text-[#176951]">
-                        {edition.name}
-                      </span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[#789087]">
-                      {style.label} · {formatRaceDays(startDayNumber, endDayNumber)}
-                      {calendarDate ? ` · ${formatCalendarDate(calendarDate)}` : ""}
-                    </span>
-                  </span>
-
-                  <span className="rounded-lg bg-[#E8F7F1] px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#176951] transition group-hover:bg-[#176951] group-hover:text-white">
-                    {actionLabel}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
+          {races.map((race) => (
+            <DashboardRaceListItem key={race.edition.id} race={race} />
+          ))}
         </ol>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
@@ -149,6 +103,98 @@ export function DashboardEligibleRaces({
   );
 }
 
+function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
+  const {
+    edition,
+    startDayNumber,
+    endDayNumber,
+    calendarDate,
+    needsRegistrationAttention,
+  } = race;
+  const style = RACE_CATEGORY_STYLE[edition.categoryCode];
+  const registration = edition.currentTeamRegistration;
+  const actionLabel = needsRegistrationAttention
+    ? "À corriger"
+    : registration?.status === "accepted"
+      ? "Voir l’inscription"
+      : registration?.status === "pending"
+        ? "Voir la demande"
+        : registration?.status === "withdrawn"
+          ? "Se réinscrire"
+          : "S’inscrire";
+
+  return (
+    <li>
+      <Link
+        href={getRaceRegistrationHref(edition.slug)}
+        title={
+          needsRegistrationAttention
+            ? "Inscription à revoir : la start-list ne respecte plus le contingent minimum"
+            : edition.isSponsorObjective
+              ? "Objectif sponsor"
+              : undefined
+        }
+        className={`group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 px-4 py-2 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#278B70] ${
+          needsRegistrationAttention
+            ? "bg-[#FFF0F1] ring-1 ring-inset ring-[#EF5B65]/55"
+            : edition.isSponsorObjective
+              ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#F2C94C]"
+              : ""
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className="h-8 w-1 rounded-full"
+          style={{ backgroundColor: style.background }}
+        />
+
+        <span className="min-w-0">
+          <span className="flex min-w-0 items-center gap-2">
+            <span
+              className={`fi fi-${edition.countryCode.toLowerCase()} shrink-0 rounded`}
+              role="img"
+              aria-label={`Drapeau ${edition.countryName}`}
+            />
+            {needsRegistrationAttention ? <RegistrationWarningIcon /> : null}
+            {edition.isSponsorObjective ? (
+              <span
+                role="img"
+                aria-label="Objectif sponsor"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F2C94C] text-[11px] font-black text-[#3D3300]"
+              >
+                !
+              </span>
+            ) : null}
+            <span className="truncate text-[13px] font-black text-[#183F37] transition group-hover:text-[#176951]">
+              {edition.name}
+            </span>
+          </span>
+          <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[#789087]">
+            {style.label} · {formatRaceDays(startDayNumber, endDayNumber)}
+            {calendarDate ? ` · ${formatCalendarDate(calendarDate)}` : ""}
+          </span>
+          {needsRegistrationAttention && registration ? (
+            <span className="mt-0.5 block truncate text-[9px] font-black uppercase tracking-[0.08em] text-[#C4333E]">
+              Start-list à revoir · {registration.rosterCount}/
+              {edition.minimumRosterSize} coureurs
+            </span>
+          ) : null}
+        </span>
+
+        <span
+          className={`rounded-lg px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.08em] transition group-hover:text-white ${
+            needsRegistrationAttention
+              ? "bg-[#EF5B65] text-white group-hover:bg-[#C4333E]"
+              : "bg-[#E8F7F1] text-[#176951] group-hover:bg-[#176951]"
+          }`}
+        >
+          {actionLabel}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 export function getOpenEligibleDashboardRaces({
   calendar,
   reputationPoints,
@@ -171,7 +217,19 @@ export function getOpenEligibleDashboardRaces({
       if (
         edition.status === "cancelled" ||
         edition.status === "completed" ||
-        edition.status === "in_progress" ||
+        edition.status === "in_progress"
+      ) {
+        return [];
+      }
+
+      const registration = edition.currentTeamRegistration;
+      const needsRegistrationAttention =
+        edition.competitionType === "standard" &&
+        registration?.status === "accepted" &&
+        registration.rosterCount < edition.minimumRosterSize;
+
+      if (
+        !needsRegistrationAttention &&
         riderCount < edition.minimumRosterSize
       ) {
         return [];
@@ -190,12 +248,13 @@ export function getOpenEligibleDashboardRaces({
       });
 
       if (
-        availability !== "open" ||
-        !isRaceEditionAvailableToCurrentTeam({
-          edition,
-          reputationPoints,
-          now,
-        })
+        !needsRegistrationAttention &&
+        (availability !== "open" ||
+          !isRaceEditionAvailableToCurrentTeam({
+            edition,
+            reputationPoints,
+            now,
+          }))
       ) {
         return [];
       }
@@ -225,6 +284,7 @@ export function getOpenEligibleDashboardRaces({
           startDayNumber,
           endDayNumber,
           calendarDate: dateByDayNumber.get(startDayNumber) ?? null,
+          needsRegistrationAttention,
         },
       ];
     })
@@ -234,6 +294,37 @@ export function getOpenEligibleDashboardRaces({
         left.edition.prestigeRank - right.edition.prestigeRank ||
         left.edition.name.localeCompare(right.edition.name, "fr"),
     );
+}
+
+function RegistrationWarningIcon() {
+  return (
+    <span
+      role="img"
+      aria-label="Attention, inscription à revoir"
+      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EF5B65] text-white shadow-[0_2px_7px_rgba(196,51,62,0.32)]"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-3.5 w-3.5"
+        fill="none"
+      >
+        <path
+          d="M12 3.75 21 20.25H3L12 3.75Z"
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 9v5.2M12 17.4v.1"
+          stroke="#7A1720"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  );
 }
 
 function formatRaceDays(startDay: number, endDay: number) {
