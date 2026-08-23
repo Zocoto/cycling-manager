@@ -44,6 +44,7 @@ describe("WELLNESS_HYGIENE_SPONSORS", () => {
 
     expect(new Set(sponsorIds).size).toBe(sponsorIds.length);
     expect(new Set(assetPaths).size).toBe(assetPaths.length);
+    expect(assetPaths.every((assetPath) => assetPath.endsWith(".webp"))).toBe(true);
   });
 
   it("est raccordé au catalogue global utilisé par le jeu", () => {
