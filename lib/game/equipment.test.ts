@@ -7,6 +7,7 @@ import {
   getEquipmentRatingBonusTotals,
   isEquipmentEffectFilterKey,
   isEquipmentChangeFrozenForRace,
+  isPersistedEquipmentAssignmentCompatible,
   isEquipmentSlotCompatible,
 } from "./equipment";
 import type { RiderRatings } from "./rider-profile";
@@ -63,6 +64,35 @@ describe("equipment slot compatibility", () => {
         targetSlot: "frame",
         itemSlot: "front_wheel",
         canSwapWheelSlots: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("relit les deux roues identiques dans leurs emplacements persistés", () => {
+    const climbFeatherEffects = {
+      ratingBonuses: { mountain: 2, hills: 1 },
+    };
+    const persistedAssignments = [
+      { assignmentSlot: "front_wheel", itemSlot: "rear_wheel" },
+      { assignmentSlot: "rear_wheel", itemSlot: "rear_wheel" },
+    ] as const;
+
+    const combined = combineEquipmentEffects(
+      persistedAssignments.flatMap((assignment) =>
+        isPersistedEquipmentAssignmentCompatible(assignment)
+          ? [climbFeatherEffects]
+          : [],
+      ),
+    );
+
+    expect(getEquipmentRatingBonusTotals(combined)).toMatchObject({
+      mountain: 4,
+      hills: 2,
+    });
+    expect(
+      isPersistedEquipmentAssignmentCompatible({
+        assignmentSlot: "frame",
+        itemSlot: "rear_wheel",
       }),
     ).toBe(false);
   });

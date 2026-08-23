@@ -35,6 +35,25 @@ export function isEquipmentSlotCompatible({
   );
 }
 
+/**
+ * Les affectations persistées ont déjà passé les contrôles de stock et de
+ * talent en base. Leur relecture doit néanmoins accepter une roue rangée dans
+ * l'autre emplacement, sans ouvrir cette tolérance aux autres catégories.
+ */
+export function isPersistedEquipmentAssignmentCompatible({
+  assignmentSlot,
+  itemSlot,
+}: {
+  assignmentSlot: EquipmentSlot;
+  itemSlot: EquipmentSlot;
+}): boolean {
+  return isEquipmentSlotCompatible({
+    targetSlot: assignmentSlot,
+    itemSlot,
+    canSwapWheelSlots: true,
+  });
+}
+
 export const EQUIPMENT_CATEGORIES = [
   { slot: "gloves", label: "Gants", shortLabel: "Gants" },
   { slot: "bib_shorts", label: "Cuissards", shortLabel: "Cuissard" },

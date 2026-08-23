@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  isPersistedEquipmentAssignmentCompatible,
   normalizeEquipmentEffects,
   type EquipmentEffects,
   type EquipmentSlot,
@@ -1064,7 +1065,13 @@ export async function getPublicRiderProfile({
   for (const assignment of equipmentAssignments) {
     const item = equipmentItems.get(assignment.equipment_item_id);
 
-    if (item && item.slot_type === assignment.slot_type) {
+    if (
+      item &&
+      isPersistedEquipmentAssignmentCompatible({
+        assignmentSlot: assignment.slot_type,
+        itemSlot: item.slot_type,
+      })
+    ) {
       equipment[assignment.slot_type] = {
         id: item.id,
         name: item.name,
