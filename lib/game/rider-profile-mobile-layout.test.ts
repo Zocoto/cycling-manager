@@ -65,6 +65,9 @@ describe("mise en page mobile de la fiche coureur", () => {
     expect(riderPage).toMatch(
       /data-tutorial-id="rider-profile-naturalization"[\s\S]*data-tutorial-id="rider-profile-contract"/,
     );
+    expect(riderPage).toMatch(
+      /data-tutorial-id="rider-profile-naturalization"\s+className="xl:col-span-2"/,
+    );
     expect(riderPage).toContain(
       'className="grid min-w-0 gap-5 lg:grid-cols-2 xl:col-span-2"',
     );

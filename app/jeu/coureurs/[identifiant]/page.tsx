@@ -604,7 +604,10 @@ async function RiderManagementCards({
   return (
     <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-2">
       {shouldDisplayNaturalizationCard(naturalizationEligibility) ? (
-        <div data-tutorial-id="rider-profile-naturalization">
+        <div
+          data-tutorial-id="rider-profile-naturalization"
+          className="xl:col-span-2"
+        >
           <NaturalizationCard
             eligibility={naturalizationEligibility}
             subjectName={fullName}
