@@ -13,25 +13,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 65,
     budgetRange: { min: 1_600_000, max: 2_400_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/eichenrad-automobil/logo.png",
+    logoPath: "/images/sponsors/eichenrad-automobil/logo.webp",
     jerseys: [
       {
         id: "eichenrad-automobil-classic",
         name: "Meisterwerk",
         style: "classic",
-        imagePath: "/images/sponsors/eichenrad-automobil/jersey-classic.png",
+        imagePath: "/images/sponsors/eichenrad-automobil/jersey-classic.webp",
       },
       {
         id: "eichenrad-automobil-modern",
         name: "Autobahn Vector",
         style: "modern",
-        imagePath: "/images/sponsors/eichenrad-automobil/jersey-modern.png",
+        imagePath: "/images/sponsors/eichenrad-automobil/jersey-modern.webp",
       },
       {
         id: "eichenrad-automobil-bold",
         name: "Kupferblitz",
         style: "bold",
-        imagePath: "/images/sponsors/eichenrad-automobil/jersey-bold.png",
+        imagePath: "/images/sponsors/eichenrad-automobil/jersey-bold.webp",
       },
     ],
     colors: {
@@ -54,25 +54,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 45,
     budgetRange: { min: 950_000, max: 1_500_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/soramei-motors/logo.png",
+    logoPath: "/images/sponsors/soramei-motors/logo.webp",
     jerseys: [
       {
         id: "soramei-motors-classic",
         name: "Asahi Steel",
         style: "classic",
-        imagePath: "/images/sponsors/soramei-motors/jersey-classic.png",
+        imagePath: "/images/sponsors/soramei-motors/jersey-classic.webp",
       },
       {
         id: "soramei-motors-modern",
         name: "Neon Shinkansen",
         style: "modern",
-        imagePath: "/images/sponsors/soramei-motors/jersey-modern.png",
+        imagePath: "/images/sponsors/soramei-motors/jersey-modern.webp",
       },
       {
         id: "soramei-motors-bold",
         name: "Koi Circuit",
         style: "bold",
-        imagePath: "/images/sponsors/soramei-motors/jersey-bold.png",
+        imagePath: "/images/sponsors/soramei-motors/jersey-bold.webp",
       },
     ],
     colors: {
@@ -95,25 +95,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 35,
     budgetRange: { min: 750_000, max: 1_200_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/mesa-forge-automotive/logo.png",
+    logoPath: "/images/sponsors/mesa-forge-automotive/logo.webp",
     jerseys: [
       {
         id: "mesa-forge-automotive-classic",
         name: "Foundry Heritage",
         style: "classic",
-        imagePath: "/images/sponsors/mesa-forge-automotive/jersey-classic.png",
+        imagePath: "/images/sponsors/mesa-forge-automotive/jersey-classic.webp",
       },
       {
         id: "mesa-forge-automotive-modern",
         name: "Canyon Torque",
         style: "modern",
-        imagePath: "/images/sponsors/mesa-forge-automotive/jersey-modern.png",
+        imagePath: "/images/sponsors/mesa-forge-automotive/jersey-modern.webp",
       },
       {
         id: "mesa-forge-automotive-bold",
         name: "Copper Rush",
         style: "bold",
-        imagePath: "/images/sponsors/mesa-forge-automotive/jersey-bold.png",
+        imagePath: "/images/sponsors/mesa-forge-automotive/jersey-bold.webp",
       },
     ],
     colors: {
@@ -136,25 +136,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 50,
     budgetRange: { min: 1_000_000, max: 1_600_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/hanul-vector-motors/logo.png",
+    logoPath: "/images/sponsors/hanul-vector-motors/logo.webp",
     jerseys: [
       {
         id: "hanul-vector-motors-classic",
         name: "Seoul Line",
         style: "classic",
-        imagePath: "/images/sponsors/hanul-vector-motors/jersey-classic.png",
+        imagePath: "/images/sponsors/hanul-vector-motors/jersey-classic.webp",
       },
       {
         id: "hanul-vector-motors-modern",
         name: "Vector Pulse",
         style: "modern",
-        imagePath: "/images/sponsors/hanul-vector-motors/jersey-modern.png",
+        imagePath: "/images/sponsors/hanul-vector-motors/jersey-modern.webp",
       },
       {
         id: "hanul-vector-motors-bold",
         name: "Taeguk Velocity",
         style: "bold",
-        imagePath: "/images/sponsors/hanul-vector-motors/jersey-bold.png",
+        imagePath: "/images/sponsors/hanul-vector-motors/jersey-bold.webp",
       },
     ],
     colors: {
@@ -177,25 +177,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 60,
     budgetRange: { min: 1_350_000, max: 2_100_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/jade-meridian-motors/logo.png",
+    logoPath: "/images/sponsors/jade-meridian-motors/logo.webp",
     jerseys: [
       {
         id: "jade-meridian-motors-classic",
         name: "Silk Road",
         style: "classic",
-        imagePath: "/images/sponsors/jade-meridian-motors/jersey-classic.png",
+        imagePath: "/images/sponsors/jade-meridian-motors/jersey-classic.webp",
       },
       {
         id: "jade-meridian-motors-modern",
         name: "Meridian EV",
         style: "modern",
-        imagePath: "/images/sponsors/jade-meridian-motors/jersey-modern.png",
+        imagePath: "/images/sponsors/jade-meridian-motors/jersey-modern.webp",
       },
       {
         id: "jade-meridian-motors-bold",
         name: "Jade Dragon",
         style: "bold",
-        imagePath: "/images/sponsors/jade-meridian-motors/jersey-bold.png",
+        imagePath: "/images/sponsors/jade-meridian-motors/jersey-bold.webp",
       },
     ],
     colors: {
@@ -218,27 +218,27 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 55,
     budgetRange: { min: 1_200_000, max: 1_900_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/fulmine-rosso-automobili/logo.png",
+    logoPath: "/images/sponsors/fulmine-rosso-automobili/logo.webp",
     jerseys: [
       {
         id: "fulmine-rosso-automobili-classic",
         name: "Rosso Corsa",
         style: "classic",
         imagePath:
-          "/images/sponsors/fulmine-rosso-automobili/jersey-classic.png",
+          "/images/sponsors/fulmine-rosso-automobili/jersey-classic.webp",
       },
       {
         id: "fulmine-rosso-automobili-modern",
         name: "Galleria Veloce",
         style: "modern",
         imagePath:
-          "/images/sponsors/fulmine-rosso-automobili/jersey-modern.png",
+          "/images/sponsors/fulmine-rosso-automobili/jersey-modern.webp",
       },
       {
         id: "fulmine-rosso-automobili-bold",
         name: "Lampo d’Oro",
         style: "bold",
-        imagePath: "/images/sponsors/fulmine-rosso-automobili/jersey-bold.png",
+        imagePath: "/images/sponsors/fulmine-rosso-automobili/jersey-bold.webp",
       },
     ],
     colors: {
@@ -261,25 +261,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 20,
     budgetRange: { min: 500_000, max: 850_000 },
     contractDurationRange: { min: 1, max: 2 },
-    logoPath: "/images/sponsors/mistralys-automobiles/logo.png",
+    logoPath: "/images/sponsors/mistralys-automobiles/logo.webp",
     jerseys: [
       {
         id: "mistralys-automobiles-classic",
         name: "Grand Tourisme",
         style: "classic",
-        imagePath: "/images/sponsors/mistralys-automobiles/jersey-classic.png",
+        imagePath: "/images/sponsors/mistralys-automobiles/jersey-classic.webp",
       },
       {
         id: "mistralys-automobiles-modern",
         name: "Flux Électrique",
         style: "modern",
-        imagePath: "/images/sponsors/mistralys-automobiles/jersey-modern.png",
+        imagePath: "/images/sponsors/mistralys-automobiles/jersey-modern.webp",
       },
       {
         id: "mistralys-automobiles-bold",
         name: "Tricolore Mistral",
         style: "bold",
-        imagePath: "/images/sponsors/mistralys-automobiles/jersey-bold.png",
+        imagePath: "/images/sponsors/mistralys-automobiles/jersey-bold.webp",
       },
     ],
     colors: {
@@ -302,25 +302,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 15,
     budgetRange: { min: 420_000, max: 760_000 },
     contractDurationRange: { min: 1, max: 2 },
-    logoPath: "/images/sponsors/calder-wren-motorworks/logo.png",
+    logoPath: "/images/sponsors/calder-wren-motorworks/logo.webp",
     jerseys: [
       {
         id: "calder-wren-motorworks-classic",
         name: "Heritage Racing",
         style: "classic",
-        imagePath: "/images/sponsors/calder-wren-motorworks/jersey-classic.png",
+        imagePath: "/images/sponsors/calder-wren-motorworks/jersey-classic.webp",
       },
       {
         id: "calder-wren-motorworks-modern",
         name: "North Sea Grid",
         style: "modern",
-        imagePath: "/images/sponsors/calder-wren-motorworks/jersey-modern.png",
+        imagePath: "/images/sponsors/calder-wren-motorworks/jersey-modern.webp",
       },
       {
         id: "calder-wren-motorworks-bold",
         name: "Union Sprint",
         style: "bold",
-        imagePath: "/images/sponsors/calder-wren-motorworks/jersey-bold.png",
+        imagePath: "/images/sponsors/calder-wren-motorworks/jersey-bold.webp",
       },
     ],
     colors: {
@@ -343,25 +343,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 0,
     budgetRange: { min: 280_000, max: 520_000 },
     contractDurationRange: { min: 1, max: 2 },
-    logoPath: "/images/sponsors/suryavaan-motors/logo.png",
+    logoPath: "/images/sponsors/suryavaan-motors/logo.webp",
     jerseys: [
       {
         id: "suryavaan-motors-classic",
         name: "Deccan Classic",
         style: "classic",
-        imagePath: "/images/sponsors/suryavaan-motors/jersey-classic.png",
+        imagePath: "/images/sponsors/suryavaan-motors/jersey-classic.webp",
       },
       {
         id: "suryavaan-motors-modern",
         name: "Solar Circuit",
         style: "modern",
-        imagePath: "/images/sponsors/suryavaan-motors/jersey-modern.png",
+        imagePath: "/images/sponsors/suryavaan-motors/jersey-modern.webp",
       },
       {
         id: "suryavaan-motors-bold",
         name: "Rangoli Rush",
         style: "bold",
-        imagePath: "/images/sponsors/suryavaan-motors/jersey-bold.png",
+        imagePath: "/images/sponsors/suryavaan-motors/jersey-bold.webp",
       },
     ],
     colors: {
@@ -384,25 +384,25 @@ export const AUTOMOTIVE_SPONSORS = [
     minimumReputation: 10,
     budgetRange: { min: 360_000, max: 680_000 },
     contractDurationRange: { min: 1, max: 2 },
-    logoPath: "/images/sponsors/vereda-nova-automoveis/logo.png",
+    logoPath: "/images/sponsors/vereda-nova-automoveis/logo.webp",
     jerseys: [
       {
         id: "vereda-nova-automoveis-classic",
         name: "Estrada Verde",
         style: "classic",
-        imagePath: "/images/sponsors/vereda-nova-automoveis/jersey-classic.png",
+        imagePath: "/images/sponsors/vereda-nova-automoveis/jersey-classic.webp",
       },
       {
         id: "vereda-nova-automoveis-modern",
         name: "Horizonte EV",
         style: "modern",
-        imagePath: "/images/sponsors/vereda-nova-automoveis/jersey-modern.png",
+        imagePath: "/images/sponsors/vereda-nova-automoveis/jersey-modern.webp",
       },
       {
         id: "vereda-nova-automoveis-bold",
         name: "Arara Viva",
         style: "bold",
-        imagePath: "/images/sponsors/vereda-nova-automoveis/jersey-bold.png",
+        imagePath: "/images/sponsors/vereda-nova-automoveis/jersey-bold.webp",
       },
     ],
     colors: {

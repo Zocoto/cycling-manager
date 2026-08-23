@@ -1,6 +1,8 @@
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+
+import sharp from "sharp";
 
 import { SPONSORS } from "../data/sponsors";
 import type {
@@ -22,17 +24,6 @@ const COUNTRY_CODE_PATTERN =
 
 const HEX_COLOR_PATTERN =
   /^#[0-9A-F]{6}$/i;
-
-const PNG_SIGNATURE = Buffer.from([
-  0x89,
-  0x50,
-  0x4e,
-  0x47,
-  0x0d,
-  0x0a,
-  0x1a,
-  0x0a,
-]);
 
 type AssetKind = "logo" | "jersey";
 
@@ -395,7 +386,7 @@ function validateSponsorLogo({
   encounteredAssetPaths: Set<string>;
 }): void {
   const expectedLogoPath =
-    `/images/sponsors/${sponsor.id}/logo.png`;
+    `/images/sponsors/${sponsor.id}/logo.webp`;
 
   if (
     sponsor.logoPath !== expectedLogoPath
@@ -493,7 +484,7 @@ function validateSponsorJerseys({
     }
 
     const expectedImagePath =
-      `/images/sponsors/${sponsor.id}/jersey-${jersey.style}.png`;
+      `/images/sponsors/${sponsor.id}/jersey-${jersey.style}.webp`;
 
     if (
       jersey.imagePath !==
@@ -683,20 +674,20 @@ function getExpectedAssets(
   return [
     {
       publicPath:
-        `/images/sponsors/${sponsor.id}/logo.png`,
+        `/images/sponsors/${sponsor.id}/logo.webp`,
       kind: "logo",
     },
     ...REQUIRED_JERSEY_STYLES.map(
       (style) => ({
         publicPath:
-          `/images/sponsors/${sponsor.id}/jersey-${style}.png`,
+          `/images/sponsors/${sponsor.id}/jersey-${style}.webp`,
         kind: "jersey" as const,
       })
     ),
   ];
 }
 
-async function inspectPngAsset({
+async function inspectAsset({
   sponsor,
   publicPath,
   kind,
@@ -748,19 +739,16 @@ async function inspectPngAsset({
     };
   }
 
-  const buffer = await readFile(
-    absolutePath
-  );
+  let metadata;
 
-  if (
-    buffer.length < 26 ||
-    !buffer
-      .subarray(0, 8)
-      .equals(PNG_SIGNATURE)
-  ) {
+  try {
+    metadata = await sharp(
+      absolutePath
+    ).metadata();
+  } catch {
     addError(
       messages,
-      `${sponsor.id} : "${publicPath}" n’est pas un fichier PNG valide.`
+      `${sponsor.id} : "${publicPath}" n’est pas une image valide.`
     );
 
     return {
@@ -768,20 +756,17 @@ async function inspectPngAsset({
     };
   }
 
-  const width =
-    buffer.readUInt32BE(16);
+  if (metadata.format !== "webp") {
+    addError(
+      messages,
+      `${sponsor.id} : "${publicPath}" doit être un fichier WebP.`
+    );
+  }
 
-  const height =
-    buffer.readUInt32BE(20);
+  const width = metadata.width ?? 0;
+  const height = metadata.height ?? 0;
 
-  const colorType = buffer[25];
-
-  const hasAlphaChannel =
-    colorType === 4 ||
-    colorType === 6 ||
-    pngContainsChunk(buffer, "tRNS");
-
-  if (!hasAlphaChannel) {
+  if (!metadata.hasAlpha) {
     addWarning(
       messages,
       `${sponsor.id} : "${publicPath}" ne semble pas contenir de transparence. Un fond blanc peut apparaître dans l’interface.`
@@ -834,48 +819,6 @@ async function inspectPngAsset({
   };
 }
 
-function pngContainsChunk(
-  buffer: Buffer,
-  searchedChunkType: string
-): boolean {
-  let offset = 8;
-
-  while (offset + 12 <= buffer.length) {
-    const chunkLength =
-      buffer.readUInt32BE(offset);
-
-    const chunkType = buffer.toString(
-      "ascii",
-      offset + 4,
-      offset + 8
-    );
-
-    if (
-      chunkType === searchedChunkType
-    ) {
-      return true;
-    }
-
-    const nextOffset =
-      offset + 12 + chunkLength;
-
-    if (
-      nextOffset <= offset ||
-      nextOffset > buffer.length
-    ) {
-      return false;
-    }
-
-    if (chunkType === "IEND") {
-      return false;
-    }
-
-    offset = nextOffset;
-  }
-
-  return false;
-}
-
 function formatFileSize(
   value: number
 ): string {
@@ -923,7 +866,7 @@ async function validateCatalog(): Promise<void> {
       SPONSORS.flatMap((sponsor) =>
         getExpectedAssets(sponsor).map(
           (asset) =>
-            inspectPngAsset({
+            inspectAsset({
               sponsor,
               publicPath:
                 asset.publicPath,

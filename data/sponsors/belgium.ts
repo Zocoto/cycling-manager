@@ -20,28 +20,28 @@ export const BELGIAN_SPONSORS = [
       max: 2,
     },
     logoPath:
-      "/images/sponsors/ardennes-outillage/logo.png",
+      "/images/sponsors/ardennes-outillage/logo.webp",
     jerseys: [
       {
         id: "ardennes-outillage-classic",
         name: "Atelier",
         style: "classic",
         imagePath:
-          "/images/sponsors/ardennes-outillage/jersey-classic.png",
+          "/images/sponsors/ardennes-outillage/jersey-classic.webp",
       },
       {
         id: "ardennes-outillage-modern",
         name: "Acier",
         style: "modern",
         imagePath:
-          "/images/sponsors/ardennes-outillage/jersey-modern.png",
+          "/images/sponsors/ardennes-outillage/jersey-modern.webp",
       },
       {
         id: "ardennes-outillage-bold",
         name: "Étincelles",
         style: "bold",
         imagePath:
-          "/images/sponsors/ardennes-outillage/jersey-bold.png",
+          "/images/sponsors/ardennes-outillage/jersey-bold.webp",
       },
     ],
     colors: {
@@ -71,28 +71,28 @@ export const BELGIAN_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/veloria-bank/logo.png",
+      "/images/sponsors/veloria-bank/logo.webp",
     jerseys: [
       {
         id: "veloria-bank-classic",
         name: "Héritage",
         style: "classic",
         imagePath:
-          "/images/sponsors/veloria-bank/jersey-classic.png",
+          "/images/sponsors/veloria-bank/jersey-classic.webp",
       },
       {
         id: "veloria-bank-modern",
         name: "Ligne dorée",
         style: "modern",
         imagePath:
-          "/images/sponsors/veloria-bank/jersey-modern.png",
+          "/images/sponsors/veloria-bank/jersey-modern.webp",
       },
       {
         id: "veloria-bank-bold",
         name: "Prestige",
         style: "bold",
         imagePath:
-          "/images/sponsors/veloria-bank/jersey-bold.png",
+          "/images/sponsors/veloria-bank/jersey-bold.webp",
       },
     ],
     colors: {
@@ -122,28 +122,28 @@ export const BELGIAN_SPONSORS = [
       max: 2,
     },
     logoPath:
-      "/images/sponsors/nordika-glass/logo.png",
+      "/images/sponsors/nordika-glass/logo.webp",
     jerseys: [
       {
         id: "nordika-glass-classic",
         name: "Cristal",
         style: "classic",
         imagePath:
-          "/images/sponsors/nordika-glass/jersey-classic.png",
+          "/images/sponsors/nordika-glass/jersey-classic.webp",
       },
       {
         id: "nordika-glass-modern",
         name: "Prisme",
         style: "modern",
         imagePath:
-          "/images/sponsors/nordika-glass/jersey-modern.png",
+          "/images/sponsors/nordika-glass/jersey-modern.webp",
       },
       {
         id: "nordika-glass-bold",
         name: "Éclats",
         style: "bold",
         imagePath:
-          "/images/sponsors/nordika-glass/jersey-bold.png",
+          "/images/sponsors/nordika-glass/jersey-bold.webp",
       },
     ],
     colors: {
@@ -173,28 +173,28 @@ export const BELGIAN_SPONSORS = [
       max: 2,
     },
     logoPath:
-      "/images/sponsors/brassel-foods/logo.png",
+      "/images/sponsors/brassel-foods/logo.webp",
     jerseys: [
       {
         id: "brassel-foods-classic",
         name: "Maison",
         style: "classic",
         imagePath:
-          "/images/sponsors/brassel-foods/jersey-classic.png",
+          "/images/sponsors/brassel-foods/jersey-classic.webp",
       },
       {
         id: "brassel-foods-modern",
         name: "Saveurs",
         style: "modern",
         imagePath:
-          "/images/sponsors/brassel-foods/jersey-modern.png",
+          "/images/sponsors/brassel-foods/jersey-modern.webp",
       },
       {
         id: "brassel-foods-bold",
         name: "Festin",
         style: "bold",
         imagePath:
-          "/images/sponsors/brassel-foods/jersey-bold.png",
+          "/images/sponsors/brassel-foods/jersey-bold.webp",
       },
     ],
     colors: {
@@ -224,28 +224,28 @@ export const BELGIAN_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/lumen-energy/logo.png",
+      "/images/sponsors/lumen-energy/logo.webp",
     jerseys: [
       {
         id: "lumen-energy-classic",
         name: "Transition",
         style: "classic",
         imagePath:
-          "/images/sponsors/lumen-energy/jersey-classic.png",
+          "/images/sponsors/lumen-energy/jersey-classic.webp",
       },
       {
         id: "lumen-energy-modern",
         name: "Flux",
         style: "modern",
         imagePath:
-          "/images/sponsors/lumen-energy/jersey-modern.png",
+          "/images/sponsors/lumen-energy/jersey-modern.webp",
       },
       {
         id: "lumen-energy-bold",
         name: "Énergie vive",
         style: "bold",
         imagePath:
-          "/images/sponsors/lumen-energy/jersey-bold.png",
+          "/images/sponsors/lumen-energy/jersey-bold.webp",
       },
     ],
     colors: {
@@ -275,28 +275,28 @@ export const BELGIAN_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/azur-logistics/logo.png",
+      "/images/sponsors/azur-logistics/logo.webp",
     jerseys: [
       {
         id: "azur-logistics-classic",
         name: "Itinéraire",
         style: "classic",
         imagePath:
-          "/images/sponsors/azur-logistics/jersey-classic.png",
+          "/images/sponsors/azur-logistics/jersey-classic.webp",
       },
       {
         id: "azur-logistics-modern",
         name: "Corridor",
         style: "modern",
         imagePath:
-          "/images/sponsors/azur-logistics/jersey-modern.png",
+          "/images/sponsors/azur-logistics/jersey-modern.webp",
       },
       {
         id: "azur-logistics-bold",
         name: "Grand départ",
         style: "bold",
         imagePath:
-          "/images/sponsors/azur-logistics/jersey-bold.png",
+          "/images/sponsors/azur-logistics/jersey-bold.webp",
       },
     ],
     colors: {
@@ -326,28 +326,28 @@ export const BELGIAN_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/abbaye-du-lion/logo.png",
+      "/images/sponsors/abbaye-du-lion/logo.webp",
     jerseys: [
       {
         id: "abbaye-du-lion-classic",
         name: "Tradition",
         style: "classic",
         imagePath:
-          "/images/sponsors/abbaye-du-lion/jersey-classic.png",
+          "/images/sponsors/abbaye-du-lion/jersey-classic.webp",
       },
       {
         id: "abbaye-du-lion-modern",
         name: "Premium",
         style: "modern",
         imagePath:
-          "/images/sponsors/abbaye-du-lion/jersey-modern.png",
+          "/images/sponsors/abbaye-du-lion/jersey-modern.webp",
       },
       {
         id: "abbaye-du-lion-bold",
         name: "Signature",
         style: "bold",
         imagePath:
-          "/images/sponsors/abbaye-du-lion/jersey-bold.png",
+          "/images/sponsors/abbaye-du-lion/jersey-bold.webp",
       },
     ],
     colors: {

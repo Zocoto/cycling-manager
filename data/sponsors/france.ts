@@ -19,28 +19,28 @@ export const FRENCH_SPONSORS = [
       min: 1,
       max: 2,
     },
-    logoPath: "/images/sponsors/veloria-mobilites/logo.png",
+    logoPath: "/images/sponsors/veloria-mobilites/logo.webp",
     jerseys: [
       {
         id: "veloria-mobilites-classic",
         name: "Élégance française",
         style: "classic",
         imagePath:
-          "/images/sponsors/veloria-mobilites/jersey-classic.png",
+          "/images/sponsors/veloria-mobilites/jersey-classic.webp",
       },
       {
         id: "veloria-mobilites-modern",
         name: "Lignes urbaines",
         style: "modern",
         imagePath:
-          "/images/sponsors/veloria-mobilites/jersey-modern.png",
+          "/images/sponsors/veloria-mobilites/jersey-modern.webp",
       },
       {
         id: "veloria-mobilites-bold",
         name: "Échappée électrique",
         style: "bold",
         imagePath:
-          "/images/sponsors/veloria-mobilites/jersey-bold.png",
+          "/images/sponsors/veloria-mobilites/jersey-bold.webp",
       },
     ],
     colors: {
@@ -69,28 +69,28 @@ export const FRENCH_SPONSORS = [
       min: 1,
       max: 3,
     },
-    logoPath: "/images/sponsors/terroirs-unis/logo.png",
+    logoPath: "/images/sponsors/terroirs-unis/logo.webp",
     jerseys: [
       {
         id: "terroirs-unis-classic",
         name: "Tradition",
         style: "classic",
         imagePath:
-          "/images/sponsors/terroirs-unis/jersey-classic.png",
+          "/images/sponsors/terroirs-unis/jersey-classic.webp",
       },
       {
         id: "terroirs-unis-modern",
         name: "Sillons",
         style: "modern",
         imagePath:
-          "/images/sponsors/terroirs-unis/jersey-modern.png",
+          "/images/sponsors/terroirs-unis/jersey-modern.webp",
       },
       {
         id: "terroirs-unis-bold",
         name: "Moisson",
         style: "bold",
         imagePath:
-          "/images/sponsors/terroirs-unis/jersey-bold.png",
+          "/images/sponsors/terroirs-unis/jersey-bold.webp",
       },
     ],
     colors: {
@@ -119,28 +119,28 @@ export const FRENCH_SPONSORS = [
       min: 1,
       max: 2,
     },
-    logoPath: "/images/sponsors/hexa-batiment/logo.png",
+    logoPath: "/images/sponsors/hexa-batiment/logo.webp",
     jerseys: [
       {
         id: "hexa-batiment-classic",
         name: "Fondations",
         style: "classic",
         imagePath:
-          "/images/sponsors/hexa-batiment/jersey-classic.png",
+          "/images/sponsors/hexa-batiment/jersey-classic.webp",
       },
       {
         id: "hexa-batiment-modern",
         name: "Architecture",
         style: "modern",
         imagePath:
-          "/images/sponsors/hexa-batiment/jersey-modern.png",
+          "/images/sponsors/hexa-batiment/jersey-modern.webp",
       },
       {
         id: "hexa-batiment-bold",
         name: "Chantier",
         style: "bold",
         imagePath:
-          "/images/sponsors/hexa-batiment/jersey-bold.png",
+          "/images/sponsors/hexa-batiment/jersey-bold.webp",
       },
     ],
     colors: {
@@ -169,28 +169,28 @@ export const FRENCH_SPONSORS = [
       min: 2,
       max: 3,
     },
-    logoPath: "/images/sponsors/nova-assurances/logo.png",
+    logoPath: "/images/sponsors/nova-assurances/logo.webp",
     jerseys: [
       {
         id: "nova-assurances-classic",
         name: "Institution",
         style: "classic",
         imagePath:
-          "/images/sponsors/nova-assurances/jersey-classic.png",
+          "/images/sponsors/nova-assurances/jersey-classic.webp",
       },
       {
         id: "nova-assurances-modern",
         name: "Constellation",
         style: "modern",
         imagePath:
-          "/images/sponsors/nova-assurances/jersey-modern.png",
+          "/images/sponsors/nova-assurances/jersey-modern.webp",
       },
       {
         id: "nova-assurances-bold",
         name: "Supernova",
         style: "bold",
         imagePath:
-          "/images/sponsors/nova-assurances/jersey-bold.png",
+          "/images/sponsors/nova-assurances/jersey-bold.webp",
       },
     ],
     colors: {

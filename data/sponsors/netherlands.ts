@@ -20,28 +20,28 @@ export const DUTCH_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/deltaflow-engineering/logo.png",
+      "/images/sponsors/deltaflow-engineering/logo.webp",
     jerseys: [
       {
         id: "deltaflow-engineering-classic",
         name: "Digue",
         style: "classic",
         imagePath:
-          "/images/sponsors/deltaflow-engineering/jersey-classic.png",
+          "/images/sponsors/deltaflow-engineering/jersey-classic.webp",
       },
       {
         id: "deltaflow-engineering-modern",
         name: "Courant",
         style: "modern",
         imagePath:
-          "/images/sponsors/deltaflow-engineering/jersey-modern.png",
+          "/images/sponsors/deltaflow-engineering/jersey-modern.webp",
       },
       {
         id: "deltaflow-engineering-bold",
         name: "Maîtrise des eaux",
         style: "bold",
         imagePath:
-          "/images/sponsors/deltaflow-engineering/jersey-bold.png",
+          "/images/sponsors/deltaflow-engineering/jersey-bold.webp",
       },
     ],
     colors: {
@@ -71,28 +71,28 @@ export const DUTCH_SPONSORS = [
       max: 2,
     },
     logoPath:
-      "/images/sponsors/tulipa-flora/logo.png",
+      "/images/sponsors/tulipa-flora/logo.webp",
     jerseys: [
       {
         id: "tulipa-flora-classic",
         name: "Jardin",
         style: "classic",
         imagePath:
-          "/images/sponsors/tulipa-flora/jersey-classic.png",
+          "/images/sponsors/tulipa-flora/jersey-classic.webp",
       },
       {
         id: "tulipa-flora-modern",
         name: "Pétales",
         style: "modern",
         imagePath:
-          "/images/sponsors/tulipa-flora/jersey-modern.png",
+          "/images/sponsors/tulipa-flora/jersey-modern.webp",
       },
       {
         id: "tulipa-flora-bold",
         name: "Champ de tulipes",
         style: "bold",
         imagePath:
-          "/images/sponsors/tulipa-flora/jersey-bold.png",
+          "/images/sponsors/tulipa-flora/jersey-bold.webp",
       },
     ],
     colors: {
@@ -122,28 +122,28 @@ export const DUTCH_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/orange-freight/logo.png",
+      "/images/sponsors/orange-freight/logo.webp",
     jerseys: [
       {
         id: "orange-freight-classic",
         name: "Corridor",
         style: "classic",
         imagePath:
-          "/images/sponsors/orange-freight/jersey-classic.png",
+          "/images/sponsors/orange-freight/jersey-classic.webp",
       },
       {
         id: "orange-freight-modern",
         name: "Connexions",
         style: "modern",
         imagePath:
-          "/images/sponsors/orange-freight/jersey-modern.png",
+          "/images/sponsors/orange-freight/jersey-modern.webp",
       },
       {
         id: "orange-freight-bold",
         name: "Réseau européen",
         style: "bold",
         imagePath:
-          "/images/sponsors/orange-freight/jersey-bold.png",
+          "/images/sponsors/orange-freight/jersey-bold.webp",
       },
     ],
     colors: {
@@ -173,28 +173,28 @@ export const DUTCH_SPONSORS = [
       max: 3,
     },
     logoPath:
-      "/images/sponsors/urbanride-mobility/logo.png",
+      "/images/sponsors/urbanride-mobility/logo.webp",
     jerseys: [
       {
         id: "urbanride-mobility-classic",
         name: "Piste urbaine",
         style: "classic",
         imagePath:
-          "/images/sponsors/urbanride-mobility/jersey-classic.png",
+          "/images/sponsors/urbanride-mobility/jersey-classic.webp",
       },
       {
         id: "urbanride-mobility-modern",
         name: "Mobilité",
         style: "modern",
         imagePath:
-          "/images/sponsors/urbanride-mobility/jersey-modern.png",
+          "/images/sponsors/urbanride-mobility/jersey-modern.webp",
       },
       {
         id: "urbanride-mobility-bold",
         name: "Ville cyclable",
         style: "bold",
         imagePath:
-          "/images/sponsors/urbanride-mobility/jersey-bold.png",
+          "/images/sponsors/urbanride-mobility/jersey-bold.webp",
       },
     ],
     colors: {
@@ -224,28 +224,28 @@ export const DUTCH_SPONSORS = [
       max: 2,
     },
     logoPath:
-      "/images/sponsors/windmill-foods/logo.png",
+      "/images/sponsors/windmill-foods/logo.webp",
     jerseys: [
       {
         id: "windmill-foods-classic",
         name: "Tradition",
         style: "classic",
         imagePath:
-          "/images/sponsors/windmill-foods/jersey-classic.png",
+          "/images/sponsors/windmill-foods/jersey-classic.webp",
       },
       {
         id: "windmill-foods-modern",
         name: "Grands vents",
         style: "modern",
         imagePath:
-          "/images/sponsors/windmill-foods/jersey-modern.png",
+          "/images/sponsors/windmill-foods/jersey-modern.webp",
       },
       {
         id: "windmill-foods-bold",
         name: "Terres du Nord",
         style: "bold",
         imagePath:
-          "/images/sponsors/windmill-foods/jersey-bold.png",
+          "/images/sponsors/windmill-foods/jersey-bold.webp",
       },
     ],
     colors: {

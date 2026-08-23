@@ -9,19 +9,19 @@ function buildJerseys(
       id: `${sponsorId}-classic`,
       name: names[0],
       style: "classic",
-      imagePath: `/images/sponsors/${sponsorId}/jersey-classic.png`,
+      imagePath: `/images/sponsors/${sponsorId}/jersey-classic.webp`,
     },
     {
       id: `${sponsorId}-modern`,
       name: names[1],
       style: "modern",
-      imagePath: `/images/sponsors/${sponsorId}/jersey-modern.png`,
+      imagePath: `/images/sponsors/${sponsorId}/jersey-modern.webp`,
     },
     {
       id: `${sponsorId}-bold`,
       name: names[2],
       style: "bold",
-      imagePath: `/images/sponsors/${sponsorId}/jersey-bold.png`,
+      imagePath: `/images/sponsors/${sponsorId}/jersey-bold.webp`,
     },
   ];
 }
@@ -39,7 +39,7 @@ export const BRETON_SPONSORS = [
     minimumReputation: 0,
     budgetRange: { min: 280_000, max: 420_000 },
     contractDurationRange: { min: 1, max: 2 },
-    logoPath: "/images/sponsors/caramels-de-keravel/logo.png",
+    logoPath: "/images/sponsors/caramels-de-keravel/logo.webp",
     jerseys: buildJerseys("caramels-de-keravel", [
       "Marine sal\u00e9e",
       "Ruban de caramel",
@@ -65,7 +65,7 @@ export const BRETON_SPONSORS = [
     minimumReputation: 30,
     budgetRange: { min: 430_000, max: 650_000 },
     contractDurationRange: { min: 1, max: 2 },
-    logoPath: "/images/sponsors/maison-lannic/logo.png",
+    logoPath: "/images/sponsors/maison-lannic/logo.webp",
     jerseys: buildJerseys("maison-lannic", [
       "Beurre noir",
       "Feuilletage",
@@ -91,7 +91,7 @@ export const BRETON_SPONSORS = [
     minimumReputation: 100,
     budgetRange: { min: 720_000, max: 980_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/cidrerie-aulne/logo.png",
+    logoPath: "/images/sponsors/cidrerie-aulne/logo.webp",
     jerseys: buildJerseys("cidrerie-aulne", [
       "Le Verger",
       "Rivi\u00e8re d\u2019or",
@@ -117,7 +117,7 @@ export const BRETON_SPONSORS = [
     minimumReputation: 30,
     budgetRange: { min: 480_000, max: 700_000 },
     contractDurationRange: { min: 1, max: 3 },
-    logoPath: "/images/sponsors/penn-kreiz-crepes/logo.png",
+    logoPath: "/images/sponsors/penn-kreiz-crepes/logo.webp",
     jerseys: buildJerseys("penn-kreiz-crepes", [
       "Bl\u00e9 bleu",
       "Cadence",
@@ -143,7 +143,7 @@ export const BRETON_SPONSORS = [
     minimumReputation: 100,
     budgetRange: { min: 680_000, max: 940_000 },
     contractDurationRange: { min: 2, max: 3 },
-    logoPath: "/images/sponsors/sardines-du-raz/logo.png",
+    logoPath: "/images/sponsors/sardines-du-raz/logo.webp",
     jerseys: buildJerseys("sardines-du-raz", [
       "Bleu conserverie",
       "Le Courant",

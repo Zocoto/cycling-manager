@@ -19,28 +19,28 @@ export const SPANISH_SPONSORS = [
       min: 1,
       max: 3,
     },
-    logoPath: "/images/sponsors/sol-del-sur/logo.png",
+    logoPath: "/images/sponsors/sol-del-sur/logo.webp",
     jerseys: [
       {
         id: "sol-del-sur-classic",
         name: "Horizon",
         style: "classic",
         imagePath:
-          "/images/sponsors/sol-del-sur/jersey-classic.png",
+          "/images/sponsors/sol-del-sur/jersey-classic.webp",
       },
       {
         id: "sol-del-sur-modern",
         name: "Rayonnement",
         style: "modern",
         imagePath:
-          "/images/sponsors/sol-del-sur/jersey-modern.png",
+          "/images/sponsors/sol-del-sur/jersey-modern.webp",
       },
       {
         id: "sol-del-sur-bold",
         name: "Plein soleil",
         style: "bold",
         imagePath:
-          "/images/sponsors/sol-del-sur/jersey-bold.png",
+          "/images/sponsors/sol-del-sur/jersey-bold.webp",
       },
     ],
     colors: {
