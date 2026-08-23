@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     url: "/",
     title: "Cyclo Stratège – Jeu de management cycliste en ligne",
     description:
-      "Prenez la direction de votre équipe cycliste. La Saison 2 ouvre le bêta test de Cyclo Stratège.",
+      "Prenez la direction de votre équipe cycliste. Le Patch 5 enrichit les courses et le quotidien du directeur sportif.",
   },
 };
 
@@ -83,20 +83,20 @@ const gamePillarsEn = [
 
 const productNews = [
   {
-    category: "Saison 2",
-    title: "La saison 2 ouvre le bêta test",
+    category: "Mise à jour",
+    title: "Le Patch 5 change de braquet",
     description:
-      "Cyclo Stratège entre en bêta test avec un objectif clair : accueillir davantage de directeurs sportifs et éprouver le concept avec un volume de joueurs plus important.",
-    dateTime: "2026-08-16",
-    dateLabel: "16 août 2026",
+      "Courses plus vivantes, nouveaux outils de staff, sponsors inédits et expérience mobile revue : le quotidien du directeur sportif s’enrichit à tous les étages.",
+    dateTime: "2026-08-23",
+    dateLabel: "23 août 2026",
     accent: "leader",
-    href: "/inscription",
-    linkLabel: "Rejoindre la saison 2",
-    image: "/images/marketing/season-2-beta-editorial.png",
-    imageAlt: "Annonce graphique de la Saison 2 de Cyclo Stratège",
-    visualLabel: "Saison",
-    visualValue: "2",
-    visualStatus: "Bêta test",
+    href: "/nouveautes#patch-5",
+    linkLabel: "Découvrir le Patch 5",
+    image: "/images/game-workspace-escape.webp",
+    imageAlt: "Un peloton gravit une route de montagne au lever du jour",
+    visualLabel: "Patch",
+    visualValue: "5",
+    visualStatus: "Déployé",
   },
   {
     category: "Mise \u00e0 jour",
@@ -169,20 +169,20 @@ const productNews = [
 
 const productNewsEn = [
   {
-    category: "Season 2",
-    title: "Season 2 opens the beta test",
+    category: "Update",
+    title: "Patch 5 shifts up a gear",
     description:
-      "Cyclo Stratège enters beta with a clear goal: welcome more Sports Directors and test the concept with a larger player base.",
-    dateTime: "2026-08-16",
-    dateLabel: "16 August 2026",
+      "Livelier races, new staff tools, fresh sponsors and a redesigned mobile experience enrich every part of a Sports Director’s day.",
+    dateTime: "2026-08-23",
+    dateLabel: "23 August 2026",
     accent: "leader",
-    href: "/inscription",
-    linkLabel: "Join Season 2",
-    image: "/images/marketing/season-2-beta-editorial-en.png",
-    imageAlt: "Cyclo Stratège Season 2 beta announcement",
-    visualLabel: "Season",
-    visualValue: "2",
-    visualStatus: "Beta test",
+    href: "/nouveautes#patch-5",
+    linkLabel: "Discover Patch 5",
+    image: "/images/game-workspace-escape.webp",
+    imageAlt: "A cycling peloton climbing a mountain road at sunrise",
+    visualLabel: "Patch",
+    visualValue: "5",
+    visualStatus: "Live",
   },
   {
     category: "Update",

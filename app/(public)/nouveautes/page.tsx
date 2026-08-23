@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     url: "/nouveautes",
     title: "Nouveautés de Cyclo Stratège",
     description:
-      "Suivez la Saison 2, les mises à jour et les évolutions du jeu de management cycliste.",
+      "Découvrez le Patch 5 et les dernières évolutions du jeu de management cycliste.",
   },
 };
 
@@ -171,7 +171,7 @@ function ReleaseCard({
   return (
     <article
       id={release.anchor}
-      className="relative overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_65px_rgba(7,26,23,0.22)]"
+      className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-[#315B3E]/25 bg-[#0B302B] text-[#FFFDF4] shadow-[0_24px_65px_rgba(7,26,23,0.22)]"
     >
       <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-[#42B99A] via-[#F2C94C] to-[#42B99A]" />
 
@@ -226,9 +226,7 @@ function ReleaseCard({
                     ✓
                   </span>
 
-                  <span className="text-sm leading-6 text-[#E6ECE7]">
-                    {feature}
-                  </span>
+                  <ReleaseFeature feature={feature} />
                 </li>
               ))}
             </ul>
@@ -238,6 +236,22 @@ function ReleaseCard({
     </article>
   );
 }
+
+function ReleaseFeature({ feature }: { feature: string }) {
+  const [title, ...details] = feature.split(" — ");
+
+  if (details.length === 0) {
+    return <span className="text-sm leading-6 text-[#E6ECE7]">{feature}</span>;
+  }
+
+  return (
+    <span className="text-sm leading-6 text-[#E6ECE7]">
+      <strong className="block text-[#FFFDF4]">{title}</strong>
+      <span className="mt-1 block">{details.join(" — ")}</span>
+    </span>
+  );
+}
+
 function ArrowIcon() {
   return (
     <svg

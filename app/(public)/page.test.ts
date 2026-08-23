@@ -20,9 +20,9 @@ describe("page d’accueil publique", () => {
     expect(source).not.toContain("function FolderIcon");
   });
 
-  it("met la Saison 2 en vedette au-dessus de quatre annonces historiques", () => {
-    expect(source).toContain('title: "La saison 2 ouvre le bêta test"');
-    expect(source).toContain('dateTime: "2026-08-16"');
+  it("met le Patch 5 en vedette au-dessus de quatre annonces historiques", () => {
+    expect(source).toContain('title: "Le Patch 5 change de braquet"');
+    expect(source).toContain('dateTime: "2026-08-23"');
     expect(source).toContain(
       'title: "Le Patch 4 d\\u00e9veloppe vos infrastructures"',
     );
@@ -44,12 +44,12 @@ describe("page d’accueil publique", () => {
       source.indexOf("historicalNews.slice"),
     );
   });
-  it("publie la Saison 2 et renvoie directement vers l’inscription", () => {
-    expect(source).not.toContain("/beta-saison-2");
-    expect(source).toContain('href: "/inscription"');
-    expect(source).toContain('linkLabel: "Rejoindre la saison 2"');
+  it("publie le Patch 5 et renvoie vers sa note complète", () => {
+    expect(source).not.toContain('title: "La saison 2 ouvre le bêta test"');
+    expect(source).toContain('href: "/nouveautes#patch-5"');
+    expect(source).toContain('linkLabel: "Découvrir le Patch 5"');
     expect(source).toContain(
-      'image: "/images/marketing/season-2-beta-editorial.png"',
+      'image: "/images/game-workspace-escape.webp"',
     );
     expect(source).toContain("src={featuredNews.image}");
     expect(source).toContain("historicalNews.slice(0, 4)");

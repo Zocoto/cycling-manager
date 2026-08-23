@@ -3,10 +3,31 @@ import { describe, expect, it } from "vitest";
 import { latestRelease, releases } from "./releases";
 
 describe("notes de version", () => {
-  it("met la Saison 2 en tête des nouveautés", () => {
-    expect(latestRelease.version).toBe("Saison 2 · Bêta");
-    expect(latestRelease.anchor).toBe("saison-2-beta");
-    expect(latestRelease.title).toContain("Saison 2");
+  it("met le Patch 5 en tête des nouveautés", () => {
+    expect(latestRelease.version).toBe("Patch #5");
+    expect(latestRelease.anchor).toBe("patch-5");
+    expect(latestRelease.title).toContain("change de braquet");
+  });
+
+  it("présente le Patch 5 par thèmes sans axe de communication technique", () => {
+    const details = latestRelease.features.join("\n");
+
+    for (const topic of [
+      "Courses et directs",
+      "Calendrier et championnats",
+      "Infrastructures et staff",
+      "Santé et formation",
+      "Sponsors, finances et Fan Club",
+      "Matériel et inventaire",
+      "Progression et palmarès",
+      "Mobile, accessibilité et confort",
+    ]) {
+      expect(details).toContain(topic);
+    }
+
+    expect(
+      [latestRelease.title, latestRelease.description, details].join("\n"),
+    ).not.toMatch(/performances?|fiabilit/i);
   });
 
   it("detaille chaque nouveau batiment et les autres livraisons majeures", () => {
