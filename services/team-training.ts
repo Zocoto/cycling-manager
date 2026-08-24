@@ -1,7 +1,6 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { settleDueTrainingState } from "@/services/game-state-settlement";
 import {
   TRAINER_SPECIALTY_LABELS,
   isTrainerSpecialty,
@@ -195,7 +194,6 @@ export async function getCurrentTeamTrainingOverview(
   authUserId: string,
 ): Promise<TeamTrainingOverview | null> {
   const admin = createSupabaseAdminClient();
-  await settleDueTrainingState();
 
   const context = await loadContext(admin, authUserId);
   if (!context) return null;

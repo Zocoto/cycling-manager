@@ -17,7 +17,6 @@ import {
 } from "@/lib/game/staff-talents";
 import type { RiderRatings } from "@/lib/game/rider-profile";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { settleCurrentRiderState } from "@/services/game-state-settlement";
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
@@ -244,7 +243,6 @@ export async function getCurrentTeamHealthOverview(
   authUserId: string,
 ): Promise<TeamHealthOverview | null> {
   const admin = createSupabaseAdminClient();
-  await settleCurrentRiderState();
 
   const { data: director, error: directorError } = await admin
     .from("sporting_directors")

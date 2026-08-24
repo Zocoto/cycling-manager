@@ -14,7 +14,6 @@ import {
 } from "@/lib/game/race-calendar";
 import { canTeamAccessRaceCategory } from "@/lib/game/regional-races";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { settleCurrentHealthAndFormState } from "@/services/game-state-settlement";
 
 type DirectorRow = {
   id: string;
@@ -233,11 +232,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   authUserId: string,
 ): Promise<TeamRaceReconnaissanceOverview | null> {
   const admin = createSupabaseAdminClient();
-  const [healthSettlement, reconnaissanceSettlement] = await Promise.all([
-    settleCurrentHealthAndFormState().then(() => ({ error: null })),
-    admin.rpc("settle_current_race_reconnaissances"),
-  ]);
-  assertQuery(healthSettlement.error, "l’état physique des coureurs");
+  const reconnaissanceSettlement = await admin.rpc(
+    "settle_current_race_reconnaissances",
+  );
   assertQuery(
     reconnaissanceSettlement.error,
     "les reconnaissances déjà programmées",

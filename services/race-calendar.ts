@@ -531,29 +531,11 @@ type RaceConditionSettlementRow = {
 export async function settleFinishedRaceConditions(
   supabase: SupabaseServerClient,
 ): Promise<RaceConditionSettlement> {
-  const { error: trainingError } = await supabase.rpc(
-    "settle_due_training_sessions",
-  );
-  if (trainingError) {
-    throw new Error(
-      `Impossible de régler les entraînements du matin : ${trainingError.message}`,
-    );
-  }
-
   const { data, error } = await supabase.rpc("settle_finished_race_conditions");
 
   if (error) {
     throw new Error(
       `Impossible de mettre à jour la forme après les courses : ${error.message}`,
-    );
-  }
-
-  const { error: healthError } = await supabase.rpc(
-    "settle_current_health_and_form",
-  );
-  if (healthError) {
-    throw new Error(
-      `Impossible de mettre à jour la santé et le repos des coureurs : ${healthError.message}`,
     );
   }
 

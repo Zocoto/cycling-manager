@@ -38,7 +38,6 @@ import { parseContinentalChampionshipTitleType } from "@/services/rider-continen
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getArchivedRiderProfile } from "@/services/archived-rider-profile";
-import { settleCurrentRiderState } from "@/services/game-state-settlement";
 
 export type RiderEquipmentSlot = EquipmentSlot;
 
@@ -419,12 +418,10 @@ export async function getPublicRiderProfile({
     return null;
   }
 
-  const supabase = createSupabaseAdminClient();
-  const [archivedProfile] = await Promise.all([
-    getArchivedRiderProfile(riderId),
-    settleCurrentRiderState(),
-  ]);
+  const archivedProfile = await getArchivedRiderProfile(riderId);
   if (archivedProfile) return archivedProfile;
+
+  const supabase = createSupabaseAdminClient();
 
   const { data: rider, error: riderError } = await supabase
     .from("riders")

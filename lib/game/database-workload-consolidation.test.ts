@@ -15,6 +15,29 @@ const settlementService = readFileSync(
   join(process.cwd(), "services/game-state-settlement.ts"),
   "utf8",
 );
+const maintenanceMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260824052000_move_rider_state_settlement_off_page_reads.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
+const maintenanceRoute = readFileSync(
+  join(process.cwd(), "app/api/cron/rider-state-maintenance/route.ts"),
+  "utf8",
+);
+const vercelConfig = readFileSync(
+  join(process.cwd(), "vercel.json"),
+  "utf8",
+);
+const interactiveReaders = [
+  "services/public-rider-profile.ts",
+  "services/team-health.ts",
+  "services/team-training.ts",
+  "services/rider-season-planning.ts",
+  "services/team-race-reconnaissance.ts",
+  "services/race-calendar.ts",
+].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
 
 describe("database workload consolidation", () => {
   it("rate-limits global rider settlements without exposing the throttle table", () => {
@@ -27,12 +50,28 @@ describe("database workload consolidation", () => {
     );
   });
 
-  it("groups training and health settlement behind one server RPC", () => {
+  it("moves the global rider settlement outside interactive page reads", () => {
     expect(migration).toContain("settle_current_rider_state_throttled()");
-    expect(settlementService).toContain(
-      'admin.rpc("settle_current_rider_state_throttled")',
+    expect(maintenanceMigration).toContain(
+      "settle_current_rider_state_for_maintenance()",
     );
-    expect(settlementService).toContain("cache(async ()");
+    expect(maintenanceMigration).toContain("set statement_timeout = '240s'");
+    expect(maintenanceMigration).toContain("last_completed_day_number");
+    expect(settlementService).toContain(
+      '"settle_current_rider_state_for_maintenance"',
+    );
+    expect(maintenanceRoute).toContain(
+      "settleCurrentRiderStateForMaintenance()",
+    );
+    expect(vercelConfig).toContain(
+      '"path": "/api/cron/rider-state-maintenance"',
+    );
+    expect(vercelConfig).toContain('"schedule": "*/5 * * * *"');
+    for (const reader of interactiveReaders) {
+      expect(reader).not.toContain('@/services/game-state-settlement');
+      expect(reader).not.toContain('rpc("settle_current_health_and_form")');
+      expect(reader).not.toContain('rpc("settle_due_training_sessions")');
+    }
   });
 
   it("loads all header indicators with one authenticated function", () => {
