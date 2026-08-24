@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { SPONSORS } from "@/data/sponsors";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -939,7 +941,7 @@ export async function getActiveSeasonRaceCalendar(
     stageRoleOverridesResult,
     stageStrategiesResult,
   ] = await Promise.all([
-    loadStageSegments(supabase, stageIds),
+    loadStageSegments(stageIds),
     stageIds.length > 0
       ? collectChunkedPaginatedRows<
           StageReconnaissanceRow,
@@ -2184,58 +2186,87 @@ function groupTimeTrialPlans(rows: TimeTrialPlanRow[]) {
   return plansByStageId;
 }
 
-async function loadStageSegments(
-  supabase: SupabaseServerClient,
-  stageIds: string[],
-) {
+const loadCachedStageSegmentBatch = unstable_cache(
+  async (stageIdBatch: string[]): Promise<StageSegmentRow[]> => {
+    const admin = createSupabaseAdminClient();
+    const result = await collectPaginatedRows<
+      StageSegmentRow,
+      { message: string }
+    >({
+      fetchPage: async (from, to) => {
+        const page = await admin
+          .from("stage_segments")
+          .select(
+            `
+              id,
+              stage_id,
+              segment_number,
+              distance_km,
+              terrain_type,
+              surface_type,
+              average_gradient_pct,
+              stage_segment_primes (
+                prime_type,
+                mountain_category,
+                points_scale
+              )
+            `,
+          )
+          .in("stage_id", stageIdBatch)
+          .order("stage_id", { ascending: true })
+          .order("segment_number", { ascending: true })
+          .range(from, to)
+          .returns<StageSegmentRow[]>();
+
+        return {
+          data: page.data,
+          error: page.error,
+        };
+      },
+    });
+
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    return result.data;
+  },
+  ["race-calendar-stage-segments-v1"],
+  {
+    revalidate: 900,
+    tags: ["race-calendar-stage-segments"],
+  },
+);
+
+async function loadStageSegments(stageIds: string[]) {
   if (stageIds.length === 0) {
     return emptyResult<StageSegmentRow>();
   }
 
-  const batchResults = await Promise.all(
-    chunkValues(stageIds).map((stageIdBatch) =>
-      collectPaginatedRows<StageSegmentRow, { message: string }>({
-        fetchPage: async (from, to) => {
-          const result = await supabase
-            .from("stage_segments")
-            .select(
-              `
-                id,
-                stage_id,
-                segment_number,
-                distance_km,
-                terrain_type,
-                surface_type,
-                average_gradient_pct,
-                stage_segment_primes (
-                  prime_type,
-                  mountain_category,
-                  points_scale
-                )
-              `,
-            )
-            .in("stage_id", stageIdBatch)
-            .order("stage_id", { ascending: true })
-            .order("segment_number", { ascending: true })
-            .range(from, to)
-            .returns<StageSegmentRow[]>();
+  const normalizedStageIds = [...new Set(stageIds)].sort();
 
-          return {
-            data: result.data,
-            error: result.error,
-          };
-        },
-      }),
-    ),
-  );
-  const failedBatch = batchResults.find((result) => result.error);
+  try {
+    const batchRows = await Promise.all(
+      chunkValues(normalizedStageIds).map((stageIdBatch) =>
+        loadCachedStageSegmentBatch(stageIdBatch),
+      ),
+    );
 
-  return failedBatch
-    ? { data: [] as StageSegmentRow[], error: failedBatch.error }
-    : {
-        data: batchResults.flatMap((result) => result.data),
-        error: null,
-      };
+    return {
+      data: batchRows.flat(),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      data: [] as StageSegmentRow[],
+      error: {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Impossible de charger les segments de course.",
+      },
+    };
+  }
 }
 
 function formatParisDate(date: Date) {
