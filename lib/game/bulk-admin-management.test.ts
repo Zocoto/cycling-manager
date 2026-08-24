@@ -12,12 +12,16 @@ import { describe, expect, it } from "vitest";
 const nutritionMigration = read(
   "supabase/migrations/20260808161000_bulk_nutrition_and_lower_prices.sql",
 );
+const nutritionPerformanceMigration = read(
+  "supabase/migrations/20260824130000_optimize_bulk_nutrition_interventions.sql",
+);
 const equipmentMigration = read(
   "supabase/migrations/20260808162000_bulk_equipment_assignments.sql",
 );
 const nutritionEditor = read(
   "components/game/nutrition-interventions-editor.tsx",
 );
+const healthCenterPage = read("app/jeu/centre-de-soin/page.tsx");
 const equipmentEditor = read(
   "components/game/team-equipment-bulk-editor.tsx",
 );
@@ -44,6 +48,25 @@ describe("administration groupée de la nutrition", () => {
     expect(nutritionMigration).toContain(
       "Un coureur ne peut recevoir qu’un complément par jour.",
     );
+  });
+
+  it("règle l’état quotidien une seule fois et laisse finir le lot borné", () => {
+    expect(nutritionPerformanceMigration).toContain(
+      "perform public.settle_current_health_and_form_throttled();",
+    );
+    expect(nutritionPerformanceMigration).toContain(
+      "current_setting(''app.nutrition_batch_settlement'', true)",
+    );
+    expect(nutritionPerformanceMigration).toContain(
+      "'app.nutrition_batch_settlement'",
+    );
+    expect(nutritionPerformanceMigration).toContain(
+      "set statement_timeout = '0'",
+    );
+    expect(nutritionPerformanceMigration).toContain(
+      "rider_nutrition_interventions_nutritionist_day_idx",
+    );
+    expect(healthCenterPage).toContain("export const maxDuration = 300;");
   });
 
   it("affiche les réglages par coureur et une validation flottante", () => {

@@ -11,6 +11,7 @@ import {
   type MedicalProtocolCode,
   type NutritionInterventionCode,
 } from "@/lib/game/health-center";
+import { getHealthCenterErrorMessage } from "@/lib/game/health-center-errors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function applyInjuryProtocolAction(formData: FormData) {
@@ -30,7 +31,9 @@ export async function applyInjuryProtocolAction(formData: FormData) {
     }
   );
 
-  if (error) redirectWithError("blessures", error.message);
+  if (error) {
+    redirectWithError("blessures", getHealthCenterErrorMessage(error.message));
+  }
 
   revalidateHealthPaths();
   redirect("/jeu/centre-de-soin?onglet=blessures&soin=confirme");
@@ -73,7 +76,9 @@ export async function bookFormCampsAction(formData: FormData) {
     p_end_day_number: endDayNumber,
   });
 
-  if (error) redirectWithError("forme", error.message);
+  if (error) {
+    redirectWithError("forme", getHealthCenterErrorMessage(error.message));
+  }
 
   revalidateHealthPaths();
   for (const riderId of riderIds) {
@@ -108,7 +113,9 @@ export async function assignPhysiotherapistAction(formData: FormData) {
     },
   );
 
-  if (error) redirectWithError("kines", error.message);
+  if (error) {
+    redirectWithError("kines", getHealthCenterErrorMessage(error.message));
+  }
 
   revalidateHealthPaths();
   revalidatePath("/jeu/staff");
@@ -169,7 +176,9 @@ export async function assignPhysiotherapistMatrixAction(formData: FormData) {
     { p_assignments: assignments },
   );
 
-  if (error) redirectWithError("kines", error.message);
+  if (error) {
+    redirectWithError("kines", getHealthCenterErrorMessage(error.message));
+  }
 
   revalidateHealthPaths();
   revalidatePath("/jeu/staff");
@@ -241,7 +250,9 @@ export async function applyNutritionInterventionsAction(formData: FormData) {
     },
   );
 
-  if (error) redirectWithError("nutrition", error.message);
+  if (error) {
+    redirectWithError("nutrition", getHealthCenterErrorMessage(error.message));
+  }
 
   revalidateHealthPaths();
   revalidatePath("/jeu/entrainement");
@@ -276,7 +287,9 @@ export async function applyNutritionInterventionAction(formData: FormData) {
     },
   );
 
-  if (error) redirectWithError("nutrition", error.message);
+  if (error) {
+    redirectWithError("nutrition", getHealthCenterErrorMessage(error.message));
+  }
 
   revalidateHealthPaths();
   revalidatePath("/jeu/entrainement");

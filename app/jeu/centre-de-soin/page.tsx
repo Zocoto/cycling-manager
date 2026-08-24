@@ -21,6 +21,7 @@ import {
   getProtocolRecoveryReductionHours,
   type NutritionInterventionCode,
 } from "@/lib/game/health-center";
+import { getHealthCenterErrorMessage } from "@/lib/game/health-center-errors";
 import type { TeamRiderSeasonPlanning } from "@/lib/game/rider-season-planning";
 import {
   getNutritionistDailyCapacity,
@@ -54,6 +55,8 @@ export const metadata: Metadata = {
   description:
     "Gérez les blessures, la convalescence et la forme de vos coureurs.",
 };
+
+export const maxDuration = 300;
 
 const HEALTH_TABS = [
   { code: "blessures", label: "Blessures" },
@@ -90,7 +93,10 @@ export default async function HealthCenterPage({
   const query = await searchParams;
   const requestedTab = readQuery(query.onglet);
   const activeTab = isHealthTab(requestedTab) ? requestedTab : "blessures";
-  const errorMessage = readQuery(query.erreur);
+  const rawErrorMessage = readQuery(query.erreur);
+  const errorMessage = rawErrorMessage
+    ? getHealthCenterErrorMessage(rawErrorMessage)
+    : "";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
