@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   describeEquipmentRndEngineerEffects,
   estimateEquipmentRndResearch,
+  getEquipmentRndBaseDurationDays,
+  getEquipmentRndBonusTotal,
   type EquipmentRndEngineer,
 } from "@/lib/game/equipment-rnd";
 
@@ -20,10 +22,10 @@ const engineer = (overrides: Partial<EquipmentRndEngineer> = {}) => ({
 }) satisfies EquipmentRndEngineer;
 
 describe("equipment R&D engineer talents", () => {
-  it("keeps the laboratory baseline without an engineer", () => {
+  it("keeps research free and uses the unmodified item baseline", () => {
     expect(
-      estimateEquipmentRndResearch({ labLevel: 1, itemPrice: 1_000 }),
-    ).toEqual({ successRate: 50, durationDays: 5, cost: 162_000 });
+      estimateEquipmentRndResearch({ labLevel: 1 }),
+    ).toEqual({ successRate: 50, durationDays: 1, cost: 0 });
   });
 
   it("applies the building efficiency bonus to the laboratory contribution", () => {
@@ -31,26 +33,25 @@ describe("equipment R&D engineer talents", () => {
       estimateEquipmentRndResearch({
         labLevel: 5,
         labEfficiencyBonusPercentage: 10,
-        itemPrice: 1_000,
       }),
-    ).toEqual({ successRate: 73, durationDays: 5, cost: 362_000 });
+    ).toEqual({ successRate: 73, durationDays: 1, cost: 0 });
   });
 
   it("applies every unlocked engineer talent cumulatively", () => {
     expect(
       estimateEquipmentRndResearch({
         labLevel: 1,
-        itemPrice: 1_000,
+        existingBonusTotal: 3,
         engineer: engineer(),
       }),
-    ).toEqual({ successRate: 56, durationDays: 3, cost: 145_800 });
+    ).toEqual({ successRate: 56, durationDays: 7, cost: 0 });
   });
 
   it("keeps an incompressible one-day research minimum", () => {
     expect(
       estimateEquipmentRndResearch({
         labLevel: 7,
-        itemPrice: 1_000,
+        existingBonusTotal: 1,
         engineer: engineer({ level: 7 }),
       }).durationDays,
     ).toBe(1);
@@ -60,19 +61,39 @@ describe("equipment R&D engineer talents", () => {
     expect(
       estimateEquipmentRndResearch({
         labLevel: 1,
-        itemPrice: 1_000,
+        existingBonusTotal: 1,
         engineer: engineer({
           specialties: [],
           specialty: "research_success",
         }),
       }),
-    ).toEqual({ successRate: 56, durationDays: 5, cost: 162_000 });
+    ).toEqual({ successRate: 56, durationDays: 3, cost: 0 });
+  });
+
+  it.each([
+    [0, 1],
+    [1, 3],
+    [2, 5],
+    [3, 10],
+    [4, 20],
+    [10, 1_280],
+  ])("scales a +%i item to %i base research days", (score, days) => {
+    expect(getEquipmentRndBaseDurationDays(score)).toBe(days);
+  });
+
+  it("calculates the net cumulative rating bonus across regular and TT effects", () => {
+    expect(
+      getEquipmentRndBonusTotal({
+        ratingBonuses: { mountain: 2, flat: -1 },
+        timeTrialRatingBonuses: { timeTrial: 2, prologue: 1 },
+      }),
+    ).toBe(4);
   });
 
   it("shows the exact value of every active talent", () => {
     expect(describeEquipmentRndEngineerEffects(engineer())).toEqual([
       "−2 jours",
-      "−10 % sur le coût",
+      "−10 % sur la durée",
       "+6 points de réussite",
     ]);
   });

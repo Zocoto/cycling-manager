@@ -1,4 +1,8 @@
 import { applyInfrastructureEfficiencyBonus } from "@/lib/game/infrastructure";
+import {
+  getEquipmentRatingBonusTotals,
+  type EquipmentEffects,
+} from "@/lib/game/equipment";
 
 export type EquipmentRndSpecialty =
   | "research_time"
@@ -40,11 +44,10 @@ function getEngineerSpecialties(
 
 export function estimateEquipmentRndResearch(args: {
   labLevel: number;
-  itemPrice: number;
+  existingBonusTotal?: number;
   labEfficiencyBonusPercentage?: number;
   engineer?: EquipmentRndEngineer | null;
 }) {
-  const baseDays = 5;
   const engineer = args.engineer ?? null;
   const specialties = getEngineerSpecialties(engineer);
   const hasSpecialty = (specialty: EquipmentRndSpecialty) =>
@@ -60,19 +63,50 @@ export function estimateEquipmentRndResearch(args: {
       ) +
       (engineer && hasSpecialty("research_success") ? engineer.level * 3 : 0),
   );
+  const baseDurationDays = getEquipmentRndBaseDurationDays(
+    args.existingBonusTotal ?? 0,
+  );
+  const durationEfficiency =
+    engineer && hasSpecialty("research_cost")
+      ? Math.min(0.9, engineer.level * 0.05)
+      : 0;
   const durationDays = Math.max(
     1,
-    baseDays -
+    Math.ceil(baseDurationDays * (1 - durationEfficiency)) -
       (engineer && hasSpecialty("research_time") ? engineer.level : 0),
   );
-  const cost = Math.round(
-    (100_000 + args.labLevel * 50_000 + Math.max(args.itemPrice, 1_000) * 12) *
-      (1 -
-        (engineer && hasSpecialty("research_cost")
-          ? engineer.level * 0.05
-          : 0)),
+
+  return { successRate, durationDays, cost: 0 };
+}
+
+export function getEquipmentRndBonusTotal(
+  effects: Pick<
+    EquipmentEffects,
+    "ratingBonuses" | "timeTrialRatingBonuses"
+  >,
+): number {
+  const total = Object.values(getEquipmentRatingBonusTotals(effects)).reduce(
+    (sum, value) => sum + Number(value ?? 0),
+    0,
   );
-  return { successRate, durationDays, cost };
+
+  return Math.max(0, Math.floor(Number.isFinite(total) ? total : 0));
+}
+
+export function getEquipmentRndBaseDurationDays(
+  existingBonusTotal: number,
+): number {
+  const score = Math.max(
+    0,
+    Math.floor(Number.isFinite(existingBonusTotal) ? existingBonusTotal : 0),
+  );
+
+  if (score === 0) return 1;
+  if (score === 1) return 3;
+  if (score === 2) return 5;
+  if (score >= 17) return 100_000;
+
+  return Math.min(100_000, 5 * 2 ** (score - 2));
 }
 
 export function describeEquipmentRndEngineerEffects(
@@ -83,7 +117,7 @@ export function describeEquipmentRndEngineerEffects(
       case "research_time":
         return `−${engineer.level} jour${engineer.level > 1 ? "s" : ""}`;
       case "research_cost":
-        return `−${engineer.level * 5} % sur le coût`;
+        return `−${engineer.level * 5} % sur la durée`;
       case "research_success":
         return `+${engineer.level * 3} points de réussite`;
     }

@@ -3,6 +3,8 @@ import "server-only";
 import type { EquipmentSlot } from "@/lib/game/equipment";
 import {
   EQUIPMENT_RND_SPECIALTIES,
+  getEquipmentRndBaseDurationDays,
+  getEquipmentRndBonusTotal,
   isEquipmentRndSpecialty,
   type EquipmentRndEngineer,
   type EquipmentRndSpecialty,
@@ -54,6 +56,7 @@ export type { EquipmentRndEngineer } from "@/lib/game/equipment-rnd";
 
 export type EquipmentRndProject = {
   id: string;
+  engineerContractId: string | null;
   itemName: string;
   prototypeName: string | null;
   engineerName: string | null;
@@ -77,10 +80,16 @@ export type TeamEquipmentRndOverview = {
   labLevel: number;
   labEfficiencyBonusPercentage: number;
   researchableItems: Array<
-    TeamEquipmentCatalogItem & { requiredLabLevel: number }
+    TeamEquipmentCatalogItem & {
+      requiredLabLevel: number;
+      bonusTotal: number;
+      baseDurationDays: number;
+    }
   >;
   engineers: EquipmentRndEngineer[];
-  activeProject: EquipmentRndProject | null;
+  availableEngineers: EquipmentRndEngineer[];
+  researchCapacity: number;
+  activeProjects: EquipmentRndProject[];
   recentProjects: EquipmentRndProject[];
 };
 
@@ -112,7 +121,7 @@ export async function getCurrentTeamEquipmentRndOverview(
         .eq("team_id", equipment.teamId)
         .neq("status", "cancelled")
         .order("created_at", { ascending: false })
-        .limit(12)
+        .limit(64)
         .returns<ProjectRow[]>(),
       admin
         .from("staff_contracts")
@@ -200,6 +209,7 @@ export async function getCurrentTeamEquipmentRndOverview(
   );
   const mapProject = (row: ProjectRow): EquipmentRndProject => ({
     id: row.id,
+    engineerContractId: row.engineer_contract_id,
     itemName:
       itemById.get(row.input_equipment_item_id)?.name ?? "Équipement consommé",
     prototypeName: row.prototype_equipment_item_id
@@ -220,6 +230,14 @@ export async function getCurrentTeamEquipmentRndOverview(
     status: row.status,
   });
   const projects = (projectsResult.data ?? []).map(mapProject);
+  const activeProjects = projects.filter(
+    (project) => project.status === "active",
+  );
+  const busyEngineerContractIds = new Set(
+    activeProjects.flatMap((project) =>
+      project.engineerContractId ? [project.engineerContractId] : [],
+    ),
+  );
   const labLevel = Number(infrastructureResult.data?.level ?? 0);
   const labEfficiencyBonusPercentage = Number(
     infrastructureResult.data?.efficiency_bonus_percentage ?? 0,
@@ -243,20 +261,30 @@ export async function getCurrentTeamEquipmentRndOverview(
           item.availableQuantity > 0 &&
           SLOT_UNLOCK_LEVEL[item.slot] <= labLevel,
       )
-      .map((item) => ({
-        ...item,
-        requiredLabLevel: SLOT_UNLOCK_LEVEL[item.slot],
-      }))
+      .map((item) => {
+        const bonusTotal = getEquipmentRndBonusTotal(item.effects);
+        return {
+          ...item,
+          requiredLabLevel: SLOT_UNLOCK_LEVEL[item.slot],
+          bonusTotal,
+          baseDurationDays: getEquipmentRndBaseDurationDays(bonusTotal),
+        };
+      })
       .sort(
         (left, right) =>
           left.slot.localeCompare(right.slot) ||
           left.name.localeCompare(right.name, "fr"),
       ),
     engineers,
-    activeProject:
-      projects.find((project) => project.status === "active") ?? null,
-    recentProjects: projects.filter(
-      (project) => project.status === "completed",
-    ),
+    availableEngineers: engineers
+      .filter(
+        (engineer) => !busyEngineerContractIds.has(engineer.contractId),
+      )
+      .slice(0, Math.max(0, engineers.length - activeProjects.length)),
+    researchCapacity: engineers.length,
+    activeProjects,
+    recentProjects: projects
+      .filter((project) => project.status === "completed")
+      .slice(0, 12),
   };
 }

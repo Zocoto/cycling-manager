@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: "Transformez un équipement de série en prototype unique.",
 };
 
+export const maxDuration = 300;
+
 type PageProps = {
   searchParams: Promise<{ recherche?: string; erreur?: string }>;
 };
@@ -47,7 +49,6 @@ export default async function EquipmentLaboratoryPage({
         labLevel: overview.labLevel,
         labEfficiencyBonusPercentage:
           overview.labEfficiencyBonusPercentage,
-        itemPrice: 0,
       })
     : null;
 
@@ -96,7 +97,11 @@ export default async function EquipmentLaboratoryPage({
                 </span>
               ) : null}
               <span className="rounded-full bg-white/10 px-3 py-2">
-                1 recherche simultanée
+                Capacité R&D · {overview.activeProjects.length}/
+                {overview.researchCapacity}
+              </span>
+              <span className="rounded-full bg-white/10 px-3 py-2">
+                R&D gratuite
               </span>
               <span className="rounded-full bg-white/10 px-3 py-2">
                 Objet unique et équipable
@@ -138,36 +143,70 @@ export default async function EquipmentLaboratoryPage({
                 Banc d’essai
               </p>
               <h2 className="mt-2 text-2xl font-black text-[#183F37]">
-                {overview.activeProject
-                  ? "Recherche en cours"
-                  : "Créer un prototype"}
+                Recherches et prototypes
               </h2>
-              {overview.activeProject ? (
-                <div className="mt-5 rounded-2xl bg-[#0B302B] p-6 text-white">
-                  <p className="text-xl font-black">
-                    {overview.activeProject.itemName}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#BFD1C6]">
-                    {overview.activeProject.successRate} % de réussite ·
-                    résultat dans{" "}
-                    {Math.max(
+              {overview.activeProjects.length ? (
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+                  {overview.activeProjects.map((project) => {
+                    const remainingDays = Math.max(
                       0,
-                      overview.activeProject.completesGameDayIndex -
+                      project.completesGameDayIndex -
                         overview.currentGameDayIndex,
-                    )}{" "}
-                    jour(s)
-                  </p>
-                  {overview.activeProject.engineerName ? (
-                    <p className="mt-3 text-xs font-bold text-[#9BE0BC]">
-                      Ingénieur : {overview.activeProject.engineerName}
-                    </p>
-                  ) : null}
+                    );
+                    return (
+                      <article
+                        key={project.id}
+                        className="rounded-2xl bg-[#0B302B] p-5 text-white"
+                      >
+                        <p className="text-lg font-black">
+                          {project.itemName}
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-[#BFD1C6]">
+                          {project.successRate} % de réussite · résultat dans{" "}
+                          {remainingDays} jour{remainingDays === 1 ? "" : "s"}
+                        </p>
+                        <p className="mt-3 text-xs font-bold text-[#9BE0BC]">
+                          Ingénieur :{" "}
+                          {project.engineerName ?? "projet historique"}
+                        </p>
+                      </article>
+                    );
+                  })}
                 </div>
-              ) : overview.researchableItems.length ? (
-                <form
-                  action={startEquipmentRndAction}
-                  className="mt-5 space-y-5"
-                >
+              ) : (
+                <p className="mt-5 rounded-xl bg-[#F3F8F5] p-4 text-sm font-semibold text-[#60756E]">
+                  Aucune recherche en cours. Chaque ingénieur R&D peut piloter
+                  un projet à la fois.
+                </p>
+              )}
+
+              <div className="mt-6 border-t border-[#315B3E]/12 pt-6">
+                <h3 className="text-lg font-black text-[#183F37]">
+                  Créer un prototype
+                </h3>
+                {overview.engineers.length < 1 ? (
+                  <div className="mt-4 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
+                    Un ingénieur R&D actif est requis pour lancer une recherche.
+                    Le laboratoire rend ensuite la recherche entièrement
+                    gratuite.
+                    <Link
+                      href="/jeu/staff?metier=research_engineer"
+                      className="mt-3 block text-[#176951] underline"
+                    >
+                      Recruter un ingénieur R&D
+                    </Link>
+                  </div>
+                ) : overview.availableEngineers.length < 1 ? (
+                  <p className="mt-4 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
+                    Tous vos ingénieurs pilotent déjà une recherche. Une
+                    nouvelle place se libérera à la fin d’un projet ou avec le
+                    recrutement d’un ingénieur supplémentaire.
+                  </p>
+                ) : overview.researchableItems.length ? (
+                  <form
+                    action={startEquipmentRndAction}
+                    className="mt-4 space-y-5"
+                  >
                   <label className="block">
                     <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
                       Équipement libre à sacrifier
@@ -181,21 +220,24 @@ export default async function EquipmentLaboratoryPage({
                       {overview.researchableItems.map((item) => (
                         <option key={item.id} value={item.id}>
                           {getEquipmentCategory(item.slot).shortLabel} ·{" "}
-                          {item.name} · {item.availableQuantity} libre(s)
+                          {item.name} · bonus +{item.bonusTotal} ·{" "}
+                          {item.baseDurationDays} j de base ·{" "}
+                          {item.availableQuantity} libre(s)
                         </option>
                       ))}
                     </select>
                   </label>
                   <label className="block">
                     <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
-                      Ingénieur R&D (facultatif)
+                      Ingénieur R&D disponible
                     </span>
                     <select
                       name="engineerContractId"
+                      required
                       className="mt-2 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
                     >
-                      <option value="">Aucun ingénieur</option>
-                      {overview.engineers.map((engineer) => (
+                      <option value="">Choisir un ingénieur</option>
+                      {overview.availableEngineers.map((engineer) => (
                         <option
                           key={engineer.contractId}
                           value={engineer.contractId}
@@ -209,23 +251,25 @@ export default async function EquipmentLaboratoryPage({
                     </select>
                   </label>
                   <p className="rounded-xl bg-[#F3F8F5] p-4 text-xs font-semibold leading-5 text-[#60756E]">
-                    Le coût exact dépend de la valeur de la pièce et de
-                    l’ingénieur. Les talents R&D acquis se cumulent. Une
-                    recherche dure {baseline?.durationDays ?? 5} jours sans
-                    ingénieur ; le talent de rapidité peut la réduire jusqu’à
-                    1 jour. Elle part de {baseline?.successRate ?? 0} % de
-                    réussite.
+                    La recherche est gratuite : seul l’exemplaire choisi est
+                    consommé. La durée de base dépend de ses bonus cumulés : 1
+                    jour à +0, 3 jours à +1, 5 jours à +2, 10 jours à +3,
+                    puis elle double à chaque point supplémentaire. Les talents
+                    de l’ingénieur réduisent cette durée. La réussite part de{" "}
+                    {baseline?.successRate ?? 0} %.
                   </p>
                   <button className="w-full rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
-                    Consommer la pièce et lancer la R&D
+                    Consommer la pièce et lancer gratuitement la R&D
                   </button>
-                </form>
-              ) : (
-                <p className="mt-5 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
-                  Aucun exemplaire libre dans les catégories débloquées. Achetez
-                  une pièce ou libérez-en une depuis l’écran d’équipement.
-                </p>
-              )}
+                  </form>
+                ) : (
+                  <p className="mt-5 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
+                    Aucun exemplaire libre dans les catégories débloquées.
+                    Achetez une pièce ou libérez-en une depuis l’écran
+                    d’équipement.
+                  </p>
+                )}
+              </div>
             </section>
 
             <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-sm sm:p-8">
