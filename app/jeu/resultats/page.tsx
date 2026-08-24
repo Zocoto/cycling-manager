@@ -16,6 +16,7 @@ import {
   CRITERIUM_DISCOVERY_SLUG,
   appendCriteriumDiscoveryEdition,
   getCriteriumDiscoveryRunFromMetadata,
+  shouldDisplayCriteriumDiscoveryInSeasonCalendar,
 } from "@/lib/tutorial/criterium-discovery";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -71,8 +72,14 @@ export default async function RaceResultsPage({
   const criteriumRun = getCriteriumDiscoveryRunFromMetadata(
     criteriumProgress?.metadata,
   );
+  const shouldDisplayCriterium =
+    shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+      progressStatus: criteriumProgress?.status,
+      requested: false,
+      hasRun: criteriumRun !== null,
+    });
   const calendar =
-    calendarResult.calendar && criteriumRun
+    calendarResult.calendar && criteriumRun && shouldDisplayCriterium
       ? {
           ...calendarResult.calendar,
           editions: appendCriteriumDiscoveryEdition({

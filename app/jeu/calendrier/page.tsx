@@ -11,6 +11,7 @@ import {
   appendCriteriumDiscoveryEdition,
   createCriteriumDiscoveryPreviewEdition,
   getCriteriumDiscoveryRunFromMetadata,
+  shouldDisplayCriteriumDiscoveryInSeasonCalendar,
 } from "@/lib/tutorial/criterium-discovery";
 import { getAuthenticatedTutorialProgress } from "@/lib/tutorial/progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -105,9 +106,15 @@ export default async function RaceCalendarPage({
     readSingleSearchParam(
       resolvedSearchParams.formation,
     ) === "criterium";
+  const shouldDisplayCriterium =
+    shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+      progressStatus: criteriumProgress?.status,
+      requested: criteriumRequested,
+      hasRun: criteriumRun !== null,
+    });
   const calendar =
     baseCalendar &&
-    (criteriumRequested || criteriumRun)
+    shouldDisplayCriterium
       ? {
           ...baseCalendar,
           editions:
@@ -232,7 +239,7 @@ export default async function RaceCalendarPage({
           </div>
 
           <div className="p-5 sm:p-8 lg:p-10">
-            {criteriumRequested ? (
+            {criteriumRequested && shouldDisplayCriterium ? (
               <div className="mb-6 rounded-xl border border-[#F2C94C]/55 bg-[#FFF4D6] px-5 py-4 text-sm font-bold leading-6 text-[#604B0F]">
                 Le Critérium de la découverte a été ajouté à votre calendrier. Ouvrez sa fiche et inscrivez exactement cinq coureurs comme pour une épreuve officielle.
               </div>

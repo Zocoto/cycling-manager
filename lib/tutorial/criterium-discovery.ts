@@ -15,6 +15,7 @@ import {
   type RiderSimulationRatings,
   type RiderSimulationInput,
 } from "@/lib/game/race-simulation";
+import type { TutorialProgressStatus } from "@/types/tutorial";
 
 export const CRITERIUM_DISCOVERY_KEY = "criterium-discovery";
 export const CRITERIUM_DISCOVERY_SLUG = "criterium-de-la-decouverte";
@@ -264,6 +265,26 @@ export function getCriteriumDiscoveryRunFromMetadata(
   }
 
   return candidate as CriteriumDiscoveryRun;
+}
+
+export function shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+  progressStatus,
+  requested,
+  hasRun,
+}: {
+  progressStatus: TutorialProgressStatus | null | undefined;
+  requested: boolean;
+  hasRun: boolean;
+}): boolean {
+  if (progressStatus === "completed") {
+    return false;
+  }
+
+  if (progressStatus === "skipped") {
+    return requested;
+  }
+
+  return progressStatus === "in_progress" && (requested || hasRun);
 }
 
 export function appendCriteriumDiscoveryEdition({

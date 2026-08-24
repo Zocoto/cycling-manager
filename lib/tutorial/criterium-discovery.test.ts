@@ -8,6 +8,7 @@ import {
   createCriteriumDiscoveryPreviewEdition,
   createCriteriumDiscoveryRun,
   isValidCriteriumDiscoveryRoster,
+  shouldDisplayCriteriumDiscoveryInSeasonCalendar,
 } from "@/lib/tutorial/criterium-discovery";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
 import type { RiderSimulationInput } from "@/lib/game/race-simulation";
@@ -132,6 +133,53 @@ describe("Critérium de la découverte", () => {
     expect(result).toHaveLength(2);
     expect(result[0]?.id).toBe(edition.id);
     expect(result[1]?.slug).toBe("autre-course");
+  });
+
+  it("reste visible uniquement pendant la réalisation du didacticiel", () => {
+    expect(
+      shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+        progressStatus: "in_progress",
+        requested: true,
+        hasRun: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+        progressStatus: "in_progress",
+        requested: false,
+        hasRun: true,
+      }),
+    ).toBe(true);
+  });
+
+  it.each(["completed", "not_started"] as const)(
+    "ne réinjecte plus la course avec le statut %s, même dans une autre saison ou via une ancienne URL",
+    (progressStatus) => {
+      expect(
+        shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+          progressStatus,
+          requested: true,
+          hasRun: true,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it("autorise encore un parcours ignoré lorsqu’il est relancé explicitement", () => {
+    expect(
+      shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+        progressStatus: "skipped",
+        requested: true,
+        hasRun: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldDisplayCriteriumDiscoveryInSeasonCalendar({
+        progressStatus: "skipped",
+        requested: false,
+        hasRun: true,
+      }),
+    ).toBe(false);
   });
 });
 
