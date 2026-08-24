@@ -140,6 +140,10 @@ type DirectOfferRow = {
   created_at: string;
   responded_at: string | null;
 };
+type SalaryQuoteRow = {
+  rider_id: string;
+  salary_per_season: number | string;
+};
 
 export type TransferMarketRider = {
   id: string;
@@ -417,10 +421,17 @@ export async function getTransferMarketOverview(
   const directOffers = receivedDirectOffersResult.data ?? [];
   directOffers.forEach((offer) => riderIds.add(offer.rider_id));
 
-  const [riders, teams] = await Promise.all([
+  const salaryRiderIds = [...riderIds];
+  const nextSeasonId = options.includeRoster
+    ? ([...seasonYears.entries()].find(
+        ([, gameYear]) => gameYear === context.season.game_year + 1,
+      )?.[0] ?? null)
+    : null;
+  const [riders, teams, currentSalaryQuotes, renewalSalaryQuotes] =
+    await Promise.all([
     loadMarketRiders(
       admin,
-      [...riderIds],
+      salaryRiderIds,
       context.season.id,
       countriesResult.data ?? [],
     ),
@@ -440,6 +451,8 @@ export async function getTransferMarketOverview(
       ],
       context.season.id,
     ),
+    loadRiderSalaryQuotes(admin, salaryRiderIds, context.season.id),
+    loadRiderSalaryQuotes(admin, salaryRiderIds, nextSeasonId),
   ]);
 
   const riderById = new Map(riders.map((rider) => [rider.id, rider]));
@@ -487,6 +500,7 @@ export async function getTransferMarketOverview(
         rider: toTransferMarketRider({
           rider,
           seasonId: context.season.id,
+          salaryPerSeason: toNumber(listing.salary_per_season),
           dataRoomLevel,
           revealExactValues:
             listing.seller_team_id === context.teamSeason.team_id,
@@ -511,6 +525,9 @@ export async function getTransferMarketOverview(
         toTransferMarketRider({
           rider,
           seasonId: context.season.id,
+          salaryPerSeason:
+            currentSalaryQuotes.get(rider.id) ??
+            calculateSalaryApproximation(rider.overall),
           dataRoomLevel,
           revealExactValues: false,
         }),
@@ -601,7 +618,9 @@ export async function getTransferMarketOverview(
       const locked = contract.transfer_locked_season_id === context.season.id;
       const endYear =
         seasonYears.get(contract.end_season_id) ?? currentSeasonYear;
-      const renewalSalary = calculateSalaryApproximation(rider.overall);
+      const renewalSalary =
+        renewalSalaryQuotes.get(rider.id) ??
+        calculateSalaryApproximation(rider.overall);
 
       return [
         {
@@ -756,7 +775,17 @@ export async function getRiderTransferManagement(
       hasNextSeasonContract: Boolean(nextSeasonContract),
     }),
   );
-  const salary = calculateSalaryApproximation(overall);
+  const nextSeasonId = [...seasonYears.entries()].find(
+    ([, gameYear]) => gameYear === context.season.game_year + 1,
+  )?.[0];
+  const [currentSalaryQuotes, renewalSalaryQuotes] = await Promise.all([
+    loadRiderSalaryQuotes(admin, [riderId], context.season.id),
+    loadRiderSalaryQuotes(admin, [riderId], nextSeasonId ?? null),
+  ]);
+  const salary =
+    currentSalaryQuotes.get(riderId) ?? calculateSalaryApproximation(overall);
+  const renewalSalary =
+    renewalSalaryQuotes.get(riderId) ?? calculateSalaryApproximation(overall);
   const isFreeAgent =
     riderResult.data.status === "free_agent" && !activeContract;
   const availableBudget = Math.max(
@@ -804,7 +833,7 @@ export async function getRiderTransferManagement(
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
     rosterIsFull,
     canRenew,
-    renewalSalary: ownsRider ? salary : null,
+    renewalSalary: ownsRider ? renewalSalary : null,
     contractEndSeasonYear,
     ownsRider,
     canDismiss: Boolean(ownsRider && activeContract),
@@ -1045,6 +1074,30 @@ async function loadSeasonYears(
   return new Map((data ?? []).map((season) => [season.id, season.game_year]));
 }
 
+async function loadRiderSalaryQuotes(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  riderIds: string[],
+  seasonId: string | null,
+) {
+  if (!seasonId || riderIds.length === 0) return new Map<string, number>();
+
+  const { data, error } = await admin
+    .rpc("calculate_rider_season_salary_quotes", {
+      p_rider_ids: riderIds,
+      p_season_id: seasonId,
+    })
+    .returns<SalaryQuoteRow[]>();
+  assertQuery(error, "les demandes salariales des coureurs");
+  const quotes = Array.isArray(data) ? (data as SalaryQuoteRow[]) : [];
+
+  return new Map(
+    quotes.map((quote) => [
+      quote.rider_id,
+      toNumber(quote.salary_per_season),
+    ]),
+  );
+}
+
 function groupBids(bids: BidRow[]) {
   const groups = new Map<string, BidRow[]>();
   for (const bid of bids)
@@ -1097,11 +1150,13 @@ function applyFreeAgentFilters(
 function toTransferMarketRider({
   rider,
   seasonId,
+  salaryPerSeason,
   dataRoomLevel,
   revealExactValues,
 }: {
   rider: LoadedMarketRider;
   seasonId: string;
+  salaryPerSeason: number;
   dataRoomLevel: number;
   revealExactValues: boolean;
 }): TransferMarketRider {
@@ -1115,7 +1170,7 @@ function toTransferMarketRider({
     avatarSeed: rider.avatarSeed,
     age: rider.age,
     profileLabel: rider.profileLabel,
-    salaryPerSeason: calculateSalaryApproximation(rider.overall),
+    salaryPerSeason,
     scoutingReport: revealExactValues
       ? createExactTransferScoutingReport({
           ratings: rider.ratings,

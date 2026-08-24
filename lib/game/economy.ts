@@ -569,29 +569,73 @@ export function calculateStagePrize(input: StagePrizeInput): number {
 
 export function calculateRiderSeasonSalary({
   overall,
-  previousSeasonUciPoints = 0,
-  majorWins = 0,
+  previousSeasonPerformancePercentile = null,
   isAmateur = false,
 }: {
   overall: number;
-  previousSeasonUciPoints?: number;
-  majorWins?: number;
+  previousSeasonPerformancePercentile?: number | null;
   isAmateur?: boolean;
 }): number {
   if (isAmateur) {
     return 0;
   }
 
-  const safeOverall = clamp(overall, 0, 100);
-  const talentFactor = Math.max(0, (safeOverall - 45) / 55);
-  const talentSalary = 6_000 + talentFactor ** 2.15 * 240_000;
-  const pedigreeBonus =
-    Math.min(90_000, Math.max(0, previousSeasonUciPoints) * 50) +
-    Math.min(50_000, Math.max(0, majorWins) * 10_000);
+  const baseSalary = interpolateRiderSalaryBase(overall);
+  const performanceMultiplier = getRiderSalaryPerformanceMultiplier(
+    previousSeasonPerformancePercentile,
+  );
 
   return (
-    Math.round(clamp(talentSalary + pedigreeBonus, 6_000, 400_000) / 100) * 100
+    Math.round(
+      clamp(baseSalary * performanceMultiplier, 6_000, 400_000) / 500,
+    ) * 500
   );
+}
+
+export function getRiderSalaryPerformanceMultiplier(
+  percentile: number | null | undefined,
+): number {
+  if (percentile === null || percentile === undefined) return 0.9;
+
+  const safePercentile = clamp(percentile, 0, 1);
+  if (safePercentile >= 0.99) return 1.7;
+  if (safePercentile >= 0.95) return 1.5;
+  if (safePercentile >= 0.85) return 1.35;
+  if (safePercentile >= 0.7) return 1.2;
+  if (safePercentile >= 0.5) return 1.1;
+  if (safePercentile >= 0.2) return 1;
+  return 0.9;
+}
+
+const RIDER_SALARY_BASE_KNOTS = [
+  { overall: 0, salary: 6_000 },
+  { overall: 45, salary: 6_000 },
+  { overall: 50, salary: 7_000 },
+  { overall: 55, salary: 10_000 },
+  { overall: 59, salary: 14_000 },
+  { overall: 60, salary: 16_000 },
+  { overall: 65, salary: 25_000 },
+  { overall: 70, salary: 40_000 },
+  { overall: 75, salary: 65_000 },
+  { overall: 80, salary: 105_000 },
+  { overall: 85, salary: 175_000 },
+  { overall: 90, salary: 240_000 },
+  { overall: 100, salary: 260_000 },
+] as const;
+
+function interpolateRiderSalaryBase(overall: number): number {
+  const safeOverall = clamp(overall, 0, 100);
+  const upperIndex = RIDER_SALARY_BASE_KNOTS.findIndex(
+    (knot) => knot.overall >= safeOverall,
+  );
+  if (upperIndex <= 0) return RIDER_SALARY_BASE_KNOTS[0].salary;
+
+  const lower = RIDER_SALARY_BASE_KNOTS[upperIndex - 1]!;
+  const upper = RIDER_SALARY_BASE_KNOTS[upperIndex]!;
+  const progress =
+    (safeOverall - lower.overall) / (upper.overall - lower.overall);
+
+  return lower.salary + (upper.salary - lower.salary) * progress;
 }
 
 export function getDivisionForRank(rank: number): TeamDivisionCode {

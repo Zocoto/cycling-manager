@@ -189,28 +189,47 @@ describe("calculateRiderSeasonSalary", () => {
     expect(
       calculateRiderSeasonSalary({
         overall: 100,
-        previousSeasonUciPoints: 5_000,
-        majorWins: 10,
+        previousSeasonPerformancePercentile: 1,
       })
-    ).toBe(386_000);
+    ).toBe(400_000);
   });
 
-  it("valorise le niveau puis le palmarès", () => {
+  it("valorise le niveau puis uniquement la performance de la dernière saison", () => {
     const emerging = calculateRiderSeasonSalary({ overall: 72 });
     const established = calculateRiderSeasonSalary({
       overall: 72,
-      previousSeasonUciPoints: 300,
-      majorWins: 2,
+      previousSeasonPerformancePercentile: 0.96,
     });
 
     expect(established).toBeGreaterThan(emerging);
   });
-  it("rend les leaders nettement plus coûteux que les équipiers", () => {
-    expect(calculateRiderSeasonSalary({ overall: 55 })).toBe(12_100);
-    expect(calculateRiderSeasonSalary({ overall: 70 })).toBe(50_100);
-    expect(calculateRiderSeasonSalary({ overall: 85 })).toBe(127_000);
+
+  it("maintient Abebe dans une demande cohérente malgré une très bonne saison", () => {
+    expect(
+      calculateRiderSeasonSalary({
+        overall: 59,
+        previousSeasonPerformancePercentile: 0.9,
+      }),
+    ).toBe(19_000);
+    expect(
+      calculateRiderSeasonSalary({
+        overall: 59,
+        previousSeasonPerformancePercentile: 0.97,
+      }),
+    ).toBe(21_000);
+    expect(
+      calculateRiderSeasonSalary({
+        overall: 59,
+        previousSeasonPerformancePercentile: 1,
+      }),
+    ).toBe(24_000);
   });
 
+  it("rend les leaders nettement plus coûteux que les équipiers", () => {
+    expect(calculateRiderSeasonSalary({ overall: 55 })).toBe(9_000);
+    expect(calculateRiderSeasonSalary({ overall: 70 })).toBe(36_000);
+    expect(calculateRiderSeasonSalary({ overall: 85 })).toBe(157_500);
+  });
 });
 
 describe("division et dette", () => {

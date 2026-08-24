@@ -87,10 +87,9 @@ type CountryRow = {
   name: string;
   iso_alpha2: string;
 };
-type SummaryRow = {
+type SalaryPerformanceRow = {
   rider_id: string;
-  season_id: string;
-  points: number | string;
+  performance_percentile: number | string | null;
 };
 
 export async function getTeamContractManagementOverview(
@@ -168,7 +167,7 @@ export async function getTeamContractManagementOverview(
     ratingsResult,
     countriesResult,
     seasonsResult,
-    summariesResult,
+    performanceResult,
   ] = await Promise.all([
     admin
       .from("rider_contracts")
@@ -199,17 +198,18 @@ export async function getTeamContractManagementOverview(
       .returns<CountryRow[]>(),
     admin.from("seasons").select("id, name, game_year").returns<SeasonRow[]>(),
     admin
-      .from("rider_season_summaries")
-      .select("rider_id, season_id, points")
-      .in("rider_id", riderIds)
-      .returns<SummaryRow[]>(),
+      .rpc("get_rider_salary_performance_percentiles", {
+        p_rider_ids: riderIds,
+        p_season_id: currentSeason.id,
+      })
+      .returns<SalaryPerformanceRow[]>(),
   ]);
   assertQuery(contractsResult.error, "l’historique contractuel");
   assertQuery(ridersResult.error, "les coureurs");
   assertQuery(ratingsResult.error, "les niveaux des coureurs");
   assertQuery(countriesResult.error, "les nationalités");
   assertQuery(seasonsResult.error, "les saisons contractuelles");
-  assertQuery(summariesResult.error, "les bilans des coureurs");
+  assertQuery(performanceResult.error, "les performances salariales");
 
   const seasons = seasonsResult.data ?? [];
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
@@ -227,7 +227,17 @@ export async function getTeamContractManagementOverview(
     (countriesResult.data ?? []).map((country) => [country.id, country]),
   );
   const contractsByRiderId = groupByRiderId(contractsResult.data ?? []);
-  const summariesByRiderId = groupByRiderId(summariesResult.data ?? []);
+  const performanceRows = Array.isArray(performanceResult.data)
+    ? (performanceResult.data as SalaryPerformanceRow[])
+    : [];
+  const performanceByRiderId = new Map(
+    performanceRows.map((performance) => [
+      performance.rider_id,
+      performance.performance_percentile === null
+        ? null
+        : toNumber(performance.performance_percentile),
+    ]),
+  );
 
   const riders = activeContracts.flatMap((activeContract) => {
     const rider = riderById.get(activeContract.rider_id);
@@ -269,18 +279,10 @@ export async function getTeamContractManagementOverview(
       (season) => season.game_year === effectiveEndYear,
     );
     const overall = getOverall(rating);
-    const previousSeasonUciPoints = Math.max(
-      0,
-      ...(summariesByRiderId.get(rider.id) ?? []).flatMap((summary) => {
-        const summaryYear = seasonById.get(summary.season_id)?.game_year;
-        return summaryYear !== undefined && summaryYear < nextSeasonYear
-          ? [toNumber(summary.points)]
-          : [];
-      }),
-    );
     const estimatedSalary = calculateRiderSeasonSalary({
       overall,
-      previousSeasonUciPoints,
+      previousSeasonPerformancePercentile:
+        performanceByRiderId.get(rider.id) ?? null,
     });
     const currentSalary = toNumber(activeContract.salary_per_season);
     const nextSalary =
