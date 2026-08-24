@@ -22,6 +22,8 @@ export const metadata: Metadata = {
     "Attribuez le matériel de tous les coureurs depuis une seule vue et une seule validation.",
 };
 
+export const maxDuration = 300;
+
 type TeamEquipmentPageProps = {
   searchParams: Promise<{
     affectations?: string | string[];

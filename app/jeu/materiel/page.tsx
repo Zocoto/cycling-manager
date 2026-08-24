@@ -36,6 +36,8 @@ export const metadata: Metadata = {
   description: "Achetez, stockez et attribuez le matériel de votre équipe.",
 };
 
+export const maxDuration = 300;
+
 type MaterialPageProps = {
   searchParams: Promise<{
     categorie?: string | string[];

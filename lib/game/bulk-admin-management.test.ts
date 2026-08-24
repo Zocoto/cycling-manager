@@ -13,7 +13,7 @@ const nutritionMigration = read(
   "supabase/migrations/20260808161000_bulk_nutrition_and_lower_prices.sql",
 );
 const nutritionPerformanceMigration = read(
-  "supabase/migrations/20260824130000_optimize_bulk_nutrition_interventions.sql",
+  "supabase/migrations/20260824140000_optimize_bulk_nutrition_interventions.sql",
 );
 const equipmentMigration = read(
   "supabase/migrations/20260808162000_bulk_equipment_assignments.sql",

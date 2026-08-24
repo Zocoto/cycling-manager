@@ -69,6 +69,8 @@ export const metadata: Metadata = {
     "Détectez, formez et préparez les futurs coureurs de votre équipe.",
 };
 
+export const maxDuration = 300;
+
 type Tab = "scouting" | "ecole" | "development";
 type PageProps = {
   searchParams: Promise<{

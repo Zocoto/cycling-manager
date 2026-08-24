@@ -59,6 +59,8 @@ export const metadata: Metadata = {
     "Pilotez les programmes quotidiens, la forme et la progression des coureurs.",
 };
 
+export const maxDuration = 300;
+
 type TrainingPageProps = {
   searchParams: Promise<{
     seuil?: string;
