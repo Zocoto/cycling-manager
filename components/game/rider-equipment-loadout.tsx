@@ -249,10 +249,10 @@ export function RiderEquipmentLoadout({
       </div>
 
       <div
-        className={`grid gap-5 p-5 sm:p-8 ${isManageable ? "xl:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.7fr)]" : ""}`}
+        className={`grid gap-5 p-3 sm:p-8 ${isManageable ? "xl:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.7fr)]" : ""}`}
       >
-        <div className="rounded-3xl border border-white/10 bg-black/10 p-3 sm:p-5">
-          <div className="rounded-[1.35rem] bg-[radial-gradient(circle_at_50%_42%,rgba(89,173,137,0.22),transparent_62%)] p-3 sm:p-4">
+        <div className="rounded-3xl border border-white/10 bg-black/10 p-2 sm:p-5">
+          <div className="rounded-[1.35rem] bg-[radial-gradient(circle_at_50%_42%,rgba(89,173,137,0.22),transparent_62%)] p-2 sm:p-4">
             <CyclistEquipmentVisual
               equipment={activeEquipment}
               pending={management?.pending ?? {}}
@@ -814,7 +814,7 @@ function EquipmentLoadoutSlot({
       onDragEnd={onDragEndEquipped}
       onDragOver={(event) => onDragOverSlot(event, definition.slot)}
       onDrop={(event) => onDropSlot(event, definition.slot)}
-      className={`group/slot min-h-24 touch-manipulation rounded-2xl border p-2.5 text-left outline-none transition sm:p-3 ${
+      className={`group/slot min-h-24 min-w-0 touch-manipulation overflow-hidden rounded-2xl border p-2 text-left outline-none transition sm:p-3 ${
         isActive
           ? "border-[#F2C94C] bg-[#F2C94C]/15 shadow-[0_0_22px_rgba(242,201,76,0.2)]"
           : isCompatible
@@ -824,22 +824,22 @@ function EquipmentLoadoutSlot({
               : "border-white/12 bg-white/[0.055] hover:border-[#8FD5B6]/40 hover:bg-white/[0.08]"
       } ${isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
     >
-      <span className="flex items-center gap-2.5">
+      <span className="flex w-full min-w-0 items-center gap-2 sm:gap-2.5">
         <EquipmentThumbnail
           item={item ?? pendingItem}
           fallback={definition.icon}
           size="slot"
         />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[8px] font-black uppercase tracking-[0.14em] text-[#8FD5B6] sm:text-[9px]">
+        <span className="min-w-0 flex-1 overflow-hidden">
+          <span className="block max-w-full break-words text-[8px] font-black uppercase leading-3 tracking-normal text-[#8FD5B6] [overflow-wrap:anywhere] sm:text-[9px] sm:tracking-[0.14em]">
             {definition.label}
           </span>
-          <strong className="mt-1 line-clamp-2 block text-[10px] leading-4 text-white sm:text-xs">
-            {item?.name ?? pendingItem?.name ?? "Emplacement vide"}
+          <strong className="mt-1 line-clamp-3 block max-w-full break-words text-[10px] leading-4 text-white [overflow-wrap:anywhere] sm:line-clamp-2 sm:text-xs">
+            {item?.name ?? pendingItem?.name ?? "Vide"}
           </strong>
         </span>
       </span>
-      <span className="mt-2 block text-[8px] font-bold leading-3 text-[#9FB5A8] sm:text-[9px]">
+      <span className="mt-2 line-clamp-3 block max-w-full break-words text-[8px] font-bold leading-3 text-[#9FB5A8] [overflow-wrap:anywhere] sm:text-[9px]">
         {isActive
           ? dropLabel
           : pendingItem && !item
@@ -878,7 +878,7 @@ function EquipmentThumbnail({
   size: "slot" | "option" | "available";
 }) {
   const sizeClass = {
-    slot: "h-14 w-14 rounded-xl",
+    slot: "h-11 w-11 rounded-xl sm:h-14 sm:w-14",
     option: "h-10 w-10 rounded-lg",
     available: "h-16 w-16 rounded-xl",
   }[size];

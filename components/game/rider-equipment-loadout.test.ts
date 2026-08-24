@@ -210,6 +210,10 @@ describe("CyclistEquipmentVisual side slots", () => {
       "lg:grid-cols-[minmax(0,1fr)_minmax(15rem,1.15fr)_minmax(0,1fr)]",
     );
     expect(markup).toContain("order-first");
+    expect(markup.match(/>Vide<\/strong>/g)).toHaveLength(8);
+    expect(markup).not.toContain("Emplacement vide");
+    expect(markup).toContain("[overflow-wrap:anywhere]");
+    expect(markup).toContain("min-w-0 touch-manipulation overflow-hidden");
   });
 });
 
