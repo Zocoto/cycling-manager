@@ -36,9 +36,8 @@ export const metadata: Metadata = {
 async function synchronizeGameEntryState(
   supabase: SupabaseServerClient,
 ): Promise<void> {
-  const [dailyReputation, academyTrainingSettlement, attendance] = await Promise.all([
+  const [dailyReputation, attendance] = await Promise.all([
     supabase.rpc("settle_current_team_staff_daily_reputation"),
-    supabase.rpc("settle_due_staff_academy_trainings"),
     supabase.rpc("record_current_sporting_director_attendance"),
   ]);
 
@@ -46,13 +45,6 @@ async function synchronizeGameEntryState(
     console.error(
       "Impossible d’actualiser la réputation quotidienne du staff.",
       dailyReputation.error,
-    );
-  }
-
-  if (academyTrainingSettlement.error) {
-    console.error(
-      "Impossible d’actualiser les stages de l’Académie.",
-      academyTrainingSettlement.error,
     );
   }
 

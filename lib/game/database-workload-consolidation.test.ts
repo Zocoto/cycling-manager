@@ -22,6 +22,13 @@ const maintenanceMigration = readFileSync(
   ),
   "utf8",
 ).replace(/\r\n/g, "\n");
+const academyMaintenanceMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260824054500_move_staff_academy_settlement_off_page_entries.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
 const maintenanceRoute = readFileSync(
   join(process.cwd(), "app/api/cron/rider-state-maintenance/route.ts"),
   "utf8",
@@ -31,6 +38,7 @@ const vercelConfig = readFileSync(
   "utf8",
 );
 const interactiveReaders = [
+  "app/jeu/layout.tsx",
   "services/public-rider-profile.ts",
   "services/team-health.ts",
   "services/team-training.ts",
@@ -57,6 +65,10 @@ describe("database workload consolidation", () => {
     );
     expect(maintenanceMigration).toContain("set statement_timeout = '240s'");
     expect(maintenanceMigration).toContain("last_completed_day_number");
+    expect(academyMaintenanceMigration).toContain(
+      "settle_due_staff_academy_trainings_throttled()",
+    );
+    expect(academyMaintenanceMigration).toContain("'staff_academy'");
     expect(settlementService).toContain(
       '"settle_current_rider_state_for_maintenance"',
     );
@@ -71,6 +83,9 @@ describe("database workload consolidation", () => {
       expect(reader).not.toContain('@/services/game-state-settlement');
       expect(reader).not.toContain('rpc("settle_current_health_and_form")');
       expect(reader).not.toContain('rpc("settle_due_training_sessions")');
+      expect(reader).not.toContain(
+        'rpc("settle_due_staff_academy_trainings")',
+      );
     }
   });
 

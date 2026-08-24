@@ -4,10 +4,8 @@ import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 export const maxDuration = 300;
 
 const MAINTENANCE_TASKS = [
-  "settle_due_training_sessions",
   "settle_due_infrastructure_projects",
   "settle_due_elite_wildcards",
-  "settle_due_staff_academy_trainings",
   "settle_due_development_races",
   "settle_due_season_rollovers",
 ] as const;

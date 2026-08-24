@@ -72,13 +72,11 @@ describe("atomic season rollover", () => {
   });
 
   it("runs deferred work sequentially and rolls over just after Paris midnight", () => {
-    expect(maintenanceRoute).toContain("settle_due_staff_academy_trainings");
     expect(maintenanceRoute).toContain("settle_due_season_rollovers");
     expect(maintenanceRoute).toContain("for (const task of MAINTENANCE_TASKS)");
     expect(maintenanceRoute).not.toContain("Promise.all(");
-    expect(maintenanceRoute.indexOf("settle_due_season_rollovers")).toBeGreaterThan(
-      maintenanceRoute.indexOf("settle_due_staff_academy_trainings"),
-    );
+    expect(maintenanceRoute).not.toContain("settle_due_staff_academy_trainings");
+    expect(maintenanceRoute).not.toContain("settle_due_training_sessions");
     expect(vercelConfig).toContain('"schedule": "5 23 * * *"');
   });
 });
