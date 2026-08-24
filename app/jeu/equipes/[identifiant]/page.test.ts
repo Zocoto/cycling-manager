@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const teamProfilePage = readFileSync(
   new URL("./page.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("team profile mobile layout", () => {
   it("keeps recent result tiles inside the narrow viewport", () => {

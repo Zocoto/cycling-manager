@@ -298,13 +298,6 @@ export async function getDevelopmentTeamOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
-  const calendarResult = await admin.rpc("ensure_development_race_calendar", {
-    p_season_id: context.seasonId,
-  });
-  assertQuery(calendarResult.error, "le calendrier de la Development Team");
-  const settlementResult = await admin.rpc("settle_due_development_races");
-  assertQuery(settlementResult.error, "les résultats juniors arrivés à échéance");
-
   const [academyResult, teamResult, editionsResult] = await Promise.all([
     admin
       .from("youth_academy_riders")

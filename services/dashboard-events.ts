@@ -90,9 +90,7 @@ export async function getCurrentDashboardOperationalEvents({
     youthDevelopmentAlertCount,
     internationalSelections,
   ] = await Promise.all([
-    getYouthDevelopmentAlertCount(authUserId, {
-      settleInfrastructure: false,
-    }),
+    getYouthDevelopmentAlertCount(authUserId),
     [21, 22, 25, 26].includes(currentDayNumber)
       ? getCurrentDirectorInternationalSelections({
           authUserId,

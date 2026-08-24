@@ -30,9 +30,16 @@ const academyMaintenanceMigration = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 const maintenanceRoute = readFileSync(
-  join(process.cwd(), "app/api/cron/rider-state-maintenance/route.ts"),
+  join(process.cwd(), "app/api/cron/rider-state-maintenance/[task]/route.ts"),
   "utf8",
 );
+const isolatedMaintenanceMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260824102000_isolate_and_monitor_game_maintenance.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
 const vercelConfig = readFileSync(
   join(process.cwd(), "vercel.json"),
   "utf8",
@@ -69,16 +76,21 @@ describe("database workload consolidation", () => {
       "settle_due_staff_academy_trainings_throttled()",
     );
     expect(academyMaintenanceMigration).toContain("'staff_academy'");
-    expect(settlementService).toContain(
-      '"settle_current_rider_state_for_maintenance"',
+    expect(isolatedMaintenanceMigration).toContain(
+      "run_game_maintenance_task(p_task_key text)",
     );
-    expect(maintenanceRoute).toContain(
-      "settleCurrentRiderStateForMaintenance()",
+    expect(isolatedMaintenanceMigration).toContain(
+      "create table if not exists public.game_maintenance_runs",
+    );
+    expect(settlementService).toContain('"run_game_maintenance_task"');
+    expect(maintenanceRoute).toContain("runGameMaintenanceTask(task)");
+    expect(maintenanceRoute).toContain('task === "health-check"');
+    expect(vercelConfig).toContain(
+      '"path": "/api/cron/rider-state-maintenance/training"',
     );
     expect(vercelConfig).toContain(
-      '"path": "/api/cron/rider-state-maintenance"',
+      '"path": "/api/cron/rider-state-maintenance/health-check"',
     );
-    expect(vercelConfig).toContain('"schedule": "*/5 * * * *"');
     for (const reader of interactiveReaders) {
       expect(reader).not.toContain('@/services/game-state-settlement');
       expect(reader).not.toContain('rpc("settle_current_health_and_form")');

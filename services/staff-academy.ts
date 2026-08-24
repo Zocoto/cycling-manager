@@ -132,9 +132,6 @@ export async function getStaffAcademyOverview(
   supabase: ServerClient,
   authUserId: string,
 ): Promise<StaffAcademyOverview | null> {
-  const settlement = await supabase.rpc("settle_due_staff_academy_trainings");
-  assertQuery(settlement.error, "l’achèvement des stages de l’Académie");
-
   const admin = createSupabaseAdminClient();
   const context = await loadContext(admin, authUserId);
   if (!context) return null;

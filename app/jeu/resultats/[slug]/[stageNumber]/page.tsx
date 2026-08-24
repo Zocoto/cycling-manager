@@ -19,15 +19,9 @@ import {
   getCurrentTeamNationalChampionshipCountryCodes,
   getNationalChampionshipDiscipline,
 } from "@/services/national-championships";
-import {
-  getActiveSeasonRaceCalendar,
-  settleFinishedRaceConditions,
-} from "@/services/race-calendar";
+import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { getRaceLiveMessages } from "@/services/race-live-chat";
-import {
-  getOfficialRaceResults,
-  settleFinishedRaceResults,
-} from "@/services/race-results";
+import { getOfficialRaceResults } from "@/services/race-results";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { getOrCreatePostRaceInterview } from "@/services/post-race-interviews";
 
@@ -119,15 +113,6 @@ export default async function RaceLivePage({
           },
         );
   const lockedSimulations = lockedSimulationDirectory[edition.id] ?? [];
-
-  if (state.status === "finished") {
-    try {
-      await settleFinishedRaceResults(calendar, now, lockedSimulationDirectory);
-      await settleFinishedRaceConditions(supabase);
-    } catch (error) {
-      console.error("Impossible de consolider cette course :", error);
-    }
-  }
 
   const officialResults =
     state.status === "scheduled"

@@ -19,13 +19,17 @@ export async function GET(request: Request) {
   const settledAt = new Date().toISOString();
   const results = [];
   for (const task of MAINTENANCE_TASKS) {
+    const startedAt = Date.now();
     const result = await admin.rpc(task);
-    results.push({
+    const taskResult = {
       task,
       ok: !result.error,
       error: result.error?.message ?? null,
-    });
-    if (result.error) break;
+      durationMs: Date.now() - startedAt,
+    };
+    results.push(taskResult);
+    const log = taskResult.ok ? console.info : console.error;
+    log("game_maintenance_fallback_task", taskResult);
   }
   const failedTasks = results.filter((result) => !result.ok);
 

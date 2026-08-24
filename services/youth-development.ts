@@ -352,13 +352,6 @@ export async function getYouthDevelopmentOverview(
   const context = await loadContext(admin, authUserId);
   if (!context) return null;
 
-  const infrastructureSettlement = await admin.rpc(
-    "settle_due_infrastructure_projects",
-  );
-  assertQuery(
-    infrastructureSettlement.error,
-    "les chantiers de formation internationale",
-  );
   await settleDueScoutingMissions(admin, context);
   await settleAcademyDailyOperations(admin, context);
   const financeSettlement = await supabase.rpc("settle_current_team_finances");
@@ -373,22 +366,10 @@ export async function getYouthDevelopmentOverview(
 
 export async function getYouthDevelopmentAlertCount(
   authUserId: string,
-  options: {
-    settleInfrastructure?: boolean;
-  } = {},
 ): Promise<number> {
   const admin = createSupabaseAdminClient();
   const context = await loadContext(admin, authUserId);
   if (!context) return 0;
-  if (options.settleInfrastructure !== false) {
-    const infrastructureSettlement = await admin.rpc(
-      "settle_due_infrastructure_projects",
-    );
-    assertQuery(
-      infrastructureSettlement.error,
-      "les chantiers de formation internationale",
-    );
-  }
   await settleDueScoutingMissions(admin, context);
   await settleAcademyDailyOperations(admin, context);
 

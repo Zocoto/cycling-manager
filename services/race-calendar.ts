@@ -505,12 +505,6 @@ export type RaceEngagedRider = {
   countryCode: string;
 };
 
-export type RaceConditionSettlement = {
-  processedStages: number;
-  processedRiders: number;
-  currentDayNumber: number | null;
-};
-
 type RaceEngagedRiderRow = {
   team_id: string;
   team_name: string;
@@ -522,43 +516,15 @@ type RaceEngagedRiderRow = {
   country_iso_alpha2: string;
 };
 
-type RaceConditionSettlementRow = {
-  processed_stages: number;
-  processed_riders: number;
-  current_day_number: number | null;
-};
-
-export async function settleFinishedRaceConditions(
-  supabase: SupabaseServerClient,
-): Promise<RaceConditionSettlement> {
-  const { data, error } = await supabase.rpc("settle_finished_race_conditions");
-
-  if (error) {
-    throw new Error(
-      `Impossible de mettre à jour la forme après les courses : ${error.message}`,
-    );
-  }
-
-  const row = ((data as RaceConditionSettlementRow[] | null) ?? [])[0];
-
-  return {
-    processedStages: row?.processed_stages ?? 0,
-    processedRiders: row?.processed_riders ?? 0,
-    currentDayNumber: row?.current_day_number ?? null,
-  };
-}
-
 export async function getActiveSeasonRaceCalendar(
   supabase: SupabaseServerClient,
   now = new Date(),
   options: ActiveSeasonCalendarLoadOptions = {},
 ): Promise<SeasonRaceCalendar | null> {
-  const [wildcardSettlementResult, seasonResult] = await Promise.all([
-    supabase.rpc("settle_due_elite_wildcards"),
-    supabase
-      .from("seasons")
-      .select(
-        `
+  const seasonResult = await supabase
+    .from("seasons")
+    .select(
+      `
           id,
           game_year,
           name,
@@ -566,16 +532,9 @@ export async function getActiveSeasonRaceCalendar(
           ends_on,
           current_day_number
         `,
-      )
-      .eq("status", "active")
-      .maybeSingle<SeasonRow>(),
-  ]);
-  const { error: wildcardSettlementError } = wildcardSettlementResult;
-  if (wildcardSettlementError) {
-    throw new Error(
-      `Impossible d'arbitrer les Wild Cards Elite : ${wildcardSettlementError.message}`,
-    );
-  }
+    )
+    .eq("status", "active")
+    .maybeSingle<SeasonRow>();
 
   const { data: season, error: seasonError } = seasonResult;
 

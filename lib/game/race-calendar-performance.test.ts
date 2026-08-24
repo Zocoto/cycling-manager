@@ -9,14 +9,14 @@ const source = readFileSync(
 );
 
 describe("race calendar request performance", () => {
-  it("loads the active season while settling elite wildcards", () => {
+  it("loads the active season without settling global wildcard state", () => {
     const bootstrapBlock = source.slice(
-      source.indexOf("const [wildcardSettlementResult, seasonResult]"),
-      source.indexOf("if (wildcardSettlementError)"),
+      source.indexOf("const seasonResult"),
+      source.indexOf("const { data: season"),
     );
 
-    expect(bootstrapBlock).toContain("await Promise.all([");
-    expect(bootstrapBlock).toContain('supabase.rpc("settle_due_elite_wildcards")');
+    expect(bootstrapBlock).not.toContain("Promise.all([");
+    expect(source).not.toContain('supabase.rpc("settle_due_elite_wildcards")');
     expect(bootstrapBlock).toContain('.from("seasons")');
     expect(bootstrapBlock.match(/\bawait\b/g)).toHaveLength(1);
   });

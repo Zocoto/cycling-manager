@@ -158,12 +158,8 @@ export async function getTeamInfrastructureOverview(
   supabase: ServerClient,
   authUserId: string,
 ): Promise<TeamInfrastructureOverview | null> {
-  const [financeSettlement, projectSettlement] = await Promise.all([
-    supabase.rpc("settle_current_team_finances"),
-    supabase.rpc("settle_due_infrastructure_projects"),
-  ]);
+  const financeSettlement = await supabase.rpc("settle_current_team_finances");
   assertQuery(financeSettlement.error, "l’actualisation des finances");
-  assertQuery(projectSettlement.error, "l’achèvement des chantiers");
 
   const admin = createSupabaseAdminClient();
   const context = await loadContext(admin, authUserId);
