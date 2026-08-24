@@ -34,6 +34,12 @@ import {
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
+import {
+  GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
+  mapGlobalChatOnlineDirectorRows,
+  mergeGlobalChatOnlineDirectors,
+  type GlobalChatOnlineDirector,
+} from "@/lib/game/global-chat-presence";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type {
   GlobalChatIdentity,
@@ -43,21 +49,15 @@ import type {
   GlobalChatReactionRow,
 } from "@/services/global-chat";
 
-type OnlineDirector = {
-  sportingDirectorId: string;
-  displayName: string;
-  teamId: string;
-  teamName: string;
-  teamHref: string;
-};
-
 export function GlobalGameChat({
   identity,
+  initialOnlineDirectors,
   initialMessages,
   initialHasMore,
   initialCursor,
 }: {
   identity: GlobalChatIdentity;
+  initialOnlineDirectors: GlobalChatOnlineDirector[];
   initialMessages: GlobalChatMessage[];
   initialHasMore: boolean;
   initialCursor: GlobalChatCursor | null;
@@ -75,9 +75,20 @@ export function GlobalGameChat({
   const [olderCursor, setOlderCursor] = useState(initialCursor);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [onlineDirectors, setOnlineDirectors] = useState<OnlineDirector[]>([
-    identity,
-  ]);
+  const [recentOnlineDirectors, setRecentOnlineDirectors] =
+    useState<GlobalChatOnlineDirector[]>(initialOnlineDirectors);
+  const [realtimeOnlineDirectors, setRealtimeOnlineDirectors] = useState<
+    GlobalChatOnlineDirector[]
+  >([identity]);
+  const onlineDirectors = useMemo(
+    () =>
+      mergeGlobalChatOnlineDirectors({
+        currentDirector: identity,
+        recentDirectors: recentOnlineDirectors,
+        realtimeDirectors: realtimeOnlineDirectors,
+      }),
+    [identity, realtimeOnlineDirectors, recentOnlineDirectors],
+  );
   const [draft, setDraft] = useState("");
 
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
@@ -126,6 +137,52 @@ export function GlobalGameChat({
   }, [latestDisplayedMessageAt, supabase]);
 
   useEffect(() => {
+    let active = true;
+    let requestInFlight = false;
+
+    async function refreshOnlineDirectors() {
+      if (
+        !active ||
+        requestInFlight ||
+        document.visibilityState !== "visible"
+      ) {
+        return;
+      }
+
+      requestInFlight = true;
+      const result = await supabase.rpc("get_online_global_chat_directors");
+      requestInFlight = false;
+
+      if (!active || result.error) return;
+      setRecentOnlineDirectors(
+        mapGlobalChatOnlineDirectorRows(
+          (result.data as Record<string, unknown>[] | null) ?? [],
+        ),
+      );
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") {
+        void refreshOnlineDirectors();
+      }
+    }
+
+    const interval = window.setInterval(
+      () => void refreshOnlineDirectors(),
+      GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
+    );
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [supabase]);
+
+  useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const viewport = viewportRef.current;
       if (!viewport) return;
@@ -160,7 +217,7 @@ export function GlobalGameChat({
         },
       })
       .on("presence", { event: "sync" }, () => {
-        setOnlineDirectors(
+        setRealtimeOnlineDirectors(
           readOnlineDirectors(channel.presenceState(), identity),
         );
       })
@@ -781,7 +838,7 @@ function OnlineDirectors({
   directors,
   currentDirectorId,
 }: {
-  directors: OnlineDirector[];
+  directors: GlobalChatOnlineDirector[];
   currentDirectorId: string;
 }) {
   return (
@@ -1099,8 +1156,8 @@ function getMessageExcerpt(message: string) {
 function readOnlineDirectors(
   presenceState: Record<string, unknown[]>,
   fallbackIdentity: GlobalChatIdentity,
-): OnlineDirector[] {
-  const byDirectorId = new Map<string, OnlineDirector>();
+): GlobalChatOnlineDirector[] {
+  const byDirectorId = new Map<string, GlobalChatOnlineDirector>();
 
   for (const presences of Object.values(presenceState)) {
     for (const presence of presences) {
@@ -1122,7 +1179,7 @@ function readOnlineDirectors(
   });
 }
 
-function isOnlineDirector(value: unknown): value is OnlineDirector {
+function isOnlineDirector(value: unknown): value is GlobalChatOnlineDirector {
   if (!value || typeof value !== "object") return false;
 
   const director = value as Record<string, unknown>;

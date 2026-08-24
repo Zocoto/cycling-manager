@@ -7,6 +7,11 @@ import {
   type GlobalChatCursor,
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
+import {
+  mapGlobalChatOnlineDirectorRows,
+  mergeGlobalChatOnlineDirectors,
+  type GlobalChatOnlineDirector,
+} from "@/lib/game/global-chat-presence";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -53,13 +58,7 @@ export type GlobalChatMessage = {
   createdAt: string;
 };
 
-export type GlobalChatIdentity = {
-  sportingDirectorId: string;
-  displayName: string;
-  teamId: string;
-  teamName: string;
-  teamHref: string;
-};
+export type GlobalChatIdentity = GlobalChatOnlineDirector;
 
 export type GlobalChatMessageRow = {
   id: string;
@@ -122,12 +121,14 @@ export async function getGlobalChatOverview(
   supabase: SupabaseServerClient,
 ): Promise<{
   identity: GlobalChatIdentity;
+  onlineDirectors: GlobalChatOnlineDirector[];
   messages: GlobalChatMessage[];
   hasMore: boolean;
   nextCursor: GlobalChatCursor | null;
 }> {
-  const [identityResult, messagePage] = await Promise.all([
+  const [identityResult, onlineDirectorsResult, messagePage] = await Promise.all([
     supabase.rpc("get_current_global_chat_identity"),
+    supabase.rpc("get_online_global_chat_directors"),
     getGlobalChatMessagePage(supabase, {
       limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
     }),
@@ -148,14 +149,33 @@ export async function getGlobalChatOverview(
     );
   }
 
+  const identity: GlobalChatIdentity = {
+    sportingDirectorId: identityRow.sporting_director_id,
+    displayName: identityRow.display_name,
+    teamId: identityRow.team_id,
+    teamName: identityRow.team_name,
+    teamHref: `/jeu/equipes/${identityRow.team_id}`,
+  };
+
+  if (onlineDirectorsResult.error) {
+    console.error(
+      "Global chat online directors unavailable; continuing with the current director.",
+      onlineDirectorsResult.error,
+    );
+  }
+
   return {
-    identity: {
-      sportingDirectorId: identityRow.sporting_director_id,
-      displayName: identityRow.display_name,
-      teamId: identityRow.team_id,
-      teamName: identityRow.team_name,
-      teamHref: `/jeu/equipes/${identityRow.team_id}`,
-    },
+    identity,
+    onlineDirectors: mergeGlobalChatOnlineDirectors({
+      currentDirector: identity,
+      recentDirectors: onlineDirectorsResult.error
+        ? []
+        : mapGlobalChatOnlineDirectorRows(
+            (onlineDirectorsResult.data as Record<string, unknown>[] | null) ??
+              [],
+          ),
+      realtimeDirectors: [],
+    }),
     ...messagePage,
   };
 }

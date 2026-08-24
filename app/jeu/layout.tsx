@@ -6,6 +6,7 @@ import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
 import { GameHeaderIndicatorsProvider } from "@/components/game/game-header-indicators-provider";
+import { GamePresenceHeartbeat } from "@/components/game/game-presence-heartbeat";
 import { GameRouteLoading } from "@/components/game/game-route-loading";
 import {
   TutorialProvider,
@@ -102,6 +103,7 @@ async function GameRuntime({ children }: { children: ReactNode }) {
   return (
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
       <GameHeaderIndicatorsProvider>
+        <GamePresenceHeartbeat />
         <div className="game-shell">{children}</div>
       </GameHeaderIndicatorsProvider>
     </TutorialProvider>
