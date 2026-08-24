@@ -8,6 +8,7 @@ import type {
   FanClubWholesalePrice,
 } from "@/lib/game/fan-club-management";
 import type { FanClubLiveData } from "@/lib/game/fan-club-pilot";
+import { isFanClubCollectorProductId } from "@/lib/game/fan-club-pilot";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -45,6 +46,7 @@ type WholesalePriceRow = {
   day_number: number;
   unit_cost: number | string;
 };
+type CollectorProductRow = { product_code: string };
 
 export async function getFanClubManagementState({
   supabase,
@@ -80,6 +82,7 @@ export async function getFanClubManagementState({
     inventoryResult,
     salesResult,
     wholesaleMarketResult,
+    collectorProductsResult,
   ] =
     await Promise.all([
       supabase
@@ -111,6 +114,7 @@ export async function getFanClubManagementState({
         .limit(20)
         .returns<SaleRow[]>(),
       supabase.rpc("get_current_fan_club_wholesale_market"),
+      supabase.rpc("get_current_team_fan_club_collector_products"),
     ]);
 
   assertQuery(fleetResult.error, "le parc de cars du Fan Club");
@@ -121,11 +125,24 @@ export async function getFanClubManagementState({
     wholesaleMarketResult.error,
     "le cours des matières premières du Fan Club",
   );
+  assertQuery(
+    collectorProductsResult.error,
+    "les maillots collectors du Fan Club",
+  );
 
   const tripRows = tripsResult.data ?? [];
   const saleRows = salesResult.data ?? [];
   const wholesaleMarketRows = Array.isArray(wholesaleMarketResult.data)
     ? (wholesaleMarketResult.data as unknown as WholesalePriceRow[])
+    : [];
+  const eligibleCollectorProductIds = Array.isArray(collectorProductsResult.data)
+    ? [
+        ...new Set(
+          (collectorProductsResult.data as unknown as CollectorProductRow[])
+            .map((row) => row.product_code)
+            .filter(isFanClubCollectorProductId),
+        ),
+      ]
     : [];
   const editionIds = [...new Set(tripRows.map((row) => row.race_edition_id))];
   const seasonIds = [...new Set(saleRows.map((row) => row.season_id))];
@@ -190,13 +207,23 @@ export async function getFanClubManagementState({
       revenue: Number(row.revenue),
       demandFactor: Number(row.demand_factor),
     })),
-    wholesaleMarket: wholesaleMarketRows.map<FanClubWholesalePrice>(
-      (row) => ({
+    wholesaleMarket: [
+      ...wholesaleMarketRows.map<FanClubWholesalePrice>((row) => ({
         productId: row.product_code,
         dayNumber: row.day_number,
         unitCost: Number(row.unit_cost),
-      }),
-    ),
+      })),
+      ...eligibleCollectorProductIds.flatMap((productId) =>
+        wholesaleMarketRows
+          .filter((row) => row.product_code === "team-jersey")
+          .map<FanClubWholesalePrice>((row) => ({
+            productId,
+            dayNumber: row.day_number,
+            unitCost: Number(row.unit_cost),
+          })),
+      ),
+    ],
+    eligibleCollectorProductIds,
   };
 }
 

@@ -45,6 +45,7 @@ export type FanClubManagementState = {
   inventory: ReadonlyArray<FanClubInventoryItem>;
   recentSales: ReadonlyArray<FanClubShopSale>;
   wholesaleMarket: ReadonlyArray<FanClubWholesalePrice>;
+  eligibleCollectorProductIds: ReadonlyArray<string>;
 };
 
 export type FanClubSalesForecast = {

@@ -26,6 +26,7 @@ import {
   FAN_CLUB_FLEET_CAPACITY_BY_HEADQUARTERS_LEVEL,
   FAN_CLUB_PRODUCTS,
   FAN_CLUB_SHOP_LEVELS,
+  getAvailableFanClubProducts,
   getAvailableTravelingSupporters,
   getCurrentWholesalePrice,
   getWholesaleTrendPercent,
@@ -211,8 +212,9 @@ function OverviewPanel({
     (total, item) => total + item.quantity,
     0,
   );
-  const availableProducts = FAN_CLUB_PRODUCTS.filter(
-    (product) => product.requiredShopLevel <= shopLevel,
+  const availableProducts = getAvailableFanClubProducts(
+    shopLevel,
+    management.eligibleCollectorProductIds,
   );
   const stockByProduct = new Map(
     management.inventory.map((item) => [item.productId, item.quantity]),
@@ -544,7 +546,10 @@ function StorePanel({
   feedback: string;
   sponsorIdentity: FanClubSponsorIdentity | null;
 }) {
-  const products = FAN_CLUB_PRODUCTS.filter((product) => product.requiredShopLevel <= shopLevel);
+  const products = getAvailableFanClubProducts(
+    shopLevel,
+    management.eligibleCollectorProductIds,
+  );
   const inventoryByProduct = new Map(management.inventory.map((item) => [item.productId, item]));
   const [prices, setPrices] = useState<Record<string, number>>(() => Object.fromEntries(
     products.map((product) => [product.id, inventoryByProduct.get(product.id)?.salePrice ?? product.suggestedSalePrice]),
@@ -582,6 +587,15 @@ function StorePanel({
           />
           <button type="button" onClick={() => setPurchaseOpen((open) => !open)} className="min-h-11 rounded-xl bg-[var(--fan-primary)] px-4 text-sm font-black text-white transition hover:bg-[var(--fan-secondary)]">Acheter du stock</button>
         </div>
+        {management.eligibleCollectorProductIds.length > 0 ? (
+          <div className="mt-5 rounded-2xl border border-[var(--fan-accent)] bg-[var(--fan-soft)] px-4 py-3 text-sm font-bold leading-6 text-[var(--fan-ink)]">
+            <strong className="text-[var(--fan-primary)]">Victoire en Grand Tour :</strong>{" "}
+            {management.eligibleCollectorProductIds.length > 1
+              ? `${management.eligibleCollectorProductIds.length} maillots collectors sont disponibles`
+              : "un maillot collector est disponible"}{" "}
+            jusqu’à la fin de la saison. Son stock partage la capacité du magasin.
+          </div>
+        ) : null}
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {products.map((product) => {
             const inventory = inventoryByProduct.get(product.id);
@@ -606,7 +620,9 @@ function StorePanel({
                   <div className="flex items-start gap-4">
                     <StoreProductVisual productId={product.id} sponsorIdentity={sponsorIdentity} />
                     <div className="min-w-0 flex-1">
-                      <span className="inline-flex rounded-full bg-[var(--fan-soft)] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.13em] text-[var(--fan-primary)]">En vitrine</span>
+                      <span className="inline-flex rounded-full bg-[var(--fan-soft)] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.13em] text-[var(--fan-primary)]">
+                        {product.collectorJerseyColor ? "Collector saisonnier" : "En vitrine"}
+                      </span>
                       <h3 className="mt-2 text-lg font-black text-[var(--fan-ink)]">{product.name}</h3>
                       <p className="mt-1 text-xs font-semibold leading-5 text-[var(--fan-muted)]">{product.description}</p>
                     </div>
@@ -758,6 +774,12 @@ export function StoreProductVisual({
   sponsorIdentity: FanClubSponsorIdentity | null;
   compact?: boolean;
 }) {
+  const collectorColor = {
+    "collector-jersey-france": "#F2C94C",
+    "collector-jersey-italy": "#F0A1BB",
+    "collector-jersey-spain": "#D84848",
+  }[productId];
+
   return (
     <span
       aria-hidden="true"
@@ -767,7 +789,13 @@ export function StoreProductVisual({
       ].join(" ")}
     >
       <span className="absolute bottom-2 left-2 right-2 h-1.5 rounded-full bg-[var(--fan-accent)] opacity-35" />
-      {productId === "team-jersey" && sponsorIdentity ? (
+      {collectorColor ? (
+        <svg viewBox="0 0 48 48" className={compact ? "h-10 w-10" : "h-14 w-14"} fill="none" stroke="var(--fan-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m16 8 5-3c.8 2 1.8 3 3 3s2.2-1 3-3l5 3 7 8-6 5-3-4v24H18V17l-3 4-6-5 7-8Z" fill={collectorColor} />
+          <path d="M18 22h12M18 27h12" stroke="white" strokeOpacity="0.8" />
+          <path d="M21 5c.5 2 1.5 3 3 3s2.5-1 3-3" />
+        </svg>
+      ) : productId === "team-jersey" && sponsorIdentity ? (
         <SponsorJerseyPreview
           sponsor={sponsorIdentity.sponsor}
           jersey={sponsorIdentity.selectedJersey}

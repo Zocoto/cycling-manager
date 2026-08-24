@@ -6,7 +6,10 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FanClub } from "@/components/game/fan-club";
 import { GameHeader } from "@/components/game/game-header";
 import { getFanClubLiveData } from "@/services/fan-club-data";
-import { FAN_CLUB_PRODUCTS, FAN_CLUB_SHOP_LEVELS } from "@/lib/game/fan-club-pilot";
+import {
+  FAN_CLUB_SHOP_LEVELS,
+  getAvailableFanClubProducts,
+} from "@/lib/game/fan-club-pilot";
 import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -55,8 +58,9 @@ export default async function FanClubPage() {
   const shopLevel = FAN_CLUB_SHOP_LEVELS.find(
     (level) => level.level === buildings.shopLevel,
   );
-  const availableProductCount = FAN_CLUB_PRODUCTS.filter(
-    (product) => product.requiredShopLevel <= buildings.shopLevel,
+  const availableProductCount = getAvailableFanClubProducts(
+    buildings.shopLevel,
+    management.eligibleCollectorProductIds,
   ).length;
   const theme = createTeamProfileTheme(
     headerData.teamSponsorIdentity?.sponsor.colors ?? {

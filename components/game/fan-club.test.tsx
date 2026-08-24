@@ -43,6 +43,7 @@ const MANAGEMENT = {
   inventory: [],
   recentSales: [],
   wholesaleMarket: [],
+  eligibleCollectorProductIds: [],
 } satisfies FanClubManagementState;
 
 const SPONSOR_JERSEY = {
@@ -153,5 +154,30 @@ describe("Fan Club de production", () => {
     expect(markup).toContain(`--fan-accent:${theme.accent}`);
     expect(jerseyMarkup).toContain("Maillot Modern de Maison Brune");
     expect(jerseyMarkup).toContain("jersey-modern.png");
+  });
+
+  it("dessine les trois couleurs de maillots collectors", () => {
+    const yellow = renderToStaticMarkup(
+      <StoreProductVisual
+        productId="collector-jersey-france"
+        sponsorIdentity={null}
+      />,
+    );
+    const pink = renderToStaticMarkup(
+      <StoreProductVisual
+        productId="collector-jersey-italy"
+        sponsorIdentity={null}
+      />,
+    );
+    const red = renderToStaticMarkup(
+      <StoreProductVisual
+        productId="collector-jersey-spain"
+        sponsorIdentity={null}
+      />,
+    );
+
+    expect(yellow).toContain("#F2C94C");
+    expect(pink).toContain("#F0A1BB");
+    expect(red).toContain("#D84848");
   });
 });

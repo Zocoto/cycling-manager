@@ -85,6 +85,7 @@ export type FanClubProduct = {
   id: string;
   name: string;
   description: string;
+  collectorJerseyColor?: "yellow" | "pink" | "red";
   requiredShopLevel: number;
   baseWholesalePrice: number;
   suggestedSalePrice: number;
@@ -427,7 +428,7 @@ export const FAN_CLUB_SHOP_LEVELS: ReadonlyArray<FanClubShopLevel> = [
   { level: 5, capacity: 5_000, productCount: 5 },
 ];
 
-export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
+export const FAN_CLUB_STANDARD_PRODUCTS: ReadonlyArray<FanClubProduct> = [
   {
     id: "team-jersey",
     name: "Maillot de l’équipe",
@@ -505,12 +506,95 @@ export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
   },
 ];
 
+export const FAN_CLUB_COLLECTOR_PRODUCTS: ReadonlyArray<FanClubProduct> = [
+  {
+    id: "collector-jersey-france",
+    name: "Maillot jaune collector",
+    description:
+      "Édition de la saison célébrant la victoire au Grand Tour français.",
+    collectorJerseyColor: "yellow",
+    requiredShopLevel: 1,
+    baseWholesalePrice: 38,
+    suggestedSalePrice: 109,
+    baseDailyPurchaseRate: 0.0022,
+    priceElasticity: 1.25,
+    marginMultipleTolerance: 3.4,
+    marginPenalty: 1.2,
+    popularityMarginBonus: 0.7,
+    priceResistanceStart: 155,
+    maximumCustomerPrice: 260,
+  },
+  {
+    id: "collector-jersey-italy",
+    name: "Maillot rose collector",
+    description:
+      "Édition de la saison célébrant la victoire au Grand Tour italien.",
+    collectorJerseyColor: "pink",
+    requiredShopLevel: 1,
+    baseWholesalePrice: 38,
+    suggestedSalePrice: 109,
+    baseDailyPurchaseRate: 0.0022,
+    priceElasticity: 1.25,
+    marginMultipleTolerance: 3.4,
+    marginPenalty: 1.2,
+    popularityMarginBonus: 0.7,
+    priceResistanceStart: 155,
+    maximumCustomerPrice: 260,
+  },
+  {
+    id: "collector-jersey-spain",
+    name: "Maillot rouge collector",
+    description:
+      "Édition de la saison célébrant la victoire au Grand Tour espagnol.",
+    collectorJerseyColor: "red",
+    requiredShopLevel: 1,
+    baseWholesalePrice: 38,
+    suggestedSalePrice: 109,
+    baseDailyPurchaseRate: 0.0022,
+    priceElasticity: 1.25,
+    marginMultipleTolerance: 3.4,
+    marginPenalty: 1.2,
+    popularityMarginBonus: 0.7,
+    priceResistanceStart: 155,
+    maximumCustomerPrice: 260,
+  },
+];
+
+export const FAN_CLUB_PRODUCTS: ReadonlyArray<FanClubProduct> = [
+  ...FAN_CLUB_STANDARD_PRODUCTS,
+  ...FAN_CLUB_COLLECTOR_PRODUCTS,
+];
+
+const FAN_CLUB_COLLECTOR_PRODUCT_IDS = new Set(
+  FAN_CLUB_COLLECTOR_PRODUCTS.map((product) => product.id),
+);
+
+export function isFanClubCollectorProductId(productId: string): boolean {
+  return FAN_CLUB_COLLECTOR_PRODUCT_IDS.has(productId);
+}
+
+export function getAvailableFanClubProducts(
+  shopLevel: number,
+  eligibleCollectorProductIds: ReadonlyArray<string>,
+): ReadonlyArray<FanClubProduct> {
+  const eligibleCollectors = new Set(eligibleCollectorProductIds);
+  return FAN_CLUB_PRODUCTS.filter(
+    (product) =>
+      product.requiredShopLevel <= shopLevel &&
+      (!isFanClubCollectorProductId(product.id) ||
+        eligibleCollectors.has(product.id)),
+  );
+}
+
 export const FAN_CLUB_INITIAL_STOCK: Readonly<Record<string, number>> = {
   "team-jersey": 0,
   bottle: 0,
   pennant: 0,
   cap: 0,
   "supporter-balloon": 0,
+  "collector-jersey-france": 0,
+  "collector-jersey-italy": 0,
+  "collector-jersey-spain": 0,
 };
 
 export const FAN_CLUB_INITIAL_AVERAGE_COST: Readonly<Record<string, number>> = {
@@ -519,6 +603,9 @@ export const FAN_CLUB_INITIAL_AVERAGE_COST: Readonly<Record<string, number>> = {
   pennant: 0,
   cap: 0,
   "supporter-balloon": 0,
+  "collector-jersey-france": 0,
+  "collector-jersey-italy": 0,
+  "collector-jersey-spain": 0,
 };
 
 export function getPopularityMaturityCap(

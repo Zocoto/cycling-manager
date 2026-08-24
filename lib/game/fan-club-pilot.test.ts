@@ -5,9 +5,11 @@ import {
   calculateFanClubTripPreview,
   estimateDailyProductSales,
   FAN_CLUB_CAR_MODELS,
+  FAN_CLUB_COLLECTOR_PRODUCTS,
   FAN_CLUB_PRODUCTS,
   FAN_CLUB_SHOP_LEVELS,
   getAvailableTravelingSupporters,
+  getAvailableFanClubProducts,
   getCurrentWholesalePrice,
   getFanClubPriceDemandFactor,
   getPopularityMaturityCap,
@@ -138,6 +140,39 @@ describe("boutique du Fan Club", () => {
       getFanClubPriceDemandFactor({ ...commonInputs, popularityIndex: 100 }),
     ).toBeGreaterThan(
       getFanClubPriceDemandFactor({ ...commonInputs, popularityIndex: 80 }),
+    );
+  });
+
+  it("ne débloque que les maillots collectors remportés pendant la saison", () => {
+    expect(getAvailableFanClubProducts(1, [])).toHaveLength(1);
+    expect(
+      getAvailableFanClubProducts(1, ["collector-jersey-france"]).map(
+        (product) => product.id,
+      ),
+    ).toEqual(["team-jersey", "collector-jersey-france"]);
+  });
+
+  it("autorise une marge et une demande supérieures sur un collector", () => {
+    const collector = FAN_CLUB_COLLECTOR_PRODUCTS[0];
+    const commonInputs = {
+      unitCost: 38,
+      supporterCount: 12_480,
+      fervor: 74,
+      popularityIndex: 58,
+    };
+
+    expect(
+      estimateDailyProductSales({
+        ...commonInputs,
+        product: collector,
+        salePrice: collector.suggestedSalePrice,
+      }),
+    ).toBeGreaterThan(
+      estimateDailyProductSales({
+        ...commonInputs,
+        product: jersey,
+        salePrice: jersey.suggestedSalePrice,
+      }),
     );
   });
 });
