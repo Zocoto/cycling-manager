@@ -1,7 +1,5 @@
 import type { RiderRatingKey } from "@/lib/game/rider-profile";
 import {
-  calculateDailyTrainingProgressMilli,
-  getPotentialStars,
   getTrainingDomainWeight,
   type TrainingDomain,
 } from "@/lib/game/training";
@@ -68,11 +66,10 @@ export const YOUTH_RAW_RATING_MIN = 1;
 export const YOUTH_RAW_RATING_MAX = 8.25;
 export const YOUTH_RATING_PROJECTION_BASE = 34;
 export const YOUTH_RATING_PROJECTION_SCALE = 8;
-export const YOUTH_HIGH_RATING_SLOWDOWN_START = 70;
-export const YOUTH_TRAINING_SOFT_CEILING = 76;
-const YOUTH_HIGH_RATING_MAX_FACTOR = 0.35;
-const YOUTH_HIGH_RATING_MIN_TALENT_SCALE = 0.55;
-const YOUTH_AUTOMATIC_DAILY_SESSION_EQUIVALENT = 2;
+export const YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN = 0.32;
+export const YOUTH_MANUAL_SESSION_SHARE = 0.75;
+export const YOUTH_TRAINING_VARIANCE_MIN = 0.78;
+export const YOUTH_TRAINING_VARIANCE_MAX = 1.28;
 
 export const YOUTH_TRAINING_GAME_BY_DOMAIN: Record<
   YouthTrainingDomain,
@@ -231,36 +228,73 @@ export function isYouthAutomaticTrainingDue({
   return dayNumber < currentDayNumber || parisHour >= 8;
 }
 
-export function getYouthManualTrainingDivisor(projectedRating: number) {
-  if (projectedRating < 50) return 1_000;
-  if (projectedRating < 60) return 2_000;
-  if (projectedRating < 65) return 4_000;
-  if (projectedRating < 70) return 6_000;
-  return 10_000;
+export function getYouthTalentProgressMultiplier(potentialSteps: number) {
+  const normalizedTalent =
+    (Math.min(8, Math.max(1, Math.round(potentialSteps))) - 1) / 7;
+  return 0.5 + 1.05 * normalizedTalent ** 1.35;
 }
 
-export function getYouthHighRatingProgressFactor({
-  currentProjectedRating,
-  potentialSteps,
+export function getYouthRatingProgressFactor(projectedRating: number) {
+  const normalizedRemaining = Math.max(
+    0.01,
+    (105 - clamp(projectedRating, 0, 100)) / 65,
+  );
+  return clamp(0.45 + 0.75 * normalizedRemaining ** 1.15, 0.45, 1.3);
+}
+
+export function getYouthProfileLoadFactor({
+  profilePeakRating,
+  profileAverageRating,
 }: {
-  currentProjectedRating: number;
-  potentialSteps: number;
+  profilePeakRating: number;
+  profileAverageRating: number;
 }) {
-  if (currentProjectedRating < YOUTH_HIGH_RATING_SLOWDOWN_START) return 1;
-  if (currentProjectedRating >= YOUTH_TRAINING_SOFT_CEILING) return 0;
+  const peakLoad = smoothstep(
+    clamp((profilePeakRating - 68) / 20, 0, 1),
+  );
+  const averageLoad = smoothstep(
+    clamp((profileAverageRating - 62) / 23, 0, 1),
+  );
+  return (1 - peakLoad * 0.18) * (1 - averageLoad * 0.22);
+}
 
-  const normalizedPotential =
-    (Math.min(8, Math.max(1, potentialSteps)) - 1) / 7;
-  const talentScale =
-    YOUTH_HIGH_RATING_MIN_TALENT_SCALE +
-    (1 - YOUTH_HIGH_RATING_MIN_TALENT_SCALE) *
-      normalizedPotential ** 2;
-  const remainingProgress =
-    (YOUTH_TRAINING_SOFT_CEILING - currentProjectedRating) /
-    (YOUTH_TRAINING_SOFT_CEILING - YOUTH_HIGH_RATING_SLOWDOWN_START);
+export function getYouthTrainingVarianceFromRoll(roll: number) {
+  const normalizedRoll = clamp(roll, 0, 1);
+  if (normalizedRoll < 0.05) {
+    return 0.78 + (normalizedRoll / 0.05) * 0.07;
+  }
+  if (normalizedRoll > 0.95) {
+    return 1.15 + ((normalizedRoll - 0.95) / 0.05) * 0.13;
+  }
+  return 0.9 + ((normalizedRoll - 0.05) / 0.9) * 0.2;
+}
 
+export function getYouthTrainingSessionVariance(seed: string) {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = Math.imul(hash ^ seed.charCodeAt(index), 16_777_619);
+  }
+  return getYouthTrainingVarianceFromRoll((hash >>> 0) / 4_294_967_295);
+}
+
+function getYouthDevelopmentFactor({
+  potentialSteps,
+  currentProjectedRating,
+  profilePeakRating,
+  profileAverageRating,
+}: {
+  potentialSteps: number;
+  currentProjectedRating: number;
+  profilePeakRating: number;
+  profileAverageRating: number;
+}) {
   return (
-    YOUTH_HIGH_RATING_MAX_FACTOR * talentScale * remainingProgress ** 2
+    getYouthTalentProgressMultiplier(potentialSteps) *
+    getYouthRatingProgressFactor(currentProjectedRating) *
+    getYouthProfileLoadFactor({
+      profilePeakRating,
+      profileAverageRating,
+    })
   );
 }
 
@@ -268,61 +302,77 @@ export function calculateYouthManualTrainingGain({
   score,
   potentialSteps,
   currentProjectedRating,
+  profilePeakRating = currentProjectedRating,
+  profileAverageRating = currentProjectedRating,
+  sessionVariance = 1,
   domain,
   ratingKey,
 }: {
   score: number;
   potentialSteps: number;
   currentProjectedRating: number;
+  profilePeakRating?: number;
+  profileAverageRating?: number;
+  sessionVariance?: number;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
   const normalizedScore = Math.min(1_000, Math.max(0, Math.round(score)));
-  const rawGain =
-    (normalizedScore * getPotentialStars(potentialSteps)) /
-    getYouthManualTrainingDivisor(currentProjectedRating);
+  const performanceFactor = 0.25 + (normalizedScore / 1_000) * 0.75;
 
   return (
-    rawGain *
-    getTrainingDomainWeight(domain, ratingKey) *
-    getYouthHighRatingProgressFactor({
-      currentProjectedRating,
+    YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN *
+    getYouthDevelopmentFactor({
       potentialSteps,
-    })
+      currentProjectedRating,
+      profilePeakRating,
+      profileAverageRating,
+    }) *
+    getTrainingDomainWeight(domain, ratingKey) *
+    YOUTH_MANUAL_SESSION_SHARE *
+    performanceFactor *
+    clamp(
+      sessionVariance,
+      YOUTH_TRAINING_VARIANCE_MIN,
+      YOUTH_TRAINING_VARIANCE_MAX,
+    )
   );
 }
 
 export function calculateYouthAutomaticTrainingGain({
-  age,
   potentialSteps,
   currentProjectedRating,
+  profilePeakRating = currentProjectedRating,
+  profileAverageRating = currentProjectedRating,
+  sessionVariance = 1,
   domain,
   ratingKey,
 }: {
   age: number;
   potentialSteps: number;
   currentProjectedRating: number;
+  profilePeakRating?: number;
+  profileAverageRating?: number;
+  sessionVariance?: number;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
+  // Les jeunes de 15 à 18 ans partagent la même fenêtre physiologique : leur
+  // talent, leur profil et la qualité de la séance font la différence.
   return (
-    (calculateDailyTrainingProgressMilli({
-      intensity: 100,
-      age,
+    YOUTH_AUTOMATIC_BASE_PROJECTED_GAIN *
+    getYouthDevelopmentFactor({
       potentialSteps,
-      rating: currentProjectedRating,
-      domain,
-      ratingKey,
-      trainerSpecialty: null,
-      trainerLevel: 0,
-      trainerCountryMatch: false,
-    }) /
-      1_000) *
-    YOUTH_AUTOMATIC_DAILY_SESSION_EQUIVALENT *
-    getYouthHighRatingProgressFactor({
       currentProjectedRating,
-      potentialSteps,
-    })
+      profilePeakRating,
+      profileAverageRating,
+    }) *
+    getTrainingDomainWeight(domain, ratingKey) *
+    clamp(
+      sessionVariance,
+      YOUTH_TRAINING_VARIANCE_MIN,
+      YOUTH_TRAINING_VARIANCE_MAX,
+    )
   );
 }
 
@@ -475,6 +525,10 @@ function clampScore(score: number) {
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function smoothstep(value: number) {
+  return value * value * (3 - 2 * value);
 }
 
 function roundToThousandth(value: number) {

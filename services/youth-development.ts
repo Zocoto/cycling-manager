@@ -43,6 +43,7 @@ import {
   getYouthAutomaticFirstDay,
   getYouthManualTrainingSlot,
   getYouthTrainingGameType,
+  getYouthTrainingSessionVariance,
   isYouthAutomaticTrainingDue,
   projectYouthRating,
   projectedGainToRawGain,
@@ -1164,11 +1165,22 @@ async function settleAcademyDailyOperations(
       if (existingDays.has(sessionKey)) continue;
 
       const changes: Record<string, number> = {};
+      const projectedRatings = Object.values(ratings).map(projectYouthRating);
+      const profilePeakRating = Math.max(...projectedRatings);
+      const profileAverageRating =
+        projectedRatings.reduce((sum, rating) => sum + rating, 0) /
+        projectedRatings.length;
+      const sessionVariance = getYouthTrainingSessionVariance(
+        `${rider.id}:${context.seasonId}:${day.id}:automatic`,
+      );
       for (const key of YOUTH_RATING_KEYS) {
         const projectedGain = calculateYouthAutomaticTrainingGain({
           age,
           potentialSteps: rider.potential_steps,
           currentProjectedRating: projectYouthRating(ratings[key]),
+          profilePeakRating,
+          profileAverageRating,
+          sessionVariance,
           domain: rider.training_priority,
           ratingKey: key,
         });

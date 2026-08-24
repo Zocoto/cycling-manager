@@ -24,12 +24,12 @@ const ratingsAt = (value: number): RiderRatings => ({
 });
 
 describe("development podium progression", () => {
-  it("awards the full primary point only to a winner below 70", () => {
+  it("can award the full primary point to a winner whose rating is still modest", () => {
     expect(
       calculateDevelopmentPodiumProgression({
         rank: 1,
         profile: "mountain",
-        ratings: ratingsAt(69),
+        ratings: ratingsAt(60),
       }),
     ).toEqual({
       mountain: 1,
@@ -62,22 +62,31 @@ describe("development podium progression", () => {
     ).toBe(0.35);
   });
 
-  it("slows every affected rating independently above 70", () => {
-    expect(getDevelopmentPodiumRatingFactor(69.99)).toBe(1);
-    expect(getDevelopmentPodiumRatingFactor(72)).toBe(0.65);
-    expect(getDevelopmentPodiumRatingFactor(75)).toBe(0.4);
-    expect(getDevelopmentPodiumRatingFactor(80)).toBe(0.25);
+  it("slows every affected rating with the same continuous curve", () => {
+    const aroundSeventy = [69.99, 70, 70.01].map(
+      getDevelopmentPodiumRatingFactor,
+    );
+    expect(Math.max(...aroundSeventy) - Math.min(...aroundSeventy)).toBeLessThan(
+      0.001,
+    );
+    expect(getDevelopmentPodiumRatingFactor(72)).toBeGreaterThan(
+      getDevelopmentPodiumRatingFactor(75),
+    );
+    expect(getDevelopmentPodiumRatingFactor(75)).toBeGreaterThan(
+      getDevelopmentPodiumRatingFactor(80),
+    );
+    expect(getDevelopmentPodiumRatingFactor(80)).toBeGreaterThan(0);
 
     const ratings = ratingsAt(60);
     ratings.cobbles = 75;
     ratings.flat = 72;
-    expect(
-      calculateDevelopmentPodiumProgression({
-        rank: 1,
-        profile: "cobbles",
-        ratings,
-      }),
-    ).toMatchObject({ cobbles: 0.4, flat: 0.124 });
+    const progression = calculateDevelopmentPodiumProgression({
+      rank: 1,
+      profile: "cobbles",
+      ratings,
+    });
+    expect(progression.cobbles).toBeCloseTo(0.719, 3);
+    expect(progression.flat).toBeCloseTo(0.15, 2);
   });
 
   it("uses endurance as the main reward for a mixed stage race", () => {
@@ -87,7 +96,7 @@ describe("development podium progression", () => {
         profile: "mixed",
         ratings: ratingsAt(65),
       }).endurance,
-    ).toBe(1);
+    ).toBeCloseTo(0.966, 3);
   });
 
   it("never exceeds a displayed rating of 100", () => {

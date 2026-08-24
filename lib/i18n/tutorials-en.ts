@@ -650,7 +650,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "youth-training-settings": {
         title: "Choose training mode and profile",
         content:
-          "Automatic mode calculates one session every morning at 8:00 with no assignable coach. Manual mode opens midnight–noon and noon–midnight slots.\n\nIn both modes, progress depends on potential and the current rating: it slows from 70 and becomes very small around 75. The chosen profile sets trained attributes and minigame. Changes start the next day; a missed manual slot is never replaced automatically.",
+          "Automatic mode calculates one session every morning at 8:00 with no assignable coach. Manual mode opens midnight–noon and noon–midnight slots.\n\nTalent is decisive and development remains continuous: an already excellent attribute improves more slowly without being blocked, while rare excellent or poor sessions add some variation. Two good manual sessions yield about 40% more than an automatic day. The chosen profile sets trained attributes and minigame. Changes start the next day; a missed manual slot is never replaced automatically.",
       },
       "youth-minigame": {
         title: "Try the minigame for the selected profile",

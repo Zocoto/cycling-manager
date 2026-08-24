@@ -1,4 +1,5 @@
 import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
+import { getYouthRatingProgressFactor } from "@/lib/game/youth-training";
 
 export type DevelopmentProgressionProfile =
   | "flat"
@@ -83,10 +84,10 @@ export function getDevelopmentPodiumPlaceFactor(rank: number): number {
 export function getDevelopmentPodiumRatingFactor(
   projectedRating: number,
 ): number {
-  if (projectedRating < 70) return 1;
-  if (projectedRating < 74) return 0.65;
-  if (projectedRating < 77) return 0.4;
-  return 0.25;
+  return Math.min(
+    1,
+    1.25 * getYouthRatingProgressFactor(projectedRating) ** 2,
+  );
 }
 
 export function calculateDevelopmentPodiumProgression({

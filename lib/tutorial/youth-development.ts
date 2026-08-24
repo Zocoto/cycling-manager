@@ -118,7 +118,7 @@ export const youthDevelopmentTutorialDefinition = {
       targetId: "youth-tutorial-training-settings",
       title: "Choisissez le mode et le profil travaillés",
       content:
-        "Le mode automatique calcule une séance chaque matin à 8 h, sans entraîneur assignable. Le mode manuel ouvre deux créneaux : minuit–midi et midi–minuit.\n\nDans les deux modes, la progression dépend du potentiel et du niveau actuel : elle ralentit dès 70 et devient très faible autour de 75. Une modification est programmée pour la prochaine journée puis reste active. Un créneau manuel manqué n’est jamais remplacé automatiquement.",
+        "Le mode automatique calcule une séance chaque matin à 8 h, sans entraîneur assignable. Le mode manuel ouvre deux créneaux : minuit–midi et midi–minuit.\n\nLe talent est déterminant et la progression reste continue : une statistique déjà très forte progresse plus lentement sans être bloquée, tandis que de rares très bonnes ou mauvaises séances créent des aléas. Deux bonnes séances manuelles rapportent environ 40 % de plus qu’une journée automatique. Une modification est programmée pour la prochaine journée puis reste active. Un créneau manuel manqué n’est jamais remplacé automatiquement.",
       placement: "left",
       highlightPadding: 8,
     },

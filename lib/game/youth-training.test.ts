@@ -42,27 +42,104 @@ import {
   YOUTH_SPEED_TAPS_FOR_MAX_SCORE,
   YOUTH_TIME_TRIAL_OPTIMAL_RATIO_FOR_MAX_SCORE,
   YOUTH_TRAINING_DURATION_SECONDS,
-  YOUTH_TRAINING_SOFT_CEILING,
   calculateYouthAutomaticTrainingGain,
   calculateYouthManualTrainingGain,
   calculateYouthMiniGameScore,
   calculateYouthPuncheurReleasePoints,
   getYouthAutomaticFirstDay,
   getYouthBreakawayWindowStart,
-  getYouthHighRatingProgressFactor,
-  getYouthManualTrainingDivisor,
   getYouthManualTrainingSlot,
+  getYouthProfileLoadFactor,
   getYouthPuncheurChargeRateMultiplier,
   getYouthPuncheurScoredOpportunities,
+  getYouthRatingProgressFactor,
   getYouthReflexTargetInterval,
   getYouthRhythmCursorPosition,
   getYouthTimeTrialWindDrift,
+  getYouthTalentProgressMultiplier,
+  getYouthTrainingSessionVariance,
+  getYouthTrainingVarianceFromRoll,
   getYouthTrainingGameType,
   isYouthAutomaticTrainingDue,
   projectYouthRating,
   summarizeYouthSeasonTraining,
   unprojectYouthRating,
 } from "./youth-training";
+
+const SIMULATED_YOUTH_RATING_KEYS = [
+  "mountain",
+  "hills",
+  "flat",
+  "timeTrial",
+  "cobbles",
+  "sprint",
+  "acceleration",
+  "downhill",
+  "endurance",
+  "resistance",
+  "recovery",
+  "breakaway",
+  "prologue",
+] as const;
+
+type SimulatedYouthRatingKey = (typeof SIMULATED_YOUTH_RATING_KEYS)[number];
+
+function simulateYouthCareer({
+  potentialSteps,
+  mode,
+  score,
+}: {
+  potentialSteps: number;
+  mode: "automatic" | "manual";
+  score: number;
+}) {
+  const ratings: Record<SimulatedYouthRatingKey, number> = {
+    mountain: 50,
+    hills: 48,
+    flat: 43,
+    timeTrial: 42,
+    cobbles: 41,
+    sprint: 40,
+    acceleration: 43,
+    downhill: 45,
+    endurance: 46,
+    resistance: 46,
+    recovery: 44,
+    breakaway: 43,
+    prologue: 42,
+  };
+
+  for (let day = 0; day < 84; day += 1) {
+    const sessionCount = mode === "manual" ? 2 : 1;
+    for (let session = 0; session < sessionCount; session += 1) {
+      const profileValues = Object.values(ratings);
+      const profilePeakRating = Math.max(...profileValues);
+      const profileAverageRating =
+        profileValues.reduce((sum, rating) => sum + rating, 0) /
+        profileValues.length;
+
+      for (const ratingKey of SIMULATED_YOUTH_RATING_KEYS) {
+        const context = {
+          age: 17,
+          potentialSteps,
+          currentProjectedRating: ratings[ratingKey],
+          profilePeakRating,
+          profileAverageRating,
+          sessionVariance: 1,
+          domain: "climber" as const,
+          ratingKey,
+        };
+        const gain =
+          mode === "manual"
+            ? calculateYouthManualTrainingGain({ ...context, score })
+            : calculateYouthAutomaticTrainingGain(context);
+        ratings[ratingKey] = Math.round((ratings[ratingKey] + gain) * 1_000) / 1_000;
+      }
+    }
+  }
+
+  return ratings;
+}
 
 describe("youth training", () => {
   it("associe chaque profil junior au bon minijeu", () => {
@@ -182,148 +259,136 @@ describe("youth training", () => {
     ).toBe(false);
   });
 
-  it("applique les cinq paliers de difficulté demandés", () => {
-    expect(getYouthManualTrainingDivisor(49.999)).toBe(1_000);
-    expect(getYouthManualTrainingDivisor(50)).toBe(2_000);
-    expect(getYouthManualTrainingDivisor(60)).toBe(4_000);
-    expect(getYouthManualTrainingDivisor(65)).toBe(6_000);
-    expect(getYouthManualTrainingDivisor(70)).toBe(10_000);
+  it("remplace tous les paliers par une courbe continue jusque dans l’élite", () => {
+    const aroundSeventy = [69.99, 70, 70.01].map(
+      getYouthRatingProgressFactor,
+    );
+
+    expect(Math.max(...aroundSeventy) - Math.min(...aroundSeventy)).toBeLessThan(
+      0.001,
+    );
+    expect(getYouthRatingProgressFactor(42)).toBeGreaterThan(
+      getYouthRatingProgressFactor(70),
+    );
+    expect(getYouthRatingProgressFactor(80)).toBeGreaterThan(0.65);
+    expect(getYouthRatingProgressFactor(90)).toBeGreaterThan(0.55);
   });
 
-  it("accorde quatre points principaux pour 1000 points et quatre étoiles sous 50", () => {
-    expect(
-      calculateYouthManualTrainingGain({
-        score: 1_000,
-        potentialSteps: 8,
-        currentProjectedRating: 20,
-        domain: "climber",
-        ratingKey: "mountain",
-      }),
-    ).toBe(4);
+  it("donne au talent un poids nettement supérieur à celui du modèle pro", () => {
+    const lowTalent = getYouthTalentProgressMultiplier(1);
+    const mediumTalent = getYouthTalentProgressMultiplier(4);
+    const eliteTalent = getYouthTalentProgressMultiplier(8);
+
+    expect(eliteTalent / lowTalent).toBeGreaterThan(3);
+    expect(eliteTalent / mediumTalent).toBeGreaterThan(1.8);
   });
 
-  it("réduit progressivement le gain selon la note et le poids de la statistique", () => {
-    expect(
-      calculateYouthManualTrainingGain({
-        score: 1_000,
-        potentialSteps: 8,
-        currentProjectedRating: 55,
-        domain: "climber",
-        ratingKey: "mountain",
-      }),
-    ).toBe(2);
-    expect(
-      calculateYouthManualTrainingGain({
-        score: 1_000,
-        potentialSteps: 8,
-        currentProjectedRating: 62,
-        domain: "climber",
-        ratingKey: "mountain",
-      }),
-    ).toBe(1);
-    expect(
-      calculateYouthManualTrainingGain({
-        score: 1_000,
-        potentialSteps: 8,
-        currentProjectedRating: 55,
-        domain: "climber",
-        ratingKey: "hills",
-      }),
-    ).toBeCloseTo(1.1);
-  });
-
-  it("calcule une séance automatique quotidienne sans bonus d’entraîneur", () => {
-    const gain = calculateYouthAutomaticTrainingGain({
+  it("rend deux bonnes séances manuelles 33 à 50 % plus efficaces", () => {
+    const context = {
       age: 17,
       potentialSteps: 8,
       currentProjectedRating: 55,
-      domain: "climber",
-      ratingKey: "mountain",
+      profilePeakRating: 60,
+      profileAverageRating: 50,
+      sessionVariance: 1,
+      domain: "climber" as const,
+      ratingKey: "mountain" as const,
+    };
+    const automaticGain = calculateYouthAutomaticTrainingGain(context);
+    const manualDayGain =
+      calculateYouthManualTrainingGain({ ...context, score: 900 }) * 2;
+
+    expect(manualDayGain / automaticGain).toBeGreaterThanOrEqual(1.35);
+    expect(manualDayGain / automaticGain).toBeLessThanOrEqual(1.5);
+  });
+
+  it("freine surtout la statistique forte et plus légèrement tout le profil", () => {
+    const freshProfileFactor = getYouthProfileLoadFactor({
+      profilePeakRating: 65,
+      profileAverageRating: 55,
     });
-
-    expect(gain).toBeGreaterThan(0.7);
-    expect(gain).toBeLessThan(1);
-  });
-
-  it("freine dès 70 et ralentit fortement à l’approche de 75", () => {
-    expect(
-      getYouthHighRatingProgressFactor({
-        currentProjectedRating: 69.999,
-        potentialSteps: 8,
-      }),
-    ).toBe(1);
-    expect(
-      getYouthHighRatingProgressFactor({
-        currentProjectedRating: 70,
-        potentialSteps: 8,
-      }),
-    ).toBeCloseTo(0.35);
-    expect(
-      getYouthHighRatingProgressFactor({
-        currentProjectedRating: 75,
-        potentialSteps: 8,
-      }),
-    ).toBeLessThan(0.01);
-    expect(
-      getYouthHighRatingProgressFactor({
-        currentProjectedRating: YOUTH_TRAINING_SOFT_CEILING,
-        potentialSteps: 8,
-      }),
-    ).toBe(0);
-  });
-
-  it("ramène le cas signalé à environ six centièmes par jour", () => {
-    const gain = calculateYouthAutomaticTrainingGain({
-      age: 17,
-      potentialSteps: 4,
-      currentProjectedRating: 71,
-      domain: "climber",
-      ratingKey: "mountain",
+    const loadedProfileFactor = getYouthProfileLoadFactor({
+      profilePeakRating: 82,
+      profileAverageRating: 60,
     });
+    const strongStatFactor = getYouthRatingProgressFactor(82);
+    const ordinaryStatFactor = getYouthRatingProgressFactor(55);
 
-    expect(gain).toBeGreaterThan(0.05);
-    expect(gain).toBeLessThan(0.07);
+    expect(loadedProfileFactor).toBeLessThan(freshProfileFactor);
+    expect(loadedProfileFactor).toBeGreaterThan(0.8);
+    expect(strongStatFactor / ordinaryStatFactor).toBeLessThan(
+      loadedProfileFactor / freshProfileFactor,
+    );
   });
 
-  it("maintient un potentiel maximal autour de 75 après trois saisons parfaites", () => {
-    let rawRating = unprojectYouthRating(50);
+  it("produit des séances déterministes avec de rares bons et mauvais jours", () => {
+    const badDay = getYouthTrainingVarianceFromRoll(0);
+    const normalDay = getYouthTrainingVarianceFromRoll(0.5);
+    const greatDay = getYouthTrainingVarianceFromRoll(1);
 
-    for (let session = 0; session < 28 * 3 * 2; session += 1) {
-      const projectedRating = projectYouthRating(rawRating);
-      const projectedGain = calculateYouthManualTrainingGain({
-        score: 1_000,
-        potentialSteps: 8,
-        currentProjectedRating: projectedRating,
-        domain: "climber",
-        ratingKey: "mountain",
-      });
-      rawRating =
-        Math.round((rawRating + projectedGain / 8) * 1_000) / 1_000;
-    }
-
-    expect(projectYouthRating(rawRating)).toBeGreaterThan(74);
-    expect(projectYouthRating(rawRating)).toBeLessThanOrEqual(75.2);
+    expect(badDay).toBe(0.78);
+    expect(normalDay).toBe(1);
+    expect(greatDay).toBe(1.28);
+    expect(getYouthTrainingSessionVariance("rider:day:automatic")).toBe(
+      getYouthTrainingSessionVariance("rider:day:automatic"),
+    );
   });
 
-  it("ne crée plus de progression junior à partir du plafond souple", () => {
-    expect(
-      calculateYouthManualTrainingGain({
-        score: 1_000,
-        potentialSteps: 8,
-        currentProjectedRating: YOUTH_TRAINING_SOFT_CEILING,
-        domain: "climber",
-        ratingKey: "mountain",
+  it("permet à un talent exceptionnel très travaillé de devenir fort sans être à 80 partout", () => {
+    const ratings = simulateYouthCareer({
+      potentialSteps: 8,
+      mode: "manual",
+      score: 900,
+    });
+    const values = Object.values(ratings);
+
+    expect(Math.max(...values)).toBeGreaterThan(85);
+    expect(values.filter((rating) => rating >= 80).length).toBeLessThanOrEqual(
+      3,
+    );
+    expect(values.reduce((sum, rating) => sum + rating, 0) / values.length).toBeLessThan(
+      70,
+    );
+  });
+
+  it("garde un talent moyen dans une trajectoire crédible sur trois saisons", () => {
+    const automaticRatings = Object.values(
+      simulateYouthCareer({
+        potentialSteps: 4,
+        mode: "automatic",
+        score: 0,
       }),
-    ).toBe(0);
+    );
+    const manualRatings = Object.values(
+      simulateYouthCareer({
+        potentialSteps: 4,
+        mode: "manual",
+        score: 900,
+      }),
+    );
+
+    expect(Math.max(...automaticRatings)).toBeGreaterThan(68);
+    expect(Math.max(...automaticRatings)).toBeLessThan(74);
+    expect(Math.max(...manualRatings)).toBeGreaterThan(74);
+    expect(Math.max(...manualRatings)).toBeLessThan(80);
+    expect(
+      manualRatings.reduce((sum, rating) => sum + rating, 0) /
+        manualRatings.length,
+    ).toBeLessThan(60);
+  });
+
+  it("continue à faire progresser une très bonne statistique sans plafond artificiel", () => {
     expect(
       calculateYouthAutomaticTrainingGain({
         age: 18,
         potentialSteps: 8,
-        currentProjectedRating: YOUTH_TRAINING_SOFT_CEILING,
+        currentProjectedRating: 90,
+        profilePeakRating: 90,
+        profileAverageRating: 66,
         domain: "climber",
         ratingKey: "mountain",
       }),
-    ).toBe(0);
+    ).toBeGreaterThan(0);
   });
 
   it("convertit les notes internes sans perdre la projection professionnelle", () => {
