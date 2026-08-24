@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
+  isRaceEditionSettlementCandidate,
   normalizeOfficialResultGapsToLeader,
   shouldSettleRaceEdition,
 } from "./race-results";
@@ -29,6 +30,11 @@ const challengers = {
 
 describe("race settlement selection", () => {
   const incompleteCompletedIds = new Set(["completed-incomplete"]);
+  const now = new Date("2026-08-23T12:20:00.000Z");
+  const stage = (
+    departureAt: string,
+    status: "planned" | "in_progress" | "completed" = "planned",
+  ) => ({ departureAt, distanceKm: 120, status });
 
   it("keeps active races and skips cancelled races", () => {
     expect(
@@ -58,6 +64,53 @@ describe("race settlement selection", () => {
         { id: "completed-but-still-racing", status: "completed" },
         incompleteCompletedIds,
         true,
+      ),
+    ).toBe(true);
+  });
+
+  it("loads only live, finished or explicitly repairable editions", () => {
+    expect(
+      isRaceEditionSettlementCandidate(
+        {
+          id: "future",
+          status: "scheduled",
+          stages: [stage("2026-08-23T16:00:00.000Z")],
+        },
+        incompleteCompletedIds,
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isRaceEditionSettlementCandidate(
+        {
+          id: "live",
+          status: "in_progress",
+          stages: [stage("2026-08-23T12:00:00.000Z", "in_progress")],
+        },
+        incompleteCompletedIds,
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isRaceEditionSettlementCandidate(
+        {
+          id: "finished",
+          status: "in_progress",
+          stages: [stage("2026-08-23T11:00:00.000Z")],
+        },
+        incompleteCompletedIds,
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isRaceEditionSettlementCandidate(
+        {
+          id: "completed-incomplete",
+          status: "completed",
+          stages: [stage("2026-08-23T16:00:00.000Z")],
+        },
+        incompleteCompletedIds,
+        now,
       ),
     ).toBe(true);
   });

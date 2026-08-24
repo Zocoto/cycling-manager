@@ -1,3 +1,6 @@
+import { getStageLiveState } from "./race-live";
+import type { RaceCalendarStage } from "./race-calendar";
+
 export type OfficialResultStatus =
   | "finished"
   | "did_not_start"
@@ -104,6 +107,37 @@ export function shouldSettleRaceEdition(
   if (edition.status !== "completed") return true;
 
   return repairableCompletedEditionIds.has(edition.id);
+}
+
+export function isRaceEditionSettlementCandidate(
+  edition: {
+    id: string;
+    status?: string;
+    stages: Array<
+      Pick<RaceCalendarStage, "departureAt" | "distanceKm" | "status">
+    >;
+  },
+  repairableCompletedEditionIds: ReadonlySet<string>,
+  now = new Date(),
+) {
+  if (
+    !shouldSettleRaceEdition(
+      edition,
+      repairableCompletedEditionIds,
+      edition.stages.some(
+        (stage) => getStageLiveState(stage, now).status !== "finished",
+      ),
+    )
+  ) {
+    return false;
+  }
+
+  if (repairableCompletedEditionIds.has(edition.id)) return true;
+
+  return edition.stages.some((stage) => {
+    const state = getStageLiveState(stage, now).status;
+    return state === "live" || state === "finished";
+  });
 }
 
 export function normalizeOfficialResultGapsToLeader(

@@ -1,8 +1,6 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
 import { processDueInternationalChampionshipSelections } from "@/services/international-championship-selections";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
-import { settleFinishedRaceResults } from "@/services/race-results";
+import { settleDueStandardRaceResults } from "@/services/race-settlement-runner";
 
 export const maxDuration = 300;
 
@@ -40,35 +38,15 @@ export async function GET(request: Request) {
     "sélections internationales",
     () => processDueInternationalChampionshipSelections(now),
   );
-  const admin = createSupabaseAdminClient();
-  const calendar = await getActiveSeasonRaceCalendar(admin, now, {
-    includeIneligibleRegionalRaces: true,
+  const settlement = await settleDueStandardRaceResults({
+    now,
     raceSlug: requestedRaceSlug ?? undefined,
   });
-  if (!calendar) {
-    return Response.json({
-      processedStages: 0,
-      completedEditions: 0,
-      internationalSelections,
-      preSettlementFailures: internationalSelections.ok ? 0 : 1,
-      raceSlug: requestedRaceSlug,
-    });
-  }
-
-  // Les CN regroupent plus d'une centaine d'éditions au même instant. Ils ont
-  // leur propre cron borné ; les inclure aussi ici doublerait les écritures et
-  // mettrait les courses ordinaires en concurrence avec eux.
-  const standardCalendar = {
-    ...calendar,
-    editions: calendar.editions.filter(
-      (edition) =>
-        edition.competitionType !== "national_road" &&
-        edition.competitionType !== "national_time_trial",
-    ),
-  };
-  const settlement = await settleFinishedRaceResults(standardCalendar, now);
   return Response.json({
-    ...settlement,
+    processedStages: settlement.processedStages,
+    completedEditions: settlement.completedEditions,
+    failedEditions: settlement.failedEditions,
+    targetedEditions: settlement.targetedEditions,
     internationalSelections,
     preSettlementFailures: internationalSelections.ok ? 0 : 1,
     raceSlug: requestedRaceSlug,

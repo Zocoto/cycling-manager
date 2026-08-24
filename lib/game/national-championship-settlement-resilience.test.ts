@@ -64,16 +64,18 @@ describe("national championship settlement resilience", () => {
     const generalRoute = readSource(
       "app/api/cron/race-settlements/[slot]/route.ts",
     );
+    const settlementRunner = readSource(
+      "services/race-settlement-runner.ts",
+    );
 
-    expect(generalRoute).toContain(
+    expect(settlementRunner).toContain(
       'edition.competitionType !== "national_road"',
     );
-    expect(generalRoute).toContain(
+    expect(settlementRunner).toContain(
       'edition.competitionType !== "national_time_trial"',
     );
-    expect(generalRoute).toContain(
-      "settleFinishedRaceResults(standardCalendar, now)",
-    );
+    expect(generalRoute).toContain("settleDueStandardRaceResults");
+    expect(settlementRunner).toContain("settleFinishedRaceResults(");
     expect(generalRoute).not.toContain(
       "syncNationalChampionshipRegistrations",
     );

@@ -74,6 +74,7 @@ import {
 } from "@/services/rider-national-championship-titles";
 import {
   getActiveContinentalChampionshipTitlesByDisciplineForRiders,
+  parseContinentalChampionshipTitleType,
   type ActiveContinentalChampionshipTitlesByDiscipline,
 } from "@/services/rider-continental-championship-titles";
 
@@ -314,7 +315,9 @@ export type RaceTeamSponsorVisual = {
 
 type ActiveSeasonCalendarLoadOptions = {
   raceSlug?: string;
+  raceEditionIds?: readonly string[];
   includeCancelledEditions?: boolean;
+  includeEngagedCounts?: boolean;
   includeEngagedRiders?: boolean;
   includeIneligibleRegionalRaces?: boolean;
 };
@@ -330,6 +333,19 @@ type RiderCountryRow = {
 type RiderSpecialAbilityRow = {
   rider_id: string;
   ability_code: string;
+};
+
+type RaceCalendarRiderContextRow = RiderCountryRow & {
+  special_ability_codes: unknown;
+  performance_preparations: unknown;
+  championship_titles: unknown;
+};
+
+type RaceCalendarChampionshipTitleRow = {
+  rider_id: string;
+  championship_type: string;
+  country_code: string | null;
+  country_name: string | null;
 };
 
 export type CurrentRaceRegistration = {
@@ -521,6 +537,17 @@ export async function getActiveSeasonRaceCalendar(
   now = new Date(),
   options: ActiveSeasonCalendarLoadOptions = {},
 ): Promise<SeasonRaceCalendar | null> {
+  if (options.raceSlug && options.raceEditionIds !== undefined) {
+    throw new Error(
+      "Le calendrier ne peut pas être ciblé à la fois par course et par édition.",
+    );
+  }
+
+  const scopedRaceEditionIds =
+    options.raceEditionIds === undefined
+      ? null
+      : unique(options.raceEditionIds.filter(Boolean));
+
   const seasonResult = await supabase
     .from("seasons")
     .select(
@@ -567,8 +594,14 @@ export async function getActiveSeasonRaceCalendar(
   }
 
   const includeEngagedRiders = options.includeEngagedRiders !== false;
+  const includeEngagedCounts =
+    !includeEngagedRiders && options.includeEngagedCounts !== false;
 
-  const fetchEditionsPage = async (from: number, to: number) => {
+  const fetchEditionsPage = async (
+    from: number,
+    to: number,
+    editionIdChunk: string[] | null = scopedRaceEditionIds,
+  ) => {
     let editionsQuery = supabase
       .from("race_editions")
       .select(
@@ -596,6 +629,10 @@ export async function getActiveSeasonRaceCalendar(
       editionsQuery = editionsQuery.eq("race_id", scopedRaceResult.data.id);
     }
 
+    if (editionIdChunk) {
+      editionsQuery = editionsQuery.in("id", editionIdChunk);
+    }
+
     const result = await editionsQuery
       .order("id", { ascending: true })
       .range(from, to)
@@ -620,18 +657,28 @@ export async function getActiveSeasonRaceCalendar(
       })
       .returns<SeasonDayRow[]>(),
 
-    collectPaginatedRows<RaceEditionRow, { message: string }>({
-      fetchPage: fetchEditionsPage,
-    }),
+    scopedRaceEditionIds
+      ? collectChunkedPaginatedRows<
+          RaceEditionRow,
+          { message: string },
+          string
+        >({
+          values: scopedRaceEditionIds,
+          chunkSize: URL_SAFE_UUID_FILTER_CHUNK_SIZE,
+          fetchPage: (editionIdChunk, from, to) =>
+            fetchEditionsPage(from, to, editionIdChunk),
+        })
+      : collectPaginatedRows<RaceEditionRow, { message: string }>({
+          fetchPage: (from, to) => fetchEditionsPage(from, to, null),
+        }),
 
     supabase.rpc("get_current_team_calendar_registrations"),
     supabase.rpc("get_current_team_sponsor_objective_races"),
     options.includeIneligibleRegionalRaces
       ? Promise.resolve({ data: null, error: null })
       : supabase.rpc("get_current_team_regional_race_context"),
-    includeEngagedRiders
-      ? Promise.resolve(null)
-      : collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
+    includeEngagedCounts
+      ? collectPaginatedRows<CalendarEngagedCountRow, { message: string }>({
           fetchPage: async (from, to) => {
             const result = await supabase
               .rpc("get_active_calendar_engaged_counts")
@@ -641,7 +688,8 @@ export async function getActiveSeasonRaceCalendar(
               error: result.error,
             };
           },
-        }),
+        })
+      : Promise.resolve(null),
   ]);
 
   if (daysResult.error) {
@@ -685,24 +733,10 @@ export async function getActiveSeasonRaceCalendar(
         [])[0] ?? null);
   // Les RPC sont plafonnées à 1 000 lignes par PostgREST : on pagine pour ne
   // jamais tronquer les startlists (source des simulations officielles).
-  const engagedRidersResult = includeEngagedRiders
-    ? await collectPaginatedRows<CalendarEngagedRiderRow, { message: string }>({
-        fetchPage: async (from, to) => {
-          const result =
-            scopedRaceResult?.data && editionIds.length === 1
-              ? await supabase
-                  .rpc("get_race_edition_engaged_riders", {
-                    p_race_edition_id: editionIds[0],
-                  })
-                  .range(from, to)
-              : await supabase
-                  .rpc("get_active_calendar_engaged_riders")
-                  .range(from, to);
-          return {
-            data: result.data as CalendarEngagedRiderRow[] | null,
-            error: result.error,
-          };
-        },
+  const engagedRidersResult = includeEngagedRiders && editionIds.length > 0
+    ? await loadCalendarEngagedRiders(supabase, editionIds, {
+        isScoped:
+          Boolean(scopedRaceResult?.data) || scopedRaceEditionIds !== null,
       })
     : null;
   const stageEquipmentEffectsResult =
@@ -773,138 +807,19 @@ export async function getActiveSeasonRaceCalendar(
     engagedTeamIds,
     engagedRiderIds,
   );
-  const [
-    specialAbilitiesResult,
-    riderCountriesResult,
-    nationalChampionshipTitlesByRiderId,
-    worldChampionshipTitlesByRiderId,
+  const riderContext = await loadRaceCalendarRiderContext({
+    supabase,
+    admin: raceDataAdmin,
+    riderIds: engagedRiderIds,
+  });
+  const {
     continentalChampionshipTitlesByRiderId,
-    performancePreparationsResult,
-  ] =
-    engagedRiderIds.length > 0
-      ? await Promise.all([
-          collectChunkedPaginatedRows<
-            RiderSpecialAbilityRow,
-            { message: string },
-            string
-          >({
-            values: engagedRiderIds,
-            fetchPage: async (chunk, from, to) => {
-              const result = await supabase
-                .from("rider_special_abilities")
-                .select("rider_id, ability_code")
-                .in("rider_id", chunk)
-                .order("rider_id", { ascending: true })
-                .order("ability_code", { ascending: true })
-                .range(from, to)
-                .returns<RiderSpecialAbilityRow[]>();
-              return { data: result.data, error: result.error };
-            },
-          }),
-          collectChunkedPaginatedRows<
-            RiderCountryRow,
-            { message: string },
-            string
-          >({
-            values: engagedRiderIds,
-            fetchPage: async (chunk, from, to) => {
-              const result = await createSupabaseAdminClient()
-                .from("riders")
-                .select(
-                  "id, country_id, avatar_profile_key, avatar_seed, career_race_days",
-                )
-                .in("id", chunk)
-                .order("id", { ascending: true })
-                .range(from, to)
-                .returns<RiderCountryRow[]>();
-              return { data: result.data, error: result.error };
-            },
-          }),
-          getActiveNationalChampionshipTitlesByDisciplineForRiders(
-            supabase,
-            engagedRiderIds,
-          ).catch((error: unknown) => {
-            console.error(
-              "Impossible de charger les maillots de champions nationaux du calendrier :",
-              error,
-            );
-            return new Map<
-              string,
-              ActiveNationalChampionshipTitlesByDiscipline
-            >();
-          }),
-          getActiveWorldChampionshipTitlesByDisciplineForRiders(
-            supabase,
-            engagedRiderIds,
-          ).catch((error: unknown) => {
-            console.error(
-              "Impossible de charger les maillots de champions du monde du calendrier :",
-              error,
-            );
-            return new Map<
-              string,
-              ActiveWorldChampionshipTitlesByDiscipline
-            >();
-          }),
-          getActiveContinentalChampionshipTitlesByDisciplineForRiders(
-            supabase,
-            engagedRiderIds,
-          ).catch((error: unknown) => {
-            console.error(
-              "Impossible de charger les maillots de champions continentaux du calendrier :",
-              error,
-            );
-            return new Map<
-              string,
-              ActiveContinentalChampionshipTitlesByDiscipline
-            >();
-          }),
-          collectChunkedPaginatedRows<
-            RiderPerformancePreparationRow,
-            { message: string },
-            string
-          >({
-            values: engagedRiderIds,
-            fetchPage: async (chunk, from, to) => {
-              const result = await raceDataAdmin
-                .from("rider_performance_preparations")
-                .select(
-                  "rider_id, preparation_type, bonus_start_game_day, bonus_end_game_day, rating_bonus",
-                )
-                .in("rider_id", chunk)
-                .neq("status", "cancelled")
-                .order("rider_id", { ascending: true })
-                .range(from, to)
-                .returns<RiderPerformancePreparationRow[]>();
-              return { data: result.data, error: result.error };
-            },
-          }),
-        ])
-      : [
-          emptyResult<RiderSpecialAbilityRow>(),
-          emptyResult<RiderCountryRow>(),
-          new Map<string, ActiveNationalChampionshipTitlesByDiscipline>(),
-          new Map<string, ActiveWorldChampionshipTitlesByDiscipline>(),
-          new Map<string, ActiveContinentalChampionshipTitlesByDiscipline>(),
-          emptyResult<RiderPerformancePreparationRow>(),
-        ];
-
-  assertQuerySucceeded(
-    specialAbilitiesResult.error,
-    "les capacités spéciales des coureurs engagés",
-  );
-  assertQuerySucceeded(
-    riderCountriesResult.error,
-    "les nationalités des coureurs engagés",
-  );
-  assertQuerySucceeded(
-    performancePreparationsResult.error,
-    "les bonus de préparation des coureurs engagés",
-  );
-
-  const specialAbilitiesByRiderId = groupSpecialAbilities(
-    specialAbilitiesResult.data ?? [],
-  );
+    nationalChampionshipTitlesByRiderId,
+    performancePreparationRows,
+    riderCountryRows,
+    specialAbilitiesByRiderId,
+    worldChampionshipTitlesByRiderId,
+  } = riderContext;
   const [raceStaffEffects, teamSponsorVisuals, welcomeCenterLocalRaceContext] =
     await Promise.all([
       raceStaffEffectsPromise,
@@ -1187,7 +1102,6 @@ export async function getActiveSeasonRaceCalendar(
   );
 
   const raceRows = racesResult.data ?? [];
-  const riderCountryRows = riderCountriesResult.data ?? [];
   const countryIds = unique([
     ...raceRows.map((race) => race.country_id),
     ...riderCountryRows.map((rider) => rider.country_id),
@@ -1258,7 +1172,7 @@ export async function getActiveSeasonRaceCalendar(
     continentalChampionshipTitlesByRiderId,
     nationalInternationalEditionIds,
     nationalChampionshipTitlesByRiderId,
-    performancePreparationsResult.data ?? [],
+    performancePreparationRows,
     raceStaffEffects,
     teamSponsorVisuals,
     welcomeCenterLocalRaceContext,
@@ -2338,6 +2252,426 @@ function formatParisDate(date: Date) {
 
 function unique(values: string[]) {
   return [...new Set(values)];
+}
+
+const URL_SAFE_UUID_FILTER_CHUNK_SIZE = 40;
+const RIDER_CONTEXT_RPC_CHUNK_SIZE = 500;
+const RIDER_CONTEXT_RPC_CONCURRENCY = 4;
+
+async function loadRaceCalendarRiderContext({
+  supabase,
+  admin,
+  riderIds,
+}: {
+  supabase: SupabaseServerClient;
+  admin: SupabaseAdminClient;
+  riderIds: string[];
+}) {
+  if (riderIds.length === 0) {
+    return createEmptyRaceCalendarRiderContext();
+  }
+
+  const contextResult = await loadCompactRaceCalendarRiderContext(
+    admin,
+    riderIds,
+  );
+
+  if (!contextResult.error) {
+    return parseRaceCalendarRiderContext(contextResult.data);
+  }
+
+  // Le repli évite toute fenêtre de panne entre la migration Supabase et le
+  // déploiement applicatif. Les petits lots restent sous les limites d'URL de
+  // PostgREST, contrairement aux anciens lots de 100 UUID.
+  console.warn(
+    "La RPC compacte du contexte coureur est indisponible, repli par petits lots :",
+    contextResult.error,
+  );
+  const [
+    specialAbilitiesResult,
+    riderCountriesResult,
+    nationalChampionshipTitlesByRiderId,
+    worldChampionshipTitlesByRiderId,
+    continentalChampionshipTitlesByRiderId,
+    performancePreparationsResult,
+  ] = await Promise.all([
+    collectChunkedPaginatedRows<
+      RiderSpecialAbilityRow,
+      { message: string },
+      string
+    >({
+      values: riderIds,
+      chunkSize: URL_SAFE_UUID_FILTER_CHUNK_SIZE,
+      fetchPage: async (chunk, from, to) => {
+        const result = await supabase
+          .from("rider_special_abilities")
+          .select("rider_id, ability_code")
+          .in("rider_id", chunk)
+          .order("rider_id", { ascending: true })
+          .order("ability_code", { ascending: true })
+          .range(from, to)
+          .returns<RiderSpecialAbilityRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    collectChunkedPaginatedRows<RiderCountryRow, { message: string }, string>({
+      values: riderIds,
+      chunkSize: URL_SAFE_UUID_FILTER_CHUNK_SIZE,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("riders")
+          .select(
+            "id, country_id, avatar_profile_key, avatar_seed, career_race_days",
+          )
+          .in("id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<RiderCountryRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+    getActiveNationalChampionshipTitlesByDisciplineForRiders(
+      supabase,
+      riderIds,
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de charger les maillots de champions nationaux du calendrier :",
+        error,
+      );
+      return new Map<string, ActiveNationalChampionshipTitlesByDiscipline>();
+    }),
+    getActiveWorldChampionshipTitlesByDisciplineForRiders(
+      supabase,
+      riderIds,
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de charger les maillots de champions du monde du calendrier :",
+        error,
+      );
+      return new Map<string, ActiveWorldChampionshipTitlesByDiscipline>();
+    }),
+    getActiveContinentalChampionshipTitlesByDisciplineForRiders(
+      supabase,
+      riderIds,
+    ).catch((error: unknown) => {
+      console.error(
+        "Impossible de charger les maillots de champions continentaux du calendrier :",
+        error,
+      );
+      return new Map<
+        string,
+        ActiveContinentalChampionshipTitlesByDiscipline
+      >();
+    }),
+    collectChunkedPaginatedRows<
+      RiderPerformancePreparationRow,
+      { message: string },
+      string
+    >({
+      values: riderIds,
+      chunkSize: URL_SAFE_UUID_FILTER_CHUNK_SIZE,
+      fetchPage: async (chunk, from, to) => {
+        const result = await admin
+          .from("rider_performance_preparations")
+          .select(
+            "rider_id, preparation_type, bonus_start_game_day, bonus_end_game_day, rating_bonus",
+          )
+          .in("rider_id", chunk)
+          .neq("status", "cancelled")
+          .order("rider_id", { ascending: true })
+          .range(from, to)
+          .returns<RiderPerformancePreparationRow[]>();
+        return { data: result.data, error: result.error };
+      },
+    }),
+  ]);
+
+  assertQuerySucceeded(
+    specialAbilitiesResult.error,
+    "les capacités spéciales des coureurs engagés",
+  );
+  assertQuerySucceeded(
+    riderCountriesResult.error,
+    "les nationalités des coureurs engagés",
+  );
+  assertQuerySucceeded(
+    performancePreparationsResult.error,
+    "les bonus de préparation des coureurs engagés",
+  );
+
+  return {
+    riderCountryRows: riderCountriesResult.data,
+    specialAbilitiesByRiderId: groupSpecialAbilities(
+      specialAbilitiesResult.data,
+    ),
+    performancePreparationRows: performancePreparationsResult.data,
+    nationalChampionshipTitlesByRiderId,
+    worldChampionshipTitlesByRiderId,
+    continentalChampionshipTitlesByRiderId,
+  };
+}
+
+async function loadCompactRaceCalendarRiderContext(
+  admin: SupabaseAdminClient,
+  riderIds: string[],
+) {
+  const rows: RaceCalendarRiderContextRow[] = [];
+  const riderIdChunks = chunkValues(riderIds, RIDER_CONTEXT_RPC_CHUNK_SIZE);
+
+  for (const requestBatch of chunkValues(
+    riderIdChunks,
+    RIDER_CONTEXT_RPC_CONCURRENCY,
+  )) {
+    const results = await Promise.all(
+      requestBatch.map(async (riderIdChunk) => {
+        const result = await admin.rpc("get_race_calendar_rider_context", {
+          p_rider_ids: riderIdChunk,
+        });
+        return {
+          data: result.data as RaceCalendarRiderContextRow[] | null,
+          error: result.error,
+        };
+      }),
+    );
+    const failedResult = results.find((result) => result.error);
+    if (failedResult?.error) {
+      return {
+        data: [] as RaceCalendarRiderContextRow[],
+        error: failedResult.error,
+      };
+    }
+    rows.push(...results.flatMap((result) => result.data ?? []));
+  }
+
+  return { data: rows, error: null };
+}
+
+function createEmptyRaceCalendarRiderContext() {
+  return {
+    riderCountryRows: [] as RiderCountryRow[],
+    specialAbilitiesByRiderId: new Map<string, RiderSpecialAbility[]>(),
+    performancePreparationRows: [] as RiderPerformancePreparationRow[],
+    nationalChampionshipTitlesByRiderId: new Map<
+      string,
+      ActiveNationalChampionshipTitlesByDiscipline
+    >(),
+    worldChampionshipTitlesByRiderId: new Map<
+      string,
+      ActiveWorldChampionshipTitlesByDiscipline
+    >(),
+    continentalChampionshipTitlesByRiderId: new Map<
+      string,
+      ActiveContinentalChampionshipTitlesByDiscipline
+    >(),
+  };
+}
+
+function parseRaceCalendarRiderContext(
+  rows: RaceCalendarRiderContextRow[],
+) {
+  const context = createEmptyRaceCalendarRiderContext();
+  const specialAbilityRows: RiderSpecialAbilityRow[] = [];
+
+  for (const row of rows) {
+    context.riderCountryRows.push({
+      id: row.id,
+      country_id: row.country_id,
+      avatar_profile_key: row.avatar_profile_key,
+      avatar_seed: row.avatar_seed,
+      career_race_days: row.career_race_days,
+    });
+
+    if (Array.isArray(row.special_ability_codes)) {
+      for (const abilityCode of row.special_ability_codes) {
+        if (typeof abilityCode === "string") {
+          specialAbilityRows.push({
+            rider_id: row.id,
+            ability_code: abilityCode,
+          });
+        }
+      }
+    }
+
+    if (Array.isArray(row.performance_preparations)) {
+      for (const value of row.performance_preparations) {
+        const preparation = parsePerformancePreparation(value, row.id);
+        if (preparation) {
+          context.performancePreparationRows.push(preparation);
+        }
+      }
+    }
+
+    if (Array.isArray(row.championship_titles)) {
+      for (const value of row.championship_titles) {
+        const title = parseChampionshipTitle(value, row.id);
+        if (title) addChampionshipTitleToContext(context, title);
+      }
+    }
+  }
+
+  context.specialAbilitiesByRiderId = groupSpecialAbilities(
+    specialAbilityRows,
+  );
+  return context;
+}
+
+function parsePerformancePreparation(
+  value: unknown,
+  riderId: string,
+): RiderPerformancePreparationRow | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (
+    (row.preparation_type !== "indoor_track" &&
+      row.preparation_type !== "wind_tunnel") ||
+    !Number.isFinite(row.bonus_start_game_day) ||
+    !Number.isFinite(row.bonus_end_game_day) ||
+    !Number.isFinite(row.rating_bonus)
+  ) {
+    return null;
+  }
+
+  return {
+    rider_id: riderId,
+    preparation_type: row.preparation_type,
+    bonus_start_game_day: Number(row.bonus_start_game_day),
+    bonus_end_game_day: Number(row.bonus_end_game_day),
+    rating_bonus: Number(row.rating_bonus),
+  };
+}
+
+function parseChampionshipTitle(
+  value: unknown,
+  riderId: string,
+): RaceCalendarChampionshipTitleRow | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (typeof row.championship_type !== "string") return null;
+  return {
+    rider_id: riderId,
+    championship_type: row.championship_type,
+    country_code:
+      typeof row.country_code === "string" ? row.country_code : null,
+    country_name:
+      typeof row.country_name === "string" ? row.country_name : null,
+  };
+}
+
+function addChampionshipTitleToContext(
+  context: ReturnType<typeof createEmptyRaceCalendarRiderContext>,
+  title: RaceCalendarChampionshipTitleRow,
+) {
+  if (
+    (title.championship_type === "road" ||
+      title.championship_type === "time_trial") &&
+    title.country_code &&
+    title.country_name
+  ) {
+    const current =
+      context.nationalChampionshipTitlesByRiderId.get(title.rider_id) ?? {};
+    current[title.championship_type] = {
+      riderId: title.rider_id,
+      countryCode: title.country_code,
+      countryName: title.country_name,
+      championshipType: title.championship_type,
+    };
+    context.nationalChampionshipTitlesByRiderId.set(title.rider_id, current);
+    return;
+  }
+
+  if (
+    title.championship_type === "world_road" ||
+    title.championship_type === "world_time_trial"
+  ) {
+    const discipline =
+      title.championship_type === "world_time_trial" ? "time_trial" : "road";
+    const current =
+      context.worldChampionshipTitlesByRiderId.get(title.rider_id) ?? {};
+    current[discipline] = {
+      riderId: title.rider_id,
+      countryCode: "",
+      countryName: "Monde",
+      championshipType: discipline,
+    };
+    context.worldChampionshipTitlesByRiderId.set(title.rider_id, current);
+    return;
+  }
+
+  const continental = parseContinentalChampionshipTitleType(
+    title.championship_type,
+  );
+  if (!continental) return;
+  const current =
+    context.continentalChampionshipTitlesByRiderId.get(title.rider_id) ?? {};
+  current[continental.championshipType] = {
+    riderId: title.rider_id,
+    ...continental,
+  };
+  context.continentalChampionshipTitlesByRiderId.set(title.rider_id, current);
+}
+
+async function loadCalendarEngagedRiders(
+  supabase: SupabaseServerClient,
+  editionIds: string[],
+  { isScoped }: { isScoped: boolean },
+) {
+  const targetedResult = await collectPaginatedRows<
+    CalendarEngagedRiderRow,
+    { message: string }
+  >({
+    fetchPage: async (from, to) => {
+      const result = await supabase
+        .rpc("get_calendar_engaged_riders", {
+          p_race_edition_ids: editionIds,
+        })
+        .range(from, to);
+      return {
+        data: result.data as CalendarEngagedRiderRow[] | null,
+        error: result.error,
+      };
+    },
+  });
+  if (!targetedResult.error) return targetedResult;
+
+  // Déploiement sans coupure : tant que la migration n'est pas encore visible
+  // dans le cache PostgREST, l'ancienne RPC reste utilisable. Le filtrage en
+  // mémoire ne sert que de repli et disparaît dès que la RPC ciblée répond.
+  console.warn(
+    "La RPC ciblée des startlists est indisponible, repli temporaire :",
+    targetedResult.error,
+  );
+  const fallbackResult = await collectPaginatedRows<
+    CalendarEngagedRiderRow,
+    { message: string }
+  >({
+    fetchPage: async (from, to) => {
+      const result =
+        isScoped && editionIds.length === 1
+          ? await supabase
+              .rpc("get_race_edition_engaged_riders", {
+                p_race_edition_id: editionIds[0],
+              })
+              .range(from, to)
+          : await supabase
+              .rpc("get_active_calendar_engaged_riders")
+              .range(from, to);
+      return {
+        data: result.data as CalendarEngagedRiderRow[] | null,
+        error: result.error,
+      };
+    },
+  });
+  if (fallbackResult.error || !isScoped || editionIds.length === 1) {
+    return fallbackResult;
+  }
+
+  const targetedEditionIds = new Set(editionIds);
+  return {
+    data: fallbackResult.data.filter((row) =>
+      targetedEditionIds.has(row.race_edition_id),
+    ),
+    error: null,
+  };
 }
 
 function emptyResult<T>() {

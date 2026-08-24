@@ -148,7 +148,7 @@ type IncompleteCompletedEditionRow = {
 
 export const NATIONAL_CHAMPIONSHIP_SETTLEMENT_CONCURRENCY = 1;
 
-async function loadIncompleteCompletedEditionIds({
+export async function loadIncompleteCompletedEditionIds({
   admin,
   calendar,
 }: {
@@ -173,11 +173,12 @@ export async function settleFinishedRaceResults(
   calendar: SeasonRaceCalendar,
   now = new Date(),
   lockedDirectory?: LockedOfficialRaceSimulationDirectory,
+  knownRepairableCompletedEditionIds?: ReadonlySet<string>,
 ) {
   const admin = createSupabaseAdminClient();
-  const repairableCompletedEditionIds = await loadIncompleteCompletedEditionIds(
-    { admin, calendar },
-  );
+  const repairableCompletedEditionIds =
+    knownRepairableCompletedEditionIds ??
+    (await loadIncompleteCompletedEditionIds({ admin, calendar }));
   const replayCalendar = {
     ...calendar,
     editions: calendar.editions.filter(

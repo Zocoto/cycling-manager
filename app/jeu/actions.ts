@@ -10,8 +10,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getStageLiveState } from "@/lib/game/race-live";
 import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
-import { settleFinishedRaceResults } from "@/services/race-results";
+import { settleDueStandardRaceResults } from "@/services/race-settlement-runner";
 import { getCurrentDashboardFastSummary } from "@/services/dashboard-fast-summary";
 import { getCurrentDashboardOperationalEvents } from "@/services/dashboard-events";
 import { getCurrentDailyRewardOverview } from "@/services/daily-rewards";
@@ -40,9 +39,11 @@ export async function settleDueOfficialRaceRewardsAction(raceSlug?: string) {
   }
 
   const now = new Date();
-  const calendar = await getActiveSeasonRaceCalendar(supabase, now, {
+  const settlementRun = await settleDueStandardRaceResults({
+    now,
     raceSlug,
   });
+  const calendar = settlementRun.calendar;
   if (!calendar) {
     return {
       processedStages: 0,
@@ -51,13 +52,14 @@ export async function settleDueOfficialRaceRewardsAction(raceSlug?: string) {
     };
   }
 
-  const settlement = await settleFinishedRaceResults(calendar, now);
-  if (settlement.completedEditions > 0) {
+  if (settlementRun.completedEditions > 0) {
     revalidatePath("/jeu", "layout");
   }
 
   return {
-    ...settlement,
+    processedStages: settlementRun.processedStages,
+    completedEditions: settlementRun.completedEditions,
+    failedEditions: settlementRun.failedEditions,
     nextSettlementAt: getNextSettlementAt(calendar, now),
   };
 }
