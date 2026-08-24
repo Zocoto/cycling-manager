@@ -602,6 +602,8 @@ type RiderState = {
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
+const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
+const MINIMUM_BREAKAWAY_LEAD_ENERGY = 9;
 const RACE_INJURY_PERFORMANCE_PENALTY = {
   minor: 2.5,
   moderate: 6,
@@ -2442,21 +2444,37 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
       const pelotonTime = average(
         activePeloton.map((item) => item.elapsedTimeSeconds),
       );
+      const exhaustedCaughtRiders: RiderState[] = [];
       for (const state of [...states.values()].filter(
         (candidate) =>
           candidate.group === "breakaway" ||
           candidate.group === "breakaway_2" ||
           candidate.group === "chase",
       )) {
-        state.group = "peloton";
         state.groupSinceSegment = segmentIndex;
-        state.elapsedTimeSeconds = pelotonTime;
+        if (state.energy < ABSOLUTE_EXHAUSTION_ENERGY) {
+          state.group = "dropped";
+          state.lostTimeSeconds = Math.max(state.lostTimeSeconds, 8);
+          state.elapsedTimeSeconds = Math.max(
+            state.elapsedTimeSeconds,
+            pelotonTime + state.lostTimeSeconds,
+          );
+          exhaustedCaughtRiders.push(state);
+        } else {
+          state.group = "peloton";
+          state.elapsedTimeSeconds = pelotonTime;
+        }
       }
       breakawayGapSeconds = 0;
       breakawayWasCaught = true;
       commentary.push(
         "L’échappée est reprise : le peloton est de nouveau groupé.",
       );
+      if (exhaustedCaughtRiders.length > 0 && commentary.length < 4) {
+        commentary.push(
+          `${formatRiderList(exhaustedCaughtRiders)} ne peuvent pas suivre le regroupement et restent distancés.`,
+        );
+      }
     }
 
     if (segment.prime) {
@@ -4173,13 +4191,34 @@ function dropStrugglingRiders({
 }) {
   if (segmentIndex === 0 || segment.terrain === "descent") return;
   const peloton = getStatesInGroup(states, "peloton");
-  if (peloton.length < 4) return;
 
   const isSelectiveTerrain =
     segment.terrain === "climb" || segment.surface === "cobbles";
   if (!isSelectiveTerrain) {
     // Les cassures sur le plat viennent des bordures et incidents dédiés :
     // une simple note de plaine faible ne suffit pas à sortir du peloton.
+    return;
+  }
+
+  if (peloton.length < 4) {
+    const exhaustedRiders = [...peloton]
+      .filter((state) => state.energy < ABSOLUTE_EXHAUSTION_ENERGY)
+      .sort((first, second) => first.energy - second.energy)
+      .slice(0, Math.max(0, peloton.length - 1));
+
+    for (const state of exhaustedRiders) {
+      const immediateLossSeconds =
+        8 + (ABSOLUTE_EXHAUSTION_ENERGY - state.energy) * 4;
+      state.group = "dropped";
+      state.groupSinceSegment = segmentIndex;
+      state.lostTimeSeconds += immediateLossSeconds;
+      state.elapsedTimeSeconds += immediateLossSeconds;
+      if (commentary.length < 4) {
+        commentary.push(
+          `${state.rider.name} n’a plus les réserves nécessaires pour suivre ce petit groupe et reste distancé.`,
+        );
+      }
+    }
     return;
   }
 
@@ -4295,7 +4334,8 @@ function dropStrugglingRiders({
     );
     const losesContactFromExhaustion =
       state.energy < minimumReserveToFollow &&
-      (selectionDifficulty >= 0.55 || state.energy < 3.5) &&
+      (selectionDifficulty >= 0.55 ||
+        state.energy < ABSOLUTE_EXHAUSTION_ENERGY) &&
       random() > 0.08;
     const exceptionalHoldChance = clamp(
       0.07 - Math.max(0, effectiveDeficit - tolerance) * 0.008,
@@ -4308,7 +4348,7 @@ function dropStrugglingRiders({
       random() < exceptionalHoldChance;
 
     if (
-      state.energy < 3.5 ||
+      state.energy < ABSOLUTE_EXHAUSTION_ENERGY ||
       losesContactFromExhaustion ||
       (effectiveDeficit > ruptureThreshold && !exceptionallyHoldsOn)
     ) {
@@ -4721,11 +4761,19 @@ function promoteSecondaryBreakawayWhenNeeded(
   const secondary = getStatesInGroup(states, "breakaway_2").sort(
     (first, second) => second.energy - first.energy,
   );
-  const newLeader = secondary[0];
+  const newLeader = secondary.find(
+    (state) => state.energy >= MINIMUM_BREAKAWAY_LEAD_ENERGY,
+  );
 
   if (newLeader) {
     newLeader.group = "breakaway";
     newLeader.groupSinceSegment = segmentIndex;
+  } else {
+    for (const state of secondary) {
+      state.group = "dropped";
+      state.groupSinceSegment = segmentIndex;
+      state.lostTimeSeconds = Math.max(state.lostTimeSeconds, 8);
+    }
   }
 }
 
@@ -4787,7 +4835,10 @@ function maybeCreateRaceIncident({
   }
 
   const peloton = getStatesInGroup(states, "peloton");
-  if (type === "crosswind" && peloton.length < 4) {
+  if (
+    (type === "crosswind" || type === "crash_mass") &&
+    peloton.length < 4
+  ) {
     return null;
   }
   if (
@@ -4799,7 +4850,7 @@ function maybeCreateRaceIncident({
   let affected: RiderState[];
 
   if (type === "crash_mass" || type === "crosswind") {
-    const candidates = peloton.length >= 4 ? peloton : activeStates;
+    const candidates = peloton;
     const maximumAffectedCount = Math.max(1, candidates.length - 1);
     const affectedCount = Math.min(
       maximumAffectedCount,
@@ -5732,6 +5783,9 @@ function buildRoadSnapshot({
   const dropped = getStatesInGroup(states, "dropped");
   const groups: RaceGroupSnapshot[] = [];
   const hasBreakaway = breakaway.length > 0 && breakawayGapSeconds > 0;
+  const projectedPeloton = hasBreakaway
+    ? peloton
+    : [...breakaway, ...peloton];
 
   if (hasBreakaway) {
     groups.push(toGroupSnapshot("breakaway", "Échappée", breakaway, 0));
@@ -5765,12 +5819,12 @@ function buildRoadSnapshot({
     );
   }
 
-  if (peloton.length > 0) {
+  if (projectedPeloton.length > 0) {
     groups.push(
       toGroupSnapshot(
         "peloton",
         "Peloton",
-        peloton,
+        projectedPeloton,
         hasBreakaway ? Math.max(0, Math.round(breakawayGapSeconds)) : 0,
       ),
     );

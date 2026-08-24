@@ -472,6 +472,29 @@ describe("simulateRaceStage", () => {
     ).toBe(true);
   });
 
+  it("conserve chaque futur finisher dans toutes les images du direct", () => {
+    for (const seed of Array.from({ length: 20 }, (_, index) => index + 1)) {
+      const result = simulateRaceStage(
+        createDemoSimulationInput("collines-ardennes", seed),
+      );
+      const finisherIds = result.results
+        .filter((item) => item.status === "finished")
+        .map((item) => item.riderId);
+
+      for (const frame of result.visualTimeline ?? []) {
+        const visibleRiderIds = frame.groups.flatMap(
+          (group) => group.riderIds,
+        );
+        const visibleRiderIdSet = new Set(visibleRiderIds);
+
+        expect(visibleRiderIdSet.size).toBe(visibleRiderIds.length);
+        expect(
+          finisherIds.every((riderId) => visibleRiderIdSet.has(riderId)),
+        ).toBe(true);
+      }
+    }
+  });
+
   it("conserve des écarts monotones, calculés depuis la tête, sans cassure de 1 à 3 secondes", () => {
     for (const profile of [
       "sprint-littoral",
@@ -1745,19 +1768,37 @@ describe("simulateRaceStage", () => {
   });
 
   it("génère de manière déterministe crevaisons, bordures et chutes", () => {
+    const snapshots = Array.from({ length: 60 }, (_, index) =>
+      simulateRaceStage(
+        createDemoSimulationInput("collines-ardennes", index + 1),
+      ),
+    ).flatMap((simulation) => simulation.timeline);
     const incidentTypes = new Set(
-      Array.from({ length: 60 }, (_, index) =>
-        simulateRaceStage(
-          createDemoSimulationInput("collines-ardennes", index + 1),
-        ).timeline.flatMap((snapshot) =>
-          snapshot.incidents.map((incident) => incident.type),
-        ),
-      ).flat(),
+      snapshots.flatMap((snapshot) =>
+        snapshot.incidents.map((incident) => incident.type),
+      ),
     );
 
     expect(incidentTypes.has("puncture")).toBe(true);
     expect(incidentTypes.has("crash_individual")).toBe(true);
     expect(incidentTypes.has("crash_mass")).toBe(true);
+
+    for (const snapshot of snapshots) {
+      for (const incident of snapshot.incidents.filter(
+        (candidate) => candidate.type === "crash_mass",
+      )) {
+        const continuingRiderIds = incident.riderIds.filter(
+          (riderId) => !incident.abandonedRiderIds.includes(riderId),
+        );
+        expect(
+          snapshot.groups.some((group) =>
+            continuingRiderIds.every((riderId) =>
+              group.riderIds.includes(riderId),
+            ),
+          ),
+        ).toBe(true);
+      }
+    }
   });
 
   it("place les coureurs piégés par une bordure derrière le peloton", () => {
