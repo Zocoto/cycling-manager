@@ -51,7 +51,10 @@ describe("mobile game navigation", () => {
   it("regroupe uniquement les rubriques absentes du header et du dock", () => {
     expect(source).toContain("NAVIGATION_GROUPS_FR");
     expect(source).toContain("getMobileMoreNavigationGroups");
-    expect(source).toContain("Autres rubriques");
+    expect(source).toContain('aria-label={isEnglish ? "Game menu" : "Menu du jeu"}');
+    expect(source).not.toContain("Sans doublons");
+    expect(source).not.toContain("Autres rubriques");
+    expect(source).not.toContain("Uniquement les destinations non affichées ailleurs.");
     expect(source).toContain('data-mobile-more-destination={href}');
     expect(source).toContain("max-h-[min(72dvh,42rem)]");
     expect(source).toContain("overflow-y-auto overscroll-contain");

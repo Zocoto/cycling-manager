@@ -282,7 +282,7 @@ export function MobileGameNavigation({
           id={`${panelId}-more`}
           role="dialog"
           aria-modal="true"
-          aria-labelledby={`${panelId}-more-title`}
+          aria-label={isEnglish ? "Game menu" : "Menu du jeu"}
           data-mobile-panel="more"
           className="mobile-app-sheet fixed inset-x-2 z-[124] flex max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-[1.35rem] border border-[#78947D]/35 bg-[#102D27] text-[#FFFDF4] shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:hidden"
         >
@@ -290,20 +290,7 @@ export function MobileGameNavigation({
             aria-hidden="true"
             className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-white/20"
           />
-          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#071A17] px-4 pb-3 pt-5">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#7CCF9C]">
-                {isEnglish ? "No duplicates" : "Sans doublons"}
-              </p>
-              <h2 id={`${panelId}-more-title`} className="mt-0.5 text-base font-black">
-                {isEnglish ? "Other sections" : "Autres rubriques"}
-              </h2>
-              <p className="mt-0.5 text-[10px] font-medium text-[#B9CBC4]">
-                {isEnglish
-                  ? "Only destinations not already visible."
-                  : "Uniquement les destinations non affichées ailleurs."}
-              </p>
-            </div>
+          <header className="flex shrink-0 items-center justify-end border-b border-white/10 bg-[#071A17] px-3 pb-2 pt-4">
             <button
               ref={closeButtonRef}
               type="button"
