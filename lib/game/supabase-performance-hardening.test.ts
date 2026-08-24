@@ -14,14 +14,27 @@ const headerService = readFileSync(
   join(process.cwd(), "services/game-header-data.ts"),
   "utf8",
 );
+const compatibilityMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260824120000_keep_header_snapshot_compatibility.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
 
 describe("Supabase performance hardening", () => {
-  it("closes the legacy header snapshot and migrates the server caller", () => {
+  it("migrates the server caller and keeps old pinned builds compatible", () => {
     expect(migration).toContain(
       "create or replace function public.get_current_game_header_identity()",
     );
     expect(migration).toContain(
       "revoke all on function public.get_current_game_header_snapshot()",
+    );
+    expect(compatibilityMigration).toContain(
+      "select public.get_current_game_header_identity();",
+    );
+    expect(compatibilityMigration).toContain(
+      "to authenticated, service_role",
     );
     expect(headerService).toContain(
       '.rpc("get_current_game_header_identity")',
