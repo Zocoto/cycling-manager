@@ -7,6 +7,14 @@ const provider = readFileSync(
   join(process.cwd(), "components/game/game-header-indicators-provider.tsx"),
   "utf8",
 );
+const gameHeader = readFileSync(
+  join(process.cwd(), "components/game/game-header.tsx"),
+  "utf8",
+);
+const gameLayout = readFileSync(
+  join(process.cwd(), "app/jeu/layout.tsx"),
+  "utf8",
+);
 
 const shortcutSources = [
   "director-mailbox-shortcut.tsx",
@@ -29,6 +37,12 @@ describe("game header indicators provider", () => {
   it("coalesces bursts and ignores stale refreshes", () => {
     expect(provider).toContain("if (refreshTimer !== null) window.clearTimeout(refreshTimer)");
     expect(provider).toContain("requestVersion !== requestVersionRef.current");
+  });
+
+  it("persists across game navigations instead of reconnecting per page", () => {
+    expect(gameLayout).toContain("<GameHeaderIndicatorsProvider>");
+    expect(gameHeader).not.toContain("GameHeaderIndicatorsProvider");
+    expect(provider).toContain("}, []);");
   });
 
   it("keeps shortcut components presentational", () => {

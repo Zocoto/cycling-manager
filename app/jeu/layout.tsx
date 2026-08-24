@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import { after, connection } from "next/server";
 
+import { GameHeaderIndicatorsProvider } from "@/components/game/game-header-indicators-provider";
 import { GameRouteLoading } from "@/components/game/game-route-loading";
 import {
   TutorialProvider,
@@ -100,7 +101,9 @@ async function GameRuntime({ children }: { children: ReactNode }) {
 
   return (
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
-      <div className="game-shell">{children}</div>
+      <GameHeaderIndicatorsProvider>
+        <div className="game-shell">{children}</div>
+      </GameHeaderIndicatorsProvider>
     </TutorialProvider>
   );
 }

@@ -7,7 +7,6 @@ import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
 import { GameHeaderSearchToggle } from "@/components/game/game-header-search-toggle";
-import { GameHeaderIndicatorsProvider } from "@/components/game/game-header-indicators-provider";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
@@ -68,11 +67,7 @@ export function GameHeader({
   } as CSSProperties;
 
   return (
-    <GameHeaderIndicatorsProvider
-      chatIsOpen={chatIsOpen}
-      gazetteIsOpen={gazetteIsOpen}
-      mailboxIsOpen={mailboxIsOpen}
-    >
+    <>
       <header
         data-game-header="true"
         className="relative z-20 border-b border-[#78947D]/25 bg-[#071A17] text-[#FFFDF4] shadow-lg shadow-black/15"
@@ -314,7 +309,7 @@ export function GameHeader({
       <Suspense fallback={null}>
         <MobileGameNavigation viewerEmail={simulatorEmail} />
       </Suspense>
-    </GameHeaderIndicatorsProvider>
+    </>
   );
 }
 

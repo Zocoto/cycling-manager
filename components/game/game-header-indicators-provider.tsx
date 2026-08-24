@@ -37,14 +37,8 @@ const GameHeaderIndicatorsContext =
 
 export function GameHeaderIndicatorsProvider({
   children,
-  chatIsOpen = false,
-  gazetteIsOpen = false,
-  mailboxIsOpen = false,
 }: {
   children: ReactNode;
-  chatIsOpen?: boolean;
-  gazetteIsOpen?: boolean;
-  mailboxIsOpen?: boolean;
 }) {
   const [indicators, setIndicators] =
     useState<GameHeaderIndicators>(EMPTY_INDICATORS);
@@ -123,9 +117,9 @@ export function GameHeaderIndicatorsProvider({
 
     scheduleRefresh(0);
 
-    let channel = supabase.channel("game-header-indicators:v1");
-    if (!mailboxIsOpen) {
-      channel = channel.on(
+    const channel = supabase
+      .channel("game-header-indicators:v1")
+      .on(
         "postgres_changes",
         {
           event: "*",
@@ -133,10 +127,8 @@ export function GameHeaderIndicatorsProvider({
           table: "sporting_director_messages",
         },
         () => scheduleRefresh(),
-      );
-    }
-    if (!chatIsOpen) {
-      channel = channel.on(
+      )
+      .on(
         "postgres_changes",
         {
           event: "INSERT",
@@ -144,10 +136,8 @@ export function GameHeaderIndicatorsProvider({
           table: "global_chat_messages",
         },
         () => scheduleRefresh(),
-      );
-    }
-    if (!gazetteIsOpen) {
-      channel = channel.on(
+      )
+      .on(
         "postgres_changes",
         {
           event: "INSERT",
@@ -156,7 +146,6 @@ export function GameHeaderIndicatorsProvider({
         },
         () => scheduleRefresh(),
       );
-    }
     const subscribedChannel = channel.subscribe();
 
     return () => {
@@ -179,7 +168,7 @@ export function GameHeaderIndicatorsProvider({
       document.removeEventListener("visibilitychange", refreshWhenVisible);
       void supabase.removeChannel(subscribedChannel);
     };
-  }, [chatIsOpen, gazetteIsOpen, mailboxIsOpen]);
+  }, []);
 
   return (
     <GameHeaderIndicatorsContext value={indicators}>

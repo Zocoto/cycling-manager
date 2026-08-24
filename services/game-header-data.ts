@@ -34,7 +34,7 @@ export async function getGameHeaderData(
   // session dans les pages ; l'identité est vérifiée dans la RPC via auth.uid().
   void _authUserId;
 
-  const response = await supabase.rpc("get_current_game_header_snapshot");
+  const response = await supabase.rpc("get_current_game_header_identity");
   const data = response.data as GameHeaderSnapshot | null;
   const { error } = response;
 
