@@ -36,7 +36,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-tabs",
       title: "Choisissez le marché adapté à votre besoin",
       content:
-        "Les enchères quotidiennes proposent de nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant 24 heures. Les agents libres peuvent être engagés immédiatement, sans indemnité de transfert.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
+        "Les enchères quotidiennes proposent de nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant au moins 24 heures. Les agents libres peuvent être engagés immédiatement, sans indemnité de transfert.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
       placement: "bottom",
       highlightPadding: 6,
     },
@@ -46,7 +46,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-daily-overview",
       title: "De nouveaux profils chaque jour",
       content:
-        "La sélection quotidienne ouvre à 9 h et se clôture à 18 h. Chaque arrivage contient une sélection de coureurs générés pour ce marché ; ils commencent leur carrière avec 0 jour de course.\n\nLeur âge, leur profil et leur demande salariale sont connus, mais leurs statistiques et leur potentiel restent présentés sous forme d’estimations. Un talent particulièrement rare peut parfois apparaître.",
+        "La sélection quotidienne ouvre à 9 h, avec une clôture initiale à 18 h. Chaque arrivage contient une sélection de coureurs générés pour ce marché ; ils commencent leur carrière avec 0 jour de course.\n\nToute offre placée dans les 10 dernières minutes repousse la clôture de 30 minutes. Cette règle s’applique à nouveau près de chaque nouvelle échéance.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -56,7 +56,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-daily-listings",
       title: "Enchérissez en intégrant tout le coût",
       content:
-        "Chaque fiche indique l’offre en tête, le prochain montant minimal, le salaire et le temps restant. Lorsque votre équipe mène, le montant de l’offre et le salaire de la saison sont réservés : ils réduisent immédiatement le budget disponible pour vos autres opérations.\n\nÀ la clôture, le plus offrant recrute automatiquement le coureur pour la saison actuelle et la suivante. Une place libre dans l’effectif et un budget suffisant restent indispensables.",
+        "Chaque fiche indique l’offre en tête, le prochain montant minimal, le salaire et le temps restant. Lorsque votre équipe mène, le montant de l’offre est réservé et réduit le budget disponible pour vos autres opérations.\n\nUne enchère acceptée est ferme : à la clôture, le plus offrant recrute automatiquement le coureur pour la saison actuelle et la suivante. Une place libre dans l’effectif reste indispensable.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -76,7 +76,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-director-market",
       title: "Achetez directement auprès des autres DS",
       content:
-        "Les annonces des autres équipes fonctionnent comme les enchères quotidiennes, mais restent ouvertes pendant 24 heures. Comparez le rapport de scouting, le prix actuel, le salaire et le temps restant avant de surenchérir.\n\nVous ne pouvez pas enchérir sur votre propre vente. Si vous remportez l’enchère, les écritures financières et le changement d’équipe sont réalisés à la clôture.",
+        "Les annonces des autres équipes fonctionnent comme les enchères quotidiennes, avec une durée initiale de 24 heures. Comparez le rapport de scouting, le prix actuel, le salaire et le temps restant avant de surenchérir.\n\nUne offre dans les 10 dernières minutes ajoute 30 minutes. Vous ne pouvez pas enchérir sur votre propre vente ; le transfert et les écritures sont automatiques à la clôture.",
       placement: "top",
       highlightPadding: 8,
     },

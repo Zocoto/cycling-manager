@@ -63,8 +63,8 @@ type TransferPageProps = {
 };
 
 const tabs: Array<{ id: TransferTab; label: string; detail: string }> = [
-  { id: "quotidiennes", label: "Enchères quotidiennes", detail: "Nouveaux talents · 9 h à 18 h" },
-  { id: "directeurs", label: "Enchères des DS", detail: "Ventes entre équipes · 24 h" },
+  { id: "quotidiennes", label: "Enchères quotidiennes", detail: "Nouveaux talents · clôture initiale à 18 h" },
+  { id: "directeurs", label: "Enchères des DS", detail: "Ventes entre équipes · 24 h minimum" },
   { id: "libres", label: "Agents libres", detail: "Signature sans indemnité" },
   { id: "offres", label: "Offres reçues", detail: "Négociations directes · historique" },
 ];
@@ -229,7 +229,7 @@ function DailyAuctions({ listings, overview, sponsors, returnPath }: {
 }) {
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
-      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les enchères ouvrent à 9 h et sont attribuées à 18 h. Les rapports sont partiels et, très rarement, un talent à fort potentiel peut se glisser dans l’arrivage." />
+      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les enchères ouvrent à 9 h avec une clôture initiale à 18 h. Toute offre placée dans les 10 dernières minutes repousse la fin de 30 minutes. Les rapports sont partiels et un talent rare peut parfois apparaître." />
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
           <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -259,7 +259,7 @@ function DirectorAuctions({ listings, roster, overview, jerseys, sponsors, retur
           data-tutorial-id="transfer-director-selling"
           className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
         >
-          <SectionHeading eyebrow="Votre effectif" title="Mettre un coureur aux enchères" detail="Fixez le prix d’appel. La vente reste ouverte 24 heures et le plus offrant remporte le coureur." compact />
+          <SectionHeading eyebrow="Votre effectif" title="Mettre un coureur aux enchères" detail="Fixez le prix d’appel. La vente reste ouverte au moins 24 heures ; une offre dans les 10 dernières minutes repousse la fin de 30 minutes." compact />
           {sellable.length > 0 ? (
             <form action={createDirectorListingAction} className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px_auto] sm:items-end">
               <input type="hidden" name="returnPath" value={returnPath} />
@@ -284,8 +284,8 @@ function DirectorAuctions({ listings, roster, overview, jerseys, sponsors, retur
       </div>
 
       <div data-tutorial-id="transfer-director-market">
-        <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture ; le transfert et les écritures financières sont ensuite automatiques." />
-        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant 24 heures." />}
+        <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture. Une offre dans les 10 dernières minutes prolonge automatiquement l’enchère de 30 minutes, autant de fois que nécessaire." />
+        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant au moins 24 heures." />}
       </div>
     </section>
   );

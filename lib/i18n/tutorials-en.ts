@@ -434,27 +434,27 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "transfer-tabs": {
         title: "Choose the right market",
         content:
-          "Daily auctions feature new riders for one day. SD auctions let teams buy and sell between themselves for 24 hours. Free agents can be signed immediately with no transfer fee.\n\nThe tutorial visits these three areas in order.",
+          "Daily auctions feature new riders for one day. SD auctions let teams buy and sell between themselves for at least 24 hours. Free agents can be signed immediately with no transfer fee.\n\nThe tutorial visits these three areas in order.",
       },
       "daily-overview": {
         title: "New profiles every day",
         content:
-          "Daily selection opens at 9:00 and closes at 18:00. Each group contains a selection of market-generated riders starting with 0 career race days.\n\nAge, profile and salary request are known, while attributes and potential remain estimates. A particularly rare talent may appear.",
+          "Daily selection opens at 9:00, with an initial close at 18:00. Each group contains market-generated riders starting with 0 career race days.\n\nA bid placed in the final 10 minutes adds 30 minutes. The same rule applies again near every new deadline.",
       },
       "daily-bidding": {
         title: "Include every cost in your bid",
         content:
-          "Each card shows the leading bid, next minimum, salary and time remaining. While you lead, both the bid and season salary are reserved and reduce cash available elsewhere.\n\nAt closing, the highest bidder recruits the rider for this season and the next, provided roster space and budget remain available.",
+          "Each card shows the leading bid, next minimum, salary and time remaining. While you lead, the bid is reserved and reduces cash available elsewhere.\n\nAn accepted bid is binding: at closing, the highest bidder recruits the rider for this season and the next, provided roster space remains available.",
       },
       "director-selling": {
-        title: "List a rider for 24 hours",
+        title: "List a rider for at least 24 hours",
         content:
-          "Choose an eligible rider, set the opening price and publish. The rider stays with your team until closing and transfers automatically if a bid exists.\n\nA rider recruited during the season cannot be resold until the next; founding riders can be listed immediately.",
+          "Choose an eligible rider, set the opening price and publish. The rider stays with your team until closing and transfers automatically if a bid exists. A bid in the final 10 minutes adds 30 minutes.\n\nA rider recruited during the season cannot be resold until the next; founding riders can be listed immediately.",
       },
       "director-market": {
         title: "Buy directly from other Sports Directors",
         content:
-          "Other teams' listings work like daily auctions but last 24 hours. Compare scouting report, current price, salary and time before bidding.\n\nYou cannot bid on your own sale; finances and team ownership update automatically at closing.",
+          "Other teams' listings work like daily auctions, with an initial duration of 24 hours. Compare scouting report, current price, salary and time before bidding.\n\nA bid in the final 10 minutes adds 30 minutes. You cannot bid on your own sale; finances and team ownership update automatically at closing.",
       },
       "free-agents-overview": {
         title: "Sign without a transfer fee",
