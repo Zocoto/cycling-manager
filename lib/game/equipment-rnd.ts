@@ -44,8 +44,7 @@ export function estimateEquipmentRndResearch(args: {
   labEfficiencyBonusPercentage?: number;
   engineer?: EquipmentRndEngineer | null;
 }) {
-  const baseDays =
-    [18, 16, 14, 12, 10, 9, 8][Math.max(1, args.labLevel) - 1] ?? 18;
+  const baseDays = 5;
   const engineer = args.engineer ?? null;
   const specialties = getEngineerSpecialties(engineer);
   const hasSpecialty = (specialty: EquipmentRndSpecialty) =>
@@ -62,7 +61,7 @@ export function estimateEquipmentRndResearch(args: {
       (engineer && hasSpecialty("research_success") ? engineer.level * 3 : 0),
   );
   const durationDays = Math.max(
-    4,
+    1,
     baseDays -
       (engineer && hasSpecialty("research_time") ? engineer.level : 0),
   );

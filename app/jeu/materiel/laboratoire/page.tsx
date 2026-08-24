@@ -210,10 +210,11 @@ export default async function EquipmentLaboratoryPage({
                   </label>
                   <p className="rounded-xl bg-[#F3F8F5] p-4 text-xs font-semibold leading-5 text-[#60756E]">
                     Le coût exact dépend de la valeur de la pièce et de
-                    l’ingénieur. Les talents R&D acquis se cumulent. À ce
-                    niveau, la recherche dure de 4 à{" "}
-                    {baseline?.durationDays ?? 18} jours et part de{" "}
-                    {baseline?.successRate ?? 0} % de réussite.
+                    l’ingénieur. Les talents R&D acquis se cumulent. Une
+                    recherche dure {baseline?.durationDays ?? 5} jours sans
+                    ingénieur ; le talent de rapidité peut la réduire jusqu’à
+                    1 jour. Elle part de {baseline?.successRate ?? 0} % de
+                    réussite.
                   </p>
                   <button className="w-full rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
                     Consommer la pièce et lancer la R&D

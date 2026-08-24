@@ -23,7 +23,7 @@ describe("equipment R&D engineer talents", () => {
   it("keeps the laboratory baseline without an engineer", () => {
     expect(
       estimateEquipmentRndResearch({ labLevel: 1, itemPrice: 1_000 }),
-    ).toEqual({ successRate: 50, durationDays: 18, cost: 162_000 });
+    ).toEqual({ successRate: 50, durationDays: 5, cost: 162_000 });
   });
 
   it("applies the building efficiency bonus to the laboratory contribution", () => {
@@ -33,7 +33,7 @@ describe("equipment R&D engineer talents", () => {
         labEfficiencyBonusPercentage: 10,
         itemPrice: 1_000,
       }),
-    ).toEqual({ successRate: 73, durationDays: 10, cost: 362_000 });
+    ).toEqual({ successRate: 73, durationDays: 5, cost: 362_000 });
   });
 
   it("applies every unlocked engineer talent cumulatively", () => {
@@ -43,7 +43,17 @@ describe("equipment R&D engineer talents", () => {
         itemPrice: 1_000,
         engineer: engineer(),
       }),
-    ).toEqual({ successRate: 56, durationDays: 16, cost: 145_800 });
+    ).toEqual({ successRate: 56, durationDays: 3, cost: 145_800 });
+  });
+
+  it("keeps an incompressible one-day research minimum", () => {
+    expect(
+      estimateEquipmentRndResearch({
+        labLevel: 7,
+        itemPrice: 1_000,
+        engineer: engineer({ level: 7 }),
+      }).durationDays,
+    ).toBe(1);
   });
 
   it("keeps compatibility with a single legacy specialty", () => {
@@ -56,7 +66,7 @@ describe("equipment R&D engineer talents", () => {
           specialty: "research_success",
         }),
       }),
-    ).toEqual({ successRate: 56, durationDays: 18, cost: 162_000 });
+    ).toEqual({ successRate: 56, durationDays: 5, cost: 162_000 });
   });
 
   it("shows the exact value of every active talent", () => {
