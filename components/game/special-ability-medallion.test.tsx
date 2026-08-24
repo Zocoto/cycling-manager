@@ -56,4 +56,27 @@ describe("SpecialAbilityMedallion", () => {
     expect(markup).toContain("#D65789");
     expect(markup).toContain("M13 4h6l1 4-2 3v3");
   });
+
+  it.each([
+    ["pistard", "Pistard", "#2458E6", "m18.8 9.8-4 6"],
+    ["three_lungs", "Trois poumons", "#4F941D", "M11.8 10.5c-3.6"],
+    ["cyclocrossman", "Cyclocrossman", "#8B4028", "M16 5.8v4"],
+    ["metronome", "Métronome", "#C4B5FD", "M9 27h14L20 6"],
+  ] as const)(
+    "rend l’illustration et la teinte originales de %s",
+    (code, name, color, iconPath) => {
+      const ability = SPECIAL_ABILITY_CATALOG.find(
+        (candidate) => candidate.code === code,
+      );
+      expect(ability).toBeDefined();
+
+      const markup = renderToStaticMarkup(
+        <SpecialAbilityMedallion ability={ability!} unlocked />,
+      );
+
+      expect(markup).toContain(`${name} débloquée`);
+      expect(markup).toContain(color);
+      expect(markup).toContain(iconPath);
+    },
+  );
 });

@@ -99,10 +99,17 @@ describe("in-race physical condition", () => {
       secondRoll: 1,
       experienceRaceBonus: 0,
     });
+    const metronomeBadDay = getControlledRaceDayExecutionSwing({
+      firstRoll: 0,
+      secondRoll: 0,
+      experienceRaceBonus: 0,
+      hasMetronome: true,
+    });
 
     expect(noviceBadDay).toBe(-5);
     expect(veteranBadDay).toBe(-3.8);
     expect(excellentDay).toBe(5);
+    expect(metronomeBadDay).toBe(-2.5);
   });
 });
 

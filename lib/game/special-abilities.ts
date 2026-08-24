@@ -9,6 +9,10 @@ export const RIDER_SPECIAL_ABILITIES = [
   "iron_health",
   "first_in_class",
   "homegrown",
+  "pistard",
+  "three_lungs",
+  "cyclocrossman",
+  "metronome",
 ] as const;
 
 export type RiderSpecialAbility =
@@ -28,7 +32,11 @@ export type SpecialAbilityDefinition = {
     | "sandwich"
     | "walking_cane"
     | "ruler"
-    | "baby_bottle";
+    | "baby_bottle"
+    | "velodrome"
+    | "lungs"
+    | "cyclocross"
+    | "metronome";
   tone:
     | "silver"
     | "gold"
@@ -39,8 +47,20 @@ export type SpecialAbilityDefinition = {
     | "green"
     | "slate"
     | "teal"
-    | "pink";
+    | "pink"
+    | "cobalt"
+    | "lime"
+    | "earth_sky"
+    | "iridescent";
 };
+
+export const PISTARD_SHORT_TIME_TRIAL_MAX_KM = 12;
+export const PISTARD_TIME_TRIAL_MAX_KM = 25;
+export const THREE_LUNGS_FORM_REDUCTION = 0.25;
+export const THREE_LUNGS_MAX_FORM_SAVING = 4;
+export const CYCLOCROSSMAN_TERRAIN_BONUS = 3;
+export const CYCLOCROSSMAN_COBBLED_CRASH_AVOIDANCE = 0.2;
+export const METRONOME_BAD_DAY_MULTIPLIER = 0.5;
 
 export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
   {
@@ -113,7 +133,115 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
     icon: "baby_bottle",
     tone: "pink",
   },
+  {
+    code: "pistard",
+    name: "Pistard",
+    effect: "Améliore le placement dans les sprints massifs, empêche de perdre la bonne roue et accorde un bonus décroissant sur les prologues et CLM jusqu’à 25 km.",
+    icon: "velodrome",
+    tone: "cobalt",
+  },
+  {
+    code: "three_lungs",
+    name: "Trois poumons",
+    effect: "Réduit de 25 % la perte de forme provoquée par les courses et les entraînements, dans la limite de 4 points économisés par événement.",
+    icon: "lungs",
+    tone: "lime",
+  },
+  {
+    code: "cyclocrossman",
+    name: "Cyclocrossman",
+    effect: "Accorde +3 de performance de terrain sur les pavés et les bosses courtes ou roulantes, et réduit de 20 % le risque de chute sur les pavés.",
+    icon: "cyclocross",
+    tone: "earth_sky",
+  },
+  {
+    code: "metronome",
+    name: "Métronome",
+    effect: "Divise par deux les malus des mauvais jours de course sans réduire les bonus des bons jours.",
+    icon: "metronome",
+    tone: "iridescent",
+  },
 ];
+
+export function getPistardTimeTrialBonus({
+  hasPistard,
+  distanceKm,
+}: {
+  hasPistard: boolean;
+  distanceKm: number;
+}) {
+  if (!hasPistard) return 0;
+  if (distanceKm <= PISTARD_SHORT_TIME_TRIAL_MAX_KM) return 3;
+  if (distanceKm <= PISTARD_TIME_TRIAL_MAX_KM) return 2;
+  return 0;
+}
+
+export function reduceThreeLungsFormLoss({
+  hasThreeLungs,
+  formDelta,
+}: {
+  hasThreeLungs: boolean;
+  formDelta: number;
+}) {
+  if (!hasThreeLungs || formDelta >= 0) return formDelta;
+
+  const loss = Math.abs(formDelta);
+  const saving = Math.min(
+    loss * THREE_LUNGS_FORM_REDUCTION,
+    THREE_LUNGS_MAX_FORM_SAVING,
+  );
+  return -Math.round(Math.max(1, loss - saving) * 10) / 10;
+}
+
+export function getCyclocrossmanTerrainBonus({
+  hasCyclocrossman,
+  terrain,
+  surface,
+  distanceKm,
+  averageGradientPct,
+}: {
+  hasCyclocrossman: boolean;
+  terrain: "flat" | "climb" | "descent";
+  surface: "asphalt" | "cobbles";
+  distanceKm: number;
+  averageGradientPct: number;
+}) {
+  if (!hasCyclocrossman) return 0;
+  if (surface === "cobbles") return CYCLOCROSSMAN_TERRAIN_BONUS;
+
+  const isShortOrRollingClimb =
+    terrain === "climb" &&
+    (distanceKm <= 12 || Math.abs(averageGradientPct) < 5.8);
+  return isShortOrRollingClimb ? CYCLOCROSSMAN_TERRAIN_BONUS : 0;
+}
+
+export function doesCyclocrossmanAvoidCobbledCrash({
+  hasCyclocrossman,
+  isCobbled,
+  roll,
+}: {
+  hasCyclocrossman: boolean;
+  isCobbled: boolean;
+  roll: number;
+}) {
+  return (
+    hasCyclocrossman &&
+    isCobbled &&
+    Math.min(1, Math.max(0, roll)) < CYCLOCROSSMAN_COBBLED_CRASH_AVOIDANCE
+  );
+}
+
+export function applyMetronomeToRaceDaySwing({
+  hasMetronome,
+  swing,
+}: {
+  hasMetronome: boolean;
+  swing: number;
+}) {
+  return hasMetronome && swing < 0
+    ? swing * METRONOME_BAD_DAY_MULTIPLIER
+    : swing;
+}
 
 export function isRiderSpecialAbility(
   value: string

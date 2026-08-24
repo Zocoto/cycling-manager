@@ -26,6 +26,10 @@ import {
 } from "./time-trial-preparation";
 import { getRiderExperienceRaceBonus } from "./rider-experience";
 import {
+  applyMetronomeToRaceDaySwing,
+  doesCyclocrossmanAvoidCobbledCrash,
+  getCyclocrossmanTerrainBonus,
+  getPistardTimeTrialBonus,
   hasSpecialAbility,
   type RiderSpecialAbility,
 } from "./special-abilities";
@@ -780,10 +784,12 @@ export function getControlledRaceDayExecutionSwing({
   firstRoll,
   secondRoll,
   experienceRaceBonus,
+  hasMetronome = false,
 }: {
   firstRoll: number;
   secondRoll: number;
   experienceRaceBonus: number;
+  hasMetronome?: boolean;
 }) {
   const centeredTriangularRoll =
     clamp(firstRoll, 0, 1) + clamp(secondRoll, 0, 1) - 1;
@@ -792,7 +798,14 @@ export function getControlledRaceDayExecutionSwing({
   const composedSwing =
     rawSwing < 0 ? rawSwing * (1 - experienceRatio * 0.24) : rawSwing;
 
-  return round(clamp(composedSwing, -5, 5), 3);
+  return round(
+    clamp(
+      applyMetronomeToRaceDaySwing({ swing: composedSwing, hasMetronome }),
+      -5,
+      5,
+    ),
+    3,
+  );
 }
 
 export function simulateRaceStage(
@@ -854,10 +867,15 @@ export function simulateRaceStageResultsOnly(
       const performanceRating = isTimeTrial
         ? getResultsOnlyTimeTrialRating(rider, normalizedInput)
         : getResultsOnlyRoadRating(rider, normalizedInput);
+      const rawNoise = (random() - 0.5) * (isTimeTrial ? 4 : 6);
+      const noise = applyMetronomeToRaceDaySwing({
+        swing: rawNoise,
+        hasMetronome: hasSpecialAbility(rider, "metronome"),
+      });
 
       return {
         rider,
-        score: performanceRating + (random() - 0.5) * (isTimeTrial ? 4 : 6),
+        score: performanceRating + noise,
       };
     })
     .sort(
@@ -1016,10 +1034,19 @@ function getResultsOnlyTimeTrialRating(
     1,
     input.segments.reduce((total, segment) => total + segment.distanceKm, 0),
   );
+  const pistardBonus = getPistardTimeTrialBonus({
+    hasPistard: hasSpecialAbility(rider, "pistard"),
+    distanceKm: totalDistance,
+  });
   return input.segments.reduce(
     (total, segment) =>
       total +
-      getTimeTrialSegmentRating(rider, segment, input.stageType) *
+      getTimeTrialSegmentRating(
+        rider,
+        segment,
+        input.stageType,
+        pistardBonus,
+      ) *
         (segment.distanceKm / totalDistance),
     0,
   );
@@ -1055,9 +1082,14 @@ function getResultsOnlyRoadRating(
               rider.ratings.acceleration * 0.08
             : getDecisiveRoadFinishRating(rider, input.segments);
 
+  const pistardSprintBonus =
+    isLikelyMassSprint(input.segments) && hasSpecialAbility(rider, "pistard")
+      ? 2
+      : 0;
+
   return (
     getStageSuitability(rider, input.segments) * 0.72 + finishRating * 0.28
-  );
+  ) + pistardSprintBonus;
 }
 
 export function getStageTimeLimitAllowanceSeconds({
@@ -2743,6 +2775,10 @@ function simulateIndividualTimeTrial(
   );
   const timeline: RaceTimelineSnapshot[] = [];
   let completedDistanceKm = 0;
+  const totalDistanceKm = input.segments.reduce(
+    (total, segment) => total + segment.distanceKm,
+    0,
+  );
 
   input.segments.forEach((segment, segmentIndex) => {
     for (const state of states.values()) {
@@ -2750,6 +2786,10 @@ function simulateIndividualTimeTrial(
         state.rider,
         segment,
         input.stageType,
+        getPistardTimeTrialBonus({
+          hasPistard: hasSpecialAbility(state.rider, "pistard"),
+          distanceKm: totalDistanceKm,
+        }),
       );
       const baseSpeed = getBaseSpeed(segment);
       const effort =
@@ -2847,6 +2887,10 @@ function simulateTeamTimeTrial(
   );
   const timeline: RaceTimelineSnapshot[] = [];
   let completedDistanceKm = 0;
+  const totalDistanceKm = input.segments.reduce(
+    (total, segment) => total + segment.distanceKm,
+    0,
+  );
 
   input.segments.forEach((segment, segmentIndex) => {
     const droppedThisSegment: RiderState[] = [];
@@ -2870,6 +2914,10 @@ function simulateTeamTimeTrial(
           rider,
           segment,
           "team_time_trial",
+          getPistardTimeTrialBonus({
+            hasPistard: hasSpecialAbility(rider, "pistard"),
+            distanceKm: totalDistanceKm,
+          }),
         );
         const fatiguePenalty = Math.max(0, 28 - state.energy) * 0.0045;
         const soloSpeed = Math.max(
@@ -2912,7 +2960,15 @@ function simulateTeamTimeTrial(
           ];
         return (
           total +
-          getTimeTrialSegmentRating(rider, segment, "team_time_trial") *
+          getTimeTrialSegmentRating(
+            rider,
+            segment,
+            "team_time_trial",
+            getPistardTimeTrialBonus({
+              hasPistard: hasSpecialAbility(rider, "pistard"),
+              distanceKm: totalDistanceKm,
+            }),
+          ) *
             effort.paceMultiplier *
             relayShares[rider.id]
         );
@@ -2967,6 +3023,10 @@ function simulateTeamTimeTrial(
           rider,
           segment,
           "team_time_trial",
+          getPistardTimeTrialBonus({
+            hasPistard: hasSpecialAbility(rider, "pistard"),
+            distanceKm: totalDistanceKm,
+          }),
         );
         const sustainableRating =
           riderRating * 0.72 +
@@ -4892,6 +4952,26 @@ function maybeCreateRaceIncident({
     affected = [activeStates[Math.floor(random() * activeStates.length)]];
   }
 
+  if (
+    segment.surface === "cobbles" &&
+    (type === "crash_individual" || type === "crash_mass")
+  ) {
+    affected = affected.filter((state) => {
+      const hasCyclocrossman = hasSpecialAbility(
+        state.rider,
+        "cyclocrossman",
+      );
+      if (!hasCyclocrossman) return true;
+
+      return !doesCyclocrossmanAvoidCobbledCrash({
+        hasCyclocrossman,
+        isCobbled: true,
+        roll: random(),
+      });
+    });
+    if (affected.length === 0) return null;
+  }
+
   const abandonments: RaceAbandonment[] = [];
   const injuries: RaceInjury[] = [];
 
@@ -5444,10 +5524,18 @@ function getRoadFinishScores(
       const positioningBonus = borrowedWheel
         ? Math.max(3.5, ownTrainBonus)
         : ownTrainBonus;
+      const pistardPositioningBonus = hasSpecialAbility(rider, "pistard")
+        ? 2
+        : 0;
       const roleFactor =
         rider.role === "sprinter" ? 3 : rider.role === "leadout" ? -3 : 0;
       const lostWheelPenalty =
-        !borrowedWheel && trainRank > 2 && random() < 0.16 ? 4 : 0;
+        !hasSpecialAbility(rider, "pistard") &&
+        !borrowedWheel &&
+        trainRank > 2 &&
+        random() < 0.16
+          ? 4
+          : 0;
       score =
         rider.ratings.sprint * 0.76 +
         rider.ratings.acceleration * 0.12 +
@@ -5455,6 +5543,7 @@ function getRoadFinishScores(
         state.energy * 0.08 +
         getRaceDayBonus(rider) +
         positioningBonus +
+        pistardPositioningBonus +
         roleFactor -
         lostWheelPenalty;
     } else if (profileType === "hilly") {
@@ -6222,7 +6311,17 @@ function getTerrainRating(
     rating = rating * 0.36 + rider.ratings.cobbles * 0.64;
   }
 
-  return rating + getRaceDayBonus(rider);
+  return (
+    rating +
+    getRaceDayBonus(rider) +
+    getCyclocrossmanTerrainBonus({
+      hasCyclocrossman: hasSpecialAbility(rider, "cyclocrossman"),
+      terrain: segment.terrain,
+      surface: segment.surface,
+      distanceKm: segment.distanceKm,
+      averageGradientPct: segment.averageGradientPct,
+    })
+  );
 }
 
 export function getHillyClimbSelectionRating(
@@ -6387,6 +6486,7 @@ function getTimeTrialSegmentRating(
   rider: RiderSimulationInput,
   segment: RaceStageSegment,
   stageType: SimulationStageType,
+  pistardBonus = 0,
 ) {
   const clockRating =
     stageType === "prologue" ? rider.ratings.prologue : rider.ratings.timeTrial;
@@ -6395,7 +6495,8 @@ function getTimeTrialSegmentRating(
     getTerrainRating(rider, segment) * 0.27 +
     rider.ratings.endurance * 0.1 +
     rider.form * 0.05 +
-    getRaceDayBonus(rider) * 0.73
+    getRaceDayBonus(rider) * 0.73 +
+    pistardBonus
   );
 }
 
@@ -6529,6 +6630,7 @@ function getRiderRaceDayExecutionBonus(
     experienceRaceBonus: getRiderExperienceRaceBonus(
       rider.careerRaceDays ?? 0,
     ),
+    hasMetronome: hasSpecialAbility(rider, "metronome"),
   });
 }
 

@@ -1760,7 +1760,10 @@ function SpecialAbilitiesCard({
       <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#278B70]">
         Capacités spéciales
       </p>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div
+        className="mt-4 grid grid-cols-5 justify-items-center gap-2 sm:grid-cols-7 sm:gap-3"
+        aria-label="Catalogue des 14 capacités spéciales"
+      >
         {SPECIAL_ABILITY_CATALOG.map((ability) => (
           <SpecialAbilityMedallion
             key={ability.code}

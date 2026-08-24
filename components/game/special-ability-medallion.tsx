@@ -15,6 +15,10 @@ const UNLOCKED_TONES: Record<SpecialAbilityDefinition["tone"], string> = {
   slate: "border-[#56616A] bg-[linear-gradient(145deg,#6C7881,#20272C)] text-[#F3F5F6] shadow-black/35",
   teal: "border-[#2F9FA3] bg-[linear-gradient(145deg,#A6E4E0,#14666B)] text-[#052F33] shadow-[#0D5054]/35",
   pink: "border-[#E680A8] bg-[linear-gradient(145deg,#FFD2E2,#D65789)] text-[#5A1732] shadow-[#B93C6D]/35",
+  cobalt: "border-[#3478FF] bg-[linear-gradient(145deg,#A7EDFF,#2458E6)] text-[#071A52] shadow-[#1742B8]/35",
+  lime: "border-[#A8D832] bg-[linear-gradient(145deg,#F0FF9B,#4F941D)] text-[#173A08] shadow-[#3B7413]/35",
+  earth_sky: "border-[#E0713D] bg-[linear-gradient(145deg,#6EDDEB_0%,#F3B65F_52%,#8B4028_100%)] text-[#32180F] shadow-[#71321E]/35",
+  iridescent: "border-[#8B7CF6] bg-[linear-gradient(135deg,#FBCFE8_0%,#C4B5FD_38%,#99F6E4_70%,#BFDBFE_100%)] text-[#25205C] shadow-[#6156C7]/30",
 };
 
 export function SpecialAbilityMedallion({
@@ -93,6 +97,18 @@ export function SpecialAbilityMedallion({
 }
 
 function AbilityIcon({ icon }: { icon: SpecialAbilityDefinition["icon"] }) {
+  if (icon === "velodrome") {
+    return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="16" cy="16" rx="12" ry="8" /><ellipse cx="16" cy="16" rx="7.5" ry="3.8" /><path d="M4.7 17.8c4.5-2.7 18.1-2.7 22.6 0M6.8 11.2c4.8 2.4 13.6 2.4 18.4 0" opacity=".7" /><path d="m18.8 9.8-4 6h3.5l-4.2 6.4" strokeWidth="2.4" /></svg>;
+  }
+  if (icon === "lungs") {
+    return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4v8l-3.2 3.2M17 4v8l3.2 3.2" /><path d="M11.8 10.5c-3.6.9-6.3 5.4-6.3 10.1 0 3.8 1.8 6.1 4.5 6.1 3.5 0 5-3.6 5-8.2V12M20.2 10.5c3.6.9 6.3 5.4 6.3 10.1 0 3.8-1.8 6.1-4.5 6.1-3.5 0-5-3.6-5-8.2V12" /><path d="M16 15c-2 1.5-3.1 4.1-2.5 6.5.4 1.9 1.3 3.1 2.5 4 1.2-.9 2.1-2.1 2.5-4 .6-2.4-.5-5-2.5-6.5Z" fill="currentColor" fillOpacity=".2" /></svg>;
+  }
+  if (icon === "cyclocross") {
+    return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="16" cy="16" r="10.2" /><circle cx="16" cy="16" r="5.8" /><path d="M16 5.8v4M16 22.2v4M5.8 16h4M22.2 16h4M8.8 8.8l2.8 2.8M20.4 20.4l2.8 2.8M23.2 8.8l-2.8 2.8M11.6 20.4l-2.8 2.8" /><path d="m13.6 13.4 2.4 2.5 2.4-2.5M13.6 18.6l2.4-2.5 2.4 2.5" /><path d="M5 7.5 3.5 6M6.5 5 6 2.8M26.2 24.8l2.3 1.1M24.8 27l.5 2.2" strokeWidth="2.2" /></svg>;
+  }
+  if (icon === "metronome") {
+    return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 27h14L20 6h-8L9 27Z" /><path d="M7 27h18M16 22l4-13" strokeWidth="2.2" /><circle cx="19.2" cy="11.8" r="1.8" fill="currentColor" /><path d="M12.5 22h7M13.3 18.5h5.4M9.2 9.5 6.8 7.8M22.8 9.5l2.4-1.7" opacity=".8" /></svg>;
+  }
   if (icon === "fireworks") {
     return <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round"><path d="M16 15V4M16 4l-3 4m3-4 3 4M11 17 4 10m7 7-5-1m5 1-1-5M21 17l7-7m-7 7 5-1m-5 1 1-5M16 20v8M12 24h8" /></svg>;
   }
