@@ -17,7 +17,7 @@ describe("race calendar stage segment cache", () => {
       'const loadCachedStageSegmentBatch = unstable_cache(',
     );
     expect(raceCalendarService).toContain(
-      '["race-calendar-stage-segments-v1"]',
+      '["race-calendar-stage-segments-v2"]',
     );
     expect(raceCalendarService).toContain("revalidate: 900");
     expect(raceCalendarService).toContain(

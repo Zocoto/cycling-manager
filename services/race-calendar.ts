@@ -2231,7 +2231,7 @@ const loadCachedStageSegmentBatch = unstable_cache(
 
     return result.data;
   },
-  ["race-calendar-stage-segments-v1"],
+  ["race-calendar-stage-segments-v2"],
   {
     revalidate: 900,
     tags: ["race-calendar-stage-segments"],
