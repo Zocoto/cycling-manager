@@ -25,12 +25,16 @@ const shortcutSources = [
 );
 
 describe("game header indicators provider", () => {
-  it("uses one RPC and one realtime channel for the three indicators", () => {
-    expect(provider).toContain('.rpc("get_current_game_header_indicators")');
-    expect(provider).toContain('.channel("game-header-indicators:v1")');
+  it("uses one RPC and one realtime channel for all indicators", () => {
+    expect(provider).toContain('.rpc("get_current_game_header_indicators_v2")');
+    expect(provider).toContain('.channel("game-header-indicators:v2")');
     expect(provider.match(/\.channel\(/g)).toHaveLength(1);
     expect(provider).toContain('table: "sporting_director_messages"');
     expect(provider).toContain('table: "global_chat_messages"');
+    expect(provider).toContain('table: "direct_messages"');
+    expect(provider).toContain(
+      "filter: `recipient_id=eq.${row.current_sporting_director_id}`",
+    );
     expect(provider).toContain('table: "cyclogazette_editions"');
   });
 

@@ -47,13 +47,23 @@ export default async function PublicSportingDirectorPage({
     redirect("/connexion");
   }
 
-  const [profile, headerData] = await Promise.all([
+  const [profile, headerData, currentDirectorResult] = await Promise.all([
     getPublicSportingDirector(identifiantPublic),
     getGameHeaderData(supabase, user.id),
+    supabase
+      .from("sporting_directors")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle<{ id: string }>(),
   ]);
 
   if (!profile) {
     notFound();
+  }
+  if (currentDirectorResult.error) {
+    throw new Error(
+      `Impossible de vérifier votre profil de Directeur Sportif : ${currentDirectorResult.error.message}`,
+    );
   }
 
   const teamSponsorIdentity = profile.team_id
@@ -97,13 +107,23 @@ export default async function PublicSportingDirectorPage({
                 </h1>
               </div>
 
-              <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-left sm:text-right">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A8DEC6]">
-                  Réputation
-                </p>
-                <p className="mt-1 text-2xl font-black">
-                  {numberFormatter.format(profile.reputation_points ?? 0)} pts
-                </p>
+              <div className="flex flex-col gap-2">
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-left sm:text-right">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A8DEC6]">
+                    Réputation
+                  </p>
+                  <p className="mt-1 text-2xl font-black">
+                    {numberFormatter.format(profile.reputation_points ?? 0)} pts
+                  </p>
+                </div>
+                {currentDirectorResult.data?.id !== profile.entity_id ? (
+                  <Link
+                    href={`/jeu/chat?mp=${profile.entity_id}`}
+                    className="rounded-xl bg-[#F2C94C] px-5 py-3 text-center text-xs font-black text-[#17261E] transition hover:bg-[#F7DA73] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    Envoyer un MP
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>

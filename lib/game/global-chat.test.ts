@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   extractGlobalChatPreviewReference,
+  getGlobalChatMentionQuery,
   getGlobalChatHistoryStart,
+  globalChatMessageMentionsUsername,
+  hasForbiddenGlobalChatLink,
   isGlobalChatCursor,
   normalizeGlobalChatMessage,
   stripGlobalChatCyclingReactionTokens,
@@ -45,6 +48,47 @@ describe("global chat links", () => {
     expect(
       extractGlobalChatPreviewReference("/jeu/equipes/pas-un-uuid"),
     ).toBeNull();
+  });
+
+  it("allows only Cyclo Stratège rider and team profile links", () => {
+    expect(
+      hasForbiddenGlobalChatLink(`/jeu/equipes/${TEAM_ID}`),
+    ).toBe(false);
+    expect(
+      hasForbiddenGlobalChatLink(
+        `https://cyclostratege.fr/jeu/coureurs/${RIDER_ID}?onglet=palmares`,
+      ),
+    ).toBe(false);
+    expect(
+      hasForbiddenGlobalChatLink(
+        `cyclostratege.fr/jeu/equipes/${TEAM_ID}`,
+      ),
+    ).toBe(false);
+    expect(hasForbiddenGlobalChatLink("https://example.com/video")).toBe(true);
+    expect(hasForbiddenGlobalChatLink("regardez example.fr/video")).toBe(true);
+    expect(hasForbiddenGlobalChatLink("https://cyclostratege.fr/jeu/chat")).toBe(
+      true,
+    );
+    expect(hasForbiddenGlobalChatLink("Contact : ds@example.fr")).toBe(false);
+  });
+});
+
+describe("global chat mentions", () => {
+  it("finds the active @ query, including usernames with spaces", () => {
+    expect(getGlobalChatMentionQuery("Bravo @Fra Trois", 16)).toEqual({
+      query: "Fra Trois",
+      start: 6,
+      end: 16,
+    });
+    expect(getGlobalChatMentionQuery("@Ali\nSuite", 10)).toBeNull();
+  });
+
+  it("recognizes a selected username case-insensitively", () => {
+    expect(
+      globalChatMessageMentionsUsername("Bravo @Fra Trois !", "fra trois"),
+    ).toBe(true);
+    expect(globalChatMessageMentionsUsername("Bravo Fra Trois", "Fra Trois"))
+      .toBe(false);
   });
 });
 

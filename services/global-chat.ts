@@ -48,6 +48,8 @@ export type GlobalChatMessageReaction = {
 export type GlobalChatMessage = {
   id: string;
   sportingDirectorId: string;
+  authorAvatarKey: string | null;
+  authorAvatarFrameKey: "alpha_tester" | null;
   teamId: string;
   authorDisplayName: string;
   teamDisplayName: string;
@@ -59,6 +61,16 @@ export type GlobalChatMessage = {
 };
 
 export type GlobalChatIdentity = GlobalChatOnlineDirector;
+
+export type GlobalChatMentionRecipient = {
+  sportingDirectorId: string;
+  username: string;
+  displayName: string;
+  avatarKey: string | null;
+  avatarFrameKey: "alpha_tester" | null;
+  teamId: string;
+  teamName: string;
+};
 
 export type GlobalChatMessageRow = {
   id: string;
@@ -89,7 +101,31 @@ export type GlobalChatReactionRow = {
 
 type GlobalChatIdentityRow = {
   sporting_director_id: string;
+  username: string;
   display_name: string;
+  avatar_key: string | null;
+  avatar_frame_key: string | null;
+  team_id: string;
+  team_name: string;
+};
+
+type GlobalChatDirectorAvatarRow = {
+  sporting_director_id: string;
+  avatar_key: string | null;
+  avatar_frame_key: string | null;
+};
+
+type GlobalChatDirectorAvatar = {
+  avatarKey: string | null;
+  avatarFrameKey: "alpha_tester" | null;
+};
+
+type GlobalChatMentionRecipientRow = {
+  sporting_director_id: string;
+  username: string;
+  display_name: string;
+  avatar_key: string | null;
+  avatar_frame_key: string | null;
   team_id: string;
   team_name: string;
 };
@@ -127,8 +163,8 @@ export async function getGlobalChatOverview(
   nextCursor: GlobalChatCursor | null;
 }> {
   const [identityResult, onlineDirectorsResult, messagePage] = await Promise.all([
-    supabase.rpc("get_current_global_chat_identity"),
-    supabase.rpc("get_online_global_chat_directors"),
+    supabase.rpc("get_current_global_chat_identity_v2"),
+    supabase.rpc("get_online_global_chat_directors_v2"),
     getGlobalChatMessagePage(supabase, {
       limit: GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT,
     }),
@@ -151,7 +187,10 @@ export async function getGlobalChatOverview(
 
   const identity: GlobalChatIdentity = {
     sportingDirectorId: identityRow.sporting_director_id,
+    username: identityRow.username,
     displayName: identityRow.display_name,
+    avatarKey: identityRow.avatar_key,
+    avatarFrameKey: readAvatarFrameKey(identityRow.avatar_frame_key),
     teamId: identityRow.team_id,
     teamName: identityRow.team_name,
     teamHref: `/jeu/equipes/${identityRow.team_id}`,
@@ -218,16 +257,26 @@ export async function getGlobalChatMessagePage(
   const hasMore = rows.length > pageSize;
   const selectedRows = rows.slice(0, pageSize);
   const oldestRow = selectedRows.at(-1) ?? null;
-  const reactionsByMessageId = await getReactionsByMessageId(
-    supabase,
-    selectedRows.map((row) => row.id),
-  );
+  const [reactionsByMessageId, avatarsByDirectorId] = await Promise.all([
+    getReactionsByMessageId(
+      supabase,
+      selectedRows.map((row) => row.id),
+    ),
+    getAvatarsByDirectorId(
+      supabase,
+      selectedRows.map((row) => row.sporting_director_id),
+    ),
+  ]);
 
   return {
     messages: selectedRows
       .reverse()
       .map((row) =>
-        mapGlobalChatMessage(row, reactionsByMessageId.get(row.id) ?? []),
+        mapGlobalChatMessage(
+          row,
+          reactionsByMessageId.get(row.id) ?? [],
+          avatarsByDirectorId.get(row.sporting_director_id),
+        ),
       ),
     hasMore,
     nextCursor:
@@ -243,10 +292,13 @@ export async function getGlobalChatMessagePage(
 export function mapGlobalChatMessage(
   row: GlobalChatMessageRow,
   reactions: GlobalChatMessageReaction[] = [],
+  avatar: GlobalChatDirectorAvatar | undefined = undefined,
 ): GlobalChatMessage {
   return {
     id: row.id,
     sportingDirectorId: row.sporting_director_id,
+    authorAvatarKey: avatar?.avatarKey ?? null,
+    authorAvatarFrameKey: avatar?.avatarFrameKey ?? null,
     teamId: row.team_id,
     authorDisplayName: row.author_display_name,
     teamDisplayName: row.team_display_name,
@@ -256,6 +308,68 @@ export function mapGlobalChatMessage(
     reactions,
     createdAt: row.created_at,
   };
+}
+
+export async function searchGlobalChatMentionRecipients(
+  supabase: SupabaseServerClient,
+  query: string,
+): Promise<GlobalChatMentionRecipient[]> {
+  const { data, error } = await supabase.rpc(
+    "search_current_global_chat_mentions",
+    {
+      p_query: query,
+      p_limit: 6,
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de rechercher un membre à mentionner : ${error.message}`,
+    );
+  }
+
+  return ((data as GlobalChatMentionRecipientRow[] | null) ?? []).map(
+    (row) => ({
+      sportingDirectorId: row.sporting_director_id,
+      username: row.username,
+      displayName: row.display_name,
+      avatarKey: row.avatar_key,
+      avatarFrameKey: readAvatarFrameKey(row.avatar_frame_key),
+      teamId: row.team_id,
+      teamName: row.team_name,
+    }),
+  );
+}
+
+async function getAvatarsByDirectorId(
+  supabase: SupabaseServerClient,
+  directorIds: string[],
+) {
+  const result = new Map<string, GlobalChatDirectorAvatar>();
+  const uniqueDirectorIds = [...new Set(directorIds)];
+  if (uniqueDirectorIds.length === 0) return result;
+
+  const avatarsResult = await supabase.rpc("get_global_chat_director_avatars", {
+    p_sporting_director_ids: uniqueDirectorIds,
+  });
+
+  if (avatarsResult.error) {
+    console.error(
+      "Global chat avatars unavailable; continuing with default avatars.",
+      avatarsResult.error,
+    );
+    return result;
+  }
+
+  for (const row of ((avatarsResult.data as
+    GlobalChatDirectorAvatarRow[] | null) ?? [])) {
+    result.set(row.sporting_director_id, {
+      avatarKey: row.avatar_key,
+      avatarFrameKey: readAvatarFrameKey(row.avatar_frame_key),
+    });
+  }
+
+  return result;
 }
 
 async function getReactionsByMessageId(
@@ -355,4 +469,8 @@ function mapGlobalChatPreview(
         ? `/jeu/equipes/${row.preview_entity_id}`
         : `/jeu/coureurs/${row.preview_entity_id}`,
   };
+}
+
+function readAvatarFrameKey(value: string | null): "alpha_tester" | null {
+  return value === "alpha_tester" ? value : null;
 }

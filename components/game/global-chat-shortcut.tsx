@@ -12,13 +12,15 @@ export function GlobalChatShortcut({
   initialHasUnread?: boolean;
   floatingOnMobile?: boolean;
 }) {
-  const hasUnread =
-    useGameHeaderIndicators()?.hasUnreadGlobalChat ?? initialHasUnread;
+  const indicators = useGameHeaderIndicators();
+  const hasUnread = indicators
+    ? indicators.hasUnreadGlobalChat || indicators.directMessageUnreadCount > 0
+    : initialHasUnread;
   const displayedUnread = chatIsOpen ? false : hasUnread;
 
   const label = displayedUnread
-    ? "Ouvrir le chat général · nouveaux messages non lus"
-    : "Ouvrir le chat général";
+    ? "Ouvrir le chat · nouveaux messages non lus"
+    : "Ouvrir le chat";
 
   return (
     <Link

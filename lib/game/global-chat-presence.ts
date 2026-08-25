@@ -4,7 +4,10 @@ export const GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS = 45_000;
 
 export type GlobalChatOnlineDirector = {
   sportingDirectorId: string;
+  username: string;
   displayName: string;
+  avatarKey: string | null;
+  avatarFrameKey: "alpha_tester" | null;
   teamId: string;
   teamName: string;
   teamHref: string;
@@ -12,7 +15,10 @@ export type GlobalChatOnlineDirector = {
 
 type GlobalChatOnlineDirectorRow = {
   sporting_director_id?: unknown;
+  username?: unknown;
   display_name?: unknown;
+  avatar_key?: unknown;
+  avatar_frame_key?: unknown;
   team_id?: unknown;
   team_name?: unknown;
 };
@@ -39,7 +45,11 @@ export function mapGlobalChatOnlineDirectorRows(
   for (const row of rows) {
     if (
       typeof row.sporting_director_id !== "string" ||
+      typeof row.username !== "string" ||
       typeof row.display_name !== "string" ||
+      (row.avatar_key !== null && typeof row.avatar_key !== "string") ||
+      (row.avatar_frame_key !== null &&
+        row.avatar_frame_key !== "alpha_tester") ||
       typeof row.team_id !== "string" ||
       typeof row.team_name !== "string"
     ) {
@@ -48,7 +58,11 @@ export function mapGlobalChatOnlineDirectorRows(
 
     directors.push({
       sportingDirectorId: row.sporting_director_id,
+      username: row.username,
       displayName: row.display_name,
+      avatarKey: row.avatar_key,
+      avatarFrameKey:
+        row.avatar_frame_key === "alpha_tester" ? row.avatar_frame_key : null,
       teamId: row.team_id,
       teamName: row.team_name,
       teamHref: `/jeu/equipes/${row.team_id}`,

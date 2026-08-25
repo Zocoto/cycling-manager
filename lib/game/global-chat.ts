@@ -2,6 +2,8 @@ export const GLOBAL_CHAT_MESSAGE_MAX_LENGTH = 500;
 export const GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT = 40;
 export const GLOBAL_CHAT_MESSAGE_PAGE_SIZE = 30;
 export const GLOBAL_CHAT_HISTORY_DAYS = 30;
+export const GLOBAL_CHAT_MENTION_MAX_RECIPIENTS = 5;
+export const GLOBAL_CHAT_MENTION_SEARCH_MIN_LENGTH = 1;
 
 export const GLOBAL_CHAT_EMOJIS = [
   "😀",
@@ -101,8 +103,18 @@ export type GlobalChatPreviewReference = {
   href: string;
 };
 
+export type GlobalChatMentionQuery = {
+  query: string;
+  start: number;
+  end: number;
+};
+
 const INTERNAL_ENTITY_PATH =
   /\/jeu\/(equipes|coureurs)\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?=$|[/?#\s),.;!?])/i;
+const GLOBAL_CHAT_ALLOWED_LINK =
+  /^(?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:equipes|coureurs)\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(?:[/?#][^\s<]*)?$/i;
+const GLOBAL_CHAT_URL_LIKE_PATTERN =
+  /(?:https?:\/\/|www\.)[^\s<]+|(?:^|[\s<(])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gi;
 
 const GLOBAL_CHAT_REACTION_TOKEN_ANY_PATTERN = /\[cycling-reaction:[^\]]+\]/gi;
 const GLOBAL_CHAT_REACTION_KEYS =
@@ -156,6 +168,47 @@ export function stripGlobalChatCyclingReactionTokens(value: string): string {
 
 export function normalizeGlobalChatMessage(value: string): string {
   return expandGlobalChatEmoticons(value).trim().replace(/\s+/g, " ");
+}
+
+export function hasForbiddenGlobalChatLink(value: string): boolean {
+  for (const match of value.matchAll(GLOBAL_CHAT_URL_LIKE_PATTERN)) {
+    const rawLink = (match[1] ?? match[0])
+      .trim()
+      .replace(/[),.;!?]+$/, "");
+    if (!GLOBAL_CHAT_ALLOWED_LINK.test(rawLink)) return true;
+  }
+
+  return false;
+}
+
+export function getGlobalChatMentionQuery(
+  value: string,
+  cursorPosition: number,
+): GlobalChatMentionQuery | null {
+  const end = Math.min(Math.max(Math.trunc(cursorPosition), 0), value.length);
+  const prefix = value.slice(0, end);
+  const match = prefix.match(/(?:^|\s)@([^@,\n;:!?]{0,30})$/);
+  if (!match) return null;
+
+  const start = prefix.lastIndexOf("@");
+  if (start < 0) return null;
+
+  return {
+    query: match[1].trimStart(),
+    start,
+    end,
+  };
+}
+
+export function globalChatMessageMentionsUsername(
+  message: string,
+  username: string,
+) {
+  const normalizedUsername = username.trim().toLocaleLowerCase("fr");
+  return (
+    normalizedUsername.length > 0 &&
+    message.toLocaleLowerCase("fr").includes(`@${normalizedUsername}`)
+  );
 }
 
 export function buildGlobalChatMessage({

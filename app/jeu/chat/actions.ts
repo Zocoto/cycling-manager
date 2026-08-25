@@ -2,7 +2,9 @@
 
 import {
   extractGlobalChatPreviewReference,
+  GLOBAL_CHAT_MENTION_MAX_RECIPIENTS,
   GLOBAL_CHAT_MESSAGE_MAX_LENGTH,
+  hasForbiddenGlobalChatLink,
   isGlobalChatMessageReactionEmoji,
   normalizeGlobalChatMessage,
   type GlobalChatMessageReactionEmoji,
@@ -17,6 +19,7 @@ import {
 export async function postGlobalChatMessageAction(
   rawMessage: string,
   replyToMessageId: string | null = null,
+  mentionedSportingDirectorIds: string[] = [],
 ): Promise<GlobalChatMessage> {
   const message = normalizeGlobalChatMessage(rawMessage);
 
@@ -31,18 +34,32 @@ export async function postGlobalChatMessageAction(
   if (replyToMessageId !== null && !isUuid(replyToMessageId)) {
     throw new Error("Le message auquel vous répondez est invalide.");
   }
+  if (hasForbiddenGlobalChatLink(message)) {
+    throw new Error(
+      "Seuls les liens Cyclo Stratège vers une fiche coureur ou équipe sont autorisés.",
+    );
+  }
+
+  const uniqueMentionIds = [...new Set(mentionedSportingDirectorIds)];
+  if (
+    uniqueMentionIds.length > GLOBAL_CHAT_MENTION_MAX_RECIPIENTS ||
+    uniqueMentionIds.some((directorId) => !isUuid(directorId))
+  ) {
+    throw new Error("Les membres à notifier sont invalides.");
+  }
 
   const preview = extractGlobalChatPreviewReference(message);
   const supabase = await createSupabaseServerClient();
   await requireAuthenticatedUser(supabase);
 
   const { data, error } = await supabase.rpc(
-    "post_global_chat_message_v2",
+    "post_global_chat_message_v3",
     {
       p_message: message,
       p_preview_type: preview?.type ?? null,
       p_preview_entity_id: preview?.entityId ?? null,
       p_reply_to_message_id: replyToMessageId,
+      p_mentioned_sporting_director_ids: uniqueMentionIds,
     },
   );
   const row = data as GlobalChatMessageRow | null;

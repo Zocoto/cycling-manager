@@ -15,6 +15,11 @@ export default defineConfig({
       ...defaultExclude,
       "**/.tmp-*/**",
       "**/.codex-*/**",
+      "**/.worktrees/**",
+      "**/.fix-*/**",
+      "**/source/**",
+      "**/validation/**",
+      "**/recruitment-alerts/**",
     ],
   },
 });

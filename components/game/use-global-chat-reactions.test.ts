@@ -7,6 +7,8 @@ import { updateMessageReaction } from "./use-global-chat-reactions";
 const baseMessage = {
   id: "11111111-1111-4111-8111-111111111111",
   sportingDirectorId: "22222222-2222-4222-8222-222222222222",
+  authorAvatarKey: null,
+  authorAvatarFrameKey: null,
   teamId: "33333333-3333-4333-8333-333333333333",
   authorDisplayName: "Marco Velo",
   teamDisplayName: "Roues Libres",

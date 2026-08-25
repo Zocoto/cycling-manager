@@ -11,23 +11,28 @@ import {
 
 import { CYCLOGAZETTE_READ_EVENT } from "@/lib/game/cyclogazette-read-sync";
 import { DIRECTOR_MAILBOX_CHANGED_EVENT } from "@/lib/game/director-mailbox-sync";
+import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type GameHeaderIndicators = {
   mailboxUnreadCount: number;
+  directMessageUnreadCount: number;
   hasUnreadGlobalChat: boolean;
   hasUnreadCyclogazette: boolean;
 };
 
 type GameHeaderIndicatorsRow = {
+  current_sporting_director_id: string | null;
   mailbox_unread_count: number | null;
+  direct_message_unread_count: number | null;
   has_unread_global_chat: boolean | null;
   has_unread_cyclogazette: boolean | null;
 };
 
 const EMPTY_INDICATORS: GameHeaderIndicators = {
   mailboxUnreadCount: 0,
+  directMessageUnreadCount: 0,
   hasUnreadGlobalChat: false,
   hasUnreadCyclogazette: false,
 };
@@ -52,11 +57,11 @@ export function GameHeaderIndicatorsProvider({
     async function refreshIndicators() {
       const requestVersion = ++requestVersionRef.current;
       const result = await supabase
-        .rpc("get_current_game_header_indicators")
+        .rpc("get_current_game_header_indicators_v2")
         .maybeSingle();
 
       if (!active || result.error || requestVersion !== requestVersionRef.current) {
-        return;
+        return null;
       }
 
       const row = result.data as GameHeaderIndicatorsRow | null;
@@ -66,10 +71,16 @@ export function GameHeaderIndicatorsProvider({
           0,
           Number(row?.mailbox_unread_count ?? 0),
         ),
+        directMessageUnreadCount: Math.max(
+          0,
+          Number(row?.direct_message_unread_count ?? 0),
+        ),
         hasUnreadGlobalChat: row?.has_unread_global_chat === true,
         hasUnreadCyclogazette:
           row?.has_unread_cyclogazette === true,
       });
+
+      return row;
     }
 
     function scheduleRefresh(delayMs = 150) {
@@ -105,6 +116,10 @@ export function GameHeaderIndicatorsProvider({
       refreshWhenVisible,
     );
     window.addEventListener(
+      DIRECT_MESSAGES_CHANGED_EVENT,
+      refreshWhenVisible,
+    );
+    window.addEventListener(
       GLOBAL_CHAT_MESSAGES_READ_EVENT,
       acknowledgeGlobalChatRead,
     );
@@ -115,10 +130,14 @@ export function GameHeaderIndicatorsProvider({
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
-    scheduleRefresh(0);
+    let subscribedChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    const channel = supabase
-      .channel("game-header-indicators:v1")
+    async function initialize() {
+      const row = await refreshIndicators();
+      if (!active) return;
+
+      let channel = supabase
+      .channel("game-header-indicators:v2")
       .on(
         "postgres_changes",
         {
@@ -146,7 +165,23 @@ export function GameHeaderIndicatorsProvider({
         },
         () => scheduleRefresh(),
       );
-    const subscribedChannel = channel.subscribe();
+
+      if (row?.current_sporting_director_id) {
+        channel = channel.on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "direct_messages",
+            filter: `recipient_id=eq.${row.current_sporting_director_id}`,
+          },
+          () => scheduleRefresh(),
+        );
+      }
+      subscribedChannel = channel.subscribe();
+    }
+
+    void initialize();
 
     return () => {
       active = false;
@@ -154,6 +189,10 @@ export function GameHeaderIndicatorsProvider({
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
       window.removeEventListener(
         DIRECTOR_MAILBOX_CHANGED_EVENT,
+        refreshWhenVisible,
+      );
+      window.removeEventListener(
+        DIRECT_MESSAGES_CHANGED_EVENT,
         refreshWhenVisible,
       );
       window.removeEventListener(
@@ -166,7 +205,9 @@ export function GameHeaderIndicatorsProvider({
       );
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
-      void supabase.removeChannel(subscribedChannel);
+      if (subscribedChannel) {
+        void supabase.removeChannel(subscribedChannel);
+      }
     };
   }, []);
 

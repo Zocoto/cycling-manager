@@ -12,7 +12,10 @@ import {
 
 const currentDirector: GlobalChatOnlineDirector = {
   sportingDirectorId: "director-current",
+  username: "zoe",
   displayName: "Zoé",
+  avatarKey: "director_f_01",
+  avatarFrameKey: null,
   teamId: "team-current",
   teamName: "Équipe actuelle",
   teamHref: "/jeu/equipes/team-current",
@@ -42,7 +45,10 @@ describe("global game presence", () => {
       mapGlobalChatOnlineDirectorRows([
         {
           sporting_director_id: "director-1",
+          username: "alice",
           display_name: "Alice",
+          avatar_key: "director_f_02",
+          avatar_frame_key: null,
           team_id: "team-1",
           team_name: "Les Rouleurs",
         },
@@ -56,7 +62,10 @@ describe("global game presence", () => {
     ).toEqual([
       {
         sportingDirectorId: "director-1",
+        username: "alice",
         displayName: "Alice",
+        avatarKey: "director_f_02",
+        avatarFrameKey: null,
         teamId: "team-1",
         teamName: "Les Rouleurs",
         teamHref: "/jeu/equipes/team-1",
@@ -70,7 +79,10 @@ describe("global game presence", () => {
       recentDirectors: [
         {
           sportingDirectorId: "director-2",
+          username: "bruno",
           displayName: "Bruno",
+          avatarKey: null,
+          avatarFrameKey: null,
           teamId: "team-2",
           teamName: "Nom ancien",
           teamHref: "/jeu/equipes/team-2",
@@ -80,14 +92,20 @@ describe("global game presence", () => {
       realtimeDirectors: [
         {
           sportingDirectorId: "director-2",
+          username: "bruno",
           displayName: "Bruno",
+          avatarKey: "director_m_01",
+          avatarFrameKey: null,
           teamId: "team-2",
           teamName: "Nom temps réel",
           teamHref: "/jeu/equipes/team-2",
         },
         {
           sportingDirectorId: "director-1",
+          username: "alice",
           displayName: "Alice",
+          avatarKey: "director_f_02",
+          avatarFrameKey: null,
           teamId: "team-1",
           teamName: "Les Rouleurs",
           teamHref: "/jeu/equipes/team-1",

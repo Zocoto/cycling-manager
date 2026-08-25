@@ -35,6 +35,16 @@
     ".tmp-*",
     ".tmp-*/**",
     ".codex-*",
-    ".codex-*/**"
+    ".codex-*/**",
+    ".worktrees",
+    ".worktrees/**",
+    ".fix-*",
+    ".fix-*/**",
+    "source",
+    "source/**",
+    "validation",
+    "validation/**",
+    "recruitment-alerts",
+    "recruitment-alerts/**"
   ]
 }
