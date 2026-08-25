@@ -29,6 +29,12 @@ import {
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
 import {
+  getScoutingSupervisionPercentageForDay,
+  getScoutingSupervisionStatus,
+  normalizeScoutingSupervisionEffects,
+  type ScoutingSupervisionStatus,
+} from "@/lib/game/scouting-supervision";
+import {
   createStandardTransferScoutingReport,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
@@ -233,6 +239,7 @@ export type YouthMission = {
   startDayNumber: number;
   durationDays: number;
   completesDayNumber: number;
+  supervisionBonusPercentage: number;
   status: MissionRow["status"];
   unread: boolean;
   viewedAt: string | null;
@@ -306,6 +313,7 @@ export type YouthDevelopmentOverview = {
   rosterLimit: number;
   canScheduleYouthPromotion: boolean;
   totalTuitionPerSeason: number;
+  scoutingSupervision: ScoutingSupervisionStatus;
 };
 
 export async function settleDueYouthScoutingMissions(): Promise<number> {
@@ -392,6 +400,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
     missionsResult,
     academyResult,
     rosterCapacityResult,
+    scoutingSupervisionResult,
   ] = await Promise.all([
     admin
       .from("countries")
@@ -426,6 +435,14 @@ async function loadOverview(admin: AdminClient, context: Context) {
       p_team_id: context.teamId,
       p_game_year: context.gameYear + 1,
     }),
+    admin
+      .from("daily_reward_active_effects")
+      .select("effect_payload, starts_day_number, ends_day_number")
+      .eq("team_id", context.teamId)
+      .eq("season_id", context.seasonId)
+      .eq("effect_kind", "scouting_boost")
+      .eq("status", "active")
+      .gte("ends_day_number", context.currentDayNumber),
   ]);
   for (const [result, label] of [
     [countriesResult, "les pays"],
@@ -434,10 +451,14 @@ async function loadOverview(admin: AdminClient, context: Context) {
     [missionsResult, "les missions"],
     [academyResult, "l’école de cyclisme"],
     [rosterCapacityResult, "la capacité du prochain effectif"],
+    [scoutingSupervisionResult, "le bonus de supervision du scouting"],
   ] as const)
     assertQuery(result.error, label);
 
   const countries = countriesResult.data ?? [];
+  const scoutingSupervisionEffects = normalizeScoutingSupervisionEffects(
+    scoutingSupervisionResult.data,
+  );
   const countryById = new Map(
     countries.map((country) => [country.id, country]),
   );
@@ -529,6 +550,11 @@ async function loadOverview(admin: AdminClient, context: Context) {
       startDayNumber: mission.start_day_number,
       durationDays: mission.duration_days,
       completesDayNumber: mission.completes_day_number,
+      supervisionBonusPercentage:
+        getScoutingSupervisionPercentageForDay(
+          scoutingSupervisionEffects,
+          mission.completes_day_number,
+        ),
       status: mission.status,
       unread: mission.status === "completed" && !mission.report_viewed_at,
       viewedAt: mission.report_viewed_at,
@@ -743,6 +769,10 @@ async function loadOverview(admin: AdminClient, context: Context) {
       (sum, rider) => sum + rider.tuitionPerSeason,
       0,
     ),
+    scoutingSupervision: getScoutingSupervisionStatus(
+      scoutingSupervisionEffects,
+      context.currentDayNumber,
+    ),
   } satisfies YouthDevelopmentOverview;
 }
 
@@ -918,14 +948,20 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
         .maybeSingle<{ registration_country_id: string }>(),
       admin
         .from("daily_reward_active_effects")
-        .select("effect_payload")
+        .select("effect_payload, starts_day_number, ends_day_number")
         .eq("team_id", mission.team_id)
         .eq("season_id", mission.season_id)
         .eq("effect_kind", "scouting_boost")
         .eq("status", "active")
         .lte("starts_day_number", mission.completes_day_number)
         .gte("ends_day_number", mission.completes_day_number)
-        .returns<Array<{ effect_payload: Record<string, unknown> }>>(),
+        .returns<
+          Array<{
+            effect_payload: Record<string, unknown>;
+            starts_day_number: number;
+            ends_day_number: number;
+          }>
+        >(),
     ]);
   assertQuery(talentsResult.error, "les talents du scout");
   assertQuery(teamSeasonResult.error, "la nationalité de l’équipe");
@@ -941,12 +977,9 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       : 1;
   const dailyScoutingQualityMultiplier =
     1 +
-    Math.max(
-      0,
-      ...(dailyRewardBoostResult.data ?? []).map((effect) => {
-        const percentage = Number(effect.effect_payload.percentage);
-        return Number.isFinite(percentage) ? percentage : 0;
-      }),
+    getScoutingSupervisionPercentageForDay(
+      normalizeScoutingSupervisionEffects(dailyRewardBoostResult.data),
+      mission.completes_day_number,
     ) /
       100;
   if (!hasRiderNameLibrary(profile.name_profile_code))

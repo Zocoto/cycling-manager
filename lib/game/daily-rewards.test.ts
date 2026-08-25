@@ -77,6 +77,7 @@ describe("daily rewards", () => {
     expect(isStackableDailyReward("form_boost")).toBe(true);
     expect(isStackableDailyReward("rider_experience")).toBe(true);
     expect(isStackableDailyReward("rating_boost")).toBe(true);
+    expect(isStackableDailyReward("scouting_boost")).toBe(true);
     expect(isStackableDailyReward("special_ability")).toBe(false);
     expect(isStackableDailyReward("naturalization")).toBe(false);
   });

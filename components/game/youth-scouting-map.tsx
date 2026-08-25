@@ -6,18 +6,25 @@ import { useFormStatus } from "react-dom";
 import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions";
 import { projectCountryCoordinate } from "@/data/country-map-coordinates";
 import { YOUTH_SCOUTING_DURATION_OPTIONS } from "@/lib/game/youth-scouting-duration";
+import { getScoutingSupervisionPercentageForDay } from "@/lib/game/scouting-supervision";
+import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 import type { YouthCountry, YouthScout } from "@/services/youth-development";
 
 export function YouthScoutingMap({
   countries,
   scouts,
+  currentDayNumber,
+  scoutingSupervision,
   tutorialMode = false,
 }: {
   countries: YouthCountry[];
   scouts: YouthScout[];
+  currentDayNumber: number;
+  scoutingSupervision: ScoutingSupervisionStatus;
   tutorialMode?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [durationDays, setDurationDays] = useState(3);
   const [selectedCountryId, setSelectedCountryId] = useState(countries.find((country) => country.code === "FR")?.id ?? countries[0]?.id ?? "");
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fr");
@@ -25,6 +32,12 @@ export function YouthScoutingMap({
   }, [countries, search]);
   const selected = countries.find((country) => country.id === selectedCountryId) ?? countries[0];
   const availableScouts = scouts.filter((scout) => !scout.activeMissionId);
+  const completionDayNumber = currentDayNumber + durationDays;
+  const plannedSupervisionPercentage =
+    getScoutingSupervisionPercentageForDay(
+      scoutingSupervision.effects,
+      completionDayNumber,
+    );
   if (!selected) return null;
 
   return (
@@ -99,6 +112,24 @@ export function YouthScoutingMap({
           <p className="mt-2 text-sm font-extrabold text-[#176951]">{selected.specialtyLabel} · {selected.secondarySpecialtyLabel}</p>
           <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">Une tendance locale, jamais une garantie : les rapports peuvent révéler d’autres profils.</p>
         </div>
+        {!tutorialMode && scoutingSupervision.currentPercentage > 0 ? (
+          <div className="mt-4 rounded-2xl border border-[#D6A600]/25 bg-[#FFF9DB] p-4 text-[#715700]">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em]">
+              Supervision renforcée
+            </p>
+            <p className="mt-1 text-sm font-black">
+              +{scoutingSupervision.currentPercentage} % sur les rapports
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-5">
+              Cumul complet actif pendant encore{" "}
+              {scoutingSupervision.remainingDays} jour
+              {scoutingSupervision.remainingDays > 1 ? "s" : ""}
+              {scoutingSupervision.stableThroughDayNumber
+                ? `, jusqu’au J${scoutingSupervision.stableThroughDayNumber}.`
+                : "."}
+            </p>
+          </div>
+        ) : null}
         {tutorialMode ? (
           <TutorialMissionLauncher countryName={selected.name} />
         ) : (
@@ -113,10 +144,21 @@ export function YouthScoutingMap({
           </label>
           <label className="block">
             <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">Durée du scouting</span>
-            <select name="durationDays" defaultValue="3" className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]">
+            <select name="durationDays" value={durationDays} onChange={(event) => setDurationDays(Number(event.target.value))} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/15 bg-white px-3 text-sm font-bold text-[#183F37] outline-none focus:border-[#278B70]">
               {YOUTH_SCOUTING_DURATION_OPTIONS.map((day) => <option key={day} value={day}>{day} jours</option>)}
             </select>
           </label>
+          {plannedSupervisionPercentage > 0 ? (
+            <p className="rounded-xl border border-[#42B99A]/25 bg-[#EAF5F3] px-3 py-2.5 text-xs font-bold leading-5 text-[#176951]">
+              Rapport prévu au J{completionDayNumber} · bonus de supervision
+              confirmé : +{plannedSupervisionPercentage} %.
+            </p>
+          ) : scoutingSupervision.currentPercentage > 0 ? (
+            <p className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-2.5 text-xs font-bold leading-5 text-[#715700]">
+              Le bonus actif aujourd’hui aura expiré avant le rapport du J
+              {completionDayNumber}.
+            </p>
+          ) : null}
           <MissionSubmitButton disabled={!availableScouts.length} />
           {!availableScouts.length ? <p className="text-xs font-bold text-[#B54242]">Aucun scout disponible : attendez le retour d’une mission ou recrutez-en un.</p> : null}
           </form>

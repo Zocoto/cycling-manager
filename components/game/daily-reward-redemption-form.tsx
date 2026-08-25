@@ -12,6 +12,7 @@ import {
   type DailyRewardRider,
   type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
+import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 import {
   STAFF_ROLE_DEFINITIONS,
   STAFF_ROLES,
@@ -27,6 +28,7 @@ export function DailyRewardRedemptionForm({
   staffAcademyBuilt,
   constructionProjects,
   staffMembers,
+  scoutingSupervision,
   returnPath,
 }: {
   item: DailyRewardInventoryItem;
@@ -38,6 +40,7 @@ export function DailyRewardRedemptionForm({
   staffAcademyBuilt: boolean;
   constructionProjects: DailyRewardConstructionProject[];
   staffMembers: DailyRewardStaffMember[];
+  scoutingSupervision: ScoutingSupervisionStatus;
   returnPath?: string;
 }) {
   const needsRider = requiresRiderTarget(item.effectKind);
@@ -67,6 +70,27 @@ export function DailyRewardRedemptionForm({
         riders={riders}
         abilities={abilities}
       />
+
+      {item.effectKind === "scouting_boost" &&
+      scoutingSupervision.currentPercentage > 0 ? (
+        <div className="rounded-xl border border-[#D6A600]/25 bg-[#FFF9DB] px-3 py-3 text-[#715700]">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em]">
+            Supervision déjà active
+          </p>
+          <p className="mt-1 text-sm font-black">
+            +{scoutingSupervision.currentPercentage} % pendant encore{" "}
+            {scoutingSupervision.remainingDays} jour
+            {scoutingSupervision.remainingDays > 1 ? "s" : ""}
+            {scoutingSupervision.stableThroughDayNumber
+              ? ` · jusqu’au J${scoutingSupervision.stableThroughDayNumber}`
+              : ""}
+          </p>
+          <p className="mt-1 text-[11px] font-semibold leading-5">
+            Le bonus de cet objet s’ajoutera au cumul en cours, dans la limite
+            de +100 %.
+          </p>
+        </div>
+      ) : null}
 
       {item.effectKind === "wildcard" ? (
         <SelectField name="raceEditionId" label="Course Elite hors GT" required>

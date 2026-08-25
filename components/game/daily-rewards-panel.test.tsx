@@ -235,5 +235,11 @@ function createOverview(): DailyRewardOverview {
     staffAcademyBuilt: false,
     constructionProjects: [],
     staffMembers: [],
+    scoutingSupervision: {
+      currentPercentage: 0,
+      stableThroughDayNumber: null,
+      remainingDays: 0,
+      effects: [],
+    },
   };
 }

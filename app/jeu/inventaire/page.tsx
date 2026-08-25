@@ -35,6 +35,10 @@ import type {
   DailyRewardRace,
   DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
+import {
+  EMPTY_SCOUTING_SUPERVISION_STATUS,
+  type ScoutingSupervisionStatus,
+} from "@/lib/game/scouting-supervision";
 import { getSpecialAbilityDefinition } from "@/lib/game/special-abilities";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -351,6 +355,10 @@ export default async function InventoryPage({
                   dailyRewardStaffMembers={
                     dailyRewardOverview?.staffMembers ?? []
                   }
+                  dailyRewardScoutingSupervision={
+                    dailyRewardOverview?.scoutingSupervision ??
+                    EMPTY_SCOUTING_SUPERVISION_STATUS
+                  }
                 />
               ))}
             </div>
@@ -377,6 +385,7 @@ function InventoryItemCard({
   dailyRewardStaffAcademyBuilt,
   dailyRewardConstructionProjects,
   dailyRewardStaffMembers,
+  dailyRewardScoutingSupervision,
 }: {
   item: TeamInventoryItem;
   riders: InventoryRiderOption[];
@@ -391,6 +400,7 @@ function InventoryItemCard({
   dailyRewardStaffAcademyBuilt: boolean;
   dailyRewardConstructionProjects: DailyRewardConstructionProject[];
   dailyRewardStaffMembers: DailyRewardStaffMember[];
+  dailyRewardScoutingSupervision: ScoutingSupervisionStatus;
 }) {
   const category = getInventoryCategory(item.category);
   const managementReward =
@@ -488,6 +498,7 @@ function InventoryItemCard({
             staffAcademyBuilt={dailyRewardStaffAcademyBuilt}
             constructionProjects={dailyRewardConstructionProjects}
             staffMembers={dailyRewardStaffMembers}
+            scoutingSupervision={dailyRewardScoutingSupervision}
             returnPath={returnPath}
           />
         ) : item.equipmentSlot ? (

@@ -25,6 +25,13 @@ describe("YouthScoutingMap", () => {
           },
         ]}
         scouts={[]}
+        currentDayNumber={1}
+        scoutingSupervision={{
+          currentPercentage: 0,
+          stableThroughDayNumber: null,
+          remainingDays: 0,
+          effects: [],
+        }}
       />,
     );
 

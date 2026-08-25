@@ -5,6 +5,7 @@ import {
   type RiderRatingKey,
 } from "@/lib/game/rider-profile";
 import type { ItemTargetRider } from "@/lib/game/item-target-values";
+import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
 
 export const DAILY_REWARD_SEASON_LENGTH = 28;
 export const DAILY_REWARD_CYCLE_LENGTH = 40;
@@ -105,6 +106,7 @@ export type DailyRewardOverview = {
   staffAcademyBuilt: boolean;
   constructionProjects: DailyRewardConstructionProject[];
   staffMembers: DailyRewardStaffMember[];
+  scoutingSupervision: ScoutingSupervisionStatus;
 };
 
 export const DAILY_REWARD_RATING_OPTIONS = RIDER_RATING_AXES.map((axis) => ({
@@ -170,7 +172,12 @@ export function requiresRiderTarget(kind: DailyRewardEffectKind) {
 }
 
 export function isStackableDailyReward(kind: DailyRewardEffectKind) {
-  return ["form_boost", "rider_experience", "rating_boost"].includes(kind);
+  return [
+    "form_boost",
+    "rider_experience",
+    "rating_boost",
+    "scouting_boost",
+  ].includes(kind);
 }
 
 export function groupDailyRewardInventoryItems(

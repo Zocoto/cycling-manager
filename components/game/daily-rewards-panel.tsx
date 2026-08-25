@@ -277,6 +277,7 @@ function InventoryRewardCard({
         staffAcademyBuilt={overview.staffAcademyBuilt}
         constructionProjects={overview.constructionProjects}
         staffMembers={overview.staffMembers}
+        scoutingSupervision={overview.scoutingSupervision}
       />
     </article>
   );

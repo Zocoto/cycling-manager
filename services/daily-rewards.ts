@@ -17,6 +17,10 @@ import {
   type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import { getCurrentTeamItemTargetRiders } from "@/services/item-target-values";
+import {
+  getScoutingSupervisionStatus,
+  normalizeScoutingSupervisionEffects,
+} from "@/lib/game/scouting-supervision";
 
 type RawOverview = {
   seasonId?: unknown;
@@ -67,6 +71,7 @@ export async function getCurrentDailyRewardOverview(
     academyResult,
     countriesResult,
     staffAcademyResult,
+    scoutingSupervisionResult,
   ] = await Promise.all([
     getCurrentTeamItemTargetRiders(supabase),
     supabase
@@ -86,6 +91,7 @@ export async function getCurrentDailyRewardOverview(
       .eq("infrastructure_code", "staff_academy")
       .gt("level", 0)
       .maybeSingle<{ level: number }>(),
+    supabase.rpc("get_current_scouting_supervision_status"),
   ]);
 
   if (academyResult.error) {
@@ -101,6 +107,11 @@ export async function getCurrentDailyRewardOverview(
   if (staffAcademyResult.error) {
     throw new Error(
       `Impossible de vérifier l’Académie des métiers : ${staffAcademyResult.error.message}`,
+    );
+  }
+  if (scoutingSupervisionResult.error) {
+    throw new Error(
+      `Impossible de charger le bonus de supervision du scouting : ${scoutingSupervisionResult.error.message}`,
     );
   }
 
@@ -127,12 +138,19 @@ export async function getCurrentDailyRewardOverview(
         code: row.iso_alpha2,
       }) satisfies DailyRewardCountry,
   );
+  const scoutingSupervisionPayload = readObject(
+    scoutingSupervisionResult.data,
+  );
+  const scoutingSupervisionEffects = normalizeScoutingSupervisionEffects(
+    scoutingSupervisionPayload.effects,
+  );
+  const currentDayNumber = readNumber(raw.currentDayNumber, 1);
 
   return {
     seasonId,
     seasonName: readString(raw.seasonName) || "Saison en cours",
     gameYear,
-    currentDayNumber: readNumber(raw.currentDayNumber, 1),
+    currentDayNumber,
     seasonLength: DAILY_REWARD_SEASON_LENGTH,
     claimedToday: Boolean(raw.claimedToday),
     availableToday: Boolean(raw.availableToday),
@@ -159,6 +177,10 @@ export async function getCurrentDailyRewardOverview(
     ).flatMap(normalizeConstructionProject),
     staffMembers: readArray(rawManagementTargets.staffMembers).flatMap(
       normalizeStaffMember,
+    ),
+    scoutingSupervision: getScoutingSupervisionStatus(
+      scoutingSupervisionEffects,
+      currentDayNumber,
     ),
   };
 }

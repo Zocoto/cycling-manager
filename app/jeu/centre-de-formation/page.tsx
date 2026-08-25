@@ -360,6 +360,8 @@ function ScoutingTab({
         <YouthScoutingMap
           countries={overview.countries}
           scouts={overview.scouts}
+          currentDayNumber={overview.currentDayNumber}
+          scoutingSupervision={overview.scoutingSupervision}
           tutorialMode={tutorialDemo}
         />
       </section>
@@ -1385,6 +1387,12 @@ function ActiveMissionCard({
           style={{ width: `${progress}%` }}
         />
       </div>
+      {mission.supervisionBonusPercentage > 0 ? (
+        <p className="mt-3 rounded-xl border border-[#42B99A]/20 bg-[#EAF5F3] px-3 py-2 text-xs font-black text-[#176951]">
+          Supervision +{mission.supervisionBonusPercentage} % appliquée au
+          rapport du J{mission.completesDayNumber}
+        </p>
+      ) : null}
     </article>
   );
 }
