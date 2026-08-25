@@ -160,7 +160,12 @@ a {
 }
 
 @keyframes cm-race-road-marking-svg {
-  to { stroke-dashoffset: 28; }
+  to {
+    stroke-dashoffset: var(
+      --cm-race-road-marking-cycle-distance,
+      28
+    );
+  }
 }
 
 @keyframes cm-race-road-marking-strip {
@@ -412,11 +417,17 @@ a {
 }
 
 .cm-race-road-marking-svg {
-  animation: cm-race-road-marking-svg 0.62s linear infinite;
+  animation: cm-race-road-marking-svg var(
+      --cm-race-road-marking-cycle-duration,
+      0.62s
+    ) linear infinite;
 }
 
 .cm-race-road-marking-strip {
-  animation: cm-race-road-marking-strip 0.68s linear infinite;
+  animation: cm-race-road-marking-strip var(
+      --cm-race-road-marking-strip-duration,
+      1.4s
+    ) linear infinite;
   will-change: background-position;
 }
 
@@ -428,7 +439,10 @@ a {
 }
 
 .cm-race-cobble-flow-strip {
-  animation: cm-race-cobble-flow-strip 0.68s linear infinite;
+  animation: cm-race-cobble-flow-strip var(
+      --cm-race-road-marking-strip-duration,
+      1.4s
+    ) linear infinite;
   will-change: background-position;
 }
 

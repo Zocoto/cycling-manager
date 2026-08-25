@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 
 import { SideRaceCyclist } from "@/components/game/race-cyclist-detailed";
 import { RaceRoadChalk } from "@/components/game/race-road-chalk";
@@ -21,6 +21,10 @@ import type {
   StageSimulationInput,
   StageSimulationResult,
 } from "@/lib/game/race-simulation";
+import {
+  DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
+  getRaceRoadMarkingMotion,
+} from "@/lib/game/race-visual-motion";
 import { getTeamMonogram } from "@/lib/game/race-visuals";
 import type { RaceWeather } from "@/lib/game/race-weather";
 
@@ -43,6 +47,11 @@ export function RaceTimeTrialScene({
   weather: RaceWeather;
   favoriteNames: readonly string[];
 }) {
+  const roadMarkingMotion = getRaceRoadMarkingMotion({
+    cycleDistance: 13,
+    viewportDistance: 100,
+    sceneryDurationSeconds: DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
+  });
   const schedule = useMemo(
     () => buildTimeTrialStartSchedule({ input, simulation }),
     [input, simulation],
@@ -125,6 +134,14 @@ export function RaceTimeTrialScene({
                 vectorEffect="non-scaling-stroke"
                 data-road-flow-direction="right-to-left"
                 className={isMoving ? "cm-race-road-marking-svg" : ""}
+                style={
+                  {
+                    "--cm-race-road-marking-cycle-distance":
+                      roadMarkingMotion.cycleDistance,
+                    "--cm-race-road-marking-cycle-duration":
+                      `${roadMarkingMotion.durationSeconds}s`,
+                  } as CSSProperties
+                }
               />
               <RaceRoadChalk
                 show={activeSegment?.terrain === "climb"}

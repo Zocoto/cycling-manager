@@ -17,6 +17,7 @@ import {
   getFinishPassageDurationMs,
   getFinishPassagePosition,
   getFinishTargetPosition,
+  getSmallGroupAttackProgress,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
   keepPassageWinnerVisible,
@@ -65,8 +66,8 @@ describe("final race visualization", () => {
     );
 
     expect(new Set(offsets).size).toBe(7);
-    expect(Math.max(...offsets)).toBeLessThanOrEqual(21);
-    expect(Math.min(...offsets)).toBeGreaterThanOrEqual(-21);
+    expect(Math.max(...offsets)).toBeLessThanOrEqual(30);
+    expect(Math.min(...offsets)).toBeGreaterThanOrEqual(-30);
   });
 
   it("ne place dans un train que le poisson-pilote et le sprinteur réels", () => {
@@ -481,13 +482,13 @@ describe("final race visualization", () => {
   it("lève les bras sur une victoire nette mais garde le guidon au photo-finish", () => {
     expect(
       shouldWinnerCelebrate({
-        metersRemaining: 180,
+        metersRemaining: 12,
         isPhotoFinish: false,
       }),
     ).toBe(true);
     expect(
       shouldWinnerCelebrate({
-        metersRemaining: 181,
+        metersRemaining: 13,
         isPhotoFinish: false,
       }),
     ).toBe(false);
@@ -518,6 +519,31 @@ describe("final race visualization", () => {
     expect(Math.min(...leadingGroup)).toBeGreaterThan(
       Math.max(...chasingGroup)
     );
+    expect(Math.max(...leadingGroup) - Math.min(...leadingGroup)).toBeLessThan(
+      9,
+    );
+  });
+
+  it("représente cinq secondes comme un duel serré et une minute comme un écart net", () => {
+    const winner = getFinalApproachPosition({
+      rank: 1,
+      gapToWinnerSeconds: 0,
+      finishLinePosition: 86,
+    });
+    const runnerUp = getFinalApproachPosition({
+      rank: 2,
+      gapToWinnerSeconds: 5,
+      finishLinePosition: 86,
+    });
+    const third = getFinalApproachPosition({
+      rank: 3,
+      gapToWinnerSeconds: 60,
+      finishLinePosition: 86,
+    });
+
+    expect(winner - runnerUp).toBeLessThan(5);
+    expect(runnerUp - third).toBeGreaterThan(20);
+    expect(winner - third).toBeGreaterThan((winner - runnerUp) * 6);
   });
 
   it("fait franchir la ligne à chaque coureur selon son écart officiel", () => {
@@ -577,11 +603,6 @@ describe("final race visualization", () => {
       getSmallGroupFinishPosition({
         riderIndex,
         riderCount: 9,
-        decisiveIndex: riderIndex,
-        decisiveCount: 9,
-        droppedIndex: -1,
-        droppedCount: 0,
-        lateJoinerGapSeconds: null,
         finalProgress: 0,
         battleProgress: 0,
         visualSeed: 17,
@@ -591,6 +612,59 @@ describe("final race visualization", () => {
     );
 
     expect(new Set(positions).size).toBe(9);
+    expect(Math.max(...positions) - Math.min(...positions)).toBeLessThan(18);
+  });
+
+  it("forme les écarts progressivement sur tout le tronçon", () => {
+    const entryPosition = getFinalGroupEntryPosition({
+      groupGapSeconds: 0,
+      riderIndex: 2,
+      groupSize: 3,
+    });
+    const finishPosition = getFinalApproachPosition({
+      rank: 3,
+      gapToWinnerSeconds: 60,
+      finishLinePosition: 86,
+    });
+    const quarterPosition = getSmallGroupFinishPosition({
+      riderIndex: 2,
+      riderCount: 3,
+      finalProgress: 0.05,
+      battleProgress: 0.25,
+      visualSeed: 4,
+      hasFinished: false,
+      finishLinePosition: 86,
+      entryPositionOverride: entryPosition,
+      finishPositionOverride: finishPosition,
+    });
+
+    expect(quarterPosition).toBeLessThan(entryPosition);
+    expect(quarterPosition).toBeGreaterThan(finishPosition);
+    expect(entryPosition - quarterPosition).toBeLessThan(
+      (entryPosition - finishPosition) * 0.25,
+    );
+  });
+
+  it("simule une tentative d'attaque subtile qui s'annule avant la ligne", () => {
+    const attackStart = getSmallGroupAttackProgress({
+      riderIndex: 0,
+      finalProgress: 0,
+      visualSeed: 1,
+    });
+    const attackPeak = getSmallGroupAttackProgress({
+      riderIndex: 0,
+      finalProgress: 0.24,
+      visualSeed: 1,
+    });
+    const attackFinish = getSmallGroupAttackProgress({
+      riderIndex: 0,
+      finalProgress: 1,
+      visualSeed: 1,
+    });
+
+    expect(attackStart).toBe(0);
+    expect(attackPeak).toBeGreaterThan(0.9);
+    expect(attackFinish).toBe(0);
   });
 
   it("place le vainqueur devant tous les autres sur la ligne", () => {
@@ -598,11 +672,6 @@ describe("final race visualization", () => {
       getSmallGroupFinishPosition({
         riderIndex,
         riderCount: 9,
-        decisiveIndex: riderIndex,
-        decisiveCount: 9,
-        droppedIndex: -1,
-        droppedCount: 0,
-        lateJoinerGapSeconds: null,
         finalProgress: 1,
         battleProgress: 1,
         visualSeed: 17,
@@ -618,42 +687,6 @@ describe("final race visualization", () => {
     )).toBe(true);
   });
 
-  it("maintient les coureurs lâchés derrière ceux qui jouent la victoire", () => {
-    const leaders = [0, 1, 2].map((decisiveIndex) =>
-      getSmallGroupFinishPosition({
-        riderIndex: decisiveIndex,
-        riderCount: 9,
-        decisiveIndex,
-        decisiveCount: 3,
-        droppedIndex: -1,
-        droppedCount: 6,
-        lateJoinerGapSeconds: null,
-        finalProgress: 1,
-        battleProgress: 1,
-        visualSeed: 5,
-        hasFinished: true,
-        finishLinePosition: 86,
-      })
-    );
-    const dropped = Array.from({ length: 6 }, (_, droppedIndex) =>
-      getSmallGroupFinishPosition({
-        riderIndex: droppedIndex + 3,
-        riderCount: 9,
-        decisiveIndex: -1,
-        decisiveCount: 3,
-        droppedIndex,
-        droppedCount: 6,
-        lateJoinerGapSeconds: null,
-        finalProgress: 1,
-        battleProgress: 1,
-        visualSeed: 5,
-        hasFinished: true,
-        finishLinePosition: 86,
-      })
-    );
-
-    expect(Math.max(...dropped)).toBeLessThan(Math.min(...leaders));
-  });
 });
 
 function createSprintVisualRider(

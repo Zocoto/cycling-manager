@@ -12,6 +12,32 @@ export type RaceRiderVisualEffort =
 
 export type RaceVisualMotionIntensity = "calm" | "controlled" | "urgent";
 
+export const DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS = 18;
+
+export function getRaceRoadMarkingMotion({
+  cycleDistance,
+  viewportDistance,
+  sceneryDurationSeconds = DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
+}: {
+  cycleDistance: number;
+  viewportDistance: number;
+  sceneryDurationSeconds?: number;
+}) {
+  const safeCycleDistance = Math.max(0.01, cycleDistance);
+  const safeViewportDistance = Math.max(0.01, viewportDistance);
+  const safeSceneryDurationSeconds = Math.max(
+    0.01,
+    sceneryDurationSeconds,
+  );
+
+  return {
+    cycleDistance: safeCycleDistance,
+    durationSeconds:
+      safeSceneryDurationSeconds *
+      (safeCycleDistance / safeViewportDistance),
+  };
+}
+
 export function getRaceRiderVisualEffort({
   riderId,
   role,
@@ -48,7 +74,7 @@ export function getRaceVisualMotionProfile(
   if (!frontDynamics) {
     return {
       intensity: "controlled" as const,
-      sceneryDurationSeconds: 18,
+      sceneryDurationSeconds: DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
     };
   }
 
@@ -74,7 +100,7 @@ export function getRaceVisualMotionProfile(
 
   return {
     intensity: "controlled" as const,
-    sceneryDurationSeconds: 18,
+    sceneryDurationSeconds: DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
   };
 }
 

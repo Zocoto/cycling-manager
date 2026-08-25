@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getBreakawayVisualState,
+  getRaceRoadMarkingMotion,
   getRaceRiderVisualEffort,
   getRaceVisualMotionProfile,
 } from "./race-visual-motion";
@@ -72,5 +73,19 @@ describe("race visual motion", () => {
       sceneryDurationSeconds: 13.5,
     });
     expect(getBreakawayVisualState(dynamics)).toBe("organized");
+  });
+
+  it("synchronizes fixed road markings with the roadside scenery", () => {
+    const motion = getRaceRoadMarkingMotion({
+      cycleDistance: 14,
+      viewportDistance: 100,
+      sceneryDurationSeconds: 18,
+    });
+
+    expect(motion.cycleDistance).toBe(14);
+    expect(motion.durationSeconds).toBeCloseTo(2.52);
+    expect(motion.cycleDistance / motion.durationSeconds).toBeCloseTo(
+      100 / 18,
+    );
   });
 });

@@ -24,8 +24,6 @@ const LOCAL_CLUB_MESSAGES: Record<string, readonly string[]> = {
   PT: ["CLUBE CICLISTA SERRA", "PEDAL ATLANTICO", "VOLTA DO BAIRRO"],
 };
 
-const ROAD_MARKING_CYCLE_DISTANCE = 28;
-const ROAD_MARKING_CYCLE_DURATION_SECONDS = 0.62;
 const ROAD_CHALK_LOOP_DISTANCE = 100;
 const ROAD_CHALK_LOOP_OFFSETS = [0, ROAD_CHALK_LOOP_DISTANCE] as const;
 
@@ -73,11 +71,7 @@ export function RaceRoadChalk({
   const travelY = -roadSlope * ROAD_CHALK_LOOP_DISTANCE;
   const motionStyle = {
     "--cm-race-road-chalk-travel-y": `${travelY}px`,
-    animationDuration: `${
-      (Math.hypot(ROAD_CHALK_LOOP_DISTANCE, travelY) /
-        ROAD_MARKING_CYCLE_DISTANCE) *
-      ROAD_MARKING_CYCLE_DURATION_SECONDS
-    }s`,
+    animationDuration: "var(--cm-scene-flow-duration, 18s)",
   } as CSSProperties;
 
   return (

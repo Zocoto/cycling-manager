@@ -646,7 +646,7 @@ export function shouldWinnerCelebrate({
   metersRemaining: number;
   isPhotoFinish: boolean;
 }) {
-  return !isPhotoFinish && metersRemaining <= 180;
+  return !isPhotoFinish && metersRemaining <= 12;
 }
 
 export function getFinishPassageDurationMs(
@@ -707,11 +707,12 @@ export function getFinalGroupEntryPosition({
   riderIndex: number;
   groupSize: number;
 }) {
-  const groupFront = 62 - Math.min(48, Math.max(0, groupGapSeconds) * 0.45);
-  const groupSpan = Math.min(8, Math.max(0, groupSize - 1) * 1.6);
-  const riderOffset = groupSize <= 1
-    ? 0
-    : (Math.max(0, riderIndex) / (groupSize - 1)) * groupSpan;
+  const groupFront = 64 - Math.min(48, Math.max(0, groupGapSeconds) * 0.45);
+  const ridersPerRow = Math.min(3, Math.max(1, groupSize));
+  const safeRiderIndex = Math.max(0, riderIndex);
+  const rowIndex = Math.floor(safeRiderIndex / ridersPerRow);
+  const laneIndex = safeRiderIndex % ridersPerRow;
+  const riderOffset = rowIndex * 5.8 + laneIndex * 3;
 
   return clamp(groupFront - riderOffset, 9, 82);
 }
@@ -729,14 +730,14 @@ export function getFinalApproachPosition({
 
   const officialGapSpacing = Math.min(
     58,
-    Math.max(0, gapToWinnerSeconds) * 0.42
+    Math.max(0, gapToWinnerSeconds) * 0.46
   );
   const sameTimeRankSpacing = gapToWinnerSeconds <= 0
     ? Math.min(12, (rank - 1) * 1.2)
     : Math.min(10, (rank - 1) * 0.35);
 
   return clamp(
-    finishLinePosition - 1.6 - officialGapSpacing - sameTimeRankSpacing,
+    finishLinePosition - 1.4 - officialGapSpacing - sameTimeRankSpacing,
     8,
     finishLinePosition - 1
   );
@@ -754,7 +755,7 @@ export function getFinishLaneOffset({
   riderIndex: number;
   roadDepth: number;
 }) {
-  const laneRatios = [0, -0.18, 0.18, -0.3, 0.3, -0.1, 0.1] as const;
+  const laneRatios = [0, -0.36, 0.36, -0.12, -0.42, 0.42, 0.12] as const;
   return roadDepth * laneRatios[Math.abs(riderIndex) % laneRatios.length];
 }
 
@@ -816,11 +817,6 @@ export function getFinishPassagePosition({
 type SmallGroupFinishPositionInput = {
   riderIndex: number;
   riderCount: number;
-  decisiveIndex: number;
-  decisiveCount: number;
-  droppedIndex: number;
-  droppedCount: number;
-  lateJoinerGapSeconds: number | null;
   finalProgress: number;
   battleProgress: number;
   visualSeed: number;
@@ -831,18 +827,14 @@ type SmallGroupFinishPositionInput = {
 };
 
 /**
- * Place les coureurs d'un petit groupe sur une ligne de course lisible.
- * Chaque emplacement d'entrée est unique, puis les coureurs sont rangés dans
- * l'ordre officiel : ceux qui jouent encore la gagne devant, les lâchés derrière.
+ * Place les coureurs d'un petit groupe sans préannoncer le verdict. Le groupe
+ * part dans une formation compacte, puis converge progressivement vers les
+ * écarts officiels. Une accélération courte et déterministe peut donner
+ * l'impression d'une attaque, mais elle s'annule toujours avant la ligne.
  */
 export function getSmallGroupFinishPosition({
   riderIndex,
   riderCount,
-  decisiveIndex,
-  decisiveCount,
-  droppedIndex,
-  droppedCount,
-  lateJoinerGapSeconds,
   finalProgress,
   battleProgress,
   visualSeed,
@@ -852,51 +844,67 @@ export function getSmallGroupFinishPosition({
   finishPositionOverride,
 }: SmallGroupFinishPositionInput) {
   const safeRiderCount = Math.max(1, riderCount);
-  const entrySlot =
-    (riderIndex + Math.abs(visualSeed) % safeRiderCount) % safeRiderCount;
-  const entryPosition = safeRiderCount === 1
-    ? 62
-    : 14 + entrySlot * (68 / (safeRiderCount - 1));
-  const lateJoinerPenalty = lateJoinerGapSeconds === null
-    ? 0
-    : Math.min(14, 5 + lateJoinerGapSeconds * 0.28);
   const readableEntryPosition = entryPositionOverride ??
-    Math.max(9, entryPosition - lateJoinerPenalty);
-
-  const leaderTarget = getFinishTargetPosition({
-    rank: 1,
-    hasFinished,
-    finishLinePosition,
-  });
-  const decisiveSpan = decisiveCount <= 1
-    ? 0
-    : Math.min(65, (decisiveCount - 1) * 8.1);
-  const decisiveSpacing = decisiveCount <= 1
-    ? 0
-    : decisiveSpan / (decisiveCount - 1);
-  const decisiveTail = leaderTarget - decisiveSpan;
-  const droppedStart = Math.max(13, decisiveTail - 9);
-  const droppedSpacing = droppedCount <= 1
-    ? 0
-    : Math.min(6.5, (droppedStart - 9) / (droppedCount - 1));
+    getFinalGroupEntryPosition({
+      groupGapSeconds: 0,
+      riderIndex,
+      groupSize: safeRiderCount,
+    });
   const finishPosition = finishPositionOverride ??
-    (decisiveIndex >= 0
-      ? leaderTarget - decisiveIndex * decisiveSpacing
-      : droppedStart - Math.max(0, droppedIndex) * droppedSpacing);
-  const movement =
-    Math.sin(finalProgress * 20 + riderIndex * 1.9 + visualSeed) *
-    1.6 *
-    (1 - battleProgress);
+    getFinishTargetPosition({
+      rank: riderIndex + 1,
+      hasFinished,
+      finishLinePosition,
+    });
+  const separationProgress = smoothstep(clamp(battleProgress, 0, 1));
+  const attackProgress = getSmallGroupAttackProgress({
+    riderIndex,
+    finalProgress,
+    visualSeed,
+  });
+  const attackSeed = Math.abs(
+    Math.trunc(visualSeed + riderIndex * 7_919),
+  );
+  const attackDistance =
+    attackProgress * (1.1 + ((attackSeed >>> 8) % 15) / 10);
 
   return clamp(
-    readableEntryPosition * (1 - battleProgress) +
-      finishPosition * battleProgress +
-      movement,
+    readableEntryPosition * (1 - separationProgress) +
+      finishPosition * separationProgress +
+      attackDistance,
     8,
     92
   );
 }
 
+export function getSmallGroupAttackProgress({
+  riderIndex,
+  finalProgress,
+  visualSeed,
+}: {
+  riderIndex: number;
+  finalProgress: number;
+  visualSeed: number;
+}) {
+  const attackSeed = Math.abs(
+    Math.trunc(visualSeed + riderIndex * 7_919),
+  );
+  if (attackSeed % 4 === 0) return 0;
+
+  const attackStart = 0.14 + (attackSeed % 27) / 100;
+  const attackDuration = 0.18 + ((attackSeed >>> 5) % 11) / 100;
+  const attackEnd = Math.min(0.72, attackStart + attackDuration);
+  const attackWindowProgress =
+    (clamp(finalProgress, 0, 1) - attackStart) /
+    Math.max(0.01, attackEnd - attackStart);
+  if (attackWindowProgress <= 0 || attackWindowProgress >= 1) return 0;
+
+  return Math.sin(attackWindowProgress * Math.PI) ** 2;
+}
+
+function smoothstep(value: number) {
+  return value * value * (3 - 2 * value);
+}
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.max(minimum, Math.min(maximum, value));

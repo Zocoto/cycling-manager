@@ -41,6 +41,7 @@ import {
   getFinishPassageDurationMs,
   getFinishPassagePosition,
   getFinishLaneOffset,
+  getSmallGroupAttackProgress,
   getSmallGroupFinishPosition,
   getVisibleFinalBattleRiderIds,
   shouldWinnerCelebrate,
@@ -69,7 +70,11 @@ import {
   getRaceVisualFrameForSegment,
   getRaceVisualTimeline,
 } from "@/lib/game/race-live-visual";
-import { getRaceVisualMotionProfile } from "@/lib/game/race-visual-motion";
+import {
+  DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
+  getRaceRoadMarkingMotion,
+  getRaceVisualMotionProfile,
+} from "@/lib/game/race-visual-motion";
 import {
   getOfficialStageSimulationContext,
   type LockedOfficialStageSimulation,
@@ -816,6 +821,11 @@ function RoadScene({
   countryCode: string;
 }) {
   const motionProfile = getRaceVisualMotionProfile(frontDynamics);
+  const roadMarkingMotion = getRaceRoadMarkingMotion({
+    cycleDistance: 14,
+    viewportDistance: 100,
+    sceneryDurationSeconds: motionProfile.sceneryDurationSeconds,
+  });
   const groups = snapshot.groups.slice(0, 6);
   const mediaGroupPositions = groups.map((group, groupIndex) =>
     getGroupScreenPosition(group, groupIndex, groups.length),
@@ -959,6 +969,14 @@ function RoadScene({
             vectorEffect="non-scaling-stroke"
             data-road-flow-direction="right-to-left"
             className={isMoving ? "cm-race-road-marking-svg" : ""}
+            style={
+              {
+                "--cm-race-road-marking-cycle-distance":
+                  roadMarkingMotion.cycleDistance,
+                "--cm-race-road-marking-cycle-duration":
+                  `${roadMarkingMotion.durationSeconds}s`,
+              } as CSSProperties
+            }
           />
         ) : null}
         <RaceRoadChalk
@@ -1928,6 +1946,11 @@ function SprintLaneView({
     0,
     ...contenderResults.map((result) => result.gapToWinnerSeconds)
   );
+  const sprintRoadMarkingMotion = getRaceRoadMarkingMotion({
+    cycleDistance: 78,
+    viewportDistance: 1_000,
+    sceneryDurationSeconds: DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
+  });
   const favoriteNames = contenderRiderIds
     .map((riderId) => riderById.get(riderId)?.name.split(" ").at(-1))
     .filter((name): name is string => Boolean(name));
@@ -1985,6 +2008,12 @@ function SprintLaneView({
           className={`absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.78)_0_42px,transparent_42px_78px)] [background-size:78px_3px] ${
             !raceComplete ? "cm-race-road-marking-strip" : ""
           }`}
+          style={
+            {
+              "--cm-race-road-marking-strip-duration":
+                `${sprintRoadMarkingMotion.durationSeconds}s`,
+            } as CSSProperties
+          }
         />
       ) : null}
       <div className="absolute left-4 top-4 z-30 max-w-[58%] rounded-xl bg-[#071A17]/88 px-3 py-2 backdrop-blur">
@@ -2218,8 +2247,6 @@ function FinishBattleView({
     0,
     Math.min(1, (battleDistance - metersRemaining) / battleDistance)
   );
-  const decisiveProgress =
-    battleProgress * battleProgress * (3 - 2 * battleProgress);
   const finalProgress = Math.max(
     0,
     Math.min(1, 1 - metersRemaining / Math.max(1, finalSegmentMeters))
@@ -2247,33 +2274,33 @@ function FinishBattleView({
     0,
     ...allFinalists.map((result) => result.gapToWinnerSeconds)
   );
+  const finishRoadMarkingMotion = getRaceRoadMarkingMotion({
+    cycleDistance: 76,
+    viewportDistance: 1_000,
+    sceneryDurationSeconds: DEFAULT_RACE_WORLD_FLOW_DURATION_SECONDS,
+  });
   const entryGroupByRiderId = new Map(
     scenario.entryGroups.flatMap((group) =>
-      group.riderIds.map((riderId, riderIndex) => [
-        riderId,
-        { ...group, riderIndex },
-      ] as const)
+      [...group.riderIds]
+        .sort(
+          (firstRiderId, secondRiderId) =>
+            getVisualSeedNumber(
+              `${simulation.seed}:finish-entry:${firstRiderId}`,
+            ) -
+              getVisualSeedNumber(
+                `${simulation.seed}:finish-entry:${secondRiderId}`,
+              ) || firstRiderId.localeCompare(secondRiderId),
+        )
+        .map((riderId, riderIndex) => [
+          riderId,
+          { ...group, riderIndex },
+        ] as const)
     )
   );
   const lateJoinerById = new Map(
     scenario.lateJoiners.map((lateJoiner) => [lateJoiner.riderId, lateJoiner])
   );
-  const decisiveRiderSet = new Set(scenario.decisiveContenderIds);
-  const droppedRiderSet = new Set(scenario.droppedRiderIds);
-  const decisiveRiderIds = allFinalists
-    .filter((result) => decisiveRiderSet.has(result.riderId))
-    .map((result) => result.riderId);
-  const droppedRiderIds = allFinalists
-    .filter((result) => droppedRiderSet.has(result.riderId))
-    .map((result) => result.riderId);
-  const finishVisualSeed = getVisualSeedNumber(simulation.seed);
   const entryLeaderNames = scenario.entryLeaderIds
-    .map((riderId) => riderById.get(riderId)?.name)
-    .filter((name): name is string => Boolean(name));
-  const lateJoinerNames = scenario.lateJoiners
-    .map((lateJoiner) => riderById.get(lateJoiner.riderId)?.name)
-    .filter((name): name is string => Boolean(name));
-  const droppedRiderNames = scenario.droppedRiderIds
     .map((riderId) => riderById.get(riderId)?.name)
     .filter((name): name is string => Boolean(name));
   const entrySituationText = scenario.entryGroups
@@ -2285,16 +2312,8 @@ function FinishBattleView({
       }`
     )
     .join(" · ");
-  const decisiveMovementText = [
-    lateJoinerNames.length > 0
-      ? `${formatRiderNames(lateJoinerNames)} revien${lateJoinerNames.length > 1 ? "nent" : "t"} depuis la chasse.`
-      : null,
-    droppedRiderNames.length > 0
-      ? `${formatRiderNames(droppedRiderNames)} décroche${droppedRiderNames.length > 1 ? "nt" : ""} derrière les coureurs encore en lutte.`
-      : null,
-  ]
-    .filter((detail): detail is string => Boolean(detail))
-    .join(" ");
+  const decisiveMovementText =
+    "Les accélérations se répondent, sans qu’aucun coureur ne parvienne encore à faire la différence.";
   const spectatorTeamPalettes = getRaceSpectatorTeamPalettes(riderById);
   const winnerResult = simulation.results.find(
     (result) => result.status === "finished" && result.rank === 1
@@ -2359,6 +2378,14 @@ function FinishBattleView({
             strokeDasharray="42 34"
             data-road-flow-direction="right-to-left"
             className={!raceComplete ? "cm-race-road-marking-svg" : ""}
+            style={
+              {
+                "--cm-race-road-marking-cycle-distance":
+                  finishRoadMarkingMotion.cycleDistance,
+                "--cm-race-road-marking-cycle-duration":
+                  `${finishRoadMarkingMotion.durationSeconds}s`,
+              } as CSSProperties
+            }
           />
         ) : null}
         {[0, roadDepthY].map((depth) => (
@@ -2409,7 +2436,7 @@ function FinishBattleView({
           {getSmallGroupFinishPhase(metersRemaining)}
         </p>
         <p className="mt-1 text-[10px] font-bold text-[#C1D3CA]">
-          {scenario.entryLeaderIds.length} à l’entrée · {decisiveRiderIds.length} encore en lutte · {terrainLabel(segment.terrain)} {segment.averageGradientPct > 0 ? "+" : ""}{segment.averageGradientPct} %{segment.surface === "cobbles" ? " · pavés" : ""}
+          {scenario.entryLeaderIds.length} à l’entrée · {allFinalists.length} coureurs dans le final · {terrainLabel(segment.terrain)} {segment.averageGradientPct > 0 ? "+" : ""}{segment.averageGradientPct} %{segment.surface === "cobbles" ? " · pavés" : ""}
         </p>
         {breakawayStillAhead ? (
           <p className="mt-1 text-[9px] font-bold text-[#FFF4C4]">
@@ -2424,13 +2451,15 @@ function FinishBattleView({
         const finalIndex = allFinalists.findIndex(
           (candidate) => candidate.riderId === result.riderId
         );
-        const decisiveIndex = decisiveRiderIds.indexOf(result.riderId);
-        const droppedIndex = droppedRiderIds.indexOf(result.riderId);
         const riderRank = result.rank ?? finalIndex + 1;
         const entryGroup = entryGroupByRiderId.get(result.riderId);
+        const formationIndex = entryGroup?.riderIndex ?? finalIndex;
+        const riderVisualSeed = getVisualSeedNumber(
+          `${simulation.seed}:finish-rider:${result.riderId}`,
+        );
         const entryPosition = getFinalGroupEntryPosition({
           groupGapSeconds: entryGroup?.gapToLeaderSeconds ?? 0,
-          riderIndex: entryGroup?.riderIndex ?? finalIndex,
+          riderIndex: formationIndex,
           groupSize: entryGroup?.riderIds.length ?? allFinalists.length,
         });
         const finishApproachPosition = getFinalApproachPosition({
@@ -2441,28 +2470,21 @@ function FinishBattleView({
         const approachLeft = getSmallGroupFinishPosition({
           riderIndex: finalIndex,
           riderCount: allFinalists.length,
-          decisiveIndex,
-          decisiveCount: decisiveRiderIds.length,
-          droppedIndex,
-          droppedCount: droppedRiderIds.length,
-          lateJoinerGapSeconds: lateJoiner?.gapToLeaderSeconds ?? null,
           finalProgress,
-          battleProgress: decisiveProgress,
-          visualSeed: finishVisualSeed,
+          battleProgress,
+          visualSeed: riderVisualSeed,
           hasFinished: false,
           finishLinePosition: 86,
           entryPositionOverride: entryPosition,
           finishPositionOverride: finishApproachPosition,
         });
-        const distanceSynchronizedApproachLeft =
-          getFinalApproachDisplayPosition({
-            desiredPosition: approachLeft,
-            metersRemaining,
-            finishLinePosition: 86,
-            rank: riderRank,
-          });
+        const lineSafeApproachLeft = metersRemaining > 0
+          ? Math.min(approachLeft, 85.65)
+          : riderRank === 1
+            ? 86
+            : approachLeft;
         const left = getFinishPassagePosition({
-          approachPosition: distanceSynchronizedApproachLeft,
+          approachPosition: lineSafeApproachLeft,
           rank: riderRank,
           riderCount: allFinalists.length,
           gapToWinnerSeconds: result.gapToWinnerSeconds,
@@ -2473,8 +2495,13 @@ function FinishBattleView({
         });
         const riderHasFinished = winnerHasFinished && left > 86;
         const finishLaneOffsetY = getFinishLaneOffset({
-          riderIndex: finalIndex,
+          riderIndex: formationIndex,
           roadDepth: roadDepthY,
+        });
+        const attackProgress = getSmallGroupAttackProgress({
+          riderIndex: finalIndex,
+          finalProgress,
+          visualSeed: riderVisualSeed,
         });
         const roadY =
           roadLeftY +
@@ -2492,19 +2519,19 @@ function FinishBattleView({
               battleProgress < 0.35
             ? `${entryGroup.label} · +${formatGap(entryGroup.gapToLeaderSeconds)}`
             : lateJoiner && battleProgress < 0.58
-              ? `Revient · +${formatGap(lateJoiner.gapToLeaderSeconds)}`
-            : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42
-              ? "Décroché"
-              : decisiveRiderSet.has(result.riderId) && battleProgress >= 0.35
-                ? "Joue la victoire"
-                : "Groupe de tête";
+              ? `Recollage · +${formatGap(lateJoiner.gapToLeaderSeconds)}`
+              : attackProgress >= 0.42
+                ? "Accélération"
+                : battleProgress >= 0.55
+                  ? "Effort maximal"
+                  : "Groupe de tête";
         return (
           <div
             key={result.riderId}
             data-finish-rider-id={result.riderId}
-            data-finish-rank={result.rank}
+            data-finish-rank={riderHasFinished ? result.rank : undefined}
             data-finish-lane-offset={finishLaneOffsetY}
-            data-finish-status={result.rank === 1 ? "winner" : droppedRiderSet.has(result.riderId) ? "dropped" : "contender"}
+            data-finish-status={riderHasFinished ? "finished" : "racing"}
             className="absolute z-20 -translate-x-1/2 -translate-y-full transition-[left,top] duration-300 ease-out"
             style={{
               left: `${left}%`,
@@ -2532,7 +2559,7 @@ function FinishBattleView({
               }
               className="h-12 w-[4.5rem]"
             />
-            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${finalIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : droppedRiderSet.has(result.riderId) && battleProgress >= 0.42 ? "border-[#B85A32]/65 bg-[#301A15]/92" : "border-white/20 bg-[#071A17]/90"}`}>
+            <div className={`absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-lg border px-1.5 py-1 text-center shadow-lg backdrop-blur-sm ${formationIndex % 2 === 0 ? "-top-8" : "top-10"} ${result.rank === 1 && riderHasFinished ? "border-[#F2C94C] bg-[#071A17]/96" : "border-white/20 bg-[#071A17]/90"}`}>
               <span className="flex items-center gap-1 text-[9px] font-black text-white">
                 <span
                   aria-hidden="true"

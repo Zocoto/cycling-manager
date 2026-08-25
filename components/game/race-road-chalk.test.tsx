@@ -40,11 +40,8 @@ describe("race road chalk", () => {
     expect(markup).toContain('data-race-road-flow-direction="right-to-left"');
     expect(markup).toContain('data-race-road-chalk-moving="true"');
     expect(markup).toContain('class="cm-race-road-chalk-svg"');
-    const animationDuration = Number(
-      markup.match(/animation-duration:([\d.]+)s/)?.[1],
-    );
-    expect(animationDuration).toBeCloseTo(
-      (Math.hypot(100, 16) / 28) * 0.62,
+    expect(markup).toContain(
+      "animation-duration:var(--cm-scene-flow-duration, 18s)",
     );
   });
 
