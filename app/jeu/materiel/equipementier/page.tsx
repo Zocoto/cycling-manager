@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { EquipmentPartnerSubmitButton } from "@/components/game/equipment-partner-submit-button";
 import { GameHeader } from "@/components/game/game-header";
+import { MaterialNavigation } from "@/components/game/material-navigation";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import Link from "@/components/ui/app-link";
@@ -93,36 +94,7 @@ export default async function EquipmentPartnerPage({
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
 
-        <nav
-          aria-label="Rubriques du matériel"
-          className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm"
-        >
-          <Link
-            href="/jeu/materiel"
-            className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
-          >
-            Matériel commercial
-          </Link>
-          <Link
-            href="/jeu/materiel/equipementier"
-            aria-current="page"
-            className="rounded-xl bg-[#0B302B] px-5 py-3 text-xs font-black uppercase tracking-wider text-white"
-          >
-            Équipementier
-          </Link>
-          <Link
-            href="/jeu/materiel/laboratoire"
-            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
-          >
-            Labo R&D
-          </Link>
-          <Link
-            href="/jeu/materiel/equiper"
-            className="rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
-          >
-            Équiper l’équipe
-          </Link>
-        </nav>
+        <MaterialNavigation activeHref="/jeu/materiel/equipementier" />
 
         <header
           data-tutorial-id="equipment-partner-overview"

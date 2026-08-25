@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { MaterialNavigation } from "@/components/game/material-navigation";
 import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
 import {
@@ -62,7 +63,7 @@ export default async function EquipmentLaboratoryPage({
       />
       <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-12">
         <BackToOfficeLink />
-        <MaterialNavigation />
+        <MaterialNavigation activeHref="/jeu/materiel/laboratoire" />
 
         <header className="relative mt-5 overflow-hidden rounded-[2rem] bg-[#071A17] text-white shadow-[0_24px_70px_rgba(19,60,46,.2)]">
           <Image
@@ -339,32 +340,6 @@ export default async function EquipmentLaboratoryPage({
         ) : null}
       </section>
     </main>
-  );
-}
-
-function MaterialNavigation() {
-  const links = [
-    ["/jeu/materiel", "Matériel commercial"],
-    ["/jeu/materiel/equipementier", "Équipementier"],
-    ["/jeu/materiel/laboratoire", "Labo R&D"],
-    ["/jeu/materiel/equiper", "Équiper l’équipe"],
-  ];
-  return (
-    <nav
-      aria-label="Rubriques du matériel"
-      className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm"
-    >
-      {links.map(([href, label]) => (
-        <Link
-          key={href}
-          href={href}
-          aria-current={href.endsWith("laboratoire") ? "page" : undefined}
-          className={`shrink-0 rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider ${href.endsWith("laboratoire") ? "bg-[#0B302B] text-white" : "text-[#60756E] hover:bg-[#EAF5F3] hover:text-[#176951]"}`}
-        >
-          {label}
-        </Link>
-      ))}
-    </nav>
   );
 }
 

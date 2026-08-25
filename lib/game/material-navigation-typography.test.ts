@@ -1,0 +1,30 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const navigation = readFileSync(
+  resolve(process.cwd(), "components/game/material-navigation.tsx"),
+  "utf8",
+);
+
+const materialPages = [
+  "app/jeu/materiel/page.tsx",
+  "app/jeu/materiel/equipementier/page.tsx",
+  "app/jeu/materiel/laboratoire/page.tsx",
+  "app/jeu/materiel/equiper/page.tsx",
+];
+
+describe("material navigation typography", () => {
+  it("uses one identical readable size for every material tab", () => {
+    expect(navigation).toContain("text-xs font-black uppercase");
+    expect(navigation).not.toContain("text-[10px]");
+  });
+
+  it.each(materialPages)("shares the navigation on %s", (pagePath) => {
+    const page = readFileSync(resolve(process.cwd(), pagePath), "utf8");
+
+    expect(page).toContain(
+      'import { MaterialNavigation } from "@/components/game/material-navigation";',
+    );
+  });
+});

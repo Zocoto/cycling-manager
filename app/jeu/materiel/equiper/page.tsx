@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import { MaterialNavigation } from "@/components/game/material-navigation";
 import { TeamEquipmentBulkEditor } from "@/components/game/team-equipment-bulk-editor";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
-import Link from "@/components/ui/app-link";
 import {
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
@@ -74,36 +74,7 @@ export default async function TeamEquipmentPage({
       <section className="mx-auto max-w-[1500px] px-4 py-6 sm:px-8 sm:py-10">
         <BackToOfficeLink />
 
-        <nav
-          aria-label="Rubriques du matériel"
-          className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm"
-        >
-          <Link
-            href="/jeu/materiel"
-            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
-          >
-            Matériel commercial
-          </Link>
-          <Link
-            href="/jeu/materiel/equipementier"
-            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
-          >
-            Équipementier
-          </Link>
-          <Link
-            href="/jeu/materiel/laboratoire"
-            className="shrink-0 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-[#60756E] transition hover:bg-[#EAF5F3] hover:text-[#176951] sm:px-5 sm:text-xs"
-          >
-            Labo R&D
-          </Link>
-          <Link
-            href="/jeu/materiel/equiper"
-            aria-current="page"
-            className="shrink-0 rounded-xl bg-[#0B302B] px-4 py-3 text-[10px] font-black uppercase tracking-wider text-white sm:px-5 sm:text-xs"
-          >
-            Équiper l’équipe
-          </Link>
-        </nav>
+        <MaterialNavigation activeHref="/jeu/materiel/equiper" />
 
         <header className="relative mt-5 overflow-hidden rounded-[1.8rem] bg-[linear-gradient(125deg,#071A17,#176951)] px-6 py-6 text-white shadow-[0_20px_60px_rgba(19,60,46,0.18)] sm:px-9 sm:py-8">
           <div
