@@ -12,22 +12,28 @@ import {
 } from "@/lib/game/infrastructure";
 import { MAX_TEAM_ROSTER_SIZE } from "@/lib/game/team-roster-capacity";
 import {
-  calculateCountryWorldReputation,
+  calculateCountryWorldReputationFromUciRank,
+  calculateYouthScoutingQuality,
   calculateYouthSigningCosts,
   chooseYouthArchetype,
   createSeededRandom,
+  generateYouthPotentialSteps,
   generateYouthRatings,
-  getCountryBaseReputation,
   getCountryYouthSpecialties,
   getScoutNationalityEfficiencyBonus,
   getScoutingCandidateCount,
   getYouthScoutingReportDetailLevel,
+  rollYouthNativeSpecialAbility,
   YOUTH_ARCHETYPE_LABELS,
   YOUTH_RATING_KEYS,
   type YouthArchetype,
   type YouthRatings,
 } from "@/lib/game/youth-development";
 import { getRiderSportingProfile } from "@/lib/game/rider-profile";
+import {
+  getSpecialAbilityDefinition,
+  type SpecialAbilityDefinition,
+} from "@/lib/game/special-abilities";
 import {
   getScoutingSupervisionPercentageForDay,
   getScoutingSupervisionStatus,
@@ -91,6 +97,14 @@ type CountryRow = {
   is_active: boolean;
 };
 
+type CountryUciRankingRow = {
+  season_id: string;
+  season_name: string;
+  country_id: string;
+  uci_points: number | string;
+  uci_rank: number | string | null;
+};
+
 type MissionRow = {
   id: string;
   team_id: string;
@@ -136,6 +150,7 @@ type CandidateRow = {
   status: "spotted" | "signed" | "expired";
   international_center_bonus_applied: boolean;
   international_center_bonus_percentage: number;
+  native_special_ability_code: string | null;
 };
 
 type AcademyRow = Omit<
@@ -190,7 +205,8 @@ export type YouthCountry = {
   latitude: number;
   longitude: number;
   reputation: number;
-  reputationHistorySeasons: number;
+  reputationSourceSeasonName: string | null;
+  uciNationRank: number | null;
   specialty: YouthArchetype;
   secondarySpecialty: YouthArchetype;
   specialtyLabel: string;
@@ -229,6 +245,7 @@ export type YouthCandidate = {
   status: CandidateRow["status"];
   internationalCenterBonusApplied: boolean;
   internationalCenterBonusPercentage: number;
+  nativeSpecialAbility: SpecialAbilityDefinition | null;
 };
 
 export type YouthMission = {
@@ -257,6 +274,7 @@ export type AcademyYouth = {
   avatarSeed: string;
   sportingProfile: string;
   potentialSteps: number;
+  nativeSpecialAbility: SpecialAbilityDefinition | null;
   ratings: YouthRatings;
   trainingPriority: YouthTrainingDomain;
   trainingMode: YouthTrainingMode;
@@ -716,6 +734,9 @@ async function loadOverview(admin: AdminClient, context: Context) {
       avatarSeed: String(rider.avatar_seed),
       sportingProfile: getRiderSportingProfile(scaleYouthRatings(ratings)),
       potentialSteps: rider.potential_steps,
+      nativeSpecialAbility: getSpecialAbilityDefinition(
+        rider.native_special_ability_code,
+      ),
       ratings: scaleYouthRatings(ratings),
       trainingPriority: rider.training_priority,
       trainingMode: rider.training_mode,
@@ -782,54 +803,13 @@ async function buildCountryDtos(
   facilities: Array<{ country_id: string; facility_level: number }>,
   context: Context,
 ) {
-  const seasonsResult = await admin
-    .from("seasons")
-    .select("id, game_year")
-    .lte("game_year", context.gameYear)
-    .order("game_year", { ascending: false })
-    .limit(10)
-    .returns<Array<{ id: string; game_year: number }>>();
-  assertQuery(seasonsResult.error, "l’historique des saisons");
-  const seasons = seasonsResult.data ?? [];
-  const seasonIds = seasons.map((season) => season.id);
-  const teamSeasonsResult = seasonIds.length
-    ? await admin
-        .from("team_seasons")
-        .select("id, season_id")
-        .in("season_id", seasonIds)
-        .returns<Array<{ id: string; season_id: string }>>()
-    : { data: [], error: null };
-  assertQuery(teamSeasonsResult.error, "l’historique UCI des équipes");
-  const teamSeasons = teamSeasonsResult.data ?? [];
-  const teamSeasonIds = teamSeasons.map((row) => row.id);
-  const rewardsResult = teamSeasonIds.length
-    ? await admin
-        .from("reward_events")
-        .select("country_id, team_season_id, uci_points")
-        .in("team_season_id", teamSeasonIds)
-        .not("country_id", "is", null)
-        .returns<
-          Array<{
-            country_id: string;
-            team_season_id: string;
-            uci_points: number;
-          }>
-        >()
-    : { data: [], error: null };
-  assertQuery(rewardsResult.error, "les résultats UCI par nation");
-  const seasonByTeamSeason = new Map(
-    teamSeasons.map((row) => [row.id, row.season_id]),
+  const rankingRows = await loadPreviousSeasonCountryUciRankings(
+    admin,
+    context.seasonId,
   );
-  const pointsByCountrySeason = new Map<string, number>();
-  for (const reward of rewardsResult.data ?? []) {
-    const seasonId = seasonByTeamSeason.get(reward.team_season_id);
-    if (!seasonId) continue;
-    const key = `${reward.country_id}:${seasonId}`;
-    pointsByCountrySeason.set(
-      key,
-      (pointsByCountrySeason.get(key) ?? 0) + reward.uci_points,
-    );
-  }
+  const rankingByCountry = new Map(
+    rankingRows.map((row) => [row.country_id, row]),
+  );
   const facilityByCountry = new Map(
     facilities.map((entry) => [entry.country_id, entry.facility_level]),
   );
@@ -838,9 +818,11 @@ async function buildCountryDtos(
       COUNTRY_MAP_COORDINATES[country.iso_alpha2.toUpperCase()];
     if (!coordinate) return [];
     const specialties = getCountryYouthSpecialties(country.iso_alpha2);
-    const history = seasons.map(
-      (season) => pointsByCountrySeason.get(`${country.id}:${season.id}`) ?? 0,
-    );
+    const ranking = rankingByCountry.get(country.id);
+    const uciNationRank =
+      ranking?.uci_rank === null || ranking?.uci_rank === undefined
+        ? null
+        : Number(ranking.uci_rank);
     return [
       {
         id: country.id,
@@ -848,11 +830,10 @@ async function buildCountryDtos(
         code: country.iso_alpha2,
         latitude: coordinate.latitude,
         longitude: coordinate.longitude,
-        reputation: calculateCountryWorldReputation({
-          baseReputation: getCountryBaseReputation(country.iso_alpha2),
-          seasonUciPoints: history,
-        }),
-        reputationHistorySeasons: seasons.length,
+        reputation:
+          calculateCountryWorldReputationFromUciRank(uciNationRank),
+        reputationSourceSeasonName: ranking?.season_name ?? null,
+        uciNationRank,
         specialty: specialties.primary,
         secondarySpecialty: specialties.secondary,
         specialtyLabel: YOUTH_ARCHETYPE_LABELS[specialties.primary],
@@ -861,6 +842,20 @@ async function buildCountryDtos(
       },
     ];
   });
+}
+
+async function loadPreviousSeasonCountryUciRankings(
+  admin: AdminClient,
+  currentSeasonId: string,
+): Promise<CountryUciRankingRow[]> {
+  const result = await admin.rpc("get_youth_scouting_country_uci_rankings", {
+    p_current_season_id: currentSeasonId,
+  });
+  assertQuery(
+    result.error,
+    "le classement UCI national de la saison précédente",
+  );
+  return (result.data ?? []) as CountryUciRankingRow[];
 }
 
 async function settleDueScoutingMissions(admin: AdminClient, context: Context) {
@@ -886,6 +881,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     facilityResult,
     profileResult,
     centersResult,
+    countryRankings,
   ] = await Promise.all([
     admin
       .from("staff_contracts")
@@ -917,6 +913,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
           efficiency_bonus_percentage: number;
         }>
       >(),
+    loadPreviousSeasonCountryUciRankings(admin, mission.season_id),
   ]);
   assertQuery(contractResult.error, "le contrat du scout");
   assertQuery(countryResult.error, "le pays scouté");
@@ -993,10 +990,6 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const baseScoutBonuses = getScoutYouthBonuses(scout.level);
   const talentBonuses = getScoutTalentBonuses(talentCodes, scout.level);
   const scoutBonuses = {
-    potentialBonus:
-      (baseScoutBonuses.potentialBonus + talentBonuses.potentialBonus) *
-      nationalityAffinity *
-      dailyScoutingQualityMultiplier,
     initialRatingBonus:
       (baseScoutBonuses.initialRatingBonus + talentBonuses.initialRatingBonus) *
       nationalityAffinity *
@@ -1011,7 +1004,24 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
     }) + talentBonuses.reportSizeBonus;
   const identities = generateRiderIdentities(profile.name_profile_code, count);
   const specialties = getCountryYouthSpecialties(country.iso_alpha2);
-  const reputation = getCountryBaseReputation(country.iso_alpha2);
+  const countryRanking = countryRankings.find(
+    (ranking) => ranking.country_id === country.id,
+  );
+  const reputation = calculateCountryWorldReputationFromUciRank(
+    countryRanking?.uci_rank === null || countryRanking?.uci_rank === undefined
+      ? null
+      : Number(countryRanking.uci_rank),
+  );
+  const scoutingQuality = calculateYouthScoutingQuality({
+    scoutLevel: scout.level,
+    durationDays: mission.duration_days,
+    facilityLevel,
+    countryReputation: reputation,
+    nationalityBonusPercentage: nationalityBonus,
+    scoutExpertiseBonus: talentBonuses.potentialBonus,
+    qualityMultiplier:
+      nationalityAffinity * dailyScoutingQualityMultiplier,
+  });
   const totalInternationalCenterStars = (centersResult.data ?? []).reduce(
     (total, center) =>
       total +
@@ -1024,19 +1034,10 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
   const candidates = identities.map((identity, index) => {
     const age = clamp(15 + Math.floor(random() * 4), 15, 18);
     const archetype = chooseYouthArchetype({ ...specialties, random });
-    const basePotentialSteps = clamp(
-      Math.round(
-        1 +
-          scoutBonuses.potentialBonus +
-          mission.duration_days * 0.16 +
-          facilityLevel * 0.08 +
-          reputation * 0.08 +
-          nationalityBonus / 30 +
-          random() * 1.5,
-      ),
-      1,
-      8,
-    );
+    const basePotentialSteps = generateYouthPotentialSteps({
+      qualityScore: scoutingQuality,
+      random,
+    });
     const internationalCenterBonus = applyInternationalCenterPotentialBonus({
       potentialSteps: basePotentialSteps,
       totalQualityStars: totalInternationalCenterStars,
@@ -1050,6 +1051,13 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       countryReputation: reputation,
       accuracyBonus: nationalityBonus / 100,
       initialRatingBonus: scoutBonuses.initialRatingBonus,
+      scoutingQuality,
+      random,
+    });
+    const nativeSpecialAbilityCode = rollYouthNativeSpecialAbility({
+      archetype,
+      potentialSteps,
+      qualityScore: scoutingQuality,
       random,
     });
     const costs = calculateYouthSigningCosts({
@@ -1066,6 +1074,7 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       age,
       archetype,
       potential_steps: potentialSteps,
+      native_special_ability_code: nativeSpecialAbilityCode,
       international_center_bonus_applied: internationalCenterBonus.bonusApplied,
       international_center_bonus_percentage:
         internationalCenterBonus.bonusPercentage,
@@ -1545,6 +1554,9 @@ function toCandidate(
     archetypeLabel: YOUTH_ARCHETYPE_LABELS[row.archetype],
     sportingProfile: getRiderSportingProfile(ratings),
     potentialSteps: row.potential_steps,
+    nativeSpecialAbility: getSpecialAbilityDefinition(
+      row.native_special_ability_code,
+    ),
     profileKey: row.avatar_profile_key,
     avatarSeed: String(row.avatar_seed),
     scoutingReport: createStandardTransferScoutingReport({

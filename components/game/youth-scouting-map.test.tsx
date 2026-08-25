@@ -16,7 +16,8 @@ describe("YouthScoutingMap", () => {
             latitude: 46,
             longitude: 2,
             reputation: 8,
-            reputationHistorySeasons: 1,
+            reputationSourceSeasonName: "Saison 1",
+            uciNationRank: 8,
             specialty: "rouleur",
             secondarySpecialty: "puncheur",
             specialtyLabel: "Rouleurs",
@@ -40,5 +41,8 @@ describe("YouthScoutingMap", () => {
     for (const durationDays of [3, 4, 5, 6, 7]) {
       expect(markup).toContain(`<option value="${durationDays}"`);
     }
+    expect(markup).toContain(
+      "Réputation calculée uniquement depuis le classement UCI Saison 1 : 8e.",
+    );
   });
 });

@@ -20,6 +20,7 @@ import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume
 import { NaturalizationCard } from "@/components/game/naturalization-card";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
+import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { TransferScoutingReportPanel } from "@/components/game/transfer-scouting-report";
 import { YouthTrainingMiniGame } from "@/components/game/youth-training-mini-game";
 import { YouthScoutingMap } from "@/components/game/youth-scouting-map";
@@ -903,6 +904,20 @@ function AcademyRiderCard({
             <div className="mt-1.5">
               <PotentialStars potentialSteps={rider.potentialSteps} />
             </div>
+            {rider.nativeSpecialAbility ? (
+              <div className="mt-2 flex items-center gap-2">
+                <SpecialAbilityMedallion
+                  ability={rider.nativeSpecialAbility}
+                  unlocked
+                />
+                <span className="text-[9px] font-black uppercase leading-4 tracking-[0.09em] text-[#806114]">
+                  Talent natif
+                  <span className="block text-[#183F37] normal-case tracking-normal">
+                    {rider.nativeSpecialAbility.name}
+                  </span>
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="h-full rounded-2xl border border-[#315B3E]/10 bg-[#F8FBF9] p-3 2xl:col-span-2">
@@ -1273,6 +1288,27 @@ function CandidateCard({
           ) : null}
         </div>
       </div>
+
+      {candidate.nativeSpecialAbility ? (
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#F2C94C]/45 bg-[#FFF8D8] p-3">
+          <SpecialAbilityMedallion
+            ability={candidate.nativeSpecialAbility}
+            unlocked
+          />
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#806114]">
+              Capacité native rare
+            </p>
+            <p className="mt-0.5 text-sm font-black text-[#071A17]">
+              {candidate.nativeSpecialAbility.name}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold leading-4 text-[#60756E]">
+              Son profil {candidate.archetypeLabel.toLocaleLowerCase("fr")} donne
+              une première orientation pour son programme d’entraînement.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4">
         <TransferScoutingReportPanel

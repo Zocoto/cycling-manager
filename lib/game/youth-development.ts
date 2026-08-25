@@ -1,4 +1,5 @@
 import type { RiderRatingKey, RiderRatings } from "@/lib/game/rider-profile";
+import type { RiderSpecialAbility } from "@/lib/game/special-abilities";
 import { TRAINING_DOMAIN_LABELS, type TrainingDomain } from "@/lib/game/training";
 import {
   YOUTH_TRAINING_DOMAINS,
@@ -87,35 +88,18 @@ const COUNTRY_SPECIALTIES: Array<{
   { codes: ["ZA", "NA", "BW", "ZW"], primary: "rouleur", secondary: "breakaway" },
 ];
 
-const COUNTRY_BASE_REPUTATION: Record<string, number> = {
-  BE: 10,
-  FR: 10,
-  IT: 10,
-  ES: 9,
-  NL: 9,
-  SI: 9,
-  DK: 8,
-  GB: 8,
-  AU: 8,
-  CO: 8,
-  DE: 7,
-  CH: 7,
-  US: 7,
-  NO: 7,
-  PT: 7,
-  AT: 6,
-  CZ: 6,
-  IE: 6,
-  NZ: 6,
-  ER: 6,
-  EC: 6,
-  PL: 5,
-  SK: 5,
-  CA: 5,
-  ZA: 5,
-  JP: 5,
-  KZ: 5,
-  HR: 5,
+const NATIVE_ABILITY_BY_ARCHETYPE: Record<
+  YouthArchetype,
+  readonly RiderSpecialAbility[]
+> = {
+  climber: ["three_lungs", "metronome", "panache"],
+  puncheur: ["giclette", "panache", "cyclocrossman"],
+  stage_racer: ["metronome", "three_lungs", "first_in_class"],
+  northern_classics: ["flahute", "cyclocrossman", "three_lungs"],
+  rouleur: ["locomotive", "metronome", "pistard"],
+  breakaway: ["panache", "chase_potato", "three_lungs"],
+  sprinter: ["pistard", "giclette", "locomotive"],
+  all_rounder: ["metronome", "three_lungs", "bottle_carrier"],
 };
 
 export function getCountryYouthSpecialties(countryCode: string) {
@@ -128,37 +112,99 @@ export function getCountryYouthSpecialties(countryCode: string) {
     : { primary: "all_rounder" as const, secondary: "breakaway" as const };
 }
 
-export function getCountryBaseReputation(countryCode: string): number {
-  return COUNTRY_BASE_REPUTATION[countryCode.trim().toUpperCase()] ?? 2;
+export function calculateCountryWorldReputationFromUciRank(
+  previousSeasonRank: number | null,
+): number {
+  if (previousSeasonRank === null || previousSeasonRank < 1) return 1;
+  if (previousSeasonRank <= 3) return 10;
+  if (previousSeasonRank <= 6) return 9;
+  if (previousSeasonRank <= 10) return 8;
+  if (previousSeasonRank <= 15) return 7;
+  if (previousSeasonRank <= 22) return 6;
+  if (previousSeasonRank <= 30) return 5;
+  if (previousSeasonRank <= 40) return 4;
+  if (previousSeasonRank <= 55) return 3;
+  return 2;
 }
 
-export function calculateCountryWorldReputation({
-  baseReputation,
-  seasonUciPoints,
+export function calculateYouthScoutingQuality({
+  scoutLevel,
+  durationDays,
+  facilityLevel,
+  countryReputation,
+  nationalityBonusPercentage,
+  scoutExpertiseBonus = 0,
+  qualityMultiplier = 1,
 }: {
-  baseReputation: number;
-  seasonUciPoints: readonly number[];
+  scoutLevel: number;
+  durationDays: number;
+  facilityLevel: number;
+  countryReputation: number;
+  nationalityBonusPercentage: number;
+  scoutExpertiseBonus?: number;
+  qualityMultiplier?: number;
 }): number {
-  const seasons = seasonUciPoints.slice(0, 10);
-  if (seasons.length === 0) return clamp(Math.round(baseReputation), 1, 10);
-
-  const weightedAverage =
-    seasons.reduce(
-      (total, points, index) => total + Math.max(0, points) * (1 - index * 0.07),
-      0,
-    ) / seasons.reduce((total, _, index) => total + (1 - index * 0.07), 0);
-  const thresholds = [0, 35, 90, 180, 320, 520, 800, 1_150, 1_600, 2_200];
-  const earnedReputation = thresholds.reduce(
-    (level, threshold, index) => (weightedAverage >= threshold ? index + 1 : level),
-    1,
-  );
-  const historyWeight = Math.min(1, seasons.length / 10);
-
+  const multiplierBonus = clamp((qualityMultiplier - 1) / 0.35, 0, 1);
   return clamp(
-    Math.round(baseReputation * (1 - historyWeight) + earnedReputation * historyWeight),
+    normalize(scoutLevel, 1, 5) * 0.3 +
+      normalize(durationDays, 3, 7) * 0.1 +
+      normalize(facilityLevel, 1, 10) * 0.1 +
+      normalize(countryReputation, 1, 10) * 0.22 +
+      normalize(nationalityBonusPercentage, 0, 15) * 0.13 +
+      normalize(scoutExpertiseBonus, 0, 0.75) * 0.1 +
+      multiplierBonus * 0.05,
+    0,
     1,
-    10,
   );
+}
+
+export function generateYouthPotentialSteps({
+  qualityScore,
+  random,
+}: {
+  qualityScore: number;
+  random: () => number;
+}): number {
+  const quality = clamp(qualityScore, 0, 1);
+  const roll = random();
+  const atLeast = {
+    8: 0.0002 + quality * 0.012,
+    7: 0.001 + quality * 0.035,
+    6: 0.004 + quality * 0.09,
+    5: 0.015 + quality * 0.18,
+    4: 0.06 + quality * 0.32,
+    3: 0.25 + quality * 0.45,
+    2: 0.6 + quality * 0.3,
+  } as const;
+
+  for (const potentialSteps of [8, 7, 6, 5, 4, 3, 2] as const) {
+    if (roll < atLeast[potentialSteps]) return potentialSteps;
+  }
+  return 1;
+}
+
+export function rollYouthNativeSpecialAbility({
+  archetype,
+  potentialSteps,
+  qualityScore,
+  random,
+}: {
+  archetype: YouthArchetype;
+  potentialSteps: number;
+  qualityScore: number;
+  random: () => number;
+}): RiderSpecialAbility | null {
+  const chance = clamp(
+    0.004 +
+      clamp(qualityScore, 0, 1) * 0.028 +
+      Math.max(0, potentialSteps - 4) * 0.004,
+    0.004,
+    0.05,
+  );
+  if (random() >= chance) return null;
+
+  const abilities = NATIVE_ABILITY_BY_ARCHETYPE[archetype];
+  return abilities[Math.min(abilities.length - 1, Math.floor(random() * abilities.length))];
 }
 
 export function getScoutingCandidateCount({
@@ -183,6 +229,7 @@ export function generateYouthRatings({
   countryReputation = 5,
   accuracyBonus = 0,
   initialRatingBonus = 0,
+  scoutingQuality = 0.5,
   random,
 }: {
   archetype: YouthArchetype;
@@ -191,33 +238,55 @@ export function generateYouthRatings({
   countryReputation?: number;
   accuracyBonus?: number;
   initialRatingBonus?: number;
+  scoutingQuality?: number;
   random: () => number;
 }): YouthRatings {
-  const primary = new Set(ARCHETYPE_PRIMARY_STATS[archetype]);
+  const primaryKeys = ARCHETYPE_PRIMARY_STATS[archetype];
+  const primary = new Set(primaryKeys);
   const secondary = new Set(ARCHETYPE_SECONDARY_STATS[archetype]);
   const safeAge = clamp(Math.round(age), 15, 18);
   const safeTalent = clamp(talent, 1, 8);
   const safeCountryReputation = clamp(countryReputation, 1, 10);
   const baseRating = YOUTH_BASE_RATING_BY_AGE[safeAge];
+  const youngFloorCompensation = safeAge <= 16 ? -0.06 : 0;
   const talentAdjustment = (safeTalent - 4.5) * 0.055;
   const countryAdjustment = (safeCountryReputation - 5.5) * 0.025;
+  const strengthCount = primaryKeys.length >= 4 ? 2 : 1;
+  const signatureStrengths = pickDistinctKeys(
+    primaryKeys,
+    strengthCount,
+    random,
+  );
+  const weaknessPool = YOUTH_RATING_KEYS.filter((key) => !primary.has(key));
+  const signatureWeaknesses = pickDistinctKeys(weaknessPool, 2, random);
+  const profileVolatility = 0.85 + random() * 0.5;
   const exceptionalChance = clamp(
-    0.025 +
-      safeTalent * 0.005 +
-      safeCountryReputation * 0.0015 +
-      initialRatingBonus * 0.05,
-    0.03,
-    0.09,
+    0.003 +
+      clamp(scoutingQuality, 0, 1) * 0.025 +
+      Math.max(0, safeTalent - 4) * 0.0015 +
+      safeCountryReputation * 0.0004 +
+      initialRatingBonus * 0.01,
+    0.004,
+    0.04,
   );
   const exceptionalBoost =
-    random() < exceptionalChance ? 0.55 + random() * 0.55 : 0;
+    random() < exceptionalChance ? 0.65 + random() * 0.75 : 0;
+  const primaryBaseAdjustment =
+    0.19 - (signatureStrengths.size / primaryKeys.length) * 0.6;
+  const weaknessBalanceAdjustment =
+    (signatureWeaknesses.size * 0.5) / YOUTH_RATING_KEYS.length;
   const ratings = Object.fromEntries(
     YOUTH_RATING_KEYS.map((key) => {
       const archetypeAdjustment = primary.has(key)
-        ? 0.25
+        ? primaryBaseAdjustment
         : secondary.has(key)
           ? 0
           : -0.32;
+      const signatureAdjustment = signatureStrengths.has(key)
+        ? 0.6
+        : signatureWeaknesses.has(key)
+          ? -0.5
+          : 0;
       const scoutingAdjustment = primary.has(key)
         ? accuracyBonus + initialRatingBonus
         : secondary.has(key)
@@ -233,12 +302,15 @@ export function generateYouthRatings({
         key,
         roundYouthRating(
           baseRating +
+            youngFloorCompensation +
             archetypeAdjustment +
             talentAdjustment +
             countryAdjustment +
+            weaknessBalanceAdjustment +
+            signatureAdjustment +
             scoutingAdjustment +
             exceptionalAdjustment +
-            (random() - 0.5) * 0.7,
+            (random() - 0.5) * 1.6 * profileVolatility,
         ),
       ];
     }),
@@ -396,6 +468,27 @@ function roundYouthRating(value: number) {
 
 function roundTo(value: number, step: number) {
   return Math.round(value / step) * step;
+}
+
+function pickDistinctKeys<T extends string>(
+  keys: readonly T[],
+  count: number,
+  random: () => number,
+) {
+  const available = [...keys];
+  const selected = new Set<T>();
+  while (available.length > 0 && selected.size < count) {
+    const index = Math.min(
+      available.length - 1,
+      Math.floor(random() * available.length),
+    );
+    selected.add(available.splice(index, 1)[0]!);
+  }
+  return selected;
+}
+
+function normalize(value: number, minimum: number, maximum: number) {
+  return clamp((value - minimum) / (maximum - minimum), 0, 1);
 }
 
 function clamp(value: number, minimum: number, maximum: number) {

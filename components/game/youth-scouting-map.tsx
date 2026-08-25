@@ -107,6 +107,11 @@ export function YouthScoutingMap({
           <CountryMetric label="Réputation mondiale" value={`${selected.reputation}/10`} accent />
           <CountryMetric label="Installations locales" value={`Niveau ${selected.facilityLevel}`} />
         </dl>
+        <p className="mt-2 rounded-xl border border-[#315B3E]/10 bg-white px-3 py-2 text-[10px] font-bold leading-4 text-[#60756E]">
+          {selected.reputationSourceSeasonName
+            ? `Réputation calculée uniquement depuis le classement UCI ${selected.reputationSourceSeasonName} : ${selected.uciNationRank ? `${selected.uciNationRank}${selected.uciNationRank === 1 ? "er" : "e"}` : "nation non classée"}.`
+            : "Aucune saison UCI précédente : réputation provisoire minimale."}
+        </p>
         <div className="mt-4 rounded-2xl border border-[#315B3E]/10 bg-[#EAF5F3] p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#60756E]">Traditions de formation</p>
           <p className="mt-2 text-sm font-extrabold text-[#176951]">{selected.specialtyLabel} · {selected.secondarySpecialtyLabel}</p>

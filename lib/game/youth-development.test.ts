@@ -3,13 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   YOUTH_INITIAL_PROJECTED_OVERALL_MAX,
   YOUTH_RATING_KEYS,
-  calculateCountryWorldReputation,
+  calculateCountryWorldReputationFromUciRank,
+  calculateYouthScoutingQuality,
   calculateYouthProjectedOverall,
   calculateYouthSigningCosts,
   createSeededRandom,
+  generateYouthPotentialSteps,
   generateYouthRatings,
   getScoutingCandidateCount,
   getYouthScoutingReportDetailLevel,
+  rollYouthNativeSpecialAbility,
 } from "@/lib/game/youth-development";
 import { projectYouthRating } from "@/lib/game/youth-training";
 
@@ -70,10 +73,85 @@ describe("youth development", () => {
     expect(strong).toBe(4);
   });
 
-  it("allows several nations to reach a reputation of ten", () => {
-    const dominantHistory = Array.from({ length: 10 }, () => 2_500);
-    expect(calculateCountryWorldReputation({ baseReputation: 10, seasonUciPoints: dominantHistory })).toBe(10);
-    expect(calculateCountryWorldReputation({ baseReputation: 8, seasonUciPoints: dominantHistory })).toBe(10);
+  it("dérive la réputation uniquement du rang UCI national précédent", () => {
+    expect(calculateCountryWorldReputationFromUciRank(1)).toBe(10);
+    expect(calculateCountryWorldReputationFromUciRank(3)).toBe(10);
+    expect(calculateCountryWorldReputationFromUciRank(4)).toBe(9);
+    expect(calculateCountryWorldReputationFromUciRank(10)).toBe(8);
+    expect(calculateCountryWorldReputationFromUciRank(31)).toBe(4);
+    expect(calculateCountryWorldReputationFromUciRank(60)).toBe(2);
+    expect(calculateCountryWorldReputationFromUciRank(null)).toBe(1);
+  });
+
+  it("rend les potentiels de deux et trois étoiles rares sans les rendre impossibles", () => {
+    const weakQuality = calculateYouthScoutingQuality({
+      scoutLevel: 1,
+      durationDays: 3,
+      facilityLevel: 1,
+      countryReputation: 1,
+      nationalityBonusPercentage: 0,
+    });
+    const strongQuality = calculateYouthScoutingQuality({
+      scoutLevel: 5,
+      durationDays: 7,
+      facilityLevel: 10,
+      countryReputation: 10,
+      nationalityBonusPercentage: 15,
+      scoutExpertiseBonus: 0.75,
+      qualityMultiplier: 1.35,
+    });
+    const sampleSize = 20_000;
+    const weak = Array.from({ length: sampleSize }, (_, index) =>
+      generateYouthPotentialSteps({
+        qualityScore: weakQuality,
+        random: createSeededRandom(`weak-potential-${index}`),
+      }),
+    );
+    const strong = Array.from({ length: sampleSize }, (_, index) =>
+      generateYouthPotentialSteps({
+        qualityScore: strongQuality,
+        random: createSeededRandom(`strong-potential-${index}`),
+      }),
+    );
+    const rateAtLeast = (sample: number[], steps: number) =>
+      sample.filter((potential) => potential >= steps).length / sample.length;
+
+    expect(weakQuality).toBe(0);
+    expect(strongQuality).toBe(1);
+    expect(rateAtLeast(weak, 4)).toBeLessThan(0.075);
+    expect(rateAtLeast(weak, 6)).toBeLessThan(0.01);
+    expect(rateAtLeast(strong, 4)).toBeGreaterThan(0.34);
+    expect(rateAtLeast(strong, 6)).toBeGreaterThan(0.08);
+    expect(
+      generateYouthPotentialSteps({ qualityScore: 0, random: () => 0 }),
+    ).toBe(8);
+  });
+
+  it("attribue rarement une capacité native cohérente avec le profil", () => {
+    const sampleSize = 20_000;
+    const weakCount = Array.from({ length: sampleSize }, (_, index) =>
+      rollYouthNativeSpecialAbility({
+        archetype: "sprinter",
+        potentialSteps: 1,
+        qualityScore: 0,
+        random: createSeededRandom(`weak-ability-${index}`),
+      }),
+    ).filter(Boolean).length;
+    const strongAbilities = Array.from({ length: sampleSize }, (_, index) =>
+      rollYouthNativeSpecialAbility({
+        archetype: "sprinter",
+        potentialSteps: 8,
+        qualityScore: 1,
+        random: createSeededRandom(`strong-ability-${index}`),
+      }),
+    ).filter(Boolean);
+
+    expect(weakCount / sampleSize).toBeLessThan(0.01);
+    expect(strongAbilities.length / sampleSize).toBeGreaterThan(0.035);
+    expect(strongAbilities.length / sampleSize).toBeLessThan(0.055);
+    expect(new Set(strongAbilities)).toEqual(
+      new Set(["pistard", "giclette", "locomotive"]),
+    );
   });
 
   it("keeps signing and schooling affordable but meaningful", () => {
@@ -150,7 +228,15 @@ describe("youth development", () => {
       countryReputation: 2,
       random: () => 0.5,
     });
-    const exceptionalRolls = [0, 0.9, ...Array.from({ length: 13 }, () => 0.5)];
+    const exceptionalRolls = [
+      0.1,
+      0.1,
+      0.2,
+      0.5,
+      0,
+      0.9,
+      ...Array.from({ length: 13 }, () => 0.5),
+    ];
     const exceptional = generateYouthRatings({
       archetype: "climber",
       age: 16,
@@ -158,11 +244,33 @@ describe("youth development", () => {
       countryReputation: 10,
       accuracyBonus: 0.15,
       initialRatingBonus: 0.3,
+      scoutingQuality: 1,
       random: () => exceptionalRolls.shift() ?? 0.5,
     });
 
     expect(projectYouthRating(exceptional.mountain)).toBeGreaterThan(
       projectYouthRating(ordinary.mountain) + 8,
+    );
+  });
+
+  it("crée des forces et faiblesses plus marquées sans lisser les profils", () => {
+    const spreads = Array.from({ length: 1_000 }, (_, index) => {
+      const ratings = generateYouthRatings({
+        archetype: "stage_racer",
+        age: 17,
+        talent: 3,
+        countryReputation: 5,
+        random: createSeededRandom(`varied-profile-${index}`),
+      });
+      const values = YOUTH_RATING_KEYS.map((key) => ratings[key]);
+      return Math.max(...values) - Math.min(...values);
+    });
+    const averageSpread =
+      spreads.reduce((total, spread) => total + spread, 0) / spreads.length;
+
+    expect(averageSpread).toBeGreaterThan(1.25);
+    expect(spreads.filter((spread) => spread >= 1.4).length).toBeGreaterThan(
+      500,
     );
   });
 
