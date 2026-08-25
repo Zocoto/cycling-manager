@@ -885,7 +885,7 @@ function ProgressionSection() {
         Les offres apparaissent à partir de 30 points de réputation. Leur origine
         tient compte du pays de l’équipe, mais aussi des nationalités et du
         niveau des coureurs. Entre J21 et J28, vous préparez le sponsor de la
-        saison suivante. Une rupture anticipée coûte 10 points de réputation.
+        saison suivante. Une rupture anticipée coûte 25 points de réputation.
       </StrategyNote>
     </GuideSection>
   );

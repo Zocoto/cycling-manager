@@ -903,7 +903,7 @@ function EarlyTerminationSection({
 
           <ul className="mt-4 grid gap-2 text-sm font-semibold leading-6 text-red-800">
             <li>
-              • Pénalité immédiate de 10 points de réputation, avec un minimum
+              • Pénalité immédiate de 25 points de réputation, avec un minimum
               final de 0.
             </li>
 
@@ -925,7 +925,9 @@ function EarlyTerminationSection({
 
           <TerminateSponsorContractButton
             sponsorName={contract.sponsor.name}
-            reputationPenalty={10}
+            reputationPenalty={
+              GAMEPLAY_RULES.sponsorEarlyTerminationReputationPenalty
+            }
           />
 
           <p className="mt-3 text-center text-xs font-semibold leading-5 text-red-700">

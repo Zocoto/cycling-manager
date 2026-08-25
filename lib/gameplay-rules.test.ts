@@ -8,6 +8,10 @@ import {
 } from "./gameplay-rules";
 
 describe("sponsoring unlock rules", () => {
+  it("applique une pénalité forte de 25 points à une rupture sponsor", () => {
+    expect(GAMEPLAY_RULES.sponsorEarlyTerminationReputationPenalty).toBe(25);
+  });
+
   it("keeps sponsoring locked below the global threshold", () => {
     expect(
       isSponsoringUnlocked(
