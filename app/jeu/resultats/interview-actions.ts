@@ -8,8 +8,9 @@ import { submitPostRaceInterview } from "@/services/post-race-interviews";
 
 const interviewSchema = z.object({
   interviewId: z.string().uuid(),
-  answers: z.array(z.string().trim().min(2).max(600)).length(3),
+  answers: z.array(z.string().trim().min(2).max(600)).min(2).max(3),
   closingNote: z.string().trim().max(500),
+  eventChoiceId: z.string().trim().min(1).max(80).nullable(),
 });
 
 export async function submitPostRaceInterviewAction(input: unknown) {

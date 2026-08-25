@@ -8,7 +8,7 @@ import {
 } from "@/lib/game/post-race-interview";
 
 const BASE_CONTEXT: PostRaceInterviewContext = {
-  questionVersion: 2,
+  questionVersion: 3,
   raceName: "La Classique des Lacs",
   stageName: "La Classique des Lacs",
   stageType: "road",
@@ -52,6 +52,32 @@ describe("questions après-course", () => {
     expect(["tactics", "race_fact"]).toContain(questions[1].category);
     expect(questions[2].category).toBe("outlook");
     expect(questions.every(({ text }) => !text.includes("{{"))).toBe(true);
+  });
+
+  it("remplace uniquement la troisième question lorsqu’un événement est présent", () => {
+    const questions = selectPostRaceInterviewQuestions(
+      {
+        ...BASE_CONTEXT,
+        zoneMixteEvent: {
+          id: "test-event",
+          rarity: "common",
+          title: "Un événement test",
+          story: "Une situation inattendue.",
+          choices: [],
+        },
+      },
+      "event-seed",
+    );
+
+    expect(questions.map(({ category }) => category)).toEqual([
+      "result",
+      expect.stringMatching(/tactics|race_fact/),
+      "event",
+    ]);
+    expect(questions[2]).toMatchObject({
+      id: "event:test-event",
+      text: "Un événement test",
+    });
   });
 
   it("adapte la question de résultat au niveau de performance", () => {

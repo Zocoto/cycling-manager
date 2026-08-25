@@ -1,5 +1,35 @@
 export type PostRaceInterviewQuestionCategory =
-  "result" | "tactics" | "race_fact" | "outlook" | "rivalry";
+  "result" | "tactics" | "race_fact" | "outlook" | "rivalry" | "event";
+
+export type ZoneMixteEventRarity = "common" | "notable" | "rare";
+export type ZoneMixteEventRisk = "safe" | "balanced" | "bold";
+
+export type ZoneMixteEventOutcome = {
+  weight: number;
+  reputationDelta?: number;
+  cashDelta?: number;
+  riderPopularityDelta?: number;
+  inventoryItemKey?: "acceleration-focus";
+  inventoryItemName?: "Module explosivité";
+  summary: string;
+};
+
+export type ZoneMixteEventChoice = {
+  id: string;
+  label: string;
+  description: string;
+  impactPreview: string;
+  risk: ZoneMixteEventRisk;
+  outcomes: ZoneMixteEventOutcome[];
+};
+
+export type ZoneMixteEvent = {
+  id: string;
+  rarity: ZoneMixteEventRarity;
+  title: string;
+  story: string;
+  choices: ZoneMixteEventChoice[];
+};
 
 export type PostRaceInterviewQuestion = {
   id: string;
@@ -50,6 +80,9 @@ export type PostRaceInterviewContext = {
   directorName: string;
   directorAvatarKey: string | null;
   riderName: string;
+  riderId?: string | null;
+  sponsorName?: string | null;
+  raceCountryCode?: string | null;
   bestRank: number | null;
   gapLabel: string | null;
   uciRank: number | null;
@@ -60,6 +93,13 @@ export type PostRaceInterviewContext = {
   tookChase: boolean;
   raceFacts?: PostRaceInterviewRaceFacts;
   rivalry?: PostRaceInterviewRivalryContext | null;
+  zoneMixteEvent?: ZoneMixteEvent | null;
+};
+
+export type PostRaceInterviewEventResolution = {
+  choiceId: string;
+  choiceLabel: string;
+  outcome: ZoneMixteEventOutcome;
 };
 
 export type PostRaceInterviewSnapshot = {
@@ -70,6 +110,7 @@ export type PostRaceInterviewSnapshot = {
   closingNote: string;
   context: PostRaceInterviewContext;
   submittedAt: string | null;
+  eventResolution: PostRaceInterviewEventResolution | null;
 };
 
 type ResultSituation = "win" | "podium" | "top10" | "outside";
@@ -834,6 +875,31 @@ export function selectPostRaceInterviewQuestions(
   const closingQuestions = shouldAskRivalryQuestion(context, seed)
     ? rivalryQuestions
     : outlookQuestions;
+
+  if (context.zoneMixteEvent) {
+    const standardQuestions = [resultQuestions, middleQuestions].map(
+      (candidates, index) => {
+        const question =
+          candidates[seededIndex(`${seed}:${index}`, candidates.length)];
+        if (!question) {
+          throw new Error("Aucune question de zone mixte n’est disponible.");
+        }
+        return {
+          id: question.id,
+          category: question.category,
+          text: renderQuestion(question.text, context),
+        } satisfies PostRaceInterviewQuestion;
+      },
+    );
+    return [
+      ...standardQuestions,
+      {
+        id: `event:${context.zoneMixteEvent.id}`,
+        category: "event",
+        text: context.zoneMixteEvent.title,
+      },
+    ];
+  }
 
   return [resultQuestions, middleQuestions, closingQuestions].map(
     (candidates, index) => {

@@ -3,12 +3,14 @@ import "server-only";
 import type {
   PostRaceInterviewAnswer,
   PostRaceInterviewContext,
+  PostRaceInterviewEventResolution,
   PostRaceInterviewQuestion,
   PostRaceInterviewRaceFacts,
   PostRaceInterviewRivalryContext,
   PostRaceInterviewSnapshot,
 } from "@/lib/game/post-race-interview";
 import { selectPostRaceInterviewQuestions } from "@/lib/game/post-race-interview";
+import { selectZoneMixteEvent } from "@/lib/game/post-race-interview-events";
 import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
 import { isPostRaceInterviewWindowOpen } from "@/lib/game/post-race-interview-window";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -35,6 +37,8 @@ type PostRaceInterviewRow = {
   context: unknown;
   status: "pending" | "submitted" | "closed";
   submitted_at: string | null;
+  event_choice_id: string | null;
+  event_outcome: unknown;
 };
 
 type StageRow = { season_day_id: string };
@@ -58,7 +62,7 @@ type SubmittedInterviewRow = PostRaceInterviewRow & {
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 const INTERVIEW_SELECT =
-  "id, stage_id, team_id, sporting_director_id, question_set, answers, closing_note, context, status, submitted_at";
+  "id, stage_id, team_id, sporting_director_id, question_set, answers, closing_note, context, status, submitted_at, event_choice_id, event_outcome";
 
 export async function getOrCreatePostRaceInterview({
   authUserId,
@@ -70,6 +74,8 @@ export async function getOrCreatePostRaceInterview({
   stageName,
   stageType,
   weatherLabel,
+  sponsorName,
+  raceCountryCode,
   officialResults,
 }: {
   authUserId: string;
@@ -81,6 +87,8 @@ export async function getOrCreatePostRaceInterview({
   stageName: string;
   stageType: NonNullable<PostRaceInterviewContext["stageType"]>;
   weatherLabel: string;
+  sponsorName: string | null;
+  raceCountryCode: string;
   officialResults: OfficialRaceEditionResults;
 }): Promise<PostRaceInterviewSnapshot | null> {
   if (!teamId) return null;
@@ -133,9 +141,11 @@ export async function getOrCreatePostRaceInterview({
   const raceFacts = await loadRaceFactContext(admin, stageId);
   const uciLeader = rankings?.riders[0] ?? null;
   const contextEnrichment = {
-    questionVersion: 2,
+    questionVersion: 3,
     stageType,
     weatherLabel,
+    sponsorName,
+    raceCountryCode,
     uciLeaderName: uciLeader?.riderName ?? null,
     uciLeaderTeamName: uciLeader?.teamName ?? null,
     raceFacts,
@@ -164,17 +174,33 @@ export async function getOrCreatePostRaceInterview({
     const rivalryChanged = rivalry
       ? !sameRivalry(currentContext.rivalry, rivalry)
       : Boolean(currentContext.rivalry);
-    if (currentContext.questionVersion === 2 && !rivalryChanged) {
+    if (currentContext.questionVersion === 3 && !rivalryChanged) {
       return mapInterview(existing.data);
     }
+    const eventSeed = `${editionId}:${stageId}:${teamId}`;
+    const zoneMixteEvent =
+      currentContext.questionVersion === 3
+        ? (currentContext.zoneMixteEvent ?? null)
+        : await selectEventWithoutSeasonRepeat(admin, {
+            context: {
+              ...currentContext,
+              ...contextEnrichment,
+              rivalry,
+            },
+            seed: eventSeed,
+            seasonId: seasonResult.data.id,
+            directorId: directorResult.data.id,
+            excludedInterviewId: existing.data.id,
+          });
     const refreshedContext: PostRaceInterviewContext = {
       ...currentContext,
       ...contextEnrichment,
       rivalry,
+      zoneMixteEvent,
     };
     const refreshedQuestions = selectPostRaceInterviewQuestions(
       refreshedContext,
-      `${editionId}:${stageId}:${teamId}`,
+      eventSeed,
     );
     const refreshed = await admin
       .from("post_race_interviews")
@@ -217,6 +243,7 @@ export async function getOrCreatePostRaceInterview({
     directorName: directorResult.data.display_name,
     directorAvatarKey: directorResult.data.avatar_key,
     riderName: bestResult.riderName,
+    riderId: bestResult.riderId,
     bestRank: bestResult.rank,
     gapLabel: formatGap(bestResult.gapToWinnerMs),
     uciRank: teamRanking?.rank ?? null,
@@ -228,7 +255,14 @@ export async function getOrCreatePostRaceInterview({
       ({ participationType }) => participationType === "chase",
     ),
     rivalry,
+    zoneMixteEvent: null,
   };
+  context.zoneMixteEvent = await selectEventWithoutSeasonRepeat(admin, {
+    context,
+    seed: `${editionId}:${stageId}:${teamId}`,
+    seasonId: seasonResult.data.id,
+    directorId: directorResult.data.id,
+  });
   const questions = selectPostRaceInterviewQuestions(
     context,
     `${editionId}:${stageId}:${teamId}`,
@@ -272,11 +306,13 @@ export async function submitPostRaceInterview({
   interviewId,
   answers,
   closingNote,
+  eventChoiceId,
 }: {
   authUserId: string;
   interviewId: string;
   answers: string[];
   closingNote: string;
+  eventChoiceId: string | null;
 }): Promise<PostRaceInterviewSnapshot> {
   const admin = createSupabaseAdminClient();
   const directorResult = await admin
@@ -290,58 +326,22 @@ export async function submitPostRaceInterview({
     throw new Error("Votre profil de Directeur Sportif est introuvable.");
   }
 
-  const current = await admin
+  const submitted = await admin.rpc("submit_post_race_interview_with_event", {
+    p_auth_user_id: authUserId,
+    p_interview_id: interviewId,
+    p_answers: answers,
+    p_closing_note: closingNote,
+    p_event_choice_id: eventChoiceId,
+  });
+  if (submitted.error) {
+    throw new Error(submitted.error.message);
+  }
+
+  const updated = await admin
     .from("post_race_interviews")
     .select(INTERVIEW_SELECT)
     .eq("id", interviewId)
     .eq("sporting_director_id", directorResult.data.id)
-    .maybeSingle<PostRaceInterviewRow>();
-
-  if (current.error || !current.data) {
-    throw new Error("Cette interview ne vous appartient pas ou n’existe plus.");
-  }
-  const questions = current.data.question_set as PostRaceInterviewQuestion[];
-  if (
-    current.data.status === "closed" ||
-    !(await hasOpenPostRaceInterviewWindow(admin, current.data.stage_id))
-  ) {
-    throw new Error(
-      "La zone mixte est fermée : l’interview est disponible uniquement le jour de la course, avant 20 h.",
-    );
-  }
-  if (current.data.status === "submitted") return mapInterview(current.data);
-
-  if (questions.length !== 3 || answers.length !== questions.length) {
-    throw new Error("Les trois réponses de l’interview sont attendues.");
-  }
-  const normalizedAnswers: PostRaceInterviewAnswer[] = questions.map(
-    (question, index) => ({
-      questionId: question.id,
-      question: question.text,
-      answer: answers[index].trim(),
-    }),
-  );
-  if (
-    normalizedAnswers.some(
-      ({ answer }) => answer.length < 2 || answer.length > 600,
-    )
-  ) {
-    throw new Error("Chaque réponse doit contenir entre 2 et 600 caractères.");
-  }
-
-  const nowIso = new Date().toISOString();
-  const updated = await admin
-    .from("post_race_interviews")
-    .update({
-      answers: normalizedAnswers,
-      closing_note: closingNote.trim() || null,
-      status: "submitted",
-      submitted_at: nowIso,
-      updated_at: nowIso,
-    })
-    .eq("id", interviewId)
-    .eq("status", "pending")
-    .select(INTERVIEW_SELECT)
     .single<PostRaceInterviewRow>();
 
   if (updated.error || !updated.data) {
@@ -560,6 +560,63 @@ function mapInterview(row: PostRaceInterviewRow): PostRaceInterviewSnapshot {
     closingNote: row.closing_note ?? "",
     context: row.context as PostRaceInterviewContext,
     submittedAt: row.submitted_at,
+    eventResolution: asEventResolution(row.event_choice_id, row.event_outcome),
+  };
+}
+
+async function selectEventWithoutSeasonRepeat(
+  admin: SupabaseAdminClient,
+  {
+    context,
+    seed,
+    seasonId,
+    directorId,
+    excludedInterviewId,
+  }: {
+    context: PostRaceInterviewContext;
+    seed: string;
+    seasonId: string;
+    directorId: string;
+    excludedInterviewId?: string;
+  },
+) {
+  const provisional = selectZoneMixteEvent({ context, seed });
+  if (!provisional) return null;
+
+  let query = admin
+    .from("post_race_interviews")
+    .select("id, context")
+    .eq("season_id", seasonId)
+    .eq("sporting_director_id", directorId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (excludedInterviewId) query = query.neq("id", excludedInterviewId);
+  const previous = await query.returns<Array<{ id: string; context: unknown }>>();
+  const usedEventIds = (previous.data ?? []).flatMap((row) => {
+    const previousContext = row.context as PostRaceInterviewContext;
+    return previousContext.zoneMixteEvent?.id
+      ? [previousContext.zoneMixteEvent.id]
+      : [];
+  });
+  return selectZoneMixteEvent({ context, seed, usedEventIds });
+}
+
+function asEventResolution(
+  choiceId: string | null,
+  value: unknown,
+): PostRaceInterviewEventResolution | null {
+  if (
+    !choiceId ||
+    typeof value !== "object" ||
+    value === null ||
+    typeof (value as PostRaceInterviewEventResolution).choiceLabel !== "string" ||
+    typeof (value as PostRaceInterviewEventResolution).outcome !== "object"
+  ) {
+    return null;
+  }
+  return {
+    ...(value as PostRaceInterviewEventResolution),
+    choiceId,
   };
 }
 

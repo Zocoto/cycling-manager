@@ -174,6 +174,8 @@ export default async function RaceLivePage({
               profileType: stage.profileType,
             }),
           ),
+          sponsorName: headerData.teamSponsorIdentity?.sponsor.name ?? null,
+          raceCountryCode: edition.countryCode,
           officialResults,
         }).catch((error: unknown) => {
           console.error(
