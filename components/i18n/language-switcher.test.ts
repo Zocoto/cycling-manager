@@ -25,6 +25,8 @@ describe("LanguageSwitcher integration", () => {
 
     expect(publicHeader).toContain("gap-3 px-3");
     expect(publicHeader).toContain("h-10 w-10 sm:h-12 sm:w-12");
+    expect(publicHeader).toContain('data-mobile-public-app-name="true"');
+    expect(publicHeader).toContain("sm:hidden");
     expect(publicHeader).toContain("sm:inline-flex");
     expect(publicHeader).toContain("px-3 py-2 text-sm");
   });

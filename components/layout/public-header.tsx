@@ -32,6 +32,18 @@ export function PublicHeader() {
         >
           <WheelLogo className="h-10 w-10 sm:h-12 sm:w-12" />
 
+          <span
+            data-mobile-public-app-name="true"
+            className="flex min-w-0 flex-col justify-center leading-none sm:hidden"
+          >
+            <span className="text-[0.7rem] font-black uppercase tracking-[0.12em] text-[#FFFDF4]">
+              Cyclo
+            </span>
+            <span className="mt-1 text-[0.52rem] font-extrabold uppercase tracking-[0.16em] text-[#F2C94C]">
+              Stratège
+            </span>
+          </span>
+
           <span className="hidden h-11 -translate-y-[3px] flex-col justify-between leading-none sm:inline-flex">
             <span
               aria-hidden="true"
