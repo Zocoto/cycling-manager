@@ -6,12 +6,17 @@ import {
   getGlobalChatHistoryStart,
   type GlobalChatCursor,
   type GlobalChatMessageReactionEmoji,
+  type GlobalChatPreviewType,
 } from "@/lib/game/global-chat";
 import {
   mapGlobalChatOnlineDirectorRows,
   mergeGlobalChatOnlineDirectors,
   type GlobalChatOnlineDirector,
 } from "@/lib/game/global-chat-presence";
+import type {
+  RiderJerseyAppearance,
+  RiderJerseyPattern,
+} from "@/lib/rider-jersey";
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<
@@ -19,11 +24,29 @@ type SupabaseServerClient = Awaited<
 >;
 
 export type GlobalChatPreview = {
-  type: "team" | "rider";
+  type: GlobalChatPreviewType;
   entityId: string;
+  publicIdentifier: string;
   title: string;
   subtitle: string;
   href: string;
+  country: {
+    name: string;
+    code: string;
+  } | null;
+  age: number | null;
+  riderAvatarProfileKey: string | null;
+  riderAvatarSeed: string | number | null;
+  directorAvatarKey: string | null;
+  directorAvatarFrameKey: "alpha_tester" | null;
+  teamId: string | null;
+  palette: {
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+  };
+  jerseyPattern: RiderJerseyPattern;
+  jerseyStatus: RiderJerseyAppearance["status"];
 };
 
 export type GlobalChatReply = {
@@ -83,6 +106,20 @@ export type GlobalChatMessageRow = {
   preview_entity_id: string | null;
   preview_title: string | null;
   preview_subtitle: string | null;
+  preview_public_identifier: string | null;
+  preview_country_name: string | null;
+  preview_country_code: string | null;
+  preview_age: number | null;
+  preview_avatar_profile_key: string | null;
+  preview_avatar_seed: string | number | null;
+  preview_avatar_key: string | null;
+  preview_avatar_frame_key: string | null;
+  preview_team_id: string | null;
+  preview_team_primary_color: string | null;
+  preview_team_secondary_color: string | null;
+  preview_team_accent_color: string | null;
+  preview_jersey_pattern: string | null;
+  preview_jersey_status: string | null;
   reply_to_message_id: string | null;
   reply_to_author_display_name: string | null;
   reply_to_message_excerpt: string | null;
@@ -141,6 +178,20 @@ const GLOBAL_CHAT_MESSAGE_SELECT = [
   "preview_entity_id",
   "preview_title",
   "preview_subtitle",
+  "preview_public_identifier",
+  "preview_country_name",
+  "preview_country_code",
+  "preview_age",
+  "preview_avatar_profile_key",
+  "preview_avatar_seed",
+  "preview_avatar_key",
+  "preview_avatar_frame_key",
+  "preview_team_id",
+  "preview_team_primary_color",
+  "preview_team_secondary_color",
+  "preview_team_accent_color",
+  "preview_jersey_pattern",
+  "preview_jersey_status",
   "reply_to_message_id",
   "reply_to_author_display_name",
   "reply_to_message_excerpt",
@@ -451,7 +502,9 @@ function mapGlobalChatPreview(
   row: GlobalChatMessageRow,
 ): GlobalChatPreview | null {
   if (
-    (row.preview_type !== "team" && row.preview_type !== "rider") ||
+    (row.preview_type !== "team" &&
+      row.preview_type !== "rider" &&
+      row.preview_type !== "director") ||
     !row.preview_entity_id ||
     !row.preview_title ||
     !row.preview_subtitle
@@ -459,16 +512,100 @@ function mapGlobalChatPreview(
     return null;
   }
 
+  const publicIdentifier =
+    row.preview_public_identifier ?? row.preview_entity_id;
+
   return {
     type: row.preview_type,
     entityId: row.preview_entity_id,
+    publicIdentifier,
     title: row.preview_title,
     subtitle: row.preview_subtitle,
     href:
       row.preview_type === "team"
         ? `/jeu/equipes/${row.preview_entity_id}`
-        : `/jeu/coureurs/${row.preview_entity_id}`,
+        : row.preview_type === "rider"
+          ? `/jeu/coureurs/${row.preview_entity_id}`
+          : `/jeu/directeurs-sportifs/${encodeURIComponent(publicIdentifier)}`,
+    country:
+      row.preview_country_name &&
+      row.preview_country_code &&
+      /^[A-Z]{2}$/i.test(row.preview_country_code)
+        ? {
+            name: row.preview_country_name,
+            code: row.preview_country_code.toUpperCase(),
+          }
+        : null,
+    age:
+      typeof row.preview_age === "number" &&
+      Number.isFinite(row.preview_age)
+        ? row.preview_age
+        : null,
+    riderAvatarProfileKey: row.preview_avatar_profile_key,
+    riderAvatarSeed: row.preview_avatar_seed,
+    directorAvatarKey: row.preview_avatar_key,
+    directorAvatarFrameKey: readAvatarFrameKey(
+      row.preview_avatar_frame_key,
+    ),
+    teamId: row.preview_team_id,
+    palette: {
+      primaryColor: readPreviewColor(
+        row.preview_team_primary_color,
+        row.preview_type === "rider" && !row.preview_team_id
+          ? "#6B7280"
+          : "#176951",
+      ),
+      secondaryColor: readPreviewColor(
+        row.preview_team_secondary_color,
+        row.preview_type === "rider" && !row.preview_team_id
+          ? "#D1D5DB"
+          : "#42B99A",
+      ),
+      accentColor: readPreviewColor(
+        row.preview_team_accent_color,
+        row.preview_type === "rider" && !row.preview_team_id
+          ? "#F3F4F6"
+          : "#F2C94C",
+      ),
+    },
+    jerseyPattern: readJerseyPattern(row.preview_jersey_pattern),
+    jerseyStatus: readJerseyStatus(
+      row.preview_jersey_status,
+      row.preview_type === "rider" && !row.preview_team_id,
+    ),
   };
+}
+
+function readPreviewColor(value: string | null, fallback: string) {
+  const normalized = value?.trim().toUpperCase() ?? "";
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : fallback;
+}
+
+function readJerseyPattern(value: string | null): RiderJerseyPattern {
+  const patterns: RiderJerseyPattern[] = [
+    "center",
+    "diagonal",
+    "hoops",
+    "solid",
+    "split",
+    "vertical",
+    "chevron",
+    "quarters",
+    "cross",
+    "shoulders",
+    "checkerboard",
+    "wave",
+    "pinstripes",
+  ];
+  return patterns.find((pattern) => pattern === value) ?? "solid";
+}
+
+function readJerseyStatus(
+  value: string | null,
+  isFreeAgent: boolean,
+): RiderJerseyAppearance["status"] {
+  if (isFreeAgent) return "free-agent";
+  return value === "sponsored" ? "sponsored" : "amateur";
 }
 
 function readAvatarFrameKey(value: string | null): "alpha_tester" | null {

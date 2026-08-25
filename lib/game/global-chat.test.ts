@@ -13,6 +13,7 @@ import {
 
 const TEAM_ID = "f2e292c0-0c9e-41a2-8cd8-ed2a6bf83b57";
 const RIDER_ID = "6b01ad75-9cdb-4f4a-9b24-143fe9e6f4e2";
+const DIRECTOR_USERNAME = "Fra Troisset";
 
 describe("global chat links", () => {
   it("extracts a relative team profile URL", () => {
@@ -50,7 +51,19 @@ describe("global chat links", () => {
     ).toBeNull();
   });
 
-  it("allows only Cyclo Stratège rider and team profile links", () => {
+  it("extracts a public sporting director profile", () => {
+    expect(
+      extractGlobalChatPreviewReference(
+        "À suivre : https://cyclostratege.fr/jeu/directeurs-sportifs/Fra%20Troisset",
+      ),
+    ).toEqual({
+      type: "director",
+      entityId: DIRECTOR_USERNAME,
+      href: "/jeu/directeurs-sportifs/Fra%20Troisset",
+    });
+  });
+
+  it("allows only Cyclo Stratège rider, team and director profile links", () => {
     expect(
       hasForbiddenGlobalChatLink(`/jeu/equipes/${TEAM_ID}`),
     ).toBe(false);
@@ -62,6 +75,11 @@ describe("global chat links", () => {
     expect(
       hasForbiddenGlobalChatLink(
         `cyclostratege.fr/jeu/equipes/${TEAM_ID}`,
+      ),
+    ).toBe(false);
+    expect(
+      hasForbiddenGlobalChatLink(
+        "https://cyclostratege.fr/jeu/directeurs-sportifs/Fra%20Troisset",
       ),
     ).toBe(false);
     expect(hasForbiddenGlobalChatLink("https://example.com/video")).toBe(true);

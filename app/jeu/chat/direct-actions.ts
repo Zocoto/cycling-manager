@@ -60,7 +60,7 @@ export async function postDirectMessageAction(
   }
   if (hasForbiddenGlobalChatLink(body)) {
     throw new Error(
-      "Seuls les liens Cyclo Stratège vers une fiche coureur ou équipe sont autorisés.",
+      "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
     );
   }
 

@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { DirectMessagingPanel } from "@/components/game/direct-messaging-panel";
+import { GlobalChatSharePreview } from "@/components/game/global-chat-share-preview";
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
@@ -54,6 +55,7 @@ import type {
   GlobalChatMentionRecipient,
   GlobalChatMessagePage,
   GlobalChatMessageRow,
+  GlobalChatPreview,
   GlobalChatReactionRow,
 } from "@/services/global-chat";
 
@@ -538,7 +540,7 @@ export function GlobalGameChat({
     if (!message || isPending) return;
     if (hasForbiddenGlobalChatLink(message)) {
       setError(
-        "Seuls les liens Cyclo Stratège vers une fiche coureur ou équipe sont autorisés.",
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
       );
       return;
     }
@@ -869,7 +871,7 @@ export function GlobalGameChat({
             </p>
             <p className="w-full text-[9px] font-semibold text-[#789087]">
               Tapez @ pour notifier un membre · liens autorisés : fiches
-              coureurs et équipes Cyclo Stratège
+              coureurs, équipes et DS Cyclo Stratège
             </p>
           </div>
         </form>
@@ -1085,52 +1087,7 @@ function ChatMessage({
         </div>
 
         {message.preview ? (
-          <Link
-            href={message.preview.href}
-            className={`group mt-3 flex items-center gap-3 rounded-xl border p-3 transition ${
-              isCurrentDirector
-                ? "border-white/15 bg-white/10 hover:bg-white/15"
-                : "border-[#315B3E]/12 bg-[#F3F8F6] hover:border-[#176951]/35"
-            }`}
-          >
-            <span
-              className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                isCurrentDirector
-                  ? "bg-white/15 text-[#F2C94C]"
-                  : "bg-[#DDF3E7] text-[#176951]"
-              }`}
-            >
-              {message.preview.type === "team" ? <TeamIcon /> : <RiderIcon />}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span
-                className={`block text-[9px] font-black uppercase tracking-[0.14em] ${
-                  isCurrentDirector ? "text-white/55" : "text-[#789087]"
-                }`}
-              >
-                {message.preview.type === "team"
-                  ? "Équipe partagée"
-                  : "Coureur partagé"}
-              </span>
-              <span className="mt-0.5 block truncate text-sm font-black">
-                <span data-i18n-skip>{message.preview.title}</span>
-              </span>
-              <span
-                data-i18n-skip
-                className={`block truncate text-[10px] font-semibold ${
-                  isCurrentDirector ? "text-white/65" : "text-[#60756E]"
-                }`}
-              >
-                {message.preview.subtitle}
-              </span>
-            </span>
-            <span
-              aria-hidden="true"
-              className="font-black transition-transform group-hover:translate-x-0.5"
-            >
-              →
-            </span>
-          </Link>
+          <GlobalChatSharePreview preview={message.preview} />
         ) : null}
         <GlobalChatMessageReactions
           message={message}
@@ -1506,6 +1463,61 @@ function readRealtimeMessage(
       typeof value.preview_subtitle === "string"
         ? value.preview_subtitle
         : null,
+    preview_public_identifier:
+      typeof value.preview_public_identifier === "string"
+        ? value.preview_public_identifier
+        : null,
+    preview_country_name:
+      typeof value.preview_country_name === "string"
+        ? value.preview_country_name
+        : null,
+    preview_country_code:
+      typeof value.preview_country_code === "string"
+        ? value.preview_country_code
+        : null,
+    preview_age:
+      typeof value.preview_age === "number" ? value.preview_age : null,
+    preview_avatar_profile_key:
+      typeof value.preview_avatar_profile_key === "string"
+        ? value.preview_avatar_profile_key
+        : null,
+    preview_avatar_seed:
+      typeof value.preview_avatar_seed === "string" ||
+      typeof value.preview_avatar_seed === "number"
+        ? value.preview_avatar_seed
+        : null,
+    preview_avatar_key:
+      typeof value.preview_avatar_key === "string"
+        ? value.preview_avatar_key
+        : null,
+    preview_avatar_frame_key:
+      typeof value.preview_avatar_frame_key === "string"
+        ? value.preview_avatar_frame_key
+        : null,
+    preview_team_id:
+      typeof value.preview_team_id === "string"
+        ? value.preview_team_id
+        : null,
+    preview_team_primary_color:
+      typeof value.preview_team_primary_color === "string"
+        ? value.preview_team_primary_color
+        : null,
+    preview_team_secondary_color:
+      typeof value.preview_team_secondary_color === "string"
+        ? value.preview_team_secondary_color
+        : null,
+    preview_team_accent_color:
+      typeof value.preview_team_accent_color === "string"
+        ? value.preview_team_accent_color
+        : null,
+    preview_jersey_pattern:
+      typeof value.preview_jersey_pattern === "string"
+        ? value.preview_jersey_pattern
+        : null,
+    preview_jersey_status:
+      typeof value.preview_jersey_status === "string"
+        ? value.preview_jersey_status
+        : null,
     reply_to_message_id:
       typeof value.reply_to_message_id === "string"
         ? value.reply_to_message_id
@@ -1530,22 +1542,7 @@ function readRealtimeMessage(
     authorDisplayName: row.author_display_name,
     teamDisplayName: row.team_display_name,
     message: row.message,
-    preview:
-      (row.preview_type === "team" || row.preview_type === "rider") &&
-      row.preview_entity_id &&
-      row.preview_title &&
-      row.preview_subtitle
-        ? {
-            type: row.preview_type,
-            entityId: row.preview_entity_id,
-            title: row.preview_title,
-            subtitle: row.preview_subtitle,
-            href:
-              row.preview_type === "team"
-                ? `/jeu/equipes/${row.preview_entity_id}`
-                : `/jeu/coureurs/${row.preview_entity_id}`,
-          }
-        : null,
+    preview: readRealtimePreview(row),
     replyTo:
       row.reply_to_author_display_name && row.reply_to_message_excerpt
         ? {
@@ -1557,6 +1554,107 @@ function readRealtimeMessage(
     reactions: [],
     createdAt: row.created_at,
   };
+}
+
+function readRealtimePreview(
+  row: GlobalChatMessageRow,
+): GlobalChatPreview | null {
+  if (
+    (row.preview_type !== "team" &&
+      row.preview_type !== "rider" &&
+      row.preview_type !== "director") ||
+    !row.preview_entity_id ||
+    !row.preview_title ||
+    !row.preview_subtitle
+  ) {
+    return null;
+  }
+
+  const publicIdentifier =
+    row.preview_public_identifier ?? row.preview_entity_id;
+  const isFreeAgent = row.preview_type === "rider" && !row.preview_team_id;
+
+  return {
+    type: row.preview_type,
+    entityId: row.preview_entity_id,
+    publicIdentifier,
+    title: row.preview_title,
+    subtitle: row.preview_subtitle,
+    href:
+      row.preview_type === "team"
+        ? `/jeu/equipes/${row.preview_entity_id}`
+        : row.preview_type === "rider"
+          ? `/jeu/coureurs/${row.preview_entity_id}`
+          : `/jeu/directeurs-sportifs/${encodeURIComponent(publicIdentifier)}`,
+    country:
+      row.preview_country_name &&
+      row.preview_country_code &&
+      /^[A-Z]{2}$/i.test(row.preview_country_code)
+        ? {
+            name: row.preview_country_name,
+            code: row.preview_country_code.toUpperCase(),
+          }
+        : null,
+    age:
+      typeof row.preview_age === "number" &&
+      Number.isFinite(row.preview_age)
+        ? row.preview_age
+        : null,
+    riderAvatarProfileKey: row.preview_avatar_profile_key,
+    riderAvatarSeed: row.preview_avatar_seed,
+    directorAvatarKey: row.preview_avatar_key,
+    directorAvatarFrameKey:
+      row.preview_avatar_frame_key === "alpha_tester"
+        ? "alpha_tester"
+        : null,
+    teamId: row.preview_team_id,
+    palette: {
+      primaryColor: readRealtimePreviewColor(
+        row.preview_team_primary_color,
+        isFreeAgent ? "#6B7280" : "#176951",
+      ),
+      secondaryColor: readRealtimePreviewColor(
+        row.preview_team_secondary_color,
+        isFreeAgent ? "#D1D5DB" : "#42B99A",
+      ),
+      accentColor: readRealtimePreviewColor(
+        row.preview_team_accent_color,
+        isFreeAgent ? "#F3F4F6" : "#F2C94C",
+      ),
+    },
+    jerseyPattern: readRealtimeJerseyPattern(row.preview_jersey_pattern),
+    jerseyStatus: isFreeAgent
+      ? "free-agent"
+      : row.preview_jersey_status === "sponsored"
+        ? "sponsored"
+        : "amateur",
+  };
+}
+
+function readRealtimePreviewColor(value: string | null, fallback: string) {
+  const normalized = value?.trim().toUpperCase() ?? "";
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : fallback;
+}
+
+function readRealtimeJerseyPattern(
+  value: string | null,
+): GlobalChatPreview["jerseyPattern"] {
+  const patterns: GlobalChatPreview["jerseyPattern"][] = [
+    "center",
+    "diagonal",
+    "hoops",
+    "solid",
+    "split",
+    "vertical",
+    "chevron",
+    "quarters",
+    "cross",
+    "shoulders",
+    "checkerboard",
+    "wave",
+    "pinstripes",
+  ];
+  return patterns.find((pattern) => pattern === value) ?? "solid";
 }
 
 function readRealtimeReaction(
@@ -1666,7 +1764,7 @@ function renderLinkedMessageText(
   contentIndex: number,
 ) {
   const tokenPattern =
-    /((?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:equipes|coureurs)\/[0-9a-f-]{36}(?:[/?#][^\s]*)?)/gi;
+    /((?:(?:https:\/\/(?:www\.)?|www\.)?cyclostratege\.fr)?\/jeu\/(?:(?:equipes|coureurs)\/[0-9a-f-]{36}|directeurs-sportifs\/[^/?#\s<>]+)(?:[/?#][^\s]*)?)/gi;
   const tokens = message.split(tokenPattern);
 
   return tokens.map((token, index) => {
@@ -1716,43 +1814,6 @@ function BubbleIcon() {
     >
       <path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-5 3v-3a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z" />
       <path d="M7.5 11.5h.01M12 11.5h.01M16.5 11.5h.01" />
-    </svg>
-  );
-}
-
-function TeamIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="8" cy="8" r="3" />
-      <circle cx="17" cy="9" r="2.5" />
-      <path d="M2.5 20c.5-4.5 2.5-7 5.5-7s5 2.5 5.5 7M14 14c3.5-.3 5.5 1.7 6 5" />
-    </svg>
-  );
-}
-
-function RiderIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      className="h-5 w-5"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="7" r="3.5" />
-      <path d="M5 21c.5-5.5 2.8-8 7-8s6.5 2.5 7 8" />
     </svg>
   );
 }

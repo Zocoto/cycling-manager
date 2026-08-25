@@ -575,7 +575,7 @@ export function DirectMessagingPanel({
     if (!body) return;
     if (hasForbiddenGlobalChatLink(body)) {
       setError(
-        "Seuls les liens Cyclo Stratège vers une fiche coureur ou équipe sont autorisés.",
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
       );
       return;
     }
@@ -917,7 +917,7 @@ export function DirectMessagingPanel({
                   {draft.length}/{DIRECT_MESSAGE_MAX_LENGTH}
                 </p>
                 <p className="w-full text-[9px] font-semibold text-[#789087]">
-                  Liens autorisés : fiches coureurs et équipes Cyclo Stratège
+                  Liens autorisés : fiches coureurs, équipes et DS Cyclo Stratège
                 </p>
               </div>
             </form>

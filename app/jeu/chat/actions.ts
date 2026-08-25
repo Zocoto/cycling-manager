@@ -15,6 +15,7 @@ import {
   type GlobalChatMessage,
   type GlobalChatMessageRow,
 } from "@/services/global-chat";
+import { resolveGlobalChatPreviewPalette } from "@/services/global-chat-preview";
 
 export async function postGlobalChatMessageAction(
   rawMessage: string,
@@ -36,7 +37,7 @@ export async function postGlobalChatMessageAction(
   }
   if (hasForbiddenGlobalChatLink(message)) {
     throw new Error(
-      "Seuls les liens Cyclo Stratège vers une fiche coureur ou équipe sont autorisés.",
+      "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
     );
   }
 
@@ -51,15 +52,25 @@ export async function postGlobalChatMessageAction(
   const preview = extractGlobalChatPreviewReference(message);
   const supabase = await createSupabaseServerClient();
   await requireAuthenticatedUser(supabase);
+  const previewPalette = preview
+    ? await resolvePreviewPaletteWithoutBlockingMessage(preview)
+    : null;
 
   const { data, error } = await supabase.rpc(
-    "post_global_chat_message_v3",
+    "post_global_chat_message_v4",
     {
       p_message: message,
       p_preview_type: preview?.type ?? null,
-      p_preview_entity_id: preview?.entityId ?? null,
+      p_preview_entity_identifier: preview?.entityId ?? null,
       p_reply_to_message_id: replyToMessageId,
       p_mentioned_sporting_director_ids: uniqueMentionIds,
+      p_preview_team_primary_color:
+        previewPalette?.primaryColor ?? null,
+      p_preview_team_secondary_color:
+        previewPalette?.secondaryColor ?? null,
+      p_preview_team_accent_color: previewPalette?.accentColor ?? null,
+      p_preview_jersey_pattern: previewPalette?.jerseyPattern ?? null,
+      p_preview_jersey_status: previewPalette?.jerseyStatus ?? null,
     },
   );
   const row = data as GlobalChatMessageRow | null;
@@ -72,6 +83,20 @@ export async function postGlobalChatMessageAction(
   }
 
   return mapGlobalChatMessage(row);
+}
+
+async function resolvePreviewPaletteWithoutBlockingMessage(
+  preview: NonNullable<ReturnType<typeof extractGlobalChatPreviewReference>>,
+) {
+  try {
+    return await resolveGlobalChatPreviewPalette(preview);
+  } catch (error) {
+    console.error(
+      "Global chat preview palette unavailable; using database colors.",
+      error,
+    );
+    return null;
+  }
 }
 
 export async function toggleGlobalChatMessageReactionAction(
