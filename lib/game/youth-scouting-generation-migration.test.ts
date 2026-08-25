@@ -8,10 +8,10 @@ const migration = readFileSync(
     process.cwd(),
     "supabase",
     "migrations",
-    "20260825142000_refine_youth_scouting_generation.sql",
+    "20260825220000_refine_youth_scouting_generation.sql",
   ),
   "utf8",
-);
+).replaceAll("\r\n", "\n");
 
 describe("refined youth scouting generation migration", () => {
   it("ranks countries from the immediately preceding UCI season", () => {

@@ -1,3 +1,4 @@
+-- Version distincte d'une migration parallèle déjà enregistrée à 14 h 20.
 -- ============================================================
 -- Scouting junior : réputation UCI N-1 et capacités natives rares
 -- ============================================================
