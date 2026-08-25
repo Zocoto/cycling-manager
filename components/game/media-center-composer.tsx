@@ -45,9 +45,13 @@ export function MediaCenterComposer({
         <div className="p-6 sm:p-8">
           {success ? (
             <Alert tone="success">
-              {isEnglish
-                ? "Column sent to the newsroom. Reputation, popularity and new supporters have been credited."
-                : "Tribune transmise à la rédaction. Réputation, popularité et nouveaux supporters ont été crédités."}
+              {overview.hasFanClub
+                ? isEnglish
+                  ? "Column sent to the newsroom. Reputation, popularity and new supporters have been credited."
+                  : "Tribune transmise à la rédaction. Réputation, popularité et nouveaux supporters ont été crédités."
+                : isEnglish
+                  ? "Column sent to the newsroom. Reputation and rider popularity have been credited. New supporters require a Fan Club headquarters."
+                  : "Tribune transmise à la rédaction. Réputation et popularité des coureurs ont été créditées. Les nouveaux supporters nécessitent un Siège du Fan Club."}
             </Alert>
           ) : null}
           {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
@@ -119,6 +123,13 @@ export function MediaCenterComposer({
                   {isEnglish ? "Send to the newsroom" : "Envoyer à la rédaction"}
                 </button>
               </div>
+              {!overview.hasFanClub ? (
+                <p className="mt-4 rounded-xl border border-[#E2A63B]/35 bg-[#FFF9E8] px-4 py-3 text-xs font-bold leading-5 text-[#6D5A27]">
+                  {isEnglish
+                    ? "Build the Fan Club headquarters to turn these publications into new supporters."
+                    : "Construisez le Siège du Fan Club pour que ces publications rapportent aussi de nouveaux supporters."}
+                </p>
+              ) : null}
             </form>
           ) : (
             <div>

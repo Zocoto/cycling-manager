@@ -28,6 +28,8 @@ export type FanClubRiderPopularityInput = {
   careerSeasons: ReadonlyArray<number>;
   clubSeasons: ReadonlyArray<number>;
   events: ReadonlyArray<FanClubSportingEvent>;
+  communityGrowthBonusPercentage?: number;
+  mediaPopularityPoints?: number;
 };
 
 export type FanClubAudience = {
@@ -46,6 +48,7 @@ type PopularityFactors = {
   loyalty: number;
   nationality: number;
   momentum: number;
+  mediaExposure: number;
 };
 
 export function calculateFanClubRiderPopularity(
@@ -97,6 +100,7 @@ export function calculateFanClubRiderPopularity(
       { label: "Fidélité au club", value: factors.loyalty, maximum: 25 },
       { label: "Affinité nationale", value: factors.nationality, maximum: 10 },
       { label: "Dynamique actuelle", value: factors.momentum, maximum: 5 },
+      { label: "Rayonnement média", value: factors.mediaExposure, maximum: 15 },
     ],
     departureImpact: "Impact calculé après consolidation de l’audience de l’équipe.",
     history,
@@ -109,12 +113,14 @@ export function calculateFanClubAudience({
   headquartersLevel,
   activeSeason,
   events,
+  communityGrowthBonusPercentage = 0,
 }: {
   riders: ReadonlyArray<FanClubPilotRider>;
   directorReputation: number;
   headquartersLevel: number;
   activeSeason: number;
   events: ReadonlyArray<FanClubSportingEvent>;
+  communityGrowthBonusPercentage?: number;
 }): FanClubAudience {
   const popularities = riders.map((rider) => rider.popularity);
   const rosterAverage = average(popularities);
@@ -143,7 +149,11 @@ export function calculateFanClubAudience({
       0,
     ),
   );
-  const recentResults = Math.round(Math.min(40, currentTeamResultValue) * 45);
+  const recentResults = Math.round(
+    Math.min(40, currentTeamResultValue) *
+      45 *
+      percentageMultiplier(communityGrowthBonusPercentage),
+  );
   const beforeHeadquarters =
     foundation + reputation + riderAudience + recentResults;
   const headquartersBonus = Math.round(
@@ -321,6 +331,8 @@ function calculateFactors({
   events,
   clubSeasons,
   nationalityMatchesTeam,
+  communityGrowthBonusPercentage = 0,
+  mediaPopularityPoints = 0,
   snapshotSeason,
   snapshotDay,
 }: FanClubRiderPopularityInput & {
@@ -340,48 +352,63 @@ function calculateFactors({
 
   return {
     recentResults: clamp(
-      Math.round(
+      applyGrowthBonus(
         currentResults.reduce(
           (total, event) => total + recentResultValue(event),
           0,
         ),
+        communityGrowthBonusPercentage,
       ),
       0,
       25,
     ),
     majorResults: clamp(
-      Math.round(
+      applyGrowthBonus(
         resultEvents.reduce(
           (total, event) => total + majorResultValue(event),
           0,
         ),
+        communityGrowthBonusPercentage,
       ),
       0,
       20,
     ),
     panache: clamp(
-      events
-        .filter((event) => event.kind === "breakaway")
-        .reduce(
-          (total, event) => total + (event.prestigeRank <= 2 ? 2 : 1),
-          0,
-        ),
+      applyGrowthBonus(
+        events
+          .filter((event) => event.kind === "breakaway")
+          .reduce(
+            (total, event) => total + (event.prestigeRank <= 2 ? 2 : 1),
+            0,
+          ),
+        communityGrowthBonusPercentage,
+      ),
       0,
       15,
     ),
     loyalty: clamp(countThrough(clubSeasons, snapshotSeason) * 5, 0, 25),
     nationality: nationalityMatchesTeam ? 10 : 5,
     momentum: clamp(
-      Math.round(
+      applyGrowthBonus(
         currentMomentum.reduce(
           (total, event) => total + recentResultValue(event),
           0,
         ) / 3,
+        communityGrowthBonusPercentage,
       ),
       0,
       5,
     ),
+    mediaExposure: clamp(Math.round(Math.max(0, mediaPopularityPoints)), 0, 15),
   };
+}
+
+function applyGrowthBonus(value: number, bonusPercentage: number): number {
+  return Math.round(value * percentageMultiplier(bonusPercentage));
+}
+
+function percentageMultiplier(bonusPercentage: number): number {
+  return 1 + Math.max(0, bonusPercentage) / 100;
 }
 
 function recentResultValue(event: FanClubSportingEvent): number {

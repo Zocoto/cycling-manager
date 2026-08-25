@@ -9,6 +9,7 @@ import {
 export const STAFF_TALENT_SLOTS_MAX = 3;
 export const STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE = 10;
 export const ARCHITECT_BUILDING_EFFICIENCY_PERCENTAGE_PER_LEVEL = 2;
+export const COMMUNITY_GROWTH_BONUS_PERCENTAGE_PER_LEVEL = 3;
 
 export const STAFF_TALENTS_BY_ROLE = {
   physiotherapist: [
@@ -33,6 +34,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "community_victory_reputation",
     "community_breakaway_reputation",
     "community_daily_reputation",
+    "community_rider_popularity_and_fans",
   ],
   scout: [
     "scout_report_size",
@@ -181,6 +183,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
       `+${(normalizeStaffLevel(level) * 0.2).toLocaleString("fr-FR", {
         maximumFractionDigits: 1,
       })} point de réputation par jour`,
+  },
+  community_rider_popularity_and_fans: {
+    role: "community_manager",
+    label: "Communauté engagée",
+    description: (level) =>
+      `+${percentage(level, COMMUNITY_GROWTH_BONUS_PERCENTAGE_PER_LEVEL)} % sur les gains de popularité des coureurs et de nouveaux supporters. Le bonus de supporters nécessite le Siège du Fan Club`,
   },
   scout_report_size: {
     role: "scout",

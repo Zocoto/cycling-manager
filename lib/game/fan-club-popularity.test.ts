@@ -22,7 +22,10 @@ function event(
   };
 }
 
-function rider(events: FanClubSportingEvent[] = []) {
+function rider(
+  events: FanClubSportingEvent[] = [],
+  communityGrowthBonusPercentage = 0,
+) {
   return calculateFanClubRiderPopularity({
     id: "rider-1",
     name: "Alice Martin",
@@ -35,6 +38,7 @@ function rider(events: FanClubSportingEvent[] = []) {
     careerSeasons: [1, 2, 3],
     clubSeasons: [2, 3],
     events,
+    communityGrowthBonusPercentage,
   });
 }
 
@@ -122,6 +126,34 @@ describe("popularité réelle des coureurs", () => {
     expect(popularity.phenomenalSeason).toBe(true);
     expect(popularity.popularity).toBeGreaterThan(60);
   });
+
+  it("applique le trait du community manager aux gains sportifs et média", () => {
+    const withoutTrait = rider([event()]);
+    const withTrait = calculateFanClubRiderPopularity({
+      id: "rider-community",
+      name: "Diane Petit",
+      initials: "DP",
+      role: "Grimpeuse",
+      country: "France",
+      nationalityMatchesTeam: true,
+      activeSeason: 3,
+      activeDay: 20,
+      careerSeasons: [1, 2, 3],
+      clubSeasons: [2, 3],
+      events: [event()],
+      communityGrowthBonusPercentage: 15,
+      mediaPopularityPoints: 4.5,
+    });
+
+    expect(withTrait.factors[0].value).toBeGreaterThan(
+      withoutTrait.factors[0].value,
+    );
+    expect(withTrait.factors).toContainEqual({
+      label: "Rayonnement média",
+      value: 5,
+      maximum: 15,
+    });
+  });
 });
 
 describe("audience réelle du Fan Club", () => {
@@ -148,6 +180,32 @@ describe("audience réelle du Fan Club", () => {
     expect(withResults.breakdown.reputation).toBe(2_000);
     expect(withResults.breakdown.recentResults).toBeGreaterThan(0);
     expect(withResults.supporterTrend).toBeGreaterThan(0);
+  });
+
+  it("augmente les nouveaux supporters grâce au trait du community manager", () => {
+    const currentRider = rider([event()]);
+    const withoutTrait = calculateFanClubAudience({
+      riders: [currentRider],
+      directorReputation: 10,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      events: [event()],
+    });
+    const withTrait = calculateFanClubAudience({
+      riders: [currentRider],
+      directorReputation: 10,
+      headquartersLevel: 1,
+      activeSeason: 3,
+      events: [event()],
+      communityGrowthBonusPercentage: 15,
+    });
+
+    expect(withTrait.breakdown.recentResults).toBeGreaterThan(
+      withoutTrait.breakdown.recentResults,
+    );
+    expect(withTrait.supporterTrend).toBeGreaterThan(
+      withoutTrait.supporterTrend,
+    );
   });
 });
 

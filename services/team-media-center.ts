@@ -23,6 +23,7 @@ export type TeamMediaCenterOverview = {
   nextSubmissionInDays: number;
   publicationIntervalDays: number;
   canIncludeSponsor: boolean;
+  hasFanClub: boolean;
   sponsorName: string | null;
   recentArticles: Array<{
     id: string;
@@ -74,6 +75,7 @@ export async function getCurrentTeamMediaCenterOverview(
     infrastructureResult,
     articlesResult,
     sponsorResult,
+    fanClubResult,
   ] = await Promise.all([
     admin
       .from("team_seasons")
@@ -103,11 +105,18 @@ export async function getCurrentTeamMediaCenterOverview(
       .eq("status", "active")
       .limit(1)
       .maybeSingle<{ sponsors: { name: string } | null }>(),
+    admin
+      .from("team_infrastructures")
+      .select("level")
+      .eq("team_id", teamId)
+      .eq("infrastructure_code", "fan_club_headquarters")
+      .maybeSingle<{ level: number }>(),
   ]);
   if (teamSeasonResult.error || !teamSeasonResult.data) return null;
   if (infrastructureResult.error)
     throw new Error(infrastructureResult.error.message);
   if (articlesResult.error) throw new Error(articlesResult.error.message);
+  if (fanClubResult.error) throw new Error(fanClubResult.error.message);
 
   const buildingLevel = Number(infrastructureResult.data?.level ?? 0);
   const publicationIntervalDays =
@@ -144,6 +153,7 @@ export async function getCurrentTeamMediaCenterOverview(
     nextSubmissionInDays,
     publicationIntervalDays,
     canIncludeSponsor: buildingLevel >= 3 && sponsorName !== null,
+    hasFanClub: Number(fanClubResult.data?.level ?? 0) >= 1,
     sponsorName,
     recentArticles: (articlesResult.data ?? []).map((article) => ({
       id: article.id,

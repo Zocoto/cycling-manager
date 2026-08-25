@@ -30,6 +30,13 @@ class FakeAdminClient {
     return new FakeQuery(this, table);
   }
 
+  rpc(name: string) {
+    if (name === "get_active_team_staff_talent_strength") {
+      return Promise.resolve({ data: 0, error: null });
+    }
+    return Promise.resolve({ data: null, error: null });
+  }
+
   resolve(table: string, filters: QueryFilter[]) {
     if (table === "seasons") {
       return [

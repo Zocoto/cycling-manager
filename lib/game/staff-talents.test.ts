@@ -151,6 +151,18 @@ describe("staff talents", () => {
     ).toContain("supplémentaire sur chaque complément");
   });
 
+  it("propose au community manager le développement de la popularité et des fans", () => {
+    expect(getStaffTalentCodes("community_manager")).toContain(
+      "community_rider_popularity_and_fans",
+    );
+    expect(
+      describeStaffTalent("community_rider_popularity_and_fans", 4),
+    ).toContain("+12 %");
+    expect(
+      describeStaffTalent("community_rider_popularity_and_fans", 4),
+    ).toContain("nécessite le Siège du Fan Club");
+  });
+
   it("retrouve la spécialité couverte par une ligne de talent d’entraîneur", () => {
     expect(getTrainerTalentSpecialty("trainer_time_trial")).toBe("time_trial");
     expect(getTrainerTalentSpecialty("trainer_sprint")).toBe("sprint");

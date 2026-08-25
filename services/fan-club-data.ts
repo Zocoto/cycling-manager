@@ -68,6 +68,11 @@ type RatingHistoryRow = {
   season_id: string;
 };
 
+type RiderPopularityProfileRow = {
+  rider_id: string;
+  popularity_points: number | string;
+};
+
 type RaceRosterRow = {
   id: string;
   rider_id: string;
@@ -152,6 +157,7 @@ export async function getFanClubLiveData({
     seasonsResult,
     directorResult,
     currentTeamSeasonResult,
+    communityGrowthResult,
   ] = await Promise.all([
     supabase.rpc("get_current_team_roster_with_potential"),
     admin
@@ -176,6 +182,11 @@ export async function getFanClubLiveData({
       .select("id, team_id, season_id, registration_country_id")
       .eq("id", summary.teamSeasonId)
       .maybeSingle<TeamSeasonRow>(),
+    admin.rpc("get_active_team_staff_talent_strength", {
+      p_team_id: summary.teamId,
+      p_talent_code: "community_rider_popularity_and_fans",
+      p_points_per_level: 3,
+    }),
   ]);
 
   assertQuery(rosterResult.error, "l’effectif du Fan Club");
@@ -183,6 +194,10 @@ export async function getFanClubLiveData({
   assertQuery(seasonsResult.error, "les saisons");
   assertQuery(directorResult.error, "la réputation de l’équipe");
   assertQuery(currentTeamSeasonResult.error, "l’identité nationale de l’équipe");
+  assertQuery(
+    communityGrowthResult.error,
+    "le bonus communautaire du community manager",
+  );
 
   const roster = (rosterResult.data ?? []) as RosterRow[];
   const riderIds = roster.map((rider) => rider.rider_id);
@@ -202,12 +217,23 @@ export async function getFanClubLiveData({
       directorReputation: Number(directorResult.data?.reputation_points ?? 0),
     });
   }
-  const ratingHistoryResult = await admin
-    .from("rider_season_ratings")
-    .select("rider_id, season_id")
-    .in("rider_id", riderIds)
-    .returns<RatingHistoryRow[]>();
+  const [ratingHistoryResult, popularityProfilesResult] = await Promise.all([
+    admin
+      .from("rider_season_ratings")
+      .select("rider_id, season_id")
+      .in("rider_id", riderIds)
+      .returns<RatingHistoryRow[]>(),
+    admin
+      .from("rider_popularity_profiles")
+      .select("rider_id, popularity_points")
+      .in("rider_id", riderIds)
+      .returns<RiderPopularityProfileRow[]>(),
+  ]);
   assertQuery(ratingHistoryResult.error, "l’ancienneté des coureurs");
+  assertQuery(
+    popularityProfilesResult.error,
+    "le rayonnement média des coureurs",
+  );
 
   const [raceRostersResult, upcomingRegistrationsResult] = await Promise.all([
     admin
@@ -417,6 +443,15 @@ export async function getFanClubLiveData({
     currentTeamSeasonResult.data?.registration_country_id ??
     directorResult.data?.country_id ??
     null;
+  const communityGrowthBonusPercentage = Number(
+    communityGrowthResult.data ?? 0,
+  );
+  const mediaPopularityByRiderId = new Map(
+    (popularityProfilesResult.data ?? []).map((profile) => [
+      profile.rider_id,
+      Number(profile.popularity_points),
+    ]),
+  );
   const calculatedRiders = roster.map((rider) => {
     const contract = contractsByRider.get(rider.rider_id);
     const startYear = contract
@@ -459,6 +494,9 @@ export async function getFanClubLiveData({
         careerSeasonsByRider.get(rider.rider_id) ?? [activeSeason.game_year],
       clubSeasons,
       events: eventsByRiderId.get(rider.rider_id) ?? [],
+      communityGrowthBonusPercentage,
+      mediaPopularityPoints:
+        mediaPopularityByRiderId.get(rider.rider_id) ?? 0,
     });
   });
 
@@ -468,6 +506,7 @@ export async function getFanClubLiveData({
     headquartersLevel,
     activeSeason: activeSeason.game_year,
     events: sportingEvents.map((entry) => entry.event),
+    communityGrowthBonusPercentage,
   });
   const totalPopularity = calculatedRiders.reduce(
     (total, rider) => total + rider.popularity,
