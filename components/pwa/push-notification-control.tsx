@@ -4,6 +4,9 @@ import { useEffect, useId, useState } from "react";
 
 type Availability = "checking" | "ready" | "unsupported";
 
+const PUSH_PREFERENCE_KEY = "cyclo-stratege:push-notifications";
+let pushActivationPromise: Promise<void> | null = null;
+
 export function PushNotificationControl() {
   const panelId = useId();
   const [isOpen, setIsOpen] = useState(false);
@@ -14,6 +17,7 @@ export function PushNotificationControl() {
 
   useEffect(() => {
     let cancelled = false;
+    let removeDefaultActivationListeners = () => {};
 
     async function initialize() {
       if (!supportsWebPush()) {
@@ -21,30 +25,94 @@ export function PushNotificationControl() {
         return;
       }
 
+      let registration: ServiceWorkerRegistration;
+      let subscription: PushSubscription | null;
       try {
-        const registration = await navigator.serviceWorker.register("/sw.js", {
+        registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
           updateViaCache: "none",
         });
-        const subscription = await registration.pushManager.getSubscription();
-        if (cancelled) return;
-
-        setAvailability("ready");
-        setIsEnabled(Boolean(subscription) && Notification.permission === "granted");
-        if (subscription && Notification.permission === "granted") {
-          await synchronizeSubscription(subscription);
-        }
+        subscription = await registration.pushManager.getSubscription();
       } catch {
         if (!cancelled) {
           setAvailability("unsupported");
           setMessage("Les notifications ne sont pas disponibles sur cet appareil.");
         }
+        return;
       }
+      if (cancelled) return;
+
+      setAvailability("ready");
+      if (!isPushPreferenceEnabled()) {
+        setIsEnabled(false);
+        return;
+      }
+
+      if (Notification.permission === "granted") {
+        try {
+          const activeSubscription = subscription
+            ?? await ensurePushSubscription(registration);
+          await synchronizeSubscription(activeSubscription);
+          if (cancelled) return;
+          setIsEnabled(true);
+          writePushPreference(true);
+        } catch (error) {
+          if (cancelled) return;
+          setIsEnabled(false);
+          setMessage(getPushActivationErrorMessage(error));
+        }
+        return;
+      }
+
+      setIsEnabled(false);
+      if (Notification.permission === "denied") {
+        setMessage(
+          "Autorisation refusée. Vous pouvez la réactiver dans les réglages du navigateur.",
+        );
+        return;
+      }
+
+      const requestDefaultActivation = () => {
+        removeDefaultActivationListeners();
+        setIsBusy(true);
+        void requestAndSynchronizePushNotifications()
+          .then(() => {
+            if (cancelled) return;
+            writePushPreference(true);
+            setIsEnabled(true);
+            setMessage("Notifications activées sur cet appareil.");
+          })
+          .catch((error: unknown) => {
+            if (cancelled) return;
+            setIsEnabled(false);
+            setMessage(getPushActivationErrorMessage(error));
+          })
+          .finally(() => {
+            if (!cancelled) setIsBusy(false);
+          });
+      };
+      removeDefaultActivationListeners = () => {
+        window.removeEventListener(
+          "pointerdown",
+          requestDefaultActivation,
+          true,
+        );
+        window.removeEventListener("keydown", requestDefaultActivation, true);
+      };
+      window.addEventListener("pointerdown", requestDefaultActivation, {
+        capture: true,
+        once: true,
+      });
+      window.addEventListener("keydown", requestDefaultActivation, {
+        capture: true,
+        once: true,
+      });
     }
 
     void initialize();
     return () => {
       cancelled = true;
+      removeDefaultActivationListeners();
     };
   }, []);
 
@@ -52,49 +120,15 @@ export function PushNotificationControl() {
     if (!supportsWebPush()) return;
     setIsBusy(true);
     setMessage(null);
+    writePushPreference(true);
 
     try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setIsEnabled(false);
-        setMessage(
-          permission === "denied"
-            ? "Autorisation refusée. Vous pouvez la réactiver dans les réglages du navigateur."
-            : "L’autorisation est nécessaire pour recevoir les alertes.",
-        );
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        const response = await fetch("/api/push/public-key", {
-          cache: "no-store",
-        });
-        const payload = (await response.json()) as {
-          publicKey?: string;
-          error?: string;
-        };
-        if (!response.ok || !payload.publicKey) {
-          throw new Error(payload.error || "Configuration push indisponible.");
-        }
-
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: decodeBase64Url(payload.publicKey),
-        });
-      }
-
-      await synchronizeSubscription(subscription);
+      await requestAndSynchronizePushNotifications();
       setIsEnabled(true);
       setMessage("Notifications activées sur cet appareil.");
     } catch (error) {
       setIsEnabled(false);
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible d’activer les notifications.",
-      );
+      setMessage(getPushActivationErrorMessage(error));
     } finally {
       setIsBusy(false);
     }
@@ -121,6 +155,7 @@ export function PushNotificationControl() {
         await subscription.unsubscribe();
       }
 
+      writePushPreference(false);
       setIsEnabled(false);
       setMessage("Notifications désactivées sur cet appareil.");
     } catch (error) {
@@ -249,6 +284,75 @@ async function synchronizeSubscription(subscription: PushSubscription) {
     const payload = (await response.json()) as { error?: string };
     throw new Error(payload.error || "Synchronisation de l’appareil impossible.");
   }
+}
+
+async function requestAndSynchronizePushNotifications() {
+  if (!pushActivationPromise) {
+    pushActivationPromise = performPushActivation().finally(() => {
+      pushActivationPromise = null;
+    });
+  }
+  return pushActivationPromise;
+}
+
+async function performPushActivation() {
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error(
+      permission === "denied"
+        ? "Autorisation refusée. Vous pouvez la réactiver dans les réglages du navigateur."
+        : "L’autorisation est nécessaire pour recevoir les alertes.",
+    );
+  }
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await ensurePushSubscription(registration);
+  await synchronizeSubscription(subscription);
+}
+
+async function ensurePushSubscription(registration: ServiceWorkerRegistration) {
+  const currentSubscription = await registration.pushManager.getSubscription();
+  if (currentSubscription) return currentSubscription;
+
+  const response = await fetch("/api/push/public-key", {
+    cache: "no-store",
+  });
+  const payload = (await response.json()) as {
+    publicKey?: string;
+    error?: string;
+  };
+  if (!response.ok || !payload.publicKey) {
+    throw new Error(payload.error || "Configuration push indisponible.");
+  }
+
+  return registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: decodeBase64Url(payload.publicKey),
+  });
+}
+
+function isPushPreferenceEnabled() {
+  try {
+    return window.localStorage.getItem(PUSH_PREFERENCE_KEY) !== "disabled";
+  } catch {
+    return true;
+  }
+}
+
+function writePushPreference(enabled: boolean) {
+  try {
+    window.localStorage.setItem(
+      PUSH_PREFERENCE_KEY,
+      enabled ? "enabled" : "disabled",
+    );
+  } catch {
+    // Le stockage local peut être indisponible en navigation privée.
+  }
+}
+
+function getPushActivationErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Impossible d’activer les notifications.";
 }
 
 function supportsWebPush() {
