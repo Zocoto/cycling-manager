@@ -5,8 +5,16 @@ import type {
   DevelopmentRace,
   DevelopmentRaceProfile,
   DevelopmentRaceResult,
+  DevelopmentRider,
   DevelopmentTeamOverview,
 } from "@/services/development-team";
+import {
+  createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
+  createWorldChampionRiderJersey,
+  type RiderJerseyAppearance,
+} from "@/lib/rider-jersey";
+import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 
 import { AmateurTeamJersey } from "./amateur-team-jersey";
 import { DevelopmentPodiumProgressionBadge } from "./development-podium-progression-badge";
@@ -45,6 +53,15 @@ export function DevelopmentTeamPanel({
   return (
     <div className="mt-7 space-y-5">
       <DevelopmentTeamHero overview={overview} />
+      {overview.seasonThreeCompetitionEnabled ? (
+        <Link
+          href="/jeu/classements?circuit=juniors&vue=individuel"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#F2C94C]/35 bg-[#FFF8D8] px-5 py-4 text-sm font-black text-[#705400] transition hover:border-[#D8A900] hover:bg-[#FFF3BC]"
+        >
+          <span>Classements juniors S3 · individuel, Dev Teams et nations</span>
+          <span aria-hidden="true">Voir les classements →</span>
+        </Link>
+      ) : null}
       <DevelopmentTeamNavigation activeView={activeView} overview={overview} />
       {activeView === "effectif" ? <DevelopmentRoster overview={overview} /> : null}
       {activeView === "calendrier" ? <DevelopmentCalendar overview={overview} /> : null}
@@ -73,14 +90,14 @@ function DevelopmentTeamOpening({ overview }: { overview: DevelopmentTeamOvervie
             </h2>
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6E3DE] sm:text-base">
               Sélectionnez la génération qui courra sous vos couleurs, dessinez son
-              maillot puis engagez-la sur dix rendez-vous juniors sans écran live :
+              maillot puis engagez-la sur {overview.races.length} rendez-vous juniors sans écran live :
               chaque course livre directement son classement brut.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <OpeningMetric value="J1–J7" label="Création" />
             <OpeningMetric value="11" label="Coureurs max." />
-            <OpeningMetric value="10" label="Épreuves" />
+            <OpeningMetric value={String(overview.races.length)} label="Épreuves" />
           </div>
         </div>
       </section>
@@ -144,6 +161,11 @@ function DevelopmentTeamHero({ overview }: { overview: DevelopmentTeamOverview }
               : "L’effectif est verrouillé depuis J8 pour le reste de la saison."} Les
             inscriptions restent libres course par course jusqu’à la veille du départ.
           </p>
+          {overview.seasonThreeCompetitionEnabled ? (
+            <p className="mt-3 text-xs font-black text-[#F2C94C]">
+              Circuit S3 actif · barèmes officiels, CN dès 16 ans, Mondiaux et Piccolo Giro.
+            </p>
+          ) : null}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
           <HeroMetric value={overview.roster.length} label="Juniors" />
@@ -222,6 +244,7 @@ function DevelopmentRoster({ overview }: { overview: DevelopmentTeamOverview }) 
                 profileKey={rider.profileKey}
                 seed={rider.avatarSeed}
                 age={rider.age}
+                jersey={getDevelopmentRiderJersey(rider, overview.team!.jersey)}
                 label={`${rider.firstName} ${rider.lastName}`}
                 className="h-16 w-16 border-2 border-[#E5F4ED]"
               />
@@ -239,6 +262,7 @@ function DevelopmentRoster({ overview }: { overview: DevelopmentTeamOverview }) 
               <p className="mt-2 text-xs font-black text-[#278B70]">
                 {rider.sportingProfile}
               </p>
+              <RiderCompetitionBadges rider={rider} />
             </div>
             <span className="text-lg font-black text-[#A6B8B1] transition group-hover:translate-x-1 group-hover:text-[#176951]">→</span>
           </Link>
@@ -274,6 +298,9 @@ function RaceRegistrationCard({
 }) {
   const selectedIds = new Set(race.registration?.riderIds ?? []);
   const registeredRiders = overview.roster.filter((rider) => selectedIds.has(rider.id));
+  const eligibleRiders = overview.roster.filter((rider) =>
+    isRiderEligibleForDevelopmentRace(rider, race),
+  );
   return (
     <article className="overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white shadow-sm">
       <div className="grid gap-4 p-4 lg:grid-cols-[100px_minmax(0,1fr)_auto] lg:items-center sm:p-5">
@@ -286,13 +313,20 @@ function RaceRegistrationCard({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {race.isWorldChampionship ? <Badge tone="world">Mondial junior</Badge> : null}
+            {race.competitionType.startsWith("national_") ? <Badge tone="national">CN junior</Badge> : null}
             {race.raceFormat === "stage_race" ? <Badge tone="tour">Mini-tour</Badge> : null}
             <Badge tone="profile">{PROFILE_LABELS[race.profileType]}</Badge>
           </div>
           <h3 className="mt-2 text-xl font-black text-[#183F37]">{race.name}</h3>
           <p className="mt-1 text-xs font-semibold text-[#60756E]">
-            {race.countryCode} · {race.locationName} · {race.stages.length} étape{race.stages.length > 1 ? "s" : ""} · sélection {race.selectionMinimum}–{race.selectionMaximum}
+            <span className={`fi fi-${race.countryCode.toLowerCase()} mr-2 rounded-sm`} />
+            {race.locationName} · {race.stages.length} étape{race.stages.length > 1 ? "s" : ""} · sélection {race.selectionMinimum}–{race.selectionMaximum}
           </p>
+          {race.selectionMode === "automatic" ? (
+            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.08em] text-[#5A2D82]">
+              Sélection nationale automatique · top {race.selectionMaximum} de chaque nation
+            </p>
+          ) : null}
           {race.stages.length > 1 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {race.stages.map((stage) => (
@@ -314,7 +348,7 @@ function RaceRegistrationCard({
           <form action={registerDevelopmentRaceAction} className="border-t border-[#315B3E]/8 p-4 sm:p-5">
             <input type="hidden" name="raceEditionId" value={race.id} />
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {overview.roster.map((rider) => (
+              {eligibleRiders.map((rider) => (
                 <label key={rider.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-white p-3">
                   <input
                     type="checkbox"
@@ -328,6 +362,7 @@ function RaceRegistrationCard({
                     profileKey={rider.profileKey}
                     seed={rider.avatarSeed}
                     age={rider.age}
+                    jersey={getDevelopmentRiderJersey(rider, overview.team!.jersey)}
                     label={`${rider.firstName} ${rider.lastName}`}
                     className="h-10 w-10"
                   />
@@ -463,7 +498,7 @@ function ResultTable({
       <div className="overflow-x-auto rounded-xl border border-[#315B3E]/10">
         <table className="w-full min-w-[680px] border-collapse text-left text-xs">
           <thead className="bg-[#0B302B] text-white">
-            <tr><th className="px-3 py-2.5 text-center">#</th><th className="px-3 py-2.5">Coureur</th><th className="px-3 py-2.5">Équipe</th><th className="px-3 py-2.5 text-right">Temps</th><th className="px-3 py-2.5 text-right">Écart</th></tr>
+            <tr><th className="px-3 py-2.5 text-center">#</th><th className="px-3 py-2.5">Coureur</th><th className="px-3 py-2.5">Équipe</th><th className="px-3 py-2.5 text-right">Pts</th><th className="px-3 py-2.5 text-right">Temps</th><th className="px-3 py-2.5 text-right">Écart</th></tr>
           </thead>
           <tbody>
             {results.map((result) => {
@@ -483,6 +518,7 @@ function ResultTable({
                     ) : null}
                   </td>
                   <td className="px-3 py-2.5 text-[#60756E]">{result.teamName}</td>
+                  <td className="px-3 py-2.5 text-right font-black tabular-nums text-[#B57B00]">{result.points || "—"}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-[#183F37]">{formatRaceTime(result.elapsedTimeSeconds)}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-[#60756E]">{result.gapToWinnerSeconds === 0 ? "—" : `+${formatGap(result.gapToWinnerSeconds)}`}</td>
                 </tr>
@@ -498,13 +534,13 @@ function ResultTable({
 function CalendarPreview({ races }: { races: DevelopmentRace[] }) {
   return (
     <section className="rounded-[1.75rem] border border-[#315B3E]/12 bg-white p-5 shadow-sm sm:p-6">
-      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail="Dix épreuves de J8 à J27, avec un mini-tour et les deux titres mondiaux juniors." />
+      <SectionTitle eyebrow="Aperçu du programme" title="Le calendrier de la relève" detail={`${races.length} épreuves de J8 à J27, avec les championnats nationaux, le Piccolo Giro et les deux titres mondiaux juniors.`} />
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {races.map((race) => (
           <div key={race.id} className="rounded-xl border border-[#315B3E]/10 bg-[#FAFCFB] p-3">
             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#278B70]">J{race.startDayNumber}{race.endDayNumber !== race.startDayNumber ? `–${race.endDayNumber}` : ""}</p>
             <p className="mt-1 text-xs font-black text-[#183F37]">{race.shortName}</p>
-            <p className="mt-1 text-[9px] font-bold text-[#789087]">{race.isWorldChampionship ? "Championnat du monde" : race.raceFormat === "stage_race" ? "3 étapes · Mini-GT" : PROFILE_LABELS[race.profileType]}</p>
+            <p className="mt-1 text-[9px] font-bold text-[#789087]">{race.isWorldChampionship ? "Championnat du monde" : race.competitionType.startsWith("national_") ? "Championnat national" : race.raceFormat === "stage_race" ? `${race.stages.length} étapes · Mini-GT` : PROFILE_LABELS[race.profileType]}</p>
           </div>
         ))}
       </div>
@@ -519,8 +555,8 @@ function RaceStatus({ race, registeredCount }: { race: DevelopmentRace; register
   return <span className="rounded-full bg-[#176951] px-3 py-2 text-[10px] font-black uppercase text-white">À composer</span>;
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: "world" | "tour" | "profile" }) {
-  const classes = tone === "world" ? "bg-[#E6D9F5] text-[#5A2D82]" : tone === "tour" ? "bg-[#FFF0B8] text-[#705400]" : "bg-[#E5F4ED] text-[#176951]";
+function Badge({ children, tone }: { children: React.ReactNode; tone: "world" | "national" | "tour" | "profile" }) {
+  const classes = tone === "world" ? "bg-[#E6D9F5] text-[#5A2D82]" : tone === "national" ? "bg-[#E4ECFF] text-[#234B9A]" : tone === "tour" ? "bg-[#FFF0B8] text-[#705400]" : "bg-[#E5F4ED] text-[#176951]";
   return <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] ${classes}`}>{children}</span>;
 }
 
@@ -551,4 +587,48 @@ function formatGap(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
   return minutes > 0 ? `${minutes}′ ${String(remaining).padStart(2, "0")}″` : `${remaining}″`;
+}
+
+function getDevelopmentRiderJersey(
+  rider: DevelopmentRider,
+  teamJersey: AmateurJerseyConfig,
+): RiderJerseyAppearance {
+  if (rider.championshipTitle?.level === "world") {
+    return createWorldChampionRiderJersey({
+      championshipType: rider.championshipTitle.discipline,
+    });
+  }
+  if (rider.championshipTitle?.level === "national") {
+    return createNationalChampionRiderJersey({
+      countryCode: rider.championshipTitle.countryCode,
+      championshipType: rider.championshipTitle.discipline,
+    });
+  }
+  return createAmateurRiderJersey(teamJersey);
+}
+
+function RiderCompetitionBadges({ rider }: { rider: DevelopmentRider }) {
+  if (!rider.championshipTitle && !rider.proNationalCallup) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {rider.championshipTitle ? (
+        <span className="rounded-full bg-[#FFF0B8] px-2 py-1 text-[8px] font-black uppercase text-[#705400]">
+          {rider.championshipTitle.level === "world" ? "Champion du monde" : "Champion national"} · {rider.championshipTitle.discipline === "road" ? "Route" : "CLM"}
+        </span>
+      ) : null}
+      {rider.proNationalCallup ? (
+        <span className="rounded-full bg-[#E4ECFF] px-2 py-1 text-[8px] font-black uppercase text-[#234B9A]">
+          Appelé en CN pro
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function isRiderEligibleForDevelopmentRace(
+  rider: DevelopmentRider,
+  race: DevelopmentRace,
+) {
+  if (!race.competitionType.startsWith("national_")) return true;
+  return rider.age >= 16 && rider.countryCode === race.countryCode;
 }

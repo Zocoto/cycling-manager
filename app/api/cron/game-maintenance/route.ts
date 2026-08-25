@@ -6,6 +6,7 @@ export const maxDuration = 300;
 const MAINTENANCE_TASKS = [
   "settle_due_infrastructure_projects",
   "settle_due_elite_wildcards",
+  "sync_junior_pro_national_fallback",
   "settle_due_development_races",
   "settle_due_season_rollovers",
 ] as const;

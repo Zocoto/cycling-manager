@@ -120,21 +120,26 @@ export default async function YouthDevelopmentPage({
     );
     return null;
   });
-  try {
-    overview = await getYouthDevelopmentOverview(supabase, user.id);
-  } catch (overviewError) {
-    console.error(
-      "Impossible de charger le centre de formation :",
-      overviewError,
-    );
-    loadingError =
-      overviewError instanceof Error
-        ? overviewError.message
-        : "Le centre de formation ne peut pas être chargé.";
+  if (activeTab !== "development") {
+    try {
+      overview = await getYouthDevelopmentOverview(supabase, user.id);
+    } catch (overviewError) {
+      console.error(
+        "Impossible de charger le centre de formation :",
+        overviewError,
+      );
+      loadingError =
+        overviewError instanceof Error
+          ? overviewError.message
+          : "Le centre de formation ne peut pas être chargé.";
+    }
   }
   if (activeTab === "development") {
     try {
-      developmentOverview = await getDevelopmentTeamOverview(user.id);
+      developmentOverview = await getDevelopmentTeamOverview(
+        user.id,
+        activeDevelopmentView,
+      );
     } catch (developmentError) {
       console.error(
         "Impossible de charger l’équipe de développement :",

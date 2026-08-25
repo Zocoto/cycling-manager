@@ -10,7 +10,11 @@ import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
 import { getRiderExperience } from "@/lib/game/rider-experience";
-import { createAmateurRiderJersey } from "@/lib/rider-jersey";
+import {
+  createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
+  createWorldChampionRiderJersey,
+} from "@/lib/rider-jersey";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getDevelopmentRiderProfile } from "@/services/development-team";
@@ -43,7 +47,18 @@ export default async function DevelopmentRiderPage({ params }: Props) {
   if (!profile) notFound();
 
   const team = profile.currentDevelopmentTeam;
-  const jersey = team ? createAmateurRiderJersey(team.jersey) : undefined;
+  const jersey = profile.championshipTitle?.level === "world"
+    ? createWorldChampionRiderJersey({
+        championshipType: profile.championshipTitle.discipline,
+      })
+    : profile.championshipTitle?.level === "national"
+      ? createNationalChampionRiderJersey({
+          countryCode: profile.championshipTitle.countryCode,
+          championshipType: profile.championshipTitle.discipline,
+        })
+      : team
+        ? createAmateurRiderJersey(team.jersey)
+        : undefined;
   const finalResults = profile.results.filter((result) => result.scope === "general");
   const wins = finalResults.filter((result) => result.rank === 1).length;
   const podiums = finalResults.filter((result) => result.rank <= 3).length;
@@ -93,6 +108,16 @@ export default async function DevelopmentRiderPage({ params }: Props) {
                 <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#D7EBE4]">
                   Années U19
                 </span>
+                {profile.championshipTitle ? (
+                  <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#5A2D82]">
+                    {profile.championshipTitle.level === "world" ? "Champion du monde junior" : "Champion national junior"} · {profile.championshipTitle.discipline === "road" ? "Route" : "CLM"}
+                  </span>
+                ) : null}
+                {profile.proNationalCallup ? (
+                  <span className="rounded-full bg-[#E4ECFF] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#234B9A]">
+                    Sélection CN professionnel
+                  </span>
+                ) : null}
               </div>
               <h1 className="mt-4 text-4xl font-black tracking-[-0.045em] sm:text-5xl">
                 {profile.firstName} {profile.lastName}

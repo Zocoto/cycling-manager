@@ -23,7 +23,9 @@ import type { TeamResultCandidate } from "@/lib/game/team-result-highlights";
 import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
 import {
   createAmateurRiderJersey,
+  createNationalChampionRiderJersey,
   createSponsoredRiderJersey,
+  createWorldChampionRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
@@ -461,6 +463,16 @@ function DevelopmentTeamCard({
         <div className="grid gap-3 p-6 sm:grid-cols-2 sm:p-8 lg:grid-cols-3">
           {developmentTeam.roster.map((rider) => {
             const riderName = `${rider.firstName} ${rider.lastName}`.trim();
+            const riderJersey = rider.championshipTitle?.level === "world"
+              ? createWorldChampionRiderJersey({
+                  championshipType: rider.championshipTitle.discipline,
+                })
+              : rider.championshipTitle?.level === "national"
+                ? createNationalChampionRiderJersey({
+                    countryCode: rider.championshipTitle.countryCode,
+                    championshipType: rider.championshipTitle.discipline,
+                  })
+                : juniorJersey;
 
             return (
               <Link
@@ -476,7 +488,7 @@ function DevelopmentTeamCard({
                     seed={rider.avatarSeed}
                     riderId={rider.id}
                     age={rider.age}
-                    jersey={juniorJersey}
+                    jersey={riderJersey}
                     label={`Portrait de ${riderName}`}
                     className="h-14 w-14"
                   />

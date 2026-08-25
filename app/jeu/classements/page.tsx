@@ -16,6 +16,11 @@ import {
   type RiderRankingEntry,
   type TeamRankingEntry,
 } from "@/services/uci-rankings";
+import {
+  getJuniorRankings,
+  type JuniorRankingEntry,
+  type JuniorRankings,
+} from "@/services/junior-rankings";
 
 export const metadata: Metadata = {
   title: "Classements UCI",
@@ -23,15 +28,24 @@ export const metadata: Metadata = {
 };
 
 type RankingView = "equipes" | "individuel" | "nations";
+type RankingCircuit = "uci" | "juniors";
 
 export default async function UciRankingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string | string[] }>;
+  searchParams: Promise<{
+    vue?: string | string[];
+    circuit?: string | string[];
+    page?: string | string[];
+  }>;
 }) {
   const query = await searchParams;
   const rawView = Array.isArray(query.vue) ? query.vue[0] : query.vue;
   const view: RankingView = isRankingView(rawView) ? rawView : "equipes";
+  const rawCircuit = Array.isArray(query.circuit) ? query.circuit[0] : query.circuit;
+  const circuit: RankingCircuit = rawCircuit === "juniors" ? "juniors" : "uci";
+  const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
+  const page = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -40,10 +54,12 @@ export default async function UciRankingsPage({
 
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, rankings] = await Promise.all([
+  const [headerData, rankingData] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getUciRankings(),
+    circuit === "juniors" ? getJuniorRankings(view, page) : getUciRankings(),
   ]);
+  const rankings = circuit === "uci" ? rankingData as Awaited<ReturnType<typeof getUciRankings>> : null;
+  const juniorRankings = circuit === "juniors" ? rankingData as JuniorRankings | null : null;
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -58,22 +74,33 @@ export default async function UciRankingsPage({
 
         <header className="mt-5 rounded-[2rem] border border-[#315B3E]/15 bg-[linear-gradient(135deg,#071A17,#176951)] px-6 py-8 text-[#FFFDF4] shadow-[0_24px_70px_rgba(19,60,46,0.18)] sm:px-10 sm:py-10">
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#9BE0BC]">
-            Hiérarchie sportive · {rankings?.seasonName ?? "Saison active"}
+            Hiérarchie sportive · {(rankings ?? juniorRankings)?.seasonName ?? "Saison active"}
           </p>
-          <h1 className="mt-3 text-3xl font-black sm:text-4xl">Classements UCI</h1>
+          <h1 className="mt-3 text-3xl font-black sm:text-4xl">
+            {circuit === "juniors" ? "Classements juniors" : "Classements UCI"}
+          </h1>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#D6DFD2]">
-            Les points évoluent pendant la saison. La division affichée reste celle attribuée en début de saison ; le classement final déterminera la division de la saison suivante.
+            {circuit === "juniors"
+              ? "Les points sont consolidés à l’arrivée de chaque course. Le classement des nations additionne les cinq meilleurs juniors de chaque pays."
+              : "Les points évoluent pendant la saison. La division affichée reste celle attribuée en début de saison ; le classement final déterminera la division de la saison suivante."}
           </p>
         </header>
 
-        <nav aria-label="Vues du classement" className="mt-6 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-[0_10px_30px_rgba(19,60,46,0.08)]">
-          <Tab href="/jeu/classements?vue=equipes" active={view === "equipes"}>Équipes</Tab>
-          <Tab href="/jeu/classements?vue=individuel" active={view === "individuel"}>Individuel</Tab>
-          <Tab href="/jeu/classements?vue=nations" active={view === "nations"}>Nations</Tab>
+        <nav aria-label="Circuits de classement" className="mt-6 flex flex-wrap gap-2">
+          <CircuitTab href={`/jeu/classements?circuit=uci&vue=${view}`} active={circuit === "uci"}>Circuit UCI</CircuitTab>
+          <CircuitTab href={`/jeu/classements?circuit=juniors&vue=${view}`} active={circuit === "juniors"}>Circuit juniors</CircuitTab>
+        </nav>
+
+        <nav aria-label="Vues du classement" className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-[0_10px_30px_rgba(19,60,46,0.08)]">
+          <Tab href={`/jeu/classements?circuit=${circuit}&vue=equipes`} active={view === "equipes"}>Équipes</Tab>
+          <Tab href={`/jeu/classements?circuit=${circuit}&vue=individuel`} active={view === "individuel"}>Individuel</Tab>
+          <Tab href={`/jeu/classements?circuit=${circuit}&vue=nations`} active={view === "nations"}>Nations</Tab>
         </nav>
 
         <section className="mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
-          {!rankings ? (
+          {circuit === "juniors" ? (
+            <JuniorRankingContent rankings={juniorRankings} view={view} />
+          ) : !rankings ? (
             <p className="px-6 py-10 text-center font-bold text-[#60756E]">Aucune saison active.</p>
           ) : view === "equipes" ? (
             <TeamsTable entries={rankings.teams} />
@@ -84,9 +111,21 @@ export default async function UciRankingsPage({
           )}
         </section>
 
-        {view === "equipes" ? <DivisionAdvantages /> : null}
+        {circuit === "juniors" && juniorRankings?.enabled ? (
+          <RankingPagination rankings={juniorRankings} />
+        ) : null}
+
+        {circuit === "uci" && view === "equipes" ? <DivisionAdvantages /> : null}
       </section>
     </main>
+  );
+}
+
+function CircuitTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={active ? "rounded-full bg-[#F2C94C] px-5 py-2.5 text-sm font-black text-[#071A17] shadow-sm" : "rounded-full border border-[#315B3E]/15 bg-white px-5 py-2.5 text-sm font-black text-[#48665F] hover:bg-[#EAF5F3]"}>
+      {children}
+    </Link>
   );
 }
 
@@ -152,6 +191,67 @@ function NationsTable({ entries }: { entries: NationRankingEntry[] }) {
         <PointsCell points={entry.points} />
       </tr>)}</tbody>
     </table></div>
+  );
+}
+
+function JuniorRankingContent({ rankings, view }: { rankings: JuniorRankings | null; view: RankingView }) {
+  if (!rankings) {
+    return <p className="px-6 py-10 text-center font-bold text-[#60756E]">Aucune saison active.</p>;
+  }
+  if (!rankings.enabled) {
+    return (
+      <div className="px-6 py-12 text-center">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">Ouverture programmée</p>
+        <h2 className="mt-2 text-2xl font-black text-[#183F37]">Le circuit junior s’active en Saison 3</h2>
+        <p className="mx-auto mt-2 max-w-xl text-sm font-semibold text-[#60756E]">Aucun calcul ni chargement supplémentaire n’est exécuté pendant les deux premières saisons.</p>
+      </div>
+    );
+  }
+  if (!rankings.entries.length) {
+    return <p className="px-6 py-10 text-center font-bold text-[#60756E]">Le classement sera publié après la première arrivée junior.</p>;
+  }
+  return <JuniorTable entries={rankings.entries} view={view} />;
+}
+
+function JuniorTable({ entries, view }: { entries: JuniorRankingEntry[]; view: RankingView }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] border-collapse text-left">
+        <caption className="sr-only">Classement du circuit junior</caption>
+        <TableHead labels={view === "individuel" ? ["Rang", "Coureur", "Équipe", "Victoires", "Points"] : view === "equipes" ? ["Rang", "Dev Team", "Juniors classés", "Victoires", "Points"] : ["Rang", "Nation", "Base", "Victoires", "Points"]} />
+        <tbody>
+          {entries.map((entry) => (
+            <tr key={entry.entityKey} className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">
+              <RankCell rank={entry.rank} />
+              <td className="px-5 py-4">
+                {view === "individuel" && entry.academyRiderId ? (
+                  <Link href={`/jeu/centre-de-formation/development/${entry.academyRiderId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.displayName}</Link>
+                ) : (
+                  <span className="font-black text-[#183F37]">{entry.displayName}</span>
+                )}
+                {entry.countryCode ? <p className="mt-1 text-xs text-[#60756E]"><span className={`fi fi-${entry.countryCode.toLowerCase()} mr-2 rounded-sm`} />{entry.countryCode}</p> : null}
+              </td>
+              <td className="px-5 py-4 font-bold text-[#60756E]">{entry.secondaryName ?? (view === "nations" ? "Top 5" : entry.raceCount)}</td>
+              <td className="px-5 py-4 text-center font-black text-[#176951]">{entry.wins}</td>
+              <PointsCell points={entry.points} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RankingPagination({ rankings }: { rankings: JuniorRankings }) {
+  if (rankings.pageCount <= 1) return null;
+  const previous = Math.max(1, rankings.page - 1);
+  const next = Math.min(rankings.pageCount, rankings.page + 1);
+  return (
+    <nav aria-label="Pagination du classement junior" className="mt-5 flex items-center justify-between rounded-2xl border border-[#315B3E]/12 bg-white px-4 py-3 text-sm font-black text-[#315B3E]">
+      <Link aria-disabled={rankings.page === 1} href={`/jeu/classements?circuit=juniors&vue=${rankings.view}&page=${previous}`} className={rankings.page === 1 ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>← Précédent</Link>
+      <span>Page {rankings.page} / {rankings.pageCount} · {rankings.totalEntries} classés</span>
+      <Link aria-disabled={rankings.page === rankings.pageCount} href={`/jeu/classements?circuit=juniors&vue=${rankings.view}&page=${next}`} className={rankings.page === rankings.pageCount ? "pointer-events-none opacity-40" : "hover:text-[#176951]"}>Suivant →</Link>
+    </nav>
   );
 }
 

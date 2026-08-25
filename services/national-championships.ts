@@ -128,6 +128,10 @@ export function getNationalChampionshipDiscipline(
 
 export async function syncNationalChampionshipRegistrations(now = new Date()) {
   const admin = createSupabaseAdminClient();
+  const juniorFallback = await admin.rpc("sync_junior_pro_national_fallback", {
+    p_now: now.toISOString(),
+  });
+  assertQuery(juniorFallback.error, "les renforts juniors des CN professionnels");
   const result = await admin.rpc("process_due_national_championships", {
     p_now: now.toISOString(),
   });
@@ -150,7 +154,11 @@ export async function syncNationalChampionshipRegistrations(now = new Date()) {
     withdrawnDuplicates += Number(cleanup.data ?? 0);
   }
 
-  return Number(result.data ?? 0) + withdrawnDuplicates;
+  return (
+    Number(result.data ?? 0) +
+    Number(juniorFallback.data ?? 0) +
+    withdrawnDuplicates
+  );
 }
 
 export async function getCurrentTeamNationalChampionshipCountryCodes({
