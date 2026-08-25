@@ -6366,5 +6366,16 @@
   "Améliore le placement dans les sprints massifs, empêche de perdre la bonne roue et accorde un bonus décroissant sur les prologues et CLM jusqu’à 25 km.": "Improves positioning in bunch sprints, prevents losing the right wheel, and grants a decreasing bonus in prologues and time trials up to 25 km.",
   "Réduit de 25 % la perte de forme provoquée par les courses et les entraînements, dans la limite de 4 points économisés par événement.": "Reduces form loss caused by races and training by 25%, up to 4 points saved per event.",
   "Accorde +3 de performance de terrain sur les pavés et les bosses courtes ou roulantes, et réduit de 20 % le risque de chute sur les pavés.": "Grants +3 terrain performance on cobbles and short or rolling climbs, and reduces the risk of crashing on cobbles by 20%.",
-  "Divise par deux les malus des mauvais jours de course sans réduire les bonus des bons jours.": "Halves bad race-day penalties without reducing good-day bonuses."
+  "Divise par deux les malus des mauvais jours de course sans réduire les bonus des bons jours.": "Halves bad race-day penalties without reducing good-day bonuses.",
+  "Effectif actuel :": "Current squad:",
+  "% sur": "% out of",
+  "% requis": "% required",
+  "Parole tenue": "Promise kept",
+  "Valider un premier objectif fixé par un sponsor principal.": "Complete a first objective set by a main sponsor.",
+  "Sponsor convaincu": "Sponsor convinced",
+  "Valider cinq objectifs de sponsors principaux au cours de sa carrière.": "Complete five main sponsor objectives over your career.",
+  "Dix engagements tenus": "Ten commitments fulfilled",
+  "Valider dix objectifs de sponsors principaux au cours de sa carrière.": "Complete ten main sponsor objectives over your career.",
+  "Partenaire de référence": "Trusted partner",
+  "Valider vingt-cinq objectifs de sponsors principaux au cours de sa carrière.": "Complete twenty-five main sponsor objectives over your career."
 }

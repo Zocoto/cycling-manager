@@ -38,6 +38,10 @@ export const metadata: Metadata = {
     "Étudiez les propositions de sponsoring disponibles pour votre équipe dans Cyclostratège.",
 };
 
+const sponsorPercentageFormatter = new Intl.NumberFormat("fr-FR", {
+  maximumFractionDigits: 2,
+});
+
 type SponsoringPageProps = {
   searchParams?: Promise<{
     erreur?: string | string[];
@@ -1150,6 +1154,19 @@ function ContractObjectiveItem({
   textColor: string;
 }) {
   const presentation = getSponsorObjectiveStatusPresentation(objective.status);
+  const nationalityTarget =
+    objective.targetDetails.kind === "nationality_quota"
+      ? objective.targetDetails.minimumPercentage
+      : null;
+  const nationalityProgress =
+    nationalityTarget !== null &&
+    nationalityTarget > 0 &&
+    objective.currentValue !== null
+      ? Math.min(
+          100,
+          Math.max(0, (objective.currentValue / nationalityTarget) * 100),
+        )
+      : null;
 
   return (
     <li className="flex items-start gap-3 rounded-xl border border-[#315B3E]/10 bg-white/75 px-4 py-3">
@@ -1169,6 +1186,29 @@ function ContractObjectiveItem({
         <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#72847E]">
           {objective.satisfactionPoints} points de satisfaction
         </p>
+        {nationalityProgress !== null ? (
+          <div
+            className="mt-2"
+            aria-label={`Effectif actuel : ${formatSponsorPercentage(objective.currentValue ?? 0)} % sur ${formatSponsorPercentage(nationalityTarget ?? 0)} % requis`}
+          >
+            <p className="text-[11px] font-bold text-[#526A62]">
+              Effectif actuel :{" "}
+              {formatSponsorPercentage(objective.currentValue ?? 0)} %
+              <span className="text-[#84938E]">
+                {" "}/ {formatSponsorPercentage(nationalityTarget ?? 0)} % requis
+              </span>
+            </p>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#E4ECE8]">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${nationalityProgress}%`,
+                  backgroundColor: textColor,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
         <p
           className={`mt-1 text-xs font-extrabold ${
             presentation.status === "achieved"
@@ -1185,6 +1225,10 @@ function ContractObjectiveItem({
       </div>
     </li>
   );
+}
+
+function formatSponsorPercentage(value: number): string {
+  return sponsorPercentageFormatter.format(value);
 }
 
 function SponsorObjectiveStatusIcon({

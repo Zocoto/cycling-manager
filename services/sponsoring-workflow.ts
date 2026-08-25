@@ -15,7 +15,10 @@ import {
 import type { PersistedSponsorOffer } from "@/services/persisted-sponsor-offers";
 import { ensureAndLoadSponsorObjectives } from "@/services/persisted-sponsor-objectives";
 import type { Sponsor } from "@/types/sponsor";
-import type { SponsorObjectiveStatus } from "@/types/sponsor-objective";
+import type {
+  SponsorObjectiveStatus,
+  SponsorObjectiveTargetDetails,
+} from "@/types/sponsor-objective";
 import {
   resolveSponsorSportingPhilosophy,
   type SponsorSportingPhilosophy,
@@ -41,6 +44,8 @@ export type SponsorContractObjective = {
   displayOrder: number;
   status: SponsorObjectiveStatus;
   satisfactionPoints: number;
+  targetDetails: SponsorObjectiveTargetDetails;
+  currentValue: number | null;
 };
 
 export type PersistedSponsorContract = {
@@ -195,6 +200,11 @@ type SponsorContractRow = {
 
 type SponsorRegistryRow = {
   catalog_key: string;
+};
+
+type SponsorObjectiveProgressRow = {
+  sponsor_objective_id: string;
+  current_value: number | string;
 };
 
 export async function getSponsoringStateForAuthUser(
@@ -661,6 +671,7 @@ async function hydrateSponsorContract({
 
   let objectives: SponsorContractObjective[] = [];
   let sportingPhilosophy = resolveSponsorSportingPhilosophy(sponsor.id);
+  let currentValuesByObjectiveId = new Map<string, number>();
 
   if (contractRow.sponsor_offer_id) {
     const objectiveContext = {
@@ -693,8 +704,22 @@ async function hydrateSponsorContract({
         );
       }
 
-      objectivesByOffer =
-        await ensureAndLoadSponsorObjectives(objectiveContext);
+      const nationalityObjectiveIds = (
+        objectivesByOffer.get(contractRow.sponsor_offer_id) ?? []
+      )
+        .filter(
+          (objective) => objective.targetDetails.kind === "nationality_quota",
+        )
+        .map((objective) => objective.id);
+
+      [objectivesByOffer, currentValuesByObjectiveId] = await Promise.all([
+        ensureAndLoadSponsorObjectives(objectiveContext),
+        loadSponsorObjectiveCurrentValues({
+          supabase,
+          contractId: contractRow.id,
+          objectiveIds: nationalityObjectiveIds,
+        }),
+      ]);
     }
 
     const persistedObjectives =
@@ -711,6 +736,8 @@ async function hydrateSponsorContract({
         displayOrder: objective.displayOrder,
         status: objective.status,
         satisfactionPoints: objective.satisfactionPoints,
+        targetDetails: objective.targetDetails,
+        currentValue: currentValuesByObjectiveId.get(objective.id) ?? null,
       }));
   }
 
@@ -777,6 +804,43 @@ async function hydrateSponsorContract({
     satisfactionScore,
     objectives,
   };
+}
+
+async function loadSponsorObjectiveCurrentValues({
+  supabase,
+  contractId,
+  objectiveIds,
+}: {
+  supabase: SupabaseAdminClient;
+  contractId: string;
+  objectiveIds: string[];
+}): Promise<Map<string, number>> {
+  if (objectiveIds.length === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase
+    .from("objective_progress")
+    .select("sponsor_objective_id, current_value")
+    .eq("team_sponsor_contract_id", contractId)
+    .in("sponsor_objective_id", objectiveIds)
+    .returns<SponsorObjectiveProgressRow[]>();
+
+  if (error) {
+    throw new Error(
+      `Impossible de retrouver la progression des objectifs sponsor : ${error.message}`,
+    );
+  }
+
+  return new Map(
+    (data ?? []).flatMap((progress) => {
+      const currentValue = Number(progress.current_value);
+
+      return Number.isFinite(currentValue)
+        ? [[progress.sponsor_objective_id, currentValue] as const]
+        : [];
+    }),
+  );
 }
 
 async function resolveActiveSeason(
