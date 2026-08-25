@@ -26,6 +26,9 @@ export type GlobalSearchResult = {
   sporting_director_name: string | null;
   sporting_director_count: number | null;
   team_count: number | null;
+  team_status?: "active" | "inactive" | null;
+  inactivated_season_name?: string | null;
+  inactivated_day_number?: number | null;
 };
 
 export type GroupedGlobalSearchResults = {

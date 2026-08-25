@@ -166,11 +166,24 @@ export default async function PublicTeamPage({
 
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#A8DEC6]">
-                  Équipe cycliste
+                  {team.team_status === "inactive"
+                    ? "Équipe historique"
+                    : "Équipe cycliste"}
                 </p>
                 <h1 className="mt-2 text-3xl font-black sm:text-4xl">
                   {team.display_name}
                 </h1>
+                {team.team_status === "inactive" ? (
+                  <p className="mt-3 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-bold text-[#FFFDF4]">
+                    Activité arrêtée
+                    {team.inactivated_season_name
+                      ? ` en ${team.inactivated_season_name}`
+                      : ""}
+                    {team.inactivated_day_number
+                      ? ` · J${team.inactivated_day_number}`
+                      : ""}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-3">
@@ -211,7 +224,13 @@ export default async function PublicTeamPage({
               sponsorIdentity={sponsorIdentity}
             />
 
-            {directorHref ? (
+            {team.team_status === "inactive" ? (
+              <InfoCard
+                eyebrow="Dernier Directeur Sportif"
+                title={team.sporting_director_name ?? "Compte clôturé"}
+                description="Cette équipe est conservée en lecture seule afin de préserver son histoire sportive."
+              />
+            ) : directorHref ? (
               <Link
                 href={directorHref}
                 prefetchOnIntent

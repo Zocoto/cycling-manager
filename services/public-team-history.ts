@@ -52,6 +52,7 @@ export async function getPublicTeamSeasonHistory(
     .from("team_seasons")
     .select("id, season_id, display_name, points, final_rank, division_id, status")
     .eq("team_id", normalizedTeamId)
+    .neq("status", "withdrawn")
     .order("created_at", { ascending: false })
     .returns<TeamSeasonRow[]>();
 

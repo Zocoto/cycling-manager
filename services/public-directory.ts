@@ -51,6 +51,20 @@ type TeamSeasonRow = {
   division_id: string | null;
 };
 
+type ArchivedTeamRow = {
+  id: string;
+  home_country_id: string;
+  internal_name: string;
+  amateur_name: string | null;
+  status: "inactive";
+  inactivated_season_id: string;
+  inactivated_day_number: number;
+};
+
+type ArchivedTeamSeasonRow = TeamSeasonRow & {
+  registration_country_id: string;
+};
+
 export async function getPublicSportingDirector(
   publicIdentifier: string
 ): Promise<GlobalSearchResult | null> {
@@ -193,7 +207,7 @@ export async function getPublicTeam(
     normalizedIdentifier
   );
 
-  return (
+  const activeTeam = (
     results.find(
       (result) =>
         result.result_type === "team" &&
@@ -201,6 +215,12 @@ export async function getPublicTeam(
           normalizedIdentifier
     ) ?? null
   );
+
+  if (activeTeam) {
+    return activeTeam;
+  }
+
+  return getArchivedPublicTeam(normalizedIdentifier);
 }
 
 export async function getPublicCountryDirectory(
@@ -324,4 +344,116 @@ function assertDirectoryQuery(
       `Impossible de charger ${resourceName} : ${error.message}`
     );
   }
+}
+
+async function getArchivedPublicTeam(
+  teamId: string
+): Promise<GlobalSearchResult | null> {
+  const admin = createSupabaseAdminClient();
+  const { data: team, error: teamError } = await admin
+    .from("teams")
+    .select(
+      "id, home_country_id, internal_name, amateur_name, status, inactivated_season_id, inactivated_day_number"
+    )
+    .eq("id", teamId)
+    .eq("status", "inactive")
+    .maybeSingle<ArchivedTeamRow>();
+
+  assertDirectoryQuery(teamError, "l’équipe archivée");
+
+  if (!team?.inactivated_season_id) {
+    return null;
+  }
+
+  const [teamSeasonResult, seasonResult, assignmentResult] = await Promise.all([
+    admin
+      .from("team_seasons")
+      .select("display_name, division_id, registration_country_id")
+      .eq("team_id", team.id)
+      .eq("season_id", team.inactivated_season_id)
+      .maybeSingle<ArchivedTeamSeasonRow>(),
+    admin
+      .from("seasons")
+      .select("name")
+      .eq("id", team.inactivated_season_id)
+      .maybeSingle<{ name: string }>(),
+    admin
+      .from("team_manager_assignments")
+      .select("sporting_director_id")
+      .eq("team_id", team.id)
+      .eq("role", "general_manager")
+      .eq("status", "terminated")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ sporting_director_id: string }>(),
+  ]);
+
+  assertDirectoryQuery(teamSeasonResult.error, "la saison d’arrêt de l’équipe");
+  assertDirectoryQuery(seasonResult.error, "la saison d’archivage de l’équipe");
+  assertDirectoryQuery(assignmentResult.error, "l’ancien Directeur Sportif");
+
+  const countryId =
+    teamSeasonResult.data?.registration_country_id ?? team.home_country_id;
+  const divisionId = teamSeasonResult.data?.division_id ?? null;
+  const [countryResult, divisionResult, directorResult] = await Promise.all([
+    admin
+      .from("countries")
+      .select("name, iso_alpha2")
+      .eq("id", countryId)
+      .maybeSingle<CountryRow>(),
+    divisionId
+      ? admin
+          .from("divisions")
+          .select("code")
+          .eq("id", divisionId)
+          .maybeSingle<{ code: string }>()
+      : Promise.resolve({ data: null, error: null }),
+    assignmentResult.data
+      ? admin
+          .from("sporting_directors")
+          .select("username, display_name")
+          .eq("id", assignmentResult.data.sporting_director_id)
+          .maybeSingle<{ username: string; display_name: string }>()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  assertDirectoryQuery(countryResult.error, "le pays de l’équipe archivée");
+  assertDirectoryQuery(divisionResult.error, "la division de l’équipe archivée");
+  assertDirectoryQuery(directorResult.error, "l’ancien Directeur Sportif");
+
+  if (!countryResult.data) {
+    return null;
+  }
+
+  const divisionCode = normalizeTeamDivisionCode(
+    divisionResult.data?.code ?? null
+  );
+
+  return {
+    result_type: "team",
+    entity_id: team.id,
+    public_identifier: team.id,
+    display_name:
+      teamSeasonResult.data?.display_name ??
+      team.amateur_name ??
+      team.internal_name,
+    avatar_key: null,
+    avatar_frame_key: null,
+    reputation_points: null,
+    country_code: countryResult.data.iso_alpha2,
+    country_name: countryResult.data.name,
+    team_name: null,
+    team_id: team.id,
+    division_code: divisionCode,
+    division_name: getTeamSportingStatusLabel(divisionCode, false),
+    is_professional: false,
+    sponsor_name: null,
+    sporting_director_username: null,
+    sporting_director_name: directorResult.data?.display_name ?? null,
+    sporting_director_count: null,
+    team_count: null,
+    team_status: "inactive",
+    inactivated_season_name: seasonResult.data?.name ?? null,
+    inactivated_day_number: team.inactivated_day_number,
+  };
 }
