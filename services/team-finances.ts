@@ -64,6 +64,7 @@ export type FinanceCategory =
   | "building"
   | "transfer"
   | "training"
+  | "medical_care"
   | "other";
 
 export type TeamFinanceTransaction = {

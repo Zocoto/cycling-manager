@@ -23,7 +23,7 @@ describe("scouting supervision migration", () => {
   });
 
   it("autorise l’activation groupée des bonus de scouting", () => {
-    expect(migration).toContain("'rating_boost',\n    'scouting_boost'");
+    expect(migration).toMatch(/'rating_boost',\s*'scouting_boost'/);
     expect(migration).toContain(
       "v_result := public.redeem_current_daily_reward",
     );

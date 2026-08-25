@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
+import { FinanceExpenseAnalysisPanel } from "@/components/game/finance-expense-analysis";
 import { GameHeader } from "@/components/game/game-header";
+import Link from "@/components/ui/app-link";
+import { buildFinanceExpenseAnalysis } from "@/lib/game/finance-expense-analysis";
 import {
   getDebtAmount,
   getNextFinancialCheckpointDay,
@@ -31,10 +34,22 @@ const CATEGORY_LABELS: Record<FinanceCategory, string> = {
   building: "Infrastructure",
   transfer: "Transfert",
   training: "Entraînement",
+  medical_care: "Soins médicaux",
   other: "Autre",
 };
 
-export default async function TeamFinancesPage() {
+type TeamFinancesPageProps = {
+  searchParams: Promise<{ onglet?: string | string[] }>;
+};
+
+export default async function TeamFinancesPage({
+  searchParams,
+}: TeamFinancesPageProps) {
+  const query = await searchParams;
+  const activeTab =
+    readSearchValue(query.onglet) === "analyse-depenses"
+      ? "expenses"
+      : "treasury";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -70,6 +85,7 @@ export default async function TeamFinancesPage() {
     (transaction) => !settledTransactionIds.has(transaction.id)
   );
   const latestAlert = overview.alerts[0] ?? null;
+  const expenseAnalysis = buildFinanceExpenseAnalysis(overview.transactions);
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
@@ -127,7 +143,17 @@ export default async function TeamFinancesPage() {
           </div>
         ) : null}
 
-        <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <FinanceTabs activeTab={activeTab} />
+
+        {activeTab === "expenses" ? (
+          <FinanceExpenseAnalysisPanel
+            analysis={expenseAnalysis}
+            currency={overview.currency}
+            seasonName={overview.seasonName}
+          />
+        ) : (
+          <>
+            <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <FinanceMetric
             label="Solde actuel"
             value={formatCurrency(overview.balance, overview.currency)}
@@ -150,24 +176,24 @@ export default async function TeamFinancesPage() {
             value={formatCurrency(overview.totalExpenses, overview.currency)}
             detail="Coureurs, staff et dépenses connues"
           />
-        </section>
+            </section>
 
-        <section className="mt-7">
-          <FinanceBalanceChart
-            points={overview.chart}
-            currentDayNumber={overview.currentDayNumber}
-            currency={overview.currency}
-          />
-        </section>
+            <section className="mt-7">
+              <FinanceBalanceChart
+                points={overview.chart}
+                currentDayNumber={overview.currentDayNumber}
+                currency={overview.currency}
+              />
+            </section>
 
-        {raceSettlements.length > 0 ? (
-          <RacePrizeSettlements
-            settlements={raceSettlements}
-            currency={overview.currency}
-          />
-        ) : null}
+            {raceSettlements.length > 0 ? (
+              <RacePrizeSettlements
+                settlements={raceSettlements}
+                currency={overview.currency}
+              />
+            ) : null}
 
-        <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
+            <section className="mt-7 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
           <div className="border-b border-[#315B3E]/10 px-6 py-6 sm:px-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#278B70]">
               Registre de la saison
@@ -190,9 +216,64 @@ export default async function TeamFinancesPage() {
               currency={overview.currency}
             />
           </div>
-        </section>
+            </section>
+          </>
+        )}
       </section>
     </main>
+  );
+}
+
+function FinanceTabs({
+  activeTab,
+}: {
+  activeTab: "treasury" | "expenses";
+}) {
+  const tabs = [
+    {
+      key: "treasury" as const,
+      href: "/jeu/finances",
+      label: "Trésorerie",
+      detail: "Solde, projection et registre",
+    },
+    {
+      key: "expenses" as const,
+      href: "/jeu/finances?onglet=analyse-depenses",
+      label: "Analyse des dépenses",
+      detail: "Répartition complète des charges",
+    },
+  ];
+
+  return (
+    <nav
+      aria-label="Rubriques financières"
+      className="mt-7 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-[0_10px_30px_rgba(19,60,46,0.07)] sm:grid-cols-2"
+    >
+      {tabs.map((tab) => {
+        const active = tab.key === activeTab;
+        return (
+          <Link
+            key={tab.key}
+            href={tab.href}
+            aria-current={active ? "page" : undefined}
+            className={`rounded-xl px-4 py-3 transition ${
+              active
+                ? "bg-[#0B302B] text-white shadow-md"
+                : "text-[#315B3E] hover:bg-[#EAF5F3]"
+            }`}
+          >
+            <span className="block text-sm font-black">{tab.label}</span>
+            <span
+              className={`mt-0.5 block text-[10px] font-bold ${
+                active ? "text-[#9BE0BC]" : "text-[#60756E]"
+              }`}
+            >
+              {tab.detail}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -467,4 +548,8 @@ function formatStatus(status: TeamFinanceTransaction["status"]): string {
   if (status === "posted") return "comptabilisé";
   if (status === "pending") return "prévu";
   return "annulé";
+}
+
+function readSearchValue(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
