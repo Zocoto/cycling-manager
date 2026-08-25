@@ -27,12 +27,22 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "profile-overview": {
         title: "Complete your identity",
         content:
-          "Before discovering your roster, complete your Sports Director profile. Your display name and avatar can be changed later, but your nationality becomes permanent once confirmed.\n\nSelect Next to open your profile.",
+          "Your Sports Director name is already the one chosen during registration: you do not need to enter it again.\n\nYou only need to choose an avatar and nationality. Select Next: each control will be brought into view and highlighted automatically.",
       },
       "profile-form": {
-        title: "Create your Sports Director",
+        title: "Choose your avatar",
         content:
-          "Choose your display name, avatar and nationality. Your avatar can change later; nationality is an irreversible choice that represents your Sports Director throughout the game.\n\nComplete and save the form to continue.",
+          "Your name has already been filled from account creation. Now choose the portrait that will represent your Sports Director.\n\nSelect Create my avatar, compose your portrait, then return here and select Next.",
+      },
+      "profile-nationality": {
+        title: "Set your nationality",
+        content:
+          "Now choose your Sports Director nationality in the highlighted control.\n\nThis personal choice is permanent. Your team country and the country of your first seven riders will be selected separately in the next stage.",
+      },
+      "profile-save": {
+        title: "Confirm your profile",
+        content:
+          "Your avatar and nationality are ready. Select Confirm my profile in the highlighted area.\n\nOnce saved, the tutorial will automatically take you to team creation.",
       },
       "team-foundation": {
         title: "Found your amateur team",

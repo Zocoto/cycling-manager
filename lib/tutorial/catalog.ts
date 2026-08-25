@@ -108,7 +108,7 @@ export function createTutorialCatalog(
 
 const onboardingTutorial = {
   key: ONBOARDING_TUTORIAL_KEY,
-  version: 1,
+  version: 2,
   type: "onboarding",
   title: "Premiers pas dans Cyclostratège",
   description:
@@ -141,20 +141,41 @@ const onboardingTutorial = {
       mobileTargetId: "dashboard-profile-summary",
       title: "Finalisez votre identité",
       content:
-        "Avant de découvrir votre effectif, vous devez finaliser le profil de votre Directeur Sportif. Votre nom affiché et votre avatar resteront modifiables, mais votre nationalité sera définitive après validation.\n\nCliquez sur Suivant pour ouvrir votre profil.",
+        "Le nom de votre Directeur Sportif est déjà celui choisi lors de l’inscription : vous n’avez pas à le saisir une seconde fois.\n\nIl vous reste uniquement à choisir son avatar et sa nationalité. Cliquez sur Suivant : chaque contrôle à utiliser sera affiché et mis en évidence automatiquement.",
       placement: "right",
     },
     {
       key: "profile-form",
       route: "/jeu/directeur-sportif",
-      targetId: "profile-form",
-      mobileTargetId: "profile-nationality",
-      title: "Créez votre Directeur Sportif",
+      targetId: "profile-avatar",
+      title: "Choisissez votre avatar",
       content:
-        "Choisissez votre nom affiché, votre avatar et votre nationalité. L’avatar pourra évoluer plus tard ; la nationalité est un choix irréversible qui représente durablement votre Directeur Sportif.\n\nComplétez le formulaire puis validez votre profil. Le parcours ne pourra pas avancer tant que cette étape n’est pas enregistrée.",
+        "Votre nom est déjà renseigné depuis la création du compte. Choisissez maintenant le portrait qui représentera votre Directeur Sportif.\n\nTouchez « Créer mon avatar », composez votre portrait, puis revenez ici et cliquez sur Suivant.",
       placement: "right",
       allowTargetInteraction: true,
-      highlightPadding: 10,
+      highlightPadding: 8,
+    },
+    {
+      key: "profile-nationality",
+      route: "/jeu/directeur-sportif",
+      targetId: "profile-nationality",
+      title: "Définissez votre nationalité",
+      content:
+        "Choisissez maintenant la nationalité de votre Directeur Sportif dans le contrôle mis en évidence.\n\nCe choix personnel est définitif. Le pays de votre équipe et de vos sept premiers coureurs sera choisi séparément à l’étape suivante.",
+      placement: "right",
+      allowTargetInteraction: true,
+      highlightPadding: 8,
+    },
+    {
+      key: "profile-save",
+      route: "/jeu/directeur-sportif",
+      targetId: "profile-save",
+      title: "Validez votre profil",
+      content:
+        "Votre avatar et votre nationalité sont prêts. Cliquez sur « Valider mon profil » dans la zone mise en évidence.\n\nAprès l’enregistrement, le didacticiel vous conduira automatiquement à la création de votre équipe.",
+      placement: "top",
+      allowTargetInteraction: true,
+      highlightPadding: 8,
     },
     {
       key: "team-foundation",

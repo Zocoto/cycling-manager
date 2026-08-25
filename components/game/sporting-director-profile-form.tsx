@@ -102,7 +102,7 @@ export function SportingDirectorProfileForm({
 
     if (
       pending ||
-      tutorialStepKey !== "profile-form" ||
+      tutorialStepKey !== "profile-save" ||
       autoAdvanceStartedRef.current
     ) {
       return;
@@ -274,7 +274,7 @@ export function SportingDirectorProfileForm({
           ) : null}
         </div>
 
-        <fieldset>
+        <fieldset data-tutorial-id="profile-avatar">
           <legend className="text-sm font-bold text-[#183F37]">
             Avatar du Directeur Sportif
           </legend>
@@ -564,6 +564,7 @@ export function SportingDirectorProfileForm({
         </div>
 
         <button
+          data-tutorial-id="profile-save"
           type="submit"
           disabled={
             pending ||
