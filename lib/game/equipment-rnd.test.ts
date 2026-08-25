@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   describeEquipmentRndEngineerEffects,
+  EQUIPMENT_RND_MAX_BONUS,
   estimateEquipmentRndResearch,
   getEquipmentRndBaseDurationDays,
   getEquipmentRndBonusTotal,
@@ -44,7 +45,7 @@ describe("equipment R&D engineer talents", () => {
         existingBonusTotal: 3,
         engineer: engineer(),
       }),
-    ).toEqual({ successRate: 56, durationDays: 7, cost: 0 });
+    ).toEqual({ successRate: 56, durationDays: 4, cost: 0 });
   });
 
   it("keeps an incompressible one-day research minimum", () => {
@@ -67,16 +68,22 @@ describe("equipment R&D engineer talents", () => {
           specialty: "research_success",
         }),
       }),
-    ).toEqual({ successRate: 56, durationDays: 3, cost: 0 });
+    ).toEqual({ successRate: 56, durationDays: 2, cost: 0 });
   });
 
   it.each([
     [0, 1],
-    [1, 3],
-    [2, 5],
-    [3, 10],
-    [4, 20],
-    [10, 1_280],
+    [1, 2],
+    [2, 4],
+    [3, 6],
+    [4, 8],
+    [5, 10],
+    [6, 12],
+    [7, 16],
+    [8, 20],
+    [9, 24],
+    [EQUIPMENT_RND_MAX_BONUS, 28],
+    [EQUIPMENT_RND_MAX_BONUS + 1, 28],
   ])("scales a +%i item to %i base research days", (score, days) => {
     expect(getEquipmentRndBaseDurationDays(score)).toBe(days);
   });

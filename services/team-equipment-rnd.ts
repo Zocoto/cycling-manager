@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EquipmentSlot } from "@/lib/game/equipment";
 import {
+  EQUIPMENT_RND_MAX_BONUS,
   EQUIPMENT_RND_SPECIALTIES,
   getEquipmentRndBaseDurationDays,
   getEquipmentRndBonusTotal,
@@ -86,6 +87,7 @@ export type TeamEquipmentRndOverview = {
       baseDurationDays: number;
     }
   >;
+  cappedItemCount: number;
   engineers: EquipmentRndEngineer[];
   availableEngineers: EquipmentRndEngineer[];
   researchCapacity: number;
@@ -242,6 +244,22 @@ export async function getCurrentTeamEquipmentRndOverview(
   const labEfficiencyBonusPercentage = Number(
     infrastructureResult.data?.efficiency_bonus_percentage ?? 0,
   );
+  const eligibleItems = equipment.catalog
+    .filter(
+      (item) =>
+        item.channel !== "equipment_partner" &&
+        item.availableQuantity > 0 &&
+        SLOT_UNLOCK_LEVEL[item.slot] <= labLevel,
+    )
+    .map((item) => {
+      const bonusTotal = getEquipmentRndBonusTotal(item.effects);
+      return {
+        ...item,
+        requiredLabLevel: SLOT_UNLOCK_LEVEL[item.slot],
+        bonusTotal,
+        baseDurationDays: getEquipmentRndBaseDurationDays(bonusTotal),
+      };
+    });
 
   return {
     teamName: equipment.teamName,
@@ -254,27 +272,16 @@ export async function getCurrentTeamEquipmentRndOverview(
     currency: equipment.currency,
     labLevel,
     labEfficiencyBonusPercentage,
-    researchableItems: equipment.catalog
-      .filter(
-        (item) =>
-          item.channel !== "equipment_partner" &&
-          item.availableQuantity > 0 &&
-          SLOT_UNLOCK_LEVEL[item.slot] <= labLevel,
-      )
-      .map((item) => {
-        const bonusTotal = getEquipmentRndBonusTotal(item.effects);
-        return {
-          ...item,
-          requiredLabLevel: SLOT_UNLOCK_LEVEL[item.slot],
-          bonusTotal,
-          baseDurationDays: getEquipmentRndBaseDurationDays(bonusTotal),
-        };
-      })
+    researchableItems: eligibleItems
+      .filter((item) => item.bonusTotal < EQUIPMENT_RND_MAX_BONUS)
       .sort(
         (left, right) =>
           left.slot.localeCompare(right.slot) ||
           left.name.localeCompare(right.name, "fr"),
       ),
+    cappedItemCount: eligibleItems.filter(
+      (item) => item.bonusTotal >= EQUIPMENT_RND_MAX_BONUS,
+    ).length,
     engineers,
     availableEngineers: engineers
       .filter(

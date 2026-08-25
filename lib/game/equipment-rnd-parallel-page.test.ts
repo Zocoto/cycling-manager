@@ -29,4 +29,13 @@ describe("parallel equipment R&D laboratory", () => {
       "engineers.length - activeProjects.length",
     );
   });
+
+  it("explains and filters the +10 research ceiling", () => {
+    expect(page).toContain("+10 demande 28 jours");
+    expect(page).toContain("plafond R&D de +10");
+    expect(service).toContain(
+      "item.bonusTotal < EQUIPMENT_RND_MAX_BONUS",
+    );
+    expect(service).toContain("cappedItemCount");
+  });
 });

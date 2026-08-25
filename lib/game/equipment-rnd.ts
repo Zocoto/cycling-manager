@@ -15,6 +15,8 @@ export const EQUIPMENT_RND_SPECIALTIES = [
   "research_success",
 ] as const satisfies readonly EquipmentRndSpecialty[];
 
+export const EQUIPMENT_RND_MAX_BONUS = 10;
+
 export type EquipmentRndEngineer = {
   contractId: string;
   name: string;
@@ -102,11 +104,9 @@ export function getEquipmentRndBaseDurationDays(
   );
 
   if (score === 0) return 1;
-  if (score === 1) return 3;
-  if (score === 2) return 5;
-  if (score >= 17) return 100_000;
+  if (score <= 6) return score * 2;
 
-  return Math.min(100_000, 5 * 2 ** (score - 2));
+  return Math.min(28, 12 + (score - 6) * 4);
 }
 
 export function describeEquipmentRndEngineerEffects(

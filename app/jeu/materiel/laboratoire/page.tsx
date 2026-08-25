@@ -253,10 +253,11 @@ export default async function EquipmentLaboratoryPage({
                   </label>
                   <p className="rounded-xl bg-[#F3F8F5] p-4 text-xs font-semibold leading-5 text-[#60756E]">
                     La recherche est gratuite : seul l’exemplaire choisi est
-                    consommé. La durée de base dépend de ses bonus cumulés : 1
-                    jour à +0, 3 jours à +1, 5 jours à +2, 10 jours à +3,
-                    puis elle double à chaque point supplémentaire. Les talents
-                    de l’ingénieur réduisent cette durée. La réussite part de{" "}
+                    consommé. La durée de base est de 2 jours par point jusqu’à
+                    +6 : 10 jours à +5 et 12 jours à +6. Chaque point suivant
+                    ajoute 4 jours ; +10 demande 28 jours et constitue le
+                    plafond. Les talents de l’ingénieur réduisent cette durée.
+                    La réussite part de{" "}
                     {baseline?.successRate ?? 0} %.
                   </p>
                   <button className="w-full rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
@@ -265,9 +266,9 @@ export default async function EquipmentLaboratoryPage({
                   </form>
                 ) : (
                   <p className="mt-5 rounded-xl bg-[#FFF3D6] p-4 text-sm font-bold text-[#74550B]">
-                    Aucun exemplaire libre dans les catégories débloquées.
-                    Achetez une pièce ou libérez-en une depuis l’écran
-                    d’équipement.
+                    {overview.cappedItemCount > 0
+                      ? "Tous vos équipements disponibles ont atteint le plafond R&D de +10."
+                      : "Aucun exemplaire libre dans les catégories débloquées. Achetez une pièce ou libérez-en une depuis l’écran d’équipement."}
                   </p>
                 )}
               </div>
