@@ -10,6 +10,7 @@ import {
   AVATAR_FACE_SHAPES,
   AVATAR_FACIAL_HAIR_STYLES,
   getAvailableAvatarGlassesStyles,
+  AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
@@ -20,6 +21,7 @@ import {
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
+  EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
   decodeCustomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
@@ -148,6 +150,8 @@ describe("sporting director avatar editor", () => {
     expect(isSportingDirectorAvatarKey(key)).toBe(true);
     expect(avatar.outfit).not.toBe("patron");
     expect(avatar.outfit).not.toBe(SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY);
+    expect(avatar.outfit).not.toBe(AMBULANCIER_AVATAR_OUTFIT_KEY);
+    expect(avatar.outfit).not.toBe(EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY);
   });
 
   it("round-trips the sponsor ambassador outfit without adding it to random avatars", () => {
@@ -159,5 +163,17 @@ describe("sporting director avatar editor", () => {
     expect(decodeCustomSportingDirectorAvatar(key)?.outfit).toBe(
       SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
     );
+  });
+
+  it.each([
+    AMBULANCIER_AVATAR_OUTFIT_KEY,
+    EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+  ] as const)("round-trips the exclusive medical outfit %s", (outfit) => {
+    const key = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit,
+    });
+
+    expect(decodeCustomSportingDirectorAvatar(key)?.outfit).toBe(outfit);
   });
 });

@@ -1,3 +1,13 @@
+import {
+  AMBULANCIER_AVATAR_OUTFIT_KEY,
+  EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+} from "@/lib/game/medical-trophies";
+
+export {
+  AMBULANCIER_AVATAR_OUTFIT_KEY,
+  EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+};
+
 export const SPORTING_DIRECTOR_AVATARS = [
   { key: "director_m_01", label: "Directeur classique" },
   { key: "director_m_02", label: "Directeur expérimenté" },
@@ -173,11 +183,26 @@ export const AVATAR_OUTFITS = [
     jacket: "#123B34",
     shirt: "#FFF8DE",
   },
+  {
+    key: AMBULANCIER_AVATAR_OUTFIT_KEY,
+    label: "Chapeau d’infirmière",
+    jacket: "#F6F3E9",
+    shirt: "#BFE8DF",
+  },
+  {
+    key: EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+    label: "Docteur urgentiste",
+    jacket: "#F7FAF8",
+    shirt: "#5BB7A8",
+  },
 ] as const;
 
 const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
   ({ key }) =>
-    key !== "patron" && key !== SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
+    key !== "patron" &&
+    key !== SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY &&
+    key !== AMBULANCIER_AVATAR_OUTFIT_KEY &&
+    key !== EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
 ) as readonly (typeof AVATAR_OUTFITS)[number][];
 
 export const AVATAR_BACKGROUNDS = [

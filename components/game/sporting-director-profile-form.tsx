@@ -24,6 +24,8 @@ type SportingDirectorProfileFormProps = {
   initialIsEmailVisible: boolean;
   patronOutfitUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
+  ambulancierOutfitUnlocked?: boolean;
+  emergencyDoctorOutfitUnlocked?: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -46,6 +48,8 @@ export function SportingDirectorProfileForm({
   initialIsEmailVisible,
   patronOutfitUnlocked = false,
   sponsorAmbassadorOutfitUnlocked = false,
+  ambulancierOutfitUnlocked = false,
+  emergencyDoctorOutfitUnlocked = false,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -521,6 +525,27 @@ export function SportingDirectorProfileForm({
           </section>
         ) : null}
 
+        {ambulancierOutfitUnlocked || emergencyDoctorOutfitUnlocked ? (
+          <section
+            id="medical-avatar-outfits"
+            className="scroll-mt-28 rounded-xl border border-[#43B6A3]/40 bg-[linear-gradient(135deg,rgba(255,247,235,0.86),rgba(213,242,235,0.72))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#A52B40]">
+              Sang-froid médical
+            </p>
+            <h3 className="mt-2 text-base font-black text-[#173F37]">
+              {emergencyDoctorOutfitUnlocked
+                ? "Blouse de docteur et stéthoscope débloqués"
+                : "Chapeau d’infirmière débloqué"}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#48665F]">
+              {emergencyDoctorOutfitUnlocked
+                ? "La tenue complète de Médecin urgentiste vous attend dans l’onglet Style. Le chapeau d’infirmière du palier Ambulancier reste également disponible."
+                : "Le chapeau d’infirmière du trophée Ambulancier vous attend dans l’onglet Style de l’éditeur d’avatar."}
+            </p>
+          </section>
+        ) : null}
+
         {hasHiddenSwitchbackTrophy ? (
           <section
             id="hidden-switchback-avatar-accessory"
@@ -662,6 +687,8 @@ export function SportingDirectorProfileForm({
               sponsorAmbassadorOutfitUnlocked={
                 sponsorAmbassadorOutfitUnlocked
               }
+              ambulancierOutfitUnlocked={ambulancierOutfitUnlocked}
+              emergencyDoctorOutfitUnlocked={emergencyDoctorOutfitUnlocked}
             />
           </div>
         </div>

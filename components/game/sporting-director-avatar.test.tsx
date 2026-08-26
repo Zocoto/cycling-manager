@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import {
+  AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
+  EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   encodeSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
@@ -66,5 +68,31 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-outfit="sponsor-ambassador"');
     expect(markup).toContain("#D6AE3B");
+  });
+
+  it("renders the nurse cap unlocked by the Ambulancier trophy", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: AMBULANCIER_AVATAR_OUTFIT_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar ambulancier" />,
+    );
+
+    expect(markup).toContain('data-avatar-headwear="nurse-cap"');
+    expect(markup).toContain('data-avatar-outfit="medical-nurse"');
+  });
+
+  it("renders the doctor coat and stethoscope unlocked by the emergency trophy", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar urgentiste" />,
+    );
+
+    expect(markup).toContain('data-avatar-outfit="emergency-doctor"');
+    expect(markup).toContain("#B62F46");
   });
 });

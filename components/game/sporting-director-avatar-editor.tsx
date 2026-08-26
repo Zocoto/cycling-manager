@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import {
+  AMBULANCIER_AVATAR_OUTFIT_KEY,
   AVATAR_BACKGROUNDS,
   AVATAR_CHEEK_STYLES,
   AVATAR_EAR_SHAPES,
@@ -17,6 +18,7 @@ import {
   AVATAR_NOSE_SHAPES,
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
+  EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
@@ -35,6 +37,8 @@ type SportingDirectorAvatarEditorProps = {
   onConfirm: (avatarKey: string) => void;
   patronOutfitUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
+  ambulancierOutfitUnlocked?: boolean;
+  emergencyDoctorOutfitUnlocked?: boolean;
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -59,6 +63,8 @@ export function SportingDirectorAvatarEditor({
   onConfirm,
   patronOutfitUnlocked = false,
   sponsorAmbassadorOutfitUnlocked = false,
+  ambulancierOutfitUnlocked = false,
+  emergencyDoctorOutfitUnlocked = false,
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -74,6 +80,10 @@ export function SportingDirectorAvatarEditor({
     sponsorAmbassadorOutfitUnlocked
       ? null
       : SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
+    ambulancierOutfitUnlocked ? null : AMBULANCIER_AVATAR_OUTFIT_KEY,
+    emergencyDoctorOutfitUnlocked
+      ? null
+      : EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   ].filter((key): key is string => key !== null);
 
   function updateField<K extends keyof SportingDirectorAvatarConfig>(
@@ -232,6 +242,12 @@ export function SportingDirectorAvatarEditor({
                     sponsorAmbassadorOutfitUnlocked
                       ? "Le Maillot d’Or des Ambassadeurs récompense votre saison à 100 % de satisfaction sponsor."
                       : "Le Maillot d’Or des Ambassadeurs se débloque avec le trophée Ambassadeur exemplaire.",
+                    ambulancierOutfitUnlocked
+                      ? "Le chapeau d’infirmière est débloqué avec le trophée Ambulancier."
+                      : "Le chapeau d’infirmière demande 5 blessés simultanés.",
+                    emergencyDoctorOutfitUnlocked
+                      ? "La blouse et le stéthoscope sont débloqués avec le trophée Médecin urgentiste."
+                      : "La tenue de docteur urgentiste demande 10 blessés simultanés.",
                   ].join(" ")}
                   field="outfit"
                   value={config.outfit}

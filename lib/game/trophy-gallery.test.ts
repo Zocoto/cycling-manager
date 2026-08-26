@@ -132,6 +132,7 @@ describe("buildTrophyGallery", () => {
       uciTitles: 0,
       special: 0,
       achievements: 0,
+      medical: 0,
       sponsor: 0,
       attendance: 0,
       referrals: 0,
@@ -343,6 +344,51 @@ describe("buildTrophyGallery", () => {
     expect(
       getLockedTrophyTargets(gallery.trophies).some(
         (trophy) => trophy.id === "locked:sponsor:ambassador",
+      ),
+    ).toBe(false);
+  });
+
+  it("adds both medical crisis trophies with their cash and avatar rewards", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "ambulancier-award",
+          trophyKey: "ambulancier",
+          availableAt: "2026-08-26T10:00:00.000Z",
+          claimedAt: "2026-08-26T10:00:00.000Z",
+          href: "/jeu/directeur-sportif#medical-avatar-outfits",
+        },
+        {
+          id: "urgentiste-award",
+          trophyKey: "medecin_urgentiste",
+          availableAt: "2026-08-26T11:00:00.000Z",
+          claimedAt: "2026-08-26T11:00:00.000Z",
+          href: "/jeu/directeur-sportif#medical-avatar-outfits",
+        },
+      ],
+    });
+
+    expect(gallery.counts).toMatchObject({ total: 2, medical: 2 });
+    expect(gallery.trophies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "medical",
+          title: "Ambulancier",
+          medicalVariant: "nurse",
+        }),
+        expect.objectContaining({
+          kind: "medical",
+          title: "Médecin urgentiste",
+          medicalVariant: "emergency-doctor",
+        }),
+      ]),
+    );
+    expect(
+      getLockedTrophyTargets(gallery.trophies).some(
+        (trophy) => trophy.kind === "medical",
       ),
     ).toBe(false);
   });

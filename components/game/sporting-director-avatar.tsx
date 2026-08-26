@@ -3,7 +3,9 @@ import {
   type SportingDirectorAvatarFrameKey,
 } from "@/lib/game/trophy-gallery";
 import {
+  AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
+  EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   SPORTING_DIRECTOR_AVATARS,
@@ -88,11 +90,20 @@ export function SportingDirectorAvatar({
         {avatar.outfit === SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY ? (
           <AvatarSponsorAmbassadorOutfit />
         ) : null}
+        {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY ? (
+          <AvatarNurseOutfit />
+        ) : null}
+        {avatar.outfit === EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY ? (
+          <AvatarEmergencyDoctorOutfit />
+        ) : null}
 
         <AvatarEars avatar={avatar} skin={skin.color} shadow={skin.shadow} />
         <AvatarFace avatar={avatar} skin={skin.color} />
         <AvatarCheeks avatar={avatar} blush={skin.blush} shadow={skin.shadow} />
         <AvatarHairFront avatar={avatar} color={hair.color} />
+        {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY ? (
+          <AvatarNurseCap />
+        ) : null}
         <AvatarEyebrows avatar={avatar} color={hair.color} />
         <AvatarEyes avatar={avatar} irisColor={eyes.color} />
         <AvatarNose avatar={avatar} color={skin.shadow} />
@@ -185,6 +196,54 @@ function AvatarSponsorAmbassadorOutfit() {
         strokeLinecap="round"
         opacity="0.9"
       />
+    </g>
+  );
+}
+
+function AvatarNurseOutfit() {
+  return (
+    <g data-avatar-outfit="medical-nurse">
+      <path d="M24 120c2-15 8-27 18-37l18 23 18-23c10 10 16 22 18 37H24Z" fill="#F6F3E9" />
+      <path d="m42 83 18 23-10 8-17-25 9-6Zm36 0-18 23 10 8 17-25-9-6Z" fill="#CDEDE5" />
+      <path d="M57 104h6v16h-6z" fill="#E1535B" />
+      <path d="M52 109h16v6H52z" fill="#E1535B" />
+    </g>
+  );
+}
+
+function AvatarNurseCap() {
+  return (
+    <g data-avatar-headwear="nurse-cap">
+      <path
+        d="M39 25c5-15 37-21 42-3l-3 10c-12-5-25-5-37 0l-2-7Z"
+        fill="#FFF9ED"
+        stroke="#D7CDB8"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M57 16h7v14h-7z" fill="#E1535B" />
+      <path d="M53 20h15v7H53z" fill="#E1535B" />
+    </g>
+  );
+}
+
+function AvatarEmergencyDoctorOutfit() {
+  return (
+    <g data-avatar-outfit="emergency-doctor">
+      <path d="M21 120c2-15 8-27 20-38l19 25 19-25c12 11 18 23 20 38H21Z" fill="#F7FAF8" />
+      <path d="m41 82 19 25-12 8-16-26 9-7Zm38 0-19 25 12 8 16-26-9-7Z" fill="#DDEBE7" />
+      <path d="M56 101h8v19h-8z" fill="#5BB7A8" />
+      <path
+        d="M47 88v7c0 10 6 16 13 16s13-6 13-16v-7"
+        stroke="#293C3B"
+        strokeWidth="2.7"
+        strokeLinecap="round"
+      />
+      <circle cx="47" cy="88" r="2.8" fill="#B62F46" />
+      <circle cx="73" cy="88" r="2.8" fill="#B62F46" />
+      <path d="M60 111v3c0 4 3 6 8 6" stroke="#293C3B" strokeWidth="2.7" strokeLinecap="round" />
+      <circle cx="72" cy="119" r="4.4" fill="#B62F46" stroke="#F7FAF8" strokeWidth="1.5" />
+      <path d="M82 94h5M84.5 91.5v5" stroke="#B62F46" strokeWidth="1.8" strokeLinecap="round" />
     </g>
   );
 }

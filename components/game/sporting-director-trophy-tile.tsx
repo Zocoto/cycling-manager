@@ -1,4 +1,5 @@
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
+import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
 import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import type { CareerTrophy, TrophyGallery } from "@/lib/game/trophy-gallery";
 
@@ -73,6 +74,12 @@ function PublicTrophy({ trophy }: { trophy: CareerTrophy }) {
       >
         {trophy.kind === "special" ? (
           <AlphaTesterTrophyMark className="h-10 w-10" />
+        ) : trophy.kind === "medical" && trophy.medicalVariant ? (
+          <MedicalTrophyMark
+            variant={trophy.medicalVariant}
+            palette={trophy.palette}
+            className="h-11 w-11"
+          />
         ) : trophy.kind === "sponsor" ? (
           <SponsorAmbassadorTrophyMark className="h-11 w-11" />
         ) : (

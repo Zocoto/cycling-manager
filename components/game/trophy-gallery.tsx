@@ -2,6 +2,7 @@ import { AchievementTrophyMark } from "@/components/game/achievement-trophy-mark
 import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gift";
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
 import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
+import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
 import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import Link from "@/components/ui/app-link";
 import {
@@ -35,6 +36,9 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
   const sponsorTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "sponsor",
   );
+  const medicalTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "medical",
+  );
   const referralTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "referral",
   );
@@ -57,6 +61,9 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
   );
   const lockedSponsorTrophies = lockedTrophies.filter(
     (trophy) => trophy.kind === "sponsor",
+  );
+  const lockedMedicalTrophies = lockedTrophies.filter(
+    (trophy) => trophy.kind === "medical",
   );
   const lockedReferralTrophies = lockedTrophies.filter(
     (trophy) => trophy.kind === "referral",
@@ -112,7 +119,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
 
             <div
               data-trophy-metrics
-              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-9"
+              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-5 sm:gap-2 sm:p-3 xl:grid-cols-10"
             >
               <GalleryMetric label="Acquis" value={gallery.counts.total} />
               <GalleryMetric
@@ -135,6 +142,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
                 label="Défis"
                 value={gallery.counts.achievements}
               />
+              <GalleryMetric label="Médical" value={gallery.counts.medical} />
               <GalleryMetric label="Sponsor" value={gallery.counts.sponsor} />
               <GalleryMetric
                 label="Assiduité"
@@ -166,6 +174,15 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
             description="Une saison parfaite célèbre les promesses tenues et enrichit cette distinction des saisons suivantes."
             trophies={sponsorTrophies}
             lockedTrophies={lockedSponsorTrophies}
+            epic
+          />
+
+          <TrophyShelf
+            eyebrow="Sang-froid"
+            title="Urgences du peloton"
+            description="Deux distinctions de crise récompensent les DS qui gardent leur équipe debout quand l’infirmerie déborde. Les gains et skins ne sont attribués qu’une fois."
+            trophies={medicalTrophies}
+            lockedTrophies={lockedMedicalTrophies}
             epic
           />
 
@@ -310,7 +327,9 @@ function TrophyCard({
         style={{ backgroundColor: trophy.palette.glow }}
       />
       <div
-        data-trophy-visual={trophy.visualVariant ?? "classic"}
+        data-trophy-visual={
+          trophy.medicalVariant ?? trophy.visualVariant ?? "classic"
+        }
         className={`relative flex shrink-0 items-center justify-center overflow-hidden border bg-black/20 ${frameClassName} ${
           locked
             ? "border-dashed border-white/15 grayscale opacity-55"
@@ -453,6 +472,16 @@ function TrophyIllustration({
   if (trophy.kind === "special") {
     return (
       <AlphaTesterTrophyMark className={epic ? "h-40 w-40" : "h-36 w-36"} />
+    );
+  }
+
+  if (trophy.kind === "medical" && trophy.medicalVariant) {
+    return (
+      <MedicalTrophyMark
+        variant={trophy.medicalVariant}
+        palette={trophy.palette}
+        className={epic ? "h-44 w-44" : "h-36 w-36"}
+      />
     );
   }
 
@@ -833,7 +862,7 @@ function LongTermChallenges() {
 }
 
 function getTrophyFrameClassName(trophy: CareerTrophy, epic: boolean) {
-  if (trophy.kind === "achievement")
+  if (trophy.kind === "achievement" || trophy.kind === "medical")
     return "h-48 w-full rounded-[1.4rem] sm:w-48";
   return epic
     ? "h-44 w-full rounded-[1.4rem] sm:h-48 sm:w-48"
@@ -843,6 +872,7 @@ function getTrophyFrameClassName(trophy: CareerTrophy, epic: boolean) {
 function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
   if (kind === "special") return "Distinction Alpha";
   if (kind === "achievement") return "Trophée maître";
+  if (kind === "medical") return "Crise médicale";
   if (kind === "sponsor") return "Excellence sponsor";
   if (kind === "grand_tour") return "Grand Tour";
   if (kind === "monument") return "Monument";

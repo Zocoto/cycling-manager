@@ -195,4 +195,40 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("Saison 3");
     expect(markup).toContain("Maillot d’Or des Ambassadeurs");
   });
+
+  it("renders the medical crisis shelf, its two marks and rewards", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+          specialAwards: [
+            {
+              id: "ambulancier-award",
+              trophyKey: "ambulancier",
+              availableAt: "2026-08-26T10:00:00.000Z",
+              claimedAt: "2026-08-26T10:00:00.000Z",
+              href: "/jeu/directeur-sportif#medical-avatar-outfits",
+            },
+            {
+              id: "urgentiste-award",
+              trophyKey: "medecin_urgentiste",
+              availableAt: "2026-08-26T11:00:00.000Z",
+              claimedAt: "2026-08-26T11:00:00.000Z",
+              href: "/jeu/directeur-sportif#medical-avatar-outfits",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain("Urgences du peloton");
+    expect(markup).toContain("Ambulancier");
+    expect(markup).toContain("Médecin urgentiste");
+    expect(markup).toContain('data-medical-trophy="nurse"');
+    expect(markup).toContain('data-medical-trophy="emergency-doctor"');
+    expect(markup).toContain("25 000 €");
+    expect(markup).toContain("75 000 €");
+  });
 });

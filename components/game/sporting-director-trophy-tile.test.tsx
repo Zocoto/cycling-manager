@@ -113,4 +113,29 @@ describe("SportingDirectorTrophyTile", () => {
     expect(markup).toContain("Saison 3");
     expect(markup).not.toContain("À débloquer");
   });
+
+  it("shows earned medical trophies with their dedicated marks", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      specialAwards: [
+        {
+          id: "urgentiste-award",
+          trophyKey: "medecin_urgentiste",
+          availableAt: "2026-08-26T11:00:00.000Z",
+          claimedAt: "2026-08-26T11:00:00.000Z",
+          href: null,
+        },
+      ],
+    });
+
+    const markup = renderToStaticMarkup(
+      <SportingDirectorTrophyTile gallery={gallery} />,
+    );
+
+    expect(markup).toContain("Médecin urgentiste");
+    expect(markup).toContain('data-medical-trophy="emergency-doctor"');
+    expect(markup).not.toContain("À débloquer");
+  });
 });

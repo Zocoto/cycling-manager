@@ -8,6 +8,12 @@ import {
   type AchievementTrophyKey,
   type AchievementTrophyVisualVariant,
 } from "@/lib/game/achievement-trophies";
+import {
+  isMedicalTrophyKey,
+  MEDICAL_TROPHY_DEFINITIONS,
+  type MedicalTrophyKey,
+  type MedicalTrophyVisualVariant,
+} from "@/lib/game/medical-trophies";
 
 export type TrophyKind =
   | "grand_tour"
@@ -18,6 +24,7 @@ export type TrophyKind =
   | "uci_rider"
   | "special"
   | "achievement"
+  | "medical"
   | "sponsor"
   | "attendance"
   | "referral";
@@ -50,6 +57,7 @@ export type CareerTrophy = {
   seasonNames?: string[];
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
+  medicalVariant?: MedicalTrophyVisualVariant | null;
 };
 
 export type ClaimableTrophyReward = {
@@ -72,6 +80,7 @@ export type TrophyGallery = {
     uciTitles: number;
     special: number;
     achievements: number;
+    medical: number;
     sponsor: number;
     attendance: number;
     referrals: number;
@@ -117,7 +126,10 @@ export type TrophySponsorAmbassador = {
 
 export type TrophySpecialAward = {
   id: string;
-  trophyKey: typeof ALPHA_TESTER_TROPHY_KEY | AchievementTrophyKey;
+  trophyKey:
+    | typeof ALPHA_TESTER_TROPHY_KEY
+    | AchievementTrophyKey
+    | MedicalTrophyKey;
   availableAt: string;
   claimedAt: string;
   href: string | null;
@@ -469,6 +481,35 @@ export function getLockedTrophyTargets(
         },
       ];
 
+  const medicalTargets = Object.entries(
+    MEDICAL_TROPHY_DEFINITIONS,
+  ).flatMap<CareerTrophy>(([key, definition]) => {
+    if (
+      earnedTrophies.some(
+        (trophy) => trophy.kind === "medical" && trophy.title === definition.title,
+      )
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: `locked:medical:${key}`,
+        kind: "medical",
+        title: definition.title,
+        competitionName: definition.competitionName,
+        seasonName: "À conquérir",
+        wonAt: null,
+        riderName: null,
+        href: definition.href,
+        inscription: `${definition.threshold} coureurs blessés simultanément`,
+        palette: definition.palette,
+        description: definition.description,
+        medicalVariant: definition.visualVariant,
+      },
+    ];
+  });
+
   const uciTargets = ([
     {
       id: "locked:uci-team",
@@ -545,6 +586,7 @@ export function getLockedTrophyTargets(
   return [
     ...achievementTargets,
     ...sponsorTargets,
+    ...medicalTargets,
     ...referralTargets,
     ...attendanceTargets,
     ...uciTargets,
@@ -693,6 +735,24 @@ export function buildTrophyGallery({
       };
     }
 
+    if (isMedicalTrophyKey(award.trophyKey)) {
+      const definition = MEDICAL_TROPHY_DEFINITIONS[award.trophyKey];
+      return {
+        id: `medical:${award.id}`,
+        kind: "medical",
+        title: definition.title,
+        competitionName: definition.competitionName,
+        seasonName: definition.seasonName,
+        wonAt: award.claimedAt,
+        riderName: null,
+        href: award.href,
+        inscription: definition.inscription,
+        palette: definition.palette,
+        description: definition.description,
+        medicalVariant: definition.visualVariant,
+      };
+    }
+
     const definition = ACHIEVEMENT_TROPHY_DEFINITIONS[award.trophyKey];
     return {
       id: `achievement:${award.id}`,
@@ -795,6 +855,8 @@ export function buildTrophyGallery({
       achievements: specialTrophies.filter(
         (trophy) => trophy.kind === "achievement",
       ).length,
+      medical: specialTrophies.filter((trophy) => trophy.kind === "medical")
+        .length,
       sponsor: sponsorCareerTrophies.length,
       attendance: attendanceCareerTrophies.length,
       referrals: trophies.filter((trophy) => trophy.kind === "referral").length,
@@ -826,6 +888,7 @@ function getTrophyWeight(kind: TrophyKind) {
   if (kind === "special") return 500;
   if (kind === "achievement") return 475;
   if (kind === "sponsor") return 450;
+  if (kind === "medical") return 440;
   if (kind === "uci_team") return 400;
   if (kind === "world_championship") return 380;
   if (kind === "uci_rider") return 350;

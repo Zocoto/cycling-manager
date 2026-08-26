@@ -4,6 +4,7 @@ import {
   ACHIEVEMENT_TROPHY_DEFINITIONS,
   isAchievementTrophyKey,
 } from "@/lib/game/achievement-trophies";
+import { isMedicalTrophyKey } from "@/lib/game/medical-trophies";
 import {
   getUnlockedReferralTrophies,
   type ReferralTrophyMilestone,
@@ -504,6 +505,20 @@ function mapSpecialTrophies({
             claimedAt: entitlement.claimed_at,
             href: includeClaimable
               ? "/jeu/directeur-sportif#distinction-avatar"
+              : null,
+          },
+        ];
+      }
+
+      if (isMedicalTrophyKey(entitlement.trophy_key)) {
+        return [
+          {
+            id: entitlement.id,
+            trophyKey: entitlement.trophy_key,
+            availableAt: entitlement.available_at,
+            claimedAt: entitlement.claimed_at,
+            href: includeClaimable
+              ? "/jeu/directeur-sportif#medical-avatar-outfits"
               : null,
           },
         ];

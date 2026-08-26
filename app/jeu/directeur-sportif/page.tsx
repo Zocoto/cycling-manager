@@ -4,6 +4,10 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
+import {
+  AMBULANCIER_TROPHY_KEY,
+  EMERGENCY_DOCTOR_TROPHY_KEY,
+} from "@/lib/game/medical-trophies";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "../../../components/game/game-header";
@@ -168,31 +172,28 @@ export default async function SportingDirectorProfilePage() {
     profileResult.data;
 
   const [
-    alphaTesterTrophyResult,
+    careerTrophiesResult,
     assiduTrophyResult,
-    hiddenSwitchbackTrophyResult,
     sponsorAmbassadorTrophyResult,
   ] = sportingDirector
     ? await Promise.all([
         supabase
           .from("sporting_director_trophies")
-          .select("id")
+          .select("trophy_key")
           .eq("sporting_director_id", sportingDirector.id)
-          .eq("trophy_key", "alpha_tester")
+          .in("trophy_key", [
+            "alpha_tester",
+            "virage_cache",
+            AMBULANCIER_TROPHY_KEY,
+            EMERGENCY_DOCTOR_TROPHY_KEY,
+          ])
           .not("claimed_at", "is", null)
-          .maybeSingle<{ id: string }>(),
+          .returns<Array<{ trophy_key: string }>>(),
         supabase
           .from("sporting_director_attendance_trophies")
           .select("id")
           .eq("sporting_director_id", sportingDirector.id)
           .limit(1)
-          .maybeSingle<{ id: string }>(),
-        supabase
-          .from("sporting_director_trophies")
-          .select("id")
-          .eq("sporting_director_id", sportingDirector.id)
-          .eq("trophy_key", "virage_cache")
-          .not("claimed_at", "is", null)
           .maybeSingle<{ id: string }>(),
         supabase
           .from("sporting_director_sponsor_trophies")
@@ -202,16 +203,15 @@ export default async function SportingDirectorProfilePage() {
           .maybeSingle<{ id: string }>(),
       ])
     : [
-        { data: null, error: null },
-        { data: null, error: null },
+        { data: [], error: null },
         { data: null, error: null },
         { data: null, error: null },
       ];
 
-  if (alphaTesterTrophyResult.error) {
+  if (careerTrophiesResult.error) {
     console.error(
-      "Impossible de vérifier le trophée Alphatesteur :",
-      alphaTesterTrophyResult.error,
+      "Impossible de vérifier les trophées de carrière :",
+      careerTrophiesResult.error,
     );
   }
 
@@ -222,13 +222,6 @@ export default async function SportingDirectorProfilePage() {
     );
   }
 
-  if (hiddenSwitchbackTrophyResult.error) {
-    console.error(
-      "Impossible de vérifier le trophée du Virage caché :",
-      hiddenSwitchbackTrophyResult.error,
-    );
-  }
-
   if (sponsorAmbassadorTrophyResult.error) {
     console.error(
       "Impossible de vérifier le trophée Ambassadeur exemplaire :",
@@ -236,10 +229,15 @@ export default async function SportingDirectorProfilePage() {
     );
   }
 
-  const hasAlphaTesterTrophy = Boolean(alphaTesterTrophyResult.data);
+  const careerTrophyKeys = new Set(
+    (careerTrophiesResult.data ?? []).map((trophy) => trophy.trophy_key),
+  );
+  const hasAlphaTesterTrophy = careerTrophyKeys.has("alpha_tester");
   const hasAssiduTrophy = Boolean(assiduTrophyResult.data);
-  const hasHiddenSwitchbackTrophy = Boolean(
-    hiddenSwitchbackTrophyResult.data,
+  const hasHiddenSwitchbackTrophy = careerTrophyKeys.has("virage_cache");
+  const hasAmbulancierTrophy = careerTrophyKeys.has(AMBULANCIER_TROPHY_KEY);
+  const hasEmergencyDoctorTrophy = careerTrophyKeys.has(
+    EMERGENCY_DOCTOR_TROPHY_KEY,
   );
   const hasSponsorAmbassadorTrophy = Boolean(
     sponsorAmbassadorTrophyResult.data,
@@ -372,6 +370,8 @@ export default async function SportingDirectorProfilePage() {
                     sponsorAmbassadorOutfitUnlocked={
                       hasSponsorAmbassadorTrophy
                     }
+                    ambulancierOutfitUnlocked={hasAmbulancierTrophy}
+                    emergencyDoctorOutfitUnlocked={hasEmergencyDoctorTrophy}
                   />
                 </div>
               </article>
