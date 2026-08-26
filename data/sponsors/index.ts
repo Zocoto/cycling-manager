@@ -20,6 +20,7 @@ import { PORTUGUESE_SPONSORS } from "./portugal";
 import { POSTAL_SERVICE_SPONSORS } from "./postal-services";
 import { SPANISH_SPONSORS } from "./spain";
 import { SPIRITS_SPONSORS } from "./spirits";
+import { AIRLINE_SPONSORS, TOURISM_SPONSORS } from "./tourism-airlines";
 import { AMERICAN_SPONSORS } from "./united-states";
 import { WELLNESS_HYGIENE_SPONSORS } from "./wellness-hygiene";
 
@@ -45,6 +46,8 @@ const RAW_SPONSORS = [
   ...POSTAL_SERVICE_SPONSORS,
   ...AUTOMOTIVE_SPONSORS,
   ...WELLNESS_HYGIENE_SPONSORS,
+  ...TOURISM_SPONSORS,
+  ...AIRLINE_SPONSORS,
 ] satisfies readonly Sponsor[];
 
 export const SPONSORS = RAW_SPONSORS.map((sponsor) => ({
