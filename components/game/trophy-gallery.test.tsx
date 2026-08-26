@@ -63,10 +63,21 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("CM &amp; CC");
     expect(markup).toContain("Alix Mondial");
     expect(markup).toContain("Coupe UCI des équipes");
-    expect(markup.match(/En cours de développement/g)).toHaveLength(3);
+    expect(markup).not.toContain("Challenges longue durée");
+    expect(markup).not.toContain("En cours de développement");
     expect(markup).not.toContain("Critères à définir ensemble");
     expect(markup).toContain("/jeu/resultats/ruta-de-las-sierras");
     expect(markup).toContain("Registre des graveurs");
+    expect(markup).toContain(
+      'data-prestige-race-trophy="/images/race-trophies/corsa-delle-regioni.webp"',
+    );
+    expect(markup).toContain(
+      'data-prestige-race-trophy="/images/race-trophies/enfer-des-dunes.webp"',
+    );
+    expect(markup).toContain(
+      'data-prestige-race-trophy="/images/race-trophies/couronne-des-ardennes.webp"',
+    );
+    expect(markup.match(/data-prestige-race-trophy=/g)).toHaveLength(8);
   });
 
   it("shows the obtainable trophies in grey without granting them", () => {

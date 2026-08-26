@@ -5,6 +5,7 @@ import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
 import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
 import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import Link from "@/components/ui/app-link";
+import Image from "next/image";
 import {
   getLockedTrophyTargets,
   type CareerTrophy,
@@ -237,10 +238,10 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
             trophies={raceTrophies}
             lockedTrophies={lockedRaceTrophies}
           />
+
+          <HiddenSwitchbackLink />
         </div>
       </section>
-
-      <LongTermChallenges />
     </div>
   );
 }
@@ -328,7 +329,9 @@ function TrophyCard({
       />
       <div
         data-trophy-visual={
-          trophy.medicalVariant ?? trophy.visualVariant ?? "classic"
+          trophy.trophyImagePath
+            ? "prestige-race"
+            : trophy.medicalVariant ?? trophy.visualVariant ?? "classic"
         }
         className={`relative flex shrink-0 items-center justify-center overflow-hidden border bg-black/20 ${frameClassName} ${
           locked
@@ -459,6 +462,28 @@ function TrophyIllustration({
   trophy: CareerTrophy;
   epic: boolean;
 }) {
+  if (
+    (trophy.kind === "grand_tour" || trophy.kind === "monument") &&
+    trophy.trophyImagePath
+  ) {
+    return (
+      <div
+        data-prestige-race-trophy={trophy.trophyImagePath}
+        aria-hidden="true"
+        className="relative h-full w-full"
+      >
+        <Image
+          src={trophy.trophyImagePath}
+          alt=""
+          fill
+          sizes="(max-width: 639px) calc(100vw - 6rem), 12rem"
+          className="object-contain"
+        />
+        <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,transparent_45%,rgba(7,26,23,0.2)_100%)]" />
+      </div>
+    );
+  }
+
   if (trophy.kind === "achievement" && trophy.visualVariant) {
     return (
       <AchievementTrophyMark
@@ -800,64 +825,6 @@ function AssiduTrophyMark({
         strokeWidth="2"
       />
     </svg>
-  );
-}
-
-function LongTermChallenges() {
-  const tracks = [
-    {
-      title: "Héritage du club",
-      description: "Formation, fidélité et transmission",
-    },
-    {
-      title: "Dynastie sportive",
-      description: "Régularité et domination sur plusieurs saisons",
-    },
-    {
-      title: "Manager complet",
-      description: "Maîtrise durable de toutes les dimensions du club",
-    },
-  ];
-
-  return (
-    <section className="mt-7 rounded-[2rem] border border-[#315B3E]/14 bg-white p-6 shadow-[0_18px_50px_rgba(19,60,46,0.1)] sm:p-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">
-            Prochain chantier
-          </p>
-          <h2 className="mt-2 text-2xl font-black text-[#183F37] sm:text-3xl">
-            Challenges longue durée
-          </h2>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {tracks.map((track) => (
-          <article
-            key={track.title}
-            className="flex items-center gap-4 rounded-2xl border border-dashed border-[#315B3E]/25 bg-[#F5F9F7] p-4"
-          >
-            <span
-              aria-hidden="true"
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#E3ECE7] text-[#60756E]"
-            >
-              <LockIcon />
-            </span>
-            <div>
-              <h3 className="font-black text-[#183F37]">{track.title}</h3>
-              <p className="mt-1 text-xs font-semibold leading-5 text-[#789087]">
-                {track.description}
-              </p>
-              <span className="mt-2 inline-flex text-[9px] font-black uppercase tracking-[0.13em] text-[#278B70]">
-                En cours de développement
-              </span>
-            </div>
-          </article>
-        ))}
-      </div>
-      <HiddenSwitchbackLink />
-    </section>
   );
 }
 

@@ -145,12 +145,16 @@ describe("buildTrophyGallery", () => {
           competitionName: "Trofeo Rosa delle Regioni · 1re place au général",
           inscription: "Gianni Rosa",
           palette: expect.objectContaining({ primary: "#E45A96" }),
+          trophyImagePath:
+            "/images/race-trophies/corsa-delle-regioni.webp",
         }),
         expect.objectContaining({
           id: "monument:result-monument",
           title: "Couronne des Ardennes",
           competitionName: "Couronne d’Émeraude · 1re place",
           palette: expect.objectContaining({ primary: "#278B70" }),
+          trophyImagePath:
+            "/images/race-trophies/couronne-des-ardennes.webp",
         }),
       ]),
     );

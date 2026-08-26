@@ -54,6 +54,7 @@ export type CareerTrophy = {
   inscription: string;
   palette: TrophyPalette;
   description?: string | null;
+  trophyImagePath?: string | null;
   seasonNames?: string[];
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
@@ -578,6 +579,7 @@ export function getLockedTrophyTargets(
             : "Remporter la course",
           palette: race.palette,
           description: race.trophyDescription,
+          trophyImagePath: race.trophyImagePath,
         },
       ];
     },
@@ -646,6 +648,9 @@ export function buildTrophyGallery({
     }
 
     if (win.isGrandTour) {
+      const prestigeDefinition = RACE_PRESTIGE_DEFINITIONS.find(
+        (race) => race.slug === win.raceSlug,
+      );
       const identity =
         GRAND_TOUR_IDENTITIES[win.raceSlug] ??
         createFallbackIdentity(`Trophée ${win.raceName}`, "#F2C94C");
@@ -662,11 +667,16 @@ export function buildTrophyGallery({
           href: `/jeu/resultats/${encodeURIComponent(win.raceSlug)}`,
           inscription: win.riderName,
           palette: identity.palette,
+          description: prestigeDefinition?.trophyDescription ?? null,
+          trophyImagePath: prestigeDefinition?.trophyImagePath ?? null,
         },
       ];
     }
 
     if (win.isMonument) {
+      const prestigeDefinition = RACE_PRESTIGE_DEFINITIONS.find(
+        (race) => race.slug === win.raceSlug,
+      );
       const identity = MONUMENT_IDENTITIES[win.raceSlug] ?? {
         title: `Monument de ${win.raceName}`,
         palette: DEFAULT_MONUMENT_PALETTE,
@@ -684,6 +694,8 @@ export function buildTrophyGallery({
           href: `/jeu/resultats/${encodeURIComponent(win.raceSlug)}`,
           inscription: win.riderName,
           palette: identity.palette,
+          description: prestigeDefinition?.trophyDescription ?? null,
+          trophyImagePath: prestigeDefinition?.trophyImagePath ?? null,
         },
       ];
     }
