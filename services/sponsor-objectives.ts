@@ -1,5 +1,6 @@
 import type {
   GeneratedSponsorObjective,
+  SponsorObjectiveAmbitionLevel,
   SponsorObjectivePriority,
 } from "@/types/sponsor-objective";
 import type {
@@ -16,7 +17,7 @@ import {
 } from "@/lib/game/sponsor-philosophy";
 
 const OBJECTIVE_COUNT = 10;
-const SPONSOR_OBJECTIVE_GENERATION_VERSION = 5;
+const SPONSOR_OBJECTIVE_GENERATION_VERSION = 6;
 
 export type SponsorObjectiveRaceCandidate = {
   raceId: string;
@@ -38,6 +39,7 @@ export type SponsorObjectiveRaceCandidate = {
 type GenerateSponsorObjectivesOptions = {
   sponsorCountryCode: string;
   sponsorPrestige: SponsorPrestige;
+  proposedBudget: number;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   sponsorCatalogKey?: string;
@@ -197,6 +199,7 @@ const SPONSOR_COUNTRY_NEIGHBORS: Readonly<Record<string, readonly string[]>> = {
 export function generateProvisionalSponsorObjectives({
   sponsorCountryCode,
   sponsorPrestige,
+  proposedBudget,
   teamReputationPoints,
   raceCandidates,
   sponsorCatalogKey = "",
@@ -224,6 +227,10 @@ export function generateProvisionalSponsorObjectives({
     resolveSponsorSportingPhilosophy(
       sponsorCatalogKey || normalizedCountryCode,
     );
+  const ambitionLevel = resolveSponsorObjectiveAmbitionLevel({
+    sponsorPrestige,
+    proposedBudget,
+  });
   const weights = sportingPhilosophy === "national_preference"
     ? NATIONAL_PREFERENCE_SATISFACTION_WEIGHTS
     : SATISFACTION_WEIGHTS[focus];
@@ -231,20 +238,21 @@ export function generateProvisionalSponsorObjectives({
     sponsorCountryCode: normalizedCountryCode,
     sponsorContinentCode,
     sportingPhilosophy,
+    ambitionLevel,
     teamReputationPoints,
     raceCandidates,
     random,
   });
-  const firstTopRank = getTopRankForPrestige(sponsorPrestige, random);
-  const secondTopRank = getTopRankForPrestige(sponsorPrestige, random);
+  const firstTopRank = getTopRankForAmbition(ambitionLevel, random);
+  const secondTopRank = getTopRankForAmbition(ambitionLevel, random);
   const nationalityPercentage = sportingPhilosophy === "national_preference"
-    ? getNationalPreferencePercentageForPrestige(sponsorPrestige, random)
-    : getNationalityPercentageForPrestige(sponsorPrestige, random);
-  const minimumSeasonWinCount = getSeasonWinCountForPrestige(
-    sponsorPrestige,
+    ? getNationalPreferencePercentageForAmbition(ambitionLevel, random)
+    : getNationalityPercentageForAmbition(ambitionLevel, random);
+  const minimumSeasonWinCount = getSeasonWinCountForAmbition(
+    ambitionLevel,
     random
   );
-  const targetUciRank = getUciRankForPrestige(sponsorPrestige, random);
+  const targetUciRank = getUciRankForAmbition(ambitionLevel, random);
   const normalizedRelationshipYear = Math.max(1, Math.floor(relationshipYear));
   const includeFormation = normalizedRelationshipYear >= 2;
   const includeInfrastructure =
@@ -253,10 +261,10 @@ export function generateProvisionalSponsorObjectives({
     stableSponsorBucket(sponsorCatalogKey || normalizedCountryCode, 6) === 0;
 
   const domesticRaceObjective =
-    sponsorPrestige >= 4
+    ambitionLevel >= 4
       ? createRaceWinObjective(
           portfolio.domestic,
-          getPriorityForRaceWin(sponsorPrestige)
+          getPriorityForRaceWin(ambitionLevel)
         )
       : createRaceTopObjective(
           portfolio.domestic,
@@ -272,21 +280,23 @@ export function generateProvisionalSponsorObjectives({
 
   const philosophyRaceObjective = createPhilosophyRaceObjective({
     race: portfolio.philosophyPrimary,
-    sponsorPrestige,
+    ambitionLevel,
     random,
   });
 
   const ambitionObjective =
     includeFormation
-      ? createHomegrownRosterObjective(10)
+      ? createHomegrownRosterObjective(
+          Math.min(30, ambitionLevel * 5),
+        )
       : portfolio.philosophySecondary
       ? createPhilosophyRaceObjective({
           race: portfolio.philosophySecondary,
-          sponsorPrestige,
+          ambitionLevel,
           random,
         })
       : createSeasonWinsObjective(
-            Math.max(1, sponsorPrestige),
+            Math.max(1, ambitionLevel),
             "stages",
             "Victoires d’étape"
           );
@@ -295,7 +305,7 @@ export function generateProvisionalSponsorObjectives({
     includeInfrastructure
         ? createInfrastructureObjective(1)
         : createSeasonWinsObjective(
-            Math.max(1, Math.ceil(sponsorPrestige / 2)),
+            Math.max(1, Math.ceil(ambitionLevel / 2)),
             "stage_race_general",
             "Tours remportés"
           );
@@ -309,7 +319,7 @@ export function generateProvisionalSponsorObjectives({
         nationalityPercentage,
         minimumSeasonWinCount,
         targetUciRank,
-        sponsorPrestige,
+        ambitionLevel,
       })
     : [
         withSatisfactionPoints(domesticRaceObjective, weights.domesticRace),
@@ -337,7 +347,7 @@ export function generateProvisionalSponsorObjectives({
         withSatisfactionPoints(
           createNationUciRankingObjective(
             normalizedCountryCode,
-            getNationUciRankForPrestige(sponsorPrestige)
+            getNationUciRankForAmbition(ambitionLevel)
           ),
           weights.nationRanking
         ),
@@ -371,8 +381,43 @@ export function generateProvisionalSponsorObjectives({
       ...objective.targetDetails,
       generationVersion: SPONSOR_OBJECTIVE_GENERATION_VERSION,
       sportingPhilosophy,
+      ambitionLevel,
     },
   }));
+}
+
+export function resolveSponsorObjectiveAmbitionLevel({
+  sponsorPrestige,
+  proposedBudget,
+}: {
+  sponsorPrestige: SponsorPrestige;
+  proposedBudget: number;
+}): SponsorObjectiveAmbitionLevel {
+  if (!Number.isFinite(proposedBudget) || proposedBudget <= 0) {
+    throw new Error(
+      "Le budget proposé doit être un montant positif pour fixer les objectifs sponsor.",
+    );
+  }
+
+  // Le prestige fixe le socle d’exigence de la marque ; le montant de l’offre
+  // peut l’élever, avec un niveau premium propre aux offres d’au moins 2 M€.
+  const budgetLevel: SponsorObjectiveAmbitionLevel =
+    proposedBudget >= 2_000_000
+      ? 6
+      : proposedBudget >= 1_500_000
+        ? 5
+        : proposedBudget >= 1_000_000
+          ? 4
+          : proposedBudget >= 650_000
+            ? 3
+            : proposedBudget >= 350_000
+              ? 2
+              : 1;
+
+  return Math.max(
+    sponsorPrestige,
+    budgetLevel,
+  ) as SponsorObjectiveAmbitionLevel;
 }
 
 function withSatisfactionPoints(
@@ -395,7 +440,7 @@ function createYouthDevelopmentPortfolio({
   nationalityPercentage,
   minimumSeasonWinCount,
   targetUciRank,
-  sponsorPrestige,
+  ambitionLevel,
 }: {
   domesticRaceObjective: ObjectiveWithoutDisplayOrder;
   regionalRaceObjective: ObjectiveWithoutDisplayOrder;
@@ -404,35 +449,39 @@ function createYouthDevelopmentPortfolio({
   nationalityPercentage: number;
   minimumSeasonWinCount: number;
   targetUciRank: number;
-  sponsorPrestige: SponsorPrestige;
+  ambitionLevel: SponsorObjectiveAmbitionLevel;
 }): ObjectiveWithoutDisplayOrder[] {
-  const promotionsByPrestige: Record<SponsorPrestige, number> = {
+  const promotionsByAmbition: Record<SponsorObjectiveAmbitionLevel, number> = {
     1: 1,
     2: 1,
     3: 2,
     4: 2,
     5: 3,
+    6: 4,
   };
-  const developmentRosterByPrestige: Record<SponsorPrestige, number> = {
+  const developmentRosterByAmbition: Record<SponsorObjectiveAmbitionLevel, number> = {
     1: 6,
     2: 7,
     3: 8,
     4: 9,
     5: 10,
+    6: 12,
   };
-  const juniorWinsByPrestige: Record<SponsorPrestige, number> = {
+  const juniorWinsByAmbition: Record<SponsorObjectiveAmbitionLevel, number> = {
     1: 1,
     2: 1,
     3: 2,
     4: 2,
     5: 3,
+    6: 4,
   };
-  const homegrownSalesByPrestige: Record<SponsorPrestige, number> = {
+  const homegrownSalesByAmbition: Record<SponsorObjectiveAmbitionLevel, number> = {
     1: 1,
     2: 1,
     3: 1,
     4: 2,
     5: 2,
+    6: 3,
   };
 
   return [
@@ -455,28 +504,28 @@ function createYouthDevelopmentPortfolio({
     withSatisfactionPoints(
       createYouthDevelopmentObjective(
         "promotions",
-        promotionsByPrestige[sponsorPrestige],
+        promotionsByAmbition[ambitionLevel],
       ),
       18,
     ),
     withSatisfactionPoints(
       createYouthDevelopmentObjective(
         "development_roster",
-        developmentRosterByPrestige[sponsorPrestige],
+        developmentRosterByAmbition[ambitionLevel],
       ),
       15,
     ),
     withSatisfactionPoints(
       createYouthDevelopmentObjective(
         "junior_race_wins",
-        juniorWinsByPrestige[sponsorPrestige],
+        juniorWinsByAmbition[ambitionLevel],
       ),
       18,
     ),
     withSatisfactionPoints(
       createYouthDevelopmentObjective(
         "homegrown_sales",
-        homegrownSalesByPrestige[sponsorPrestige],
+        homegrownSalesByAmbition[ambitionLevel],
       ),
       15,
     ),
@@ -623,6 +672,7 @@ function selectSponsorObjectivePortfolio({
   sponsorCountryCode,
   sponsorContinentCode,
   sportingPhilosophy,
+  ambitionLevel,
   teamReputationPoints,
   raceCandidates,
   random,
@@ -630,6 +680,7 @@ function selectSponsorObjectivePortfolio({
   sponsorCountryCode: string;
   sponsorContinentCode: string | null;
   sportingPhilosophy: SponsorSportingPhilosophy;
+  ambitionLevel: SponsorObjectiveAmbitionLevel;
   teamReputationPoints: number;
   raceCandidates: readonly SponsorObjectiveRaceCandidate[];
   random: () => number;
@@ -695,7 +746,30 @@ function selectSponsorObjectivePortfolio({
   const philosophyPredicate = (
     candidate: SponsorObjectiveRaceCandidate,
   ) => matchesSponsorSportingPhilosophy(candidate, sportingPhilosophy);
+  const flagshipPhilosophyPredicate = (
+    candidate: SponsorObjectiveRaceCandidate,
+  ) => {
+    if (!philosophyPredicate(candidate)) return false;
+
+    if (sportingPhilosophy === "grand_tour_general") {
+      return candidate.isGrandTour === true;
+    }
+
+    if (
+      sportingPhilosophy === "cobbled_classics" ||
+      sportingPhilosophy === "ardennes_classics"
+    ) {
+      return candidate.isMonument === true;
+    }
+
+    return (
+      candidate.categoryCode === "world" ||
+      candidate.isMonument === true ||
+      candidate.isGrandTour === true
+    );
+  };
   const philosophyPrimary =
+    (ambitionLevel >= 6 ? take(flagshipPhilosophyPredicate) : null) ??
     takeByGeography(philosophyPredicate) ??
     (sportingPhilosophy === "grand_tour_general"
       ? takeByGeography(
@@ -820,19 +894,19 @@ export function isRaceCategoryUnlockedForSponsorObjectives(
 
 function createPhilosophyRaceObjective({
   race,
-  sponsorPrestige,
+  ambitionLevel,
   random,
 }: {
   race: SponsorObjectiveRaceCandidate;
-  sponsorPrestige: SponsorPrestige;
+  ambitionLevel: SponsorObjectiveAmbitionLevel;
   random: () => number;
 }): ObjectiveWithoutDisplayOrder {
-  if (sponsorPrestige >= 5) {
+  if (ambitionLevel >= 5) {
     return createRaceWinObjective(race, "mandatory");
   }
 
   const targetRank =
-    sponsorPrestige === 4 ? 3 : getTopRankForPrestige(sponsorPrestige, random);
+    ambitionLevel === 4 ? 3 : getTopRankForAmbition(ambitionLevel, random);
   return createRaceTopObjective(
     race,
     targetRank,
@@ -1163,26 +1237,27 @@ function createInfrastructureObjective(
   };
 }
 
-function getNationUciRankForPrestige(
-  prestige: SponsorPrestige
+function getNationUciRankForAmbition(
+  ambitionLevel: SponsorObjectiveAmbitionLevel
 ): number {
-  const ranksByPrestige: Record<SponsorPrestige, number> = {
+  const ranksByAmbition: Record<SponsorObjectiveAmbitionLevel, number> = {
     1: 60,
     2: 50,
     3: 40,
     4: 30,
     5: 20,
+    6: 10,
   };
 
-  return ranksByPrestige[prestige];
+  return ranksByAmbition[ambitionLevel];
 }
 
-function getTopRankForPrestige(
-  prestige: SponsorPrestige,
+function getTopRankForAmbition(
+  ambitionLevel: SponsorObjectiveAmbitionLevel,
   random: () => number
 ): number {
-  const ranksByPrestige: Record<
-    SponsorPrestige,
+  const ranksByAmbition: Record<
+    SponsorObjectiveAmbitionLevel,
     readonly number[]
   > = {
     1: [10, 12, 15],
@@ -1190,20 +1265,21 @@ function getTopRankForPrestige(
     3: [5, 8, 10],
     4: [3, 5, 8],
     5: [3, 5],
+    6: [1, 3],
   };
 
   return selectRandomValue(
-    ranksByPrestige[prestige],
+    ranksByAmbition[ambitionLevel],
     random
   );
 }
 
-function getNationalityPercentageForPrestige(
-  prestige: SponsorPrestige,
+function getNationalityPercentageForAmbition(
+  ambitionLevel: SponsorObjectiveAmbitionLevel,
   random: () => number
 ): number {
-  const percentagesByPrestige: Record<
-    SponsorPrestige,
+  const percentagesByAmbition: Record<
+    SponsorObjectiveAmbitionLevel,
     readonly number[]
   > = {
     1: [30, 40],
@@ -1211,20 +1287,21 @@ function getNationalityPercentageForPrestige(
     3: [40, 50],
     4: [40, 50, 60],
     5: [50, 60],
+    6: [60, 70],
   };
 
   return selectRandomValue(
-    percentagesByPrestige[prestige],
+    percentagesByAmbition[ambitionLevel],
     random
   );
 }
 
-function getNationalPreferencePercentageForPrestige(
-  prestige: SponsorPrestige,
+function getNationalPreferencePercentageForAmbition(
+  ambitionLevel: SponsorObjectiveAmbitionLevel,
   random: () => number,
 ): number {
-  const percentagesByPrestige: Record<
-    SponsorPrestige,
+  const percentagesByAmbition: Record<
+    SponsorObjectiveAmbitionLevel,
     readonly number[]
   > = {
     1: [50, 55],
@@ -1232,17 +1309,18 @@ function getNationalPreferencePercentageForPrestige(
     3: [60, 65],
     4: [65, 70],
     5: [70],
+    6: [75, 80],
   };
 
-  return selectRandomValue(percentagesByPrestige[prestige], random);
+  return selectRandomValue(percentagesByAmbition[ambitionLevel], random);
 }
 
-function getSeasonWinCountForPrestige(
-  prestige: SponsorPrestige,
+function getSeasonWinCountForAmbition(
+  ambitionLevel: SponsorObjectiveAmbitionLevel,
   random: () => number
 ): number {
-  const minimum = prestige + 1;
-  const maximum = prestige + 3;
+  const minimum = ambitionLevel >= 6 ? 10 : ambitionLevel + 1;
+  const maximum = ambitionLevel >= 6 ? 12 : ambitionLevel + 3;
 
   return getRandomInteger(
     minimum,
@@ -1251,12 +1329,12 @@ function getSeasonWinCountForPrestige(
   );
 }
 
-function getUciRankForPrestige(
-  prestige: SponsorPrestige,
+function getUciRankForAmbition(
+  ambitionLevel: SponsorObjectiveAmbitionLevel,
   random: () => number
 ): number {
-  const ranksByPrestige: Record<
-    SponsorPrestige,
+  const ranksByAmbition: Record<
+    SponsorObjectiveAmbitionLevel,
     readonly number[]
   > = {
     1: [60, 70, 80],
@@ -1264,18 +1342,19 @@ function getUciRankForPrestige(
     3: [40, 50, 60],
     4: [30, 40, 50],
     5: [20, 30, 40],
+    6: [3, 5, 10],
   };
 
   return selectRandomValue(
-    ranksByPrestige[prestige],
+    ranksByAmbition[ambitionLevel],
     random
   );
 }
 
 function getPriorityForRaceWin(
-  prestige: SponsorPrestige
+  ambitionLevel: SponsorObjectiveAmbitionLevel
 ): SponsorObjectivePriority {
-  return prestige >= 4
+  return ambitionLevel >= 4
     ? "mandatory"
     : "important";
 }

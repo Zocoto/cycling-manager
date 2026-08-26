@@ -6,6 +6,7 @@ import {
   isRaceCategoryUnlockedForSponsorObjectives,
   matchesSponsorSportingPhilosophy,
   resolveSponsorObjectiveFocus,
+  resolveSponsorObjectiveAmbitionLevel,
   selectSponsorObjectiveRaces,
   type SponsorObjectiveRaceCandidate,
 } from "./sponsor-objectives";
@@ -39,14 +40,27 @@ const RACE_CANDIDATES: SponsorObjectiveRaceCandidate[] = [
 
 type GeneratorOptions = Omit<
   Parameters<typeof generateObjectivesFromRaces>[0],
-  "teamReputationPoints" | "raceCandidates"
->;
+  "teamReputationPoints" | "raceCandidates" | "proposedBudget"
+> & {
+  proposedBudget?: number;
+};
+
+const REPRESENTATIVE_BUDGET_BY_PRESTIGE = {
+  1: 250_000,
+  2: 500_000,
+  3: 800_000,
+  4: 1_200_000,
+  5: 1_700_000,
+} as const;
 
 function generateProvisionalSponsorObjectives(
   options: GeneratorOptions,
 ) {
   return generateObjectivesFromRaces({
     ...options,
+    proposedBudget:
+      options.proposedBudget ??
+      REPRESENTATIVE_BUDGET_BY_PRESTIGE[options.sponsorPrestige],
     teamReputationPoints: 200,
     raceCandidates: RACE_CANDIDATES,
   });
@@ -254,10 +268,11 @@ describe("generateProvisionalSponsorObjectives", () => {
     );
     expect(metrics.get("promotions")?.satisfactionPoints).toBe(18);
     expect(metrics.get("junior_race_wins")?.satisfactionPoints).toBe(18);
+    const homegrownSalesObjective = metrics.get("homegrown_sales");
+
     expect(
-      metrics.get("homegrown_sales")?.targetDetails.kind ===
-        "youth_development"
-        ? metrics.get("homegrown_sales")?.targetDetails.minimumCount
+      homegrownSalesObjective?.targetDetails.kind === "youth_development"
+        ? homegrownSalesObjective.targetDetails.minimumCount
         : 0,
     ).toBe(2);
     expect(
@@ -513,6 +528,96 @@ describe("generateProvisionalSponsorObjectives", () => {
     };
 
     expect(getTeamRank(highPrestige)).toBeLessThan(getTeamRank(lowPrestige));
+  });
+
+  it("fait progresser l’ambition avec le prestige et le budget proposé", () => {
+    expect(
+      resolveSponsorObjectiveAmbitionLevel({
+        sponsorPrestige: 1,
+        proposedBudget: 250_000,
+      }),
+    ).toBe(1);
+    expect(
+      resolveSponsorObjectiveAmbitionLevel({
+        sponsorPrestige: 4,
+        proposedBudget: 800_000,
+      }),
+    ).toBe(4);
+    expect(
+      resolveSponsorObjectiveAmbitionLevel({
+        sponsorPrestige: 2,
+        proposedBudget: 1_600_000,
+      }),
+    ).toBe(5);
+    expect(
+      resolveSponsorObjectiveAmbitionLevel({
+        sponsorPrestige: 5,
+        proposedBudget: 2_000_000,
+      }),
+    ).toBe(6);
+  });
+
+  it("refuse un budget d’offre nul ou invalide", () => {
+    expect(() =>
+      resolveSponsorObjectiveAmbitionLevel({
+        sponsorPrestige: 3,
+        proposedBudget: 0,
+      }),
+    ).toThrow("budget proposé");
+  });
+
+  it("réserve une victoire majeure et un très haut classement aux offres de 2 M€", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      proposedBudget: 2_100_000,
+      sportingPhilosophy: "grand_tour_general",
+      random: () => 0.3,
+    });
+    const grandTourObjective = objectives.find(
+      (objective) =>
+        objective.targetDetails.kind === "race_result" &&
+        objective.targetDetails.raceId === "race-es-grand-tour",
+    );
+    const rankingObjective = objectives.find(
+      (objective) => objective.targetDetails.kind === "uci_ranking",
+    );
+
+    expect(grandTourObjective?.targetDetails.kind).toBe("race_result");
+    expect(
+      grandTourObjective?.targetDetails.kind === "race_result"
+        ? grandTourObjective.targetDetails.achievementType
+        : null,
+    ).toBe("win");
+    expect(
+      rankingObjective?.targetDetails.kind === "uci_ranking"
+        ? rankingObjective.targetDetails.targetRank
+        : Infinity,
+    ).toBeLessThanOrEqual(10);
+    expect(
+      objectives.every(
+        (objective) => objective.targetDetails.ambitionLevel === 6,
+      ),
+    ).toBe(true);
+  });
+
+  it("durcit fortement le quota des offres premium à préférence nationale", () => {
+    const objectives = generateProvisionalSponsorObjectives({
+      sponsorCountryCode: "FR",
+      sponsorPrestige: 5,
+      proposedBudget: 2_100_000,
+      sportingPhilosophy: "national_preference",
+      random: () => 0.3,
+    });
+    const nationalityObjective = objectives.find(
+      (objective) => objective.targetDetails.kind === "nationality_quota",
+    );
+
+    expect(
+      nationalityObjective?.targetDetails.kind === "nationality_quota"
+        ? nationalityObjective.targetDetails.minimumPercentage
+        : 0,
+    ).toBeGreaterThanOrEqual(75);
   });
 
   it("refuse de générer des objectifs sans pays sponsor", () => {

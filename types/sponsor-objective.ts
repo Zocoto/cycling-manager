@@ -1,5 +1,7 @@
 import type { SponsorSportingPhilosophy } from "@/lib/game/sponsor-philosophy";
 
+export type SponsorObjectiveAmbitionLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
 export type SponsorObjectiveType =
   | "race_result"
   | "nationality_quota"
@@ -105,6 +107,7 @@ type SponsorObjectiveTarget =
 export type SponsorObjectiveTargetDetails = SponsorObjectiveTarget & {
   generationVersion?: number;
   sportingPhilosophy?: SponsorSportingPhilosophy;
+  ambitionLevel?: SponsorObjectiveAmbitionLevel;
 };
 
 export type GeneratedSponsorObjective = {

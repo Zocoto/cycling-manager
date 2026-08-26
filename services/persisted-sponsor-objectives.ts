@@ -30,6 +30,7 @@ type SupabaseAdminClient = ReturnType<
 export type SponsorOfferObjectiveContext = {
   offerId: string;
   sponsor: Sponsor;
+  proposedBudget: number;
   relationshipYear?: number;
   neutralizeMissingObjectives?: boolean;
 };
@@ -175,6 +176,8 @@ export async function ensureAndLoadSponsorObjectives({
           offer.sponsor.countryCode,
         sponsorPrestige:
           offer.sponsor.prestige,
+        proposedBudget:
+          offer.proposedBudget,
         sponsorCatalogKey:
           offer.sponsor.id,
         sponsorSector:

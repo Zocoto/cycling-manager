@@ -888,6 +888,7 @@ async function hydrateFutureSponsorOffersWithObjectives({
     hydratedOffers.map((offer) => ({
       offerId: offer.id,
       sponsor: offer.sponsor,
+      proposedBudget: offer.proposedBudget,
       relationshipYear: offer.isRenewal ? 2 : 1,
     }));
 

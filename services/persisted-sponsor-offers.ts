@@ -508,6 +508,7 @@ async function hydrateSponsorOffersWithObjectives({
     hydratedOffers.map((offer) => ({
       offerId: offer.id,
       sponsor: offer.sponsor,
+      proposedBudget: offer.proposedBudget,
     }));
 
   const objectivesByOfferId =

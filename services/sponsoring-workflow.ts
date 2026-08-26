@@ -682,6 +682,7 @@ async function hydrateSponsorContract({
         {
           offerId: contractRow.sponsor_offer_id,
           sponsor,
+          proposedBudget: Number(contractRow.budget_per_season),
           neutralizeMissingObjectives,
         },
       ],
