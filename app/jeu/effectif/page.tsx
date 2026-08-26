@@ -696,12 +696,6 @@ export default async function TeamRosterPage({
             </section>
           )}
 
-          {activeView === "statistiques" ? (
-            <p className="mt-5 text-sm leading-6 text-[#60756E]">
-              Cliquez sur un coureur pour ouvrir sa fiche détaillée dans un
-              nouvel onglet.
-            </p>
-          ) : null}
         </div>
       </section>
     </main>

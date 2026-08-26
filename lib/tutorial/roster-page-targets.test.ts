@@ -32,6 +32,12 @@ describe("roster tutorial page targets", () => {
     }
   });
 
+  it("ne conserve pas le texte d’aide redondant sous l’effectif", () => {
+    expect(rosterPage).not.toContain(
+      "Cliquez sur un coureur pour ouvrir sa fiche détaillée",
+    );
+  });
+
   it("expose chaque rubrique guidée de la fiche coureur", () => {
     for (const targetId of [
       "rider-profile-overview",
