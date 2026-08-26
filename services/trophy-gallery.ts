@@ -17,6 +17,7 @@ import {
   type TrophyGallery,
   type TrophyRaceWin,
   type TrophyRiderUciTitle,
+  type TrophySponsorAmbassador,
   type TrophyAttendance,
   type TrophySpecialAward,
   type TrophyTeamUciTitle,
@@ -126,6 +127,12 @@ type AttendanceTrophyRow = {
   awarded_at: string;
 };
 
+type SponsorAmbassadorTrophyRow = {
+  id: string;
+  season_id: string;
+  awarded_at: string;
+};
+
 const EMPTY_GALLERY = buildTrophyGallery({
   raceWins: [],
   teamUciTitles: [],
@@ -225,7 +232,12 @@ async function loadSportingDirectorTrophyGallery({
   includeClaimable: boolean;
 }): Promise<TrophyGallery> {
   const admin = createSupabaseAdminClient();
-  const [entitlementsResult, assignmentsResult, seasonsResult] =
+  const [
+    entitlementsResult,
+    assignmentsResult,
+    seasonsResult,
+    sponsorAmbassadorResult,
+  ] =
     await Promise.all([
       admin
         .from("sporting_director_trophies")
@@ -260,11 +272,21 @@ async function loadSportingDirectorTrophyGallery({
           return { data: result.data, error: result.error };
         },
       }),
+      admin
+        .from("sporting_director_sponsor_trophies")
+        .select("id, season_id, awarded_at")
+        .eq("sporting_director_id", directorId)
+        .order("awarded_at", { ascending: true })
+        .returns<SponsorAmbassadorTrophyRow[]>(),
     ]);
 
   assertQuery(entitlementsResult.error, "les distinctions de carrière");
   assertQuery(assignmentsResult.error, "l’historique des équipes");
   assertQuery(seasonsResult.error, "l’historique des saisons");
+  assertQuery(
+    sponsorAmbassadorResult.error,
+    "les trophées Ambassadeur exemplaire",
+  );
 
   const { specialAwards, claimableTrophies } = mapSpecialTrophies({
     entitlements: entitlementsResult.data ?? [],
@@ -274,6 +296,10 @@ async function loadSportingDirectorTrophyGallery({
   const seasons = seasonsResult.data;
   const teamIds = unique(assignments.map((assignment) => assignment.team_id));
   const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const sponsorAmbassadorTrophies = mapSponsorAmbassadorTrophies({
+    trophies: sponsorAmbassadorResult.data ?? [],
+    seasonById,
+  });
   const [attendanceTrophies, referralTrophies] = await Promise.all([
     loadAttendanceTrophies({
       admin,
@@ -291,6 +317,7 @@ async function loadSportingDirectorTrophyGallery({
       specialAwards,
       claimableTrophies,
       attendanceTrophies,
+      sponsorAmbassadorTrophies,
       referralTrophies,
     });
   }
@@ -378,7 +405,29 @@ async function loadSportingDirectorTrophyGallery({
     specialAwards,
     claimableTrophies,
     attendanceTrophies,
+    sponsorAmbassadorTrophies,
     referralTrophies,
+  });
+}
+
+function mapSponsorAmbassadorTrophies({
+  trophies,
+  seasonById,
+}: {
+  trophies: SponsorAmbassadorTrophyRow[];
+  seasonById: Map<string, SeasonRow>;
+}): TrophySponsorAmbassador[] {
+  return trophies.flatMap((trophy) => {
+    const season = seasonById.get(trophy.season_id);
+    return season
+      ? [
+          {
+            id: trophy.id,
+            seasonName: season.name,
+            awardedAt: trophy.awarded_at,
+          } satisfies TrophySponsorAmbassador,
+        ]
+      : [];
   });
 }
 

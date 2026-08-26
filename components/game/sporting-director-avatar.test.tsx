@@ -7,6 +7,7 @@ import {
   DEFAULT_SPORTING_DIRECTOR_AVATAR,
   encodeSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "@/lib/sporting-director-avatar";
 
 describe("SportingDirectorAvatar", () => {
@@ -52,5 +53,18 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-accessory="spy-glasses"');
     expect(markup).toContain("#8057B5");
+  });
+
+  it("renders the Maillot d’Or unlocked by a perfect sponsor season", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar ambassadeur" />,
+    );
+
+    expect(markup).toContain('data-avatar-outfit="sponsor-ambassador"');
+    expect(markup).toContain("#D6AE3B");
   });
 });

@@ -126,6 +126,7 @@ export const AVATAR_FACIAL_HAIR_STYLES = [
 
 export const ASSIDU_AVATAR_GLASSES_KEY = "honor-roll";
 export const HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY = "spy-glasses";
+export const SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY = "ambassador";
 
 const STANDARD_AVATAR_GLASSES_STYLES = [
   { key: "none", label: "Sans lunettes" },
@@ -166,10 +167,17 @@ export const AVATAR_OUTFITS = [
   { key: "rust", label: "Terracotta", jacket: "#A85F3C", shirt: "#FFF8E5" },
   { key: "violet", label: "Prune", jacket: "#62445F", shirt: "#F7F3E8" },
   { key: "patron", label: "Tenue du Parrain", jacket: "#171514", shirt: "#FFFDF4" },
+  {
+    key: SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
+    label: "Maillot d’Or des Ambassadeurs",
+    jacket: "#123B34",
+    shirt: "#FFF8DE",
+  },
 ] as const;
 
 const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
-  ({ key }) => key !== "patron"
+  ({ key }) =>
+    key !== "patron" && key !== SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 ) as readonly (typeof AVATAR_OUTFITS)[number][];
 
 export const AVATAR_BACKGROUNDS = [

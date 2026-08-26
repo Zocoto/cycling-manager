@@ -164,4 +164,35 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("lunettes Premier de la classe");
     expect(markup).not.toContain("28 cadeaux quotidiens");
   });
+
+  it("celebrates perfect sponsor seasons with the dedicated cumulative trophy", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+          sponsorAmbassadorTrophies: [
+            {
+              id: "sponsor-season-2",
+              seasonName: "Saison 2",
+              awardedAt: "2026-06-10T20:00:00.000Z",
+            },
+            {
+              id: "sponsor-season-3",
+              seasonName: "Saison 3",
+              awardedAt: "2026-07-10T20:00:00.000Z",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(markup).toContain("Excellence sponsor");
+    expect(markup).toContain("Ambassadeur exemplaire");
+    expect(markup).toContain("data-sponsor-ambassador-trophy");
+    expect(markup).toContain("Saison 2");
+    expect(markup).toContain("Saison 3");
+    expect(markup).toContain("Maillot d’Or des Ambassadeurs");
+  });
 });

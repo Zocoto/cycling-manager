@@ -5,6 +5,7 @@ import {
 import {
   ASSIDU_AVATAR_GLASSES_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   SPORTING_DIRECTOR_AVATARS,
   getAvatarBackground,
   getAvatarEyeColor,
@@ -84,6 +85,9 @@ export function SportingDirectorAvatar({
         <path d="M51 67H69V85C66 91 54 91 51 85Z" fill={skin.shadow} />
 
         {avatar.outfit === "patron" ? <AvatarPatronOutfit /> : null}
+        {avatar.outfit === SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY ? (
+          <AvatarSponsorAmbassadorOutfit />
+        ) : null}
 
         <AvatarEars avatar={avatar} skin={skin.color} shadow={skin.shadow} />
         <AvatarFace avatar={avatar} skin={skin.color} />
@@ -135,6 +139,52 @@ function AvatarPatronOutfit() {
       <circle cx="80.8" cy="92.2" r="2.2" fill="#C62A3D" />
       <circle cx="85.8" cy="90.8" r="2" fill="#8D1428" />
       <path d="M83 97l-2 8" stroke="#2C7A4B" strokeWidth="1.4" />
+    </g>
+  );
+}
+
+function AvatarSponsorAmbassadorOutfit() {
+  return (
+    <g data-avatar-outfit="sponsor-ambassador">
+      <path
+        d="M39 83 57 106 47 120H20c2-14 8-25 19-37Z"
+        fill="#0A2E29"
+      />
+      <path
+        d="m81 83-18 23 10 14h27c-2-14-8-25-19-37Z"
+        fill="#0A2E29"
+      />
+      <path
+        d="m39 83 18 23-8 7-18-24 8-6Zm42 0-18 23 8 7 18-24-8-6Z"
+        fill="#D6AE3B"
+      />
+      <path
+        d="M54 86 60 92l6-6-3 12-3 5-3-5-3-12Z"
+        fill="#FFF8DE"
+      />
+      <path
+        d="M58 99h4l2 21h-8l2-21Z"
+        fill="#B88B23"
+      />
+      <path
+        d="M58.5 102h3l1 7h-5l1-7Z"
+        fill="#FFF0A8"
+      />
+      <g transform="translate(82 94)">
+        <circle r="6.2" fill="#FFF8DE" stroke="#D6AE3B" strokeWidth="1.5" />
+        <path
+          d="M0 3.6C-4.5.8-4-3.5 0-4.3c4 .8 4.5 5.1 0 7.9Z"
+          fill="#278B70"
+        />
+        <path d="M0-2.5v5" stroke="#FFF8DE" strokeWidth="1" strokeLinecap="round" />
+      </g>
+      <path
+        d="M22 116h76"
+        stroke="#D6AE3B"
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.9"
+      />
     </g>
   );
 }

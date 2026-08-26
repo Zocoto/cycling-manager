@@ -2,6 +2,7 @@ import { AchievementTrophyMark } from "@/components/game/achievement-trophy-mark
 import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gift";
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
 import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
+import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import Link from "@/components/ui/app-link";
 import {
   getLockedTrophyTargets,
@@ -31,6 +32,9 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
   const attendanceTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "attendance",
   );
+  const sponsorTrophies = gallery.trophies.filter(
+    (trophy) => trophy.kind === "sponsor",
+  );
   const referralTrophies = gallery.trophies.filter(
     (trophy) => trophy.kind === "referral",
   );
@@ -50,6 +54,9 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
   );
   const lockedAttendanceTrophies = lockedTrophies.filter(
     (trophy) => trophy.kind === "attendance",
+  );
+  const lockedSponsorTrophies = lockedTrophies.filter(
+    (trophy) => trophy.kind === "sponsor",
   );
   const lockedReferralTrophies = lockedTrophies.filter(
     (trophy) => trophy.kind === "referral",
@@ -105,7 +112,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
 
             <div
               data-trophy-metrics
-              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-8"
+              className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/12 bg-white/7 p-2 backdrop-blur-sm sm:grid-cols-4 sm:gap-2 sm:p-3 xl:grid-cols-9"
             >
               <GalleryMetric label="Acquis" value={gallery.counts.total} />
               <GalleryMetric
@@ -128,6 +135,7 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
                 label="Défis"
                 value={gallery.counts.achievements}
               />
+              <GalleryMetric label="Sponsor" value={gallery.counts.sponsor} />
               <GalleryMetric
                 label="Assiduité"
                 value={gallery.counts.attendance}
@@ -151,6 +159,15 @@ export function TrophyGallery({ gallery }: { gallery: TrophyGalleryData }) {
               epic
             />
           ) : null}
+
+          <TrophyShelf
+            eyebrow="Engagement partenaire"
+            title="Excellence sponsor"
+            description="Une saison parfaite célèbre les promesses tenues et enrichit cette distinction des saisons suivantes."
+            trophies={sponsorTrophies}
+            lockedTrophies={lockedSponsorTrophies}
+            epic
+          />
 
           <TrophyShelf
             eyebrow="Objectifs maîtres"
@@ -356,9 +373,22 @@ function TrophyCard({
           >
             {trophy.inscription}
           </p>
-          <p className="mt-1 text-xs font-bold text-[#8FA99E]">
-            {locked ? "Objectif à conquérir" : trophy.seasonName}
-          </p>
+          {trophy.seasonNames?.length && !locked ? (
+            <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Saisons obtenues">
+              {trophy.seasonNames.map((seasonName) => (
+                <span
+                  key={seasonName}
+                  className="rounded-full border border-white/12 bg-black/15 px-2.5 py-1 text-[10px] font-black text-[#DDEDE5]"
+                >
+                  {seasonName}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-xs font-bold text-[#8FA99E]">
+              {locked ? "Objectif à conquérir" : trophy.seasonName}
+            </p>
+          )}
         </div>
       </div>
       {trophy.href ? (
@@ -430,6 +460,14 @@ function TrophyIllustration({
     return (
       <AssiduTrophyMark
         trophyId={trophy.id}
+        className={epic ? "h-40 w-40" : "h-36 w-36"}
+      />
+    );
+  }
+
+  if (trophy.kind === "sponsor") {
+    return (
+      <SponsorAmbassadorTrophyMark
         className={epic ? "h-40 w-40" : "h-36 w-36"}
       />
     );
@@ -805,6 +843,7 @@ function getTrophyFrameClassName(trophy: CareerTrophy, epic: boolean) {
 function getTrophyKindLabel(kind: CareerTrophy["kind"]) {
   if (kind === "special") return "Distinction Alpha";
   if (kind === "achievement") return "Trophée maître";
+  if (kind === "sponsor") return "Excellence sponsor";
   if (kind === "grand_tour") return "Grand Tour";
   if (kind === "monument") return "Monument";
   if (kind === "world_championship") return "Champion du monde";

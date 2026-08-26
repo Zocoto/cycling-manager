@@ -23,6 +23,7 @@ type SportingDirectorProfileFormProps = {
   hasHiddenSwitchbackTrophy: boolean;
   initialIsEmailVisible: boolean;
   patronOutfitUnlocked?: boolean;
+  sponsorAmbassadorOutfitUnlocked?: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -44,6 +45,7 @@ export function SportingDirectorProfileForm({
   hasHiddenSwitchbackTrophy,
   initialIsEmailVisible,
   patronOutfitUnlocked = false,
+  sponsorAmbassadorOutfitUnlocked = false,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -500,6 +502,25 @@ export function SportingDirectorProfileForm({
           </section>
         ) : null}
 
+        {sponsorAmbassadorOutfitUnlocked ? (
+          <section
+            id="sponsor-ambassador-avatar-outfit"
+            className="scroll-mt-28 rounded-xl border border-[#D6AE3B]/40 bg-[linear-gradient(135deg,rgba(255,248,222,0.82),rgba(215,240,230,0.68))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#80640C]">
+              Ambassadeur exemplaire
+            </p>
+            <h3 className="mt-2 text-base font-black text-[#173F37]">
+              Maillot d’Or des Ambassadeurs débloqué
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#48665F]">
+              Retrouvez cette tenue vert nuit, ivoire et or dans l’onglet Style
+              de l’éditeur d’avatar. Une seule saison parfaite suffit à la
+              conserver pour toute votre carrière.
+            </p>
+          </section>
+        ) : null}
+
         {hasHiddenSwitchbackTrophy ? (
           <section
             id="hidden-switchback-avatar-accessory"
@@ -638,6 +659,9 @@ export function SportingDirectorProfileForm({
               onCancel={() => setIsAvatarModalOpen(false)}
               onConfirm={selectAvatar}
               patronOutfitUnlocked={patronOutfitUnlocked}
+              sponsorAmbassadorOutfitUnlocked={
+                sponsorAmbassadorOutfitUnlocked
+              }
             />
           </div>
         </div>

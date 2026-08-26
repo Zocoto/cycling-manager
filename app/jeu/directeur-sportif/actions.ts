@@ -18,6 +18,7 @@ import {
   decodeCustomSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   isSportingDirectorAvatarKey,
+  SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -236,6 +237,27 @@ export async function updateSportingDirectorProfile(
         fieldErrors: {
           avatarKey: [
             "Terminez le palier « Le Parrain » avant de choisir cette tenue.",
+          ],
+        },
+      };
+    }
+  }
+
+  if (selectedAvatar?.outfit === SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY) {
+    const { data: sponsorTrophy, error: sponsorTrophyError } = await supabase
+      .from("sporting_director_sponsor_trophies")
+      .select("id")
+      .eq("sporting_director_id", currentProfile.id)
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+
+    if (sponsorTrophyError || !sponsorTrophy) {
+      return {
+        status: "error",
+        message: "Le Maillot d’Or des Ambassadeurs n’est pas encore disponible.",
+        fieldErrors: {
+          avatarKey: [
+            "Terminez une saison à 100 % de satisfaction sponsor pour débloquer cette tenue.",
           ],
         },
       };

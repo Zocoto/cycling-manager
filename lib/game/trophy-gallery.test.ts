@@ -132,6 +132,7 @@ describe("buildTrophyGallery", () => {
       uciTitles: 0,
       special: 0,
       achievements: 0,
+      sponsor: 0,
       attendance: 0,
       referrals: 0,
     });
@@ -308,6 +309,42 @@ describe("buildTrophyGallery", () => {
         wonAt: "2026-08-09T20:00:00.000Z",
       }),
     );
+  });
+
+  it("groups every perfect sponsor season into one cumulative trophy", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      sponsorAmbassadorTrophies: [
+        {
+          id: "sponsor-season-2",
+          seasonName: "Saison 2",
+          awardedAt: "2026-06-10T20:00:00.000Z",
+        },
+        {
+          id: "sponsor-season-4",
+          seasonName: "Saison 4",
+          awardedAt: "2026-08-10T20:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(gallery.counts).toMatchObject({ total: 1, sponsor: 1 });
+    expect(gallery.trophies).toEqual([
+      expect.objectContaining({
+        kind: "sponsor",
+        title: "Ambassadeur exemplaire",
+        competitionName: "Satisfaction sponsor · 100 %",
+        seasonName: "Saison 4",
+        seasonNames: ["Saison 2", "Saison 4"],
+      }),
+    ]);
+    expect(
+      getLockedTrophyTargets(gallery.trophies).some(
+        (trophy) => trophy.id === "locked:sponsor:ambassador",
+      ),
+    ).toBe(false);
   });
 
   it("expose les rangs de parrainage dans la galerie", () => {

@@ -171,6 +171,7 @@ export default async function SportingDirectorProfilePage() {
     alphaTesterTrophyResult,
     assiduTrophyResult,
     hiddenSwitchbackTrophyResult,
+    sponsorAmbassadorTrophyResult,
   ] = sportingDirector
     ? await Promise.all([
         supabase
@@ -193,8 +194,15 @@ export default async function SportingDirectorProfilePage() {
           .eq("trophy_key", "virage_cache")
           .not("claimed_at", "is", null)
           .maybeSingle<{ id: string }>(),
+        supabase
+          .from("sporting_director_sponsor_trophies")
+          .select("id")
+          .eq("sporting_director_id", sportingDirector.id)
+          .limit(1)
+          .maybeSingle<{ id: string }>(),
       ])
     : [
+        { data: null, error: null },
         { data: null, error: null },
         { data: null, error: null },
         { data: null, error: null },
@@ -221,10 +229,20 @@ export default async function SportingDirectorProfilePage() {
     );
   }
 
+  if (sponsorAmbassadorTrophyResult.error) {
+    console.error(
+      "Impossible de vérifier le trophée Ambassadeur exemplaire :",
+      sponsorAmbassadorTrophyResult.error,
+    );
+  }
+
   const hasAlphaTesterTrophy = Boolean(alphaTesterTrophyResult.data);
   const hasAssiduTrophy = Boolean(assiduTrophyResult.data);
   const hasHiddenSwitchbackTrophy = Boolean(
     hiddenSwitchbackTrophyResult.data,
+  );
+  const hasSponsorAmbassadorTrophy = Boolean(
+    sponsorAmbassadorTrophyResult.data,
   );
 
   if (
@@ -350,6 +368,9 @@ export default async function SportingDirectorProfilePage() {
                     }
                     patronOutfitUnlocked={
                       referralOverview?.patronOutfitUnlocked ?? false
+                    }
+                    sponsorAmbassadorOutfitUnlocked={
+                      hasSponsorAmbassadorTrophy
                     }
                   />
                 </div>

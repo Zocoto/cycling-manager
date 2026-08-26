@@ -18,6 +18,7 @@ export type TrophyKind =
   | "uci_rider"
   | "special"
   | "achievement"
+  | "sponsor"
   | "attendance"
   | "referral";
 
@@ -46,6 +47,7 @@ export type CareerTrophy = {
   inscription: string;
   palette: TrophyPalette;
   description?: string | null;
+  seasonNames?: string[];
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
 };
@@ -70,6 +72,7 @@ export type TrophyGallery = {
     uciTitles: number;
     special: number;
     achievements: number;
+    sponsor: number;
     attendance: number;
     referrals: number;
   };
@@ -106,6 +109,12 @@ export type TrophyAttendance = {
   awardedAt: string;
 };
 
+export type TrophySponsorAmbassador = {
+  id: string;
+  seasonName: string;
+  awardedAt: string;
+};
+
 export type TrophySpecialAward = {
   id: string;
   trophyKey: typeof ALPHA_TESTER_TROPHY_KEY | AchievementTrophyKey;
@@ -121,6 +130,7 @@ type BuildTrophyGalleryInput = {
   specialAwards?: TrophySpecialAward[];
   claimableTrophies?: ClaimableTrophyReward[];
   attendanceTrophies?: TrophyAttendance[];
+  sponsorAmbassadorTrophies?: TrophySponsorAmbassador[];
   referralTrophies?: ReferralTrophyMilestone[];
 };
 
@@ -266,6 +276,20 @@ const ATTENDANCE_PALETTE: TrophyPalette = {
   accent: "#173F37",
   glow: "rgba(215, 169, 40, 0.46)",
 };
+
+export const SPONSOR_AMBASSADOR_TROPHY_DEFINITION = {
+  title: "Ambassadeur exemplaire",
+  competitionName: "Satisfaction sponsor · 100 %",
+  inscription: "Parole tenue, saison après saison",
+  description:
+    "Décerné pour une saison conclue à 100 % de satisfaction sponsor. La première obtention débloque définitivement le Maillot d’Or des Ambassadeurs dans l’éditeur d’avatar.",
+  palette: {
+    primary: "#D6AE3B",
+    secondary: "#FFF3B0",
+    accent: "#123B34",
+    glow: "rgba(214, 174, 59, 0.44)",
+  } satisfies TrophyPalette,
+} as const;
 
 const PRESTIGE_RACE_NAMES: Record<string, string> = {
   "corsa-delle-regioni": "Corsa delle Regioni",
@@ -424,6 +448,27 @@ export function getLockedTrophyTargets(
         },
       ];
 
+  const sponsorTargets: CareerTrophy[] = earnedTrophies.some(
+    (trophy) => trophy.kind === "sponsor",
+  )
+    ? []
+    : [
+        {
+          id: "locked:sponsor:ambassador",
+          kind: "sponsor",
+          title: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.title,
+          competitionName:
+            SPONSOR_AMBASSADOR_TROPHY_DEFINITION.competitionName,
+          seasonName: "À conquérir",
+          wonAt: null,
+          riderName: null,
+          href: "/jeu/sponsoring",
+          inscription: "Terminer une saison à 100 % de satisfaction sponsor",
+          palette: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.palette,
+          description: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.description,
+        },
+      ];
+
   const uciTargets = ([
     {
       id: "locked:uci-team",
@@ -499,6 +544,7 @@ export function getLockedTrophyTargets(
 
   return [
     ...achievementTargets,
+    ...sponsorTargets,
     ...referralTargets,
     ...attendanceTargets,
     ...uciTargets,
@@ -519,6 +565,7 @@ export function buildTrophyGallery({
   specialAwards = [],
   claimableTrophies = [],
   attendanceTrophies = [],
+  sponsorAmbassadorTrophies = [],
   referralTrophies = [],
 }: BuildTrophyGalleryInput): TrophyGallery {
   const raceTrophies = raceWins.flatMap<CareerTrophy>((win) => {
@@ -680,6 +727,30 @@ export function buildTrophyGallery({
     }),
   );
 
+  const sponsorCareerTrophies: CareerTrophy[] =
+    sponsorAmbassadorTrophies.length > 0
+      ? [
+          {
+            id: `sponsor-ambassador:${sponsorAmbassadorTrophies[0]?.id}`,
+            kind: "sponsor",
+            title: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.title,
+            competitionName:
+              SPONSOR_AMBASSADOR_TROPHY_DEFINITION.competitionName,
+            seasonName:
+              sponsorAmbassadorTrophies.at(-1)?.seasonName ?? "Saison",
+            seasonNames: sponsorAmbassadorTrophies.map(
+              (trophy) => trophy.seasonName,
+            ),
+            wonAt: sponsorAmbassadorTrophies.at(-1)?.awardedAt ?? null,
+            riderName: null,
+            href: "/jeu/directeur-sportif#sponsor-ambassador-avatar-outfit",
+            inscription: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.inscription,
+            palette: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.palette,
+            description: SPONSOR_AMBASSADOR_TROPHY_DEFINITION.description,
+          },
+        ]
+      : [];
+
   const referralCareerTrophies = referralTrophies.map((trophy) => ({
     id: `referral:${trophy.count}`,
     kind: "referral" as const,
@@ -695,6 +766,7 @@ export function buildTrophyGallery({
 
   const trophies = [
     ...specialTrophies,
+    ...sponsorCareerTrophies,
     ...referralCareerTrophies,
     ...attendanceCareerTrophies,
     ...teamTrophies,
@@ -723,6 +795,7 @@ export function buildTrophyGallery({
       achievements: specialTrophies.filter(
         (trophy) => trophy.kind === "achievement",
       ).length,
+      sponsor: sponsorCareerTrophies.length,
       attendance: attendanceCareerTrophies.length,
       referrals: trophies.filter((trophy) => trophy.kind === "referral").length,
     },
@@ -752,6 +825,7 @@ function compareTrophies(left: CareerTrophy, right: CareerTrophy) {
 function getTrophyWeight(kind: TrophyKind) {
   if (kind === "special") return 500;
   if (kind === "achievement") return 475;
+  if (kind === "sponsor") return 450;
   if (kind === "uci_team") return 400;
   if (kind === "world_championship") return 380;
   if (kind === "uci_rider") return 350;

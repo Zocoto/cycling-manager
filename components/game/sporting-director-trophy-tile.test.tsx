@@ -83,4 +83,34 @@ describe("SportingDirectorTrophyTile", () => {
     expect(markup).toContain("<details");
     expect(markup).toContain("Voir les 2 autres distinctions");
   });
+
+  it("shows only one sponsor trophy with every earned season", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [],
+      teamUciTitles: [],
+      riderUciTitles: [],
+      sponsorAmbassadorTrophies: [
+        {
+          id: "sponsor-season-1",
+          seasonName: "Saison 1",
+          awardedAt: "2026-05-10T20:00:00.000Z",
+        },
+        {
+          id: "sponsor-season-3",
+          seasonName: "Saison 3",
+          awardedAt: "2026-07-10T20:00:00.000Z",
+        },
+      ],
+    });
+
+    const markup = renderToStaticMarkup(
+      <SportingDirectorTrophyTile gallery={gallery} />,
+    );
+
+    expect(markup).toContain("Ambassadeur exemplaire");
+    expect(markup).toContain("data-sponsor-ambassador-trophy");
+    expect(markup).toContain("Saison 1");
+    expect(markup).toContain("Saison 3");
+    expect(markup).not.toContain("À débloquer");
+  });
 });

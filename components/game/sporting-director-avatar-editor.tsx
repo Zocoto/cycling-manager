@@ -17,6 +17,7 @@ import {
   AVATAR_NOSE_SHAPES,
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
+  SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
   getAvailableAvatarGlassesStyles,
@@ -33,6 +34,7 @@ type SportingDirectorAvatarEditorProps = {
   onCancel: () => void;
   onConfirm: (avatarKey: string) => void;
   patronOutfitUnlocked?: boolean;
+  sponsorAmbassadorOutfitUnlocked?: boolean;
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -56,6 +58,7 @@ export function SportingDirectorAvatarEditor({
   onCancel,
   onConfirm,
   patronOutfitUnlocked = false,
+  sponsorAmbassadorOutfitUnlocked = false,
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -66,6 +69,12 @@ export function SportingDirectorAvatarEditor({
     hasAssiduTrophy,
     hasHiddenSwitchbackTrophy,
   });
+  const disabledOutfitKeys = [
+    patronOutfitUnlocked ? null : "patron",
+    sponsorAmbassadorOutfitUnlocked
+      ? null
+      : SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
+  ].filter((key): key is string => key !== null);
 
   function updateField<K extends keyof SportingDirectorAvatarConfig>(
     field: K,
@@ -216,14 +225,19 @@ export function SportingDirectorAvatarEditor({
                 />
                 <AvatarChoiceGroup
                   title="Tenue"
-                  description={patronOutfitUnlocked
-                    ? "La tenue du Parrain est débloquée grâce à vos filleuls."
-                    : "La tenue du Parrain se débloque avec 5 filleuls qualifiés."}
+                  description={[
+                    patronOutfitUnlocked
+                      ? "La tenue du Parrain est débloquée grâce à vos filleuls."
+                      : "La tenue du Parrain se débloque avec 5 filleuls qualifiés.",
+                    sponsorAmbassadorOutfitUnlocked
+                      ? "Le Maillot d’Or des Ambassadeurs récompense votre saison à 100 % de satisfaction sponsor."
+                      : "Le Maillot d’Or des Ambassadeurs se débloque avec le trophée Ambassadeur exemplaire.",
+                  ].join(" ")}
                   field="outfit"
                   value={config.outfit}
                   options={AVATAR_OUTFITS}
                   onSelect={updateField}
-                  disabledKeys={patronOutfitUnlocked ? [] : ["patron"]}
+                  disabledKeys={disabledOutfitKeys}
                   swatches
                 />
                 <AvatarChoiceGroup title="Fond du portrait" field="background" value={config.background} options={AVATAR_BACKGROUNDS} onSelect={updateField} swatches />

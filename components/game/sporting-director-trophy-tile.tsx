@@ -1,4 +1,5 @@
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
+import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import type { CareerTrophy, TrophyGallery } from "@/lib/game/trophy-gallery";
 
 export function SportingDirectorTrophyTile({
@@ -65,10 +66,15 @@ export function SportingDirectorTrophyTile({
 
 function PublicTrophy({ trophy }: { trophy: CareerTrophy }) {
   return (
-    <article className="flex min-w-0 items-center gap-3 rounded-xl border border-[#315B3E]/10 bg-white/85 p-3">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0B302B] text-[#F2C94C] shadow-sm">
+    <article className="flex min-w-0 items-start gap-3 rounded-xl border border-[#315B3E]/10 bg-white/85 p-3">
+      <span
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0B302B] text-[#F2C94C] shadow-sm"
+        style={{ boxShadow: `0 6px 16px ${trophy.palette.glow}` }}
+      >
         {trophy.kind === "special" ? (
           <AlphaTesterTrophyMark className="h-10 w-10" />
+        ) : trophy.kind === "sponsor" ? (
+          <SponsorAmbassadorTrophyMark className="h-11 w-11" />
         ) : (
           <TrophyIcon />
         )}
@@ -80,6 +86,18 @@ function PublicTrophy({ trophy }: { trophy: CareerTrophy }) {
         <span className="mt-0.5 block truncate text-xs font-semibold text-[#60756E]">
           {trophy.competitionName}
         </span>
+        {trophy.seasonNames?.length ? (
+          <span className="mt-2 flex flex-wrap gap-1" aria-label="Saisons obtenues">
+            {trophy.seasonNames.map((seasonName) => (
+              <span
+                key={seasonName}
+                className="rounded-full bg-[#E7F1EC] px-2 py-0.5 text-[10px] font-black text-[#176951]"
+              >
+                {seasonName}
+              </span>
+            ))}
+          </span>
+        ) : null}
       </span>
     </article>
   );
