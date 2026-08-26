@@ -117,8 +117,9 @@ async function synchronizeSponsors(): Promise<void> {
   } = await supabase
     .from("countries")
     .select("id, iso_alpha2")
+    // A sponsor peut représenter un pays volontairement désactivé pour la
+    // génération sportive, tant que ce pays existe dans le référentiel.
     .in("iso_alpha2", requiredCountryCodes)
-    .eq("is_active", true)
     .returns<CountryRow[]>();
 
   if (countriesError) {
@@ -140,7 +141,7 @@ async function synchronizeSponsors(): Promise<void> {
 
   if (missingCountryCodes.length > 0) {
     throw new Error(
-      `Pays absents ou inactifs dans Supabase : ${missingCountryCodes.join(
+      `Pays absents du référentiel Supabase : ${missingCountryCodes.join(
         ", "
       )}.`
     );
