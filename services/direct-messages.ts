@@ -34,6 +34,7 @@ export type DirectMessage = {
   recipientId: string;
   body: string;
   createdAt: string;
+  editedAt: string | null;
 };
 
 export type DirectMessageRecipient = {
@@ -78,6 +79,7 @@ export type DirectMessageRow = {
   recipient_id: string;
   body: string;
   created_at: string;
+  edited_at: string | null;
 };
 
 type DirectMessageRecipientRow = {
@@ -96,6 +98,7 @@ const DIRECT_MESSAGE_SELECT = [
   "recipient_id",
   "body",
   "created_at",
+  "edited_at",
 ].join(", ");
 
 export async function getDirectMessagingOverview(
@@ -292,6 +295,7 @@ export function mapDirectMessage(row: DirectMessageRow): DirectMessage {
     recipientId: row.recipient_id,
     body: row.body,
     createdAt: row.created_at,
+    editedAt: row.edited_at,
   };
 }
 

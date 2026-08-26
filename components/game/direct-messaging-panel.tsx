@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import {
+  editDirectMessageAction,
   markDirectConversationReadAction,
   openDirectConversationAction,
   postDirectMessageAction,
@@ -20,9 +21,11 @@ import Link from "@/components/ui/app-link";
 import {
   DIRECT_MESSAGE_MAX_LENGTH,
   DIRECT_RECIPIENT_SEARCH_MIN_LENGTH,
+  normalizeDirectMessage,
   type DirectConversationCursor,
   type DirectMessageCursor,
 } from "@/lib/game/direct-messages";
+import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { hasForbiddenGlobalChatLink } from "@/lib/game/global-chat";
 import { notifyDirectMessagesChanged } from "@/lib/game/direct-message-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -85,8 +88,15 @@ export function DirectMessagingPanel({
   const [isSearching, setIsSearching] = useState(false);
   const [showRecipientSearch, setShowRecipientSearch] = useState(false);
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(
+    null,
+  );
+  const [editingDraft, setEditingDraft] = useState("");
+  const [editingError, setEditingError] = useState<string | null>(null);
+  const [editClockMs, setEditClockMs] = useState(() => Date.now());
   const [isSending, startSendingTransition] = useTransition();
   const [isOpening, startOpeningTransition] = useTransition();
+  const [isEditing, startEditingTransition] = useTransition();
   const viewportRef = useRef<HTMLDivElement>(null);
   const positionedRef = useRef(false);
   const prependedScrollRef = useRef<{
@@ -119,6 +129,14 @@ export function DirectMessagingPanel({
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setEditClockMs(Date.now()),
+      30_000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     onUnreadCountChange(totalUnreadCount);
@@ -222,6 +240,9 @@ export function DirectMessagingPanel({
       setMessageCursor(null);
       setHasMoreMessages(false);
       setIsLoadingMessages(true);
+      setEditingMessageId(null);
+      setEditingDraft("");
+      setEditingError(null);
       positionedRef.current = false;
       setError(null);
 
@@ -437,6 +458,29 @@ export function DirectMessagingPanel({
           scheduleOverviewRefresh();
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "direct_messages",
+          filter: `recipient_id=eq.${identity.sportingDirectorId}`,
+        },
+        (payload: { new: Record<string, unknown> }) => {
+          const message = readRealtimeDirectMessage(payload.new);
+          if (!message) return;
+
+          if (activeConversationIdRef.current === message.conversationId) {
+            setMessages((current) =>
+              upsertDirectMessage(current, message),
+            );
+          }
+          setConversations((current) =>
+            updateConversationFromEditedMessage(current, message),
+          );
+          notifyDirectMessagesChanged();
+        },
+      )
       .subscribe();
 
     return () => {
@@ -597,6 +641,58 @@ export function DirectMessagingPanel({
           sendingError instanceof Error
             ? sendingError.message
             : "Le message privé n’a pas pu être envoyé.",
+        );
+      }
+    });
+  }
+
+  function beginMessageEdit(message: DirectMessage) {
+    setEditingMessageId(message.id);
+    setEditingDraft(message.body);
+    setEditingError(null);
+  }
+
+  function cancelMessageEdit() {
+    if (isEditing) return;
+    setEditingMessageId(null);
+    setEditingDraft("");
+    setEditingError(null);
+  }
+
+  function submitMessageEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingMessageId || isEditing) return;
+
+    const body = normalizeDirectMessage(editingDraft);
+    if (!body) return;
+    if (hasForbiddenGlobalChatLink(body)) {
+      setEditingError(
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+      );
+      return;
+    }
+
+    setEditingError(null);
+    startEditingTransition(async () => {
+      try {
+        const savedMessage = await editDirectMessageAction(
+          editingMessageId,
+          body,
+        );
+        setMessages((current) =>
+          upsertDirectMessage(current, savedMessage),
+        );
+        setConversations((current) =>
+          updateConversationFromEditedMessage(current, savedMessage),
+        );
+        setEditingMessageId(null);
+        setEditingDraft("");
+        notifyDirectMessagesChanged();
+      } catch (editingFailure) {
+        setEditingError(
+          editingFailure instanceof Error
+            ? editingFailure.message
+            : "Le message privé n’a pas pu être modifié.",
         );
       }
     });
@@ -834,6 +930,10 @@ export function DirectMessagingPanel({
               {messages.map((message) => {
                 const isCurrentDirector =
                   message.senderId === identity.sportingDirectorId;
+                const isMessageEditing = editingMessageId === message.id;
+                const messageCanBeEdited =
+                  isCurrentDirector &&
+                  canEditChatMessage(message.createdAt, editClockMs);
                 return (
                   <article
                     key={message.id}
@@ -848,22 +948,101 @@ export function DirectMessagingPanel({
                           : "rounded-bl-sm border-[#315B3E]/12 bg-white text-[#0B302B]"
                       }`}
                     >
-                      <p
-                        data-i18n-skip
-                        className="whitespace-pre-wrap break-words text-sm font-semibold leading-6"
-                      >
-                        {message.body}
-                      </p>
-                      <time
-                        dateTime={message.createdAt}
-                        className={`mt-1 block text-right text-[9px] font-semibold ${
-                          isCurrentDirector
-                            ? "text-white/55"
-                            : "text-[#789087]"
-                        }`}
-                      >
-                        {formatMessageTime(message.createdAt)}
-                      </time>
+                      {isMessageEditing ? (
+                        <form
+                          onSubmit={submitMessageEdit}
+                          className="space-y-2"
+                        >
+                          <label
+                            htmlFor={`edit-direct-message-${message.id}`}
+                            className="sr-only"
+                          >
+                            Modifier votre message privé
+                          </label>
+                          <textarea
+                            id={`edit-direct-message-${message.id}`}
+                            data-i18n-skip
+                            autoFocus
+                            rows={3}
+                            value={editingDraft}
+                            maxLength={DIRECT_MESSAGE_MAX_LENGTH}
+                            onChange={(event) =>
+                              setEditingDraft(event.target.value)
+                            }
+                            onKeyDown={(event) => {
+                              if (
+                                event.key === "Enter" &&
+                                !event.shiftKey &&
+                                !event.nativeEvent.isComposing
+                              ) {
+                                event.preventDefault();
+                                event.currentTarget.form?.requestSubmit();
+                              }
+                            }}
+                            className="w-full resize-y rounded-xl border border-white/25 bg-black/15 px-3 py-2 text-sm font-semibold leading-6 text-white outline-none focus:border-[#F2C94C] focus:ring-2 focus:ring-[#F2C94C]/25"
+                          />
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {editingError ? (
+                              <p
+                                role="alert"
+                                className="mr-auto text-[10px] font-bold text-[#FFD6D9]"
+                              >
+                                {editingError}
+                              </p>
+                            ) : null}
+                            <button
+                              type="button"
+                              disabled={isEditing}
+                              onClick={cancelMessageEdit}
+                              className="rounded-lg border border-white/20 px-3 py-2 text-[10px] font-black text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={
+                                isEditing || editingDraft.trim().length === 0
+                              }
+                              className="rounded-lg bg-[#F2C94C] px-3 py-2 text-[10px] font-black text-[#17261E] transition hover:bg-[#F7DA73] disabled:opacity-50"
+                            >
+                              {isEditing ? "Enregistrement…" : "Enregistrer"}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <p
+                          data-i18n-skip
+                          className="whitespace-pre-wrap break-words text-sm font-semibold leading-6"
+                        >
+                          {message.body}
+                        </p>
+                      )}
+                      {!isMessageEditing ? (
+                        <div className="mt-1 flex items-center justify-end gap-2">
+                          {messageCanBeEdited ? (
+                            <button
+                              type="button"
+                              onClick={() => beginMessageEdit(message)}
+                              className="rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[9px] font-black text-white/80 transition hover:bg-white/20 hover:text-white"
+                              aria-label="Modifier ce message privé"
+                              title="Modifiable pendant 15 minutes après l’envoi"
+                            >
+                              ✎ Modifier
+                            </button>
+                          ) : null}
+                          <time
+                            dateTime={message.createdAt}
+                            className={`text-right text-[9px] font-semibold ${
+                              isCurrentDirector
+                                ? "text-white/55"
+                                : "text-[#789087]"
+                            }`}
+                          >
+                            {formatMessageTime(message.createdAt)}
+                            {message.editedAt ? " · modifié" : ""}
+                          </time>
+                        </div>
+                      ) : null}
                     </div>
                   </article>
                 );
@@ -1013,6 +1192,8 @@ function readRealtimeDirectMessage(
     recipientId: row.recipient_id,
     body: row.body,
     createdAt: row.created_at,
+    editedAt:
+      typeof row.edited_at === "string" ? row.edited_at : null,
   };
 }
 
@@ -1068,6 +1249,19 @@ function updateConversationFromSentMessage(
     .sort(compareConversationActivity);
 }
 
+function updateConversationFromEditedMessage(
+  conversations: DirectConversation[],
+  message: DirectMessage,
+) {
+  return conversations.map((conversation) =>
+    conversation.id === message.conversationId &&
+    conversation.lastMessageSenderId === message.senderId &&
+    Date.parse(conversation.lastActivityAt) === Date.parse(message.createdAt)
+      ? { ...conversation, lastMessageBody: message.body }
+      : conversation,
+  );
+}
+
 function compareConversationActivity(
   first: DirectConversation,
   second: DirectConversation,
@@ -1085,6 +1279,15 @@ function appendUniqueMessage(
   return messages.some((candidate) => candidate.id === message.id)
     ? messages
     : [...messages, message];
+}
+
+function upsertDirectMessage(
+  messages: DirectMessage[],
+  message: DirectMessage,
+) {
+  return messages.map((candidate) =>
+    candidate.id === message.id ? message : candidate,
+  );
 }
 
 function prependUniqueMessages(

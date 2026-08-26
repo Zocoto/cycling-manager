@@ -85,6 +85,52 @@ export async function postGlobalChatMessageAction(
   return mapGlobalChatMessage(row);
 }
 
+export async function editGlobalChatMessageAction(
+  messageId: string,
+  rawMessage: string,
+): Promise<GlobalChatMessage> {
+  if (!isUuid(messageId)) {
+    throw new Error("Ce message est invalide.");
+  }
+
+  const message = normalizeGlobalChatMessage(rawMessage);
+  if (
+    message.length < 1 ||
+    message.length > GLOBAL_CHAT_MESSAGE_MAX_LENGTH
+  ) {
+    throw new Error(
+      `Le message doit contenir entre 1 et ${GLOBAL_CHAT_MESSAGE_MAX_LENGTH} caractères.`,
+    );
+  }
+  if (hasForbiddenGlobalChatLink(message)) {
+    throw new Error(
+      "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+    );
+  }
+
+  const preview = extractGlobalChatPreviewReference(message);
+  const supabase = await createSupabaseServerClient();
+  await requireAuthenticatedUser(supabase);
+  const { data, error } = await supabase.rpc(
+    "edit_current_global_chat_message",
+    {
+      p_message_id: messageId,
+      p_message: message,
+      p_preview_type: preview?.type ?? null,
+      p_preview_entity_identifier: preview?.entityId ?? null,
+    },
+  );
+  const row = data as GlobalChatMessageRow | null;
+
+  if (error || !row) {
+    throw new Error(
+      error?.message ?? "Le message n’a pas pu être modifié.",
+    );
+  }
+
+  return mapGlobalChatMessage(row);
+}
+
 async function resolvePreviewPaletteWithoutBlockingMessage(
   preview: NonNullable<ReturnType<typeof extractGlobalChatPreviewReference>>,
 ) {

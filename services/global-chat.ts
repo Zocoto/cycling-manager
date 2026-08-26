@@ -81,6 +81,7 @@ export type GlobalChatMessage = {
   replyTo: GlobalChatReply | null;
   reactions: GlobalChatMessageReaction[];
   createdAt: string;
+  editedAt: string | null;
 };
 
 export type GlobalChatIdentity = GlobalChatOnlineDirector;
@@ -124,6 +125,7 @@ export type GlobalChatMessageRow = {
   reply_to_author_display_name: string | null;
   reply_to_message_excerpt: string | null;
   created_at: string;
+  edited_at: string | null;
 };
 
 export type GlobalChatReactionRow = {
@@ -196,6 +198,7 @@ const GLOBAL_CHAT_MESSAGE_SELECT = [
   "reply_to_author_display_name",
   "reply_to_message_excerpt",
   "created_at",
+  "edited_at",
 ].join(", ");
 
 export type GlobalChatMessagePage = {
@@ -358,6 +361,7 @@ export function mapGlobalChatMessage(
     replyTo: mapGlobalChatReply(row),
     reactions,
     createdAt: row.created_at,
+    editedAt: row.edited_at,
   };
 }
 

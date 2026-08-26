@@ -40,6 +40,7 @@ const message = {
     },
   ],
   createdAt: "2026-08-09T08:00:00.000Z",
+  editedAt: null,
 } satisfies GlobalChatMessage;
 
 describe("GlobalChatMessageReactions", () => {

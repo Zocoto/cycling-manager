@@ -17,6 +17,7 @@ const baseMessage = {
   replyTo: null,
   reactions: [],
   createdAt: "2026-08-09T08:00:00.000Z",
+  editedAt: null,
 } satisfies GlobalChatMessage;
 
 const reactionRow = {

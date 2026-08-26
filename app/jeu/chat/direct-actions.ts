@@ -84,6 +84,46 @@ export async function postDirectMessageAction(
   return mapDirectMessage(row);
 }
 
+export async function editDirectMessageAction(
+  messageId: string,
+  rawBody: string,
+): Promise<DirectMessage> {
+  if (!isUuid(messageId)) {
+    throw new Error("Ce message privé est invalide.");
+  }
+
+  const body = normalizeDirectMessage(rawBody);
+  if (body.length < 1 || body.length > DIRECT_MESSAGE_MAX_LENGTH) {
+    throw new Error(
+      `Le message doit contenir entre 1 et ${DIRECT_MESSAGE_MAX_LENGTH} caractères.`,
+    );
+  }
+  if (hasForbiddenGlobalChatLink(body)) {
+    throw new Error(
+      "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  await requireAuthenticatedUser(supabase);
+  const { data, error } = await supabase.rpc(
+    "edit_current_direct_message",
+    {
+      p_message_id: messageId,
+      p_body: body,
+    },
+  );
+  const row = data as DirectMessageRow | null;
+
+  if (error || !row) {
+    throw new Error(
+      error?.message ?? "Le message privé n’a pas pu être modifié.",
+    );
+  }
+
+  return mapDirectMessage(row);
+}
+
 export async function markDirectConversationReadAction(
   conversationId: string,
 ) {

@@ -15,7 +15,10 @@ import { GlobalChatSharePreview } from "@/components/game/global-chat-share-prev
 import { SportingDirectorAvatar } from "@/components/game/sporting-director-avatar";
 import { useGlobalChatReactions } from "@/components/game/use-global-chat-reactions";
 import { GlobalChatMessageReactions } from "@/components/game/global-chat-message-reactions";
-import { postGlobalChatMessageAction } from "@/app/jeu/chat/actions";
+import {
+  editGlobalChatMessageAction,
+  postGlobalChatMessageAction,
+} from "@/app/jeu/chat/actions";
 import {
   CyclingReactionSticker,
   GlobalChatMediaPicker,
@@ -35,12 +38,14 @@ import {
   GLOBAL_CHAT_MESSAGE_REACTION_EMOJIS,
   isGlobalChatMessageReactionEmoji,
   hasForbiddenGlobalChatLink,
+  normalizeGlobalChatMessage,
   splitGlobalChatMessageContent,
   stripGlobalChatCyclingReactionTokens,
   type GlobalChatCursor,
   type GlobalChatCyclingReactionKey,
   type GlobalChatMessageReactionEmoji,
 } from "@/lib/game/global-chat";
+import { canEditChatMessage } from "@/lib/game/chat-message-text";
 import { notifyGlobalChatMessagesRead } from "@/lib/game/global-chat-read-sync";
 import {
   GLOBAL_CHAT_ONLINE_REFRESH_INTERVAL_MS,
@@ -132,8 +137,15 @@ export function GlobalGameChat({
   const [replyTo, setReplyTo] = useState<GlobalChatMessage | null>(null);
   const [selectedReaction, setSelectedReaction] =
     useState<GlobalChatCyclingReactionKey | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(
+    null,
+  );
+  const [editingDraft, setEditingDraft] = useState("");
+  const [editingError, setEditingError] = useState<string | null>(null);
+  const [editClockMs, setEditClockMs] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isEditing, startEditingTransition] = useTransition();
   const viewportRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const positionedRef = useRef(false);
@@ -152,6 +164,14 @@ export function GlobalGameChat({
   useEffect(() => {
     activeModeRef.current = activeMode;
   }, [activeMode]);
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setEditClockMs(Date.now()),
+      30_000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (
@@ -343,6 +363,7 @@ export function GlobalGameChat({
           const message = readRealtimeMessage(payload.new);
           if (!message) return;
           if (
+            payload.eventType === "INSERT" &&
             message.sportingDirectorId !== identity.sportingDirectorId &&
             globalChatMessageMentionsUsername(
               message.message,
@@ -355,6 +376,7 @@ export function GlobalGameChat({
             });
           }
           if (
+            payload.eventType === "INSERT" &&
             activeModeRef.current === "direct" &&
             message.sportingDirectorId !== identity.sportingDirectorId
           ) {
@@ -576,6 +598,54 @@ export function GlobalGameChat({
     });
   }
 
+  function beginMessageEdit(message: GlobalChatMessage) {
+    setEditingMessageId(message.id);
+    setEditingDraft(message.message);
+    setEditingError(null);
+  }
+
+  function cancelMessageEdit() {
+    if (isEditing) return;
+    setEditingMessageId(null);
+    setEditingDraft("");
+    setEditingError(null);
+  }
+
+  function submitMessageEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingMessageId || isEditing) return;
+
+    const message = normalizeGlobalChatMessage(editingDraft);
+    if (!message) return;
+    if (hasForbiddenGlobalChatLink(message)) {
+      setEditingError(
+        "Seuls les liens Cyclo Stratège vers une fiche coureur, équipe ou DS sont autorisés.",
+      );
+      return;
+    }
+
+    setEditingError(null);
+    startEditingTransition(async () => {
+      try {
+        const savedMessage = await editGlobalChatMessageAction(
+          editingMessageId,
+          message,
+        );
+        setMessages((current) =>
+          upsertRealtimeMessage(current, savedMessage),
+        );
+        setEditingMessageId(null);
+        setEditingDraft("");
+      } catch (editingFailure) {
+        setEditingError(
+          editingFailure instanceof Error
+            ? editingFailure.message
+            : "Le message n’a pas pu être modifié.",
+        );
+      }
+    });
+  }
+
   return (
     <div className="overflow-hidden rounded-[2rem] border border-[#1D5145]/20 bg-white shadow-[0_24px_70px_rgba(7,26,23,0.16)]">
       <ChatModeTabs
@@ -696,9 +766,21 @@ export function GlobalGameChat({
                 currentDirectorId={identity.sportingDirectorId}
                 pendingReactionKey={pendingReactionKey}
                 reactionsDisabled={isReactionPending}
+                canEdit={
+                  isCurrentDirector &&
+                  canEditChatMessage(message.createdAt, editClockMs)
+                }
+                isEditing={editingMessageId === message.id}
+                editingDraft={editingDraft}
+                editingError={editingError}
+                isEditPending={isEditing}
                 onReply={beginReply}
                 onReaction={toggleMessageReaction}
                 onDirectMessage={beginDirectMessage}
+                onBeginEdit={beginMessageEdit}
+                onEditingDraftChange={setEditingDraft}
+                onCancelEdit={cancelMessageEdit}
+                onSubmitEdit={submitMessageEdit}
               />
             );
           })}
@@ -962,9 +1044,18 @@ function ChatMessage({
   currentDirectorId,
   pendingReactionKey,
   reactionsDisabled,
+  canEdit,
+  isEditing,
+  editingDraft,
+  editingError,
+  isEditPending,
   onReply,
   onReaction,
   onDirectMessage,
+  onBeginEdit,
+  onEditingDraftChange,
+  onCancelEdit,
+  onSubmitEdit,
 }: {
   message: GlobalChatMessage;
   avatarKey: string | null;
@@ -974,11 +1065,20 @@ function ChatMessage({
   currentDirectorId: string;
   pendingReactionKey: string | null;
   reactionsDisabled: boolean;
+  canEdit: boolean;
+  isEditing: boolean;
+  editingDraft: string;
+  editingError: string | null;
+  isEditPending: boolean;
   onReply: (message: GlobalChatMessage) => void;
   onReaction: React.ComponentProps<
     typeof GlobalChatMessageReactions
   >["onReaction"];
   onDirectMessage: (recipientId: string) => void;
+  onBeginEdit: (message: GlobalChatMessage) => void;
+  onEditingDraftChange: (value: string) => void;
+  onCancelEdit: () => void;
+  onSubmitEdit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   return (
     <article
@@ -1037,6 +1137,17 @@ function ChatMessage({
                 MP
               </button>
             ) : null}
+            {canEdit && !isEditing ? (
+              <button
+                type="button"
+                onClick={() => onBeginEdit(message)}
+                className="rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[9px] font-black text-white/80 transition hover:bg-white/20 hover:text-white"
+                aria-label="Modifier ce message"
+                title="Modifiable pendant 15 minutes après l’envoi"
+              >
+                ✎ Modifier
+              </button>
+            ) : null}
             <time
               dateTime={message.createdAt}
               className={`text-[9px] font-bold ${
@@ -1044,6 +1155,7 @@ function ChatMessage({
               }`}
             >
               {formatMessageTime(message.createdAt)}
+              {message.editedAt ? " · modifié" : ""}
             </time>
           </span>
         </div>
@@ -1082,22 +1194,77 @@ function ChatMessage({
           </button>
         ) : null}
 
-        <div data-i18n-skip className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
-          {renderMessageText(message.message, isCurrentDirector)}
-        </div>
+        {isEditing ? (
+          <form onSubmit={onSubmitEdit} className="mt-2 space-y-2">
+            <label htmlFor={`edit-global-message-${message.id}`} className="sr-only">
+              Modifier votre message
+            </label>
+            <textarea
+              id={`edit-global-message-${message.id}`}
+              data-i18n-skip
+              autoFocus
+              rows={3}
+              value={editingDraft}
+              maxLength={GLOBAL_CHAT_MESSAGE_MAX_LENGTH}
+              onChange={(event) => onEditingDraftChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.nativeEvent.isComposing
+                ) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              className="w-full resize-y rounded-xl border border-white/25 bg-black/15 px-3 py-2 text-sm font-semibold leading-6 text-white outline-none placeholder:text-white/50 focus:border-[#F2C94C] focus:ring-2 focus:ring-[#F2C94C]/25"
+            />
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {editingError ? (
+                <p
+                  role="alert"
+                  className="mr-auto text-[10px] font-bold text-[#FFD6D9]"
+                >
+                  {editingError}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                disabled={isEditPending}
+                onClick={onCancelEdit}
+                className="rounded-lg border border-white/20 px-3 py-2 text-[10px] font-black text-white/80 transition hover:bg-white/10 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={isEditPending || editingDraft.trim().length === 0}
+                className="rounded-lg bg-[#F2C94C] px-3 py-2 text-[10px] font-black text-[#17261E] transition hover:bg-[#F7DA73] disabled:opacity-50"
+              >
+                {isEditPending ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div data-i18n-skip className="mt-1.5 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+            {renderMessageText(message.message, isCurrentDirector)}
+          </div>
+        )}
 
         {message.preview ? (
           <GlobalChatSharePreview preview={message.preview} />
         ) : null}
-        <GlobalChatMessageReactions
-          message={message}
-          isCurrentDirector={isCurrentDirector}
-          currentDirectorId={currentDirectorId}
-          pendingReactionKey={pendingReactionKey}
-          reactionsDisabled={reactionsDisabled}
-          onReply={onReply}
-          onReaction={onReaction}
-        />
+        {!isEditing ? (
+          <GlobalChatMessageReactions
+            message={message}
+            isCurrentDirector={isCurrentDirector}
+            currentDirectorId={currentDirectorId}
+            pendingReactionKey={pendingReactionKey}
+            reactionsDisabled={reactionsDisabled}
+            onReply={onReply}
+            onReaction={onReaction}
+          />
+        ) : null}
       </div>
     </article>
   );
@@ -1531,6 +1698,8 @@ function readRealtimeMessage(
         ? value.reply_to_message_excerpt
         : null,
     created_at: value.created_at,
+    edited_at:
+      typeof value.edited_at === "string" ? value.edited_at : null,
   };
 
   return {
@@ -1553,6 +1722,7 @@ function readRealtimeMessage(
         : null,
     reactions: [],
     createdAt: row.created_at,
+    editedAt: row.edited_at,
   };
 }
 
