@@ -15,6 +15,10 @@ import {
   matchesTransferRiderProfile,
   type TransferRiderProfileFilter,
 } from "@/lib/game/transfer-market";
+import {
+  getFeaturedNationalDaysForMarketDate,
+  NATIONAL_DAY_BONUS_RIDER_COUNT,
+} from "@/lib/game/national-days";
 import { calculateRiderSeasonSalary } from "@/lib/game/economy";
 import {
   getRiderSportingProfile,
@@ -64,6 +68,7 @@ type ListingRow = {
   seller_team_id: string | null;
   market_date: string | null;
   daily_slot: number | null;
+  is_national_day_bonus: boolean;
   minimum_bid: number | string;
   salary_per_season: number | string;
   currency_code: string;
@@ -172,6 +177,7 @@ export type TransferMarketListing = {
   status: ListingRow["status"];
   sellerTeamId: string | null;
   sellerTeamName: string | null;
+  isNationalDayBonus: boolean;
   minimumBid: number;
   currentBid: number | null;
   minimumNextBid: number;
@@ -235,6 +241,12 @@ export type TransferMarketOverview = {
   rosterLimit: number;
   rosterIsFull: boolean;
   marketDate: string;
+  nationalDayFeatures: Array<{
+    countryName: string;
+    countryCode: string;
+    bonusRiderCount: number;
+    isExceptionalOverride: boolean;
+  }>;
   dailyListings: TransferMarketListing[];
   directorListings: TransferMarketListing[];
   freeAgents: TransferMarketRider[];
@@ -313,7 +325,7 @@ export async function getTransferMarketOverview(
     admin
       .from("transfer_market_listings")
       .select(
-        "id, rider_id, season_id, listing_type, seller_team_id, market_date, daily_slot, minimum_bid, salary_per_season, currency_code, opens_at, closes_at, status, winning_team_id, winning_bid, settled_at, created_at",
+        "id, rider_id, season_id, listing_type, seller_team_id, market_date, daily_slot, is_national_day_bonus, minimum_bid, salary_per_season, currency_code, opens_at, closes_at, status, winning_team_id, winning_bid, settled_at, created_at",
       )
       .eq("season_id", context.season.id)
       .or(
@@ -477,6 +489,7 @@ export async function getTransferMarketOverview(
         sellerTeamName: listing.seller_team_id
           ? (teamNames.get(listing.seller_team_id) ?? "Équipe inconnue")
           : null,
+        isNationalDayBonus: listing.is_national_day_bonus,
         minimumBid: toNumber(listing.minimum_bid),
         currentBid,
         minimumNextBid:
@@ -562,6 +575,10 @@ export async function getTransferMarketOverview(
       .map((contract) => contract.rider_id),
   );
   const currentSeasonYear = context.season.game_year;
+  const featuredNationalDays = getFeaturedNationalDaysForMarketDate(marketDate);
+  const countryByCode = new Map(
+    (countriesResult.data ?? []).map((country) => [country.iso_alpha2, country]),
+  );
   return {
     teamId: context.teamSeason.team_id,
     teamName: context.teamSeason.display_name,
@@ -575,6 +592,18 @@ export async function getTransferMarketOverview(
     availableBudget: Math.max(0, cashBalance - reservedBudget),
     dataRoomLevel,
     marketDate,
+    nationalDayFeatures: featuredNationalDays.flatMap((featuredNationalDay) => {
+      const country = countryByCode.get(featuredNationalDay.isoAlpha2);
+      return country
+        ? [{
+          countryName: country.name,
+          countryCode: country.iso_alpha2,
+          bonusRiderCount: NATIONAL_DAY_BONUS_RIDER_COUNT,
+          isExceptionalOverride:
+            featuredNationalDay.isExceptionalOverride,
+        }]
+        : [];
+    }),
     dailyListings: mappedListings.filter((listing) => listing.type === "daily"),
     directorListings: mappedListings.filter(
       (listing) => listing.type === "director",
@@ -886,8 +915,27 @@ async function ensureTodayDailyMarket(
     const code = profileByCountry.get(country.id);
     return Boolean(code && hasRiderNameLibrary(code));
   });
+  const featuredNationalDays = getFeaturedNationalDaysForMarketDate(marketDate);
+  const nationalDayCountries = featuredNationalDays.flatMap((featured) => {
+    const country = candidates.find(
+      (candidate) => candidate.iso_alpha2 === featured.isoAlpha2,
+    );
+    if (!country) {
+      console.error(
+        `La sélection de fête nationale ${featured.isoAlpha2} ne dispose pas d’un profil de génération valide.`,
+      );
+      return [];
+    }
+    return [country];
+  });
+  const nationalDayCountryIds = new Set(
+    nationalDayCountries.map((country) => country.id),
+  );
+  const regularCandidates = candidates.filter(
+    (country) => !nationalDayCountryIds.has(country.id),
+  );
   const selectedCountries = selectRandomDistinct(
-    candidates,
+    regularCandidates,
     DAILY_TRANSFER_RIDER_COUNT,
   );
   const selectionsByProfile = new Map<string, CountryRow[]>();
@@ -902,6 +950,7 @@ async function ensureTodayDailyMarket(
     country_id: string;
     first_name: string;
     last_name: string;
+    is_national_day_bonus: boolean;
   }> = [];
   for (const [profileCode, countries] of selectionsByProfile) {
     const generated = generateRiderIdentities(profileCode, countries.length);
@@ -910,10 +959,27 @@ async function ensureTodayDailyMarket(
         country_id: countries[index]!.id,
         first_name: identity.first_name,
         last_name: identity.last_name,
+        is_national_day_bonus: false,
       }),
     );
   }
   shuffle(identities);
+
+  for (const nationalDayCountry of nationalDayCountries) {
+    const profileCode = profileByCountry.get(nationalDayCountry.id)!;
+    const generated = generateRiderIdentities(
+      profileCode,
+      NATIONAL_DAY_BONUS_RIDER_COUNT,
+    );
+    generated.forEach((identity) =>
+      identities.push({
+        country_id: nationalDayCountry.id,
+        first_name: identity.first_name,
+        last_name: identity.last_name,
+        is_national_day_bonus: true,
+      }),
+    );
+  }
 
   const { error } = await admin.rpc("create_daily_transfer_market", {
     p_market_date: marketDate,

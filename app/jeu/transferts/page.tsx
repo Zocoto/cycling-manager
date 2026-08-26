@@ -25,6 +25,7 @@ import {
   createAmateurRiderJersey,
   createSponsoredRiderJersey,
   FREE_AGENT_RIDER_JERSEY,
+  getNationalChampionPalette,
   type RiderJerseyAppearance,
 } from "@/lib/rider-jersey";
 import { buildTransferMarketReturnPath } from "@/lib/game/filtered-page-paths";
@@ -231,6 +232,16 @@ function DailyAuctions({ listings, overview, sponsors, returnPath }: {
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
       <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les enchères ouvrent à 9 h avec une clôture initiale à 18 h. Toute offre placée dans les 10 dernières minutes repousse la fin de 30 minutes. Les rapports sont partiels et un talent rare peut parfois apparaître." />
+      {overview.nationalDayFeatures.length > 0 ? (
+        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          {overview.nationalDayFeatures.map((feature) => (
+            <NationalDayAuctionBanner
+              key={feature.countryCode}
+              feature={feature}
+            />
+          ))}
+        </div>
+      ) : null}
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
           <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -492,7 +503,7 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
         <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">{listing.sellerTeamName ?? "Sélection quotidienne"}</p><Link href={`/jeu/coureurs/${listing.rider.id}`} target="_blank" className="mt-1 block truncate text-xl font-black hover:text-[#F2C94C]">{listing.rider.firstName} {listing.rider.lastName} ↗</Link><p className="mt-2 text-xs font-bold text-[#D6DFD2]"><span className={`fi fi-${listing.rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{listing.rider.countryName} · {listing.rider.age} ans</p></div>
       </div>
       <div className="p-5">
-        <div className="mb-4 flex flex-wrap gap-2"><span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span></div>
+        <div className="mb-4 flex flex-wrap gap-2"><span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span>{listing.isNationalDayBonus ? <span className="rounded-full bg-[#FFF3C4] px-3 py-1 text-xs font-black text-[#755A00]">Sélection fête nationale</span> : null}</div>
         <TransferScoutingReportPanel report={listing.rider.scoutingReport} compact />
         <div className="mt-4 grid grid-cols-2 gap-3"><PriceBlock label={listing.currentBid ? "Offre en tête" : "Prix d’appel"} value={formatMoney(listing.currentBid ?? listing.minimumBid, listing.currency)} /><PriceBlock label="Salaire hebdo." value={formatMoney(listing.salaryPerWeek, listing.currency)} /></div>
         <div className="mt-4 flex items-center justify-between rounded-xl border border-[#F2C94C]/25 bg-[#FFF9DF] px-4 py-3 text-xs font-black text-[#705B00]"><span>{listing.status === "open" ? "Temps restant" : listing.status === "settled" ? "Attribué" : "Clôturé sans offre"}</span>{listing.status === "open" ? <TransferCountdown closesAt={listing.closesAt} /> : <span>{listing.leaderTeamName ?? "Agent libre"}</span>}</div>
@@ -508,6 +519,43 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
         <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
       </div>
     </article>
+  );
+}
+
+function NationalDayAuctionBanner({
+  feature,
+}: {
+  feature: NonNullable<
+    NonNullable<Awaited<ReturnType<typeof getTransferMarketOverview>>>["nationalDayFeatures"][number]
+  >;
+}) {
+  const palette = getNationalChampionPalette(feature.countryCode);
+  const flagClassName = `fi fi-${feature.countryCode.toLowerCase()} rounded-sm shadow-sm`;
+
+  return (
+    <aside
+      className="overflow-hidden rounded-2xl border-2 px-5 py-4 text-white shadow-[0_14px_36px_rgba(7,26,23,0.16)] sm:px-7"
+      style={{
+        borderColor: palette.accent,
+        background: `linear-gradient(110deg, #071A17 0%, ${palette.secondary} 50%, #071A17 100%)`,
+      }}
+    >
+      <div className="flex items-center justify-center gap-3 text-center sm:gap-5">
+        <span aria-hidden="true" className={`${flagClassName} text-2xl sm:text-3xl`} />
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
+            Sélection spéciale du jour
+          </p>
+          <h3 className="mt-1 text-lg font-black sm:text-xl">
+            Fête nationale · {feature.countryName}
+          </h3>
+          <p className="mt-1 text-xs font-bold leading-5 text-white/85 sm:text-sm">
+            {feature.bonusRiderCount} coureurs de {feature.countryName}, aux profils légèrement plus prometteurs, rejoignent les enchères.
+          </p>
+        </div>
+        <span aria-hidden="true" className={`${flagClassName} text-2xl sm:text-3xl`} />
+      </div>
+    </aside>
   );
 }
 
