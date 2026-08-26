@@ -100,6 +100,7 @@ export const NATIONAL_DAY_CALENDAR = [
   { isoAlpha2: "KG", month: 8, day: 31 },
   { isoAlpha2: "KH", month: 11, day: 9 },
   { isoAlpha2: "KI", month: 7, day: 12 },
+  { isoAlpha2: "KW", month: 2, day: 25 },
   { isoAlpha2: "KM", month: 7, day: 6 },
   { isoAlpha2: "KN", month: 9, day: 19 },
   { isoAlpha2: "KP", month: 9, day: 9 },
@@ -111,6 +112,7 @@ export const NATIONAL_DAY_CALENDAR = [
   { isoAlpha2: "LI", month: 8, day: 15 },
   { isoAlpha2: "LK", month: 2, day: 4 },
   { isoAlpha2: "LR", month: 7, day: 26 },
+  { isoAlpha2: "LY", month: 12, day: 24 },
   { isoAlpha2: "LS", month: 10, day: 4 },
   { isoAlpha2: "LT", month: 2, day: 16 },
   { isoAlpha2: "LU", month: 6, day: 23 },
@@ -205,26 +207,8 @@ export const NATIONAL_DAY_CALENDAR = [
   { isoAlpha2: "ZW", month: 4, day: 18 },
 ] as const satisfies readonly NationalDayCalendarEntry[];
 
-export const UNASSIGNED_NATIONAL_DAY_COUNTRIES = [
-  {
-    isoAlpha2: "GB",
-    reason:
-      "Le Royaume-Uni n’a pas de fête nationale officielle ; la date officieuse est mobile.",
-  },
-  {
-    isoAlpha2: "IL",
-    reason:
-      "Yom Ha’atzmaout suit le calendrier hébraïque et change de date grégorienne.",
-  },
-  {
-    isoAlpha2: "KW",
-    reason: "Le Koweït est absent du tableau source.",
-  },
-  {
-    isoAlpha2: "LY",
-    reason: "La source ne reconnaît actuellement aucune fête nationale officielle.",
-  },
-] as const;
+export const DYNAMIC_NATIONAL_DAY_COUNTRIES = ["GB", "IL"] as const;
+export const UNASSIGNED_NATIONAL_DAY_COUNTRIES = [] as const;
 
 const MARKET_DATE_OVERRIDES = new Map<string, string>([
   ["2026-08-26", "UY"],
@@ -246,12 +230,22 @@ export function getFeaturedNationalDaysForMarketDate(
     return [{ isoAlpha2: override, isExceptionalOverride: true }];
   }
 
-  return NATIONAL_DAY_CALENDAR.filter(
-    (entry) => entry.month === parsed.month && entry.day === parsed.day,
-  )
-    .sort((left, right) => left.isoAlpha2.localeCompare(right.isoAlpha2))
-    .map((entry) => ({
-      isoAlpha2: entry.isoAlpha2,
+  const countryCodes = new Set<string>(
+    NATIONAL_DAY_CALENDAR.filter(
+      (entry) => entry.month === parsed.month && entry.day === parsed.day,
+    ).map((entry) => entry.isoAlpha2),
+  );
+  if (isFirstSaturdayOfJune(parsed.year, parsed.month, parsed.day)) {
+    countryCodes.add("GB");
+  }
+  if (marketDate === getIsraeliIndependenceMarketDate(parsed.year)) {
+    countryCodes.add("IL");
+  }
+
+  return [...countryCodes]
+    .sort((left, right) => left.localeCompare(right))
+    .map((isoAlpha2) => ({
+      isoAlpha2,
       isExceptionalOverride: false,
     }));
 }
@@ -277,4 +271,50 @@ function parseMarketDate(value: string) {
     return null;
   }
   return { year, month, day };
+}
+
+const israeliIndependenceDates = new Map<number, string>();
+const hebrewCalendarFormatter = new Intl.DateTimeFormat("en-u-ca-hebrew", {
+  month: "long",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+function getIsraeliIndependenceMarketDate(year: number) {
+  const cached = israeliIndependenceDates.get(year);
+  if (cached) return cached;
+
+  for (
+    let timestamp = Date.UTC(year, 3, 1);
+    timestamp <= Date.UTC(year, 4, 31);
+    timestamp += 86_400_000
+  ) {
+    const date = new Date(timestamp);
+    const parts = Object.fromEntries(
+      hebrewCalendarFormatter
+        .formatToParts(date)
+        .map((part) => [part.type, part.value]),
+    );
+    if (parts.month !== "Iyar" || parts.day !== "5") continue;
+
+    const weekday = date.getUTCDay();
+    const observedTimestamp = weekday === 6
+      ? timestamp - 2 * 86_400_000
+      : weekday === 5
+        ? timestamp - 86_400_000
+        : weekday === 1
+          ? timestamp + 86_400_000
+          : timestamp;
+    const result = new Date(observedTimestamp).toISOString().slice(0, 10);
+    israeliIndependenceDates.set(year, result);
+    return result;
+  }
+
+  throw new Error(`La date de Yom Ha’atzmaout est introuvable pour ${year}.`);
+}
+
+function isFirstSaturdayOfJune(year: number, month: number, day: number) {
+  return month === 6
+    && day <= 7
+    && new Date(Date.UTC(year, month - 1, day)).getUTCDay() === 6;
 }
