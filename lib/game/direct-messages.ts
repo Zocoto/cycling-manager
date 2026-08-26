@@ -1,3 +1,5 @@
+import { normalizeChatMessageText } from "@/lib/game/chat-message-text";
+
 export const DIRECT_MESSAGE_MAX_LENGTH = 1000;
 export const DIRECT_MESSAGE_INITIAL_LIMIT = 30;
 export const DIRECT_MESSAGE_PAGE_SIZE = 30;
@@ -18,7 +20,7 @@ export type DirectConversationCursor = {
 };
 
 export function normalizeDirectMessage(value: string) {
-  return value.trim().replace(/\s+/g, " ");
+  return normalizeChatMessageText(value);
 }
 
 export function isUuid(value: string) {

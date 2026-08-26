@@ -111,9 +111,12 @@ describe("global chat mentions", () => {
 });
 
 describe("global chat messages", () => {
-  it("normalizes surrounding and repeated whitespace", () => {
+  it("normalizes whitespace without removing line breaks", () => {
     expect(normalizeGlobalChatMessage("  Bonjour \n à   tous  ")).toBe(
-      "Bonjour à tous",
+      "Bonjour\nà tous",
+    );
+    expect(normalizeGlobalChatMessage("Bonjour\r\n\r\nLe peloton")).toBe(
+      "Bonjour\n\nLe peloton",
     );
   });
 

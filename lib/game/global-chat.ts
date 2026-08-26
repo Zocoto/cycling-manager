@@ -1,3 +1,5 @@
+import { normalizeChatMessageText } from "@/lib/game/chat-message-text";
+
 export const GLOBAL_CHAT_MESSAGE_MAX_LENGTH = 500;
 export const GLOBAL_CHAT_INITIAL_MESSAGE_LIMIT = 40;
 export const GLOBAL_CHAT_MESSAGE_PAGE_SIZE = 30;
@@ -167,7 +169,7 @@ export function stripGlobalChatCyclingReactionTokens(value: string): string {
 }
 
 export function normalizeGlobalChatMessage(value: string): string {
-  return expandGlobalChatEmoticons(value).trim().replace(/\s+/g, " ");
+  return normalizeChatMessageText(expandGlobalChatEmoticons(value));
 }
 
 export function hasForbiddenGlobalChatLink(value: string): boolean {
