@@ -5,12 +5,15 @@ import { markInfrastructureNotificationsReadAction } from "@/app/jeu/infrastruct
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DataRoomConstructionCard } from "@/components/game/data-room-construction-card";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { InfrastructureBuildingCard } from "@/components/game/infrastructure-building-card";
 import { InternationalYouthCenterMap } from "@/components/game/international-youth-center-map";
 import { StaffAcademyCard } from "@/components/game/staff-academy-card";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
-import Link from "@/components/ui/app-link";
 import {
   INFRASTRUCTURE_MAX_MANAGER_REQUIREMENT,
   TEAM_INFRASTRUCTURE_DEFINITIONS,
@@ -262,10 +265,11 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
           )}
         </div>
 
-        <nav
+        <GameSectionTabs
+          ariaLabel="Rubriques des infrastructures"
+          columns={2}
+          className="mt-7"
           data-tutorial-id="infrastructure-tabs"
-          aria-label="Rubriques des infrastructures"
-          className="mt-7 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm sm:grid-cols-2"
         >
           <TabLink
             tab="batiments"
@@ -279,7 +283,7 @@ export default async function InfrastructuresPage({ searchParams }: PageProps) {
             label="École internationale"
             detail="Centres mondiaux partagés entre tous les DS"
           />
-        </nav>
+        </GameSectionTabs>
 
         {activeTab === "batiments" ? (
           <div className="mt-7 space-y-8">
@@ -519,23 +523,12 @@ function TabLink({
 }) {
   const active = tab === activeTab;
   return (
-    <Link
+    <GameSectionTabLink
       href={`/jeu/infrastructures?onglet=${tab}`}
-      className={`rounded-xl px-4 py-3 transition ${
-        active
-          ? "bg-[#0B302B] text-white shadow-md"
-          : "text-[#315B3E] hover:bg-[#EAF5F3]"
-      }`}
-    >
-      <strong className="block text-sm">{label}</strong>
-      <span
-        className={`mt-0.5 block text-[10px] font-bold ${
-          active ? "text-[#9BE0CA]" : "text-[#60756E]"
-        }`}
-      >
-        {detail}
-      </span>
-    </Link>
+      active={active}
+      label={label}
+      description={detail}
+    />
   );
 }
 

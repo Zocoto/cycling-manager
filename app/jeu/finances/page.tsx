@@ -5,7 +5,10 @@ import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FinanceBalanceChart } from "@/components/game/finance-balance-chart";
 import { FinanceExpenseAnalysisPanel } from "@/components/game/finance-expense-analysis";
 import { GameHeader } from "@/components/game/game-header";
-import Link from "@/components/ui/app-link";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { buildFinanceExpenseAnalysis } from "@/lib/game/finance-expense-analysis";
 import {
   getDebtAmount,
@@ -245,35 +248,24 @@ function FinanceTabs({
   ];
 
   return (
-    <nav
-      aria-label="Rubriques financières"
-      className="mt-7 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-[0_10px_30px_rgba(19,60,46,0.07)] sm:grid-cols-2"
+    <GameSectionTabs
+      ariaLabel="Rubriques financières"
+      columns={2}
+      className="mt-7"
     >
       {tabs.map((tab) => {
         const active = tab.key === activeTab;
         return (
-          <Link
+          <GameSectionTabLink
             key={tab.key}
             href={tab.href}
-            aria-current={active ? "page" : undefined}
-            className={`rounded-xl px-4 py-3 transition ${
-              active
-                ? "bg-[#0B302B] text-white shadow-md"
-                : "text-[#315B3E] hover:bg-[#EAF5F3]"
-            }`}
-          >
-            <span className="block text-sm font-black">{tab.label}</span>
-            <span
-              className={`mt-0.5 block text-[10px] font-bold ${
-                active ? "text-[#9BE0BC]" : "text-[#60756E]"
-              }`}
-            >
-              {tab.detail}
-            </span>
-          </Link>
+            active={active}
+            label={tab.label}
+            description={tab.detail}
+          />
         );
       })}
-    </nav>
+    </GameSectionTabs>
   );
 }
 

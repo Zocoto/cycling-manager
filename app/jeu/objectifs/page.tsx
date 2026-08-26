@@ -5,6 +5,10 @@ import { claimGameObjectiveAction } from "@/app/jeu/objectifs/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { DailyRewardsPanel } from "@/components/game/daily-rewards-panel";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
@@ -235,17 +239,18 @@ export default async function ObjectivesPage({
           </div>
         </header>
 
-        <nav
-          aria-label="Rubriques des récompenses"
-          className="mt-7 grid rounded-2xl border border-[#315B3E]/14 bg-white p-2 shadow-[0_14px_40px_rgba(19,60,46,0.09)] sm:grid-cols-3"
+        <GameSectionTabs
+          ariaLabel="Rubriques des récompenses"
+          columns={3}
+          className="mt-7"
         >
-          <CareerTab
+          <GameSectionTabLink
             href="/jeu/objectifs?onglet=objectifs"
             label="Objectifs & récompenses"
             description="Suivre les paliers et récupérer les gains"
             active={selectedTab === "objectifs"}
           />
-          <CareerTab
+          <GameSectionTabLink
             href="/jeu/objectifs?onglet=quotidiennes"
             label="Récompenses quotidiennes"
             description={
@@ -255,7 +260,7 @@ export default async function ObjectivesPage({
             }
             active={selectedTab === "quotidiennes"}
           />
-          <CareerTab
+          <GameSectionTabLink
             href="/jeu/objectifs?onglet=trophees"
             label="Galerie des trophées"
             description={
@@ -265,7 +270,7 @@ export default async function ObjectivesPage({
             }
             active={selectedTab === "trophees"}
           />
-        </nav>
+        </GameSectionTabs>
 
         {selectedTab === "objectifs" ? (
           <>
@@ -359,38 +364,6 @@ export default async function ObjectivesPage({
   );
 }
 
-function CareerTab({
-  href,
-  label,
-  description,
-  active,
-}: {
-  href: string;
-  label: string;
-  description: string;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`rounded-xl px-5 py-4 transition ${
-        active
-          ? "bg-[#123F36] text-white shadow-[0_10px_25px_rgba(18,63,54,0.18)]"
-          : "text-[#183F37] hover:bg-[#F0F7F3]"
-      }`}
-    >
-      <span className="block text-sm font-black">{label}</span>
-      <span
-        className={`mt-1 block text-xs font-semibold ${
-          active ? "text-[#ABD5C2]" : "text-[#789087]"
-        }`}
-      >
-        {description}
-      </span>
-    </Link>
-  );
-}
 function ObjectiveSection({
   eyebrow,
   title,

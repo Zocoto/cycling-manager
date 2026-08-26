@@ -15,6 +15,10 @@ import {
   type DevelopmentTeamView,
 } from "@/components/game/development-team-panel";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { NaturalizationCard } from "@/components/game/naturalization-card";
@@ -236,10 +240,11 @@ export default async function YouthDevelopmentPage({
           </div>
         </header>
 
-        <nav
+        <GameSectionTabs
+          ariaLabel="Rubriques du centre de formation"
+          columns={3}
+          className="mt-6"
           data-tutorial-id="youth-development-tabs"
-          aria-label="Rubriques du centre de formation"
-          className="mt-6 grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm sm:grid-cols-3"
         >
           <TabLink
             tab="scouting"
@@ -265,7 +270,7 @@ export default async function YouthDevelopmentPage({
             detail="Effectif & courses juniors"
             tutorialDemo={tutorialDemo}
           />
-        </nav>
+        </GameSectionTabs>
 
         <div className="mt-5 space-y-4">
           {query.succes ? <Alert tone="success">{query.succes}</Alert> : null}
@@ -1459,30 +1464,13 @@ function TabLink({
     : `/jeu/centre-de-formation?onglet=${tab}`;
 
   return (
-    <Link
+    <GameSectionTabLink
       href={href}
-      className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition ${
-        active
-          ? "bg-[#0B302B] text-white shadow-md"
-          : "text-[#315B3E] hover:bg-[#EAF5F3]"
-      }`}
-    >
-      <span>
-        <strong className="block text-sm">{label}</strong>
-        <span
-          className={`mt-0.5 block text-[10px] font-bold ${
-            active ? "text-[#9BE0CA]" : "text-[#60756E]"
-          }`}
-        >
-          {detail}
-        </span>
-      </span>
-      {count ? (
-        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#C63F3F] px-1.5 text-[10px] font-black text-white">
-          {count}
-        </span>
-      ) : null}
-    </Link>
+      active={active}
+      label={label}
+      description={detail}
+      badge={count || undefined}
+    />
   );
 }
 

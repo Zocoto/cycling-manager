@@ -19,7 +19,7 @@ const action = readFileSync(
 describe("roster contract management tab", () => {
   it("adds a dedicated third roster view", () => {
     expect(page).toContain('requestedView === "contrats"');
-    expect(page).toContain('href="/jeu/effectif?vue=contrats"');
+    expect(page).toContain('href: "/jeu/effectif?vue=contrats"');
     expect(page).toContain("<TeamContractManagement");
   });
 

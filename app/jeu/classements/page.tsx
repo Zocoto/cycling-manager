@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
 import { DIVISION_RULES } from "@/lib/game/economy";
 import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
@@ -86,16 +90,49 @@ export default async function UciRankingsPage({
           </p>
         </header>
 
-        <nav aria-label="Circuits de classement" className="mt-6 flex flex-wrap gap-2">
-          <CircuitTab href={`/jeu/classements?circuit=uci&vue=${view}`} active={circuit === "uci"}>Circuit UCI</CircuitTab>
-          <CircuitTab href={`/jeu/classements?circuit=juniors&vue=${view}`} active={circuit === "juniors"}>Circuit juniors</CircuitTab>
-        </nav>
+        <GameSectionTabs
+          ariaLabel="Circuits de classement"
+          columns={2}
+          className="mt-6"
+        >
+          <GameSectionTabLink
+            href={`/jeu/classements?circuit=uci&vue=${view}`}
+            active={circuit === "uci"}
+            label="Circuit UCI"
+            description="Équipes professionnelles"
+          />
+          <GameSectionTabLink
+            href={`/jeu/classements?circuit=juniors&vue=${view}`}
+            active={circuit === "juniors"}
+            label="Circuit juniors"
+            description="Saison de développement"
+          />
+        </GameSectionTabs>
 
-        <nav aria-label="Vues du classement" className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-[0_10px_30px_rgba(19,60,46,0.08)]">
-          <Tab href={`/jeu/classements?circuit=${circuit}&vue=equipes`} active={view === "equipes"}>Équipes</Tab>
-          <Tab href={`/jeu/classements?circuit=${circuit}&vue=individuel`} active={view === "individuel"}>Individuel</Tab>
-          <Tab href={`/jeu/classements?circuit=${circuit}&vue=nations`} active={view === "nations"}>Nations</Tab>
-        </nav>
+        <GameSectionTabs
+          ariaLabel="Vues du classement"
+          columns={3}
+          className="mt-3"
+        >
+          <GameSectionTabLink
+            href={`/jeu/classements?circuit=${circuit}&vue=equipes`}
+            active={view === "equipes"}
+            label="Équipes"
+            description="Classement collectif"
+          />
+          <GameSectionTabLink
+            href={`/jeu/classements?circuit=${circuit}&vue=individuel`}
+            active={view === "individuel"}
+            label="Individuel"
+            description="Hiérarchie des coureurs"
+          />
+          <GameSectionTabLink
+            href={`/jeu/classements?circuit=${circuit}&vue=nations`}
+            active={view === "nations"}
+            label="Nations"
+            description="Points par pays"
+          />
+        </GameSectionTabs>
 
         <section className="mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_45px_rgba(19,60,46,0.08)]">
           {circuit === "juniors" ? (
@@ -118,26 +155,6 @@ export default async function UciRankingsPage({
         {circuit === "uci" && view === "equipes" ? <DivisionAdvantages /> : null}
       </section>
     </main>
-  );
-}
-
-function CircuitTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link href={href} className={active ? "rounded-full bg-[#F2C94C] px-5 py-2.5 text-sm font-black text-[#071A17] shadow-sm" : "rounded-full border border-[#315B3E]/15 bg-white px-5 py-2.5 text-sm font-black text-[#48665F] hover:bg-[#EAF5F3]"}>
-      {children}
-    </Link>
-  );
-}
-
-function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={active ? "rounded-xl bg-[#0B302B] px-5 py-3 text-sm font-extrabold text-white" : "rounded-xl px-5 py-3 text-sm font-extrabold text-[#48665F] hover:bg-[#EAF5F3]"}
-    >
-      {children}
-    </Link>
   );
 }
 

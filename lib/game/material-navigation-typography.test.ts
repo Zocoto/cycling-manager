@@ -15,8 +15,10 @@ const materialPages = [
 ];
 
 describe("material navigation typography", () => {
-  it("uses one identical readable size for every material tab", () => {
-    expect(navigation).toContain("text-xs font-black uppercase");
+  it("utilise la navigation graphique commune avec un sous-titre lisible", () => {
+    expect(navigation).toContain("<GameSectionTabs");
+    expect(navigation).toContain("<GameSectionTabLink");
+    expect(navigation).toContain("Catalogue et achats");
     expect(navigation).not.toContain("text-[10px]");
   });
 

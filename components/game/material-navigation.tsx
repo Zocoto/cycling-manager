@@ -1,10 +1,17 @@
-import Link from "@/components/ui/app-link";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 
 const MATERIAL_ROUTES = [
-  ["/jeu/materiel", "Matériel commercial"],
-  ["/jeu/materiel/equipementier", "Équipementier"],
-  ["/jeu/materiel/laboratoire", "Labo R&D"],
-  ["/jeu/materiel/equiper", "Équiper l’équipe"],
+  ["/jeu/materiel", "Matériel commercial", "Catalogue et achats"],
+  [
+    "/jeu/materiel/equipementier",
+    "Équipementier",
+    "Contrat et gamme partenaire",
+  ],
+  ["/jeu/materiel/laboratoire", "Labo R&D", "Recherche et développement"],
+  ["/jeu/materiel/equiper", "Équiper l’équipe", "Attributions aux coureurs"],
 ] as const;
 
 type MaterialRoute = (typeof MATERIAL_ROUTES)[number][0];
@@ -15,28 +22,24 @@ export function MaterialNavigation({
   activeHref: MaterialRoute;
 }) {
   return (
-    <nav
-      aria-label="Rubriques du matériel"
-      className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm"
+    <GameSectionTabs
+      ariaLabel="Rubriques du matériel"
+      columns={4}
+      className="mt-5"
     >
-      {MATERIAL_ROUTES.map(([href, label]) => {
+      {MATERIAL_ROUTES.map(([href, label, description]) => {
         const isActive = href === activeHref;
 
         return (
-          <Link
+          <GameSectionTabLink
             key={href}
             href={href}
-            aria-current={isActive ? "page" : undefined}
-            className={`rounded-xl px-5 py-3 text-xs font-black uppercase tracking-wider transition ${
-              isActive
-                ? "bg-[#0B302B] text-white"
-                : "text-[#60756E] hover:bg-[#EAF5F3] hover:text-[#176951]"
-            }`}
-          >
-            {label}
-          </Link>
+            active={isActive}
+            label={label}
+            description={description}
+          />
         );
       })}
-    </nav>
+    </GameSectionTabs>
   );
 }

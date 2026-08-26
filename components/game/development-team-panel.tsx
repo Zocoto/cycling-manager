@@ -18,6 +18,10 @@ import type { AmateurJerseyConfig } from "@/lib/amateur-team";
 
 import { AmateurTeamJersey } from "./amateur-team-jersey";
 import { DevelopmentPodiumProgressionBadge } from "./development-podium-progression-badge";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "./game-section-tabs";
 import { DevelopmentTeamBuilder } from "./development-team-builder";
 import { DevelopmentTeamJerseyEditor } from "./development-team-jersey-editor";
 import { DevelopmentTeamRosterEditor } from "./development-team-roster-editor";
@@ -192,24 +196,20 @@ function DevelopmentTeamNavigation({
     ["maillot", "Maillot", "Identité visuelle"],
   ];
   return (
-    <nav className="grid gap-2 rounded-2xl border border-[#315B3E]/12 bg-white p-2 shadow-sm sm:grid-cols-4">
+    <GameSectionTabs
+      ariaLabel="Vues de l’équipe de développement"
+      columns={4}
+    >
       {items.map(([view, label, detail]) => (
-        <Link
+        <GameSectionTabLink
           key={view}
           href={`/jeu/centre-de-formation?onglet=development&dev=${view}`}
-          className={`rounded-xl px-4 py-3 transition ${
-            view === activeView
-              ? "bg-[#176951] text-white shadow-sm"
-              : "text-[#315B3E] hover:bg-[#EAF5F3]"
-          }`}
-        >
-          <span className="block text-sm font-black">{label}</span>
-          <span className={`mt-0.5 block text-[10px] font-bold ${view === activeView ? "text-[#BCE4D6]" : "text-[#789087]"}`}>
-            {detail}
-          </span>
-        </Link>
+          active={view === activeView}
+          label={label}
+          description={detail}
+        />
       ))}
-    </nav>
+    </GameSectionTabs>
   );
 }
 

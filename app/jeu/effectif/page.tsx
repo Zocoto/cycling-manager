@@ -5,6 +5,10 @@ import type { ReactNode } from "react";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { CollapsibleMobileRiderRatings } from "@/components/game/collapsible-mobile-rider-ratings";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { TutorialLaunchButton } from "@/components/tutorial/tutorial-launch-button";
 import { TutorialRouteResume } from "@/components/tutorial/tutorial-route-resume";
 import { EquipmentRatingBonus } from "@/components/game/equipment-rating-bonus";
@@ -707,92 +711,46 @@ function RosterViewTabs({
 }: {
   activeView: "statistiques" | "planning" | "contrats";
 }) {
+  const tabs = [
+    {
+      id: "statistiques" as const,
+      href: "/jeu/effectif?vue=statistiques",
+      label: "Effectif",
+      description: "Notes, profils, forme et potentiel",
+    },
+    {
+      id: "planning" as const,
+      href: "/jeu/effectif?vue=planning",
+      label: "Planning de saison",
+      description: "Courses, stages, reconnaissances et blessures",
+    },
+    {
+      id: "contrats" as const,
+      href: "/jeu/effectif?vue=contrats",
+      label: "Contrats",
+      description: "Échéances et prolongation groupée",
+    },
+  ];
+
   return (
-    <nav
-      aria-label="Vues de l’effectif"
+    <GameSectionTabs
+      ariaLabel="Vues de l’effectif"
+      columns={3}
+      className="mt-4"
       data-tutorial-id="roster-view-tabs"
-      className="mt-4 grid grid-cols-3 gap-1 rounded-xl border border-[#315B3E]/15 bg-white p-1 shadow-sm sm:gap-2"
     >
-      <Link
-        href="/jeu/effectif?vue=statistiques"
-        prefetchOnIntent
-        title="Notes, profils, forme et potentiel"
-        aria-current={activeView === "statistiques" ? "page" : undefined}
-        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:px-4 ${
-          activeView === "statistiques"
-            ? "bg-[#0B302B] text-white shadow-md"
-            : "text-[#315B3E] hover:bg-[#F3F8F6]"
-        }`}
-      >
-        <strong
-          className={`block text-sm font-black ${
-            activeView === "statistiques" ? "text-white" : "text-[#183F37]"
-          }`}
-        >
-          Effectif
-        </strong>
-        <span
-          className={`sr-only ${
-            activeView === "statistiques" ? "text-[#BFD1C6]" : "text-[#60756E]"
-          }`}
-        >
-          Notes, profils, forme et potentiel
-        </span>
-      </Link>
-      <Link
-        href="/jeu/effectif?vue=planning"
-        prefetchOnIntent
-        title="Courses, stages, reconnaissances et blessures"
-        aria-current={activeView === "planning" ? "page" : undefined}
-        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:px-4 ${
-          activeView === "planning"
-            ? "bg-[#0B302B] text-white shadow-md"
-            : "text-[#315B3E] hover:bg-[#F3F8F6]"
-        }`}
-      >
-        <strong
-          className={`block text-sm font-black ${
-            activeView === "planning" ? "text-white" : "text-[#183F37]"
-          }`}
-        >
-          <span className="sm:hidden">Planning</span>
-          <span className="hidden sm:inline">Planning de saison</span>
-        </strong>
-        <span
-          className={`sr-only ${
-            activeView === "planning" ? "text-[#BFD1C6]" : "text-[#60756E]"
-          }`}
-        >
-          Courses, stages, reconnaissances et blessures
-        </span>
-      </Link>
-      <Link
-        href="/jeu/effectif?vue=contrats"
-        prefetchOnIntent
-        title="Échéances et prolongation groupée"
-        aria-current={activeView === "contrats" ? "page" : undefined}
-        className={`min-w-0 rounded-lg px-2 py-2.5 text-center transition sm:px-4 ${
-          activeView === "contrats"
-            ? "bg-[#0B302B] text-white shadow-md"
-            : "text-[#315B3E] hover:bg-[#F3F8F6]"
-        }`}
-      >
-        <strong
-          className={`block text-sm font-black ${
-            activeView === "contrats" ? "text-white" : "text-[#183F37]"
-          }`}
-        >
-          Contrats
-        </strong>
-        <span
-          className={`sr-only ${
-            activeView === "contrats" ? "text-[#BFD1C6]" : "text-[#60756E]"
-          }`}
-        >
-          Échéances et prolongation groupée
-        </span>
-      </Link>
-    </nav>
+      {tabs.map((tab) => (
+        <GameSectionTabLink
+          key={tab.id}
+          href={tab.href}
+          active={activeView === tab.id}
+          label={tab.label}
+          description={tab.description}
+          title={tab.description}
+          prefetchOnIntent
+        />
+      ))}
+    </GameSectionTabs>
   );
 }
 

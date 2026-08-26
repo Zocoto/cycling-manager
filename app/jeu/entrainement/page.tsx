@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { PotentialStars } from "@/components/game/potential-stars";
 import { RaceReconnaissancePlanner } from "@/components/game/race-reconnaissance-planner";
 import { RiderPreparationCenter } from "@/components/game/rider-preparation-center";
@@ -458,35 +462,24 @@ function TrainingSectionTabs({ activeTab }: { activeTab: TrainingPageTab }) {
   ];
 
   return (
-    <nav
-      aria-label="Rubriques de l’entraînement"
-      className="mb-7 grid gap-3 rounded-[1.6rem] border border-[#315B3E]/12 bg-white p-2 shadow-[0_12px_34px_rgba(19,60,46,0.07)] sm:grid-cols-3"
+    <GameSectionTabs
+      ariaLabel="Rubriques de l’entraînement"
+      columns={3}
+      className="mb-7"
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
-          <Link
+          <GameSectionTabLink
             key={tab.id}
             href={tab.href}
-            aria-current={isActive ? "page" : undefined}
-            className={`rounded-[1.15rem] border px-5 py-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] ${
-              isActive
-                ? "border-[#176951]/25 bg-[#176951] text-white shadow-[0_10px_24px_rgba(23,105,81,0.2)]"
-                : "border-transparent bg-[#F3F8F5] text-[#183F37] hover:border-[#176951]/15 hover:bg-[#EAF5F3]"
-            }`}
-          >
-            <span className="block text-sm font-black">{tab.label}</span>
-            <span
-              className={`mt-1 block text-[10px] font-bold uppercase tracking-[0.12em] ${
-                isActive ? "text-[#9BE0BC]" : "text-[#60756E]"
-              }`}
-            >
-              {tab.description}
-            </span>
-          </Link>
+            active={isActive}
+            label={tab.label}
+            description={tab.description}
+          />
         );
       })}
-    </nav>
+    </GameSectionTabs>
   );
 }
 

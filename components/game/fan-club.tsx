@@ -12,6 +12,10 @@ import {
   updateFanClubSalePriceAction,
   type FanClubActionResult,
 } from "@/app/jeu/fan-club/actions";
+import {
+  GameSectionTabButton,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { SponsorJerseyPreview } from "@/components/game/sponsor-jersey-preview";
 import {
   estimateDailyProductSalesForecast,
@@ -37,10 +41,26 @@ import {
 import { createTeamProfileTheme } from "@/lib/game/team-profile-theme";
 import type { Sponsor } from "@/types/sponsor";
 
-const BASE_TABS: ReadonlyArray<{ id: FanClubPilotTab; label: string }> = [
-  { id: "overview", label: "Vue d’ensemble" },
-  { id: "riders", label: "Popularité des coureurs" },
-  { id: "travel", label: "Déplacements" },
+const BASE_TABS: ReadonlyArray<{
+  id: FanClubPilotTab;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "overview",
+    label: "Vue d’ensemble",
+    description: "Audience, revenus et fidélité",
+  },
+  {
+    id: "riders",
+    label: "Popularité des coureurs",
+    description: "Soutien autour de l’effectif",
+  },
+  {
+    id: "travel",
+    label: "Déplacements",
+    description: "Présence sur les courses",
+  },
 ];
 
 const euroFormatter = new Intl.NumberFormat("fr-FR", {
@@ -82,7 +102,14 @@ export function FanClub({
   const [feedback, setFeedback] = useState("");
   const [isPending, startTransition] = useTransition();
   const tabs = shopLevel > 0
-    ? [...BASE_TABS, { id: "store" as const, label: "Magasin" }]
+    ? [
+        ...BASE_TABS,
+        {
+          id: "store" as const,
+          label: "Magasin",
+          description: "Stocks, ventes et tarifs",
+        },
+      ]
     : BASE_TABS;
   const theme = createTeamProfileTheme(
     sponsorIdentity?.sponsor.colors ?? {
@@ -116,34 +143,26 @@ export function FanClub({
 
   return (
     <div className="mt-7" style={themeStyle}>
-      <nav
+      <GameSectionTabs
+        ariaLabel="Rubriques du Fan Club"
+        columns={tabs.length === 4 ? 4 : 3}
         role="tablist"
-        aria-label="Rubriques du Fan Club"
-        className="flex gap-1 overflow-x-auto border-b border-[var(--fan-line)]"
       >
         {tabs.map((tab) => (
-          <button
+          <GameSectionTabButton
             key={tab.id}
             id={getTabId(tab.id)}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={getPanelId(tab.id)}
+            active={activeTab === tab.id}
+            label={tab.label}
+            description={tab.description}
+            ariaControls={getPanelId(tab.id)}
             onClick={() => {
               setActiveTab(tab.id);
               setFeedback("");
             }}
-            className={[
-              "min-h-12 shrink-0 border-b-2 px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fan-secondary)] focus-visible:ring-inset",
-              activeTab === tab.id
-                ? "border-[var(--fan-primary)] text-[var(--fan-ink)]"
-                : "border-transparent text-[var(--fan-muted)] hover:border-[var(--fan-secondary)] hover:text-[var(--fan-primary)]",
-            ].join(" ")}
-          >
-            {tab.label}
-          </button>
+          />
         ))}
-      </nav>
+      </GameSectionTabs>
 
       <div className="pt-6">
         {activeTab === "overview" ? (

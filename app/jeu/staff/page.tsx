@@ -8,6 +8,10 @@ import {
 } from "@/app/jeu/staff/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { StaffDismissalSubmitButton } from "@/components/game/staff-dismissal-submit-button";
 import { NaturalizationSubmitButton } from "@/components/game/naturalization-submit-button";
 import { StaffSubmitButton } from "@/components/game/staff-submit-button";
@@ -177,35 +181,22 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
         {success ? <Notice tone="success">{success}</Notice> : null}
         {errorMessage ? <Notice tone="error">{errorMessage}</Notice> : null}
 
-        <nav
+        <GameSectionTabs
+          ariaLabel="Rubriques du staff"
+          columns={2}
+          className="mt-7"
           data-tutorial-id="staff-tabs"
-          className="mt-7 grid gap-3 lg:grid-cols-2"
-          aria-label="Rubriques du staff"
         >
           {tabs.map((entry) => (
-            <Link
+            <GameSectionTabLink
               key={entry.id}
               href={`/jeu/staff?onglet=${entry.id}`}
-              aria-current={tab === entry.id ? "page" : undefined}
-              className={
-                tab === entry.id
-                  ? "rounded-2xl border border-[#42B99A] bg-[#0B302B] p-5 text-white shadow-[0_16px_40px_rgba(7,26,23,0.18)]"
-                  : "rounded-2xl border border-[#315B3E]/15 bg-white p-5 text-[#183F37] transition hover:-translate-y-0.5 hover:border-[#42B99A]/50"
-              }
-            >
-              <span className="block text-lg font-black">{entry.label}</span>
-              <span
-                className={
-                  tab === entry.id
-                    ? "mt-1 block text-xs font-bold text-[#9BE0BC]"
-                    : "mt-1 block text-xs font-bold text-[#60756E]"
-                }
-              >
-                {entry.detail}
-              </span>
-            </Link>
+              active={tab === entry.id}
+              label={entry.label}
+              description={entry.detail}
+            />
           ))}
-        </nav>
+        </GameSectionTabs>
 
         {tab === "marche" ? (
           <EmploymentMarket

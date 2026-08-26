@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { FormCampPlanner } from "@/components/game/form-camp-planner";
 import { GameHeader } from "@/components/game/game-header";
+import {
+  GameSectionTabLink,
+  GameSectionTabs,
+} from "@/components/game/game-section-tabs";
 import { HealthCenterSubmitButton } from "@/components/game/health-center-submit-button";
 import { PhysiotherapistAssignmentMatrix } from "@/components/game/physiotherapist-assignment-matrix";
 import {
@@ -59,11 +63,27 @@ export const metadata: Metadata = {
 export const maxDuration = 300;
 
 const HEALTH_TABS = [
-  { code: "blessures", label: "Blessures" },
-  { code: "forme", label: "Forme" },
-  { code: "nutrition", label: "Nutrition" },
-  { code: "kines", label: "Kinés" },
-  { code: "staff", label: "Équipe médicale" },
+  {
+    code: "blessures",
+    label: "Blessures",
+    description: "Protocoles et reprises",
+  },
+  { code: "forme", label: "Forme", description: "Suivi et stages" },
+  {
+    code: "nutrition",
+    label: "Nutrition",
+    description: "Compléments et récupération",
+  },
+  {
+    code: "kines",
+    label: "Kinés",
+    description: "Affectations individuelles",
+  },
+  {
+    code: "staff",
+    label: "Équipe médicale",
+    description: "Médecins et spécialistes",
+  },
 ] as const;
 
 type HealthTab = (typeof HEALTH_TABS)[number]["code"];
@@ -233,25 +253,21 @@ export default async function HealthCenterPage({
         ) : null}
         {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
 
-        <nav
-          aria-label="Rubriques du centre de soin"
-          className="mt-7 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-3 shadow-[0_12px_36px_rgba(19,60,46,0.07)] sm:grid-cols-2 xl:grid-cols-5"
+        <GameSectionTabs
+          ariaLabel="Rubriques du centre de soin"
+          columns={5}
+          className="mt-7"
         >
           {HEALTH_TABS.map((tab) => (
-            <Link
+            <GameSectionTabLink
               key={tab.code}
               href={`/jeu/centre-de-soin?onglet=${tab.code}`}
-              aria-current={activeTab === tab.code ? "page" : undefined}
-              className={
-                activeTab === tab.code
-                  ? "rounded-2xl bg-[#0B302B] px-4 py-4 text-center text-sm font-black text-white shadow-lg"
-                  : "rounded-2xl px-4 py-4 text-center text-sm font-black text-[#48665F] transition hover:bg-[#EAF5F3] hover:text-[#176951]"
-              }
-            >
-              {tab.label}
-            </Link>
+              active={activeTab === tab.code}
+              label={tab.label}
+              description={tab.description}
+            />
           ))}
-        </nav>
+        </GameSectionTabs>
 
         {activeTab === "blessures" ? (
           <InjuriesPanel overview={overview} jersey={jersey} />
