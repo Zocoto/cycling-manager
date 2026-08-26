@@ -55,7 +55,7 @@ const tabs: Array<{ id: StaffTab; label: string; detail: string }> = [
   {
     id: "marche",
     label: "Marché de l’emploi",
-    detail: "25 profils communs à tous les DS · renouvelés chaque jour",
+    detail: "25 profils à minuit + 25 à midi · marché commun à tous les DS",
   },
   {
     id: "equipe",

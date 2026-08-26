@@ -37,6 +37,10 @@ import {
   selectInitialStaffTalent,
   type StaffTalentCode,
 } from "@/lib/game/staff-talents";
+import {
+  hasStaffMarketNoonWaveStarted,
+  type StaffMarketWave,
+} from "@/lib/game/staff-market-waves";
 import { calculateSportingDirectorProgression } from "@/lib/game/sporting-director-progression";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -81,6 +85,7 @@ type GenerationProfileRow = {
 type BatchRow = {
   id: string;
   market_date: string;
+  staff_count: number;
 };
 
 type ListingRow = {
@@ -225,7 +230,7 @@ export async function getTeamStaffOverview(
   ] = await Promise.all([
     admin
       .from("staff_market_batches")
-      .select("id, market_date")
+      .select("id, market_date, staff_count")
       .eq("market_date", marketDate)
       .maybeSingle<BatchRow>(),
     admin
@@ -492,16 +497,81 @@ export async function getTeamStaffOverview(
 async function ensureTodayStaffMarket(
   admin: ReturnType<typeof createSupabaseAdminClient>,
 ) {
-  const marketDate = formatParisDate(new Date());
-  const { data: batch, error: batchError } = await admin
+  const now = new Date();
+  const marketDate = formatParisDate(now);
+  await ensureStaffMarketWave(admin, marketDate, "midnight");
+  if (hasStaffMarketNoonWaveStarted(now)) {
+    await ensureStaffMarketWave(admin, marketDate, "noon");
+  }
+}
+
+export async function settleCurrentStaffMarketWave(
+  wave: StaffMarketWave,
+  now = new Date(),
+) {
+  const admin = createSupabaseAdminClient();
+  const marketDate = formatParisDate(now);
+  const generatedCount = await ensureStaffMarketWave(admin, marketDate, wave);
+
+  return { marketDate, wave, generatedCount };
+}
+
+async function ensureStaffMarketWave(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  marketDate: string,
+  wave: StaffMarketWave,
+) {
+  let batch = await loadStaffMarketBatch(admin, marketDate);
+
+  if (wave === "midnight") {
+    if (batch) return 0;
+    return createStaffMarketWave(admin, marketDate, "create_daily_staff_market");
+  }
+
+  if (!batch) {
+    await ensureStaffMarketWave(admin, marketDate, "midnight");
+    batch = await loadStaffMarketBatch(admin, marketDate);
+  }
+  if (!batch) {
+    throw new Error("Impossible de retrouver le marché du staff créé ce jour.");
+  }
+  if (batch.staff_count >= 50) return 0;
+
+  return createStaffMarketWave(admin, marketDate, "append_daily_staff_market");
+}
+
+async function loadStaffMarketBatch(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  marketDate: string,
+) {
+  const { data, error } = await admin
     .from("staff_market_batches")
-    .select("id")
+    .select("id, market_date, staff_count")
     .eq("market_date", marketDate)
-    .maybeSingle<{ id: string }>();
+    .maybeSingle<BatchRow>();
 
-  assertQuery(batchError, "la génération quotidienne du staff");
-  if (batch) return;
+  assertQuery(error, "la vague quotidienne du marché du staff");
+  return data;
+}
 
+async function createStaffMarketWave(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  marketDate: string,
+  rpcName: "create_daily_staff_market" | "append_daily_staff_market",
+) {
+  const candidates = await generateStaffMarketCandidates(admin);
+  const { data, error } = await admin.rpc(rpcName, {
+    p_market_date: marketDate,
+    p_candidates: candidates,
+  });
+
+  assertQuery(error, "les 25 profils de la vague du marché du staff");
+  return Number(data ?? 0);
+}
+
+async function generateStaffMarketCandidates(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+) {
   const [countriesResult, profilesResult] = await Promise.all([
     admin
       .from("countries")
@@ -568,14 +638,7 @@ async function ensureTodayStaffMarket(
     };
   });
 
-  const { error: generationError } = await admin.rpc(
-    "create_daily_staff_market",
-    {
-      p_market_date: marketDate,
-      p_candidates: candidates,
-    },
-  );
-  assertQuery(generationError, "les 25 profils du marché du staff");
+  return candidates;
 }
 
 function generateStaffIdentities(

@@ -407,7 +407,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "staff-market": {
         title: "A shared global market",
         content:
-          "Each day, the same 25 specialists are offered to every Sports Director. The market refreshes daily and works first come, first served: once hired elsewhere, a profile disappears for everyone.\n\nCheck open slots, the immediate fee and full-season budget.",
+          "Every day, 25 specialists arrive at midnight and another 25 are added at noon. All 50 profiles are shared by every Sports Director, and the whole market refreshes the following midnight. It remains first come, first served: once hired elsewhere, a profile disappears for everyone.\n\nWatch both waves and check open slots, the immediate fee and full-season budget.",
       },
       "staff-market-filters": {
         title: "Find the specialist you need",
