@@ -15,6 +15,7 @@ import type { RaceCategoryCode } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { isTimeTrialPreparationStage } from "@/lib/game/race-preparation";
 import { compareRacePreparationEditionsByDate } from "@/lib/game/race-preparation-ordering";
+import { getRiderRatingColorClasses } from "@/lib/game/rider-rating-colors";
 import {
   RIDER_RATING_AXES,
   type RiderRatingKey,
@@ -1099,7 +1100,7 @@ function RiderRatingsGrid({ ratings }: { ratings: RiderRatings }) {
           <span
             key={axis.key}
             title={axis.label}
-            className={`inline-flex min-w-[2.85rem] items-center justify-between gap-1 rounded-md px-1.5 py-1 text-[9px] font-black ${getRatingTone(rating)}`}
+            className={`inline-flex min-w-[2.85rem] items-center justify-between gap-1 rounded-md border px-1.5 py-1 text-[9px] font-black ${getRiderRatingColorClasses(rating, axis.importance)}`}
           >
             <span className="opacity-70">{axis.shortLabel}</span>
             <span>{rating}</span>
@@ -1108,13 +1109,6 @@ function RiderRatingsGrid({ ratings }: { ratings: RiderRatings }) {
       })}
     </div>
   );
-}
-
-function getRatingTone(rating: number) {
-  if (rating >= 80) return "bg-[#F2C94C]/25 text-[#725A08]";
-  if (rating >= 70) return "bg-[#278B70]/14 text-[#176951]";
-  if (rating < 60) return "bg-[#C8574A]/10 text-[#934137]";
-  return "bg-[#315B3E]/8 text-[#4E6B62]";
 }
 
 function SectionTitle({
