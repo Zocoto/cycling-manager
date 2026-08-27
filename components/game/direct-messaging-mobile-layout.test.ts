@@ -24,6 +24,7 @@ describe("direct messaging mobile layout", () => {
     );
     expect(panel).toContain("sm:max-w-[min(40rem,85%)]");
     expect(panel).toContain("[overflow-wrap:anywhere]");
+    expect(panel).not.toContain("whitespace-pre-wrap break-words");
   });
 
   it("évite le zoom iOS des champs et laisse l’aide revenir à la ligne", () => {

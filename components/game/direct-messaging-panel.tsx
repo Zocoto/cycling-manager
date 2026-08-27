@@ -1012,7 +1012,7 @@ export function DirectMessagingPanel({
                       ) : (
                         <p
                           data-i18n-skip
-                          className="whitespace-pre-wrap break-words text-sm font-semibold leading-6 [overflow-wrap:anywhere]"
+                          className="whitespace-pre-wrap text-sm font-semibold leading-6 [overflow-wrap:anywhere]"
                         >
                           {message.body}
                         </p>
