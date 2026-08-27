@@ -17,6 +17,7 @@ export type DirectorMessageType =
   | "wildcard"
   | "academy"
   | "infrastructure"
+  | "auction_won"
   | "trophy"
   | "system";
 
@@ -76,6 +77,7 @@ export const DIRECTOR_MESSAGE_TYPE_LABELS: Record<
   wildcard: "Invitation",
   academy: "Formation",
   infrastructure: "Infrastructures",
+  auction_won: "Enchère",
   trophy: "Trophée",
   system: "Direction",
 };

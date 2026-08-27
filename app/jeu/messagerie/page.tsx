@@ -428,6 +428,7 @@ function MessageTypeMark({ type }: { type: DirectorMessageType }) {
     wildcard: "WC",
     academy: "A",
     infrastructure: "I",
+    auction_won: "✓",
     trophy: "T",
     system: "DS",
   };
@@ -435,7 +436,7 @@ function MessageTypeMark({ type }: { type: DirectorMessageType }) {
   return (
     <span
       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-black shadow-sm ${
-        type === "trophy"
+        type === "trophy" || type === "auction_won"
           ? "bg-[#F2C94C] text-[#183F37]"
           : "bg-[#176951] text-white"
       }`}
