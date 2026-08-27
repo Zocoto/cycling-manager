@@ -16,7 +16,10 @@ import {
 } from "@/lib/game/director-mailbox-sync";
 import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+type SupabaseBrowserClient = ReturnType<
+  (typeof import("@/lib/supabase/client"))["createSupabaseBrowserClient"]
+>;
 
 type GameHeaderIndicators = {
   mailboxUnreadCount: number;
@@ -55,9 +58,11 @@ export function GameHeaderIndicatorsProvider({
   useEffect(() => {
     let active = true;
     let refreshTimer: number | null = null;
-    const supabase = createSupabaseBrowserClient();
+    let supabase: SupabaseBrowserClient | null = null;
 
     async function refreshIndicators() {
+      if (!supabase) return null;
+
       const requestVersion = ++requestVersionRef.current;
       const result = await supabase
         .rpc("get_current_game_header_indicators_v2")
@@ -153,11 +158,17 @@ export function GameHeaderIndicatorsProvider({
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
-    let subscribedChannel: ReturnType<typeof supabase.channel> | null = null;
+    let subscribedChannel: ReturnType<SupabaseBrowserClient["channel"]> | null = null;
 
     async function initialize() {
-      const row = await refreshIndicators();
+      const { createSupabaseBrowserClient } = await import(
+        "@/lib/supabase/client"
+      );
       if (!active) return;
+
+      supabase = createSupabaseBrowserClient();
+      const row = await refreshIndicators();
+      if (!active || !supabase) return;
 
       let channel = supabase
       .channel("game-header-indicators:v2")
@@ -228,7 +239,7 @@ export function GameHeaderIndicatorsProvider({
       );
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
-      if (subscribedChannel) {
+      if (subscribedChannel && supabase) {
         void supabase.removeChannel(subscribedChannel);
       }
     };

@@ -3,7 +3,6 @@
 import Link from "@/components/ui/app-link";
 import { useMemo, useState } from "react";
 
-import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 
 import {
@@ -134,22 +133,6 @@ export function SeasonCalendar({
           calendar.currentDayNumber
       ),
     [calendar.currentDayNumber, calendar.days]
-  );
-  const profileEntries = useMemo(
-    () =>
-      visibleEditions
-        .flatMap((edition) =>
-          edition.stages.map((stage) => ({ edition, stage }))
-        )
-        .sort(
-          (first, second) =>
-            first.stage.dayNumber - second.stage.dayNumber ||
-            compareRaceDaySlots(first.stage.daySlot, second.stage.daySlot) ||
-            first.edition.prestigeRank - second.edition.prestigeRank ||
-            first.edition.name.localeCompare(second.edition.name, "fr") ||
-            first.stage.stageNumber - second.stage.stageNumber
-        ),
-    [visibleEditions]
   );
   const dayByNumber = useMemo(
     () =>
@@ -421,90 +404,6 @@ export function SeasonCalendar({
         })}
       </div>
 
-      {profileEntries.length > 0 ? (
-        <section className="mt-10 border-t border-[#315B3E]/15 pt-8" aria-labelledby="calendar-profiles-title">
-          <h2 id="calendar-profiles-title" className="text-2xl font-black text-[#0B302B]">
-            Liste des courses
-          </h2>
-
-          <div className="mt-5 grid gap-3 lg:grid-cols-2">
-            {profileEntries.map(({ edition, stage }) => {
-              const style = RACE_CATEGORY_STYLE[edition.categoryCode];
-              const grandTourAccent = getGrandTourCalendarAccent(edition);
-              const mountainCount = stage.segments.filter((segment) => segment.prime?.type === "mountain").length;
-              const sprintCount = stage.segments.filter((segment) => segment.prime?.type === "intermediate_sprint").length;
-              const registrationClosed =
-                isRaceRegistrationClosed({
-                  edition,
-                  currentDayNumber:
-                    calendar.currentDayNumber,
-                  now: new Date(nowIso),
-                });
-
-              return (
-                <Link
-                  key={stage.id}
-                  href={getRaceRegistrationHref(edition.slug)}
-                  data-registration-status={
-                    registrationClosed
-                      ? "closed"
-                      : "not-closed"
-                  }
-                  data-grand-tour-accent={grandTourAccent?.key}
-                  title={
-                    registrationClosed
-                      ? `${edition.name} · Inscriptions closes`
-                      : edition.name
-                  }
-                  className={`group grid gap-3 rounded-2xl border border-[#315B3E]/15 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#315B3E]/30 hover:shadow-md sm:grid-cols-[minmax(180px,0.75fr)_minmax(260px,1.25fr)] sm:items-center ${edition.isSponsorObjective ? "bg-[#FFF9DF] outline outline-2 outline-[#F2C94C]" : ""}`}
-                  style={{
-                    backgroundImage:
-                      registrationClosed
-                        ? CLOSED_RACE_PATTERN_ON_LIGHT
-                        : undefined,
-                    borderColor: grandTourAccent?.color,
-                    boxShadow: grandTourAccent
-                      ? `0 0 0 2px ${grandTourAccent.color}`
-                      : undefined,
-                  }}
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="rounded px-2 py-1 text-[9px] font-black uppercase tracking-wider"
-                        style={{ backgroundColor: style.background, color: style.foreground }}
-                      >
-                        {style.shortLabel}
-                      </span>
-                      {edition.isSponsorObjective ? <SponsorObjectiveBadge /> : null}
-                      <RaceCountryFlag
-                        countryCode={edition.countryCode}
-                        countryName={edition.countryName}
-                      />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-[#688176]">
-                        J{stage.dayNumber} · {RACE_DAY_SLOT_CONFIG[stage.daySlot].label}
-                        {edition.raceFormat === "stage_race" ? ` · Étape ${stage.stageNumber}` : ""}
-                      </span>
-                    </div>
-                    <h3 className="mt-2 truncate text-sm font-black text-[#0B302B] group-hover:text-[#176951]">
-                      {edition.name}
-                    </h3>
-                    <p className="mt-1 text-xs font-semibold text-[#688176]">
-                      {RACE_PROFILE_LABELS[stage.profileType]} · {stage.distanceKm.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km
-                    </p>
-                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#789087]">
-                      {mountainCount || sprintCount
-                        ? `${mountainCount} GPM · ${sprintCount} SI`
-                        : "Sans classement annexe"}
-                    </p>
-                  </div>
-                  <RaceStageProfile segments={stage.segments} compact />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
         </>
       ) : (
         <RaceCalendarList
@@ -858,7 +757,7 @@ function DesktopCalendarWeek({
   return (
     <section
       aria-label={`Semaine ${week.weekNumber}, J${week.startDay} à J${week.endDay}`}
-      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] shadow-sm"
+      className="overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#DCEAE4] shadow-sm [contain-intrinsic-size:auto_32rem] [content-visibility:auto]"
     >
       <div className="overflow-x-auto p-2">
         <div
@@ -1219,7 +1118,7 @@ function MobileCalendarDay({
 }) {
   return (
     <section
-      className={`rounded-2xl border p-4 ${
+      className={`rounded-2xl border p-4 [contain-intrinsic-size:auto_20rem] [content-visibility:auto] ${
         isCurrent
           ? "border-[#F2C94C] bg-[#FFF8D9]"
           : isPast

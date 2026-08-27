@@ -37,6 +37,10 @@ const shortcutSources = [
 
 describe("game header indicators provider", () => {
   it("uses one RPC and one realtime channel for all indicators", () => {
+    expect(provider).toContain('await import(\n        "@/lib/supabase/client"\n      )');
+    expect(provider).not.toContain(
+      'import { createSupabaseBrowserClient } from "@/lib/supabase/client"',
+    );
     expect(provider).toContain('.rpc("get_current_game_header_indicators_v2")');
     expect(provider).toContain('.channel("game-header-indicators:v2")');
     expect(provider.match(/\.channel\(/g)).toHaveLength(1);

@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
 import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
-import { RaceLiveLab } from "@/components/game/race-live-lab";
-import { RaceOfficialResults } from "@/components/game/race-official-results";
 import { RaceRewardDetails } from "@/components/game/race-reward-details";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
@@ -37,6 +36,21 @@ import type {
   LockedOfficialRaceSimulationDirectory,
   LockedOfficialStageSimulation,
 } from "@/lib/game/official-race-simulation";
+
+const RaceLiveLab = dynamic(
+  () =>
+    import("@/components/game/race-live-lab").then(
+      (module) => module.RaceLiveLab,
+    ),
+  { loading: RaceDirectoryModuleLoading },
+);
+const RaceOfficialResults = dynamic(
+  () =>
+    import("@/components/game/race-official-results").then(
+      (module) => module.RaceOfficialResults,
+    ),
+  { loading: RaceDirectoryModuleLoading },
+);
 
 type RaceResultsDirectoryProps = {
   calendar: SeasonRaceCalendar;
@@ -437,14 +451,14 @@ function SelectedRaceExperience({
     settlementStartedRef.current = true;
     startSettlementTransition(async () => {
       try {
-        await settleOfficialRaceResultsAction();
+        await settleOfficialRaceResultsAction(entry.edition.slug);
         router.refresh();
       } catch (error) {
         console.error("Impossible d’actualiser les résultats officiels :", error);
         settlementStartedRef.current = false;
       }
     });
-  }, [resultAvailable, router, simulationAvailable, state.status]);
+  }, [entry.edition.slug, resultAvailable, router, simulationAvailable, state.status]);
 
   if (!simulationAvailable) {
     return (
@@ -567,6 +581,17 @@ function SelectedRaceExperience({
           lockedSimulations={lockedSimulations}
         />
       )}
+    </div>
+  );
+}
+
+function RaceDirectoryModuleLoading() {
+  return (
+    <div
+      role="status"
+      className="min-h-40 animate-pulse rounded-2xl border border-[#315B3E]/15 bg-[#F3F8F5]"
+    >
+      <span className="sr-only">Chargement de la course…</span>
     </div>
   );
 }

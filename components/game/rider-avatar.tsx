@@ -21,6 +21,7 @@ type RiderAvatarProps = {
   jersey?: RiderJerseyAppearance | null;
   label?: string;
   className?: string;
+  renderMode?: "detailed" | "compact";
 };
 
 export function RiderAvatar({
@@ -31,6 +32,7 @@ export function RiderAvatar({
   jersey = FREE_AGENT_RIDER_JERSEY,
   label = "Portrait généré du coureur",
   className = "h-12 w-12",
+  renderMode = "detailed",
 }: RiderAvatarProps) {
   const rawId = useId();
   const svgId = rawId.replace(/:/g, "");
@@ -42,6 +44,18 @@ export function RiderAvatar({
     age,
   });
   const resolvedJersey = jersey ?? FREE_AGENT_RIDER_JERSEY;
+
+  if (renderMode === "compact") {
+    return (
+      <CompactRiderAvatar
+        design={design}
+        jersey={resolvedJersey}
+        label={label}
+        className={className}
+      />
+    );
+  }
+
   const featureLayout = getRiderAvatarFeatureLayout(design);
 
   const centerX = 48;
@@ -196,6 +210,98 @@ export function RiderAvatar({
             <path d="M 42 61 q 6 2 12 0" />
           </g>
         ) : null}
+      </svg>
+    </span>
+  );
+}
+
+function CompactRiderAvatar({
+  design,
+  jersey,
+  label,
+  className,
+}: {
+  design: RiderAvatarDesign;
+  jersey: RiderJerseyAppearance;
+  label: string;
+  className: string;
+}) {
+  const faceRadiusX = Math.max(18, Math.min(25, design.faceWidth / 2));
+  const faceRadiusY = Math.max(23, Math.min(29, design.faceHeight / 2));
+  const eyeDistance = Math.max(7, Math.min(11, design.eyeSpacing / 2));
+  const hasVisibleHair = design.hairStyle !== "shaved";
+
+  return (
+    <span
+      data-avatar-render-mode="compact"
+      className={[
+        "relative inline-flex shrink-0 overflow-hidden rounded-full border border-[#315B3E]/20 bg-white shadow-sm [contain:strict]",
+        className,
+      ].join(" ")}
+    >
+      <svg
+        aria-label={label}
+        role="img"
+        viewBox="0 0 96 96"
+        className="block h-full w-full overflow-hidden"
+      >
+        <rect width="96" height="96" fill={design.backgroundColor} />
+        <circle cx="18" cy="17" r="15" fill="#FFFFFF" opacity="0.16" />
+        <path
+          d="M 1 96 C 4 81, 20 73, 39 70 H 57 C 76 73, 92 81, 95 96 Z"
+          fill={jersey.primaryColor}
+        />
+        <path
+          d="M 17 88 Q 48 78 79 88"
+          fill="none"
+          stroke={jersey.secondaryColor}
+          strokeWidth="7"
+        />
+        <path
+          d="M 29 91 Q 48 84 67 91"
+          fill="none"
+          stroke={jersey.accentColor}
+          strokeWidth="2.5"
+        />
+        <path d="M 40 59 H 56 L 58 75 Q 48 81 38 75 Z" fill={design.skinShadow} />
+        <ellipse cx="25" cy="46" rx="3.2" ry="7" fill={design.skinShadow} />
+        <ellipse cx="71" cy="46" rx="3.2" ry="7" fill={design.skinShadow} />
+        <ellipse
+          cx="48"
+          cy="43"
+          rx={faceRadiusX}
+          ry={faceRadiusY}
+          fill={design.skinTone}
+        />
+        {hasVisibleHair ? (
+          <path
+            d={`M ${48 - faceRadiusX + 1} 35 Q 31 12 48 13 Q 66 12 ${48 + faceRadiusX - 1} 35 Q 61 25 48 25 Q 35 25 ${48 - faceRadiusX + 1} 35 Z`}
+            fill={design.hairColor}
+          />
+        ) : null}
+        <path
+          d={`M ${48 - eyeDistance - 4} 41 Q ${48 - eyeDistance} 38 ${48 - eyeDistance + 4} 41 M ${48 + eyeDistance - 4} 41 Q ${48 + eyeDistance} 38 ${48 + eyeDistance + 4} 41`}
+          fill="none"
+          stroke={design.hairColor}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <circle cx={48 - eyeDistance} cy="45" r="1.8" fill={design.eyeColor} />
+        <circle cx={48 + eyeDistance} cy="45" r="1.8" fill={design.rightEyeColor} />
+        <path
+          d="M 48 47 L 46.5 55 Q 48 56.5 50.5 55"
+          fill="none"
+          stroke={design.skinShadow}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+        <path
+          d={`M ${48 - design.mouthWidth / 3} ${61 + design.mouthYOffset / 2} Q 48 ${63 + design.mouthCurve / 3} ${48 + design.mouthWidth / 3} ${61 + design.mouthYOffset / 2}`}
+          fill="none"
+          stroke="#6F3D36"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
       </svg>
     </span>
   );

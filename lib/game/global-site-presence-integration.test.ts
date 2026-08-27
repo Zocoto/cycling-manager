@@ -18,6 +18,10 @@ describe("global site presence integration", () => {
     expect(heartbeat).toContain('document.visibilityState !== "visible"');
     expect(heartbeat).toContain("window.localStorage.setItem");
     expect(heartbeat).toContain("GAME_PRESENCE_HEARTBEAT_INTERVAL_MS");
+    expect(heartbeat).toContain('import("@/lib/supabase/client")');
+    expect(heartbeat).not.toContain(
+      'import { createSupabaseBrowserClient } from "@/lib/supabase/client"',
+    );
   });
 
   it("loads online directors on the server and refreshes only while chat is open", () => {

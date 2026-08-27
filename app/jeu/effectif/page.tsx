@@ -1028,6 +1028,7 @@ function RiderMobileCard({
         >
           <span className="relative shrink-0">
             <RiderAvatar
+              renderMode="compact"
               profileKey={rider.avatar_profile_key}
               seed={rider.avatar_seed}
               riderId={rider.rider_id}
@@ -1180,6 +1181,7 @@ function RiderTableRow({
         >
           <span className="relative shrink-0">
             <RiderAvatar
+              renderMode="compact"
               profileKey={rider.avatar_profile_key}
               seed={rider.avatar_seed}
               riderId={rider.rider_id}

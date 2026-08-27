@@ -232,6 +232,7 @@ export function MobileGameNavigation({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetchOnIntent
                   showPendingIndicator={false}
                   aria-current={active ? "page" : undefined}
                   data-course-destination={item.icon}
@@ -337,6 +338,7 @@ export function MobileGameNavigation({
                     <Link
                       key={href}
                       href={href}
+                      prefetchOnIntent
                       showPendingIndicator={false}
                       data-mobile-more-destination={href}
                       onClick={() => closePanel()}
@@ -352,6 +354,7 @@ export function MobileGameNavigation({
             {showPlayerTracking ? (
               <Link
                 href="/jeu/suivi-joueurs"
+                prefetchOnIntent
                 showPendingIndicator={false}
                 className="flex min-h-11 items-center justify-between rounded-xl border border-[#F2C94C]/30 bg-[#F2C94C]/10 px-3 text-xs font-black text-[#FFE58A]"
               >
@@ -374,6 +377,7 @@ export function MobileGameNavigation({
             <Link
               key={href}
               href={href}
+              prefetchOnIntent
               showPendingIndicator={false}
               aria-current={active ? "page" : undefined}
               className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${
@@ -428,6 +432,7 @@ export function MobileGameNavigation({
             <Link
               key={href}
               href={href}
+              prefetchOnIntent
               showPendingIndicator={false}
               aria-current={active ? "page" : undefined}
               className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-black transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2C94C] ${

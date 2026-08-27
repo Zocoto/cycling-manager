@@ -14,6 +14,18 @@ const staffPageSource = readFileSync(
   new URL("../../app/jeu/staff/page.tsx", import.meta.url),
   "utf8",
 );
+const headerSource = readFileSync(
+  new URL("../../components/game/game-header.tsx", import.meta.url),
+  "utf8",
+);
+const desktopNavigationSource = readFileSync(
+  new URL("../../components/game/game-navigation-menu.tsx", import.meta.url),
+  "utf8",
+);
+const mobileNavigationSource = readFileSync(
+  new URL("../../components/game/mobile-game-navigation.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("game navigation performance", () => {
   it("does not prefetch every visible game link by default", () => {
@@ -34,6 +46,16 @@ describe("game navigation performance", () => {
     for (const source of [objectivesPageSource, staffPageSource]) {
       expect(source).toContain('import Link from "@/components/ui/app-link"');
       expect(source).not.toContain('import Link from "next/link"');
+    }
+  });
+
+  it("prefetches the finite navigation menus only after user intent", () => {
+    for (const source of [
+      headerSource,
+      desktopNavigationSource,
+      mobileNavigationSource,
+    ]) {
+      expect(source).toContain("prefetchOnIntent");
     }
   });
 });

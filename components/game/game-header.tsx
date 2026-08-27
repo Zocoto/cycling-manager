@@ -87,6 +87,7 @@ export function GameHeader({
       >
         <Link
           href="/jeu"
+          prefetchOnIntent
           aria-label={
             isEnglish ? "Back to the Cyclo Stratège dashboard" : "Retour à l’accueil de Cyclo Stratège"
           }
@@ -449,6 +450,7 @@ function HeaderMenuLink({
   return (
     <Link
       href={href}
+      prefetchOnIntent
       title={`${label} · ${description}`}
       aria-label={label}
       className="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#D6DFD2]/25 bg-white/5 text-[var(--game-header-accent)] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] sm:h-10 sm:w-10"

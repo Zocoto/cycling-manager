@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { appConfig } from "../lib/app-config";
 import { ScrollToTop } from "../components/layout/scroll-to-top";
@@ -143,6 +144,7 @@ export default async function RootLayout({
           <ScrollToTop />
           {children}
         </LocaleProvider>
+        <SpeedInsights />
       </body>
     </html>
   );

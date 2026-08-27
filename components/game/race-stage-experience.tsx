@@ -6,13 +6,10 @@ import {
   useState,
   useTransition,
 } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
-import { RaceFavoritesPanel } from "@/components/game/race-favorites-panel";
-import { RaceLiveChat } from "@/components/game/race-live-chat";
-import { RaceLiveLab } from "@/components/game/race-live-lab";
-import { RaceOfficialResults } from "@/components/game/race-official-results";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_DAY_SLOT_CONFIG,
@@ -30,6 +27,33 @@ import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type { RaceLiveMessage } from "@/services/race-live-chat";
+
+const RaceFavoritesPanel = dynamic(() =>
+  import("@/components/game/race-favorites-panel").then(
+    (module) => module.RaceFavoritesPanel,
+  ),
+);
+const RaceLiveChat = dynamic(
+  () =>
+    import("@/components/game/race-live-chat").then(
+      (module) => module.RaceLiveChat,
+    ),
+  { loading: RaceModuleLoading },
+);
+const RaceLiveLab = dynamic(
+  () =>
+    import("@/components/game/race-live-lab").then(
+      (module) => module.RaceLiveLab,
+    ),
+  { loading: RaceModuleLoading },
+);
+const RaceOfficialResults = dynamic(
+  () =>
+    import("@/components/game/race-official-results").then(
+      (module) => module.RaceOfficialResults,
+    ),
+  { loading: RaceModuleLoading },
+);
 
 export type RaceStageEntry = {
   edition: RaceCalendarEdition;
@@ -93,7 +117,7 @@ export function RaceStageExperience({
     settlementStartedRef.current = true;
     startSettlementTransition(async () => {
       try {
-        await settleOfficialRaceResultsAction();
+        await settleOfficialRaceResultsAction(entry.edition.slug);
         router.refresh();
       } catch (error) {
         console.error(
@@ -105,6 +129,7 @@ export function RaceStageExperience({
     });
   }, [
     resultAvailable,
+    entry.edition.slug,
     router,
     simulationAvailable,
     state.status,
@@ -306,6 +331,17 @@ export function RaceStageExperience({
           mode={state.status === "live" ? "live" : "replay"}
         />
       </div>
+    </div>
+  );
+}
+
+function RaceModuleLoading() {
+  return (
+    <div
+      role="status"
+      className="min-h-40 animate-pulse rounded-2xl border border-[#315B3E]/15 bg-[#F3F8F5]"
+    >
+      <span className="sr-only">Chargement de la course…</span>
     </div>
   );
 }

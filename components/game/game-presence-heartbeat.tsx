@@ -1,22 +1,31 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 
 import {
   GAME_PRESENCE_HEARTBEAT_INTERVAL_MS,
   shouldRecordGamePresence,
 } from "@/lib/game/global-chat-presence";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+type SupabaseBrowserClient = ReturnType<
+  (typeof import("@/lib/supabase/client"))["createSupabaseBrowserClient"]
+>;
 
 const GAME_PRESENCE_STORAGE_KEY =
   "cyclostratege:game-presence:last-recorded-at";
 
 export function GamePresenceHeartbeat() {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-
   useEffect(() => {
     let active = true;
     let requestInFlight = false;
+    let clientPromise: Promise<SupabaseBrowserClient> | null = null;
+
+    function getSupabaseClient() {
+      clientPromise ??= import("@/lib/supabase/client").then(
+        ({ createSupabaseBrowserClient }) => createSupabaseBrowserClient(),
+      );
+      return clientPromise;
+    }
 
     async function recordCurrentPresence() {
       if (
@@ -39,6 +48,11 @@ export function GamePresenceHeartbeat() {
 
       writeLastRecordedAt(attemptedAt);
       requestInFlight = true;
+      const supabase = await getSupabaseClient();
+      if (!active) {
+        requestInFlight = false;
+        return;
+      }
       const result = await supabase.rpc("record_current_game_presence");
       requestInFlight = false;
 
@@ -67,7 +81,7 @@ export function GamePresenceHeartbeat() {
       window.removeEventListener("focus", recordWhenVisible);
       document.removeEventListener("visibilitychange", recordWhenVisible);
     };
-  }, [supabase]);
+  }, []);
 
   return null;
 }

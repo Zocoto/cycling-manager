@@ -70,6 +70,20 @@ describe("rendu des portraits coureurs enrichis", () => {
     expect(expressiveMarkup).toContain('fill="#3A1E1B"');
     expect(expressiveMarkup).toContain('stroke="#F5EEE3"');
   });
+
+  it("propose un portrait compact pour les longues listes", () => {
+    const markup = renderToStaticMarkup(
+      <RiderAvatar
+        profileKey="europe_west"
+        seed={42}
+        riderId="compact-rider"
+        renderMode="compact"
+      />,
+    );
+
+    expect(markup).toContain('data-avatar-render-mode="compact"');
+    expect(markup.match(/<(path|circle|ellipse|rect)\b/g)?.length).toBeLessThan(20);
+  });
 });
 
 function findSeed(

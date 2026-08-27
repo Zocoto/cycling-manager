@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -9,7 +10,18 @@ import {
 
 import { SeasonCalendar } from "./season-calendar";
 
+const calendarSource = readFileSync(
+  new URL("./season-calendar.tsx", import.meta.url),
+  "utf8",
+);
+
 describe("SeasonCalendar", () => {
+  it("évite une troisième copie des courses et isole le rendu hors écran", () => {
+    expect(calendarSource).not.toContain("profileEntries");
+    expect(calendarSource).toContain("[content-visibility:auto]");
+    expect(calendarSource).toContain('type CalendarView = "planning" | "list"');
+  });
+
   it("hachure les inscriptions closes dans toutes les catégories sans hachurer une course ouverte", () => {
     const closedEditions =
       RACE_CATEGORY_CODES.map(
