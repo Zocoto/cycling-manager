@@ -11,6 +11,7 @@ import { getRaceWeather } from "./race-weather";
 import {
   type RiderSimulationInput,
   type RiderSimulationRatings,
+  type RaceRole,
   type SimulationStageType,
   type StageSimulationInput,
 } from "./race-simulation";
@@ -149,7 +150,8 @@ export function createCalendarSimulationInput({
     ...sanitizedTeamStrategies,
   );
 
-  const riders = sourceRiders
+  const riders = sanitizeUniqueCalendarRaceRoles(
+    sourceRiders
     .map((rider) => {
       const { equipmentEffectsByStageId, ...baseRider } = rider;
       const teamStrategy = stage.teamStrategies?.[rider.teamId];
@@ -185,7 +187,9 @@ export function createCalendarSimulationInput({
       (first, second) =>
         first.teamId.localeCompare(second.teamId) ||
         first.id.localeCompare(second.id),
-    );
+    ),
+    stage,
+  );
   const riderIds = new Set(riders.map((rider) => rider.id));
   const timeTrialPlans = Object.fromEntries(
     Object.entries(stage.timeTrialPlans ?? {}).filter(([riderId]) =>
@@ -233,6 +237,91 @@ export function createCalendarSimulationInput({
     ...(Object.keys(timeTrialPlans).length > 0 ? { timeTrialPlans } : {}),
     ...(teamStrategies.length > 0 ? { teamStrategies } : {}),
   };
+}
+
+/**
+ * Les anciennes startlists peuvent contenir plusieurs leaders ou sprinteurs
+ * dans une même équipe. Le formulaire empêche désormais ce cas, mais une
+ * simulation officielle doit rester capable de relire cet historique. On
+ * privilégie une consigne propre à l'étape, puis le coureur le plus adapté au
+ * rôle ; les doublons sont remis en mode automatique uniquement dans l'entrée
+ * du moteur, sans réécrire les choix du directeur sportif.
+ */
+export function sanitizeUniqueCalendarRaceRoles(
+  riders: readonly RiderSimulationInput[],
+  stage: RaceCalendarStage,
+): RiderSimulationInput[] {
+  const sanitizedRiders = riders.map((rider) => ({ ...rider }));
+  const ridersByTeam = new Map<string, RiderSimulationInput[]>();
+
+  for (const rider of sanitizedRiders) {
+    const teamRiders = ridersByTeam.get(rider.teamId) ?? [];
+    teamRiders.push(rider);
+    ridersByTeam.set(rider.teamId, teamRiders);
+  }
+
+  for (const teamRiders of ridersByTeam.values()) {
+    for (const uniqueRole of ["leader", "sprinter"] satisfies RaceRole[]) {
+      const candidates = teamRiders.filter(
+        (rider) => rider.role === uniqueRole,
+      );
+      if (candidates.length <= 1) continue;
+
+      const retainedRider = [...candidates].sort((first, second) => {
+        const firstHasStageOverride =
+          stage.riderRoleOverrides?.[first.id] === uniqueRole;
+        const secondHasStageOverride =
+          stage.riderRoleOverrides?.[second.id] === uniqueRole;
+        return (
+          Number(secondHasStageOverride) - Number(firstHasStageOverride) ||
+          getUniqueRoleSuitability(second, uniqueRole, stage) -
+            getUniqueRoleSuitability(first, uniqueRole, stage) ||
+          first.id.localeCompare(second.id)
+        );
+      })[0];
+
+      for (const rider of candidates) {
+        if (rider.id !== retainedRider.id) rider.role = "auto";
+      }
+    }
+  }
+
+  return sanitizedRiders;
+}
+
+function getUniqueRoleSuitability(
+  rider: RiderSimulationInput,
+  role: "leader" | "sprinter",
+  stage: RaceCalendarStage,
+) {
+  if (role === "sprinter") {
+    return (
+      rider.ratings.sprint * 2 +
+      rider.ratings.acceleration +
+      rider.ratings.flat
+    );
+  }
+
+  const profileRating =
+    stage.stageType === "individual_time_trial"
+      ? rider.ratings.timeTrial
+      : stage.stageType === "prologue"
+        ? rider.ratings.prologue
+        : stage.profileType === "mountain"
+          ? rider.ratings.mountain
+          : stage.profileType === "hilly"
+            ? rider.ratings.hills
+            : stage.profileType === "cobbles"
+              ? rider.ratings.cobbles
+              : rider.ratings.flat;
+
+  return (
+    profileRating * 2 +
+    rider.ratings.endurance +
+    rider.ratings.resistance +
+    rider.ratings.recovery +
+    rider.ratings.timeTrial
+  );
 }
 
 export function sanitizeCalendarTeamStrategies({

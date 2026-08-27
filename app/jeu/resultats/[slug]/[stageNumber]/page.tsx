@@ -38,6 +38,7 @@ type RaceLivePageProps = {
   }>;
   searchParams: Promise<{
     classement?: string;
+    replay?: string;
   }>;
 };
 
@@ -100,20 +101,6 @@ export default async function RaceLivePage({
   }
 
   const state = getStageLiveState(stage, now);
-  const lockedSimulationDirectory: LockedOfficialRaceSimulationDirectory =
-    state.status === "scheduled" || resultsOnlyNationalChampionship
-      ? {}
-      : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
-          (error: unknown) => {
-            console.error(
-              "Impossible de verrouiller le scénario officiel :",
-              error,
-            );
-            return {};
-          },
-        );
-  const lockedSimulations = lockedSimulationDirectory[edition.id] ?? [];
-
   const officialResults =
     state.status === "scheduled"
       ? null
@@ -126,6 +113,31 @@ export default async function RaceLivePage({
             );
             return null;
           });
+  const selectedStageResultAvailable = Boolean(
+    officialResults?.stages.some(
+      (candidate) => candidate.stageId === stage.id,
+    ),
+  );
+  const replayRequested = resolvedSearchParams.replay === "1";
+  const shouldLoadReplay =
+    !resultsOnlyNationalChampionship &&
+    (state.status === "live" ||
+      (state.status === "finished" &&
+        selectedStageResultAvailable &&
+        replayRequested));
+  const lockedSimulationDirectory: LockedOfficialRaceSimulationDirectory =
+    !shouldLoadReplay
+      ? {}
+      : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
+          (error: unknown) => {
+            console.error(
+              "Impossible de verrouiller le scénario officiel :",
+              error,
+            );
+            return {};
+          },
+        );
+  const lockedSimulations = lockedSimulationDirectory[edition.id] ?? [];
 
   const directorResult = isNationalChampionship
     ? { data: null as DirectorRow | null, error: null }
@@ -250,6 +262,7 @@ export default async function RaceLivePage({
           />
         ) : (
           <RaceStageExperience
+            key={replayRequested ? "replay" : "results"}
             entry={{ edition, stage }}
             nowIso={now.toISOString()}
             officialResults={officialResults}
@@ -257,6 +270,7 @@ export default async function RaceLivePage({
             initialMessages={initialMessages}
             lockedSimulations={lockedSimulations}
             postRaceInterview={postRaceInterview}
+            replayRequested={replayRequested}
             initialClassification={
               resolvedSearchParams.classement === "general"
                 ? "general"

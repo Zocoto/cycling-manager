@@ -68,6 +68,7 @@ export function RaceStageExperience({
   initialMessages,
   lockedSimulations,
   postRaceInterview,
+  replayRequested = false,
   initialClassification,
 }: {
   entry: RaceStageEntry;
@@ -77,6 +78,7 @@ export function RaceStageExperience({
   initialMessages: RaceLiveMessage[];
   lockedSimulations: LockedOfficialStageSimulation[];
   postRaceInterview: PostRaceInterviewSnapshot | null;
+  replayRequested?: boolean;
   initialClassification?: "general";
 }) {
   const now = useSynchronizedRaceClock(nowIso, 15_000);
@@ -99,7 +101,7 @@ export function RaceStageExperience({
     )
   );
   const [view, setView] = useState<"live" | "results">(
-    state.status === "finished" && resultAvailable
+    state.status === "finished" && resultAvailable && !replayRequested
       ? "results"
       : "live"
   );
@@ -236,6 +238,55 @@ export function RaceStageExperience({
     );
   }
 
+  if (
+    state.status === "finished" &&
+    !resultAvailable &&
+    lockedSimulations.length === 0
+  ) {
+    return (
+      <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-sm">
+        <div className="grid gap-7 p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">
+              Arrivée franchie
+            </p>
+            <h2 className="mt-3 text-2xl font-black text-[#0B302B] sm:text-3xl">
+              Le classement se met en place
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#5E746D]">
+              La page reste disponible pendant l’homologation. Le classement
+              apparaîtra automatiquement dès qu’il sera prêt.
+            </p>
+            <div className="mt-6">
+              <RaceStageProfile
+                segments={entry.stage.segments}
+                tone="light"
+                showLegend
+              />
+            </div>
+          </div>
+          <div
+            role="status"
+            className="rounded-2xl border border-[#176951]/15 bg-[#EAF5F0] p-6 text-[#0B302B]"
+          >
+            <div className="h-2 overflow-hidden rounded-full bg-[#176951]/10">
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-[#278B70]" />
+            </div>
+            <p className="mt-4 text-sm font-black">
+              {isSettlementPending
+                ? "Homologation en cours…"
+                : "Actualisation automatique…"}
+            </p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-[#5E746D]">
+              Vous pouvez continuer à naviguer : aucun rechargement manuel
+              n’est nécessaire.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#315B3E]/15 bg-white px-5 py-4 shadow-sm">
@@ -259,7 +310,19 @@ export function RaceStageExperience({
       >
         <button
           type="button"
-          onClick={() => setView("live")}
+          onClick={() => {
+            if (
+              state.status === "finished" &&
+              resultAvailable &&
+              lockedSimulations.length === 0
+            ) {
+              router.replace(
+                `/jeu/resultats/${encodeURIComponent(entry.edition.slug)}/${entry.stage.stageNumber}?replay=1`,
+              );
+              return;
+            }
+            setView("live");
+          }}
           aria-pressed={view === "live"}
           className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${
             view === "live"

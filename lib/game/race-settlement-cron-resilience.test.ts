@@ -28,7 +28,8 @@ describe("race settlement cron resilience", () => {
     expect(runner).toContain("includeEngagedCounts: false");
     expect(runner).toContain("includeEngagedRiders: false");
     expect(runner).toContain("isRaceEditionSettlementCandidate");
-    expect(runner).toContain("raceEditionIds: targetEditionIds");
+    expect(runner).toContain("claim_race_editions_for_settlement");
+    expect(runner).toContain("raceEditionIds: claimedEditionIds");
     expect(runner).toContain("repairableCompletedEditionIds");
   });
 });

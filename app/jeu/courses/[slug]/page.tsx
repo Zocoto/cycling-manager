@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { RaceSettlementWatcher } from "@/components/game/race-settlement-watcher";
 import {
   RaceProfileContent,
   type RaceProfilePageProps,
@@ -35,12 +34,7 @@ export default async function RaceProfilePage(
     redirect("/jeu/championnats-nationaux");
   }
 
-  return (
-    <>
-      <RaceSettlementWatcher raceSlug={slug} />
-      <RaceProfileContent {...props} />
-    </>
-  );
+  return <RaceProfileContent {...props} />;
 }
 
 function getNationalChampionshipDisciplineFromSlug(slug: string) {

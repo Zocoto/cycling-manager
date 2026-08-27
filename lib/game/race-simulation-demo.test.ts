@@ -119,6 +119,71 @@ describe("createCalendarSimulationInput", () => {
     expect(riders.map((rider) => rider.role)).toEqual(["domestique", "leader"]);
   });
 
+  it("assainit les doublons historiques de leaders sans modifier la startlist", () => {
+    const riders = [
+      {
+        ...createRider("leader-faible", "team-a"),
+        role: "leader" as const,
+        ratings: {
+          ...createRider("leader-faible", "team-a").ratings,
+          mountain: 61,
+        },
+      },
+      {
+        ...createRider("leader-fort", "team-a"),
+        role: "leader" as const,
+        ratings: {
+          ...createRider("leader-fort", "team-a").ratings,
+          mountain: 82,
+        },
+      },
+    ];
+    const edition = createEdition({ slug: "tour-anciens-leaders", riders });
+    edition.stages[0].profileType = "mountain";
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "leaders-assainis",
+    });
+
+    expect(input.riders.map((rider) => [rider.id, rider.role])).toEqual([
+      ["leader-faible", "auto"],
+      ["leader-fort", "leader"],
+    ]);
+    expect(riders.map((rider) => rider.role)).toEqual(["leader", "leader"]);
+  });
+
+  it("privilégie une consigne d'étape quand plusieurs sprinteurs subsistent", () => {
+    const riders = [
+      {
+        ...createRider("sprinteur-general", "team-a"),
+        role: "sprinter" as const,
+        ratings: {
+          ...createRider("sprinteur-general", "team-a").ratings,
+          sprint: 88,
+        },
+      },
+      createRider("sprinteur-etape", "team-a"),
+    ];
+    const edition = createEdition({ slug: "tour-anciens-sprinteurs", riders });
+    edition.stages[0].riderRoleOverrides = {
+      "sprinteur-etape": "sprinter",
+    };
+
+    const input = createCalendarSimulationInput({
+      edition,
+      stage: edition.stages[0],
+      seed: "sprinteurs-assainis",
+    });
+
+    expect(input.riders.map((rider) => [rider.id, rider.role])).toEqual([
+      ["sprinteur-etape", "sprinter"],
+      ["sprinteur-general", "auto"],
+    ]);
+    expect(riders.map((rider) => rider.role)).toEqual(["sprinter", "auto"]);
+  });
+
   it("utilise le montage propre à l'étape sans l'exposer au moteur", () => {
     const rider = createRider("rider-a", "team-a");
     const edition = createEdition({
