@@ -12,6 +12,7 @@ import { COUNTRY_EXPANSION_BATCH_01_SPONSORS } from "./country-expansion-batch-0
 import { COUNTRY_EXPANSION_BATCH_02_SPONSORS } from "./country-expansion-batch-02";
 import { COUNTRY_EXPANSION_BATCH_03_SPONSORS } from "./country-expansion-batch-03";
 import { COUNTRY_EXPANSION_BATCH_04_SPONSORS } from "./country-expansion-batch-04";
+import { COUNTRY_EXPANSION_BATCH_05_SPONSORS } from "./country-expansion-batch-05";
 import { CYCLING_PROJECT_SPONSORS } from "./cycling-projects";
 import { ENERGY_SPONSORS } from "./energy";
 import { FAST_FOOD_SPONSORS } from "./fast-food";
@@ -45,6 +46,7 @@ const RAW_SPONSORS = [
   ...COUNTRY_EXPANSION_BATCH_02_SPONSORS,
   ...COUNTRY_EXPANSION_BATCH_03_SPONSORS,
   ...COUNTRY_EXPANSION_BATCH_04_SPONSORS,
+  ...COUNTRY_EXPANSION_BATCH_05_SPONSORS,
   ...CONFECTIONERY_SPONSORS,
   ...ENERGY_SPONSORS,
   ...BANKING_SPONSORS,
