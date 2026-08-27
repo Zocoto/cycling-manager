@@ -35,7 +35,7 @@ describe("race preparation after a withdrawal", () => {
     expect(migration).toContain(
       "stage_rider_unavailabilities_edition_rider_idx",
     );
-    expect(migration).toContain("v_available_equipment_roster_cte");
+    expect(migration).toContain("v_available_unqualified_roster_filter");
   });
 
   it("removes stale tactics assigned to riders no longer displayed", () => {

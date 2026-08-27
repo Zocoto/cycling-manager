@@ -22,19 +22,15 @@ declare
     '      where unavailable.race_edition_id = p_race_edition_id' || chr(10) ||
     '        and unavailable.rider_id = roster.rider_id' || chr(10) ||
     '    )';
-  v_equipment_roster_cte constant text :=
-    'from public.race_rosters' || chr(10) ||
-    '      where race_registration_id = v_registration.id' || chr(10) ||
-    '        and status in (''selected'', ''confirmed'')';
-  v_available_equipment_roster_cte constant text :=
-    'from public.race_rosters as roster' || chr(10) ||
-    '      where roster.race_registration_id = v_registration.id' || chr(10) ||
-    '        and roster.status in (''selected'', ''confirmed'')' || chr(10) ||
+  v_unqualified_roster_filter constant text :=
+    'and status in (''selected'', ''confirmed'')';
+  v_available_unqualified_roster_filter constant text :=
+    'and status in (''selected'', ''confirmed'')' || chr(10) ||
     '        and not exists (' || chr(10) ||
     '          select 1' || chr(10) ||
     '          from public.stage_rider_unavailabilities as unavailable' || chr(10) ||
     '          where unavailable.race_edition_id = p_race_edition_id' || chr(10) ||
-    '            and unavailable.rider_id = roster.rider_id' || chr(10) ||
+    '            and unavailable.rider_id = race_rosters.rider_id' || chr(10) ||
     '        )';
 begin
   v_signature :=
@@ -126,11 +122,19 @@ begin
     v_match_count := (
       length(v_definition) - length(replace(v_definition, v_roster_filter, ''))
     ) / length(v_roster_filter);
-    if v_match_count <> 2
-      or position(v_equipment_roster_cte in v_definition) = 0
-    then
+    if v_match_count <> 2 then
       raise exception
         'La fonction save_current_team_race_equipment_plan a une définition roster inattendue (% filtres qualifiés).',
+        v_match_count;
+    end if;
+    v_match_count := (
+      length(v_definition) - length(
+        replace(v_definition, v_unqualified_roster_filter, '')
+      )
+    ) / length(v_unqualified_roster_filter);
+    if v_match_count <> 1 then
+      raise exception
+        'La fonction save_current_team_race_equipment_plan a % filtre roster non qualifié au lieu de 1.',
         v_match_count;
     end if;
     v_patched_definition := replace(
@@ -140,8 +144,8 @@ begin
     );
     v_patched_definition := replace(
       v_patched_definition,
-      v_equipment_roster_cte,
-      v_available_equipment_roster_cte
+      v_unqualified_roster_filter,
+      v_available_unqualified_roster_filter
     );
     if v_patched_definition = v_definition then
       raise exception
