@@ -358,6 +358,11 @@ export function buildPersistedStageRaceStandings(
   const byPoints = (first: [string, number], second: [string, number]) =>
     second[1] - first[1] || first[0].localeCompare(second[0]);
   const generalClassification = buildPersistedGeneralClassification(stageResults);
+  const activeTeamIds = new Set(
+    generalClassification.flatMap((result) =>
+      result.status === "finished" ? [result.teamId] : [],
+    ),
+  );
 
   return {
     mountain: [...mountainPoints.entries()]
@@ -380,6 +385,7 @@ export function buildPersistedStageRaceStandings(
         elapsedTimeSeconds: Math.round((result.elapsedTimeMs ?? 0) / 1_000),
       })),
     teams: [...teamTimes.entries()]
+      .filter(([teamId]) => activeTeamIds.has(teamId))
       .sort(
         (first, second) =>
           first[1] - second[1] || first[0].localeCompare(second[0])

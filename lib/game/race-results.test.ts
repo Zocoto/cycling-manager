@@ -445,5 +445,8 @@ describe("buildPersistedStageRaceStandings", () => {
     expect(standings.mountain.map((row) => row.riderId)).toEqual([
       coquinous.riderId,
     ]);
+    expect(standings.teams.map((row) => row.teamId)).toEqual([
+      coquinous.teamId,
+    ]);
   });
 });

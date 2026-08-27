@@ -5324,6 +5324,12 @@ export function buildStageRaceStandings(
       (first, second) =>
         first[1] - second[1] || first[0].localeCompare(second[0]),
     );
+  const activeTeamIds = new Set(
+    general.flatMap(([riderId]) => {
+      const teamId = riderById.get(riderId)?.teamId;
+      return teamId ? [teamId] : [];
+    }),
+  );
 
   return {
     general: general.map(([riderId, elapsedTimeSeconds]) => ({
@@ -5345,6 +5351,7 @@ export function buildStageRaceStandings(
         elapsedTimeSeconds,
       })),
     teams: [...teamTimes.entries()]
+      .filter(([teamId]) => activeTeamIds.has(teamId))
       .sort((first, second) => first[1] - second[1])
       .map(([teamId, elapsedTimeSeconds]) => ({
         teamId,

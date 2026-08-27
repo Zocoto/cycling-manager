@@ -2127,6 +2127,44 @@ describe("simulateRaceStage", () => {
     });
   });
 
+  it("retire du classement par équipes une formation sans coureur encore classé", () => {
+    const stage = simulateRaceStage(
+      createDemoSimulationInput("sprint-littoral", 12),
+    );
+    const eliminatedTeamId = stage.resolvedRiders[0]!.teamId;
+    const eliminatedRiderIds = new Set(
+      stage.resolvedRiders
+        .filter((rider) => rider.teamId === eliminatedTeamId)
+        .map((rider) => rider.id),
+    );
+
+    const standings = buildStageRaceStandings([
+      {
+        ...stage,
+        results: stage.results.map((result) =>
+          eliminatedRiderIds.has(result.riderId)
+            ? {
+                ...result,
+                rank: null,
+                status: "did_not_finish" as const,
+              }
+            : result,
+        ),
+      },
+    ]);
+
+    expect(standings.general).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ riderId: [...eliminatedRiderIds][0] }),
+      ]),
+    );
+    expect(standings.teams).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ teamId: eliminatedTeamId }),
+      ]),
+    );
+  });
+
   it("keeps five closely matched mountain favorites in contention without flattening the hierarchy", () => {
     const winnerCounts = new Map<string, number>();
     let racesWithDecisiveFavoriteAttack = 0;
