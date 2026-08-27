@@ -9,6 +9,7 @@ import {
 export const STAFF_TALENT_SLOTS_MAX = 3;
 export const STAFF_NATIONALITY_EFFICIENCY_BONUS_PERCENTAGE = 10;
 export const ARCHITECT_BUILDING_EFFICIENCY_PERCENTAGE_PER_LEVEL = 2;
+export const SCOUT_ACADEMY_TRAINING_PERCENTAGE_PER_LEVEL = 3;
 export const COMMUNITY_GROWTH_BONUS_PERCENTAGE_PER_LEVEL = 3;
 
 export const STAFF_TALENTS_BY_ROLE = {
@@ -41,6 +42,7 @@ export const STAFF_TALENTS_BY_ROLE = {
     "scout_youth_talent",
     "scout_youth_ratings",
     "scout_tuition_cost",
+    "scout_academy_training",
   ],
   trainer: [
     "trainer_mountain",
@@ -217,6 +219,12 @@ export const STAFF_TALENT_DEFINITIONS: Record<
     description: (level) =>
       `−${percentage(level, 3)} % sur les frais de scolarité des jeunes trouvés`,
   },
+  scout_academy_training: {
+    role: "scout",
+    label: "Pédagogie junior",
+    description: (level) =>
+      `+${getScoutAcademyTrainingBonusPercentage(level)} % d’efficacité sur les entraînements des jeunes trouvés tant qu’ils restent à l’école`,
+  },
   trainer_mountain: trainerTalent("mountain"),
   trainer_hills: trainerTalent("hills"),
   trainer_flat: trainerTalent("flat"),
@@ -368,6 +376,15 @@ export function getArchitectBuildingEfficiencyBonusPercentage(
   );
 }
 
+export function getScoutAcademyTrainingBonusPercentage(
+  level: number,
+): number {
+  return (
+    normalizeStaffLevel(level) *
+    SCOUT_ACADEMY_TRAINING_PERCENTAGE_PER_LEVEL
+  );
+}
+
 export function selectInitialStaffTalent({
   role,
   roll,
@@ -429,6 +446,9 @@ export function getScoutTalentBonuses(
     potentialBonus: has("scout_youth_talent") ? safeLevel * 0.15 : 0,
     initialRatingBonus: has("scout_youth_ratings") ? safeLevel * 0.02 : 0,
     tuitionReductionPercentage: has("scout_tuition_cost") ? safeLevel * 3 : 0,
+    academyTrainingBonusPercentage: has("scout_academy_training")
+      ? getScoutAcademyTrainingBonusPercentage(safeLevel)
+      : 0,
   };
 }
 

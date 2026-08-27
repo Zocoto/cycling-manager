@@ -302,6 +302,36 @@ describe("youth training", () => {
     expect(manualDayGain / automaticGain).toBeLessThanOrEqual(1.5);
   });
 
+  it("applique le bonus de l école de façon identique aux deux modes", () => {
+    const context = {
+      age: 17,
+      potentialSteps: 6,
+      currentProjectedRating: 62,
+      profilePeakRating: 68,
+      profileAverageRating: 58,
+      sessionVariance: 1,
+      domain: "climber" as const,
+      ratingKey: "mountain" as const,
+    };
+    const automaticBase = calculateYouthAutomaticTrainingGain(context);
+    const automaticBoosted = calculateYouthAutomaticTrainingGain({
+      ...context,
+      schoolTrainingBonusPercentage: 15,
+    });
+    const manualBase = calculateYouthManualTrainingGain({
+      ...context,
+      score: 850,
+    });
+    const manualBoosted = calculateYouthManualTrainingGain({
+      ...context,
+      score: 850,
+      schoolTrainingBonusPercentage: 15,
+    });
+
+    expect(automaticBoosted / automaticBase).toBeCloseTo(1.15, 10);
+    expect(manualBoosted / manualBase).toBeCloseTo(1.15, 10);
+  });
+
   it("freine surtout la statistique forte et plus légèrement tout le profil", () => {
     const freshProfileFactor = getYouthProfileLoadFactor({
       profilePeakRating: 65,

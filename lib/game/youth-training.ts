@@ -305,6 +305,7 @@ export function calculateYouthManualTrainingGain({
   profilePeakRating = currentProjectedRating,
   profileAverageRating = currentProjectedRating,
   sessionVariance = 1,
+  schoolTrainingBonusPercentage = 0,
   domain,
   ratingKey,
 }: {
@@ -314,6 +315,7 @@ export function calculateYouthManualTrainingGain({
   profilePeakRating?: number;
   profileAverageRating?: number;
   sessionVariance?: number;
+  schoolTrainingBonusPercentage?: number;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
@@ -335,7 +337,8 @@ export function calculateYouthManualTrainingGain({
       sessionVariance,
       YOUTH_TRAINING_VARIANCE_MIN,
       YOUTH_TRAINING_VARIANCE_MAX,
-    )
+    ) *
+    getYouthSchoolTrainingMultiplier(schoolTrainingBonusPercentage)
   );
 }
 
@@ -345,6 +348,7 @@ export function calculateYouthAutomaticTrainingGain({
   profilePeakRating = currentProjectedRating,
   profileAverageRating = currentProjectedRating,
   sessionVariance = 1,
+  schoolTrainingBonusPercentage = 0,
   domain,
   ratingKey,
 }: {
@@ -354,6 +358,7 @@ export function calculateYouthAutomaticTrainingGain({
   profilePeakRating?: number;
   profileAverageRating?: number;
   sessionVariance?: number;
+  schoolTrainingBonusPercentage?: number;
   domain: YouthTrainingDomain;
   ratingKey: RiderRatingKey;
 }) {
@@ -372,8 +377,18 @@ export function calculateYouthAutomaticTrainingGain({
       sessionVariance,
       YOUTH_TRAINING_VARIANCE_MIN,
       YOUTH_TRAINING_VARIANCE_MAX,
-    )
+    ) *
+    getYouthSchoolTrainingMultiplier(schoolTrainingBonusPercentage)
   );
+}
+
+export function getYouthSchoolTrainingMultiplier(
+  bonusPercentage: number,
+): number {
+  const safeBonus = Number.isFinite(bonusPercentage)
+    ? clamp(bonusPercentage, 0, 100)
+    : 0;
+  return 1 + safeBonus / 100;
 }
 
 export function projectYouthRating(rawRating: number) {

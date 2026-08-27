@@ -4,6 +4,8 @@ import {
   STAFF_TALENT_DEFINITIONS,
   describeStaffTalent,
   getArchitectBuildingEfficiencyBonusPercentage,
+  getScoutAcademyTrainingBonusPercentage,
+  getScoutTalentBonuses,
   getStaffTalentCodes,
   getTrainerTalentSpecialty,
   isStaffTalentForRole,
@@ -12,6 +14,31 @@ import {
 import { STAFF_ROLES } from "@/lib/game/staff";
 
 describe("staff talents", () => {
+  it("propose la pédagogie junior aux scouts", () => {
+    expect(getStaffTalentCodes("scout")).toContain(
+      "scout_academy_training",
+    );
+    expect(describeStaffTalent("scout_academy_training", 4)).toContain(
+      "+12 %",
+    );
+  });
+
+  it("applique trois pour cent par niveau du scout", () => {
+    expect(
+      Array.from({ length: 5 }, (_, index) =>
+        getScoutAcademyTrainingBonusPercentage(index + 1),
+      ),
+    ).toEqual([3, 6, 9, 12, 15]);
+    expect(
+      getScoutTalentBonuses(["scout_academy_training"], 5)
+        .academyTrainingBonusPercentage,
+    ).toBe(15);
+    expect(
+      getScoutTalentBonuses(["scout_report_size"], 5)
+        .academyTrainingBonusPercentage,
+    ).toBe(0);
+  });
+
   it("defines at least three compatible talents for every staff role", () => {
     for (const role of STAFF_ROLES) {
       const codes = getStaffTalentCodes(role);

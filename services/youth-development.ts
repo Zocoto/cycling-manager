@@ -147,6 +147,7 @@ type CandidateRow = {
   prologue: number | string;
   signing_fee: number | string;
   tuition_per_season: number | string;
+  scout_training_bonus_percentage: number | string;
   status: "spotted" | "signed" | "expired";
   international_center_bonus_applied: boolean;
   international_center_bonus_percentage: number;
@@ -1085,6 +1086,12 @@ async function completeMission(admin: AdminClient, mission: MissionRow) {
       avatar_seed: `-${identity.avatar_seed}`,
       ...ratingsToRow(ratings),
       signing_fee: costs.signingFee,
+      scout_training_bonus_percentage:
+        Math.round(
+          talentBonuses.academyTrainingBonusPercentage *
+            nationalityAffinity *
+            100,
+        ) / 100,
       tuition_per_season: Math.max(
         500,
         Math.round(
@@ -1223,6 +1230,9 @@ async function settleAcademyDailyOperations(
           profilePeakRating,
           profileAverageRating,
           sessionVariance,
+          schoolTrainingBonusPercentage: toNumber(
+            rider.scout_training_bonus_percentage,
+          ),
           domain: rider.training_priority,
           ratingKey: key,
         });
