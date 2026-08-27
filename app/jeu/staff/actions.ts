@@ -73,7 +73,7 @@ export async function dismissStaffMemberAction(formData: FormData) {
     redirect("/connexion");
   }
 
-  const { error } = await supabase.rpc("dismiss_current_team_staff", {
+  const { data, error } = await supabase.rpc("dismiss_current_team_staff", {
     p_contract_id: contractId,
   });
 
@@ -91,7 +91,9 @@ export async function dismissStaffMemberAction(formData: FormData) {
   redirectWithMessage(
     returnPath,
     "succes",
-    "Le membre du staff a été licencié et son indemnité a été débitée.",
+    Number(data) === 0
+      ? "Le membre du staff a été licencié. Aucune indemnité n’a été débitée."
+      : "Le membre du staff a été licencié et son indemnité a été débitée.",
   );
 }
 

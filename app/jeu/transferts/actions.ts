@@ -174,6 +174,9 @@ export async function dismissRiderAction(formData: FormData) {
   const currency = result && "currency" in result && typeof result.currency === "string"
     ? result.currency
     : "EUR";
+  const mutualAgreement = Boolean(
+    result && "mutualAgreement" in result && result.mutualAgreement,
+  );
 
   revalidateTransferPaths();
   revalidatePath(`/jeu/coureurs/${riderId}`);
@@ -181,7 +184,9 @@ export async function dismissRiderAction(formData: FormData) {
   redirectWithMessage(
     returnPath,
     "succes",
-    `Le contrat a été rompu. ${formatMoney(compensation, currency)} ont été réglés immédiatement.`,
+    mutualAgreement
+      ? "Le contrat a été rompu gratuitement dans le cadre d’un licenciement à l’amiable."
+      : `Le contrat a été rompu. ${formatMoney(compensation, currency)} ont été réglés immédiatement.`,
   );
 }
 

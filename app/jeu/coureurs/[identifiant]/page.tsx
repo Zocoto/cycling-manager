@@ -75,6 +75,10 @@ import { getRiderEquipmentManagement } from "@/services/team-equipment";
 import { getRiderTransferManagement } from "@/services/transfer-market";
 import { getActiveTeamSponsorIdentity } from "@/services/team-sponsor-identity";
 import {
+  isMutualAgreementDismissal,
+  resolveDismissalCost,
+} from "@/lib/game/mutual-dismissal";
+import {
   dismissRiderAction,
   renewRiderContractAction,
   signFreeAgentAction,
@@ -951,7 +955,12 @@ function RiderDismissalCard({
   >;
 }) {
   if (!management.canDismiss || management.dismissalCost === null) return null;
-  const canAfford = management.dismissalCost <= management.cashBalance;
+  const mutualAgreement = isMutualAgreementDismissal(management.cashBalance);
+  const dismissalCost = resolveDismissalCost(
+    management.cashBalance,
+    management.dismissalCost,
+  );
+  const canAfford = mutualAgreement || dismissalCost <= management.cashBalance;
 
   return (
     <article className="rounded-[2rem] border border-[#C94F4F]/25 bg-[#FFF6F3] p-6 shadow-[0_16px_45px_rgba(111,38,38,0.08)]">
@@ -962,15 +971,18 @@ function RiderDismissalCard({
         Licencier le coureur
       </h2>
       <p className="mt-3 text-sm font-semibold leading-6 text-[#7F5D58]">
-        Tous les salaires restant jusqu’à l’échéance, y compris les saisons déjà
-        signées, sont réglés immédiatement. Le coureur devient agent libre.
+        {mutualAgreement
+          ? "Votre trésorerie négative ouvre un licenciement à l’amiable sans indemnité. Le coureur devient agent libre."
+          : "Tous les salaires restant jusqu’à l’échéance, y compris les saisons déjà signées, sont réglés immédiatement. Le coureur devient agent libre."}
       </p>
       <div className="mt-4 rounded-xl border border-[#C94F4F]/15 bg-white px-4 py-3">
         <p className="text-[10px] font-black uppercase tracking-wider text-[#9D6767]">
-          Solde contractuel
+          {mutualAgreement ? "Licenciement à l’amiable" : "Solde contractuel"}
         </p>
         <p className="mt-1 text-xl font-black text-[#B54242]">
-          {formatMoney(management.dismissalCost, management.dismissalCurrency)}
+          {mutualAgreement
+            ? "Gratuit"
+            : formatMoney(dismissalCost, management.dismissalCurrency)}
         </p>
       </div>
       <form action={dismissRiderAction} className="mt-4 space-y-4">
@@ -987,7 +999,9 @@ function RiderDismissalCard({
             disabled={!canAfford}
             className="mt-0.5 h-4 w-4 accent-[#B54242]"
           />
-          Je confirme la rupture définitive du contrat et le paiement immédiat.
+          {mutualAgreement
+            ? "Je confirme la rupture définitive et gratuite du contrat à l’amiable."
+            : "Je confirme la rupture définitive du contrat et le paiement immédiat."}
         </label>
         {!canAfford ? (
           <p className="text-xs font-bold text-[#B54242]">
@@ -999,7 +1013,7 @@ function RiderDismissalCard({
           tone="dark"
           disabled={!canAfford}
         >
-          Régler et licencier
+          {mutualAgreement ? "Licencier à l’amiable" : "Régler et licencier"}
         </TransferSubmitButton>
       </form>
     </article>

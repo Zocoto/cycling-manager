@@ -6,6 +6,10 @@ import {
   hireStaffMemberAction,
   naturalizeStaffMemberAction,
 } from "@/app/jeu/staff/actions";
+import {
+  isMutualAgreementDismissal,
+  resolveDismissalCost,
+} from "@/lib/game/mutual-dismissal";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import {
@@ -543,7 +547,12 @@ function TeamStaffCard({
   naturalization: TeamStaffOverview["staffNaturalization"];
 }) {
   const definition = STAFF_ROLE_DEFINITIONS[member.role];
-  const balanceAfterDismissal = currentBalance - member.dismissalCompensation;
+  const mutualAgreement = isMutualAgreementDismissal(currentBalance);
+  const dismissalCompensation = resolveDismissalCost(
+    currentBalance,
+    member.dismissalCompensation,
+  );
+  const balanceAfterDismissal = currentBalance - dismissalCompensation;
 
   return (
     <article className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_38px_rgba(19,60,46,0.08)]">
@@ -597,10 +606,14 @@ function TeamStaffCard({
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#A12E2E]">
-              Indemnité de rupture
+              {mutualAgreement
+                ? "Licenciement à l’amiable"
+                : "Indemnité de rupture"}
             </p>
             <p className="mt-1 text-lg font-black text-[#7E2424]">
-              {formatMoney(member.dismissalCompensation, member.currency)}
+              {mutualAgreement
+                ? "Gratuit"
+                : formatMoney(dismissalCompensation, member.currency)}
             </p>
           </div>
           <p
@@ -614,10 +627,16 @@ function TeamStaffCard({
           </p>
         </div>
         <div className="mt-3 grid gap-1 text-[11px] font-semibold leading-5 text-[#775959]">
-          <p>
-            Saison en cours ·{" "}
-            {formatMoney(member.remainingCurrentSeasonSalary, member.currency)}
-          </p>
+          {mutualAgreement ? (
+            <p>
+              Trésorerie négative · aucune indemnité ne sera débitée.
+            </p>
+          ) : (
+            <p>
+              Saison en cours ·{" "}
+              {formatMoney(member.remainingCurrentSeasonSalary, member.currency)}
+            </p>
+          )}
         </div>
       </div>
       {member.contractId ? (
@@ -626,7 +645,7 @@ function TeamStaffCard({
           <StaffDismissalSubmitButton
             staffName={`${member.firstName} ${member.lastName}`}
             compensationLabel={formatMoney(
-              member.dismissalCompensation,
+              dismissalCompensation,
               member.currency,
             )}
             currentSeasonLabel={formatMoney(
@@ -638,6 +657,7 @@ function TeamStaffCard({
               member.currency,
             )}
             resultingBalanceIsNegative={balanceAfterDismissal < 0}
+            mutualAgreement={mutualAgreement}
           />
         </form>
       ) : null}

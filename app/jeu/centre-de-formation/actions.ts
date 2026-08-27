@@ -211,7 +211,11 @@ export async function dismissYouthRiderAction(formData: FormData) {
   redirectWithMessage(
     "ecole",
     "succes",
-    release.freeAgent
+    release.mutualAgreement
+      ? release.freeAgent
+        ? `${release.riderName} a quitté l’école à l’amiable, sans frais, et rejoint les agents libres.`
+        : `${release.riderName} a quitté l’école à l’amiable, sans frais. Comme il a moins de 16 ans, il ne rejoint pas les agents libres.`
+      : release.freeAgent
       ? `${release.riderName} a quitté l’école et rejoint les agents libres. ${formatMoney(release.tuitionCost, release.currency)} ont été débités immédiatement.`
       : `${release.riderName} a quitté l’école. Comme il a moins de 16 ans, il ne rejoint pas les agents libres. ${formatMoney(release.tuitionCost, release.currency)} ont été débités immédiatement.`,
   );
@@ -272,11 +276,15 @@ function readYouthDismissalResult(data: unknown) {
   const freeAgent = Boolean(
     result && "freeAgent" in result && result.freeAgent,
   );
+  const mutualAgreement = Boolean(
+    result && "mutualAgreement" in result && result.mutualAgreement,
+  );
   return {
     riderName,
     tuitionCost: Number.isFinite(tuitionCost) ? tuitionCost : 0,
     currency,
     freeAgent,
+    mutualAgreement,
   };
 }
 

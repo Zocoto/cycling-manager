@@ -9,6 +9,10 @@ import {
   recruitYouthRiderAction,
   signYouthCandidateAction,
 } from "@/app/jeu/centre-de-formation/actions";
+import {
+  isMutualAgreementDismissal,
+  resolveDismissalCost,
+} from "@/lib/game/mutual-dismissal";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import {
   DevelopmentTeamPanel,
@@ -877,6 +881,12 @@ function AcademyRiderCard({
   canSchedulePromotion: boolean;
   rosterLimit: number;
 }) {
+  const mutualAgreement = isMutualAgreementDismissal(balance);
+  const dismissalCost = resolveDismissalCost(
+    balance,
+    rider.tuitionPerSeason,
+  );
+
   return (
     <article
       data-academy-rider-card
@@ -997,14 +1007,16 @@ function AcademyRiderCard({
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.1em] text-[#8A2F2F] marker:content-none">
               <span>Renvoyer ce junior</span>
               <span className="rounded-full bg-white px-3 py-1.5 text-[#A12E2E] shadow-sm">
-                {formatCurrency(rider.tuitionPerSeason, currency)}
+                {mutualAgreement
+                  ? "Gratuit · à l’amiable"
+                  : formatCurrency(dismissalCost, currency)}
               </span>
             </summary>
             <div className="border-t border-[#C94848]/15 p-3 sm:p-4">
               <p className="text-xs font-bold leading-5 text-[#775959]">
-                Le coût annuel de scolarité sera débité immédiatement. Les
-                échéances encore en attente seront annulées et cette décision
-                est définitive.
+                {mutualAgreement
+                  ? "Votre trésorerie négative permet un licenciement à l’amiable sans coût. Les échéances encore en attente seront annulées et cette décision est définitive."
+                  : "Le coût annuel de scolarité sera débité immédiatement. Les échéances encore en attente seront annulées et cette décision est définitive."}
               </p>
               <p className="mt-2 text-xs font-semibold leading-5 text-[#775959]">
                 {rider.age >= 16
@@ -1021,7 +1033,7 @@ function AcademyRiderCard({
                   Sa promotion déjà programmée en équipe première sera annulée.
                 </p>
               ) : null}
-              {balance >= rider.tuitionPerSeason ? (
+              {mutualAgreement || balance >= dismissalCost ? (
                 <form action={dismissYouthRiderAction} className="mt-3 space-y-3">
                   <input
                     type="hidden"
@@ -1034,12 +1046,12 @@ function AcademyRiderCard({
                       required
                       className="mt-0.5 h-4 w-4 accent-[#B54242]"
                     />
-                    Je confirme le renvoi définitif et le paiement immédiat de
-                    {" "}
-                    {formatCurrency(rider.tuitionPerSeason, currency)}.
+                    {mutualAgreement
+                      ? "Je confirme le renvoi définitif et gratuit à l’amiable."
+                      : `Je confirme le renvoi définitif et le paiement immédiat de ${formatCurrency(dismissalCost, currency)}.`}
                   </label>
                   <button className="min-h-11 w-full rounded-xl border border-[#C94848]/35 bg-[#FFF1F1] px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-[#A12E2E] transition hover:bg-[#FDE3E3]">
-                    Payer et renvoyer
+                    {mutualAgreement ? "Renvoyer à l’amiable" : "Payer et renvoyer"}
                   </button>
                 </form>
               ) : (
