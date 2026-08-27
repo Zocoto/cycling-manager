@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 
 import {
   archiveDirectorMessageAction,
-  markAllDirectorMessagesReadAction,
   markDirectorMessageUnreadAction,
   restoreDirectorMessageAction,
 } from "@/app/jeu/messagerie/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { DirectorMailboxMarkAllReadButton } from "@/components/game/director-mailbox-mark-all-read-button";
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
 import { GameHeader } from "@/components/game/game-header";
 import { RecruitmentAlertPanel } from "@/components/game/recruitment-alert-panel";
@@ -123,14 +123,7 @@ export default async function DirectorMailboxPage({
               ) : null}
             </Link>
             {mailbox.counts.unread > 0 ? (
-              <form action={markAllDirectorMessagesReadAction}>
-                <button
-                  type="submit"
-                  className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[#176951]/25 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  Tout marquer comme lu
-                </button>
-              </form>
+              <DirectorMailboxMarkAllReadButton />
             ) : null}
           </div>
         </header>

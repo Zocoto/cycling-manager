@@ -10,7 +10,10 @@ import {
 } from "react";
 
 import { CYCLOGAZETTE_READ_EVENT } from "@/lib/game/cyclogazette-read-sync";
-import { DIRECTOR_MAILBOX_CHANGED_EVENT } from "@/lib/game/director-mailbox-sync";
+import {
+  DIRECTOR_MAILBOX_CHANGED_EVENT,
+  type DirectorMailboxChangedDetail,
+} from "@/lib/game/director-mailbox-sync";
 import { DIRECT_MESSAGES_CHANGED_EVENT } from "@/lib/game/direct-message-sync";
 import { GLOBAL_CHAT_MESSAGES_READ_EVENT } from "@/lib/game/global-chat-read-sync";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -95,6 +98,26 @@ export function GameHeaderIndicatorsProvider({
       if (document.visibilityState === "visible") scheduleRefresh(0);
     }
 
+    function handleDirectorMailboxChanged(event: Event) {
+      const unreadCount = (
+        event as CustomEvent<DirectorMailboxChangedDetail>
+      ).detail?.unreadCount;
+
+      if (Number.isFinite(unreadCount)) {
+        const normalizedUnreadCount = Math.max(
+          0,
+          Math.trunc(unreadCount ?? 0),
+        );
+        requestVersionRef.current += 1;
+        setIndicators((current) => ({
+          ...current,
+          mailboxUnreadCount: normalizedUnreadCount,
+        }));
+      }
+
+      refreshWhenVisible();
+    }
+
     function acknowledgeGlobalChatRead() {
       requestVersionRef.current += 1;
       setIndicators((current) => ({
@@ -113,7 +136,7 @@ export function GameHeaderIndicatorsProvider({
 
     window.addEventListener(
       DIRECTOR_MAILBOX_CHANGED_EVENT,
-      refreshWhenVisible,
+      handleDirectorMailboxChanged,
     );
     window.addEventListener(
       DIRECT_MESSAGES_CHANGED_EVENT,
@@ -189,7 +212,7 @@ export function GameHeaderIndicatorsProvider({
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
       window.removeEventListener(
         DIRECTOR_MAILBOX_CHANGED_EVENT,
-        refreshWhenVisible,
+        handleDirectorMailboxChanged,
       );
       window.removeEventListener(
         DIRECT_MESSAGES_CHANGED_EVENT,

@@ -15,6 +15,17 @@ const gameLayout = readFileSync(
   join(process.cwd(), "app/jeu/layout.tsx"),
   "utf8",
 );
+const mailboxPage = readFileSync(
+  join(process.cwd(), "app/jeu/messagerie/page.tsx"),
+  "utf8",
+);
+const markAllReadButton = readFileSync(
+  join(
+    process.cwd(),
+    "components/game/director-mailbox-mark-all-read-button.tsx",
+  ),
+  "utf8",
+);
 
 const shortcutSources = [
   "director-mailbox-shortcut.tsx",
@@ -41,6 +52,17 @@ describe("game header indicators provider", () => {
   it("coalesces bursts and ignores stale refreshes", () => {
     expect(provider).toContain("if (refreshTimer !== null) window.clearTimeout(refreshTimer)");
     expect(provider).toContain("requestVersion !== requestVersionRef.current");
+  });
+
+  it("clears the mailbox badge as soon as all messages are marked read", () => {
+    expect(mailboxPage).toContain("<DirectorMailboxMarkAllReadButton />");
+    expect(markAllReadButton).toContain(
+      "await markAllDirectorMessagesReadAction()",
+    );
+    expect(markAllReadButton).toContain("notifyDirectorMailboxChanged(0)");
+    expect(provider).toContain("function handleDirectorMailboxChanged");
+    expect(provider).toContain("mailboxUnreadCount: normalizedUnreadCount");
+    expect(provider).toContain("refreshWhenVisible();");
   });
 
   it("persists across game navigations instead of reconnecting per page", () => {
