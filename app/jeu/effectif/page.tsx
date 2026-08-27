@@ -1380,29 +1380,31 @@ function formatMedicalDate(value: string) {
 }
 
 function RatingLegend() {
+  const bands = [
+    { value: 49, label: "< 50" },
+    { value: 50, label: "50–54" },
+    { value: 55, label: "55–59" },
+    { value: 60, label: "60–64" },
+    { value: 65, label: "65–69" },
+    { value: 70, label: "70–74" },
+    { value: 75, label: "75–79" },
+    { value: 80, label: "80–84" },
+    { value: 85, label: "85–89" },
+    { value: 90, label: "90–94" },
+    { value: 95, label: "95+" },
+  ] as const;
+
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
       <span className="text-[#BFD1C6]">Échelle :</span>
-
-      <span className="rounded-md bg-white px-2 py-1 text-[#48665F]">
-        &lt; 50
-      </span>
-
-      <span className="rounded-md bg-[#DDF3E3] px-2 py-1 text-[#2C6A3F]">
-        50+
-      </span>
-
-      <span className="rounded-md bg-[#A9DFB7] px-2 py-1 text-[#174E2A]">
-        60+
-      </span>
-
-      <span className="rounded-md bg-[#3F8F5A] px-2 py-1 text-white">70+</span>
-
-      <span className="rounded-md bg-[#F4B04D] px-2 py-1 text-[#5B3100]">
-        80+
-      </span>
-
-      <span className="rounded-md bg-[#D84B4B] px-2 py-1 text-white">90+</span>
+      {bands.map((band) => (
+        <span
+          key={band.value}
+          className={`rounded-md border px-2 py-1 ${getRiderRatingColorClasses(band.value)}`}
+        >
+          {band.label}
+        </span>
+      ))}
     </div>
   );
 }
