@@ -22,12 +22,13 @@ describe("résilience du Bureau des transferts", () => {
     const route = read("app/api/cron/transfer-market/route.ts");
     const config = read("vercel.json");
     const migration = read(
-      "supabase/migrations/20260821200000_serialize_transfer_market_settlements.sql",
+      "supabase/migrations/20260827053000_make_auction_settlement_incremental.sql",
     );
 
     expect(route).toContain("runTransferMarketMaintenance");
     expect(config).toContain('"/api/cron/transfer-market"');
     expect(migration).toContain("pg_try_advisory_xact_lock");
-    expect(migration).toContain("limit 20");
+    expect(migration).toContain("limit 2");
+    expect(route).toContain("console.error");
   });
 });

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const auctionMigration = read(
-  "supabase/migrations/20260824100000_bind_auction_bids_and_extend_late_closes.sql",
+  "supabase/migrations/20260827053000_make_auction_settlement_incremental.sql",
 );
 const repairMigration = read(
   "supabase/migrations/20260824101000_repair_gambo_foe_auction.sql",
@@ -41,6 +41,20 @@ describe("intégrité des enchères", () => {
     expect(transferPage).toContain("autant de fois que nécessaire");
   });
 
+  it("ne fait plus dépendre une nouvelle offre d’un lourd règlement global", () => {
+    const bidFunction = auctionMigration.slice(
+      auctionMigration.indexOf(
+        "create or replace function public.place_transfer_bid",
+      ),
+      auctionMigration.indexOf(
+        "revoke all on function public.settle_transfer_market()",
+      ),
+    );
+
+    expect(bidFunction).not.toContain("perform public.settle_transfer_market()");
+    expect(auctionMigration).toContain("limit 2");
+  });
+
   it("répare Foé, les deux trésoreries et les échéances futures", () => {
     expect(repairMigration).toContain(
       "v_altimax_bid constant numeric := 23200",
@@ -71,6 +85,16 @@ describe("intégrité des enchères", () => {
     );
     expect(repairMigration).toContain(
       "'auction-correction:' || v_listing_id::text || ':ecuador'",
+    );
+  });
+
+  it("compense Alioch avec un objet de niveau 8 traçable", () => {
+    expect(auctionMigration).toContain("catalog.importance = 8");
+    expect(auctionMigration).toContain(
+      "source_auction_compensation_id",
+    );
+    expect(auctionMigration).toContain(
+      "auction-correction:' || v_listing_id::text || ':alioch",
     );
   });
 });

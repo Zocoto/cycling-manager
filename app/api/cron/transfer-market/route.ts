@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     await runTransferMarketMaintenance();
     return Response.json({ settledAt: new Date().toISOString() });
   } catch (error) {
+    console.error("Échec de la maintenance du marché des transferts.", error);
     return Response.json(
       {
         error: error instanceof Error
