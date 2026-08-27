@@ -1,9 +1,52 @@
 import "server-only";
 
+import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
 import { getStageLiveState } from "@/lib/game/race-live";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
+
+export async function precomputeRequestedOfficialRaceReplay({
+  calendar,
+  raceEditionId,
+  targetStageNumber,
+  now = new Date(),
+}: {
+  calendar: SeasonRaceCalendar;
+  raceEditionId: string;
+  targetStageNumber: number;
+  now?: Date;
+}) {
+  const edition = calendar.editions.find(
+    (candidate) => candidate.id === raceEditionId,
+  );
+  if (!edition) return { loadedStages: 0, durationMs: 0 };
+
+  const replayCalendar: SeasonRaceCalendar = {
+    ...calendar,
+    editions: [
+      {
+        ...edition,
+        stages: edition.stages.filter(
+          (stage) => stage.stageNumber <= targetStageNumber,
+        ),
+      },
+    ],
+  };
+  const startedAt = Date.now();
+  const directory = await ensureLockedOfficialRaceSimulations(
+    replayCalendar,
+    now,
+  );
+  const loadedStages = directory[raceEditionId]?.length ?? 0;
+  const result = { loadedStages, durationMs: Date.now() - startedAt };
+  console.info("requested_official_race_replay_precomputed", {
+    raceEditionId,
+    targetStageNumber,
+    ...result,
+  });
+  return result;
+}
 
 export async function precomputeDueOfficialRaceSimulations(
   now = new Date(),

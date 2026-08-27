@@ -65,7 +65,7 @@ function configureWebPush() {
 }
 
 export async function dispatchDuePushNotifications({
-  limit = 50,
+  limit = 20,
   enqueueRaceLives = true,
 }: {
   limit?: number;

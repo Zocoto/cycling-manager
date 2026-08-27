@@ -34,5 +34,9 @@ describe("race route performance", () => {
     expect(stageExperience).toContain("router.refresh()");
     expect(stagePage).toContain("getLockedOfficialRaceSimulations");
     expect(stagePage).not.toContain("ensureLockedOfficialRaceSimulations");
+    expect(stagePage).toContain("precomputeRequestedOfficialRaceReplay");
+    expect(stagePage).toContain("after(async () =>");
+    expect(stagePage).toContain("[stage.id]");
+    expect(stageExperience).toContain("waitingForSimulation ? 15_000 : 5_000");
   });
 });

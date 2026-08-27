@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await dispatchDuePushNotifications({ limit: 100 });
+    const result = await dispatchDuePushNotifications({ limit: 20 });
     return Response.json({ ...result, checkedAt: new Date().toISOString() });
   } catch (error) {
     return Response.json(

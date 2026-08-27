@@ -165,7 +165,10 @@ async function requireAuthenticatedUser(
 function scheduleDirectMessagePushDispatch() {
   after(async () => {
     try {
-      await dispatchDuePushNotifications({ enqueueRaceLives: false });
+      await dispatchDuePushNotifications({
+        limit: 5,
+        enqueueRaceLives: false,
+      });
     } catch (error) {
       console.error(
         "Impossible de distribuer immédiatement la notification de message privé.",

@@ -49,12 +49,13 @@ describe("installed app push notifications", () => {
     expect(livePage).toContain("<RaceStageExperience");
   });
 
-  it("runs the secured distributor every five minutes", () => {
+  it("runs a secured, bounded distributor away from exact key hours", () => {
     const cronRoute = read("app/api/cron/push-notifications/route.ts");
     const vercel = read("vercel.json");
     expect(cronRoute).toContain("isAuthorizedCronRequest");
     expect(cronRoute).toContain("dispatchDuePushNotifications");
+    expect(cronRoute).toContain("limit: 20");
     expect(vercel).toContain('"/api/cron/push-notifications"');
-    expect(vercel).toContain('"*/5 * * * *"');
+    expect(vercel).toContain('"3,14,24,33,44,54 * * * *"');
   });
 });

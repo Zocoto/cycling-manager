@@ -1005,18 +1005,24 @@ async function prepareCurrentTransferMarket(
   const generatedListings = await ensureTodayDailyMarket(admin);
   const dailyMarketDurationMs = Date.now() - dailyMarketStartedAt;
 
-  const secondSettlementStartedAt = Date.now();
-  const { data: secondSettled, error: secondSettlementError } = await admin.rpc(
-    "settle_transfer_market",
-  );
-  assertQuery(secondSettlementError, "la clôture du marché quotidien");
+  let secondSettled = 0;
+  let secondSettlementDurationMs = 0;
+  if (generatedListings > 0) {
+    const secondSettlementStartedAt = Date.now();
+    const { data, error: secondSettlementError } = await admin.rpc(
+      "settle_transfer_market",
+    );
+    assertQuery(secondSettlementError, "la clôture du marché quotidien");
+    secondSettled = Number(data ?? 0);
+    secondSettlementDurationMs = Date.now() - secondSettlementStartedAt;
+  }
 
   return {
-    settledListings: Number(firstSettled ?? 0) + Number(secondSettled ?? 0),
+    settledListings: Number(firstSettled ?? 0) + secondSettled,
     generatedListings,
     firstSettlementDurationMs,
     dailyMarketDurationMs,
-    secondSettlementDurationMs: Date.now() - secondSettlementStartedAt,
+    secondSettlementDurationMs,
     durationMs: Date.now() - startedAt,
   };
 }

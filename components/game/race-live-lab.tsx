@@ -116,19 +116,18 @@ export function RaceLiveLab({
   mode,
   nowIso,
   lockedSimulations = [],
+  standingsOverride = null,
+  standingsBeforeStageOverride = null,
 }: {
   edition: RaceCalendarEdition;
   stage: RaceCalendarStage;
   mode: "live" | "replay";
   nowIso: string;
   lockedSimulations?: LockedOfficialStageSimulation[];
+  standingsOverride?: StageRaceStandings | null;
+  standingsBeforeStageOverride?: StageRaceStandings | null;
 }) {
-  const {
-    input,
-    simulation,
-    standings: tourStandings,
-    standingsBeforeStage,
-  } = useMemo(
+  const officialSimulationContext = useMemo(
     () =>
       getOfficialStageSimulationContext({
         edition,
@@ -137,6 +136,12 @@ export function RaceLiveLab({
       }),
     [edition, lockedSimulations, stage.id]
   );
+  const { input, simulation } = officialSimulationContext;
+  const tourStandings =
+    standingsOverride ?? officialSimulationContext.standings;
+  const standingsBeforeStage =
+    standingsBeforeStageOverride ??
+    officialSimulationContext.standingsBeforeStage;
   const favoriteRiders = useMemo(
     () =>
       getFrozenRaceFavoriteRiders(

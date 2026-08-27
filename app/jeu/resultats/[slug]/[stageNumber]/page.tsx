@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
 
 import { GameHeader } from "@/components/game/game-header";
 import { NationalChampionshipStageResults } from "@/components/game/national-championship-stage-results";
@@ -24,6 +25,7 @@ import { getRaceLiveMessages } from "@/services/race-live-chat";
 import { getOfficialRaceResults } from "@/services/race-results";
 import { getLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { getOrCreatePostRaceInterview } from "@/services/post-race-interviews";
+import { precomputeRequestedOfficialRaceReplay } from "@/services/race-simulation-runner";
 
 export const metadata: Metadata = {
   title: "Résultats de course",
@@ -130,12 +132,7 @@ export default async function RaceLivePage({
       ? {}
       : await getLockedOfficialRaceSimulations(
           calendar,
-          edition.stages
-            .filter(
-              (candidate) =>
-                candidate.stageNumber <= stage.stageNumber,
-            )
-            .map((candidate) => candidate.id),
+          [stage.id],
         ).catch(
           (error: unknown) => {
             console.error(
@@ -146,6 +143,26 @@ export default async function RaceLivePage({
           },
         );
   const lockedSimulations = lockedSimulationDirectory[edition.id] ?? [];
+  const selectedSimulationAvailable = lockedSimulations.some(
+    (simulation) => simulation.stageId === stage.id,
+  );
+  if (shouldLoadReplay && !selectedSimulationAvailable) {
+    after(async () => {
+      try {
+        await precomputeRequestedOfficialRaceReplay({
+          calendar,
+          raceEditionId: edition.id,
+          targetStageNumber: stage.stageNumber,
+          now,
+        });
+      } catch (error) {
+        console.error(
+          "Impossible de préparer le replay demandé en arrière-plan :",
+          error,
+        );
+      }
+    });
+  }
 
   const directorResult = isNationalChampionship
     ? { data: null as DirectorRow | null, error: null }

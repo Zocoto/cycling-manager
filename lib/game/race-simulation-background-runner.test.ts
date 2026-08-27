@@ -22,6 +22,7 @@ describe("background official race simulations", () => {
     expect(runner).toContain("targetedEditionIds");
     expect(runner).toContain("raceEditionIds: targetedEditionIds");
     expect(runner).toContain("ensureLockedOfficialRaceSimulations");
+    expect(runner).toContain("precomputeRequestedOfficialRaceReplay");
   });
 
   it("runs at both Paris start slots with a resilience retry", () => {

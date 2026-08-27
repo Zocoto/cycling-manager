@@ -39,11 +39,11 @@ describe("automatic scouting report settlement", () => {
     );
   });
 
-  it("runs from an authenticated cron every five minutes", () => {
+  it("runs from an authenticated cron outside exact key hours", () => {
     expect(cronRoute).toContain("isAuthorizedCronRequest(request)");
     expect(cronRoute).toContain("settleDueYouthScoutingMissions()");
     expect(vercelConfig).toContain(
-      '{ "path": "/api/cron/scouting-reports", "schedule": "*/5 * * * *" }',
+      '{ "path": "/api/cron/scouting-reports", "schedule": "5,25,35,55 * * * *" }',
     );
   });
 

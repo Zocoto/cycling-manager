@@ -6,6 +6,7 @@ import {
   useTransition,
 } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
@@ -20,9 +21,15 @@ import {
   getStageLiveState,
 } from "@/lib/game/race-live";
 import { getFrozenRaceFavoriteRiders } from "@/lib/game/race-favorites";
-import type { OfficialRaceEditionResults } from "@/lib/game/race-results";
+import {
+  buildPersistedGeneralClassification,
+  buildPersistedStageRaceStandings,
+  type OfficialRaceEditionResults,
+  type OfficialRiderResult,
+} from "@/lib/game/race-results";
 import type { PostRaceInterviewSnapshot } from "@/lib/game/post-race-interview";
 import type { LockedOfficialStageSimulation } from "@/lib/game/official-race-simulation";
+import type { StageRaceStandings } from "@/lib/game/race-simulation";
 import { useSynchronizedRaceClock } from "@/lib/game/use-synchronized-race-clock";
 import type { RaceLiveMessage } from "@/services/race-live-chat";
 
@@ -92,6 +99,8 @@ export function RaceStageExperience({
   const router = useRouter();
   const [isRefreshPending, startRefreshTransition] =
     useTransition();
+  const [isReplayNavigationPending, setIsReplayNavigationPending] =
+    useState(false);
   const resultAvailable = Boolean(
     officialResults?.stages.some(
       (stage) => stage.stageId === entry.stage.id
@@ -111,6 +120,17 @@ export function RaceStageExperience({
       ? "results"
       : "live"
   );
+  const replayHref = `/jeu/resultats/${encodeURIComponent(entry.edition.slug)}/${entry.stage.stageNumber}?replay=1`;
+  const officialStandings = buildOfficialStandings(
+    entry,
+    officialResults,
+    entry.stage.stageNumber,
+  );
+  const officialStandingsBeforeStage = buildOfficialStandings(
+    entry,
+    officialResults,
+    entry.stage.stageNumber - 1,
+  );
 
   useEffect(() => {
     if (!simulationAvailable || (!waitingForResults && !waitingForSimulation)) {
@@ -119,7 +139,7 @@ export function RaceStageExperience({
 
     const refreshTimer = window.setInterval(() => {
       startRefreshTransition(() => router.refresh());
-    }, 3_000);
+    }, waitingForSimulation ? 15_000 : 5_000);
 
     return () => window.clearInterval(refreshTimer);
   }, [
@@ -306,32 +326,34 @@ export function RaceStageExperience({
         className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-[#315B3E]/15 bg-white p-2 shadow-sm"
         aria-label="Live et résultats officiels"
       >
-        <button
-          type="button"
-          onClick={() => {
-            if (
-              state.status === "finished" &&
-              resultAvailable &&
-              !selectedSimulationAvailable
-            ) {
-              router.replace(
-                `/jeu/resultats/${encodeURIComponent(entry.edition.slug)}/${entry.stage.stageNumber}?replay=1`,
-              );
-              return;
-            }
-            setView("live");
-          }}
-          aria-pressed={view === "live"}
-          className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${
-            view === "live"
-              ? "bg-[#0B302B] text-white"
-              : "text-[#315B3E] hover:bg-[#EAF5F0]"
-          }`}
-        >
-          {state.status === "live"
-            ? "● Course en direct"
-            : "▶ Replay du live"}
-        </button>
+        {state.status === "finished" && resultAvailable && !replayRequested ? (
+          <Link
+            href={replayHref}
+            prefetch={false}
+            onClick={() => setIsReplayNavigationPending(true)}
+            aria-label="Ouvrir le replay du live"
+            className="inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-black text-[#315B3E] transition hover:bg-[#EAF5F0]"
+          >
+            {isReplayNavigationPending
+              ? "Ouverture du replay…"
+              : "▶ Replay du live"}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setView("live")}
+            aria-pressed={view === "live"}
+            className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${
+              view === "live"
+                ? "bg-[#0B302B] text-white"
+                : "text-[#315B3E] hover:bg-[#EAF5F0]"
+            }`}
+          >
+            {state.status === "live"
+              ? "● Course en direct"
+              : "▶ Replay du live"}
+          </button>
+        )}
         <button
           type="button"
           onClick={() =>
@@ -379,6 +401,8 @@ export function RaceStageExperience({
                   : nowIso
               }
               lockedSimulations={lockedSimulations}
+              standingsOverride={officialStandings}
+              standingsBeforeStageOverride={officialStandingsBeforeStage}
             />
           )}
         </div>
@@ -394,6 +418,60 @@ export function RaceStageExperience({
       </div>
     </div>
   );
+}
+
+function buildOfficialStandings(
+  entry: RaceStageEntry,
+  officialResults: OfficialRaceEditionResults | null,
+  throughStageNumber: number,
+): StageRaceStandings | null {
+  if (
+    entry.edition.raceFormat !== "stage_race" ||
+    !officialResults ||
+    throughStageNumber < 1
+  ) {
+    return null;
+  }
+
+  const stageResults = officialResults.stages
+    .filter((stage) => stage.stageNumber <= throughStageNumber)
+    .sort((first, second) => first.stageNumber - second.stageNumber)
+    .map((stage) => stage.results);
+  if (stageResults.length === 0) return null;
+
+  const secondary = buildPersistedStageRaceStandings(
+    stageResults,
+    new Map(entry.edition.engagedRiders.map((rider) => [rider.id, rider.age])),
+  );
+  const general = buildPersistedGeneralClassification(
+    stageResults.map((stage) => stage.map(toPersistedGeneralResult)),
+  )
+    .filter(
+      (result) =>
+        result.status === "finished" && result.elapsedTimeMs !== null,
+    )
+    .map((result) => ({
+      riderId: result.riderId,
+      elapsedTimeSeconds: Math.round((result.elapsedTimeMs ?? 0) / 1_000),
+    }));
+
+  return { general, ...secondary };
+}
+
+function toPersistedGeneralResult(result: OfficialRiderResult) {
+  return {
+    riderId: result.riderId,
+    riderName: result.riderName,
+    teamId: result.teamId,
+    teamProfileId: result.teamProfileId,
+    teamName: result.teamName,
+    rank: result.rank,
+    status: result.status,
+    elapsedTimeMs: result.elapsedTimeMs,
+    timeBonusSeconds: result.timeBonusSeconds,
+    timePenaltySeconds: result.timePenaltySeconds,
+    abandonmentReason: result.abandonmentReason,
+  };
 }
 
 function RaceModuleLoading() {
