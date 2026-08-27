@@ -702,11 +702,11 @@ export function DirectMessagingPanel({
     <div
       className={
         active
-          ? "grid min-h-[34rem] lg:h-[46rem] lg:grid-cols-[20rem_minmax(0,1fr)]"
+          ? "grid min-h-[34rem] min-w-0 max-w-full grid-cols-[minmax(0,1fr)] overflow-hidden lg:h-[46rem] lg:grid-cols-[20rem_minmax(0,1fr)]"
           : "hidden"
       }
     >
-      <aside className="border-b border-[#315B3E]/12 bg-[#071A17] text-white lg:border-b-0 lg:border-r">
+      <aside className="min-w-0 border-b border-[#315B3E]/12 bg-[#071A17] text-white lg:border-b-0 lg:border-r">
         <header className="border-b border-white/10 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -863,7 +863,7 @@ export function DirectMessagingPanel({
       <section className="flex min-h-[34rem] min-w-0 flex-col bg-[#F7FBF9] lg:min-h-0">
         {activeConversation ? (
           <>
-            <header className="flex min-h-[4.75rem] items-center gap-3 border-b border-[#315B3E]/12 bg-white px-5 py-3 sm:px-7">
+            <header className="flex min-h-[4.75rem] min-w-0 items-center gap-3 border-b border-[#315B3E]/12 bg-white px-4 py-3 sm:px-7">
               <Avatar
                 name={activeConversation.counterpartDisplayName}
                 avatarKey={activeConversation.counterpartAvatarKey}
@@ -889,7 +889,7 @@ export function DirectMessagingPanel({
 
             <div
               ref={viewportRef}
-              className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-5 sm:px-7"
+              className="min-h-0 w-full min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-3 py-5 sm:px-7"
               aria-live="polite"
               aria-relevant="additions"
             >
@@ -937,12 +937,12 @@ export function DirectMessagingPanel({
                 return (
                   <article
                     key={message.id}
-                    className={`flex ${
+                    className={`flex min-w-0 ${
                       isCurrentDirector ? "justify-end" : "justify-start"
                     }`}
                   >
                     <div
-                      className={`max-w-[min(40rem,85%)] rounded-2xl border px-4 py-2.5 shadow-sm ${
+                      className={`min-w-0 max-w-[92%] overflow-hidden rounded-2xl border px-3 py-2.5 shadow-sm sm:max-w-[min(40rem,85%)] sm:px-4 ${
                         isCurrentDirector
                           ? "rounded-br-sm border-[#176951] bg-[#176951] text-white"
                           : "rounded-bl-sm border-[#315B3E]/12 bg-white text-[#0B302B]"
@@ -951,7 +951,7 @@ export function DirectMessagingPanel({
                       {isMessageEditing ? (
                         <form
                           onSubmit={submitMessageEdit}
-                          className="space-y-2"
+                          className="min-w-0 space-y-2"
                         >
                           <label
                             htmlFor={`edit-direct-message-${message.id}`}
@@ -979,7 +979,7 @@ export function DirectMessagingPanel({
                                 event.currentTarget.form?.requestSubmit();
                               }
                             }}
-                            className="w-full resize-y rounded-xl border border-white/25 bg-black/15 px-3 py-2 text-sm font-semibold leading-6 text-white outline-none focus:border-[#F2C94C] focus:ring-2 focus:ring-[#F2C94C]/25"
+                            className="w-full min-w-0 max-w-full resize-y rounded-xl border border-white/25 bg-black/15 px-3 py-2 text-base font-semibold leading-6 text-white outline-none focus:border-[#F2C94C] focus:ring-2 focus:ring-[#F2C94C]/25 sm:text-sm"
                           />
                           <div className="flex flex-wrap items-center justify-end gap-2">
                             {editingError ? (
@@ -1012,7 +1012,7 @@ export function DirectMessagingPanel({
                       ) : (
                         <p
                           data-i18n-skip
-                          className="whitespace-pre-wrap break-words text-sm font-semibold leading-6"
+                          className="whitespace-pre-wrap break-words text-sm font-semibold leading-6 [overflow-wrap:anywhere]"
                         >
                           {message.body}
                         </p>
@@ -1051,7 +1051,7 @@ export function DirectMessagingPanel({
 
             <form
               onSubmit={submitMessage}
-              className="border-t border-[#315B3E]/12 bg-white p-4 sm:px-7"
+              className="min-w-0 border-t border-[#315B3E]/12 bg-white p-3 sm:px-7 sm:py-4"
             >
               <label htmlFor="direct-message-body" className="sr-only">
                 Votre message privé
@@ -1074,7 +1074,7 @@ export function DirectMessagingPanel({
                     }
                   }}
                   placeholder={`Écrire à ${activeConversation.counterpartDisplayName}…`}
-                  className="min-h-[3.25rem] min-w-0 flex-1 resize-none rounded-xl border border-[#315B3E]/20 bg-[#F7FBF9] px-4 py-3 text-sm font-semibold leading-6 text-[#0B302B] outline-none transition focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15"
+                  className="min-h-[3.25rem] min-w-0 max-w-full flex-1 resize-none rounded-xl border border-[#315B3E]/20 bg-[#F7FBF9] px-4 py-3 text-base font-semibold leading-6 text-[#0B302B] outline-none transition focus:border-[#176951] focus:ring-2 focus:ring-[#176951]/15 sm:text-sm"
                 />
                 <button
                   type="submit"
@@ -1085,17 +1085,17 @@ export function DirectMessagingPanel({
                   {isSending ? "…" : <SendIcon />}
                 </button>
               </div>
-              <div className="mt-2 flex min-h-5 items-center gap-3">
+              <div className="mt-2 flex min-h-5 min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                 <p
                   role="alert"
                   className="min-w-0 flex-1 text-[10px] font-bold text-red-700"
                 >
                   {error}
                 </p>
-                <p className="shrink-0 text-[9px] font-bold text-[#789087]">
+                <p className="ml-auto shrink-0 text-[9px] font-bold text-[#789087]">
                   {draft.length}/{DIRECT_MESSAGE_MAX_LENGTH}
                 </p>
-                <p className="w-full text-[9px] font-semibold text-[#789087]">
+                <p className="basis-full text-[9px] font-semibold leading-4 text-[#789087]">
                   Liens autorisés : fiches coureurs, équipes et DS Cyclo Stratège
                 </p>
               </div>
