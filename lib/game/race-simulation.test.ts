@@ -17,6 +17,7 @@ import {
   decideLargeBreakawayStandoff,
   getLargeBreakawayDynamics,
   getLeadingFinishGroupRiderIds,
+  getStageGeneralClassificationInterest,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
   isMassGroupFinish,
@@ -401,6 +402,30 @@ describe("simulateRaceStage", () => {
     expect(
       getBreakawayGeneralClassificationThreat(["far"], generalClassification),
     ).toBe(0);
+    expect(
+      getBreakawayGeneralClassificationThreat(
+        ["far"],
+        generalClassification,
+        300,
+      ),
+    ).toBeGreaterThan(0.2);
+  });
+
+  it("distingue une étape de transition d’une arrivée décisive au sommet", () => {
+    const transition = createDemoSimulationInput("collines-ardennes", 1);
+    const summit = createDemoSimulationInput("haute-montagne", 1);
+
+    expect(
+      getStageGeneralClassificationInterest(
+        transition.profileType,
+        transition.segments,
+      ),
+    ).toBeLessThan(
+      getStageGeneralClassificationInterest(
+        summit.profileType,
+        summit.segments,
+      ),
+    );
   });
   it("simule un contre-la-montre avec un seul engagé (championnat national)", () => {
     const base = createDemoSimulationInput("sprint-littoral", 7);
@@ -1305,6 +1330,44 @@ describe("simulateRaceStage", () => {
 
     expect(outcomes).toContain(true);
     expect(outcomes).toContain(false);
+  });
+
+  it("ouvre réellement les étapes vallonnées de transition aux baroudeurs", () => {
+    const morningBreakawayWins = Array.from({ length: 80 }, (_, index) => {
+      const baseInput = createDemoSimulationInput(
+        "collines-ardennes",
+        index + 1,
+      );
+      const simulation = simulateRaceStage({
+        ...baseInput,
+        isStageRace: true,
+        stageNumber: 14,
+        stageCount: 21,
+        generalClassification: baseInput.riders.map((rider, riderIndex) => ({
+          riderId: rider.id,
+          elapsedTimeSeconds:
+            10_000 +
+            (rider.role === "leader"
+              ? (riderIndex % 5) * 35
+              : 1_050 + riderIndex * 11),
+        })),
+      });
+      const winnerId = simulation.results.find(
+        (result) => result.status === "finished" && result.rank === 1,
+      )?.riderId;
+      const winnerAttack = getStageAttackParticipants(simulation).find(
+        (participant) => participant.riderId === winnerId,
+      );
+
+      return (
+        winnerAttack?.participationType === "breakaway" &&
+        winnerAttack.firstSegmentNumber <=
+          Math.max(2, Math.ceil(baseInput.segments.length * 0.25))
+      );
+    }).filter(Boolean).length;
+
+    expect(morningBreakawayWins).toBeGreaterThanOrEqual(20);
+    expect(morningBreakawayWins).toBeLessThanOrEqual(60);
   });
 
   it("favorise nettement les puncheurs face aux baroudeurs sur une étape vallonnée", () => {

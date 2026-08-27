@@ -31,7 +31,7 @@ export type OfficialStageSimulationContext = OfficialStageSimulationRun & {
 };
 
 export const OFFICIAL_RACE_ENGINE_VERSION =
-  "2026.08-adaptive-dynamics-v15";
+  "2026.08-breakaway-realism-v16";
 
 export type LockedOfficialStageSimulation = {
   stageId: string;

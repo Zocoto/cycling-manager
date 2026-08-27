@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   evolveRacePursuitState,
+  getPelotonBreakawayReleaseChance,
   getRacePursuitTargetPressure,
   INITIAL_RACE_PURSUIT_STATE,
+  shouldResumePelotonChase,
+  type PelotonBreakawayReleaseContext,
   type RacePursuitContext,
 } from "./race-pursuit-dynamics";
 
@@ -21,6 +24,21 @@ const baseContext: RacePursuitContext = {
   isWet: false,
   likelyMassSprint: false,
   pelotonHasGivenUp: false,
+};
+
+const releaseContext: PelotonBreakawayReleaseContext = {
+  isStageRace: true,
+  hasEstablishedGeneralClassification: true,
+  raceProgress: 0.58,
+  tourProgress: 0.62,
+  breakawaySize: 4,
+  breakawayGapSeconds: 260,
+  generalClassificationThreat: 0.05,
+  generalClassificationStageInterest: 0.28,
+  explicitChaseDemand: 0,
+  pelotonAverageEnergy: 42,
+  breakawayAverageEnergy: 55,
+  likelyMassSprint: false,
 };
 
 describe("continuous race pursuit dynamics", () => {
@@ -100,5 +118,68 @@ describe("continuous race pursuit dynamics", () => {
 
     expect(state.pressure).toBeLessThan(0.75);
     expect(state.phase).toBe("watching");
+  });
+});
+
+describe("stage-race breakaway release", () => {
+  it("can let a single harmless attacker go without a size threshold", () => {
+    const soloChance = getPelotonBreakawayReleaseChance({
+      ...releaseContext,
+      breakawaySize: 1,
+    });
+    const largeGroupChance = getPelotonBreakawayReleaseChance({
+      ...releaseContext,
+      breakawaySize: 12,
+    });
+
+    expect(soloChance).toBeGreaterThan(0);
+    expect(largeGroupChance).toBeGreaterThan(soloChance);
+  });
+
+  it("keeps the chase when the break threatens GC or a DS explicitly controls", () => {
+    const safeChance = getPelotonBreakawayReleaseChance(releaseContext);
+    const dangerousChance = getPelotonBreakawayReleaseChance({
+      ...releaseContext,
+      generalClassificationThreat: 0.9,
+    });
+    const orderedChaseChance = getPelotonBreakawayReleaseChance({
+      ...releaseContext,
+      explicitChaseDemand: 1,
+    });
+
+    expect(dangerousChance).toBeLessThan(safeChance);
+    expect(orderedChaseChance).toBe(0);
+    expect(
+      shouldResumePelotonChase({
+        generalClassificationThreat: 0.1,
+        explicitChaseDemand: 0.9,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not manufacture a tactical release before GC exists", () => {
+    expect(
+      getPelotonBreakawayReleaseChance({
+        ...releaseContext,
+        hasEstablishedGeneralClassification: false,
+      }),
+    ).toBe(0);
+    expect(
+      getPelotonBreakawayReleaseChance({
+        ...releaseContext,
+        isStageRace: false,
+      }),
+    ).toBe(0);
+  });
+
+  it("makes a sprint stage much harder for the break than a transition day", () => {
+    const transitionChance = getPelotonBreakawayReleaseChance(releaseContext);
+    const sprintChance = getPelotonBreakawayReleaseChance({
+      ...releaseContext,
+      generalClassificationStageInterest: 0.08,
+      likelyMassSprint: true,
+    });
+
+    expect(transitionChance).toBeGreaterThan(sprintChance + 0.05);
   });
 });

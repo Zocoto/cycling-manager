@@ -26,11 +26,106 @@ export type RacePursuitContext = {
   pelotonHasGivenUp: boolean;
 };
 
+export type PelotonBreakawayReleaseContext = {
+  isStageRace: boolean;
+  hasEstablishedGeneralClassification: boolean;
+  raceProgress: number;
+  tourProgress: number;
+  breakawaySize: number;
+  breakawayGapSeconds: number;
+  generalClassificationThreat: number;
+  generalClassificationStageInterest: number;
+  explicitChaseDemand: number;
+  pelotonAverageEnergy: number;
+  breakawayAverageEnergy: number;
+  likelyMassSprint: boolean;
+};
+
 export const INITIAL_RACE_PURSUIT_STATE: RacePursuitState = {
   pressure: 0.12,
   targetPressure: 0.12,
   phase: "watching",
 };
+
+/**
+ * Probability, evaluated once per authored stage segment, that the peloton
+ * stops riding for the stage win. Unlike the former large-breakaway standoff,
+ * this decision deliberately has no minimum breakaway size: tactical safety
+ * and team interest matter more than the raw number of riders up the road.
+ */
+export function getPelotonBreakawayReleaseChance({
+  isStageRace,
+  hasEstablishedGeneralClassification,
+  raceProgress,
+  tourProgress,
+  breakawaySize,
+  breakawayGapSeconds,
+  generalClassificationThreat,
+  generalClassificationStageInterest,
+  explicitChaseDemand,
+  pelotonAverageEnergy,
+  breakawayAverageEnergy,
+  likelyMassSprint,
+}: PelotonBreakawayReleaseContext) {
+  if (
+    !isStageRace ||
+    !hasEstablishedGeneralClassification ||
+    breakawaySize <= 0 ||
+    breakawayGapSeconds < 55 ||
+    raceProgress < 0.18
+  ) {
+    return 0;
+  }
+
+  const generalSafety = 1 - clamp(generalClassificationThreat, 0, 1);
+  const quietStage = 1 - clamp(generalClassificationStageInterest, 0, 1);
+  const establishedGap = smoothstep(55, 330, breakawayGapSeconds);
+  const decisionWindow = smoothstep(0.18, 0.54, raceProgress);
+  const accumulatedTourFatigue = clamp(tourProgress, 0, 1);
+  const pelotonConservationNeed = clamp(
+    (52 - pelotonAverageEnergy) / 34,
+    0,
+    1,
+  );
+  const breakawayEnergyEdge = clamp(
+    0.5 + (breakawayAverageEnergy - pelotonAverageEnergy) / 45,
+    0,
+    1,
+  );
+  const groupCredibility = clamp(
+    Math.log2(Math.max(1, breakawaySize) + 1) / 4.25,
+    0.16,
+    1,
+  );
+  const sprintPenalty = likelyMassSprint ? 0.34 : 0;
+  const chaseOrderPenalty = clamp(explicitChaseDemand, 0, 1) * 0.46;
+  const releaseScore =
+    generalSafety * 0.38 +
+    quietStage * 0.2 +
+    establishedGap * 0.16 +
+    accumulatedTourFatigue * 0.08 +
+    pelotonConservationNeed * 0.07 +
+    breakawayEnergyEdge * 0.05 +
+    groupCredibility * 0.08 -
+    sprintPenalty -
+    chaseOrderPenalty;
+
+  return clamp(
+    Math.max(0, releaseScore - 0.43) * 0.22 * decisionWindow,
+    0,
+    0.24,
+  );
+}
+
+export function shouldResumePelotonChase({
+  generalClassificationThreat,
+  explicitChaseDemand,
+}: Pick<
+  PelotonBreakawayReleaseContext,
+  "generalClassificationThreat" | "explicitChaseDemand"
+>) {
+  return generalClassificationThreat >= 0.46 || explicitChaseDemand >= 0.78;
+}
 
 /**
  * Continuous target replacing abrupt early/mid/late race thresholds. Existing
