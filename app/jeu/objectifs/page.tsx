@@ -12,6 +12,7 @@ import {
 import { ObjectiveClaimButton } from "@/components/game/objective-claim-button";
 import { ObjectiveFilters } from "@/components/game/objective-filters";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
+import { TrophyNotificationsSeenMarker } from "@/components/game/trophy-notifications-seen-marker";
 import Link from "@/components/ui/app-link";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
@@ -184,6 +185,9 @@ export default async function ObjectivesPage({
 
   return (
     <main className="min-h-screen bg-[#EAF5F3] text-[#082A2A]">
+      {selectedTab === "trophees" ? (
+        <TrophyNotificationsSeenMarker />
+      ) : null}
       <GameHeader
         simulatorEmail={user.email}
         displayName={headerData.displayName}

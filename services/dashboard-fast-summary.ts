@@ -28,6 +28,7 @@ type DashboardFastSummaryRow = {
   objective_total_count: number;
   objective_ready_count: number;
   trophy_reward_count: number;
+  unread_trophy_count: number;
   daily_reward_available: boolean;
 };
 
@@ -51,6 +52,7 @@ export type DashboardFastSummary = {
   objectiveTotalCount: number;
   objectiveReadyCount: number;
   trophyRewardCount: number;
+  unreadTrophyCount: number;
   dailyRewardAvailable: boolean;
 };
 
@@ -58,7 +60,7 @@ export async function getCurrentDashboardFastSummary(
   supabase: SupabaseServerClient,
 ): Promise<DashboardFastSummary | null> {
   const result = await supabase
-    .rpc("get_current_dashboard_fast_summary")
+    .rpc("get_current_dashboard_fast_summary_v2")
     .maybeSingle<DashboardFastSummaryRow>();
 
   if (result.error) {
@@ -90,6 +92,7 @@ export async function getCurrentDashboardFastSummary(
     objectiveTotalCount: row.objective_total_count,
     objectiveReadyCount: row.objective_ready_count,
     trophyRewardCount: row.trophy_reward_count,
+    unreadTrophyCount: row.unread_trophy_count,
     dailyRewardAvailable: row.daily_reward_available,
   };
 }

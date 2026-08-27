@@ -13,6 +13,33 @@ import { isStaffRole } from "@/lib/game/staff";
 import { redeemCustomStaffRecruitmentReward } from "@/services/daily-reward-recruitment";
 import type { ClaimAlphaTesterTrophyState } from "@/app/jeu/objectifs/alpha-tester-trophy-state";
 
+export async function markTrophyNotificationsSeenAction() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await supabase.auth.getUser();
+
+  if (authenticationError || !user) {
+    return { updatedCount: 0 };
+  }
+
+  const { data, error } = await supabase.rpc(
+    "mark_current_trophy_notifications_seen",
+  );
+
+  if (error) {
+    console.error(
+      "Impossible d’acquitter les notifications de trophées :",
+      error,
+    );
+    return { updatedCount: 0 };
+  }
+
+  revalidatePath("/jeu");
+  return { updatedCount: Math.max(0, Number(data ?? 0)) };
+}
+
 export async function claimGameObjectiveAction(formData: FormData) {
   const objectiveKey = readValue(formData, "objectiveKey");
   const returnPath = sanitizeObjectivesReturnPath(

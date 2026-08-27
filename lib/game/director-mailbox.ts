@@ -17,6 +17,7 @@ export type DirectorMessageType =
   | "wildcard"
   | "academy"
   | "infrastructure"
+  | "trophy"
   | "system";
 
 export type DirectorMessageActionLink = {
@@ -75,6 +76,7 @@ export const DIRECTOR_MESSAGE_TYPE_LABELS: Record<
   wildcard: "Invitation",
   academy: "Formation",
   infrastructure: "Infrastructures",
+  trophy: "Trophée",
   system: "Direction",
 };
 

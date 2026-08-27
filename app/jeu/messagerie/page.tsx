@@ -435,11 +435,18 @@ function MessageTypeMark({ type }: { type: DirectorMessageType }) {
     wildcard: "WC",
     academy: "A",
     infrastructure: "I",
+    trophy: "T",
     system: "DS",
   };
 
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#176951] text-[10px] font-black text-white shadow-sm">
+    <span
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[10px] font-black shadow-sm ${
+        type === "trophy"
+          ? "bg-[#F2C94C] text-[#183F37]"
+          : "bg-[#176951] text-white"
+      }`}
+    >
       {initials[type]}
     </span>
   );

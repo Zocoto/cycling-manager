@@ -569,6 +569,7 @@ export default async function GamePage() {
   const sponsoringUnlocked = isSponsoringUnlocked(reputationPoints);
   const objectiveTotalCount = dashboardFastSummary?.objectiveTotalCount ?? 0;
   const trophyRewardCount = dashboardFastSummary?.trophyRewardCount ?? 0;
+  const unreadTrophyCount = dashboardFastSummary?.unreadTrophyCount ?? 0;
   const readyRewardCount =
     (dashboardFastSummary?.objectiveReadyCount ?? 0) +
     trophyRewardCount +
@@ -610,6 +611,7 @@ export default async function GamePage() {
                 totalCount={objectiveTotalCount}
                 readyCount={readyRewardCount}
                 trophyRewardCount={trophyRewardCount}
+                unreadTrophyCount={unreadTrophyCount}
               />
               <JerseyShortcut />
             </div>
@@ -1357,21 +1359,34 @@ function ObjectivesShortcut({
   totalCount,
   readyCount,
   trophyRewardCount,
+  unreadTrophyCount,
 }: {
   totalCount: number;
   readyCount: number;
   trophyRewardCount: number;
+  unreadTrophyCount: number;
 }) {
+  const hasRewards = readyCount > 0;
+  const hasNewTrophies = unreadTrophyCount > 0;
+  const rewardLabel = `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`;
+  const trophyLabel = `${unreadTrophyCount} nouveau${unreadTrophyCount > 1 ? "x" : ""} trophée${unreadTrophyCount > 1 ? "s" : ""}`;
+
   return (
     <Link
       href={
-        trophyRewardCount > 0
+        hasNewTrophies
+          ? "/jeu/objectifs?onglet=trophees"
+          : trophyRewardCount > 0
           ? "/jeu/objectifs?onglet=trophees#trophee-alpha-tester"
           : "/jeu/objectifs"
       }
       title={
-        readyCount > 0
-          ? `${readyCount} récompense${readyCount > 1 ? "s" : ""} à récupérer`
+        hasRewards && hasNewTrophies
+          ? `${rewardLabel} · ${trophyLabel}`
+          : hasRewards
+            ? rewardLabel
+            : hasNewTrophies
+              ? trophyLabel
           : `Consulter les récompenses et trophées (${totalCount} objectifs suivis)`
       }
       className="group relative flex min-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[#A67C00]/55 bg-[#F2C94C] px-3 py-2.5 text-[#183F37] shadow-[0_12px_30px_rgba(122,91,9,0.2)] transition hover:-translate-y-0.5 hover:bg-[#FFDB63] hover:shadow-[0_16px_34px_rgba(122,91,9,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#183F37] sm:min-w-32"
@@ -1390,15 +1405,30 @@ function ObjectivesShortcut({
           <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
           <path d="M8 6H5v2a4 4 0 0 0 4 4M16 6h3v2a4 4 0 0 1-4 4M12 13v4M9 20h6M10 17h4" />
         </svg>
-        {readyCount > 0 ? (
-          <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#C72F5E] px-1 text-[9px] font-black leading-none text-white">
-            {readyCount > 9 ? "9+" : readyCount}
+        {hasRewards || hasNewTrophies ? (
+          <span className="absolute -right-2 -top-2 flex items-center gap-0.5">
+            {hasRewards ? (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#C72F5E] px-1 text-[9px] font-black leading-none text-white">
+                {readyCount > 9 ? "9+" : readyCount}
+              </span>
+            ) : null}
+            {hasNewTrophies ? (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full border-2 border-[#F2C94C] bg-[#2F6EC7] px-1 text-[9px] font-black leading-none text-white">
+                {unreadTrophyCount > 9 ? "9+" : unreadTrophyCount}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </span>
       <span className="text-xs font-black text-[#183F37]">Récompenses</span>
       <span className="text-[9px] font-extrabold leading-none text-[#594408]">
-        {readyCount > 0 ? "À récupérer" : "Objectifs & trophées"}
+        {hasRewards && hasNewTrophies
+          ? "Gains & nouveaux trophées"
+          : hasRewards
+            ? "À récupérer"
+            : hasNewTrophies
+              ? "Nouveau trophée"
+              : "Objectifs & trophées"}
       </span>
     </Link>
   );
