@@ -176,6 +176,7 @@ export type RiderSimulationInput = {
   }>;
   role: RaceRole;
   raceDuty?: RiderRaceDuty | null;
+  generalClassificationProtected?: boolean;
   mountainPointsTarget?: boolean;
   specialAbility?: RiderSpecialAbility | null;
   specialAbilities?: RiderSpecialAbility[];
@@ -1018,6 +1019,7 @@ function normalizeStageSimulationInput(
     eligibleInput.riders,
     eligibleInput.segments,
     eligibleInput.profileType,
+    eligibleInput.generalClassification,
   );
   const normalizedInput = {
     ...eligibleInput,
@@ -1313,14 +1315,26 @@ export function assignAutomaticRaceRoles(
   riders: RiderSimulationInput[],
   segments: RaceStageSegment[],
   profileType: RaceProfileType = "mixed",
+  generalClassification?: StageSimulationInput["generalClassification"],
 ) {
   validateExplicitRoles(riders);
-  const resolved = riders.map((rider) => ({ ...rider }));
+  const generalClassificationProtectedRiderIds =
+    getGeneralClassificationProtectedRiderIds(generalClassification);
+  const resolved = riders.map((rider) => ({
+    ...rider,
+    generalClassificationProtected:
+      rider.generalClassificationProtected === true ||
+      generalClassificationProtectedRiderIds.has(rider.id),
+  }));
   const teams = groupBy(resolved, (rider) => rider.teamId);
   const likelySprint = isLikelyMassSprint(segments);
 
   for (const teamRiders of teams.values()) {
     const automatic = () => teamRiders.filter((rider) => rider.role === "auto");
+    const automaticSupport = () =>
+      automatic().filter(
+        (rider) => rider.generalClassificationProtected !== true,
+      );
     const hasRole = (role: RaceRole) =>
       teamRiders.some((rider) => rider.role === role);
 
@@ -1343,7 +1357,7 @@ export function assignAutomaticRaceRoles(
 
     if (likelySprint && !hasRole("leadout")) {
       setBestAutomaticRole(
-        automatic(),
+        automaticSupport(),
         "leadout",
         (rider) =>
           rider.ratings.flat * 0.34 +
@@ -1355,7 +1369,7 @@ export function assignAutomaticRaceRoles(
 
     if (!hasRole("free_agent")) {
       setBestAutomaticRole(
-        automatic(),
+        automaticSupport(),
         "free_agent",
         (rider) =>
           rider.ratings.breakaway * 0.56 +
@@ -1375,8 +1389,17 @@ export function assignAutomaticRaceRoles(
 export function assignRaceObjectiveDuties(
   input: StageSimulationInput,
 ): RiderSimulationInput[] {
+  const generalClassificationProtectedRiderIds =
+    getGeneralClassificationProtectedRiderIds(input.generalClassification);
   const riders = input.riders.map((rider) => {
-    const resolved = { ...rider };
+    const generalClassificationProtected =
+      rider.generalClassificationProtected === true ||
+      generalClassificationProtectedRiderIds.has(rider.id);
+    const resolved = {
+      ...rider,
+      generalClassificationProtected,
+      ...(generalClassificationProtected ? { raceDuty: null } : {}),
+    };
     delete resolved.mountainPointsTarget;
     return resolved;
   });
@@ -1473,6 +1496,7 @@ function rankObjectiveCandidates(
 
 function isAvailableObjectiveCandidate(rider: RiderSimulationInput) {
   return (
+    rider.generalClassificationProtected !== true &&
     rider.role !== "leader" &&
     rider.role !== "sprinter" &&
     (rider.raceDuty === undefined ||
@@ -2586,15 +2610,19 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         state.groupSinceSegment = segmentIndex;
         if (state.energy < ABSOLUTE_EXHAUSTION_ENERGY) {
           state.group = "dropped";
-          state.lostTimeSeconds = Math.max(state.lostTimeSeconds, 8);
-          state.elapsedTimeSeconds = Math.max(
+          state.elapsedTimeSeconds = resolveCaughtBreakawayElapsedTime(
             state.elapsedTimeSeconds,
-            pelotonTime + state.lostTimeSeconds,
+            pelotonTime,
+          );
+          state.lostTimeSeconds = Math.max(
+            0,
+            state.elapsedTimeSeconds - pelotonTime,
           );
           exhaustedCaughtRiders.push(state);
         } else {
           state.group = "peloton";
           state.elapsedTimeSeconds = pelotonTime;
+          state.lostTimeSeconds = 0;
         }
       }
       breakawayGapSeconds = 0;
@@ -3300,6 +3328,8 @@ export function selectStageAttackPlan(
   const generalLeaderId = getGeneralClassificationLeaderId(
     generalClassification,
   );
+  const generalClassificationProtectedRiderIds =
+    getGeneralClassificationProtectedRiderIds(generalClassification);
   const plannedAttackerIds = new Set(
     teamStrategies.flatMap((teamStrategy) =>
       teamStrategy.attackOrders.map((order) => order.riderId),
@@ -3313,6 +3343,8 @@ export function selectStageAttackPlan(
       const teamStrategy = strategiesByTeamId.get(rider.teamId);
       return (
         rider.id !== generalLeaderId &&
+        !generalClassificationProtectedRiderIds.has(rider.id) &&
+        rider.generalClassificationProtected !== true &&
         rider.role !== "leader" &&
         rider.role !== "sprinter" &&
         (!strategy.protectedRiderIds.has(rider.id) ||
@@ -3714,7 +3746,12 @@ function buildStageStrategyContext(
   const strategies: StageTeamStrategy[] = [];
   const protectedRiderIds = new Set(
     riders
-      .filter((rider) => rider.role === "leader" || rider.role === "sprinter")
+      .filter(
+        (rider) =>
+          rider.role === "leader" ||
+          rider.role === "sprinter" ||
+          rider.generalClassificationProtected === true,
+      )
       .map((rider) => rider.id),
   );
 
@@ -3836,6 +3873,40 @@ export function getGeneralClassificationLeaderId(
         first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
         first.riderId.localeCompare(second.riderId),
     )[0]?.riderId ?? null
+  );
+}
+
+/**
+ * Protège les coureurs dont la valeur sportive au général dépasse l'intérêt
+ * d'une échappée matinale. Le podium reste prestigieux même avec un écart
+ * important ; plus loin au classement, la proximité au temps prime.
+ */
+export function getGeneralClassificationProtectedRiderIds(
+  generalClassification?: StageSimulationInput["generalClassification"],
+) {
+  if (!generalClassification || generalClassification.length === 0) {
+    return new Set<string>();
+  }
+
+  const ordered = [...generalClassification].sort(
+    (first, second) =>
+      first.elapsedTimeSeconds - second.elapsedTimeSeconds ||
+      first.riderId.localeCompare(second.riderId),
+  );
+  const leaderTime = ordered[0]?.elapsedTimeSeconds ?? 0;
+
+  return new Set(
+    ordered.flatMap((entry, index) => {
+      const rank = index + 1;
+      const gapSeconds = Math.max(0, entry.elapsedTimeSeconds - leaderTime);
+      const protectedByPlace = rank <= 5;
+      const protectedTopTen = rank <= 10 && gapSeconds <= 10 * 60;
+      const protectedByTime = rank <= 20 && gapSeconds <= 2 * 60;
+
+      return protectedByPlace || protectedTopTen || protectedByTime
+        ? [entry.riderId]
+        : [];
+    }),
   );
 }
 
@@ -4293,7 +4364,8 @@ function getLeaderProtectionStrength({
   segmentCount: number;
 }) {
   if (
-    state.rider.role !== "leader" ||
+    (state.rider.role !== "leader" &&
+      state.rider.generalClassificationProtected !== true) ||
     (state.group !== "peloton" && state.group !== "delayed")
   ) {
     return 0;
@@ -4305,6 +4377,7 @@ function getLeaderProtectionStrength({
       teammate.rider.teamId === state.rider.teamId &&
       teammate.group === state.group &&
       teammate.energy >= 12 &&
+      teammate.rider.generalClassificationProtected !== true &&
       (teammate.rider.role === "domestique" ||
         teammate.rider.role === "leadout" ||
         teammate.rider.raceDuty === "protector" ||
@@ -4361,6 +4434,9 @@ function isProtectingTeamLeader({
   segmentIndex: number;
   segmentCount: number;
 }) {
+  if (state.rider.generalClassificationProtected === true) {
+    return false;
+  }
   if (
     state.rider.role !== "domestique" &&
     state.rider.role !== "leadout" &&
@@ -4518,7 +4594,10 @@ function dropStrugglingRiders({
       segmentCount,
     });
     const leaderProtection =
-      state.rider.role === "leader" ? 1.5 + leaderProtectionStrength * 22 : 0;
+      state.rider.role === "leader" ||
+      state.rider.generalClassificationProtected === true
+        ? 1.5 + leaderProtectionStrength * 22
+        : 0;
     const freshRiderProtection =
       clamp((state.energy - 24) / 38, 0, 1) *
       (selectionDifficulty < 0.9 ? 3.5 : 1.5);
@@ -4851,6 +4930,7 @@ function resolveExistingChasers({
         state.elapsedTimeSeconds,
         pelotonTime,
       );
+      state.lostTimeSeconds = 0;
     } else {
       state.group = "dropped";
       state.groupSinceSegment = segmentIndex;
@@ -4983,8 +5063,16 @@ function promoteSecondaryBreakawayWhenNeeded(
   );
 
   if (newLeader) {
+    const promotedGapSeconds = Math.max(0, newLeader.lostTimeSeconds);
+    for (const state of secondary) {
+      state.lostTimeSeconds = Math.max(
+        0,
+        state.lostTimeSeconds - promotedGapSeconds,
+      );
+    }
     newLeader.group = "breakaway";
     newLeader.groupSinceSegment = segmentIndex;
+    newLeader.lostTimeSeconds = 0;
   } else {
     for (const state of secondary) {
       state.group = "dropped";
@@ -6051,10 +6139,9 @@ function buildRoadSnapshot({
         "Échappée 2 · lâchés",
         secondaryBreakaway,
         Math.round(
-          clamp(
-            average(secondaryBreakaway.map((state) => state.lostTimeSeconds)),
+          Math.max(
             8,
-            Math.max(10, breakawayGapSeconds - 5),
+            average(secondaryBreakaway.map((state) => state.lostTimeSeconds)),
           ),
         ),
       ),
@@ -6165,7 +6252,13 @@ function buildRoadSnapshot({
   return {
     segmentNumber,
     completedDistanceKm: round(completedDistanceKm, 1),
-    groups: accumulateRaceGroupGapsFromLeader(groups),
+    groups: accumulateRaceGroupGapsFromLeader(
+      groups.sort(
+        (first, second) =>
+          first.gapToLeaderSeconds - second.gapToLeaderSeconds ||
+          first.id.localeCompare(second.id),
+      ),
+    ),
     incidents,
     abandonments: [...abandonments],
     commentary:
@@ -6224,6 +6317,22 @@ export function accumulateRaceGroupGapsFromLeader(
       gapToLeaderSeconds,
     };
   });
+}
+
+/**
+ * Lorsqu'une échappée est reprise, son retard réel est déjà contenu dans son
+ * horloge. `lostTimeSeconds` a pu être mesuré par rapport à plusieurs groupes
+ * successifs et ne doit jamais être ajouté une seconde fois au temps du
+ * peloton.
+ */
+export function resolveCaughtBreakawayElapsedTime(
+  riderElapsedTimeSeconds: number,
+  pelotonElapsedTimeSeconds: number,
+) {
+  return (
+    pelotonElapsedTimeSeconds +
+    Math.max(8, riderElapsedTimeSeconds - pelotonElapsedTimeSeconds)
+  );
 }
 
 function toGroupSnapshot(
@@ -6507,6 +6616,7 @@ function getPelotonChaseWorkers(
   return peloton.filter(
     (state) =>
       controllingTeamIds.has(state.rider.teamId) &&
+      state.rider.generalClassificationProtected !== true &&
       (state.rider.role === "domestique" || state.rider.role === "leadout") &&
       state.energy >= 10,
   );

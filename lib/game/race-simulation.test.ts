@@ -9,6 +9,7 @@ import {
   buildStageRaceStandings,
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
+  getGeneralClassificationProtectedRiderIds,
   getFinalBattleRiderIds,
   getFinalBattleScenario,
   getHillyClimbSelectionRating,
@@ -22,6 +23,7 @@ import {
   getNextHillyClimbLoad,
   isMassGroupFinish,
   reduceMechanicalIncidentTimeLoss,
+  resolveCaughtBreakawayElapsedTime,
   selectStageAttackPlan,
   simulateRaceStage,
   type RiderSimulationInput,
@@ -409,6 +411,82 @@ describe("simulateRaceStage", () => {
         300,
       ),
     ).toBeGreaterThan(0.2);
+  });
+
+  it("protège au général une place prestigieuse ou un coureur encore proche au temps", () => {
+    const protectedPodium = getGeneralClassificationProtectedRiderIds([
+      { riderId: "leader", elapsedTimeSeconds: 10_000 },
+      { riderId: "second-at-seven-minutes", elapsedTimeSeconds: 10_420 },
+      ...Array.from({ length: 10 }, (_, index) => ({
+        riderId: `far-${index}`,
+        elapsedTimeSeconds: 11_000 + index,
+      })),
+    ]);
+    const protectedClosePack = getGeneralClassificationProtectedRiderIds([
+      { riderId: "leader", elapsedTimeSeconds: 10_000 },
+      ...Array.from({ length: 19 }, (_, index) => ({
+        riderId: `close-${index + 2}`,
+        elapsedTimeSeconds: 10_001 + Math.floor(index / 3),
+      })),
+    ]);
+
+    expect(protectedPodium.has("second-at-seven-minutes")).toBe(true);
+    expect(protectedClosePack.has("close-14")).toBe(true);
+  });
+
+  it("interdit l’échappée automatique à un deuxième du général même ciblé comme baroudeur", () => {
+    const segments: RaceStageSegment[] = Array.from(
+      { length: 10 },
+      (_, index) => ({
+        segmentNumber: index + 1,
+        distanceKm: 19,
+        terrain: "flat" as const,
+        averageGradientPct: 0,
+        surface: "asphalt" as const,
+        prime: null,
+      }),
+    );
+    const contender = {
+      ...createSelectionTestRider("gc-second", {
+        flat: 72,
+        acceleration: 94,
+        endurance: 96,
+        breakaway: 100,
+      }),
+      role: "leadout" as const,
+      raceDuty: "breakaway_candidate" as const,
+    };
+    const opportunists = Array.from({ length: 10 }, (_, index) => ({
+      ...createSelectionTestRider(`opportunist-${index}`, {
+        flat: 66,
+        acceleration: 80,
+        endurance: 82,
+        breakaway: 88,
+      }),
+      role: "free_agent" as const,
+    }));
+    const plan = selectStageAttackPlan(
+      [contender, ...opportunists],
+      segments,
+      () => 0.5,
+      [
+        { riderId: "gc-leader", elapsedTimeSeconds: 10_000 },
+        { riderId: contender.id, elapsedTimeSeconds: 10_420 },
+        ...opportunists.map((rider, index) => ({
+          riderId: rider.id,
+          elapsedTimeSeconds: 11_000 + index,
+        })),
+      ],
+    );
+
+    expect(plan.initialAttackIds.has(contender.id)).toBe(false);
+    expect(plan.delayedAttackIds.has(contender.id)).toBe(false);
+    expect(plan.initialAttackIds.size).toBeGreaterThan(0);
+  });
+
+  it("ne rajoute pas une seconde fois le retard cumulé quand l’échappée est reprise", () => {
+    expect(resolveCaughtBreakawayElapsedTime(10_060, 10_000)).toBe(10_060);
+    expect(resolveCaughtBreakawayElapsedTime(9_995, 10_000)).toBe(10_008);
   });
 
   it("distingue une étape de transition d’une arrivée décisive au sommet", () => {
@@ -2409,6 +2487,48 @@ describe("assignAutomaticRaceRoles", () => {
     expect(resolved.filter((rider) => rider.role === "sprinter")).toHaveLength(
       1,
     );
+  });
+
+  it("réserve un rôle sobre au deuxième du général sur une étape plate", () => {
+    const input = createDemoSimulationInput("sprint-littoral", 1);
+    const oneTeam = input.riders
+      .filter((rider) => rider.teamId === input.riders[0].teamId)
+      .map((rider, index) => ({
+        ...rider,
+        role: "auto" as const,
+        ratings: {
+          ...rider.ratings,
+          breakaway: index === 0 ? 100 : 25,
+          acceleration: index === 0 ? 55 : rider.ratings.acceleration,
+          endurance: index === 0 ? 90 : rider.ratings.endurance,
+          flat: index === 0 ? 42 : rider.ratings.flat,
+          hills: index === 0 ? 42 : rider.ratings.hills,
+          mountain: index === 0 ? 42 : rider.ratings.mountain,
+          sprint: index === 0 ? 42 : rider.ratings.sprint,
+        },
+      }));
+    const protectedRider = oneTeam[0];
+    const resolved = assignAutomaticRaceRoles(
+      oneTeam,
+      input.segments,
+      input.profileType,
+      [
+        { riderId: "other-team-leader", elapsedTimeSeconds: 10_000 },
+        { riderId: protectedRider.id, elapsedTimeSeconds: 10_420 },
+        ...oneTeam.slice(1).map((rider, index) => ({
+          riderId: rider.id,
+          elapsedTimeSeconds: 11_000 + index,
+        })),
+      ],
+    );
+    const resolvedProtectedRider = resolved.find(
+      (rider) => rider.id === protectedRider.id,
+    );
+
+    expect(resolvedProtectedRider).toMatchObject({
+      role: "domestique",
+      generalClassificationProtected: true,
+    });
   });
 
   it("refuse deux leaders dans la même équipe", () => {
