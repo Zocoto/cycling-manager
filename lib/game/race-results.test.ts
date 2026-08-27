@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
+  filterInactiveTeamsFromOfficialClassification,
   isRaceEditionSettlementCandidate,
   normalizeOfficialResultGapsToLeader,
   shouldSettleRaceEdition,
@@ -447,6 +448,44 @@ describe("buildPersistedStageRaceStandings", () => {
     ]);
     expect(standings.teams.map((row) => row.teamId)).toEqual([
       coquinous.teamId,
+    ]);
+  });
+});
+
+describe("filterInactiveTeamsFromOfficialClassification", () => {
+  it("masque une équipe éliminée et renumérote le classement déjà persisté", () => {
+    const classification = filterInactiveTeamsFromOfficialClassification(
+      {
+        type: "team",
+        riders: [],
+        teams: [
+          {
+            teamId: "team-eliminated",
+            teamName: "Ardennes Outillage",
+            rank: 1,
+            totalTimeMs: 44_000,
+          },
+          {
+            teamId: challengers.teamId,
+            teamName: challengers.teamName,
+            rank: 2,
+            totalTimeMs: 53_000,
+          },
+        ],
+      },
+      [
+        {
+          ...challengers,
+          elapsedTimeMs: 53_000,
+          gapToWinnerMs: 0,
+          mountainPoints: 0,
+          sprintPoints: 0,
+        },
+      ],
+    );
+
+    expect(classification.teams).toEqual([
+      expect.objectContaining({ teamId: challengers.teamId, rank: 1 }),
     ]);
   });
 });

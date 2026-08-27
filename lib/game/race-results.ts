@@ -72,6 +72,30 @@ export type OfficialRaceResultsDirectory = Record<
   OfficialRaceEditionResults
 >;
 
+export function filterInactiveTeamsFromOfficialClassification(
+  classification: OfficialSecondaryClassification,
+  general: readonly OfficialRiderResult[],
+): OfficialSecondaryClassification {
+  if (classification.type !== "team") return classification;
+
+  const activeRiders = general.filter((result) => result.status === "finished");
+  const activeTeamIds = new Set(activeRiders.map((result) => result.teamId));
+  const activeTeamNames = new Set(
+    activeRiders.map((result) => result.teamName.trim().toLocaleLowerCase("fr")),
+  );
+
+  return {
+    ...classification,
+    teams: classification.teams
+      .filter(
+        (team) =>
+          activeTeamIds.has(team.teamId) ||
+          activeTeamNames.has(team.teamName.trim().toLocaleLowerCase("fr")),
+      )
+      .map((team, index) => ({ ...team, rank: index + 1 })),
+  };
+}
+
 export type PersistedStageResultForGeneral = {
   riderId: string;
   riderName: string;

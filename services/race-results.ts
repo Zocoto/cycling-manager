@@ -20,6 +20,7 @@ import { getStageLiveState } from "@/lib/game/race-live";
 import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
+  filterInactiveTeamsFromOfficialClassification,
   normalizeOfficialResultGapsToLeader,
   shouldSettleRaceEdition,
   type OfficialAttackParticipant,
@@ -879,7 +880,9 @@ export async function getOfficialRaceResults(
       registrationById,
       teamSeasonById,
       riderById,
-    });
+    }).map((classification) =>
+      filterInactiveTeamsFromOfficialClassification(classification, general),
+    );
     const attackParticipants = buildOfficialAttackParticipants({
       rows: attackParticipantQuery.data ?? [],
       edition,
