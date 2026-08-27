@@ -2,10 +2,16 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+import { SPONSORS } from "@/data/sponsors";
+import {
+  DEFAULT_AMATEUR_JERSEY,
+  isAmateurJerseyPattern,
+  normalizeHexColor,
+  type AmateurJerseyConfig,
+} from "@/lib/amateur-team";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDivisionForRank, type TeamDivisionCode } from "@/lib/game/economy";
 import { normalizeTeamDivisionCode } from "@/lib/game/team-divisions";
-import { getActivelySponsoredTeamIds } from "@/services/team-professional-status";
 
 type SeasonRow = { id: string; name: string };
 type TeamSeasonRow = {
@@ -27,6 +33,24 @@ type RiderRow = {
 type RiderSummaryRow = { rider_id: string; points: number | null };
 type ContractRow = { rider_id: string; team_id: string };
 type CountryRow = { id: string; name: string; iso_alpha2: string };
+type TeamRow = {
+  id: string;
+  amateur_jersey_pattern: string;
+  amateur_jersey_primary_color: string;
+  amateur_jersey_secondary_color: string;
+  amateur_jersey_accent_color: string;
+};
+type SponsorContractRow = {
+  team_id: string;
+  sponsor_id: string;
+  selected_jersey_id: string | null;
+  created_at: string;
+};
+type SponsorRegistryRow = { id: string; catalog_key: string };
+
+export type TeamRankingJerseyArtwork =
+  | { kind: "sponsor"; imagePath: string }
+  | { kind: "amateur"; jersey: AmateurJerseyConfig };
 
 export type TeamRankingEntry = {
   rank: number;
@@ -38,6 +62,7 @@ export type TeamRankingEntry = {
   division: TeamDivisionCode;
   isProfessional: boolean;
   projectedDivision: TeamDivisionCode;
+  jerseyArtwork: TeamRankingJerseyArtwork;
 };
 
 export type RiderRankingEntry = {
@@ -125,7 +150,8 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     ridersResult,
     contractsResult,
     divisionsResult,
-    activelySponsoredTeamIds,
+    teamsResult,
+    sponsorContractsResult,
   ] = await Promise.all([
     teamIds.length
       ? supabase
@@ -158,19 +184,50 @@ async function loadUciRankings(): Promise<UciRankings | null> {
           .in("id", divisionIds)
           .returns<DivisionRow[]>()
       : Promise.resolve({ data: [] as DivisionRow[], error: null }),
-    getActivelySponsoredTeamIds(teamIds),
+    teamIds.length
+      ? supabase
+          .from("teams")
+          .select(
+            "id, amateur_jersey_pattern, amateur_jersey_primary_color, amateur_jersey_secondary_color, amateur_jersey_accent_color"
+          )
+          .in("id", teamIds)
+          .returns<TeamRow[]>()
+      : Promise.resolve({ data: [] as TeamRow[], error: null }),
+    teamIds.length
+      ? supabase
+          .from("team_sponsor_contracts")
+          .select("team_id, sponsor_id, selected_jersey_id, created_at")
+          .in("team_id", teamIds)
+          .eq("role", "principal")
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .returns<SponsorContractRow[]>()
+      : Promise.resolve({ data: [] as SponsorContractRow[], error: null }),
   ]);
 
   assertQuery(assignmentsResult.error, "les Directeurs Sportifs classés");
   assertQuery(ridersResult.error, "l’identité des coureurs");
   assertQuery(contractsResult.error, "les équipes des coureurs");
   assertQuery(divisionsResult.error, "les divisions de la saison");
+  assertQuery(teamsResult.error, "les maillots amateurs des équipes");
+  assertQuery(sponsorContractsResult.error, "les maillots sponsorisés des équipes");
 
   const assignments = assignmentsResult.data ?? [];
   const directorIds = assignments.map((assignment) => assignment.sporting_director_id);
   const countryIds = [...new Set((ridersResult.data ?? []).map((rider) => rider.country_id))];
+  const sponsorContractByTeamId = new Map<string, SponsorContractRow>();
+  for (const contract of sponsorContractsResult.data ?? []) {
+    if (!sponsorContractByTeamId.has(contract.team_id)) {
+      sponsorContractByTeamId.set(contract.team_id, contract);
+    }
+  }
+  const sponsorIds = [
+    ...new Set(
+      [...sponsorContractByTeamId.values()].map((contract) => contract.sponsor_id)
+    ),
+  ];
 
-  const [directorsResult, countriesResult] = await Promise.all([
+  const [directorsResult, countriesResult, sponsorsResult] = await Promise.all([
     directorIds.length
       ? supabase
           .from("sporting_directors")
@@ -185,10 +242,18 @@ async function loadUciRankings(): Promise<UciRankings | null> {
           .in("id", countryIds)
           .returns<CountryRow[]>()
       : Promise.resolve({ data: [] as CountryRow[], error: null }),
+    sponsorIds.length
+      ? supabase
+          .from("sponsors")
+          .select("id, catalog_key")
+          .in("id", sponsorIds)
+          .returns<SponsorRegistryRow[]>()
+      : Promise.resolve({ data: [] as SponsorRegistryRow[], error: null }),
   ]);
 
   assertQuery(directorsResult.error, "les Directeurs Sportifs");
   assertQuery(countriesResult.error, "les nations classées");
+  assertQuery(sponsorsResult.error, "les sponsors des équipes classées");
 
   const directorById = new Map((directorsResult.data ?? []).map((row) => [row.id, row]));
   const assignmentByTeamId = new Map(assignments.map((row) => [row.team_id, row]));
@@ -202,6 +267,12 @@ async function loadUciRankings(): Promise<UciRankings | null> {
   );
   const divisionCodeById = new Map(
     (divisionsResult.data ?? []).map((division) => [division.id, division.code])
+  );
+  const teamIdentityById = new Map(
+    (teamsResult.data ?? []).map((team) => [team.id, team])
+  );
+  const sponsorRegistryById = new Map(
+    (sponsorsResult.data ?? []).map((sponsor) => [sponsor.id, sponsor])
   );
 
   const teams = teamSeasons
@@ -225,8 +296,13 @@ async function loadUciRankings(): Promise<UciRankings | null> {
         division: normalizeTeamDivisionCode(
           team.division_id ? divisionCodeById.get(team.division_id) : null
         ),
-        isProfessional: activelySponsoredTeamIds.has(team.team_id),
+        isProfessional: sponsorContractByTeamId.has(team.team_id),
         projectedDivision: getDivisionForRank(rank),
+        jerseyArtwork: resolveTeamRankingJerseyArtwork({
+          team: teamIdentityById.get(team.team_id),
+          contract: sponsorContractByTeamId.get(team.team_id),
+          sponsorRegistryById,
+        }),
       } satisfies TeamRankingEntry;
     });
 
@@ -282,6 +358,51 @@ async function loadUciRankings(): Promise<UciRankings | null> {
     .map((nation, index) => ({ ...nation, rank: index + 1 }));
 
   return { seasonId: season.id, seasonName: season.name, teams, riders, nations };
+}
+
+function resolveTeamRankingJerseyArtwork({
+  team,
+  contract,
+  sponsorRegistryById,
+}: {
+  team: TeamRow | undefined;
+  contract: SponsorContractRow | undefined;
+  sponsorRegistryById: Map<string, SponsorRegistryRow>;
+}): TeamRankingJerseyArtwork {
+  const amateurJersey = getAmateurJersey(team);
+  const sponsorRegistry = contract
+    ? sponsorRegistryById.get(contract.sponsor_id)
+    : null;
+  const sponsor = sponsorRegistry
+    ? SPONSORS.find((candidate) => candidate.id === sponsorRegistry.catalog_key)
+    : null;
+  const sponsorJersey = sponsor
+    ? sponsor.jerseys.find((jersey) => jersey.id === contract?.selected_jersey_id) ??
+      sponsor.jerseys[0]
+    : null;
+
+  return sponsorJersey?.imagePath
+    ? { kind: "sponsor", imagePath: sponsorJersey.imagePath }
+    : { kind: "amateur", jersey: amateurJersey };
+}
+
+function getAmateurJersey(team: TeamRow | undefined): AmateurJerseyConfig {
+  if (!team) return DEFAULT_AMATEUR_JERSEY;
+
+  return {
+    pattern: isAmateurJerseyPattern(team.amateur_jersey_pattern)
+      ? team.amateur_jersey_pattern
+      : DEFAULT_AMATEUR_JERSEY.pattern,
+    primaryColor:
+      normalizeHexColor(team.amateur_jersey_primary_color) ??
+      DEFAULT_AMATEUR_JERSEY.primaryColor,
+    secondaryColor:
+      normalizeHexColor(team.amateur_jersey_secondary_color) ??
+      DEFAULT_AMATEUR_JERSEY.secondaryColor,
+    accentColor:
+      normalizeHexColor(team.amateur_jersey_accent_color) ??
+      DEFAULT_AMATEUR_JERSEY.accentColor,
+  };
 }
 
 export async function getTeamRankingEntry(

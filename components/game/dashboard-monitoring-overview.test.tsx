@@ -92,6 +92,15 @@ function createRankings(): UciRankings {
       division: index === 0 ? "amateur" : "world",
       isProfessional: index === 0,
       projectedDivision: "world",
+      jerseyArtwork: {
+        kind: "amateur",
+        jersey: {
+          pattern: "classic",
+          primaryColor: "#176951",
+          secondaryColor: "#FFFDF4",
+          accentColor: "#F2C94C",
+        },
+      },
     })),
     riders: Array.from({ length: 10 }, (_, index) => ({
       rank: index + 1,

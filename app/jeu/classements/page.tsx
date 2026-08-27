@@ -9,6 +9,7 @@ import {
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
 import { TeamDivisionBadge } from "@/components/game/team-division-badge";
+import { TeamRankingJersey } from "@/components/game/team-ranking-jersey";
 import { DIVISION_RULES } from "@/lib/game/economy";
 import { TEAM_DIVISION_LABELS } from "@/lib/game/team-divisions";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -174,7 +175,19 @@ function TeamRows({ entry }: { entry: TeamRankingEntry }) {
     {boundary ? <tr><td colSpan={4} className="border-y border-[#278B70]/15 bg-[#DDF3E7] px-6 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#176951]">Projection saison suivante · {TEAM_DIVISION_LABELS[entry.projectedDivision]} à partir de la position {entry.rank}</td></tr> : null}
     <tr className="border-b border-[#315B3E]/10 text-sm hover:bg-[#F8FBF9]">
       <RankCell rank={entry.rank} />
-      <td className="px-5 py-4"><Link href={`/jeu/equipes/${entry.teamId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.teamName}</Link><span className="mt-2 block"><TeamDivisionBadge division={entry.division} isProfessional={entry.isProfessional} compact /></span></td>
+      <td className="px-5 py-3">
+        <div className="flex items-center gap-3">
+          <TeamRankingJersey
+            teamId={entry.teamId}
+            teamName={entry.teamName}
+            jersey={entry.jerseyArtwork}
+          />
+          <div className="min-w-0">
+            <Link href={`/jeu/equipes/${entry.teamId}`} className="font-black text-[#183F37] hover:text-[#278B70]">{entry.teamName}</Link>
+            <span className="mt-2 block"><TeamDivisionBadge division={entry.division} isProfessional={entry.isProfessional} compact /></span>
+          </div>
+        </div>
+      </td>
       <td className="px-5 py-4">{entry.directorUsername ? <Link href={`/jeu/directeurs-sportifs/${encodeURIComponent(entry.directorUsername)}`} className="font-bold text-[#48665F] hover:text-[#278B70]">{entry.directorName}</Link> : <span className="text-[#83938D]">Poste vacant</span>}</td>
       <PointsCell points={entry.points} />
     </tr>

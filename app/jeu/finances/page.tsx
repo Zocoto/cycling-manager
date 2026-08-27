@@ -401,23 +401,53 @@ function TransactionColumn({
 
       <div className="mt-5 space-y-3">
         {transactions.length > 0 ? (
-          transactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex items-start justify-between gap-4 border-b border-[#315B3E]/10 pb-3 last:border-b-0 last:pb-0"
-            >
-              <div className="min-w-0">
-                <p className="font-bold text-[#183F37]">{transaction.description}</p>
-                <p className="mt-1 text-xs font-semibold text-[#60756E]">
-                  J{transaction.dayNumber} · {CATEGORY_LABELS[transaction.category]} · {formatStatus(transaction.status)}
+          transactions.map((transaction) => {
+            const isPending = transaction.status === "pending";
+
+            return (
+              <div
+                key={transaction.id}
+                className={`flex items-start justify-between gap-4 border-b pb-3 last:border-b-0 last:pb-0 ${
+                  isPending
+                    ? "rounded-xl border-[#A7B0AC]/25 bg-[#EEF1EF] px-3 py-3 last:pb-3"
+                    : "border-[#315B3E]/10"
+                }`}
+              >
+                <div className="min-w-0">
+                  <p
+                    className={`font-bold ${
+                      isPending ? "text-[#7B8581]" : "text-[#183F37]"
+                    }`}
+                  >
+                    {transaction.description}
+                  </p>
+                  <p
+                    className={`mt-1 text-xs font-semibold ${
+                      isPending ? "text-[#8D9692]" : "text-[#60756E]"
+                    }`}
+                  >
+                    J{transaction.dayNumber} · {CATEGORY_LABELS[transaction.category]} · {isPending
+                      ? positive
+                        ? "Planifié · non perçu"
+                        : "Planifié · non débité"
+                      : formatStatus(transaction.status)}
+                  </p>
+                </div>
+                <p
+                  className={`shrink-0 font-black ${
+                    isPending
+                      ? "text-[#8D9692]"
+                      : positive
+                        ? "text-[#176951]"
+                        : "text-[#A44736]"
+                  }`}
+                >
+                  {positive ? "+" : "−"}
+                  {formatCurrency(Math.abs(transaction.amount), currency)}
                 </p>
               </div>
-              <p className={`shrink-0 font-black ${positive ? "text-[#176951]" : "text-[#A44736]"}`}>
-                {positive ? "+" : "−"}
-                {formatCurrency(Math.abs(transaction.amount), currency)}
-              </p>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="rounded-xl border border-dashed border-[#315B3E]/20 bg-[#EAF5F3]/45 px-4 py-6 text-sm font-semibold text-[#60756E]">
             Aucun mouvement dans cette colonne.
