@@ -156,11 +156,7 @@ export async function saveTeamEquipmentAssignmentsAction(formData: FormData) {
 
   if (error) redirectWithError("/jeu/materiel/equiper", error.message);
 
-  for (const riderId of new Set(
-    assignments.map((assignment) => assignment.riderId),
-  )) {
-    revalidatePath(`/jeu/coureurs/${riderId}`);
-  }
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
   revalidatePath("/jeu/inventaire");
   revalidatePath("/jeu/materiel");
   revalidatePath("/jeu/materiel/equiper");

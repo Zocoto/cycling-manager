@@ -7,6 +7,7 @@ export const GAME_MAINTENANCE_TASKS = [
   "health",
   "staff-academy",
   "infrastructure",
+  "equipment",
   "elite-wildcards",
   "development",
 ] as const;

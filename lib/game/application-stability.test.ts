@@ -75,6 +75,7 @@ describe("application stability guardrails", () => {
       "health",
       "staff-academy",
       "infrastructure",
+      "equipment",
       "elite-wildcards",
       "development",
       "health-check",

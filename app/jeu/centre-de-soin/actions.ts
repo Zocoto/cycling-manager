@@ -81,9 +81,7 @@ export async function bookFormCampsAction(formData: FormData) {
   }
 
   revalidateHealthPaths();
-  for (const riderId of riderIds) {
-    revalidatePath(`/jeu/coureurs/${riderId}`);
-  }
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
   redirect(
     `/jeu/centre-de-soin?onglet=forme&stage=confirme&nombre=${riderIds.length}`,
   );
