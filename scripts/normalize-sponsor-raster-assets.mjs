@@ -17,14 +17,17 @@ const TARGETS = {
   },
 };
 
-function isBackgroundCandidate(red, green, blue) {
+function isBackgroundCandidate(red, green, blue, alpha) {
   const minimum = Math.min(red, green, blue);
   const maximum = Math.max(red, green, blue);
 
-  return minimum >= 205 && maximum - minimum <= 16;
+  return (
+    alpha <= 220 ||
+    (minimum >= 205 && maximum - minimum <= 16)
+  );
 }
 
-function findLargestOpaqueComponent(data, width, height) {
+function removeBorderBackground(data, width, height) {
   const pixelCount = width * height;
   const background = new Uint8Array(pixelCount);
   const queue = new Int32Array(pixelCount);
@@ -42,7 +45,8 @@ function findLargestOpaqueComponent(data, width, height) {
       !isBackgroundCandidate(
         data[offset],
         data[offset + 1],
-        data[offset + 2]
+        data[offset + 2],
+        data[offset + 3],
       )
     ) {
       return;
@@ -76,17 +80,34 @@ function findLargestOpaqueComponent(data, width, height) {
     if (y + 1 < height) enqueueBackground(index + width);
   }
 
+  const alpha = new Uint8Array(pixelCount);
+
+  for (let index = 0; index < pixelCount; index += 1) {
+    alpha[index] = background[index] === 0 ? data[index * 4 + 3] : 0;
+  }
+
+  return alpha;
+}
+
+function filterForegroundComponents(alpha, width, height, kind) {
+  const pixelCount = width * height;
   const visited = new Uint8Array(pixelCount);
-  let largestComponent = [];
+  const queue = new Int32Array(pixelCount);
+  const components = [];
 
   for (let start = 0; start < pixelCount; start += 1) {
-    if (background[start] !== 0 || visited[start] !== 0) {
+    if (alpha[start] === 0 || visited[start] !== 0) {
       continue;
     }
 
-    const component = [];
-    queueStart = 0;
-    queueEnd = 0;
+    const pixels = [];
+    let left = width;
+    let top = height;
+    let right = -1;
+    let bottom = -1;
+    let queueStart = 0;
+    let queueEnd = 0;
+
     queue[queueEnd] = start;
     queueEnd += 1;
     visited[start] = 1;
@@ -94,12 +115,14 @@ function findLargestOpaqueComponent(data, width, height) {
     while (queueStart < queueEnd) {
       const index = queue[queueStart];
       queueStart += 1;
-      component.push(index);
+      pixels.push(index);
 
       const x = index % width;
       const y = Math.floor(index / width);
-
-      const neighbors = [];
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
 
       for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
         for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
@@ -109,37 +132,72 @@ function findLargestOpaqueComponent(data, width, height) {
           const neighborY = y + offsetY;
 
           if (
-            neighborX >= 0 &&
-            neighborX < width &&
-            neighborY >= 0 &&
-            neighborY < height
+            neighborX < 0 ||
+            neighborX >= width ||
+            neighborY < 0 ||
+            neighborY >= height
           ) {
-            neighbors.push(neighborY * width + neighborX);
+            continue;
+          }
+
+          const neighbor = neighborY * width + neighborX;
+
+          if (alpha[neighbor] !== 0 && visited[neighbor] === 0) {
+            visited[neighbor] = 1;
+            queue[queueEnd] = neighbor;
+            queueEnd += 1;
           }
         }
       }
-
-      for (const neighbor of neighbors) {
-        if (background[neighbor] === 0 && visited[neighbor] === 0) {
-          visited[neighbor] = 1;
-          queue[queueEnd] = neighbor;
-          queueEnd += 1;
-        }
-      }
     }
 
-    if (component.length > largestComponent.length) {
-      largestComponent = component;
+    components.push({ pixels, left, top, right, bottom });
+  }
+
+  const retained = new Uint8Array(pixelCount);
+
+  if (kind === "jersey") {
+    const largest = components.reduce(
+      (current, component) =>
+        !current || component.pixels.length > current.pixels.length
+          ? component
+          : current,
+      null,
+    );
+
+    for (const index of largest?.pixels ?? []) {
+      retained[index] = alpha[index];
+    }
+
+    return retained;
+  }
+
+  for (const component of components) {
+    const componentWidth = component.right - component.left + 1;
+    const componentHeight = component.bottom - component.top + 1;
+    const nearHorizontalEdge =
+      component.top <= height * 0.08 || component.bottom >= height * 0.92;
+    const nearVerticalEdge =
+      component.left <= width * 0.08 || component.right >= width * 0.92;
+    const horizontalBar =
+      nearHorizontalEdge &&
+      componentWidth >= width * 0.5 &&
+      componentWidth / componentHeight >= 8;
+    const verticalBar =
+      nearVerticalEdge &&
+      componentHeight >= height * 0.5 &&
+      componentHeight / componentWidth >= 8;
+
+    if (horizontalBar || verticalBar) {
+      continue;
+    }
+
+    for (const index of component.pixels) {
+      retained[index] = alpha[index];
     }
   }
 
-  const alpha = new Uint8Array(pixelCount);
-
-  for (const index of largestComponent) {
-    alpha[index] = 255;
-  }
-
-  return alpha;
+  return retained;
 }
 
 function getAlphaBounds(alpha, width, height) {
@@ -186,21 +244,12 @@ async function normalizeAsset({ source, destination, kind }) {
     .toBuffer({ resolveWithObject: true });
 
   const pixelCount = info.width * info.height;
-  const sourceAlpha = new Uint8Array(pixelCount);
-  let hasTransparency = false;
-
-  for (let index = 0; index < pixelCount; index += 1) {
-    const alphaValue = data[index * 4 + 3];
-    sourceAlpha[index] = alphaValue;
-
-    if (alphaValue < 250) {
-      hasTransparency = true;
-    }
-  }
-
-  const alpha = hasTransparency
-    ? sourceAlpha
-    : findLargestOpaqueComponent(data, info.width, info.height);
+  const alpha = filterForegroundComponents(
+    removeBorderBackground(data, info.width, info.height),
+    info.width,
+    info.height,
+    kind,
+  );
 
   for (let index = 0; index < pixelCount; index += 1) {
     data[index * 4 + 3] = alpha[index];
@@ -225,6 +274,7 @@ async function normalizeAsset({ source, destination, kind }) {
       height: availableHeight,
       fit: "contain",
       kernel: sharp.kernel.lanczos3,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .png({
       compressionLevel: 9,
