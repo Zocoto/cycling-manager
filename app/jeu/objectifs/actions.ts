@@ -192,6 +192,13 @@ export async function redeemDailyRewardAction(formData: FormData) {
     );
   }
 
+  if (effectKind === "injury_care" && riderId === null) {
+    redirectDailyRewardError(
+      returnPath,
+      "Sélectionnez un coureur présentant une blessure compatible.",
+    );
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -246,6 +253,15 @@ export async function redeemDailyRewardAction(formData: FormData) {
       redirectDailyRewardError(returnPath, result.error.message);
     }
     resultData = result.data;
+  } else if (effectKind === "injury_care") {
+    const result = await supabase.rpc("redeem_injury_care_reward", {
+      p_inventory_id: inventoryId,
+      p_rider_id: riderId,
+    });
+    if (result.error) {
+      redirectDailyRewardError(returnPath, result.error.message);
+    }
+    resultData = result.data;
   } else {
     const result = await supabase.rpc("redeem_current_daily_rewards", {
       p_inventory_id: inventoryId,
@@ -280,6 +296,7 @@ function revalidateDailyRewardPaths() {
   revalidatePath("/jeu/effectif");
   revalidatePath("/jeu/staff");
   revalidatePath("/jeu/infrastructures");
+  revalidatePath("/jeu/centre-de-soin");
 }
 
 function redirectDailyRewardError(

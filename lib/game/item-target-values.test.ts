@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canReceiveInjuryCareItem,
   formatItemTargetValue,
   type ItemTargetRider,
 } from "./item-target-values";
@@ -67,5 +68,40 @@ describe("item target values", () => {
         abilityCode: "flahute",
       })
     ).toBe("Non acquise");
+  });
+
+  it("décrit la blessure et réserve les soins aux durées compressibles", () => {
+    const injuredRider: ItemTargetRider = {
+      ...rider,
+      injury: {
+        id: "injury-1",
+        diagnosisCode: "wrist_fracture",
+        label: "Fracture du poignet",
+        remainingHours: 54,
+        expectedRecoveryAt: "2026-08-30T12:00:00Z",
+        canShorten: true,
+      },
+    };
+    const fatigueRider: ItemTargetRider = {
+      ...rider,
+      injury: {
+        id: "injury-2",
+        diagnosisCode: "fatigue_exhaustion",
+        label: "Blessure de fatigue",
+        remainingHours: 48,
+        expectedRecoveryAt: "2026-08-29T12:00:00Z",
+        canShorten: false,
+      },
+    };
+
+    expect(formatItemTargetValue(injuredRider, { kind: "injury" })).toBe(
+      "Fracture du poignet · 2 j 6 h restantes",
+    );
+    expect(canReceiveInjuryCareItem(injuredRider)).toBe(true);
+    expect(formatItemTargetValue(fatigueRider, { kind: "injury" })).toBe(
+      "Blessure de fatigue · durée fixe",
+    );
+    expect(canReceiveInjuryCareItem(fatigueRider)).toBe(false);
+    expect(canReceiveInjuryCareItem(rider)).toBe(false);
   });
 });

@@ -28,6 +28,14 @@ export type ItemTargetRider = {
   potentialSteps: number;
   ratings: Record<ItemTargetRatingKey, number>;
   abilityCodes: string[];
+  injury?: {
+    id: string;
+    diagnosisCode: string;
+    label: string;
+    remainingHours: number;
+    expectedRecoveryAt: string;
+    canShorten: boolean;
+  } | null;
 };
 
 export type ItemTargetValueContext =
@@ -35,6 +43,7 @@ export type ItemTargetValueContext =
   | { kind: "experience" }
   | { kind: "potential" }
   | { kind: "nationality" }
+  | { kind: "injury" }
   | { kind: "rating"; ratingKey: ItemTargetRatingKey | null }
   | { kind: "ability"; abilityCode: string | null };
 
@@ -70,6 +79,15 @@ export function formatItemTargetValue(
       ? `Nationalité ${rider.countryName}`
       : "Nationalité inconnue";
   }
+  if (context.kind === "injury") {
+    if (!rider.injury) return "Aucune blessure active";
+    if (!rider.injury.canShorten) {
+      return `${rider.injury.label} · durée fixe`;
+    }
+    return `${rider.injury.label} · ${formatRemainingHours(
+      rider.injury.remainingHours,
+    )} restantes`;
+  }
   if (context.kind === "ability") {
     if (!context.abilityCode) return "Choisir une capacité";
     return rider.abilityCodes.includes(context.abilityCode)
@@ -80,6 +98,10 @@ export function formatItemTargetValue(
   return `${RATING_SHORT_LABELS[context.ratingKey]} ${
     rider.ratings[context.ratingKey]
   }/100`;
+}
+
+export function canReceiveInjuryCareItem(rider: ItemTargetRider) {
+  return Boolean(rider.injury?.canShorten && rider.injury.remainingHours > 0);
 }
 
 export function readItemTargetRatingKey(
@@ -100,4 +122,14 @@ function formatPotential(potentialSteps: number) {
     "fr-FR",
     { maximumFractionDigits: 1 }
   );
+}
+
+function formatRemainingHours(value: number) {
+  const hours = Math.max(1, Math.round(value));
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+
+  if (days === 0) return `${hours} h`;
+  if (remainingHours === 0) return `${days} j`;
+  return `${days} j ${remainingHours} h`;
 }

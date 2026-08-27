@@ -23,7 +23,8 @@ export type DailyRewardEffectKind =
   | "instant_youth_promotion"
   | "custom_staff_recruitment"
   | "construction_time_reduction"
-  | "staff_level_boost";
+  | "staff_level_boost"
+  | "injury_care";
 
 export type DailyRewardOffer = {
   key: string;
@@ -168,6 +169,7 @@ export function requiresRiderTarget(kind: DailyRewardEffectKind) {
     "rating_boost",
     "special_ability",
     "naturalization",
+    "injury_care",
   ].includes(kind);
 }
 

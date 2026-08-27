@@ -283,6 +283,7 @@ function readEffectKind(value: unknown): DailyRewardEffectKind | null {
     "custom_staff_recruitment",
     "construction_time_reduction",
     "staff_level_boost",
+    "injury_care",
   ];
   return allowed.includes(normalized as DailyRewardEffectKind)
     ? (normalized as DailyRewardEffectKind)

@@ -8,6 +8,7 @@ export const INVENTORY_CATEGORIES = [
   "special_ability",
   "potential_boost",
   "rating_boost",
+  "injury_care",
   "equipment",
   "other",
 ] as const;
@@ -66,6 +67,13 @@ export const INVENTORY_CATEGORY_DEFINITIONS = [
       "Objets d’entraînement qui renforcent directement une statistique.",
   },
   {
+    category: "injury_care",
+    label: "Soins",
+    shortLabel: "Soin médical",
+    description:
+      "Objets médicaux qui raccourcissent une blessure compatible en cours.",
+  },
+  {
     category: "equipment",
     label: "Matériel",
     shortLabel: "Matériel",
@@ -112,6 +120,15 @@ export function getInventoryRarityLabel(rarity: InventoryRarity): string {
     rare: "Rare",
     epic: "Exceptionnel",
   }[rarity];
+}
+
+export function getInventoryItemLevel(
+  effectPayload: Record<string, unknown> | undefined,
+): number | null {
+  const parsed = Number(effectPayload?.level);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10
+    ? parsed
+    : null;
 }
 
 export function summarizeInventory(items: ReadonlyArray<TeamInventoryItem>) {
@@ -170,6 +187,7 @@ function getDailyRewardInventoryCategory(
 ): InventoryCategory {
   if (reward.effectKind === "rating_boost") return "rating_boost";
   if (reward.effectKind === "special_ability") return "special_ability";
+  if (reward.effectKind === "injury_care") return "injury_care";
   return "other";
 }
 

@@ -18,6 +18,7 @@ import { buildInventoryReturnPath } from "@/lib/game/filtered-page-paths";
 import {
   INVENTORY_CATEGORY_DEFINITIONS,
   getInventoryCategory,
+  getInventoryItemLevel,
   getInventoryRarityLabel,
   isAssignableInventoryCategory,
   isInventoryCategory,
@@ -405,6 +406,7 @@ function InventoryItemCard({
   const category = getInventoryCategory(item.category);
   const managementReward =
     item.dailyReward ?? buildDailyRewardFromInventory(item);
+  const itemLevel = getInventoryItemLevel(item.effectPayload);
   const specialAbility =
     item.category === "special_ability"
       ? getSpecialAbilityDefinition(item.effectPayload?.abilityCode)
@@ -454,6 +456,7 @@ function InventoryItemCard({
             </h3>
           </div>
           <span className={rarityClassName(item.rarity)}>
+            {itemLevel ? `Niv. ${itemLevel} · ` : ""}
             {getInventoryRarityLabel(item.rarity)}
           </span>
         </div>
@@ -559,7 +562,8 @@ function buildDailyRewardFromInventory(
     effectKind !== "instant_youth_promotion" &&
     effectKind !== "custom_staff_recruitment" &&
     effectKind !== "construction_time_reduction" &&
-    effectKind !== "staff_level_boost"
+    effectKind !== "staff_level_boost" &&
+    effectKind !== "injury_care"
   ) {
     return null;
   }
@@ -735,6 +739,20 @@ function InventoryCategoryIcon({
         <path d="M12 3v18M3 12h18" />
         <path d="m6 6 12 12M18 6 6 18" />
         <circle cx="12" cy="12" r="8" />
+      </svg>
+    );
+  }
+  if (category === "injury_care") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        className={className}
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path d="M8.5 3.5h7v5h5v7h-5v5h-7v-5h-5v-7h5v-5Z" />
       </svg>
     );
   }

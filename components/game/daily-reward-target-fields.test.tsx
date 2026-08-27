@@ -79,6 +79,33 @@ describe("DailyRewardTargetFields", () => {
     expect(markup).not.toContain("Panache · Audace");
     expect(markup).toContain("Choisir d’abord une capacité");
   });
+
+  it("rappelle le diagnostic et la durée restante pour un objet de soin", () => {
+    const markup = renderToStaticMarkup(
+      <DailyRewardTargetFields
+        item={buildItem("injury_care")}
+        riders={[
+          {
+            ...rider,
+            injury: {
+              id: "injury-1",
+              diagnosisCode: "rib_fracture",
+              label: "Fracture des côtes",
+              remainingHours: 30,
+              expectedRecoveryAt: "2026-08-28T12:00:00Z",
+              canShorten: true,
+            },
+          },
+        ]}
+        abilities={[]}
+      />
+    );
+
+    expect(markup).toContain("Coureur blessé");
+    expect(markup).toContain(
+      "Erik Van Dijk · Fracture des côtes · 1 j 6 h restantes",
+    );
+  });
 });
 
 function buildItem(

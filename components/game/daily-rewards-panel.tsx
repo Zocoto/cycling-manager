@@ -319,5 +319,6 @@ function getGiftCategoryLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "custom_staff_recruitment") return "Recrutement staff";
   if (kind === "construction_time_reduction") return "Accélération chantier";
   if (kind === "staff_level_boost") return "Perfectionnement du staff";
+  if (kind === "injury_care") return "Soin de blessure";
   return "Ticket d’or";
 }

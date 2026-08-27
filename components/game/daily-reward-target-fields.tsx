@@ -104,7 +104,11 @@ export function DailyRewardTargetFields({
       {needsRider ? (
         <SelectField
           name="riderId"
-          label="Coureur"
+          label={
+            item.effectKind === "injury_care"
+              ? "Coureur blessé"
+              : "Coureur"
+          }
           required
           disabled={riderSelectionDisabled || riders.length === 0}
           value={riderId}
@@ -112,7 +116,9 @@ export function DailyRewardTargetFields({
         >
           <option value="">
             {riders.length === 0
-              ? "Aucun coureur disponible"
+              ? item.effectKind === "injury_care"
+                ? "Aucune blessure compatible"
+                : "Aucun coureur disponible"
               : riderSelectionDisabled
                 ? item.effectKind === "rating_boost"
                   ? "Choisir d’abord une statistique"
@@ -141,6 +147,7 @@ function getTargetContext(
     return { kind: "experience" };
   }
   if (item.effectKind === "naturalization") return { kind: "nationality" };
+  if (item.effectKind === "injury_care") return { kind: "injury" };
   if (item.effectKind === "rating_boost") {
     return {
       kind: "rating",

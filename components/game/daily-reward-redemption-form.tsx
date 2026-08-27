@@ -13,6 +13,7 @@ import {
   type DailyRewardStaffMember,
 } from "@/lib/game/daily-rewards";
 import type { ScoutingSupervisionStatus } from "@/lib/game/scouting-supervision";
+import { canReceiveInjuryCareItem } from "@/lib/game/item-target-values";
 import {
   STAFF_ROLE_DEFINITIONS,
   STAFF_ROLES,
@@ -43,11 +44,15 @@ export function DailyRewardRedemptionForm({
   scoutingSupervision: ScoutingSupervisionStatus;
   returnPath?: string;
 }) {
+  const targetRiders =
+    item.effectKind === "injury_care"
+      ? riders.filter(canReceiveInjuryCareItem)
+      : riders;
   const needsRider = requiresRiderTarget(item.effectKind);
   const stackable = isStackableDailyReward(item.effectKind);
   const canUse =
     item.quantity > 0 &&
-    (!needsRider || riders.length > 0) &&
+    (!needsRider || targetRiders.length > 0) &&
     (item.effectKind !== "wildcard" || eligibleRaces.length > 0) &&
     (item.effectKind !== "special_ability" || abilities.length > 0) &&
     (item.effectKind !== "instant_youth_promotion" ||
@@ -67,7 +72,7 @@ export function DailyRewardRedemptionForm({
       ) : null}
       <DailyRewardTargetFields
         item={item}
-        riders={riders}
+        riders={targetRiders}
         abilities={abilities}
       />
 
@@ -258,5 +263,6 @@ function getUseLabel(kind: DailyRewardInventoryItem["effectKind"]) {
   if (kind === "custom_staff_recruitment") return "Générer et signer ce staff";
   if (kind === "construction_time_reduction") return "Accélérer ce chantier";
   if (kind === "staff_level_boost") return "Attribuer l’étoile";
+  if (kind === "injury_care") return "Appliquer le soin";
   return "Utiliser sur ce coureur";
 }

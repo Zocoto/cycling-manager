@@ -31,6 +31,8 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
   if (!id || !firstName || !lastName) return [];
 
   const rawRatings = readObject(row.ratings);
+  const rawInjury = readObject(row.injury);
+  const injuryId = readString(rawInjury.id);
   const ratings = Object.fromEntries(
     ITEM_TARGET_RATING_KEYS.map((key) => [key, readRating(rawRatings[key])])
   ) as Record<ItemTargetRatingKey, number>;
@@ -54,6 +56,21 @@ function normalizeItemTargetRider(value: unknown): ItemTargetRider[] {
       abilityCodes: readArray(row.abilityCodes)
         .map(readString)
         .filter(Boolean),
+      injury: injuryId
+        ? {
+            id: injuryId,
+            diagnosisCode: readString(rawInjury.diagnosisCode),
+            label: readString(rawInjury.label) || "Blessure en cours",
+            remainingHours: readBoundedInteger(
+              rawInjury.remainingHours,
+              1,
+              1,
+              24 * 365,
+            ),
+            expectedRecoveryAt: readString(rawInjury.expectedRecoveryAt),
+            canShorten: readBoolean(rawInjury.canShorten),
+          }
+        : null,
     },
   ];
 }
@@ -78,6 +95,10 @@ function readNullableString(value: unknown) {
 
 function readRating(value: unknown) {
   return readBoundedInteger(value, 1, 1, 100);
+}
+
+function readBoolean(value: unknown) {
+  return value === true || value === "true";
 }
 
 function readBoundedInteger(
