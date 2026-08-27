@@ -10,6 +10,9 @@ function readSource(path: string) {
 const migration = readSource(
   "supabase/migrations/20260827100000_notify_new_trophies.sql",
 );
+const dashboardVolatilityFix = readSource(
+  "supabase/migrations/20260827101000_fix_dashboard_trophy_summary_volatility.sql",
+);
 const dashboardService = readSource("services/dashboard-fast-summary.ts");
 const dashboardPage = readSource("app/jeu/page.tsx");
 const objectivesPage = readSource("app/jeu/objectifs/page.tsx");
@@ -86,6 +89,9 @@ describe("new trophy notifications", () => {
       '.rpc("get_current_dashboard_fast_summary_v2")',
     );
     expect(dashboardService).toContain("unreadTrophyCount");
+    expect(dashboardVolatilityFix).toContain(
+      "alter function public.get_current_dashboard_fast_summary_v2() volatile",
+    );
   });
 
   it("keeps reward and trophy counters distinct and clears only on a real gallery visit", () => {
