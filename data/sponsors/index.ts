@@ -10,6 +10,7 @@ import { BRETON_SPONSORS } from "./brittany";
 import { CONFECTIONERY_SPONSORS } from "./confectionery";
 import { COUNTRY_EXPANSION_BATCH_01_SPONSORS } from "./country-expansion-batch-01";
 import { COUNTRY_EXPANSION_BATCH_02_SPONSORS } from "./country-expansion-batch-02";
+import { COUNTRY_EXPANSION_BATCH_03_SPONSORS } from "./country-expansion-batch-03";
 import { CYCLING_PROJECT_SPONSORS } from "./cycling-projects";
 import { ENERGY_SPONSORS } from "./energy";
 import { FAST_FOOD_SPONSORS } from "./fast-food";
@@ -41,6 +42,7 @@ const RAW_SPONSORS = [
   ...JAPANESE_SPONSORS,
   ...COUNTRY_EXPANSION_BATCH_01_SPONSORS,
   ...COUNTRY_EXPANSION_BATCH_02_SPONSORS,
+  ...COUNTRY_EXPANSION_BATCH_03_SPONSORS,
   ...CONFECTIONERY_SPONSORS,
   ...ENERGY_SPONSORS,
   ...BANKING_SPONSORS,
