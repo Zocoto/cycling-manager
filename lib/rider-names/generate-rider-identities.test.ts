@@ -10,6 +10,7 @@ import finland from "@/data/rider-names/finland.json";
 import france from "@/data/rider-names/france.json";
 import belgium from "@/data/rider-names/belgium.json";
 import ghana from "@/data/rider-names/ghana.json";
+import greece from "@/data/rider-names/greece.json";
 import iceland from "@/data/rider-names/iceland.json";
 import india from "@/data/rider-names/india.json";
 import ivoryCoast from "@/data/rider-names/ivory_coast.json";
@@ -114,6 +115,28 @@ describe("rider name libraries", () => {
     expect(overlapRatio(ethiopia.firstNames, eritrea.firstNames)).toBeLessThan(
       0.2,
     );
+  });
+
+  it("keeps the Greek pool free of truncated and foreign fallback names", () => {
+    const greekSurnamePattern =
+      /(?:s|ou|idis|iadis|akis|opoulos|oglou|as|is|os)$/i;
+    const knownPollutedValues = [
+      "Rm",
+      "Mohamed",
+      "Krzysztof",
+      "Singh",
+      "Camilleri",
+    ];
+    const greekNames = new Set([...greece.firstNames, ...greece.lastNames]);
+
+    expect(greece.firstNames.length).toBeGreaterThanOrEqual(120);
+    expect(greece.lastNames.length).toBeGreaterThanOrEqual(160);
+    expect(greece.firstNames.every((name) => name.length >= 4)).toBe(true);
+    expect(greece.lastNames.every((name) => name.length >= 4)).toBe(true);
+    expect(knownPollutedValues.some((name) => greekNames.has(name))).toBe(false);
+    expect(
+      greece.lastNames.filter((name) => greekSurnamePattern.test(name)).length,
+    ).toBeGreaterThan(greece.lastNames.length * 0.95);
   });
 
   it("separates the main South and Southeast Asian national pools", () => {

@@ -107,8 +107,8 @@
     {
       "code": "greece",
       "label": "Grèce, Chypre et Malte",
-      "minimumFirstNames": 200,
-      "minimumLastNames": 200
+      "minimumFirstNames": 120,
+      "minimumLastNames": 160
     },
     {
       "code": "caucasus",

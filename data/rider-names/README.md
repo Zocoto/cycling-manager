@@ -15,6 +15,12 @@ Les profils régionaux historiques sont conservés pour les pays dont la couvert
 
 Les cultures patronymiques sont représentées explicitement. Pour l’Éthiopie et l’Érythrée, les deux champs techniques `firstNames` et `lastNames` contiennent donc des noms personnels utilisables respectivement comme prénom et patronyme, plutôt qu’une fausse liste de noms de famille héréditaires.
 
+## Profil grec
+
+Le catalogue grec est limité aux formes masculines grecques romanisées. Les entrées à très faible fréquence provenant de résidents étrangers ne sont pas utilisées comme repli : elles avaient introduit des noms sans rapport avec le profil, dont une valeur tronquée `Rm`. Une garde de non-régression contrôle désormais la longueur minimale des entrées et la cohérence morphologique du corpus de noms de famille.
+
+Les graphies ont été recoupées avec le fournisseur grec de [Faker](https://github.com/joke2k/faker/tree/master/faker/providers/person/el_GR) et contrôlées au regard des usages de translittération en alphabet latin décrits par l’[Autorité hellénique de protection des données](https://www.dpa.gr/el/enimerwtiko/prakseisArxis/odigia-gia-ti-metagrafi-me-latinika-stoiheia-toy-onomatos-ton-prosopon).
+
 ## Sources et licences
 
 Les listes ont été normalisées en alphabet latin, dédupliquées et filtrées pour retirer les identifiants, titres et initiales isolées. Elles ont été constituées et recoupées à partir des sources suivantes :
