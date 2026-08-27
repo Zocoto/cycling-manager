@@ -12,6 +12,7 @@ import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shor
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
 import { GameNavigationMenu } from "@/components/game/game-navigation-menu";
 import { MobileGameNavigation } from "@/components/game/mobile-game-navigation";
+import { MobilePageRefreshControl } from "@/components/game/mobile-page-refresh-control";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
 import { TutorialCenterLauncher } from "@/components/tutorial/tutorial-center-launcher";
@@ -291,6 +292,7 @@ export function GameHeader({
           data-mobile-header-primary-actions="true"
           className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 lg:ml-0"
         >
+          <MobilePageRefreshControl isEnglish={isEnglish} />
           <div className="sm:hidden">
             <GameHeaderSearchToggle isEnglish={isEnglish}>
               <GameHeaderSearch
