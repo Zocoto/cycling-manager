@@ -2,14 +2,12 @@
 
 import {
   useEffect,
-  useRef,
   useState,
   useTransition,
 } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
-import { settleOfficialRaceResultsAction } from "@/app/jeu/resultats/actions";
 import { RaceStageProfile } from "@/components/game/race-stage-profile";
 import {
   RACE_DAY_SLOT_CONFIG,
@@ -92,14 +90,22 @@ export function RaceStageExperience({
     entry.edition
   );
   const router = useRouter();
-  const settlementStartedRef = useRef(false);
-  const [isSettlementPending, startSettlementTransition] =
+  const [isRefreshPending, startRefreshTransition] =
     useTransition();
   const resultAvailable = Boolean(
     officialResults?.stages.some(
       (stage) => stage.stageId === entry.stage.id
     )
   );
+  const selectedSimulationAvailable = lockedSimulations.some(
+    (simulation) => simulation.stageId === entry.stage.id,
+  );
+  const waitingForResults =
+    state.status === "finished" && !resultAvailable;
+  const waitingForSimulation =
+    (state.status === "live" ||
+      (state.status === "finished" && replayRequested)) &&
+    !selectedSimulationAvailable;
   const [view, setView] = useState<"live" | "results">(
     state.status === "finished" && resultAvailable && !replayRequested
       ? "results"
@@ -107,34 +113,20 @@ export function RaceStageExperience({
   );
 
   useEffect(() => {
-    if (
-      state.status !== "finished" ||
-      resultAvailable ||
-      !simulationAvailable ||
-      settlementStartedRef.current
-    ) {
+    if (!simulationAvailable || (!waitingForResults && !waitingForSimulation)) {
       return;
     }
 
-    settlementStartedRef.current = true;
-    startSettlementTransition(async () => {
-      try {
-        await settleOfficialRaceResultsAction(entry.edition.slug);
-        router.refresh();
-      } catch (error) {
-        console.error(
-          "Impossible d’actualiser les résultats officiels :",
-          error
-        );
-        settlementStartedRef.current = false;
-      }
-    });
+    const refreshTimer = window.setInterval(() => {
+      startRefreshTransition(() => router.refresh());
+    }, 3_000);
+
+    return () => window.clearInterval(refreshTimer);
   }, [
-    resultAvailable,
-    entry.edition.slug,
     router,
     simulationAvailable,
-    state.status,
+    waitingForResults,
+    waitingForSimulation,
   ]);
 
   if (!simulationAvailable) {
@@ -238,24 +230,30 @@ export function RaceStageExperience({
     );
   }
 
-  if (
-    state.status === "finished" &&
-    !resultAvailable &&
-    lockedSimulations.length === 0
-  ) {
+  if (waitingForResults || waitingForSimulation) {
+    const isResultsPreparation = waitingForResults;
     return (
       <section className="overflow-hidden rounded-[2rem] border border-[#315B3E]/15 bg-white shadow-sm">
         <div className="grid gap-7 p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)] lg:items-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#278B70]">
-              Arrivée franchie
+              {isResultsPreparation
+                ? "Arrivée franchie"
+                : state.status === "live"
+                  ? "Départ donné"
+                  : "Replay demandé"}
             </p>
             <h2 className="mt-3 text-2xl font-black text-[#0B302B] sm:text-3xl">
-              Le classement se met en place
+              {isResultsPreparation
+                ? "Le classement se met en place"
+                : state.status === "live"
+                  ? "Le direct se prépare"
+                  : "Le replay se prépare"}
             </h2>
             <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#5E746D]">
-              La page reste disponible pendant l’homologation. Le classement
-              apparaîtra automatiquement dès qu’il sera prêt.
+              {isResultsPreparation
+                ? "La page reste disponible pendant l’homologation. Le classement apparaîtra automatiquement dès qu’il sera prêt."
+                : "Le scénario officiel est préparé en arrière-plan, sans mobiliser cette page. Il apparaîtra automatiquement dès qu’il sera prêt."}
             </p>
             <div className="mt-6">
               <RaceStageProfile
@@ -273,8 +271,8 @@ export function RaceStageExperience({
               <div className="h-full w-2/3 animate-pulse rounded-full bg-[#278B70]" />
             </div>
             <p className="mt-4 text-sm font-black">
-              {isSettlementPending
-                ? "Homologation en cours…"
+              {isRefreshPending
+                ? "Vérification en cours…"
                 : "Actualisation automatique…"}
             </p>
             <p className="mt-2 text-xs font-semibold leading-5 text-[#5E746D]">
@@ -314,7 +312,7 @@ export function RaceStageExperience({
             if (
               state.status === "finished" &&
               resultAvailable &&
-              lockedSimulations.length === 0
+              !selectedSimulationAvailable
             ) {
               router.replace(
                 `/jeu/resultats/${encodeURIComponent(entry.edition.slug)}/${entry.stage.stageNumber}?replay=1`,
@@ -351,7 +349,7 @@ export function RaceStageExperience({
         >
           {resultAvailable
             ? "▤ Résultats officiels"
-            : isSettlementPending
+            : isRefreshPending
               ? "Consolidation du classement…"
               : "Résultats après l’arrivée"}
         </button>

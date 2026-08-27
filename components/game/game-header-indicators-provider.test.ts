@@ -37,7 +37,9 @@ const shortcutSources = [
 
 describe("game header indicators provider", () => {
   it("uses one RPC and one realtime channel for all indicators", () => {
-    expect(provider).toContain('await import(\n        "@/lib/supabase/client"\n      )');
+    expect(provider).toMatch(
+      /await import\(\s*["']@\/lib\/supabase\/client["']\s*\)/,
+    );
     expect(provider).not.toContain(
       'import { createSupabaseBrowserClient } from "@/lib/supabase/client"',
     );
@@ -45,6 +47,9 @@ describe("game header indicators provider", () => {
     expect(provider).toContain('.channel("game-header-indicators:v2")');
     expect(provider.match(/\.channel\(/g)).toHaveLength(1);
     expect(provider).toContain('table: "sporting_director_messages"');
+    expect(provider).toContain(
+      "`sporting_director_id=eq.${row.current_sporting_director_id}`",
+    );
     expect(provider).toContain('table: "global_chat_messages"');
     expect(provider).toContain('table: "direct_messages"');
     expect(provider).toContain(

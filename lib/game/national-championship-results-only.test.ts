@@ -104,9 +104,9 @@ describe("intégration résultats seuls des CN", () => {
   it("écarte les CN S2+ du verrouillage des scénarios de replay", () => {
     expect(service).toContain("replayCalendar");
     expect(service).toContain("simulateRaceStageResultsOnly(input)");
-    expect(resultPage).toContain(
-      'state.status === "scheduled" || resultsOnlyNationalChampionship',
-    );
+    expect(resultPage).toContain("!resultsOnlyNationalChampionship");
+    expect(resultPage).toContain("getLockedOfficialRaceSimulations");
+    expect(resultPage).not.toContain("ensureLockedOfficialRaceSimulations");
   });
 
   it("désactive les traitements annexes du live pour les classements seuls", () => {

@@ -67,39 +67,57 @@ const OFFICIAL_SIMULATION_POLL_ATTEMPTS = 20;
 const OFFICIAL_SIMULATION_POLL_DELAY_MS = 75;
 const RECENT_STAGE_RACE_REPAIR_WINDOW_MS = 24 * 60 * 60 * 1_000;
 
+export async function getLockedOfficialRaceSimulations(
+  calendar: SeasonRaceCalendar,
+  requestedStageIds?: readonly string[],
+): Promise<LockedOfficialRaceSimulationDirectory> {
+  const calendarStageIds = new Set(
+    calendar.editions.flatMap((edition) =>
+      edition.stages.map((stage) => stage.id),
+    ),
+  );
+  const stageIds = requestedStageIds
+    ? [...new Set(requestedStageIds)].filter((stageId) =>
+        calendarStageIds.has(stageId),
+      )
+    : [...calendarStageIds];
+  if (stageIds.length === 0) return {};
+
+  const rows = await loadOfficialStageSimulationRows(stageIds);
+  const simulationByStageId = new Map(
+    rows.map((row) => [row.stage_id, toLockedSimulation(row)]),
+  );
+  const directory: LockedOfficialRaceSimulationDirectory = {};
+
+  for (const edition of calendar.editions) {
+    const simulations = [...edition.stages]
+      .sort(
+        (first, second) =>
+          first.stageNumber - second.stageNumber ||
+          first.id.localeCompare(second.id),
+      )
+      .flatMap((stage) => {
+        const simulation = simulationByStageId.get(stage.id);
+        return simulation ? [simulation] : [];
+      });
+    if (simulations.length > 0) directory[edition.id] = simulations;
+  }
+
+  return directory;
+}
+
 export async function ensureLockedOfficialRaceSimulations(
   calendar: SeasonRaceCalendar,
   now = new Date()
 ): Promise<LockedOfficialRaceSimulationDirectory> {
-  const admin = createSupabaseAdminClient();
   const stageIds = calendar.editions.flatMap((edition) =>
     edition.stages.map((stage) => stage.id)
   );
   if (stageIds.length === 0) return {};
 
-  const { data, error } = await collectChunkedPaginatedRows<
-    OfficialStageSimulationRow,
-    { message: string },
-    string
-  >({
-    values: stageIds,
-    fetchPage: async (chunk, from, to) => {
-      const result = await admin
-        .from("official_stage_simulations")
-        .select(
-          "stage_id, race_edition_id, engine_version, seed, input_data, simulation_data"
-        )
-        .in("stage_id", chunk)
-        .order("stage_id", { ascending: true })
-        .range(from, to)
-        .returns<OfficialStageSimulationRow[]>();
-      return { data: result.data, error: result.error };
-    },
-  });
-  assertQuery(error, "les scénarios officiels existants");
-
+  const data = await loadOfficialStageSimulationRows(stageIds);
   const lockedByStageId = new Map(
-    (data ?? []).map((row) => [row.stage_id, toLockedSimulation(row)])
+    data.map((row) => [row.stage_id, toLockedSimulation(row)])
   );
   const [
     persistedUnavailabilityWindows,
@@ -167,6 +185,7 @@ export async function ensureLockedOfficialRaceSimulations(
           lockedByStageId.set(stage.id, lockedSimulation);
         } else {
           try {
+            const stageProcessingStartedAt = Date.now();
             const standingsBeforeStage =
               edition.raceFormat === "stage_race" &&
               editionSimulations.length > 0
@@ -194,6 +213,8 @@ export async function ensureLockedOfficialRaceSimulations(
             const simulation = normalizeOfficialStageResultRanks(
               simulateRaceStage(officialInput),
             );
+            const simulationDurationMs =
+              Date.now() - stageProcessingStartedAt;
             const candidate: LockedOfficialStageSimulation = {
               stageId: stage.id,
               raceEditionId: edition.id,
@@ -202,8 +223,19 @@ export async function ensureLockedOfficialRaceSimulations(
               input: officialInput,
               simulation,
             };
+            const persistenceStartedAt = Date.now();
             lockedSimulation = await insertOrReadLockedSimulation(candidate);
             lockedByStageId.set(stage.id, lockedSimulation);
+            console.info("official_stage_simulation_completed", {
+              raceEditionId: edition.id,
+              stageId: stage.id,
+              stageNumber: stage.stageNumber,
+              riderCount: officialInput.riders.length,
+              segmentCount: stage.segments.length,
+              simulationDurationMs,
+              persistenceDurationMs: Date.now() - persistenceStartedAt,
+              durationMs: Date.now() - stageProcessingStartedAt,
+            });
           } finally {
             await releaseOfficialSimulationClaim(stage.id, claimToken);
           }
@@ -224,6 +256,31 @@ export async function ensureLockedOfficialRaceSimulations(
   }
 
   return directory;
+}
+
+async function loadOfficialStageSimulationRows(stageIds: string[]) {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await collectChunkedPaginatedRows<
+    OfficialStageSimulationRow,
+    { message: string },
+    string
+  >({
+    values: stageIds,
+    fetchPage: async (chunk, from, to) => {
+      const result = await admin
+        .from("official_stage_simulations")
+        .select(
+          "stage_id, race_edition_id, engine_version, seed, input_data, simulation_data"
+        )
+        .in("stage_id", chunk)
+        .order("stage_id", { ascending: true })
+        .range(from, to)
+        .returns<OfficialStageSimulationRow[]>();
+      return { data: result.data, error: result.error };
+    },
+  });
+  assertQuery(error, "les scénarios officiels existants");
+  return data ?? [];
 }
 
 /**

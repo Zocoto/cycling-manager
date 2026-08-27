@@ -22,7 +22,7 @@ import {
 import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import { getRaceLiveMessages } from "@/services/race-live-chat";
 import { getOfficialRaceResults } from "@/services/race-results";
-import { ensureLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
+import { getLockedOfficialRaceSimulations } from "@/services/official-race-simulations";
 import { getOrCreatePostRaceInterview } from "@/services/post-race-interviews";
 
 export const metadata: Metadata = {
@@ -102,7 +102,7 @@ export default async function RaceLivePage({
 
   const state = getStageLiveState(stage, now);
   const officialResults =
-    state.status === "scheduled"
+    state.status !== "finished"
       ? null
       : await getOfficialRaceResults(calendar)
           .then((directory) => directory[edition.id] ?? null)
@@ -128,10 +128,18 @@ export default async function RaceLivePage({
   const lockedSimulationDirectory: LockedOfficialRaceSimulationDirectory =
     !shouldLoadReplay
       ? {}
-      : await ensureLockedOfficialRaceSimulations(calendar, now).catch(
+      : await getLockedOfficialRaceSimulations(
+          calendar,
+          edition.stages
+            .filter(
+              (candidate) =>
+                candidate.stageNumber <= stage.stageNumber,
+            )
+            .map((candidate) => candidate.id),
+        ).catch(
           (error: unknown) => {
             console.error(
-              "Impossible de verrouiller le scénario officiel :",
+              "Impossible de charger le scénario officiel :",
               error,
             );
             return {};

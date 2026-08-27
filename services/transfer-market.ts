@@ -890,7 +890,7 @@ async function ensureTodayDailyMarket(
     .eq("market_date", marketDate)
     .maybeSingle<{ id: string }>();
   assertQuery(batchError, "la génération quotidienne");
-  if (batch || getParisHour(new Date()) < 9) return;
+  if (batch || getParisHour(new Date()) < 9) return 0;
 
   const [countriesResult, profilesResult] = await Promise.all([
     admin
@@ -981,33 +981,49 @@ async function ensureTodayDailyMarket(
     );
   }
 
-  const { error } = await admin.rpc("create_daily_transfer_market", {
+  const { data, error } = await admin.rpc("create_daily_transfer_market", {
     p_market_date: marketDate,
     p_rider_identities: identities,
     p_force: false,
   });
   assertQuery(error, "les coureurs du marché quotidien");
+  return Number(data ?? 0);
 }
 
 async function prepareCurrentTransferMarket(
   admin: ReturnType<typeof createSupabaseAdminClient>,
 ) {
-  const { error: marketSettlementError } = await admin.rpc(
+  const startedAt = Date.now();
+  const firstSettlementStartedAt = Date.now();
+  const { data: firstSettled, error: marketSettlementError } = await admin.rpc(
     "settle_transfer_market",
   );
   assertQuery(marketSettlementError, "les enchères arrivées à échéance");
+  const firstSettlementDurationMs = Date.now() - firstSettlementStartedAt;
 
-  await ensureTodayDailyMarket(admin);
+  const dailyMarketStartedAt = Date.now();
+  const generatedListings = await ensureTodayDailyMarket(admin);
+  const dailyMarketDurationMs = Date.now() - dailyMarketStartedAt;
 
-  const { error: secondSettlementError } = await admin.rpc(
+  const secondSettlementStartedAt = Date.now();
+  const { data: secondSettled, error: secondSettlementError } = await admin.rpc(
     "settle_transfer_market",
   );
   assertQuery(secondSettlementError, "la clôture du marché quotidien");
+
+  return {
+    settledListings: Number(firstSettled ?? 0) + Number(secondSettled ?? 0),
+    generatedListings,
+    firstSettlementDurationMs,
+    dailyMarketDurationMs,
+    secondSettlementDurationMs: Date.now() - secondSettlementStartedAt,
+    durationMs: Date.now() - startedAt,
+  };
 }
 
 export async function runTransferMarketMaintenance() {
   const admin = createSupabaseAdminClient();
-  await prepareCurrentTransferMarket(admin);
+  return prepareCurrentTransferMarket(admin);
 }
 
 async function loadCurrentContext(

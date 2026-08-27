@@ -11,8 +11,11 @@ const resultsDirectory = readFileSync(
   join(process.cwd(), "components/game/race-results-directory.tsx"),
   "utf8",
 );
-const resultsAction = readFileSync(
-  join(process.cwd(), "app/jeu/resultats/actions.ts"),
+const stagePage = readFileSync(
+  join(
+    process.cwd(),
+    "app/jeu/resultats/[slug]/[stageNumber]/page.tsx",
+  ),
   "utf8",
 );
 
@@ -26,15 +29,10 @@ describe("race route performance", () => {
     expect(resultsDirectory).toContain('import("@/components/game/race-official-results")');
   });
 
-  it("settles only the race being watched", () => {
-    expect(stageExperience).toContain(
-      "settleOfficialRaceResultsAction(entry.edition.slug)",
-    );
-    expect(resultsDirectory).toContain(
-      "settleOfficialRaceResultsAction(entry.edition.slug)",
-    );
-    expect(resultsAction).toContain(
-      "settleDueOfficialRaceRewardsAction(normalizedRaceSlug)",
-    );
+  it("keeps the active results page read-only while background jobs compute", () => {
+    expect(stageExperience).not.toContain("settleOfficialRaceResultsAction");
+    expect(stageExperience).toContain("router.refresh()");
+    expect(stagePage).toContain("getLockedOfficialRaceSimulations");
+    expect(stagePage).not.toContain("ensureLockedOfficialRaceSimulations");
   });
 });

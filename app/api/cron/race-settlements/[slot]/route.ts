@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = Date.now();
   const now = new Date();
   const requestedRaceSlug = new URL(request.url).searchParams.get("race");
   if (
@@ -34,15 +35,19 @@ export async function GET(request: Request) {
   ) {
     return Response.json({ error: "Invalid race slug" }, { status: 400 });
   }
+  const preSettlementStartedAt = Date.now();
   const internationalSelections = await runPreSettlementTask(
     "sélections internationales",
     () => processDueInternationalChampionshipSelections(now),
   );
+  const preSettlementDurationMs = Date.now() - preSettlementStartedAt;
+  const settlementStartedAt = Date.now();
   const settlement = await settleDueStandardRaceResults({
     now,
     raceSlug: requestedRaceSlug ?? undefined,
   });
-  return Response.json({
+  const settlementDurationMs = Date.now() - settlementStartedAt;
+  const result = {
     processedStages: settlement.processedStages,
     completedEditions: settlement.completedEditions,
     failedEditions: settlement.failedEditions,
@@ -51,5 +56,10 @@ export async function GET(request: Request) {
     preSettlementFailures: internationalSelections.ok ? 0 : 1,
     raceSlug: requestedRaceSlug,
     settledAt: now.toISOString(),
-  });
+    preSettlementDurationMs,
+    settlementDurationMs,
+    durationMs: Date.now() - startedAt,
+  };
+  console.info("official_race_settlement_completed", result);
+  return Response.json(result);
 }

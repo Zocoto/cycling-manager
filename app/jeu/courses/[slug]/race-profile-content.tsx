@@ -396,34 +396,53 @@ export async function RaceProfileContent({
                   </h2>
                   {pastWinners.length > 0 ? (
                     <div className="mt-4 max-h-80 overflow-y-auto rounded-xl border border-[#315B3E]/15 bg-white">
-                      {pastWinners.map((winner) => (
-                        <div
-                          key={`${winner.gameYear}-${winner.finalRank}-${winner.riderId}`}
-                          className="flex flex-wrap items-center justify-between gap-3 border-b border-[#315B3E]/10 px-5 py-4 last:border-none"
+                      {groupRacePastWinners(pastWinners).map((podium) => (
+                        <section
+                          key={podium.gameYear}
+                          className="border-b border-[#315B3E]/10 px-5 py-4 last:border-none"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#0B302B] text-xs font-black text-white">
-                              {winner.finalRank}
-                            </span>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <Link
-                                href={`/jeu/coureurs/${winner.riderId}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="font-black text-[#0B302B] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#176951]"
-                              >
-                                {winner.riderName}{" "}
-                                <span aria-hidden="true">↗</span>
-                              </Link>
-                              <p className="mt-1 text-xs font-semibold text-[#688176]">
-                                {winner.teamName}
+                              <p className="text-sm font-black text-[#0B302B]">
+                                Saison {podium.gameYear}
+                              </p>
+                              <p className="mt-0.5 text-xs font-semibold text-[#789087]">
+                                {podium.seasonName}
                               </p>
                             </div>
+                            <Link
+                              href={`/jeu/courses/${edition.slug}/historique/${podium.gameYear}`}
+                              className="inline-flex min-h-9 items-center rounded-lg bg-[#D7EEE8] px-3 text-xs font-black text-[#176951] transition hover:bg-[#C5E6DC]"
+                            >
+                              Classement complet →
+                            </Link>
                           </div>
-                          <span className="rounded-full bg-[#D7EEE8] px-3 py-1.5 text-xs font-black text-[#176951]">
-                            Saison {winner.gameYear}
-                          </span>
-                        </div>
+                          <ol className="mt-3 space-y-2">
+                            {podium.winners.map((winner) => (
+                              <li
+                                key={`${winner.finalRank}-${winner.riderId}`}
+                                className="flex min-w-0 items-center gap-3"
+                              >
+                                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#0B302B] text-[10px] font-black text-white">
+                                  {winner.finalRank}
+                                </span>
+                                <span className="min-w-0">
+                                  <Link
+                                    href={`/jeu/coureurs/${winner.riderId}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block truncate text-sm font-black text-[#0B302B] transition hover:text-[#176951]"
+                                  >
+                                    {winner.riderName}
+                                  </Link>
+                                  <span className="block truncate text-xs font-semibold text-[#688176]">
+                                    {winner.teamName}
+                                  </span>
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
+                        </section>
                       ))}
                     </div>
                   ) : (
@@ -499,6 +518,36 @@ export async function RaceProfileContent({
       </section>
     </main>
   );
+}
+
+function groupRacePastWinners(winners: RacePastWinner[]) {
+  const podiums = new Map<
+    number,
+    {
+      gameYear: number;
+      seasonName: string;
+      winners: RacePastWinner[];
+    }
+  >();
+
+  for (const winner of winners) {
+    const podium = podiums.get(winner.gameYear) ?? {
+      gameYear: winner.gameYear,
+      seasonName: winner.seasonName,
+      winners: [],
+    };
+    podium.winners.push(winner);
+    podiums.set(winner.gameYear, podium);
+  }
+
+  return [...podiums.values()]
+    .sort((first, second) => second.gameYear - first.gameYear)
+    .map((podium) => ({
+      ...podium,
+      winners: podium.winners.sort(
+        (first, second) => first.finalRank - second.finalRank,
+      ),
+    }));
 }
 
 function RegistrationPanel({

@@ -171,46 +171,48 @@ export function GameHeaderIndicatorsProvider({
       if (!active || !supabase) return;
 
       let channel = supabase
-      .channel("game-header-indicators:v2")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "sporting_director_messages",
-        },
-        () => scheduleRefresh(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "global_chat_messages",
-        },
-        () => scheduleRefresh(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "cyclogazette_editions",
-        },
-        () => scheduleRefresh(),
-      );
-
-      if (row?.current_sporting_director_id) {
-        channel = channel.on(
+        .channel("game-header-indicators:v2")
+        .on(
           "postgres_changes",
           {
             event: "INSERT",
             schema: "public",
-            table: "direct_messages",
-            filter: `recipient_id=eq.${row.current_sporting_director_id}`,
+            table: "global_chat_messages",
+          },
+          () => scheduleRefresh(),
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "cyclogazette_editions",
           },
           () => scheduleRefresh(),
         );
+
+      if (row?.current_sporting_director_id) {
+        channel = channel
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "sporting_director_messages",
+              filter: `sporting_director_id=eq.${row.current_sporting_director_id}`,
+            },
+            () => scheduleRefresh(),
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "direct_messages",
+              filter: `recipient_id=eq.${row.current_sporting_director_id}`,
+            },
+            () => scheduleRefresh(),
+          );
       }
       subscribedChannel = channel.subscribe();
     }

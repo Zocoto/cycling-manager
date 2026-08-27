@@ -12,7 +12,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    await runTransferMarketMaintenance();
+    const result = await runTransferMarketMaintenance();
+    console.info("transfer_market_maintenance_completed", result);
     after(async () => {
       try {
         await dispatchDuePushNotifications({ enqueueRaceLives: false });
@@ -23,7 +24,10 @@ export async function GET(request: Request) {
         );
       }
     });
-    return Response.json({ settledAt: new Date().toISOString() });
+    return Response.json({
+      ...result,
+      settledAt: new Date().toISOString(),
+    });
   } catch (error) {
     console.error("Échec de la maintenance du marché des transferts.", error);
     return Response.json(

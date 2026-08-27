@@ -156,6 +156,7 @@ export function RaceOfficialResults({
         <TeamResultsTable classification={secondary} />
       ) : (
         <RiderResultsTable
+          key={`${selectedStageId}-${resolvedTab}`}
           results={riderResults}
           classification={resolvedTab}
           showTimeBonus={
@@ -256,6 +257,9 @@ function RiderResultsTable({
   classification: ClassificationKey;
   showTimeBonus: boolean;
 }) {
+  const [visibleCount, setVisibleCount] = useState(40);
+  const visibleResults = results.slice(0, visibleCount);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left">
@@ -271,7 +275,7 @@ function RiderResultsTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-[#315B3E]/10">
-          {results.map((result, index) => (
+          {visibleResults.map((result, index) => (
             <tr
               key={result.riderId}
               className={`${result.rank !== null && result.rank <= 3 ? "bg-[#F7FAF0]" : "bg-white"} transition hover:bg-[#EEF7F2]`}
@@ -324,6 +328,21 @@ function RiderResultsTable({
         <p className="px-6 py-12 text-center text-sm font-bold text-[#688176]">
           Ce classement ne contient encore aucun résultat.
         </p>
+      ) : null}
+      {visibleCount < results.length ? (
+        <div className="sticky left-0 flex justify-center border-t border-[#315B3E]/10 bg-[#F5F9F7] px-5 py-4">
+          <button
+            type="button"
+            onClick={() =>
+              setVisibleCount((current) =>
+                Math.min(results.length, current + 40),
+              )
+            }
+            className="min-h-10 rounded-xl bg-[#176951] px-5 text-xs font-black text-white transition hover:bg-[#0F5845]"
+          >
+            Afficher les {Math.min(40, results.length - visibleCount)} suivants
+          </button>
+        </div>
       ) : null}
     </div>
   );
