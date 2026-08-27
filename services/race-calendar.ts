@@ -1585,6 +1585,40 @@ export async function getCurrentTeamRacePreparation(
     editionPlan.riders = [
       ...(ridersByEditionId.get(editionId)?.values() ?? []),
     ];
+
+    const availableRiderIds = new Set(
+      editionPlan.riders.map((rider) => rider.riderId),
+    );
+
+    for (const stagePlan of Object.values(editionPlan.stages)) {
+      if (
+        stagePlan.lieutenantRiderId &&
+        !availableRiderIds.has(stagePlan.lieutenantRiderId)
+      ) {
+        stagePlan.lieutenantRiderId = null;
+      }
+      if (
+        stagePlan.dangerPacerRiderId &&
+        !availableRiderIds.has(stagePlan.dangerPacerRiderId)
+      ) {
+        stagePlan.dangerPacerRiderId = null;
+      }
+      if (
+        stagePlan.protectorRiderId &&
+        !availableRiderIds.has(stagePlan.protectorRiderId)
+      ) {
+        stagePlan.protectorRiderId = null;
+      }
+      if (
+        stagePlan.breakawayRiderId &&
+        !availableRiderIds.has(stagePlan.breakawayRiderId)
+      ) {
+        stagePlan.breakawayRiderId = null;
+      }
+      stagePlan.attackOrders = stagePlan.attackOrders.filter((order) =>
+        availableRiderIds.has(order.riderId),
+      );
+    }
   }
 
   return [...editionsById.values()];
