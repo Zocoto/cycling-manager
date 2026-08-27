@@ -1,4 +1,7 @@
+import { after } from "next/server";
+
 import { isAuthorizedCronRequest } from "@/lib/security/cron-authorization";
+import { dispatchDuePushNotifications } from "@/services/push-notifications";
 import { runTransferMarketMaintenance } from "@/services/transfer-market";
 
 export const maxDuration = 60;
@@ -10,6 +13,16 @@ export async function GET(request: Request) {
 
   try {
     await runTransferMarketMaintenance();
+    after(async () => {
+      try {
+        await dispatchDuePushNotifications({ enqueueRaceLives: false });
+      } catch (error) {
+        console.error(
+          "Impossible de distribuer immédiatement les notifications du marché des transferts.",
+          error,
+        );
+      }
+    });
     return Response.json({ settledAt: new Date().toISOString() });
   } catch (error) {
     console.error("Échec de la maintenance du marché des transferts.", error);

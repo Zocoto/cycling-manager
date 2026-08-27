@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import {
   DIRECT_MESSAGE_MAX_LENGTH,
   isUuid,
@@ -15,6 +17,7 @@ import {
   type DirectMessage,
   type DirectMessageRow,
 } from "@/services/direct-messages";
+import { dispatchDuePushNotifications } from "@/services/push-notifications";
 
 export async function openDirectConversationAction(
   recipientId: string,
@@ -81,6 +84,7 @@ export async function postDirectMessageAction(
     );
   }
 
+  scheduleDirectMessagePushDispatch();
   return mapDirectMessage(row);
 }
 
@@ -156,4 +160,17 @@ async function requireAuthenticatedUser(
   if (error || !user) {
     throw new Error("Vous devez être connecté pour utiliser les MP.");
   }
+}
+
+function scheduleDirectMessagePushDispatch() {
+  after(async () => {
+    try {
+      await dispatchDuePushNotifications({ enqueueRaceLives: false });
+    } catch (error) {
+      console.error(
+        "Impossible de distribuer immédiatement la notification de message privé.",
+        error,
+      );
+    }
+  });
 }

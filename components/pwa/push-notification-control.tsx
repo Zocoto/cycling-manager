@@ -232,7 +232,9 @@ export function PushNotificationControl() {
 
           <ul className="mt-3 grid gap-1 text-xs leading-5 text-[#38564D]">
             <li>• Départ d’un live où votre équipe est inscrite</li>
-            <li>• Offres de transfert reçues et réponses à vos offres</li>
+            <li>• Messages privés reçus et mentions dans le chat</li>
+            <li>• Offres, surenchères et enchères remportées</li>
+            <li>• Courriers importants : sélections, trophées et alertes</li>
             <li>• Cyclogazette publiée à 20 h</li>
             <li>• Rapports de scouting finalisés</li>
             <li>• Travaux d’infrastructure terminés</li>
