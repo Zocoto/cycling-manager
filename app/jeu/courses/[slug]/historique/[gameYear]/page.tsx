@@ -6,7 +6,6 @@ import Link from "@/components/ui/app-link";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
-import { getActiveSeasonRaceCalendar } from "@/services/race-calendar";
 import {
   getHistoricalRaceClassification,
   type HistoricalRaceClassificationEntry,
@@ -44,22 +43,19 @@ export default async function HistoricalRacePage({
   } = await getAuthenticatedUser(supabase);
   if (authenticationError || !user) redirect("/connexion");
 
-  const [headerData, calendar] = await Promise.all([
+  const [headerData, raceResult] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getActiveSeasonRaceCalendar(supabase, new Date(), {
-      raceSlug: slug,
-      includeEngagedCounts: false,
-      includeEngagedRiders: false,
-    }),
+    supabase
+      .from("races")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle<{ id: string }>(),
   ]);
-  const currentEdition = calendar?.editions.find(
-    (edition) => edition.slug === slug,
-  );
-  if (!currentEdition) notFound();
+  if (raceResult.error || !raceResult.data) notFound();
 
   const classification = await getHistoricalRaceClassification({
     supabase,
-    raceId: currentEdition.raceId,
+    raceId: raceResult.data.id,
     gameYear,
   });
   if (!classification) notFound();

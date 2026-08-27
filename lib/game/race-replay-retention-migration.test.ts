@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const historicalPage = readFileSync(
+  resolve(
+    process.cwd(),
+    "app/jeu/courses/[slug]/historique/[gameYear]/page.tsx",
+  ),
+  "utf8",
+);
 
 describe("active-season replay retention", () => {
   it("purges only heavy simulations outside the active season", () => {
@@ -30,5 +37,7 @@ describe("active-season replay retention", () => {
     expect(migration).toContain("to authenticated");
     expect(migration).toContain("result.final_rank");
     expect(migration).toContain("result.gap_to_winner_ms");
+    expect(historicalPage).toContain('.from("races")');
+    expect(historicalPage).not.toContain("getActiveSeasonRaceCalendar");
   });
 });
