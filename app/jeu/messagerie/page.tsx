@@ -3,10 +3,13 @@ import { redirect } from "next/navigation";
 
 import {
   archiveDirectorMessageAction,
+  deleteDirectorMessageAction,
+  deleteDirectorMessagesAction,
   markDirectorMessageUnreadAction,
   restoreDirectorMessageAction,
 } from "@/app/jeu/messagerie/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { DashboardJournalDeleteButton } from "@/components/game/dashboard-journal-delete-button";
 import { DirectorMailboxMarkAllReadButton } from "@/components/game/director-mailbox-mark-all-read-button";
 import { DirectorMailboxMessageLink } from "@/components/game/director-mailbox-message-link";
 import { GameHeader } from "@/components/game/game-header";
@@ -124,6 +127,9 @@ export default async function DirectorMailboxPage({
             </Link>
             {mailbox.counts.unread > 0 ? (
               <DirectorMailboxMarkAllReadButton />
+            ) : null}
+            {mailbox.counts.inbox + mailbox.counts.archived > 0 ? (
+              <MailboxCleanupMenu />
             ) : null}
           </div>
         </header>
@@ -363,6 +369,13 @@ function MessageReader({ message }: { message: DirectorMailboxMessage }) {
               label={message.archivedAt ? "Restaurer" : "Archiver"}
             />
           </form>
+          <form action={deleteDirectorMessageAction}>
+            <input type="hidden" name="messageId" value={message.id} />
+            <DashboardJournalDeleteButton
+              label="Supprimer définitivement"
+              confirmation="Supprimer définitivement ce message ? Cette action est irréversible."
+            />
+          </form>
         </div>
       </div>
 
@@ -404,6 +417,64 @@ function MessageReader({ message }: { message: DirectorMailboxMessage }) {
         </div>
       ) : null}
     </article>
+  );
+}
+
+function MailboxCleanupMenu() {
+  return (
+    <details className="group/cleanup relative">
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-xl border border-[#176951]/18 bg-white px-4 text-sm font-black text-[#176951] shadow-sm transition hover:border-[#176951]/35 hover:bg-[#F3F9F7] [&::-webkit-details-marker]:hidden">
+        Nettoyer
+        <span aria-hidden="true" className="ml-2 transition group-open/cleanup:rotate-180">
+          ⌄
+        </span>
+      </summary>
+      <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border border-[#315B3E]/15 bg-white p-2 shadow-[0_18px_48px_rgba(7,48,42,0.22)]">
+        <p className="px-2 pb-2 pt-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#658077]">
+          Suppression définitive
+        </p>
+        <MailboxCleanupForm
+          scope="read"
+          label="Supprimer tous les messages lus"
+          confirmation="Supprimer définitivement tous les messages lus ?"
+        />
+        <MailboxCleanupForm
+          scope="older_than_7_days"
+          label="Supprimer ceux de plus de 7 jours"
+          confirmation="Supprimer définitivement tous les messages de plus de 7 jours ?"
+        />
+        <MailboxCleanupForm
+          scope="all"
+          label="Vider toute la boîte mail"
+          confirmation="Supprimer définitivement tous les messages de votre boîte mail ? Cette action est irréversible."
+          danger
+        />
+      </div>
+    </details>
+  );
+}
+
+function MailboxCleanupForm({
+  scope,
+  label,
+  confirmation,
+  danger = false,
+}: {
+  scope: "read" | "older_than_7_days" | "all";
+  label: string;
+  confirmation: string;
+  danger?: boolean;
+}) {
+  return (
+    <form action={deleteDirectorMessagesAction}>
+      <input type="hidden" name="scope" value={scope} />
+      <DashboardJournalDeleteButton
+        label={label}
+        confirmation={confirmation}
+        variant={danger ? "danger" : "neutral"}
+        fullWidth
+      />
+    </form>
   );
 }
 

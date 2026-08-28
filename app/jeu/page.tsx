@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
+import {
+  DashboardAssistant,
+  DashboardAssistantSkeleton,
+} from "../../components/game/dashboard-assistant";
 import { DashboardEligibleRaces } from "../../components/game/dashboard-eligible-races";
 import { DashboardInventoryShortcut } from "../../components/game/dashboard-inventory-shortcut";
 import { DashboardReferralInvite } from "../../components/game/dashboard-referral-invite";
@@ -54,6 +59,8 @@ import {
   getCurrentDashboardFastSummary,
   type DashboardFastSummary,
 } from "../../services/dashboard-fast-summary";
+import { getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
+import { DASHBOARD_ASSISTANT_ENABLED } from "../../lib/game/dashboard-assistant";
 import { getDashboardRaceCalendar } from "../../services/dashboard-race-calendar";
 import {
   getTeamFanClubBuildings,
@@ -272,6 +279,13 @@ export default async function GamePage() {
     null as DashboardFastSummary | null,
     "Impossible de récupérer le résumé rapide du bureau :",
   );
+  const dashboardAssistantPromise = DASHBOARD_ASSISTANT_ENABLED
+    ? loadDashboardValue(
+        getCurrentDashboardAssistantSummary(supabase),
+        null,
+        "Impossible de récupérer le point quotidien de l’assistant du DS :",
+      )
+    : Promise.resolve(null);
   const financeOverviewPromise = loadDashboardValue(
     fastSummaryPromise.then(toFinanceOverview),
     null as TeamFinanceOverview | null,
@@ -695,6 +709,17 @@ export default async function GamePage() {
               />
             </div>
           </section>
+
+          {DASHBOARD_ASSISTANT_ENABLED ? (
+            <Suspense fallback={<DashboardAssistantSkeleton />}>
+              <DashboardAssistant
+                summaryPromise={dashboardAssistantPromise}
+                raceRosterAlertCount={raceRosterAlertCount}
+                rewardCount={readyRewardCount}
+                cashBalance={financeOverview?.balance ?? null}
+              />
+            </Suspense>
+          ) : null}
 
           <RaceOperationsCard alertCount={raceRosterAlertCount} />
 

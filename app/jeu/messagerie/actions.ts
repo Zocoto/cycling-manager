@@ -6,6 +6,11 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const messageIdSchema = z.string().uuid();
+const messageCleanupScopeSchema = z.enum([
+  "read",
+  "older_than_7_days",
+  "all",
+]);
 const alertIdSchema = z.string().uuid();
 const optionalUuidSchema = z.preprocess(
   emptyValueToUndefined,
@@ -221,6 +226,44 @@ export async function markDirectorMessageUnreadAction(formData: FormData) {
 
 export async function archiveDirectorMessageAction(formData: FormData) {
   await setMessageArchived(formData, true);
+}
+
+export async function deleteDirectorMessageAction(formData: FormData) {
+  const messageId = readMessageId(formData);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc(
+    "delete_current_director_message",
+    { p_message_id: messageId },
+  );
+
+  if (error || data !== true) {
+    throw new Error(
+      error
+        ? `Impossible de supprimer définitivement ce message : ${error.message}`
+        : "Ce message n’existe pas ou ne vous appartient pas.",
+    );
+  }
+
+  revalidateMailbox();
+}
+
+export async function deleteDirectorMessagesAction(formData: FormData) {
+  const scope = messageCleanupScopeSchema.safeParse(formData.get("scope"));
+  if (!scope.success) throw new Error("Mode de nettoyage invalide.");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc(
+    "delete_current_director_messages",
+    { p_scope: scope.data },
+  );
+
+  if (error) {
+    throw new Error(
+      `Impossible de nettoyer définitivement le journal : ${error.message}`,
+    );
+  }
+
+  revalidateMailbox();
 }
 
 export async function restoreDirectorMessageAction(formData: FormData) {
