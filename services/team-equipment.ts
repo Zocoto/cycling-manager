@@ -65,6 +65,7 @@ type RiderRow = {
   avatar_profile_key: string | null;
   avatar_seed: number | string | null;
 };
+type RiderAgeRow = { rider_id: string; age: number };
 type EquippedRow = {
   rider_id: string;
   slot_type: EquipmentSlot;
@@ -139,6 +140,7 @@ export type TeamEquipmentRider = {
   lastName: string;
   avatarProfileKey: string | null;
   avatarSeed: number | string | null;
+  age: number;
 };
 
 export type TeamEquipmentOverview = {
@@ -422,7 +424,7 @@ async function loadEquipmentContext(
       ];
   assertQuery(partnerEffectsResult.error, "les effets de la dotation partenaire");
   assertQuery(partnerProductsResult.error, "la gamme du partenaire");
-  const [equippedResult, ridersResult] = rosterRiderIds.length
+  const [equippedResult, ridersResult, riderAgesResult] = rosterRiderIds.length
     ? await Promise.all([
         admin
           .from("rider_equipment_assignments")
@@ -436,14 +438,22 @@ async function loadEquipmentContext(
           .order("last_name", { ascending: true })
           .order("first_name", { ascending: true })
           .returns<RiderRow[]>(),
+        admin
+          .from("rider_season_ratings")
+          .select("rider_id, age")
+          .eq("season_id", season.id)
+          .in("rider_id", rosterRiderIds)
+          .returns<RiderAgeRow[]>(),
       ])
     : [
         { data: [] as EquippedRow[], error: null },
         { data: [] as RiderRow[], error: null },
+        { data: [] as RiderAgeRow[], error: null },
       ];
 
   assertQuery(equippedResult.error, "les équipements attribués");
   assertQuery(ridersResult.error, "les coureurs de l’effectif");
+  assertQuery(riderAgesResult.error, "l’âge des coureurs de l’effectif");
 
   const inventoryByItem = new Map(
     (inventoryResult.data ?? []).map((row) => [
@@ -453,12 +463,16 @@ async function loadEquipmentContext(
   );
   const pendingRows = pendingResult.data ?? [];
   const equippedRows = equippedResult.data ?? [];
+  const ageByRiderId = new Map(
+    (riderAgesResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
+  );
   const riders = (ridersResult.data ?? []).map((rider) => ({
     id: rider.id,
     firstName: rider.first_name,
     lastName: rider.last_name,
     avatarProfileKey: rider.avatar_profile_key,
     avatarSeed: rider.avatar_seed,
+    age: ageByRiderId.get(rider.id) ?? 25,
   })) satisfies TeamEquipmentRider[];
   const supplierByKey = new Map(
     (suppliersResult.data ?? []).map((supplier) => [

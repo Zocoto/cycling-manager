@@ -83,6 +83,7 @@ export function TeamEquipmentDesktopTable({
                         profileKey={rider.avatarProfileKey}
                         seed={rider.avatarSeed}
                         riderId={rider.id}
+                        age={rider.age}
                         jersey={jersey}
                         label={`Portrait de ${rider.firstName} ${rider.lastName}`}
                         className="h-10 w-10 shrink-0"

@@ -79,6 +79,7 @@ export type PublicGameNewsPersonVisual =
       kind: "rider";
       profileKey: string | null;
       seed: string;
+      age: number;
       label: string;
     }
   | {

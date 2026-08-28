@@ -149,6 +149,7 @@ type ParticipantRow = {
   reconnaissance_id: string;
   rider_id: string;
 };
+type RiderAgeRow = { rider_id: string; age: number };
 
 export type RaceReconnaissanceRider = {
   id: string;
@@ -158,6 +159,7 @@ export type RaceReconnaissanceRider = {
   countryCode: string;
   avatarProfileKey: string | null;
   avatarSeed: number | string | null;
+  age: number;
   form: number;
   unavailabilities: Array<{
     startDayNumber: number;
@@ -337,6 +339,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
 
   const [
     ridersResult,
+    riderAgesResult,
     conditionsResult,
     injuriesResult,
     campsResult,
@@ -356,6 +359,14 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
           .in("id", riderIds)
           .returns<RiderRow[]>()
       : emptyResult<RiderRow>(),
+    riderIds.length
+      ? admin
+          .from("rider_season_ratings")
+          .select("rider_id, age")
+          .eq("season_id", season.id)
+          .in("rider_id", riderIds)
+          .returns<RiderAgeRow[]>()
+      : emptyResult<RiderAgeRow>(),
     riderIds.length
       ? admin
           .from("rider_condition_states")
@@ -429,6 +440,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
   ]);
 
   assertQuery(ridersResult.error, "les coureurs");
+  assertQuery(riderAgesResult.error, "l’âge des coureurs");
   assertQuery(conditionsResult.error, "la forme des coureurs");
   assertQuery(injuriesResult.error, "les blessures");
   assertQuery(campsResult.error, "les indisponibilités");
@@ -507,6 +519,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     dayById,
   );
   const riderById = new Map(riderRows.map((rider) => [rider.id, rider]));
+  const ageByRiderId = new Map(
+    (riderAgesResult.data ?? []).map((rating) => [rating.rider_id, rating.age]),
+  );
   const staffMemberById = new Map(
     (staffMembersResult.data ?? []).map((member) => [member.id, member]),
   );
@@ -566,6 +581,7 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         countryCode: country?.iso_alpha2 ?? "UN",
         avatarProfileKey: rider.avatar_profile_key,
         avatarSeed: rider.avatar_seed,
+        age: ageByRiderId.get(rider.id) ?? 25,
         form: latestConditionByRiderId.get(rider.id)?.form ?? 75,
         unavailabilities,
       };

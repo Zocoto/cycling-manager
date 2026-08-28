@@ -95,6 +95,11 @@ type RiderRow = {
   avatar_seed: number | string;
 };
 
+type RiderAgeRow = {
+  rider_id: string;
+  age: number;
+};
+
 type TeamSeasonRow = {
   id: string;
   team_id: string;
@@ -389,6 +394,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
     profilesByEditionId,
     editionsQuery,
     stagesQuery,
+    ageByRiderId,
   ] = await Promise.all([
       riderIds.length > 0
         ? admin
@@ -418,6 +424,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
         .select("id, race_edition_id, stage_number")
         .in("id", unique(rows.map((row) => row.stage_id)))
         .returns<RaceStageRow[]>(),
+      loadActiveRiderAges(admin, riderIds),
     ]);
   assertQuery(ridersQuery.error, "les coureurs des résumés de course");
   assertQuery(teamSeasonsQuery.error, "les équipes des résumés de course");
@@ -464,6 +471,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
                 kind: "rider" as const,
                 profileKey: rider.avatar_profile_key,
                 seed: String(rider.avatar_seed),
+                age: ageByRiderId.get(rider.id) ?? 25,
                 label: `Portrait de ${riderName}`,
               },
               team: teamVisual ?? null,
@@ -513,7 +521,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
   assertQuery(rostersQuery.error, "les vainqueurs");
 
   const rosters = rostersQuery.data ?? [];
-  const [ridersQuery, registrationsQuery] = await Promise.all([
+  const [ridersQuery, registrationsQuery, ageByRiderId] = await Promise.all([
     admin
       .from("riders")
       .select(
@@ -526,6 +534,10 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
       .select("id, team_season_id")
       .in("id", unique(rosters.map((row) => row.race_registration_id)))
       .returns<RaceRegistrationRow[]>(),
+    loadActiveRiderAges(
+      admin,
+      rosters.map((row) => row.rider_id),
+    ),
   ]);
   assertQuery(ridersQuery.error, "les identités des vainqueurs");
   assertQuery(registrationsQuery.error, "les équipes victorieuses");
@@ -590,6 +602,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
             kind: "rider" as const,
             profileKey: rider.avatar_profile_key,
             seed: String(rider.avatar_seed),
+            age: ageByRiderId.get(rider.id) ?? 25,
             label: `Portrait de ${riderName}`,
           },
           team:
@@ -728,7 +741,7 @@ async function loadRecentRiderMovements(
     return { items: [], total: totalQuery.count ?? 0 };
   }
 
-  const [ridersQuery, teamSeasonsQuery] = await Promise.all([
+  const [ridersQuery, teamSeasonsQuery, ageByRiderId] = await Promise.all([
     admin
       .from("riders")
       .select(
@@ -742,6 +755,10 @@ async function loadRecentRiderMovements(
       .in("team_id", unique(contracts.map((row) => row.team_id)))
       .order("created_at", { ascending: false })
       .returns<TeamSeasonRow[]>(),
+    loadActiveRiderAges(
+      admin,
+      contracts.map((row) => row.rider_id),
+    ),
   ]);
   assertQuery(ridersQuery.error, "les recrues");
   assertQuery(teamSeasonsQuery.error, "les équipes recruteuses");
@@ -774,6 +791,7 @@ async function loadRecentRiderMovements(
             kind: "rider" as const,
             profileKey: rider.avatar_profile_key,
             seed: String(rider.avatar_seed),
+            age: ageByRiderId.get(rider.id) ?? 25,
             label: `Portrait de ${riderName}`,
           },
           team:
@@ -1016,6 +1034,25 @@ async function loadRaceProfiles(
       editionId,
       segmentsByStageId.get(stage.id) ?? [],
     ])
+  );
+}
+
+async function loadActiveRiderAges(
+  admin: AdminClient,
+  riderIds: string[],
+): Promise<Map<string, number>> {
+  if (riderIds.length === 0) return new Map();
+
+  const agesQuery = await admin
+    .from("rider_season_ratings")
+    .select("rider_id, age, seasons!inner(id)")
+    .eq("seasons.status", "active")
+    .in("rider_id", unique(riderIds))
+    .returns<RiderAgeRow[]>();
+  if (agesQuery.error) return new Map();
+
+  return new Map(
+    (agesQuery.data ?? []).map((rating) => [rating.rider_id, rating.age]),
   );
 }
 

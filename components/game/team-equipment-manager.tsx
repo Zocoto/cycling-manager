@@ -377,7 +377,7 @@ function RiderIdentity({ rider, jersey, equippedCount }: { rider: TeamEquipmentR
   const complete = equippedCount === EQUIPMENT_SLOTS.length;
   return (
     <div className="flex min-w-0 items-center gap-3 px-1">
-      <RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} jersey={jersey} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-11 w-11" />
+      <RiderAvatar profileKey={rider.avatarProfileKey} seed={rider.avatarSeed} riderId={rider.id} age={rider.age} jersey={jersey} label={`Portrait de ${rider.firstName} ${rider.lastName}`} className="h-11 w-11" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-black text-[#183F37]">{rider.firstName} {rider.lastName}</p>
         <div className="mt-1 flex items-center gap-2">

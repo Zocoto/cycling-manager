@@ -196,20 +196,7 @@ export function RiderAvatar({
         <FaceMarks design={design} />
         <FacialHair design={design} faceBottom={faceBottom} />
         <Mouth design={design} layout={featureLayout} />
-
-        {design.ageLineOpacity > 0 ? (
-          <g
-            fill="none"
-            stroke={design.skinShadow}
-            strokeWidth="0.55"
-            strokeLinecap="round"
-            opacity={design.ageLineOpacity}
-          >
-            <path d="M 36 48 q 3 1 5 0" />
-            <path d="M 55 48 q 3 1 5 0" />
-            <path d="M 42 61 q 6 2 12 0" />
-          </g>
-        ) : null}
+        <AgingDetails design={design} faceBottom={faceBottom} />
       </svg>
     </span>
   );
@@ -302,8 +289,136 @@ function CompactRiderAvatar({
           strokeWidth="1.6"
           strokeLinecap="round"
         />
+        <CompactAgingDetails design={design} />
       </svg>
     </span>
+  );
+}
+
+function AgingDetails({
+  design,
+  faceBottom,
+}: {
+  design: RiderAvatarDesign;
+  faceBottom: number;
+}) {
+  if (design.agingStage === "adult") return null;
+
+  const isWhite = design.agingStage === "white";
+  const isLich = design.agingStage === "lich";
+  const wrinkleStroke = isLich ? "#426C68" : design.skinShadow;
+
+  return (
+    <g data-avatar-aging-stage={design.agingStage}>
+      <g
+        fill="none"
+        stroke={design.hairHighlight}
+        strokeLinecap="round"
+        opacity={isLich ? 0.92 : isWhite ? 0.76 : 0.58}
+      >
+        <path d="M 34 27 Q 38 19 42 17" strokeWidth="1.15" />
+        <path d="M 43 24 Q 47 17 50 16" strokeWidth="0.9" />
+        <path d="M 52 23 Q 56 18 61 22" strokeWidth="1.05" />
+        {isWhite || isLich ? (
+          <>
+            <path d="M 30 31 Q 33 23 37 20" strokeWidth="0.75" />
+            <path d="M 57 27 Q 62 22 65 30" strokeWidth="0.8" />
+          </>
+        ) : null}
+      </g>
+
+      <g
+        fill="none"
+        stroke={wrinkleStroke}
+        strokeWidth={isLich ? 0.8 : 0.58}
+        strokeLinecap="round"
+        opacity={design.ageLineOpacity}
+      >
+        <path d="M 35 47 q 3.5 1.5 7 0" />
+        <path d="M 54 47 q 3.5 1.5 7 0" />
+        <path d="M 38 35 q 4 -1 8 0" />
+        <path d="M 50 35 q 4 -1 8 0" />
+        <path d={`M 40 ${faceBottom - 7} q 8 2.8 16 0`} />
+        {isWhite || isLich ? (
+          <>
+            <path d="M 39 30 q 9 -2 18 0" />
+            <path d="M 40 32 q 8 -1.6 16 0" />
+            <path d="M 33 44 l -3 -1 M 33 46 l -3 0.5" />
+            <path d="M 63 44 l 3 -1 M 63 46 l 3 0.5" />
+            <path d={`M 37 ${faceBottom - 12} q -1 5 1 8`} />
+            <path d={`M 59 ${faceBottom - 12} q 1 5 -1 8`} />
+          </>
+        ) : null}
+      </g>
+
+      {isLich ? (
+        <>
+          <g fill="#315B57" opacity="0.3">
+            <ellipse cx="38.5" cy="45" rx="6.1" ry="4.6" />
+            <ellipse cx="57.5" cy="45" rx="6.1" ry="4.6" />
+            <path d={`M 34 ${faceBottom - 15} Q 38 ${faceBottom - 5} 43 ${faceBottom - 3} Q 38 ${faceBottom - 5} 34 ${faceBottom - 15} Z`} />
+            <path d={`M 62 ${faceBottom - 15} Q 58 ${faceBottom - 5} 53 ${faceBottom - 3} Q 58 ${faceBottom - 5} 62 ${faceBottom - 15} Z`} />
+          </g>
+          <g fill="#A9FFF4" opacity="0.92">
+            <circle cx="38.5" cy="45" r="1.45" />
+            <circle cx="57.5" cy="45" r="1.45" />
+          </g>
+          <path
+            d="M 47 51 l -2 5 3 1 3 -1 -2 -5"
+            fill="#315B57"
+            opacity="0.38"
+          />
+          <g
+            fill="none"
+            stroke="#527C77"
+            strokeWidth="0.72"
+            strokeLinecap="round"
+            opacity="0.72"
+          >
+            <path d="M 32 39 l 3 -3 -1 -4" />
+            <path d="M 64 39 l -3 -3 1 -4" />
+            <path d="M 45 28 l 2 3 -1 3" />
+            <path d={`M 46 ${faceBottom - 4} v 3 M 50 ${faceBottom - 4} v 3`} />
+          </g>
+        </>
+      ) : null}
+    </g>
+  );
+}
+
+function CompactAgingDetails({ design }: { design: RiderAvatarDesign }) {
+  if (design.agingStage === "adult") return null;
+
+  const isWhite = design.agingStage === "white";
+  const isLich = design.agingStage === "lich";
+
+  return (
+    <g data-avatar-aging-stage={design.agingStage}>
+      <g
+        fill="none"
+        stroke={design.skinShadow}
+        strokeWidth={isLich ? 1 : 0.65}
+        strokeLinecap="round"
+        opacity={design.ageLineOpacity}
+      >
+        <path d="M 34 50 q 4 2 8 0 M 54 50 q 4 2 8 0" />
+        <path d="M 41 65 q 7 2 14 0" />
+        {isWhite || isLich ? <path d="M 39 35 q 9 -2 18 0" /> : null}
+      </g>
+      {isLich ? (
+        <>
+          <g fill="#315B57" opacity="0.35">
+            <ellipse cx="37" cy="45" rx="5" ry="4" />
+            <ellipse cx="59" cy="45" rx="5" ry="4" />
+          </g>
+          <g fill="#A9FFF4">
+            <circle cx="37" cy="45" r="1.2" />
+            <circle cx="59" cy="45" r="1.2" />
+          </g>
+          <path d="M 48 50 l -2 6 2 1 2 -1Z" fill="#315B57" opacity="0.42" />
+        </>
+      ) : null}
+    </g>
   );
 }
 

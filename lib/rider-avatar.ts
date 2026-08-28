@@ -36,6 +36,8 @@ export type RiderAvatarProfileGroup =
   | "southeast_asia"
   | "west_asia";
 
+export type RiderAvatarAgingStage = "adult" | "grey" | "white" | "lich";
+
 export type RiderHairStyle =
   | "afro"
   | "braids"
@@ -231,6 +233,7 @@ export type RiderAvatarDesign = {
   earWidth: number;
   neckWidth: number;
   ageLineOpacity: number;
+  agingStage: RiderAvatarAgingStage;
   geometrySignature: string;
 };
 
@@ -1262,7 +1265,7 @@ export function createRiderAvatarDesign({
     mouthYStep,
   ].join("-");
 
-  const skinTone = pick(profile.skinTones, details.take(8));
+  let skinTone = pick(profile.skinTones, details.take(8));
   let hairColor = pick(profile.hairColors, details.take(8));
   let eyeColor = pick(profile.eyeColors, details.take(8));
   const backgroundColor = pick(BACKGROUNDS, details.take(8));
@@ -1340,6 +1343,38 @@ export function createRiderAvatarDesign({
     }
   }
 
+  const normalizedAge = Number.isFinite(age)
+    ? clamp(Math.trunc(age), 15, 120)
+    : 25;
+  const agingStage: RiderAvatarAgingStage =
+    normalizedAge >= 90
+      ? "lich"
+      : normalizedAge >= 55
+        ? "white"
+        : normalizedAge >= 40
+          ? "grey"
+          : "adult";
+
+  if (agingStage === "grey") {
+    hairColor = mixHexColors(hairColor, "#8C918E", 0.64);
+  } else if (agingStage === "white") {
+    hairColor = "#E7E8E2";
+  } else if (agingStage === "lich") {
+    skinTone = "#B8D2C9";
+    hairColor = "#EEF4EF";
+    eyeColor = "#71F4E4";
+    rightEyeColor = eyeColor;
+  }
+
+  const ageLineOpacity =
+    agingStage === "lich"
+      ? 0.82
+      : agingStage === "white"
+        ? 0.48
+        : agingStage === "grey"
+          ? 0.28
+          : 0;
+
   return {
     version,
     profileKey: normalizedProfileKey,
@@ -1349,7 +1384,10 @@ export function createRiderAvatarDesign({
     skinShadow: shiftHexColor(skinTone, -25),
     skinHighlight: shiftHexColor(skinTone, 18),
     hairColor,
-    hairHighlight: shiftHexColor(hairColor, 24),
+    hairHighlight:
+      agingStage === "lich"
+        ? "#FFFFFF"
+        : shiftHexColor(hairColor, agingStage === "white" ? 12 : 24),
     eyeColor,
     rightEyeColor,
     backgroundColor,
@@ -1404,7 +1442,8 @@ export function createRiderAvatarDesign({
     earWidth:
       version === 2 ? 3.25 + earWidthStep * 0.3 : 3.8 + earWidthStep * 0.18,
     neckWidth: 14 + neckWidthStep * 0.4,
-    ageLineOpacity: clamp((age - 27) / 32, 0, 0.34),
+    ageLineOpacity,
+    agingStage,
     geometrySignature,
   };
 }
@@ -1538,6 +1577,26 @@ function shiftHexColor(hexColor: string, amount: number): string {
 
   return `#${channels
     .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
+    .join("")}`.toUpperCase();
+}
+
+function mixHexColors(
+  sourceColor: string,
+  targetColor: string,
+  targetWeight: number,
+): string {
+  const source = sourceColor.replace("#", "");
+  const target = targetColor.replace("#", "");
+  const weight = clamp(targetWeight, 0, 1);
+
+  return `#${[0, 2, 4]
+    .map((offset) => {
+      const sourceChannel = Number.parseInt(source.slice(offset, offset + 2), 16);
+      const targetChannel = Number.parseInt(target.slice(offset, offset + 2), 16);
+      return Math.round(sourceChannel * (1 - weight) + targetChannel * weight)
+        .toString(16)
+        .padStart(2, "0");
+    })
     .join("")}`.toUpperCase();
 }
 

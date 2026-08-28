@@ -133,6 +133,7 @@ describe("administration groupée du matériel", () => {
           lastName: "Martin",
           avatarProfileKey: null,
           avatarSeed: null,
+          age: 25,
         },
       ],
       assignments: [

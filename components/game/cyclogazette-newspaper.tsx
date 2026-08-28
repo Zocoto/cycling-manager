@@ -1285,6 +1285,7 @@ function NewsPortrait({
     <RiderAvatar
       profileKey={person.profileKey}
       seed={person.seed}
+      age={person.kind === "rider" ? person.age : 30}
       jersey={item.visual?.team?.jersey}
       label={person.label}
       className={`${sizeClass} border-2 border-[var(--gazette-ink)]/25 grayscale-[12%]`}

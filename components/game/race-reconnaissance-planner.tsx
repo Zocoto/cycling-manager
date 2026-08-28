@@ -346,6 +346,7 @@ export function RaceReconnaissancePlanner({
                       profileKey={rider.avatarProfileKey}
                       seed={rider.avatarSeed}
                       riderId={rider.id}
+                      age={rider.age}
                       jersey={jersey}
                       label={`Portrait de ${rider.firstName} ${rider.lastName}`}
                       className="h-11 w-11"

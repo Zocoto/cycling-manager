@@ -452,6 +452,7 @@ function PersonPortrait({
       profileKey={person.profileKey}
       seed={person.seed}
       riderId={person.seed}
+      age={person.kind === "rider" ? person.age : 30}
       jersey={getPortraitJersey(person, team)}
       label={person.label}
       className={
