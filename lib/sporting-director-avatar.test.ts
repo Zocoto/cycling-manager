@@ -13,6 +13,7 @@ import {
   AMBULANCIER_AVATAR_OUTFIT_KEY,
   ASSIDU_AVATAR_GLASSES_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   AVATAR_HAIR_COLORS,
   AVATAR_HAIR_STYLES,
@@ -149,6 +150,7 @@ describe("sporting director avatar editor", () => {
     });
     expect(isSportingDirectorAvatarKey(key)).toBe(true);
     expect(avatar.outfit).not.toBe("patron");
+    expect(avatar.outfit).not.toBe(PATRON_HAT_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(AMBULANCIER_AVATAR_OUTFIT_KEY);
     expect(avatar.outfit).not.toBe(EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY);
@@ -162,6 +164,17 @@ describe("sporting director avatar editor", () => {
 
     expect(decodeCustomSportingDirectorAvatar(key)?.outfit).toBe(
       SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
+    );
+  });
+
+  it("round-trips the exclusive Don outfit and fedora", () => {
+    const key = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: PATRON_HAT_AVATAR_OUTFIT_KEY,
+    });
+
+    expect(decodeCustomSportingDirectorAvatar(key)?.outfit).toBe(
+      PATRON_HAT_AVATAR_OUTFIT_KEY,
     );
   });
 

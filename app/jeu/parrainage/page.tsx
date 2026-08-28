@@ -69,7 +69,7 @@ export default async function ReferralPage() {
               Invitez des DS. Gagnez des objets rares.
             </h1>
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">
-              Partagez votre lien personnel. Dès qu’un filleul termine son Critérium de la découverte, il compte dans votre progression et rapproche votre équipe d’objets de niveau 5 à 7.
+              Partagez votre lien personnel. Dès qu’un filleul crée son compte, il compte dans votre progression et rapproche votre équipe d’objets de niveau 6 à 10, de primes de carrière et d’accessoires exclusifs.
             </p>
 
             <ReferralShareControls inviteUrl={overview.inviteUrl} code={overview.code} />
@@ -84,7 +84,7 @@ export default async function ReferralPage() {
                 <h2 className="mt-2 text-2xl font-black">{overview.qualifiedCount} filleul{overview.qualifiedCount === 1 ? "" : "s"} qualifié{overview.qualifiedCount === 1 ? "" : "s"}</h2>
                 <p className="mt-2 text-sm leading-6 text-[#60756E]">
                   {overview.registeredCount - overview.qualifiedCount > 0
-                    ? `${overview.registeredCount - overview.qualifiedCount} inscription(s) attendent encore la fin du Critérium.`
+                    ? `${overview.registeredCount - overview.qualifiedCount} inscription(s) sont en cours de validation.`
                     : "Chaque nouvelle inscription apparaîtra ici immédiatement."}
                 </p>
               </div>
@@ -126,22 +126,49 @@ export default async function ReferralPage() {
               ))}
             </div>
 
-            <Link href="/jeu/objectifs?onglet=quotidiennes" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl border border-[#278B70]/25 bg-white px-4 text-sm font-extrabold text-[#176951] transition hover:border-[#278B70] hover:bg-[#DFF4EC]">
-              Utiliser mes objets dans l’inventaire
-            </Link>
+            <div className="mt-6 rounded-2xl border border-[#D6AE3B]/35 bg-[linear-gradient(135deg,#FFF9E7,#F7F0D2)] p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#80640C]">Primes de carrière renforcées</p>
+                  <h3 className="mt-1 text-lg font-black text-[#2E290D]">Du vrai carburant pour bâtir une équipe</h3>
+                </div>
+                <span className="text-xs font-bold text-[#80640C]">À récupérer dans Objectifs</span>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <ReferralCareerBonus count="1" cash="75 000 €" xp="120 XP" reputation="5 réputation" />
+                <ReferralCareerBonus count="5" cash="350 000 €" xp="600 XP" reputation="25 réputation" />
+                <ReferralCareerBonus count="25" cash="2 000 000 €" xp="2 500 XP" reputation="100 réputation + 1 talent" />
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/jeu/objectifs?onglet=quotidiennes" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#278B70]/25 bg-white px-4 text-sm font-extrabold text-[#176951] transition hover:border-[#278B70] hover:bg-[#DFF4EC]">
+                Utiliser mes objets dans l’inventaire
+              </Link>
+              <Link href="/jeu/objectifs?type=secondary&groupe=referrals#objectives-list" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#176951] px-4 text-sm font-extrabold text-white transition hover:bg-[#0E5141]">
+                Récupérer mes primes
+              </Link>
+            </div>
           </article>
 
           <aside className="rounded-2xl bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(19,60,46,0.16)] sm:p-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Trophée spécial</p>
-            <h2 className="mt-2 text-2xl font-black">La tenue du Parrain</h2>
+            <h2 className="mt-2 text-2xl font-black">Les attributs du Parrain</h2>
             <div className="mt-5 grid h-28 place-items-center rounded-2xl border border-white/10 bg-black/20">
-              <PatronOutfitIcon unlocked={overview.patronOutfitUnlocked} />
+              <PatronOutfitIcon
+                unlocked={overview.patronOutfitUnlocked}
+                showHat={overview.patronHatUnlocked}
+              />
             </div>
             <p className="mt-5 text-sm leading-6 text-[#D6DFD2]">
-              À 5 filleuls qualifiés, le trophée « Le Parrain » débloque une tenue de cérémonie noire, chemise blanche et fleur rouge pour votre avatar.
+              À 5 filleuls, la tenue de cérémonie noire rejoint votre profil. À 25, le Don du peloton reçoit son fedora noir à ruban bordeaux, inspiré du Chicago des années 1920.
             </p>
             <p className="mt-4 rounded-xl bg-white/8 px-4 py-3 text-sm font-extrabold text-[#F2C94C]">
-              {overview.patronOutfitUnlocked ? "Tenue débloquée — équipez-la dans votre profil" : `${Math.max(0, 5 - overview.qualifiedCount)} filleul(s) avant le déblocage`}
+              {overview.patronHatUnlocked
+                ? "Tenue et fedora débloqués — équipez-les dans votre profil"
+                : overview.patronOutfitUnlocked
+                  ? `${Math.max(0, 25 - overview.qualifiedCount)} filleul(s) avant le fedora du Don`
+                  : `${Math.max(0, 5 - overview.qualifiedCount)} filleul(s) avant la tenue`}
             </p>
           </aside>
         </section>
@@ -158,7 +185,7 @@ export default async function ReferralPage() {
                       <p className="mt-1 text-xs text-[#60756E]">Inscrit le {formatDate(referral.registeredAt)}</p>
                     </div>
                     <span className={referral.status === "qualified" ? "rounded-full bg-[#DFF4EC] px-3 py-1.5 text-xs font-extrabold text-[#176951]" : "rounded-full bg-[#FFF7D6] px-3 py-1.5 text-xs font-extrabold text-[#80640C]"}>
-                      {referral.status === "qualified" ? "Qualifié ✓" : "Critérium à terminer"}
+                      {referral.status === "qualified" ? "Qualifié ✓" : "Validation en cours"}
                     </span>
                   </li>
                 ))}
@@ -175,9 +202,9 @@ export default async function ReferralPage() {
             <h2 className="text-2xl font-black">Comment ça marche ?</h2>
             <ol className="mt-5 space-y-4">
               <RuleStep number="1" title="Partagez votre URL" text="Le code personnel contenu dans le lien vous attribue automatiquement le nouveau DS." />
-              <RuleStep number="2" title="Le filleul crée sa carrière" text="Son inscription apparaît aussitôt avec le statut « Critérium à terminer »." />
-              <RuleStep number="3" title="Il termine le Critérium" text="Cette première course valide un joueur réellement actif et déclenche le palier atteint." />
-              <RuleStep number="4" title="L’objet rejoint votre inventaire" text="Chaque palier n’est versé qu’une fois et l’auto-parrainage est impossible." />
+              <RuleStep number="2" title="Le filleul crée son compte" text="Son parrainage est qualifié immédiatement, sans passage obligatoire par le didacticiel." />
+              <RuleStep number="3" title="Le palier se déclenche" text="Chaque nouveau compte attribué fait progresser instantanément votre cercle de parrainage." />
+              <RuleStep number="4" title="Les gains sont versés" text="Chaque palier n’est versé qu’une fois et l’auto-parrainage est impossible." />
             </ol>
           </article>
         </section>
@@ -195,7 +222,33 @@ function RuleStep({ number, title, text }: { number: string; title: string; text
   );
 }
 
-function PatronOutfitIcon({ unlocked }: { unlocked: boolean }) {
+function ReferralCareerBonus({
+  count,
+  cash,
+  xp,
+  reputation,
+}: {
+  count: string;
+  cash: string;
+  xp: string;
+  reputation: string;
+}) {
+  return (
+    <div className="rounded-xl border border-[#D6AE3B]/25 bg-white/70 px-4 py-3">
+      <p className="text-xs font-black uppercase tracking-wide text-[#80640C]">{count} filleul{count === "1" ? "" : "s"}</p>
+      <p className="mt-1 text-base font-black text-[#183F37]">{cash}</p>
+      <p className="mt-1 text-xs font-bold leading-5 text-[#60756E]">{xp} · {reputation}</p>
+    </div>
+  );
+}
+
+function PatronOutfitIcon({
+  unlocked,
+  showHat,
+}: {
+  unlocked: boolean;
+  showHat: boolean;
+}) {
   return (
     <svg aria-hidden="true" viewBox="0 0 120 90" className={unlocked ? "h-24 w-32" : "h-24 w-32 opacity-45 grayscale"}>
       <path d="M16 90C18 55 34 39 60 39C86 39 102 55 104 90Z" fill="#171514" />
@@ -204,6 +257,13 @@ function PatronOutfitIcon({ unlocked }: { unlocked: boolean }) {
       <path d="M75 42L61 69L85 54Z" fill="#282522" />
       <path d="M56 50H64L62 68H58Z" fill="#171514" />
       <circle cx="82" cy="55" r="4" fill="#A61B32" />
+      {showHat ? (
+        <>
+          <path d="M31 35C38 30 46 28 60 28C74 28 82 30 89 35C80 39 71 40 60 40C49 40 40 39 31 35Z" fill="#11100F" stroke="#49433E" strokeWidth="1.5" />
+          <path d="M42 32L46 15C51 9 69 9 74 15L78 32C68 35 52 35 42 32Z" fill="#1B1917" stroke="#49433E" strokeWidth="1.5" />
+          <path d="M43 27C53 30 68 30 77 27L78 32C68 35 52 35 42 32Z" fill="#8F1730" />
+        </>
+      ) : null}
       {!unlocked ? <><rect x="47" y="59" width="26" height="22" rx="5" fill="#071A17" /><path d="M52 59v-7a8 8 0 0 1 16 0v7" fill="none" stroke="#F2C94C" strokeWidth="4" /></> : null}
     </svg>
   );

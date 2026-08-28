@@ -367,6 +367,9 @@ export default async function SportingDirectorProfilePage() {
                     patronOutfitUnlocked={
                       referralOverview?.patronOutfitUnlocked ?? false
                     }
+                    patronHatUnlocked={
+                      referralOverview?.patronHatUnlocked ?? false
+                    }
                     sponsorAmbassadorOutfitUnlocked={
                       hasSponsorAmbassadorTrophy
                     }

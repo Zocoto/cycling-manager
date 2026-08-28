@@ -9,6 +9,7 @@ import {
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   encodeSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "@/lib/sporting-director-avatar";
 
@@ -68,6 +69,19 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-outfit="sponsor-ambassador"');
     expect(markup).toContain("#D6AE3B");
+  });
+
+  it("renders the Don fedora unlocked by 25 referrals", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: PATRON_HAT_AVATAR_OUTFIT_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar du Don" />,
+    );
+
+    expect(markup).toContain('data-avatar-headwear="patron-fedora"');
+    expect(markup).toContain("#8F1730");
   });
 
   it("renders the nurse cap unlocked by the Ambulancier trophy", () => {

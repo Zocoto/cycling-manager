@@ -23,6 +23,7 @@ type SportingDirectorProfileFormProps = {
   hasHiddenSwitchbackTrophy: boolean;
   initialIsEmailVisible: boolean;
   patronOutfitUnlocked?: boolean;
+  patronHatUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
   ambulancierOutfitUnlocked?: boolean;
   emergencyDoctorOutfitUnlocked?: boolean;
@@ -47,6 +48,7 @@ export function SportingDirectorProfileForm({
   hasHiddenSwitchbackTrophy,
   initialIsEmailVisible,
   patronOutfitUnlocked = false,
+  patronHatUnlocked = false,
   sponsorAmbassadorOutfitUnlocked = false,
   ambulancierOutfitUnlocked = false,
   emergencyDoctorOutfitUnlocked = false,
@@ -684,6 +686,7 @@ export function SportingDirectorProfileForm({
               onCancel={() => setIsAvatarModalOpen(false)}
               onConfirm={selectAvatar}
               patronOutfitUnlocked={patronOutfitUnlocked}
+              patronHatUnlocked={patronHatUnlocked}
               sponsorAmbassadorOutfitUnlocked={
                 sponsorAmbassadorOutfitUnlocked
               }

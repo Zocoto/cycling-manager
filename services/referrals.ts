@@ -15,6 +15,7 @@ type RawReferralOverview = {
   registeredCount?: unknown;
   qualifiedCount?: unknown;
   patronOutfitUnlocked?: unknown;
+  patronHatUnlocked?: unknown;
   referrals?: unknown;
   milestones?: unknown;
 };
@@ -48,6 +49,7 @@ export async function getCurrentReferralOverview(
     registeredCount: readNumber(raw.registeredCount),
     qualifiedCount: readNumber(raw.qualifiedCount),
     patronOutfitUnlocked: Boolean(raw.patronOutfitUnlocked),
+    patronHatUnlocked: Boolean(raw.patronHatUnlocked),
     referrals: readArray(raw.referrals).flatMap(normalizeInvitee),
     milestones: readArray(raw.milestones).flatMap(normalizeMilestone),
   };

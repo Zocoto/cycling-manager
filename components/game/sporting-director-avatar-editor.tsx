@@ -19,6 +19,7 @@ import {
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+  PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
   encodeSportingDirectorAvatar,
@@ -36,6 +37,7 @@ type SportingDirectorAvatarEditorProps = {
   onCancel: () => void;
   onConfirm: (avatarKey: string) => void;
   patronOutfitUnlocked?: boolean;
+  patronHatUnlocked?: boolean;
   sponsorAmbassadorOutfitUnlocked?: boolean;
   ambulancierOutfitUnlocked?: boolean;
   emergencyDoctorOutfitUnlocked?: boolean;
@@ -62,6 +64,7 @@ export function SportingDirectorAvatarEditor({
   onCancel,
   onConfirm,
   patronOutfitUnlocked = false,
+  patronHatUnlocked = false,
   sponsorAmbassadorOutfitUnlocked = false,
   ambulancierOutfitUnlocked = false,
   emergencyDoctorOutfitUnlocked = false,
@@ -77,6 +80,7 @@ export function SportingDirectorAvatarEditor({
   });
   const disabledOutfitKeys = [
     patronOutfitUnlocked ? null : "patron",
+    patronHatUnlocked ? null : PATRON_HAT_AVATAR_OUTFIT_KEY,
     sponsorAmbassadorOutfitUnlocked
       ? null
       : SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
@@ -239,6 +243,9 @@ export function SportingDirectorAvatarEditor({
                     patronOutfitUnlocked
                       ? "La tenue du Parrain est débloquée grâce à vos filleuls."
                       : "La tenue du Parrain se débloque avec 5 filleuls qualifiés.",
+                    patronHatUnlocked
+                      ? "Le costume et le fedora du Don sont débloqués grâce à vos 25 filleuls."
+                      : "Le fedora du Don se débloque avec 25 filleuls qualifiés.",
                     sponsorAmbassadorOutfitUnlocked
                       ? "Le Maillot d’Or des Ambassadeurs récompense votre saison à 100 % de satisfaction sponsor."
                       : "Le Maillot d’Or des Ambassadeurs se débloque avec le trophée Ambassadeur exemplaire.",

@@ -24,6 +24,7 @@ import {
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
   isSportingDirectorAvatarKey,
+  PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "../../../lib/sporting-director-avatar";
 import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
@@ -221,7 +222,24 @@ export async function updateSportingDirectorProfile(
     validationResult.data.avatarKey,
   );
 
-  if (selectedAvatar?.outfit === "patron") {
+  const referralOutfitRequirement =
+    selectedAvatar?.outfit === "patron"
+      ? {
+          count: 5,
+          name: "La tenue du Parrain",
+          lockedMessage:
+            "Terminez le palier « Le Parrain » avant de choisir cette tenue.",
+        }
+      : selectedAvatar?.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY
+        ? {
+            count: 25,
+            name: "Le costume et le fedora du Don",
+            lockedMessage:
+              "Atteignez le palier « Don du peloton » avant de choisir ce fedora.",
+          }
+        : null;
+
+  if (referralOutfitRequirement) {
     const referralCountResult = await supabase
       .from("sporting_director_referrals")
       .select("id", { count: "exact", head: true })
@@ -236,14 +254,14 @@ export async function updateSportingDirectorProfile(
       };
     }
 
-    if ((referralCountResult.count ?? 0) < 5) {
+    if (
+      (referralCountResult.count ?? 0) < referralOutfitRequirement.count
+    ) {
       return {
         status: "error",
-        message: "La tenue du Parrain nécessite 5 filleuls qualifiés.",
+        message: `${referralOutfitRequirement.name} nécessite ${referralOutfitRequirement.count} filleuls qualifiés.`,
         fieldErrors: {
-          avatarKey: [
-            "Terminez le palier « Le Parrain » avant de choisir cette tenue.",
-          ],
+          avatarKey: [referralOutfitRequirement.lockedMessage],
         },
       };
     }

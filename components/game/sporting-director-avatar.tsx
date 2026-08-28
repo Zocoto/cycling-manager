@@ -7,6 +7,7 @@ import {
   ASSIDU_AVATAR_GLASSES_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   SPORTING_DIRECTOR_AVATARS,
   getAvatarBackground,
@@ -86,7 +87,10 @@ export function SportingDirectorAvatar({
         />
         <path d="M51 67H69V85C66 91 54 91 51 85Z" fill={skin.shadow} />
 
-        {avatar.outfit === "patron" ? <AvatarPatronOutfit /> : null}
+        {avatar.outfit === "patron" ||
+        avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY ? (
+          <AvatarPatronOutfit />
+        ) : null}
         {avatar.outfit === SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY ? (
           <AvatarSponsorAmbassadorOutfit />
         ) : null}
@@ -101,6 +105,9 @@ export function SportingDirectorAvatar({
         <AvatarFace avatar={avatar} skin={skin.color} />
         <AvatarCheeks avatar={avatar} blush={skin.blush} shadow={skin.shadow} />
         <AvatarHairFront avatar={avatar} color={hair.color} />
+        {avatar.outfit === PATRON_HAT_AVATAR_OUTFIT_KEY ? (
+          <AvatarPatronHat />
+        ) : null}
         {avatar.outfit === AMBULANCIER_AVATAR_OUTFIT_KEY ? (
           <AvatarNurseCap />
         ) : null}
@@ -150,6 +157,28 @@ function AvatarPatronOutfit() {
       <circle cx="80.8" cy="92.2" r="2.2" fill="#C62A3D" />
       <circle cx="85.8" cy="90.8" r="2" fill="#8D1428" />
       <path d="M83 97l-2 8" stroke="#2C7A4B" strokeWidth="1.4" />
+    </g>
+  );
+}
+
+function AvatarPatronHat() {
+  return (
+    <g data-avatar-headwear="patron-fedora">
+      <path
+        d="M30 27C35 23 44 21 60 21C76 21 85 23 90 27C82 31 73 33 60 33C47 33 38 31 30 27Z"
+        fill="#11100F"
+        stroke="#3B3733"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M41 24L45 9C48 4 72 4 75 9L79 24C69 27 51 27 41 24Z"
+        fill="#1B1917"
+        stroke="#3B3733"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M43 19C53 22 68 22 77 19L79 24C69 27 51 27 41 24Z" fill="#8F1730" />
+      <path d="M60 7C68 7 72 8 75 10" fill="none" stroke="#4A4641" strokeWidth="1.3" strokeLinecap="round" />
     </g>
   );
 }

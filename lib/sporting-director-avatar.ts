@@ -137,6 +137,7 @@ export const AVATAR_FACIAL_HAIR_STYLES = [
 export const ASSIDU_AVATAR_GLASSES_KEY = "honor-roll";
 export const HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY = "spy-glasses";
 export const SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY = "ambassador";
+export const PATRON_HAT_AVATAR_OUTFIT_KEY = "patron-hat";
 
 const STANDARD_AVATAR_GLASSES_STYLES = [
   { key: "none", label: "Sans lunettes" },
@@ -178,6 +179,12 @@ export const AVATAR_OUTFITS = [
   { key: "violet", label: "Prune", jacket: "#62445F", shirt: "#F7F3E8" },
   { key: "patron", label: "Tenue du Parrain", jacket: "#171514", shirt: "#FFFDF4" },
   {
+    key: PATRON_HAT_AVATAR_OUTFIT_KEY,
+    label: "Le Don · costume et fedora",
+    jacket: "#171514",
+    shirt: "#FFFDF4",
+  },
+  {
     key: SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
     label: "Maillot d’Or des Ambassadeurs",
     jacket: "#123B34",
@@ -200,6 +207,7 @@ export const AVATAR_OUTFITS = [
 const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
   ({ key }) =>
     key !== "patron" &&
+    key !== PATRON_HAT_AVATAR_OUTFIT_KEY &&
     key !== SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY &&
     key !== AMBULANCIER_AVATAR_OUTFIT_KEY &&
     key !== EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,

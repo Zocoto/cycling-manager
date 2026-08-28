@@ -38,4 +38,11 @@ describe("referrals", () => {
     expect(getUnlockedReferralTrophies(5).map((trophy) => trophy.count))
       .toEqual([1, 5]);
   });
+
+  it("annonce le fedora exclusif au palier des vingt-cinq filleuls", () => {
+    expect(
+      getUnlockedReferralTrophies(25).find(({ count }) => count === 25)
+        ?.inscription,
+    ).toContain("fedora débloqué");
+  });
 });

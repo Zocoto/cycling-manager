@@ -24,6 +24,7 @@ export type ReferralOverview = {
   registeredCount: number;
   qualifiedCount: number;
   patronOutfitUnlocked: boolean;
+  patronHatUnlocked: boolean;
   referrals: ReferralInvitee[];
   milestones: ReferralMilestone[];
 };
@@ -77,7 +78,7 @@ export const REFERRAL_TROPHY_MILESTONES: readonly ReferralTrophyMilestone[] = [
   {
     count: 25,
     title: "Don du peloton",
-    inscription: "25 filleuls qualifiés",
+    inscription: "25 filleuls qualifiés · fedora débloqué",
     palette: {
       primary: "#20201F",
       secondary: "#E7E2D8",
