@@ -154,21 +154,47 @@ export default async function ReferralPage() {
           <aside className="rounded-2xl bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(19,60,46,0.16)] sm:p-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Trophée spécial</p>
             <h2 className="mt-2 text-2xl font-black">Les attributs du Parrain</h2>
-            <div className="mt-5 grid h-28 place-items-center rounded-2xl border border-white/10 bg-black/20">
-              <PatronOutfitIcon
-                unlocked={overview.patronOutfitUnlocked}
-                showHat={overview.patronHatUnlocked}
-              />
+
+            <div className="mt-5 space-y-3">
+              <div className="rounded-2xl border border-white/12 bg-white/6 p-4">
+                <div className="flex items-center gap-4">
+                  <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#E7F1ED] shadow-inner">
+                    <PatronOutfitIcon unlocked={overview.patronOutfitUnlocked} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9BE0BC]">5 filleuls</p>
+                    <h3 className="mt-1 text-base font-black text-white">Tenue du Parrain</h3>
+                    <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">Costume noir, chemise blanche et fleur rouge.</p>
+                  </div>
+                </div>
+                <ReferralUnlockStatus
+                  unlocked={overview.patronOutfitUnlocked}
+                  remaining={Math.max(0, 5 - overview.qualifiedCount)}
+                  unlockedLabel="Tenue débloquée"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-[#D6AE3B]/35 bg-[linear-gradient(145deg,rgba(214,174,59,0.12),rgba(255,255,255,0.04))] p-4">
+                <div className="flex items-center gap-4">
+                  <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#F4EEE3] shadow-inner">
+                    <PatronFedoraIcon unlocked={overview.patronHatUnlocked} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#F2C94C]">25 filleuls</p>
+                    <h3 className="mt-1 text-base font-black text-white">Fedora du Don</h3>
+                    <p className="mt-2 text-xs font-bold leading-5 text-[#D6DFD2]">Feutre noir et ruban bordeaux, esprit Chicago 1920.</p>
+                  </div>
+                </div>
+                <ReferralUnlockStatus
+                  unlocked={overview.patronHatUnlocked}
+                  remaining={Math.max(0, 25 - overview.qualifiedCount)}
+                  unlockedLabel="Fedora débloqué"
+                />
+              </div>
             </div>
+
             <p className="mt-5 text-sm leading-6 text-[#D6DFD2]">
-              À 5 filleuls, la tenue de cérémonie noire rejoint votre profil. À 25, le Don du peloton reçoit son fedora noir à ruban bordeaux, inspiré du Chicago des années 1920.
-            </p>
-            <p className="mt-4 rounded-xl bg-white/8 px-4 py-3 text-sm font-extrabold text-[#F2C94C]">
-              {overview.patronHatUnlocked
-                ? "Tenue et fedora débloqués — équipez-les dans votre profil"
-                : overview.patronOutfitUnlocked
-                  ? `${Math.max(0, 25 - overview.qualifiedCount)} filleul(s) avant le fedora du Don`
-                  : `${Math.max(0, 5 - overview.qualifiedCount)} filleul(s) avant la tenue`}
+              Chaque gain reste définitivement disponible dans l’onglet Style du profil une fois son palier atteint.
             </p>
           </aside>
         </section>
@@ -244,28 +270,65 @@ function ReferralCareerBonus({
 
 function PatronOutfitIcon({
   unlocked,
-  showHat,
 }: {
   unlocked: boolean;
-  showHat: boolean;
 }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 120 90" className={unlocked ? "h-24 w-32" : "h-24 w-32 opacity-45 grayscale"}>
+    <svg aria-hidden="true" viewBox="0 0 120 90" className={unlocked ? "h-20 w-24" : "h-20 w-24 opacity-45 grayscale"}>
       <path d="M16 90C18 55 34 39 60 39C86 39 102 55 104 90Z" fill="#171514" />
       <path d="M42 45L60 72L78 45L68 39H52Z" fill="#FFFDF4" />
       <path d="M45 42L59 69L35 54Z" fill="#282522" />
       <path d="M75 42L61 69L85 54Z" fill="#282522" />
       <path d="M56 50H64L62 68H58Z" fill="#171514" />
       <circle cx="82" cy="55" r="4" fill="#A61B32" />
-      {showHat ? (
-        <>
-          <path d="M31 35C38 30 46 28 60 28C74 28 82 30 89 35C80 39 71 40 60 40C49 40 40 39 31 35Z" fill="#11100F" stroke="#49433E" strokeWidth="1.5" />
-          <path d="M42 32L46 15C51 9 69 9 74 15L78 32C68 35 52 35 42 32Z" fill="#1B1917" stroke="#49433E" strokeWidth="1.5" />
-          <path d="M43 27C53 30 68 30 77 27L78 32C68 35 52 35 42 32Z" fill="#8F1730" />
-        </>
-      ) : null}
       {!unlocked ? <><rect x="47" y="59" width="26" height="22" rx="5" fill="#071A17" /><path d="M52 59v-7a8 8 0 0 1 16 0v7" fill="none" stroke="#F2C94C" strokeWidth="4" /></> : null}
     </svg>
+  );
+}
+
+function PatronFedoraIcon({ unlocked }: { unlocked: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 120 90"
+      className={unlocked ? "h-20 w-24" : "h-20 w-24 opacity-50 grayscale"}
+    >
+      <ellipse cx="60" cy="73" rx="44" ry="7" fill="#CFC4B4" opacity="0.45" />
+      <path d="M13 61C23 53 38 49 60 49C82 49 97 53 107 61C96 69 79 73 60 73C41 73 24 69 13 61Z" fill="#11100F" stroke="#49433E" strokeWidth="2" />
+      <path d="M32 55L39 21C43 10 77 10 81 21L88 55C73 61 47 61 32 55Z" fill="#1B1917" stroke="#49433E" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M34 44C49 50 72 50 86 44L88 55C73 61 47 61 32 55Z" fill="#8F1730" />
+      <path d="M60 16C70 16 77 18 81 22" fill="none" stroke="#5B544D" strokeWidth="2" strokeLinecap="round" />
+      {!unlocked ? (
+        <>
+          <circle cx="92" cy="69" r="14" fill="#0B302B" />
+          <rect x="85" y="67" width="14" height="11" rx="3" fill="#F2C94C" />
+          <path d="M88 67v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#F2C94C" strokeWidth="3" />
+        </>
+      ) : null}
+    </svg>
+  );
+}
+
+function ReferralUnlockStatus({
+  unlocked,
+  remaining,
+  unlockedLabel,
+}: {
+  unlocked: boolean;
+  remaining: number;
+  unlockedLabel: string;
+}) {
+  return (
+    <p className={[
+      "mt-3 rounded-xl px-3 py-2 text-xs font-extrabold",
+      unlocked
+        ? "bg-[#42B99A]/18 text-[#9BE0BC]"
+        : "bg-black/20 text-[#F2C94C]",
+    ].join(" ")}>
+      {unlocked
+        ? `${unlockedLabel} ✓`
+        : `${remaining} filleul${remaining === 1 ? "" : "s"} avant ce gain`}
+    </p>
   );
 }
 
