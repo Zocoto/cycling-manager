@@ -260,8 +260,8 @@ export default async function HealthCenterPage({
         ) : null}
         {readQuery(query.annulation) === "confirmee" ? (
           <SuccessMessage>
-            Le stage programmé est annulé. Le coureur reste disponible et aucun
-            remboursement n’est effectué.
+            Le stage programmé est annulé. Le coureur reste disponible et son
+            coût est intégralement remboursé.
           </SuccessMessage>
         ) : null}
         {readQuery(query.affectation) === "confirmee" ? (
@@ -637,9 +637,9 @@ function FormPanel({
               Gérer les stages programmés et en cours
             </h3>
             <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
-              Avant son départ, un stage peut être annulé immédiatement. Une fois
-              commencé, son arrêt prend effet le lendemain. Dans les deux cas, le
-              prix payé reste acquis au prestataire.
+              Avant son jour de départ, un stage peut être annulé et intégralement
+              remboursé. Une fois commencé, son arrêt prend effet le lendemain et
+              le prix payé reste acquis au prestataire.
             </p>
           </div>
 

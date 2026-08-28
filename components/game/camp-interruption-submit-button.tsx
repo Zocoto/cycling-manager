@@ -39,7 +39,7 @@ export function PlannedCampCancellationSubmitButton({
   endDayNumber: number;
 }) {
   const { pending } = useFormStatus();
-  const confirmation = `Annuler ce stage prévu de J${startDayNumber} à J${endDayNumber} ? Le coureur restera disponible. Le coût ne sera pas remboursé.`;
+  const confirmation = `Annuler ce stage prévu de J${startDayNumber} à J${endDayNumber} ? Le coureur restera disponible et le coût sera intégralement remboursé.`;
 
   return (
     <button

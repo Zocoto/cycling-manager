@@ -8,7 +8,7 @@ function read(path: string) {
 }
 
 const migration = read(
-  "supabase/migrations/20260828123000_cancel_planned_form_camps.sql",
+  "supabase/migrations/20260828153000_refund_cancelled_planned_form_camps.sql",
 );
 const healthActions = read("app/jeu/centre-de-soin/actions.ts");
 const healthPage = read("app/jeu/centre-de-soin/page.tsx");
@@ -26,9 +26,18 @@ describe("annulation des stages de forme programmés", () => {
     expect(migration).toContain("completed_at = now()");
   });
 
-  it("ne rembourse pas le stage et ne lance aucun règlement global", () => {
-    expect(migration).not.toContain("set cash_balance");
-    expect(migration).not.toContain("delete from public.team_finance_transactions");
+  it("rembourse intégralement le stage une seule fois sans règlement global", () => {
+    expect(migration).toContain(
+      "set cash_balance = team_season.cash_balance + v_camp.total_price",
+    );
+    expect(migration).toContain("v_camp.total_price");
+    expect(migration).toContain("'form-camp-refund:' || v_camp.id::text");
+    expect(migration).toContain(
+      "on conflict (team_season_id, source_reference) do nothing",
+    );
+    expect(migration).toContain("if v_refund_transaction_id is null then");
+    expect(migration).toContain("'training'");
+    expect(migration).toContain("'posted'");
     expect(migration).not.toContain(
       "perform public.settle_current_health_and_form();",
     );
@@ -48,6 +57,11 @@ describe("annulation des stages de forme programmés", () => {
     expect(healthPage).toContain("Gérer les stages programmés et en cours");
     expect(healthPage).toContain("cancelPlannedFormCampAction");
     expect(actionButton).toContain("Annuler le stage");
-    expect(actionButton).toContain("Le coût ne sera pas remboursé.");
+    expect(actionButton).toContain("le coût sera intégralement remboursé.");
+    expect(healthPage).toContain("coût est intégralement remboursé");
+    expect(healthPage).toContain(
+      "Une fois commencé, son arrêt prend effet le lendemain et",
+    );
+    expect(actionButton).toContain("Le coût ne sera pas remboursé, mais");
   });
 });
