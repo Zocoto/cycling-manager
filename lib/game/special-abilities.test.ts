@@ -35,7 +35,8 @@ describe("special abilities", () => {
     const homegrownAbility = SPECIAL_ABILITY_CATALOG.find(
       (ability) => ability.code === "homegrown",
     );
-    expect(homegrownAbility?.effect).toContain("+2");
+    expect(homegrownAbility?.effect).toContain("Saison 3");
+    expect(homegrownAbility?.effect).toContain("divise par deux le salaire");
     expect(homegrownAbility?.effect).toContain("non-renouvellement");
     expect(
       SPECIAL_ABILITY_CATALOG.find((ability) => ability.code === "pistard")

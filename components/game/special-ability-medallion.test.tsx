@@ -52,7 +52,8 @@ describe("SpecialAbilityMedallion", () => {
     );
 
     expect(markup).toContain("Formé au club débloquée");
-    expect(markup).toContain("+2");
+    expect(markup).toContain("Saison 3");
+    expect(markup).toContain("divise par deux le salaire");
     expect(markup).toContain("#D65789");
     expect(markup).toContain("M13 4h6l1 4-2 3v3");
   });

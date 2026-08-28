@@ -129,7 +129,7 @@ export const SPECIAL_ABILITY_CATALOG: SpecialAbilityDefinition[] = [
   {
     code: "homegrown",
     name: "Formé au club",
-    effect: "Accorde +2 à toutes les caractéristiques ; cette capacité est perdue définitivement en cas de départ ou de non-renouvellement.",
+    effect: "À partir de la Saison 3, divise par deux le salaire du coureur tant qu’il reste dans son club formateur ; cette capacité est perdue définitivement en cas de départ ou de non-renouvellement.",
     icon: "baby_bottle",
     tone: "pink",
   },
