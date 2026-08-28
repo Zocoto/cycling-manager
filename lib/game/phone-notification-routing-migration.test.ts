@@ -11,7 +11,7 @@ const migration = readSource(
   "supabase/migrations/20260827121000_connect_mail_and_direct_message_push.sql",
 );
 const directActions = readSource("app/jeu/chat/direct-actions.ts");
-const transferCron = readSource("app/api/cron/transfer-market/route.ts");
+const transferActions = readSource("app/jeu/transferts/actions.ts");
 const pushControl = readSource(
   "components/pwa/push-notification-control.tsx",
 );
@@ -55,13 +55,12 @@ describe("phone notification routing", () => {
   it("dispatches direct messages and auction settlements without waiting for cron", () => {
     expect(directActions).toContain("scheduleDirectMessagePushDispatch();");
     expect(directActions).toContain("after(async () =>");
-    expect(directActions).toContain(
-      "dispatchDuePushNotifications({ enqueueRaceLives: false })",
-    );
-    expect(transferCron).toContain("after(async () =>");
-    expect(transferCron).toContain(
-      "dispatchDuePushNotifications({ enqueueRaceLives: false })",
-    );
+    expect(directActions).toContain("limit: 5");
+    expect(directActions).toContain("enqueueRaceLives: false");
+    expect(transferActions).toContain("schedulePushDispatch();");
+    expect(transferActions).toContain("after(async () =>");
+    expect(transferActions).toContain("limit: 5");
+    expect(transferActions).toContain("enqueueRaceLives: false");
   });
 
   it("documents the added notification families in the device control", () => {
