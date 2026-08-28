@@ -8,7 +8,7 @@ function read(path: string) {
 }
 
 const migration = read(
-  "supabase/migrations/20260828153000_refund_cancelled_planned_form_camps.sql",
+  "supabase/migrations/20260828170500_refund_cancelled_planned_form_camps.sql",
 );
 const healthActions = read("app/jeu/centre-de-soin/actions.ts");
 const healthPage = read("app/jeu/centre-de-soin/page.tsx");
