@@ -231,7 +231,12 @@ function getAlphaBounds(alpha, width, height) {
   };
 }
 
-async function normalizeAsset({ source, destination, kind }) {
+async function normalizeAsset({
+  source,
+  destination,
+  kind,
+  preserveSourceAlpha = false,
+}) {
   const target = TARGETS[kind];
 
   if (!target) {
@@ -244,12 +249,17 @@ async function normalizeAsset({ source, destination, kind }) {
     .toBuffer({ resolveWithObject: true });
 
   const pixelCount = info.width * info.height;
-  const alpha = filterForegroundComponents(
-    removeBorderBackground(data, info.width, info.height),
-    info.width,
-    info.height,
-    kind,
-  );
+  const alpha = preserveSourceAlpha
+    ? Uint8Array.from(
+        { length: pixelCount },
+        (_, index) => data[index * 4 + 3],
+      )
+    : filterForegroundComponents(
+        removeBorderBackground(data, info.width, info.height),
+        info.width,
+        info.height,
+        kind,
+      );
 
   for (let index = 0; index < pixelCount; index += 1) {
     data[index * 4 + 3] = alpha[index];
