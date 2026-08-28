@@ -3,6 +3,12 @@ import "server-only";
 import type { User } from "@supabase/supabase-js";
 
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
+import {
+  buildAcquisitionOverview,
+  type AcquisitionAccount,
+  type AcquisitionOverview,
+  type AcquisitionPeriod,
+} from "@/lib/marketing/acquisition-funnel";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DirectorRow = {
@@ -10,11 +16,13 @@ type DirectorRow = {
   auth_user_id: string | null;
   username: string;
   display_name: string;
+  onboarding_completed: boolean;
 };
 
 type AssignmentRow = {
   sporting_director_id: string;
   team_id: string;
+  status: string;
 };
 
 type SeasonRow = { id: string };
@@ -40,6 +48,7 @@ export type PlayerTrackingRow = {
 
 export type PlayerTrackingOverview = {
   generatedAt: string;
+  acquisition: AcquisitionOverview;
   players: PlayerTrackingRow[];
 };
 
@@ -47,6 +56,7 @@ const AUTH_USERS_PAGE_SIZE = 200;
 
 export async function getPlayerTrackingOverview(
   requesterEmail: string | null | undefined,
+  acquisitionPeriod: AcquisitionPeriod = 30,
 ): Promise<PlayerTrackingOverview> {
   if (!canAccessPlayerTracking(requesterEmail)) {
     throw new Error("Acces refuse a la console de suivi des joueurs.");
@@ -57,7 +67,9 @@ export async function getPlayerTrackingOverview(
 
   const directorsResult = await admin
     .from("sporting_directors")
-    .select("id, auth_user_id, username, display_name")
+    .select(
+      "id, auth_user_id, username, display_name, onboarding_completed",
+    )
     .returns<DirectorRow[]>();
   assertAdminQuery(directorsResult.error, "les Directeurs Sportifs");
 
@@ -68,10 +80,9 @@ export async function getPlayerTrackingOverview(
     directorIds.length > 0
       ? admin
           .from("team_manager_assignments")
-          .select("sporting_director_id, team_id")
+          .select("sporting_director_id, team_id, status")
           .in("sporting_director_id", directorIds)
           .eq("role", "general_manager")
-          .eq("status", "active")
           .returns<AssignmentRow[]>()
       : Promise.resolve({ data: [] as AssignmentRow[], error: null }),
     admin
@@ -90,8 +101,11 @@ export async function getPlayerTrackingOverview(
     : [];
 
   const assignments = assignmentsResult.data ?? [];
+  const activeAssignments = assignments.filter(
+    (assignment) => assignment.status === "active",
+  );
   const teamIds = [
-    ...new Set(assignments.map((assignment) => assignment.team_id)),
+    ...new Set(activeAssignments.map((assignment) => assignment.team_id)),
   ];
   const activeSeasonId = activeSeasonResult.data?.id ?? null;
   const teamSeasonsResult =
@@ -111,10 +125,13 @@ export async function getPlayerTrackingOverview(
     ),
   );
   const teamIdByDirectorId = new Map(
-    assignments.map((assignment) => [
+    activeAssignments.map((assignment) => [
       assignment.sporting_director_id,
       assignment.team_id,
     ]),
+  );
+  const directorIdsWithTeam = new Set(
+    assignments.map((assignment) => assignment.sporting_director_id),
   );
   const teamNameByTeamId = new Map(
     (teamSeasonsResult.data ?? []).map((teamSeason) => [
@@ -129,25 +146,50 @@ export async function getPlayerTrackingOverview(
     ]),
   );
 
-  return {
-    generatedAt: new Date().toISOString(),
-    players: users
-      .map((user) => {
-        const director = directorByAuthUserId.get(user.id);
-        const teamId = director
-          ? teamIdByDirectorId.get(director.id) ?? null
-          : null;
+  const generatedAt = new Date();
+  const players = users
+    .map((user) => {
+      const director = directorByAuthUserId.get(user.id);
+      const teamId = director
+        ? teamIdByDirectorId.get(director.id) ?? null
+        : null;
 
-        return {
-          authUserId: user.id,
-          playerName: readPlayerName(user, director),
-          email: user.email ?? "E-mail indisponible",
-          directorName: director?.display_name ?? "Profil DS non créé",
-          teamName: teamId ? teamNameByTeamId.get(teamId) ?? null : null,
-          lastActivityOn: lastActivityByAuthUserId.get(user.id) ?? null,
-        } satisfies PlayerTrackingRow;
-      })
-      .sort(comparePlayerTrackingRows),
+      return {
+        authUserId: user.id,
+        playerName: readPlayerName(user, director),
+        email: user.email ?? "E-mail indisponible",
+        directorName: director?.display_name ?? "Profil DS non créé",
+        teamName: teamId ? teamNameByTeamId.get(teamId) ?? null : null,
+        lastActivityOn: lastActivityByAuthUserId.get(user.id) ?? null,
+      } satisfies PlayerTrackingRow;
+    })
+    .sort(comparePlayerTrackingRows);
+  const acquisitionAccounts = users.map((user) => {
+    const director = directorByAuthUserId.get(user.id);
+    const attribution = readMarketingAttribution(user);
+
+    return {
+      authUserId: user.id,
+      createdAt: user.created_at,
+      emailConfirmedAt: user.email_confirmed_at ?? null,
+      source: attribution.source,
+      medium: attribution.medium,
+      campaign: attribution.campaign,
+      hasDirector: Boolean(director),
+      hasTeam: director ? directorIdsWithTeam.has(director.id) : false,
+      onboardingCompleted: director?.onboarding_completed ?? false,
+      lastActivityOn: lastActivityByAuthUserId.get(user.id) ?? null,
+    } satisfies AcquisitionAccount;
+  });
+
+  return {
+    generatedAt: generatedAt.toISOString(),
+    acquisition: buildAcquisitionOverview(
+      acquisitionAccounts,
+      acquisitionPeriod,
+      generatedAt,
+    ),
+    players,
   };
 }
 
@@ -183,6 +225,45 @@ function readPlayerName(user: User, director: DirectorRow | undefined) {
   }
 
   return "Compte sans profil";
+}
+
+function readMarketingAttribution(user: User) {
+  const rawAttribution = user.user_metadata?.marketing_attribution;
+  const referralCode = readAttributionValue(
+    user.user_metadata?.referral_code,
+  );
+
+  if (!isRecord(rawAttribution)) {
+    return referralCode
+      ? {
+          source: "player_referral",
+          medium: "referral",
+          campaign: "saison2_ambassadors",
+        }
+      : { source: null, medium: null, campaign: null };
+  }
+
+  return {
+    source:
+      readAttributionValue(rawAttribution.utm_source) ??
+      (referralCode ? "player_referral" : null),
+    medium:
+      readAttributionValue(rawAttribution.utm_medium) ??
+      (referralCode ? "referral" : null),
+    campaign:
+      readAttributionValue(rawAttribution.utm_campaign) ??
+      (referralCode ? "saison2_ambassadors" : null),
+  };
+}
+
+function readAttributionValue(value: unknown) {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, 100)
+    : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function comparePlayerTrackingRows(

@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import Link from "@/components/ui/app-link";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
 import { GameHeader } from "@/components/game/game-header";
 import { canAccessPlayerTracking } from "@/lib/game/player-tracking-access";
+import {
+  ACQUISITION_PERIOD_VALUES,
+  parseAcquisitionPeriod,
+  type AcquisitionBreakdownRow,
+  type AcquisitionOverview,
+  type AcquisitionPeriod,
+} from "@/lib/marketing/acquisition-funnel";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGameHeaderData } from "@/services/game-header-data";
@@ -24,7 +32,12 @@ const LAST_ACTIVITY_DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
 });
 
-export default async function PlayerTrackingPage() {
+export default async function PlayerTrackingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periode?: string | string[] }>;
+}) {
+  const period = parseAcquisitionPeriod((await searchParams).periode);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -46,7 +59,7 @@ export default async function PlayerTrackingPage() {
 
   const [headerData, overview] = await Promise.all([
     getGameHeaderData(supabase, user.id),
-    getPlayerTrackingOverview(user.email),
+    getPlayerTrackingOverview(user.email, period),
   ]);
 
   const activePlayers = overview.players.filter(
@@ -78,6 +91,8 @@ export default async function PlayerTrackingPage() {
           </header>
           <BackToOfficeLink />
         </div>
+
+        <AcquisitionDashboard acquisition={overview.acquisition} />
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <StatCard label="Comptes joueurs" value={overview.players.length} />
@@ -128,6 +143,177 @@ export default async function PlayerTrackingPage() {
       </section>
     </main>
   );
+}
+
+function AcquisitionDashboard({
+  acquisition,
+}: {
+  acquisition: AcquisitionOverview;
+}) {
+  const steps = [
+    {
+      label: "Inscriptions",
+      value: acquisition.registrations,
+      detail: "Cohorte créée",
+    },
+    {
+      label: "E-mails confirmés",
+      value: acquisition.confirmed,
+      detail: `${formatRate(acquisition.confirmationRate)} des inscrits`,
+    },
+    {
+      label: "Profils DS",
+      value: acquisition.directorProfiles,
+      detail: "Profil métier créé",
+    },
+    {
+      label: "Équipes créées",
+      value: acquisition.teamsCreated,
+      detail: `${formatRate(acquisition.teamConversionRate)} des inscrits`,
+    },
+    {
+      label: "Actifs sur 7 jours",
+      value: acquisition.activeLastSevenDays,
+      detail: "Dans cette cohorte",
+    },
+  ] as const;
+
+  return (
+    <section className="mt-8 overflow-hidden rounded-[1.75rem] border border-[#B9CEC7] bg-white shadow-[0_20px_55px_rgba(20,67,56,0.09)]">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-[#123D34] px-5 py-5 text-white sm:px-7">
+        <div>
+          <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#8DDFC2]">
+            Acquisition sans surcoût côté jeu
+          </p>
+          <h2 className="mt-1 text-2xl font-black">Entonnoir d’activation</h2>
+          <p className="mt-1 max-w-2xl text-sm font-medium text-[#CDE2DA]">
+            Cohortes calculées à la demande depuis les données déjà enregistrées.
+            Aucun script de suivi ni rafraîchissement automatique n’est ajouté.
+          </p>
+        </div>
+        <PeriodNavigation selected={acquisition.period} />
+      </div>
+
+      <div className="grid gap-px bg-[#DDE9E5] sm:grid-cols-2 xl:grid-cols-5">
+        {steps.map((step) => (
+          <article key={step.label} className="bg-white px-5 py-5">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-[#60756E]">
+              {step.label}
+            </p>
+            <p className="mt-2 text-3xl font-black text-[#176951]">
+              {step.value}
+            </p>
+            <p className="mt-1 text-xs font-bold text-[#789088]">
+              {step.detail}
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="grid border-t border-[#DDE9E5] lg:grid-cols-2 lg:divide-x lg:divide-[#DDE9E5]">
+        <AcquisitionBreakdown
+          title="Sources d’inscription"
+          emptyLabel="Aucune inscription sur cette période."
+          rows={acquisition.sources}
+        />
+        <AcquisitionBreakdown
+          title="Campagnes UTM"
+          emptyLabel="Aucune campagne attribuée sur cette période."
+          rows={acquisition.campaigns}
+        />
+      </div>
+    </section>
+  );
+}
+
+function PeriodNavigation({ selected }: { selected: AcquisitionPeriod }) {
+  return (
+    <nav aria-label="Période d’acquisition" className="flex flex-wrap gap-2">
+      {ACQUISITION_PERIOD_VALUES.map((period) => {
+        const active = selected === period;
+        const label = period === "all" ? "Tout" : `${period} j`;
+
+        return (
+          <Link
+            key={period}
+            href={`/jeu/suivi-joueurs?periode=${period}`}
+            aria-current={active ? "page" : undefined}
+            className={`rounded-full px-3 py-1.5 text-xs font-black transition ${
+              active
+                ? "bg-[#F2C94C] text-[#123D34]"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function AcquisitionBreakdown({
+  title,
+  emptyLabel,
+  rows,
+}: {
+  title: string;
+  emptyLabel: string;
+  rows: AcquisitionBreakdownRow[];
+}) {
+  return (
+    <section className="min-w-0 p-5 sm:p-7">
+      <h3 className="text-lg font-black text-[#123D34]">{title}</h3>
+      {rows.length > 0 ? (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#789088]">
+              <tr>
+                <th className="pb-2 pr-3">Origine</th>
+                <th className="px-2 pb-2 text-right">Inscr.</th>
+                <th className="px-2 pb-2 text-right">Confirm.</th>
+                <th className="px-2 pb-2 text-right">Équipes</th>
+                <th className="pb-2 pl-2 text-right">Conv.</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E1EBE7]">
+              {rows.slice(0, 8).map((row) => (
+                <tr key={row.label}>
+                  <td className="max-w-60 break-words py-3 pr-3 text-sm font-black text-[#284E45]">
+                    {row.label}
+                  </td>
+                  <NumericCell>{row.registrations}</NumericCell>
+                  <NumericCell>{row.confirmed}</NumericCell>
+                  <NumericCell>{row.teamsCreated}</NumericCell>
+                  <td className="py-3 pl-2 text-right text-sm font-black text-[#176951]">
+                    {formatRate(row.teamConversionRate)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm font-semibold text-[#789088]">
+          {emptyLabel}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function NumericCell({ children }: { children: React.ReactNode }) {
+  return (
+    <td className="px-2 py-3 text-right text-sm font-bold text-[#526A63]">
+      {children}
+    </td>
+  );
+}
+
+function formatRate(value: number) {
+  return `${new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 1,
+  }).format(value)} %`;
 }
 
 function StatCard({ label, value }: { label: string; value: number }) {

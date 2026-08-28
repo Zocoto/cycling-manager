@@ -42,8 +42,9 @@ describe("player tracking access", () => {
       '.rpc("get_player_tracking_last_activity")',
     );
     expect(serviceSource).toContain(
-      '.select("id, auth_user_id, username, display_name")',
+      '"id, auth_user_id, username, display_name, onboarding_completed"',
     );
+    expect(serviceSource).toContain('user.user_metadata?.referral_code');
     expect(serviceSource).toContain('.select("team_id, display_name")');
     expect(pageSource).toContain("Dernière activité");
     expect(pageSource).toContain(
