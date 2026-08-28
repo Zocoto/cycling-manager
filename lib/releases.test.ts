@@ -4,7 +4,7 @@ import { latestRelease, releases } from "./releases";
 
 describe("notes de version", () => {
   it("met le Patch 5 en tête des nouveautés", () => {
-    expect(latestRelease.version).toBe("Patch #5");
+    expect(latestRelease.version).toBe("0.8.0 · Patch #5");
     expect(latestRelease.anchor).toBe("patch-5");
     expect(latestRelease.title).toContain("change de braquet");
   });

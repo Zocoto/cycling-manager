@@ -1,3 +1,5 @@
+import { APP_VERSION } from "./app-version";
+
 export type ReleaseNote = {
   version: string;
   anchor?: string;
@@ -9,7 +11,7 @@ export type ReleaseNote = {
 
 export const releases = [
   {
-    version: "Patch #5",
+    version: `${APP_VERSION} · Patch #5`,
     anchor: "patch-5",
     date: "23 août 2026",
     title: "Le jeu change de braquet",

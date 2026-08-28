@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 import { PublicFooter } from "./public-footer";
 
 describe("PublicFooter", () => {
+  it("affiche la version courante et son canal de publication", () => {
+    const markup = renderToStaticMarkup(<PublicFooter />);
+
+    expect(markup).toContain("Version 0.8.0 · Bêta");
+  });
+
   it("affiche les accès Discord et Instagram avec leurs logos", () => {
     const markup = renderToStaticMarkup(<PublicFooter />);
 

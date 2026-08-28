@@ -83,7 +83,8 @@ export function PublicFooter() {
             </p>
 
             <p className="mt-4 text-sm leading-6 text-[#D6DFD2]">
-              {isEnglish ? "Version" : "Version"} {appConfig.version}
+              Version {appConfig.version} ·{" "}
+              {isEnglish ? "Beta" : appConfig.releaseChannel}
               <br />
               {isEnglish ? "Project in active development" : "Projet en développement actif"}
             </p>
