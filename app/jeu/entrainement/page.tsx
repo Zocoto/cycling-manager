@@ -242,6 +242,12 @@ export default async function TrainingPage({
                         ? "Séance du jour réglée"
                         : "Modifiable jusqu’à 8 h"}
                     </span>
+                    <Link
+                      href="/jeu/entrainement/rapport"
+                      className="rounded-full border border-[#9BE0BC]/35 bg-[#9BE0BC]/12 px-3 py-2 text-[#DFF8EC] transition hover:bg-[#9BE0BC]/22"
+                    >
+                      Rapport du jour →
+                    </Link>
                     <TeamProgressionModal
                       riders={overview.riders.map((rider) => ({
                         id: rider.id,

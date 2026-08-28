@@ -1,3 +1,6 @@
+import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
+import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
+
 export const DASHBOARD_ASSISTANT_ENABLED = true;
 
 export type DashboardJournalItem = {
@@ -48,6 +51,15 @@ export type DashboardAssistantLine = {
   href: string | null;
 };
 
+export type DashboardRaceRosterAlert = {
+  id: string;
+  title: string;
+  detail: string;
+  metric: string;
+  href: string;
+  dayNumber: number;
+};
+
 const ALERT_PRIORITY = [
   "race-roster-alerts",
   "untreated-injuries",
@@ -62,11 +74,13 @@ const ALERT_PRIORITY = [
 
 export function buildDashboardAssistantLines({
   snapshot,
+  raceRosterAlerts = [],
   raceRosterAlertCount,
   rewardCount,
   cashBalance,
 }: {
   snapshot: DashboardAssistantSnapshot;
+  raceRosterAlerts?: DashboardRaceRosterAlert[];
   raceRosterAlertCount: number;
   rewardCount: number;
   cashBalance: number | null;
@@ -144,8 +158,12 @@ export function buildDashboardAssistantLines({
       id: "youth-alerts",
       tone: "alert",
       metric: String(snapshot.youthAlertCount),
-      title: pluralize(snapshot.youthAlertCount, "décision de formation à prendre", "décisions de formation à prendre"),
-      detail: "Promotion ou échéance concernant un jeune.",
+      title: pluralize(
+        snapshot.youthAlertCount,
+        "junior de 18 ans à recruter",
+        "juniors de 18 ans à recruter",
+      ),
+      detail: "Le passage professionnel doit être programmé avant la fin de saison.",
       href: "/jeu/centre-de-formation?onglet=ecole",
     });
   }
@@ -172,13 +190,24 @@ export function buildDashboardAssistantLines({
     });
   }
 
-  if (raceRosterAlertCount > 0) {
+  if (raceRosterAlerts.length > 0) {
+    alerts.push(
+      ...raceRosterAlerts.map((alert) => ({
+        id: alert.id,
+        tone: "alert" as const,
+        metric: alert.metric,
+        title: alert.title,
+        detail: alert.detail,
+        href: alert.href,
+      })),
+    );
+  } else if (raceRosterAlertCount > 0) {
     alerts.push({
       id: "race-roster-alerts",
       tone: "alert",
       metric: String(raceRosterAlertCount),
       title: pluralize(raceRosterAlertCount, "start-list à corriger", "start-lists à corriger"),
-      detail: "Un remplacement est nécessaire avant le départ.",
+      detail: "Ouvrez le calendrier pour identifier l’inscription concernée.",
       href: "/jeu/calendrier",
     });
   }
@@ -208,7 +237,7 @@ export function buildDashboardAssistantLines({
         snapshot.seniorSessionCount > 0
           ? `${snapshot.seniorCompletedCount}/${snapshot.seniorSessionCount} séances · ${formatProgressCount(snapshot.seniorProgressCount)}`
           : "La séance du jour n’a pas encore été traitée.",
-      href: "/jeu/entrainement?onglet=training",
+      href: "/jeu/entrainement/rapport",
     },
   ];
 
@@ -219,7 +248,7 @@ export function buildDashboardAssistantLines({
       metric: String(snapshot.juniorSessionCount),
       title: "Rapport quotidien des juniors",
       detail: `${snapshot.juniorSessionCount}/${snapshot.juniorRiderCount} entraînés · ${formatProgressCount(snapshot.juniorProgressCount)}`,
-      href: "/jeu/centre-de-formation?onglet=ecole",
+      href: "/jeu/centre-de-formation/rapport-entrainement",
     });
   }
 
@@ -290,6 +319,53 @@ export function formatDashboardAssistantDate(value: string): string {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
+export function getDashboardRaceRosterAlerts(
+  calendar: SeasonRaceCalendar | null,
+): DashboardRaceRosterAlert[] {
+  if (!calendar) return [];
+
+  return calendar.editions
+    .flatMap((edition): DashboardRaceRosterAlert[] => {
+      const registration = edition.currentTeamRegistration;
+      const activeStages = edition.stages.filter(
+        (stage) =>
+          stage.status !== "cancelled" &&
+          stage.dayNumber >= calendar.currentDayNumber,
+      );
+
+      if (
+        edition.competitionType !== "standard" ||
+        edition.status === "cancelled" ||
+        edition.status === "completed" ||
+        edition.status === "in_progress" ||
+        registration?.status !== "accepted" ||
+        registration.rosterCount >= edition.minimumRosterSize ||
+        activeStages.length === 0
+      ) {
+        return [];
+      }
+
+      const missingCount = edition.minimumRosterSize - registration.rosterCount;
+      const dayNumber = Math.min(...activeStages.map((stage) => stage.dayNumber));
+
+      return [
+        {
+          id: `race-roster-alert:${edition.id}`,
+          metric: `${registration.rosterCount}/${edition.minimumRosterSize}`,
+          title: `Start-list à corriger · ${edition.name}`,
+          detail: `${pluralize(missingCount, "1 coureur manque", `${missingCount} coureurs manquent`)} avant le départ à J${dayNumber}.`,
+          href: getRaceRegistrationHref(edition.slug),
+          dayNumber,
+        },
+      ];
+    })
+    .sort(
+      (left, right) =>
+        left.dayNumber - right.dayNumber ||
+        left.title.localeCompare(right.title, "fr"),
+    );
+}
+
 function buildAuctionDetail(snapshot: DashboardAssistantSnapshot): string {
   if (snapshot.auctionCount === 0) return "Aucune vente ouverte pour le moment.";
 
@@ -317,6 +393,9 @@ function formatProgressCount(count: number): string {
 }
 
 function getAlertPriority(id: string): number {
+  if (id.startsWith("race-roster-alert:")) {
+    return ALERT_PRIORITY.indexOf("race-roster-alerts");
+  }
   const priority = ALERT_PRIORITY.indexOf(
     id as (typeof ALERT_PRIORITY)[number],
   );

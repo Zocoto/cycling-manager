@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
+  getDashboardRaceRosterAlerts,
   type DashboardAssistantSnapshot,
 } from "@/lib/game/dashboard-assistant";
 
@@ -38,13 +39,23 @@ describe("dashboard DS assistant", () => {
   it("keeps one compact actionable line per alert category", () => {
     const groups = buildDashboardAssistantLines({
       snapshot,
+      raceRosterAlerts: [
+        {
+          id: "race-roster-alert:tour-test",
+          metric: "5/7",
+          title: "Start-list à corriger · Tour test",
+          detail: "2 coureurs manquent avant le départ à J18.",
+          href: "/jeu/courses/tour-test#inscription",
+          dayNumber: 18,
+        },
+      ],
       raceRosterAlertCount: 1,
       rewardCount: 3,
       cashBalance: 100_000,
     });
 
     expect(groups.alerts.map((line) => line.id)).toEqual([
-      "race-roster-alerts",
+      "race-roster-alert:tour-test",
       "untreated-injuries",
       "pending-selections",
       "pending-direct-offers",
@@ -55,6 +66,18 @@ describe("dashboard DS assistant", () => {
       "youth-alerts",
     ]);
     expect(groups.alerts.every((line) => line.href)).toBe(true);
+    expect(groups.alerts[0]).toEqual(
+      expect.objectContaining({
+        title: "Start-list à corriger · Tour test",
+        href: "/jeu/courses/tour-test#inscription",
+      }),
+    );
+    expect(groups.alerts.at(-1)).toEqual(
+      expect.objectContaining({
+        id: "youth-alerts",
+        title: "junior de 18 ans à recruter",
+      }),
+    );
     expect(groups.information.map((line) => line.id)).toEqual([
       "senior-training",
       "junior-training",
@@ -95,5 +118,67 @@ describe("dashboard DS assistant", () => {
     expect(formatDashboardAssistantDate("2026-08-28")).toBe(
       "Vendredi 28 août",
     );
+  });
+
+  it("creates one direct registration alert per incomplete start-list", () => {
+    const alerts = getDashboardRaceRosterAlerts({
+      seasonId: "season-1",
+      seasonName: "Saison 2",
+      gameYear: 2,
+      startsOn: "2026-08-01",
+      endsOn: "2026-08-28",
+      currentDayNumber: 15,
+      days: [],
+      events: [],
+      editions: [
+        {
+          id: "race-1",
+          raceId: "race",
+          slug: "boucle-test",
+          name: "Boucle test",
+          shortName: null,
+          countryName: "France",
+          countryCode: "FR",
+          categoryCode: "regional",
+          categoryName: "Régionale",
+          prestigeRank: 1,
+          raceFormat: "one_day",
+          competitionType: "standard",
+          registrationClosesAt: null,
+          wildcardClosesAt: null,
+          withdrawalClosesAt: null,
+          registrationPolicy: "open",
+          minimumReputation: null,
+          minimumRosterSize: 7,
+          maximumRosterSize: 8,
+          engagedRiderCount: 5,
+          engagedRiders: [],
+          currentTeamRegistration: { status: "accepted", rosterCount: 5 },
+          stages: [
+            {
+              id: "stage-1",
+              dayNumber: 16,
+              stageNumber: 1,
+              name: "Étape",
+              stageType: "road",
+              status: "planned",
+              profileType: "flat",
+              distanceKm: 150,
+              daySlot: "early",
+              departureAt: null,
+              segments: [],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(alerts).toEqual([
+      expect.objectContaining({
+        metric: "5/7",
+        href: "/jeu/courses/boucle-test#inscription",
+        dayNumber: 16,
+      }),
+    ]);
   });
 });

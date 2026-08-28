@@ -60,7 +60,10 @@ import {
   type DashboardFastSummary,
 } from "../../services/dashboard-fast-summary";
 import { getCurrentDashboardAssistantSummary } from "../../services/dashboard-assistant";
-import { DASHBOARD_ASSISTANT_ENABLED } from "../../lib/game/dashboard-assistant";
+import {
+  DASHBOARD_ASSISTANT_ENABLED,
+  getDashboardRaceRosterAlerts,
+} from "../../lib/game/dashboard-assistant";
 import { getDashboardRaceCalendar } from "../../services/dashboard-race-calendar";
 import {
   getTeamFanClubBuildings,
@@ -458,6 +461,7 @@ export default async function GamePage() {
   const teamSponsorIdentityError = sponsorIdentityResult.error;
 
   const dashboardFastSummary = await fastSummaryPromise;
+  const raceRosterAlerts = getDashboardRaceRosterAlerts(raceCalendar);
   let raceRosterAlertCount = dashboardFastSummary?.raceRosterAlertCount ?? 0;
 
   if (!dashboardFastSummary) {
@@ -714,6 +718,7 @@ export default async function GamePage() {
             <Suspense fallback={<DashboardAssistantSkeleton />}>
               <DashboardAssistant
                 summaryPromise={dashboardAssistantPromise}
+                raceRosterAlerts={raceRosterAlerts}
                 raceRosterAlertCount={raceRosterAlertCount}
                 rewardCount={readyRewardCount}
                 cashBalance={financeOverview?.balance ?? null}

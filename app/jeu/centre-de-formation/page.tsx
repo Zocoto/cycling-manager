@@ -635,13 +635,21 @@ function AcademyTab({
           title="École de cyclisme"
           description="Choisissez à tout moment le mode des prochaines séances : automatique chaque matin à 8 h, ou deux minijeux manuels de minuit à midi et de midi à minuit. Le talent est déterminant, la progression reste continue et deux bonnes séances manuelles sont environ 40 % plus efficaces."
         />
-        <div className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-right">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
-            Frais annuels récurrents
-          </p>
-          <p className="mt-1 text-2xl font-black text-[#071A17]">
-            {formatCurrency(overview.totalTuitionPerSeason, overview.currency)}
-          </p>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Link
+            href="/jeu/centre-de-formation/rapport-entrainement"
+            className="rounded-2xl border border-[#176951]/20 bg-white px-4 py-3 text-xs font-black text-[#176951] shadow-sm transition hover:bg-[#EAF5F3]"
+          >
+            Rapport du jour →
+          </Link>
+          <div className="rounded-2xl border border-[#315B3E]/12 bg-white px-5 py-4 text-right">
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#60756E]">
+              Frais annuels récurrents
+            </p>
+            <p className="mt-1 text-2xl font-black text-[#071A17]">
+              {formatCurrency(overview.totalTuitionPerSeason, overview.currency)}
+            </p>
+          </div>
         </div>
       </div>
       {nextSeasonPromotions.length ? (

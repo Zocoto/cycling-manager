@@ -9,17 +9,20 @@ import {
   buildDashboardAssistantLines,
   formatDashboardAssistantDate,
   type DashboardAssistantLine,
+  type DashboardRaceRosterAlert,
   type DashboardAssistantSnapshot,
   type DashboardJournalItem,
 } from "@/lib/game/dashboard-assistant";
 
 export async function DashboardAssistant({
   summaryPromise,
+  raceRosterAlerts,
   raceRosterAlertCount,
   rewardCount,
   cashBalance,
 }: {
   summaryPromise: Promise<DashboardAssistantSnapshot | null>;
+  raceRosterAlerts: DashboardRaceRosterAlert[];
   raceRosterAlertCount: number;
   rewardCount: number;
   cashBalance: number | null;
@@ -30,6 +33,7 @@ export async function DashboardAssistant({
 
   const groups = buildDashboardAssistantLines({
     snapshot: summary,
+    raceRosterAlerts,
     raceRosterAlertCount,
     rewardCount,
     cashBalance,
