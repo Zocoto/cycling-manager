@@ -20,9 +20,11 @@ describe("page d’accueil publique", () => {
     expect(source).not.toContain("function FolderIcon");
   });
 
-  it("met le Patch 5 en vedette au-dessus de quatre annonces historiques", () => {
-    expect(source).toContain('title: "Le Patch 5 change de braquet"');
-    expect(source).toContain('dateTime: "2026-08-23"');
+  it("met le parrainage renforcé en vedette au-dessus de quatre annonces historiques", () => {
+    expect(source).toContain(
+      'title: "Le parrainage passe à la vitesse supérieure"',
+    );
+    expect(source).toContain('dateTime: "2026-08-28"');
     expect(source).toContain(
       'title: "Le Patch 4 d\\u00e9veloppe vos infrastructures"',
     );
@@ -44,10 +46,15 @@ describe("page d’accueil publique", () => {
       source.indexOf("historicalNews.slice"),
     );
   });
-  it("publie le Patch 5 et renvoie vers sa note complète", () => {
+  it("remplace l’annonce du Patch 5 par un accès direct au parrainage", () => {
     expect(source).not.toContain('title: "La saison 2 ouvre le bêta test"');
-    expect(source).toContain('href: "/nouveautes#patch-5"');
-    expect(source).toContain('linkLabel: "Découvrir le Patch 5"');
+    expect(source).not.toContain('title: "Le Patch 5 change de braquet"');
+    expect(source).toContain('href: "/jeu/parrainage"');
+    expect(source).toContain(
+      'linkLabel: "Découvrir les nouveaux gains"',
+    );
+    expect(source).toContain('visualValue: "2 M€"');
+    expect(source).toContain('visualStatus: "Skins uniques"');
     expect(source).toContain(
       'image: "/images/game-workspace-escape.webp"',
     );

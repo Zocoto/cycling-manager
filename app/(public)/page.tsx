@@ -83,20 +83,20 @@ const gamePillarsEn = [
 
 const productNews = [
   {
-    category: "Mise à jour",
-    title: "Le Patch 5 change de braquet",
+    category: "Communauté",
+    title: "Le parrainage passe à la vitesse supérieure",
     description:
-      "Courses plus vivantes, nouveaux outils de staff, sponsors inédits et expérience mobile revue : le quotidien du directeur sportif s’enrichit à tous les étages.",
-    dateTime: "2026-08-23",
-    dateLabel: "23 août 2026",
+      "Invitez de nouveaux Directeurs Sportifs et débloquez des objets rares, des primes pouvant atteindre 2 000 000 €, ainsi que la tenue du Parrain et le fedora exclusif du Don.",
+    dateTime: "2026-08-28",
+    dateLabel: "28 août 2026",
     accent: "leader",
-    href: "/nouveautes#patch-5",
-    linkLabel: "Découvrir le Patch 5",
+    href: "/jeu/parrainage",
+    linkLabel: "Découvrir les nouveaux gains",
     image: "/images/game-workspace-escape.webp",
     imageAlt: "Un peloton gravit une route de montagne au lever du jour",
-    visualLabel: "Patch",
-    visualValue: "5",
-    visualStatus: "Déployé",
+    visualLabel: "Parrainage",
+    visualValue: "2 M€",
+    visualStatus: "Skins uniques",
   },
   {
     category: "Mise \u00e0 jour",
@@ -169,20 +169,20 @@ const productNews = [
 
 const productNewsEn = [
   {
-    category: "Update",
-    title: "Patch 5 shifts up a gear",
+    category: "Community",
+    title: "Referral rewards shift up a gear",
     description:
-      "Livelier races, new staff tools, fresh sponsors and a redesigned mobile experience enrich every part of a Sports Director’s day.",
-    dateTime: "2026-08-23",
-    dateLabel: "23 August 2026",
+      "Invite new Sports Directors and unlock rare items, career bonuses worth up to €2,000,000, the Godfather outfit and the Don’s exclusive fedora.",
+    dateTime: "2026-08-28",
+    dateLabel: "28 August 2026",
     accent: "leader",
-    href: "/nouveautes#patch-5",
-    linkLabel: "Discover Patch 5",
+    href: "/jeu/parrainage",
+    linkLabel: "Explore the new rewards",
     image: "/images/game-workspace-escape.webp",
     imageAlt: "A cycling peloton climbing a mountain road at sunrise",
-    visualLabel: "Patch",
-    visualValue: "5",
-    visualStatus: "Live",
+    visualLabel: "Referrals",
+    visualValue: "€2M",
+    visualStatus: "Exclusive styles",
   },
   {
     category: "Update",
