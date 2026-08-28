@@ -86,7 +86,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-free-agents-overview",
       title: "Cherchez dans toute la base",
       content:
-        "Le filtre Contrat permet d’alterner entre les coureurs libres, disponibles immédiatement sans indemnité, et les coureurs déjà engagés par une équipe.\n\nPour un coureur sous contrat, ouvrez sa fiche afin de transmettre une offre directe à son Directeur Sportif. Son niveau reste soumis à la précision du rapport de scouting.",
+        "Le filtre Contrat permet d’afficher tous les coureurs, uniquement les coureurs libres disponibles immédiatement sans indemnité, ou uniquement ceux déjà engagés par une équipe.\n\nPour un coureur sous contrat, ouvrez sa fiche afin de transmettre une offre directe à son Directeur Sportif. Son niveau reste soumis à la précision du rapport de scouting.",
       placement: "bottom",
       highlightPadding: 8,
     },

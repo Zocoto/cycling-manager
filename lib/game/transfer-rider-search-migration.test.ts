@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const allContractsMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260828213000_search_transfer_riders_all_contracts.sql",
+  ),
+  "utf8",
+);
 
 describe("transfer rider search", () => {
   it("searches free and contracted riders on the database server", () => {
@@ -35,5 +42,15 @@ describe("transfer rider search", () => {
     expect(migration).toContain("rider_season_ratings_transfer_search_idx");
     expect(migration).toContain("from public, anon, authenticated");
     expect(migration).toContain("to service_role");
+  });
+
+  it("can mix free and contracted riders without a contract filter", () => {
+    expect(allContractsMigration).toContain("p_contract_status text default 'all'");
+    expect(allContractsMigration).toContain(
+      "p_contract_status in ('all', 'free')",
+    );
+    expect(allContractsMigration).toContain(
+      "p_contract_status in ('all', 'contracted')",
+    );
   });
 });

@@ -481,7 +481,7 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
   pageSize: number;
   returnPath: string;
 }) {
-  const contractStatus = filters.contractStatus ?? "free";
+  const contractStatus = filters.contractStatus ?? "";
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const firstResult = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const lastResult = Math.min(page * pageSize, total);
@@ -503,7 +503,7 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
         className="mt-5 grid gap-3 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_12px_35px_rgba(19,60,46,0.07)] md:grid-cols-2 xl:grid-cols-7"
       >
         <input type="hidden" name="onglet" value="libres" />
-        <FilterField label="Contrat"><select name="contrat" defaultValue={contractStatus} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="free">Libre</option><option value="contracted">Sous contrat</option></select></FilterField>
+        <FilterField label="Contrat"><select name="contrat" defaultValue={contractStatus} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Tous les contrats</option><option value="free">Libre</option><option value="contracted">Sous contrat</option></select></FilterField>
         <FilterField label="Profil"><select name="profil" defaultValue={readQuery(query.profil)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Tous les profils</option>{TRANSFER_RIDER_PROFILE_FILTERS.map((profile) => <option key={profile} value={profile}>{profile}</option>)}</select></FilterField>
         <FilterField label="Nationalité"><select name="pays" defaultValue={readQuery(query.pays)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal"><option value="">Toutes</option>{countries.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}</select></FilterField>
         <FilterField label="Âge min."><input name="ageMin" type="number" min="15" max="60" defaultValue={readQuery(query.ageMin)} className="mt-2 min-h-11 w-full rounded-xl border border-[#315B3E]/20 bg-white px-3 text-sm font-bold normal-case tracking-normal" /></FilterField>
@@ -529,7 +529,7 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
               </nav>
             ) : null}
           </>
-        ) : <EmptyState title={contractStatus === "free" ? "Aucun coureur libre pour ces filtres" : "Aucun coureur sous contrat pour ces filtres"} detail="Élargissez les critères de recherche pour afficher davantage de profils." />}
+        ) : <EmptyState title={contractStatus === "free" ? "Aucun coureur libre pour ces filtres" : contractStatus === "contracted" ? "Aucun coureur sous contrat pour ces filtres" : "Aucun coureur pour ces filtres"} detail="Élargissez les critères de recherche pour afficher davantage de profils." />}
       </div>
     </section>
   );
@@ -642,7 +642,7 @@ function getDirectOfferStatus(status: DirectTransferOffer["status"]) {
 function readQuery(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] ?? "" : value ?? ""; }
 function readTab(value: string): TransferTab { return value === "directeurs" || value === "libres" || value === "offres" ? value : "quotidiennes"; }
 function readNumber(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isFinite(parsed) && readQuery(value) !== "" ? parsed : undefined; }
-function readContractStatus(value: string | string[] | undefined): TransferContractFilter { return readQuery(value) === "contracted" ? "contracted" : "free"; }
+function readContractStatus(value: string | string[] | undefined): TransferContractFilter | undefined { const status = readQuery(value); return status === "free" || status === "contracted" ? status : undefined; }
 function readSearchPage(value: string | string[] | undefined) { const parsed = Number(readQuery(value)); return Number.isInteger(parsed) && parsed >= 1 && parsed <= 100 ? parsed : 1; }
 function readFilters(query: Record<string, string | string[] | undefined>): TransferMarketFilters {
   const profile = readQuery(query.profil);

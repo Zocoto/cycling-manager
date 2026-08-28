@@ -374,7 +374,7 @@ export async function getTransferMarketOverview(
       ? admin
           .rpc("search_transfer_riders", {
             p_season_id: context.season.id,
-            p_contract_status: filters.contractStatus ?? "free",
+            p_contract_status: filters.contractStatus ?? "all",
             p_country_code: filters.country || null,
             p_minimum_age: filters.minimumAge ?? null,
             p_maximum_age: filters.maximumAge ?? null,
@@ -570,7 +570,7 @@ export async function getTransferMarketOverview(
         dataRoomLevel,
         revealExactValues: false,
       }),
-      contractStatus: filters.contractStatus ?? "free",
+      contractStatus: searchRow.team_id ? "contracted" : "free",
       teamId: searchRow.team_id,
       teamName: searchRow.team_name,
     } satisfies TransferRiderSearchResult];
