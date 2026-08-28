@@ -46,7 +46,7 @@ export function DashboardReferralInvite() {
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9BE0BC]">Saison 2 · Appel aux ambassadeurs</p>
             <h2 className="mt-1 text-xl font-black">Le peloton a besoin de renfort : invitez un ami</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">Partagez votre lien personnel avec un amateur de cyclisme ou de jeux de gestion. Chaque compte créé vous rapproche de primes majeures, de la tenue « Le Parrain » et du fedora exclusif du Don.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#D6DFD2]">Partagez votre lien personnel avec un amateur de cyclisme ou de jeux de gestion. Chaque inscription confirmée vous rapproche de primes majeures, de la tenue « Le Parrain » et du fedora exclusif du Don.</p>
           </div>
         </div>
 

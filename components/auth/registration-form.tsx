@@ -146,7 +146,7 @@ export function RegistrationForm({
                   Invitation de {referrerName}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[#BFD1C6]">
-                  Votre parrainage sera validé dès la création de votre compte.
+                  Votre parrainage sera validé dès la confirmation de votre inscription, sans didacticiel obligatoire.
                 </p>
               </div>
             </div>

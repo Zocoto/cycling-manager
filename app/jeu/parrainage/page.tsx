@@ -69,7 +69,7 @@ export default async function ReferralPage() {
               Invitez des DS. Gagnez des objets rares.
             </h1>
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6DFD2] sm:text-base">
-              Partagez votre lien personnel. Dès qu’un filleul crée son compte, il compte dans votre progression et rapproche votre équipe d’objets de niveau 6 à 10, de primes de carrière et d’accessoires exclusifs.
+              Partagez votre lien personnel. Dès qu’un filleul confirme son inscription, il compte dans votre progression et rapproche votre équipe d’objets de niveau 6 à 10, de primes de carrière et d’accessoires exclusifs.
             </p>
 
             <ReferralShareControls inviteUrl={overview.inviteUrl} code={overview.code} />
@@ -202,7 +202,7 @@ export default async function ReferralPage() {
             <h2 className="text-2xl font-black">Comment ça marche ?</h2>
             <ol className="mt-5 space-y-4">
               <RuleStep number="1" title="Partagez votre URL" text="Le code personnel contenu dans le lien vous attribue automatiquement le nouveau DS." />
-              <RuleStep number="2" title="Le filleul crée son compte" text="Son parrainage est qualifié immédiatement, sans passage obligatoire par le didacticiel." />
+              <RuleStep number="2" title="Le filleul confirme son inscription" text="Son parrainage est qualifié immédiatement après confirmation, sans passage obligatoire par le didacticiel." />
               <RuleStep number="3" title="Le palier se déclenche" text="Chaque nouveau compte attribué fait progresser instantanément votre cercle de parrainage." />
               <RuleStep number="4" title="Les gains sont versés" text="Chaque palier n’est versé qu’une fois et l’auto-parrainage est impossible." />
             </ol>
