@@ -2,7 +2,10 @@ import {
   REFERRAL_TROPHY_MILESTONES,
   type ReferralTrophyMilestone,
 } from "@/lib/game/referrals";
-import { RACE_PRESTIGE_DEFINITIONS } from "@/lib/game/race-prestige";
+import {
+  RACE_PRESTIGE_DEFINITIONS,
+  type RacePrestigeTrophyVisualVariant,
+} from "@/lib/game/race-prestige";
 import {
   ACHIEVEMENT_TROPHY_DEFINITIONS,
   type AchievementTrophyKey,
@@ -54,7 +57,7 @@ export type CareerTrophy = {
   inscription: string;
   palette: TrophyPalette;
   description?: string | null;
-  trophyImagePath?: string | null;
+  prestigeVisualVariant?: RacePrestigeTrophyVisualVariant | null;
   seasonNames?: string[];
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
@@ -579,7 +582,7 @@ export function getLockedTrophyTargets(
             : "Remporter la course",
           palette: race.palette,
           description: race.trophyDescription,
-          trophyImagePath: race.trophyImagePath,
+          prestigeVisualVariant: race.trophyVisualVariant,
         },
       ];
     },
@@ -668,7 +671,8 @@ export function buildTrophyGallery({
           inscription: win.riderName,
           palette: identity.palette,
           description: prestigeDefinition?.trophyDescription ?? null,
-          trophyImagePath: prestigeDefinition?.trophyImagePath ?? null,
+          prestigeVisualVariant:
+            prestigeDefinition?.trophyVisualVariant ?? null,
         },
       ];
     }
@@ -695,7 +699,8 @@ export function buildTrophyGallery({
           inscription: win.riderName,
           palette: identity.palette,
           description: prestigeDefinition?.trophyDescription ?? null,
-          trophyImagePath: prestigeDefinition?.trophyImagePath ?? null,
+          prestigeVisualVariant:
+            prestigeDefinition?.trophyVisualVariant ?? null,
         },
       ];
     }

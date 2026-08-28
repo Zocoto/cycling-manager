@@ -68,16 +68,22 @@ describe("TrophyGallery", () => {
     expect(markup).not.toContain("Critères à définir ensemble");
     expect(markup).toContain("/jeu/resultats/ruta-de-las-sierras");
     expect(markup).toContain("Registre des graveurs");
-    expect(markup).toContain(
-      'data-prestige-race-trophy="/images/race-trophies/corsa-delle-regioni.webp"',
-    );
-    expect(markup).toContain(
-      'data-prestige-race-trophy="/images/race-trophies/enfer-des-dunes.webp"',
-    );
-    expect(markup).toContain(
-      'data-prestige-race-trophy="/images/race-trophies/couronne-des-ardennes.webp"',
-    );
+    for (const visualVariant of [
+      "regional_rose",
+      "province_wheel",
+      "sierra_peaks",
+      "amber_cobble",
+      "zeeland_lion",
+      "flanders_bell",
+      "ardennes_crown",
+      "lake_chalice",
+    ]) {
+      expect(markup).toContain(
+        `data-prestige-race-trophy="${visualVariant}"`,
+      );
+    }
     expect(markup.match(/data-prestige-race-trophy=/g)).toHaveLength(8);
+    expect(markup).not.toContain("/images/race-trophies/");
   });
 
   it("shows the obtainable trophies in grey without granting them", () => {

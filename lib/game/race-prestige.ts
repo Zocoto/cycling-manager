@@ -3,6 +3,16 @@ export type RacePrestigeKind =
   | "monument_cobbled"
   | "monument_hilly";
 
+export type RacePrestigeTrophyVisualVariant =
+  | "regional_rose"
+  | "province_wheel"
+  | "sierra_peaks"
+  | "amber_cobble"
+  | "zeeland_lion"
+  | "flanders_bell"
+  | "ardennes_crown"
+  | "lake_chalice";
+
 export type RacePrestigeDefinition = {
   slug: string;
   kind: RacePrestigeKind;
@@ -10,7 +20,7 @@ export type RacePrestigeDefinition = {
   detailLabel: string;
   shortLabel: "GT" | "MON";
   trophyTitle: string;
-  trophyImagePath: string;
+  trophyVisualVariant: RacePrestigeTrophyVisualVariant;
   trophyDescription: string;
   palette: {
     primary: string;
@@ -28,7 +38,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Grand Tour",
     shortLabel: "GT",
     trophyTitle: "Trofeo Rosa delle Regioni",
-    trophyImagePath: "/images/race-trophies/corsa-delle-regioni.webp",
+    trophyVisualVariant: "regional_rose",
     trophyDescription:
       "Une rose d’or portée par les routes et les reliefs des régions.",
     palette: {
@@ -45,7 +55,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Grand Tour",
     shortLabel: "GT",
     trophyTitle: "Grand Trophée des Provinces",
-    trophyImagePath: "/images/race-trophies/boucle-des-provinces.webp",
+    trophyVisualVariant: "province_wheel",
     trophyDescription:
       "Une roue d’or dont les reliefs racontent toutes les provinces traversées.",
     palette: {
@@ -62,7 +72,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Grand Tour",
     shortLabel: "GT",
     trophyTitle: "Copa Roja de las Sierras",
-    trophyImagePath: "/images/race-trophies/ruta-de-las-sierras.webp",
+    trophyVisualVariant: "sierra_peaks",
     trophyDescription:
       "Une lame rouge s’élève entre les crêtes de bronze des sierras.",
     palette: {
@@ -79,7 +89,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Monument pavé",
     shortLabel: "MON",
     trophyTitle: "Pavé d’Ambre",
-    trophyImagePath: "/images/race-trophies/enfer-des-dunes.webp",
+    trophyVisualVariant: "amber_cobble",
     trophyDescription:
       "Un pavé d’ambre marqué par la roue et poli par le vent des dunes.",
     palette: {
@@ -96,7 +106,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Monument pavé",
     shortLabel: "MON",
     trophyTitle: "Lion d’Acier",
-    trophyImagePath: "/images/race-trophies/paves-de-zelande.webp",
+    trophyVisualVariant: "zeeland_lion",
     trophyDescription:
       "Un lion d’acier veille sur les pavés battus par la mer du Nord.",
     palette: {
@@ -113,7 +123,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Monument pavé",
     shortLabel: "MON",
     trophyTitle: "Cloche des Flandres",
-    trophyImagePath: "/images/race-trophies/traversee-des-flandres.webp",
+    trophyVisualVariant: "flanders_bell",
     trophyDescription:
       "Une cloche d’argent sonne au-dessus des routes pavées des Flandres.",
     palette: {
@@ -130,7 +140,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Monument vallonné",
     shortLabel: "MON",
     trophyTitle: "Couronne d’Émeraude",
-    trophyImagePath: "/images/race-trophies/couronne-des-ardennes.webp",
+    trophyVisualVariant: "ardennes_crown",
     trophyDescription:
       "Une couronne de bronze et d’émeraude façonnée par les côtes ardennaises.",
     palette: {
@@ -147,7 +157,7 @@ const PRESTIGE_RACES = [
     detailLabel: "Monument vallonné",
     shortLabel: "MON",
     trophyTitle: "Calice des Lacs",
-    trophyImagePath: "/images/race-trophies/classique-des-lacs.webp",
+    trophyVisualVariant: "lake_chalice",
     trophyDescription:
       "Un calice de bronze aux reflets des lacs et des collines environnantes.",
     palette: {

@@ -3,9 +3,9 @@ import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gif
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
 import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
 import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
+import { PrestigeRaceTrophyMark } from "@/components/game/prestige-race-trophy-mark";
 import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
 import Link from "@/components/ui/app-link";
-import Image from "next/image";
 import {
   getLockedTrophyTargets,
   type CareerTrophy,
@@ -329,7 +329,7 @@ function TrophyCard({
       />
       <div
         data-trophy-visual={
-          trophy.trophyImagePath
+          trophy.prestigeVisualVariant
             ? "prestige-race"
             : trophy.medicalVariant ?? trophy.visualVariant ?? "classic"
         }
@@ -464,23 +464,15 @@ function TrophyIllustration({
 }) {
   if (
     (trophy.kind === "grand_tour" || trophy.kind === "monument") &&
-    trophy.trophyImagePath
+    trophy.prestigeVisualVariant
   ) {
     return (
-      <div
-        data-prestige-race-trophy={trophy.trophyImagePath}
-        aria-hidden="true"
-        className="relative h-full w-full"
-      >
-        <Image
-          src={trophy.trophyImagePath}
-          alt=""
-          fill
-          sizes="(max-width: 639px) calc(100vw - 6rem), 12rem"
-          className="object-contain"
-        />
-        <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,transparent_45%,rgba(7,26,23,0.2)_100%)]" />
-      </div>
+      <PrestigeRaceTrophyMark
+        trophyId={trophy.id}
+        variant={trophy.prestigeVisualVariant}
+        palette={trophy.palette}
+        className={epic ? "h-40 w-40" : "h-36 w-36"}
+      />
     );
   }
 
