@@ -74,6 +74,7 @@ type TrainingPageProps = {
     erreur?: string;
     onglet?: string | string[];
     reconnaissance?: string;
+    interruption?: string;
     preparation?: string;
     progression?: string;
     coureur?: string;
@@ -196,6 +197,13 @@ export default async function TrainingPage({
             <Alert tone="success">
               La reconnaissance est programmée. Les coureurs sélectionnés sont
               désormais indisponibles pendant ses deux jours.
+            </Alert>
+          ) : null}
+          {query.interruption ? (
+            <Alert tone="success">
+              L’arrêt de la reconnaissance est enregistré. Les coureurs seront
+              de nouveau disponibles à J{query.effet}. Le coût n’est pas
+              remboursé et aucun bonus de reconnaissance ne sera accordé.
             </Alert>
           ) : null}
           {query.preparation ? (

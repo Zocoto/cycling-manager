@@ -142,6 +142,8 @@ type ReconnaissanceRow = {
   total_price: number | string;
   status: "planned" | "active" | "completed" | "cancelled";
   created_at: string;
+  interruption_requested_at: string | null;
+  interruption_effective_day_number: number | null;
 };
 type ParticipantRow = {
   reconnaissance_id: string;
@@ -208,6 +210,8 @@ export type RaceReconnaissanceMission = {
   price: number;
   preparerName: string | null;
   riderNames: string[];
+  interruptionRequestedAt: string | null;
+  interruptionEffectiveDayNumber: number | null;
 };
 
 export type TeamRaceReconnaissanceOverview = {
@@ -290,10 +294,10 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
     admin
       .from("stage_reconnaissances")
       .select(
-        "id, target_stage_id, preparer_contract_id, preparer_level, bonus_points, start_day_number, end_day_number, total_price, status, created_at",
+        "id, target_stage_id, preparer_contract_id, preparer_level, bonus_points, start_day_number, end_day_number, total_price, status, created_at, interruption_requested_at, interruption_effective_day_number",
       )
       .eq("team_season_id", teamSeason.id)
-      .neq("status", "cancelled")
+      .or("status.neq.cancelled,interruption_requested_at.not.is.null")
       .order("created_at", { ascending: false })
       .returns<ReconnaissanceRow[]>(),
     admin
@@ -717,6 +721,9 @@ export async function getCurrentTeamRaceReconnaissanceOverview(
         .map((riderId) => riderById.get(riderId))
         .filter((rider): rider is RiderRow => Boolean(rider))
         .map((rider) => `${rider.first_name} ${rider.last_name}`),
+      interruptionRequestedAt: mission.interruption_requested_at,
+      interruptionEffectiveDayNumber:
+        mission.interruption_effective_day_number,
     };
   });
 

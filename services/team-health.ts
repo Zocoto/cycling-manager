@@ -97,6 +97,8 @@ type CampRow = {
   price_per_day: number | string;
   total_price: number | string;
   status: "planned" | "active" | "completed" | "cancelled";
+  interruption_requested_at: string | null;
+  interruption_effective_day_number: number | null;
 };
 type ProtocolRow = {
   code: MedicalProtocolCode;
@@ -168,6 +170,8 @@ export type RiderFormCamp = {
   pricePerDay: number;
   totalPrice: number;
   status: CampRow["status"];
+  interruptionRequestedAt: string | null;
+  interruptionEffectiveDayNumber: number | null;
 };
 
 export type TeamHealthRider = {
@@ -357,12 +361,13 @@ export async function getCurrentTeamHealthOverview(
       admin
         .from("rider_form_camps")
         .select(
-          "id, rider_id, camp_type, start_day_number, end_day_number, form_gain_per_day, price_per_day, total_price, status",
+          "id, rider_id, camp_type, start_day_number, end_day_number, form_gain_per_day, price_per_day, total_price, status, interruption_requested_at, interruption_effective_day_number",
         )
         .eq("season_id", season.id)
         .in("rider_id", riderIds)
         .in("status", ["planned", "active"])
         .in("camp_type", ["classic", "premium"])
+        .gte("end_day_number", season.current_day_number ?? 1)
         .order("start_day_number")
         .returns<CampRow[]>(),
     ]);
@@ -548,6 +553,9 @@ export async function getCurrentTeamHealthOverview(
                 pricePerDay: toNumber(camp.price_per_day),
                 totalPrice: toNumber(camp.total_price),
                 status: camp.status,
+                interruptionRequestedAt: camp.interruption_requested_at,
+                interruptionEffectiveDayNumber:
+                  camp.interruption_effective_day_number,
               }
             : null,
         } satisfies TeamHealthRider;

@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { bookRaceReconnaissanceAction } from "@/app/jeu/entrainement/actions";
+import {
+  bookRaceReconnaissanceAction,
+  requestRaceReconnaissanceInterruptionAction,
+} from "@/app/jeu/entrainement/actions";
+import { CampInterruptionSubmitButton } from "@/components/game/camp-interruption-submit-button";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import type { RaceProfileType } from "@/lib/game/race-calendar";
 import {
@@ -569,7 +573,7 @@ export function RaceReconnaissancePlanner({
       {overview.missions.length > 0 ? (
         <div className="border-t border-[#315B3E]/10 px-5 py-6 sm:px-8">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#278B70]">
-            Reconnaissances programmées et terminées
+            Reconnaissances programmées, terminées et interrompues
           </p>
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {overview.missions.map((mission) => (
@@ -584,12 +588,17 @@ export function RaceReconnaissancePlanner({
                     </p>
                     <p className="mt-1 text-xs font-bold text-[#60756E]">
                       J{mission.startDayNumber}–J{mission.endDayNumber} · course
-                      J{mission.targetDayNumber} · bonus +
-                      {formatBonus(mission.bonusPoints)}
+                      J{mission.targetDayNumber} ·{" "}
+                      {mission.interruptionRequestedAt
+                        ? "aucun bonus"
+                        : `bonus +${formatBonus(mission.bonusPoints)}`}
                     </p>
                   </div>
                   <span className="rounded-full bg-[#D7EEE8] px-3 py-1 text-[10px] font-black uppercase text-[#176951]">
-                    {missionStatusLabel(mission.status)}
+                    {missionStatusLabel(
+                      mission.status,
+                      Boolean(mission.interruptionRequestedAt),
+                    )}
                   </span>
                 </div>
                 <p className="mt-3 text-xs font-semibold leading-5 text-[#60756E]">
@@ -598,6 +607,29 @@ export function RaceReconnaissancePlanner({
                     ? ` · ${mission.preparerName}`
                     : " · sans préparateur"}
                 </p>
+                {mission.interruptionEffectiveDayNumber ? (
+                  <p className="mt-3 rounded-xl bg-[#FFF2EF] px-4 py-3 text-xs font-bold leading-5 text-[#8E4137]">
+                    Arrêt demandé : coureurs disponibles à J
+                    {mission.interruptionEffectiveDayNumber}. Le coût reste payé
+                    et aucun bonus ne sera accordé pour cette reconnaissance.
+                  </p>
+                ) : mission.status === "active" &&
+                  mission.endDayNumber > overview.currentDayNumber ? (
+                  <form
+                    action={requestRaceReconnaissanceInterruptionAction}
+                    className="mt-4"
+                  >
+                    <input
+                      type="hidden"
+                      name="reconnaissanceId"
+                      value={mission.id}
+                    />
+                    <CampInterruptionSubmitButton
+                      kind="reconnaissance"
+                      effectiveDayNumber={overview.currentDayNumber + 1}
+                    />
+                  </form>
+                ) : null}
               </article>
             ))}
           </div>
@@ -647,7 +679,9 @@ function formatShortDate(value: string) {
 
 function missionStatusLabel(
   status: TeamRaceReconnaissanceOverview["missions"][number]["status"],
+  interrupted = false,
 ) {
+  if (interrupted) return "Interrompue";
   switch (status) {
     case "planned":
       return "Planifiée";

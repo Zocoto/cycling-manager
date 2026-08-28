@@ -87,6 +87,30 @@ export async function bookFormCampsAction(formData: FormData) {
   );
 }
 
+export async function requestFormCampInterruptionAction(formData: FormData) {
+  const campId = readValue(formData, "campId");
+  if (!isUuid(campId)) {
+    redirectWithError("forme", "Le stage à interrompre est invalide.");
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { data, error } = await supabase.rpc(
+    "request_current_team_form_camp_interruption",
+    { p_camp_id: campId },
+  );
+
+  if (error) {
+    redirectWithError("forme", getHealthCenterErrorMessage(error.message));
+  }
+
+  const effectiveDayNumber = Number(data);
+  revalidateHealthPaths();
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  redirect(
+    `/jeu/centre-de-soin?onglet=forme&interruption=confirmee&effet=${effectiveDayNumber}`,
+  );
+}
+
 export async function assignPhysiotherapistAction(formData: FormData) {
   const staffContractId = readValue(formData, "staffContractId");
   const riderIds = formData

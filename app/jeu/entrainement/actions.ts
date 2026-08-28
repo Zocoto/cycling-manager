@@ -91,6 +91,33 @@ export async function bookRaceReconnaissanceAction(formData: FormData) {
   redirect("/jeu/entrainement?onglet=reconnaissance&reconnaissance=confirmee");
 }
 
+export async function requestRaceReconnaissanceInterruptionAction(
+  formData: FormData,
+) {
+  const reconnaissanceId = readValue(formData, "reconnaissanceId");
+  if (!isUuid(reconnaissanceId)) {
+    redirectWithRecognitionError(
+      "La reconnaissance à interrompre est invalide.",
+    );
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { data, error } = await supabase.rpc(
+    "request_current_team_reconnaissance_interruption",
+    { p_reconnaissance_id: reconnaissanceId },
+  );
+  if (error) redirectWithRecognitionError(error.message);
+
+  const effectiveDayNumber = Number(data);
+  revalidateTrainingPaths();
+  revalidatePath("/jeu/calendrier");
+  revalidatePath("/jeu/inscriptions");
+  revalidatePath("/jeu/preparation-course");
+  redirect(
+    `/jeu/entrainement?onglet=reconnaissance&interruption=confirmee&effet=${effectiveDayNumber}`,
+  );
+}
+
 export async function startRiderPerformancePreparationAction(
   formData: FormData,
 ) {
