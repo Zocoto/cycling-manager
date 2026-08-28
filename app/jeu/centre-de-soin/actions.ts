@@ -111,6 +111,27 @@ export async function requestFormCampInterruptionAction(formData: FormData) {
   );
 }
 
+export async function cancelPlannedFormCampAction(formData: FormData) {
+  const campId = readValue(formData, "campId");
+  if (!isUuid(campId)) {
+    redirectWithError("forme", "Le stage à annuler est invalide.");
+  }
+
+  const supabase = await requireAuthenticatedClient();
+  const { error } = await supabase.rpc(
+    "cancel_current_team_planned_form_camp",
+    { p_camp_id: campId },
+  );
+
+  if (error) {
+    redirectWithError("forme", getHealthCenterErrorMessage(error.message));
+  }
+
+  revalidateHealthPaths();
+  revalidatePath("/jeu/coureurs/[identifiant]", "page");
+  redirect("/jeu/centre-de-soin?onglet=forme&annulation=confirmee");
+}
+
 export async function assignPhysiotherapistAction(formData: FormData) {
   const staffContractId = readValue(formData, "staffContractId");
   const riderIds = formData

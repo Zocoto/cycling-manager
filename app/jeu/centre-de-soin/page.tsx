@@ -3,7 +3,10 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
-import { CampInterruptionSubmitButton } from "@/components/game/camp-interruption-submit-button";
+import {
+  CampInterruptionSubmitButton,
+  PlannedCampCancellationSubmitButton,
+} from "@/components/game/camp-interruption-submit-button";
 import { FormCampPlanner } from "@/components/game/form-camp-planner";
 import { GameHeader } from "@/components/game/game-header";
 import {
@@ -55,6 +58,7 @@ import {
 } from "@/services/team-health";
 import {
   applyInjuryProtocolAction,
+  cancelPlannedFormCampAction,
   requestFormCampInterruptionAction,
 } from "./actions";
 
@@ -107,6 +111,7 @@ type HealthCenterPageProps = {
     stage?: string | string[];
     affectation?: string | string[];
     nutrition?: string | string[];
+    annulation?: string | string[];
     interruption?: string | string[];
     effet?: string | string[];
     erreur?: string | string[];
@@ -251,6 +256,12 @@ export default async function HealthCenterPage({
             L’arrêt est enregistré. Le coureur sera de nouveau disponible à J
             {readQuery(query.effet)}. Aucun remboursement n’est effectué et les
             gains de forme des journées déjà réalisées restent acquis.
+          </SuccessMessage>
+        ) : null}
+        {readQuery(query.annulation) === "confirmee" ? (
+          <SuccessMessage>
+            Le stage programmé est annulé. Le coureur reste disponible et aucun
+            remboursement n’est effectué.
           </SuccessMessage>
         ) : null}
         {readQuery(query.affectation) === "confirmee" ? (
@@ -581,10 +592,9 @@ function FormPanel({
     .filter((member) => member.role === "doctor")
     .reduce((total, doctor) => total + doctor.level, 0);
   const doctorBoostPct = getDoctorFormCampBoostPct(totalDoctorLevel);
-  const activeCampRiders = overview.riders.flatMap((rider) => {
+  const managedCampRiders = overview.riders.flatMap((rider) => {
     const camp = rider.formCamp;
     return camp &&
-      camp.startDay <= overview.currentDayNumber &&
       camp.endDay >= overview.currentDayNumber
       ? [{ rider, camp }]
       : [];
@@ -617,26 +627,28 @@ function FormPanel({
         </p>
       </div>
 
-      {activeCampRiders.length > 0 ? (
+      {managedCampRiders.length > 0 ? (
         <section className="mt-5 rounded-[2rem] border border-[#315B3E]/12 bg-white p-5 shadow-[0_14px_40px_rgba(19,60,46,0.06)] sm:p-6">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
               Stages en cours
             </p>
             <h3 className="mt-1 text-xl font-black text-[#183F37]">
-              Interrompre une remise en forme
+              Gérer les stages programmés et en cours
             </h3>
             <p className="mt-2 max-w-3xl text-xs font-semibold leading-5 text-[#60756E]">
-              L’arrêt prend effet le lendemain de la demande. Le prix payé reste
-              intégralement acquis au prestataire ; seuls les gains des journées
-              effectivement réalisées sont conservés.
+              Avant son départ, un stage peut être annulé immédiatement. Une fois
+              commencé, son arrêt prend effet le lendemain. Dans les deux cas, le
+              prix payé reste acquis au prestataire.
             </p>
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {activeCampRiders.map(({ rider, camp }) => {
+            {managedCampRiders.map(({ rider, camp }) => {
               const effectiveDayNumber = overview.currentDayNumber + 1;
+              const isPlanned = camp.startDay > overview.currentDayNumber;
               const canInterrupt =
+                !isPlanned &&
                 camp.endDay > overview.currentDayNumber &&
                 !camp.interruptionEffectiveDayNumber;
 
@@ -659,6 +671,10 @@ function FormPanel({
                       <span className="rounded-full bg-[#FFF0CB] px-3 py-1 text-[10px] font-black uppercase text-[#795C00]">
                         Arrêt prévu J{camp.interruptionEffectiveDayNumber}
                       </span>
+                    ) : isPlanned ? (
+                      <span className="rounded-full bg-[#DDF1EA] px-3 py-1 text-[10px] font-black uppercase text-[#176951]">
+                        Programmé J{camp.startDay}
+                      </span>
                     ) : null}
                   </div>
 
@@ -668,6 +684,17 @@ function FormPanel({
                       {camp.interruptionEffectiveDayNumber}. Les gains déjà
                       obtenus restent acquis, sans remboursement du stage.
                     </p>
+                  ) : isPlanned ? (
+                    <form
+                      action={cancelPlannedFormCampAction}
+                      className="mt-4"
+                    >
+                      <input type="hidden" name="campId" value={camp.id} />
+                      <PlannedCampCancellationSubmitButton
+                        startDayNumber={camp.startDay}
+                        endDayNumber={camp.endDay}
+                      />
+                    </form>
                   ) : canInterrupt ? (
                     <form
                       action={requestFormCampInterruptionAction}

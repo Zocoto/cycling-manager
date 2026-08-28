@@ -30,3 +30,29 @@ export function CampInterruptionSubmitButton({
     </button>
   );
 }
+
+export function PlannedCampCancellationSubmitButton({
+  startDayNumber,
+  endDayNumber,
+}: {
+  startDayNumber: number;
+  endDayNumber: number;
+}) {
+  const { pending } = useFormStatus();
+  const confirmation = `Annuler ce stage prévu de J${startDayNumber} à J${endDayNumber} ? Le coureur restera disponible. Le coût ne sera pas remboursé.`;
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      onClick={(event) => {
+        if (!window.confirm(confirmation)) {
+          event.preventDefault();
+        }
+      }}
+      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#C75B4B]/25 bg-[#FFF2EF] px-4 py-2 text-xs font-black text-[#9B4035] transition hover:border-[#C75B4B]/45 hover:bg-[#FFE7E1] disabled:cursor-wait disabled:opacity-55"
+    >
+      {pending ? "Annulation…" : "Annuler le stage"}
+    </button>
+  );
+}
