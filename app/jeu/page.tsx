@@ -745,7 +745,7 @@ export default async function GamePage() {
               icon="transfer"
               title="Bureau des transferts"
               status="Marché ouvert"
-              description="Enchérissez sur les talents du jour, négociez avec les autres DS et signez les agents libres."
+              description="Enchérissez sur les talents du jour et recherchez des coureurs libres ou sous contrat."
             />
 
             <ManagementModuleCard

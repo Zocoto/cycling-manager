@@ -1,7 +1,7 @@
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const TRANSFER_TUTORIAL_KEY = "transfers";
-export const TRANSFER_TUTORIAL_VERSION = 1;
+export const TRANSFER_TUTORIAL_VERSION = 2;
 export const TRANSFER_DAILY_TUTORIAL_ROUTE =
   "/jeu/transferts?onglet=quotidiennes";
 export const TRANSFER_DIRECTORS_TUTORIAL_ROUTE =
@@ -15,7 +15,7 @@ export const transferTutorialDefinition = {
   type: "contextual",
   title: "Maîtriser le Bureau des transferts",
   description:
-    "Découvrez les enchères quotidiennes, les ventes entre Directeurs Sportifs et la signature des agents libres.",
+    "Découvrez les enchères quotidiennes, les ventes entre Directeurs Sportifs et la recherche de coureurs libres ou sous contrat.",
   autoStart: false,
   replayable: true,
   steps: [
@@ -36,7 +36,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-tabs",
       title: "Choisissez le marché adapté à votre besoin",
       content:
-        "Les enchères quotidiennes proposent de nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant au moins 24 heures. Les agents libres peuvent être engagés immédiatement, sans indemnité de transfert.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
+        "Les enchères quotidiennes proposent de nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant au moins 24 heures. La recherche de coureurs parcourt les profils libres ou sous contrat.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
       placement: "bottom",
       highlightPadding: 6,
     },
@@ -84,9 +84,9 @@ export const transferTutorialDefinition = {
       key: "free-agents-overview",
       route: TRANSFER_FREE_AGENTS_TUTORIAL_ROUTE,
       targetId: "transfer-free-agents-overview",
-      title: "Signez sans indemnité de transfert",
+      title: "Cherchez dans toute la base",
       content:
-        "Les coureurs sans équipe sont disponibles immédiatement : aucune enchère ni indemnité n’est nécessaire. Leur salaire est connu et leur contrat couvre la saison actuelle ainsi que la suivante.\n\nLeur niveau reste toutefois soumis à la précision du rapport de scouting. Une signature occupe immédiatement une place dans l’effectif et engage le salaire annoncé.",
+        "Le filtre Contrat permet d’alterner entre les coureurs libres, disponibles immédiatement sans indemnité, et les coureurs déjà engagés par une équipe.\n\nPour un coureur sous contrat, ouvrez sa fiche afin de transmettre une offre directe à son Directeur Sportif. Son niveau reste soumis à la précision du rapport de scouting.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -96,7 +96,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-free-agent-filters",
       title: "Réduisez la liste aux profils utiles",
       content:
-        "Combinez le profil, la nationalité, l’âge et une statistique estimée minimale pour cibler votre recherche. Le filtre de statistique peut porter sur la moyenne générale ou sur une qualité précise du coureur.\n\nComme les rapports restent imparfaits, utilisez ces seuils pour présélectionner des candidats, puis comparez leur fiche et leur coût avant de signer.",
+        "Combinez le contrat, le profil, la nationalité, l’âge et une statistique minimale pour cibler votre recherche. Le filtre de statistique peut porter sur la moyenne générale ou sur une qualité précise du coureur.\n\nLa recherche et la pagination sont traitées côté serveur : même une grande base de coureurs reste rapide à parcourir.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -104,9 +104,9 @@ export const transferTutorialDefinition = {
       key: "free-agent-signing",
       route: TRANSFER_FREE_AGENTS_TUTORIAL_ROUTE,
       targetId: "transfer-free-agent-listings",
-      title: "Vérifiez l’effectif avant la signature",
+      title: "Signez ou ouvrez une négociation",
       content:
-        "Chaque fiche récapitule le rapport disponible et la demande salariale. Le bouton de signature est désactivé lorsque votre effectif est complet ; libérez alors une place avant de recruter.\n\nLa signature est immédiate : contrairement à une enchère, il n’existe ni délai de réflexion ni arbitrage à la clôture.",
+        "Chaque fiche récapitule le rapport disponible et le salaire attendu. Un coureur libre peut signer immédiatement ; pour un coureur sous contrat, ouvrez sa fiche puis proposez une indemnité au DS vendeur.\n\nLe recrutement reste bloqué lorsque votre effectif est complet. Les contrôles de budget et d’éligibilité sont appliqués avant chaque offre.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -115,7 +115,7 @@ export const transferTutorialDefinition = {
       route: TRANSFER_FREE_AGENTS_TUTORIAL_ROUTE,
       title: "Le Bureau des transferts est maîtrisé",
       content:
-        "Vous savez maintenant lire votre capacité financière, enchérir sur la sélection quotidienne, vendre ou acheter un coureur auprès d’un autre Directeur Sportif, puis filtrer et signer un agent libre.\n\nCliquez sur « Terminer » pour valider ce didacticiel. Il apparaîtra comme réalisé dans le Centre des didacticiels et restera accessible depuis le point d’interrogation du Bureau des transferts.",
+        "Vous savez maintenant lire votre capacité financière, enchérir sur la sélection quotidienne, vendre ou acheter un coureur auprès d’un autre Directeur Sportif, puis rechercher un profil libre ou sous contrat.\n\nCliquez sur « Terminer » pour valider ce didacticiel. Il apparaîtra comme réalisé dans le Centre des didacticiels et restera accessible depuis le point d’interrogation du Bureau des transferts.",
       placement: "center",
     },
   ],

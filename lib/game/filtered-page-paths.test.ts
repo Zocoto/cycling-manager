@@ -15,16 +15,18 @@ import {
 describe("filtered page return paths", () => {
   it("conserve tous les filtres valides du marché des transferts", () => {
     const path = buildTransferMarketReturnPath("libres", {
+      contractStatus: "contracted",
       profile: "Grimpeur",
       country: "fr",
       minimumAge: 20,
       maximumAge: 27,
       rating: "mountain",
       minimumRating: 70,
+      page: 3,
     });
 
     expect(path).toBe(
-      "/jeu/transferts?onglet=libres&profil=Grimpeur&pays=FR&ageMin=20&ageMax=27&stat=mountain&statMin=70",
+      "/jeu/transferts?onglet=libres&contrat=contracted&profil=Grimpeur&pays=FR&ageMin=20&ageMax=27&stat=mountain&statMin=70&page=3",
     );
     expect(sanitizeTransferMarketReturnPath(`${path}&succes=ancien`)).toBe(path);
   });

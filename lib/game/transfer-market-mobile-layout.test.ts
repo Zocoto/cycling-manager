@@ -9,12 +9,12 @@ const transferPage = readFileSync(
 );
 
 describe("transfer market mobile layout", () => {
-  it("keeps free-agent cards inside the single mobile grid column", () => {
+  it("keeps rider-search cards inside the single mobile grid column", () => {
     expect(transferPage).toMatch(
-      /data-tutorial-id="transfer-free-agent-listings"[\s\S]*?mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3/,
+      /data-tutorial-id="transfer-free-agent-listings"[\s\S]*?mt-3 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3/,
     );
     expect(transferPage).toMatch(
-      /function FreeAgentCard[\s\S]*?<article className="min-w-0 max-w-full overflow-hidden/,
+      /function RiderSearchCard[\s\S]*?<article className="min-w-0 max-w-full overflow-hidden/,
     );
   });
 });

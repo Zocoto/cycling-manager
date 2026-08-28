@@ -20,6 +20,7 @@ import {
 } from "@/lib/game/staff";
 import {
   isTransferRiderProfileFilter,
+  type TransferContractFilter,
   type TransferRiderProfileFilter,
 } from "@/lib/game/transfer-market";
 
@@ -32,12 +33,14 @@ export type TransferMarketTab =
   | "offres";
 
 export type TransferMarketReturnFilters = {
+  contractStatus?: TransferContractFilter;
   profile?: TransferRiderProfileFilter;
   country?: string;
   minimumAge?: number;
   maximumAge?: number;
   rating?: RiderRatingKey | "overall";
   minimumRating?: number;
+  page?: number;
 };
 
 export function buildTransferMarketReturnPath(
@@ -47,12 +50,14 @@ export function buildTransferMarketReturnPath(
   const params = new URLSearchParams({ onglet: tab });
 
   if (tab === "libres") {
+    setOptionalParam(params, "contrat", normalizeTransferContract(filters.contractStatus));
     setOptionalParam(params, "profil", filters.profile);
     setOptionalParam(params, "pays", normalizeCountryCode(filters.country));
     setOptionalNumber(params, "ageMin", filters.minimumAge, 15, 60);
     setOptionalNumber(params, "ageMax", filters.maximumAge, 15, 60);
     setOptionalParam(params, "stat", normalizeRating(filters.rating));
     setOptionalNumber(params, "statMin", filters.minimumRating, 0, 100);
+    setOptionalNumber(params, "page", filters.page, 2, 100);
   }
 
   return `/jeu/transferts?${params.toString()}`;
@@ -63,12 +68,14 @@ export function sanitizeTransferMarketReturnPath(value: string) {
   if (!url) return buildTransferMarketReturnPath("quotidiennes");
 
   return buildTransferMarketReturnPath(readTransferTab(url.searchParams.get("onglet")), {
+    contractStatus: normalizeTransferContract(url.searchParams.get("contrat")),
     profile: readTransferProfile(url.searchParams.get("profil")),
     country: normalizeCountryCode(url.searchParams.get("pays")),
     minimumAge: readBoundedNumber(url.searchParams.get("ageMin"), 15, 60),
     maximumAge: readBoundedNumber(url.searchParams.get("ageMax"), 15, 60),
     rating: normalizeRating(url.searchParams.get("stat")),
     minimumRating: readBoundedNumber(url.searchParams.get("statMin"), 0, 100),
+    page: readBoundedNumber(url.searchParams.get("page"), 2, 100),
   });
 }
 
@@ -206,6 +213,12 @@ function readTransferTab(value: string | null): TransferMarketTab {
 
 function readTransferProfile(value: string | null) {
   return value && isTransferRiderProfileFilter(value) ? value : undefined;
+}
+
+function normalizeTransferContract(
+  value: string | null | undefined,
+): TransferContractFilter | undefined {
+  return value === "free" || value === "contracted" ? value : undefined;
 }
 
 function normalizeRating(value: string | null | undefined) {

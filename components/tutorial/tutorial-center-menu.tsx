@@ -494,7 +494,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
               />
               <TutorialEntry
                 title={transferCopy?.title ?? "Maîtriser le Bureau des transferts"}
-                description={transferCopy?.description ?? "Enchères quotidiennes, ventes entre DS, agents libres, scouting, budget et règles de signature."}
+                description={transferCopy?.description ?? "Enchères quotidiennes, ventes entre DS, recherche de coureurs, scouting, budget et règles de signature."}
                 progress={transferProgress}
                 statusLabel={transferPresentation.statusLabel}
                 actionLabel={transferPresentation.actionLabel}

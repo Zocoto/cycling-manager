@@ -12,7 +12,7 @@ import {
   calculateMinimumNextBid,
   calculateWeeklySalary,
   DAILY_TRANSFER_RIDER_COUNT,
-  matchesTransferRiderProfile,
+  type TransferContractFilter,
   type TransferRiderProfileFilter,
 } from "@/lib/game/transfer-market";
 import {
@@ -36,14 +36,14 @@ import {
 import {
   createExactTransferScoutingReport,
   createStandardTransferScoutingReport,
-  getScoutedNumericSortValue,
-  scoutedValueCouldMeetMinimum,
   type TransferScoutingReport,
 } from "@/lib/game/transfer-scouting";
 
 type SupabaseServerClient = Awaited<
   ReturnType<typeof createSupabaseServerClient>
 >;
+
+const RIDER_SEARCH_PAGE_SIZE = 48;
 
 type DirectorRow = { id: string };
 type AssignmentRow = { team_id: string };
@@ -149,6 +149,12 @@ type SalaryQuoteRow = {
   rider_id: string;
   salary_per_season: number | string;
 };
+type RiderSearchRow = {
+  rider_id: string;
+  team_id: string | null;
+  team_name: string | null;
+  total_count: number | string;
+};
 
 export type TransferMarketRider = {
   id: string;
@@ -162,6 +168,12 @@ export type TransferMarketRider = {
   profileLabel: RiderSportingProfile;
   salaryPerSeason: number;
   scoutingReport: TransferScoutingReport;
+};
+
+export type TransferRiderSearchResult = TransferMarketRider & {
+  contractStatus: TransferContractFilter;
+  teamId: string | null;
+  teamName: string | null;
 };
 
 export type TransferRosterRider = {
@@ -217,12 +229,14 @@ type LoadedMarketRider = TransferRosterRider & {
 };
 
 export type TransferMarketFilters = {
+  contractStatus?: TransferContractFilter;
   profile?: TransferRiderProfileFilter;
   country?: string;
   minimumAge?: number;
   maximumAge?: number;
   rating?: keyof RiderRatings | "overall";
   minimumRating?: number;
+  page?: number;
 };
 
 export type TransferMarketOverview = {
@@ -249,7 +263,10 @@ export type TransferMarketOverview = {
   }>;
   dailyListings: TransferMarketListing[];
   directorListings: TransferMarketListing[];
-  freeAgents: TransferMarketRider[];
+  riderSearchResults: TransferRiderSearchResult[];
+  riderSearchTotal: number;
+  riderSearchPage: number;
+  riderSearchPageSize: number;
   countries: Array<{ name: string; code: string }>;
   roster: TransferRosterCandidate[];
   directOffers: DirectTransferOffer[];
@@ -270,7 +287,7 @@ export type DirectTransferOffer = {
 
 export type TransferMarketOverviewOptions = {
   includeDirectOffers?: boolean;
-  includeFreeAgents?: boolean;
+  includeRiderSearch?: boolean;
   includeRoster?: boolean;
 };
 
@@ -316,7 +333,7 @@ export async function getTransferMarketOverview(
     contractsResult,
     transactionsResult,
     countriesResult,
-    freeAgentResult,
+    riderSearchResult,
     seasonYears,
     dataRoomResult,
     pendingDirectOffersResult,
@@ -353,14 +370,24 @@ export async function getTransferMarketOverview(
       .eq("is_active", true)
       .order("name")
       .returns<CountryRow[]>(),
-    options.includeFreeAgents
+    options.includeRiderSearch
       ? admin
-          .from("riders")
-          .select("id")
-          .eq("status", "free_agent")
-          .limit(500)
-          .returns<Array<{ id: string }>>()
-      : Promise.resolve({ data: [] as Array<{ id: string }>, error: null }),
+          .rpc("search_transfer_riders", {
+            p_season_id: context.season.id,
+            p_contract_status: filters.contractStatus ?? "free",
+            p_country_code: filters.country || null,
+            p_minimum_age: filters.minimumAge ?? null,
+            p_maximum_age: filters.maximumAge ?? null,
+            p_rating: filters.rating ?? "overall",
+            p_minimum_rating: filters.minimumRating ?? null,
+            p_profile: filters.profile ?? null,
+            p_team_id: context.teamSeason.team_id,
+            p_limit: RIDER_SEARCH_PAGE_SIZE,
+            p_offset:
+              (Math.max(1, filters.page ?? 1) - 1) * RIDER_SEARCH_PAGE_SIZE,
+          })
+          .returns<RiderSearchRow[]>()
+      : Promise.resolve({ data: [] as RiderSearchRow[], error: null }),
     options.includeRoster
       ? loadSeasonYears(admin)
       : Promise.resolve(new Map<string, number>()),
@@ -408,7 +435,7 @@ export async function getTransferMarketOverview(
   assertQuery(contractsResult.error, "les contrats de l’effectif");
   assertQuery(transactionsResult.error, "le budget projeté");
   assertQuery(countriesResult.error, "les nationalités");
-  assertQuery(freeAgentResult.error, "les agents libres");
+  assertQuery(riderSearchResult.error, "la recherche de coureurs");
   assertQuery(dataRoomResult.error, "la Data Room de recrutement");
   assertQuery(pendingDirectOffersResult.error, "les offres directes réservées");
   assertQuery(receivedDirectOffersResult.error, "les offres directes reçues");
@@ -428,8 +455,10 @@ export async function getTransferMarketOverview(
   ).size;
   const rosterIsFull = isTeamRosterAtCapacity(rosterSize);
 
-  const freeAgentRows = freeAgentResult.data ?? [];
-  (freeAgentRows ?? []).forEach((rider) => riderIds.add(rider.id));
+  const riderSearchRows = Array.isArray(riderSearchResult.data)
+    ? (riderSearchResult.data as RiderSearchRow[])
+    : [];
+  riderSearchRows.forEach((rider) => riderIds.add(rider.rider_id));
   const directOffers = receivedDirectOffersResult.data ?? [];
   directOffers.forEach((offer) => riderIds.add(offer.rider_id));
 
@@ -527,26 +556,25 @@ export async function getTransferMarketOverview(
       .filter((listing) => listing.status === "open")
       .map((listing) => listing.rider_id),
   );
-  const freeAgentIds = new Set(freeAgentRows.map((row) => row.id));
-  const freeAgents = applyFreeAgentFilters(
-    riders
-      .filter(
-        (rider) =>
-          freeAgentIds.has(rider.id) && !openListingRiderIds.has(rider.id),
-      )
-      .map((rider) =>
-        toTransferMarketRider({
-          rider,
-          seasonId: context.season.id,
-          salaryPerSeason:
-            currentSalaryQuotes.get(rider.id) ??
-            calculateSalaryApproximation(rider.overall),
-          dataRoomLevel,
-          revealExactValues: false,
-        }),
-      ),
-    filters,
-  );
+  const riderSearchResults = riderSearchRows.flatMap((searchRow) => {
+    const rider = riderById.get(searchRow.rider_id);
+    if (!rider) return [];
+
+    return [{
+      ...toTransferMarketRider({
+        rider,
+        seasonId: context.season.id,
+        salaryPerSeason:
+          currentSalaryQuotes.get(rider.id) ??
+          calculateSalaryApproximation(rider.overall),
+        dataRoomLevel,
+        revealExactValues: false,
+      }),
+      contractStatus: filters.contractStatus ?? "free",
+      teamId: searchRow.team_id,
+      teamName: searchRow.team_name,
+    } satisfies TransferRiderSearchResult];
+  });
   const pendingTotal = (transactionsResult.data ?? []).reduce(
     (total, transaction) => total + toNumber(transaction.amount),
     0,
@@ -611,7 +639,10 @@ export async function getTransferMarketOverview(
     rosterSize,
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
     rosterIsFull,
-    freeAgents,
+    riderSearchResults,
+    riderSearchTotal: toNumber(riderSearchRows[0]?.total_count),
+    riderSearchPage: Math.max(1, filters.page ?? 1),
+    riderSearchPageSize: RIDER_SEARCH_PAGE_SIZE,
     countries: (countriesResult.data ?? []).map((country) => ({
       name: country.name,
       code: country.iso_alpha2,
@@ -1198,41 +1229,6 @@ function groupBids(bids: BidRow[]) {
     );
   }
   return groups;
-}
-
-function applyFreeAgentFilters(
-  riders: TransferMarketRider[],
-  filters: TransferMarketFilters,
-) {
-  return riders
-    .filter((rider) =>
-      matchesTransferRiderProfile(rider.profileLabel, filters.profile),
-    )
-    .filter(
-      (rider) => !filters.country || rider.countryCode === filters.country,
-    )
-    .filter(
-      (rider) =>
-        filters.minimumAge === undefined || rider.age >= filters.minimumAge,
-    )
-    .filter(
-      (rider) =>
-        filters.maximumAge === undefined || rider.age <= filters.maximumAge,
-    )
-    .filter((rider) => {
-      if (!filters.rating || filters.minimumRating === undefined) return true;
-      const scoutedValue =
-        filters.rating === "overall"
-          ? rider.scoutingReport.overall
-          : rider.scoutingReport.ratings[filters.rating];
-      return scoutedValueCouldMeetMinimum(scoutedValue, filters.minimumRating);
-    })
-    .sort(
-      (left, right) =>
-        getScoutedNumericSortValue(right.scoutingReport.overall) -
-          getScoutedNumericSortValue(left.scoutingReport.overall) ||
-        left.lastName.localeCompare(right.lastName, "fr"),
-    );
 }
 
 function toTransferMarketRider({

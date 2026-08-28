@@ -205,7 +205,7 @@ const pageDirectory = [
     group: "Développement",
     pages: [
       ["Staff", "/jeu/staff", "Marché de l’emploi et membres sous contrat."],
-      ["Transferts", "/jeu/transferts", "Enchères quotidiennes, ventes des DS et agents libres."],
+      ["Transferts", "/jeu/transferts", "Enchères quotidiennes, ventes des DS et recherche de coureurs."],
       ["Matériel", "/jeu/materiel", "Catalogue commercial et achats d’équipement."],
       ["Inventaire", "/jeu/inventaire", "Objets, consommables et matériel disponible."],
       ["Sponsoring", "/jeu/sponsoring", "Offres, contrat principal, budget et maillot."],
@@ -713,7 +713,7 @@ function TeamManagementSection() {
           bullets={[
             "Enchères quotidiennes, de 9 h à 18 h",
             "Ventes entre DS pendant 24 heures",
-            "Agents libres sans indemnité de transfert",
+            "Recherche de coureurs libres ou sous contrat",
             "Contrats couvrant la saison actuelle et la suivante",
             "Un nouveau recruté ne peut pas être revendu la même saison",
           ]}

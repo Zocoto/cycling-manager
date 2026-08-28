@@ -10,6 +10,8 @@ export const DAILY_AUCTION_CLOSE_HOUR = 18;
 export const DIRECTOR_AUCTION_DURATION_HOURS = 24;
 export const AMATEUR_SALARY_THRESHOLD = 60;
 
+export type TransferContractFilter = "free" | "contracted";
+
 export const TRANSFER_RIDER_PROFILE_FILTERS = [
   "Grimpeur",
   "Puncheur",
