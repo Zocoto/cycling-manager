@@ -3,25 +3,19 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const migration = readFileSync(
-  join(
-    process.cwd(),
-    "supabase/migrations/20260829143000_add_free_agent_detection_teams.sql",
-  ),
-  "utf8",
+function readSource(...parts: string[]) {
+  return readFileSync(join(process.cwd(), ...parts), "utf8").replaceAll(
+    "\r\n",
+    "\n",
+  );
+}
+
+const migration = readSource(
+  "supabase/migrations/20260829143000_add_free_agent_detection_teams.sql",
 );
-const maintenanceService = readFileSync(
-  join(process.cwd(), "services/game-state-settlement.ts"),
-  "utf8",
-);
-const resultService = readFileSync(
-  join(process.cwd(), "services/race-results.ts"),
-  "utf8",
-);
-const newsService = readFileSync(
-  join(process.cwd(), "services/public-game-news.ts"),
-  "utf8",
-);
+const maintenanceService = readSource("services/game-state-settlement.ts");
+const resultService = readSource("services/race-results.ts");
+const newsService = readSource("services/public-game-news.ts");
 
 describe("free-agent detection teams", () => {
   it("fills only eligible standard races up to five teams", () => {
@@ -36,6 +30,10 @@ describe("free-agent detection teams", () => {
     expect(migration).toContain("v_edition.maximum_roster_size");
     expect(migration).toContain("v_edition.minimum_roster_size");
     expect(migration).toContain("Distribution en serpentin");
+    expect(migration).toContain("team_country_iso_alpha2 text");
+    expect(migration).toContain(
+      "coalesce(team_country.iso_alpha2, race_country.iso_alpha2)",
+    );
   });
 
   it("selects available riders by geography and race profile", () => {
