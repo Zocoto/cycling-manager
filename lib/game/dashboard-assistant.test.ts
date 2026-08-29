@@ -6,6 +6,10 @@ import {
   getDashboardRaceRosterAlerts,
   type DashboardAssistantSnapshot,
 } from "@/lib/game/dashboard-assistant";
+import type {
+  RaceCalendarEdition,
+  SeasonRaceCalendar,
+} from "@/lib/game/race-calendar";
 
 const snapshot: DashboardAssistantSnapshot = {
   gameDate: "2026-08-28",
@@ -42,11 +46,13 @@ describe("dashboard DS assistant", () => {
       raceRosterAlerts: [
         {
           id: "race-roster-alert:tour-test",
+          raceName: "Tour test",
           metric: "5/7",
           title: "Start-list à corriger · Tour test",
           detail: "2 coureurs manquent avant le départ à J18.",
           href: "/jeu/courses/tour-test#inscription",
           dayNumber: 18,
+          prestigeRank: 2,
         },
       ],
       raceRosterAlertCount: 1,
@@ -55,7 +61,7 @@ describe("dashboard DS assistant", () => {
     });
 
     expect(groups.alerts.map((line) => line.id)).toEqual([
-      "race-roster-alert:tour-test",
+      "race-roster-alerts",
       "untreated-injuries",
       "pending-selections",
       "pending-direct-offers",
@@ -68,7 +74,8 @@ describe("dashboard DS assistant", () => {
     expect(groups.alerts.every((line) => line.href)).toBe(true);
     expect(groups.alerts[0]).toEqual(
       expect.objectContaining({
-        title: "Start-list à corriger · Tour test",
+        title: "start-list à corriger",
+        detail: expect.stringContaining("Tour test"),
         href: "/jeu/courses/tour-test#inscription",
       }),
     );
@@ -120,65 +127,141 @@ describe("dashboard DS assistant", () => {
     );
   });
 
-  it("creates one direct registration alert per incomplete start-list", () => {
-    const alerts = getDashboardRaceRosterAlerts({
-      seasonId: "season-1",
-      seasonName: "Saison 2",
-      gameYear: 2,
-      startsOn: "2026-08-01",
-      endsOn: "2026-08-28",
-      currentDayNumber: 15,
-      days: [],
-      events: [],
-      editions: [
-        {
-          id: "race-1",
-          raceId: "race",
-          slug: "boucle-test",
-          name: "Boucle test",
-          shortName: null,
-          countryName: "France",
-          countryCode: "FR",
-          categoryCode: "regional",
-          categoryName: "Régionale",
-          prestigeRank: 1,
-          raceFormat: "one_day",
-          competitionType: "standard",
-          registrationClosesAt: null,
-          wildcardClosesAt: null,
-          withdrawalClosesAt: null,
-          registrationPolicy: "open",
-          minimumReputation: null,
-          minimumRosterSize: 7,
-          maximumRosterSize: 8,
-          engagedRiderCount: 5,
-          engagedRiders: [],
-          currentTeamRegistration: { status: "accepted", rosterCount: 5 },
-          stages: [
-            {
-              id: "stage-1",
-              dayNumber: 16,
-              stageNumber: 1,
-              name: "Étape",
-              stageType: "road",
-              status: "planned",
-              profileType: "flat",
-              distanceKm: 150,
-              daySlot: "early",
-              departureAt: null,
-              segments: [],
-            },
-          ],
-        },
-      ],
+  it("targets the closest invalid start-list, then the highest category and stable order", () => {
+    const closestNational = createRaceEdition({
+      id: "closest-national",
+      slug: "closest-national",
+      name: "Course nationale proche",
+      dayNumber: 10,
+      prestigeRank: 4,
     });
-
-    expect(alerts).toEqual([
-      expect.objectContaining({
-        metric: "5/7",
-        href: "/jeu/courses/boucle-test#inscription",
-        dayNumber: 16,
-      }),
+    const eliteBeta = createRaceEdition({
+      id: "elite-beta",
+      slug: "elite-beta",
+      name: "Beta Elite",
+      dayNumber: 11,
+      prestigeRank: 1,
+    });
+    const eliteAlpha = createRaceEdition({
+      id: "elite-alpha",
+      slug: "elite-alpha",
+      name: "Alpha Elite",
+      dayNumber: 11,
+      prestigeRank: 1,
+    });
+    const worldAardvark = createRaceEdition({
+      id: "world-aardvark",
+      slug: "world-aardvark",
+      name: "Aardvark Mondial",
+      dayNumber: 11,
+      prestigeRank: 2,
+    });
+    const calendar = createRaceCalendar([
+      worldAardvark,
+      eliteBeta,
+      eliteAlpha,
+      closestNational,
     ]);
+
+    expect(
+      getDashboardRaceRosterAlerts(calendar).map((alert) => alert.href),
+    ).toEqual([
+      "/jeu/courses/closest-national#inscription",
+      "/jeu/courses/elite-alpha#inscription",
+      "/jeu/courses/elite-beta#inscription",
+      "/jeu/courses/world-aardvark#inscription",
+    ]);
+
+    closestNational.currentTeamRegistration!.rosterCount =
+      closestNational.minimumRosterSize;
+    expect(getDashboardRaceRosterAlerts(calendar)[0]?.href).toBe(
+      "/jeu/courses/elite-alpha#inscription",
+    );
+
+    eliteAlpha.currentTeamRegistration!.rosterCount =
+      eliteAlpha.minimumRosterSize;
+    expect(getDashboardRaceRosterAlerts(calendar)[0]?.href).toBe(
+      "/jeu/courses/elite-beta#inscription",
+    );
   });
 });
+
+function createRaceCalendar(
+  editions: RaceCalendarEdition[],
+): SeasonRaceCalendar {
+  return {
+    seasonId: "season",
+    seasonName: "Saison test",
+    gameYear: 2026,
+    startsOn: "2026-08-01",
+    endsOn: "2026-09-01",
+    currentDayNumber: 10,
+    days: [],
+    events: [],
+    editions,
+  };
+}
+
+function createRaceEdition({
+  id,
+  slug,
+  name,
+  dayNumber,
+  prestigeRank,
+}: {
+  id: string;
+  slug: string;
+  name: string;
+  dayNumber: number;
+  prestigeRank: number;
+}): RaceCalendarEdition {
+  return {
+    id,
+    status: "registration_open",
+    raceId: `race-${id}`,
+    slug,
+    name,
+    shortName: null,
+    countryName: "France",
+    countryCode: "FR",
+    categoryCode:
+      prestigeRank === 1 ? "elite" : prestigeRank === 2 ? "world" : "national",
+    categoryName:
+      prestigeRank === 1
+        ? "Elite"
+        : prestigeRank === 2
+          ? "Mondial"
+          : "National",
+    prestigeRank,
+    raceFormat: "one_day",
+    competitionType: "standard",
+    registrationClosesAt: null,
+    wildcardClosesAt: null,
+    withdrawalClosesAt: null,
+    registrationPolicy: "open",
+    minimumReputation: null,
+    minimumRosterSize: 6,
+    maximumRosterSize: 8,
+    engagedRiderCount: 5,
+    engagedRiders: [],
+    currentTeamRegistration: {
+      status: "accepted",
+      rosterCount: 5,
+    },
+    stages: [
+      {
+        id: `stage-${id}`,
+        dayNumber,
+        stageNumber: 1,
+        name,
+        stageType: "road",
+        status: "planned",
+        profileType: "flat",
+        distanceKm: 150,
+        daySlot: "early",
+        departureAt: null,
+        segments: [],
+      },
+    ],
+  };
+}

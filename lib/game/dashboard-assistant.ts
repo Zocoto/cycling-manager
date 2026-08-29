@@ -53,11 +53,13 @@ export type DashboardAssistantLine = {
 
 export type DashboardRaceRosterAlert = {
   id: string;
+  raceName: string;
   title: string;
   detail: string;
   metric: string;
   href: string;
   dayNumber: number;
+  prestigeRank: number;
 };
 
 const ALERT_PRIORITY = [
@@ -191,16 +193,21 @@ export function buildDashboardAssistantLines({
   }
 
   if (raceRosterAlerts.length > 0) {
-    alerts.push(
-      ...raceRosterAlerts.map((alert) => ({
-        id: alert.id,
-        tone: "alert" as const,
-        metric: alert.metric,
-        title: alert.title,
-        detail: alert.detail,
-        href: alert.href,
-      })),
-    );
+    const prioritizedAlert = raceRosterAlerts[0]!;
+    const actionableCount = raceRosterAlerts.length;
+
+    alerts.push({
+      id: "race-roster-alerts",
+      tone: "alert",
+      metric: String(actionableCount),
+      title: pluralize(
+        actionableCount,
+        "start-list à corriger",
+        "start-lists à corriger",
+      ),
+      detail: `Prochaine : ${prioritizedAlert.raceName} · ${prioritizedAlert.detail}`,
+      href: prioritizedAlert.href,
+    });
   } else if (raceRosterAlertCount > 0) {
     alerts.push({
       id: "race-roster-alerts",
@@ -351,18 +358,22 @@ export function getDashboardRaceRosterAlerts(
       return [
         {
           id: `race-roster-alert:${edition.id}`,
+          raceName: edition.name,
           metric: `${registration.rosterCount}/${edition.minimumRosterSize}`,
           title: `Start-list à corriger · ${edition.name}`,
           detail: `${pluralize(missingCount, "1 coureur manque", `${missingCount} coureurs manquent`)} avant le départ à J${dayNumber}.`,
           href: getRaceRegistrationHref(edition.slug),
           dayNumber,
+          prestigeRank: edition.prestigeRank,
         },
       ];
     })
     .sort(
       (left, right) =>
         left.dayNumber - right.dayNumber ||
-        left.title.localeCompare(right.title, "fr"),
+        left.prestigeRank - right.prestigeRank ||
+        left.raceName.localeCompare(right.raceName, "fr") ||
+        left.id.localeCompare(right.id),
     );
 }
 
