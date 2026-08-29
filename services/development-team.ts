@@ -11,6 +11,10 @@ import {
   getRiderClimateProfile,
   type RiderClimateProfile,
 } from "@/lib/game/race-weather";
+import {
+  getSpecialAbilityDefinition,
+  type SpecialAbilityDefinition,
+} from "@/lib/game/special-abilities";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
@@ -56,6 +60,7 @@ type AcademyRow = {
   breakaway: number | string;
   prologue: number | string;
   training_priority: string;
+  native_special_ability_code: string | null;
   status: "active" | "recruited" | "promoted" | "free_agent";
   promotion_game_year: number | null;
   career_race_days: number;
@@ -194,6 +199,7 @@ export type DevelopmentRider = {
   avatarSeed: string;
   potentialSteps: number;
   sportingProfile: string;
+  nativeSpecialAbility: SpecialAbilityDefinition | null;
   ratings: RiderRatings;
   trainingPriority: string;
   status: AcademyRow["status"];
@@ -999,6 +1005,9 @@ function toDevelopmentRider(
     avatarSeed: String(rider.avatar_seed),
     potentialSteps: rider.potential_steps,
     sportingProfile: getRiderSportingProfile(ratings),
+    nativeSpecialAbility: getSpecialAbilityDefinition(
+      rider.native_special_ability_code,
+    ),
     ratings,
     trainingPriority: rider.training_priority,
     status: rider.status,

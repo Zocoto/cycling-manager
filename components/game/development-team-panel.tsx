@@ -507,9 +507,7 @@ function ResultTable({
                 <tr key={result.id} className={own ? "bg-[#FFF6C9] font-black" : "odd:bg-white even:bg-[#F8FBF9]"}>
                   <td className="px-3 py-2.5 text-center font-black text-[#176951]">{result.rank}</td>
                   <td className="px-3 py-2.5 text-[#183F37]">
-                    {result.academyRiderId && own ? (
-                      <Link href={`/jeu/centre-de-formation/development/${result.academyRiderId}`} className="hover:text-[#176951] hover:underline">{result.riderName}</Link>
-                    ) : result.riderName}
+                    <DevelopmentResultRiderLink result={result} />
                     <span className="ml-2 text-[9px] font-bold text-[#789087]">{result.countryCode}</span>
                     {result.podiumProgression ? (
                       <DevelopmentPodiumProgressionBadge
@@ -528,6 +526,23 @@ function ResultTable({
         </table>
       </div>
     </div>
+  );
+}
+
+export function DevelopmentResultRiderLink({
+  result,
+}: {
+  result: Pick<DevelopmentRaceResult, "academyRiderId" | "riderName">;
+}) {
+  return result.academyRiderId ? (
+    <Link
+      href={`/jeu/centre-de-formation/development/${result.academyRiderId}`}
+      className="hover:text-[#176951] hover:underline"
+    >
+      {result.riderName}
+    </Link>
+  ) : (
+    result.riderName
   );
 }
 

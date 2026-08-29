@@ -9,6 +9,7 @@ import { PotentialStars } from "@/components/game/potential-stars";
 import { RiderAvatar } from "@/components/game/rider-avatar";
 import { RiderClimateProfileCard } from "@/components/game/rider-climate-profile-card";
 import { RiderStatsRadar } from "@/components/game/rider-stats-radar";
+import { SpecialAbilityMedallion } from "@/components/game/special-ability-medallion";
 import { getRiderExperience } from "@/lib/game/rider-experience";
 import {
   createAmateurRiderJersey,
@@ -170,6 +171,27 @@ export default async function DevelopmentRiderPage({ params }: Props) {
           </section>
 
           <div className="space-y-5">
+            {profile.nativeSpecialAbility ? (
+              <section className="rounded-2xl border border-[#F2C94C]/45 bg-[#FFF8D8] p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <SpecialAbilityMedallion
+                    ability={profile.nativeSpecialAbility}
+                    unlocked
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#806114]">
+                      Capacité spéciale native
+                    </p>
+                    <h2 className="mt-1 text-xl font-black text-[#183F37]">
+                      {profile.nativeSpecialAbility.name}
+                    </h2>
+                    <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+                      {profile.nativeSpecialAbility.effect}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : null}
             <RiderClimateProfileCard profile={profile.climateProfile} />
             <section className="rounded-2xl border border-[#315B3E]/12 bg-white p-5 shadow-sm">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
