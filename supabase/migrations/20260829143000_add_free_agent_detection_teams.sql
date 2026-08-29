@@ -720,6 +720,7 @@ returns table (
   team_id uuid,
   team_name text,
   team_short_name text,
+  team_country_iso_alpha2 text,
   rider_id uuid,
   rider_first_name text,
   rider_last_name text,
@@ -741,6 +742,7 @@ as $$
         else registration.historical_team_name
       end
     ),
+    coalesce(team_country.iso_alpha2, race_country.iso_alpha2),
     rider.id,
     rider.first_name,
     rider.last_name,
@@ -748,6 +750,14 @@ as $$
   from public.race_registrations as registration
   left join public.team_seasons as team_season
     on team_season.id = registration.team_season_id
+  join public.race_editions as edition
+    on edition.id = registration.race_edition_id
+  join public.races as race
+    on race.id = edition.race_id
+  join public.countries as race_country
+    on race_country.id = race.country_id
+  left join public.countries as team_country
+    on team_country.id = team_season.registration_country_id
   join public.race_rosters as roster
     on roster.race_registration_id = registration.id
    and roster.status in ('selected', 'confirmed')
