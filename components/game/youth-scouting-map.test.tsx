@@ -45,4 +45,44 @@ describe("YouthScoutingMap", () => {
       "Réputation calculée uniquement depuis le classement UCI Saison 1 : 8e.",
     );
   });
+
+  it("rend la carte panoramique accessible par glissement sur téléphone", () => {
+    const markup = renderToStaticMarkup(
+      <YouthScoutingMap
+        tutorialMode
+        countries={[
+          {
+            id: "country-fr",
+            name: "France",
+            code: "FR",
+            latitude: 46,
+            longitude: 2,
+            reputation: 8,
+            reputationSourceSeasonName: "Saison 1",
+            uciNationRank: 8,
+            specialty: "rouleur",
+            secondarySpecialty: "puncheur",
+            specialtyLabel: "Rouleurs",
+            secondarySpecialtyLabel: "Puncheurs",
+            facilityLevel: 5,
+          },
+        ]}
+        scouts={[]}
+        currentDayNumber={1}
+        scoutingSupervision={{
+          currentPercentage: 0,
+          stableThroughDayNumber: null,
+          remainingDays: 0,
+          effects: [],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("data-scouting-map-scroll");
+    expect(markup).toContain("data-scouting-world-map");
+    expect(markup).toContain("overflow-x-auto");
+    expect(markup).toContain(
+      "Faites glisser la carte horizontalement pour explorer le monde",
+    );
+  });
 });

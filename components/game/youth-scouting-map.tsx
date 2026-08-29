@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { startYouthScoutingAction } from "@/app/jeu/centre-de-formation/actions";
@@ -26,6 +26,7 @@ export function YouthScoutingMap({
   const [search, setSearch] = useState("");
   const [durationDays, setDurationDays] = useState(3);
   const [selectedCountryId, setSelectedCountryId] = useState(countries.find((country) => country.code === "FR")?.id ?? countries[0]?.id ?? "");
+  const mapScrollRef = useRef<HTMLDivElement>(null);
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fr");
     return query ? countries.filter((country) => country.name.toLocaleLowerCase("fr").includes(query) || country.code.toLocaleLowerCase("fr").includes(query)).slice(0, 12) : countries.slice(0, 8);
@@ -38,6 +39,27 @@ export function YouthScoutingMap({
       scoutingSupervision.effects,
       completionDayNumber,
     );
+
+  useEffect(() => {
+    const scroller = mapScrollRef.current;
+    if (!scroller || !selected || scroller.scrollWidth <= scroller.clientWidth) {
+      return;
+    }
+
+    const point = projectCountryCoordinate({
+      latitude: selected.latitude,
+      longitude: selected.longitude,
+    });
+    const targetLeft =
+      (scroller.scrollWidth * point.x) / 100 - scroller.clientWidth / 2;
+    const maximumLeft = scroller.scrollWidth - scroller.clientWidth;
+
+    scroller.scrollTo({
+      left: Math.min(maximumLeft, Math.max(0, targetLeft)),
+      behavior: "smooth",
+    });
+  }, [selected]);
+
   if (!selected) return null;
 
   return (
@@ -60,33 +82,52 @@ export function YouthScoutingMap({
           </label>
         </div>
 
-        <div className="relative aspect-[2/1] min-h-[330px] overflow-hidden bg-[radial-gradient(circle_at_50%_45%,#176951_0%,#0B302B_58%,#071A17_100%)]">
-          <WorldPlanisphere />
-          <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-[#071A17]/65 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#D6DFD2] backdrop-blur-md">
-            {countries.length} pays explorables
+        <p
+          id="scouting-map-mobile-help"
+          className="border-b border-white/10 bg-[#071A17]/70 px-5 py-2 text-center text-[9px] font-black uppercase tracking-[0.12em] text-[#9BE0CA] md:hidden"
+        >
+          Faites glisser la carte horizontalement pour explorer le monde
+        </p>
+        <div
+          ref={mapScrollRef}
+          data-scouting-map-scroll
+          tabIndex={0}
+          role="region"
+          aria-label="Carte mondiale interactive des pays à explorer"
+          aria-describedby="scouting-map-mobile-help"
+          className="max-w-full touch-pan-x overflow-x-auto overscroll-x-contain [scrollbar-color:#72D4B7_#071A17] [scrollbar-width:thin] md:overflow-hidden"
+        >
+          <div
+            data-scouting-world-map
+            className="relative h-[330px] w-[660px] max-w-none shrink-0 overflow-hidden bg-[radial-gradient(circle_at_50%_45%,#176951_0%,#0B302B_58%,#071A17_100%)] md:aspect-[2/1] md:h-auto md:min-h-[330px] md:w-full"
+          >
+            <WorldPlanisphere />
+            <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-[#071A17]/65 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#D6DFD2] backdrop-blur-md">
+              {countries.length} pays explorables
+            </div>
+            {countries.map((country) => {
+              const point = projectCountryCoordinate({ latitude: country.latitude, longitude: country.longitude });
+              const isSelected = country.id === selected.id;
+              return (
+                <button
+                  key={country.id}
+                  type="button"
+                  title={country.name}
+                  aria-label={`Sélectionner ${country.name}`}
+                  onClick={() => setSelectedCountryId(country.id)}
+                  className={`group absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSelected ? "z-20" : "z-10 hover:z-20"}`}
+                  style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                >
+                  <span className={`block rounded-full border transition ${isSelected ? "h-4 w-4 border-white bg-[#F2C94C] shadow-[0_0_0_7px_rgba(242,201,76,0.2),0_0_22px_rgba(242,201,76,0.65)]" : "h-2 w-2 border-[#C9F0E4]/60 bg-[#72D4B7]/80 shadow-[0_0_7px_rgba(114,212,183,0.4)] group-hover:h-3 group-hover:w-3 group-hover:border-white group-hover:bg-[#F2C94C]"}`} />
+                  {isSelected ? (
+                    <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#F2C94C]/50 bg-[#071A17]/90 px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow-lg backdrop-blur-md">
+                      {country.code} · {country.name}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
-          {countries.map((country) => {
-            const point = projectCountryCoordinate({ latitude: country.latitude, longitude: country.longitude });
-            const isSelected = country.id === selected.id;
-            return (
-              <button
-                key={country.id}
-                type="button"
-                title={country.name}
-                aria-label={`Sélectionner ${country.name}`}
-                onClick={() => setSelectedCountryId(country.id)}
-                className={`group absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${isSelected ? "z-20" : "z-10 hover:z-20"}`}
-                style={{ left: `${point.x}%`, top: `${point.y}%` }}
-              >
-                <span className={`block rounded-full border transition ${isSelected ? "h-4 w-4 border-white bg-[#F2C94C] shadow-[0_0_0_7px_rgba(242,201,76,0.2),0_0_22px_rgba(242,201,76,0.65)]" : "h-2 w-2 border-[#C9F0E4]/60 bg-[#72D4B7]/80 shadow-[0_0_7px_rgba(114,212,183,0.4)] group-hover:h-3 group-hover:w-3 group-hover:border-white group-hover:bg-[#F2C94C]"}`} />
-                {isSelected ? (
-                  <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#F2C94C]/50 bg-[#071A17]/90 px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white shadow-lg backdrop-blur-md">
-                    {country.code} · {country.name}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
         </div>
         <div className="flex min-h-16 flex-wrap items-center gap-2 border-t border-white/10 bg-[#071A17]/55 px-5 py-3">
           {filtered.map((country) => (
