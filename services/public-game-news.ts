@@ -62,7 +62,16 @@ type RaceRosterRow = {
 
 type RaceRegistrationRow = {
   id: string;
-  team_season_id: string;
+  team_season_id: string | null;
+  historical_team_name: string | null;
+  detection_team_number: number | null;
+};
+
+const DETECTION_TEAM_JERSEY: AmateurJerseyConfig = {
+  pattern: "classic",
+  primaryColor: "#6B7280",
+  secondaryColor: "#E5E7EB",
+  accentColor: "#9CA3AF",
 };
 
 type RaceStageRow = {
@@ -531,7 +540,9 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
       .returns<RiderRow[]>(),
     admin
       .from("race_registrations")
-      .select("id, team_season_id")
+      .select(
+        "id, team_season_id, historical_team_name, detection_team_number",
+      )
       .in("id", unique(rosters.map((row) => row.race_registration_id)))
       .returns<RaceRegistrationRow[]>(),
     loadActiveRiderAges(
@@ -543,11 +554,19 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
   assertQuery(registrationsQuery.error, "les équipes victorieuses");
 
   const registrations = registrationsQuery.data ?? [];
-  const teamSeasonsQuery = await admin
-    .from("team_seasons")
-    .select("id, team_id, display_name, created_at")
-    .in("id", unique(registrations.map((row) => row.team_season_id)))
-    .returns<TeamSeasonRow[]>();
+  const teamSeasonIds = unique(
+    registrations.flatMap((row) =>
+      row.team_season_id ? [row.team_season_id] : [],
+    ),
+  );
+  const teamSeasonsQuery =
+    teamSeasonIds.length > 0
+      ? await admin
+          .from("team_seasons")
+          .select("id, team_id, display_name, created_at")
+          .in("id", teamSeasonIds)
+          .returns<TeamSeasonRow[]>()
+      : { data: [] as TeamSeasonRow[], error: null };
   assertQuery(teamSeasonsQuery.error, "les noms des équipes victorieuses");
 
   const teamSeasons = teamSeasonsQuery.data ?? [];
@@ -565,11 +584,13 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
     const registration = roster
       ? registrationById.get(roster.race_registration_id)
       : null;
-    const teamSeason = registration
+    const teamSeason = registration?.team_season_id
       ? teamSeasonById.get(registration.team_season_id)
       : null;
+    const teamName =
+      teamSeason?.display_name ?? registration?.historical_team_name?.trim();
 
-    if (!edition || !rider || !teamSeason) return [];
+    if (!edition || !rider || !registration || !teamName) return [];
 
     const riderName = `${rider.first_name} ${rider.last_name}`;
     const raceProfile = profilesByEditionId.get(result.race_edition_id);
@@ -586,7 +607,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
         id: `victory:${result.id}`,
         kind: "victory" as const,
         title: `${riderName} s’impose`,
-        detail: `${teamSeason.display_name} remporte ${edition.display_name}.`,
+        detail: `${teamName} remporte ${edition.display_name}.`,
         happenedAt: resolveRaceVictoryHappenedAt({
           resultCreatedAt: result.created_at,
           stages: edition.stages.map((stage) => ({
@@ -606,8 +627,15 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
             label: `Portrait de ${riderName}`,
           },
           team:
-            teamVisualByTeamId.get(teamSeason.team_id) ??
-            createFallbackTeamVisual(teamSeason.display_name),
+            (teamSeason
+              ? teamVisualByTeamId.get(teamSeason.team_id)
+              : null) ??
+            createFallbackTeamVisual(
+              teamName,
+              registration.detection_team_number !== null
+                ? DETECTION_TEAM_JERSEY
+                : DEFAULT_AMATEUR_JERSEY,
+            ),
           ...(raceProfile && raceProfile.length > 0 ? { raceProfile } : {}),
         },
       },

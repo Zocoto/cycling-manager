@@ -18,6 +18,7 @@ const forbiddenGlobalSettlements = [
   "settle_due_staff_academy_trainings",
   "settle_due_infrastructure_projects",
   "settle_due_elite_wildcards",
+  "settle_due_free_agent_detection_teams",
   "settle_due_development_races",
   "settle_finished_race_conditions",
 ] as const;
@@ -95,7 +96,7 @@ describe("application stability guardrails", () => {
     );
 
     expect(gameError).toContain("unstable_retry");
-    expect(gameError).toContain("Votre partie est conservée");
+    expect(gameError).toContain("Votre partie reste disponible");
     expect(globalError).toContain("unstable_retry");
     expect(globalError).toContain("<html lang=\"fr\">");
   });

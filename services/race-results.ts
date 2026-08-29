@@ -61,6 +61,8 @@ type RosterContext = {
   rosterId: string;
   riderId: string;
   teamSeasonId: string | null;
+  historicalTeamName: string | null;
+  detectionTeamNumber: number | null;
 };
 
 type RaceRegistrationRow = {
@@ -68,6 +70,7 @@ type RaceRegistrationRow = {
   race_edition_id: string;
   team_season_id: string | null;
   historical_team_name: string | null;
+  detection_team_number: number | null;
 };
 
 type RaceRosterRow = {
@@ -708,7 +711,9 @@ export async function getOfficialRaceResults(
       fetchPage: async (chunk, from, to) => {
         const result = await admin
           .from("race_registrations")
-          .select("id, race_edition_id, team_season_id, historical_team_name")
+          .select(
+            "id, race_edition_id, team_season_id, historical_team_name, detection_team_number",
+          )
           .in("race_edition_id", chunk)
           .order("id", { ascending: true })
           .range(from, to)
@@ -913,7 +918,9 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
       fetchPage: async (from, to) => {
         const result = await admin
           .from("race_registrations")
-          .select("id, race_edition_id, team_season_id, historical_team_name")
+          .select(
+            "id, race_edition_id, team_season_id, historical_team_name, detection_team_number",
+          )
           .eq("race_edition_id", editionId)
           .eq("status", "accepted")
           .order("id", { ascending: true })
@@ -1003,6 +1010,8 @@ async function loadRosterContext(admin: AdminClient, editionId: string) {
             rosterId: roster.id,
             riderId: roster.rider_id,
             teamSeasonId: registration.team_season_id,
+            historicalTeamName: registration.historical_team_name,
+            detectionTeamNumber: registration.detection_team_number,
           },
         ] as const,
       ];
@@ -1370,11 +1379,22 @@ async function persistSecondaryClassifications({
   standings: PersistedStageRaceStandings;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
-  const teamSeasonByTeamId = new Map<string, string>();
+  const teamIdentityByTeamId = new Map<
+    string,
+    { teamSeasonId: string | null; historicalTeamName: string | null }
+  >();
   for (const rider of edition.engagedRiders) {
     const context = rosterByRiderId.get(rider.id);
     if (context?.teamSeasonId) {
-      teamSeasonByTeamId.set(rider.teamId, context.teamSeasonId);
+      teamIdentityByTeamId.set(rider.teamId, {
+        teamSeasonId: context.teamSeasonId,
+        historicalTeamName: null,
+      });
+    } else if (context && context.detectionTeamNumber !== null) {
+      teamIdentityByTeamId.set(rider.teamId, {
+        teamSeasonId: null,
+        historicalTeamName: context.historicalTeamName,
+      });
     }
   }
 
@@ -1384,6 +1404,7 @@ async function persistSecondaryClassifications({
       classification_type: "mountain",
       race_roster_id: requireRoster(rosterByRiderId, entry.riderId).rosterId,
       team_season_id: null,
+      historical_team_name: null,
       rank: index + 1,
       points: entry.points,
       total_time_ms: null,
@@ -1393,6 +1414,7 @@ async function persistSecondaryClassifications({
       classification_type: "sprint",
       race_roster_id: requireRoster(rosterByRiderId, entry.riderId).rosterId,
       team_season_id: null,
+      historical_team_name: null,
       rank: index + 1,
       points: entry.points,
       total_time_ms: null,
@@ -1402,19 +1424,21 @@ async function persistSecondaryClassifications({
       classification_type: "youth",
       race_roster_id: requireRoster(rosterByRiderId, entry.riderId).rosterId,
       team_season_id: null,
+      historical_team_name: null,
       rank: index + 1,
       points: null,
       total_time_ms: entry.elapsedTimeSeconds * 1_000,
     })),
     ...standings.teams.flatMap((entry, index) => {
-      const teamSeasonId = teamSeasonByTeamId.get(entry.teamId);
-      return teamSeasonId
+      const teamIdentity = teamIdentityByTeamId.get(entry.teamId);
+      return teamIdentity
         ? [
             {
               race_edition_id: edition.id,
               classification_type: "team",
               race_roster_id: null,
-              team_season_id: teamSeasonId,
+              team_season_id: teamIdentity.teamSeasonId,
+              historical_team_name: teamIdentity.historicalTeamName,
               rank: index + 1,
               points: null,
               total_time_ms: entry.elapsedTimeSeconds * 1_000,
@@ -1483,6 +1507,7 @@ async function persistRaceClassification({
   }>;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
+  let detectionRewardsApplied = false;
   const nowIso = new Date().toISOString();
   const rows = general.map((result) => ({
     race_edition_id: edition.id,
@@ -1501,7 +1526,7 @@ async function persistRaceClassification({
   assertQuery(error, `le classement final de ${edition.name}`);
 
   if (edition.raceFormat === "stage_race") {
-    await persistStageRewards({
+    detectionRewardsApplied = await persistStageRewards({
       admin,
       edition,
       finalStage,
@@ -1565,6 +1590,39 @@ async function persistRaceClassification({
             finalRank: result.rank,
           })
         : calculateNationalChampionshipReward({ finalRank: result.rank }));
+    const roster = requireRoster(rosterByRiderId, result.riderId);
+    if (roster.detectionTeamNumber !== null) {
+      const individualUciPoints = rewardBreakdown
+        ? rewardBreakdown.components.reduce(
+            (total, component) =>
+              component.type === "team_classification"
+                ? total
+                : total + component.uciPoints,
+            0,
+          )
+        : reward.uciPoints;
+      if (individualUciPoints === 0 && result.rank !== 1) continue;
+
+      const { error: detectionRewardError } = await admin.rpc(
+        "apply_detection_rider_competition_reward",
+        {
+          p_source_reference: `official-race:${edition.id}:detection-rider:${result.riderId}:v1`,
+          p_source_type: "race_result",
+          p_race_roster_id: roster.rosterId,
+          p_stage_id: finalStage.id,
+          p_uci_points: individualUciPoints,
+          p_is_victory: result.rank === 1,
+          p_description: `${edition.name} — ${result.riderName} · ${result.rank === 1 ? "Victoire" : `${result.rank}e place`} · équipe de détection`,
+        },
+      );
+      assertQuery(
+        detectionRewardError,
+        `le palmarès libre de ${result.riderName}`,
+      );
+      detectionRewardsApplied = true;
+      continue;
+    }
+
     if (
       reward.reputation === 0 &&
       reward.experience === 0 &&
@@ -1574,7 +1632,6 @@ async function persistRaceClassification({
       continue;
     }
 
-    const roster = requireRoster(rosterByRiderId, result.riderId);
     if (!roster.teamSeasonId) {
       continue;
     }
@@ -1608,6 +1665,17 @@ async function persistRaceClassification({
       },
     );
     assertQuery(rewardError, `les gains de ${result.riderName}`);
+  }
+
+  if (detectionRewardsApplied) {
+    const { error: rankingRefreshError } = await admin.rpc(
+      "refresh_race_edition_uci_rankings",
+      { p_race_edition_id: edition.id },
+    );
+    assertQuery(
+      rankingRefreshError,
+      `le classement UCI après ${edition.name}`,
+    );
   }
 
   const attackedRiderIds = new Set(
@@ -1672,6 +1740,8 @@ async function persistStageRewards({
   }>;
   rosterByRiderId: Map<string, RosterContext>;
 }) {
+  let detectionRewardsApplied = false;
+
   for (const { stage, results } of stageClassifications) {
     for (const result of results) {
       if (result.status !== "finished") continue;
@@ -1686,6 +1756,31 @@ async function persistStageRewards({
       const placement =
         result.rank === 1 ? "Victoire d'étape" : `${result.rank}e place`;
       const description = `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${result.riderName} · ${placement} · règlement de fin de tour`;
+
+      if (roster.detectionTeamNumber !== null) {
+        if (reward.uciPoints > 0 || result.rank === 1) {
+          const { error: detectionRewardError } = await admin.rpc(
+            "apply_detection_rider_competition_reward",
+            {
+              p_source_reference: `official-stage-sporting:${edition.id}:stage:${stage.id}:detection-rider:${result.riderId}:rank:${result.rank}:v1`,
+              p_source_type: "stage_result",
+              p_race_roster_id: roster.rosterId,
+              p_stage_id: stage.id,
+              p_uci_points: reward.uciPoints,
+              p_is_victory: result.rank === 1,
+              p_description: `${description} · équipe de détection`,
+            },
+          );
+          assertQuery(
+            detectionRewardError,
+            `le palmarès libre de ${result.riderName} sur ${stage.name}`,
+          );
+          detectionRewardsApplied = true;
+        }
+        continue;
+      }
+
+      if (!roster.teamSeasonId) continue;
 
       if (reward.cashPrize > 0) {
         const { error: prizeError } = await admin.rpc(
@@ -1733,6 +1828,8 @@ async function persistStageRewards({
       }
     }
   }
+
+  return detectionRewardsApplied;
 }
 
 function toOfficialStageRiderResult({
@@ -1843,7 +1940,7 @@ function resolveResultIdentity({
   return {
     riderId: rider.id,
     riderName: rider.name,
-    teamId: teamSeason?.team_id ?? `history-${registration.id}`,
+    teamId: teamSeason?.team_id ?? registration.id,
     teamProfileId: teamSeason?.team_id ?? null,
     teamName: teamSeason?.display_name ?? historicalTeamName!,
   };

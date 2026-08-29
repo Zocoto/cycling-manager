@@ -92,6 +92,21 @@ export async function runGameMaintenanceTask(
         ...(isRecord(result.data) ? result.data : {}),
         youth_training: youthTraining,
       };
+    } else if (task === "elite-wildcards") {
+      // Ce traitement reste hors des parcours interactifs : il profite du
+      // passage de maintenance déjà planifié après les clôtures d'inscription.
+      const detectionTeams = await admin.rpc(
+        "settle_due_free_agent_detection_teams",
+        { p_now: new Date().toISOString() },
+      );
+      assertSettlement(
+        detectionTeams.error,
+        "les équipes de détection d’agents libres",
+      );
+      resolvedResult = {
+        ...(isRecord(result.data) ? result.data : {}),
+        detection_teams: detectionTeams.data,
+      };
     }
   } catch (error) {
     const finishedAt = new Date();
