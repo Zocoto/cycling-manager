@@ -318,6 +318,7 @@ export type YouthNotification = {
 export type YouthDevelopmentOverview = {
   teamId: string;
   teamName: string;
+  teamCountryId: string;
   seasonName: string;
   gameYear: number;
   currentDayNumber: number;
@@ -774,6 +775,7 @@ async function loadOverview(admin: AdminClient, context: Context) {
   return {
     teamId: context.teamId,
     teamName: context.teamName,
+    teamCountryId: context.registrationCountryId,
     seasonName: context.seasonName,
     gameYear: context.gameYear,
     currentDayNumber: context.currentDayNumber,

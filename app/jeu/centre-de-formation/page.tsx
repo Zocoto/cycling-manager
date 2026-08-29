@@ -285,6 +285,13 @@ export default async function YouthDevelopmentPage({
         {overview && activeTab === "scouting" ? (
           <ScoutingTab
             overview={overview}
+            defaultCountryId={
+              overview.countries.find(
+                (country) =>
+                  country.code ===
+                  headerData.teamSponsorIdentity?.sponsor.countryCode,
+              )?.id ?? overview.teamCountryId
+            }
             tutorialDemo={tutorialDemo}
             showReportHistory={!tutorialDemo && query.rapports === "historique"}
           />
@@ -305,10 +312,12 @@ export default async function YouthDevelopmentPage({
 
 function ScoutingTab({
   overview,
+  defaultCountryId,
   tutorialDemo,
   showReportHistory,
 }: {
   overview: YouthDevelopmentOverview;
+  defaultCountryId: string;
   tutorialDemo: boolean;
   showReportHistory: boolean;
 }) {
@@ -377,6 +386,7 @@ function ScoutingTab({
           scouts={overview.scouts}
           currentDayNumber={overview.currentDayNumber}
           scoutingSupervision={overview.scoutingSupervision}
+          defaultCountryId={defaultCountryId}
           tutorialMode={tutorialDemo}
         />
       </section>

@@ -15,17 +15,25 @@ export function YouthScoutingMap({
   scouts,
   currentDayNumber,
   scoutingSupervision,
+  defaultCountryId,
   tutorialMode = false,
 }: {
   countries: YouthCountry[];
   scouts: YouthScout[];
   currentDayNumber: number;
   scoutingSupervision: ScoutingSupervisionStatus;
+  defaultCountryId?: string | null;
   tutorialMode?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [durationDays, setDurationDays] = useState(3);
-  const [selectedCountryId, setSelectedCountryId] = useState(countries.find((country) => country.code === "FR")?.id ?? countries[0]?.id ?? "");
+  const [selectedCountryId, setSelectedCountryId] = useState(() =>
+    countries.some((country) => country.id === defaultCountryId)
+      ? (defaultCountryId ?? "")
+      : (countries.find((country) => country.code === "FR")?.id ??
+        countries[0]?.id ??
+        ""),
+  );
   const mapScrollRef = useRef<HTMLDivElement>(null);
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fr");
