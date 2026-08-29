@@ -183,12 +183,12 @@ const onboardingTutorial = {
     {
       key: "team-foundation",
       route: "/jeu/directeur-sportif",
-      targetId: "team-foundation-area",
+      targetId: "team-foundation-form",
       mobileTargetId: "team-foundation-mobile",
       title: "Fondez votre structure amateur",
       content:
         "Le nom choisi devient l’identité fondatrice de votre équipe. Son pays d’affiliation est définitif : il détermine vos sept premiers coureurs et influence la priorité géographique des futurs sponsors.\n\nLe maillot amateur, lui, pourra être modifié plus tard. Fondez l’équipe avant de poursuivre.",
-      placement: "left",
+      placement: "right",
       requirement: "profile_complete",
       allowTargetInteraction: true,
       highlightPadding: 10,

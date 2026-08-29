@@ -68,7 +68,11 @@ export function AmateurTeamCreationForm({
       data-tutorial-id="team-creation-form"
       className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]"
     >
-      <form action={formAction} className="space-y-7">
+      <form
+        action={formAction}
+        data-tutorial-id="team-foundation-form"
+        className="space-y-7"
+      >
         {state.message ? (
           <div
             role={state.status === "error" ? "alert" : "status"}

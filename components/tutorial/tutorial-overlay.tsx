@@ -107,6 +107,7 @@ export function TutorialOverlay({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const isClient = useIsClient();
+  const isInformative = presentation === "informative";
 
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -132,15 +133,19 @@ export function TutorialOverlay({
     top: 12,
   });
 
+  const [isSuspendedByDialog, setIsSuspendedByDialog] = useState(false);
+
   useEffect(() => {
     if (!isClient) return;
 
-    previousFocusedElementRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
+    if (!isInformative) {
+      previousFocusedElementRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
 
-    panelRef.current?.focus();
+      panelRef.current?.focus();
+    }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -154,9 +159,41 @@ export function TutorialOverlay({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
 
-      previousFocusedElementRef.current?.focus();
+      if (!isInformative) {
+        previousFocusedElementRef.current?.focus();
+      }
     };
-  }, [isClient, onQuit, step.key]);
+  }, [isClient, isInformative, onQuit, step.key]);
+
+  useEffect(() => {
+    if (!isClient || !isInformative) {
+      return;
+    }
+
+    let synchronizationFrame = 0;
+
+    function synchronizeNestedDialog() {
+      const focusedElement =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      const activeDialog = focusedElement?.closest<HTMLElement>(
+        '[role="dialog"]',
+      );
+
+      setIsSuspendedByDialog(Boolean(activeDialog));
+    }
+
+    document.addEventListener("focusin", synchronizeNestedDialog);
+    synchronizationFrame = window.requestAnimationFrame(
+      synchronizeNestedDialog,
+    );
+
+    return () => {
+      window.cancelAnimationFrame(synchronizationFrame);
+      document.removeEventListener("focusin", synchronizeNestedDialog);
+    };
+  }, [isClient, isInformative]);
 
   useLayoutEffect(() => {
     if (!isClient) return;
@@ -164,7 +201,8 @@ export function TutorialOverlay({
     let firstAnimationFrame = 0;
     let secondAnimationFrame = 0;
     let resizeObserver: ResizeObserver | null = null;
-    let mutationObserver: MutationObserver | null = null;
+    let targetDiscoveryObserver: MutationObserver | null = null;
+    let targetCompletionObserver: MutationObserver | null = null;
 
     function findTargetElement(): HTMLElement | null {
       const targetId =
@@ -258,9 +296,23 @@ export function TutorialOverlay({
       );
     }
 
-    const targetElement = findTargetElement();
+    function observeTargetElement(targetElement: HTMLElement) {
+      resizeObserver?.observe(targetElement);
 
-    if (targetElement) {
+      if (
+        step.requiresTargetCompletion &&
+        typeof MutationObserver !== "undefined"
+      ) {
+        targetCompletionObserver?.disconnect();
+        targetCompletionObserver = new MutationObserver(updateGeometry);
+        targetCompletionObserver.observe(targetElement, {
+          attributes: true,
+          attributeFilter: ["data-tutorial-complete"],
+        });
+      }
+    }
+
+    function recenterTargetElement(targetElement: HTMLElement) {
       const rectangle = targetElement.getBoundingClientRect();
       const mobileViewport = isMobileViewport();
       const reservedBottom = mobileViewport
@@ -268,29 +320,37 @@ export function TutorialOverlay({
             Math.round(window.innerHeight * 0.3)) + 12
         : 32;
 
-      if (targetNeedsRecentering(rectangle, reservedBottom)) {
-        if (mobileViewport) {
-          const visibleHeight = Math.max(
-            80,
-            window.innerHeight - reservedBottom - 20,
-          );
-          const desiredTop =
-            rectangle.height > visibleHeight
-              ? 10
-              : Math.max(10, 10 + (visibleHeight - rectangle.height) / 2);
-
-          window.scrollBy({
-            top: rectangle.top - desiredTop,
-            behavior: "auto",
-          });
-        } else {
-          targetElement.scrollIntoView({
-            block: "center",
-            inline: "center",
-            behavior: "auto",
-          });
-        }
+      if (!targetNeedsRecentering(rectangle, reservedBottom)) {
+        return;
       }
+
+      if (mobileViewport) {
+        const visibleHeight = Math.max(
+          80,
+          window.innerHeight - reservedBottom - 20,
+        );
+        const desiredTop =
+          rectangle.height > visibleHeight
+            ? 10
+            : Math.max(10, 10 + (visibleHeight - rectangle.height) / 2);
+
+        window.scrollBy({
+          top: rectangle.top - desiredTop,
+          behavior: "auto",
+        });
+      } else {
+        targetElement.scrollIntoView({
+          block: "center",
+          inline: "center",
+          behavior: "auto",
+        });
+      }
+    }
+
+    const targetElement = findTargetElement();
+
+    if (targetElement) {
+      recenterTargetElement(targetElement);
     }
 
     firstAnimationFrame = window.requestAnimationFrame(() => {
@@ -305,7 +365,7 @@ export function TutorialOverlay({
       resizeObserver = new ResizeObserver(updateGeometry);
 
       if (targetElement) {
-        resizeObserver.observe(targetElement);
+        observeTargetElement(targetElement);
       }
 
       if (panelRef.current) {
@@ -313,15 +373,28 @@ export function TutorialOverlay({
       }
     }
 
-    if (
-      targetElement &&
-      step.requiresTargetCompletion &&
+    if (targetElement && typeof ResizeObserver === "undefined") {
+      observeTargetElement(targetElement);
+    } else if (
+      !targetElement &&
       typeof MutationObserver !== "undefined"
     ) {
-      mutationObserver = new MutationObserver(updateGeometry);
-      mutationObserver.observe(targetElement, {
-        attributes: true,
-        attributeFilter: ["data-tutorial-complete"],
+      targetDiscoveryObserver = new MutationObserver(() => {
+        const discoveredTarget = findTargetElement();
+
+        if (!discoveredTarget) {
+          return;
+        }
+
+        targetDiscoveryObserver?.disconnect();
+        targetDiscoveryObserver = null;
+        observeTargetElement(discoveredTarget);
+        recenterTargetElement(discoveredTarget);
+        updateGeometry();
+      });
+      targetDiscoveryObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
       });
     }
 
@@ -335,7 +408,8 @@ export function TutorialOverlay({
       window.removeEventListener("scroll", updateGeometry, true);
 
       resizeObserver?.disconnect();
-      mutationObserver?.disconnect();
+      targetDiscoveryObserver?.disconnect();
+      targetCompletionObserver?.disconnect();
     };
   }, [
     isClient,
@@ -359,11 +433,13 @@ export function TutorialOverlay({
 
   const progressionPercentage =
     totalSteps > 0 ? ((stepIndex + 1) / totalSteps) * 100 : 0;
-  const isInformative = presentation === "informative";
   const canContinue =
     !step.requiresTargetCompletion ||
     (targetCompletionState.stepKey === step.key &&
       targetCompletionState.ready);
+  const shouldSuspendOverlay = isInformative && isSuspendedByDialog;
+  const shouldDockInformativePanel =
+    isInformative && !step.allowTargetInteraction;
   const dimLayerPointerEvents =
     isInformative || (isMobile && step.allowTargetInteraction)
       ? "pointer-events-none"
@@ -371,8 +447,12 @@ export function TutorialOverlay({
 
   return createPortal(
     <div
-      className="pointer-events-none fixed inset-0 z-[220]"
+      aria-hidden={shouldSuspendOverlay ? true : undefined}
+      className={`pointer-events-none fixed inset-0 z-[220] ${
+        shouldSuspendOverlay ? "invisible" : ""
+      }`}
       data-tutorial-overlay="true"
+      data-tutorial-suspended={shouldSuspendOverlay ? "true" : "false"}
     >
       {highlightedArea ? (
         <>
@@ -465,29 +545,42 @@ export function TutorialOverlay({
 
       <div
         ref={panelRef}
-        role="dialog"
+        role={isInformative ? "region" : "dialog"}
         aria-modal={
-          isInformative ? false : step.allowTargetInteraction ? undefined : true
+          isInformative
+            ? undefined
+            : step.allowTargetInteraction
+              ? undefined
+              : true
         }
         aria-labelledby={panelLabelId}
         aria-describedby={panelDescriptionId}
         tabIndex={-1}
         data-tutorial-panel-layout={
-          isMobile ? "mobile-sheet" : panelPosition.placement
+          isMobile
+            ? "mobile-sheet"
+            : shouldDockInformativePanel
+              ? "informative-dock"
+              : panelPosition.placement
         }
         data-tutorial-presentation={presentation}
         className={
           isMobile
             ? `pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[30dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] outline-none ${isInformative ? "shadow-[0_-10px_34px_rgba(23,105,81,0.2)]" : "shadow-[0_-16px_50px_rgba(7,26,23,0.4)]"}`
-            : `pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border bg-[#FFFDF4] text-[#16342D] outline-none ${isInformative ? "border-[#42B99A]/30 shadow-[0_18px_55px_rgba(23,105,81,0.2)]" : "border-[#315B3E]/15 shadow-[0_28px_90px_rgba(7,26,23,0.42)]"}`
+            : `pointer-events-auto fixed z-[230] flex max-h-[min(72dvh,560px)] flex-col overflow-hidden rounded-[1.5rem] border bg-[#FFFDF4] text-[#16342D] outline-none ${isInformative ? "w-[min(390px,calc(100vw-24px))] border-[#42B99A]/30 shadow-[0_18px_55px_rgba(23,105,81,0.2)]" : "w-[min(420px,calc(100vw-24px))] border-[#315B3E]/15 shadow-[0_28px_90px_rgba(7,26,23,0.42)]"}`
         }
         style={
           isMobile
             ? undefined
-            : {
-                left: panelPosition.left,
-                top: panelPosition.top,
-              }
+            : shouldDockInformativePanel
+              ? {
+                  right: 12,
+                  bottom: 12,
+                }
+              : {
+                  left: panelPosition.left,
+                  top: panelPosition.top,
+                }
         }
       >
         <div
@@ -569,7 +662,7 @@ export function TutorialOverlay({
           className={
             isMobile
               ? "min-h-0 flex-1 overflow-y-auto px-4 py-2"
-              : "px-5 py-5"
+              : "min-h-0 flex-1 overflow-y-auto px-5 py-5"
           }
         >
           <p

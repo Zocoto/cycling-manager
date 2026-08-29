@@ -11,6 +11,11 @@ const profileFormSource = readFileSync(
   "utf8",
 );
 
+const countrySelectSource = readFileSync(
+  join(process.cwd(), "components/game/country-select.tsx"),
+  "utf8",
+);
+
 describe("onboarding profile focus", () => {
   const onboarding = getTutorialDefinition(ONBOARDING_TUTORIAL_KEY);
 
@@ -66,13 +71,14 @@ describe("onboarding profile focus", () => {
   });
 
   it("expose chaque cible dans le formulaire et avance après validation", () => {
-    for (const targetId of [
-      "profile-avatar",
-      "profile-nationality",
-      "profile-save",
-    ]) {
+    for (const targetId of ["profile-avatar", "profile-save"]) {
       expect(profileFormSource).toContain(`data-tutorial-id="${targetId}"`);
     }
+
+    expect(profileFormSource).toContain(
+      'tutorialId="profile-nationality"',
+    );
+    expect(countrySelectSource).toContain("data-tutorial-id={tutorialId}");
 
     expect(profileFormSource).toContain(
       'tutorialStepKey !== "profile-save"',
@@ -82,7 +88,7 @@ describe("onboarding profile focus", () => {
       'hasSelectedAvatar ? "true" : "false"',
     );
     expect(profileFormSource).toContain(
-      'selectedCountryId ? "true" : "false"',
+      "tutorialComplete={Boolean(selectedCountryId)}",
     );
   });
 });

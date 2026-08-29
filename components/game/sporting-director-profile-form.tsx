@@ -84,6 +84,9 @@ export function SportingDirectorProfileForm({
 
   const hasSelectedAvatar = Boolean(selectedAvatarKey);
 
+  const shouldHideEmailByDefault =
+    !initialCountryId || !initialIsEmailVisible;
+
   const hasFieldErrors = profileFields.some((field) =>
     Boolean(state.fieldErrors[field]?.length),
   );
@@ -282,10 +285,7 @@ export function SportingDirectorProfileForm({
           ) : null}
         </div>
 
-        <fieldset
-          data-tutorial-id="profile-avatar"
-          data-tutorial-complete={hasSelectedAvatar ? "true" : "false"}
-        >
+        <fieldset>
           <legend className="text-sm font-bold text-[#183F37]">
             Avatar du Directeur Sportif
           </legend>
@@ -337,6 +337,8 @@ export function SportingDirectorProfileForm({
 
             <button
               ref={avatarModalTriggerRef}
+              data-tutorial-id="profile-avatar"
+              data-tutorial-complete={hasSelectedAvatar ? "true" : "false"}
               type="button"
               disabled={pending}
               aria-haspopup="dialog"
@@ -369,10 +371,7 @@ export function SportingDirectorProfileForm({
           ) : null}
         </fieldset>
 
-        <div
-          data-tutorial-id="profile-nationality"
-          data-tutorial-complete={selectedCountryId ? "true" : "false"}
-        >
+        <div>
           <label
             htmlFor="countryId"
             className="block text-sm font-bold text-[#183F37]"
@@ -397,6 +396,8 @@ export function SportingDirectorProfileForm({
               disabled={pending}
               invalid={Boolean(countryErrors?.length)}
               locked={isCountryLocked}
+              tutorialId="profile-nationality"
+              tutorialComplete={Boolean(selectedCountryId)}
             />
           </div>
 
@@ -578,7 +579,7 @@ export function SportingDirectorProfileForm({
               type="checkbox"
               name="hideEmail"
               value="true"
-              defaultChecked={!initialIsEmailVisible}
+              defaultChecked={shouldHideEmailByDefault}
               disabled={pending}
               aria-invalid={Boolean(hideEmailErrors?.length)}
               aria-describedby={

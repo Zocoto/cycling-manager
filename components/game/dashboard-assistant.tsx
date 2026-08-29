@@ -19,15 +19,21 @@ export async function DashboardAssistant({
   raceRosterAlerts,
   rewardCount,
   cashBalance,
+  hasTeam,
 }: {
   summaryPromise: Promise<DashboardAssistantSnapshot | null>;
   raceRosterAlerts: DashboardRaceRosterAlert[];
   rewardCount: number;
   cashBalance: number | null;
+  hasTeam: boolean;
 }) {
   const summary = await summaryPromise;
 
-  if (!summary) return <DashboardAssistantUnavailable />;
+  if (!summary) {
+    return hasTeam
+      ? <DashboardAssistantUnavailable />
+      : <DashboardAssistantAwaitingTeam />;
+  }
 
   const groups = buildDashboardAssistantLines({
     snapshot: summary,
@@ -358,6 +364,25 @@ function DashboardAssistantUnavailable() {
         <p className="text-xs font-black">Assistant du DS</p>
         <p className="truncate text-[10px] font-semibold text-[#6B8179]">
           Le point quotidien est momentanément indisponible ; le reste du Bureau reste accessible.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function DashboardAssistantAwaitingTeam() {
+  return (
+    <section
+      aria-label="Assistant du DS"
+      className="mt-4 flex min-h-14 items-center gap-3 rounded-2xl border border-[#42B99A]/20 bg-[#F3FBF7] px-4 py-2.5 text-[#173D35] shadow-[0_12px_34px_rgba(7,48,42,0.08)] sm:mt-6"
+    >
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#DDF5EA] text-[#176951]">
+        <AssistantIcon />
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-black">Assistant du DS</p>
+        <p className="text-[10px] font-semibold leading-4 text-[#6B8179]">
+          Fondez votre équipe amateur : votre point quotidien s’activera aussitôt.
         </p>
       </div>
     </section>

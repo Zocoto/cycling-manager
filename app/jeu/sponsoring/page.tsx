@@ -191,7 +191,6 @@ export default async function SponsoringPage({
               </>
             ) : null}
 
-            <TutorialSponsorPreview />
           </div>
         </div>
       </section>

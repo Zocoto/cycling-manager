@@ -425,6 +425,7 @@ export default async function SportingDirectorProfilePage() {
                   }
                   email={user.email ?? null}
                   isEmailVisible={
+                    Boolean(sportingDirector.country_id) &&
                     sportingDirector.is_email_visible
                   }
                   selectedCountry={

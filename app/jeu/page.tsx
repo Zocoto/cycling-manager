@@ -632,6 +632,7 @@ export default async function GamePage() {
                 raceRosterAlerts={raceRosterAlerts}
                 rewardCount={readyRewardCount}
                 cashBalance={financeOverview?.balance ?? null}
+                hasTeam={Boolean(teamAmateurIdentity || teamSummary)}
               />
             </Suspense>
           ) : null}

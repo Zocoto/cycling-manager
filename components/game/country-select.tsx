@@ -19,6 +19,8 @@ type CountrySelectProps = {
   disabled?: boolean;
   invalid?: boolean;
   locked?: boolean;
+  tutorialId?: string;
+  tutorialComplete?: boolean;
 };
 
 type CountryFlagProps = {
@@ -38,6 +40,8 @@ export function CountrySelect({
   disabled = false,
   invalid = false,
   locked = false,
+  tutorialId,
+  tutorialComplete = false,
 }: CountrySelectProps) {
   const [search, setSearch] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -105,6 +109,10 @@ export function CountrySelect({
       <div ref={menuRef} className="relative">
         <button
           id={id}
+          data-tutorial-id={tutorialId}
+          data-tutorial-complete={
+            tutorialId ? (tutorialComplete ? "true" : "false") : undefined
+          }
           type="button"
           disabled={disabled || locked}
           aria-haspopup="listbox"

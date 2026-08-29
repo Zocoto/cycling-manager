@@ -17,9 +17,8 @@ describe("tutorial mobile overlay", () => {
   it("restaure un volet bas compact qui laisse la page et la cible visibles", () => {
     expect(overlaySource).toContain("const MOBILE_BREAKPOINT = 640");
     expect(overlaySource).toContain("max-h-[30dvh]");
-    expect(overlaySource).toContain(
-      'isMobile ? "mobile-sheet" : panelPosition.placement',
-    );
+    expect(overlaySource).toContain('"mobile-sheet"');
+    expect(overlaySource).toContain('"informative-dock"');
     expect(overlaySource).toContain("reservedBottom");
     expect(overlaySource).toContain("rectangle.top - desiredTop");
     expect(overlaySource).toContain(
@@ -43,12 +42,37 @@ describe("tutorial mobile overlay", () => {
   it("présente l’onboarding comme un repère informatif non bloquant", () => {
     expect(overlaySource).toContain('presentation === "informative"');
     expect(overlaySource).toContain("Repère conseillé");
-    expect(overlaySource).toContain("isInformative ? false");
+    expect(overlaySource).toContain(
+      'role={isInformative ? "region" : "dialog"}',
+    );
     expect(overlaySource).toContain('data-tutorial-presentation={presentation}');
     expect(providerSource).toContain(
       'localizedActiveTutorial.definition.type === "onboarding"',
     );
     expect(providerSource).toContain('? "informative"');
+  });
+
+  it("ne vole pas le focus et se range pendant une sous-fenêtre", () => {
+    expect(overlaySource).toContain("if (!isInformative)");
+    expect(overlaySource).toContain("isSuspendedByDialog");
+    expect(overlaySource).toContain('data-tutorial-suspended=');
+    expect(overlaySource).toContain("right: 12");
+    expect(overlaySource).toContain("bottom: 12");
+  });
+
+  it("place le repère à côté des contrôles interactifs", () => {
+    expect(overlaySource).toContain("shouldDockInformativePanel");
+    expect(overlaySource).toContain(
+      "isInformative && !step.allowTargetInteraction",
+    );
+  });
+
+  it("attend brièvement une cible rendue après la navigation", () => {
+    expect(overlaySource).toContain("targetDiscoveryObserver");
+    expect(overlaySource).toContain("childList: true");
+    expect(overlaySource).toContain("subtree: true");
+    expect(overlaySource).toContain("observeTargetElement(discoveredTarget)");
+    expect(overlaySource).toContain("recenterTargetElement(discoveredTarget)");
   });
 
   it("bloque Suivant uniquement jusqu’à l’action demandée", () => {
