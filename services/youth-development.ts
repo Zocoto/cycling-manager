@@ -373,6 +373,141 @@ export async function settleDueYouthScoutingMissions(): Promise<number> {
   return due.length;
 }
 
+export type YouthAutomaticTrainingSettlement = {
+  currentDayNumber: number | null;
+  processedTeamCount: number;
+  processedSessionCount: number;
+};
+
+export async function settleDueYouthAutomaticTrainingSessions(
+  now = new Date(),
+): Promise<YouthAutomaticTrainingSettlement> {
+  const admin = createSupabaseAdminClient();
+  const daySynchronization = await admin.rpc("sync_active_season_day");
+  assertQuery(
+    daySynchronization.error,
+    "la synchronisation de la journée des entraînements juniors",
+  );
+
+  const activeSeasonResult = await admin
+    .from("seasons")
+    .select("id, game_year, current_day_number")
+    .eq("status", "active")
+    .maybeSingle<{
+      id: string;
+      game_year: number;
+      current_day_number: number | null;
+    }>();
+  assertQuery(activeSeasonResult.error, "la saison des entraînements juniors");
+  const activeSeason = activeSeasonResult.data;
+  if (!activeSeason) {
+    return {
+      currentDayNumber: null,
+      processedTeamCount: 0,
+      processedSessionCount: 0,
+    };
+  }
+
+  const currentDayNumber = activeSeason.current_day_number ?? 1;
+  if (getParisHour(now) < 8) {
+    return {
+      currentDayNumber,
+      processedTeamCount: 0,
+      processedSessionCount: 0,
+    };
+  }
+
+  const currentDayResult = await admin
+    .from("season_days")
+    .select("id")
+    .eq("season_id", activeSeason.id)
+    .eq("day_number", currentDayNumber)
+    .maybeSingle<{ id: string }>();
+  assertQuery(
+    currentDayResult.error,
+    "la journée courante des entraînements juniors",
+  );
+  if (!currentDayResult.data) {
+    return {
+      currentDayNumber,
+      processedTeamCount: 0,
+      processedSessionCount: 0,
+    };
+  }
+
+  const academyResult = await admin
+    .from("youth_academy_riders")
+    .select(
+      "id, team_id, training_mode, pending_training_mode, pending_training_mode_after_season_id, pending_training_mode_after_day_number",
+    )
+    .in("status", ["active", "recruited"])
+    .returns<
+      Array<{
+        id: string;
+        team_id: string;
+        training_mode: YouthTrainingMode;
+        pending_training_mode: YouthTrainingMode | null;
+        pending_training_mode_after_season_id: string | null;
+        pending_training_mode_after_day_number: number | null;
+      }>
+    >();
+  assertQuery(academyResult.error, "les jeunes à entraîner automatiquement");
+  const academyRiders = academyResult.data ?? [];
+  if (!academyRiders.length) {
+    return {
+      currentDayNumber,
+      processedTeamCount: 0,
+      processedSessionCount: 0,
+    };
+  }
+
+  const currentSessionsResult = await admin
+    .from("youth_academy_training_sessions")
+    .select("academy_rider_id")
+    .eq("season_id", activeSeason.id)
+    .eq("season_day_id", currentDayResult.data.id)
+    .eq("slot", "automatic")
+    .returns<Array<{ academy_rider_id: string }>>();
+  assertQuery(
+    currentSessionsResult.error,
+    "les séances juniors automatiques déjà générées",
+  );
+  const trainedRiderIds = new Set(
+    (currentSessionsResult.data ?? []).map((session) => session.academy_rider_id),
+  );
+  const dueTeamIds = new Set<string>();
+
+  for (const rider of academyRiders) {
+    const pendingModeIsDue =
+      rider.pending_training_mode !== null &&
+      (rider.pending_training_mode_after_season_id !== activeSeason.id ||
+        (rider.pending_training_mode_after_day_number ?? 29) <=
+          currentDayNumber);
+    const automaticSessionIsMissing =
+      rider.training_mode === "automatic" && !trainedRiderIds.has(rider.id);
+    if (pendingModeIsDue || automaticSessionIsMissing) {
+      dueTeamIds.add(rider.team_id);
+    }
+  }
+
+  let processedSessionCount = 0;
+  for (const teamId of dueTeamIds) {
+    const settlement = await settleAcademyTrainingSessions(admin, {
+      teamId,
+      seasonId: activeSeason.id,
+      gameYear: activeSeason.game_year,
+      currentDayNumber,
+    });
+    processedSessionCount += settlement.processedSessionCount;
+  }
+
+  return {
+    currentDayNumber,
+    processedTeamCount: dueTeamIds.size,
+    processedSessionCount,
+  };
+}
+
 export async function getYouthDevelopmentOverview(
   supabase: ServerClient,
   authUserId: string,
@@ -1130,6 +1265,17 @@ async function settleAcademyDailyOperations(
   context: Context,
 ) {
   await settleAcademyTransitions(admin, context);
+  const settlement = await settleAcademyTrainingSessions(admin, context);
+  await scheduleTuition(admin, settlement.riders, context, settlement.days);
+}
+
+async function settleAcademyTrainingSessions(
+  admin: AdminClient,
+  context: Pick<
+    Context,
+    "teamId" | "seasonId" | "gameYear" | "currentDayNumber"
+  >,
+) {
   const modeActivation = await admin.rpc("activate_due_youth_training_modes", {
     p_team_id: context.teamId,
     p_current_season_id: context.seasonId,
@@ -1147,7 +1293,13 @@ async function settleAcademyDailyOperations(
     .returns<AcademyRow[]>();
   assertQuery(ridersResult.error, "les jeunes à entraîner");
   const riders = ridersResult.data ?? [];
-  if (!riders.length) return;
+  if (!riders.length) {
+    return {
+      riders,
+      days: [] as Array<{ id: string; day_number: number }>,
+      processedSessionCount: 0,
+    };
+  }
 
   const daysResult = await admin
     .from("season_days")
@@ -1180,6 +1332,7 @@ async function settleAcademyDailyOperations(
     ),
   );
   const parisHour = getParisHour();
+  let processedSessionCount = 0;
 
   for (const rider of riders) {
     if (rider.training_mode !== "automatic") continue;
@@ -1288,10 +1441,15 @@ async function settleAcademyDailyOperations(
         update.error,
         `la progression de ${rider.first_name} ${rider.last_name}`,
       );
+      processedSessionCount += sessions.length;
     }
   }
 
-  await scheduleTuition(admin, riders, context, daysResult.data ?? []);
+  return {
+    riders,
+    days: daysResult.data ?? [],
+    processedSessionCount,
+  };
 }
 async function scheduleTuition(
   admin: AdminClient,

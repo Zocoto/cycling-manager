@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { settleDueYouthAutomaticTrainingSessions } from "@/services/youth-development";
 
 export const GAME_MAINTENANCE_TASKS = [
   "training",
@@ -66,10 +67,10 @@ export async function runGameMaintenanceTask(
   const result = await admin.rpc("run_game_maintenance_task", {
     p_task_key: task,
   });
-  const finishedAt = new Date();
-  const durationMs = finishedAt.getTime() - startedAt.getTime();
 
   if (result.error) {
+    const finishedAt = new Date();
+    const durationMs = finishedAt.getTime() - startedAt.getTime();
     await admin
       .from("game_maintenance_runs")
       .update({
@@ -83,6 +84,35 @@ export async function runGameMaintenanceTask(
     assertSettlement(result.error, `la maintenance « ${task} »`);
   }
 
+  let resolvedResult: unknown = result.data;
+  try {
+    if (task === "training") {
+      const youthTraining = await settleDueYouthAutomaticTrainingSessions();
+      resolvedResult = {
+        ...(isRecord(result.data) ? result.data : {}),
+        youth_training: youthTraining,
+      };
+    }
+  } catch (error) {
+    const finishedAt = new Date();
+    const durationMs = finishedAt.getTime() - startedAt.getTime();
+    const message = error instanceof Error ? error.message : String(error);
+    await admin
+      .from("game_maintenance_runs")
+      .update({
+        status: "failed",
+        last_failed_at: finishedAt.toISOString(),
+        last_duration_ms: durationMs,
+        last_error: message.slice(0, 2_000),
+        updated_at: finishedAt.toISOString(),
+      })
+      .eq("task_key", task);
+    throw error;
+  }
+
+  const finishedAt = new Date();
+  const durationMs = finishedAt.getTime() - startedAt.getTime();
+
   const completed = await admin
     .from("game_maintenance_runs")
     .update({
@@ -95,7 +125,7 @@ export async function runGameMaintenanceTask(
     .eq("task_key", task);
   assertSettlement(completed.error, `le suivi de maintenance « ${task} »`);
 
-  return result.data;
+  return resolvedResult;
 }
 
 export async function getGameMaintenanceHealth(
@@ -150,4 +180,8 @@ function assertSettlement(
   if (error) {
     throw new Error(`Impossible d’actualiser ${resource} : ${error.message}`);
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
