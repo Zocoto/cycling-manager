@@ -643,6 +643,18 @@ export default async function GamePage() {
             <TeamSponsorIdentityWarning message={teamSponsorIdentityError} />
           ) : null}
 
+          {DASHBOARD_ASSISTANT_ENABLED ? (
+            <Suspense fallback={<DashboardAssistantSkeleton />}>
+              <DashboardAssistant
+                summaryPromise={dashboardAssistantPromise}
+                raceRosterAlerts={raceRosterAlerts}
+                raceRosterAlertCount={raceRosterAlertCount}
+                rewardCount={readyRewardCount}
+                cashBalance={financeOverview?.balance ?? null}
+              />
+            </Suspense>
+          ) : null}
+
           <section
             className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
           >
@@ -713,18 +725,6 @@ export default async function GamePage() {
               />
             </div>
           </section>
-
-          {DASHBOARD_ASSISTANT_ENABLED ? (
-            <Suspense fallback={<DashboardAssistantSkeleton />}>
-              <DashboardAssistant
-                summaryPromise={dashboardAssistantPromise}
-                raceRosterAlerts={raceRosterAlerts}
-                raceRosterAlertCount={raceRosterAlertCount}
-                rewardCount={readyRewardCount}
-                cashBalance={financeOverview?.balance ?? null}
-              />
-            </Suspense>
-          ) : null}
 
           <RaceOperationsCard alertCount={raceRosterAlertCount} />
 
