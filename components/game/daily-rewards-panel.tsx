@@ -50,9 +50,10 @@ export function DailyRewardsPanel({
               Votre série quotidienne
             </h2>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#C4D7CE]">
-              Le cycle de 40 cadeaux continue d’une saison à l’autre. Une
-              journée de jeu manquée le remet au jour 1 ; après le cadeau de
-              niveau 10, un nouveau cycle démarre.
+              Le cycle de 40 cadeaux continue d’une saison à l’autre. Chaque
+              cadeau récupéré vous fait avancer, même après une ou plusieurs
+              journées d’absence ; après le cadeau de niveau 10, un nouveau
+              cycle démarre.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
@@ -189,7 +190,8 @@ export function DailyRewardsPanel({
                 ✓ Cadeau de J{overview.currentDayNumber} récupéré
               </p>
               <p className="mt-1 text-sm font-semibold text-[#60756E]">
-                Revenez au prochain jour de saison pour prolonger votre série.
+                Revenez au prochain jour de saison pour récupérer le cadeau
+                suivant de votre cycle.
               </p>
             </div>
           )}

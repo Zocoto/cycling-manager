@@ -14,6 +14,7 @@ import { ObjectiveFilters } from "@/components/game/objective-filters";
 import { TrophyGallery } from "@/components/game/trophy-gallery";
 import { TrophyNotificationsSeenMarker } from "@/components/game/trophy-notifications-seen-marker";
 import Link from "@/components/ui/app-link";
+import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
 import {
@@ -260,7 +261,7 @@ export default async function ObjectivesPage({
             description={
               dailyRewards?.availableToday
                 ? "Cadeau du jour à ouvrir"
-                : `${dailyRewards?.consecutiveDays ?? 0} jour${(dailyRewards?.consecutiveDays ?? 0) > 1 ? "s" : ""} consécutif${(dailyRewards?.consecutiveDays ?? 0) > 1 ? "s" : ""}`
+                : `Cycle ${dailyRewards?.consecutiveDays ?? 0}/${DAILY_REWARD_CYCLE_LENGTH}`
             }
             active={selectedTab === "quotidiennes"}
           />

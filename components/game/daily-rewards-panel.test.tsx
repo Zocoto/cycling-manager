@@ -21,6 +21,8 @@ describe("DailyRewardsPanel", () => {
     expect(markup).toContain(">Saison<");
     expect(markup).toContain("Niv. 8");
     expect(markup).toContain("cadeau de niveau 10");
+    expect(markup).toContain("même après une ou plusieurs");
+    expect(markup).not.toContain("le remet au jour 1");
   });
 
   it("never offers equipment redemption from the rewards reserve", () => {

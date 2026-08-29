@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { buildDashboardEventFeed } from "@/lib/game/dashboard-events";
 import type { DashboardMonitoringActionResult } from "@/lib/game/dashboard-monitoring";
+import { DAILY_REWARD_CYCLE_LENGTH } from "@/lib/game/daily-rewards";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
@@ -164,7 +165,7 @@ export async function loadDashboardMonitoringAction(): Promise<DashboardMonitori
             category: "objective" as const,
             priority: "action" as const,
             title: "Votre cadeau quotidien vous attend",
-            description: `Série de ${dailyRewards.consecutiveDays} jour${dailyRewards.consecutiveDays > 1 ? "s" : ""} · cadeau du jour à ouvrir.`,
+            description: `Prochain cadeau ${dailyRewards.prospectiveStreakDay}/${DAILY_REWARD_CYCLE_LENGTH} · votre progression est conservée en cas d’absence.`,
             href: "/jeu/objectifs?onglet=quotidiennes",
             actionLabel: "Ouvrir le cadeau",
             badgeLabel: "Quotidien",
