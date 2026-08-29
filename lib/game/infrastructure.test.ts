@@ -70,14 +70,14 @@ describe("recruitment Data Room", () => {
 describe("team infrastructure buildings", () => {
   it("classe les bâtiments du prix d’entrée le plus bas au plus élevé", () => {
     expect(getTeamInfrastructureCodesByStartingCost()).toEqual([
+      "weather_center",
       "training_center",
       "club_shop",
+      "cryotherapy_center",
       "indoor_track",
       "fan_club_headquarters",
-      "cryotherapy_center",
       "recruitment_data_room",
       "wind_tunnel",
-      "weather_center",
       "media_center",
       "international_welcome_center",
       "research_lab",
@@ -104,6 +104,19 @@ describe("team infrastructure buildings", () => {
       100_000, 60_000, 70_000, 80_000, 90_000,
     ]);
     expect(levels.at(-1)?.effect).toContain("+10 %");
+  });
+
+  it("garde les centres météo et de cryothérapie accessibles à tous les niveaux", () => {
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.weather_center.levels.map(
+        (level) => level.cost,
+      ),
+    ).toEqual([50_000, 30_000, 35_000, 40_000, 45_000]);
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.cryotherapy_center.levels.map(
+        (level) => level.cost,
+      ),
+    ).toEqual([150_000, 90_000, 105_000, 120_000, 135_000]);
   });
 
   it("exige 10 niveaux de manager par niveau de bâtiment, plafonnés à 50", () => {

@@ -262,7 +262,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     },
     levels: [10, 20, 30, 40, 50].map((bonus, index) => ({
       level: index + 1,
-      cost: [250_000, 600_000, 1_100_000, 1_800_000, 2_800_000][index]!,
+      cost: [150_000, 90_000, 105_000, 120_000, 135_000][index]!,
       durationDays: [12, 22, 34, 48, 64][index]!,
       effect: `−${bonus} % sur la perte de forme post-course, après application du kiné.`,
     })),
@@ -327,7 +327,7 @@ const BASE_TEAM_INFRASTRUCTURE_DEFINITIONS: Record<
     },
     levels: [1, 3, 5, 8, 28].map((horizon, index) => ({
       level: index + 1,
-      cost: [500_000, 900_000, 1_500_000, 2_300_000, 3_300_000][index]!,
+      cost: [50_000, 30_000, 35_000, 40_000, 45_000][index]!,
       durationDays: [14, 24, 36, 50, 66][index]!,
       effect:
         horizon === 28
