@@ -11,6 +11,14 @@ const migration = readFileSync(
   "utf8",
 );
 
+const shortRecoveryMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260829150000_exclude_short_recovery_injuries_from_dashboard_alerts.sql",
+  ),
+  "utf8",
+);
+
 describe("dashboard medical alerts", () => {
   it("excludes active fatigue injuries that no doctor can treat", () => {
     expect(migration).toContain(
@@ -23,5 +31,21 @@ describe("dashboard medical alerts", () => {
       "public.get_current_dashboard_assistant_summary()",
     );
     expect(migration).toContain("if strpos(v_definition, v_previous_cte) = 0");
+  });
+
+  it("excludes injuries once fewer than 24 hours remain", () => {
+    expect(shortRecoveryMigration).toContain(
+      "injury.expected_recovery_at >= now() + interval '24 hours'",
+    );
+    expect(shortRecoveryMigration).toContain("injury.protocol_code is null");
+  });
+
+  it("updates the existing compact RPC without adding another dashboard query", () => {
+    expect(shortRecoveryMigration).toContain(
+      "public.get_current_dashboard_assistant_summary()",
+    );
+    expect(shortRecoveryMigration).toContain(
+      "if strpos(v_definition, v_previous_cte) = 0",
+    );
   });
 });
