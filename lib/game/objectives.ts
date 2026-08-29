@@ -1,4 +1,5 @@
 export type GameObjectiveType = "primary" | "secondary";
+export type GameObjectiveLongTermTier = "HL" | "THL";
 export type GameObjectiveTypeFilter = "all" | GameObjectiveType;
 export type GameObjectiveStatusFilter =
   | "all"
@@ -95,6 +96,14 @@ export function normalizeGameObjective(row: GameObjectiveRow): GameObjective {
     completed: row.is_completed,
     claimedAt: row.claimed_at,
   };
+}
+
+export function getGameObjectiveLongTermTier(
+  objectiveKey: string,
+): GameObjectiveLongTermTier | null {
+  if (objectiveKey.endsWith("_thl")) return "THL";
+  if (objectiveKey.endsWith("_hl")) return "HL";
+  return null;
 }
 
 export function selectDashboardObjectives(

@@ -19,6 +19,7 @@ import { buildObjectivesReturnPath } from "@/lib/game/filtered-page-paths";
 import { getAchievementTrophyForObjective } from "@/lib/game/achievement-trophies";
 import {
   filterGameObjectives,
+  getGameObjectiveLongTermTier,
   parseGameObjectiveStatusFilter,
   parseGameObjectiveTypeFilter,
   type GameObjective,
@@ -442,6 +443,7 @@ function ObjectiveCard({
   const claimed = Boolean(objective.claimedAt);
   const groupLink = groupLinks[objective.group];
   const trophyReward = getAchievementTrophyForObjective(objective.key);
+  const longTermTier = getGameObjectiveLongTermTier(objective.key);
 
   return (
     <article
@@ -478,6 +480,17 @@ function ObjectiveCard({
           <span className="rounded-full bg-[#EFF4F1] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#60756E]">
             {groupLabels[objective.group] ?? objective.group}
           </span>
+          {longTermTier ? (
+            <span
+              className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                longTermTier === "THL"
+                  ? "bg-[#2B1D3D] text-[#E9D7FF]"
+                  : "bg-[#FFF1BF] text-[#806300]"
+              }`}
+            >
+              Palier {longTermTier}
+            </span>
+          ) : null}
         </div>
 
         <ObjectiveStatus objective={objective} />
