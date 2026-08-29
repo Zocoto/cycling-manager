@@ -11,6 +11,7 @@ import {
   MARKETING_FIELD_NAMES,
   type MarketingAttribution,
 } from "../../lib/marketing/attribution";
+import Link from "@/components/ui/app-link";
 import { EmailVerificationResendForm } from "./email-verification-resend-form";
 
 const registrationFields: RegistrationField[] = [
@@ -18,6 +19,7 @@ const registrationFields: RegistrationField[] = [
   "email",
   "password",
   "passwordConfirmation",
+  "legalAcceptance",
   "referralCode",
 ];
 
@@ -222,6 +224,56 @@ export function RegistrationForm({
           }
         />
 
+        <div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-sm leading-6 text-[#D6DFD2] transition hover:border-[#7CCF9C]/45">
+            <input
+              type="checkbox"
+              name="legalAcceptance"
+              value="accepted"
+              required
+              disabled={pending || registrationSucceeded}
+              aria-invalid={Boolean(
+                getVisibleErrors("legalAcceptance")?.length,
+              )}
+              aria-describedby={
+                getVisibleErrors("legalAcceptance")?.length
+                  ? "legalAcceptance-error"
+                  : undefined
+              }
+              onChange={() => dismissFieldError("legalAcceptance")}
+              className="mt-1 h-4 w-4 shrink-0 accent-[#F2C94C]"
+            />
+            <span>
+              J’accepte les{" "}
+              <Link
+                href="/conditions-utilisation"
+                target="_blank"
+                className="font-extrabold text-[#F2C94C] underline decoration-[#F2C94C]/45 underline-offset-3 hover:text-[#FFD968]"
+              >
+                conditions d’utilisation
+              </Link>{" "}
+              et je reconnais avoir pris connaissance de la{" "}
+              <Link
+                href="/confidentialite"
+                target="_blank"
+                className="font-extrabold text-[#F2C94C] underline decoration-[#F2C94C]/45 underline-offset-3 hover:text-[#FFD968]"
+              >
+                politique de confidentialité
+              </Link>
+              .
+            </span>
+          </label>
+          {getVisibleErrors("legalAcceptance")?.map((error) => (
+            <p
+              id="legalAcceptance-error"
+              key={error}
+              className="mt-2 text-sm font-semibold text-[#F7D96B]"
+            >
+              {error}
+            </p>
+          ))}
+        </div>
+
         <button
           type="submit"
           disabled={pending || registrationSucceeded}
@@ -244,9 +296,17 @@ export function RegistrationForm({
       ) : null}
 
       <p className="mt-4 text-center text-xs leading-5 text-[#9FB5A8]">
-        En créant votre compte, vous acceptez que votre nom de directeur
-        sportif soit utilisé comme identité publique dans Cyclo
-        Stratège.
+        Votre adresse e-mail reste privée. Votre nom de directeur sportif
+        et vos contenus publiés dans les espaces communautaires sont visibles
+        par les autres membres. Consultez également les{" "}
+        <Link
+          href="/mentions-legales"
+          target="_blank"
+          className="font-bold text-[#D6DFD2] underline underline-offset-3 hover:text-white"
+        >
+          mentions légales
+        </Link>
+        .
       </p>
     </div>
   );

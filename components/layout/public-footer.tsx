@@ -74,6 +74,24 @@ export function PublicFooter() {
               >
                 {isEnglish ? "Log in" : "Connexion"}
               </Link>
+              <Link
+                href="/conditions-utilisation"
+                className="w-fit transition hover:text-[#F2C94C]"
+              >
+                {isEnglish ? "Terms of use" : "Conditions d’utilisation"}
+              </Link>
+              <Link
+                href="/confidentialite"
+                className="w-fit transition hover:text-[#F2C94C]"
+              >
+                {isEnglish ? "Privacy" : "Confidentialité"}
+              </Link>
+              <Link
+                href="/mentions-legales"
+                className="w-fit transition hover:text-[#F2C94C]"
+              >
+                {isEnglish ? "Legal notice" : "Mentions légales"}
+              </Link>
             </div>
           </div>
 

@@ -3,6 +3,7 @@ export type RegistrationField =
   | "email"
   | "password"
   | "passwordConfirmation"
+  | "legalAcceptance"
   | "referralCode";
 
 export type RegistrationState = {

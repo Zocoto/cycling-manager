@@ -20,4 +20,12 @@ describe("PublicFooter", () => {
     expect(markup.match(/target="_blank"/g)).toHaveLength(2);
     expect(markup.match(/rel="noreferrer"/g)).toHaveLength(2);
   });
+
+  it("rend les documents légaux accessibles sur toutes les pages publiques", () => {
+    const markup = renderToStaticMarkup(<PublicFooter />);
+
+    expect(markup).toContain('href="/conditions-utilisation"');
+    expect(markup).toContain('href="/confidentialite"');
+    expect(markup).toContain('href="/mentions-legales"');
+  });
 });

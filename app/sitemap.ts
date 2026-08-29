@@ -37,5 +37,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.9,
     },
+    {
+      url: getAbsoluteUrl("/conditions-utilisation"),
+      lastModified: new Date("2026-08-29T00:00:00+02:00"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: getAbsoluteUrl("/confidentialite"),
+      lastModified: new Date("2026-08-29T00:00:00+02:00"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: getAbsoluteUrl("/mentions-legales"),
+      lastModified: new Date("2026-08-29T00:00:00+02:00"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 }

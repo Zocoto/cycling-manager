@@ -3,8 +3,10 @@
 import { z } from "zod";
 
 import { getPublicSiteUrl } from "../../../lib/auth/public-site-url";
+import { legalConfig } from "../../../lib/legal-config";
 import { readMarketingAttributionFromFormData } from "../../../lib/marketing/attribution";
 
+import { createSupabaseAdminClient } from "../../../lib/supabase/admin";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import type { RegistrationState } from "./registration-state";
 
@@ -27,6 +29,11 @@ const registrationSchema = z
       .max(72, "Le mot de passe ne peut pas dépasser 72 caractères."),
 
     passwordConfirmation: z.string(),
+
+    legalAcceptance: z.string().refine(
+      (value) => value === "accepted",
+      "Vous devez accepter les conditions d’utilisation et prendre connaissance de la politique de confidentialité.",
+    ),
 
     referralCode: z
       .string()
@@ -65,6 +72,11 @@ export async function registerAccount(
 
   const referralCode = getFormValue(formData, "referralCode");
 
+  const legalAcceptance = getFormValue(
+    formData,
+    "legalAcceptance",
+  );
+
   const marketingAttribution =
     readMarketingAttributionFromFormData(formData);
 
@@ -73,6 +85,7 @@ export async function registerAccount(
     email,
     password,
     passwordConfirmation,
+    legalAcceptance,
     referralCode,
   });
 
@@ -109,6 +122,9 @@ export async function registerAccount(
       data: {
         manager_name: validationResult.data.managerName,
         referral_code: validationResult.data.referralCode || null,
+        legal_acceptance: "accepted",
+        terms_version: legalConfig.termsVersion,
+        privacy_notice_version: legalConfig.privacyNoticeVersion,
         ...(Object.keys(marketingAttribution).length > 0
           ? {
               marketing_attribution: marketingAttribution,
@@ -179,6 +195,38 @@ export async function registerAccount(
       status: "error",
       message:
         "Impossible de créer ce compte. Vérifie le nom choisi et réessaie.",
+      fieldErrors: {},
+    };
+  }
+
+  if (!data.user) {
+    return {
+      status: "error",
+      message: "La création du compte n’a pas pu être finalisée.",
+      fieldErrors: {},
+    };
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { error: legalAcceptanceError } = await admin
+    .from("user_legal_acceptances")
+    .insert({
+      user_id: data.user.id,
+      terms_version: legalConfig.termsVersion,
+      privacy_notice_version: legalConfig.privacyNoticeVersion,
+    });
+
+  if (legalAcceptanceError) {
+    console.error(
+      "Échec de l’enregistrement de l’acceptation légale :",
+      legalAcceptanceError,
+    );
+    await admin.auth.admin.deleteUser(data.user.id);
+
+    return {
+      status: "error",
+      message:
+        "La création du compte n’a pas pu être finalisée. Réessaie dans quelques instants.",
       fieldErrors: {},
     };
   }
