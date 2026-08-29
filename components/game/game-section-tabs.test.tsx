@@ -22,7 +22,6 @@ describe("GameSectionTabs", () => {
           href="/jeu/exemple?onglet=inactif"
           active={false}
           label="Onglet inactif"
-          description="Description inactive"
         />
       </GameSectionTabs>,
     );
@@ -33,6 +32,7 @@ describe("GameSectionTabs", () => {
     expect(markup).toContain('aria-current="page"');
     expect(markup).toContain("bg-[#123F36]");
     expect(markup).toContain("Description active");
+    expect(markup).not.toContain("Description inactive");
     expect(markup).toContain(">2</span>");
   });
 

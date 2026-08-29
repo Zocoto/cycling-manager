@@ -3,12 +3,12 @@ import Link from "@/components/ui/app-link";
 import { redirect } from "next/navigation";
 
 import {
-  createDirectorListingAction,
   placeTransferBidAction,
   respondToDirectTransferOfferAction,
   signFreeAgentAction,
 } from "@/app/jeu/transferts/actions";
 import { BackToOfficeLink } from "@/components/game/back-to-office-link";
+import { DirectorRiderSaleConsole } from "@/components/game/director-rider-sale-console";
 import { GameHeader } from "@/components/game/game-header";
 import {
   GameSectionTabLink,
@@ -53,7 +53,6 @@ import {
   type TransferMarketFilters,
   type TransferMarketListing,
   type TransferRiderSearchResult,
-  type TransferRosterCandidate,
 } from "@/services/transfer-market";
 import type { Sponsor } from "@/types/sponsor";
 
@@ -68,9 +67,9 @@ type TransferPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const tabs: Array<{ id: TransferTab; label: string; detail: string }> = [
-  { id: "quotidiennes", label: "Enchères quotidiennes", detail: "Nouveaux talents · clôture initiale à 18 h" },
-  { id: "directeurs", label: "Enchères des DS", detail: "Ventes entre équipes · 24 h minimum" },
+const tabs: Array<{ id: TransferTab; label: string; detail?: string }> = [
+  { id: "quotidiennes", label: "Enchères" },
+  { id: "directeurs", label: "Vente de coureur", detail: "Console vendeur · publication 24 h" },
   { id: "libres", label: "Recherche de coureurs", detail: "Libres ou sous contrat" },
   { id: "offres", label: "Offres reçues", detail: "Négociations directes · historique" },
 ];
@@ -102,12 +101,20 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   ]);
   if (!overview) redirect("/jeu");
 
+  const displayedListings =
+    tab === "quotidiennes"
+      ? overview.auctionListings
+      : tab === "directeurs"
+        ? overview.directorListings.filter(
+            (listing) => listing.sellerTeamId === overview.teamId,
+          )
+        : [];
   const visualTeamIds = [
     ...new Set(
-      [...overview.dailyListings, ...overview.directorListings]
+      displayedListings
         .flatMap((listing) => [listing.sellerTeamId, listing.leaderTeamId])
         .filter((teamId): teamId is string => Boolean(teamId))
-        .concat(overview.teamId),
+        .concat(tab === "directeurs" ? [overview.teamId] : []),
     ),
   ];
   const jerseys = new Map<string, RiderJerseyAppearance>();
@@ -211,9 +218,9 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
         </GameSectionTabs>
 
         {tab === "quotidiennes" ? (
-          <DailyAuctions listings={overview.dailyListings} overview={overview} sponsors={sponsors} returnPath={currentPath} />
+          <Auctions listings={overview.auctionListings} overview={overview} jerseys={jerseys} sponsors={sponsors} returnPath={currentPath} />
         ) : tab === "directeurs" ? (
-          <DirectorAuctions listings={overview.directorListings} roster={overview.roster} overview={overview} jerseys={jerseys} sponsors={sponsors} returnPath={currentPath} />
+          <RiderSales listings={displayedListings} roster={overview.roster} overview={overview} jersey={jerseys.get(overview.teamId) ?? FREE_AGENT_RIDER_JERSEY} sponsors={sponsors} returnPath={currentPath} />
         ) : tab === "libres" ? (
           <RiderSearch
             riders={overview.riderSearchResults}
@@ -238,15 +245,16 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
   );
 }
 
-function DailyAuctions({ listings, overview, sponsors, returnPath }: {
+function Auctions({ listings, overview, jerseys, sponsors, returnPath }: {
   listings: TransferMarketListing[];
   overview: NonNullable<Awaited<ReturnType<typeof getTransferMarketOverview>>>;
+  jerseys: Map<string, RiderJerseyAppearance>;
   sponsors: Map<string, Sponsor>;
   returnPath: string;
 }) {
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
-      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="La sélection du jour" detail="Les enchères ouvrent à 9 h avec une clôture initiale à 18 h. Toute offre placée dans les 10 dernières minutes repousse la fin de 30 minutes. Les rapports sont partiels et un talent rare peut parfois apparaître." />
+      <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="Toutes les enchères" detail="Retrouvez ici la sélection quotidienne, les profils des fêtes nationales et les coureurs mis en vente par les autres DS. Les enchères DS restent ouvertes 24 heures ; toute offre placée dans les 10 dernières minutes repousse la fin de 30 minutes. Ce report peut s’appliquer autant de fois que nécessaire." />
       {overview.nationalDayFeatures.length > 0 ? (
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
           {overview.nationalDayFeatures.map((feature) => (
@@ -260,59 +268,45 @@ function DailyAuctions({ listings, overview, sponsors, returnPath }: {
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
           <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
+            {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
           </div>
         ) : (
-          <EmptyState title="Le marché quotidien n’est pas encore ouvert" detail="Revenez à partir de 9 h : de nouveaux coureurs apparaîtront automatiquement." />
+          <EmptyState title="Aucune enchère ouverte" detail="La prochaine sélection quotidienne apparaîtra à 9 h, ou dès qu’un DS publiera un coureur." />
         )}
       </div>
     </section>
   );
 }
 
-function DirectorAuctions({ listings, roster, overview, jerseys, sponsors, returnPath }: {
+function RiderSales({ listings, roster, overview, jersey, sponsors, returnPath }: {
   listings: TransferMarketListing[];
-  roster: TransferRosterCandidate[];
+  roster: NonNullable<Awaited<ReturnType<typeof getTransferMarketOverview>>>["roster"];
   overview: NonNullable<Awaited<ReturnType<typeof getTransferMarketOverview>>>;
-  jerseys: Map<string, RiderJerseyAppearance>;
+  jersey: RiderJerseyAppearance;
   sponsors: Map<string, Sponsor>;
   returnPath: string;
 }) {
-  const sellable = roster.filter((candidate) => candidate.canList);
   return (
     <section className="mt-7 space-y-7">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-        <article
-          data-tutorial-id="transfer-director-selling"
-          className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
-        >
-          <SectionHeading eyebrow="Votre effectif" title="Mettre un coureur aux enchères" detail="Fixez le prix d’appel. La vente reste ouverte au moins 24 heures ; une offre dans les 10 dernières minutes repousse la fin de 30 minutes." compact />
-          {sellable.length > 0 ? (
-            <form action={createDirectorListingAction} className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px_auto] sm:items-end">
-              <input type="hidden" name="returnPath" value={returnPath} />
-              <label className="text-xs font-black uppercase tracking-wider text-[#48665F]">Coureur
-                <select name="riderId" required className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 text-sm font-bold">
-                  {sellable.map((candidate) => <option key={candidate.rider.id} value={candidate.rider.id}>{candidate.rider.firstName} {candidate.rider.lastName} · MOY {candidate.rider.overall}</option>)}
-                </select>
-              </label>
-              <label className="text-xs font-black uppercase tracking-wider text-[#48665F]">Prix d’appel
-                <input name="minimumBid" type="number" min="500" max="1000000" step="100" required defaultValue={sellable[0]?.recommendedPrice ?? 5000} className="mt-2 min-h-12 w-full rounded-xl border border-[#315B3E]/20 px-4 text-sm font-black" />
-              </label>
-              <TransferSubmitButton pendingLabel="Publication…" tone="dark">Publier 24 h</TransferSubmitButton>
-            </form>
-          ) : <p className="mt-5 rounded-xl bg-[#F3F8F6] px-4 py-4 text-sm font-bold text-[#60756E]">Aucun coureur n’est actuellement éligible à une nouvelle mise en vente.</p>}
-        </article>
-
-        <article className="rounded-[2rem] border border-[#F2C94C]/25 bg-[#0B302B] p-6 text-white shadow-[0_16px_45px_rgba(7,26,23,0.14)] sm:p-8">
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#F2C94C]">Règle contractuelle</p>
-          <h2 className="mt-2 text-2xl font-black">Une saison de stabilité</h2>
-          <p className="mt-4 text-sm font-semibold leading-6 text-[#BFD1C6]">Un coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.</p>
-        </article>
-      </div>
+      <article
+        data-tutorial-id="transfer-director-selling"
+        className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.08)] sm:p-8"
+      >
+        <SectionHeading eyebrow="Console vendeur" title="Vente de coureur" detail="Choisissez un coureur, consultez ses notes exactes, fixez le prix d’appel dans sa tuile puis confirmez la publication. La vente est immédiatement intégrée aux enchères pendant 24 heures." compact />
+        <DirectorRiderSaleConsole
+          roster={roster}
+          jersey={jersey}
+          returnPath={returnPath}
+        />
+        <aside className="mt-5 rounded-2xl border border-[#F2C94C]/25 bg-[#0B302B] px-5 py-4 text-white">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#F2C94C]">Règle contractuelle</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-[#BFD1C6]">Un coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.</p>
+        </aside>
+      </article>
 
       <div data-tutorial-id="transfer-director-market">
-        <SectionHeading eyebrow="Marché interéquipes" title="Enchères ouvertes par les DS" detail="Le vendeur conserve le coureur jusqu’à la clôture. Une offre dans les 10 dernières minutes prolonge automatiquement l’enchère de 30 minutes, autant de fois que nécessaire." />
-        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucune vente entre DS" detail="Dès qu’un Directeur Sportif publiera un coureur, son enchère apparaîtra ici pendant au moins 24 heures." />}
+        <SectionHeading eyebrow="Suivi vendeur" title="Coureurs en vente" detail="Suivez ici uniquement vos annonces actives, les offres en tête et le temps restant avant leur clôture." />
+        {listings.length > 0 ? <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={jersey} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}</div> : <EmptyState title="Aucun coureur en vente" detail="Une fois une mise en vente confirmée, elle apparaîtra ici et dans la rubrique Enchères pendant 24 heures." />}
       </div>
     </section>
   );
@@ -545,7 +539,10 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
         <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">{listing.sellerTeamName ?? "Sélection quotidienne"}</p><Link href={`/jeu/coureurs/${listing.rider.id}`} target="_blank" className="mt-1 block truncate text-xl font-black hover:text-[#F2C94C]">{listing.rider.firstName} {listing.rider.lastName} ↗</Link><p className="mt-2 text-xs font-bold text-[#D6DFD2]"><span className={`fi fi-${listing.rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{listing.rider.countryName} · {listing.rider.age} ans</p></div>
       </div>
       <div className="p-5">
-        <div className="mb-4 flex flex-wrap gap-2"><span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span>{listing.isNationalDayBonus ? <span className="rounded-full bg-[#FFF3C4] px-3 py-1 text-xs font-black text-[#755A00]">Sélection fête nationale</span> : null}</div>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <AuctionTypeBadge listing={listing} />
+          <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span>
+        </div>
         <TransferScoutingReportPanel report={listing.rider.scoutingReport} compact />
         <div className="mt-4 grid grid-cols-2 gap-3"><PriceBlock label={listing.currentBid ? "Offre en tête" : "Prix d’appel"} value={formatMoney(listing.currentBid ?? listing.minimumBid, listing.currency)} /><PriceBlock label="Salaire hebdo." value={formatMoney(listing.salaryPerWeek, listing.currency)} /></div>
         <div className="mt-4 flex items-center justify-between rounded-xl border border-[#F2C94C]/25 bg-[#FFF9DF] px-4 py-3 text-xs font-black text-[#705B00]"><span>{listing.status === "open" ? "Temps restant" : listing.status === "settled" ? "Attribué" : "Clôturé sans offre"}</span>{listing.status === "open" ? <TransferCountdown closesAt={listing.closesAt} /> : <span>{listing.leaderTeamName ?? "Agent libre"}</span>}</div>
@@ -561,6 +558,30 @@ function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, 
         <p className="mt-3 text-[10px] font-semibold leading-4 text-[#60756E]">Contrat proposé : saison actuelle + saison suivante · salaire saisonnier {formatMoney(listing.salaryPerSeason, listing.currency)}</p>
       </div>
     </article>
+  );
+}
+
+function AuctionTypeBadge({ listing }: { listing: TransferMarketListing }) {
+  const label =
+    listing.type === "director"
+      ? "Enchère DS"
+      : listing.isNationalDayBonus
+        ? "Enchère fête nationale"
+        : "Enchère quotidienne";
+  const colors =
+    listing.type === "director"
+      ? "border-[#256390]/20 bg-[#EAF2FA] text-[#256390]"
+      : listing.isNationalDayBonus
+        ? "border-[#D6A600]/25 bg-[#FFF3C4] text-[#755A00]"
+        : "border-[#278B70]/20 bg-[#E4F5EE] text-[#176951]";
+
+  return (
+    <span
+      aria-label={`Type : ${label}`}
+      className={`rounded-full border px-3 py-1 text-xs font-black ${colors}`}
+    >
+      {label}
+    </span>
   );
 }
 

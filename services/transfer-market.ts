@@ -160,6 +160,7 @@ export type TransferMarketRider = {
   id: string;
   firstName: string;
   lastName: string;
+  overall: number;
   countryName: string;
   countryCode: string;
   avatarProfileKey: string;
@@ -207,7 +208,7 @@ export type TransferMarketListing = {
 };
 
 export type TransferRosterCandidate = {
-  rider: TransferRosterRider;
+  rider: TransferMarketRider;
   currentSalary: number;
   currency: string;
   recommendedPrice: number;
@@ -263,6 +264,7 @@ export type TransferMarketOverview = {
   }>;
   dailyListings: TransferMarketListing[];
   directorListings: TransferMarketListing[];
+  auctionListings: TransferMarketListing[];
   riderSearchResults: TransferRiderSearchResult[];
   riderSearchTotal: number;
   riderSearchPage: number;
@@ -636,6 +638,7 @@ export async function getTransferMarketOverview(
     directorListings: mappedListings.filter(
       (listing) => listing.type === "director",
     ),
+    auctionListings: mappedListings,
     rosterSize,
     rosterLimit: MAX_TEAM_ROSTER_SIZE,
     rosterIsFull,
@@ -684,12 +687,13 @@ export async function getTransferMarketOverview(
 
       return [
         {
-          rider: {
-            id: rider.id,
-            firstName: rider.firstName,
-            lastName: rider.lastName,
-            overall: rider.overall,
-          },
+          rider: toTransferMarketRider({
+            rider,
+            seasonId: context.season.id,
+            salaryPerSeason: toNumber(contract.salary_per_season),
+            dataRoomLevel,
+            revealExactValues: true,
+          }),
           currentSalary: toNumber(contract.salary_per_season),
           currency: context.teamSeason.currency,
           recommendedPrice: Math.max(
@@ -1248,6 +1252,7 @@ function toTransferMarketRider({
     id: rider.id,
     firstName: rider.firstName,
     lastName: rider.lastName,
+    overall: rider.overall,
     countryName: rider.countryName,
     countryCode: rider.countryCode,
     avatarProfileKey: rider.avatarProfileKey,

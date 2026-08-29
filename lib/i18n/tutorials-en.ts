@@ -434,7 +434,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
   transfers: {
     title: "Mastering the Transfer Office",
     description:
-      "Explore daily auctions, sales between Sports Directors and free-agent signings.",
+      "Explore unified auctions, the seller console and rider search.",
     steps: {
       "transfer-overview": {
         title: "Three ways to strengthen your roster",
@@ -444,12 +444,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "transfer-tabs": {
         title: "Choose the right market",
         content:
-          "Daily auctions feature new riders for one day. SD auctions let teams buy and sell between themselves for at least 24 hours. Free agents can be signed immediately with no transfer fee.\n\nThe tutorial visits these three areas in order.",
+          "Auctions combines daily riders, national-day profiles and sales listed by other Sports Directors. Rider Sale is now a seller-only console for your own listings, while rider search covers free and contracted riders.\n\nThe tutorial visits these three areas in order.",
       },
       "daily-overview": {
-        title: "New profiles every day",
+        title: "Every auction in one place",
         content:
-          "Daily selection opens at 9:00, with an initial close at 18:00. Each group contains market-generated riders starting with 0 career race days.\n\nA bid placed in the final 10 minutes adds 30 minutes. The same rule applies again near every new deadline.",
+          "Daily selection opens at 9:00, with an initial close at 18:00. Sports Director listings appear in the same list for 24 hours, with a clear label identifying their source.\n\nA bid placed in the final 10 minutes adds 30 minutes. The same rule applies again near every new deadline.",
       },
       "daily-bidding": {
         title: "Include every cost in your bid",
@@ -459,12 +459,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "director-selling": {
         title: "List a rider for at least 24 hours",
         content:
-          "Choose an eligible rider, set the opening price and publish. The rider stays with your team until closing and transfers automatically if a bid exists. A bid in the final 10 minutes adds 30 minutes.\n\nA rider recruited during the season cannot be resold until the next; founding riders can be listed immediately.",
+          "Browse your valuation list, select a rider and review exact ratings in the processing tile. Set the opening price and confirm: the listing immediately joins Auctions for 24 hours.\n\nA rider recruited during the season cannot be resold until the next; founding riders can be listed immediately.",
       },
       "director-market": {
-        title: "Buy directly from other Sports Directors",
+        title: "Track your listed riders",
         content:
-          "Other teams' listings work like daily auctions, with an initial duration of 24 hours. Compare scouting report, current price, salary and time before bidding.\n\nA bid in the final 10 minutes adds 30 minutes. You cannot bid on your own sale; finances and team ownership update automatically at closing.",
+          "The list below the seller console shows only your active listings, leading bids and remaining time. Buyers see the same riders in Auctions.\n\nThe rider stays with your team until closing; the transfer and financial entries are automatic when a bid exists.",
       },
       "free-agents-overview": {
         title: "Sign without a transfer fee",
@@ -484,7 +484,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       complete: {
         title: "The Transfer Office is mastered",
         content:
-          "You can now read financial capacity, bid in daily auctions, buy or sell with another Sports Director, and filter and sign a free agent.\n\nSelect Finish to complete this tutorial; it remains available from the Transfer Office question mark.",
+          "You can now read financial capacity, bid across all unified listings, publish and track a rider sale, and search for a free or contracted rider.\n\nSelect Finish to complete this tutorial; it remains available from the Transfer Office question mark.",
       },
     },
   },

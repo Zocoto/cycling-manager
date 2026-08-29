@@ -23,7 +23,7 @@ type GameSectionTabsProps = {
 type GameSectionTabContentProps = {
   active: boolean;
   label: string;
-  description: ReactNode;
+  description?: ReactNode;
   badge?: ReactNode;
 };
 
@@ -121,13 +121,15 @@ function GameSectionTabContent({
     <>
       <span className="min-w-0">
         <span className="block text-sm font-black">{label}</span>
-        <span
-          className={`mt-1 block text-xs font-semibold ${
-            active ? "text-[#ABD5C2]" : "text-[#789087]"
-          }`}
-        >
-          {description}
-        </span>
+        {description ? (
+          <span
+            className={`mt-1 block text-xs font-semibold ${
+              active ? "text-[#ABD5C2]" : "text-[#789087]"
+            }`}
+          >
+            {description}
+          </span>
+        ) : null}
       </span>
       {badge ? (
         <span className="inline-flex min-h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#C63F3F] px-1.5 text-[10px] font-black text-white">

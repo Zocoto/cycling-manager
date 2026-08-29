@@ -47,7 +47,7 @@ describe("enchères des fêtes nationales", () => {
 
     expect(service).toContain("is_national_day_bonus");
     expect(page).toContain("TransferScoutingReportPanel");
-    expect(page).toContain("Sélection fête nationale");
+    expect(page).toContain("Enchère fête nationale");
     expect(page).toContain("getNationalChampionPalette");
   });
 });

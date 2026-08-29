@@ -1,7 +1,7 @@
 import type { TutorialDefinition } from "@/types/tutorial";
 
 export const TRANSFER_TUTORIAL_KEY = "transfers";
-export const TRANSFER_TUTORIAL_VERSION = 2;
+export const TRANSFER_TUTORIAL_VERSION = 3;
 export const TRANSFER_DAILY_TUTORIAL_ROUTE =
   "/jeu/transferts?onglet=quotidiennes";
 export const TRANSFER_DIRECTORS_TUTORIAL_ROUTE =
@@ -15,7 +15,7 @@ export const transferTutorialDefinition = {
   type: "contextual",
   title: "Maîtriser le Bureau des transferts",
   description:
-    "Découvrez les enchères quotidiennes, les ventes entre Directeurs Sportifs et la recherche de coureurs libres ou sous contrat.",
+    "Découvrez les enchères réunies, la console de vente et la recherche de coureurs libres ou sous contrat.",
   autoStart: false,
   replayable: true,
   steps: [
@@ -36,7 +36,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-tabs",
       title: "Choisissez le marché adapté à votre besoin",
       content:
-        "Les enchères quotidiennes proposent de nouveaux talents pendant une journée. Les enchères des DS permettent aux équipes de vendre et d’acheter entre elles pendant au moins 24 heures. La recherche de coureurs parcourt les profils libres ou sous contrat.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
+        "La rubrique Enchères réunit la sélection quotidienne, les profils des fêtes nationales et les ventes publiées par les autres DS. La rubrique Vente de coureur est désormais une console réservée à vos propres annonces. La recherche de coureurs parcourt les profils libres ou sous contrat.\n\nNous allons parcourir ces trois sous-rubriques dans cet ordre.",
       placement: "bottom",
       highlightPadding: 6,
     },
@@ -44,9 +44,9 @@ export const transferTutorialDefinition = {
       key: "daily-overview",
       route: TRANSFER_DAILY_TUTORIAL_ROUTE,
       targetId: "transfer-daily-overview",
-      title: "De nouveaux profils chaque jour",
+      title: "Toutes les enchères au même endroit",
       content:
-        "La sélection quotidienne ouvre à 9 h, avec une clôture initiale à 18 h. Chaque arrivage contient une sélection de coureurs générés pour ce marché ; ils commencent leur carrière avec 0 jour de course.\n\nToute offre placée dans les 10 dernières minutes repousse la clôture de 30 minutes. Cette règle s’applique à nouveau près de chaque nouvelle échéance.",
+        "La sélection quotidienne ouvre à 9 h, avec une clôture initiale à 18 h. Les enchères DS apparaissent dans la même liste pour 24 heures, avec un libellé qui permet d’identifier immédiatement leur origine.\n\nToute offre placée dans les 10 dernières minutes repousse la clôture de 30 minutes. Cette règle s’applique à nouveau près de chaque nouvelle échéance.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -66,7 +66,7 @@ export const transferTutorialDefinition = {
       targetId: "transfer-director-selling",
       title: "Mettez un coureur en vente pendant 24 heures",
       content:
-        "Sélectionnez un coureur éligible de votre effectif, fixez son prix d’appel puis publiez l’annonce. Le coureur reste dans votre équipe jusqu’à la clôture et le transfert est ensuite traité automatiquement si une offre a été déposée.\n\nUn coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.",
+        "Parcourez votre liste de valeur, sélectionnez un coureur puis contrôlez ses notes exactes dans la tuile de traitement. Fixez son prix d’appel et confirmez : l’annonce rejoint immédiatement la rubrique Enchères pour 24 heures.\n\nUn coureur recruté pendant la saison ne peut pas être revendu avant la saison suivante. Les coureurs fondateurs restent immédiatement cessibles.",
       placement: "bottom",
       highlightPadding: 8,
     },
@@ -74,9 +74,9 @@ export const transferTutorialDefinition = {
       key: "director-market",
       route: TRANSFER_DIRECTORS_TUTORIAL_ROUTE,
       targetId: "transfer-director-market",
-      title: "Achetez directement auprès des autres DS",
+      title: "Suivez vos coureurs en vente",
       content:
-        "Les annonces des autres équipes fonctionnent comme les enchères quotidiennes, avec une durée initiale de 24 heures. Comparez le rapport de scouting, le prix actuel, le salaire et le temps restant avant de surenchérir.\n\nUne offre dans les 10 dernières minutes ajoute 30 minutes. Vous ne pouvez pas enchérir sur votre propre vente ; le transfert et les écritures sont automatiques à la clôture.",
+        "Le listing situé sous la console affiche uniquement vos annonces actives, l’offre en tête et le temps restant. Les acheteurs retrouvent ces mêmes coureurs dans la rubrique Enchères.\n\nLe coureur reste dans votre équipe jusqu’à la clôture ; le transfert et les écritures financières sont automatiques si une offre a été déposée.",
       placement: "top",
       highlightPadding: 8,
     },
@@ -115,7 +115,7 @@ export const transferTutorialDefinition = {
       route: TRANSFER_FREE_AGENTS_TUTORIAL_ROUTE,
       title: "Le Bureau des transferts est maîtrisé",
       content:
-        "Vous savez maintenant lire votre capacité financière, enchérir sur la sélection quotidienne, vendre ou acheter un coureur auprès d’un autre Directeur Sportif, puis rechercher un profil libre ou sous contrat.\n\nCliquez sur « Terminer » pour valider ce didacticiel. Il apparaîtra comme réalisé dans le Centre des didacticiels et restera accessible depuis le point d’interrogation du Bureau des transferts.",
+        "Vous savez maintenant lire votre capacité financière, enchérir sur toutes les annonces réunies, publier et suivre une vente, puis rechercher un profil libre ou sous contrat.\n\nCliquez sur « Terminer » pour valider ce didacticiel. Il apparaîtra comme réalisé dans le Centre des didacticiels et restera accessible depuis le point d’interrogation du Bureau des transferts.",
       placement: "center",
     },
   ],
