@@ -1345,14 +1345,20 @@ function CareerHistory({
                         </span>
                       ) : null}
                     </div>
-                    <Link
-                      href={`/jeu/equipes/${entry.teamId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-1 block break-words text-sm font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
-                    >
-                      {entry.teamName} <span aria-hidden="true">↗</span>
-                    </Link>
+                    {entry.teamId ? (
+                      <Link
+                        href={`/jeu/equipes/${entry.teamId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block break-words text-sm font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
+                      >
+                        {entry.teamName} <span aria-hidden="true">↗</span>
+                      </Link>
+                    ) : (
+                      <span className="mt-1 block text-sm font-black text-[#60756E]">
+                        {entry.teamName}
+                      </span>
+                    )}
                     {formatCareerMovement(entry) ? (
                       <p className="mt-1 text-xs font-bold text-[#60756E]">
                         {formatCareerMovement(entry)}
@@ -1462,14 +1468,20 @@ function CareerHistory({
                       ) : null}
                     </td>
                     <td className="px-5 py-4">
-                      <Link
-                        href={`/jeu/equipes/${entry.teamId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
-                      >
-                        {entry.teamName} <span aria-hidden="true">↗</span>
-                      </Link>
+                      {entry.teamId ? (
+                        <Link
+                          href={`/jeu/equipes/${entry.teamId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-black text-[#176951] underline decoration-[#176951]/25 underline-offset-4 transition hover:text-[#278B70]"
+                        >
+                          {entry.teamName} <span aria-hidden="true">↗</span>
+                        </Link>
+                      ) : (
+                        <span className="font-black text-[#60756E]">
+                          {entry.teamName}
+                        </span>
+                      )}
                       {formatCareerMovement(entry) ? (
                         <p className="mt-1 text-xs font-bold text-[#60756E]">
                           {formatCareerMovement(entry)}
