@@ -17,6 +17,7 @@ import {
   isRaceEditionPast,
   isRaceRegistrationClosed,
   isRosterSelectionValid,
+  isUnderfilledRaceRosterCorrectionOpen,
   type RaceCalendarEdition,
 } from "./race-calendar";
 
@@ -434,6 +435,35 @@ describe("isRaceEditionPast", () => {
         edition,
         currentDayNumber: 9,
       })
+    ).toBe(true);
+  });
+});
+
+describe("isUnderfilledRaceRosterCorrectionOpen", () => {
+  it("closes a stage race from its first departure, not after its final stage", () => {
+    const edition = createEdition("tour-commence", [9, 10, 11]);
+    edition.stages[0]!.departureAt = "2026-07-25T12:00:00.000Z";
+
+    expect(
+      isUnderfilledRaceRosterCorrectionOpen({
+        edition,
+        currentDayNumber: 10,
+        now: new Date("2026-07-25T12:00:00.000Z"),
+      }),
+    ).toBe(false);
+  });
+
+  it("allows a closed registration to be repaired until the actual departure", () => {
+    const edition = createEdition("course-a-reparer", [10]);
+    edition.status = "registration_closed";
+    edition.stages[0]!.departureAt = "2026-07-26T12:00:00.000Z";
+
+    expect(
+      isUnderfilledRaceRosterCorrectionOpen({
+        edition,
+        currentDayNumber: 10,
+        now: new Date("2026-07-26T11:59:59.000Z"),
+      }),
     ).toBe(true);
   });
 });

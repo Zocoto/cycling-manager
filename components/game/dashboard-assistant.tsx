@@ -17,13 +17,11 @@ import {
 export async function DashboardAssistant({
   summaryPromise,
   raceRosterAlerts,
-  raceRosterAlertCount,
   rewardCount,
   cashBalance,
 }: {
   summaryPromise: Promise<DashboardAssistantSnapshot | null>;
   raceRosterAlerts: DashboardRaceRosterAlert[];
-  raceRosterAlertCount: number;
   rewardCount: number;
   cashBalance: number | null;
 }) {
@@ -34,7 +32,6 @@ export async function DashboardAssistant({
   const groups = buildDashboardAssistantLines({
     snapshot: summary,
     raceRosterAlerts,
-    raceRosterAlertCount,
     rewardCount,
     cashBalance,
   });

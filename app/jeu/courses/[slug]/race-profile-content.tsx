@@ -22,6 +22,7 @@ import {
   RACE_STAGE_TYPE_LABELS,
   getEditionDayRange,
   getRegistrationAvailability,
+  isUnderfilledRaceRosterCorrectionOpen,
   isBeforeRegistrationDeadline,
   type RaceCalendarEdition,
 } from "@/lib/game/race-calendar";
@@ -459,6 +460,7 @@ export async function RaceProfileContent({
                 <div id="inscription" className="scroll-mt-24">
                   <RegistrationPanel
                     edition={edition}
+                    currentDayNumber={calendar.currentDayNumber}
                     context={raceUserContext}
                     contextError={contextError}
                     riders={rosterOptions}
@@ -552,6 +554,7 @@ function groupRacePastWinners(winners: RacePastWinner[]) {
 
 function RegistrationPanel({
   edition,
+  currentDayNumber,
   context,
   contextError,
   riders,
@@ -559,6 +562,7 @@ function RegistrationPanel({
   riderJersey,
 }: {
   edition: RaceCalendarEdition;
+  currentDayNumber: number;
   context: CurrentRaceUserContext;
   contextError: string | null;
   riders: RaceRosterOption[];
@@ -584,7 +588,7 @@ function RegistrationPanel({
     edition.competitionType === "standard" &&
     registration?.status === "accepted" &&
     registration.rosterCount < edition.minimumRosterSize &&
-    hasScheduledStage;
+    isUnderfilledRaceRosterCorrectionOpen({ edition, currentDayNumber });
   const hasConfirmedRoster =
     registration?.status === "accepted" &&
     registration.rosterCount >= edition.minimumRosterSize;

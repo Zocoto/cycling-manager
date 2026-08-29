@@ -448,6 +448,52 @@ export function isRaceEditionPast({
   return getEditionDayRange(edition).endDay < currentDayNumber;
 }
 
+export function isUnderfilledRaceRosterCorrectionOpen({
+  edition,
+  currentDayNumber,
+  now = new Date(),
+}: {
+  edition: RaceCalendarEdition;
+  currentDayNumber: number;
+  now?: Date;
+}) {
+  if (
+    edition.status === "cancelled" ||
+    edition.status === "completed" ||
+    edition.status === "in_progress"
+  ) {
+    return false;
+  }
+
+  const firstDepartureStage = [...edition.stages]
+    .filter((stage) => stage.status !== "cancelled")
+    .sort(
+      (left, right) =>
+        left.dayNumber - right.dayNumber ||
+        left.stageNumber - right.stageNumber,
+    )[0];
+
+  if (
+    !firstDepartureStage ||
+    firstDepartureStage.status === "in_progress" ||
+    firstDepartureStage.status === "completed"
+  ) {
+    return false;
+  }
+
+  if (firstDepartureStage.departureAt) {
+    const departureTimestamp = Date.parse(firstDepartureStage.departureAt);
+
+    if (Number.isFinite(departureTimestamp)) {
+      return now.getTime() < departureTimestamp;
+    }
+  }
+
+  // Sans heure fiable, on reste volontairement prudent le jour J : une
+  // correction ne doit jamais être proposée après un départ déjà donné.
+  return firstDepartureStage.dayNumber > currentDayNumber;
+}
+
 export function getRegistrationAvailability({
   policy,
   closesAt,

@@ -1,4 +1,7 @@
-import type { SeasonRaceCalendar } from "@/lib/game/race-calendar";
+import {
+  isUnderfilledRaceRosterCorrectionOpen,
+  type SeasonRaceCalendar,
+} from "@/lib/game/race-calendar";
 import { getRaceRegistrationHref } from "@/lib/game/race-navigation";
 
 export const DASHBOARD_ASSISTANT_ENABLED = true;
@@ -77,13 +80,11 @@ const ALERT_PRIORITY = [
 export function buildDashboardAssistantLines({
   snapshot,
   raceRosterAlerts = [],
-  raceRosterAlertCount,
   rewardCount,
   cashBalance,
 }: {
   snapshot: DashboardAssistantSnapshot;
   raceRosterAlerts?: DashboardRaceRosterAlert[];
-  raceRosterAlertCount: number;
   rewardCount: number;
   cashBalance: number | null;
 }): { alerts: DashboardAssistantLine[]; information: DashboardAssistantLine[] } {
@@ -208,15 +209,6 @@ export function buildDashboardAssistantLines({
       detail: `Prochaine : ${prioritizedAlert.raceName} · ${prioritizedAlert.detail}`,
       href: prioritizedAlert.href,
     });
-  } else if (raceRosterAlertCount > 0) {
-    alerts.push({
-      id: "race-roster-alerts",
-      tone: "alert",
-      metric: String(raceRosterAlertCount),
-      title: pluralize(raceRosterAlertCount, "start-list à corriger", "start-lists à corriger"),
-      detail: "Ouvrez le calendrier pour identifier l’inscription concernée.",
-      href: "/jeu/calendrier",
-    });
   }
 
   alerts.sort(
@@ -328,32 +320,37 @@ export function formatDashboardAssistantDate(value: string): string {
 
 export function getDashboardRaceRosterAlerts(
   calendar: SeasonRaceCalendar | null,
+  now = new Date(),
 ): DashboardRaceRosterAlert[] {
   if (!calendar) return [];
 
   return calendar.editions
     .flatMap((edition): DashboardRaceRosterAlert[] => {
       const registration = edition.currentTeamRegistration;
-      const activeStages = edition.stages.filter(
-        (stage) =>
-          stage.status !== "cancelled" &&
-          stage.dayNumber >= calendar.currentDayNumber,
-      );
+      const firstDepartureStage = [...edition.stages]
+        .filter((stage) => stage.status !== "cancelled")
+        .sort(
+          (left, right) =>
+            left.dayNumber - right.dayNumber ||
+            left.stageNumber - right.stageNumber,
+        )[0];
 
       if (
         edition.competitionType !== "standard" ||
-        edition.status === "cancelled" ||
-        edition.status === "completed" ||
-        edition.status === "in_progress" ||
         registration?.status !== "accepted" ||
         registration.rosterCount >= edition.minimumRosterSize ||
-        activeStages.length === 0
+        !firstDepartureStage ||
+        !isUnderfilledRaceRosterCorrectionOpen({
+          edition,
+          currentDayNumber: calendar.currentDayNumber,
+          now,
+        })
       ) {
         return [];
       }
 
       const missingCount = edition.minimumRosterSize - registration.rosterCount;
-      const dayNumber = Math.min(...activeStages.map((stage) => stage.dayNumber));
+      const dayNumber = firstDepartureStage.dayNumber;
 
       return [
         {

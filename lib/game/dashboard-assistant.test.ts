@@ -56,7 +56,6 @@ describe("dashboard DS assistant", () => {
           prestigeRank: 2,
         },
       ],
-      raceRosterAlertCount: 1,
       rewardCount: 3,
       cashBalance: 100_000,
     });
@@ -112,7 +111,6 @@ describe("dashboard DS assistant", () => {
         contractRenewalCount: 0,
         youthAlertCount: 0,
       },
-      raceRosterAlertCount: 0,
       rewardCount: 0,
       cashBalance: 100_000,
     });
@@ -133,7 +131,7 @@ describe("dashboard DS assistant", () => {
       id: "closest-national",
       slug: "closest-national",
       name: "Course nationale proche",
-      dayNumber: 10,
+      dayNumber: 11,
       prestigeRank: 4,
     });
     closestNational.status = "registration_closed";
@@ -141,21 +139,21 @@ describe("dashboard DS assistant", () => {
       id: "elite-beta",
       slug: "elite-beta",
       name: "Beta Elite",
-      dayNumber: 11,
+      dayNumber: 12,
       prestigeRank: 1,
     });
     const eliteAlpha = createRaceEdition({
       id: "elite-alpha",
       slug: "elite-alpha",
       name: "Alpha Elite",
-      dayNumber: 11,
+      dayNumber: 12,
       prestigeRank: 1,
     });
     const worldAardvark = createRaceEdition({
       id: "world-aardvark",
       slug: "world-aardvark",
       name: "Aardvark Mondial",
-      dayNumber: 11,
+      dayNumber: 12,
       prestigeRank: 2,
     });
     const calendar = createRaceCalendar([
@@ -196,6 +194,81 @@ describe("dashboard DS assistant", () => {
     expect(source).toMatch(
       /\.in\("status", \[\s*"planned",\s*"registration_open",\s*"registration_closed",\s*\]\)/,
     );
+  });
+
+  it("ignores a past one-day race even when its notification is still unread", () => {
+    const pastRace = createRaceEdition({
+      id: "past-race",
+      slug: "past-race",
+      name: "Course passée",
+      dayNumber: 9,
+      prestigeRank: 4,
+    });
+
+    expect(getDashboardRaceRosterAlerts(createRaceCalendar([pastRace]))).toEqual(
+      [],
+    );
+  });
+
+  it("ignores a stage race whose first stage has already started", () => {
+    const stageRace = createRaceEdition({
+      id: "started-tour",
+      slug: "started-tour",
+      name: "Tour commencé",
+      dayNumber: 9,
+      prestigeRank: 2,
+    });
+    stageRace.raceFormat = "stage_race";
+    stageRace.stages.push({
+      ...stageRace.stages[0]!,
+      id: "stage-started-tour-2",
+      dayNumber: 11,
+      stageNumber: 2,
+      name: "Étape 2",
+    });
+
+    expect(
+      getDashboardRaceRosterAlerts(createRaceCalendar([stageRace])),
+    ).toEqual([]);
+  });
+
+  it("keeps a same-day correction only before an explicit departure time", () => {
+    const todayRace = createRaceEdition({
+      id: "today-race",
+      slug: "today-race",
+      name: "Course du jour",
+      dayNumber: 10,
+      prestigeRank: 4,
+    });
+    todayRace.stages[0]!.departureAt = "2026-08-10T12:00:00.000Z";
+    const calendar = createRaceCalendar([todayRace]);
+
+    expect(
+      getDashboardRaceRosterAlerts(
+        calendar,
+        new Date("2026-08-10T11:59:59.000Z"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      getDashboardRaceRosterAlerts(
+        calendar,
+        new Date("2026-08-10T12:00:00.000Z"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("does not guess on the current day when the departure time is missing", () => {
+    const todayRace = createRaceEdition({
+      id: "today-without-time",
+      slug: "today-without-time",
+      name: "Course du jour sans heure",
+      dayNumber: 10,
+      prestigeRank: 4,
+    });
+
+    expect(
+      getDashboardRaceRosterAlerts(createRaceCalendar([todayRace])),
+    ).toEqual([]);
   });
 });
 

@@ -462,25 +462,7 @@ export default async function GamePage() {
 
   const dashboardFastSummary = await fastSummaryPromise;
   const raceRosterAlerts = getDashboardRaceRosterAlerts(raceCalendar);
-  let raceRosterAlertCount = dashboardFastSummary?.raceRosterAlertCount ?? 0;
-
-  if (!dashboardFastSummary) {
-    try {
-      const alertResult = await supabase
-        .from("race_roster_notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("requires_action", true)
-        .is("read_at", null);
-
-      if (alertResult.error) throw alertResult.error;
-      raceRosterAlertCount = alertResult.count ?? 0;
-    } catch (error) {
-      console.error(
-        "Impossible de récupérer les remplacements médicaux en attente :",
-        error,
-      );
-    }
-  }
+  const raceRosterAlertCount = raceRosterAlerts.length;
 
   const sportingDirector = dashboardSportingDirector;
 
@@ -648,7 +630,6 @@ export default async function GamePage() {
               <DashboardAssistant
                 summaryPromise={dashboardAssistantPromise}
                 raceRosterAlerts={raceRosterAlerts}
-                raceRosterAlertCount={raceRosterAlertCount}
                 rewardCount={readyRewardCount}
                 cashBalance={financeOverview?.balance ?? null}
               />
