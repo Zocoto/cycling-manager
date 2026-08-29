@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import {
   buildDashboardAssistantLines,
@@ -135,6 +136,7 @@ describe("dashboard DS assistant", () => {
       dayNumber: 10,
       prestigeRank: 4,
     });
+    closestNational.status = "registration_closed";
     const eliteBeta = createRaceEdition({
       id: "elite-beta",
       slug: "elite-beta",
@@ -182,6 +184,17 @@ describe("dashboard DS assistant", () => {
       eliteAlpha.minimumRosterSize;
     expect(getDashboardRaceRosterAlerts(calendar)[0]?.href).toBe(
       "/jeu/courses/elite-beta#inscription",
+    );
+  });
+
+  it("keeps closed registrations in the lightweight dashboard calendar", () => {
+    const source = readFileSync(
+      new URL("../../services/dashboard-race-calendar.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toMatch(
+      /\.in\("status", \[\s*"planned",\s*"registration_open",\s*"registration_closed",\s*\]\)/,
     );
   });
 });

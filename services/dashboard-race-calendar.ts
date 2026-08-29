@@ -123,7 +123,11 @@ export async function getDashboardRaceCalendar(
         "id, race_id, race_category_id, display_name, status, registration_closes_at, wildcard_closes_at, withdrawal_closes_at, minimum_reputation, registration_policy",
       )
       .eq("season_id", seasonId)
-      .in("status", ["planned", "registration_open"])
+      .in("status", [
+        "planned",
+        "registration_open",
+        "registration_closed",
+      ])
       .returns<EditionRow[]>(),
     supabase
       .from("season_days")
