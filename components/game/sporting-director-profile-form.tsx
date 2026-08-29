@@ -282,7 +282,10 @@ export function SportingDirectorProfileForm({
           ) : null}
         </div>
 
-        <fieldset data-tutorial-id="profile-avatar">
+        <fieldset
+          data-tutorial-id="profile-avatar"
+          data-tutorial-complete={hasSelectedAvatar ? "true" : "false"}
+        >
           <legend className="text-sm font-bold text-[#183F37]">
             Avatar du Directeur Sportif
           </legend>
@@ -366,7 +369,10 @@ export function SportingDirectorProfileForm({
           ) : null}
         </fieldset>
 
-        <div data-tutorial-id="profile-nationality">
+        <div
+          data-tutorial-id="profile-nationality"
+          data-tutorial-complete={selectedCountryId ? "true" : "false"}
+        >
           <label
             htmlFor="countryId"
             className="block text-sm font-bold text-[#183F37]"
@@ -613,6 +619,7 @@ export function SportingDirectorProfileForm({
 
         <button
           data-tutorial-id="profile-save"
+          data-tutorial-complete={state.status === "success" ? "true" : "false"}
           type="submit"
           disabled={
             pending ||

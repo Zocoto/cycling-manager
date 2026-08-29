@@ -8,6 +8,11 @@ const overlaySource = readFileSync(
   "utf8",
 );
 
+const providerSource = readFileSync(
+  join(process.cwd(), "components/tutorial/tutorial-provider.tsx"),
+  "utf8",
+);
+
 describe("tutorial mobile overlay", () => {
   it("restaure un volet bas compact qui laisse la page et la cible visibles", () => {
     expect(overlaySource).toContain("const MOBILE_BREAKPOINT = 640");
@@ -28,11 +33,29 @@ describe("tutorial mobile overlay", () => {
       "max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none",
     );
     expect(overlaySource).toContain(
-      'pointerEvents: step.allowTargetInteraction ? "none" : "auto"',
+      'isInformative || step.allowTargetInteraction ? "none" : "auto"',
     );
     expect(overlaySource).toContain(
-      "isMobile && step.allowTargetInteraction",
+      "isInformative || (isMobile && step.allowTargetInteraction)",
     );
+  });
+
+  it("présente l’onboarding comme un repère informatif non bloquant", () => {
+    expect(overlaySource).toContain('presentation === "informative"');
+    expect(overlaySource).toContain("Repère conseillé");
+    expect(overlaySource).toContain("isInformative ? false");
+    expect(overlaySource).toContain('data-tutorial-presentation={presentation}');
+    expect(providerSource).toContain(
+      'localizedActiveTutorial.definition.type === "onboarding"',
+    );
+    expect(providerSource).toContain('? "informative"');
+  });
+
+  it("bloque Suivant uniquement jusqu’à l’action demandée", () => {
+    expect(overlaySource).toContain("step.requiresTargetCompletion");
+    expect(overlaySource).toContain("data-tutorial-complete");
+    expect(overlaySource).toContain("data-tutorial-next-ready");
+    expect(overlaySource).toContain("Action à compléter");
   });
 
   it("utilise une cible dédiée sur téléphone lorsqu’elle existe", () => {

@@ -108,7 +108,7 @@ export function createTutorialCatalog(
 
 const onboardingTutorial = {
   key: ONBOARDING_TUTORIAL_KEY,
-  version: 2,
+  version: 3,
   type: "onboarding",
   title: "Premiers pas dans Cyclostratège",
   description:
@@ -122,7 +122,7 @@ const onboardingTutorial = {
       route: "/jeu",
       title: "Bienvenue dans Cyclostratège",
       content:
-        "Vous êtes désormais Directeur Sportif d’une jeune structure cycliste. Ce parcours présente les fonctions essentielles du jeu et vous prépare au Critérium de la découverte.\n\nVous pouvez quitter à tout moment, reprendre plus tard ou passer définitivement le didacticiel.",
+        "Vous êtes désormais Directeur Sportif d’une jeune structure cycliste. Ce parcours présente les fonctions essentielles du jeu et vous prépare au Critérium de la découverte.\n\nLes repères verts indiquent simplement où regarder : le reste de l’interface demeure visible et accessible. Vous pouvez quitter à tout moment, reprendre plus tard ou passer définitivement le didacticiel.",
       placement: "center",
     },
     {
@@ -141,7 +141,7 @@ const onboardingTutorial = {
       mobileTargetId: "dashboard-profile-summary",
       title: "Finalisez votre identité",
       content:
-        "Le nom de votre Directeur Sportif est déjà celui choisi lors de l’inscription : vous n’avez pas à le saisir une seconde fois.\n\nIl vous reste uniquement à choisir son avatar et sa nationalité. Cliquez sur Suivant : chaque contrôle à utiliser sera affiché et mis en évidence automatiquement.",
+        "Le nom de votre Directeur Sportif est déjà celui choisi lors de l’inscription : vous n’avez pas à le saisir une seconde fois.\n\nIl vous reste à choisir son avatar puis sa nationalité. Cliquez sur Suivant : chaque contrôle sera signalé par un repère informatif, sans verrouiller le reste de la page.",
       placement: "right",
     },
     {
@@ -150,9 +150,10 @@ const onboardingTutorial = {
       targetId: "profile-avatar",
       title: "Choisissez votre avatar",
       content:
-        "Votre nom est déjà renseigné depuis la création du compte. Choisissez maintenant le portrait qui représentera votre Directeur Sportif.\n\nTouchez « Créer mon avatar », composez votre portrait, puis revenez ici et cliquez sur Suivant.",
+        "Votre nom est déjà renseigné depuis la création du compte. Choisissez maintenant le portrait qui représentera votre Directeur Sportif.\n\nTouchez « Créer mon avatar » et composez votre portrait. Le bouton Suivant se débloquera dès que votre choix sera confirmé.",
       placement: "right",
       allowTargetInteraction: true,
+      requiresTargetCompletion: true,
       highlightPadding: 8,
     },
     {
@@ -161,9 +162,10 @@ const onboardingTutorial = {
       targetId: "profile-nationality",
       title: "Définissez votre nationalité",
       content:
-        "Choisissez maintenant la nationalité de votre Directeur Sportif dans le contrôle mis en évidence.\n\nCe choix personnel est définitif. Le pays de votre équipe et de vos sept premiers coureurs sera choisi séparément à l’étape suivante.",
+        "Votre avatar est prêt. Choisissez maintenant la nationalité de votre Directeur Sportif ; le bouton Suivant se débloquera après votre sélection.\n\nCe choix personnel est définitif. Le pays de votre équipe et de vos sept premiers coureurs sera choisi séparément à l’étape suivante.",
       placement: "right",
       allowTargetInteraction: true,
+      requiresTargetCompletion: true,
       highlightPadding: 8,
     },
     {
@@ -175,6 +177,7 @@ const onboardingTutorial = {
         "Votre avatar et votre nationalité sont prêts. Cliquez sur « Valider mon profil » dans la zone mise en évidence.\n\nAprès l’enregistrement, le didacticiel vous conduira automatiquement à la création de votre équipe.",
       placement: "top",
       allowTargetInteraction: true,
+      requiresTargetCompletion: true,
       highlightPadding: 8,
     },
     {

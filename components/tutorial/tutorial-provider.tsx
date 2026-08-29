@@ -896,6 +896,11 @@ export function TutorialProvider({
       {localizedActiveTutorial && currentStep && shouldDisplayOverlay ? (
         <TutorialOverlay
           tutorialTitle={localizedActiveTutorial.definition.title}
+          presentation={
+            localizedActiveTutorial.definition.type === "onboarding"
+              ? "informative"
+              : "focused"
+          }
           step={currentStep}
           stepIndex={localizedActiveTutorial.currentStepIndex}
           totalSteps={localizedActiveTutorial.definition.steps.length}

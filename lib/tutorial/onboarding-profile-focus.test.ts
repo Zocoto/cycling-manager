@@ -22,8 +22,9 @@ describe("onboarding profile focus", () => {
       (step) => step.key === "profile-form",
     );
 
-    expect(onboarding?.version).toBeGreaterThanOrEqual(2);
+    expect(onboarding?.version).toBeGreaterThanOrEqual(3);
     expect(overview?.content).toContain("déjà celui choisi lors de l’inscription");
+    expect(overview?.content).toContain("repère informatif");
     expect(avatar?.content).toContain("déjà renseigné");
     expect(avatar?.content).not.toContain("Choisissez votre nom");
   });
@@ -40,22 +41,26 @@ describe("onboarding profile focus", () => {
         key: step.key,
         targetId: step.targetId,
         interactive: step.allowTargetInteraction,
+        requiresCompletion: step.requiresTargetCompletion,
       })),
     ).toEqual([
       {
         key: "profile-form",
         targetId: "profile-avatar",
         interactive: true,
+        requiresCompletion: true,
       },
       {
         key: "profile-nationality",
         targetId: "profile-nationality",
         interactive: true,
+        requiresCompletion: true,
       },
       {
         key: "profile-save",
         targetId: "profile-save",
         interactive: true,
+        requiresCompletion: true,
       },
     ]);
   });
@@ -71,6 +76,13 @@ describe("onboarding profile focus", () => {
 
     expect(profileFormSource).toContain(
       'tutorialStepKey !== "profile-save"',
+    );
+    expect(profileFormSource).toContain("data-tutorial-complete");
+    expect(profileFormSource).toContain(
+      'hasSelectedAvatar ? "true" : "false"',
+    );
+    expect(profileFormSource).toContain(
+      'selectedCountryId ? "true" : "false"',
     );
   });
 });

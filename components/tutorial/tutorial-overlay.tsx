@@ -21,6 +21,7 @@ import type { TutorialStep, TutorialTargetRectangle } from "@/types/tutorial";
 
 type TutorialOverlayProps = {
   tutorialTitle: string;
+  presentation?: "focused" | "informative";
   step: TutorialStep;
   stepIndex: number;
   totalSteps: number;
@@ -88,6 +89,7 @@ function targetNeedsRecentering(
 
 export function TutorialOverlay({
   tutorialTitle,
+  presentation = "focused",
   step,
   stepIndex,
   totalSteps,
@@ -111,6 +113,11 @@ export function TutorialOverlay({
 
   const [targetRectangle, setTargetRectangle] =
     useState<TutorialTargetRectangle | null>(null);
+
+  const [targetCompletionState, setTargetCompletionState] = useState({
+    stepKey: step.key,
+    ready: !step.requiresTargetCompletion,
+  });
 
   const [isMobile, setIsMobile] = useState(isMobileViewport);
 
@@ -157,6 +164,7 @@ export function TutorialOverlay({
     let firstAnimationFrame = 0;
     let secondAnimationFrame = 0;
     let resizeObserver: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
 
     function findTargetElement(): HTMLElement | null {
       const targetId =
@@ -202,6 +210,18 @@ export function TutorialOverlay({
       };
 
       const targetElement = findTargetElement();
+      const nextTargetCompletionReady =
+        !step.requiresTargetCompletion ||
+        targetElement?.dataset.tutorialComplete === "true";
+      setTargetCompletionState((current) =>
+        current.stepKey === step.key &&
+        current.ready === nextTargetCompletionReady
+          ? current
+          : {
+              stepKey: step.key,
+              ready: nextTargetCompletionReady,
+            },
+      );
       const rawTargetRectangle = targetElement?.getBoundingClientRect() ?? null;
       const expandedTargetRectangle = rawTargetRectangle
         ? expandTutorialTargetRectangle(
@@ -293,6 +313,18 @@ export function TutorialOverlay({
       }
     }
 
+    if (
+      targetElement &&
+      step.requiresTargetCompletion &&
+      typeof MutationObserver !== "undefined"
+    ) {
+      mutationObserver = new MutationObserver(updateGeometry);
+      mutationObserver.observe(targetElement, {
+        attributes: true,
+        attributeFilter: ["data-tutorial-complete"],
+      });
+    }
+
     return () => {
       window.cancelAnimationFrame(firstAnimationFrame);
 
@@ -303,6 +335,7 @@ export function TutorialOverlay({
       window.removeEventListener("scroll", updateGeometry, true);
 
       resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
     };
   }, [
     isClient,
@@ -310,6 +343,7 @@ export function TutorialOverlay({
     step.key,
     step.mobileTargetId,
     step.placement,
+    step.requiresTargetCompletion,
     step.targetId,
   ]);
 
@@ -325,8 +359,13 @@ export function TutorialOverlay({
 
   const progressionPercentage =
     totalSteps > 0 ? ((stepIndex + 1) / totalSteps) * 100 : 0;
+  const isInformative = presentation === "informative";
+  const canContinue =
+    !step.requiresTargetCompletion ||
+    (targetCompletionState.stepKey === step.key &&
+      targetCompletionState.ready);
   const dimLayerPointerEvents =
-    isMobile && step.allowTargetInteraction
+    isInformative || (isMobile && step.allowTargetInteraction)
       ? "pointer-events-none"
       : "pointer-events-auto";
 
@@ -337,83 +376,110 @@ export function TutorialOverlay({
     >
       {highlightedArea ? (
         <>
-          <div
-            aria-hidden="true"
-            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
-            style={{
-              left: 0,
-              top: 0,
-              width: viewportSize.width,
-              height: highlightedArea.top,
-            }}
-          />
+          {isInformative ? null : (
+            <>
+              <div
+                aria-hidden="true"
+                className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
+                style={{
+                  left: 0,
+                  top: 0,
+                  width: viewportSize.width,
+                  height: highlightedArea.top,
+                }}
+              />
+
+              <div
+                aria-hidden="true"
+                className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
+                style={{
+                  left: 0,
+                  top: highlightedArea.top,
+                  width: highlightedArea.left,
+                  height: highlightedArea.height,
+                }}
+              />
+
+              <div
+                aria-hidden="true"
+                className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
+                style={{
+                  left: highlightedArea.right,
+                  top: highlightedArea.top,
+                  width: Math.max(0, viewportSize.width - highlightedArea.right),
+                  height: highlightedArea.height,
+                }}
+              />
+
+              <div
+                aria-hidden="true"
+                className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
+                style={{
+                  left: 0,
+                  top: highlightedArea.bottom,
+                  width: viewportSize.width,
+                  height: Math.max(0, viewportSize.height - highlightedArea.bottom),
+                }}
+              />
+            </>
+          )}
 
           <div
             aria-hidden="true"
-            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
-            style={{
-              left: 0,
-              top: highlightedArea.top,
-              width: highlightedArea.left,
-              height: highlightedArea.height,
-            }}
-          />
-
-          <div
-            aria-hidden="true"
-            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
-            style={{
-              left: highlightedArea.right,
-              top: highlightedArea.top,
-              width: Math.max(0, viewportSize.width - highlightedArea.right),
-              height: highlightedArea.height,
-            }}
-          />
-
-          <div
-            aria-hidden="true"
-            className={`${dimLayerPointerEvents} fixed bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none`}
-            style={{
-              left: 0,
-              top: highlightedArea.bottom,
-              width: viewportSize.width,
-              height: Math.max(0, viewportSize.height - highlightedArea.bottom),
-            }}
-          />
-
-          <div
-            aria-hidden="true"
-            className="fixed rounded-2xl border-2 border-[#F2C94C] shadow-[0_0_0_4px_rgba(242,201,76,0.22),0_12px_40px_rgba(0,0,0,0.28)] transition-[left,top,width,height] duration-150"
+            className={
+              isInformative
+                ? "pointer-events-none fixed rounded-2xl border-2 border-[#42B99A] bg-[#DFF4EC]/10 shadow-[0_0_0_5px_rgba(66,185,154,0.14),0_10px_30px_rgba(23,105,81,0.14)] transition-[left,top,width,height] duration-150"
+                : "fixed rounded-2xl border-2 border-[#F2C94C] shadow-[0_0_0_4px_rgba(242,201,76,0.22),0_12px_40px_rgba(0,0,0,0.28)] transition-[left,top,width,height] duration-150"
+            }
             style={{
               left: highlightedArea.left,
               top: highlightedArea.top,
               width: highlightedArea.width,
               height: highlightedArea.height,
-              pointerEvents: step.allowTargetInteraction ? "none" : "auto",
+              pointerEvents:
+                isInformative || step.allowTargetInteraction ? "none" : "auto",
             }}
           />
+
+          {isInformative ? (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed z-[225] rounded-full border border-[#42B99A]/35 bg-[#F3FBF7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] shadow-[0_6px_18px_rgba(23,105,81,0.16)]"
+              style={{
+                left: Math.max(12, highlightedArea.left),
+                top: Math.max(8, highlightedArea.top - 30),
+              }}
+            >
+              {isEnglish ? "Suggested landmark" : "Repère conseillé"}
+            </div>
+          ) : null}
         </>
       ) : (
-        <div
-          aria-hidden="true"
-          className="pointer-events-auto fixed inset-0 bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
-        />
+        isInformative ? null : (
+          <div
+            aria-hidden="true"
+            className="pointer-events-auto fixed inset-0 bg-[#071A17]/78 backdrop-blur-[1px] max-sm:bg-[#071A17]/45 max-sm:backdrop-blur-none"
+          />
+        )
       )}
 
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal={step.allowTargetInteraction ? undefined : true}
+        aria-modal={
+          isInformative ? false : step.allowTargetInteraction ? undefined : true
+        }
         aria-labelledby={panelLabelId}
         aria-describedby={panelDescriptionId}
         tabIndex={-1}
         data-tutorial-panel-layout={
           isMobile ? "mobile-sheet" : panelPosition.placement
         }
+        data-tutorial-presentation={presentation}
         className={
           isMobile
-            ? "pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[30dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] shadow-[0_-16px_50px_rgba(7,26,23,0.4)] outline-none"
-            : "pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border border-[#315B3E]/15 bg-[#FFFDF4] text-[#16342D] shadow-[0_28px_90px_rgba(7,26,23,0.42)] outline-none"
+            ? `pointer-events-auto fixed inset-x-0 bottom-0 z-[230] flex max-h-[30dvh] flex-col overflow-hidden rounded-t-[1.25rem] border-t border-[#315B3E]/15 bg-[#FFFDF4] pb-[env(safe-area-inset-bottom)] text-[#16342D] outline-none ${isInformative ? "shadow-[0_-10px_34px_rgba(23,105,81,0.2)]" : "shadow-[0_-16px_50px_rgba(7,26,23,0.4)]"}`
+            : `pointer-events-auto fixed z-[230] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[1.5rem] border bg-[#FFFDF4] text-[#16342D] outline-none ${isInformative ? "border-[#42B99A]/30 shadow-[0_18px_55px_rgba(23,105,81,0.2)]" : "border-[#315B3E]/15 shadow-[0_28px_90px_rgba(7,26,23,0.42)]"}`
         }
         style={
           isMobile
@@ -576,14 +642,19 @@ export function TutorialOverlay({
               <button
                 type="button"
                 onClick={onNext}
-                disabled={isPending}
-                className="min-h-10 rounded-xl bg-[#176951] px-5 text-xs font-black text-white shadow-md transition hover:bg-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+                disabled={isPending || !canContinue}
+                data-tutorial-next-ready={canContinue ? "true" : "false"}
+                className="min-h-10 rounded-xl bg-[#176951] px-5 text-xs font-black text-white shadow-md transition hover:bg-[#278B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#278B70] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPending
                   ? isEnglish
                     ? "Saving…"
                     : "Enregistrement…"
-                  : isLastStep
+                  : !canContinue
+                    ? isEnglish
+                      ? "Complete this action"
+                      : "Action à compléter"
+                    : isLastStep
                     ? isEnglish
                       ? "Finish"
                       : "Terminer"

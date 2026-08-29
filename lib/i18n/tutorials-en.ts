@@ -17,7 +17,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       welcome: {
         title: "Welcome to Cyclo Stratège",
         content:
-          "You are now the Sports Director of a young cycling team. This tour introduces the essential game features and prepares you for the Discovery Criterium.\n\nYou can leave at any time, resume later or permanently skip the tutorial.",
+          "You are now the Sports Director of a young cycling team. This tour introduces the essential game features and prepares you for the Discovery Criterium.\n\nGreen landmarks simply show where to look: the rest of the interface remains visible and accessible. You can leave at any time, resume later or permanently skip the tutorial.",
       },
       "news-feed": {
         title: "Keep an eye on your notifications",
@@ -27,17 +27,17 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "profile-overview": {
         title: "Complete your identity",
         content:
-          "Your Sports Director name is already the one chosen during registration: you do not need to enter it again.\n\nYou only need to choose an avatar and nationality. Select Next: each control will be brought into view and highlighted automatically.",
+          "Your Sports Director name is already the one chosen during registration: you do not need to enter it again.\n\nYou only need to choose an avatar, then a nationality. Select Next: each control will appear as an informative landmark without locking the rest of the page.",
       },
       "profile-form": {
         title: "Choose your avatar",
         content:
-          "Your name has already been filled from account creation. Now choose the portrait that will represent your Sports Director.\n\nSelect Create my avatar, compose your portrait, then return here and select Next.",
+          "Your name has already been filled from account creation. Now choose the portrait that will represent your Sports Director.\n\nSelect Create my avatar and compose your portrait. The Next button will unlock as soon as you confirm your choice.",
       },
       "profile-nationality": {
         title: "Set your nationality",
         content:
-          "Now choose your Sports Director nationality in the highlighted control.\n\nThis personal choice is permanent. Your team country and the country of your first seven riders will be selected separately in the next stage.",
+          "Your avatar is ready. Now choose your Sports Director nationality; the Next button will unlock after your selection.\n\nThis personal choice is permanent. Your team country and the country of your first seven riders will be selected separately in the next stage.",
       },
       "profile-save": {
         title: "Confirm your profile",

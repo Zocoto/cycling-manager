@@ -67,6 +67,15 @@ export type TutorialStep = {
   allowTargetInteraction?: boolean;
 
   /**
+   * Empêche de poursuivre tant que la cible n’expose pas
+   * `data-tutorial-complete="true"`.
+   *
+   * Cette garde est réservée aux étapes qui demandent une action
+   * concrète dans la page, par exemple choisir un avatar.
+   */
+  requiresTargetCompletion?: boolean;
+
+  /**
    * Marge en pixels entre la surbrillance et l’élément ciblé.
    */
   highlightPadding?: number;
