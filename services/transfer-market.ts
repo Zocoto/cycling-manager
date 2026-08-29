@@ -330,6 +330,9 @@ export async function getTransferMarketOverview(
   if (!context) return null;
 
   const marketDate = formatParisDate(new Date());
+  const recentlyEndedCutoff = new Date(
+    Date.now() - 36 * 60 * 60 * 1000,
+  ).toISOString();
   const [
     listingsResult,
     contractsResult,
@@ -348,7 +351,7 @@ export async function getTransferMarketOverview(
       )
       .eq("season_id", context.season.id)
       .or(
-        `status.eq.open,and(listing_type.eq.daily,market_date.eq.${marketDate})`,
+        `status.eq.open,and(listing_type.eq.daily,market_date.eq.${marketDate}),and(listing_type.eq.director,status.neq.open,closes_at.gte.${recentlyEndedCutoff})`,
       )
       .order("closes_at", { ascending: true })
       .returns<ListingRow[]>(),
@@ -423,7 +426,10 @@ export async function getTransferMarketOverview(
   ]);
 
   assertQuery(listingsResult.error, "les enchères");
-  const listingIds = (listingsResult.data ?? []).map((listing) => listing.id);
+  const listings = (listingsResult.data ?? []).filter((listing) =>
+    isTransferListingVisibleOnMarketDate(listing, marketDate),
+  );
+  const listingIds = listings.map((listing) => listing.id);
   const bidsResult = listingIds.length > 0
     ? await admin
         .from("transfer_market_bids")
@@ -443,7 +449,6 @@ export async function getTransferMarketOverview(
   assertQuery(receivedDirectOffersResult.error, "les offres directes reçues");
   const dataRoomLevel = dataRoomResult.data?.level ?? 0;
 
-  const listings = listingsResult.data ?? [];
   const bids = bidsResult.data ?? [];
   const activeContracts = (contractsResult.data ?? []).filter(
     (contract) => contract.status === "active",
@@ -505,11 +510,22 @@ export async function getTransferMarketOverview(
     const rider = riderById.get(listing.rider_id);
     if (!rider) return [];
     const listingBids = bidGroups.get(listing.id) ?? [];
-    const leader = listingBids[0] ?? null;
+    const openLeader = listingBids[0] ?? null;
+    const visibleLeaderTeamId =
+      listing.status === "settled"
+        ? listing.winning_team_id
+        : listing.status === "open"
+          ? (openLeader?.team_id ?? null)
+          : null;
     const ownBid = listingBids
       .filter((bid) => bid.team_id === context.teamSeason.team_id)
       .reduce((maximum, bid) => Math.max(maximum, toNumber(bid.amount)), 0);
-    const currentBid = leader ? toNumber(leader.amount) : null;
+    const currentBid =
+      listing.status === "settled" && listing.winning_bid !== null
+        ? toNumber(listing.winning_bid)
+        : listing.status === "open" && openLeader
+          ? toNumber(openLeader.amount)
+          : null;
 
     return [
       {
@@ -528,12 +544,13 @@ export async function getTransferMarketOverview(
             ? toNumber(listing.minimum_bid)
             : calculateMinimumNextBid(currentBid),
         bidCount: listingBids.length,
-        leaderTeamName: leader
-          ? (teamNames.get(leader.team_id) ?? "Équipe inconnue")
+        leaderTeamName: visibleLeaderTeamId
+          ? (teamNames.get(visibleLeaderTeamId) ?? "Équipe inconnue")
           : null,
-        leaderTeamId: leader?.team_id ?? null,
+        leaderTeamId: visibleLeaderTeamId,
         ownBid: ownBid > 0 ? ownBid : null,
-        isOwnTeamLeading: leader?.team_id === context.teamSeason.team_id,
+        isOwnTeamLeading:
+          visibleLeaderTeamId === context.teamSeason.team_id,
         salaryPerSeason: toNumber(listing.salary_per_season),
         salaryPerWeek: calculateWeeklySalary(
           toNumber(listing.salary_per_season),
@@ -552,6 +569,7 @@ export async function getTransferMarketOverview(
       } satisfies TransferMarketListing,
     ];
   });
+  mappedListings.sort(compareTransferMarketListings);
 
   const openListingRiderIds = new Set(
     listings
@@ -1304,6 +1322,37 @@ function calculateOverall(ratings: RiderRatings) {
 
 function calculateSalaryApproximation(overall: number) {
   return calculateRiderSeasonSalary({ overall });
+}
+
+function isTransferListingVisibleOnMarketDate(
+  listing: ListingRow,
+  marketDate: string,
+) {
+  if (listing.status === "open") return true;
+  if (listing.listing_type === "daily") {
+    return listing.market_date === marketDate;
+  }
+
+  const endedAt = listing.settled_at ?? listing.closes_at;
+  return formatParisDate(new Date(endedAt)) === marketDate;
+}
+
+function compareTransferMarketListings(
+  left: TransferMarketListing,
+  right: TransferMarketListing,
+) {
+  const leftIsOpen = left.status === "open";
+  const rightIsOpen = right.status === "open";
+
+  if (leftIsOpen !== rightIsOpen) return leftIsOpen ? -1 : 1;
+
+  const leftCloseTime = new Date(left.closesAt).getTime();
+  const rightCloseTime = new Date(right.closesAt).getTime();
+  const chronologicalDifference = leftIsOpen
+    ? leftCloseTime - rightCloseTime
+    : rightCloseTime - leftCloseTime;
+
+  return chronologicalDifference || left.id.localeCompare(right.id);
 }
 
 function formatParisDate(date: Date) {

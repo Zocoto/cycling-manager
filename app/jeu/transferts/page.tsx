@@ -106,7 +106,9 @@ export default async function TransferMarketPage({ searchParams }: TransferPageP
       ? overview.auctionListings
       : tab === "directeurs"
         ? overview.directorListings.filter(
-            (listing) => listing.sellerTeamId === overview.teamId,
+            (listing) =>
+              listing.sellerTeamId === overview.teamId &&
+              listing.status === "open",
           )
         : [];
   const visualTeamIds = [
@@ -252,6 +254,11 @@ function Auctions({ listings, overview, jerseys, sponsors, returnPath }: {
   sponsors: Map<string, Sponsor>;
   returnPath: string;
 }) {
+  const activeListings = listings.filter((listing) => listing.status === "open");
+  const finishedListings = listings.filter(
+    (listing) => listing.status !== "open",
+  );
+
   return (
     <section data-tutorial-id="transfer-daily-overview" className="mt-7">
       <SectionHeading eyebrow={`Marché du ${formatDate(overview.marketDate)}`} title="Toutes les enchères" detail="Retrouvez ici la sélection quotidienne, les profils des fêtes nationales et les coureurs mis en vente par les autres DS. Les enchères DS restent ouvertes 24 heures ; toute offre placée dans les 10 dernières minutes repousse la fin de 30 minutes. Ce report peut s’appliquer autant de fois que nécessaire." />
@@ -267,8 +274,27 @@ function Auctions({ listings, overview, jerseys, sponsors, returnPath }: {
       ) : null}
       <div data-tutorial-id="transfer-daily-listings">
         {listings.length > 0 ? (
-          <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {listings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
+          <div className="space-y-8">
+            {activeListings.length > 0 ? (
+              <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {activeListings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
+              </div>
+            ) : null}
+            {finishedListings.length > 0 ? (
+              <section aria-labelledby="finished-auctions-title" className="rounded-[2rem] border border-[#315B3E]/12 bg-[#E9ECEA]/70 p-5 sm:p-6">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#71807B]">Historique du jour</p>
+                    <h3 id="finished-auctions-title" className="mt-1 text-xl font-black text-[#44534F]">Enchères terminées</h3>
+                    <p className="mt-1 text-xs font-semibold leading-5 text-[#71807B]">Ces résultats restent visibles jusqu’au renouvellement du marché demain.</p>
+                  </div>
+                  <span className="rounded-full border border-[#71807B]/20 bg-white/70 px-3 py-1 text-xs font-black text-[#53615D]">{finishedListings.length}</span>
+                </div>
+                <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {finishedListings.map((listing) => <AuctionCard key={listing.id} listing={listing} jersey={listing.sellerTeamId ? jerseys.get(listing.sellerTeamId) ?? FREE_AGENT_RIDER_JERSEY : FREE_AGENT_RIDER_JERSEY} leaderSponsor={listing.leaderTeamId ? sponsors.get(listing.leaderTeamId) ?? null : null} teamId={overview.teamId} availableBudget={overview.availableBudget} rosterIsFull={overview.rosterIsFull} returnPath={returnPath} />)}
+                </div>
+              </section>
+            ) : null}
           </div>
         ) : (
           <EmptyState title="Aucune enchère ouverte" detail="La prochaine sélection quotidienne apparaîtra à 9 h, ou dès qu’un DS publiera un coureur." />
@@ -530,24 +556,105 @@ function RiderSearch({ riders, countries, query, filters, currency, currentTeamI
 }
 
 function AuctionCard({ listing, jersey, leaderSponsor, teamId, availableBudget, rosterIsFull, returnPath }: { listing: TransferMarketListing; jersey: RiderJerseyAppearance; leaderSponsor: Sponsor | null; teamId: string; availableBudget: number; rosterIsFull: boolean; returnPath: string }) {
+  const isFinished = listing.status !== "open";
   const canBid = listing.status === "open" && listing.sellerTeamId !== teamId && !rosterIsFull;
   const bidCapacity = availableBudget + (listing.isOwnTeamLeading ? listing.currentBid ?? 0 : 0);
+  const resultLabel =
+    listing.status === "settled"
+      ? "Enchère terminée · attribuée"
+      : listing.status === "cancelled"
+        ? "Enchère annulée"
+        : "Enchère terminée · sans offre";
+  const resultValue =
+    listing.status === "settled"
+      ? (listing.leaderTeamName ?? "Équipe gagnante")
+      : listing.status === "cancelled"
+        ? "Annulée"
+        : "Aucune offre";
+
   return (
-    <article id={`enchere-${listing.id}`} className="scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] target:ring-4 target:ring-[#F2C94C]/60">
-      <div className="relative flex items-center gap-5 bg-[linear-gradient(135deg,#0B302B,#176951)] p-5 text-white">
-        <RiderAvatar profileKey={listing.rider.avatarProfileKey} seed={listing.rider.avatarSeed} riderId={listing.rider.id} age={listing.rider.age} jersey={jersey} label={`Portrait de ${listing.rider.firstName} ${listing.rider.lastName}`} className="h-24 w-24 border-2 border-white/20" />
-        <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#9BE0BC]">{listing.sellerTeamName ?? "Sélection quotidienne"}</p><Link href={`/jeu/coureurs/${listing.rider.id}`} target="_blank" className="mt-1 block truncate text-xl font-black hover:text-[#F2C94C]">{listing.rider.firstName} {listing.rider.lastName} ↗</Link><p className="mt-2 text-xs font-bold text-[#D6DFD2]"><span className={`fi fi-${listing.rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />{listing.rider.countryName} · {listing.rider.age} ans</p></div>
+    <article
+      id={`enchere-${listing.id}`}
+      data-auction-status={isFinished ? "finished" : "active"}
+      className={
+        isFinished
+          ? "scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#71807B]/25 bg-[#EEF1EF] shadow-[0_10px_28px_rgba(45,58,54,0.08)] target:ring-4 target:ring-[#87938F]/40"
+          : "scroll-mt-6 overflow-hidden rounded-[2rem] border border-[#315B3E]/12 bg-white shadow-[0_16px_42px_rgba(19,60,46,0.09)] target:ring-4 target:ring-[#F2C94C]/60"
+      }
+    >
+      {isFinished ? (
+        <div className="border-b border-white/10 bg-[#485752] px-5 py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white">
+          Enchère terminée
+        </div>
+      ) : null}
+      <div
+        className={
+          isFinished
+            ? "relative flex items-center gap-5 bg-[linear-gradient(135deg,#56655F,#7C8984)] p-5 text-white"
+            : "relative flex items-center gap-5 bg-[linear-gradient(135deg,#0B302B,#176951)] p-5 text-white"
+        }
+      >
+        <RiderAvatar
+          profileKey={listing.rider.avatarProfileKey}
+          seed={listing.rider.avatarSeed}
+          riderId={listing.rider.id}
+          age={listing.rider.age}
+          jersey={jersey}
+          label={`Portrait de ${listing.rider.firstName} ${listing.rider.lastName}`}
+          className={
+            isFinished
+              ? "h-24 w-24 border-2 border-white/20 opacity-80"
+              : "h-24 w-24 border-2 border-white/20"
+          }
+        />
+        <div className="min-w-0">
+          <p className={`text-[10px] font-black uppercase tracking-[0.17em] ${isFinished ? "text-[#E0E5E2]" : "text-[#9BE0BC]"}`}>
+            {listing.sellerTeamName ?? "Sélection quotidienne"}
+          </p>
+          <Link
+            href={`/jeu/coureurs/${listing.rider.id}`}
+            target="_blank"
+            className={`mt-1 block truncate text-xl font-black ${isFinished ? "hover:text-white" : "hover:text-[#F2C94C]"}`}
+          >
+            {listing.rider.firstName} {listing.rider.lastName} ↗
+          </Link>
+          <p className="mt-2 text-xs font-bold text-[#E0E5E2]">
+            <span className={`fi fi-${listing.rider.countryCode.toLowerCase()} mr-2 rounded-sm`} />
+            {listing.rider.countryName} · {listing.rider.age} ans
+          </p>
+        </div>
       </div>
-      <div className="p-5">
+      <div className={isFinished ? "bg-[#F1F3F2] p-5" : "p-5"}>
         <div className="mb-4 flex flex-wrap gap-2">
           <AuctionTypeBadge listing={listing} />
-          <span className="rounded-full bg-[#DDF3E7] px-3 py-1 text-xs font-black text-[#176951]">{listing.rider.profileLabel}</span>
+          <span className={`rounded-full px-3 py-1 text-xs font-black ${isFinished ? "bg-[#DDE2DF] text-[#5E6C67]" : "bg-[#DDF3E7] text-[#176951]"}`}>{listing.rider.profileLabel}</span>
         </div>
         <TransferScoutingReportPanel report={listing.rider.scoutingReport} compact />
-        <div className="mt-4 grid grid-cols-2 gap-3"><PriceBlock label={listing.currentBid ? "Offre en tête" : "Prix d’appel"} value={formatMoney(listing.currentBid ?? listing.minimumBid, listing.currency)} /><PriceBlock label="Salaire hebdo." value={formatMoney(listing.salaryPerWeek, listing.currency)} /></div>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-[#F2C94C]/25 bg-[#FFF9DF] px-4 py-3 text-xs font-black text-[#705B00]"><span>{listing.status === "open" ? "Temps restant" : listing.status === "settled" ? "Attribué" : "Clôturé sans offre"}</span>{listing.status === "open" ? <TransferCountdown closesAt={listing.closesAt} /> : <span>{listing.leaderTeamName ?? "Agent libre"}</span>}</div>
-        {listing.currentBid !== null && listing.leaderTeamName ? <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#315B3E]/12 bg-[#F3F8F6] px-4 py-3">{leaderSponsor ? <SponsorLogoMark src={leaderSponsor.logoPath} alt={`Logo de ${leaderSponsor.name}`} sponsorName={leaderSponsor.name} primaryColor={leaderSponsor.colors.primary} backgroundColor={leaderSponsor.colors.background} textColor={leaderSponsor.colors.text} className="h-10 w-14 rounded-lg p-1.5" /> : <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0B302B] text-xs font-black text-white">{getTeamInitials(listing.leaderTeamName)}</span>}<div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-wider text-[#60756E]">Meilleure enchère</p><p className="truncate text-sm font-black text-[#183F37]">{listing.leaderTeamName}</p></div><p className="shrink-0 text-sm font-black text-[#176951]">{formatMoney(listing.currentBid, listing.currency)}</p></div> : null}
-        {listing.isOwnTeamLeading ? <p className="mt-3 rounded-xl bg-[#DDF3E7] px-4 py-3 text-xs font-black text-[#176951]">Votre équipe mène l’enchère avec {formatMoney(listing.ownBid ?? 0, listing.currency)}.</p> : null}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <PriceBlock label={listing.currentBid ? (isFinished ? "Enchère gagnante" : "Offre en tête") : "Prix d’appel"} value={formatMoney(listing.currentBid ?? listing.minimumBid, listing.currency)} />
+          <PriceBlock label="Salaire hebdo." value={formatMoney(listing.salaryPerWeek, listing.currency)} />
+        </div>
+        <div className={`mt-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs font-black ${isFinished ? "border-[#71807B]/20 bg-[#E1E5E3] text-[#52605B]" : "border-[#F2C94C]/25 bg-[#FFF9DF] text-[#705B00]"}`}>
+          <span>{isFinished ? resultLabel : "Temps restant"}</span>
+          {isFinished ? <span className="text-right">{resultValue}</span> : <TransferCountdown closesAt={listing.closesAt} />}
+        </div>
+        {listing.currentBid !== null && listing.leaderTeamName ? (
+          <div className={`mt-4 flex items-center gap-3 rounded-xl border px-4 py-3 ${isFinished ? "border-[#71807B]/15 bg-[#E6E9E7]" : "border-[#315B3E]/12 bg-[#F3F8F6]"}`}>
+            {leaderSponsor ? <SponsorLogoMark src={leaderSponsor.logoPath} alt={`Logo de ${leaderSponsor.name}`} sponsorName={leaderSponsor.name} primaryColor={leaderSponsor.colors.primary} backgroundColor={leaderSponsor.colors.background} textColor={leaderSponsor.colors.text} className="h-10 w-14 rounded-lg p-1.5" /> : <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-black text-white ${isFinished ? "bg-[#68756F]" : "bg-[#0B302B]"}`}>{getTeamInitials(listing.leaderTeamName)}</span>}
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-black uppercase tracking-wider text-[#60756E]">{isFinished ? "Équipe gagnante" : "Meilleure enchère"}</p>
+              <p className="truncate text-sm font-black text-[#183F37]">{listing.leaderTeamName}</p>
+            </div>
+            <p className={`shrink-0 text-sm font-black ${isFinished ? "text-[#53615D]" : "text-[#176951]"}`}>{formatMoney(listing.currentBid, listing.currency)}</p>
+          </div>
+        ) : null}
+        {listing.isOwnTeamLeading ? (
+          <p className={`mt-3 rounded-xl px-4 py-3 text-xs font-black ${isFinished ? "bg-[#DDE2DF] text-[#53615D]" : "bg-[#DDF3E7] text-[#176951]"}`}>
+            {isFinished
+              ? `Votre équipe a remporté l’enchère avec ${formatMoney(listing.currentBid ?? 0, listing.currency)}.`
+              : `Votre équipe mène l’enchère avec ${formatMoney(listing.ownBid ?? 0, listing.currency)}.`}
+          </p>
+        ) : null}
         {canBid ? (
           <form action={placeTransferBidAction} className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-3">
             <input type="hidden" name="listingId" value={listing.id} /><input type="hidden" name="returnPath" value={returnPath} />
@@ -569,7 +676,9 @@ function AuctionTypeBadge({ listing }: { listing: TransferMarketListing }) {
         ? "Enchère fête nationale"
         : "Enchère quotidienne";
   const colors =
-    listing.type === "director"
+    listing.status !== "open"
+      ? "border-[#71807B]/20 bg-[#DDE2DF] text-[#5E6C67]"
+      : listing.type === "director"
       ? "border-[#256390]/20 bg-[#EAF2FA] text-[#256390]"
       : listing.isNationalDayBonus
         ? "border-[#D6A600]/25 bg-[#FFF3C4] text-[#755A00]"
