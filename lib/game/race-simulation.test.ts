@@ -21,6 +21,7 @@ import {
   getStageGeneralClassificationInterest,
   getStageTimeLimitAllowanceSeconds,
   getNextHillyClimbLoad,
+  isFlatRunInGroupSprint,
   isMassGroupFinish,
   reduceMechanicalIncidentTimeLoss,
   resolveCaughtBreakawayElapsedTime,
@@ -36,6 +37,38 @@ describe("areFinishersInSameTimeGroup", () => {
     expect(areFinishersInSameTimeGroup(100, 102)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 103)).toBe(true);
     expect(areFinishersInSameTimeGroup(100, 104)).toBe(false);
+  });
+});
+
+describe("isFlatRunInGroupSprint", () => {
+  const rutaStageOneSegments = createShortPunchyRutaSegments();
+
+  it("reconnaît un grand groupe encore compact avant le dernier plat", () => {
+    expect(isFlatRunInGroupSprint(rutaStageOneSegments, 30)).toBe(true);
+    expect(isFlatRunInGroupSprint(rutaStageOneSegments, 9)).toBe(false);
+  });
+
+  it("ne neutralise pas les écarts d'une arrivée sélective ou pavée", () => {
+    expect(
+      isFlatRunInGroupSprint(
+        rutaStageOneSegments.map((segment, index) =>
+          index === rutaStageOneSegments.length - 1
+            ? { ...segment, terrain: "climb" as const }
+            : segment,
+        ),
+        30,
+      ),
+    ).toBe(false);
+    expect(
+      isFlatRunInGroupSprint(
+        rutaStageOneSegments.map((segment, index) =>
+          index === rutaStageOneSegments.length - 1
+            ? { ...segment, surface: "cobbles" as const }
+            : segment,
+        ),
+        30,
+      ),
+    ).toBe(false);
   });
 });
 
@@ -1277,6 +1310,63 @@ describe("simulateRaceStage", () => {
     ).toBe(1);
   });
 
+  it("règle au sprint et au même temps le grand groupe de la première étape de la Ruta", () => {
+    const baseInput = createDemoSimulationInput("collines-ardennes", 41);
+    const riders = Array.from({ length: 40 }, (_, index) => ({
+      ...createSelectionTestRider(
+        index === 0 ? "puncheur-sprinteur" : `puncheur-${index}`,
+        {
+          flat: 76,
+          mountain: 80,
+          hills: 88,
+          downhill: 82,
+          sprint: index === 0 ? 94 : 58,
+          acceleration: index === 0 ? 84 : 68,
+          endurance: 86,
+          resistance: 86,
+          recovery: 82,
+          breakaway: 35,
+        },
+      ),
+      teamId: `ruta-team-${index}`,
+      teamName: `Ruta team ${index}`,
+      role: "leader" as const,
+      form: 80,
+    }));
+    const result = simulateRaceStage({
+      ...baseInput,
+      id: "ruta-de-las-sierras-stage-1-flat-run-in",
+      seed: 41,
+      profileType: "hilly",
+      segments: createShortPunchyRutaSegments(),
+      riders,
+    });
+    const entrySnapshot = result.timeline.at(-2)!;
+    const leadingGap = Math.min(
+      ...entrySnapshot.groups.map((group) => group.gapToLeaderSeconds),
+    );
+    const compactLeadingGroupIds = entrySnapshot.groups
+      .filter(
+        (group) =>
+          group.type === "peloton" && group.gapToLeaderSeconds === leadingGap,
+      )
+      .flatMap((group) => group.riderIds);
+    const resultByRiderId = new Map(
+      result.results.map((resultRow) => [resultRow.riderId, resultRow]),
+    );
+    const compactGroupResults = compactLeadingGroupIds.map(
+      (riderId) => resultByRiderId.get(riderId)!,
+    );
+
+    expect(compactLeadingGroupIds.length).toBeGreaterThanOrEqual(30);
+    expect(
+      new Set(
+        compactGroupResults.map((resultRow) => resultRow.elapsedTimeSeconds),
+      ).size,
+    ).toBe(1);
+    expect(result.results[0].riderId).toBe("puncheur-sprinteur");
+  });
+
   it("conserve le temps commun d'un groupe sur une étape classée montagne", () => {
     const mountainInput = createDemoSimulationInput("haute-montagne", 1);
     const result = simulateRaceStage({
@@ -2413,6 +2503,35 @@ function createSelectionTestRider(
       ...overrides,
     },
   };
+}
+
+function createShortPunchyRutaSegments(): RaceStageSegment[] {
+  const definitions: Array<
+    [distanceKm: number, terrain: RaceStageSegment["terrain"], gradient: number]
+  > = [
+    [10, "flat", 0],
+    [4, "climb", 6.5],
+    [3, "descent", -5.8],
+    [8, "flat", 0],
+    [3, "climb", 9.5],
+    [3, "descent", -7.2],
+    [10, "flat", 0],
+    [4, "climb", 7.8],
+    [4, "descent", -6.8],
+    [12, "flat", 0],
+    [3, "climb", 11],
+    [4, "descent", -8.5],
+    [10, "flat", 0],
+  ];
+
+  return definitions.map(([distanceKm, terrain, averageGradientPct], index) => ({
+    segmentNumber: index + 1,
+    distanceKm,
+    terrain,
+    averageGradientPct,
+    surface: "asphalt",
+    prime: null,
+  }));
 }
 
 function createBalancedMountainFavoritesInput(

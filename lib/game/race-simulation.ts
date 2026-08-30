@@ -611,6 +611,7 @@ type RiderState = {
 
 const SCORE_NOISE = 3.2;
 const SAME_TIME_MAX_GAP_SECONDS = 3;
+const FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS = 10;
 const ABSOLUTE_EXHAUSTION_ENERGY = 3.5;
 const MINIMUM_BREAKAWAY_LEAD_ENERGY = 9;
 const RACE_INJURY_PERFORMANCE_PENALTY = {
@@ -2719,10 +2720,17 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
   });
 
   const finalCommentary = timeline.at(-1)?.commentary ?? [];
+  const groupSprintFinish =
+    isLikelyMassSprint(input.segments) ||
+    isFlatRunInGroupSprint(
+      input.segments,
+      getLargestContendingRoadGroupSize(states),
+    );
   const finishScores = getRoadFinishScores(
     states,
     input.segments,
     input.profileType,
+    groupSprintFinish,
     random,
     finalCommentary,
   );
@@ -2737,6 +2745,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         finishScores,
         input.segments,
         input.profileType,
+        groupSprintFinish,
       ),
       energyAfter: round(state.energy, 1),
     }));
@@ -5680,11 +5689,12 @@ function getRoadFinishScores(
   states: Map<string, RiderState>,
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
+  groupSprintFinish: boolean,
   random: () => number,
   commentary: string[],
 ) {
   const scores = new Map<string, number>();
-  const sprintFinish = isLikelyMassSprint(segments);
+  const sprintFinish = groupSprintFinish;
   const peloton = getStatesInGroup(states, "peloton");
   const trainScores = getSprintTrainScores(peloton);
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
@@ -5886,6 +5896,7 @@ function getRoadFinishTime(
   scores: Map<string, number>,
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
+  groupSprintFinish: boolean,
 ) {
   const ownScore = scores.get(state.rider.id) ?? 0;
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
@@ -5898,11 +5909,15 @@ function getRoadFinishTime(
     .map((peer) => scores.get(peer.rider.id) ?? 0);
   const bestScore = Math.max(...peers);
   const sprintFinish =
-    isLikelyMassSprint(segments) && state.group === "peloton";
+    groupSprintFinish &&
+    (state.group === "peloton" ||
+      state.group === "breakaway" ||
+      state.group === "breakaway_2" ||
+      state.group === "chase");
 
   if (sprintFinish) {
-    // La photo-finish ordonne les coureurs, mais un peloton qui franchit la
-    // ligne groupé reçoit un seul temps officiel. Les écarts ne viennent que
+    // La photo-finish ordonne les coureurs, mais un groupe qui franchit la
+    // ligne compact reçoit un seul temps officiel. Les écarts ne viennent que
     // des cassures entre groupes, jamais de la longueur d'un vélo.
     return average(
       [...states.values()]
@@ -7088,6 +7103,28 @@ function isLikelyMassSprint(segments: RaceStageSegment[]) {
     finalSegments.length > 0 &&
     finalSegments.filter((segment) => segment.terrain === "flat").length >=
       Math.ceil(finalSegments.length * 0.66)
+  );
+}
+
+export function isFlatRunInGroupSprint(
+  segments: RaceStageSegment[],
+  groupSize: number,
+) {
+  const finalSegment = segments.at(-1);
+
+  return (
+    groupSize >= FLAT_RUN_IN_GROUP_SPRINT_MINIMUM_RIDERS &&
+    finalSegment?.terrain === "flat" &&
+    finalSegment.surface === "asphalt"
+  );
+}
+
+function getLargestContendingRoadGroupSize(states: Map<string, RiderState>) {
+  return Math.max(
+    0,
+    ...(["peloton", "breakaway", "breakaway_2", "chase"] as const).map(
+      (group) => getStatesInGroup(states, group).length,
+    ),
   );
 }
 
