@@ -48,6 +48,14 @@ describe("international cycling schools", () => {
 });
 
 describe("recruitment Data Room", () => {
+  it("reste accessible puis facture les améliorations selon le barème commun", () => {
+    expect(
+      TEAM_INFRASTRUCTURE_DEFINITIONS.recruitment_data_room.levels.map(
+        (level) => level.cost,
+      ),
+    ).toEqual([200_000, 120_000, 140_000]);
+  });
+
   it("progressively replaces unknown ratings with precise information", () => {
     expect(getScoutingVisibilityForDataRoom(0)).toMatchObject({
       exactRatingCount: 3,
@@ -75,8 +83,8 @@ describe("team infrastructure buildings", () => {
       "club_shop",
       "cryotherapy_center",
       "indoor_track",
-      "fan_club_headquarters",
       "recruitment_data_room",
+      "fan_club_headquarters",
       "wind_tunnel",
       "media_center",
       "international_welcome_center",
