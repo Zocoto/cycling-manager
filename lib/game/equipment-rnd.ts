@@ -16,6 +16,22 @@ export const EQUIPMENT_RND_SPECIALTIES = [
 ] as const satisfies readonly EquipmentRndSpecialty[];
 
 export const EQUIPMENT_RND_MAX_BONUS = 10;
+export const EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH = 3;
+export const EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH = 60;
+
+export function normalizeEquipmentPrototypeName(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export function isEquipmentPrototypeNameValid(value: unknown): boolean {
+  const name = normalizeEquipmentPrototypeName(value);
+  return (
+    name.length >= EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH &&
+    name.length <= EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH
+  );
+}
 
 export type EquipmentRndEngineer = {
   contractId: string;

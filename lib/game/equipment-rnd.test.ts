@@ -6,6 +6,8 @@ import {
   estimateEquipmentRndResearch,
   getEquipmentRndBaseDurationDays,
   getEquipmentRndBonusTotal,
+  isEquipmentPrototypeNameValid,
+  normalizeEquipmentPrototypeName,
   type EquipmentRndEngineer,
 } from "@/lib/game/equipment-rnd";
 
@@ -23,6 +25,15 @@ const engineer = (overrides: Partial<EquipmentRndEngineer> = {}) => ({
 }) satisfies EquipmentRndEngineer;
 
 describe("equipment R&D engineer talents", () => {
+  it("normalizes and validates the custom prototype name", () => {
+    expect(normalizeEquipmentPrototypeName("  Aquila   RS-X  ")).toBe(
+      "Aquila RS-X",
+    );
+    expect(isEquipmentPrototypeNameValid("RS")).toBe(false);
+    expect(isEquipmentPrototypeNameValid("Aquila RS-X")).toBe(true);
+    expect(isEquipmentPrototypeNameValid("x".repeat(61))).toBe(false);
+  });
+
   it("keeps research free and uses the unmodified item baseline", () => {
     expect(
       estimateEquipmentRndResearch({ labLevel: 1 }),

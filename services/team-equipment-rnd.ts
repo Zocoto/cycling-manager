@@ -29,6 +29,7 @@ const SLOT_UNLOCK_LEVEL: Record<EquipmentSlot, number> = {
 
 type ProjectRow = {
   id: string;
+  prototype_name: string | null;
   input_equipment_item_id: string;
   prototype_equipment_item_id: string | null;
   engineer_contract_id: string | null;
@@ -57,6 +58,7 @@ export type { EquipmentRndEngineer } from "@/lib/game/equipment-rnd";
 
 export type EquipmentRndProject = {
   id: string;
+  requestedPrototypeName: string | null;
   engineerContractId: string | null;
   itemName: string;
   prototypeName: string | null;
@@ -118,7 +120,7 @@ export async function getCurrentTeamEquipmentRndOverview(
       admin
         .from("equipment_rnd_projects")
         .select(
-          "id,input_equipment_item_id,prototype_equipment_item_id,engineer_contract_id,lab_level,rating_key,success_rate,outcome,rating_delta,research_cost,starts_game_day_index,completes_game_day_index,status,created_at",
+          "id,prototype_name,input_equipment_item_id,prototype_equipment_item_id,engineer_contract_id,lab_level,rating_key,success_rate,outcome,rating_delta,research_cost,starts_game_day_index,completes_game_day_index,status,created_at",
         )
         .eq("team_id", equipment.teamId)
         .neq("status", "cancelled")
@@ -211,11 +213,13 @@ export async function getCurrentTeamEquipmentRndOverview(
   );
   const mapProject = (row: ProjectRow): EquipmentRndProject => ({
     id: row.id,
+    requestedPrototypeName: row.prototype_name,
     engineerContractId: row.engineer_contract_id,
     itemName:
       itemById.get(row.input_equipment_item_id)?.name ?? "Équipement consommé",
     prototypeName: row.prototype_equipment_item_id
       ? (itemById.get(row.prototype_equipment_item_id)?.name ??
+        row.prototype_name ??
         "Prototype unique")
       : null,
     engineerName: row.engineer_contract_id

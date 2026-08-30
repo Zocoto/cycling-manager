@@ -9,6 +9,8 @@ import Link from "@/components/ui/app-link";
 import { getEquipmentCategory } from "@/lib/game/equipment";
 import {
   describeEquipmentRndEngineerEffects,
+  EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH,
+  EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH,
   estimateEquipmentRndResearch,
 } from "@/lib/game/equipment-rnd";
 import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
@@ -160,8 +162,13 @@ export default async function EquipmentLaboratoryPage({
                         className="rounded-2xl bg-[#0B302B] p-5 text-white"
                       >
                         <p className="text-lg font-black">
-                          {project.itemName}
+                          {project.requestedPrototypeName ?? project.itemName}
                         </p>
+                        {project.requestedPrototypeName ? (
+                          <p className="mt-1 text-xs font-semibold text-[#9BE0BC]">
+                            Créé à partir de {project.itemName}
+                          </p>
+                        ) : null}
                         <p className="mt-2 text-sm font-semibold text-[#BFD1C6]">
                           {project.successRate} % de réussite · résultat dans{" "}
                           {remainingDays} jour{remainingDays === 1 ? "" : "s"}
@@ -208,6 +215,21 @@ export default async function EquipmentLaboratoryPage({
                     action={startEquipmentRndAction}
                     className="mt-4 space-y-5"
                   >
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
+                      Nom du prototype
+                    </span>
+                    <input
+                      name="prototypeName"
+                      type="text"
+                      required
+                      minLength={EQUIPMENT_PROTOTYPE_NAME_MIN_LENGTH}
+                      maxLength={EQUIPMENT_PROTOTYPE_NAME_MAX_LENGTH}
+                      autoComplete="off"
+                      placeholder="Ex. Aquila RS-X"
+                      className="mt-2 w-full rounded-xl border border-[#315B3E]/20 bg-white px-4 py-3 text-sm font-bold"
+                    />
+                  </label>
                   <label className="block">
                     <span className="text-xs font-black uppercase tracking-wider text-[#60756E]">
                       Équipement libre à sacrifier
@@ -257,8 +279,10 @@ export default async function EquipmentLaboratoryPage({
                     +6 : 10 jours à +5 et 12 jours à +6. Chaque point suivant
                     ajoute 4 jours ; +10 demande 28 jours et constitue le
                     plafond. Les talents de l’ingénieur réduisent cette durée.
-                    La réussite part de{" "}
-                    {baseline?.successRate ?? 0} %.
+                    La même référence peut être recherchée plusieurs fois tant
+                    qu’un exemplaire reste libre. Un prototype peut lui-même
+                    repasser au laboratoire jusqu’au plafond de +10. La réussite
+                    part de {baseline?.successRate ?? 0} %.
                   </p>
                   <button className="w-full rounded-xl bg-[#176951] px-5 py-3 text-sm font-black text-white hover:bg-[#0B302B]">
                     Consommer la pièce et lancer gratuitement la R&D

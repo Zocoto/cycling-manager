@@ -7,7 +7,10 @@ import {
   type EquipmentEffects,
   type EquipmentSlot,
 } from "@/lib/game/equipment";
-import { calculateEquipmentResalePrice } from "@/lib/game/equipment-resale";
+import {
+  calculateEquipmentResalePrice,
+  calculateResearchPrototypeResalePrice,
+} from "@/lib/game/equipment-resale";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -534,6 +537,8 @@ async function loadEquipmentContext(
               rarity: row.rarity,
               effects,
             })
+          : row.acquisition_channel === "research_prototype"
+            ? calculateResearchPrototypeResalePrice({ effects })
           : 0,
       rarity: row.rarity,
       imagePath: row.image_path,

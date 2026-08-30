@@ -39,6 +39,25 @@ export function calculateEquipmentResalePrice({
   );
 }
 
+export function calculateResearchPrototypeResalePrice({
+  effects,
+}: {
+  effects: EquipmentEffects;
+}) {
+  const signedRatingPower = [
+    ...Object.values(effects.ratingBonuses),
+    ...Object.values(effects.timeTrialRatingBonuses),
+  ].reduce((total, value) => total + (value ?? 0), 0);
+  const effectValue =
+    5_000 +
+    signedRatingPower * 1_000 +
+    effects.injuryRiskReductionPct * 50 +
+    (effects.breakawayReputationBonus + effects.victoryReputationBonus) *
+      4_000;
+
+  return roundToHundred(Math.max(100, effectValue));
+}
+
 function roundToHundred(value: number) {
   return Math.round(value / 100) * 100;
 }

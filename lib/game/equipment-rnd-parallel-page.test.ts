@@ -38,4 +38,17 @@ describe("parallel equipment R&D laboratory", () => {
     );
     expect(service).toContain("cappedItemCount");
   });
+
+  it("supports named and repeatable prototype research", () => {
+    expect(page).toContain('name="prototypeName"');
+    expect(page).toContain(
+      "La même référence peut être recherchée plusieurs fois",
+    );
+    expect(page).toContain("Un prototype peut lui-même");
+    expect(page).toContain("repasser au laboratoire");
+    expect(service).toContain("prototype_name");
+    expect(service).not.toContain(
+      'item.channel !== "research_prototype"',
+    );
+  });
 });
