@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "@/components/ui/app-link";
 
+import sharingImage from "../opengraph-image.png";
+
 import { PublicGameNewsBoard } from "@/components/public/public-game-news-board";
 import { InstallAppBanner } from "@/components/pwa/install-app-banner";
 import { getPublicGameNews } from "@/services/public-game-news";
@@ -24,6 +26,14 @@ export const metadata: Metadata = {
     title: "Cyclo Stratège – Jeu de management cycliste en ligne",
     description:
       "Prenez la direction de votre équipe cycliste : recrutement, entraînement, stratégie, transferts et courses face aux autres managers.",
+    images: [
+      {
+        url: sharingImage.src,
+        width: sharingImage.width,
+        height: sharingImage.height,
+        alt: "Cyclo Stratège : jeu de management d’équipe cycliste en ligne.",
+      },
+    ],
   },
 };
 

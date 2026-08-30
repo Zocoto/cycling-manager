@@ -22,8 +22,14 @@ describe("page d’accueil publique", () => {
 
   it("utilise une description de partage intemporelle", () => {
     expect(source).toContain(
+      'import sharingImage from "../opengraph-image.png"',
+    );
+    expect(source).toContain(
       "recrutement, entraînement, stratégie, transferts et courses face aux autres managers",
     );
+    expect(source).toContain("url: sharingImage.src");
+    expect(source).toContain("width: sharingImage.width");
+    expect(source).toContain("height: sharingImage.height");
     expect(source).not.toContain(
       "affrontez la Saison 2 du jeu de management cycliste en ligne",
     );
