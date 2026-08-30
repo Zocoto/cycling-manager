@@ -37,6 +37,8 @@ const snapshot: DashboardAssistantSnapshot = {
   watchedAuctionClosingCount: 2,
   staffMarketCount: 25,
   preparationReminderCount: 1,
+  riderRecruitmentMatchCount: 2,
+  staffRecruitmentMatchCount: 1,
   journalItems: [],
 };
 
@@ -65,6 +67,8 @@ describe("dashboard DS assistant", () => {
       "untreated-injuries",
       "pending-selections",
       "pending-direct-offers",
+      "rider-recruitment-matches",
+      "staff-recruitment-matches",
       "completed-scouting",
       "low-form",
       "zero-training",
@@ -108,6 +112,8 @@ describe("dashboard DS assistant", () => {
         zeroTrainingCount: 0,
         pendingSelectionCount: 0,
         pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
         contractRenewalCount: 0,
         youthAlertCount: 0,
       },

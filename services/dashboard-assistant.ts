@@ -54,6 +54,8 @@ export async function getCurrentDashboardAssistantSummary(
   const row = result.data;
   if (!row) return null;
 
+  const assistantPayload = normalizeAssistantPayload(row.journal_items);
+
   return {
     gameDate: row.game_date,
     minimumForm: row.minimum_form,
@@ -79,8 +81,49 @@ export async function getCurrentDashboardAssistantSummary(
     watchedAuctionClosingCount: row.watched_auction_closing_count,
     staffMarketCount: row.staff_market_count,
     preparationReminderCount: row.preparation_reminder_count,
-    journalItems: normalizeJournalItems(row.journal_items),
+    riderRecruitmentMatchCount: assistantPayload.riderRecruitmentMatchCount,
+    staffRecruitmentMatchCount: assistantPayload.staffRecruitmentMatchCount,
+    journalItems: assistantPayload.journalItems,
   };
+}
+
+function normalizeAssistantPayload(value: unknown): {
+  riderRecruitmentMatchCount: number;
+  staffRecruitmentMatchCount: number;
+  journalItems: DashboardJournalItem[];
+} {
+  if (Array.isArray(value)) {
+    return {
+      riderRecruitmentMatchCount: 0,
+      staffRecruitmentMatchCount: 0,
+      journalItems: normalizeJournalItems(value),
+    };
+  }
+
+  if (!value || typeof value !== "object") {
+    return {
+      riderRecruitmentMatchCount: 0,
+      staffRecruitmentMatchCount: 0,
+      journalItems: [],
+    };
+  }
+
+  const payload = value as Record<string, unknown>;
+  return {
+    riderRecruitmentMatchCount: normalizeCount(
+      payload.riderRecruitmentMatchCount,
+    ),
+    staffRecruitmentMatchCount: normalizeCount(
+      payload.staffRecruitmentMatchCount,
+    ),
+    journalItems: normalizeJournalItems(payload.items),
+  };
+}
+
+function normalizeCount(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.trunc(value))
+    : 0;
 }
 
 function normalizeJournalItems(value: unknown): DashboardJournalItem[] {

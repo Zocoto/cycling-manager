@@ -42,6 +42,8 @@ export type DashboardAssistantSnapshot = {
   watchedAuctionClosingCount: number;
   staffMarketCount: number;
   preparationReminderCount: number;
+  riderRecruitmentMatchCount: number;
+  staffRecruitmentMatchCount: number;
   journalItems: DashboardJournalItem[];
 };
 
@@ -70,6 +72,8 @@ const ALERT_PRIORITY = [
   "untreated-injuries",
   "pending-selections",
   "pending-direct-offers",
+  "rider-recruitment-matches",
+  "staff-recruitment-matches",
   "completed-scouting",
   "low-form",
   "zero-training",
@@ -142,6 +146,36 @@ export function buildDashboardAssistantLines({
       title: pluralize(snapshot.pendingDirectOfferCount, "offre de transfert à traiter", "offres de transfert à traiter"),
       detail: "Une autre équipe attend votre réponse.",
       href: "/jeu/transferts?onglet=offres",
+    });
+  }
+
+  if (snapshot.riderRecruitmentMatchCount > 0) {
+    alerts.push({
+      id: "rider-recruitment-matches",
+      tone: "alert",
+      metric: String(snapshot.riderRecruitmentMatchCount),
+      title: pluralize(
+        snapshot.riderRecruitmentMatchCount,
+        "coureur correspondant à votre recherche",
+        "coureurs correspondant à votre recherche",
+      ),
+      detail: "Disponible aux enchères selon vos critères personnalisés.",
+      href: "/jeu/transferts?onglet=quotidiennes",
+    });
+  }
+
+  if (snapshot.staffRecruitmentMatchCount > 0) {
+    alerts.push({
+      id: "staff-recruitment-matches",
+      tone: "alert",
+      metric: String(snapshot.staffRecruitmentMatchCount),
+      title: pluralize(
+        snapshot.staffRecruitmentMatchCount,
+        "profil de staff correspondant à votre recherche",
+        "profils de staff correspondant à votre recherche",
+      ),
+      detail: "Disponible sur le marché selon vos critères personnalisés.",
+      href: "/jeu/staff?onglet=marche",
     });
   }
 
