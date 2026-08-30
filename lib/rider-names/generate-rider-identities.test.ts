@@ -99,6 +99,47 @@ describe("rider name libraries", () => {
     expect(belgium.lastNames).toHaveLength(360);
   });
 
+  it("keeps the French first-name pool familiar across generations", () => {
+    const obsoleteFrenchNames = [
+      "Philothée",
+      "Alcide",
+      "Scholastique",
+      "Abdon",
+      "Adalbald",
+      "Agathange",
+      "Angilbe",
+      "Bohémond",
+      "Childebert",
+      "Christodule",
+      "Fulgence",
+      "Mérovée",
+      "Nicéphore",
+    ];
+    const representativeFrenchNames = [
+      "Jean",
+      "Philippe",
+      "Laurent",
+      "Jérôme",
+      "Alexandre",
+      "Thomas",
+      "Hugo",
+      "Nathan",
+      "Maël",
+      "Noah",
+      "Liam",
+    ];
+
+    expect(new Set(france.firstNames.map(normalizeName)).size).toBe(
+      france.firstNames.length,
+    );
+    expect(
+      obsoleteFrenchNames.filter((name) => france.firstNames.includes(name)),
+    ).toEqual([]);
+    expect(france.firstNames).toEqual(
+      expect.arrayContaining(representativeFrenchNames),
+    );
+  });
+
   it("keeps West African national pools culturally distinct", () => {
     expect(overlapRatio(ghana.lastNames, ivoryCoast.lastNames)).toBeLessThan(
       0.05,
