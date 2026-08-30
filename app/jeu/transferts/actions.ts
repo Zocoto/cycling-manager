@@ -36,9 +36,11 @@ export async function placeTransferBidAction(formData: FormData) {
 export async function createDirectorListingAction(formData: FormData) {
   const riderId = readValue(formData, "riderId");
   const minimumBid = Number(readValue(formData, "minimumBid"));
-  const returnPath = sanitizeTransferMarketReturnPath(
-    readValue(formData, "returnPath"),
-  );
+  const requestedReturnPath = readValue(formData, "returnPath");
+  const returnPath = isUuid(riderId)
+    ? (buildRiderReturnPath(requestedReturnPath, riderId) ??
+      sanitizeTransferMarketReturnPath(requestedReturnPath))
+    : sanitizeTransferMarketReturnPath(requestedReturnPath);
   if (!isUuid(riderId) || !Number.isFinite(minimumBid)) {
     redirectWithMessage(returnPath, "erreur", "La mise en vente est invalide.");
   }
@@ -49,6 +51,7 @@ export async function createDirectorListingAction(formData: FormData) {
   });
   if (error) redirectWithMessage(returnPath, "erreur", error.message);
   revalidateTransferPaths();
+  revalidatePath(`/jeu/coureurs/${riderId}`);
   redirectWithMessage(returnPath, "succes", "Le coureur est proposé pendant 24 heures.");
 }
 

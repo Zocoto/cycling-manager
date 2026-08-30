@@ -306,6 +306,15 @@ export type RiderTransferManagement = {
   renewalSalary: number | null;
   contractEndSeasonYear: number | null;
   ownsRider: boolean;
+  canListRider: boolean;
+  listingBlockedReason: string | null;
+  recommendedListingPrice: number;
+  currentSalary: number | null;
+  activeListing: {
+    id: string;
+    minimumBid: number;
+    closesAt: string;
+  } | null;
   canDismiss: boolean;
   dismissalCost: number | null;
   dismissalCurrency: string;
@@ -563,8 +572,7 @@ export async function getTransferMarketOverview(
           seasonId: context.season.id,
           salaryPerSeason: toNumber(listing.salary_per_season),
           dataRoomLevel,
-          revealExactValues:
-            listing.seller_team_id === context.teamSeason.team_id,
+          revealExactValues: listing.listing_type === "director",
         }),
       } satisfies TransferMarketListing,
     ];
@@ -714,9 +722,8 @@ export async function getTransferMarketOverview(
           }),
           currentSalary: toNumber(contract.salary_per_season),
           currency: context.teamSeason.currency,
-          recommendedPrice: Math.max(
-            500,
-            Math.round(((rider.overall - 35) ** 2 * 110) / 500) * 500,
+          recommendedPrice: calculateDirectorListingRecommendedPrice(
+            rider.overall,
           ),
           canList: !listed && !locked,
           listBlockedReason: listed
@@ -773,10 +780,14 @@ export async function getRiderTransferManagement(
       .returns<ContractRow[]>(),
     admin
       .from("transfer_market_listings")
-      .select("id")
+      .select("id, minimum_bid, closes_at")
       .eq("rider_id", riderId)
       .eq("status", "open")
-      .maybeSingle<{ id: string }>(),
+      .maybeSingle<{
+        id: string;
+        minimum_bid: number | string;
+        closes_at: string;
+      }>(),
     admin
       .from("rider_contracts")
       .select("rider_id")
@@ -877,6 +888,16 @@ export async function getRiderTransferManagement(
   );
   const sourceContractLocked =
     activeContract?.transfer_locked_season_id === context.season.id;
+  const canListRider = Boolean(
+    ownsRider && !listingResult.data && !sourceContractLocked,
+  );
+  const listingBlockedReason = ownsRider
+    ? listingResult.data
+      ? "Ce coureur est déjà proposé sur le marché."
+      : sourceContractLocked
+        ? "Recruté cette saison : sa revente sera possible dès la saison suivante."
+        : null
+    : null;
   const canTargetRider = Boolean(activeContract && !ownsRider && !isFreeAgent);
   const dismissalResult = ownsRider
     ? await admin.rpc("calculate_rider_dismissal_compensation", {
@@ -918,6 +939,20 @@ export async function getRiderTransferManagement(
     renewalSalary: ownsRider ? renewalSalary : null,
     contractEndSeasonYear,
     ownsRider,
+    canListRider,
+    listingBlockedReason,
+    recommendedListingPrice: calculateDirectorListingRecommendedPrice(overall),
+    currentSalary:
+      ownsRider && activeContract
+        ? toNumber(activeContract.salary_per_season)
+        : null,
+    activeListing: listingResult.data
+      ? {
+          id: listingResult.data.id,
+          minimumBid: toNumber(listingResult.data.minimum_bid),
+          closesAt: listingResult.data.closes_at,
+        }
+      : null,
     canDismiss: Boolean(ownsRider && activeContract),
     dismissalCost: ownsRider ? toNumber(dismissalResult.data) : null,
     dismissalCurrency: context.teamSeason.currency,
@@ -1322,6 +1357,13 @@ function calculateOverall(ratings: RiderRatings) {
 
 function calculateSalaryApproximation(overall: number) {
   return calculateRiderSeasonSalary({ overall });
+}
+
+function calculateDirectorListingRecommendedPrice(overall: number) {
+  return Math.max(
+    500,
+    Math.round(((overall - 35) ** 2 * 110) / 500) * 500,
+  );
 }
 
 function isTransferListingVisibleOnMarketDate(

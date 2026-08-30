@@ -174,6 +174,7 @@ export function DirectorRiderSaleConsole({
           <TransferScoutingReportPanel
             report={selectedRider.scoutingReport}
             compact
+            exactDataLabel="Données de votre équipe"
           />
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <SaleMetric

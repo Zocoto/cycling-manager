@@ -12,11 +12,13 @@ import {
 type TransferScoutingReportProps = {
   report: TransferScoutingReport;
   compact?: boolean;
+  exactDataLabel?: string;
 };
 
 export function TransferScoutingReportPanel({
   report,
   compact = false,
+  exactDataLabel = "Données exactes",
 }: TransferScoutingReportProps) {
   const isComplete = RIDER_RATING_AXES.every(
     (axis) => report.ratings[axis.key].kind === "exact"
@@ -36,7 +38,7 @@ export function TransferScoutingReportPanel({
             Rapport de scouting
           </p>
           <p className="mt-1 text-xs font-bold text-[#60756E]">
-            {isComplete ? "Données de votre équipe" : "Analyse standard partielle"}
+            {isComplete ? exactDataLabel : "Analyse standard partielle"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

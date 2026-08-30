@@ -85,6 +85,7 @@ import {
   submitDirectTransferOfferAction,
 } from "@/app/jeu/transferts/actions";
 import { TransferSubmitButton } from "@/components/game/transfer-submit-button";
+import { RiderTransferListingCard } from "@/components/game/rider-transfer-listing-card";
 import { naturalizeProfessionalRiderAction } from "@/app/jeu/coureurs/actions";
 import { getRiderRankingEntry } from "@/services/uci-rankings";
 import { formatScoutedPotentialValue } from "@/lib/game/transfer-scouting";
@@ -624,13 +625,18 @@ async function RiderManagementCards({
       {profile.privateContract ? (
         <div
           data-tutorial-id="rider-profile-contract"
-          className="grid min-w-0 gap-5 lg:grid-cols-2 xl:col-span-2"
+          className="grid min-w-0 gap-5 lg:grid-cols-2 xl:col-span-2 xl:grid-cols-3"
         >
           {transferManagement ? (
             <>
               <ContractRenewalCard
                 riderId={profile.id}
                 contract={profile.privateContract}
+                management={transferManagement}
+              />
+              <RiderTransferListingCard
+                riderId={profile.id}
+                riderName={fullName}
                 management={transferManagement}
               />
               <RiderDismissalCard
