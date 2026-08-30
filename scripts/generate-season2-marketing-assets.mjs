@@ -39,18 +39,6 @@ const assets = [
     footer: "JOIN THE BETA",
   },
   {
-    output: path.join(projectRoot, "app", "opengraph-image.png"),
-    width: 1200,
-    height: 630,
-    logoWidth: 104,
-    logoX: 66,
-    logoY: 52,
-    eyebrow: "CYCLO STRATÈGE · SAISON 2",
-    title: ["LA BÊTA", "EST OUVERTE"],
-    body: "LE JEU DE MANAGEMENT CYCLISTE EN LIGNE",
-    footer: "CYCLOSTRATEGE.FR",
-  },
-  {
     output: path.join(
       projectRoot,
       "public",
@@ -135,14 +123,10 @@ for (const asset of assets) {
   await createAsset(asset);
 }
 
-await sharp(path.join(projectRoot, "app", "opengraph-image.png"))
-  .toFile(path.join(projectRoot, "app", "twitter-image.png"));
-
 console.log(
   [
     "Assets marketing Saison 2 générés :",
     ...assets.map((asset) => path.relative(projectRoot, asset.output)),
-    "app/twitter-image.png",
   ].join("\n"),
 );
 

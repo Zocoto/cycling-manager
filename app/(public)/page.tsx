@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     absolute: "Cyclo Stratège – Jeu de management cycliste en ligne",
   },
   description:
-    "Devenez directeur sportif dans Cyclo Stratège : recrutez vos coureurs, développez votre équipe et affrontez la Saison 2 du jeu de management cycliste en ligne.",
+    "Devenez directeur sportif dans Cyclo Stratège : recrutez et entraînez vos coureurs, développez votre équipe et affrontez les autres managers.",
   alternates: {
     canonical: "/",
   },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     url: "/",
     title: "Cyclo Stratège – Jeu de management cycliste en ligne",
     description:
-      "Prenez la direction de votre équipe cycliste. Le Patch 5 enrichit les courses et le quotidien du directeur sportif.",
+      "Prenez la direction de votre équipe cycliste : recrutement, entraînement, stratégie, transferts et courses face aux autres managers.",
   },
 };
 

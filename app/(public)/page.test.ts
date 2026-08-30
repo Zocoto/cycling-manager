@@ -20,6 +20,18 @@ describe("page d’accueil publique", () => {
     expect(source).not.toContain("function FolderIcon");
   });
 
+  it("utilise une description de partage intemporelle", () => {
+    expect(source).toContain(
+      "recrutement, entraînement, stratégie, transferts et courses face aux autres managers",
+    );
+    expect(source).not.toContain(
+      "affrontez la Saison 2 du jeu de management cycliste en ligne",
+    );
+    expect(source).not.toContain(
+      "Le Patch 5 enrichit les courses et le quotidien du directeur sportif",
+    );
+  });
+
   it("met le parrainage renforcé en vedette au-dessus de quatre annonces historiques", () => {
     expect(source).toContain(
       'title: "Le parrainage passe à la vitesse supérieure"',
