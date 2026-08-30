@@ -1,6 +1,7 @@
 import { AchievementTrophyMark } from "@/components/game/achievement-trophy-mark";
 import { AlphaTesterTrophyGift } from "@/components/game/alpha-tester-trophy-gift";
 import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
+import { CareerTrophyMark } from "@/components/game/career-trophy-mark";
 import { HiddenSwitchbackLink } from "@/components/game/hidden-switchback-egg";
 import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
 import { PrestigeRaceTrophyMark } from "@/components/game/prestige-race-trophy-mark";
@@ -519,7 +520,22 @@ function TrophyIllustration({
     );
   }
 
-  const isUci = trophy.kind === "uci_team" || trophy.kind === "uci_rider";
+  if (
+    trophy.kind === "world_championship" ||
+    trophy.kind === "continental_championship" ||
+    trophy.kind === "uci_team" ||
+    trophy.kind === "uci_rider" ||
+    trophy.kind === "referral"
+  ) {
+    return (
+      <CareerTrophyMark
+        trophy={trophy}
+        className={epic ? "h-40 w-40" : "h-36 w-36"}
+      />
+    );
+  }
+
+  const isUci = isUciTrophyKind(trophy.kind);
   const isMonument = trophy.kind === "monument";
 
   return (
@@ -826,6 +842,10 @@ function getTrophyFrameClassName(trophy: CareerTrophy, epic: boolean) {
   return epic
     ? "h-44 w-full rounded-[1.4rem] sm:h-48 sm:w-48"
     : "h-40 w-full rounded-[1.4rem] sm:w-40";
+}
+
+function isUciTrophyKind(kind: CareerTrophy["kind"]) {
+  return kind === "uci_team" || kind === "uci_rider";
 }
 
 function getTrophyKindLabel(kind: CareerTrophy["kind"]) {

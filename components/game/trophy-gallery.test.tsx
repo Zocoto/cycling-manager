@@ -63,6 +63,12 @@ describe("TrophyGallery", () => {
     expect(markup).toContain("CM &amp; CC");
     expect(markup).toContain("Alix Mondial");
     expect(markup).toContain("Coupe UCI des équipes");
+    expect(markup).toContain('data-uci-trophy="team"');
+    expect(markup).toContain('data-uci-trophy="rider"');
+    expect(markup).toContain(
+      'data-championship-trophy="world-time-trial"',
+    );
+    expect(markup).toContain('data-championship-emblem="rainbow-chrono"');
     expect(markup).not.toContain("Challenges longue durée");
     expect(markup).not.toContain("En cours de développement");
     expect(markup).not.toContain("Critères à définir ensemble");
@@ -247,5 +253,72 @@ describe("TrophyGallery", () => {
     expect(markup).toContain('data-medical-trophy="emergency-doctor"');
     expect(markup).toContain("25 000 €");
     expect(markup).toContain("75 000 €");
+  });
+
+  it("gives every referral milestone a distinct emblem instead of the generic cross", () => {
+    const markup = renderToStaticMarkup(
+      <TrophyGallery
+        gallery={buildTrophyGallery({
+          raceWins: [],
+          teamUciTitles: [],
+          riderUciTitles: [],
+          referralTrophies: [
+            {
+              count: 1,
+              title: "Entremetteur du peloton",
+              inscription: "1 filleul qualifié",
+              palette: {
+                primary: "#B87333",
+                secondary: "#F4D0A6",
+                accent: "#4B2513",
+                glow: "rgba(184, 115, 51, 0.38)",
+              },
+            },
+            {
+              count: 5,
+              title: "Le Parrain",
+              inscription: "5 filleuls qualifiés",
+              palette: {
+                primary: "#D8D8D3",
+                secondary: "#FFFFFF",
+                accent: "#171514",
+                glow: "rgba(216, 216, 211, 0.46)",
+              },
+            },
+            {
+              count: 10,
+              title: "Parrain influent",
+              inscription: "10 filleuls qualifiés",
+              palette: {
+                primary: "#D4AF37",
+                secondary: "#FFF0A8",
+                accent: "#4B3500",
+                glow: "rgba(212, 175, 55, 0.48)",
+              },
+            },
+            {
+              count: 25,
+              title: "Don du peloton",
+              inscription: "25 filleuls qualifiés",
+              palette: {
+                primary: "#20201F",
+                secondary: "#E7E2D8",
+                accent: "#9B1C31",
+                glow: "rgba(155, 28, 49, 0.42)",
+              },
+            },
+          ],
+        })}
+      />,
+    );
+
+    for (const milestone of [1, 5, 10, 25]) {
+      expect(markup).toContain(
+        `data-referral-trophy="milestone-${milestone}"`,
+      );
+    }
+    for (const emblem of ["link", "patron", "signal", "legacy"]) {
+      expect(markup).toContain(`data-referral-emblem="${emblem}"`);
+    }
   });
 });

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { SportingDirectorTrophyTile } from "@/components/game/sporting-director-trophy-tile";
+import { getUnlockedReferralTrophies } from "@/lib/game/referrals";
 import { buildTrophyGallery } from "@/lib/game/trophy-gallery";
 
 describe("SportingDirectorTrophyTile", () => {
@@ -137,5 +138,51 @@ describe("SportingDirectorTrophyTile", () => {
     expect(markup).toContain("Médecin urgentiste");
     expect(markup).toContain('data-medical-trophy="emergency-doctor"');
     expect(markup).not.toContain("À débloquer");
+  });
+
+  it("uses the full-size dedicated trophy identities on the public profile", () => {
+    const gallery = buildTrophyGallery({
+      raceWins: [
+        {
+          id: "ruta-win",
+          raceSlug: "ruta-de-las-sierras",
+          raceName: "Ruta de las Sierras",
+          seasonName: "Saison 2",
+          wonAt: null,
+          riderName: "Fernando Alfaro",
+          isGrandTour: true,
+          isMonument: false,
+        },
+        {
+          id: "world-road-win",
+          raceSlug: "championnats-du-monde",
+          raceName: "Championnats du monde sur route",
+          seasonName: "Saison 2",
+          wonAt: null,
+          riderName: "Fernando Alfaro",
+          isGrandTour: false,
+          isMonument: false,
+          competitionType: "world_championship",
+        },
+      ],
+      teamUciTitles: [
+        { id: "uci-team", seasonName: "Saison 2", teamName: "RC Juniors" },
+      ],
+      riderUciTitles: [],
+      referralTrophies: getUnlockedReferralTrophies(5),
+    });
+
+    const markup = renderToStaticMarkup(
+      <SportingDirectorTrophyTile gallery={gallery} />,
+    );
+
+    expect(markup).toContain('data-public-trophy="grand_tour"');
+    expect(markup).toContain('data-prestige-race-trophy="sierra_peaks"');
+    expect(markup).toContain('data-championship-trophy="world-road"');
+    expect(markup).toContain('data-uci-trophy="team"');
+    expect(markup).toContain('data-referral-trophy="milestone-1"');
+    expect(markup).toContain('data-referral-trophy="milestone-5"');
+    expect(markup).toContain("h-20 w-20");
+    expect(markup).toContain("h-[4.5rem] w-[4.5rem]");
   });
 });

@@ -1,6 +1,4 @@
-import { AlphaTesterTrophyMark } from "@/components/game/alpha-tester-trophy-mark";
-import { MedicalTrophyMark } from "@/components/game/medical-trophy-mark";
-import { SponsorAmbassadorTrophyMark } from "@/components/game/sponsor-ambassador-trophy-mark";
+import { CareerTrophyMark } from "@/components/game/career-trophy-mark";
 import type { CareerTrophy, TrophyGallery } from "@/lib/game/trophy-gallery";
 
 export function SportingDirectorTrophyTile({
@@ -67,30 +65,24 @@ export function SportingDirectorTrophyTile({
 
 function PublicTrophy({ trophy }: { trophy: CareerTrophy }) {
   return (
-    <article className="flex min-w-0 items-start gap-3 rounded-xl border border-[#315B3E]/10 bg-white/85 p-3">
+    <article
+      data-public-trophy={trophy.kind}
+      className="flex min-w-0 items-center gap-4 rounded-2xl border border-[#315B3E]/10 bg-white/85 p-4"
+    >
       <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0B302B] text-[#F2C94C] shadow-sm"
-        style={{ boxShadow: `0 6px 16px ${trophy.palette.glow}` }}
+        className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(145deg,#071A17,#123B34)] shadow-sm"
+        style={{ boxShadow: `0 8px 22px ${trophy.palette.glow}` }}
       >
-        {trophy.kind === "special" ? (
-          <AlphaTesterTrophyMark className="h-10 w-10" />
-        ) : trophy.kind === "medical" && trophy.medicalVariant ? (
-          <MedicalTrophyMark
-            variant={trophy.medicalVariant}
-            palette={trophy.palette}
-            className="h-11 w-11"
-          />
-        ) : trophy.kind === "sponsor" ? (
-          <SponsorAmbassadorTrophyMark className="h-11 w-11" />
-        ) : (
-          <TrophyIcon />
-        )}
+        <CareerTrophyMark
+          trophy={trophy}
+          className="h-[4.5rem] w-[4.5rem]"
+        />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-sm font-black text-[#183F37]">
+        <span className="block text-sm font-black leading-tight text-[#183F37]">
           {trophy.title}
         </span>
-        <span className="mt-0.5 block truncate text-xs font-semibold text-[#60756E]">
+        <span className="mt-1 block text-xs font-semibold leading-4 text-[#60756E]">
           {trophy.competitionName}
         </span>
         {trophy.seasonNames?.length ? (
@@ -107,27 +99,5 @@ function PublicTrophy({ trophy }: { trophy: CareerTrophy }) {
         ) : null}
       </span>
     </article>
-  );
-}
-
-function TrophyIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-7 w-7"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8 4h8v4.5a4 4 0 0 1-8 0V4Z" />
-      <path d="M8 6H5v1.5A3.5 3.5 0 0 0 8.5 11" />
-      <path d="M16 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5" />
-      <path d="M12 13v4" />
-      <path d="M8.5 20h7" />
-      <path d="M10 17h4" />
-    </svg>
   );
 }

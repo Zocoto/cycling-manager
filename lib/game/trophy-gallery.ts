@@ -45,6 +45,12 @@ export type TrophyPalette = {
   glow: string;
 };
 
+export type ChampionshipTrophyVisualVariant =
+  | "world-road"
+  | "world-time-trial"
+  | "continental-road"
+  | "continental-time-trial";
+
 export type CareerTrophy = {
   id: string;
   kind: TrophyKind;
@@ -62,6 +68,8 @@ export type CareerTrophy = {
   avatarFrameKey?: SportingDirectorAvatarFrameKey | null;
   visualVariant?: AchievementTrophyVisualVariant | null;
   medicalVariant?: MedicalTrophyVisualVariant | null;
+  championshipVisualVariant?: ChampionshipTrophyVisualVariant | null;
+  referralMilestone?: number | null;
 };
 
 export type ClaimableTrophyReward = {
@@ -330,6 +338,7 @@ const CHAMPIONSHIP_TARGETS: readonly CareerTrophy[] = [
     href: "/jeu/calendrier",
     inscription: "Remporter la course en ligne mondiale",
     palette: WORLD_CHAMPIONSHIP_PALETTE,
+    championshipVisualVariant: "world-road",
     description:
       "Le titre suprême sur route, remporté sous les couleurs de l’équipe nationale.",
   },
@@ -344,6 +353,7 @@ const CHAMPIONSHIP_TARGETS: readonly CareerTrophy[] = [
     href: "/jeu/calendrier",
     inscription: "Remporter le contre-la-montre mondial",
     palette: WORLD_CHAMPIONSHIP_PALETTE,
+    championshipVisualVariant: "world-time-trial",
     description:
       "La couronne mondiale de l’effort solitaire, remportée avec une sélection nationale.",
   },
@@ -358,6 +368,7 @@ const CHAMPIONSHIP_TARGETS: readonly CareerTrophy[] = [
     href: "/jeu/calendrier",
     inscription: "Remporter la course en ligne continentale",
     palette: CONTINENTAL_CHAMPIONSHIP_PALETTE,
+    championshipVisualVariant: "continental-road",
     description:
       "Conquérir le maillot distinctif de son continent sur la course en ligne.",
   },
@@ -372,6 +383,7 @@ const CHAMPIONSHIP_TARGETS: readonly CareerTrophy[] = [
     href: "/jeu/calendrier",
     inscription: "Remporter le contre-la-montre continental",
     palette: CONTINENTAL_CHAMPIONSHIP_PALETTE,
+    championshipVisualVariant: "continental-time-trial",
     description:
       "Signer le meilleur temps de son continent avec une sélection nationale.",
   },
@@ -438,6 +450,7 @@ export function getLockedTrophyTargets(
           href: "/jeu/parrainage",
           inscription: milestone.inscription,
           palette: milestone.palette,
+          referralMilestone: milestone.count,
         },
       ];
     },
@@ -600,9 +613,13 @@ export function getLockedTrophyTargets(
   ];
 }
 
+function isTimeTrialLabel(value: string) {
+  return /contre-la-montre|\bclm\b|time-trial/i.test(value);
+}
+
 function isTimeTrialTrophy(trophy: CareerTrophy) {
   const searchableText = `${trophy.id} ${trophy.title} ${trophy.competitionName} ${trophy.href ?? ""}`;
-  return /contre-la-montre|\bclm\b|time-trial/i.test(searchableText);
+  return isTimeTrialLabel(searchableText);
 }
 
 export function buildTrophyGallery({
@@ -629,6 +646,11 @@ export function buildTrophyGallery({
           href: `/jeu/resultats/${encodeURIComponent(win.raceSlug)}`,
           inscription: win.riderName,
           palette: WORLD_CHAMPIONSHIP_PALETTE,
+          championshipVisualVariant: isTimeTrialLabel(
+            `${win.raceSlug} ${win.raceName}`,
+          )
+            ? "world-time-trial"
+            : "world-road",
         },
       ];
     }
@@ -646,6 +668,11 @@ export function buildTrophyGallery({
           href: `/jeu/resultats/${encodeURIComponent(win.raceSlug)}`,
           inscription: win.riderName,
           palette: CONTINENTAL_CHAMPIONSHIP_PALETTE,
+          championshipVisualVariant: isTimeTrialLabel(
+            `${win.raceSlug} ${win.raceName}`,
+          )
+            ? "continental-time-trial"
+            : "continental-road",
         },
       ];
     }
@@ -839,6 +866,7 @@ export function buildTrophyGallery({
     href: "/jeu/parrainage",
     inscription: trophy.inscription,
     palette: trophy.palette,
+    referralMilestone: trophy.count,
   }));
 
   const trophies = [
