@@ -15,6 +15,9 @@ const footer = read("components/layout/public-footer.tsx");
 const migration = read(
   "supabase/migrations/20260829210000_record_registration_legal_acceptance.sql",
 );
+const serviceRoleGrantMigration = read(
+  "supabase/migrations/20260830103500_grant_legal_acceptance_to_service_role.sql",
+);
 
 describe("information et acceptation légales à l’inscription", () => {
   it("demande une acceptation explicite sans confondre information et consentement", () => {
@@ -52,6 +55,15 @@ describe("information et acceptation légales à l’inscription", () => {
       "revoke insert, update, delete on table public.user_legal_acceptances from authenticated",
     );
     expect(migration).not.toMatch(/ip_address|user_agent|fingerprint/i);
+  });
+
+  it("autorise le serveur à enregistrer la preuve sans pouvoir la modifier", () => {
+    expect(serviceRoleGrantMigration).toMatch(
+      /grant select, insert\s+on table public\.user_legal_acceptances\s+to service_role/i,
+    );
+    expect(serviceRoleGrantMigration).toMatch(
+      /revoke update, delete\s+on table public\.user_legal_acceptances\s+from service_role/i,
+    );
   });
 
   it("met à disposition les informations prévues par le RGPD", () => {
