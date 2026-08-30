@@ -111,6 +111,8 @@ export type PublicGameNewsItem = {
   happenedAt: string;
   href?: string;
   significance?: "major" | "standard";
+  raceCategoryCode?: string;
+  prestigeRank?: number;
   teamColors?: PublicGameNewsTeamVisual["colors"];
   visual?: PublicGameNewsVisual;
 };

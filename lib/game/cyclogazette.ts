@@ -53,6 +53,24 @@ export type CyclogazetteMediaArticle = {
   buildingLevel: number;
 };
 
+export type CyclogazetteFeatureKind =
+  | "startlist"
+  | "development"
+  | "transfer_rumor"
+  | "injury";
+
+export type CyclogazetteFeatureStory = {
+  id: string;
+  kind: CyclogazetteFeatureKind;
+  kicker: string;
+  kickerEn: string;
+  title: string;
+  titleEn: string;
+  body: string;
+  bodyEn: string;
+  href?: string;
+};
+
 export type CyclogazetteContent = {
   lead: PublicGameNewsItem | null;
   raceStories: PublicGameNewsItem[];
@@ -61,6 +79,7 @@ export type CyclogazetteContent = {
   reactions: CyclogazetteReaction[];
   tourSummaries?: CyclogazetteTourSummary[];
   mediaArticles?: CyclogazetteMediaArticle[];
+  featureStories?: CyclogazetteFeatureStory[];
 };
 
 export type CyclogazetteEdition = {
@@ -96,6 +115,8 @@ const ITALIAN_GRAND_TOUR_GAZETTE_START_DAY = 2;
 const ITALIAN_GRAND_TOUR_GAZETTE_END_DAY = 7;
 const FRENCH_GRAND_TOUR_GAZETTE_START_DAY = 9;
 const FRENCH_GRAND_TOUR_GAZETTE_END_DAY = 15;
+const SPANISH_GRAND_TOUR_GAZETTE_START_DAY = 17;
+const SPANISH_GRAND_TOUR_GAZETTE_END_DAY = 22;
 
 export function isItalianGrandTourGazetteDay(dayNumber: number) {
   return (
@@ -110,6 +131,26 @@ export function isFrenchGrandTourGazetteDay(dayNumber: number) {
     Number.isInteger(dayNumber) &&
     dayNumber >= FRENCH_GRAND_TOUR_GAZETTE_START_DAY &&
     dayNumber <= FRENCH_GRAND_TOUR_GAZETTE_END_DAY
+  );
+}
+
+export function isSpanishGrandTourGazetteDay(dayNumber: number) {
+  return (
+    Number.isInteger(dayNumber) &&
+    dayNumber >= SPANISH_GRAND_TOUR_GAZETTE_START_DAY &&
+    dayNumber <= SPANISH_GRAND_TOUR_GAZETTE_END_DAY
+  );
+}
+
+export function sortCyclogazetteStoriesByPrestige<
+  T extends Pick<PublicGameNewsItem, "happenedAt" | "prestigeRank">,
+>(stories: readonly T[]) {
+  return [...stories].sort(
+    (left, right) =>
+      (left.prestigeRank ?? Number.MAX_SAFE_INTEGER) -
+        (right.prestigeRank ?? Number.MAX_SAFE_INTEGER) ||
+      new Date(right.happenedAt).getTime() -
+        new Date(left.happenedAt).getTime(),
   );
 }
 

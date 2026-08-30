@@ -12,10 +12,12 @@ import { CyclogazetteCommunityPanel } from "@/components/game/cyclogazette-commu
 import {
   isFrenchGrandTourGazetteDay,
   isItalianGrandTourGazetteDay,
+  isSpanishGrandTourGazetteDay,
 } from "@/lib/game/cyclogazette";
 import type {
   CyclogazetteCommunity,
   CyclogazetteEdition,
+  CyclogazetteFeatureStory,
   CyclogazetteReaction,
   CyclogazetteTourSummary,
 } from "@/lib/game/cyclogazette";
@@ -58,7 +60,17 @@ type FrenchTourBrief = {
   copy: string;
 };
 
-type CyclogazetteTheme = "classic" | "giro" | "tour";
+type SpanishVueltaAdvertisement = {
+  headline: string;
+  copy: string;
+};
+
+type SpanishVueltaBrief = {
+  title: string;
+  copy: string;
+};
+
+type CyclogazetteTheme = "classic" | "giro" | "tour" | "vuelta";
 
 const ITALIAN_GAZETTA_INCIDENTS: readonly ItalianGazettaIncident[] = [
   {
@@ -132,6 +144,62 @@ const FRENCH_TOUR_BRIEFS_EN: readonly FrenchTourBrief[] = [
   { title: "Cassoulet creates a crosswind", copy: "The forecast said nothing, but the peloton formed echelons after the feed zone. The aerodynamic data remains a state secret." },
 ];
 
+const SPANISH_VUELTA_BRIEFS: readonly SpanishVueltaBrief[] = [
+  {
+    title: "Une paella neutralise la zone de ravitaillement",
+    copy: "Le commissaire comptait les grains de riz pour vérifier le poids réglementaire. Le peloton est reparti avant la fin du calcul, sauf deux équipiers restés pour le socarrat.",
+  },
+  {
+    title: "Les tapas provoquent une bordure au comptoir",
+    copy: "Six assiettes, trois tabourets et un dernier croqueta : l’équipe la mieux placée a pris une demi-longueur d’avance sans même quitter le bar.",
+  },
+  {
+    title: "Un chorizo réclame le maillot rouge",
+    copy: "Sa couleur était irréprochable et son attaque particulièrement piquante. Le jury refuse encore de valider son temps, faute de transpondeur dans la ficelle.",
+  },
+  {
+    title: "La sieste classée contre-la-montre par équipes",
+    copy: "Les huit coureurs se sont allongés exactement au même instant. Synchronisation parfaite, réveil plus discutable : deux sont encore annoncés hors délais.",
+  },
+  {
+    title: "Un flamenco règle la cadence du peloton",
+    copy: "À 96 claquements de mains par minute, personne n’a osé changer de braquet. Le métronome officiel demande désormais des chaussures à cales et à talons.",
+  },
+  {
+    title: "Une tortilla contrôlée trop épaisse au sommet",
+    copy: "Les commissaires soupçonnaient un avantage aérodynamique. Après dégustation contradictoire, il ne reste plus assez de preuve pour prononcer une sanction.",
+  },
+  {
+    title: "Des castagnettes prises pour un dérailleur électronique",
+    copy: "Chaque claquement déclenchait une relance du leader. Le mécanicien nie tout branchement clandestin et réclame seulement un rappel au tempo.",
+  },
+  {
+    title: "Le jambon ibérique passe le contrôle aérodynamique",
+    copy: "Profil fin, affinage long et excellente tenue dans le vent : le produit obtient son homologation, mais disparaît mystérieusement avant la pesée finale.",
+  },
+  {
+    title: "Don Quichotte attaque les éoliennes du dernier col",
+    copy: "Il jurait avoir vu trente géants former une bordure. Son directeur sportif salue le panache et lui retire discrètement l’accès à la radio de course.",
+  },
+  {
+    title: "Un bidon de sangria saisi avant le sprint",
+    copy: "Le soigneur plaidait la boisson isotonique avec fruits frais. L’échantillon B a été servi avec des glaçons ; l’audience disciplinaire a fini en terrasse.",
+  },
+];
+
+const SPANISH_VUELTA_BRIEFS_EN: readonly SpanishVueltaBrief[] = [
+  { title: "A paella neutralises the feed zone", copy: "The commissaire was counting every grain of rice to check the regulation weight. The bunch left before the total was known; two domestiques stayed for the socarrat." },
+  { title: "Tapas create a split at the counter", copy: "Six plates, three stools and one final croqueta: the best-positioned team gained half a length without even leaving the bar." },
+  { title: "A chorizo demands the red jersey", copy: "Its colour was flawless and its attack particularly spicy. The jury still refuses to validate the time because the string carried no transponder." },
+  { title: "The siesta becomes a team time trial", copy: "All eight riders lay down at exactly the same time. Perfect synchronisation, questionable wake-up: two are still being listed outside the time limit." },
+  { title: "Flamenco sets the peloton's cadence", copy: "At 96 handclaps per minute, nobody dared change gear. The official metronome now wants cycling shoes with cleats and heels." },
+  { title: "A tortilla is ruled too thick at the summit", copy: "Commissaires suspected an aerodynamic advantage. After a contradictory tasting, too little evidence remained to impose a penalty." },
+  { title: "Castanets mistaken for electronic shifting", copy: "Every click triggered another leader's acceleration. The mechanic denies any secret wiring and asks only for a reminder of the tempo." },
+  { title: "Jamón ibérico passes the aero test", copy: "Slim profile, long ageing and excellent stability in the wind: approval was granted, but the exhibit mysteriously vanished before the final weigh-in." },
+  { title: "Don Quixote attacks the wind turbines", copy: "He swore thirty giants were forming an echelon. His sports director praised the panache and quietly removed his race-radio access." },
+  { title: "A bottle of sangria seized before the sprint", copy: "The carer argued it was an isotonic drink with fresh fruit. Sample B was served over ice; the disciplinary hearing ended on a terrace." },
+];
+
 export function CyclogazetteNewspaper({
   edition,
   community,
@@ -151,6 +219,7 @@ export function CyclogazetteNewspaper({
     reactions,
     tourSummaries = [],
     mediaArticles = [],
+    featureStories = [],
   } = edition.content;
   const winnerStories = uniqueStories(
     [lead, ...raceStories].filter(
@@ -174,16 +243,25 @@ export function CyclogazetteNewspaper({
   const isFrenchGrandTourEdition = isFrenchGrandTourGazetteDay(
     edition.dayNumber,
   );
+  const isSpanishGrandTourEdition = isSpanishGrandTourGazetteDay(
+    edition.dayNumber,
+  );
+  const isSportsDailyEdition =
+    isFrenchGrandTourEdition || isSpanishGrandTourEdition;
   const gazetteTheme: CyclogazetteTheme = isItalianGrandTourEdition
     ? "giro"
     : isFrenchGrandTourEdition
       ? "tour"
-      : "classic";
+      : isSpanishGrandTourEdition
+        ? "vuelta"
+        : "classic";
   const newspaperName = isItalianGrandTourEdition
     ? "Cyclo Gazetta"
-    : isEnglish
-      ? "The Cyclogazette"
-      : "La Cyclogazette";
+    : isSpanishGrandTourEdition
+      ? "CICLO MARCA"
+      : isEnglish
+        ? "The Cyclogazette"
+        : "La Cyclogazette";
   const italianAdvertisement = getItalianGazettaAdvertisement(
     edition.issueNumber,
     isEnglish,
@@ -197,6 +275,14 @@ export function CyclogazetteNewspaper({
     isEnglish,
   );
   const frenchBriefs = getFrenchTourBriefs(edition.issueNumber, isEnglish);
+  const spanishAdvertisement = getSpanishVueltaAdvertisement(
+    edition.issueNumber,
+    isEnglish,
+  );
+  const spanishBriefs = getSpanishVueltaBriefs(
+    edition.issueNumber,
+    isEnglish,
+  );
   const newspaperStyle = getCyclogazetteThemeStyle(gazetteTheme);
 
   return (
@@ -226,6 +312,16 @@ export function CyclogazetteNewspaper({
           <span className="bg-[#F7F7F4]" />
           <span className="bg-[#E30613]" />
         </div>
+      ) : isSpanishGrandTourEdition ? (
+        <div
+          aria-hidden="true"
+          data-gazette-tricolore="spain"
+          className="grid h-2 grid-cols-[1fr_1.6fr_1fr]"
+        >
+          <span className="bg-[#AA151B]" />
+          <span className="bg-[#F1BF00]" />
+          <span className="bg-[#AA151B]" />
+        </div>
       ) : null}
       <div
         aria-hidden="true"
@@ -240,6 +336,10 @@ export function CyclogazetteNewspaper({
                 ? isEnglish
                   ? "Special edition · The Tour daily"
                   : "Édition spéciale · Le quotidien du Tour"
+                : isSpanishGrandTourEdition
+                  ? isEnglish
+                    ? "Red edition · The Vuelta daily"
+                    : "Edición roja · El diario de la Vuelta"
               : isEnglish
                 ? "The peloton's daily newspaper"
                 : "Le journal quotidien du peloton"}
@@ -255,19 +355,29 @@ export function CyclogazetteNewspaper({
               ? isEnglish
                 ? "The Tour · Exclusive · Live"
                 : "Le Tour · Exclusif · Direct"
+              : isSpanishGrandTourEdition
+                ? isEnglish
+                  ? "La Vuelta · Exclusive · Live"
+                  : "La Vuelta · Exclusiva · En directo"
               : isEnglish
                 ? "Racing · Transfers · Behind the scenes"
                 : "Courses · Mercato · Coulisses"}
           </p>
           <h1
-            data-gazette-masthead={isFrenchGrandTourEdition ? "tour" : undefined}
-            className={`text-center font-black leading-none ${
+            data-gazette-masthead={
               isFrenchGrandTourEdition
+                ? "tour"
+                : isSpanishGrandTourEdition
+                  ? "vuelta"
+                  : undefined
+            }
+            className={`text-center font-black leading-none ${
+              isSportsDailyEdition
                 ? "-skew-x-3 text-3xl uppercase italic tracking-[-0.075em] text-[var(--gazette-accent)] sm:-skew-x-6 sm:text-7xl lg:text-8xl"
                 : "font-serif text-5xl tracking-[-0.055em] sm:text-7xl lg:text-8xl"
             }`}
           >
-            {isFrenchGrandTourEdition
+            {isSportsDailyEdition
               ? newspaperName.toUpperCase()
               : newspaperName}
           </h1>
@@ -276,6 +386,8 @@ export function CyclogazetteNewspaper({
               ? `Edizione rosa · N° ${edition.issueNumber}`
               : isFrenchGrandTourEdition
                 ? `${isEnglish ? "Tour issue" : "Numéro du Tour"} · N° ${edition.issueNumber}`
+                : isSpanishGrandTourEdition
+                  ? `${isEnglish ? "Red issue" : "Edición roja"} · N° ${edition.issueNumber}`
               : `N° ${edition.issueNumber}`}
           </p>
         </div>
@@ -284,14 +396,20 @@ export function CyclogazetteNewspaper({
         </p>
       </header>
 
-      {isFrenchGrandTourEdition ? (
+      {isSportsDailyEdition ? (
         <div
-          data-gazette-tour-rubriques="true"
+          data-gazette-tour-rubriques={
+            isSpanishGrandTourEdition ? "vuelta" : "true"
+          }
           className="grid grid-cols-2 bg-[var(--gazette-accent)] text-center text-[9px] font-black uppercase tracking-[0.16em] text-white sm:grid-cols-4 sm:text-[10px]"
         >
-          {(isEnglish
-            ? ["The stage", "Yellow jersey", "The French", "Behind the scenes"]
-            : ["L’étape", "Maillot jaune", "Les Français", "Les coulisses"]
+          {(isSpanishGrandTourEdition
+            ? isEnglish
+              ? ["The stage", "Red jersey", "The favourites", "The paddock"]
+              : ["La etapa", "Maillot rojo", "Los favoritos", "El paddock"]
+            : isEnglish
+              ? ["The stage", "Yellow jersey", "The French", "Behind the scenes"]
+              : ["L’étape", "Maillot jaune", "Les Français", "Les coulisses"]
           ).map((rubrique) => (
             <span
               key={rubrique}
@@ -308,7 +426,7 @@ export function CyclogazetteNewspaper({
           <SectionTitle
             eyebrow={isEnglish ? "Front page" : "La Une"}
             title={isEnglish ? "Today's stage winners" : "Les vainqueurs des étapes"}
-            sportsDaily={isFrenchGrandTourEdition}
+            sportsDaily={isSportsDailyEdition}
           />
           <div className="mt-4">
             {frontPageLead ? (
@@ -333,7 +451,7 @@ export function CyclogazetteNewspaper({
             <SectionTitle
               eyebrow={isEnglish ? "Today's jerseys" : "Les maillots du jour"}
               title={isEnglish ? "Stage-race round-up" : "Le point sur les tours"}
-              sportsDaily={isFrenchGrandTourEdition}
+              sportsDaily={isSportsDailyEdition}
             />
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {tourSummaries.map((tour) => (
@@ -351,7 +469,7 @@ export function CyclogazetteNewspaper({
             <SectionTitle
               eyebrow={isEnglish ? "Road warriors" : "Les forçats de la route"}
               title={isEnglish ? "The riders who made the race" : "Ceux qui ont animé la course"}
-              sportsDaily={isFrenchGrandTourEdition}
+              sportsDaily={isSportsDailyEdition}
             />
             <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
               {isEnglish
@@ -375,7 +493,7 @@ export function CyclogazetteNewspaper({
           <SectionTitle
             eyebrow={isEnglish ? "After the finish" : "Après l’arrivée"}
             title={isEnglish ? "The microphone goes to the SDs" : "Le micro aux DS"}
-            sportsDaily={isFrenchGrandTourEdition}
+            sportsDaily={isSportsDailyEdition}
           />
           {reactions.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-stretch gap-4">
@@ -404,7 +522,7 @@ export function CyclogazetteNewspaper({
             <SectionTitle
               eyebrow={isEnglish ? "From the peloton" : "Les tribunes du peloton"}
               title={isEnglish ? "The teams have their say" : "La parole aux équipes"}
-              sportsDaily={isFrenchGrandTourEdition}
+              sportsDaily={isSportsDailyEdition}
             />
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {mediaArticles.map((article) => (
@@ -431,11 +549,18 @@ export function CyclogazetteNewspaper({
           </section>
         ) : null}
 
+        {featureStories.length > 0 ? (
+          <EditorialFeatureSection
+            stories={featureStories}
+            sportsDaily={isSportsDailyEdition}
+          />
+        ) : null}
+
         <section className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5">
           <SectionTitle
             eyebrow={isEnglish ? "News in brief" : "Télégrammes"}
             title={isEnglish ? "Transfer notebook" : "Le carnet du mercato"}
-            sportsDaily={isFrenchGrandTourEdition}
+            sportsDaily={isSportsDailyEdition}
           />
           {mercatoStories.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-stretch gap-4">
@@ -456,6 +581,9 @@ export function CyclogazetteNewspaper({
         {isFrenchGrandTourEdition ? (
           <FrenchTourChronicle briefs={frenchBriefs} />
         ) : null}
+        {isSpanishGrandTourEdition ? (
+          <SpanishVueltaChronicle briefs={spanishBriefs} />
+        ) : null}
       </main>
 
       <aside className="mx-5 border-y-2 border-dashed border-[var(--gazette-rule)]/60 bg-[var(--gazette-aside)] px-5 py-4 text-center sm:mx-8">
@@ -466,6 +594,10 @@ export function CyclogazetteNewspaper({
               ? isEnglish
                 ? "The Tour advertisement"
                 : "La réclame du Tour"
+              : isSpanishGrandTourEdition
+                ? isEnglish
+                  ? "The Vuelta advertisement"
+                  : "Publicidad de la Vuelta"
             : isEnglish
               ? "Partner message"
               : "Annonce partenaire"}
@@ -475,6 +607,8 @@ export function CyclogazetteNewspaper({
             ? italianAdvertisement.headline
             : isFrenchGrandTourEdition
               ? frenchAdvertisement.headline
+              : isSpanishGrandTourEdition
+                ? spanishAdvertisement.headline
             : mediaArticles.find((article) => article.sponsorName)?.sponsorName
               ? isEnglish
                 ? `${mediaArticles.find((article) => article.sponsorName)?.sponsorName} supports ${mediaArticles.find((article) => article.sponsorName)?.teamName}'s project.`
@@ -487,11 +621,15 @@ export function CyclogazetteNewspaper({
                   ? "Roue Libre Workshop · one free service with every new beginning."
                   : "Atelier Roue Libre · une révision offerte à chaque nouveau départ."}
         </p>
-        {isItalianGrandTourEdition || isFrenchGrandTourEdition ? (
+        {isItalianGrandTourEdition ||
+        isFrenchGrandTourEdition ||
+        isSpanishGrandTourEdition ? (
           <p className="mx-auto mt-1 max-w-3xl font-serif text-sm italic text-[var(--gazette-muted)]">
             {isItalianGrandTourEdition
               ? italianAdvertisement.copy
-              : frenchAdvertisement.copy}
+              : isFrenchGrandTourEdition
+                ? frenchAdvertisement.copy
+                : spanishAdvertisement.copy}
           </p>
         ) : null}
       </aside>
@@ -509,6 +647,80 @@ export function CyclogazetteNewspaper({
         <span>{isEnglish ? "Next edition tomorrow at 8 pm" : "Prochaine édition demain à 20 h"}</span>
       </footer>
     </article>
+  );
+}
+
+function EditorialFeatureSection({
+  stories,
+  sportsDaily,
+}: {
+  stories: readonly CyclogazetteFeatureStory[];
+  sportsDaily: boolean;
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+
+  return (
+    <section
+      data-gazette-editorial-features="true"
+      className="mt-8 border-t-4 border-double border-[var(--gazette-ink)] pt-5"
+    >
+      <SectionTitle
+        eyebrow={isEnglish ? "Inside the peloton" : "Dans les coulisses"}
+        title={
+          isEnglish
+            ? "The stories shaping tomorrow"
+            : "Les histoires qui préparent demain"
+        }
+        sportsDaily={sportsDaily}
+      />
+      <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
+        {isEnglish
+          ? "Start lists, development teams, transfer whispers and recovery diaries: another way to read the life of the peloton."
+          : "Start-lists, DevTeams, bruits de mercato et carnets de convalescence : une autre manière de raconter la vie du peloton."}
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {stories.map((story, index) => {
+          const article = (
+            <article
+              data-gazette-feature-kind={story.kind}
+              className={`h-full border-l-4 border-[var(--gazette-accent)] bg-[var(--gazette-card)] p-5 ${
+                index === 0 ? "md:col-span-2" : ""
+              }`}
+            >
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--gazette-accent)]">
+                {isEnglish ? story.kickerEn : story.kicker}
+              </p>
+              <h3
+                className={`${index === 0 ? "text-3xl" : "text-2xl"} mt-2 font-serif font-black leading-none tracking-[-0.025em]`}
+              >
+                {isEnglish ? story.titleEn : story.title}
+              </h3>
+              <p className="mt-4 font-serif text-sm font-medium leading-6 text-[var(--gazette-body)]">
+                {isEnglish ? story.bodyEn : story.body}
+              </p>
+              {story.href ? (
+                <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--gazette-accent)]">
+                  {isEnglish ? "Read the full story" : "Ouvrir le dossier"} →
+                </p>
+              ) : null}
+            </article>
+          );
+
+          return story.href ? (
+            <Link
+              key={story.id}
+              href={story.href}
+              className="block min-w-0 no-underline"
+            >
+              {article}
+            </Link>
+          ) : (
+            <div key={story.id}>{article}</div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -683,9 +895,124 @@ function getFrenchTourBriefs(issueNumber: number, isEnglish: boolean) {
     : briefs.slice(3, 6);
 }
 
+function SpanishVueltaChronicle({
+  briefs,
+}: {
+  briefs: readonly SpanishVueltaBrief[];
+}) {
+  const { locale } = useLocale();
+  const isEnglish = locale === "en";
+  return (
+    <section
+      data-gazette-spanish-chronicle="true"
+      className="mt-8 border-t-[6px] border-[var(--gazette-accent)] pt-4"
+    >
+      <SectionTitle
+        eyebrow="La última hora"
+        title={
+          isEnglish
+            ? "Three Iberian stories the broom wagon nearly missed"
+            : "Trois nouvelles ibériques que la voiture-balai a failli rater"
+        }
+        sportsDaily
+      />
+      <p className="mt-3 max-w-4xl font-serif text-sm italic leading-5 text-[var(--gazette-muted)]">
+        {isEnglish
+          ? "Our correspondent Paco Piñón checked every detail between two tapas. The second plate remains our only anonymous source."
+          : "Notre correspondant Paco Piñón a vérifié chaque détail entre deux tapas. La deuxième assiette reste notre seule source anonyme."}
+      </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {briefs.map((brief, index) => (
+          <article
+            key={brief.title}
+            className="border-t-[6px] border-[var(--gazette-accent)] bg-[var(--gazette-card)] p-4"
+          >
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[var(--gazette-accent)]">
+              Vuelta confidencial · {isEnglish ? "Brief" : "Brève"} n° {index + 1}
+            </p>
+            <h3 className="mt-2 font-serif text-2xl font-black uppercase italic leading-none tracking-[-0.035em]">
+              {brief.title}
+            </h3>
+            <p className="mt-3 font-serif text-sm leading-5 text-[var(--gazette-body)]">
+              {brief.copy}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getSpanishVueltaAdvertisement(
+  issueNumber: number,
+  isEnglish: boolean,
+): SpanishVueltaAdvertisement {
+  const rotation = Math.abs(Math.trunc(issueNumber)) % 3;
+  if (rotation === 0) {
+    return {
+      headline: isEnglish
+        ? "Paella Pelotón · The pan big enough for every breakaway"
+        : "Paella Pelotón · La poêle assez grande pour toutes les échappées",
+      copy: isEnglish
+        ? "Rice, saffron and perfect timing: never stir once the attacks begin."
+        : "Riz, safran et sens du timing : ne jamais remuer quand les attaques commencent.",
+    };
+  }
+  if (rotation === 1) {
+    return {
+      headline: isEnglish
+        ? "Tapas de Meta · Small plates, very big finishes"
+        : "Tapas de Meta · Petites assiettes, très grandes arrivées",
+      copy: isEnglish
+        ? "One bite per kilometre and a croqueta bonus at the flamme rouge."
+        : "Une bouchée par kilomètre et une bonification croqueta sous la flamme rouge.",
+    };
+  }
+  return {
+    headline: isEnglish
+      ? "Chorizo Rojo · The unofficial fuel of the red jersey"
+      : "Chorizo Rojo · Le carburant non officiel du maillot rouge",
+    copy: isEnglish
+      ? "Spicy on the climb, sliced thin in the crosswinds and always ahead at the aperitif."
+      : "Piquant dans les cols, tranché fin dans les bordures et toujours en avance à l’apéritif.",
+  };
+}
+
+function getSpanishVueltaBriefs(issueNumber: number, isEnglish: boolean) {
+  const briefs = isEnglish
+    ? SPANISH_VUELTA_BRIEFS_EN
+    : SPANISH_VUELTA_BRIEFS;
+  const start = (Math.abs(Math.trunc(issueNumber)) * 3) % briefs.length;
+  return Array.from(
+    { length: 3 },
+    (_, offset) => briefs[(start + offset) % briefs.length],
+  ).filter((brief): brief is SpanishVueltaBrief => Boolean(brief));
+}
+
 function getCyclogazetteThemeStyle(theme: CyclogazetteTheme) {
   const editorialFont = "var(--font-geist-" + "s" + "ans)";
   const newspaperFont = "Georgia,'Times New Roman',serif";
+
+  if (theme === "vuelta") {
+    return {
+      "--gazette-paper": "#F5F3EE",
+      "--gazette-feature": "rgba(255, 255, 255, 0.94)",
+      "--gazette-card": "rgba(244, 239, 232, 0.94)",
+      "--gazette-card-soft": "rgba(250, 247, 242, 0.94)",
+      "--gazette-aside": "rgba(241, 191, 0, 0.14)",
+      "--gazette-details": "rgba(252, 249, 245, 0.98)",
+      "--gazette-input": "#FFFFFF",
+      "--gazette-ink": "#151515",
+      "--gazette-body": "#2B2B2B",
+      "--gazette-muted": "#5F5F5F",
+      "--gazette-rule": "#202020",
+      "--gazette-accent": "#D71920",
+      "--gazette-secondary": "#F1BF00",
+      "--font-serif": editorialFont,
+      backgroundImage:
+        "linear-gradient(90deg,rgba(215,25,32,.028),transparent 22%,transparent 78%,rgba(241,191,0,.04)),repeating-linear-gradient(0deg,rgba(20,20,20,.016) 0,rgba(20,20,20,.016) 1px,transparent 1px,transparent 3px)",
+    } as CSSProperties;
+  }
 
   if (theme === "tour") {
     return {

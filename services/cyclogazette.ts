@@ -14,6 +14,7 @@ import {
   repairCyclogazetteValue,
   selectLatestCyclogazetteEveningStages,
   selectLatestCyclogazetteTourSummaries,
+  sortCyclogazetteStoriesByPrestige,
 } from "@/lib/game/cyclogazette";
 import {
   isCyclogazetteInterviewReactionEmoji,
@@ -26,6 +27,7 @@ import type {
 } from "@/lib/game/post-race-interview";
 import type { PublicGameNewsItem } from "@/lib/game/public-game-news";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { loadCyclogazetteFeatureStories } from "@/services/cyclogazette-editorial";
 import { getCyclogazetteNewsItems } from "@/services/public-game-news";
 
 type SeasonRow = {
@@ -200,8 +202,13 @@ export async function publishCyclogazetteEdition(
     };
   }
 
-  const [allNews, submittedReactions, tourSummaries, mediaArticlesResult] =
-    await Promise.all([
+  const [
+    allNews,
+    submittedReactions,
+    tourSummaries,
+    mediaArticlesResult,
+    featureStories,
+  ] = await Promise.all([
       getCyclogazetteNewsItems(),
       loadDailyReactions(seasonDay.calendar_date),
       loadDailyTourSummaries(admin, seasonDay.id),
@@ -214,6 +221,11 @@ export async function publishCyclogazetteEdition(
         .order("created_at", { ascending: true })
         .limit(8)
         .returns<MediaArticleRow[]>(),
+      loadCyclogazetteFeatureStories(admin, {
+        seasonId: season.id,
+        dayNumber,
+        calendarDate: seasonDay.calendar_date,
+      }),
     ]);
   if (mediaArticlesResult.error) {
     throw new Error(
@@ -231,11 +243,15 @@ export async function publishCyclogazetteEdition(
   const dailyNews = allNews.filter(
     (item) => getParisDateKey(item.happenedAt) === seasonDay.calendar_date,
   );
-  const victories = deduplicateStories(
-    dailyNews.filter((item) => item.kind === "victory"),
+  const victories = sortCyclogazetteStoriesByPrestige(
+    deduplicateStories(
+      dailyNews.filter((item) => item.kind === "victory"),
+    ),
   ).slice(0, 6);
-  const raceNews = deduplicateStories(
-    dailyNews.filter((item) => item.kind === "race_recap"),
+  const raceNews = sortCyclogazetteStoriesByPrestige(
+    deduplicateStories(
+      dailyNews.filter((item) => item.kind === "race_recap"),
+    ),
   ).slice(0, 12);
   const raceHighlights = raceNews
     .filter(
@@ -274,6 +290,7 @@ export async function publishCyclogazetteEdition(
     reactions,
     tourSummaries,
     mediaArticles,
+    featureStories,
   };
   const publishedAt = now.toISOString();
   const issueNumber = Math.max(1, (season.game_year - 1) * 28 + dayNumber);
@@ -831,6 +848,7 @@ function createSubtitle(content: CyclogazetteContent, dayNumber: number) {
   if (content.mercatoStories.length > 0) return "Le mercato anime le peloton";
   if (content.reactions.length > 0)
     return "Les directeurs sportifs prennent la parole";
+  if (content.featureStories?.[0]) return content.featureStories[0].title;
   return `L’essentiel du peloton au jour ${dayNumber}`;
 }
 
@@ -892,6 +910,9 @@ function normalizeGazetteContent(value: unknown): CyclogazetteContent {
   const mediaArticles = Array.isArray(content.mediaArticles)
     ? content.mediaArticles
     : [];
+  const featureStories = Array.isArray(content.featureStories)
+    ? content.featureStories
+    : [];
 
   return {
     lead: content.lead ?? null,
@@ -903,5 +924,6 @@ function normalizeGazetteContent(value: unknown): CyclogazetteContent {
     reactions,
     tourSummaries,
     mediaArticles,
+    featureStories,
   };
 }

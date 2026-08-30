@@ -6,10 +6,12 @@ import {
   getParisHour,
   isFrenchGrandTourGazetteDay,
   isItalianGrandTourGazetteDay,
+  isSpanishGrandTourGazetteDay,
   repairCyclogazetteText,
   repairCyclogazetteValue,
   selectLatestCyclogazetteEveningStages,
   selectLatestCyclogazetteTourSummaries,
+  sortCyclogazetteStoriesByPrestige,
 } from "@/lib/game/cyclogazette";
 
 describe("horaire de publication de La Cyclogazette", () => {
@@ -50,6 +52,55 @@ describe("édition spéciale du Grand Tour français", () => {
     expect(isFrenchGrandTourGazetteDay(16)).toBe(false);
     expect(isFrenchGrandTourGazetteDay(28)).toBe(false);
     expect(isFrenchGrandTourGazetteDay(10.5)).toBe(false);
+  });
+});
+
+describe("édition rouge du Grand Tour espagnol", () => {
+  it("active le thème de J17 à J22 inclus à chaque saison", () => {
+    expect(isSpanishGrandTourGazetteDay(17)).toBe(true);
+    expect(isSpanishGrandTourGazetteDay(20)).toBe(true);
+    expect(isSpanishGrandTourGazetteDay(22)).toBe(true);
+  });
+
+  it("conserve la maquette classique en dehors de la Vuelta", () => {
+    expect(isSpanishGrandTourGazetteDay(16)).toBe(false);
+    expect(isSpanishGrandTourGazetteDay(23)).toBe(false);
+    expect(isSpanishGrandTourGazetteDay(17.5)).toBe(false);
+  });
+});
+
+describe("hiérarchie éditoriale des courses", () => {
+  it("place la catégorie la plus prestigieuse en Une avant la récence", () => {
+    const stories = [
+      {
+        id: "national-recent",
+        happenedAt: "2026-08-30T18:30:00.000Z",
+        prestigeRank: 4,
+      },
+      {
+        id: "elite-older",
+        happenedAt: "2026-08-30T14:00:00.000Z",
+        prestigeRank: 1,
+      },
+      {
+        id: "unknown",
+        happenedAt: "2026-08-30T19:00:00.000Z",
+      },
+      {
+        id: "elite-recent",
+        happenedAt: "2026-08-30T18:00:00.000Z",
+        prestigeRank: 1,
+      },
+    ];
+
+    expect(
+      sortCyclogazetteStoriesByPrestige(stories).map((story) => story.id),
+    ).toEqual([
+      "elite-recent",
+      "elite-older",
+      "national-recent",
+      "unknown",
+    ]);
   });
 });
 

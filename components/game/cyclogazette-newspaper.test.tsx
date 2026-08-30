@@ -282,6 +282,107 @@ describe("CyclogazetteNewspaper", () => {
     expect(markup).toContain("--gazette-paper:#F4EBD2");
   });
 
+  it("adopte une maquette façon quotidien sportif espagnol de J17 à J22", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 12, dayNumber: 17 }}
+      />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="vuelta"');
+    expect(markup).toContain('data-gazette-masthead="vuelta"');
+    expect(markup).toContain("CICLO MARCA");
+    expect(markup).toContain("Edición roja");
+    expect(markup).toContain("El diario de la Vuelta");
+    expect(markup).toContain("--gazette-paper:#F5F3EE");
+    expect(markup).toContain("--gazette-accent:#D71920");
+    expect(markup).toContain('data-gazette-tricolore="spain"');
+    expect(markup).toContain('data-gazette-tour-rubriques="vuelta"');
+    expect(markup).toContain("Maillot rojo");
+    expect(markup).toContain("Los favoritos");
+    expect(markup).toContain('data-gazette-spanish-chronicle="true"');
+    expect(markup).toContain("Publicidad de la Vuelta");
+    expect(markup).toContain("Paella Pelotón");
+    expect(markup).toContain(
+      "Des castagnettes prises pour un dérailleur électronique",
+    );
+    expect(markup).toContain(
+      "Le jambon ibérique passe le contrôle aérodynamique",
+    );
+    expect(markup).toContain(
+      "Don Quichotte attaque les éoliennes du dernier col",
+    );
+  });
+
+  it("fait tourner trois brèves parmi les dix histoires espagnoles", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{ ...edition, issueNumber: 13, dayNumber: 22 }}
+      />,
+    );
+
+    expect(markup).toContain("Tapas de Meta");
+    expect(markup).toContain("Un bidon de sangria saisi avant le sprint");
+    expect(markup).toContain(
+      "Une paella neutralise la zone de ravitaillement",
+    );
+    expect(markup).toContain("Les tapas provoquent une bordure au comptoir");
+    expect(markup.match(/Vuelta confidencial/g)).toHaveLength(3);
+  });
+
+  it("retrouve la maquette classique après le Tour espagnol", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 23 }} />,
+    );
+
+    expect(markup).toContain('data-gazette-theme="classic"');
+    expect(markup).not.toContain('data-gazette-spanish-chronicle="true"');
+    expect(markup).not.toContain("Publicidad de la Vuelta");
+  });
+
+  it("publie les nouveaux dossiers éditoriaux avec leurs liens directs", () => {
+    const markup = renderToStaticMarkup(
+      <CyclogazetteNewspaper
+        edition={{
+          ...edition,
+          content: {
+            ...edition.content,
+            featureStories: [
+              {
+                id: "startlist:1",
+                kind: "startlist",
+                kicker: "Start-list · J18",
+                kickerEn: "Start list · Day 18",
+                title: "Les favoris sortent du bois",
+                titleEn: "The favourites step forward",
+                body: "Une sélection ambitieuse se présente au départ.",
+                bodyEn: "An ambitious selection lines up at the start.",
+                href: "/jeu/courses/ruta-de-las-sierras",
+              },
+              {
+                id: "injury:1",
+                kind: "injury",
+                kicker: "Carnet de convalescence",
+                kickerEn: "Recovery diary",
+                title: "Dans la roue de la convalescence",
+                titleEn: "Following the road to recovery",
+                body: "Le coureur prépare déjà son retour.",
+                bodyEn: "The rider is already preparing a comeback.",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-gazette-editorial-features="true"');
+    expect(markup).toContain('data-gazette-feature-kind="startlist"');
+    expect(markup).toContain('data-gazette-feature-kind="injury"');
+    expect(markup).toContain("Les histoires qui préparent demain");
+    expect(markup).toContain("Les favoris sortent du bois");
+    expect(markup).toContain('href="/jeu/courses/ruta-de-las-sierras"');
+  });
+
   it("reprend La Cyclogazette et son papier classique dès J8", () => {
     const markup = renderToStaticMarkup(
       <CyclogazetteNewspaper edition={{ ...edition, dayNumber: 8 }} />,

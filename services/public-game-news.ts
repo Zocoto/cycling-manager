@@ -45,6 +45,7 @@ type PublicHomeVictoryRow = RaceResultRow & {
 
 type RaceEditionRow = {
   id: string;
+  race_category_id: string;
   display_name: string;
   races: { slug: string } | null;
   stages: Array<{
@@ -52,6 +53,12 @@ type RaceEditionRow = {
     departure_at: string | null;
     distance_km: number | string;
   }>;
+};
+
+type RaceCategoryRow = {
+  id: string;
+  code: string;
+  prestige_rank: number;
 };
 
 type RaceRosterRow = {
@@ -351,7 +358,7 @@ export async function getCyclogazetteNewsItems(): Promise<PublicGameNewsItem[]> 
 
   const results = await Promise.allSettled([
     loadRecentPostRaceNews(admin),
-    loadRecentVictories(admin),
+    loadRecentVictories(admin, 12, true),
     loadRecentArrivals(admin),
     loadRecentRiderMovements(admin),
     loadRecentStaffMovements(admin),
@@ -404,6 +411,7 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
     editionsQuery,
     stagesQuery,
     ageByRiderId,
+    categoriesQuery,
   ] = await Promise.all([
       riderIds.length > 0
         ? admin
@@ -425,7 +433,9 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       loadRaceProfiles(admin, editionIds),
       admin
         .from("race_editions")
-        .select("id, display_name, races (slug), stages (stage_number)")
+        .select(
+          "id, race_category_id, display_name, races (slug), stages (stage_number)",
+        )
         .in("id", editionIds)
         .returns<RaceEditionRow[]>(),
       admin
@@ -434,15 +444,21 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
         .in("id", unique(rows.map((row) => row.stage_id)))
         .returns<RaceStageRow[]>(),
       loadActiveRiderAges(admin, riderIds),
+      admin
+        .from("race_categories")
+        .select("id, code, prestige_rank")
+        .returns<RaceCategoryRow[]>(),
     ]);
   assertQuery(ridersQuery.error, "les coureurs des résumés de course");
   assertQuery(teamSeasonsQuery.error, "les équipes des résumés de course");
   assertQuery(editionsQuery.error, "les éditions des résumés de course");
   assertQuery(stagesQuery.error, "les étapes des résumés de course");
+  assertQuery(categoriesQuery.error, "les catégories des résumés de course");
 
   const riderById = toMap(ridersQuery.data ?? []);
   const editionById = toMap(editionsQuery.data ?? []);
   const stageById = toMap(stagesQuery.data ?? []);
+  const categoryById = toMap(categoriesQuery.data ?? []);
   const teamSeasons = teamSeasonsQuery.data ?? [];
   const teamVisualByTeamId = await loadTeamVisuals(admin, teamSeasons);
 
@@ -458,6 +474,9 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       : null;
     const raceProfile = profilesByEditionId.get(row.race_edition_id);
     const edition = editionById.get(row.race_edition_id);
+    const category = edition
+      ? categoryById.get(edition.race_category_id)
+      : null;
     const stage = stageById.get(row.stage_id);
     const href =
       edition?.races?.slug && stage
@@ -473,6 +492,8 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
       happenedAt: row.happened_at,
       href,
       significance: "major" as const,
+      raceCategoryCode: category?.code,
+      prestigeRank: category?.prestige_rank,
       ...(rider && riderName
         ? {
             visual: {
@@ -496,9 +517,13 @@ async function loadRecentPostRaceNews(admin: AdminClient): Promise<LoadedNews> {
   return { items, total: totalQuery.count ?? items.length };
 }
 
-async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
+async function loadRecentVictories(
+  admin: AdminClient,
+  limit = 6,
+  includePrestige = false,
+): Promise<LoadedNews> {
   const victoryQuery = await admin.rpc("get_public_home_victories", {
-    p_limit: 6,
+    p_limit: limit,
   });
   assertQuery(victoryQuery.error, "les dernières victoires");
 
@@ -511,11 +536,16 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
   }
 
   const editionIds = unique(results.map((row) => row.race_edition_id));
-  const [editionsQuery, rostersQuery, profilesByEditionId] = await Promise.all([
+  const [
+    editionsQuery,
+    rostersQuery,
+    profilesByEditionId,
+    categoriesQuery,
+  ] = await Promise.all([
     admin
       .from("race_editions")
       .select(
-        "id, display_name, races (slug), stages (stage_number, departure_at, distance_km)",
+        "id, race_category_id, display_name, races (slug), stages (stage_number, departure_at, distance_km)",
       )
       .in("id", editionIds)
       .returns<RaceEditionRow[]>(),
@@ -525,9 +555,16 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
       .in("id", unique(results.map((row) => row.race_roster_id)))
       .returns<RaceRosterRow[]>(),
     loadRaceProfiles(admin, editionIds),
+    includePrestige
+      ? admin
+          .from("race_categories")
+          .select("id, code, prestige_rank")
+          .returns<RaceCategoryRow[]>()
+      : Promise.resolve({ data: [] as RaceCategoryRow[], error: null }),
   ]);
   assertQuery(editionsQuery.error, "les courses victorieuses");
   assertQuery(rostersQuery.error, "les vainqueurs");
+  assertQuery(categoriesQuery.error, "les catégories des victoires");
 
   const rosters = rostersQuery.data ?? [];
   const [ridersQuery, registrationsQuery, ageByRiderId] = await Promise.all([
@@ -576,6 +613,7 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
   const riderById = toMap(ridersQuery.data ?? []);
   const registrationById = toMap(registrations);
   const teamSeasonById = toMap(teamSeasons);
+  const categoryById = toMap(categoriesQuery.data ?? []);
 
   const items = results.flatMap((result) => {
     const edition = editionById.get(result.race_edition_id);
@@ -589,6 +627,9 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
       : null;
     const teamName =
       teamSeason?.display_name ?? registration?.historical_team_name?.trim();
+    const category = edition
+      ? categoryById.get(edition.race_category_id)
+      : null;
 
     if (!edition || !rider || !registration || !teamName) return [];
 
@@ -618,6 +659,8 @@ async function loadRecentVictories(admin: AdminClient): Promise<LoadedNews> {
         }),
         href,
         significance: "major" as const,
+        raceCategoryCode: category?.code,
+        prestigeRank: category?.prestige_rank,
         visual: {
           person: {
             kind: "rider" as const,
