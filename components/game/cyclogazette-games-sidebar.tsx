@@ -303,22 +303,40 @@ function CrosswordGame({
         {(["horizontal", "vertical"] as const).map((direction) => (
           <div key={direction}>
             <p className="border-b border-[#7D6C49]/40 pb-1 font-black uppercase tracking-[0.12em] text-[#9B263D]">
-              {direction === "horizontal" ? "Horizontal" : "Vertical"}
+              {direction === "horizontal"
+                ? "Horizontalement"
+                : "Verticalement"}
             </p>
             <ol className="mt-2 space-y-1 font-serif">
-              {puzzle.entries
-                .filter((entry) => entry.direction === direction)
-                .map((entry) => (
-                  <li key={`${entry.number}:${entry.direction}`}>
-                    <strong>{entry.number}.</strong> {entry.clue}
-                  </li>
-                ))}
+              {groupCrosswordClues(puzzle.entries, direction).map((group) => (
+                <li key={`${group.number}:${direction}`}>
+                  <strong>{group.number}.</strong> {group.clues.join(" · ")}
+                </li>
+              ))}
             </ol>
           </div>
         ))}
       </div>
     </GameForm>
   );
+}
+
+function groupCrosswordClues(
+  entries: CyclogazetteCrosswordPuzzle["entries"],
+  direction: "horizontal" | "vertical",
+) {
+  const cluesByNumber = new Map<number, string[]>();
+  entries
+    .filter((entry) => entry.direction === direction)
+    .forEach((entry) => {
+      const clues = cluesByNumber.get(entry.number) ?? [];
+      clues.push(entry.clue);
+      cluesByNumber.set(entry.number, clues);
+    });
+
+  return [...cluesByNumber.entries()]
+    .map(([number, clues]) => ({ number, clues }))
+    .sort((left, right) => left.number - right.number);
 }
 
 function GameForm({

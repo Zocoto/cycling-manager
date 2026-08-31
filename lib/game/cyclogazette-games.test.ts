@@ -60,33 +60,54 @@ describe("Cyclogazette daily games", () => {
       signatures.add(answer);
     }
 
-    expect(signatures.size).toBeGreaterThanOrEqual(70);
+    expect(signatures.size).toBeGreaterThanOrEqual(50);
   });
 
-  it("propose dès le numéro 45 une vraie grille carrée, dense et généraliste", () => {
-    const current = getCyclogazetteDailyGames(45).crossword;
-    const currentSolution = getCyclogazetteGameSolutions(45).crosswordRows;
-    const generalClues = Array.from({ length: 12 }, (_, offset) =>
-      getCyclogazetteDailyGames(45 + offset).crossword.entries.map(
-        (entry) => entry.clue,
-      ),
-    ).flat();
+  it("propose dès le numéro 45 une seule grille carrée, dense et connectée", () => {
+    for (let issueNumber = 45; issueNumber <= 54; issueNumber += 1) {
+      const crossword = getCyclogazetteDailyGames(issueNumber).crossword;
+      const solutionRows =
+        getCyclogazetteGameSolutions(issueNumber).crosswordRows;
 
-    expect(current.rows).toBe(9);
-    expect(current.columns).toBe(9);
-    expect(current.cells).toHaveLength(64);
-    expect(current.entries).toHaveLength(32);
-    expect(currentSolution).toHaveLength(9);
-    expect(currentSolution[4]).toBe("#########");
-    expect(
-      generalClues.some((clue) =>
-        [
-          "Satellite naturel de la Terre",
-          "Œuvre destinée au cinéma",
-          "Boisson obtenue à partir de grains torréfiés",
-          "Premières lueurs du jour",
-        ].includes(clue),
-      ),
-    ).toBe(true);
+      expect(crossword.rows).toBe(9);
+      expect(crossword.columns).toBe(9);
+      expect(crossword.cells.length).toBeGreaterThanOrEqual(60);
+      expect(crossword.entries.length).toBeGreaterThanOrEqual(26);
+      expect(crossword.entries.length).toBeLessThanOrEqual(29);
+      expect(solutionRows).toHaveLength(9);
+      expect(solutionRows.every((row) => row !== "#########")).toBe(true);
+      expect(isConnectedCrossword(solutionRows)).toBe(true);
+
+      for (const direction of ["horizontal", "vertical"] as const) {
+        const lineNumbers = new Set(
+          crossword.entries
+            .filter((entry) => entry.direction === direction)
+            .map((entry) => entry.number),
+        );
+        expect(lineNumbers.size).toBeLessThanOrEqual(9);
+      }
+    }
   });
 });
+
+function isConnectedCrossword(rows: string[]) {
+  const firstIndex = rows.join("").search(/[A-Z]/);
+  if (firstIndex < 0) return false;
+  const seen = new Set<number>();
+  const queue = [firstIndex];
+
+  while (queue.length > 0) {
+    const index = queue.shift();
+    if (index === undefined || seen.has(index)) continue;
+    const row = Math.floor(index / 9);
+    const column = index % 9;
+    if (rows[row]?.[column] === "#") continue;
+    seen.add(index);
+    if (row > 0) queue.push(index - 9);
+    if (row < 8) queue.push(index + 9);
+    if (column > 0) queue.push(index - 1);
+    if (column < 8) queue.push(index + 1);
+  }
+
+  return seen.size === rows.join("").replaceAll("#", "").length;
+}

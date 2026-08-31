@@ -324,6 +324,195 @@ const DENSE_CROSSWORD_CLUES: Readonly<Record<string, string>> = {
   VRAI: "Conforme à la réalité",
 } as const;
 
+type ConnectedCrosswordTemplate = {
+  rows: readonly string[];
+};
+
+const CONNECTED_CROSSWORD_TEMPLATES: readonly ConnectedCrosswordTemplate[] = [
+  {
+    rows: [
+      "RIEN#TROP",
+      "ELLE##O#R",
+      "F#URGENCE",
+      "LA#FOND#S",
+      "E#D###E#E",
+      "C#AUTO#IN",
+      "HONNEUR#T",
+      "I#S##RATE",
+      "REEL#STAR",
+    ],
+  },
+  {
+    rows: [
+      "A#T#SVP##",
+      "CIAO#I#LE",
+      "T#PRODUIT",
+      "ICI#HE#SE",
+      "VASE#ROTI",
+      "IN#CA#BEN",
+      "TOURNEE#D",
+      "EN#A#HIER",
+      "##UNI#R#E",
+    ],
+  },
+  {
+    rows: [
+      "SACRE##LA",
+      "AIME#T##U",
+      "US#GERANT",
+      "V#SI#OSER",
+      "ET#S#U#TE",
+      "TEST#PA#M",
+      "ALARME#CE",
+      "G##E#AMEN",
+      "EN##OUEST",
+    ],
+  },
+  {
+    rows: [
+      "MAT#COMA#",
+      "#CE#R#AMI",
+      "#CALIBRE#",
+      "ARME#AIL#",
+      "HO#V#T#IN",
+      "#CLE#TROU",
+      "#HORREUR#",
+      "NET#O#DE#",
+      "#ROTI#ERE",
+    ],
+  },
+  {
+    rows: [
+      "C#ET#AMI#",
+      "ART##U#LA",
+      "REALITE#P",
+      "ACTE#OH#P",
+      "VU#GYM#PA",
+      "A#SE#NIER",
+      "N#INSENSE",
+      "EN#D##FOI",
+      "#ILE#GO#L",
+    ],
+  },
+] as const;
+
+const CONNECTED_CROSSWORD_CLUES: Readonly<Record<string, string>> = {
+  ACCROCHER: "Fixer solidement ou captiver l’attention",
+  ACTE: "Action accomplie",
+  ACTIVITE: "Occupation ou ensemble de tâches",
+  AH: "Interjection marquant une émotion vive",
+  AIL: "Bulbe très parfumé utilisé en cuisine",
+  AIME: "Éprouve de l’affection",
+  AIS: "Planche de bois",
+  ALARME: "Signal qui avertit d’un danger",
+  AMELIORER: "Rendre meilleur",
+  AMEN: "Mot qui conclut une prière",
+  AMI: "Personne avec qui l’on partage une affection",
+  AN: "Douze mois",
+  APPAREIL: "Machine ou dispositif conçu pour une fonction",
+  ART: "Création destinée à exprimer une idée ou une émotion",
+  AS: "Champion dans son domaine",
+  AUTO: "Abrégé courant d’automobile",
+  AUTOMNE: "Saison située entre l’été et l’hiver",
+  AUTREMENT: "D’une autre manière",
+  BEN: "Interjection familière dans « eh ben »",
+  BATTE: "Accessoire utilisé pour frapper une balle",
+  CA: "Pronom démonstratif familier",
+  CALIBRE: "Diamètre intérieur d’un tube ou format d’une munition",
+  CANON: "Pièce d’artillerie ou règle esthétique",
+  CARAVANE: "Groupe voyageant ensemble ou habitation mobile",
+  CE: "Pronom ou adjectif démonstratif",
+  CES: "Adjectif démonstratif au pluriel",
+  CIAO: "Salut venu d’Italie",
+  CLE: "Elle ouvre une serrure",
+  CM: "Abréviation du centimètre",
+  COMA: "État prolongé d’inconscience",
+  CRI: "Son poussé avec force",
+  DANSE: "Art du mouvement rythmé",
+  DE: "Préposition marquant notamment l’origine",
+  ECRAN: "Surface sur laquelle apparaît une image",
+  EH: "Interjection servant à interpeller",
+  ELU: "Choisi par un vote",
+  EN: "Préposition indiquant notamment un lieu ou un état",
+  ETEINDRE: "Faire cesser une lumière ou un feu",
+  ET: "Conjonction qui relie deux éléments",
+  ERE: "Longue période historique",
+  FOND: "Partie la plus basse ou la plus éloignée",
+  FOI: "Confiance profonde accordée à une croyance",
+  GERANT: "Personne chargée d’administrer une activité",
+  GO: "Jeu de stratégie asiatique à pierres noires et blanches",
+  GYM: "Abrégé de gymnastique",
+  HE: "Interjection pour appeler ou attirer l’attention",
+  HIER: "Le jour qui précède aujourd’hui",
+  HO: "Interjection employée pour appeler",
+  HONNEUR: "Estime accordée au mérite",
+  HORREUR: "Sentiment de répulsion ou de peur intense",
+  ICI: "Dans le lieu où l’on se trouve",
+  IL: "Pronom personnel masculin",
+  ILE: "Terre entièrement entourée d’eau",
+  IN: "À la mode, en langage familier",
+  INFO: "Abrégé courant d’information",
+  INSENSE: "Dépourvu de bon sens",
+  LE: "Article défini masculin singulier",
+  LEGENDE: "Récit transmis mêlant histoire et imaginaire",
+  LEVER: "Faire passer d’une position basse à une position haute",
+  LISTE: "Suite d’éléments rangés les uns après les autres",
+  LA: "Article défini féminin ou note de musique",
+  LOTO: "Jeu de hasard avec des numéros",
+  MARI: "Époux",
+  MAT: "Sans éclat ni brillance",
+  ME: "Pronom personnel de la première personne",
+  NET: "Clair, précis ou sans saleté",
+  NE: "Élément de la négation",
+  NI: "Conjonction employée dans une négation",
+  NIER: "Refuser de reconnaître comme vrai",
+  NU: "Qui n’est pas couvert",
+  OBEIR: "Se conformer à un ordre",
+  OH: "Interjection marquant la surprise",
+  OR: "Métal précieux jaune",
+  OSER: "Avoir l’audace de faire quelque chose",
+  OUEST: "Point cardinal où le soleil se couche",
+  OURS: "Grand mammifère à la fourrure épaisse",
+  PA: "Syllabe familière pour désigner le père",
+  PESO: "Nom de plusieurs monnaies",
+  PRESENTER: "Montrer ou faire connaître",
+  PRODUIT: "Résultat d’une fabrication ou d’une multiplication",
+  RATE: "Organe situé dans la partie gauche de l’abdomen",
+  RAT: "Petit rongeur très répandu",
+  REALITE: "Ce qui existe effectivement",
+  REFLECHIR: "Examiner une idée avant de décider",
+  REGISTRE: "Livre ou support où l’on consigne des informations",
+  RIEN: "Absence de toute chose",
+  ROI: "Souverain d’un royaume",
+  RONDE: "Qui présente une forme circulaire",
+  ROTI: "Cuit au four ou à la broche",
+  RUDE: "Dur, difficile ou peu doux",
+  SACRE: "Consacré ou considéré comme inviolable",
+  SA: "Adjectif possessif féminin singulier",
+  SAUVETAGE: "Action de tirer quelqu’un d’un danger",
+  SE: "Pronom personnel réfléchi",
+  SI: "Conjonction exprimant une condition",
+  STAR: "Personnalité très célèbre",
+  SVP: "Formule abrégée de politesse",
+  TA: "Adjectif possessif féminin singulier",
+  TAPIS: "Pièce de tissu couvrant une partie du sol",
+  TE: "Pronom personnel de la deuxième personne",
+  TEAM: "Équipe, en anglais",
+  TEL: "Semblable ou de cette nature",
+  TEST: "Épreuve destinée à vérifier une capacité",
+  TOURNEE: "Série de déplacements ou ensemble de consommations offertes",
+  TROP: "En quantité excessive",
+  TROU: "Ouverture ou cavité",
+  TROUPEAU: "Groupe d’animaux élevés ensemble",
+  UN: "Premier nombre entier",
+  UNI: "Assemblé ou sans variation de couleur",
+  URGENCE: "Situation qui exige une action immédiate",
+  US: "Habitudes établies par l’usage",
+  VASE: "Récipient décoratif destiné notamment aux fleurs",
+  VIDER: "Retirer tout le contenu",
+  VU: "Aperçu avec les yeux",
+} as const;
+
 const DIFFICULTIES: readonly CyclogazetteGameDifficulty[] = [
   "facile",
   "moyen",
@@ -448,10 +637,21 @@ function createCrosswordPuzzle(issueNumber: number): PrivateCrosswordPuzzle {
     return buildCrosswordPuzzle(best, difficulty);
   }
 
-  const random = createSeededRandom(issueNumber * 15485863 + 49999);
-  const squares = shuffle([...DENSE_CROSSWORD_SQUARES], random).slice(0, 4);
+  const templateOffset = issueNumber - 45;
+  const template =
+    CONNECTED_CROSSWORD_TEMPLATES[
+      templateOffset % CONNECTED_CROSSWORD_TEMPLATES.length
+    ];
+  if (!template) {
+    const random = createSeededRandom(issueNumber * 15485863 + 49999);
+    const squares = shuffle([...DENSE_CROSSWORD_SQUARES], random).slice(0, 4);
+    return buildDenseCrosswordPuzzle(squares, difficulty);
+  }
 
-  return buildDenseCrosswordPuzzle(squares, difficulty);
+  const transpose =
+    Math.floor(templateOffset / CONNECTED_CROSSWORD_TEMPLATES.length) % 2 ===
+    1;
+  return buildConnectedCrosswordPuzzle(template, difficulty, transpose);
 }
 
 function buildDenseCrosswordPuzzle(
@@ -541,6 +741,127 @@ function buildDenseCrosswordPuzzle(
     entries,
     solution: letters.join(""),
   };
+}
+
+function buildConnectedCrosswordPuzzle(
+  template: ConnectedCrosswordTemplate,
+  difficulty: CyclogazetteGameDifficulty,
+  transpose: boolean,
+): PrivateCrosswordPuzzle {
+  const sourceRows = transpose
+    ? transposeCrosswordRows(template.rows)
+    : [...template.rows];
+  const rows = sourceRows.length;
+  const columns = sourceRows[0]?.length ?? 0;
+  const placements: PlacedCrosswordWord[] = [];
+
+  for (const direction of ["horizontal", "vertical"] as const) {
+    const fixedLimit = direction === "horizontal" ? rows : columns;
+    const movingLimit = direction === "horizontal" ? columns : rows;
+    for (let fixed = 0; fixed < fixedLimit; fixed += 1) {
+      let moving = 0;
+      while (moving < movingLimit) {
+        while (
+          moving < movingLimit &&
+          readCrosswordCell(sourceRows, direction, fixed, moving) === "#"
+        ) {
+          moving += 1;
+        }
+        const start = moving;
+        while (
+          moving < movingLimit &&
+          readCrosswordCell(sourceRows, direction, fixed, moving) !== "#"
+        ) {
+          moving += 1;
+        }
+        if (moving - start < 2) continue;
+
+        const answer = Array.from(
+          { length: moving - start },
+          (_, index) =>
+            readCrosswordCell(sourceRows, direction, fixed, start + index),
+        ).join("");
+        const clue =
+          CONNECTED_CROSSWORD_CLUES[answer] ?? DENSE_CROSSWORD_CLUES[answer];
+        if (!clue) throw new Error(`Définition manquante pour ${answer}.`);
+        placements.push({
+          answer,
+          clue,
+          row: direction === "horizontal" ? fixed : start,
+          column: direction === "horizontal" ? start : fixed,
+          direction,
+        });
+      }
+    }
+  }
+
+  const cells = sourceRows.flatMap<CyclogazetteCrosswordCell>(
+    (rowValue, row) =>
+      [...rowValue].flatMap((letter, column) => {
+        if (letter === "#") return [];
+        const firstOpenColumn = [...rowValue].findIndex(
+          (value) => value !== "#",
+        );
+        const firstOpenRow = sourceRows.findIndex(
+          (value) => value[column] !== "#",
+        );
+        const number =
+          column === firstOpenColumn
+            ? row + 1
+            : row === firstOpenRow
+              ? column + 1
+              : null;
+        return [
+          {
+            index: row * columns + column,
+            row,
+            column,
+            number,
+          },
+        ];
+      }),
+  );
+  const entries = placements
+    .map<CyclogazetteCrosswordEntry>((word) => ({
+      number: word.direction === "horizontal" ? word.row + 1 : word.column + 1,
+      direction: word.direction,
+      row: word.row,
+      column: word.column,
+      length: word.answer.length,
+      clue: word.clue,
+    }))
+    .sort(
+      (left, right) =>
+        left.number - right.number ||
+        left.row - right.row ||
+        left.column - right.column,
+    );
+
+  return {
+    difficulty,
+    rows,
+    columns,
+    cells,
+    entries,
+    solution: sourceRows.join(""),
+  };
+}
+
+function transposeCrosswordRows(rows: readonly string[]) {
+  return Array.from({ length: rows[0]?.length ?? 0 }, (_, column) =>
+    rows.map((row) => row[column]).join(""),
+  );
+}
+
+function readCrosswordCell(
+  rows: readonly string[],
+  direction: "horizontal" | "vertical",
+  fixed: number,
+  moving: number,
+) {
+  return direction === "horizontal"
+    ? rows[fixed][moving]
+    : rows[moving][fixed];
 }
 
 function getCrosswordWordPool(issueNumber: number) {
