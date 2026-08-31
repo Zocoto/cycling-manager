@@ -271,12 +271,12 @@ export async function CriteriumDiscoveryRaceContent({
                   Profil officiel
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-[#0B302B]">
-                  Une course mixte pour apprendre à composer
+                  Une course vallonnée pour apprendre à composer
                 </h2>
                 <p className="mt-3 text-sm font-semibold leading-6 text-[#60756E]">
-                  Le parcours mobilise la plaine, les vallons, la montagne et
-                  les pavés. Comparez les notes principales de vos coureurs
-                  avant de leur attribuer leurs rôles.
+                  Le parcours enchaîne les vallons avant une arrivée où un
+                  groupe peut encore se disputer la victoire. Comparez VAL,
+                  ACC, END, RES et SPR avant d’attribuer les rôles.
                 </p>
                 <div className="mt-5">
                   <RaceStageProfile segments={stage.segments} />
@@ -295,7 +295,7 @@ export async function CriteriumDiscoveryRaceContent({
                     Aucune prime ni dépense enregistrée
                   </li>
                   <li className="rounded-xl bg-[#F5F9F7] px-4 py-3">
-                    Aucune fatigue ou blessure persistée
+                    Aucune fatigue ni blessure persistante
                   </li>
                   <li className="rounded-xl bg-[#F5F9F7] px-4 py-3">
                     Replay identique à l’affichage des vraies courses

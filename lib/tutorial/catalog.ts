@@ -16,6 +16,7 @@ import { transferTutorialDefinition } from "@/lib/tutorial/transfers";
 import { equipmentTutorialDefinition } from "@/lib/tutorial/equipment";
 import { infrastructureTutorialDefinition } from "@/lib/tutorial/infrastructure";
 import { youthDevelopmentTutorialDefinition } from "@/lib/tutorial/youth-development";
+import { sponsoringTutorialDefinition } from "@/lib/tutorial/sponsoring";
 import type { TutorialCatalog, TutorialDefinition } from "@/types/tutorial";
 
 const TUTORIAL_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
@@ -108,7 +109,7 @@ export function createTutorialCatalog(
 
 const onboardingTutorial = {
   key: ONBOARDING_TUTORIAL_KEY,
-  version: 3,
+  version: 4,
   type: "onboarding",
   title: "Premiers pas dans Cyclostratège",
   description:
@@ -122,7 +123,7 @@ const onboardingTutorial = {
       route: "/jeu",
       title: "Bienvenue dans Cyclostratège",
       content:
-        "Vous êtes désormais Directeur Sportif d’une jeune structure cycliste. Ce parcours présente les fonctions essentielles du jeu et vous prépare au Critérium de la découverte.\n\nLes repères verts indiquent simplement où regarder : le reste de l’interface demeure visible et accessible. Vous pouvez quitter à tout moment, reprendre plus tard ou passer définitivement le didacticiel.",
+        "Vous êtes désormais Directeur Sportif d’une jeune structure cycliste. Ce parcours présente les fonctions essentielles du jeu et vous prépare au Critérium de la découverte.\n\nLes contours rouges indiquent simplement où regarder : le reste de l’interface demeure visible et accessible. Vous pouvez quitter à tout moment, reprendre plus tard ou passer définitivement le didacticiel.",
       placement: "center",
     },
     {
@@ -140,9 +141,11 @@ const onboardingTutorial = {
       targetId: "dashboard-director-profile",
       mobileTargetId: "dashboard-profile-summary",
       title: "Finalisez votre identité",
+      landmarkLabel: "Finaliser votre identité",
       content:
         "Le nom de votre Directeur Sportif est déjà celui choisi lors de l’inscription : vous n’avez pas à le saisir une seconde fois.\n\nIl vous reste à choisir son avatar puis sa nationalité. Cliquez sur Suivant : chaque contrôle sera signalé par un repère informatif, sans verrouiller le reste de la page.",
       placement: "right",
+      skipWhenRequirementSatisfied: "profile_complete",
     },
     {
       key: "profile-form",
@@ -154,6 +157,7 @@ const onboardingTutorial = {
       placement: "right",
       allowTargetInteraction: true,
       requiresTargetCompletion: true,
+      skipWhenRequirementSatisfied: "profile_complete",
       highlightPadding: 8,
     },
     {
@@ -166,6 +170,7 @@ const onboardingTutorial = {
       placement: "right",
       allowTargetInteraction: true,
       requiresTargetCompletion: true,
+      skipWhenRequirementSatisfied: "profile_complete",
       highlightPadding: 8,
     },
     {
@@ -178,6 +183,7 @@ const onboardingTutorial = {
       placement: "top",
       allowTargetInteraction: true,
       requiresTargetCompletion: true,
+      skipWhenRequirementSatisfied: "profile_complete",
       highlightPadding: 8,
     },
     {
@@ -191,6 +197,7 @@ const onboardingTutorial = {
       placement: "right",
       requirement: "profile_complete",
       allowTargetInteraction: true,
+      skipWhenRequirementSatisfied: "team_created",
       highlightPadding: 10,
     },
     {
@@ -211,7 +218,7 @@ const onboardingTutorial = {
       mobileTargetId: "roster-primary-ratings",
       title: "Commencez par les notes primaires",
       content:
-        "Concentrez-vous d’abord sur MO, VAL, PLA, PAV, SPR et CLM. Elles indiquent immédiatement les terrains favoris du coureur.\n\nÉtape plate → PLA et SPR\nMontagne → MO\nParcours vallonné → VAL\nPavés → PAV\nContre-la-montre ou prologue → CLM et PRO",
+        "Concentrez-vous d’abord sur MON, VAL, PLA, PAV, SPR et CLM. Elles indiquent immédiatement les terrains favoris du coureur.\n\nÉtape plate → PLA et SPR\nMontagne → MON\nParcours vallonné → VAL\nPavés → PAV\nContre-la-montre → CLM\nPrologue → PRO, une note particulièrement importante sur ces efforts courts",
       placement: "top",
       highlightPadding: 6,
     },
@@ -267,7 +274,7 @@ const onboardingTutorial = {
       route: "/jeu",
       title: "Les bases sont acquises",
       content:
-        "Vous avez terminé le tutoriel de base de Cyclostratège.\n\nVous pouvez maintenant enchaîner directement avec le Critérium de la découverte : vous composerez une équipe, attribuerez les rôles tactiques puis suivrez votre première course en live, sans aucune conséquence sur votre saison.\n\nVous pourrez aussi retrouver cette formation plus tard depuis le menu Didacticiels.",
+        "Vous avez terminé le tutoriel de base de Cyclostratège.\n\nVous pouvez maintenant enchaîner directement avec le Critérium de la découverte : vous composerez une équipe, attribuerez les rôles tactiques puis suivrez votre première course en live, sans aucune conséquence sur votre saison.\n\nVous pourrez aussi retrouver cet apprentissage plus tard depuis le menu Didacticiels.",
       placement: "center",
     },
   ],
@@ -289,10 +296,11 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-briefing",
       title: "Votre première course, sans risque",
       content:
-        "Bienvenue au Critérium de la découverte. Cette épreuve fictive utilise le même moteur et les mêmes écrans qu’une course officielle.\n\nElle ne rapporte ni argent, ni points, ni récompense. Elle ne retire aucune forme, ne crée aucune fatigue et ne peut provoquer aucune blessure persistante. Les adversaires sont volontairement très faibles pour vous donner toutes les chances de décrocher une première victoire.",
+        "Bienvenue au Critérium de la découverte. Cette épreuve fictive utilise le même moteur et les mêmes écrans qu’une course officielle.\n\nElle ne rapporte ni argent, ni points, ni récompense. Elle ne provoque aucune fatigue et ne peut provoquer aucune blessure persistante. Les adversaires sont volontairement très faibles pour vous donner toutes les chances de décrocher une première victoire.",
       placement: "bottom",
       requirement: "team_created",
       highlightPadding: 10,
+      skipWhenRequirementSatisfied: "criterium_registered",
     },
     {
       key: "course-profile",
@@ -300,9 +308,10 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-course-profile",
       title: "Lisez d’abord le profil",
       content:
-        "Le parcours mélange plaine, vallons, montagne et pavés. Le profil indique quelles notes comparer avant de choisir vos cinq coureurs.\n\nSur une vraie course, cette lecture doit toujours précéder l’inscription : elle détermine le leader naturel, l’intérêt d’un sprinteur et le nombre d’équipiers nécessaires.",
+        "Cette étape vallonnée favorise les puncheurs : comparez surtout VAL, ACC, END et RES, sans oublier SPR si un groupe se présente encore ensemble à l’arrivée.\n\nSur une vraie course, cette lecture doit toujours précéder l’inscription : elle détermine le leader naturel, l’intérêt d’un sprinteur et le nombre d’équipiers nécessaires.",
       placement: "right",
       highlightPadding: 8,
+      skipWhenRequirementSatisfied: "criterium_registered",
     },
     {
       key: "rider-selection",
@@ -310,10 +319,11 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-rider-selection",
       title: "Sélectionnez exactement cinq coureurs",
       content:
-        "Cochez cinq coureurs disponibles. Pour ce parcours mixte, cherchez un profil complet : un bon coureur de vallons ou de montagne pour jouer la victoire, un sprinteur si vous anticipez un regroupement, puis des coureurs solides en plaine, endurance et résistance.\n\nVous pouvez ouvrir chaque fiche dans un nouvel onglet sans quitter cette sélection.",
+        "Cochez cinq coureurs disponibles. Pour ce parcours vallonné, cherchez un bon puncheur pour jouer la victoire, un sprinteur résistant si vous anticipez un regroupement, puis des équipiers solides en plaine, endurance et résistance.\n\nVous pouvez ouvrir chaque fiche dans un nouvel onglet sans quitter cette sélection.",
       placement: "left",
       allowTargetInteraction: true,
       highlightPadding: 6,
+      skipWhenRequirementSatisfied: "criterium_registered",
     },
     {
       key: "role-guide",
@@ -321,9 +331,10 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-role-guide",
       title: "Ce que les rôles demandent réellement à l’IA",
       content:
-        "Leader : l’IA préserve ce coureur pour les secteurs décisifs et valorise ses qualités sur le terrain final.\n\nSprinteur : son équipe augmente la poursuite et prépare une arrivée groupée. Poisson pilote : il travaille et renforce le train de sprint. Électron libre : il reçoit une forte priorité pour prendre l’échappée. Équipier : il dépense davantage d’énergie dans la poursuite et le travail collectif.",
+        "Leader : l’IA préserve ce coureur pour les secteurs décisifs et valorise ses qualités sur le terrain final.\n\nSprinteur : son équipe augmente la poursuite et prépare une arrivée groupée.\n\nPoisson pilote : il travaille et renforce le train de sprint.\n\nÉlectron libre : il reçoit une forte priorité pour prendre l’échappée.\n\nÉquipier : il dépense davantage d’énergie dans la poursuite et le travail collectif.",
       placement: "left",
       highlightPadding: 8,
+      skipWhenRequirementSatisfied: "criterium_registered",
     },
     {
       key: "role-assignment",
@@ -335,6 +346,7 @@ const criteriumDiscoveryTutorial = {
       placement: "left",
       allowTargetInteraction: true,
       highlightPadding: 6,
+      skipWhenRequirementSatisfied: "criterium_registered",
     },
     {
       key: "registration",
@@ -342,10 +354,11 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-registration-submit",
       title: "Verrouillez votre composition",
       content:
-        "Lorsque vos cinq coureurs et leurs rôles sont prêts, validez l’inscription avec le bouton mis en évidence.\n\nComme sur une course officielle, la composition est alors verrouillée. Pour cette formation seulement, la simulation est calculée immédiatement et stockée dans la progression du didacticiel, sans toucher aux données sportives de vos coureurs.",
+        "Lorsque vos cinq coureurs et leurs rôles sont prêts, validez l’inscription avec le bouton mis en évidence.\n\nComme sur une course officielle, la composition est alors verrouillée. Pour cet entraînement, la simulation est calculée immédiatement et stockée dans la progression du didacticiel, sans toucher aux données sportives de vos coureurs.",
       placement: "left",
       allowTargetInteraction: true,
       highlightPadding: 6,
+      skipWhenRequirementSatisfied: "criterium_registered",
     },
     {
       key: CRITERIUM_DISCOVERY_REGISTRATION_STEP_KEY,
@@ -353,7 +366,7 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-registration-confirmation",
       title: "Inscription confirmée",
       content:
-        "Votre équipe est inscrite et la course apparaît dans le calendrier comme une épreuve normale. La différence reste invisible pour le moteur d’affichage, mais essentielle pour votre carrière : aucun règlement officiel ne sera exécuté.\n\nCliquez sur Suivant pour rejoindre directement le replay dans Résultats / Live.",
+        "Votre équipe est inscrite et la course apparaît dans le calendrier comme une épreuve normale.\n\nCliquez sur Suivant pour rejoindre directement le replay dans Résultats / Live.",
       placement: "bottom",
       requirement: "criterium_registered",
       highlightPadding: 8,
@@ -386,7 +399,7 @@ const criteriumDiscoveryTutorial = {
       targetId: "race-live-tabs",
       title: "Analysez le classement",
       content:
-        "Ouvrez l’onglet « Classement » pour consulter l’ordre d’arrivée et les écarts, puis l’onglet « Règles actives » pour revoir les principes du moteur.\n\nLes adversaires de cette initiation sont bridés et privés de bonus afin qu’un coureur de votre équipe puisse viser la première place.",
+        "Ouvrez l’onglet « Classement » pour consulter l’ordre d’arrivée et les écarts, puis l’onglet « Règles » pour revoir les principes du moteur.\n\nLes adversaires de cette initiation sont bridés et privés de bonus afin qu’un coureur de votre équipe puisse viser la première place.",
       placement: "bottom",
       allowTargetInteraction: true,
       highlightPadding: 6,
@@ -397,7 +410,7 @@ const criteriumDiscoveryTutorial = {
       targetId: "criterium-tutorial-completion",
       title: "Votre première course est terminée",
       content:
-        "Vous savez maintenant lire un profil, composer une sélection, donner des rôles tactiques et suivre le moteur en direct.\n\nCette course reste entièrement fictive : aucune forme, fatigue, blessure, prime, point ou récompense n’a été enregistré. Cliquez sur Terminer dans cette infobulle pour valider la formation pratique.",
+        "Vous savez maintenant lire un profil, composer une sélection, donner des rôles tactiques et suivre le moteur en direct.\n\nCette course reste entièrement fictive : aucune fatigue, blessure, prime, point ou récompense n’a été enregistré. Cliquez sur Terminer dans cette infobulle pour valider cet apprentissage pratique.",
       placement: "top",
       requirement: "criterium_registered",
       highlightPadding: 8,
@@ -416,6 +429,7 @@ export const tutorialCatalog = createTutorialCatalog([
   equipmentTutorialDefinition,
   infrastructureTutorialDefinition,
   youthDevelopmentTutorialDefinition,
+  sponsoringTutorialDefinition,
 ]);
 
 export function getTutorialDefinition(

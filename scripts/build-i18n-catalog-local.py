@@ -34,6 +34,7 @@ MANUAL_TRANSLATIONS = {
     "DES": "DH",
     "END": "STA",
     "MO": "MO",
+    "MON": "MO",
     "MOY": "AVG",
     "PAV": "COB",
     "PLA": "FL",

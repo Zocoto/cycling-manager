@@ -37,7 +37,7 @@ describe("daily training text reports", () => {
       "Aucun rapport enregistré pour cette journée.",
     );
     expect(report[1]?.statChanges.map((change) => change.shortLabel)).toEqual([
-      "MO",
+      "MON",
       "CLM",
     ]);
     expect(formatDailyTrainingRiderSentence(report[1]!)).toContain(
@@ -73,7 +73,7 @@ describe("daily training text reports", () => {
       }),
     );
     expect(report[0]?.statChanges).toEqual([
-      expect.objectContaining({ shortLabel: "MO", value: 0.6 }),
+      expect.objectContaining({ shortLabel: "MON", value: 0.6 }),
       expect.objectContaining({ shortLabel: "CLM", value: 0.2 }),
     ]);
     expect(summarizeDailyTrainingReport(report)).toEqual(

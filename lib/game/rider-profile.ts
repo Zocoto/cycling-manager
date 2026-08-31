@@ -99,7 +99,7 @@ export const RIDER_RATING_AXES: ReadonlyArray<{
   labelEn: string;
   importance: RiderRatingImportance;
 }> = [
-  { key: "mountain", shortLabel: "MO", shortLabelEn: "MO", label: "Montagne", labelEn: "Mountain", importance: "primary" },
+  { key: "mountain", shortLabel: "MON", shortLabelEn: "MO", label: "Montagne", labelEn: "Mountain", importance: "primary" },
   { key: "hills", shortLabel: "VAL", shortLabelEn: "HIL", label: "Vallon", labelEn: "Hills", importance: "primary" },
   { key: "recovery", shortLabel: "REC", shortLabelEn: "REC", label: "Récupération", labelEn: "Recovery", importance: "secondary" },
   { key: "endurance", shortLabel: "END", shortLabelEn: "STA", label: "Endurance", labelEn: "Stamina", importance: "secondary" },

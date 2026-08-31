@@ -303,9 +303,6 @@ export default async function ObjectivesPage({
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-black uppercase tracking-[0.15em] text-[#8A7000]">
-                  Versement immédiat et définitif
-                </span>
                 <Link
                   href="/jeu/objectifs?onglet=objectifs&statut=completed#objectives-list"
                   className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#F2C94C] px-5 text-xs font-black uppercase tracking-[0.12em] text-[#4A3A00] transition hover:bg-[#E8BC32]"

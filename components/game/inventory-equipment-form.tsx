@@ -120,7 +120,7 @@ export function formatRiderRatings(
   rider: InventoryRiderOption,
 ): string {
   const ratings = [
-    ["MO", rider.ratings.mountain],
+    ["MON", rider.ratings.mountain],
     ["VAL", rider.ratings.hills],
     ["PLA", rider.ratings.flat],
     ["CLM", rider.ratings.time_trial],

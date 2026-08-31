@@ -442,7 +442,7 @@ function TeamSelectionCard({
                 </span>
               </span>
               <span className="hidden items-center gap-1.5 sm:flex">
-                <RatingChip label="MO" value={rider.ratings.mountain} />
+                <RatingChip label="MON" value={rider.ratings.mountain} />
                 <RatingChip label="VAL" value={rider.ratings.hills} />
                 <RatingChip label="BAR" value={rider.ratings.breakaway} secondary />
               </span>

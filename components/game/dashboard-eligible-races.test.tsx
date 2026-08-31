@@ -135,7 +135,8 @@ describe("dashboard eligible races", () => {
 
     expect(markup).toContain("Course objectif-sponsor");
     expect(markup).toContain('aria-label="Objectif sponsor"');
-    expect(markup).toContain("bg-[#FFF9DF]");
+    expect(markup).toContain("bg-[#F5EEFF]");
+    expect(markup).toContain("bg-[#8B5CF6]");
   });
 
   it("conserve et signale une inscription acceptée devenue incomplète", () => {

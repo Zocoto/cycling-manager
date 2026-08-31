@@ -508,7 +508,7 @@ export function TutorialOverlay({
             aria-hidden="true"
             className={
               isInformative
-                ? "pointer-events-none fixed rounded-2xl border-2 border-[#42B99A] bg-[#DFF4EC]/10 shadow-[0_0_0_5px_rgba(66,185,154,0.14),0_10px_30px_rgba(23,105,81,0.14)] transition-[left,top,width,height] duration-150"
+                ? "pointer-events-none fixed rounded-2xl border-2 border-[#D94B57] bg-[#D94B57]/[0.06] shadow-[0_0_0_6px_rgba(217,75,87,0.16),0_10px_30px_rgba(126,32,45,0.2)] transition-[left,top,width,height] duration-150"
                 : "fixed rounded-2xl border-2 border-[#F2C94C] shadow-[0_0_0_4px_rgba(242,201,76,0.22),0_12px_40px_rgba(0,0,0,0.28)] transition-[left,top,width,height] duration-150"
             }
             style={{
@@ -521,16 +521,16 @@ export function TutorialOverlay({
             }}
           />
 
-          {isInformative ? (
+          {isInformative && step.landmarkLabel ? (
             <div
               aria-hidden="true"
-              className="pointer-events-none fixed z-[225] rounded-full border border-[#42B99A]/35 bg-[#F3FBF7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#176951] shadow-[0_6px_18px_rgba(23,105,81,0.16)]"
+              className="pointer-events-none fixed z-[225] rounded-full border border-[#D94B57]/35 bg-[#FFF3F4] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#A52F3C] shadow-[0_6px_18px_rgba(126,32,45,0.18)]"
               style={{
                 left: Math.max(12, highlightedArea.left),
                 top: Math.max(8, highlightedArea.top - 30),
               }}
             >
-              {isEnglish ? "Suggested landmark" : "Repère conseillé"}
+              {step.landmarkLabel}
             </div>
           ) : null}
         </>

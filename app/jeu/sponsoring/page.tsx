@@ -371,7 +371,10 @@ function SponsoringStatusNotice({ state }: { state: SponsoringState }) {
 function OffersSection({ offers }: { offers: PersistedSponsorOffer[] }) {
   return (
     <>
-      <section className="mt-8 grid items-stretch gap-6 xl:grid-cols-3">
+      <section
+        data-tutorial-id="sponsoring-offers"
+        className="mt-8 grid items-stretch gap-6 xl:grid-cols-3"
+      >
         {offers.map((offer) => (
           <SponsorOfferCard key={offer.id} offer={offer} />
         ))}
@@ -1055,6 +1058,7 @@ function ContractObjectivesSection({
 
   return (
     <section
+      data-tutorial-id="sponsoring-objectives"
       className="mt-8 overflow-hidden rounded-2xl border bg-white/90 shadow-[0_18px_44px_rgba(19,60,46,0.08)]"
       style={{
         borderColor: `${sponsor.colors.primary}30`,

@@ -579,7 +579,7 @@ function RaceCalendarList({
                   ? `${edition.name} · Inscriptions closes`
                   : edition.name
               }
-              className={`relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#FFF9DF] outline outline-2 outline-offset-[-2px] outline-[#F2C94C]" : ""}`}
+              className={`relative grid gap-4 border-b border-[#315B3E]/10 px-5 py-5 last:border-b-0 lg:grid-cols-[105px_minmax(260px,1.4fr)_150px_150px_150px_145px] lg:items-center ${edition.isSponsorObjective ? "bg-[#F5EEFF] outline outline-2 outline-offset-[-2px] outline-[#8B5CF6]" : ""}`}
               style={{
                 backgroundImage:
                   registrationClosed
@@ -905,7 +905,7 @@ function DesktopCalendarWeek({
                   } ${
                     segment.continuesAfterWeek ? "rounded-r-sm" : "rounded-r-lg"
                   } ${
-                    segment.edition.isSponsorObjective ? "outline outline-2 outline-[#F2C94C]" : ""
+                    segment.edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""
                   }`}
                   style={{
                     gridColumn: `${columnStart} / ${columnEnd}`,
@@ -1198,7 +1198,7 @@ function MobileCalendarDay({
                   ? `${edition.name} · Inscriptions closes`
                   : edition.name
               }
-              className={`flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#F2C94C]" : ""}`}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-3 shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#071A17] ${edition.isSponsorObjective ? "outline outline-2 outline-[#8B5CF6]" : ""}`}
               style={{
                 borderColor: grandTourAccent?.color ?? style.border,
                 boxShadow: grandTourAccent
@@ -1279,7 +1279,7 @@ function SponsorObjectiveBadge({ compact = false }: { compact?: boolean }) {
       role="img"
       aria-label="Objectif sponsor"
       title="Objectif sponsor"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#F2C94C] font-black text-[#3D3300] shadow-sm ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#8B5CF6] font-black text-white shadow-sm ${compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"}`}
     >
       !
     </span>

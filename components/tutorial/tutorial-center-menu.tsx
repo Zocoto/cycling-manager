@@ -2,6 +2,7 @@
 
 import Link from "@/components/ui/app-link";
 import { useEffect, useId, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -21,6 +22,8 @@ import { TRAINING_TUTORIAL_KEY } from "@/lib/tutorial/training";
 import { STAFF_TUTORIAL_KEY } from "@/lib/tutorial/staff";
 import { TRANSFER_TUTORIAL_KEY } from "@/lib/tutorial/transfers";
 import { YOUTH_DEVELOPMENT_TUTORIAL_KEY } from "@/lib/tutorial/youth-development";
+import { SPONSORING_TUTORIAL_KEY } from "@/lib/tutorial/sponsoring";
+import { getContextualTutorialKey } from "@/lib/tutorial/contextual-route";
 import type { TutorialProgressRow } from "@/types/tutorial";
 
 export function TutorialCenterMenu({ initiallyOpen = false }: {
@@ -28,6 +31,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
+  const pathname = usePathname();
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -52,6 +56,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
   const youthDevelopmentProgress = getTutorialProgress(
     YOUTH_DEVELOPMENT_TUTORIAL_KEY,
   );
+  const sponsoringProgress = getTutorialProgress(SPONSORING_TUTORIAL_KEY);
 
   function tutorialCopy(key: string) {
     const definition = getTutorialDefinition(key);
@@ -68,6 +73,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
   const equipmentCopy = tutorialCopy(EQUIPMENT_TUTORIAL_KEY);
   const infrastructureCopy = tutorialCopy(INFRASTRUCTURE_TUTORIAL_KEY);
   const youthDevelopmentCopy = tutorialCopy(YOUTH_DEVELOPMENT_TUTORIAL_KEY);
+  const sponsoringCopy = tutorialCopy(SPONSORING_TUTORIAL_KEY);
 
   const basePresentation = getTutorialCenterEntryPresentation(
     baseProgress?.status ?? null,
@@ -109,6 +115,21 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     youthDevelopmentProgress?.status ?? null,
     locale,
   );
+  const sponsoringPresentation = getTutorialCenterEntryPresentation(
+    sponsoringProgress?.status ?? null,
+    locale,
+  );
+  const contextualTutorialKey = getContextualTutorialKey(pathname);
+  const contextualCopy = contextualTutorialKey
+    ? tutorialCopy(contextualTutorialKey)
+    : null;
+  const contextualProgress = contextualTutorialKey
+    ? getTutorialProgress(contextualTutorialKey)
+    : null;
+  const contextualPresentation = getTutorialCenterEntryPresentation(
+    contextualProgress?.status ?? null,
+    locale,
+  );
 
   const tutorialIsActive = Boolean(activeTutorial);
   const disabled = tutorialIsActive || isPending;
@@ -124,6 +145,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
     equipmentProgress,
     infrastructureProgress,
     youthDevelopmentProgress,
+    sponsoringProgress,
   ].filter((progress) => progress?.status === "completed").length;
 
   useEffect(() => {
@@ -283,8 +305,34 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
       setOpen(false);
     }
   }
+
+  async function launchSponsoringTutorial() {
+    const started = await startTutorial({
+      tutorialKey: SPONSORING_TUTORIAL_KEY,
+      launchSource: sponsoringPresentation.launchSource,
+      restartFromBeginning: sponsoringPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
+
+  async function launchContextualTutorial() {
+    if (!contextualTutorialKey) return;
+
+    const started = await startTutorial({
+      tutorialKey: contextualTutorialKey,
+      launchSource: contextualPresentation.launchSource,
+      restartFromBeginning: contextualPresentation.restartFromBeginning,
+    });
+
+    if (started) {
+      setOpen(false);
+    }
+  }
   return (
-    <div ref={rootRef} className="relative shrink-0">
+    <div ref={rootRef} className="tutorial-floating-launcher">
       <button
         ref={triggerRef}
         type="button"
@@ -317,11 +365,11 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
         onClick={() => {
           setOpen((current) => !current);
         }}
-        className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] text-[11px] font-extrabold text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-10"
+        className="relative inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#FFFDF4]/90 bg-[#0B302B] text-sm font-extrabold text-[#FFFDF4] shadow-[0_14px_38px_rgba(7,26,23,0.36),0_0_0_3px_rgba(242,201,76,0.34)] transition hover:-translate-y-0.5 hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#D94B57]/55 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span
           aria-hidden="true"
-          className="grid h-5 w-5 place-items-center rounded-full border border-current text-[11px] font-black leading-none"
+          className="grid h-7 w-7 place-items-center rounded-full border-2 border-current text-sm font-black leading-none"
         >
           ?
         </span>
@@ -334,7 +382,8 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
         transferProgress?.status === "in_progress" ||
         equipmentProgress?.status === "in_progress" ||
         infrastructureProgress?.status === "in_progress" ||
-        youthDevelopmentProgress?.status === "in_progress" ? (
+        youthDevelopmentProgress?.status === "in_progress" ||
+        sponsoringProgress?.status === "in_progress" ? (
           <span
             aria-hidden="true"
             className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#071A17] bg-[#F2C94C]"
@@ -360,13 +409,13 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
           role="dialog"
           aria-modal="false"
           aria-labelledby={`${panelId}-title`}
-          className="mobile-dock-clearance fixed inset-x-3 bottom-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[140] flex max-h-[72vh] max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-none sm:w-[min(410px,calc(100vw-24px))]"
+          className="mobile-dock-clearance fixed inset-x-3 z-[140] flex max-h-[72vh] max-h-[min(72dvh,42rem)] flex-col overflow-hidden rounded-2xl border border-[#315B3E]/15 bg-[#FFFDF4] text-[#183F37] shadow-[0_24px_80px_rgba(0,0,0,0.34)] sm:inset-x-auto sm:bottom-[5.5rem] sm:right-6 sm:max-h-[min(78vh,46rem)] sm:w-[min(410px,calc(100vw-24px))]"
         >
           <header className="shrink-0 border-b border-[#315B3E]/10 bg-[#E9F5F0] px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#278B70]">
-                  {isEnglish ? "Training library" : "Bibliothèque de formation"}
+                  {isEnglish ? "Guide library" : "Bibliothèque des guides"}
                 </p>
                 <h2
                   id={`${panelId}-title`}
@@ -377,7 +426,7 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-full bg-[#176951] px-2.5 py-1 text-[9px] font-black text-white sm:text-[10px]">
-                  {completedTutorialCount} / 10 {isEnglish ? "tutorials" : "didacticiels"}
+                  {completedTutorialCount} / 11 {isEnglish ? "tutorials" : "didacticiels"}
                 </span>
                 <button
                   type="button"
@@ -400,8 +449,26 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
             </p>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:max-h-[min(620px,calc(100vh-100px))] sm:flex-none sm:p-4">
+            {contextualTutorialKey && contextualCopy ? (
+              <div className="mb-4 rounded-xl border border-[#D94B57]/25 bg-[#FFF3F4] p-3 sm:p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#A52F3C]">
+                  {isEnglish ? "Guide for this page" : "Guide de cette page"}
+                </p>
+                <p className="mt-1 text-sm font-black text-[#0B302B]">
+                  {contextualCopy.title}
+                </p>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => void launchContextualTutorial()}
+                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#A52F3C] px-4 text-xs font-black text-white transition hover:bg-[#8E2431] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D94B57] disabled:cursor-wait disabled:opacity-55"
+                >
+                  {contextualPresentation.actionLabel}
+                </button>
+              </div>
+            ) : null}
             <p className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
-              {isEnglish ? "Essential training" : "Formation essentielle"}
+              {isEnglish ? "Essential paths" : "Parcours essentiels"}
             </p>
             <div className="mt-2 grid gap-3">
               <TutorialEntry
@@ -441,13 +508,24 @@ export function TutorialCenterMenu({ initiallyOpen = false }: {
               <p className="text-xs font-bold leading-5 text-[#60756E]">
                 {isEnglish
                   ? "Complete both essential tutorials and every section guide to earn the “Complete the tutorial” objective."
-                  : "Terminez les deux formations essentielles puis tous les guides des rubriques pour obtenir l’objectif « Finaliser le didacticiel »."}
+                  : "Terminez les deux parcours essentiels puis tous les guides des rubriques pour obtenir l’objectif « Finaliser le didacticiel »."}
               </p>
             </div>
             <p className="mt-5 px-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#789087]">
               {isEnglish ? "Section guides" : "Guides des rubriques"}
             </p>
             <div className="mt-2 grid gap-3">
+              <TutorialEntry
+                title={sponsoringCopy?.title ?? "Comprendre le sponsoring"}
+                description={sponsoringCopy?.description ?? "Offres, budgets, objectifs et satisfaction du partenaire."}
+                progress={sponsoringProgress}
+                statusLabel={sponsoringPresentation.statusLabel}
+                actionLabel={sponsoringPresentation.actionLabel}
+                pending={isPending}
+                onAction={() => {
+                  void launchSponsoringTutorial();
+                }}
+              />
               <TutorialEntry
                 title={rosterCopy?.title ?? "Gérer son effectif"}
                 description={rosterCopy?.description ?? "Notes, contrats, expérience, potentiel, forme, planning, historique et équipement d’un coureur."}

@@ -556,7 +556,7 @@ export function RaceLiveLab({
           Classement
         </TabButton>
         <TabButton active={tab === "rules"} onClick={() => setTab("rules")}>
-          Règles actives
+          Règles
         </TabButton>
       </nav>
 
@@ -706,7 +706,7 @@ export function RaceLiveLab({
           />
         )
       ) : (
-        <ActiveRules stageType={input.stageType} />
+        <ActiveRules />
       )}
 
       {mode === "replay" && standingsBeforeStage ? (
@@ -3338,16 +3338,15 @@ function TourSecondaryStandings({
   );
 }
 
-function ActiveRules({ stageType }: { stageType: string }) {
+function ActiveRules() {
   const rules = [
     ["Résolution", "Un calcul par tronçon de 10 km, avec un dernier tronçon ajusté à la distance exacte."],
     ["Départ", "Le peloton démarre groupé ; les premières attaques et la formation de l’échappée deviennent visibles en course."],
     ["Aspiration", "Le coût énergétique diminue avec la taille du groupe ; une petite échappée paie davantage qu’un peloton."],
-    ["Terrain", "PLA, MO, VAL, PAV et DES sont pondérées par le profil, la pente et le revêtement."],
+    ["Terrain", "PLA, MON, VAL, PAV et DES sont pondérées par le profil, la pente et le revêtement."],
     ["Énergie", "La forme constitue le capital initial ; END et RES déterminent la capacité à tenir le rythme et les efforts."],
     ["Tactique", "Les rôles orientent les attaques, la poursuite, les trains de sprint et les classements annexes."],
     ["Aléas", "Crevaisons, bordures et chutes individuelles ou massives peuvent isoler des coureurs et créer de nouveaux groupes."],
-    ["Rejouabilité", "Une graine fixe tous les aléas : un résultat peut être reproduit, expliqué et testé."],
   ];
 
   return (
@@ -3361,9 +3360,6 @@ function ActiveRules({ stageType }: { stageType: string }) {
           <p className="mt-2 text-sm font-semibold leading-6 text-[#99B0A5]">{description}</p>
         </article>
       ))}
-      <p className="sm:col-span-2 lg:col-span-3 rounded-xl border border-[#F2C94C]/20 bg-[#F2C94C]/5 px-4 py-3 text-xs font-semibold leading-5 text-[#DCCF9B]">
-        Mode actif : {stageType === "road" ? "course en ligne" : "contre-la-montre"}. Les paramètres sont volontairement centralisés dans le moteur pour pouvoir les rééquilibrer sans refaire l’interface.
-      </p>
     </div>
   );
 }

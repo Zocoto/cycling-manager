@@ -65,11 +65,11 @@ export function TutorialCenterLauncher() {
       onClick={() => {
         setActivated(true);
       }}
-      className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] text-[11px] font-extrabold text-[#D6DFD2] transition hover:border-[var(--game-header-accent)] hover:bg-white/[0.07] hover:text-[var(--game-header-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--game-header-accent)] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-10"
+      className="tutorial-floating-launcher inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#FFFDF4]/90 bg-[#0B302B] text-sm font-extrabold text-[#FFFDF4] shadow-[0_14px_38px_rgba(7,26,23,0.36),0_0_0_3px_rgba(242,201,76,0.34)] transition hover:-translate-y-0.5 hover:border-[#F2C94C] hover:text-[#F2C94C] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#D94B57]/55 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span
         aria-hidden="true"
-        className="grid h-5 w-5 place-items-center rounded-full border border-current text-[11px] font-black leading-none"
+        className="grid h-7 w-7 place-items-center rounded-full border-2 border-current text-sm font-black leading-none"
       >
         ?
       </span>
@@ -89,11 +89,11 @@ function TutorialCenterLoadingButton() {
       type="button"
       disabled
       aria-label="Chargement du centre des didacticiels"
-      className="relative inline-flex h-8 w-8 shrink-0 animate-pulse items-center justify-center rounded-lg border border-[#D6DFD2]/20 bg-white/[0.035] text-[11px] font-extrabold text-[#D6DFD2] opacity-70 sm:h-10 sm:w-10"
+      className="tutorial-floating-launcher inline-flex h-12 w-12 animate-pulse items-center justify-center rounded-full border-2 border-[#FFFDF4]/90 bg-[#0B302B] text-sm font-extrabold text-[#FFFDF4] opacity-70 shadow-[0_14px_38px_rgba(7,26,23,0.36)]"
     >
       <span
         aria-hidden="true"
-        className="grid h-5 w-5 place-items-center rounded-full border border-current text-[11px] font-black leading-none"
+        className="grid h-7 w-7 place-items-center rounded-full border-2 border-current text-sm font-black leading-none"
       >
         ?
       </span>

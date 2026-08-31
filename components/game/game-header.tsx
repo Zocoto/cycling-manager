@@ -15,7 +15,6 @@ import { MobileGameNavigation } from "@/components/game/mobile-game-navigation";
 import { MobilePageRefreshControl } from "@/components/game/mobile-page-refresh-control";
 import { PushNotificationControl } from "@/components/pwa/push-notification-control";
 import { SponsorLogoMark } from "@/components/game/sponsor-logo";
-import { TutorialCenterLauncher } from "@/components/tutorial/tutorial-center-launcher";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { WheelLogo } from "@/components/ui/wheel-logo";
@@ -222,13 +221,6 @@ export function GameHeader({
             description={isEnglish ? "Peloton news" : "Actualités du peloton"}
           >
             <CyclogazetteShortcut gazetteIsOpen={gazetteIsOpen} />
-          </HeaderIconMenuItem>
-
-          <HeaderIconMenuItem
-            label={isEnglish ? "Help" : "Aide"}
-            description={isEnglish ? "Interactive help" : "Aide interactive"}
-          >
-            <TutorialCenterLauncher />
           </HeaderIconMenuItem>
 
           <span className="hidden sm:contents">

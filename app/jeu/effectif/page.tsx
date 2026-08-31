@@ -125,7 +125,7 @@ const ratingColumns: Array<{
 }> = [
   {
     key: "mountain",
-    label: "MO",
+    label: "MON",
     fullLabel: "Montagne",
     importance: "primary",
   },
@@ -785,7 +785,7 @@ function MobileRatingCategoryGuide() {
     {
       tutorialId: "roster-primary-ratings",
       label: "Notes principales",
-      ratings: ["MO", "VAL", "PLA", "PAV", "SPR", "CLM"],
+      ratings: ["MON", "VAL", "PLA", "PAV", "SPR", "CLM"],
       className: "border-[#278B70]/20 bg-[#EAF5F3] text-[#176951]",
     },
     {

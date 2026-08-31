@@ -174,7 +174,7 @@ export const trainingTutorialDefinition = {
       route: TRAINING_RECONNAISSANCE_TUTORIAL_ROUTE,
       title: "Entraînement et reconnaissance maîtrisés",
       content:
-        "Vous savez désormais régler le seuil collectif, préparer plusieurs programmes individuels puis les valider ensemble, mesurer leurs résultats dans les rapports, puis organiser un stage de reconnaissance compatible avec toute une délégation.\n\nCliquez sur « Terminer » pour valider cette formation dans le Centre des didacticiels. Vous pourrez la relancer à tout moment depuis le point d’interrogation de la rubrique Entraînement.",
+        "Vous savez désormais régler le seuil collectif, préparer plusieurs programmes individuels puis les valider ensemble, mesurer leurs résultats dans les rapports, puis organiser un stage de reconnaissance compatible avec toute une délégation.\n\nCliquez sur « Terminer » pour valider cet apprentissage dans le Centre des didacticiels. Vous pourrez le relancer à tout moment depuis le point d’interrogation de la rubrique Entraînement.",
       placement: "center",
     },
   ],

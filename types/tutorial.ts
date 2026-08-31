@@ -61,6 +61,19 @@ export type TutorialStep = {
   requirement?: TutorialStepRequirement;
 
   /**
+   * Étape automatiquement dépassée lorsque l’action métier correspondante
+   * est déjà terminée. La décision est prise côté serveur afin de rester
+   * fiable après une reprise sur un autre appareil.
+   */
+  skipWhenRequirementSatisfied?: TutorialStepRequirement;
+
+  /**
+   * Libellé optionnel affiché au-dessus d’un repère important. Les repères
+   * ordinaires restent volontairement visuels et sans texte répétitif.
+   */
+  landmarkLabel?: string;
+
+  /**
    * Lorsque cette option est active, le joueur peut interagir
    * avec l’élément mis en évidence.
    */

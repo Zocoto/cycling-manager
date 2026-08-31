@@ -41,13 +41,17 @@ describe("tutorial mobile overlay", () => {
 
   it("présente l’onboarding comme un repère informatif non bloquant", () => {
     expect(overlaySource).toContain('presentation === "informative"');
-    expect(overlaySource).toContain("Repère conseillé");
+    expect(overlaySource).toContain("step.landmarkLabel");
+    expect(overlaySource).toContain("border-[#D94B57]");
     expect(overlaySource).toContain(
       'role={isInformative ? "region" : "dialog"}',
     );
     expect(overlaySource).toContain('data-tutorial-presentation={presentation}');
     expect(providerSource).toContain(
-      'localizedActiveTutorial.definition.type === "onboarding"',
+      'localizedActiveTutorial.definition.type === "onboarding" ||',
+    );
+    expect(providerSource).toContain(
+      'localizedActiveTutorial.definition.type === "race_scenario"',
     );
     expect(providerSource).toContain('? "informative"');
   });

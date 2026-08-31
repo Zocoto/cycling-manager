@@ -449,6 +449,18 @@ export function TutorialProvider({
           return false;
         }
 
+        const resolvedStepIndex = result.currentStepKey
+          ? activeTutorial.definition.steps.findIndex(
+              (candidate) => candidate.key === result.currentStepKey,
+            )
+          : nextStepIndex;
+        const safeStepIndex =
+          resolvedStepIndex >= 0 ? resolvedStepIndex : nextStepIndex;
+        const resolvedStep =
+          activeTutorial.definition.steps[safeStepIndex] ?? step;
+        const persistedRoute =
+          result.progress.current_route ?? resolvedStep.route;
+
         saveProgress(result.progress);
 
         setActiveTutorial((current) => {
@@ -460,11 +472,11 @@ export function TutorialProvider({
             ...current,
             progress: result.progress,
             session: updatedSession,
-            currentStepIndex: nextStepIndex,
+            currentStepIndex: safeStepIndex,
           };
         });
 
-        navigateToStep(step.route, resolvedRoute);
+        navigateToStep(resolvedStep.route, persistedRoute);
 
         return true;
       } catch (error) {
@@ -897,7 +909,8 @@ export function TutorialProvider({
         <TutorialOverlay
           tutorialTitle={localizedActiveTutorial.definition.title}
           presentation={
-            localizedActiveTutorial.definition.type === "onboarding"
+            localizedActiveTutorial.definition.type === "onboarding" ||
+            localizedActiveTutorial.definition.type === "race_scenario"
               ? "informative"
               : "focused"
           }

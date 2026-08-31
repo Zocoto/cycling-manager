@@ -7,6 +7,7 @@ function readSource(path: string) {
 }
 
 const gameHeader = readSource("components/game/game-header.tsx");
+const gameLayout = readSource("app/jeu/layout.tsx");
 const navigationMenu = readSource("components/game/game-navigation-menu.tsx");
 const globalChat = readSource("components/game/global-chat-shortcut.tsx");
 const tutorialCenter = readSource(
@@ -36,7 +37,8 @@ describe("bandeau du jeu sur mobile", () => {
     expect(mailboxPosition).toBeGreaterThan(0);
     expect(chatPosition).toBeGreaterThan(mailboxPosition);
     expect(gameHeader).toContain("<CyclogazetteShortcut");
-    expect(gameHeader).toContain("<TutorialCenterLauncher");
+    expect(gameHeader).not.toContain("<TutorialCenterLauncher");
+    expect(gameLayout).toContain("<TutorialCenterLauncher");
     expect(gameHeader).not.toContain("GameHeaderActionsMenu");
     expect(globalChat).toContain("h-8 w-8 shrink-0");
     expect(globalChat).toContain("sm:h-10 sm:w-10");

@@ -13,6 +13,7 @@ const launcherSource = readSource(
   "components/tutorial/tutorial-center-launcher.tsx",
 );
 const headerSource = readSource("components/game/game-header.tsx");
+const gameLayoutSource = readSource("app/jeu/layout.tsx");
 
 describe("tutorial client loading performance", () => {
   it("keeps the tutorial catalog outside the initial provider bundle", () => {
@@ -47,8 +48,9 @@ describe("tutorial client loading performance", () => {
     expect(runtimeLoad).toBeGreaterThan(noAutoStartGuard);
   });
 
-  it("loads the tutorial centre on user intent instead of with the header", () => {
-    expect(headerSource).toContain("<TutorialCenterLauncher />");
+  it("loads the tutorial centre on user intent from the global game layout", () => {
+    expect(gameLayoutSource).toContain("<TutorialCenterLauncher />");
+    expect(headerSource).not.toContain("<TutorialCenterLauncher />");
     expect(headerSource).not.toContain("<TutorialCenterMenu />");
     expect(launcherSource).toContain(
       'import("@/components/tutorial/tutorial-center-menu")',

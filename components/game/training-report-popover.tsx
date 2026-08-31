@@ -13,7 +13,7 @@ import {
 } from "@/lib/game/training";
 
 const STAT_LABELS: Record<string, string> = {
-  mountain: "MO",
+  mountain: "MON",
   hills: "VAL",
   flat: "PLA",
   time_trial: "CLM",

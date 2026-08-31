@@ -11,13 +11,18 @@ const searchToggleSource = readFileSync(
   join(process.cwd(), "components/game/game-header-search-toggle.tsx"),
   "utf8",
 );
+const tutorialLauncherSource = readFileSync(
+  join(process.cwd(), "components/tutorial/tutorial-center-launcher.tsx"),
+  "utf8",
+);
 
 describe("game header responsive layout", () => {
   it("présente les raccourcis essentiels dans un rail mobile nommé", () => {
     expect(headerSource).toContain('data-mobile-header-shortcuts="true"');
     expect(headerSource).toContain("grid-cols-4");
     expect(headerSource).toContain('label={isEnglish ? "Alerts" : "Alertes"}');
-    expect(headerSource).toContain('label={isEnglish ? "Help" : "Aide"}');
+    expect(tutorialLauncherSource).toContain('"Open the tutorial centre"');
+    expect(tutorialLauncherSource).toContain('"Ouvrir le centre des didacticiels"');
     expect(headerSource).toContain(
       "text-[0.52rem] font-extrabold leading-none",
     );
@@ -60,7 +65,6 @@ describe("game header responsive layout", () => {
     const mailboxPosition = headerSource.indexOf("<DirectorMailboxShortcut");
     const chatPosition = headerSource.indexOf("<GlobalChatShortcut");
     const gazettePosition = headerSource.indexOf("<CyclogazetteShortcut");
-    const tutorialPosition = headerSource.indexOf("<TutorialCenterLauncher");
     const searchPosition = headerSource.indexOf('id="game-global-search"');
 
     expect(teamPosition).toBeGreaterThan(0);
@@ -68,8 +72,8 @@ describe("game header responsive layout", () => {
     expect(mailboxPosition).toBeGreaterThan(profilePosition);
     expect(chatPosition).toBeGreaterThan(mailboxPosition);
     expect(gazettePosition).toBeGreaterThan(chatPosition);
-    expect(tutorialPosition).toBeGreaterThan(gazettePosition);
-    expect(searchPosition).toBeGreaterThan(tutorialPosition);
+    expect(searchPosition).toBeGreaterThan(gazettePosition);
+    expect(headerSource).not.toContain("<TutorialCenterLauncher");
     expect(headerSource).not.toContain("GameHeaderActionsMenu");
   });
 

@@ -131,6 +131,8 @@ export function RegistrationForm({
 
       <form
         action={formAction}
+        autoComplete="on"
+        data-form-type="signup"
         onSubmit={() => setDismissedFields([])}
         className="space-y-5"
       >
@@ -189,7 +191,7 @@ export function RegistrationForm({
           label="Adresse e-mail"
           type="email"
           placeholder="directeur@cycling-manager.fr"
-          autoComplete="email"
+          autoComplete="username"
           disabled={pending || registrationSucceeded}
           errors={getVisibleErrors("email")}
           onChange={() => dismissFieldError("email")}
@@ -368,6 +370,8 @@ function FormField({
         minLength={minLength}
         maxLength={maxLength}
         disabled={disabled}
+        autoCapitalize="none"
+        spellCheck={false}
         aria-invalid={Boolean(errors?.length)}
         aria-describedby={describedBy || undefined}
         onChange={onChange}

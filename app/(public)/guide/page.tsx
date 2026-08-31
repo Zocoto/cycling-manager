@@ -116,7 +116,7 @@ const daySchedule = [
 ] as const;
 
 const riderRatings = [
-  ["MO", "Montagne"],
+  ["MON", "Montagne"],
   ["VAL", "Vallons"],
   ["PLA", "Plaine"],
   ["CLM", "Contre-la-montre"],

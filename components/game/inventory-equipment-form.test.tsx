@@ -72,7 +72,7 @@ describe("InventoryEquipmentForm", () => {
 
     expect(markup).toContain("Choisir dans l’effectif");
     expect(markup).toContain("Erik Van Dijk");
-    expect(markup).toContain("MO 74 · VAL 71 · PLA 66");
+    expect(markup).toContain("MON 74 · VAL 71 · PLA 66");
     expect(markup).toContain("Emplacement occupé · Grip One");
     expect(markup).toContain("Emplacement disponible");
     expect(markup).toContain("Équiper ce matériel");
@@ -97,7 +97,7 @@ describe("InventoryEquipmentForm", () => {
 
   it("fournit un résumé de notes stable", () => {
     expect(formatRiderRatings(riders[1])).toBe(
-      "MO 61 · VAL 68 · PLA 73 · CLM 70 · PAV 65 · SPR 75",
+      "MON 61 · VAL 68 · PLA 73 · CLM 70 · PAV 65 · SPR 75",
     );
   });
 });

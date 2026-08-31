@@ -139,7 +139,7 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
           needsRegistrationAttention
             ? "bg-[#FFF0F1] ring-1 ring-inset ring-[#EF5B65]/55"
             : edition.isSponsorObjective
-              ? "bg-[#FFF9DF] ring-1 ring-inset ring-[#F2C94C]"
+              ? "bg-[#F5EEFF] ring-1 ring-inset ring-[#8B5CF6]"
               : ""
         }`}
       >
@@ -161,7 +161,7 @@ function DashboardRaceListItem({ race }: { race: DashboardEligibleRace }) {
               <span
                 role="img"
                 aria-label="Objectif sponsor"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F2C94C] text-[11px] font-black text-[#3D3300]"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6] text-[11px] font-black text-white"
               >
                 !
               </span>

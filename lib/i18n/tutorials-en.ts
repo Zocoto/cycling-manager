@@ -1,7 +1,11 @@
 import type { AppLocale } from "@/lib/i18n/config";
 import type { TutorialDefinition } from "@/types/tutorial";
 
-type TutorialStepCopy = { title: string; content: string };
+type TutorialStepCopy = {
+  title: string;
+  content: string;
+  landmarkLabel?: string;
+};
 type TutorialCopy = {
   title: string;
   description: string;
@@ -17,7 +21,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       welcome: {
         title: "Welcome to Cyclo Stratège",
         content:
-          "You are now the Sports Director of a young cycling team. This tour introduces the essential game features and prepares you for the Discovery Criterium.\n\nGreen landmarks simply show where to look: the rest of the interface remains visible and accessible. You can leave at any time, resume later or permanently skip the tutorial.",
+          "You are now the Sports Director of a young cycling team. This tour introduces the essential game features and prepares you for the Discovery Criterium.\n\nRed outlines simply show where to look: the rest of the interface remains visible and accessible. You can leave at any time, resume later or permanently skip the tutorial.",
       },
       "news-feed": {
         title: "Keep an eye on your notifications",
@@ -26,6 +30,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       },
       "profile-overview": {
         title: "Complete your identity",
+        landmarkLabel: "Complete your identity",
         content:
           "Your Sports Director name is already the one chosen during registration: you do not need to enter it again.\n\nYou only need to choose an avatar, then a nationality. Select Next: each control will appear as an informative landmark without locking the rest of the page.",
       },
@@ -57,7 +62,7 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       "primary-ratings": {
         title: "Start with the primary attributes",
         content:
-          "Focus first on MO, HIL, FL, COB, SP and TT. They immediately reveal a rider's preferred terrain.\n\nFlat stage → FL and SP\nMountain → MO\nHilly route → HIL\nCobbles → COB\nTime trial or prologue → TT and PRL",
+          "Focus first on MO, HIL, FL, COB, SP and TT. They immediately reveal a rider's preferred terrain.\n\nFlat stage → FL and SP\nMountain → MO\nHilly route → HIL\nCobbles → COB\nTime trial → TT\nPrologue → PRL, an especially important attribute for these short efforts",
       },
       "secondary-ratings": {
         title: "Then refine your analysis",
@@ -99,22 +104,22 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       briefing: {
         title: "Your first race, without risk",
         content:
-          "Welcome to the Discovery Criterium. This fictional event uses the same engine and screens as an official race.\n\nIt awards no money, points or rewards, consumes no form, causes no fatigue and cannot create a lasting injury. Opponents are deliberately weak to give you every chance of a first victory.",
+          "Welcome to the Discovery Criterium. This fictional event uses the same engine and screens as an official race.\n\nIt awards no money, points or rewards, causes no fatigue and cannot create a lasting injury. Opponents are deliberately weak to give you every chance of a first victory.",
       },
       "course-profile": {
         title: "Read the profile first",
         content:
-          "The course combines flat roads, hills, mountains and cobbles. Its profile shows which attributes to compare before choosing your five riders.\n\nIn a real race, always do this before registration: it reveals the natural leader, whether a sprinter is useful and how many domestiques are needed.",
+          "This hilly stage favours puncheurs: compare HIL, ACC, STA and RES first, without forgetting SP if a group still reaches the finish together.\n\nIn a real race, always do this before registration: it reveals the natural leader, whether a sprinter is useful and how many domestiques are needed.",
       },
       "rider-selection": {
         title: "Select exactly five riders",
         content:
-          "Select five available riders. For this mixed course, look for a complete squad: a strong hills or mountain rider for victory, a sprinter for a possible regrouping, then riders with good FL, STA and RES.\n\nYou can open each rider profile in a new tab.",
+          "Select five available riders. For this hilly course, look for a strong puncheur for victory, a durable sprinter for a possible regrouping, then domestiques with good FL, STA and RES.\n\nYou can open each rider profile in a new tab.",
       },
       "role-guide": {
         title: "What tactical roles ask the AI to do",
         content:
-          "Leader: the AI protects this rider for decisive sectors. Sprinter: the team increases the chase and prepares a bunch finish. Lead-out: works for the sprinter. Free role: prioritises breakaways. Domestique: spends more energy chasing and working for the team.",
+          "Leader: the AI protects this rider for decisive sectors.\n\nSprinter: the team increases the chase and prepares a bunch finish.\n\nLead-out: works for the sprinter.\n\nFree role: prioritises breakaways.\n\nDomestique: spends more energy chasing and working for the team.",
       },
       "role-assignment": {
         title: "Assign your strategy",
@@ -124,12 +129,12 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       registration: {
         title: "Lock in your line-up",
         content:
-          "When the five riders and their roles are ready, confirm registration with the highlighted button.\n\nAs in an official race, the line-up is locked. For this tutorial only, the simulation is calculated immediately and stored without changing your riders' sporting data.",
+          "When the five riders and their roles are ready, confirm registration with the highlighted button.\n\nAs in an official race, the line-up is locked. For this training race, the simulation is calculated immediately and stored without changing your riders' sporting data.",
       },
       "registration-confirmed": {
         title: "Registration confirmed",
         content:
-          "Your team is registered and the race appears in the calendar like a normal event. The key difference for your career is that no official settlement will run.\n\nSelect Next to open the replay in Results / Live.",
+          "Your team is registered and the race appears in the calendar like a normal event.\n\nSelect Next to open the replay in Results / Live.",
       },
       "live-overview": {
         title: "Welcome to Live",
@@ -144,12 +149,39 @@ export const ENGLISH_TUTORIAL_COPY: Readonly<Record<string, TutorialCopy>> = {
       classification: {
         title: "Analyse the standings",
         content:
-          "Open Standings to see the finish order and gaps, then Active rules to review the engine principles.\n\nTutorial opponents are restricted and receive no bonuses, allowing one of your riders to challenge for first place.",
+          "Open Standings to see the finish order and gaps, then Rules to review the engine principles.\n\nTutorial opponents are restricted and receive no bonuses, allowing one of your riders to challenge for first place.",
       },
       "formation-complete": {
         title: "Your first race is over",
         content:
-          "You can now read a profile, select a squad, assign tactical roles and follow the live engine.\n\nThis race remains entirely fictional: no form, fatigue, injury, prize, point or reward was recorded. Select Finish in this panel to complete the practical tutorial.",
+          "You can now read a profile, select a squad, assign tactical roles and follow the live engine.\n\nThis race remains entirely fictional: no fatigue, injury, prize, point or reward was recorded. Select Finish in this panel to complete this practical learning experience.",
+      },
+    },
+  },
+  sponsoring: {
+    title: "Understanding sponsorship",
+    description:
+      "Review offers, commitments and partner monitoring in a few short steps.",
+    steps: {
+      "sponsoring-overview": {
+        title: "Your situation determines the screen",
+        content:
+          "This section changes with your career: it first shows the reputation threshold, then available offers, jersey selection and finally the active contract.\n\nThe introduction always summarises the next useful decision.",
+      },
+      "sponsoring-offers": {
+        title: "Compare funding with expectations",
+        content:
+          "Read an offer as a whole: annual budget, duration, prestige, philosophy and objectives. The higher the funding and sponsor reputation, the more ambitious the expectations.\n\nIf no offer is available today, return to this step when new proposals appear.",
+      },
+      "sponsoring-objectives": {
+        title: "Track every commitment during the season",
+        content:
+          "After signing, each objective shows its status and weight in partner satisfaction. Nationality objectives also show the current percentage of your roster.\n\nRelevant races are marked by a purple exclamation point in the calendar.",
+      },
+      complete: {
+        title: "Your partnership is clear",
+        content:
+          "You can now compare proposals and track the commitments of an active contract.\n\nSelect Finish: this short tutorial remains available from the question mark in Sponsorship.",
       },
     },
   },
@@ -697,6 +729,8 @@ export function localizeTutorialDefinition(
       ...step,
       title: copy.steps[step.key]?.title ?? step.title,
       content: copy.steps[step.key]?.content ?? step.content,
+      landmarkLabel:
+        copy.steps[step.key]?.landmarkLabel ?? step.landmarkLabel,
     })),
   };
 }

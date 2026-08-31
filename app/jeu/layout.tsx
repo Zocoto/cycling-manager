@@ -12,6 +12,7 @@ import {
   TutorialProvider,
   type TutorialProviderBootstrap,
 } from "@/components/tutorial/tutorial-provider";
+import { TutorialCenterLauncher } from "@/components/tutorial/tutorial-center-launcher";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   ONBOARDING_TUTORIAL_KEY,
@@ -104,7 +105,10 @@ async function GameRuntime({ children }: { children: ReactNode }) {
     <TutorialProvider bootstrapPromise={tutorialBootstrapPromise}>
       <GameHeaderIndicatorsProvider>
         <GamePresenceHeartbeat />
-        <div className="game-shell">{children}</div>
+        <div className="game-shell">
+          {children}
+          <TutorialCenterLauncher />
+        </div>
       </GameHeaderIndicatorsProvider>
     </TutorialProvider>
   );

@@ -77,6 +77,13 @@
     height: 1.3rem;
   }
 
+  .game-shell .tutorial-floating-launcher {
+    position: fixed;
+    z-index: 120;
+    right: 0.85rem;
+    bottom: calc(var(--game-mobile-navigation-clearance) + 0.8rem);
+  }
+
   .game-shell .mobile-game-navigation-dock {
     bottom: var(--game-mobile-navigation-edge-offset);
     height: var(--game-mobile-navigation-height);
@@ -101,6 +108,15 @@
     .game-shell .mobile-app-backdrop {
       animation: none;
     }
+  }
+}
+
+@media (min-width: 640px) {
+  .game-shell .tutorial-floating-launcher {
+    position: fixed;
+    z-index: 120;
+    right: 1.5rem;
+    bottom: 1.5rem;
   }
 }
 

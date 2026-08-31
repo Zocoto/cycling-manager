@@ -201,6 +201,62 @@ function getResumeStep(
   return getInitialStep(definition);
 }
 
+async function getFirstIncompleteStep({
+  supabase,
+  definition,
+  startingStep,
+  progress,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  definition: TutorialDefinition;
+  startingStep: TutorialStep;
+  progress: TutorialProgressRow;
+}): Promise<TutorialStep> {
+  const startingIndex = Math.max(
+    0,
+    definition.steps.findIndex((step) => step.key === startingStep.key),
+  );
+  let onboardingStatePromise: ReturnType<
+    typeof getAuthenticatedTutorialOnboardingState
+  > | null = null;
+
+  for (let index = startingIndex; index < definition.steps.length; index += 1) {
+    const candidate = definition.steps[index];
+
+    if (!candidate) {
+      continue;
+    }
+
+    const completionRequirement = candidate.skipWhenRequirementSatisfied;
+
+    if (!completionRequirement) {
+      return candidate;
+    }
+
+    if (completionRequirement === "criterium_registered") {
+      if (!getCriteriumDiscoveryRunFromMetadata(progress.metadata)) {
+        return candidate;
+      }
+
+      continue;
+    }
+
+    onboardingStatePromise ??=
+      getAuthenticatedTutorialOnboardingState(supabase);
+    const onboardingState = await onboardingStatePromise;
+    const isSatisfied =
+      completionRequirement === "profile_complete"
+        ? onboardingState.profileComplete
+        : onboardingState.teamCreated;
+
+    if (!isSatisfied) {
+      return candidate;
+    }
+  }
+
+  return definition.steps.at(-1) ?? startingStep;
+}
+
 async function updateProgressStep({
   supabase,
   progress,
@@ -399,10 +455,16 @@ export async function startTutorialAction(
     const isHistoricalReplay =
       progress.status === "completed" || progress.status === "skipped";
 
-    const selectedStep =
+    const requestedStep =
       parsed.restartFromBeginning || isHistoricalReplay
         ? initialStep
         : getResumeStep(definition, progress);
+    const selectedStep = await getFirstIncompleteStep({
+      supabase,
+      definition,
+      startingStep: requestedStep,
+      progress,
+    });
     const selectedRoute = resolveTutorialProgressRoute({
       routePattern: selectedStep.route,
       savedRoute: progress.current_route,
@@ -507,14 +569,13 @@ export async function setTutorialStepAction(
 
     const definition = requireTutorialDefinition(parsed.tutorialKey);
 
-    const step = requireTutorialStep(definition, parsed.stepKey, parsed.route);
+    const requestedStep = requireTutorialStep(
+      definition,
+      parsed.stepKey,
+      parsed.route,
+    );
 
     const supabase = await createSupabaseServerClient();
-
-    await requireTutorialStepRequirement({
-      supabase,
-      step,
-    });
 
     const now = new Date().toISOString();
 
@@ -551,6 +612,20 @@ export async function setTutorialStepAction(
       progress = data as TutorialProgressRow;
     }
 
+    const step = await getFirstIncompleteStep({
+      supabase,
+      definition,
+      startingStep: requestedStep,
+      progress,
+    });
+    const stepRoute =
+      step.key === requestedStep.key ? parsed.route : step.route;
+
+    await requireTutorialStepRequirement({
+      supabase,
+      step,
+    });
+
     if (progress.status === "not_started") {
       const { data, error } = await supabase
         .from("tutorial_progress")
@@ -558,8 +633,8 @@ export async function setTutorialStepAction(
           tutorial_type: definition.type,
           tutorial_version: definition.version,
           status: "in_progress",
-          current_step_key: parsed.stepKey,
-          current_route: parsed.route,
+          current_step_key: step.key,
+          current_route: stepRoute,
           started_at: now,
           completed_at: null,
           skipped_at: null,
@@ -585,7 +660,7 @@ export async function setTutorialStepAction(
         progress,
         definition,
         launchSource: "manual",
-        firstStepKey: parsed.stepKey,
+        firstStepKey: step.key,
       });
     }
 
@@ -597,8 +672,8 @@ export async function setTutorialStepAction(
       supabase,
       progress,
       definition,
-      stepKey: parsed.stepKey,
-      route: parsed.route,
+      stepKey: step.key,
+      route: stepRoute,
     });
 
     const updatedSession = session
@@ -606,7 +681,7 @@ export async function setTutorialStepAction(
           supabase,
           session,
           definition,
-          stepKey: parsed.stepKey,
+          stepKey: step.key,
         })
       : null;
 
@@ -614,7 +689,7 @@ export async function setTutorialStepAction(
       ok: true,
       progress,
       session: updatedSession,
-      currentStepKey: parsed.stepKey,
+      currentStepKey: step.key,
     };
   } catch (error) {
     return actionFailure(error);

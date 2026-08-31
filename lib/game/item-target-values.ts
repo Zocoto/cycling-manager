@@ -48,7 +48,7 @@ export type ItemTargetValueContext =
   | { kind: "ability"; abilityCode: string | null };
 
 const RATING_SHORT_LABELS: Record<ItemTargetRatingKey, string> = {
-  mountain: "MO",
+  mountain: "MON",
   hills: "VAL",
   flat: "PLA",
   time_trial: "CLM",

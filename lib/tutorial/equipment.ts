@@ -49,7 +49,7 @@ export const equipmentTutorialDefinition = {
       targetId: "equipment-commercial-filters",
       title: "Trouvez la bonne pièce avec les filtres",
       content:
-        "Filtrez d’abord par emplacement, puis par effet recherché. Les abréviations MO, VAL, PLA, CLM, PAV, SPR, ACC, DES, END, RES, REC et PRO correspondent aux statistiques des coureurs ; d’autres filtres isolent la protection ou les gains de réputation.\n\nVous pouvez combiner une marque, une catégorie et un effet.",
+        "Filtrez d’abord par emplacement, puis par effet recherché. Les abréviations MON, VAL, PLA, CLM, PAV, SPR, ACC, DES, END, RES, REC et PRO correspondent aux statistiques des coureurs ; d’autres filtres isolent la protection ou les gains de réputation.\n\nVous pouvez combiner une marque, une catégorie et un effet.",
       placement: "top",
       highlightPadding: 8,
     },
