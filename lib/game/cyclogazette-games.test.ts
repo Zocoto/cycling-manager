@@ -62,4 +62,31 @@ describe("Cyclogazette daily games", () => {
 
     expect(signatures.size).toBeGreaterThanOrEqual(70);
   });
+
+  it("propose dès le numéro 45 une vraie grille carrée, dense et généraliste", () => {
+    const current = getCyclogazetteDailyGames(45).crossword;
+    const currentSolution = getCyclogazetteGameSolutions(45).crosswordRows;
+    const generalClues = Array.from({ length: 12 }, (_, offset) =>
+      getCyclogazetteDailyGames(45 + offset).crossword.entries.map(
+        (entry) => entry.clue,
+      ),
+    ).flat();
+
+    expect(current.rows).toBe(9);
+    expect(current.columns).toBe(9);
+    expect(current.cells).toHaveLength(64);
+    expect(current.entries).toHaveLength(32);
+    expect(currentSolution).toHaveLength(9);
+    expect(currentSolution[4]).toBe("#########");
+    expect(
+      generalClues.some((clue) =>
+        [
+          "Satellite naturel de la Terre",
+          "Œuvre destinée au cinéma",
+          "Boisson obtenue à partir de grains torréfiés",
+          "Premières lueurs du jour",
+        ].includes(clue),
+      ),
+    ).toBe(true);
+  });
 });

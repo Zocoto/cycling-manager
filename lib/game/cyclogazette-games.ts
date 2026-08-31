@@ -88,7 +88,7 @@ const SUDOKU_TEMPLATES: Record<
   },
 };
 
-const CROSSWORD_WORDS: readonly CrosswordWord[] = [
+const CYCLING_CROSSWORD_WORDS: readonly CrosswordWord[] = [
   { answer: "BIDON", clue: "Réserve portée sur le cadre" },
   { answer: "BRAQUET", clue: "Rapport choisi avant d’appuyer sur les pédales" },
   { answer: "CADRE", clue: "Squelette de la machine" },
@@ -138,6 +138,191 @@ const CROSSWORD_WORDS: readonly CrosswordWord[] = [
   { answer: "ASCENSION", clue: "Longue montée vers un sommet" },
   { answer: "DESCENTE", clue: "Partie où la trajectoire compte beaucoup" },
 ] as const;
+
+const GENERAL_CROSSWORD_WORDS: readonly CrosswordWord[] = [
+  { answer: "OCEAN", clue: "Immense étendue d’eau salée" },
+  { answer: "FLEUVE", clue: "Cours d’eau qui rejoint la mer" },
+  { answer: "ILE", clue: "Terre entourée d’eau" },
+  { answer: "CAP", clue: "Pointe de terre avancée dans la mer" },
+  { answer: "DELTA", clue: "Embouchure ramifiée d’un fleuve" },
+  { answer: "VOLCAN", clue: "Montagne qui peut entrer en éruption" },
+  { answer: "DESERT", clue: "Région où la pluie se fait rare" },
+  { answer: "SAVANE", clue: "Grande prairie des régions tropicales" },
+  { answer: "FORET", clue: "Vaste territoire couvert d’arbres" },
+  { answer: "LAC", clue: "Étendue d’eau entourée de terres" },
+  { answer: "RIVIERE", clue: "Cours d’eau qui rejoint souvent un fleuve" },
+  { answer: "VALLEE", clue: "Creux naturel entre deux reliefs" },
+  { answer: "FALAISE", clue: "Paroi rocheuse dominant la mer" },
+  { answer: "PRAIRIE", clue: "Terrain couvert d’herbe" },
+  { answer: "GLACIER", clue: "Fleuve de glace en mouvement lent" },
+  { answer: "AIGLE", clue: "Grand rapace aux yeux perçants" },
+  { answer: "LOUP", clue: "Canidé qui vit souvent en meute" },
+  { answer: "LOUTRE", clue: "Mammifère joueur des rivières" },
+  { answer: "PANDA", clue: "Mammifère amateur de bambou" },
+  { answer: "TIGRE", clue: "Grand félin rayé" },
+  { answer: "BALEINE", clue: "Géant marin qui respire de l’air" },
+  { answer: "CORAIL", clue: "Animal marin bâtisseur de récifs" },
+  { answer: "HERON", clue: "Grand oiseau pêcheur aux longues pattes" },
+  { answer: "RENARD", clue: "Canidé réputé rusé" },
+  { answer: "CHOUETTE", clue: "Rapace nocturne sans aigrettes" },
+  { answer: "DAUPHIN", clue: "Mammifère marin réputé sociable" },
+  { answer: "ORQUE", clue: "Cétacé noir et blanc" },
+  { answer: "CASTOR", clue: "Rongeur qui construit des barrages" },
+  { answer: "BISON", clue: "Grand bovidé à la bosse imposante" },
+  { answer: "ZEBRE", clue: "Équidé aux rayures noires et blanches" },
+  { answer: "KOALA", clue: "Marsupial friand d’eucalyptus" },
+  { answer: "LYNX", clue: "Félin aux oreilles terminées par un pinceau" },
+  { answer: "OURS", clue: "Grand mammifère qui hiverne parfois" },
+  { answer: "OPERA", clue: "Spectacle où le théâtre se chante" },
+  { answer: "ROMAN", clue: "Long récit de fiction" },
+  { answer: "POEME", clue: "Texte rythmé fait de vers ou de prose" },
+  { answer: "MUSEE", clue: "Lieu où sont conservées des collections" },
+  { answer: "SCENE", clue: "Espace où jouent les artistes" },
+  { answer: "ACTEUR", clue: "Interprète d’un rôle" },
+  { answer: "CINEMA", clue: "Septième art" },
+  { answer: "PIANO", clue: "Instrument à touches noires et blanches" },
+  { answer: "VIOLON", clue: "Instrument à quatre cordes joué avec un archet" },
+  { answer: "FRESQUE", clue: "Peinture réalisée sur un mur" },
+  { answer: "STATUE", clue: "Œuvre sculptée en trois dimensions" },
+  { answer: "THEATRE", clue: "Art de raconter une histoire sur scène" },
+  { answer: "BALLET", clue: "Spectacle raconté par la danse" },
+  { answer: "MELODIE", clue: "Suite de notes facile à fredonner" },
+  { answer: "RIME", clue: "Sons semblables à la fin de deux vers" },
+  { answer: "LIVRE", clue: "Ouvrage composé de pages reliées" },
+  { answer: "ATOME", clue: "Très petite unité de matière" },
+  { answer: "COMETE", clue: "Astre glacé parfois suivi d’une longue traîne" },
+  { answer: "ORBITE", clue: "Trajectoire d’un astre autour d’un autre" },
+  { answer: "PLANETE", clue: "Astre qui tourne autour d’une étoile" },
+  { answer: "ETOILE", clue: "Boule de gaz qui produit sa propre lumière" },
+  { answer: "GALAXIE", clue: "Immense ensemble d’étoiles" },
+  { answer: "LASER", clue: "Faisceau lumineux très concentré" },
+  { answer: "ROBOT", clue: "Machine capable d’exécuter des tâches" },
+  { answer: "SATURNE", clue: "Planète célèbre pour ses anneaux" },
+  { answer: "ECLIPSE", clue: "Disparition apparente d’un astre" },
+  { answer: "FUSEE", clue: "Véhicule propulsé vers l’espace" },
+  { answer: "MICROBE", clue: "Organisme invisible à l’œil nu" },
+  { answer: "CACAO", clue: "Graine à l’origine du chocolat" },
+  { answer: "VANILLE", clue: "Épice parfumée issue d’une orchidée" },
+  { answer: "SAFRAN", clue: "Épice obtenue à partir de fins stigmates rouges" },
+  { answer: "CITRON", clue: "Agrume jaune au goût acide" },
+  { answer: "OLIVE", clue: "Petit fruit dont on tire une huile" },
+  { answer: "BRIOCHE", clue: "Viennoiserie riche en beurre" },
+  { answer: "FROMAGE", clue: "Produit obtenu à partir de lait caillé" },
+  { answer: "EPICE", clue: "Substance qui parfume un plat" },
+  { answer: "MIEL", clue: "Douceur fabriquée par les abeilles" },
+  { answer: "RAISIN", clue: "Fruit qui peut devenir du vin" },
+  { answer: "CERISE", clue: "Petit fruit rouge à noyau" },
+  { answer: "TOMATE", clue: "Fruit rouge souvent cuisiné comme un légume" },
+  { answer: "NOUGAT", clue: "Confiserie au miel et aux fruits secs" },
+  { answer: "PRALINE", clue: "Amande ou noisette enrobée de sucre cuit" },
+  { answer: "MIROIR", clue: "Surface qui renvoie une image" },
+  { answer: "HORLOGE", clue: "Instrument qui indique l’heure" },
+  { answer: "JARDIN", clue: "Terrain où l’on cultive fleurs et légumes" },
+  { answer: "PONT", clue: "Ouvrage permettant de franchir un obstacle" },
+  { answer: "PHARE", clue: "Tour lumineuse qui guide les navires" },
+  { answer: "TRAIN", clue: "Suite de wagons tirés sur des rails" },
+  { answer: "NUAGE", clue: "Masse de gouttelettes suspendue dans le ciel" },
+  { answer: "PLAGE", clue: "Rivage couvert de sable ou de galets" },
+  { answer: "CHATEAU", clue: "Grande demeure fortifiée ou d’apparat" },
+  { answer: "CABANE", clue: "Petite construction simple servant d’abri" },
+  { answer: "VOYAGE", clue: "Déplacement vers une destination lointaine" },
+  { answer: "ENIGME", clue: "Question qui demande de trouver une solution" },
+  { answer: "SOURIRE", clue: "Expression joyeuse dessinée par la bouche" },
+] as const;
+
+const GENERAL_CROSSWORDS_FROM_ISSUE = 47;
+
+type DenseCrosswordSquare = readonly [string, string, string, string];
+
+const DENSE_CROSSWORD_SQUARES: readonly DenseCrosswordSquare[] = [
+  ["ELLE", "LOUP", "LUNE", "EPEE"],
+  ["VOIR", "ONDE", "IDEE", "REEL"],
+  ["PERE", "EGAL", "RAIL", "ELLE"],
+  ["VRAI", "ROND", "ANGE", "IDEE"],
+  ["TARD", "AVEU", "REVE", "DUEL"],
+  ["TRUC", "ROSE", "USER", "CERF"],
+  ["PART", "AGIR", "RIRE", "TRES"],
+  ["CHER", "HOTE", "ETRE", "REEL"],
+  ["PAPA", "ABRI", "PRES", "AISE"],
+  ["VERS", "EPEE", "RECU", "SEUL"],
+  ["FILM", "IDEE", "LEUR", "MERE"],
+  ["ARME", "RAIL", "MIEL", "ELLE"],
+  ["CAFE", "AOUT", "FUIR", "ETRE"],
+  ["PLAN", "LABO", "ABRI", "NOIR"],
+  ["PLAN", "LAME", "AMER", "NERF"],
+  ["BRAS", "ROUE", "AURA", "SEAU"],
+  ["ETAT", "TOUR", "AUBE", "TRES"],
+  ["PRET", "RAGE", "EGAL", "TELE"],
+  ["CHEF", "HOTE", "ETAT", "FETE"],
+  ["SALE", "AVEU", "LEUR", "EURO"],
+] as const;
+
+const DENSE_CROSSWORD_CLUES: Readonly<Record<string, string>> = {
+  ABRI: "Lieu où l’on peut se protéger",
+  AGIR: "Passer à l’action",
+  AISE: "État de celui qui se sent bien",
+  AMER: "Qui laisse une saveur peu douce",
+  ANGE: "Messager ailé des représentations célestes",
+  AOUT: "Huitième mois de l’année",
+  ARME: "Objet conçu pour combattre",
+  AUBE: "Premières lueurs du jour",
+  AURA: "Temps du verbe avoir au futur",
+  AVEU: "Reconnaissance d’un fait",
+  BRAS: "Membre entre l’épaule et la main",
+  CAFE: "Boisson obtenue à partir de grains torréfiés",
+  CERF: "Grand animal des bois portant des bois",
+  CHEF: "Personne qui dirige une équipe",
+  CHER: "Dont le prix est élevé",
+  DUEL: "Affrontement entre deux adversaires",
+  EGAL: "Ni supérieur ni inférieur",
+  ELLE: "Pronom personnel féminin",
+  EPEE: "Arme blanche à longue lame",
+  ETAT: "Situation dans laquelle se trouve quelque chose",
+  ETRE: "Verbe essentiel de la langue française",
+  EURO: "Monnaie commune à plusieurs pays européens",
+  FETE: "Moment organisé pour célébrer",
+  FILM: "Œuvre destinée au cinéma",
+  FUIR: "S’éloigner rapidement d’un danger",
+  HOTE: "Personne qui reçoit ou qui est reçue",
+  IDEE: "Représentation née dans l’esprit",
+  LABO: "Abrégé d’un lieu d’expérimentation",
+  LAME: "Partie tranchante d’un outil",
+  LEUR: "Adjectif possessif de la troisième personne du pluriel",
+  LOUP: "Canidé sauvage vivant souvent en meute",
+  LUNE: "Satellite naturel de la Terre",
+  MERE: "Parent qui a donné naissance",
+  MIEL: "Douceur fabriquée par les abeilles",
+  NERF: "Faisceau qui transmet un message dans le corps",
+  NOIR: "Couleur de la nuit sans lumière",
+  ONDE: "Vibration qui se propage",
+  PAPA: "Mot familier pour désigner un père",
+  PART: "Portion d’un ensemble",
+  PERE: "Parent masculin",
+  PLAN: "Représentation ou projet préparé à l’avance",
+  PRES: "À faible distance",
+  PRET: "Disposé à commencer",
+  RAGE: "Colère très intense",
+  RAIL: "Barre métallique guidant un train",
+  RECU: "Document attestant un paiement",
+  REEL: "Qui existe véritablement",
+  REVE: "Histoire produite pendant le sommeil",
+  RIRE: "Exprimer sa gaieté par des sons",
+  ROND: "Qui a la forme d’un cercle",
+  ROSE: "Fleur souvent offerte",
+  ROUE: "Pièce circulaire tournant autour d’un axe",
+  SALE: "Qui manque de propreté",
+  SEAU: "Récipient muni d’une anse",
+  SEUL: "Sans compagnie",
+  TARD: "Après le moment attendu",
+  TELE: "Abrégé courant de télévision",
+  TOUR: "Mouvement complet autour d’un axe",
+  TRES: "Adverbe qui marque une forte intensité",
+  TRUC: "Mot familier pour une chose indéterminée",
+  USER: "Détériorer progressivement par le frottement",
+  VERS: "Dans la direction de",
+  VOIR: "Percevoir avec les yeux",
+  VRAI: "Conforme à la réalité",
+} as const;
 
 const DIFFICULTIES: readonly CyclogazetteGameDifficulty[] = [
   "facile",
@@ -241,23 +426,136 @@ function createSudokuLineOrder(random: () => number) {
 
 function createCrosswordPuzzle(issueNumber: number): PrivateCrosswordPuzzle {
   const difficulty = getDifficulty(issueNumber, 1);
-  const targetCount = difficulty === "facile" ? 6 : difficulty === "moyen" ? 7 : 8;
-  let best: PlacedCrosswordWord[] = [];
+  if (issueNumber < 45) {
+    const targetCount =
+      difficulty === "facile" ? 6 : difficulty === "moyen" ? 7 : 8;
+    const wordPool = getCrosswordWordPool(issueNumber);
+    let best: PlacedCrosswordWord[] = [];
 
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const random = createSeededRandom(
-      issueNumber * 15485863 + attempt * 32452843 + 49999,
-    );
-    const candidate = placeCrosswordWords(
-      shuffle([...CROSSWORD_WORDS], random),
-      targetCount,
-      random,
-    );
-    if (candidate.length > best.length) best = candidate;
-    if (candidate.length >= targetCount) break;
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const random = createSeededRandom(
+        issueNumber * 15485863 + attempt * 32452843 + 49999,
+      );
+      const candidate = placeCrosswordWords(
+        shuffle([...wordPool], random),
+        targetCount,
+        random,
+      );
+      if (candidate.length > best.length) best = candidate;
+      if (candidate.length >= targetCount) break;
+    }
+
+    return buildCrosswordPuzzle(best, difficulty);
   }
 
-  return buildCrosswordPuzzle(best, difficulty);
+  const random = createSeededRandom(issueNumber * 15485863 + 49999);
+  const squares = shuffle([...DENSE_CROSSWORD_SQUARES], random).slice(0, 4);
+
+  return buildDenseCrosswordPuzzle(squares, difficulty);
+}
+
+function buildDenseCrosswordPuzzle(
+  squares: DenseCrosswordSquare[],
+  difficulty: CyclogazetteGameDifficulty,
+): PrivateCrosswordPuzzle {
+  const rows = 9;
+  const columns = 9;
+  const letters = Array<string>(rows * columns).fill("#");
+  const placements: PlacedCrosswordWord[] = [];
+
+  squares.forEach((square, squareIndex) => {
+    const rowOffset = squareIndex >= 2 ? 5 : 0;
+    const columnOffset = squareIndex % 2 === 1 ? 5 : 0;
+
+    square.forEach((answer, wordIndex) => {
+      const clue = DENSE_CROSSWORD_CLUES[answer];
+      if (!clue) throw new Error(`Définition manquante pour ${answer}.`);
+
+      placements.push({
+        answer,
+        clue,
+        row: rowOffset + wordIndex,
+        column: columnOffset,
+        direction: "horizontal",
+      });
+      placements.push({
+        answer,
+        clue,
+        row: rowOffset,
+        column: columnOffset + wordIndex,
+        direction: "vertical",
+      });
+
+      for (let letterIndex = 0; letterIndex < answer.length; letterIndex += 1) {
+        letters[(rowOffset + wordIndex) * columns + columnOffset + letterIndex] =
+          answer[letterIndex];
+      }
+    });
+  });
+
+  const numberByStart = new Map<string, number>();
+  const starts = [
+    ...new Set(placements.map((word) => `${word.row}:${word.column}`)),
+  ]
+    .map((key) => {
+      const [row, column] = key.split(":").map(Number);
+      return { key, row, column };
+    })
+    .sort((left, right) => left.row - right.row || left.column - right.column);
+  starts.forEach((start, index) => numberByStart.set(start.key, index + 1));
+
+  const cells = letters.flatMap<CyclogazetteCrosswordCell>((letter, index) => {
+    if (letter === "#") return [];
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    return [
+      {
+        index,
+        row,
+        column,
+        number: numberByStart.get(`${row}:${column}`) ?? null,
+      },
+    ];
+  });
+  const entries = placements
+    .map<CyclogazetteCrosswordEntry>((word) => ({
+      number: numberByStart.get(`${word.row}:${word.column}`) ?? 0,
+      direction: word.direction,
+      row: word.row,
+      column: word.column,
+      length: word.answer.length,
+      clue: word.clue,
+    }))
+    .sort(
+      (left, right) =>
+        left.number - right.number ||
+        Number(left.direction === "vertical") -
+          Number(right.direction === "vertical"),
+    );
+
+  return {
+    difficulty,
+    rows,
+    columns,
+    cells,
+    entries,
+    solution: letters.join(""),
+  };
+}
+
+function getCrosswordWordPool(issueNumber: number) {
+  if (issueNumber < GENERAL_CROSSWORDS_FROM_ISSUE) {
+    return CYCLING_CROSSWORD_WORDS;
+  }
+
+  const cyclingOffset = issueNumber % CYCLING_CROSSWORD_WORDS.length;
+  const cyclingTouches = Array.from({ length: 8 }, (_, index) =>
+    CYCLING_CROSSWORD_WORDS[
+      (cyclingOffset + index * 5) % CYCLING_CROSSWORD_WORDS.length
+    ],
+  );
+
+  return [...GENERAL_CROSSWORD_WORDS, ...cyclingTouches];
 }
 
 function placeCrosswordWords(

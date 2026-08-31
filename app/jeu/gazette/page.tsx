@@ -112,19 +112,19 @@ export default async function CyclogazettePage({
               currentEditionId={edition.id}
               latestEditionId={latestEdition.id}
             />
-            <div className="mx-auto grid max-w-[1740px] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-              <CyclogazetteNewspaper
-                edition={edition}
-                community={community ?? undefined}
-                interviewReactions={community?.interviewReactions}
-              />
-              {gamesOverview ? (
-                <CyclogazetteGamesSidebar
-                  key={edition.id}
-                  overview={gamesOverview}
-                />
-              ) : null}
-            </div>
+            <CyclogazetteNewspaper
+              edition={edition}
+              community={community ?? undefined}
+              interviewReactions={community?.interviewReactions}
+              gamesSection={
+                gamesOverview ? (
+                  <CyclogazetteGamesSidebar
+                    key={edition.id}
+                    overview={gamesOverview}
+                  />
+                ) : null
+              }
+            />
           </>
         ) : (
           <EmptyGazette />

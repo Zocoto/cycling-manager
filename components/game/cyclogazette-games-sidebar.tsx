@@ -32,14 +32,17 @@ export function CyclogazetteGamesSidebar({
     overview.viewerCompletedGames.includes("crossword");
 
   return (
-    <aside className="min-w-0 self-start border border-[#7D6C49]/45 bg-[#F2E6C8] text-[#2E281D] shadow-[0_28px_70px_rgba(36,28,17,0.2)] xl:sticky xl:top-24">
-      <header className="border-b-4 border-double border-[#2E281D] px-4 py-4">
+    <div
+      data-cyclogazette-section="games"
+      className="min-w-0 bg-[#F2E6C8] text-[#2E281D]"
+    >
+      <header className="border-b border-[#7D6C49]/45 px-4 py-4 sm:px-6">
         <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#9B263D]">
-          {isEnglish ? "The games page" : "La page des jeux"}
+          {isEnglish ? "Inside the Gazette" : "Dans la Gazette"}
         </p>
         <div className="mt-1 flex items-end justify-between gap-3">
           <h2 className="font-serif text-3xl font-black tracking-[-0.04em]">
-            {isEnglish ? "Games" : "Jeux"}
+            {isEnglish ? "Games & readers" : "Jeux & lecteurs"}
           </h2>
           <span className="pb-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#6E624B]">
             N° {overview.issueNumber}
@@ -52,59 +55,65 @@ export function CyclogazetteGamesSidebar({
         </p>
       </header>
 
-      <div className="grid grid-cols-2 border-b border-[#7D6C49]/40 bg-[#E5D5AF] p-1">
-        <GameTabButton
-          active={activeGame === "sudoku"}
-          completed={sudokuCompleted}
-          onClick={() => setActiveGame("sudoku")}
-        >
-          Sudoku
-        </GameTabButton>
-        <GameTabButton
-          active={activeGame === "crossword"}
-          completed={crosswordCompleted}
-          onClick={() => setActiveGame("crossword")}
-        >
-          {isEnglish ? "Crossword" : "Mots croisés"}
-        </GameTabButton>
-      </div>
+      <div className="grid lg:grid-cols-[minmax(0,1.55fr)_minmax(290px,0.85fr)]">
+        <div className="min-w-0 lg:border-r lg:border-[#7D6C49]/45">
+          <div className="grid grid-cols-2 border-b border-[#7D6C49]/40 bg-[#E5D5AF] p-1">
+            <GameTabButton
+              active={activeGame === "sudoku"}
+              completed={sudokuCompleted}
+              onClick={() => setActiveGame("sudoku")}
+            >
+              Sudoku
+            </GameTabButton>
+            <GameTabButton
+              active={activeGame === "crossword"}
+              completed={crosswordCompleted}
+              onClick={() => setActiveGame("crossword")}
+            >
+              {isEnglish ? "Crossword" : "Mots croisés"}
+            </GameTabButton>
+          </div>
 
-      <div className="p-4">
-        <div className={activeGame === "sudoku" ? "block" : "hidden"}>
-          <SudokuGame
-            editionId={overview.editionId}
-            puzzle={overview.games.sudoku}
-            playable={overview.isPlayable}
-            initiallyCompleted={sudokuCompleted}
+          <div className="p-4 sm:p-6">
+            <div className={activeGame === "sudoku" ? "block" : "hidden"}>
+              <SudokuGame
+                editionId={overview.editionId}
+                puzzle={overview.games.sudoku}
+                playable={overview.isPlayable}
+                initiallyCompleted={sudokuCompleted}
+              />
+            </div>
+            <div className={activeGame === "crossword" ? "block" : "hidden"}>
+              <CrosswordGame
+                editionId={overview.editionId}
+                puzzle={overview.games.crossword}
+                playable={overview.isPlayable}
+                initiallyCompleted={crosswordCompleted}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="min-w-0 border-t border-[#7D6C49]/45 lg:border-t-0">
+          {overview.poll ? (
+            <DailyPoll
+              poll={overview.poll}
+              playable={overview.isPlayable}
+              isEnglish={isEnglish}
+            />
+          ) : null}
+          <DailyCompleters
+            completers={overview.completers}
+            total={overview.totalCompleters}
+            isEnglish={isEnglish}
+          />
+          <YesterdaySolutions
+            solutions={overview.previousSolutions}
+            isEnglish={isEnglish}
           />
         </div>
-        <div className={activeGame === "crossword" ? "block" : "hidden"}>
-          <CrosswordGame
-            editionId={overview.editionId}
-            puzzle={overview.games.crossword}
-            playable={overview.isPlayable}
-            initiallyCompleted={crosswordCompleted}
-          />
-        </div>
       </div>
-
-      <YesterdaySolutions
-        solutions={overview.previousSolutions}
-        isEnglish={isEnglish}
-      />
-      <DailyCompleters
-        completers={overview.completers}
-        total={overview.totalCompleters}
-        isEnglish={isEnglish}
-      />
-      {overview.poll ? (
-        <DailyPoll
-          poll={overview.poll}
-          playable={overview.isPlayable}
-          isEnglish={isEnglish}
-        />
-      ) : null}
-    </aside>
+    </div>
   );
 }
 

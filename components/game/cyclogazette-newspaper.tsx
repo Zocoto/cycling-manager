@@ -204,10 +204,12 @@ export function CyclogazetteNewspaper({
   edition,
   community,
   interviewReactions,
+  gamesSection,
 }: {
   edition: CyclogazetteEdition;
   community?: CyclogazetteCommunity;
   interviewReactions?: CyclogazetteInterviewReactionStates;
+  gamesSection?: ReactNode;
 }) {
   const { locale } = useLocale();
   const isEnglish = locale === "en";
@@ -633,6 +635,14 @@ export function CyclogazetteNewspaper({
           </p>
         ) : null}
       </aside>
+      {gamesSection ? (
+        <section
+          aria-label={isEnglish ? "Games and daily poll" : "Jeux et sondage du jour"}
+          className="mx-5 mt-7 border-y-4 border-double border-[var(--gazette-ink)] sm:mx-8"
+        >
+          {gamesSection}
+        </section>
+      ) : null}
       {community ? (
         <CyclogazetteCommunityPanel
           editionId={edition.id}
