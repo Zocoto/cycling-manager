@@ -254,6 +254,7 @@ export type DevelopmentRace = {
   selectionMaximum: number;
   status: EditionRow["status"];
   simulatedAt: string | null;
+  publishedStageCount: number;
   stages: DevelopmentRaceStage[];
   registration: null | {
     id: string;
@@ -465,50 +466,38 @@ export async function getDevelopmentTeamOverview(
     }
   }
 
-  if (
-    view === "resultats" &&
-    visibleEditions.some((edition) => edition.status === "completed")
-  ) {
+  if (view === "resultats" && visibleEditions.length) {
+    const visibleEditionIds = visibleEditions.map((edition) => edition.id);
     const completedEditionIds = visibleEditions
       .filter((edition) => edition.status === "completed")
       .map((edition) => edition.id);
-    const generalResult = await admin
-      .from("development_race_results")
-      .select("*")
-      .in("race_edition_id", completedEditionIds)
-      .eq("result_scope", "general")
-      .order("rank")
-      .returns<ResultRow[]>();
-    assertQuery(generalResult.error, "les classements juniors");
-    resultRows = generalResult.data ?? [];
-
-    const progressionResult = await admin
-      .from("development_race_podium_progression")
-      .select(
-        "race_edition_id, academy_rider_id, final_rank, profile_type, primary_rating_key, projected_rating_changes",
-      )
-      .in("race_edition_id", completedEditionIds)
-      .returns<PodiumProgressionRow[]>();
+    const [raceResults, progressionResult] = await Promise.all([
+      admin
+        .from("development_race_results")
+        .select("*")
+        .in("race_edition_id", visibleEditionIds)
+        .order("rank")
+        .returns<ResultRow[]>(),
+      completedEditionIds.length
+        ? admin
+            .from("development_race_podium_progression")
+            .select(
+              "race_edition_id, academy_rider_id, final_rank, profile_type, primary_rating_key, projected_rating_changes",
+            )
+            .in("race_edition_id", completedEditionIds)
+            .returns<PodiumProgressionRow[]>()
+        : Promise.resolve({
+            data: [] as PodiumProgressionRow[],
+            error: null,
+          }),
+    ]);
+    assertQuery(raceResults.error, "les classements juniors");
     assertQuery(
       progressionResult.error,
       "les progressions acquises sur les podiums juniors",
     );
+    resultRows = raceResults.data ?? [];
     progressionRows = progressionResult.data ?? [];
-
-    const stageRaceIds = visibleEditions
-      .filter((edition) => edition.race_format === "stage_race" && edition.status === "completed")
-      .map((edition) => edition.id);
-    if (stageRaceIds.length) {
-      const stageResult = await admin
-        .from("development_race_results")
-        .select("*")
-        .in("race_edition_id", stageRaceIds)
-        .eq("result_scope", "stage")
-        .order("rank")
-        .returns<ResultRow[]>();
-      assertQuery(stageResult.error, "les résultats d’étapes juniors");
-      resultRows = [...resultRows, ...(stageResult.data ?? [])];
-    }
   }
 
   const raceNumberByRiderId = new Map(
@@ -544,6 +533,13 @@ export async function getDevelopmentTeamOverview(
     stagesResult.data ?? [],
     (stage) => stage.race_edition_id,
   );
+  const publishedStageIds = new Set(
+    resultRows.flatMap((result) =>
+      result.result_scope === "stage" && result.stage_id
+        ? [result.stage_id]
+        : [],
+    ),
+  );
 
   const races = visibleEditions.map((edition): DevelopmentRace => {
     const registration = registrationByEditionId.get(edition.id);
@@ -567,6 +563,9 @@ export async function getDevelopmentTeamOverview(
       selectionMaximum: edition.selection_maximum,
       status: edition.status,
       simulatedAt: edition.simulated_at,
+      publishedStageCount: (stagesByEditionId.get(edition.id) ?? []).filter(
+        (stage) => publishedStageIds.has(stage.id),
+      ).length,
       stages: (stagesByEditionId.get(edition.id) ?? []).map(toDevelopmentStage),
       registration: registration
         ? {

@@ -95,7 +95,7 @@ function DevelopmentTeamOpening({ overview }: { overview: DevelopmentTeamOvervie
             <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-[#D6E3DE] sm:text-base">
               Sélectionnez la génération qui courra sous vos couleurs, dessinez son
               maillot puis engagez-la sur {overview.races.length} rendez-vous juniors sans écran live :
-              chaque course livre directement son classement brut.
+              chaque classique livre son classement à l’arrivée et chaque tour publie ses étapes jour après jour.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -277,8 +277,8 @@ function DevelopmentCalendar({ overview }: { overview: DevelopmentTeamOverview }
     <section>
       <SectionTitle
         eyebrow="Calendrier U19"
-        title="Dix rendez-vous, aucune course en direct"
-        detail="Les classements apparaissent automatiquement le jour de l’arrivée. Une sélection peut être remplacée jusqu’à la veille du départ."
+        title="Dix rendez-vous, des résultats au fil des jours"
+        detail="Chaque étape d’un tour est publiée le jour où elle se dispute. Une sélection peut être remplacée jusqu’à la veille du départ."
       />
       <div className="mt-4 space-y-3">
         {overview.races.map((race) => (
@@ -337,7 +337,11 @@ function RaceRegistrationCard({
             </div>
           ) : null}
         </div>
-        <RaceStatus race={race} registeredCount={registeredRiders.length} />
+        <RaceStatus
+          race={race}
+          registeredCount={registeredRiders.length}
+          currentDayNumber={overview.currentDayNumber}
+        />
       </div>
 
       {race.canRegister ? (
@@ -397,25 +401,30 @@ function RaceRegistrationCard({
 }
 
 function DevelopmentResults({ overview }: { overview: DevelopmentTeamOverview }) {
-  const completedRaces = overview.races.filter((race) => race.status === "completed");
-  if (!completedRaces.length) {
-    return <EmptyState title="Les premiers résultats arriveront à J8" detail="Aucune course n’est simulée en direct : le classement brut complet est publié dès l’arrivée." />;
+  const raceIdsWithResults = new Set(
+    overview.results.map((result) => result.raceEditionId),
+  );
+  const publishedRaces = overview.races.filter((race) =>
+    raceIdsWithResults.has(race.id),
+  );
+  if (!publishedRaces.length) {
+    return <EmptyState title="Les premiers résultats arriveront à J8" detail="Les classiques sont publiées à l’arrivée et les étapes des tours apparaissent chaque jour de course." />;
   }
   return (
     <section>
       <SectionTitle
         eyebrow="Résultats bruts"
         title="La vérité de la ligne"
-        detail="Chaque classement comprend l’opposition internationale simulée. Vos juniors sont surlignés."
+        detail="Les étapes sont dévoilées au fil du tour. Le classement général final, les primes et les progressions sont validés à l’arrivée."
       />
       <div className="mt-4 space-y-4">
-        {completedRaces.map((race, index) => (
+        {publishedRaces.map((race, index) => (
           <RaceResultsBlock
             key={race.id}
             race={race}
             results={overview.results}
             developmentTeamId={overview.team!.id}
-            defaultOpen={index === completedRaces.length - 1}
+            defaultOpen={index === publishedRaces.length - 1}
           />
         ))}
       </div>
@@ -437,7 +446,31 @@ function RaceResultsBlock({
   const general = results
     .filter((result) => result.raceEditionId === race.id && result.scope === "general")
     .sort((left, right) => left.rank - right.rank);
-  const bestOwn = general.find((result) => result.developmentTeamId === developmentTeamId);
+  const publishedStages = race.stages.filter((stage) =>
+    results.some(
+      (result) => result.stageId === stage.id && result.scope === "stage",
+    ),
+  );
+  const latestPublishedStage = publishedStages.at(-1) ?? null;
+  const latestStageResults = latestPublishedStage
+    ? results
+        .filter(
+          (result) =>
+            result.stageId === latestPublishedStage.id &&
+            result.scope === "stage",
+        )
+        .sort((left, right) => left.rank - right.rank)
+    : [];
+  const bestOwn =
+    general.find((result) => result.developmentTeamId === developmentTeamId) ??
+    latestStageResults.find(
+      (result) => result.developmentTeamId === developmentTeamId,
+    );
+  const bestOwnLabel = general.length
+    ? "Meilleur au général"
+    : latestPublishedStage
+      ? `Dernière étape · n°${latestPublishedStage.number}`
+      : "Meilleur résultat";
   return (
     <details open={defaultOpen} className="overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-white shadow-sm">
       <summary className="cursor-pointer list-none p-5">
@@ -447,19 +480,23 @@ function RaceResultsBlock({
               <Badge tone={race.isWorldChampionship ? "world" : race.raceFormat === "stage_race" ? "tour" : "profile"}>
                 {race.isWorldChampionship ? "Mondial" : race.raceFormat === "stage_race" ? "Mini-tour" : PROFILE_LABELS[race.profileType]}
               </Badge>
-              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#789087]">J{race.endDayNumber}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#789087]">
+                {race.status === "completed"
+                  ? `J${race.endDayNumber}`
+                  : `${publishedStages.length}/${race.stages.length} étapes`}
+              </span>
             </div>
             <h3 className="mt-2 text-xl font-black text-[#183F37]">{race.name}</h3>
           </div>
           <div className="text-right">
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#789087]">Meilleur résultat</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#789087]">{bestOwnLabel}</p>
             <p className="mt-1 text-lg font-black text-[#176951]">{bestOwn ? `${bestOwn.rank}${bestOwn.rank === 1 ? "er" : "e"}` : "Non engagé"}</p>
           </div>
         </div>
       </summary>
       <div className="border-t border-[#315B3E]/10 p-4 sm:p-5">
         {race.raceFormat === "stage_race"
-          ? race.stages.map((stage) => {
+          ? publishedStages.map((stage) => {
               const stageResults = results
                 .filter((result) => result.stageId === stage.id && result.scope === "stage")
                 .sort((left, right) => left.rank - right.rank);
@@ -473,11 +510,17 @@ function RaceResultsBlock({
               );
             })
           : null}
-        <ResultTable
-          title={race.raceFormat === "stage_race" ? "Classement général final" : "Classement final"}
-          results={general}
-          developmentTeamId={developmentTeamId}
-        />
+        {general.length ? (
+          <ResultTable
+            title={race.raceFormat === "stage_race" ? "Classement général final" : "Classement final"}
+            results={general}
+            developmentTeamId={developmentTeamId}
+          />
+        ) : race.raceFormat === "stage_race" ? (
+          <p className="rounded-xl border border-[#315B3E]/10 bg-[#F8FBF9] px-4 py-3 text-xs font-bold text-[#60756E]">
+            Le classement général final sera publié après la dernière étape.
+          </p>
+        ) : null}
       </div>
     </details>
   );
@@ -563,8 +606,18 @@ function CalendarPreview({ races }: { races: DevelopmentRace[] }) {
   );
 }
 
-function RaceStatus({ race, registeredCount }: { race: DevelopmentRace; registeredCount: number }) {
+function RaceStatus({
+  race,
+  registeredCount,
+  currentDayNumber,
+}: {
+  race: DevelopmentRace;
+  registeredCount: number;
+  currentDayNumber: number;
+}) {
   if (race.status === "completed") return <span className="rounded-full bg-[#E5F4ED] px-3 py-2 text-[10px] font-black uppercase text-[#176951]">Résultats publiés</span>;
+  if (race.raceFormat === "stage_race" && currentDayNumber >= race.startDayNumber && currentDayNumber < race.endDayNumber) return <span className="rounded-full bg-[#E4ECFF] px-3 py-2 text-[10px] font-black uppercase text-[#234B9A]">Tour en cours</span>;
+  if (currentDayNumber >= race.endDayNumber) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#60756E]">Résultats en cours</span>;
   if (race.registration) return <span className="rounded-full bg-[#FFF3BC] px-3 py-2 text-[10px] font-black uppercase text-[#7A5B00]">{registeredCount} engagés</span>;
   if (!race.canRegister) return <span className="rounded-full bg-[#EEF1EF] px-3 py-2 text-[10px] font-black uppercase text-[#789087]">Inscriptions closes</span>;
   return <span className="rounded-full bg-[#176951] px-3 py-2 text-[10px] font-black uppercase text-white">À composer</span>;
