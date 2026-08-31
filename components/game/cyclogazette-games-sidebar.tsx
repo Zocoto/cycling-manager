@@ -9,10 +9,10 @@ import {
 } from "react";
 
 import {
-  initialCyclogazetteGameActionState,
-  initialCyclogazettePollActionState,
   validateCyclogazetteGameAction,
   voteCyclogazettePollAction,
+  type CyclogazetteGameActionState,
+  type CyclogazettePollActionState,
 } from "@/app/jeu/gazette/actions";
 import { useLocale } from "@/components/i18n/locale-provider";
 import type {
@@ -29,6 +29,15 @@ type GameTab = "sudoku" | "crossword";
 
 const GAME_DRAFT_EVENT = "cyclogazette-game-draft";
 const inMemoryGameDrafts = new Map<string, string>();
+const initialCyclogazetteGameActionState: CyclogazetteGameActionState = {
+  result: "idle",
+  rewardCash: 0,
+  trophyUnlocked: false,
+};
+const initialCyclogazettePollActionState: CyclogazettePollActionState = {
+  result: "idle",
+  optionId: null,
+};
 
 export function CyclogazetteGamesSidebar({
   overview,
@@ -53,6 +62,16 @@ export function CyclogazetteGamesSidebar({
   const crosswordCompleted =
     overview.viewerCompletedGames.includes("crossword") ||
     crosswordState.result === "success";
+  const newCompletions: GameTab[] = [
+    ...(sudokuState.result === "success" &&
+    !overview.viewerCompletedGames.includes("sudoku")
+      ? (["sudoku"] as const)
+      : []),
+    ...(crosswordState.result === "success" &&
+    !overview.viewerCompletedGames.includes("crossword")
+      ? (["crossword"] as const)
+      : []),
+  ];
 
   return (
     <div
@@ -133,7 +152,7 @@ export function CyclogazetteGamesSidebar({
           ) : null}
           <DailyCompleters
             completers={overview.completers}
-            total={overview.totalCompleters}
+            newCompletions={newCompletions}
             isEnglish={isEnglish}
           />
           <YesterdaySolutions
@@ -547,19 +566,16 @@ function GameResultDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-[#17130D]/60 p-4 backdrop-blur-[2px]"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose();
-      }}
+      className="pointer-events-none fixed inset-0 z-[120] flex items-center justify-center bg-[#17130D]/45 p-4 backdrop-blur-[1px]"
       onKeyDown={(event) => {
         if (event.key === "Escape") onClose();
       }}
     >
       <div
         role="dialog"
-        aria-modal="true"
+        aria-modal="false"
         aria-labelledby="cyclogazette-game-result-title"
-        className="w-full max-w-sm border-2 border-[#2E281D] bg-[#FFF7E1] p-5 text-center shadow-[8px_8px_0_#2E281D]"
+        className="pointer-events-auto w-full max-w-sm border-2 border-[#2E281D] bg-[#FFF7E1] p-5 text-center shadow-[8px_8px_0_#2E281D]"
       >
         <div
           className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border-2 font-serif text-2xl font-black ${
@@ -674,47 +690,68 @@ function YesterdaySolutions({
 
 function DailyCompleters({
   completers,
-  total,
+  newCompletions,
   isEnglish,
 }: {
   completers: CyclogazetteGamesOverview["completers"];
-  total: number;
+  newCompletions: GameTab[];
   isEnglish: boolean;
 }) {
+  const games: Array<{
+    type: GameTab;
+    label: string;
+  }> = [
+    { type: "sudoku", label: "Sudoku" },
+    {
+      type: "crossword",
+      label: isEnglish ? "Crossword" : "Mots croisés",
+    },
+  ];
+
   return (
     <section className="border-t border-[#7D6C49]/40 bg-[#E8D9B8]/65 px-4 py-4">
       <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#9B263D]">
-        {isEnglish ? "Today’s finishers" : "Les joueurs du jour"}
+        {isEnglish ? "Today’s finishers" : "Les finishers du jour"}
       </p>
-      {completers.length > 0 ? (
-        <ul className="mt-2 space-y-1.5">
-          {completers.map((player) => (
-            <li
-              key={player.directorName}
-              className="flex items-center justify-between gap-2 border-b border-[#7D6C49]/25 pb-1 font-serif text-xs font-bold"
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        {games.map((game) => {
+          const players = completers
+            .filter((player) => player.completedGames.includes(game.type))
+            .map((player) => player.directorName);
+          if (newCompletions.includes(game.type)) players.unshift(isEnglish ? "You" : "Vous");
+
+          return (
+            <div
+              key={game.type}
+              className="min-w-0 border border-[#7D6C49]/35 bg-[#F7EDD4]/70 p-2.5"
             >
-              <span className="truncate">{player.directorName}</span>
-              <span className="shrink-0 text-[9px] font-black text-[#176951]">
-                {player.completedGames.includes("sudoku") ? "S" : ""}
-                {player.completedGames.includes("crossword") ? "M" : ""}
-              </span>
-            </li>
-          ))}
-          {total > completers.length ? (
-            <li className="pt-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#655A43]">
-              + {total - completers.length} {isEnglish ? "others" : "autres"}
-            </li>
-          ) : null}
-        </ul>
-      ) : (
-        <p className="mt-2 font-serif text-xs italic leading-5 text-[#655A43]">
-          {isEnglish
-            ? "The first perfect grid is still awaited."
-            : "La rédaction attend encore la première grille parfaite."}
-        </p>
-      )}
+              <h3 className="border-b border-[#7D6C49]/35 pb-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#2E281D]">
+                {game.label}
+              </h3>
+              {players.length > 0 ? (
+                <ul className="mt-2 space-y-1.5">
+                  {players.map((directorName, index) => (
+                    <li
+                      key={`${game.type}:${directorName}:${index}`}
+                      className="truncate border-b border-[#7D6C49]/20 pb-1 font-serif text-[11px] font-bold text-[#514833]"
+                    >
+                      {directorName}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 font-serif text-[10px] italic leading-4 text-[#655A43]">
+                  {isEnglish ? "No finisher yet." : "Aucun finisher pour l’instant."}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
       <p className="mt-3 text-[8px] font-bold uppercase tracking-[0.1em] text-[#7A6C50]">
-        S · Sudoku &nbsp; M · {isEnglish ? "Crossword" : "Mots croisés"}
+        {isEnglish
+          ? "Each game awards its own €1,000 prize."
+          : "Chaque jeu attribue séparément sa prime de 1 000 €."}
       </p>
     </section>
   );

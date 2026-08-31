@@ -13,10 +13,18 @@ const actions = readFileSync(
   join(process.cwd(), "app/jeu/gazette/actions.ts"),
   "utf8",
 );
+const gamesMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260831100000_add_cyclogazette_daily_games.sql",
+  ),
+  "utf8",
+);
 
 describe("interactions des jeux de La Cyclogazette", () => {
   it("affiche le résultat dans une modale sans rafraîchir la Gazette", () => {
-    expect(sidebar).toContain('aria-modal="true"');
+    expect(sidebar).toContain('aria-modal="false"');
+    expect(sidebar).toContain("pointer-events-none fixed inset-0");
     expect(sidebar).toContain('"Réussi !"');
     expect(sidebar).toContain('"Raté !"');
     expect(sidebar).toContain('"OK, reprendre la grille"');
@@ -38,6 +46,31 @@ describe("interactions des jeux de La Cyclogazette", () => {
     );
     expect(gameAction).not.toContain('revalidatePath("/jeu/gazette")');
     expect(pollAction).not.toContain('revalidatePath("/jeu/gazette")');
+  });
+
+  it("n'exporte que des fonctions asynchrones depuis le module serveur", () => {
+    expect(actions).not.toContain("export const initialCyclogazette");
+    expect(actions).toContain(
+      "export async function validateCyclogazetteGameAction",
+    );
+    expect(actions).toContain(
+      "export async function voteCyclogazettePollAction",
+    );
+  });
+
+  it("sépare les finishers et la prime de chaque jeu", () => {
+    expect(sidebar).toContain("Les finishers du jour");
+    expect(sidebar).toContain("newCompletions.includes(game.type)");
+    expect(sidebar).toContain("Chaque jeu attribue séparément sa prime de 1 000 €.");
+    expect(gamesMigration).toContain(
+      "unique (edition_id, sporting_director_id, game_type)",
+    );
+    expect(gamesMigration).toContain(
+      "v_game_reward numeric(14, 2) := 1000",
+    );
+    expect(gamesMigration).toContain(
+      "set cash_balance = cash_balance + v_game_reward",
+    );
   });
 
   it("répercute immédiatement le vote dans les résultats locaux", () => {

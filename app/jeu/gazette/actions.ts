@@ -17,20 +17,9 @@ export type CyclogazetteGameActionState = {
   trophyUnlocked: boolean;
 };
 
-export const initialCyclogazetteGameActionState: CyclogazetteGameActionState = {
-  result: "idle",
-  rewardCash: 0,
-  trophyUnlocked: false,
-};
-
 export type CyclogazettePollActionState = {
   result: "idle" | "success" | "failure";
   optionId: string | null;
-};
-
-export const initialCyclogazettePollActionState: CyclogazettePollActionState = {
-  result: "idle",
-  optionId: null,
 };
 
 export async function publishMediaCenterArticleAction(formData: FormData) {
