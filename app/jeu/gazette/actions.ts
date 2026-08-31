@@ -23,6 +23,16 @@ export const initialCyclogazetteGameActionState: CyclogazetteGameActionState = {
   trophyUnlocked: false,
 };
 
+export type CyclogazettePollActionState = {
+  result: "idle" | "success" | "failure";
+  optionId: string | null;
+};
+
+export const initialCyclogazettePollActionState: CyclogazettePollActionState = {
+  result: "idle",
+  optionId: null,
+};
+
 export async function publishMediaCenterArticleAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -137,6 +147,48 @@ export async function validateCyclogazetteGameAction(
     rewardCash: Math.max(0, Number(payload.rewardCash) || 0),
     trophyUnlocked: payload.trophyUnlocked === true,
   };
+}
+
+export async function voteCyclogazettePollAction(
+  _previousState: CyclogazettePollActionState,
+  formData: FormData,
+): Promise<CyclogazettePollActionState> {
+  const pollId = String(formData.get("pollId") ?? "").trim();
+  const optionId = String(formData.get("optionId") ?? "").trim();
+  if (!isUuid(pollId) || !/^option-[1-4]$/.test(optionId)) {
+    return { result: "failure", optionId: null };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await getAuthenticatedUser(supabase);
+  if (authenticationError || !user) {
+    return { result: "failure", optionId: null };
+  }
+
+  const voteResult = await supabase.rpc("vote_cyclogazette_poll", {
+    p_poll_id: pollId,
+    p_option_id: optionId,
+  });
+  if (voteResult.error) {
+    console.error(
+      "Impossible d’enregistrer le vote de La Cyclogazette :",
+      voteResult.error,
+    );
+    return { result: "failure", optionId: null };
+  }
+
+  const payload =
+    voteResult.data && typeof voteResult.data === "object"
+      ? (voteResult.data as { optionId?: unknown })
+      : {};
+  const recordedOptionId =
+    typeof payload.optionId === "string" ? payload.optionId : optionId;
+  revalidatePath("/jeu/gazette");
+
+  return { result: "success", optionId: recordedOptionId };
 }
 
 function failureState(): CyclogazetteGameActionState {

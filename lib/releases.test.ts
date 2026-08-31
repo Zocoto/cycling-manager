@@ -3,14 +3,26 @@ import { describe, expect, it } from "vitest";
 import { latestRelease, releases } from "./releases";
 
 describe("notes de version", () => {
-  it("met la version 0.9.0 en tête des nouveautés", () => {
-    expect(latestRelease.version).toBe("0.9.0");
-    expect(latestRelease.anchor).toBe("gazette-games");
-    expect(latestRelease.title).toContain("page des jeux");
+  it("met la version 0.9.1 en tête des nouveautés", () => {
+    expect(latestRelease.version).toBe("0.9.1");
+    expect(latestRelease.anchor).toBe("gazette-polls");
+    expect(latestRelease.title).toContain("donne la parole");
+  });
+
+  it("présente le sondage quotidien et son architecture légère", () => {
+    const details = latestRelease.features.join("\n");
+    expect(details).toContain("question fermée");
+    expect(details).toContain("vote unique");
+    expect(details).toContain("même requête compacte");
+    expect(details).toContain("30 août");
   });
 
   it("présente les jeux, leurs gains, objectifs et trophée", () => {
-    const details = latestRelease.features.join("\n");
+    const gamesRelease = releases.find(
+      (release) => release.anchor === "gazette-games",
+    );
+    expect(gamesRelease).toBeDefined();
+    const details = gamesRelease?.features.join("\n") ?? "";
     expect(details).toContain("Sudoku");
     expect(details).toContain("mots croisés");
     expect(details).toContain("1 000 €");

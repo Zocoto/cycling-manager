@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 import {
   initialCyclogazetteGameActionState,
+  initialCyclogazettePollActionState,
   validateCyclogazetteGameAction,
+  voteCyclogazettePollAction,
 } from "@/app/jeu/gazette/actions";
 import { useLocale } from "@/components/i18n/locale-provider";
 import type {
@@ -95,6 +97,13 @@ export function CyclogazetteGamesSidebar({
         total={overview.totalCompleters}
         isEnglish={isEnglish}
       />
+      {overview.poll ? (
+        <DailyPoll
+          poll={overview.poll}
+          playable={overview.isPlayable}
+          isEnglish={isEnglish}
+        />
+      ) : null}
     </aside>
   );
 }
@@ -478,6 +487,110 @@ function DailyCompleters({
       <p className="mt-3 text-[8px] font-bold uppercase tracking-[0.1em] text-[#7A6C50]">
         S · Sudoku &nbsp; M · {isEnglish ? "Crossword" : "Mots croisés"}
       </p>
+    </section>
+  );
+}
+
+function DailyPoll({
+  poll,
+  playable,
+  isEnglish,
+}: {
+  poll: NonNullable<CyclogazetteGamesOverview["poll"]>;
+  playable: boolean;
+  isEnglish: boolean;
+}) {
+  const [state, formAction, pending] = useActionState(
+    voteCyclogazettePollAction,
+    initialCyclogazettePollActionState,
+  );
+  const viewerOptionId =
+    poll.viewerOptionId ??
+    (state.result === "success" ? state.optionId : null);
+  const showResults = Boolean(viewerOptionId) || !playable;
+  useRefreshAfterSuccess(state.result);
+
+  return (
+    <section className="border-t-4 border-double border-[#2E281D] bg-[#F7EDD4] px-4 py-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#9B263D]">
+          {isEnglish ? "Daily poll" : "Le sondage du jour"}
+        </p>
+        <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.12em] text-[#655A43]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#9B263D]" />
+          {isEnglish ? "Live" : "En direct"}
+        </span>
+      </div>
+      <h3 className="mt-3 font-serif text-lg font-black leading-6 text-[#2E281D]">
+        {poll.question}
+      </h3>
+
+      {showResults ? (
+        <div className="mt-4 space-y-3">
+          {poll.options.map((option) => {
+            const percentage =
+              poll.totalVotes > 0
+                ? Math.round((option.votes / poll.totalVotes) * 100)
+                : 0;
+            const selected = option.id === viewerOptionId;
+            return (
+              <div key={option.id}>
+                <div className="flex items-end justify-between gap-3 text-[10px] font-bold">
+                  <span className={selected ? "text-[#9B263D]" : "text-[#514833]"}>
+                    {option.label}
+                    {selected
+                      ? isEnglish
+                        ? " · Your choice"
+                        : " · Votre choix"
+                      : ""}
+                  </span>
+                  <strong className="tabular-nums text-[#2E281D]">
+                    {percentage} %
+                  </strong>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden border border-[#7D6C49]/35 bg-[#E2D4B4]">
+                  <span
+                    className={`block h-full transition-[width] duration-500 ${
+                      selected ? "bg-[#9B263D]" : "bg-[#2E725D]"
+                    }`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <p className="pt-1 text-[8px] font-black uppercase tracking-[0.12em] text-[#75694F]">
+            {poll.totalVotes} {isEnglish ? "vote(s) recorded" : "vote(s) enregistré(s)"}
+          </p>
+        </div>
+      ) : (
+        <form action={formAction} className="mt-4 space-y-2">
+          <input type="hidden" name="pollId" value={poll.id} />
+          {poll.options.map((option) => (
+            <button
+              key={option.id}
+              type="submit"
+              name="optionId"
+              value={option.id}
+              disabled={pending}
+              className="block min-h-10 w-full border border-[#7D6C49]/45 bg-[#FFF9E9] px-3 py-2 text-left font-serif text-xs font-bold text-[#403829] transition hover:border-[#9B263D] hover:bg-[#F4DFD9] hover:text-[#7B1D31] disabled:cursor-wait disabled:opacity-55"
+            >
+              {option.label}
+            </button>
+          ))}
+          {state.result === "failure" ? (
+            <p aria-live="polite" className="pt-1 text-center text-[10px] font-black text-[#9B263D]">
+              {isEnglish ? "Vote failed." : "Le vote n’a pas pu être enregistré."}
+            </p>
+          ) : null}
+        </form>
+      )}
+
+      {!playable && !viewerOptionId ? (
+        <p className="mt-3 font-serif text-[10px] italic text-[#655A43]">
+          {isEnglish ? "This poll is closed." : "Ce sondage est désormais clos."}
+        </p>
+      ) : null}
     </section>
   );
 }

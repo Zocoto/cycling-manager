@@ -12,6 +12,20 @@ export type ReleaseNote = {
 export const releases = [
   {
     version: APP_VERSION,
+    anchor: "gazette-polls",
+    date: "31 août 2026",
+    title: "La Cyclogazette donne la parole au peloton",
+    description:
+      "Un sondage communautaire quotidien rejoint la page des jeux pour faire vivre les débats entre Directeurs Sportifs.",
+    features: [
+      "Une question fermée différente accompagne chaque édition autour des équipes, des coureurs, du recrutement ou des prochaines courses.",
+      "Chaque Directeur Sportif dispose d’un vote unique et découvre immédiatement les résultats en pourcentage.",
+      "Le sondage est créé une seule fois à la publication, puis chargé avec les jeux dans la même requête compacte, sans actualisation automatique ni abonnement temps réel.",
+      "L’édition du 30 août a été équipée rétroactivement afin de permettre de tester dès maintenant les jeux et le premier sondage.",
+    ],
+  },
+  {
+    version: "0.9.0",
     anchor: "gazette-games",
     date: "31 août 2026",
     title: "La Cyclogazette ouvre sa page des jeux",
