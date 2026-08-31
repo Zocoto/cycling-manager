@@ -117,7 +117,11 @@ export function RaceRewardDetails({
           />
           {preview.stage.length > 0 ? (
             <RewardTable
-              title="Chaque étape"
+              title={
+                preview.hasTeamTimeTrial
+                  ? "Chaque étape · rang équipe en TTT"
+                  : "Chaque étape"
+              }
               ranges={preview.stage}
               isDark={isDark}
             />
@@ -155,6 +159,12 @@ export function RaceRewardDetails({
           Les primes d’étape et de parcours s’ajoutent au classement final.
           Les sommes sont versées à l’équipe ; l’expérience et les points au
           coureur.
+          {preview.hasTeamTimeTrial ? (
+            <>
+              {" "}Exception en CLM par équipes : la place et tous les gains du
+              barème sont attribués une seule fois à l’équipe.
+            </>
+          ) : null}
         </p>
       </div>
     </details>
@@ -251,6 +261,7 @@ function buildRewardPreview(edition: RewardEdition) {
       stage: [] as RewardRange[],
       secondary: null,
       prime: null,
+      hasTeamTimeTrial: false,
     };
   }
 
@@ -259,6 +270,9 @@ function buildRewardPreview(edition: RewardEdition) {
     tier: edition.categoryCode,
     scope,
   } as const;
+  const hasTeamTimeTrial = edition.stages.some(
+    (stage) => stage.stageType === "team_time_trial",
+  );
 
   return {
     generalTitle:
@@ -291,6 +305,7 @@ function buildRewardPreview(edition: RewardEdition) {
       finalRank: null,
       mountainPrimesWon: 1,
     }),
+    hasTeamTimeTrial,
   };
 }
 

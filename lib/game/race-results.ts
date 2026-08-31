@@ -34,11 +34,60 @@ export type OfficialTeamResult = {
   totalTimeMs: number;
 };
 
+export type OfficialTeamTimeTrialStageResult = OfficialTeamResult & {
+  riderIds: string[];
+};
+
 export type OfficialSecondaryClassification = {
   type: "mountain" | "sprint" | "youth" | "team";
   riders: OfficialRiderResult[];
   teams: OfficialTeamResult[];
 };
+
+/**
+ * Classe un CLM par équipes à partir du temps collectif enregistré pour ses
+ * coureurs. Les coureurs lâchés peuvent terminer plus tard : le meilleur temps
+ * de l'équipe correspond au groupe encore réuni à l'arrivée dans le moteur TTT.
+ */
+export function buildTeamTimeTrialStageClassification(
+  results: readonly OfficialRiderResult[],
+): OfficialTeamTimeTrialStageResult[] {
+  const teamById = new Map<
+    string,
+    Omit<OfficialTeamTimeTrialStageResult, "rank">
+  >();
+
+  for (const result of results) {
+    if (result.status !== "finished" || result.elapsedTimeMs === null) continue;
+
+    const existing = teamById.get(result.teamId);
+    if (existing) {
+      existing.totalTimeMs = Math.min(
+        existing.totalTimeMs,
+        result.elapsedTimeMs,
+      );
+      existing.riderIds.push(result.riderId);
+      continue;
+    }
+
+    teamById.set(result.teamId, {
+      teamId: result.teamId,
+      teamProfileId: result.teamProfileId,
+      teamName: result.teamName,
+      totalTimeMs: result.elapsedTimeMs,
+      riderIds: [result.riderId],
+    });
+  }
+
+  return [...teamById.values()]
+    .sort(
+      (first, second) =>
+        first.totalTimeMs - second.totalTimeMs ||
+        first.teamName.localeCompare(second.teamName, "fr") ||
+        first.teamId.localeCompare(second.teamId),
+    )
+    .map((team, index) => ({ ...team, rank: index + 1 }));
+}
 
 export type OfficialStageClassification = {
   stageId: string;

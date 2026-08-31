@@ -56,4 +56,24 @@ describe("RaceRewardDetails", () => {
     expect(markup).not.toContain("pts UCI");
     expect(markup).not.toContain("Chaque étape");
   });
+
+  it("précise le règlement collectif lorsqu'un tour contient un TTT", () => {
+    const markup = renderToStaticMarkup(
+      <RaceRewardDetails
+        edition={buildEdition({
+          stages: [
+            {
+              id: "stage-ttt",
+              stageType: "team_time_trial",
+            } as RaceCalendarEdition["stages"][number],
+          ],
+        })}
+      />
+    );
+
+    expect(markup).toContain("rang équipe en TTT");
+    expect(markup).toContain(
+      "la place et tous les gains du barème sont attribués une seule fois à l’équipe"
+    );
+  });
 });

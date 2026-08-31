@@ -20,6 +20,7 @@ import { getStageLiveState } from "@/lib/game/race-live";
 import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
+  buildTeamTimeTrialStageClassification,
   filterInactiveTeamsFromOfficialClassification,
   normalizeOfficialResultGapsToLeader,
   shouldSettleRaceEdition,
@@ -1743,6 +1744,18 @@ async function persistStageRewards({
   let detectionRewardsApplied = false;
 
   for (const { stage, results } of stageClassifications) {
+    if (stage.stageType === "team_time_trial") {
+      await persistTeamTimeTrialStageRewards({
+        admin,
+        edition,
+        stage,
+        finalStage,
+        results,
+        rosterByRiderId,
+      });
+      continue;
+    }
+
     for (const result of results) {
       if (result.status !== "finished") continue;
 
@@ -1830,6 +1843,74 @@ async function persistStageRewards({
   }
 
   return detectionRewardsApplied;
+}
+
+async function persistTeamTimeTrialStageRewards({
+  admin,
+  edition,
+  stage,
+  finalStage,
+  results,
+  rosterByRiderId,
+}: {
+  admin: AdminClient;
+  edition: RaceCalendarEdition;
+  stage: RaceCalendarStage;
+  finalStage: RaceCalendarStage;
+  results: OfficialRiderResult[];
+  rosterByRiderId: Map<string, RosterContext>;
+}) {
+  const teamClassification = buildTeamTimeTrialStageClassification(results);
+
+  for (const team of teamClassification) {
+    const teamSeasonIds = new Set(
+      team.riderIds
+        .map((riderId) => requireRoster(rosterByRiderId, riderId).teamSeasonId)
+        .filter((teamSeasonId): teamSeasonId is string => teamSeasonId !== null),
+    );
+
+    // Les équipes de détection n'ont pas de saison d'équipe à créditer.
+    if (teamSeasonIds.size === 0) continue;
+    if (teamSeasonIds.size !== 1) {
+      throw new Error(
+        `Le classement TTT de ${stage.name} mélange plusieurs équipes de saison pour ${team.teamName}.`,
+      );
+    }
+
+    const teamSeasonId = [...teamSeasonIds][0];
+    const reward = calculateStageReward({
+      tier: edition.categoryCode,
+      finalRank: team.rank,
+    });
+    if (
+      reward.reputation === 0 &&
+      reward.experience === 0 &&
+      reward.cashPrize === 0 &&
+      reward.uciPoints === 0
+    ) {
+      continue;
+    }
+
+    const placement = team.rank === 1 ? "Victoire" : `${team.rank}e place`;
+    const description = `${edition.name} — Étape ${stage.stageNumber} : ${stage.name} — ${team.teamName} · ${placement} du CLM par équipes · règlement de fin de tour`;
+    const { error } = await admin.rpc(
+      "apply_team_time_trial_stage_reward",
+      {
+        p_source_reference: `official-ttt-stage:${edition.id}:stage:${stage.id}:team-season:${teamSeasonId}:v1`,
+        p_team_season_id: teamSeasonId,
+        p_stage_id: stage.id,
+        // Comme les autres primes d'étape, le versement est comptabilisé au
+        // jour de la dernière étape du tour.
+        p_finance_stage_id: finalStage.id,
+        p_reputation_points: reward.reputation,
+        p_experience_points: reward.experience,
+        p_cash_prize: reward.cashPrize,
+        p_uci_points: reward.uciPoints,
+        p_description: description,
+      },
+    );
+    assertQuery(error, `les gains collectifs de ${team.teamName} sur ${stage.name}`);
+  }
 }
 
 function toOfficialStageRiderResult({

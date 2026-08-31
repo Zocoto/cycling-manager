@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPersistedGeneralClassification,
   buildPersistedStageRaceStandings,
+  buildTeamTimeTrialStageClassification,
   filterInactiveTeamsFromOfficialClassification,
   isRaceEditionSettlementCandidate,
   normalizeOfficialResultGapsToLeader,
@@ -16,6 +17,10 @@ const coquinous = {
   teamName: "Les Coquinous",
   rank: 1,
   status: "finished" as const,
+  elapsedTimeMs: 3_600_000,
+  gapToWinnerMs: 0,
+  mountainPoints: 0,
+  sprintPoints: 0,
   abandonmentReason: null,
 };
 
@@ -26,8 +31,88 @@ const challengers = {
   teamName: "Les Challengers",
   rank: 2,
   status: "finished" as const,
+  elapsedTimeMs: 3_605_000,
+  gapToWinnerMs: 5_000,
+  mountainPoints: 0,
+  sprintPoints: 0,
   abandonmentReason: null,
 };
+
+describe("buildTeamTimeTrialStageClassification", () => {
+  it("attribue une seule place à chaque équipe selon son temps collectif", () => {
+    const classification = buildTeamTimeTrialStageClassification([
+      {
+        ...coquinous,
+        riderId: "coquinous-1",
+        rank: 1,
+        elapsedTimeMs: 3_600_000,
+      },
+      {
+        ...coquinous,
+        riderId: "coquinous-2",
+        rank: 2,
+        elapsedTimeMs: 3_600_000,
+      },
+      {
+        ...challengers,
+        riderId: "challengers-1",
+        rank: 3,
+        elapsedTimeMs: 3_605_000,
+      },
+      {
+        ...challengers,
+        riderId: "challengers-2",
+        rank: 4,
+        elapsedTimeMs: 3_605_000,
+      },
+    ]);
+
+    expect(classification).toEqual([
+      expect.objectContaining({
+        teamId: "team-coquinous",
+        rank: 1,
+        totalTimeMs: 3_600_000,
+        riderIds: ["coquinous-1", "coquinous-2"],
+      }),
+      expect.objectContaining({
+        teamId: "team-challenger",
+        rank: 2,
+        totalTimeMs: 3_605_000,
+        riderIds: ["challengers-1", "challengers-2"],
+      }),
+    ]);
+  });
+
+  it("ignore les abandons et conserve le temps du groupe devant un coureur lâché", () => {
+    const classification = buildTeamTimeTrialStageClassification([
+      {
+        ...coquinous,
+        riderId: "groupe",
+        elapsedTimeMs: 3_600_000,
+      },
+      {
+        ...coquinous,
+        riderId: "lache",
+        elapsedTimeMs: 3_640_000,
+      },
+      {
+        ...challengers,
+        riderId: "abandon",
+        rank: null,
+        status: "did_not_finish",
+        elapsedTimeMs: null,
+      },
+    ]);
+
+    expect(classification).toEqual([
+      expect.objectContaining({
+        teamId: "team-coquinous",
+        rank: 1,
+        totalTimeMs: 3_600_000,
+      }),
+    ]);
+  });
+});
 
 describe("race settlement selection", () => {
   const incompleteCompletedIds = new Set(["completed-incomplete"]);
