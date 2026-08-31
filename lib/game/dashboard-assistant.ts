@@ -31,6 +31,8 @@ export type DashboardAssistantSnapshot = {
   juniorRiderCount: number;
   juniorSessionCount: number;
   juniorProgressCount: number;
+  juniorManualTrainingDueCount: number;
+  juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
   auctionCount: number;
   dailyAuctionCount: number;
   directorAuctionCount: number;
@@ -70,6 +72,7 @@ export type DashboardRaceRosterAlert = {
 const ALERT_PRIORITY = [
   "race-roster-alerts",
   "untreated-injuries",
+  "junior-manual-training",
   "pending-selections",
   "pending-direct-offers",
   "rider-recruitment-matches",
@@ -124,6 +127,22 @@ export function buildDashboardAssistantLines({
       title: pluralize(snapshot.completedScoutingCount, "rapport de scouting prêt", "rapports de scouting prêts"),
       detail: "Les candidats peuvent être consultés.",
       href: "/jeu/centre-de-formation?onglet=scouting",
+    });
+  }
+
+  if (snapshot.juniorManualTrainingDueCount > 0) {
+    const isMorning = snapshot.juniorManualTrainingSlot === "manual_am";
+    alerts.push({
+      id: "junior-manual-training",
+      tone: "alert",
+      metric: String(snapshot.juniorManualTrainingDueCount),
+      title: pluralize(
+        snapshot.juniorManualTrainingDueCount,
+        "entraînement junior à réaliser",
+        "entraînements juniors à réaliser",
+      ),
+      detail: `La séance manuelle du ${isMorning ? "matin" : "soir"} est toujours en attente.`,
+      href: "/jeu/centre-de-formation?onglet=ecole",
     });
   }
 

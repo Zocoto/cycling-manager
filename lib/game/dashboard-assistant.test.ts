@@ -26,6 +26,8 @@ const snapshot: DashboardAssistantSnapshot = {
   juniorRiderCount: 6,
   juniorSessionCount: 6,
   juniorProgressCount: 2,
+  juniorManualTrainingDueCount: 2,
+  juniorManualTrainingSlot: "manual_am",
   auctionCount: 12,
   dailyAuctionCount: 10,
   directorAuctionCount: 2,
@@ -65,6 +67,7 @@ describe("dashboard DS assistant", () => {
     expect(groups.alerts.map((line) => line.id)).toEqual([
       "race-roster-alerts",
       "untreated-injuries",
+      "junior-manual-training",
       "pending-selections",
       "pending-direct-offers",
       "rider-recruitment-matches",
@@ -76,6 +79,16 @@ describe("dashboard DS assistant", () => {
       "youth-alerts",
     ]);
     expect(groups.alerts.every((line) => line.href)).toBe(true);
+    expect(
+      groups.alerts.find((line) => line.id === "junior-manual-training"),
+    ).toEqual(
+      expect.objectContaining({
+        metric: "2",
+        title: "entraînements juniors à réaliser",
+        detail: expect.stringContaining("matin"),
+        href: "/jeu/centre-de-formation?onglet=ecole",
+      }),
+    );
     expect(groups.alerts[0]).toEqual(
       expect.objectContaining({
         title: "start-list à corriger",
@@ -116,6 +129,7 @@ describe("dashboard DS assistant", () => {
         staffRecruitmentMatchCount: 0,
         contractRenewalCount: 0,
         youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
       },
       rewardCount: 0,
       cashBalance: 100_000,
@@ -123,6 +137,37 @@ describe("dashboard DS assistant", () => {
 
     expect(groups.alerts).toEqual([
       expect.objectContaining({ id: "all-clear", tone: "success", href: null }),
+    ]);
+  });
+
+  it("adapts the manual junior reminder to the evening slot", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 1,
+        juniorManualTrainingSlot: "manual_pm",
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "junior-manual-training",
+        title: "entraînement junior à réaliser",
+        detail: expect.stringContaining("soir"),
+        href: "/jeu/centre-de-formation?onglet=ecole",
+      }),
     ]);
   });
 

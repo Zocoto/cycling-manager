@@ -70,6 +70,9 @@ export async function getCurrentDashboardAssistantSummary(
     juniorRiderCount: row.junior_rider_count,
     juniorSessionCount: row.junior_session_count,
     juniorProgressCount: row.junior_progress_count,
+    juniorManualTrainingDueCount:
+      assistantPayload.juniorManualTrainingDueCount,
+    juniorManualTrainingSlot: assistantPayload.juniorManualTrainingSlot,
     auctionCount: row.auction_count,
     dailyAuctionCount: row.daily_auction_count,
     directorAuctionCount: row.director_auction_count,
@@ -90,12 +93,16 @@ export async function getCurrentDashboardAssistantSummary(
 function normalizeAssistantPayload(value: unknown): {
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
+  juniorManualTrainingDueCount: number;
+  juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
   journalItems: DashboardJournalItem[];
 } {
   if (Array.isArray(value)) {
     return {
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
+      juniorManualTrainingDueCount: 0,
+      juniorManualTrainingSlot: null,
       journalItems: normalizeJournalItems(value),
     };
   }
@@ -104,6 +111,8 @@ function normalizeAssistantPayload(value: unknown): {
     return {
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
+      juniorManualTrainingDueCount: 0,
+      juniorManualTrainingSlot: null,
       journalItems: [],
     };
   }
@@ -116,6 +125,14 @@ function normalizeAssistantPayload(value: unknown): {
     staffRecruitmentMatchCount: normalizeCount(
       payload.staffRecruitmentMatchCount,
     ),
+    juniorManualTrainingDueCount: normalizeCount(
+      payload.juniorManualTrainingDueCount,
+    ),
+    juniorManualTrainingSlot:
+      payload.juniorManualTrainingSlot === "manual_am" ||
+      payload.juniorManualTrainingSlot === "manual_pm"
+        ? payload.juniorManualTrainingSlot
+        : null,
     journalItems: normalizeJournalItems(payload.items),
   };
 }
