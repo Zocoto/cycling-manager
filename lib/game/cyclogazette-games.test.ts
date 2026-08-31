@@ -63,6 +63,28 @@ describe("Cyclogazette daily games", () => {
     expect(signatures.size).toBeGreaterThanOrEqual(50);
   });
 
+  it("accepte indifféremment les lettres accentuées ou non", () => {
+    const issueNumber = Array.from({ length: 84 }, (_, index) => index + 1).find(
+      (candidate) =>
+        getCyclogazetteGameSolutions(candidate)
+          .crosswordRows.join("")
+          .includes("E"),
+    );
+    expect(issueNumber).toBeDefined();
+
+    const answer = getCyclogazetteGameSolutions(issueNumber ?? 1)
+      .crosswordRows.join("")
+      .replace("E", "É");
+
+    expect(
+      isCyclogazetteGameAnswerCorrect({
+        issueNumber: issueNumber ?? 1,
+        gameType: "crossword",
+        answer,
+      }),
+    ).toBe(true);
+  });
+
   it("propose dès le numéro 45 une seule grille carrée, dense et connectée", () => {
     for (let issueNumber = 45; issueNumber <= 54; issueNumber += 1) {
       const crossword = getCyclogazetteDailyGames(issueNumber).crossword;

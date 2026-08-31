@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useActionState,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   initialCyclogazetteGameActionState,
@@ -15,7 +18,10 @@ import type {
   CyclogazetteGameDifficulty,
   CyclogazetteSudokuPuzzle,
 } from "@/lib/game/cyclogazette-games";
-import type { CyclogazetteGamesOverview } from "@/services/cyclogazette-games";
+import {
+  applyCyclogazettePollVote,
+  type CyclogazetteGamesOverview,
+} from "@/services/cyclogazette-games";
 
 type GameTab = "sudoku" | "crossword";
 
@@ -27,9 +33,21 @@ export function CyclogazetteGamesSidebar({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   const [activeGame, setActiveGame] = useState<GameTab>("sudoku");
-  const sudokuCompleted = overview.viewerCompletedGames.includes("sudoku");
+  const [sudokuState, sudokuFormAction, sudokuPending] = useActionState(
+    validateCyclogazetteGameAction,
+    initialCyclogazetteGameActionState,
+  );
+  const [crosswordState, crosswordFormAction, crosswordPending] =
+    useActionState(
+      validateCyclogazetteGameAction,
+      initialCyclogazetteGameActionState,
+    );
+  const sudokuCompleted =
+    overview.viewerCompletedGames.includes("sudoku") ||
+    sudokuState.result === "success";
   const crosswordCompleted =
-    overview.viewerCompletedGames.includes("crossword");
+    overview.viewerCompletedGames.includes("crossword") ||
+    crosswordState.result === "success";
 
   return (
     <div
@@ -81,6 +99,9 @@ export function CyclogazetteGamesSidebar({
                 puzzle={overview.games.sudoku}
                 playable={overview.isPlayable}
                 initiallyCompleted={sudokuCompleted}
+                state={sudokuState}
+                formAction={sudokuFormAction}
+                pending={sudokuPending}
               />
             </div>
             <div className={activeGame === "crossword" ? "block" : "hidden"}>
@@ -89,6 +110,9 @@ export function CyclogazetteGamesSidebar({
                 puzzle={overview.games.crossword}
                 playable={overview.isPlayable}
                 initiallyCompleted={crosswordCompleted}
+                state={crosswordState}
+                formAction={crosswordFormAction}
+                pending={crosswordPending}
               />
             </div>
           </div>
@@ -149,21 +173,26 @@ function SudokuGame({
   puzzle,
   playable,
   initiallyCompleted,
+  state,
+  formAction,
+  pending,
 }: {
   editionId: string;
   puzzle: CyclogazetteSudokuPuzzle;
   playable: boolean;
   initiallyCompleted: boolean;
+  state: typeof initialCyclogazetteGameActionState;
+  formAction: (payload: FormData) => void;
+  pending: boolean;
 }) {
   const [values, setValues] = useState(() =>
     puzzle.cells.map((value) => (value ? String(value) : "")),
   );
-  const [state, formAction, pending] = useActionState(
-    validateCyclogazetteGameAction,
-    initialCyclogazetteGameActionState,
-  );
   const completed = initiallyCompleted || state.result === "success";
-  useRefreshAfterSuccess(state.result);
+  const [dismissedResult, setDismissedResult] = useState<typeof state | null>(
+    null,
+  );
+  const resultOpen = state.result !== "idle" && state !== dismissedResult;
 
   return (
     <GameForm
@@ -174,6 +203,10 @@ function SudokuGame({
       playable={playable}
       completed={completed}
       result={state.result}
+      rewardCash={state.rewardCash}
+      trophyUnlocked={state.trophyUnlocked}
+      resultOpen={resultOpen}
+      onResultClose={() => setDismissedResult(state)}
       pending={pending}
       formAction={formAction}
     >
@@ -219,11 +252,17 @@ function CrosswordGame({
   puzzle,
   playable,
   initiallyCompleted,
+  state,
+  formAction,
+  pending,
 }: {
   editionId: string;
   puzzle: CyclogazetteCrosswordPuzzle;
   playable: boolean;
   initiallyCompleted: boolean;
+  state: typeof initialCyclogazetteGameActionState;
+  formAction: (payload: FormData) => void;
+  pending: boolean;
 }) {
   const openCells = useMemo(
     () => new Map(puzzle.cells.map((cell) => [cell.index, cell])),
@@ -234,12 +273,11 @@ function CrosswordGame({
       openCells.has(index) ? "" : "#",
     ),
   );
-  const [state, formAction, pending] = useActionState(
-    validateCyclogazetteGameAction,
-    initialCyclogazetteGameActionState,
-  );
   const completed = initiallyCompleted || state.result === "success";
-  useRefreshAfterSuccess(state.result);
+  const [dismissedResult, setDismissedResult] = useState<typeof state | null>(
+    null,
+  );
+  const resultOpen = state.result !== "idle" && state !== dismissedResult;
 
   return (
     <GameForm
@@ -250,6 +288,10 @@ function CrosswordGame({
       playable={playable}
       completed={completed}
       result={state.result}
+      rewardCash={state.rewardCash}
+      trophyUnlocked={state.trophyUnlocked}
+      resultOpen={resultOpen}
+      onResultClose={() => setDismissedResult(state)}
       pending={pending}
       formAction={formAction}
     >
@@ -347,6 +389,10 @@ function GameForm({
   playable,
   completed,
   result,
+  rewardCash,
+  trophyUnlocked,
+  resultOpen,
+  onResultClose,
   pending,
   formAction,
   children,
@@ -358,6 +404,10 @@ function GameForm({
   playable: boolean;
   completed: boolean;
   result: "idle" | "success" | "failure";
+  rewardCash: number;
+  trophyUnlocked: boolean;
+  resultOpen: boolean;
+  onResultClose: () => void;
   pending: boolean;
   formAction: (payload: FormData) => void;
   children: React.ReactNode;
@@ -390,22 +440,12 @@ function GameForm({
               ? "Validate"
               : "Valider"}
         </button>
-        {completed || result === "failure" ? (
+        {completed ? (
           <p
             aria-live="polite"
-            className={`min-w-[74px] border px-2 py-2 text-center text-[10px] font-black uppercase tracking-[0.1em] ${
-              completed
-                ? "border-[#2E725D]/40 bg-[#DCEDE4] text-[#176951]"
-                : "border-[#9B263D]/40 bg-[#F4DDDA] text-[#9B263D]"
-            }`}
+            className="min-w-[74px] border border-[#2E725D]/40 bg-[#DCEDE4] px-2 py-2 text-center text-[10px] font-black uppercase tracking-[0.1em] text-[#176951]"
           >
-            {completed
-              ? isEnglish
-                ? "Success"
-                : "Succès"
-              : isEnglish
-                ? "Failure"
-                : "Échec"}
+            {isEnglish ? "Success" : "Succès"}
           </p>
         ) : null}
       </div>
@@ -416,7 +456,105 @@ function GameForm({
             : "Édition archivée : les validations sont closes."}
         </p>
       ) : null}
+      {resultOpen && result !== "idle" ? (
+        <GameResultDialog
+          result={result}
+          rewardCash={rewardCash}
+          trophyUnlocked={trophyUnlocked}
+          isEnglish={isEnglish}
+          onClose={onResultClose}
+        />
+      ) : null}
     </form>
+  );
+}
+
+function GameResultDialog({
+  result,
+  rewardCash,
+  trophyUnlocked,
+  isEnglish,
+  onClose,
+}: {
+  result: "success" | "failure";
+  rewardCash: number;
+  trophyUnlocked: boolean;
+  isEnglish: boolean;
+  onClose: () => void;
+}) {
+  const succeeded = result === "success";
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-[#17130D]/60 p-4 backdrop-blur-[2px]"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cyclogazette-game-result-title"
+        className="w-full max-w-sm border-2 border-[#2E281D] bg-[#FFF7E1] p-5 text-center shadow-[8px_8px_0_#2E281D]"
+      >
+        <div
+          className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border-2 font-serif text-2xl font-black ${
+            succeeded
+              ? "border-[#176951] bg-[#DCEDE4] text-[#176951]"
+              : "border-[#9B263D] bg-[#F4DDDA] text-[#9B263D]"
+          }`}
+        >
+          {succeeded ? "✓" : "×"}
+        </div>
+        <p className="mt-4 text-[9px] font-black uppercase tracking-[0.2em] text-[#9B263D]">
+          La Cyclogazette
+        </p>
+        <h3
+          id="cyclogazette-game-result-title"
+          className="mt-1 font-serif text-3xl font-black text-[#2E281D]"
+        >
+          {succeeded
+            ? isEnglish
+              ? "Success!"
+              : "Réussi !"
+            : isEnglish
+              ? "Not quite!"
+              : "Raté !"}
+        </h3>
+        <p className="mt-3 font-serif text-sm leading-6 text-[#655A43]">
+          {succeeded
+            ? rewardCash > 0
+              ? isEnglish
+                ? `Your answer is correct. You earn €${formatCash(rewardCash)}.`
+                : `Votre grille est correcte. Vous gagnez ${formatCash(rewardCash)} €.`
+              : isEnglish
+                ? "Your answer is correct. This game had already been rewarded."
+                : "Votre grille est correcte. Ce jeu avait déjà été récompensé."
+            : isEnglish
+              ? "Your grid is unchanged. Correct it and try again from where you stopped."
+              : "Votre grille est intacte. Corrigez-la et reprenez exactement là où vous en étiez."}
+        </p>
+        {trophyUnlocked ? (
+          <p className="mt-3 border border-[#D7A928]/50 bg-[#F8EBC2] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#7B5A08]">
+            {isEnglish ? "Hidden trophy unlocked" : "Trophée caché débloqué"}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          autoFocus
+          onClick={onClose}
+          className="mt-5 min-h-11 w-full border border-[#2E281D] bg-[#2E281D] px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#FFF6DE] transition hover:bg-[#9B263D]"
+        >
+          {succeeded
+            ? isEnglish
+              ? "Continue here"
+              : "Continuer ici"
+            : isEnglish
+              ? "Return to the grid"
+              : "Reprendre la grille"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -531,11 +669,15 @@ function DailyPoll({
     voteCyclogazettePollAction,
     initialCyclogazettePollActionState,
   );
-  const viewerOptionId =
-    poll.viewerOptionId ??
-    (state.result === "success" ? state.optionId : null);
+  const displayedPoll = useMemo(
+    () =>
+      state.result === "success" && state.optionId
+        ? applyCyclogazettePollVote(poll, state.optionId)
+        : poll,
+    [poll, state.optionId, state.result],
+  );
+  const viewerOptionId = displayedPoll.viewerOptionId;
   const showResults = Boolean(viewerOptionId) || !playable;
-  useRefreshAfterSuccess(state.result);
 
   return (
     <section className="border-t-4 border-double border-[#2E281D] bg-[#F7EDD4] px-4 py-5">
@@ -554,10 +696,10 @@ function DailyPoll({
 
       {showResults ? (
         <div className="mt-4 space-y-3">
-          {poll.options.map((option) => {
+          {displayedPoll.options.map((option) => {
             const percentage =
-              poll.totalVotes > 0
-                ? Math.round((option.votes / poll.totalVotes) * 100)
+              displayedPoll.totalVotes > 0
+                ? Math.round((option.votes / displayedPoll.totalVotes) * 100)
                 : 0;
             const selected = option.id === viewerOptionId;
             return (
@@ -587,8 +729,17 @@ function DailyPoll({
             );
           })}
           <p className="pt-1 text-[8px] font-black uppercase tracking-[0.12em] text-[#75694F]">
-            {poll.totalVotes} {isEnglish ? "vote(s) recorded" : "vote(s) enregistré(s)"}
+            {displayedPoll.totalVotes}{" "}
+            {isEnglish ? "vote(s) recorded" : "vote(s) enregistré(s)"}
           </p>
+          {state.result === "success" ? (
+            <p
+              aria-live="polite"
+              className="border border-[#2E725D]/35 bg-[#DCEDE4] px-3 py-2 text-center text-[9px] font-black uppercase tracking-[0.12em] text-[#176951]"
+            >
+              {isEnglish ? "Your vote has been recorded" : "Votre vote est enregistré"}
+            </p>
+          ) : null}
         </div>
       ) : (
         <form action={formAction} className="mt-4 space-y-2">
@@ -620,13 +771,6 @@ function DailyPoll({
       ) : null}
     </section>
   );
-}
-
-function useRefreshAfterSuccess(result: "idle" | "success" | "failure") {
-  const router = useRouter();
-  useEffect(() => {
-    if (result === "success") router.refresh();
-  }, [result, router]);
 }
 
 function formatCash(value: number) {

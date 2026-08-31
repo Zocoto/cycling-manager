@@ -30,6 +30,28 @@ export type CyclogazettePollOverview = {
   viewerOptionId: string | null;
 };
 
+export function applyCyclogazettePollVote(
+  poll: CyclogazettePollOverview,
+  optionId: string,
+): CyclogazettePollOverview {
+  if (
+    poll.viewerOptionId ||
+    !poll.options.some((option) => option.id === optionId)
+  ) {
+    return poll;
+  }
+
+  return {
+    ...poll,
+    options: poll.options.map((option) => ({
+      ...option,
+      votes: option.votes + (option.id === optionId ? 1 : 0),
+    })),
+    totalVotes: poll.totalVotes + 1,
+    viewerOptionId: optionId,
+  };
+}
+
 export type CyclogazetteGamesOverview = {
   editionId: string;
   issueNumber: number;

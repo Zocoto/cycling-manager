@@ -137,7 +137,6 @@ export async function validateCyclogazetteGameAction(
           trophyUnlocked?: unknown;
         })
       : {};
-  revalidatePath("/jeu/gazette");
   revalidatePath("/jeu/objectifs");
   revalidatePath("/jeu/finances");
   revalidatePath("/jeu/directeur-sportif");
@@ -186,7 +185,6 @@ export async function voteCyclogazettePollAction(
       : {};
   const recordedOptionId =
     typeof payload.optionId === "string" ? payload.optionId : optionId;
-  revalidatePath("/jeu/gazette");
 
   return { result: "success", optionId: recordedOptionId };
 }
