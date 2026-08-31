@@ -383,19 +383,20 @@ function GameHeaderSearch({
               : "Rechercher joueur / équipe / coureur"
           }
           autoComplete="off"
-          className="min-w-0 flex-1 bg-transparent px-2.5 py-1.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-[#D6DFD2]/65 sm:px-3 sm:py-2 xl:py-2.5"
+          className="min-w-0 flex-1 bg-transparent px-2.5 py-1.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-xs placeholder:text-[#D6DFD2]/65 sm:px-3 sm:py-2 sm:placeholder:text-sm xl:py-2.5"
         />
 
         <button
           type="submit"
           aria-label={isEnglish ? "Start search" : "Lancer la recherche"}
-          className="m-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-9 sm:w-9 2xl:w-auto 2xl:px-3"
+          title={isEnglish ? "Search" : "Rechercher"}
+          className="m-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-9 sm:w-9"
         >
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
             fill="none"
-            className="h-4 w-4 2xl:hidden"
+            className="h-4 w-4"
           >
             <circle
               cx="11"
@@ -411,7 +412,6 @@ function GameHeaderSearch({
               strokeWidth="2"
             />
           </svg>
-          <span className="hidden 2xl:inline">{isEnglish ? "Search" : "Rechercher"}</span>
         </button>
       </div>
     </form>
