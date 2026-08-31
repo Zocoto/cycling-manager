@@ -62,6 +62,7 @@ export async function getCurrentDashboardAssistantSummary(
     untreatedInjuryCount: row.untreated_injury_count,
     lowFormCount: row.low_form_count,
     completedScoutingCount: row.completed_scouting_count,
+    availableScoutCount: assistantPayload.availableScoutCount,
     zeroTrainingCount: row.zero_training_count,
     seniorSessionCount: row.senior_session_count,
     seniorCompletedCount: row.senior_completed_count,
@@ -93,6 +94,7 @@ export async function getCurrentDashboardAssistantSummary(
 function normalizeAssistantPayload(value: unknown): {
   riderRecruitmentMatchCount: number;
   staffRecruitmentMatchCount: number;
+  availableScoutCount: number;
   juniorManualTrainingDueCount: number;
   juniorManualTrainingSlot: "manual_am" | "manual_pm" | null;
   journalItems: DashboardJournalItem[];
@@ -101,6 +103,7 @@ function normalizeAssistantPayload(value: unknown): {
     return {
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
+      availableScoutCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
       journalItems: normalizeJournalItems(value),
@@ -111,6 +114,7 @@ function normalizeAssistantPayload(value: unknown): {
     return {
       riderRecruitmentMatchCount: 0,
       staffRecruitmentMatchCount: 0,
+      availableScoutCount: 0,
       juniorManualTrainingDueCount: 0,
       juniorManualTrainingSlot: null,
       journalItems: [],
@@ -125,6 +129,7 @@ function normalizeAssistantPayload(value: unknown): {
     staffRecruitmentMatchCount: normalizeCount(
       payload.staffRecruitmentMatchCount,
     ),
+    availableScoutCount: normalizeCount(payload.availableScoutCount),
     juniorManualTrainingDueCount: normalizeCount(
       payload.juniorManualTrainingDueCount,
     ),

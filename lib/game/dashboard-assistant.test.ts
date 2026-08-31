@@ -18,6 +18,7 @@ const snapshot: DashboardAssistantSnapshot = {
   untreatedInjuryCount: 2,
   lowFormCount: 3,
   completedScoutingCount: 1,
+  availableScoutCount: 2,
   zeroTrainingCount: 4,
   seniorSessionCount: 20,
   seniorCompletedCount: 17,
@@ -73,6 +74,7 @@ describe("dashboard DS assistant", () => {
       "rider-recruitment-matches",
       "staff-recruitment-matches",
       "completed-scouting",
+      "available-scouts",
       "low-form",
       "zero-training",
       "contract-renewals",
@@ -87,6 +89,15 @@ describe("dashboard DS assistant", () => {
         title: "entraînements juniors à réaliser",
         detail: expect.stringContaining("matin"),
         href: "/jeu/centre-de-formation?onglet=ecole",
+      }),
+    );
+    expect(
+      groups.alerts.find((line) => line.id === "available-scouts"),
+    ).toEqual(
+      expect.objectContaining({
+        metric: "2",
+        title: "scouts disponibles",
+        href: "/jeu/centre-de-formation?onglet=scouting",
       }),
     );
     expect(groups.alerts[0]).toEqual(
@@ -122,6 +133,7 @@ describe("dashboard DS assistant", () => {
         untreatedInjuryCount: 0,
         lowFormCount: 0,
         completedScoutingCount: 0,
+        availableScoutCount: 0,
         zeroTrainingCount: 0,
         pendingSelectionCount: 0,
         pendingDirectOfferCount: 0,
@@ -147,6 +159,7 @@ describe("dashboard DS assistant", () => {
         untreatedInjuryCount: 0,
         lowFormCount: 0,
         completedScoutingCount: 0,
+        availableScoutCount: 0,
         zeroTrainingCount: 0,
         pendingSelectionCount: 0,
         pendingDirectOfferCount: 0,
@@ -167,6 +180,37 @@ describe("dashboard DS assistant", () => {
         title: "entraînement junior à réaliser",
         detail: expect.stringContaining("soir"),
         href: "/jeu/centre-de-formation?onglet=ecole",
+      }),
+    ]);
+  });
+
+  it("uses a singular reminder for one available scout", () => {
+    const groups = buildDashboardAssistantLines({
+      snapshot: {
+        ...snapshot,
+        untreatedInjuryCount: 0,
+        lowFormCount: 0,
+        completedScoutingCount: 0,
+        availableScoutCount: 1,
+        zeroTrainingCount: 0,
+        pendingSelectionCount: 0,
+        pendingDirectOfferCount: 0,
+        riderRecruitmentMatchCount: 0,
+        staffRecruitmentMatchCount: 0,
+        contractRenewalCount: 0,
+        youthAlertCount: 0,
+        juniorManualTrainingDueCount: 0,
+      },
+      rewardCount: 0,
+      cashBalance: 100_000,
+    });
+
+    expect(groups.alerts).toEqual([
+      expect.objectContaining({
+        id: "available-scouts",
+        metric: "1",
+        title: "scout disponible",
+        href: "/jeu/centre-de-formation?onglet=scouting",
       }),
     ]);
   });

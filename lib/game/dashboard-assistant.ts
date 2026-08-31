@@ -23,6 +23,7 @@ export type DashboardAssistantSnapshot = {
   untreatedInjuryCount: number;
   lowFormCount: number;
   completedScoutingCount: number;
+  availableScoutCount: number;
   zeroTrainingCount: number;
   seniorSessionCount: number;
   seniorCompletedCount: number;
@@ -78,6 +79,7 @@ const ALERT_PRIORITY = [
   "rider-recruitment-matches",
   "staff-recruitment-matches",
   "completed-scouting",
+  "available-scouts",
   "low-form",
   "zero-training",
   "contract-renewals",
@@ -126,6 +128,21 @@ export function buildDashboardAssistantLines({
       metric: String(snapshot.completedScoutingCount),
       title: pluralize(snapshot.completedScoutingCount, "rapport de scouting prêt", "rapports de scouting prêts"),
       detail: "Les candidats peuvent être consultés.",
+      href: "/jeu/centre-de-formation?onglet=scouting",
+    });
+  }
+
+  if (snapshot.availableScoutCount > 0) {
+    alerts.push({
+      id: "available-scouts",
+      tone: "alert",
+      metric: String(snapshot.availableScoutCount),
+      title: pluralize(
+        snapshot.availableScoutCount,
+        "scout disponible",
+        "scouts disponibles",
+      ),
+      detail: "Une nouvelle mission de détection peut être lancée.",
       href: "/jeu/centre-de-formation?onglet=scouting",
     });
   }
