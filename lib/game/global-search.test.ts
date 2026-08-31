@@ -56,15 +56,23 @@ describe("groupGlobalSearchResults", () => {
       result_type: "country",
       public_identifier: "fr",
     };
+    const rider: GlobalSearchResult = {
+      ...baseResult,
+      result_type: "rider",
+      public_identifier:
+        "33333333-3333-3333-3333-333333333333",
+    };
 
     const groups = groupGlobalSearchResults([
       team,
       baseResult,
+      rider,
       country,
     ]);
 
     expect(groups.sportingDirectors).toEqual([baseResult]);
     expect(groups.teams).toEqual([team]);
+    expect(groups.riders).toEqual([rider]);
     expect(groups.countries).toEqual([country]);
   });
 });
@@ -74,5 +82,15 @@ describe("getGlobalSearchResultHref", () => {
     expect(getGlobalSearchResultHref(baseResult)).toBe(
       "/jeu/directeurs-sportifs/Paul%20Roue"
     );
+  });
+
+  it("ouvre directement la fiche d’un coureur", () => {
+    expect(
+      getGlobalSearchResultHref({
+        ...baseResult,
+        result_type: "rider",
+        public_identifier: "33333333-3333-3333-3333-333333333333",
+      }),
+    ).toBe("/jeu/coureurs/33333333-3333-3333-3333-333333333333");
   });
 });

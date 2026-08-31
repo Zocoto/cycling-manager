@@ -4,6 +4,7 @@ export const GLOBAL_SEARCH_MAX_LENGTH = 80;
 export type GlobalSearchResultType =
   | "sporting_director"
   | "team"
+  | "rider"
   | "country";
 
 export type GlobalSearchResult = {
@@ -34,6 +35,7 @@ export type GlobalSearchResult = {
 export type GroupedGlobalSearchResults = {
   sportingDirectors: GlobalSearchResult[];
   teams: GlobalSearchResult[];
+  riders: GlobalSearchResult[];
   countries: GlobalSearchResult[];
 };
 
@@ -59,6 +61,8 @@ export function groupGlobalSearchResults(
         groups.sportingDirectors.push(result);
       } else if (result.result_type === "team") {
         groups.teams.push(result);
+      } else if (result.result_type === "rider") {
+        groups.riders.push(result);
       } else if (result.result_type === "country") {
         groups.countries.push(result);
       }
@@ -68,6 +72,7 @@ export function groupGlobalSearchResults(
     {
       sportingDirectors: [],
       teams: [],
+      riders: [],
       countries: [],
     }
   );
@@ -86,6 +91,10 @@ export function getGlobalSearchResultHref(
 
   if (result.result_type === "team") {
     return `/jeu/equipes/${identifier}`;
+  }
+
+  if (result.result_type === "rider") {
+    return `/jeu/coureurs/${identifier}`;
   }
 
   return `/jeu/nations/${identifier.toLowerCase()}`;

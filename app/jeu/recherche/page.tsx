@@ -25,7 +25,7 @@ import {
 export const metadata: Metadata = {
   title: "Recherche globale",
   description:
-    "Recherchez un Directeur Sportif, une équipe ou une nation dans Cyclostratège.",
+    "Recherchez un joueur, une équipe, un coureur ou une nation dans Cyclostratège.",
 };
 
 type GlobalSearchPageProps = {
@@ -153,7 +153,7 @@ export default async function GlobalSearchPage({
                 </h1>
 
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[#D6DFD2] sm:text-base">
-                  Retrouvez les Directeurs Sportifs, les équipes et les nations déjà présentes dans votre partie.
+                  Retrouvez les joueurs, les équipes, les coureurs et les nations déjà présents dans votre partie.
                 </p>
               </div>
 
@@ -177,7 +177,7 @@ export default async function GlobalSearchPage({
             {query.length >= GLOBAL_SEARCH_MIN_LENGTH &&
             !searchResult.error &&
             totalResults > 0 ? (
-              <div className="grid gap-7 xl:grid-cols-3">
+              <div className="grid gap-7 md:grid-cols-2 2xl:grid-cols-4">
                 <SearchSection
                   eyebrow="Personnes"
                   title="Directeurs Sportifs"
@@ -195,6 +195,16 @@ export default async function GlobalSearchPage({
                   emptyLabel="Aucune équipe correspondante."
                   renderResult={(result) => (
                     <TeamResult result={result} />
+                  )}
+                />
+
+                <SearchSection
+                  eyebrow="Peloton"
+                  title="Coureurs"
+                  results={groupedResults.riders}
+                  emptyLabel="Aucun coureur correspondant."
+                  renderResult={(result) => (
+                    <RiderResult result={result} />
                   )}
                 />
 
@@ -229,7 +239,7 @@ function SearchStatus({
     return (
       <EmptyState
         title="Qui recherchez-vous ?"
-        description="Saisissez un nom, un identifiant public, une équipe ou un pays dans le champ du header."
+        description="Saisissez le nom d’un joueur, d’une équipe, d’un coureur ou d’un pays dans le champ du header."
       />
     );
   }
@@ -257,7 +267,7 @@ function SearchStatus({
     return (
       <EmptyState
         title={`Aucun résultat pour « ${query} »`}
-        description="Essayez un nom plus court, un identifiant public ou le nom d’un pays."
+        description="Essayez un nom plus court, le nom d’une équipe, d’un coureur ou d’un pays."
       />
     );
   }
@@ -461,6 +471,48 @@ function CountryResult({
       <span className="text-lg font-black text-[#278B70]" aria-hidden="true">
         →
       </span>
+    </ResultLink>
+  );
+}
+
+function RiderResult({
+  result,
+}: {
+  result: GlobalSearchResult;
+}) {
+  return (
+    <ResultLink result={result}>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#278B70]/20 bg-[#D7EEE8] text-sm font-black text-[#176951] shadow-sm">
+        {getInitials(result.display_name)}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-extrabold text-[#183F37]">
+          {result.display_name}
+        </p>
+        <p className="mt-0.5 truncate text-xs text-[#60756E]">
+          {result.team_name ?? "Agent libre"}
+        </p>
+        {result.team_id ? (
+          <span className="mt-2 block">
+            <TeamDivisionBadge
+              division={result.division_code}
+              isProfessional={Boolean(result.is_professional)}
+              compact
+            />
+          </span>
+        ) : null}
+      </div>
+
+      <div className="shrink-0 text-right">
+        <CountryFlag
+          countryCode={result.country_code}
+          countryName={result.country_name}
+        />
+        <p className="mt-1 text-[0.7rem] font-bold text-[#60756E]">
+          {numberFormatter.format(result.reputation_points ?? 0)} pts UCI
+        </p>
+      </div>
     </ResultLink>
   );
 }

@@ -6,7 +6,6 @@ import Link from "@/components/ui/app-link";
 import type { Sponsor } from "@/types/sponsor";
 
 import { logoutAccount } from "@/app/jeu/actions";
-import { GameHeaderSearchToggle } from "@/components/game/game-header-search-toggle";
 import { CyclogazetteShortcut } from "@/components/game/cyclogazette-shortcut";
 import { DirectorMailboxShortcut } from "@/components/game/director-mailbox-shortcut";
 import { GlobalChatShortcut } from "@/components/game/global-chat-shortcut";
@@ -127,6 +126,18 @@ export function GameHeader({
         </Link>
 
         <GameNavigationMenu viewerEmail={simulatorEmail} />
+
+        <div
+          data-global-header-search="true"
+          className="order-2 w-full min-w-0 xl:order-none xl:flex-1"
+        >
+          <GameHeaderSearch
+            id="game-global-search"
+            searchQuery={searchQuery}
+            className="flex"
+            isEnglish={isEnglish}
+          />
+        </div>
 
         <div
           data-mobile-header-shortcuts="true"
@@ -268,17 +279,6 @@ export function GameHeader({
               </svg>
             </HeaderMenuLink>
           </span>
-
-          <div className="hidden sm:contents">
-            <GameHeaderSearchToggle isEnglish={isEnglish}>
-              <GameHeaderSearch
-                id="game-global-search"
-                searchQuery={searchQuery}
-                className="flex"
-                isEnglish={isEnglish}
-              />
-            </GameHeaderSearchToggle>
-          </div>
         </div>
 
         <div
@@ -286,16 +286,6 @@ export function GameHeader({
           className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 lg:ml-0"
         >
           <MobilePageRefreshControl isEnglish={isEnglish} />
-          <div className="sm:hidden">
-            <GameHeaderSearchToggle isEnglish={isEnglish}>
-              <GameHeaderSearch
-                id="game-global-search-mobile"
-                searchQuery={searchQuery}
-                className="flex"
-                isEnglish={isEnglish}
-              />
-            </GameHeaderSearchToggle>
-          </div>
           <LanguageSwitcher compact />
           <LogoutButton isEnglish={isEnglish} />
         </div>
@@ -357,8 +347,8 @@ function GameHeaderSearch({
     >
       <label htmlFor={id} className="sr-only">
         {isEnglish
-          ? "Search for a sports director, a team or a nation"
-          : "Rechercher un Directeur Sportif, une équipe ou une nation"}
+          ? "Search for a player, a team or a rider"
+          : "Rechercher un joueur, une équipe ou un coureur"}
       </label>
 
       <div className="flex w-full items-center overflow-hidden rounded-xl border border-[#78947D]/55 bg-[#FFFDF4]/8 shadow-inner shadow-black/20 transition focus-within:border-[var(--game-header-accent)] focus-within:ring-2 focus-within:ring-[var(--game-header-accent-soft)]">
@@ -389,23 +379,23 @@ function GameHeaderSearch({
           defaultValue={searchQuery}
           placeholder={
             isEnglish
-              ? "Search for a sports director, team or nation…"
-              : "Rechercher un DS, une équipe, une nation…"
+              ? "Search player / team / rider"
+              : "Rechercher joueur / équipe / coureur"
           }
           autoComplete="off"
-          className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-[#D6DFD2]/65"
+          className="min-w-0 flex-1 bg-transparent px-2.5 py-1.5 text-sm font-medium text-[#FFFDF4] outline-none placeholder:text-[#D6DFD2]/65 sm:px-3 sm:py-2 xl:py-2.5"
         />
 
         <button
           type="submit"
           aria-label={isEnglish ? "Start search" : "Lancer la recherche"}
-          className="m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:w-auto sm:px-3"
+          className="m-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--game-header-accent)] text-xs font-extrabold uppercase tracking-wide text-[#071A17] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-9 sm:w-9 2xl:w-auto 2xl:px-3"
         >
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
             fill="none"
-            className="h-4 w-4 sm:hidden"
+            className="h-4 w-4 2xl:hidden"
           >
             <circle
               cx="11"
@@ -421,7 +411,7 @@ function GameHeaderSearch({
               strokeWidth="2"
             />
           </svg>
-          <span className="hidden sm:inline">{isEnglish ? "Search" : "Rechercher"}</span>
+          <span className="hidden 2xl:inline">{isEnglish ? "Search" : "Rechercher"}</span>
         </button>
       </div>
     </form>
