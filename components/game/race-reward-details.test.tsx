@@ -65,6 +65,7 @@ describe("RaceRewardDetails", () => {
             {
               id: "stage-ttt",
               stageType: "team_time_trial",
+              departureAt: "2026-09-01T14:00:00+02:00",
             } as RaceCalendarEdition["stages"][number],
           ],
         })}

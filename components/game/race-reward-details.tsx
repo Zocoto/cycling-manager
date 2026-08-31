@@ -6,6 +6,7 @@ import {
   type RaceRewardScope,
 } from "@/lib/game/economy";
 import type { RaceCalendarEdition } from "@/lib/game/race-calendar";
+import { shouldRewardTeamTimeTrialByTeam } from "@/lib/game/team-time-trial-rewards";
 
 type RewardEdition = Pick<
   RaceCalendarEdition,
@@ -271,7 +272,9 @@ function buildRewardPreview(edition: RewardEdition) {
     scope,
   } as const;
   const hasTeamTimeTrial = edition.stages.some(
-    (stage) => stage.stageType === "team_time_trial",
+    (stage) =>
+      stage.stageType === "team_time_trial" &&
+      shouldRewardTeamTimeTrialByTeam(stage.departureAt),
   );
 
   return {

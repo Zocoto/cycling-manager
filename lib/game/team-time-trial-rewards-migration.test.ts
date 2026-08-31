@@ -16,6 +16,14 @@ const service = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 
+const restorationMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "supabase/migrations/20260901000000_restore_past_team_time_trial_rewards.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
+
 describe("récompenses des CLM par équipes", () => {
   it("classe une fois chaque équipe et applique le barème à son rang", () => {
     expect(migration).toContain("min(result.elapsed_time_ms) as team_time_ms");
@@ -54,10 +62,26 @@ describe("récompenses des CLM par équipes", () => {
   });
 
   it("court-circuite le règlement individuel uniquement pour les TTT", () => {
-    expect(service).toContain('if (stage.stageType === "team_time_trial")');
+    expect(service).toContain('stage.stageType === "team_time_trial"');
+    expect(service).toContain(
+      "shouldRewardTeamTimeTrialByTeam(stage.departureAt)",
+    );
     expect(service).toContain("await persistTeamTimeTrialStageRewards");
     expect(service).toContain("continue;");
     expect(service).toContain('"apply_team_time_trial_stage_reward"');
     expect(service).toContain("p_experience_points: reward.experience");
+  });
+
+  it("restaure les gains historiques et borne la bascule au lendemain", () => {
+    expect(restorationMigration).toContain("2026-08-31 22:00:00+00");
+    expect(restorationMigration).toContain("ttt_collective_rewards_to_restore");
+    expect(restorationMigration).toContain(
+      "public.apply_race_roster_competition_reward",
+    );
+    expect(restorationMigration).toContain("official-stage-prize:");
+    expect(restorationMigration).toContain("official-stage-sporting:");
+    expect(restorationMigration).toContain(
+      "delete from public.reward_events as reward",
+    );
   });
 });

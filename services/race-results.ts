@@ -47,6 +47,7 @@ import {
 import { createCalendarSimulationInput } from "@/lib/game/race-simulation-demo";
 import { calculateStageRaceTimeBonuses } from "@/lib/game/race-time-bonuses";
 import { hasSpecialAbility } from "@/lib/game/special-abilities";
+import { shouldRewardTeamTimeTrialByTeam } from "@/lib/game/team-time-trial-rewards";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   chunkValues,
@@ -1744,7 +1745,10 @@ async function persistStageRewards({
   let detectionRewardsApplied = false;
 
   for (const { stage, results } of stageClassifications) {
-    if (stage.stageType === "team_time_trial") {
+    if (
+      stage.stageType === "team_time_trial" &&
+      shouldRewardTeamTimeTrialByTeam(stage.departureAt)
+    ) {
       await persistTeamTimeTrialStageRewards({
         admin,
         edition,
