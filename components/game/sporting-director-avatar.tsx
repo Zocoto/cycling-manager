@@ -7,6 +7,7 @@ import {
   ASSIDU_AVATAR_GLASSES_KEY,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   SPORTING_DIRECTOR_AVATARS,
@@ -99,6 +100,9 @@ export function SportingDirectorAvatar({
         ) : null}
         {avatar.outfit === EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY ? (
           <AvatarEmergencyDoctorOutfit />
+        ) : null}
+        {avatar.outfit === INVETERATE_PLAYER_AVATAR_OUTFIT_KEY ? (
+          <AvatarPokerChipsOutfit />
         ) : null}
 
         <AvatarEars avatar={avatar} skin={skin.color} shadow={skin.shadow} />
@@ -273,6 +277,38 @@ function AvatarEmergencyDoctorOutfit() {
       <path d="M60 111v3c0 4 3 6 8 6" stroke="#293C3B" strokeWidth="2.7" strokeLinecap="round" />
       <circle cx="72" cy="119" r="4.4" fill="#B62F46" stroke="#F7FAF8" strokeWidth="1.5" />
       <path d="M82 94h5M84.5 91.5v5" stroke="#B62F46" strokeWidth="1.8" strokeLinecap="round" />
+    </g>
+  );
+}
+
+function AvatarPokerChipsOutfit() {
+  return (
+    <g data-avatar-outfit="poker-chips">
+      <path d="M34 86 53 108l-9 12H20c2-14 7-25 14-34Z" fill="#202A40" />
+      <path d="m86 86-19 22 9 12h24c-2-14-7-25-14-34Z" fill="#202A40" />
+      <path d="m48 85 12 18 12-18-5 24H53l-5-24Z" fill="#F6E7C7" />
+      <g stroke="#FFF4D6" strokeWidth="1.3">
+        <g fill="#A52840">
+          <ellipse cx="35" cy="114" rx="13" ry="4" />
+          <path d="M22 102h26v12c0 5-26 5-26 0v-12Z" />
+          <ellipse cx="35" cy="102" rx="13" ry="4" />
+          <path d="M25 102h4M33 99v5M41 101l4 2" />
+        </g>
+        <g fill="#176951">
+          <ellipse cx="60" cy="117" rx="14" ry="4" />
+          <path d="M46 98h28v19c0 5-28 5-28 0V98Z" />
+          <ellipse cx="60" cy="98" rx="14" ry="4" />
+          <path d="M49 98h5M59 95v6M67 96l4 3" />
+        </g>
+        <g fill="#D7A928">
+          <ellipse cx="86" cy="115" rx="13" ry="4" />
+          <path d="M73 105h26v10c0 5-26 5-26 0v-10Z" />
+          <ellipse cx="86" cy="105" rx="13" ry="4" />
+          <path d="M76 105h4M85 102v6M93 103l4 3" />
+        </g>
+      </g>
+      <circle cx="82" cy="91" r="5" fill="#684DA0" stroke="#FFF4D6" strokeWidth="1.2" />
+      <path d="M82 87v8M78 91h8" stroke="#FFF4D6" strokeWidth="1" />
     </g>
   );
 }

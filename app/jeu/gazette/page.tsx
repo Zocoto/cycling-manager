@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CyclogazetteArchiveNavigation } from "@/components/game/cyclogazette-archive-navigation";
+import { CyclogazetteGamesSidebar } from "@/components/game/cyclogazette-games-sidebar";
 import { CyclogazetteNewspaper } from "@/components/game/cyclogazette-newspaper";
 import { CyclogazetteReadMarker } from "@/components/game/cyclogazette-read-marker";
 import { GameHeader } from "@/components/game/game-header";
@@ -15,6 +16,7 @@ import {
   getCyclogazetteEditionById,
   getLatestCyclogazetteEdition,
 } from "@/services/cyclogazette";
+import { getCyclogazetteGamesOverview } from "@/services/cyclogazette-games";
 import { getGameHeaderData } from "@/services/game-header-data";
 import { getCurrentTeamMediaCenterOverview } from "@/services/team-media-center";
 
@@ -56,13 +58,29 @@ export default async function CyclogazettePage({
       : Promise.resolve(null),
   ]);
   const edition = requestedEdition ?? latestEdition;
-  const community = edition
-    ? await getCyclogazetteCommunity(
-        edition.id,
-        user.id,
-        edition.content.reactions,
-      )
+  const previousIssueNumber = edition
+    ? archive
+        .flatMap((season) => season.editions)
+        .filter((entry) => entry.issueNumber < edition.issueNumber)
+        .sort((left, right) => right.issueNumber - left.issueNumber)[0]
+        ?.issueNumber ?? null
     : null;
+  const [community, gamesOverview] =
+    edition && latestEdition
+      ? await Promise.all([
+          getCyclogazetteCommunity(
+            edition.id,
+            user.id,
+            edition.content.reactions,
+          ),
+          getCyclogazetteGamesOverview({
+            supabase,
+            edition,
+            latestEditionId: latestEdition.id,
+            previousIssueNumber,
+          }),
+        ])
+      : [null, null];
   const isItalianGrandTourEdition = isItalianGrandTourGazetteDay(
     edition?.dayNumber ?? 0,
   );
@@ -94,11 +112,19 @@ export default async function CyclogazettePage({
               currentEditionId={edition.id}
               latestEditionId={latestEdition.id}
             />
-            <CyclogazetteNewspaper
-              edition={edition}
-              community={community ?? undefined}
-              interviewReactions={community?.interviewReactions}
-            />
+            <div className="mx-auto grid max-w-[1740px] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <CyclogazetteNewspaper
+                edition={edition}
+                community={community ?? undefined}
+                interviewReactions={community?.interviewReactions}
+              />
+              {gamesOverview ? (
+                <CyclogazetteGamesSidebar
+                  key={edition.id}
+                  overview={gamesOverview}
+                />
+              ) : null}
+            </div>
           </>
         ) : (
           <EmptyGazette />

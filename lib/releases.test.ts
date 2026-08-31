@@ -3,31 +3,19 @@ import { describe, expect, it } from "vitest";
 import { latestRelease, releases } from "./releases";
 
 describe("notes de version", () => {
-  it("met le Patch 5 en tête des nouveautés", () => {
-    expect(latestRelease.version).toBe("0.8.0 · Patch #5");
-    expect(latestRelease.anchor).toBe("patch-5");
-    expect(latestRelease.title).toContain("change de braquet");
+  it("met la version 0.9.0 en tête des nouveautés", () => {
+    expect(latestRelease.version).toBe("0.9.0");
+    expect(latestRelease.anchor).toBe("gazette-games");
+    expect(latestRelease.title).toContain("page des jeux");
   });
 
-  it("présente le Patch 5 par thèmes sans axe de communication technique", () => {
+  it("présente les jeux, leurs gains, objectifs et trophée", () => {
     const details = latestRelease.features.join("\n");
-
-    for (const topic of [
-      "Courses et directs",
-      "Calendrier et championnats",
-      "Infrastructures et staff",
-      "Santé et formation",
-      "Sponsors, finances et Fan Club",
-      "Matériel et inventaire",
-      "Progression et palmarès",
-      "Mobile, accessibilité et confort",
-    ]) {
-      expect(details).toContain(topic);
-    }
-
-    expect(
-      [latestRelease.title, latestRelease.description, details].join("\n"),
-    ).not.toMatch(/performances?|fiabilit/i);
+    expect(details).toContain("Sudoku");
+    expect(details).toContain("mots croisés");
+    expect(details).toContain("1 000 €");
+    expect(details).toContain("Six nouveaux objectifs");
+    expect(details).toContain("Joueur invétéré");
   });
 
   it("detaille chaque nouveau batiment et les autres livraisons majeures", () => {

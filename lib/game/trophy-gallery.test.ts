@@ -36,6 +36,9 @@ describe("buildTrophyGallery", () => {
     expect(
       lockedTrophies.some((trophy) => trophy.title === "Le Virage caché"),
     ).toBe(false);
+    expect(
+      lockedTrophies.some((trophy) => trophy.title === "Joueur invétéré"),
+    ).toBe(false);
   });
 
   it("removes a unique target from the grey catalogue once it is won", () => {

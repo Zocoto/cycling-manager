@@ -19,6 +19,7 @@ import {
   AVATAR_OUTFITS,
   AVATAR_SKIN_TONES,
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+  INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
   createRandomSportingDirectorAvatar,
@@ -41,6 +42,7 @@ type SportingDirectorAvatarEditorProps = {
   sponsorAmbassadorOutfitUnlocked?: boolean;
   ambulancierOutfitUnlocked?: boolean;
   emergencyDoctorOutfitUnlocked?: boolean;
+  inveteratePlayerOutfitUnlocked?: boolean;
 };
 
 type EditorTab = "face" | "eyes" | "hair" | "style";
@@ -68,6 +70,7 @@ export function SportingDirectorAvatarEditor({
   sponsorAmbassadorOutfitUnlocked = false,
   ambulancierOutfitUnlocked = false,
   emergencyDoctorOutfitUnlocked = false,
+  inveteratePlayerOutfitUnlocked = false,
 }: SportingDirectorAvatarEditorProps) {
   const initialConfig = resolveSportingDirectorAvatar(avatarKey);
   const [config, setConfig] =
@@ -88,6 +91,9 @@ export function SportingDirectorAvatarEditor({
     emergencyDoctorOutfitUnlocked
       ? null
       : EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+    inveteratePlayerOutfitUnlocked
+      ? null
+      : INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
   ].filter((key): key is string => key !== null);
 
   function updateField<K extends keyof SportingDirectorAvatarConfig>(
@@ -255,6 +261,9 @@ export function SportingDirectorAvatarEditor({
                     emergencyDoctorOutfitUnlocked
                       ? "La blouse et le stéthoscope sont débloqués avec le trophée Médecin urgentiste."
                       : "La tenue de docteur urgentiste demande 10 blessés simultanés.",
+                    inveteratePlayerOutfitUnlocked
+                      ? "Les piles de jetons récompensent vos dix jours parfaits dans les jeux de La Cyclogazette."
+                      : "Les piles de jetons sont liées à un trophée caché de La Cyclogazette.",
                   ].join(" ")}
                   field="outfit"
                   value={config.outfit}

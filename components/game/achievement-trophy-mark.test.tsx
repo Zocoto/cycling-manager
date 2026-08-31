@@ -10,6 +10,7 @@ const variants: AchievementTrophyVisualVariant[] = [
   "apparatus",
   "regalia",
   "switchback",
+  "poker-chips",
 ];
 
 const palette = {
@@ -20,7 +21,7 @@ const palette = {
 };
 
 describe("AchievementTrophyMark", () => {
-  it("renders five simple flat SVG identities without raster artwork or gradients", () => {
+  it("renders six simple flat SVG identities without raster artwork or gradients", () => {
     const markup = variants
       .map((variant) =>
         renderToStaticMarkup(

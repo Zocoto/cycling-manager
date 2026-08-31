@@ -1,7 +1,14 @@
 import type { TrophyPalette } from "@/lib/game/trophy-gallery";
 
 export type AchievementTrophyVisualVariant =
-  "astrolabe" | "panorama" | "apparatus" | "regalia" | "switchback";
+  | "astrolabe"
+  | "panorama"
+  | "apparatus"
+  | "regalia"
+  | "switchback"
+  | "poker-chips";
+
+export const INVETERATE_PLAYER_TROPHY_KEY = "joueur_inveter";
 
 export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
   atlas_peloton: {
@@ -87,6 +94,23 @@ export const ACHIEVEMENT_TROPHY_DEFINITIONS = {
       secondary: "#EEE8FF",
       accent: "#246C73",
       glow: "rgba(165, 138, 244, 0.38)",
+    } satisfies TrophyPalette,
+  },
+  [INVETERATE_PLAYER_TROPHY_KEY]: {
+    objectiveKey: null,
+    title: "Joueur invétéré",
+    competitionName: "Les jeux de La Cyclogazette",
+    seasonName: "Carrière",
+    inscription: "Dix éditions · Deux grilles parfaites par jour",
+    description:
+      "Trophée caché remis après dix éditions consécutives avec le Sudoku et les mots croisés réussis. Offre 50 000 €, 250 XP, 15 points de réputation et les piles de jetons dans l’éditeur d’avatar.",
+    href: "/jeu/directeur-sportif#inveterate-player-avatar-outfit",
+    visualVariant: "poker-chips" satisfies AchievementTrophyVisualVariant,
+    palette: {
+      primary: "#D7A928",
+      secondary: "#FFF1B8",
+      accent: "#684DA0",
+      glow: "rgba(215, 169, 40, 0.42)",
     } satisfies TrophyPalette,
   },
 } as const;

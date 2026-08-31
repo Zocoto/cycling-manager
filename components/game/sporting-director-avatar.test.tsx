@@ -9,6 +9,7 @@ import {
   EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
   encodeSportingDirectorAvatar,
   HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY,
+  INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
   PATRON_HAT_AVATAR_OUTFIT_KEY,
   SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY,
 } from "@/lib/sporting-director-avatar";
@@ -108,5 +109,18 @@ describe("SportingDirectorAvatar", () => {
 
     expect(markup).toContain('data-avatar-outfit="emergency-doctor"');
     expect(markup).toContain("#B62F46");
+  });
+
+  it("renders poker-chip stacks over the bust for the inveterate player", () => {
+    const avatarKey = encodeSportingDirectorAvatar({
+      ...DEFAULT_SPORTING_DIRECTOR_AVATAR,
+      outfit: INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
+    });
+    const markup = renderToStaticMarkup(
+      <SportingDirectorAvatar avatarKey={avatarKey} label="Avatar joueur" />,
+    );
+
+    expect(markup).toContain('data-avatar-outfit="poker-chips"');
+    expect(markup).toContain("#D7A928");
   });
 });

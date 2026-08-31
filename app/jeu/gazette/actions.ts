@@ -3,7 +3,25 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  isCyclogazetteGameAnswerCorrect,
+  isCyclogazetteGameType,
+} from "@/lib/game/cyclogazette-games";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getAuthenticatedUser } from "@/lib/supabase/authenticated-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export type CyclogazetteGameActionState = {
+  result: "idle" | "success" | "failure";
+  rewardCash: number;
+  trophyUnlocked: boolean;
+};
+
+export const initialCyclogazetteGameActionState: CyclogazetteGameActionState = {
+  result: "idle",
+  rewardCash: 0,
+  trophyUnlocked: false,
+};
 
 export async function publishMediaCenterArticleAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
@@ -37,4 +55,96 @@ export async function publishMediaCenterArticleAction(formData: FormData) {
   revalidatePath("/jeu");
   revalidatePath("/jeu/profil");
   redirect("/jeu/gazette?article=propose");
+}
+
+export async function validateCyclogazetteGameAction(
+  _previousState: CyclogazetteGameActionState,
+  formData: FormData,
+): Promise<CyclogazetteGameActionState> {
+  const editionId = String(formData.get("editionId") ?? "").trim();
+  const gameTypeValue = String(formData.get("gameType") ?? "").trim();
+  const answer = String(formData.get("answer") ?? "");
+  if (!isUuid(editionId) || !isCyclogazetteGameType(gameTypeValue)) {
+    return failureState();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authenticationError,
+  } = await getAuthenticatedUser(supabase);
+  if (authenticationError || !user) return failureState();
+
+  const admin = createSupabaseAdminClient();
+  const [editionResult, latestEditionResult] = await Promise.all([
+    admin
+      .from("cyclogazette_editions")
+      .select("id, issue_number")
+      .eq("id", editionId)
+      .maybeSingle<{ id: string; issue_number: number }>(),
+    admin
+      .from("cyclogazette_editions")
+      .select("id")
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>(),
+  ]);
+
+  if (
+    editionResult.error ||
+    latestEditionResult.error ||
+    !editionResult.data ||
+    latestEditionResult.data?.id !== editionResult.data.id ||
+    !isCyclogazetteGameAnswerCorrect({
+      issueNumber: Number(editionResult.data.issue_number),
+      gameType: gameTypeValue,
+      answer,
+    })
+  ) {
+    return failureState();
+  }
+
+  const completionResult = await admin.rpc(
+    "complete_cyclogazette_game_for_user",
+    {
+      p_auth_user_id: user.id,
+      p_edition_id: editionId,
+      p_game_type: gameTypeValue,
+    },
+  );
+  if (completionResult.error) {
+    console.error(
+      "Impossible d’enregistrer la réussite au jeu de La Cyclogazette :",
+      completionResult.error,
+    );
+    return failureState();
+  }
+
+  const payload =
+    completionResult.data && typeof completionResult.data === "object"
+      ? (completionResult.data as {
+          rewardCash?: unknown;
+          trophyUnlocked?: unknown;
+        })
+      : {};
+  revalidatePath("/jeu/gazette");
+  revalidatePath("/jeu/objectifs");
+  revalidatePath("/jeu/finances");
+  revalidatePath("/jeu/directeur-sportif");
+
+  return {
+    result: "success",
+    rewardCash: Math.max(0, Number(payload.rewardCash) || 0),
+    trophyUnlocked: payload.trophyUnlocked === true,
+  };
+}
+
+function failureState(): CyclogazetteGameActionState {
+  return { result: "failure", rewardCash: 0, trophyUnlocked: false };
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

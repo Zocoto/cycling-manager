@@ -11,6 +11,21 @@ export type ReleaseNote = {
 
 export const releases = [
   {
+    version: APP_VERSION,
+    anchor: "gazette-games",
+    date: "31 août 2026",
+    title: "La Cyclogazette ouvre sa page des jeux",
+    description:
+      "Le quotidien du peloton gagne une véritable colonne de jeux, pensée comme un rendez-vous rapide entre deux décisions de Directeur Sportif.",
+    features: [
+      "Un Sudoku et une grille de mots croisés différents sont proposés dans chaque nouvelle édition, avec trois niveaux alternés et une saisie directe dans le journal.",
+      "Chaque première grille réussie rapporte 1 000 €, tandis que le tableau d’honneur rassemble les DS victorieux du jour.",
+      "Les solutions de l’édition précédente restent consultables discrètement, dans l’esprit des quotidiens papier.",
+      "Six nouveaux objectifs récompensent les paliers de 1, 5 et 20 réussites, séparément pour le Sudoku et les mots croisés.",
+      "Le trophée caché Joueur invétéré distingue dix éditions parfaites consécutives et débloque une tenue d’avatar couverte de piles de jetons.",
+    ],
+  },
+  {
     version: `${APP_VERSION} · Patch #5`,
     anchor: "patch-5",
     date: "23 août 2026",

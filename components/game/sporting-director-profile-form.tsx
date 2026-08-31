@@ -27,6 +27,7 @@ type SportingDirectorProfileFormProps = {
   sponsorAmbassadorOutfitUnlocked?: boolean;
   ambulancierOutfitUnlocked?: boolean;
   emergencyDoctorOutfitUnlocked?: boolean;
+  inveteratePlayerOutfitUnlocked?: boolean;
 };
 
 const profileFields: SportingDirectorProfileField[] = [
@@ -52,6 +53,7 @@ export function SportingDirectorProfileForm({
   sponsorAmbassadorOutfitUnlocked = false,
   ambulancierOutfitUnlocked = false,
   emergencyDoctorOutfitUnlocked = false,
+  inveteratePlayerOutfitUnlocked = false,
 }: SportingDirectorProfileFormProps) {
   const [state, formAction, pending] = useActionState(
     updateSportingDirectorProfile,
@@ -573,6 +575,25 @@ export function SportingDirectorProfileForm({
           </section>
         ) : null}
 
+        {inveteratePlayerOutfitUnlocked ? (
+          <section
+            id="inveterate-player-avatar-outfit"
+            className="scroll-mt-28 rounded-xl border border-[#D7A928]/40 bg-[linear-gradient(135deg,rgba(255,241,184,0.72),rgba(232,224,250,0.72))] p-4 sm:p-5"
+          >
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#684DA0]">
+              Joueur invétéré
+            </p>
+            <h3 className="mt-2 text-base font-black text-[#173F37]">
+              Piles de jetons débloquées
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#48665F]">
+              Votre série parfaite dans La Cyclogazette débloque cette tenue
+              de joueur, dont les piles de jetons couvrent le bas du buste.
+              Retrouvez-la dans l’onglet Style de l’éditeur d’avatar.
+            </p>
+          </section>
+        ) : null}
+
         <div className="rounded-xl border border-[#315B3E]/15 bg-[#F5F9F7] p-4 sm:p-5">
           <label className="flex cursor-pointer items-start gap-4">
             <input
@@ -700,6 +721,9 @@ export function SportingDirectorProfileForm({
               }
               ambulancierOutfitUnlocked={ambulancierOutfitUnlocked}
               emergencyDoctorOutfitUnlocked={emergencyDoctorOutfitUnlocked}
+              inveteratePlayerOutfitUnlocked={
+                inveteratePlayerOutfitUnlocked
+              }
             />
           </div>
         </div>

@@ -203,6 +203,33 @@ function TrophySymbol({
     );
   }
 
+  if (variant === "poker-chips") {
+    return (
+      <g data-achievement-symbol="poker-chips">
+        <path
+          d="M38 103h104v25H38z"
+          fill="#163F3B"
+          stroke={palette.secondary}
+          strokeWidth="3"
+        />
+        <g stroke={palette.secondary} strokeWidth="2">
+          <path d="M42 78h30v39H42z" fill="#A52840" />
+          <ellipse cx="57" cy="78" rx="15" ry="5" fill="#C83A52" />
+          <ellipse cx="57" cy="117" rx="15" ry="5" fill="#7E1B30" />
+          <path d="M75 54h30v63H75z" fill={palette.accent} />
+          <ellipse cx="90" cy="54" rx="15" ry="5" fill="#876CC0" />
+          <ellipse cx="90" cy="117" rx="15" ry="5" fill="#493378" />
+          <path d="M108 69h30v48h-30z" fill={palette.primary} />
+          <ellipse cx="123" cy="69" rx="15" ry="5" fill="#F2C94C" />
+          <ellipse cx="123" cy="117" rx="15" ry="5" fill="#A67B10" />
+        </g>
+        <path d="M47 88h20M80 68h20M113 83h20" stroke="#FFF7D5" strokeWidth="3" strokeDasharray="5 4" />
+        <circle cx="90" cy="38" r="12" fill={palette.primary} stroke={palette.secondary} strokeWidth="3" />
+        <path d="M90 31v14M83 38h14" stroke={palette.accent} strokeWidth="2.5" />
+      </g>
+    );
+  }
+
   return (
     <g>
       <path

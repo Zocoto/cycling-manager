@@ -69,6 +69,7 @@ const groupLabels: Record<string, string> = {
   referrals: "Parrainage",
   fan_club: "Fan Club",
   championships: "Championnats",
+  gazette_games: "Jeux de La Cyclogazette",
 };
 
 const groupLinks: Record<string, { href: string; label: string }> = {
@@ -111,6 +112,7 @@ const groupLinks: Record<string, { href: string; label: string }> = {
   referrals: { href: "/jeu/parrainage", label: "Voir le parrainage" },
   fan_club: { href: "/jeu/fan-club", label: "Ouvrir le Fan Club" },
   championships: { href: "/jeu/resultats", label: "Voir les championnats" },
+  gazette_games: { href: "/jeu/gazette", label: "Jouer dans la Gazette" },
 };
 
 export default async function ObjectivesPage({

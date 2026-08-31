@@ -138,6 +138,7 @@ export const ASSIDU_AVATAR_GLASSES_KEY = "honor-roll";
 export const HIDDEN_SWITCHBACK_AVATAR_GLASSES_KEY = "spy-glasses";
 export const SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY = "ambassador";
 export const PATRON_HAT_AVATAR_OUTFIT_KEY = "patron-hat";
+export const INVETERATE_PLAYER_AVATAR_OUTFIT_KEY = "poker-chips";
 
 const STANDARD_AVATAR_GLASSES_STYLES = [
   { key: "none", label: "Sans lunettes" },
@@ -202,6 +203,12 @@ export const AVATAR_OUTFITS = [
     jacket: "#F7FAF8",
     shirt: "#5BB7A8",
   },
+  {
+    key: INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
+    label: "Joueur invétéré · piles de jetons",
+    jacket: "#26324A",
+    shirt: "#F6E7C7",
+  },
 ] as const;
 
 const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
@@ -210,7 +217,8 @@ const RANDOM_AVATAR_OUTFITS = AVATAR_OUTFITS.filter(
     key !== PATRON_HAT_AVATAR_OUTFIT_KEY &&
     key !== SPONSOR_AMBASSADOR_AVATAR_OUTFIT_KEY &&
     key !== AMBULANCIER_AVATAR_OUTFIT_KEY &&
-    key !== EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY,
+    key !== EMERGENCY_DOCTOR_AVATAR_OUTFIT_KEY &&
+    key !== INVETERATE_PLAYER_AVATAR_OUTFIT_KEY,
 ) as readonly (typeof AVATAR_OUTFITS)[number][];
 
 export const AVATAR_BACKGROUNDS = [
