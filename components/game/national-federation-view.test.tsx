@@ -73,6 +73,9 @@ describe("NationalFederationView", () => {
     expect(markup).toContain("Jeanne Peloton");
     expect(markup).toContain("Impact académies");
     expect(markup).toContain("30 %");
+    expect(markup).toContain("Objectifs fédéraux prévisionnels");
+    expect(markup).toContain("Assistant fédéral");
+    expect(markup).toContain("Rang de référence");
     expect(markup).not.toContain("<form");
   });
 
@@ -97,7 +100,7 @@ describe("NationalFederationView", () => {
     expect(markup).not.toContain("<form");
   });
 
-  it("previews a national jersey editor with flag artwork", () => {
+  it("offers a local-only national jersey editor with movable flag artwork", () => {
     const markup = renderToStaticMarkup(
       <NationalFederationView
         country={{ id: "country-fr", code: "FR", name: "France" }}
@@ -111,7 +114,37 @@ describe("NationalFederationView", () => {
 
     expect(markup).toContain("Atelier du maillot national");
     expect(markup).toContain("/images/flags/4x3/fr.svg");
-    expect(markup).toContain("aigle, feuille, croix, soleil");
+    expect(markup).toContain("Brouillon local");
+    expect(markup).toContain("Motif central rond");
+    expect(markup).toContain("Sauvegarder sur cet appareil");
+    expect(markup).toContain("Aucune donnée envoyée au serveur");
     expect(markup).not.toContain("<form");
+  });
+
+  it("shows an interactive Season 3 finance forecast without a payment action", () => {
+    const markup = renderToStaticMarkup(
+      <NationalFederationView
+        country={{ id: "country-fr", code: "FR", name: "France" }}
+        snapshot={snapshot}
+        nationRanking={{
+          rank: 4,
+          countryCode: "FR",
+          countryName: "France",
+          points: 1520,
+          riderCount: 48,
+        }}
+        memberTeams={[]}
+        memberTeamCount={3}
+        selectedTab="finances"
+      />,
+    );
+
+    expect(markup).toContain("Simulateur budgétaire S3");
+    expect(markup).toContain("Prévision sans transaction");
+    expect(markup).toContain("Classement UCI précédent");
+    expect(markup).toContain("Courses du pays");
+    expect(markup).toContain("Solidarité");
+    expect(markup).not.toContain("Payer");
+    expect(markup).not.toContain("Confirmer le don");
   });
 });

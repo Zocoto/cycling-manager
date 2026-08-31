@@ -4,7 +4,8 @@ import {
   GameSectionTabLink,
   GameSectionTabs,
 } from "@/components/game/game-section-tabs";
-import { SvgCountryFlag } from "@/components/game/svg-country-flag";
+import { FederationFinancePreview } from "@/components/game/federation-finance-preview";
+import { NationalJerseyPreviewEditor } from "@/components/game/national-jersey-preview-editor";
 import type { GlobalSearchResult } from "@/lib/game/global-search";
 import {
   FEDERATION_MANAGEMENT_START_GAME_YEAR,
@@ -179,7 +180,11 @@ export function NationalFederationView({
         ) : selectedTab === "infrastructures" ? (
           <InfrastructuresPanel snapshot={snapshot} />
         ) : selectedTab === "finances" ? (
-          <FinancesPanel />
+          <FinancesPanel
+            nationRank={nationRanking?.rank ?? 173}
+            division={division.division}
+            memberTeamCount={memberTeamCount}
+          />
         ) : selectedTab === "governance" ? (
           <GovernancePanel country={country} snapshot={snapshot} />
         ) : (
@@ -294,6 +299,17 @@ function OverviewPanel({
           />
         </div>
       </section>
+
+      <FederationSeasonThreePreview
+        countryName={country.name}
+        divisionLabel={divisionLabel}
+        division={getFederationDivisionPreview(nationRanking?.rank ?? null).division}
+        nationRank={nationRanking?.rank ?? null}
+        memberTeamCount={memberTeamCount}
+        academyCount={snapshot.academies.centers.length}
+        academyImpact={snapshot.academies.totalImpactPercentage}
+        recordedTitleCount={snapshot.palmares.length}
+      />
 
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
         <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
@@ -569,31 +585,28 @@ function InfrastructuresPanel({
   );
 }
 
-function FinancesPanel() {
+function FinancesPanel({
+  nationRank,
+  division,
+  memberTeamCount,
+}: {
+  nationRank: number;
+  division: 1 | 2 | 3 | 4;
+  memberTeamCount: number;
+}) {
   return (
     <div className="space-y-7">
       <LockedFeatureHeader
         eyebrow="Trésorerie fédérale"
-        title="Un budget collectif séparé des équipes"
-        description="Le solde sera créé au lancement de la Saison 3. Aucun prélèvement, don ou versement n’est effectué pendant la Saison 2."
+        title="Projeter le budget avant de l’engager"
+        description="Le simulateur ci-dessous travaille uniquement dans votre navigateur. Le véritable solde sera créé au lancement de la Saison 3 : aucun prélèvement, don ou versement n’est effectué ici."
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          ["Dotation commune", "Socle identique pour toutes les fédérations actives", "40 %"],
-          ["Classement UCI", "Performance nationale de la saison précédente", "25 %"],
-          ["Nations Cup", "Résultats du groupe et de la division", "15 %"],
-          ["Développement", "Objectifs, jeunesse et participation", "20 %"],
-        ].map(([label, detail, value]) => (
-          <OverviewMetric
-            key={label}
-            eyebrow="Dotation annuelle"
-            label={label}
-            value={value}
-            detail={detail}
-          />
-        ))}
-      </section>
+      <FederationFinancePreview
+        initialNationRank={nationRank}
+        initialDivision={division}
+        memberTeamCount={memberTeamCount}
+      />
 
       <div className="grid gap-7 lg:grid-cols-2">
         <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
@@ -643,138 +656,237 @@ function GovernancePanel({
   snapshot: NationalFederationSnapshot;
 }) {
   return (
-    <div className="grid gap-7 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-      <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-        <SectionHeading
-          eyebrow="Présidence"
-          title="Mode automatique"
-          description="Aucun candidat n’est nécessaire pour que la fédération fonctionne et engage ses sélections."
-        />
-        <div className="mt-6 rounded-2xl bg-[#123F36] p-6 text-white">
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
-            Direction actuelle
-          </p>
-          <p className="mt-2 text-2xl font-black">Administration fédérale</p>
-          <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
-            Les sélections, remplacements et échéances seront traités même sans
-            équipe affiliée ou sans candidat à la présidence.
-          </p>
-        </div>
-        <FeatureList
-          entries={[
-            "Élection tous les deux saisons à compter de la Saison 3",
-            "Une voix par équipe affiliée sur la liste électorale figée",
-            "Retour automatique au mode assisté après une échéance manquée",
-            "Conservation du dernier maillot national valide",
-            "Aucune candidature hôte ou création coûteuse en mode automatique",
-          ]}
-        />
-
-        <article className="mt-6 overflow-hidden rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9]">
-          <div className="grid gap-5 p-5 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
-            <NationalJerseyPreview
-              countryCode={country.code}
-              countryName={country.name}
-            />
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-black text-[#183F37]">
-                  Atelier du maillot national
-                </h3>
-                <StatusPill>Saison 3</StatusPill>
-              </div>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[#60756E]">
-                Le président disposera du drapeau complet et d’une bibliothèque
-                contrôlée de ses emblèmes — aigle, feuille, croix, soleil ou
-                blason — à déplacer sur le maillot.
-              </p>
-            </div>
+    <div className="space-y-7">
+      <div className="grid gap-7 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
+          <SectionHeading
+            eyebrow="Présidence"
+            title="Mode automatique"
+            description="Aucun candidat n’est nécessaire pour que la fédération fonctionne et engage ses sélections."
+          />
+          <div className="mt-6 rounded-2xl bg-[#123F36] p-6 text-white">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-[#9BE0BC]">
+              Direction actuelle
+            </p>
+            <p className="mt-2 text-2xl font-black">Administration fédérale</p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#D6DFD2]">
+              Les sélections, remplacements et échéances seront traités même
+              sans équipe affiliée ou sans candidat à la présidence.
+            </p>
           </div>
-        </article>
-      </section>
+          <FeatureList
+            entries={[
+              "Élection tous les deux saisons à compter de la Saison 3",
+              "Une voix par équipe affiliée sur la liste électorale figée",
+              "Retour automatique au mode assisté après une échéance manquée",
+              "Conservation du dernier maillot national valide",
+              "Aucune candidature hôte ou création coûteuse en mode automatique",
+            ]}
+          />
+        </section>
 
-      <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
-        <SectionHeading
-          eyebrow="Transparence"
-          title="Journal public"
-          description="Chaque décision financière ou sportive importante y sera horodatée."
-        />
-        <ol className="mt-6 space-y-4">
-          <JournalEntry
-            day={`J${snapshot.season.currentDayNumber}`}
-            title="Préfiguration de la fédération ouverte"
-            detail="Consultation autorisée sans aucune modification de la Saison 2."
+        <section className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
+          <SectionHeading
+            eyebrow="Transparence"
+            title="Journal public"
+            description="Chaque décision financière ou sportive importante y sera horodatée."
           />
-          <JournalEntry
-            day="S3"
-            title="Gestion automatique programmée"
-            detail="La fédération sera opérationnelle même sans président ni équipe affiliée."
-            future
-          />
-          <JournalEntry
-            day="S3"
-            title="Première liste électorale"
-            detail="Les droits seront figés à l’ouverture du scrutin pour empêcher toute double affiliation."
-            future
-          />
-        </ol>
-      </section>
+          <ol className="mt-6 space-y-4">
+            <JournalEntry
+              day={`J${snapshot.season.currentDayNumber}`}
+              title="Préfiguration de la fédération ouverte"
+              detail="Consultation autorisée sans aucune modification de la Saison 2."
+            />
+            <JournalEntry
+              day="S3"
+              title="Gestion automatique programmée"
+              detail="La fédération sera opérationnelle même sans président ni équipe affiliée."
+              future
+            />
+            <JournalEntry
+              day="S3"
+              title="Première liste électorale"
+              detail="Les droits seront figés à l’ouverture du scrutin pour empêcher toute double affiliation."
+              future
+            />
+          </ol>
+        </section>
+      </div>
+
+      <NationalJerseyPreviewEditor
+        countryCode={country.code}
+        countryName={country.name}
+      />
     </div>
   );
 }
 
-function NationalJerseyPreview({
-  countryCode,
+function FederationSeasonThreePreview({
   countryName,
+  divisionLabel,
+  division,
+  nationRank,
+  memberTeamCount,
+  academyCount,
+  academyImpact,
+  recordedTitleCount,
 }: {
-  countryCode: string;
   countryName: string;
+  divisionLabel: string;
+  division: 1 | 2 | 3 | 4;
+  nationRank: number | null;
+  memberTeamCount: number;
+  academyCount: number;
+  academyImpact: number;
+  recordedTitleCount: number;
 }) {
-  const clipPathId = `federation-jersey-${countryCode.toLowerCase()}`;
+  const sportingObjective =
+    division === 1
+      ? "Terminer parmi les 16 premières nations"
+      : `Accrocher l’une des deux places de montée en Division ${division}`;
 
   return (
-    <svg
-      viewBox="0 0 120 132"
-      role="img"
-      aria-label={`Aperçu du futur maillot national de ${countryName}`}
-      className="mx-auto h-32 w-28 drop-shadow-[0_12px_16px_rgba(19,60,46,0.18)]"
-    >
-      <defs>
-        <clipPath id={clipPathId}>
-          <path d="M39 9 19 18 5 48l19 10 8-14v78h56V44l8 14 19-10-14-30-20-9c-4 7-10 10-21 10S43 16 39 9Z" />
-        </clipPath>
-      </defs>
-      <path
-        d="M39 9 19 18 5 48l19 10 8-14v78h56V44l8 14 19-10-14-30-20-9c-4 7-10 10-21 10S43 16 39 9Z"
-        fill="#F8FBF9"
-        stroke="#123F36"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <SvgCountryFlag
-        countryCode={countryCode}
-        x="5"
-        y="8"
-        width={110}
-        height={116}
-        clipPathId={clipPathId}
-        preserveAspectRatio="xMidYMid slice"
-      />
-      <path
-        d="M32 72h56v18H32Z"
-        fill="#123F36"
-        fillOpacity="0.86"
-        clipPath={`url(#${clipPathId})`}
-      />
-      <circle cx="60" cy="81" r="7" fill="#F2C94C" />
-      <path
-        d="M39 9c4 7 10 10 21 10S77 16 81 9"
-        fill="none"
-        stroke="#123F36"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-    </svg>
+    <section className="grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
+      <div className="rounded-[2rem] border border-[#315B3E]/12 bg-white p-6 shadow-[0_16px_45px_rgba(19,60,46,0.07)] sm:p-8">
+        <SectionHeading
+          eyebrow="Feuille de route S3"
+          title="Objectifs fédéraux prévisionnels"
+          description="Trois axes simples, contrôlables et non cumulables à l’infini. Leur bonus financier est déjà testable dans le simulateur."
+        />
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <ObjectivePreviewCard
+            number="01"
+            label="Performance"
+            title={sportingObjective}
+            detail={`${divisionLabel} · objectif recalculé à la clôture du classement UCI S2`}
+            reward="Palier jusqu’à +10 %"
+          />
+          <ObjectivePreviewCard
+            number="02"
+            label="Sélections"
+            title="Couvrir les cinq profils internationaux"
+            detail="Une discipline manquante n’annule pas le reste de la campagne."
+            reward="Bonus de participation"
+          />
+          <ObjectivePreviewCard
+            number="03"
+            label="Formation"
+            title={
+              academyCount > 0
+                ? "Consolider le réseau d’académies"
+                : "Faire émerger une première académie"
+            }
+            detail={`${academyCount} centre${academyCount > 1 ? "s" : ""} · ${academyImpact} % d’impact actuel`}
+            reward="Bonus de développement"
+          />
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <RecordPreview
+            label="Rang de référence"
+            value={nationRank ? `#${nationRank}` : "À établir"}
+          />
+          <RecordPreview
+            label="Titres indexés"
+            value={numberFormatter.format(recordedTitleCount)}
+          />
+          <RecordPreview
+            label="Équipes affiliées"
+            value={numberFormatter.format(memberTeamCount)}
+          />
+          <RecordPreview label="Impact académique" value={`${academyImpact} %`} />
+        </div>
+        <p className="mt-4 text-xs font-semibold leading-5 text-[#789087]">
+          Cet instantané constituera le point de départ du registre de records
+          de {countryName}. Il ne réécrit aucun historique antérieur.
+        </p>
+      </div>
+
+      <aside className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(155deg,#0B302B_0%,#176951_100%)] p-6 text-white shadow-[0_20px_45px_rgba(19,60,46,0.18)] sm:p-8">
+        <div
+          aria-hidden="true"
+          className="absolute -right-12 -top-12 h-40 w-40 rounded-full border-[28px] border-white/5"
+        />
+        <div className="relative">
+          <div className="flex items-start justify-between gap-4">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#F2C94C] text-xl font-black text-[#19352E]">
+              ✦
+            </span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.11em] text-[#D6DFD2]">
+              Lecture seule
+            </span>
+          </div>
+          <p className="mt-6 text-xs font-black uppercase tracking-[0.17em] text-[#9BE0BC]">
+            Assistant fédéral
+          </p>
+          <h2 className="mt-2 text-2xl font-black">Trois dossiers à anticiper</h2>
+          <ul className="mt-5 space-y-3">
+            {[
+              "Budget prévisionnel à équilibrer avant J1",
+              "Sélections internationales disponibles dès J1",
+              "Mode automatique prêt si aucune présidence n’est élue",
+            ].map((entry) => (
+              <li
+                key={entry}
+                className="flex gap-3 rounded-xl border border-white/10 bg-white/8 p-3 text-sm font-semibold leading-5 text-[#E5EEE9]"
+              >
+                <span className="text-[#F2C94C]" aria-hidden="true">
+                  ✓
+                </span>
+                {entry}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-5 text-xs font-bold leading-5 text-[#BFD1C6]">
+            En Saison 3, ces conseils renverront vers l’action concernée. Cette
+            version n’émet ni alerte ni notification.
+          </p>
+        </div>
+      </aside>
+    </section>
+  );
+}
+
+function ObjectivePreviewCard({
+  number,
+  label,
+  title,
+  detail,
+  reward,
+}: {
+  number: string;
+  label: string;
+  title: string;
+  detail: string;
+  reward: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-[#315B3E]/12 bg-[#F8FBF9] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-2xl font-black text-[#42B99A]">{number}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.11em] text-[#60756E]">
+          {label}
+        </span>
+      </div>
+      <h3 className="mt-4 font-black leading-5 text-[#183F37]">{title}</h3>
+      <p className="mt-2 text-xs font-semibold leading-5 text-[#60756E]">
+        {detail}
+      </p>
+      <p className="mt-4 border-t border-[#315B3E]/10 pt-3 text-xs font-black text-[#176951]">
+        {reward}
+      </p>
+    </article>
+  );
+}
+
+function RecordPreview({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="rounded-xl border border-[#315B3E]/10 bg-[#EEF6F2] px-4 py-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#60756E]">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-black text-[#183F37]">{value}</p>
+    </article>
   );
 }
 
