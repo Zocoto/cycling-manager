@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildRaceFavorites,
+  buildTeamTimeTrialFavorites,
   getFrozenRaceFavoriteRiders,
   getRaceFavoriteScore,
 } from "@/lib/game/race-favorites";
@@ -906,6 +907,51 @@ describe("buildRaceFavorites", () => {
       getRaceFavoriteScore(edition, contextualClone),
     );
     expect(Number.isFinite(getRaceFavoriteScore(edition, rider))).toBe(true);
+  });
+});
+
+describe("buildTeamTimeTrialFavorites", () => {
+  it("classe les équipes sur leur force CLM collective plutôt que sur leur meilleur coureur", () => {
+    const stage = createStage(
+      "time_trial",
+      [createSegment(1, "flat", 32)],
+      1,
+      "team_time_trial",
+    );
+    const topHeavyTeam = [96, 48, 48, 48, 48, 48].map((timeTrial, index) => ({
+      ...createRider(`top-heavy-${index + 1}`, { timeTrial }),
+      teamId: "team-top-heavy",
+      teamName: "Équipe du meilleur rouleur",
+    }));
+    const balancedTeam = [78, 78, 77, 77, 76, 76].map((timeTrial, index) => ({
+      ...createRider(`balanced-${index + 1}`, { timeTrial }),
+      teamId: "team-balanced",
+      teamName: "Collectif homogène",
+    }));
+
+    const favorites = buildTeamTimeTrialFavorites({
+      stage,
+      riders: [...topHeavyTeam, ...balancedTeam],
+    });
+
+    expect(favorites).toHaveLength(2);
+    expect(favorites[0].team.id).toBe("team-balanced");
+    expect(favorites[0].team.riderCount).toBe(6);
+    expect(favorites.map((favorite) => favorite.team.id)).toEqual([
+      "team-balanced",
+      "team-top-heavy",
+    ]);
+  });
+
+  it("reste strictement inactif sur les autres types d’étapes", () => {
+    const rider = createRider("rider-1", { timeTrial: 90 });
+
+    expect(
+      buildTeamTimeTrialFavorites({
+        stage: createStage("time_trial", [createSegment(1, "flat", 32)]),
+        riders: [rider],
+      }),
+    ).toEqual([]);
   });
 });
 

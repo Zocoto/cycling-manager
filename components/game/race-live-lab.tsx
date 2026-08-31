@@ -48,6 +48,7 @@ import {
 } from "@/lib/game/race-finish-visual";
 import {
   buildRaceFavorites,
+  buildTeamTimeTrialFavorites,
   getFrozenRaceFavoriteRiders,
 } from "@/lib/game/race-favorites";
 import { buildRaceGapLine } from "@/lib/game/race-gap-line";
@@ -152,8 +153,16 @@ export function RaceLiveLab({
     [edition, lockedSimulations, stage.id]
   );
   const chalkFavoriteNames = useMemo(
-    () =>
-      buildRaceFavorites({
+    () => {
+      if (stage.stageType === "team_time_trial") {
+        return buildTeamTimeTrialFavorites({
+          stage,
+          riders: favoriteRiders,
+          limit: 3,
+        }).map((favorite) => favorite.team.name);
+      }
+
+      return buildRaceFavorites({
         edition: {
           raceFormat: "one_day",
           stages: [stage],
@@ -165,7 +174,8 @@ export function RaceLiveLab({
         (favorite) =>
           favorite.rider.name.trim().split(/\s+/).at(-1) ??
           favorite.rider.name,
-      ),
+      );
+    },
     [favoriteRiders, stage],
   );
   const chalkTeamNames = useMemo(
@@ -494,7 +504,11 @@ export function RaceLiveLab({
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9BE0BC]">
                 Pronostic d&apos;avant-course
               </p>
-              <h3 className="mt-1 text-lg font-black">Favoris de l&apos;étape</h3>
+              <h3 className="mt-1 text-lg font-black">
+                {stage.stageType === "team_time_trial"
+                  ? "Équipes favorites de l’étape"
+                  : "Favoris de l’étape"}
+              </h3>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#DCECE5]">

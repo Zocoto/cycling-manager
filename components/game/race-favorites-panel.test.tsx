@@ -135,6 +135,88 @@ describe("RaceFavoritesPanel", () => {
     expect(markup).toContain("#F4C542");
   });
 
+  it("affiche les équipes et leur force collective sur un CLM par équipes", () => {
+    const collective = [1, 2, 3].map((index) => ({
+      ...createRider(index),
+      id: `collective-${index}`,
+      name: `Membre collectif ${index}`,
+      teamId: "team-collective",
+      teamName: "Les Rouleurs Unis",
+      ratings: {
+        ...createRider(index).ratings,
+        timeTrial: 84 - index,
+      },
+    }));
+    const isolatedStars = [4, 5, 6].map((index) => ({
+      ...createRider(index),
+      id: `stars-${index}`,
+      name: `Individualité ${index}`,
+      teamId: "team-stars",
+      teamName: "Les Individualités",
+      ratings: {
+        ...createRider(index).ratings,
+        timeTrial: index === 4 ? 96 : 55,
+      },
+    }));
+    const stage: RaceCalendarStage = {
+      ...createStage(),
+      stageType: "team_time_trial",
+      profileType: "time_trial",
+      distanceKm: 32,
+      segments: [
+        {
+          ...createStage().segments[0],
+          distanceKm: 32,
+        },
+      ],
+    };
+    const riders = [...isolatedStars, ...collective];
+    const markup = renderToStaticMarkup(
+      <RaceFavoritesPanel
+        edition={{ ...createEdition(riders), stages: [stage] }}
+        stage={stage}
+        riders={riders}
+      />,
+    );
+
+    expect(markup).toContain("Équipes favorites du CLM");
+    expect(markup).toContain("data-team-time-trial-favorites");
+    expect(markup).toContain('href="/jeu/equipes/team-collective"');
+    expect(markup).toContain('href="/jeu/equipes/team-stars"');
+    expect(markup).not.toContain('href="/jeu/coureurs/');
+    expect(markup.indexOf("Les Rouleurs Unis")).toBeLessThan(
+      markup.indexOf("Les Individualités"),
+    );
+    expect(markup.match(/data-favorite-entity="team"/g)).toHaveLength(2);
+    expect(markup).not.toContain("Membre collectif");
+    expect(markup).not.toContain("Individualité 4");
+  });
+
+  it("conserve les favoris individuels sur un CLM individuel", () => {
+    const chrono = {
+      ...createRider(1),
+      name: "Spécialiste chrono",
+      ratings: { ...createRider(1).ratings, timeTrial: 95 },
+    };
+    const stage: RaceCalendarStage = {
+      ...createStage(),
+      stageType: "individual_time_trial",
+      profileType: "time_trial",
+    };
+    const markup = renderToStaticMarkup(
+      <RaceFavoritesPanel
+        edition={{ ...createEdition([chrono]), stages: [stage] }}
+        stage={stage}
+        riders={[chrono]}
+      />,
+    );
+
+    expect(markup).toContain("Favoris de l’étape");
+    expect(markup).toContain("Spécialiste chrono");
+    expect(markup).toContain('href="/jeu/coureurs/rider-1"');
+    expect(markup).not.toContain("data-team-time-trial-favorites");
+  });
+
   it("explique que le pronostic attend les premiers engagés", () => {
     const markup = renderToStaticMarkup(
       <RaceFavoritesPanel

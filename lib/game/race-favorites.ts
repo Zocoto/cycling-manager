@@ -17,6 +17,22 @@ export type RaceFavorite = {
   score: number;
 };
 
+export type RaceFavoriteTeam = {
+  id: string;
+  name: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  riderCount: number;
+};
+
+export type RaceTeamFavorite = {
+  team: RaceFavoriteTeam;
+  rank: number;
+  stars: RaceFavoriteStars;
+  score: number;
+};
+
 export function getFrozenRaceFavoriteRiders(
   edition: Pick<RaceCalendarEdition, "stages" | "engagedRiders">,
   lockedSimulations: Array<{
@@ -84,6 +100,79 @@ export function buildRaceFavorites({
       const rank = index + 1;
       return {
         rider,
+        rank,
+        stars: rank <= 3 ? 3 : rank <= 10 ? 2 : 1,
+        score: round(score, 3),
+      };
+    });
+}
+
+export function buildTeamTimeTrialFavorites({
+  stage,
+  riders,
+  limit = 20,
+}: {
+  stage: RaceCalendarStage;
+  riders: RiderSimulationInput[];
+  limit?: number;
+}): RaceTeamFavorite[] {
+  if (stage.stageType !== "team_time_trial") {
+    return [];
+  }
+
+  const uniqueRiders = [
+    ...new Map(riders.map((rider) => [rider.id, rider])).values(),
+  ];
+  const ridersByTeam = new Map<string, RiderSimulationInput[]>();
+
+  for (const rider of uniqueRiders) {
+    const teammates = ridersByTeam.get(rider.teamId) ?? [];
+    teammates.push(rider);
+    ridersByTeam.set(rider.teamId, teammates);
+  }
+
+  const safeLimit = Math.max(0, Math.min(20, Math.floor(limit)));
+
+  return [...ridersByTeam.entries()]
+    .map(([teamId, teammates]) => {
+      const orderedTeammates = [...teammates].sort(
+        (first, second) =>
+          first.name.localeCompare(second.name, "fr") ||
+          first.id.localeCompare(second.id),
+      );
+      const representative = orderedTeammates[0];
+      const collectiveRating = average(
+        orderedTeammates.map((rider) =>
+          getTimeTrialFavoriteRating(rider.ratings, stage),
+        ),
+      );
+      // The simulator also rewards the aerodynamic depth of a larger train.
+      // Express that small advantage on the same scale as the riders' ratings.
+      const trainDepthBonus = Math.log2(orderedTeammates.length + 1) * 3.15;
+
+      return {
+        team: {
+          id: teamId,
+          name: representative.teamName,
+          primaryColor: representative.teamPrimaryColor,
+          secondaryColor: representative.teamSecondaryColor,
+          accentColor: representative.teamJersey?.accentColor ?? "#F2C94C",
+          riderCount: orderedTeammates.length,
+        },
+        score: collectiveRating + trainDepthBonus,
+      };
+    })
+    .sort(
+      (first, second) =>
+        second.score - first.score ||
+        first.team.name.localeCompare(second.team.name, "fr") ||
+        first.team.id.localeCompare(second.team.id),
+    )
+    .slice(0, safeLimit)
+    .map(({ team, score }, index) => {
+      const rank = index + 1;
+      return {
+        team,
         rank,
         stars: rank <= 3 ? 3 : rank <= 10 ? 2 : 1,
         score: round(score, 3),
@@ -661,6 +750,12 @@ function getTimeTrialTerrainDifficulty(stage: RaceCalendarStage) {
 function getRatingsAverage(ratings: RiderSimulationRatings) {
   const values = Object.values(ratings);
   return values.reduce((total, rating) => total + rating, 0) / values.length;
+}
+
+function average(values: number[]) {
+  return values.length > 0
+    ? values.reduce((total, value) => total + value, 0) / values.length
+    : 0;
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
