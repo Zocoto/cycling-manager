@@ -19,7 +19,12 @@ describe("interactions des jeux de La Cyclogazette", () => {
     expect(sidebar).toContain('aria-modal="true"');
     expect(sidebar).toContain('"Réussi !"');
     expect(sidebar).toContain('"Raté !"');
-    expect(sidebar).toContain('"Reprendre la grille"');
+    expect(sidebar).toContain('"OK, reprendre la grille"');
+    expect(sidebar).toContain("onSubmit={onValidate}");
+    expect(sidebar).toContain("validationRequested &&");
+    expect(sidebar).toContain("state !== dismissedResult");
+    expect(sidebar).toContain("window.sessionStorage.setItem");
+    expect(sidebar).toContain("useSyncExternalStore");
     expect(sidebar).not.toContain("router.refresh()");
     expect(sidebar).not.toContain("useRefreshAfterSuccess");
 

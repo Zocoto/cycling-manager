@@ -2,8 +2,10 @@
 
 import {
   useActionState,
+  useCallback,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
@@ -24,6 +26,9 @@ import {
 } from "@/services/cyclogazette-games";
 
 type GameTab = "sudoku" | "crossword";
+
+const GAME_DRAFT_EVENT = "cyclogazette-game-draft";
+const inMemoryGameDrafts = new Map<string, string>();
 
 export function CyclogazetteGamesSidebar({
   overview,
@@ -185,20 +190,42 @@ function SudokuGame({
   formAction: (payload: FormData) => void;
   pending: boolean;
 }) {
-  const [values, setValues] = useState(() =>
-    puzzle.cells.map((value) => (value ? String(value) : "")),
+  const initialDraft = useMemo(
+    () =>
+      puzzle.cells.map((value) => (value ? String(value) : ".")).join(""),
+    [puzzle.cells],
+  );
+  const [draft, setDraft] = useCyclogazetteGameDraft(
+    `cyclogazette:${editionId}:sudoku`,
+    initialDraft,
+  );
+  const values = useMemo(
+    () =>
+      puzzle.cells.map((given, index) =>
+        given
+          ? String(given)
+          : /^[1-9]$/.test(draft[index] ?? "")
+            ? draft[index]
+            : "",
+      ),
+    [draft, puzzle.cells],
   );
   const completed = initiallyCompleted || state.result === "success";
   const [dismissedResult, setDismissedResult] = useState<typeof state | null>(
     null,
   );
-  const resultOpen = state.result !== "idle" && state !== dismissedResult;
+  const [validationRequested, setValidationRequested] = useState(false);
+  const resultOpen =
+    validationRequested &&
+    !pending &&
+    state.result !== "idle" &&
+    state !== dismissedResult;
 
   return (
     <GameForm
       editionId={editionId}
       gameType="sudoku"
-      answer={values.join("")}
+      answer={values.map((value) => value || ".").join("")}
       difficulty={puzzle.difficulty}
       playable={playable}
       completed={completed}
@@ -206,7 +233,11 @@ function SudokuGame({
       rewardCash={state.rewardCash}
       trophyUnlocked={state.trophyUnlocked}
       resultOpen={resultOpen}
-      onResultClose={() => setDismissedResult(state)}
+      onValidate={() => setValidationRequested(true)}
+      onResultClose={() => {
+        setDismissedResult(state);
+        setValidationRequested(false);
+      }}
       pending={pending}
       formAction={formAction}
     >
@@ -228,10 +259,12 @@ function SudokuGame({
               readOnly={Boolean(given) || completed || !playable}
               onChange={(event) => {
                 const nextValue = event.target.value.replace(/[^1-9]/g, "").slice(-1);
-                setValues((current) =>
-                  current.map((value, cellIndex) =>
-                    cellIndex === index ? nextValue : value,
-                  ),
+                setDraft(
+                  values
+                    .map((value, cellIndex) =>
+                      cellIndex === index ? nextValue || "." : value || ".",
+                    )
+                    .join(""),
                 );
               }}
               className={`min-w-0 border-b border-r border-[#7D6C49]/45 text-center font-serif text-base font-black outline-none focus:relative focus:z-10 focus:bg-[#FFF7D9] focus:ring-2 focus:ring-[#9B263D] ${
@@ -268,22 +301,42 @@ function CrosswordGame({
     () => new Map(puzzle.cells.map((cell) => [cell.index, cell])),
     [puzzle.cells],
   );
-  const [values, setValues] = useState<string[]>(() =>
-    Array.from({ length: puzzle.rows * puzzle.columns }, (_, index) =>
-      openCells.has(index) ? "" : "#",
-    ),
+  const initialDraft = useMemo(
+    () =>
+      Array.from({ length: puzzle.rows * puzzle.columns }, (_, index) =>
+        openCells.has(index) ? "." : "#",
+      ).join(""),
+    [openCells, puzzle.columns, puzzle.rows],
+  );
+  const [draft, setDraft] = useCyclogazetteGameDraft(
+    `cyclogazette:${editionId}:crossword`,
+    initialDraft,
+  );
+  const values = useMemo(
+    () =>
+      Array.from({ length: puzzle.rows * puzzle.columns }, (_, index) => {
+        if (!openCells.has(index)) return "#";
+        const value = draft[index] ?? "";
+        return /^[A-Z]$/.test(value) ? value : "";
+      }),
+    [draft, openCells, puzzle.columns, puzzle.rows],
   );
   const completed = initiallyCompleted || state.result === "success";
   const [dismissedResult, setDismissedResult] = useState<typeof state | null>(
     null,
   );
-  const resultOpen = state.result !== "idle" && state !== dismissedResult;
+  const [validationRequested, setValidationRequested] = useState(false);
+  const resultOpen =
+    validationRequested &&
+    !pending &&
+    state.result !== "idle" &&
+    state !== dismissedResult;
 
   return (
     <GameForm
       editionId={editionId}
       gameType="crossword"
-      answer={values.join("")}
+      answer={values.map((value) => value || ".").join("")}
       difficulty={puzzle.difficulty}
       playable={playable}
       completed={completed}
@@ -291,7 +344,11 @@ function CrosswordGame({
       rewardCash={state.rewardCash}
       trophyUnlocked={state.trophyUnlocked}
       resultOpen={resultOpen}
-      onResultClose={() => setDismissedResult(state)}
+      onValidate={() => setValidationRequested(true)}
+      onResultClose={() => {
+        setDismissedResult(state);
+        setValidationRequested(false);
+      }}
       pending={pending}
       formAction={formAction}
     >
@@ -329,10 +386,12 @@ function CrosswordGame({
                     .toUpperCase()
                     .replace(/[^A-Z]/g, "")
                     .slice(-1);
-                  setValues((current) =>
-                    current.map((value, cellIndex) =>
-                      cellIndex === index ? nextValue : value,
-                    ),
+                  setDraft(
+                    values
+                      .map((value, cellIndex) =>
+                        cellIndex === index ? nextValue || "." : value || ".",
+                      )
+                      .join(""),
                   );
                 }}
                 className="h-full w-full min-w-0 bg-transparent pt-1 text-center font-serif text-[clamp(9px,2vw,14px)] font-black uppercase text-[#9B263D] outline-none focus:bg-[#FFF7D9] focus:ring-2 focus:ring-inset focus:ring-[#9B263D]"
@@ -392,6 +451,7 @@ function GameForm({
   rewardCash,
   trophyUnlocked,
   resultOpen,
+  onValidate,
   onResultClose,
   pending,
   formAction,
@@ -407,6 +467,7 @@ function GameForm({
   rewardCash: number;
   trophyUnlocked: boolean;
   resultOpen: boolean;
+  onValidate: () => void;
   onResultClose: () => void;
   pending: boolean;
   formAction: (payload: FormData) => void;
@@ -415,7 +476,7 @@ function GameForm({
   const { locale } = useLocale();
   const isEnglish = locale === "en";
   return (
-    <form action={formAction}>
+    <form action={formAction} onSubmit={onValidate}>
       <input type="hidden" name="editionId" value={editionId} />
       <input type="hidden" name="gameType" value={gameType} />
       <input type="hidden" name="answer" value={answer} />
@@ -490,6 +551,9 @@ function GameResultDialog({
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
       }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose();
+      }}
     >
       <div
         role="dialog"
@@ -547,11 +611,11 @@ function GameResultDialog({
         >
           {succeeded
             ? isEnglish
-              ? "Continue here"
-              : "Continuer ici"
+              ? "OK, continue here"
+              : "OK, continuer ici"
             : isEnglish
-              ? "Return to the grid"
-              : "Reprendre la grille"}
+              ? "OK, return to the grid"
+              : "OK, reprendre la grille"}
         </button>
       </div>
     </div>
@@ -771,6 +835,58 @@ function DailyPoll({
       ) : null}
     </section>
   );
+}
+
+function useCyclogazetteGameDraft(storageKey: string, initialValue: string) {
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const handleDraftChange = (event: Event) => {
+        if ((event as CustomEvent<string>).detail === storageKey) {
+          onStoreChange();
+        }
+      };
+      window.addEventListener(GAME_DRAFT_EVENT, handleDraftChange);
+      return () =>
+        window.removeEventListener(GAME_DRAFT_EVENT, handleDraftChange);
+    },
+    [storageKey],
+  );
+  const getSnapshot = useCallback(() => {
+    try {
+      const savedDraft = window.sessionStorage.getItem(storageKey);
+      if (savedDraft?.length === initialValue.length) {
+        inMemoryGameDrafts.set(storageKey, savedDraft);
+        return savedDraft;
+      }
+    } catch {
+      // Le brouillon mémoire reste disponible si le stockage est désactivé.
+    }
+    return inMemoryGameDrafts.get(storageKey) ?? initialValue;
+  }, [initialValue, storageKey]);
+  const getServerSnapshot = useCallback(() => initialValue, [initialValue]);
+  const value = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
+  const setValue = useCallback(
+    (nextValue: string) => {
+      const safeValue =
+        nextValue.length === initialValue.length ? nextValue : initialValue;
+      inMemoryGameDrafts.set(storageKey, safeValue);
+      try {
+        window.sessionStorage.setItem(storageKey, safeValue);
+      } catch {
+        // La saisie reste fonctionnelle en mémoire sans stockage navigateur.
+      }
+      window.dispatchEvent(
+        new CustomEvent<string>(GAME_DRAFT_EVENT, { detail: storageKey }),
+      );
+    },
+    [initialValue, storageKey],
+  );
+
+  return [value, setValue] as const;
 }
 
 function formatCash(value: number) {
