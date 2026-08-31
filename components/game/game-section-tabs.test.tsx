@@ -55,4 +55,17 @@ describe("GameSectionTabs", () => {
     expect(markup).toContain('aria-selected="true"');
     expect(markup).toContain('aria-controls="panel-active"');
   });
+
+  it("accepte une rubrique dense de six onglets sans serrer le mobile", () => {
+    const markup = renderToStaticMarkup(
+      <GameSectionTabs ariaLabel="Fédération" columns={6}>
+        <GameSectionTabLink href="/one" active label="Un" />
+        <GameSectionTabLink href="/two" active={false} label="Deux" />
+      </GameSectionTabs>,
+    );
+
+    expect(markup).toContain("sm:grid-cols-2");
+    expect(markup).toContain("lg:grid-cols-3");
+    expect(markup).toContain("2xl:grid-cols-6");
+  });
 });
