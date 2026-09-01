@@ -6,6 +6,7 @@ import {
   applyStageTimeLimit,
   areFinishersInSameTimeGroup,
   assignAutomaticRaceRoles,
+  buildFlatGroupFinishTimes,
   buildStageRaceStandings,
   getStageAttackParticipants,
   getBreakawayGeneralClassificationThreat,
@@ -88,6 +89,31 @@ describe("accumulateRaceGroupGapsFromLeader", () => {
         (group) => group.gapToLeaderSeconds,
       ),
     ).toEqual([0, 8, 10, 10]);
+  });
+});
+
+describe("buildFlatGroupFinishTimes", () => {
+  it("interdit à un groupe attardé de dépasser le groupe de tête dans le dernier plat", () => {
+    const finishTimes = buildFlatGroupFinishTimes({
+      groups: [
+        { riderIds: ["leader-a", "leader-b"], gapToLeaderSeconds: 0 },
+        { riderIds: ["chaser"], gapToLeaderSeconds: 90 },
+        { riderIds: ["gruppetto"], gapToLeaderSeconds: 210 },
+      ],
+      elapsedTimeByRiderId: new Map([
+        ["leader-a", 25_720],
+        ["leader-b", 25_724],
+        // Ces horloges personnelles sont volontairement inversées : c'est le
+        // cas qui a corrompu le classement de la Ruta de las Sierras.
+        ["chaser", 25_566],
+        ["gruppetto", 25_580],
+      ]),
+    });
+
+    expect(finishTimes.get("leader-a")).toBe(25_722);
+    expect(finishTimes.get("leader-b")).toBe(25_722);
+    expect(finishTimes.get("chaser")).toBe(25_812);
+    expect(finishTimes.get("gruppetto")).toBe(25_932);
   });
 });
 

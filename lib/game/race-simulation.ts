@@ -2734,6 +2734,16 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
     random,
     finalCommentary,
   );
+  const groupSprintFinishTimes = groupSprintFinish
+    ? buildFlatGroupFinishTimes({
+        groups: timeline.at(-1)?.groups ?? [],
+        elapsedTimeByRiderId: new Map(
+          [...states.values()]
+            .filter((state) => state.group !== "abandoned")
+            .map((state) => [state.rider.id, state.elapsedTimeSeconds]),
+        ),
+      })
+    : new Map<string, number>();
   const rawResults = [...states.values()]
     .filter((state) => state.group !== "abandoned")
     .map((state) => ({
@@ -2746,6 +2756,7 @@ function simulateRoadStage(input: StageSimulationInput): StageSimulationResult {
         input.segments,
         input.profileType,
         groupSprintFinish,
+        groupSprintFinishTimes.get(state.rider.id),
       ),
       energyAfter: round(state.energy, 1),
     }));
@@ -5897,7 +5908,16 @@ function getRoadFinishTime(
   segments: RaceStageSegment[],
   profileType: RaceProfileType,
   groupSprintFinish: boolean,
+  fixedGroupSprintTimeSeconds?: number,
 ) {
+  if (
+    groupSprintFinish &&
+    fixedGroupSprintTimeSeconds !== undefined &&
+    Number.isFinite(fixedGroupSprintTimeSeconds)
+  ) {
+    return fixedGroupSprintTimeSeconds;
+  }
+
   const ownScore = scores.get(state.rider.id) ?? 0;
   const longSummitFinishFactor = getLongSummitFinishFactor(segments);
   const peers = [...states.values()]
@@ -5938,6 +5958,48 @@ function getRoadFinishTime(
         : 0.72;
   const finishGap = Math.max(0, bestScore - ownScore) * finishScale;
   return state.elapsedTimeSeconds + finishGap;
+}
+
+/**
+ * Un dernier secteur plat peut départager les coureurs à l'intérieur de leur
+ * groupe, mais ne peut pas faire remonter un groupe attardé devant ceux qui le
+ * précèdent. Le snapshot final est la source canonique des groupes et de leurs
+ * écarts après le dernier secteur simulé.
+ */
+export function buildFlatGroupFinishTimes({
+  groups,
+  elapsedTimeByRiderId,
+}: {
+  groups: ReadonlyArray<
+    Pick<RaceGroupSnapshot, "riderIds" | "gapToLeaderSeconds">
+  >;
+  elapsedTimeByRiderId: ReadonlyMap<string, number>;
+}) {
+  const leadingGroup = groups.find((group) =>
+    group.riderIds.some((riderId) => elapsedTimeByRiderId.has(riderId)),
+  );
+  if (!leadingGroup) return new Map<string, number>();
+
+  const leadingGroupTimes = leadingGroup.riderIds.flatMap((riderId) => {
+    const elapsedTimeSeconds = elapsedTimeByRiderId.get(riderId);
+    return elapsedTimeSeconds === undefined ? [] : [elapsedTimeSeconds];
+  });
+  if (leadingGroupTimes.length === 0) return new Map<string, number>();
+
+  const leadingGroupTimeSeconds = average(leadingGroupTimes);
+  const finishTimes = new Map<string, number>();
+
+  for (const group of groups) {
+    const groupTimeSeconds =
+      leadingGroupTimeSeconds + Math.max(0, group.gapToLeaderSeconds);
+    for (const riderId of group.riderIds) {
+      if (elapsedTimeByRiderId.has(riderId)) {
+        finishTimes.set(riderId, groupTimeSeconds);
+      }
+    }
+  }
+
+  return finishTimes;
 }
 
 function getLongSummitFinishFactor(segments: RaceStageSegment[]) {
